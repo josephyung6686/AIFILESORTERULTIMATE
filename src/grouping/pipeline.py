@@ -737,6 +737,7 @@ def group_subject(
 
     from grouping.p8_seam import (
         REFUSAL_EXCEPTIONS,
+        GroupDecision,
         apply_p8_verdict,
         build_dossier_request,
         prompt_fingerprint_for,
@@ -800,6 +801,16 @@ def group_subject(
     decision = apply_p8_verdict(
         conn, group=group, dossier=dossier, result=outcome_from_model,
         plan_version_id=plan_version_id, created_at=created_at)
+    if isinstance(decision, GroupDecision):
+        # `104` R-80: THE ROW THIS RUN PROPOSES IS THE ONE THE SEAM WROTE AGAINST.
+        # A second, differing answer mints a superseding group and carries the
+        # memberships onto it, so the group handed in above is by then the
+        # superseded row -- and a result naming it would hand the review step a
+        # row whose successor holds the files, which is the shape §8.2 keeps
+        # history to avoid. Read back rather than reconstructed: the seam is the
+        # authority for what it wrote, and every other outcome names the group it
+        # was given, so this changes nothing on any path but that one.
+        group = _standing_group(conn, decision.group_id) or group
     return _result(
         seeds=seeds, neighborhood=neighborhood, graph=graph, group=group,
         memberships=(membership,), dossier=dossier, model_result=decision)

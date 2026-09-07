@@ -72,10 +72,11 @@ from grouping.records import (
     Support,
 )
 from grouping.store import (
-    propose_group_category, record_failure_point, record_group,
-    record_membership, standing_group,
+    carry_memberships, memberships_for_group, propose_group_category,
+    record_failure_point, record_group, record_membership, standing_group,
 )
 from grouping.vocabulary import (
+    ACCEPTED,
     COHERENT,
     CONTEXT_SUPPORTED,
     DIRECT_ANCHOR,
@@ -403,15 +404,191 @@ def _record_group_once(conn: sqlite3.Connection, group: Group) -> None:
     threaded through the caller would have to be right on every path out, and this
     asks the database the question it is the authority for.
 
-    **A group already recorded is left exactly as it stands, and that is the
-    conservative half.** A second model answer about a group whose row already
-    carries a proposal is a real supersession question -- a superseding row needs a
-    new `group_id`, which every membership and `group_acceptance` row would then
-    not name -- and it is refused here rather than answered quietly, which is the
-    same position `record_group`'s own docstring takes for a widened anchor set.
+    **Every path but one comes through here, and none of them is an answer.** A
+    refusal, a failure, a budget deferral, a rejection and an observe-only call
+    all carry the ENGINE's group -- `naming.engine_proposal`'s conclusion, which
+    the model has not touched -- so a recorded row differing from it is not a
+    second opinion about anything and is left exactly as it stands. `104` R-80 is
+    about the one path that IS an answer, and that path is `_the_answers_row`.
     """
     if standing_group(conn, group.group_id) is None:
         record_group(conn, group)
+
+
+#: `104` R-80, the words on the superseded row. A later reader gets the account
+#: §8.2 keeps history for: not "P9 changed its mind" and not "the person renamed
+#: it", but the one thing that happened.
+SECOND_ANSWER_DIFFERED: str = "the model answered differently"
+
+#: WHAT A MODEL ANSWERS ABOUT A GROUP, and nothing about the call that carried it.
+#: `dossier_id` and `validation_verdict_ref` are new on every call by
+#: construction, so comparing whole rows would call every second answer a
+#: different one and mint a superseding group for a model that said exactly what
+#: it said the first time. These five are §4.5's task 4 as it reaches the record.
+_THE_ANSWER: tuple[str, ...] = (
+    "coherence_verdict", "coherence_citations", "group_category",
+    "display_label", "label_source",
+)
+
+
+def _answer_on(group: Group) -> tuple:
+    return tuple(getattr(group, name) for name in _THE_ANSWER)
+
+
+def _head_of(conn: sqlite3.Connection, group_id: str) -> Group | None:
+    """The row at the end of this group's supersession chain, or `None`.
+
+    THE CHAIN IS ALREADY LONGER THAN ONE IN THE SHIPPED FLOW, which is why this
+    walks rather than reading the address it was handed. `cli.review_and_accept`
+    runs on every run of the command -- `--label` and `--situation` are required
+    flags -- and it mints a MERGED group carrying `supersedes=<P9's group>` and
+    writes the person's acceptance on the merged row. So by the second run the
+    address P9 re-derives names a row that was superseded on the first, and a
+    supersession minted against it would fork the chain: `_link` would move
+    `superseded_by` off the merged row and onto the new one, and the person's
+    accepted group would be reachable from nothing.
+
+    A cycle cannot be written through `record_group` (a predecessor must already
+    exist), but it is read here rather than trusted: a walk that cannot terminate
+    is worse than a walk that stops and says the row it stopped on.
+    """
+    standing = standing_group(conn, group_id)
+    seen: set[str] = set()
+    while standing is not None and standing.superseded_by:
+        if standing.superseded_by in seen:
+            return standing
+        seen.add(standing.superseded_by)
+        successor = standing_group(conn, standing.superseded_by)
+        if successor is None:
+            return standing
+        standing = successor
+    return standing
+
+
+def _a_person_accepted(conn: sqlite3.Connection, group_id: str) -> bool:
+    """Is there a standing acceptance of this group as a whole?
+
+    `104` R-80: a person's acceptance outranks both model answers. The row is the
+    person's word however the command carried it -- `review_and_accept` records
+    `decided_by=RULES` because the FILE SET was nobody's judgement, while the
+    label and the situation on it are what the person typed and are the reason the
+    group is accepted at all. Reading `decided_by` here would let a model overrule
+    `--label` on a technicality about who held the pen.
+
+    Group-level only. A `membership_id` row is one file's review obligation, which
+    `record_context_review_pending` writes below and which says nothing about
+    whether the group stands.
+    """
+    return conn.execute(
+        "SELECT acceptance_id FROM group_acceptance WHERE group_id = ? "
+        "AND membership_id IS NULL AND acceptance = ? AND superseded_by IS NULL",
+        (group_id, ACCEPTED),
+    ).fetchone() is not None
+
+
+def _support_of(dossier: CandidateGroupDossier, item) -> tuple[Support, ...]:
+    """The support a membership for this file would carry, or none at all.
+
+    Asked twice -- by the loop that writes the row, and by the carry that has to
+    know which files that loop will leave to it -- so it is ONE expression rather
+    than two that have to agree. A file the model decided and the dossier supports
+    with nothing gets no row (`records.py`: "a membership with no support cannot
+    say why the file belongs"), which makes it a file the carry still owes.
+    """
+    return _support_for(item) or _edge_support(dossier, item.file_id)
+
+
+def _would_be_carried(conn: sqlite3.Connection, carried_from: str | None,
+                      members, dossier: CandidateGroupDossier) -> tuple:
+    """The memberships a supersession would carry, asked before anything is written.
+
+    Asked of the same rows `carry_memberships` will read and under the same
+    exclusion, so the refusal beside this can be raised BEFORE the group is
+    recorded rather than after: a group recorded beside a raise is a group whose
+    author this run cannot name, and `groups` cannot correct one.
+
+    The exclusion is the files that will END WITH A ROW, not the files this answer
+    mentioned. A file the model decided and the dossier supports with nothing gets
+    no row from the loop, so its earlier membership is carried -- and if that
+    membership was uncertain it needs a review obligation in this plan version
+    exactly as any other carried one does.
+    """
+    if carried_from is None:
+        return ()
+    written = {item.file_id for item, _decision in members
+               if _support_of(dossier, item)}
+    return tuple(
+        membership for membership in memberships_for_group(conn, carried_from)
+        if membership.file_id not in written)
+
+
+def _the_answers_row(conn: sqlite3.Connection, *, group: Group, named: Group,
+                     verdict_id: str, created_at: str
+                     ) -> tuple[Group | None, str | None]:
+    """Which `groups` row this answer writes, and whose memberships travel to it.
+
+    `104` R-80. `groups` is append-only in the strong sense -- a row is superseded,
+    never overwritten -- so a second, differing answer about a group used to leave
+    the first one standing and go unrecorded except in the harness tables. It is
+    now what the person's own review does with the same constraint: a NEW row,
+    naming its predecessor and saying why, and the memberships carried onto it.
+
+    Five answers, in the order they are asked:
+
+    **Nothing recorded** -- R-16's normal case for a deployment whose model
+    decides. The row is the model's proposal and this is its first write.
+
+    **The same answer twice** -- the head as it stands, and nothing is superseded.
+    A rerun over unchanged evidence re-derives the same group and asks the same
+    question of the same model; a supersession there would be a new row per run
+    saying what the last one said, which is history nobody can read.
+
+    **A person accepted it** -- `None`, and the caller applies nothing. This is
+    the clause that makes the record readable at all: two model answers and a
+    person's decision, and the person's is the one the product acts on. The answer
+    is not lost, it is in `llm_response` and `llm_verdict` under its own verdict
+    id, which is exactly what an unratified site does with every answer it gets.
+
+    **A SECOND answer, differing** -- a superseding row. Its id is the address, the
+    word `superseded-by` and the verdict that produced it, so it is DERIVED rather
+    than minted: the same answer arriving twice is the same id and `record_group`
+    returns the row it already holds, while two different answers can never
+    collide. A reader who has only the id can still say what happened to it.
+
+    **A first answer over a row no model wrote** -- the head as it stands, exactly
+    as before this change. R-80's row is about a SECOND model answer, and
+    `label_source` is the record's own answer to whether there was a first one: a
+    row already on disk when a model is about to decide is a row R-16 did not
+    withhold, which is a deployment saying the engine is the author here. What that
+    costs is unchanged and is not R-80's to widen -- the label is dropped and the
+    memberships land on the standing row -- and the seven tests that pre-record the
+    engine's row hold exactly that.
+    """
+    head = _head_of(conn, group.group_id)
+    if head is None:
+        return named, None
+    if _answer_on(head) == _answer_on(named):
+        return head, None
+    if _a_person_accepted(conn, head.group_id):
+        return None, None
+    if head.label_source != LLM_PROPOSED:
+        return head, None
+    return dataclasses.replace(
+        named,
+        group_id=f"{group.group_id}:superseded-by:{verdict_id}",
+        supersedes=head.group_id,
+        # THE HISTORY IS NOT INHERITED. `named` is a `replace` of the group handed
+        # in, and on the second run that group is the row read back off the disk --
+        # which by then carries the `superseded_by` this same branch stamped on it
+        # last time. Carried through, a THIRD differing answer would insert a row
+        # already pointing at its own predecessor while `_link` pointed that
+        # predecessor at it: a two-node cycle in a chain `_head_of` has to walk.
+        # `superseded_by` is stamped on a row by whatever superseded it, later, and
+        # a row being written has nothing to say about it.
+        superseded_by=None,
+        supersede_reason=SECOND_ANSWER_DIFFERED,
+        created_at=created_at,
+    ), head.group_id
 
 
 def _named_by_the_model(group: Group, answer, result, dossier) -> Group:
@@ -651,12 +828,40 @@ def apply_p8_verdict(
             "written with the blanket memberships `104` R-16 took out."
         )
     members = _members_of(dossier, answer)
+    # `104` R-80: WHICH ROW THIS ANSWER WRITES, decided before anything is written
+    # and never by overwriting. A second, differing answer about a group whose row
+    # already carries a proposal mints a superseding one and the memberships travel
+    # to it; the same answer twice writes nothing new; and a group the person has
+    # accepted is not superseded by either answer. Every branch of it is a READ, so
+    # it is asked here -- above the refusal below, which has to know what will be
+    # carried before it can say whether this run can carry it.
+    row, carried_from = _the_answers_row(
+        conn, group=group, named=_named_by_the_model(group, answer, result, dossier),
+        verdict_id=result.verdict_id, created_at=created_at)
+    if row is None:
+        # THE PERSON'S ANSWER OUTRANKS BOTH OF THE MODEL'S, and this is the observe
+        # style: the call happened, it is on disk in `llm_dossier`, `llm_response`
+        # and `llm_verdict` under its own verdict id, and nothing here is applied.
+        # No membership, no category proposal, no supersession -- a proposal about a
+        # group the person has already accepted is a question nobody asked, and a
+        # membership under a second author is the group changing under the decision
+        # that accepted it.
+        return _decision(group, dossier)
+
     # THE OBLIGATION IS PER UNCERTAIN MEMBER, so the refusal is too. It read
     # `context and not plan_version_id`, which was right while the whole branch was
     # uncertain; a model may now call one member uncertain inside a group it
     # otherwise accepted directly, and that member needs the same review.
-    if any(decision == UNCERTAIN for _item, decision in members) and (
-            not plan_version_id):
+    #
+    # AND IT COVERS THE CARRIED ONES (`104` R-80). A membership travelling to a
+    # superseding group keeps the decision it was written with, so an uncertain one
+    # arrives on a row whose plan version has recorded no review for it -- a
+    # membership visible without its review, arriving through the back door this
+    # rule was written to bar the front of.
+    uncertain = any(decision == UNCERTAIN for _item, decision in members) or any(
+        membership.decision == UNCERTAIN
+        for membership in _would_be_carried(conn, carried_from, members, dossier))
+    if uncertain and not plan_version_id:
         raise ValueError(
             "an uncertain membership carries a review obligation, and the "
             "obligation is per plan version. Without one there is nowhere to "
@@ -668,23 +873,26 @@ def apply_p8_verdict(
     # the row are two records about two different things, and a proposal that
     # failed to write while the group succeeded would leave a category the model
     # named with nothing anywhere saying it had.
-    _propose_group_category(conn, group=group, answer=answer, result=result,
+    _propose_group_category(conn, group=row, answer=answer, result=result,
                             dossier=dossier, created_at=created_at)
-    _record_group_once(conn, _named_by_the_model(group, answer, result, dossier))
+    # `record_group` rather than `_record_group_once`: the id is either absent, or
+    # the head exactly as it stands, or new. There is nothing here to overwrite.
+    record_group(conn, row)
 
     written: list[str] = []
+    written_files: set[str] = set()
     # One transaction. A membership that became visible while its review
     # obligation failed to record is an uncertain guess wearing a decision.
     with transaction(conn):
         for item, decision in members:
-            membership_id = f"{group.group_id}:{item.file_id}:{result.verdict_id}"
+            membership_id = f"{row.group_id}:{item.file_id}:{result.verdict_id}"
             # THE FILE'S OWN BASIS, from the dossier that described it. This read
             # `CONTEXT_SUPPORTED if context else DIRECT_ANCHOR`, so the basis was
             # decided by which branch ran rather than by what the builder concluded
             # about the file -- and `DossierFile.basis` is already one of
             # `MEMBERSHIP_BASES` and is that conclusion.
             direct = item.basis == DIRECT_ANCHOR
-            support = _support_for(item) or _edge_support(dossier, item.file_id)
+            support = _support_of(dossier, item)
             if not support:
                 # `records.py`: "a membership with no support cannot say why the
                 # file belongs". P9 authors none, so a member whose evidence the
@@ -693,7 +901,7 @@ def apply_p8_verdict(
                 continue
             record_membership(conn, Membership(
                 membership_id=membership_id,
-                group_id=group.group_id,
+                group_id=row.group_id,
                 file_id=item.file_id,
                 content_hash=item.content_hash,
                 basis=DIRECT_ANCHOR if direct else CONTEXT_SUPPORTED,
@@ -720,7 +928,7 @@ def apply_p8_verdict(
                 # `accept_direct` group as well.
                 record_context_review_pending(
                     conn, plan_version_id=plan_version_id,
-                    group_id=group.group_id, membership_id=membership_id,
+                    group_id=row.group_id, membership_id=membership_id,
                     created_at=created_at)
             append_event(
                 conn,
@@ -736,7 +944,28 @@ def apply_p8_verdict(
                 ),
             )
             written.append(membership_id)
-    return _decision(group, dossier, membership_ids=tuple(written))
+            written_files.add(item.file_id)
+        if carried_from is not None:
+            # `104` R-80's other half, and the reason a supersession is available
+            # at all: a new `group_id` names a row no membership names, so the
+            # memberships have to arrive on it or the superseding group is an
+            # empty one and the superseded row keeps the files. Carried AFTER the
+            # loop and past the files this answer decided itself -- those already
+            # have a row under this verdict, and a second one would be one file
+            # with two standing memberships of one group.
+            for carried in carry_memberships(
+                    conn, from_group_id=carried_from, into_group_id=row.group_id,
+                    except_files=frozenset(written_files)):
+                if carried.decision == UNCERTAIN:
+                    # The obligation travels with the decision. The refusal above
+                    # has already established there is a plan version to record it
+                    # in, for exactly this row.
+                    record_context_review_pending(
+                        conn, plan_version_id=plan_version_id,
+                        group_id=row.group_id,
+                        membership_id=carried.membership_id,
+                        created_at=created_at)
+    return _decision(row, dossier, membership_ids=tuple(written))
 
 
 # --- `104` R-O: a refusal is an outcome here too -------------------------------

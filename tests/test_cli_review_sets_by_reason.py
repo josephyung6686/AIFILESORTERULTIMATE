@@ -8,18 +8,21 @@ files SHARE -- "encrypted, unreadable, or unsupported", "multiple plausible
 destinations", "no extractable text".
 
 What shipped was the pile, called "Not yet placed", cut into eight-file batches
-by `RESIDUAL_REVIEW_BATCH`. A batch index is a ceiling and not a
-characteristic: six files that stopped for one reason were told "3 review sets
-of it have files under this heading" and nothing on the screen said which set
-held which file, so the one gesture the screen offers -- `--send-set` -- named
-a batch the person could not see the boundaries of.
+by the spend ceiling. A batch index is a ceiling and not a characteristic: six
+files that stopped for one reason were told "3 review sets of it have files
+under this heading" and nothing on the screen said which set held which file,
+so the one gesture the screen offers -- `--send-set` -- named a batch the
+person could not see the boundaries of.
 
 These tests are about the division and about the four things that may not
 change with it: every unplaced file is in exactly one set, `--send-set` still
-addresses one set by the name printed beside it, the batch ceiling still splits
-a set rather than truncating it (R-93 is the owner's question about the NUMBER
-and nothing else), and protected material is still its own set -- named,
-counted, never opened.
+addresses one set by the name printed beside it, the screenful still splits a
+set rather than truncating it, and protected material is still its own set --
+named, counted, never opened.
+
+`104` R-93 answered the NUMBER since: `cli.FILES_PER_REVIEW_SCREEN` is 25 and
+not 8, and a set of 25 or fewer is unnumbered. The two tests at the foot of
+this file hold both halves.
 """
 from __future__ import annotations
 
@@ -63,21 +66,32 @@ def _three_reason_corpus(tmp_path):
     return corpus
 
 
-def _over_the_cap_corpus(tmp_path):
-    """More files stopped for ONE reason than a single batch may hold.
+#: The files this corpus contributes to "No folder matched" besides the `misc`
+#: ones. Measured, not assumed: the three shopping notes stop for the same reason
+#: the `misc` files do, and the receipt is protected and is its own set. Both
+#: tests below assert the resulting count, so a corpus that stops behaving this
+#: way fails there rather than silently testing the wrong number.
+_NOTES_UNDER_THE_SAME_REASON = 3
 
-    Nine `misc` files share one reason, and the ceiling is eight, so the set has
-    to split. The three notes and the receipt are not decoration: without a file
-    the tree can actually place, `--situation academic.coursework` builds no
-    branch at all and the run ends before any set is surfaced.
+
+def _one_reason_corpus(tmp_path, *, held: int):
+    """A corpus whose "No folder matched" set holds exactly `held` files.
+
+    The three notes and the receipt are not decoration: without a file the tree
+    can actually place, `--situation academic.coursework` builds no branch at
+    all and the run ends before any set is surfaced.
+
+    `held` is the only thing the two tests below vary. At
+    `cli.FILES_PER_REVIEW_SCREEN` the set is one screen and is unnumbered; at
+    one more it is two, and both are named.
     """
     corpus = tmp_path / "corpus"
     corpus.mkdir()
-    for index in range(3):
+    for index in range(_NOTES_UNDER_THE_SAME_REASON):
         (corpus / f"notes{index}.txt").write_text(
             f"Remember to buy milk {index}.\n")
     (corpus / "receipt.txt").write_text("Thank you for your purchase.\n")
-    for index in range(9):
+    for index in range(held - _NOTES_UNDER_THE_SAME_REASON):
         (corpus / f"misc{index:02d}.txt").write_text(
             f"Nothing in particular about anything {index}.\n")
     return corpus
@@ -291,16 +305,16 @@ def test_send_set_with_a_reason_label_sends_exactly_that_set(tmp_path):
         assert f'Held for review as "{other}"' in printed, printed
 
 
-def test_a_set_over_the_batch_cap_is_still_split_by_the_cap(tmp_path):
-    """R-93's number, applied WITHIN a set and doing nothing else.
+def test_a_set_over_one_screen_is_still_split_by_the_screenful(tmp_path):
+    """`104` R-93's number, applied WITHIN a reason set and doing nothing else.
 
     §8.6 splits a set over the ceiling rather than truncating it, and the
-    numbering a person reads is `(i of n)` on the set's own name. R-115 changes
-    what a set IS and leaves the ceiling exactly where it was: the owner's
-    question is still how many files a batch should hold, and it is not
-    answered here.
+    numbering a person reads is `(i of n)` on the set's own name. R-115 changed
+    what a set IS; R-93 changed the number the set splits at, from the spend
+    ceiling's eight to one screen's 25. Twenty-six files under one reason is the
+    smallest corpus that still splits, and it is what this builds.
     """
-    corpus = _over_the_cap_corpus(tmp_path)
+    corpus = _one_reason_corpus(tmp_path, held=cli.FILES_PER_REVIEW_SCREEN + 1)
     database = tmp_path / "plan.sqlite"
     printed = _report(corpus, database)
 
@@ -309,13 +323,14 @@ def test_a_set_over_the_batch_cap_is_still_split_by_the_cap(tmp_path):
                if label.startswith("No folder matched")}
     assert sorted(batches) == ["No folder matched (1 of 2)",
                                "No folder matched (2 of 2)"], (
-        f"nine files under one reason surfaced as {sorted(surfaced)}:\n{printed}")
+        f"{cli.FILES_PER_REVIEW_SCREEN + 1} files under one reason surfaced as "
+        f"{sorted(surfaced)}:\n{printed}")
     for label, files in batches.items():
-        assert len(files) <= cli.RESIDUAL_REVIEW_BATCH, (label, len(files))
+        assert len(files) <= cli.FILES_PER_REVIEW_SCREEN, (label, len(files))
     joined = [file_id for files in batches.values() for file_id in files]
-    assert len(joined) > cli.RESIDUAL_REVIEW_BATCH, (
-        f"{len(joined)} files did not exceed the ceiling, so this corpus is no "
-        "longer testing a split")
+    assert len(joined) == cli.FILES_PER_REVIEW_SCREEN + 1, (
+        f"{len(joined)} files stopped for this reason, so this corpus is no "
+        "longer one file over one screen")
     assert len(joined) == len(set(joined)), "a file is in two batches of one set"
     # Split, never truncate: what the batches hold together is every unplaced
     # file this run has for that reason, and the run's other sets hold the rest.
@@ -328,6 +343,34 @@ def test_a_set_over_the_batch_cap_is_still_split_by_the_cap(tmp_path):
     # a split costs and what it may not cost more than.
     for label in batches:
         assert f"--send-set '{label}={AREA}'" in printed, printed
+
+
+def test_a_set_of_one_screenful_is_not_numbered(tmp_path):
+    """`104` R-93's second clause: "(1 of 1)" names a split that did not happen.
+
+    One fewer file than the test above, and the whole shape goes: one set, no
+    index on its name, and the `--send-set` line beneath it carries the bare
+    name. A person who is shown every file they have under one reason is not
+    being shown the first page of anything, and a name that says otherwise is
+    the kind of number nobody chose that R-93 exists to take out.
+    """
+    corpus = _one_reason_corpus(tmp_path, held=cli.FILES_PER_REVIEW_SCREEN)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database)
+
+    surfaced = dict(_surfaced(database))
+    sets = {label: files for label, files in surfaced.items()
+            if label.startswith("No folder matched")}
+    assert sorted(sets) == ["No folder matched"], (
+        f"{cli.FILES_PER_REVIEW_SCREEN} files under one reason surfaced as "
+        f"{sorted(surfaced)}:\n{printed}")
+    held = sets["No folder matched"]
+    assert len(held) == cli.FILES_PER_REVIEW_SCREEN, (
+        f"a screenful holds {len(held)} of the "
+        f"{cli.FILES_PER_REVIEW_SCREEN} files under that reason")
+    assert " of " not in "".join(sets), sorted(sets)
+    # And the gesture names what the screen named, with no index to mistype.
+    assert f"--send-set 'No folder matched={AREA}'" in printed, printed
 
 
 def test_protected_files_are_their_own_set_named_counted_and_never_opened(

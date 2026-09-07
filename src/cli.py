@@ -110,8 +110,9 @@ from grouping.records import Group, GroupAcceptance
 from grouping.retrieval import EmbeddingIdentity, RetrievalKnowledge
 from grouping.schema import create_grouping_schema
 from grouping.store import (
-    current_group, live_memberships_of_file, memberships_for_group, record_group,
-    record_membership, stop_rule_outcome_for,
+    carry_memberships, current_group, live_memberships_of_file,
+    memberships_for_group, record_group, record_membership,
+    stop_rule_outcome_for,
 )
 from grouping.vocabulary import (
     ABSTAINED, ACCEPTED, BOUNDED_SESSION, COHERENT, COMPATIBLE_DOCUMENT_TYPE,
@@ -331,26 +332,36 @@ SUPPORT_POLICY = SupportPolicy(
 #: person's disk rather than optimising one.
 CEILING_VALUE: int = 8
 
-#: ONE OF THE SEVEN IS NOT A SPEND CEILING, and it had this value only because
-#: it was in the same loop. `residual.max_files_per_review_batch` does not bound
-#: what a run COSTS -- it bounds how many files a person is shown in one review
-#: set, and §8.6 splits a set at this number rather than truncating it. So it
-#: also decides how many separate `--send-set` commands they must type to file
-#: one hold: measured on a 5,000-file corpus, 420 sets from a single hold and
-#: therefore 420 commands.
+#: ONE OF THE SEVEN IS NOT A SPEND CEILING, and it carried `CEILING_VALUE` only
+#: because it was in the same loop. `residual.max_files_per_review_batch` does
+#: not bound what a run COSTS -- it bounds how many files a person is shown in
+#: one review set, and §8.6 splits a set at this number rather than truncating
+#: it. So the name says what it is: a screenful of files, not a spend.
 #:
-#: It is separated here rather than re-valued, because the two directions are a
-#: real trade and the trade is not this file's to settle. A larger batch is
-#: fewer commands AND a bigger set accepted in one gesture with no per-file
-#: look, which is exactly the scrutiny `--send-set` spends. `00` states no value
-#: and the design's own answer -- §7.6 makes the person authorise a set before
-#: anything happens to it -- is about spend, not about typing.
+#: TWENTY-FIVE, AND NOT EIGHT, IS A NUMBER SOMEBODY CHOSE. Eight was the spend
+#: ceiling's, and `104` R-93 is the row that says so: a person read "Not yet
+#: placed (1 of 4)" through "(4 of 4)" on 52 files and nobody had picked the 4.
+#: Twenty-five is one screen's worth -- the count a person can still read
+#: before saying yes to it -- and it is PROPOSED IN `104` §15.3, pending the
+#: owner's word. It is not ratified and this comment may not say it is.
 #:
-#: So this stays at `CEILING_VALUE` and the question is named rather than
-#: quietly answered: whether 420 commands is fixed by a bigger batch or by
-#: letting one gesture address a HOLD instead of a batch, is the owner's, and
-#: the second is a gesture change (`84` §1).
-RESIDUAL_REVIEW_BATCH: int = CEILING_VALUE
+#: TWO CLAUSES TRAVEL WITH THE NUMBER. It applies WITHIN a reason set (R-115),
+#: which is the division a person can act on, so it never divides files that
+#: belong together until 25 of them share one reason. And a set of 25 or fewer
+#: is UNNUMBERED: "(1 of 1)" names a split that did not happen.
+#:
+#: It also decides how many separate `--send-set` commands a person must type to
+#: file one hold. That was measured at eight -- 420 sets from a single hold on a
+#: 5,000-file corpus, and therefore 420 commands -- and 25 divides the same hold
+#: into roughly a third as many. The trade the old comment named is real and the
+#: number does not settle it: a larger set is fewer commands AND a bigger set
+#: accepted in one gesture with no per-file look, which is exactly the scrutiny
+#: `--send-set` spends. One screen is where the two meet.
+#:
+#: The question beside it is still open and is still the owner's: whether one
+#: gesture should be able to address a HOLD instead of a batch (`84` §1). That
+#: is a gesture change, not a number.
+FILES_PER_REVIEW_SCREEN: int = 25
 
 #: §5.7's and §5.9's tree bounds. `00` states no numbers for these either.
 TREE_LIMITS = TreeLimits(
@@ -4438,28 +4449,18 @@ def review_and_accept(conn: sqlite3.Connection,
                           "situation the user supplied on the command line"))
     record_group(conn, reviewed)
     for result in grouped:
-        for membership in memberships_for_group(conn, result.group.group_id):
-            record_membership(conn, _carried(membership, merged_id))
+        # `grouping.store`'s carry, not a local one. `104` R-80 gives the MODEL a
+        # supersession too -- a second, differing answer mints a superseding group
+        # the same way this does -- and two transforms for one act is two things
+        # to drift. The comment that used to be here is on the transform.
+        carry_memberships(conn, from_group_id=result.group.group_id,
+                          into_group_id=merged_id)
     record_acceptance(conn, GroupAcceptance(
         acceptance_id=f"acc:{merged_id}", plan_version_id=PLAN_VERSION,
         group_id=merged_id, membership_id=None, acceptance=ACCEPTED,
         review_state=PENDING_REVIEW, user_edited_label=label, aliases=(),
         review_decision_ref=None, decided_by=RULES, created_at=created_at))
     return (merged_id,)
-
-
-def _carried(membership, group_id: str):
-    import dataclasses
-
-    return dataclasses.replace(
-        membership, membership_id=f"{membership.membership_id}:{group_id}",
-        # NOT a supersession. A file's membership of the group P9 proposed and
-        # its membership of the group those were merged into are two records
-        # about two groups, not two versions of one. Superseding P9's row made
-        # it invisible to `memberships_for_group`, so a second run over the
-        # same database re-proposed the group, carried nothing, and handed P11
-        # an empty branch.
-        group_id=group_id, supersedes=None, supersede_reason=None)
 
 
 def choose_option(candidate, options) -> str:
@@ -4735,7 +4736,7 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
         # something does (`fact_call_authorities`' `measure_tokens`), so the two
         # have to be one number, and `00`:251 names one ceiling, not two.
         if name == "max_residual_files_per_batch":
-            value = RESIDUAL_REVIEW_BATCH
+            value = FILES_PER_REVIEW_SCREEN
         elif name == "max_dossier_tokens":
             value = GROUPING_LIMITS.max_dossier_tokens
         else:
@@ -8499,7 +8500,9 @@ def _review_note(items: Sequence, areas: Sequence[str], *,
     over the batch ceiling rather than truncating it, so over a real disk one
     hold arrives as `Not yet placed (1 of 420)` through `(420 of 420)`: 420 sets,
     one reason, and the reason was printed 420 times -- 9,460 lines for 4,068
-    files, measured. It is said once here and the batches are named beneath it.
+    files, measured at the eight-file ceiling `104` R-93 replaced. A screenful of
+    25 divides the same hold into fewer sets and changes nothing about this: the
+    reason is said once here and the batches are named beneath it.
 
     **The batches are not one fact.** `act_on_residual_sets` addresses a set by
     the label the report printed and refuses a bare label that names no surfaced

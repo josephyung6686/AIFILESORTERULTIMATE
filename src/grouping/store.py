@@ -330,6 +330,56 @@ def memberships_for_group(
     )
 
 
+def carried_membership(membership: Membership, group_id: str) -> Membership:
+    """One membership, as the same file's membership of another group.
+
+    NOT a supersession, and the two `None`s are the whole point. A file's
+    membership of the group that was superseded and its membership of the group
+    that superseded it are two records about two groups, not two versions of one:
+    superseding the first makes it invisible to `memberships_for_group`, so the
+    next run over the same database re-proposes the group, carries nothing and
+    hands the next part an empty branch. That is measured, not hypothetical --
+    it is why `cli.review_and_accept`'s carry says so in its own comment.
+
+    Published here because there are now TWO carries and they must be one
+    transform. The person's is `cli.review_and_accept`, merging P9's groups under
+    the label they typed. The model's is `104` R-80: a second, differing answer
+    about a group mints a superseding row, and the memberships have to arrive on
+    it or the new row is a group with no members while the old one keeps them.
+    """
+    import dataclasses
+
+    return dataclasses.replace(
+        membership, membership_id=f"{membership.membership_id}:{group_id}",
+        group_id=group_id, supersedes=None, supersede_reason=None)
+
+
+def carry_memberships(
+    conn: sqlite3.Connection, *, from_group_id: str, into_group_id: str,
+    except_files: frozenset[str] = frozenset(),
+) -> tuple[Membership, ...]:
+    """Every standing membership of one group, recorded again as another's.
+
+    `except_files` is the caller saying "this file already has a row on the new
+    group, written by whatever authored it". `104` R-80's superseding group is
+    written by a model answer that decided some of these files ITSELF, and
+    carrying those as well would leave one file two standing memberships of one
+    group with two decisions -- nothing in the schema forbids it and every reader
+    would then be reading whichever it reached first. The person's carry passes
+    none, because a merge decides nothing about a file.
+    """
+    carried = tuple(
+        carried_membership(membership, into_group_id)
+        for membership in memberships_for_group(conn, from_group_id)
+        if membership.file_id not in except_files
+    )
+    # The records, not their ids: a carried membership keeps its DECISION, and an
+    # uncertain one carries a review obligation its new group has to record too.
+    for membership in carried:
+        record_membership(conn, membership)
+    return carried
+
+
 def live_memberships_of_file(
     conn: sqlite3.Connection, *, file_id: str, content_hash: str,
 ) -> tuple[Membership, ...]:
