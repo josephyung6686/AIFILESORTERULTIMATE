@@ -64,7 +64,7 @@ from llm_harness.records import (
 )
 from llm_harness.sites import FactSiteDependencies, SiteDependencies
 from llm_harness.store import (
-    abstained_fields,
+    answered_fields,
     call_identity,
     prior_call,
     record_call_identity,
@@ -829,12 +829,22 @@ def fact_call_stage(authorities: FactCallAuthorities):
         identity_id = call_identity(identity)
         prior = prior_call(conn, identity_id)
         if prior is not None and vocabulary:
-            declined = abstained_fields(conn, prior["dossier_id"])
-            if set(vocabulary) <= declined:
-                # EVERY field still open was already declined under this exact
+            answered = answered_fields(conn, prior["dossier_id"])
+            if set(vocabulary) <= answered:
+                # EVERY field still open was already ANSWERED under this exact
                 # identity. Asking again buys the same answer and spends a call for
                 # it -- measured on a two-file corpus, 2 calls on the first run and
                 # 2 more on an unchanged second, for 6 repeated abstentions.
+                #
+                # ANSWERED, NOT DECLINED, and `104` R-109 is the difference. The
+                # comparison was against the ABSTENTIONS alone, so a field the model
+                # answered and the validator REJECTED counted as unanswered: no fact
+                # was written, the field came back open, and the next run asked the
+                # identical question under the identical identity for the identical
+                # rejection. On the owner's resumed run every verdict but a handful
+                # was a reject, and `llm_call_reuse` stayed at 0 while 120 recorded
+                # responses went unconsulted. `answered_fields` says which outcomes
+                # count and which states record no answer at all.
                 #
                 # The `vocabulary` guard keeps an EMPTY offer on the path it is
                 # already on: a call that offers the model nothing is a different
@@ -887,12 +897,24 @@ def fact_call_stage(authorities: FactCallAuthorities):
                 observed_at=authorities.observed_at())
         if isinstance(result, P8Verdict):
             # ONLY on a verdict, and the exclusions are the point. A refusal, a
-            # pre-call abstention, a call failure and a `ValidationUnavailable` are
-            # all states where no model answered this question, and remembering one
-            # as an answer would turn a transient failure -- a denied release, an
-            # exhausted budget, a provider that hung up -- into a permanent silence
-            # about the file. Those must be retried on the next run, which is what
-            # writing nothing here means.
+            # call failure and a `ValidationUnavailable` are all states where no
+            # model answered this question, and remembering one as an answer would
+            # turn a transient failure -- a denied release, a provider that hung up
+            # -- into a permanent silence about the file. Those must be retried on
+            # the next run, which is what writing nothing here means.
+            #
+            # A PRE-CALL ABSTENTION IS THE ONE THAT SLIPS THROUGH THIS TEST, and it
+            # is excluded a step later instead. `harness._persist_abstention` RETURNS
+            # a `P8Verdict`, so an exhausted budget or a suppressed subject writes a
+            # row here -- addressed to `pre_call_address`, which `vocabulary` shapes
+            # so it "cannot be mistaken for, or joined to" a dossier. It carries no
+            # `llm_verdict` row, so `answered_fields` reads `frozenset()` off it and
+            # the next run asks, which is the same answer by a different route.
+            # MEASURED: a first pass with a zero budget leaves two identity rows
+            # addressed `pre-call:A_fact:<file>`, the pass after it asks both files,
+            # and the pass after that reuses -- so the row costs nothing, because a
+            # reuse is decided BEFORE the budget is reserved and a complete prior
+            # answer is therefore never standing behind one of these.
             record_call_identity(
                 conn, identity_id=identity_id, dossier_id=result.dossier_id,
                 call_site=A_FACT, subject_ref=file_id, dimensions=identity,

@@ -17,7 +17,6 @@ from database_agent.events import append_event
 from database_agent.supersede import mark_superseded
 from evidence_shape.canonical import canonical_json
 
-from llm_harness.vocabulary import ABSTAIN
 from llm_harness.authorship import (
     CALL_REFUSED,
     MODEL_RESPONSE_RECEIVED,
@@ -566,8 +565,28 @@ def prior_call(conn: sqlite3.Connection, identity_id: str) -> sqlite3.Row | None
     ).fetchone()
 
 
-def abstained_fields(conn: sqlite3.Connection, dossier_id: str) -> frozenset[str]:
-    """Which fields the model declined under this dossier. `claim_ref` IS the field.
+def answered_fields(conn: sqlite3.Connection, dossier_id: str) -> frozenset[str]:
+    """Which fields the model ANSWERED under this dossier. `claim_ref` IS the field.
+
+    **Every outcome, and `104` R-109 is why it is not only the abstentions.** This
+    read used to be `outcome = 'abstain'`, on the reading that a declined field is
+    the one a second run buys nothing by re-asking. A `reject` is the same purchase:
+    the model answered, the validator refused the answer, no fact was written and the
+    field is open again -- so the next run offers the identical question under the
+    identical identity and pays for the identical rejection. Measured on the two-file
+    corpus in `tests/integration/test_a_fact_reuse_after_a_verdict.py`: 2 calls, then
+    2 more, `llm_call_reuse` empty. On the owner's own resumed run it was 120
+    recorded responses consulted zero times and two hours of local calls spent twice.
+    An `accept` needs no exclusion of its own -- it settles the field, so the field is
+    not open on the next run and never reaches this comparison.
+
+    **What is still never reused is decided before this function, not inside it.** A
+    refusal, a call failure and a `ValidationUnavailable` write no verdict and record
+    no identity; a pre-call abstention writes no `llm_verdict` row at all, so a
+    dossier that holds one answers `frozenset()` here and the caller re-asks. Those
+    are transient states -- a denied release, an exhausted budget, a provider that
+    hung up -- and remembering one as an answer would turn it into a permanent
+    silence about the file.
 
     Read from `llm_verdict` rather than copied onto the identity row, because a
     second copy of an answer is a second thing that can disagree with it. A
@@ -577,8 +596,8 @@ def abstained_fields(conn: sqlite3.Connection, dossier_id: str) -> frozenset[str
     return frozenset(
         row["claim_ref"] for row in conn.execute(
             "SELECT claim_ref FROM llm_verdict WHERE dossier_id = ? "
-            "AND outcome = ? AND superseded_by IS NULL",
-            (dossier_id, ABSTAIN),
+            "AND superseded_by IS NULL",
+            (dossier_id,),
         )
     )
 
