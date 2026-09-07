@@ -348,11 +348,27 @@ def test_an_incomplete_enabled_runtime_is_refused_before_anything_is_read(
         "SELECT count(*) AS c FROM vector_embeddings").fetchone()["c"] == 0
 
 
-def test_the_eligible_set_is_bounded_before_a_single_text_is_read(
+def test_the_eligible_set_the_caller_names_is_the_set_that_is_encoded(
     pipeline_conn, subject, tmp_path,
 ):
-    """P9 never eagerly embeds the corpus. Encoding is paid at read time, so a cap
-    applied afterwards has already been exceeded. The seed takes one slot."""
+    """`104` R-59's second finding, and the assertion is the reverse of what stood
+    here. This used to read "P9 never eagerly embeds the corpus ... the seed takes
+    one slot", and pinned `<= max_graph_nodes` texts read.
+
+    What that cut actually did, measured on the owner's 199 files: every seed in
+    the corpus was compared against the same NINE versions -- the ones sorting
+    first by content hash -- so `00`:56's own example ("embeddings ... can find
+    files such as HW 3.pdf that lack the course code but resemble lecture notes")
+    could only succeed if those lecture notes happened to be among the nine.
+    `(content_hash, file_id)` is a digest, not a ranking, and `00`:257's two
+    reductions -- `max_retrieved_neighbors` over the ranked channels and
+    `max_graph_nodes` over the scored graph -- both come AFTER something has been
+    scored. A similarity cannot rank what has no vector.
+
+    So the bound is the caller's eligible set, and `ensure_file_embedding` is
+    idempotent per version, which is what keeps the run at O(corpus) rather than
+    O(seeds x cap).
+    """
     from grouping.embeddings import FileVersionRef
 
     many = tuple(
@@ -373,8 +389,8 @@ def test_the_eligible_set_is_bounded_before_a_single_text_is_read(
         embeddings=EmbeddingsOn(
             config=CONFIG, encoder=encoder, embedding_text_for=text_for,
             eligible_versions_for=lambda conn, seed, cap: many))
-    assert len(text_for.calls) <= 4
-    assert len(encoder.calls) <= 4
+    assert len(text_for.calls) == len(many) + 1        # the twenty, and the seed
+    assert len(encoder.calls) == len(text_for.calls)
     assert (subject[0], subject[1], CONFIG.scope) in text_for.calls
 
 

@@ -4791,13 +4791,25 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     #: model answered `unknown` about them -- correctly, because the evidence is in
     #: their neighbours and nothing was retrieving those.
     #:
-    #: The eligible set is the SCAN's own roster, capped by P9. A vector is
-    #: computed for a file this run included and for no other.
+    #: The eligible set is the SCAN's own roster, WHOLE. A vector is computed for
+    #: a file this run included and for no other, and that roster is the bound:
+    #: the corpus the person asked to organise.
+    #:
+    #: IT USED TO BE `[:cap]` (`104` R-59's second finding), and `cap` is P9's
+    #: `max_graph_nodes`, which is 10. So every seed in the owner's 199 files was
+    #: compared against the same nine versions -- the ones that sort first by
+    #: content hash -- and `00`:56's own example could only have worked if the
+    #: lecture notes happened to be among them. The slice also threw away the
+    #: `seed` argument the signature offers, which is what made the same nine
+    #: right for every file at once. `_bounded_versions` says why the cut belonged
+    #: after the similarity rather than before it; `ensure_file_embedding` is
+    #: idempotent per version, so the run pays for each file once whatever the
+    #: seed count.
     _embeddings, _retrieval_knowledge = _embedding_runtime(
         semantic_model,
         versions_for=lambda db, cap: tuple(
             FileVersionRef(file_id=file_id, content_hash=content_hash)
-            for file_id, content_hash in corpus_roster(db, scan_run_id[0])[:cap]))
+            for file_id, content_hash in corpus_roster(db, scan_run_id[0])))
 
     def downstream(p1_p7) -> CorpusAuthorities:
         scan_run_id[0] = p1_p7.scan_run_id
