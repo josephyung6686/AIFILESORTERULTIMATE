@@ -569,6 +569,124 @@ def test_unknown_for_field_outside_allowlist_is_still_unknown(subject_file, p6_c
     assert _reasons(p6_conn, request) == ["model_returned_unknown"]
 
 
+# --- `104` R-119: an empty answer is the model declining the field ----------------
+#
+# A local run answered 19 field claims with the empty string and every one was
+# recorded `reject VALUE_NOT_NORMALIZABLE`. A decline is not a wrong answer: it must
+# score as `abstain`, and `store.abstained_fields` must see it, or the next run asks
+# the same model the same question it has already declined.
+
+EMPTY_ANSWERS = ("", "   ", "\t\n ", '""', '"  "')
+
+
+def _explicit_abstention(p6_conn, request, subject_file):
+    """The verdict an explicit `unknown` earns, with no consequence written."""
+    return _validate(
+        p6_conn, request, _proposal(subject_file, unknown=True),
+        apply_consequence=False)
+
+
+def test_an_empty_value_is_an_abstention_and_not_a_rejection(subject_file, p6_conn):
+    request = _request(p6_conn, subject_file)
+    calls: list[str] = []
+
+    def normalize(field, raw):
+        calls.append("normalize")
+        return None
+
+    def contradicts(proposal, row):
+        calls.append("contradicts")
+        return False
+
+    proposal = _proposal(subject_file, value="")
+    result = _validate(
+        p6_conn, request, proposal,
+        dependencies=_deps(normalize=normalize, contradicts=contradicts),
+    )
+    assert result.outcome == ABSTAIN
+    assert result.reasons == ()
+    assert result.may_propose is False
+    assert result.requires_review is False
+    # Check 3 is never asked about a value the model did not give.
+    assert calls == []
+    # The disposition is the one an explicit abstention gets, not a new word.
+    assert result.disposition == _explicit_abstention(
+        p6_conn, request, subject_file).disposition
+    # Checks 1 and 2 still ran, and what they checked is still on the verdict.
+    assert len(result.citations_checked) == 1
+    # P6 records the decline, not a fact and not a normalization failure.
+    assert facts_for_file(p6_conn, request.file_id, request.content_hash) == []
+    assert _reasons(p6_conn, request) == ["model_returned_unknown"]
+
+
+@pytest.mark.parametrize("value", EMPTY_ANSWERS)
+def test_whitespace_and_a_quoted_empty_string_decline_the_same_way(
+        subject_file, p6_conn, value):
+    request = _request(p6_conn, subject_file)
+    proposal = _proposal(subject_file, value=value)
+    result = _validate(
+        p6_conn, request, proposal,
+        dependencies=_deps(normalize=lambda field, raw: None),
+    )
+    assert result.outcome == ABSTAIN
+    assert result.reasons == ()
+    assert facts_for_file(p6_conn, request.file_id, request.content_hash) == []
+    assert _reasons(p6_conn, request) == ["model_returned_unknown"]
+
+
+def test_an_empty_answer_is_reused_as_a_decline_and_not_re_asked(
+        subject_file, p6_conn):
+    """`store.abstained_fields` is the reuse key, and it reads `outcome`."""
+    from llm_harness.schema import create_llm_schema
+    from llm_harness.store import abstained_fields, record_verdict
+
+    create_llm_schema(p6_conn)
+    request = _request(p6_conn, subject_file)
+    result = _validate(p6_conn, request, _proposal(subject_file, value=""))
+    record_verdict(
+        p6_conn, result, model_id=MODEL, prompt_fingerprint=PROMPT,
+        release_audit_id=17, observed_at=CLOCK)
+    assert abstained_fields(p6_conn, DOSSIER) == frozenset({"subject"})
+
+
+@pytest.mark.parametrize("value", ["  ??  ", "not a course at all", '"BUSIB 4300"'])
+def test_a_non_empty_value_that_will_not_normalize_is_still_rejected(
+        subject_file, p6_conn, value):
+    """The boundary. Only an EMPTY answer moved; check 3 is otherwise untouched."""
+    request = _request(p6_conn, subject_file)
+    seen: list[str] = []
+
+    def normalize(field, raw):
+        seen.append(raw)
+        return None
+
+    proposal = _proposal(subject_file, value=value)
+    result = _validate(
+        p6_conn, request, proposal, dependencies=_deps(normalize=normalize))
+    assert result.outcome == REJECT
+    assert result.reasons == (VALUE_NOT_NORMALIZABLE,)
+    assert seen == [value]
+    assert _reasons(p6_conn, request) == ["normalization_failed"]
+
+
+def test_an_explicit_abstention_still_declines_the_way_it_always_did(
+        subject_file, p6_conn):
+    request = _request(p6_conn, subject_file)
+    calls: list[str] = []
+    result = _validate(
+        p6_conn, request, _proposal(subject_file, unknown=True),
+        dependencies=_deps(
+            normalize=lambda field, raw: calls.append("normalize"),
+            contradicts=lambda proposal, row: calls.append("contradicts")),
+    )
+    assert result.outcome == ABSTAIN
+    assert result.reasons == ()
+    assert result.citations_checked == ()
+    assert calls == []
+    assert facts_for_file(p6_conn, request.file_id, request.content_hash) == []
+    assert _reasons(p6_conn, request) == ["model_returned_unknown"]
+
+
 def test_mapped_p6_verdict_uses_four_checks_members_not_copied_strings(
         subject_file, p6_conn, monkeypatch):
     request = _request(p6_conn, subject_file)
