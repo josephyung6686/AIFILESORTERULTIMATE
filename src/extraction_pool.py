@@ -54,8 +54,10 @@ eleven runs of one pinned 263-file corpus, the same PNG was read completely in t
 them and wedged its worker in the eleventh -- inside the first Vision call that worker
 made, on `flock()` in the Metal shader compiler's machine-wide on-disk cache. A wedge
 that turns on the state of a lock is not a property of the file, so the ceiling now
-rebuilds and retries exactly as the death path does, and only a file that wedges twice
-is written off.
+rebuilds and retries exactly as the death path does, and only a file that fails twice
+is written off -- and the row NAMES EACH ATTEMPT'S END IN ORDER, because sharing the
+counter means a file can die once and wedge once, and a reason written by whichever
+path arrived last describes half of what happened (R-120).
 
 **And a worker must not outlive the run that started it.** The paragraph above is
 about a worker dying; this one is about one that refuses to. `close()` used to call
@@ -318,15 +320,20 @@ class ProcessPool:
         #: the rule exists is that a number nobody reviewed is a number nobody owns.
         self.lookahead = workers * lookahead_per_worker
         self._pool: Any = None
-        #: handle -> (what it was asked to do, how many times it has been asked).
-        self._outstanding: dict[Any, tuple[ExtractionRequest, int]] = {}
+        #: handle -> (what it was asked to do, how many times it has been asked,
+        #: how each earlier attempt ENDED, in order). R-120: the third element is
+        #: what lets a file that died once and wedged once say so, rather than be
+        #: reported by whichever of the two paths happened to arrive last.
+        self._outstanding: dict[
+            Any, tuple[ExtractionRequest, int, tuple[str, ...]]] = {}
         #: The caller keeps the handle it was GIVEN, so a resubmitted request needs a
         #: forwarding address. Without one, recovery hands back a future the caller
         #: never sees and the caller waits on a cancelled one for ever.
         self._replaced: dict[Any, Any] = {}
         #: The window a pool death took down, held back until the suspect has been
         #: tried alone. See `_rebuild`.
-        self._deferred: list[tuple[Any, ExtractionRequest, int]] = []
+        self._deferred: list[
+            tuple[Any, ExtractionRequest, int, tuple[str, ...]]] = []
         #: How many reads a run must want before seven interpreters are worth
         #: starting. No default, for `lookahead_per_worker`'s reason: it is a number.
         if floor < 0:
@@ -366,9 +373,10 @@ class ProcessPool:
             return _Here(request)
         return self._submit(request, attempts=0)
 
-    def _submit(self, request: ExtractionRequest, *, attempts: int) -> Any:
+    def _submit(self, request: ExtractionRequest, *, attempts: int,
+                ends: tuple[str, ...] = ()) -> Any:
         future = self._executor().submit(_perform_in_worker, request)
-        self._outstanding[future] = (request, attempts + 1)
+        self._outstanding[future] = (request, attempts + 1, ends)
         return future
 
     def result(self, handle: Any) -> ExtractionOutcome:
@@ -397,7 +405,8 @@ class ProcessPool:
             current = handle
             while current in self._replaced:
                 current = self._replaced[current]
-            request, attempts = self._outstanding.get(current, (None, 0))
+            request, attempts, ends = self._outstanding.get(
+                current, (None, 0, ()))
             try:
                 outcome = current.result(
                     timeout=max(0.0, deadline - self._now()))
@@ -433,6 +442,12 @@ class ProcessPool:
                 # `00`:257's rule surviving the recovery written to keep it.
                 if request is None:                  # pragma: no cover -- not ours
                     raise
+                # R-120. HOW THIS ATTEMPT ENDED, named here where it is known,
+                # because two lines from now it is the only place that knows. The
+                # branch below and `_rebuild` both take it from this one variable,
+                # so the sentence a file gets is assembled from the ends it
+                # actually had rather than from the path that reached the end.
+                ended = f"no result within the {self._ceiling}s ceiling"
                 if attempts > 1:
                     self._outstanding.pop(current, None)
                     # THE WINDOW IS HELD BACK FIRST, which is `_rebuild`'s rule
@@ -464,15 +479,13 @@ class ProcessPool:
                     # whose callers are holding handles whose futures were cancelled,
                     # so the run stops on the next file with nothing to say.
                     # `_release` below drains both.
-                    self._deferred.extend((stale, held, count)
-                                          for stale, (held, count) in lost)
+                    self._deferred.extend(
+                        (stale, held, count, seen)
+                        for stale, (held, count, seen) in lost)
                     self._release()
-                    return _failure_outcome(request, TimeoutError(
-                        f"no result within the {self._ceiling}s ceiling for one "
-                        f"extraction, twice; the worker running "
-                        f"{request.decision.extractor_name} for this file was "
-                        "killed both times and the pool rebuilt, so the rest of "
-                        "the run continues"))
+                    return _failure_outcome(
+                        request, RuntimeError(
+                            _both_attempts_failed(request, ends + (ended,))))
                 # KILLED BEFORE THE REBUILD, and for the reason the branch above
                 # gives: `_rebuild` shuts the executor down with `wait=True`, and a
                 # worker wedged inside a framework answers no stop sentinel. Without
@@ -484,7 +497,7 @@ class ProcessPool:
                 # the death path's shape exactly, and it is what makes the second
                 # attempt's first framework call uncontended by anything this run is
                 # doing.
-                self._rebuild(suspect=current)
+                self._rebuild(suspect=current, ended=ended)
                 # A NEW CLOCK, for the reason the death path's retry gives one line
                 # further down: the file is being read again from the start, and
                 # charging the second attempt the time the first one's wedge cost
@@ -494,6 +507,8 @@ class ProcessPool:
             except BrokenProcessPool as death:
                 if request is None:                  # pragma: no cover -- not ours
                     raise
+                # R-120, and the same move the ceiling branch makes above.
+                ended = f"the worker process died ({type(death).__name__})"
                 if attempts > 1:
                     # It has now killed a pool that held nothing but itself, so it
                     # is this file and not its neighbours. §2.4's rule holds one
@@ -509,10 +524,10 @@ class ProcessPool:
                     # exists to prevent, reintroduced by the recovery itself.
                     self._shutdown()
                     self._release()
-                    return _failure_outcome(request, RuntimeError(
-                        "the worker process handling this file died twice; "
-                        f"{type(death).__name__}"))
-                self._rebuild(suspect=current)
+                    return _failure_outcome(
+                        request, RuntimeError(
+                            _both_attempts_failed(request, ends + (ended,))))
+                self._rebuild(suspect=current, ended=ended)
                 # A NEW CLOCK, because a rebuild means this file is being read
                 # again from the start. Charging the retry the time its own
                 # predecessor's death cost would kill a file for surviving a
@@ -569,7 +584,7 @@ class ProcessPool:
         for worker in workers:
             worker.join(timeout=self._ceiling)
 
-    def _rebuild(self, *, suspect: Any) -> None:
+    def _rebuild(self, *, suspect: Any, ended: str) -> None:
         """Replace the pool and put the suspect into it ALONE.
 
         A broken pool fails every future in it, not only the one whose worker died,
@@ -588,14 +603,24 @@ class ProcessPool:
         file.
 
         Each old handle gets a forwarding address, because the caller is holding it.
+
+        `ended` is how the suspect's attempt just finished, and it travels with the
+        retry. Both callers reach here having ended an attempt in a way only they
+        can name -- one a death, one a ceiling -- and a file may reach its second
+        attempt through either. Carrying the words rather than a flag is what lets
+        the reason for a file that died once and wedged once name both, which is
+        R-120. The held-back window carries whatever ends its files already had:
+        surviving somebody else's failure is not an attempt and adds nothing.
         """
         pending = list(self._outstanding.items())
         self._shutdown()
         self._outstanding = {}
-        request, attempts = dict(pending)[suspect]
-        self._replaced[suspect] = self._submit(request, attempts=attempts)
-        self._deferred = [(stale, held, count)
-                          for stale, (held, count) in pending if stale is not suspect]
+        request, attempts, ends = dict(pending)[suspect]
+        self._replaced[suspect] = self._submit(
+            request, attempts=attempts, ends=ends + (ended,))
+        self._deferred = [(stale, held, count, seen)
+                          for stale, (held, count, seen) in pending
+                          if stale is not suspect]
 
     def _release(self) -> None:
         """Resubmit the window a rebuild held back, now that the suspect has answered.
@@ -606,8 +631,9 @@ class ProcessPool:
         if not self._deferred:
             return
         held, self._deferred = self._deferred, []
-        for stale, request, attempts in held:
-            self._replaced[stale] = self._submit(request, attempts=attempts - 1)
+        for stale, request, attempts, ends in held:
+            self._replaced[stale] = self._submit(
+                request, attempts=attempts - 1, ends=ends)
 
     def _shutdown(self) -> None:
         if self._pool is not None:
@@ -636,6 +662,36 @@ class ProcessPool:
         self._outstanding = {}
         self._replaced = {}
         self._deferred = []
+
+
+def _both_attempts_failed(request: ExtractionRequest,
+                          ends: tuple[str, ...]) -> str:
+    """The reason for a file that has spent both of its attempts without a reading.
+
+    **EACH ATTEMPT IS NAMED BY ITS OWN END, IN ORDER, and R-120 is why.** The two
+    paths that can end an attempt -- a worker that dies and a worker that never
+    answers -- share the one `attempts` counter, so a file can arrive here having
+    done one of each. The reason used to be written by whichever path happened to
+    arrive last: a file that segfaulted and then wedged was recorded as "killed
+    both times", one that wedged and then segfaulted as "died twice". Each sentence
+    is false about half of what the run did, and it is the expensive half -- a
+    person reading the row was told the run met a repeat of a failure it had met
+    once, and sent to look for a defect in the file that reproduces rather than for
+    the machine state that does not.
+
+    The exception TYPE is the same for both branches for the same reason.
+    `failed_result` writes `failure_reason` as `f"{type(error).__name__}: {error}"`,
+    so a `TimeoutError` on a file that died first would put the last attempt's mode
+    back at the front of the row that this sentence exists to keep honest.
+
+    The bound is untouched: this is reached only at two attempts, and `ends` holds
+    one entry per attempt that has already finished.
+    """
+    named = "; ".join(f"attempt {number}: {end}"
+                      for number, end in enumerate(ends, start=1))
+    return (f"two attempts at {request.decision.extractor_name} for this file, "
+            f"neither of which returned a reading -- {named}; the pool was rebuilt "
+            "after each, so the rest of the run continues")
 
 
 def _failure_outcome(request: ExtractionRequest,

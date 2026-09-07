@@ -179,11 +179,12 @@ def _read_pdf(path: Path) -> PdfDocument:
     return _readable(path)
 
 
-#: Where the reader below records that one attempt has already been made. A FILE and
+#: Where the readers below record that one attempt has already been made. A FILE and
 #: not a variable, because the two attempts happen in two different processes: the
 #: pool kills every worker before it retries, so nothing in the first worker's memory
-#: survives to tell the second one anything.
-_HANG_ONCE_MARKER = "GRAPH_AGENT_TEST_HANG_ONCE_MARKER"
+#: survives to tell the second one anything. Three readers share it -- one that wedges
+#: once, and R-120's two that end their attempts differently from each other.
+_FIRST_ATTEMPT_MARKER = "GRAPH_AGENT_TEST_FIRST_ATTEMPT_MARKER"
 
 
 def _read_pdf_hanging_once(path: Path) -> PdfDocument:
@@ -198,12 +199,60 @@ def _read_pdf_hanging_once(path: Path) -> PdfDocument:
     a second attempt does not meet it. `_read_pdf` is the other half of the same
     truth -- a file whose reader never comes back at all -- and both are kept.
     """
-    marker = Path(os.environ[_HANG_ONCE_MARKER])
+    marker = Path(os.environ[_FIRST_ATTEMPT_MARKER])
     if Path(path).name == HANG and not marker.exists():
         # Written BEFORE the sleep, so the mark exists no matter when this worker is
         # killed. A worker killed with SIGKILL runs nothing on its way out.
         marker.write_text("one attempt has been made")
         time.sleep(_HANG_SECONDS)
+    return _readable(path)
+
+
+def _read_pdf_dying_then_hanging(path: Path) -> PdfDocument:
+    """R-120. The first attempt dies; the second never answers.
+
+    A file can end its two attempts in two different ways, because R-112 gave the
+    ceiling path and the death path one shared counter. This reader is one of the
+    two mixed orders, and it exists so the run row can be read for what it claims:
+    a reason written by the path that arrived last calls this file "killed both
+    times", which is a false sentence about the segfault that started it.
+
+    `os._exit(1)` and not an exception, for the sibling recovery file's reason: an
+    exception is a result the pool delivers, and what breaks a pool is a worker that
+    stops existing mid-call.
+    """
+    marker = Path(os.environ[_FIRST_ATTEMPT_MARKER])
+    if Path(path).name == HANG:
+        if not marker.exists():
+            # Written BEFORE the exit, so the mark survives a process that runs
+            # nothing on its way out.
+            marker.write_text("one attempt has been made")
+            os._exit(1)
+        time.sleep(_HANG_SECONDS)
+    else:
+        time.sleep(_READ_SECONDS)
+    return _readable(path)
+
+
+def _read_pdf_hanging_then_dying(path: Path) -> PdfDocument:
+    """R-120, the other order. The first attempt wedges; the second dies.
+
+    The mirror of the reader above, and it is kept separately rather than
+    parameterised because the two orders reach the pool through different code and
+    fail differently when the fix is wrong: this one is the order a reason written
+    by the death path calls "died twice", which is false about the wedge.
+
+    The first attempt never reaches `os._exit` -- the pool SIGKILLs it inside the
+    sleep -- so the marker is what tells the second worker it is the second.
+    """
+    marker = Path(os.environ[_FIRST_ATTEMPT_MARKER])
+    if Path(path).name == HANG:
+        if not marker.exists():
+            marker.write_text("one attempt has been made")
+            time.sleep(_HANG_SECONDS)
+        os._exit(1)
+    else:
+        time.sleep(_READ_SECONDS)
     return _readable(path)
 
 
@@ -239,6 +288,24 @@ def _hanging_once_context() -> ExtractionContext:
         policy=SafetyPolicy(is_protected_container=lambda path: False,
                             is_dataless=lambda path: False),
         readers=_readers(_read_pdf_hanging_once),
+        transcription_authorized=lambda: False)
+
+
+def _dying_then_hanging_context() -> ExtractionContext:
+    """R-120's first mixed order. Module level, for `spawn`."""
+    return ExtractionContext(
+        policy=SafetyPolicy(is_protected_container=lambda path: False,
+                            is_dataless=lambda path: False),
+        readers=_readers(_read_pdf_dying_then_hanging),
+        transcription_authorized=lambda: False)
+
+
+def _hanging_then_dying_context() -> ExtractionContext:
+    """R-120's other mixed order. Module level, for `spawn`."""
+    return ExtractionContext(
+        policy=SafetyPolicy(is_protected_container=lambda path: False,
+                            is_dataless=lambda path: False),
+        readers=_readers(_read_pdf_hanging_then_dying),
         transcription_authorized=lambda: False)
 
 
@@ -327,10 +394,12 @@ def test_the_hung_file_is_marked_with_the_ceiling_and_the_extractor(
     assert reason is not None, f"the hung file was recorded as a success: {rows}"
     assert str(_CEILING_SECONDS) in reason, reason
     assert extractor in reason, reason
-    # R-112. The row has to say the run tried again, because it did: a file the
-    # ceiling kills is retried once, and a reason that named one ceiling would
-    # describe half of what happened to this file.
-    assert "twice" in reason, reason
+    # R-112/R-120. The row has to say the run tried again, because it did -- and it
+    # has to say so by naming HOW EACH ATTEMPT ENDED rather than by asserting one
+    # mode happened twice. This reader wedges both times, so both halves read the
+    # same; the two mixed orders below are where that stops being free.
+    assert _both_ends(_ceiling_end(_CEILING_SECONDS),
+                      _ceiling_end(_CEILING_SECONDS)) in reason, reason
 
 
 def test_a_ceiling_measured_from_submit_would_fail_the_queued_neighbours(
@@ -455,6 +524,28 @@ def test_the_pool_is_whole_afterwards_and_reads_the_next_file(tmp_path, corpus):
         pool.close()
 
 
+#: How the pool names an attempt a dead worker ended. Written out here rather than
+#: imported, so the test pins the sentence a PERSON reads and cannot pass by sharing
+#: a formatting mistake with the code that produces it.
+_DEATH_END = "the worker process died (BrokenProcessPool)"
+
+
+def _ceiling_end(ceiling: float) -> str:
+    """How the pool names an attempt the ceiling ended."""
+    return f"no result within the {ceiling}s ceiling"
+
+
+def _both_ends(first: str, second: str) -> str:
+    """R-120. Each attempt named by its own end, in the order they happened.
+
+    THE ORDER IS THE ASSERTION. Checking only that both phrases appear would pass on
+    a reason that listed them backwards, which is a different false sentence about
+    the same run -- and it would pass on the old code for the two same-mode orders,
+    where the two halves are identical anyway.
+    """
+    return f"attempt 1: {first}; attempt 2: {second}"
+
+
 def _failure_reason(outcome) -> str | None:
     """The `failed` run's reason, or None when the extraction succeeded."""
     assert outcome.kind == DISPATCHED, outcome
@@ -496,7 +587,7 @@ def test_a_file_the_ceiling_killed_is_read_on_the_retry_in_the_same_run(
     anything.
     """
     marker = tmp_path / "one-attempt-was-made"
-    monkeypatch.setenv(_HANG_ONCE_MARKER, str(marker))
+    monkeypatch.setenv(_FIRST_ATTEMPT_MARKER, str(marker))
     # THE REAL CLOCK, and this is the one test in the file that needs it. A driven
     # clock's first wait expires with a timeout of zero, so the worker is killed
     # before it has entered the reader at all -- and a first attempt that never
@@ -549,9 +640,10 @@ def test_the_retry_is_one_and_a_file_that_wedges_twice_is_failed(
 
         reason = _failure_reason(outcomes[HANG])
         assert reason is not None, "a file that never comes back was never failed"
-        assert "twice" in reason, (
-            "the row does not say the file was tried more than once, so a person "
-            f"reading it cannot tell what the run actually did: {reason}")
+        assert _both_ends(_ceiling_end(_FAKE_CEILING_SECONDS),
+                          _ceiling_end(_FAKE_CEILING_SECONDS)) in reason, (
+            "the row does not name both attempts and how each of them ended, so a "
+            f"person reading it cannot tell what the run actually did: {reason}")
         assert str(_FAKE_CEILING_SECONDS) in reason, reason
         for name in CORPUS:
             if name == HANG:
@@ -559,6 +651,99 @@ def test_the_retry_is_one_and_a_file_that_wedges_twice_is_failed(
             assert _failure_reason(outcomes[name]) is None, (
                 f"{name} was failed by the retry of its neighbour: "
                 f"{_failure_reason(outcomes[name])}")
+    finally:
+        pool.close()
+
+
+def test_a_file_that_dies_and_then_wedges_names_both_ends_in_order(
+        tmp_path, corpus, monkeypatch):
+    """R-120. One counter, two ways to spend it, and the row must say which was which.
+
+    R-112 made the ceiling path and the death path share `attempts`, which is what
+    bounds a file at two tries however they end. What it did not do is make the
+    REASON share: whichever path arrived second wrote the sentence, so a file that
+    segfaulted and then wedged was recorded as "killed both times" -- the ceiling's
+    words applied to a segfault nobody was told about. A person reading that row goes
+    looking for a timeout that happens twice, when what actually started it was a
+    worker that stopped existing, and those two have nothing in common to fix.
+
+    THE CLOCK IS DRIVEN AND THE COUNT IS THE WHOLE OF IT. `result` reads it once for
+    the head's deadline, once for the wait the death ends, and once for the retry's
+    fresh deadline -- calls 1, 2 and 3 -- so `jump_after=3` puts the leap on call 4,
+    the retry's own wait, which then finds a ceiling 10,000 fake seconds behind it.
+    `jumps=1`, so fake time stands still afterwards and no neighbour's own ceiling
+    can be crossed. The second attempt cannot end any other way: the reader has
+    already died once, so on the retry it sleeps, and a sleeping worker cannot break
+    a pool.
+    """
+    marker = tmp_path / "one-attempt-was-made"
+    monkeypatch.setenv(_FIRST_ATTEMPT_MARKER, str(marker))
+    clock = _ScriptedClock(jump_after=3, jumps=1)
+    pool = ProcessPool(workers=2, context_factory=_dying_then_hanging_context,
+                       lookahead_per_worker=2, floor=0,
+                       seconds_per_extraction=_FAKE_CEILING_SECONDS, now=clock)
+    try:
+        handles = [pool.submit(_request(corpus, name)) for name in CORPUS]
+        outcomes = {name: pool.result(handle)
+                    for name, handle in zip(CORPUS, handles)}
+
+        assert marker.exists(), (
+            "the reader never died, so this proved nothing about the order")
+        reason = _failure_reason(outcomes[HANG])
+        assert reason is not None, "a file that died and then wedged was not failed"
+        assert _both_ends(_DEATH_END,
+                          _ceiling_end(_FAKE_CEILING_SECONDS)) in reason, (
+            "the row names one mode for two attempts that ended differently, so it "
+            f"reports a failure this run never had: {reason}")
+        for name in CORPUS:
+            if name == HANG:
+                continue
+            assert _failure_reason(outcomes[name]) is None, (
+                f"{name} was failed by its neighbour: {_failure_reason(outcomes[name])}")
+    finally:
+        pool.close()
+
+
+def test_a_file_that_wedges_and_then_dies_names_both_ends_in_order(
+        tmp_path, corpus, monkeypatch):
+    """R-120, the other order, where the false sentence was "died twice".
+
+    Kept as a second test rather than a parameter of the one above, because the two
+    orders are not each other's mirror in the code: this one leaves the ceiling
+    branch and enters the death branch, and a fix that carried the end forward in
+    only one direction passes the other test and fails here.
+
+    THE REAL CLOCK, and this is the second test in the file that needs it, for the
+    retry test's reason one step further on. A driven clock's first wait expires with
+    a timeout of zero, so the first worker is killed before it has entered the reader
+    at all -- and a first attempt that never ran writes no marker, so the SECOND
+    attempt would be the one that wedges and the order this test is named for would
+    never happen. What has to fit inside the ceiling is a worker spawn and the
+    reader's first statement, so the number is `_REACHED_CEILING_SECONDS`.
+    """
+    marker = tmp_path / "one-attempt-was-made"
+    monkeypatch.setenv(_FIRST_ATTEMPT_MARKER, str(marker))
+    pool = ProcessPool(workers=2, context_factory=_hanging_then_dying_context,
+                       lookahead_per_worker=2, floor=0,
+                       seconds_per_extraction=_REACHED_CEILING_SECONDS)
+    try:
+        handles = [pool.submit(_request(corpus, name)) for name in CORPUS]
+        outcomes = {name: pool.result(handle)
+                    for name, handle in zip(CORPUS, handles)}
+
+        assert marker.exists(), (
+            "the reader never wedged, so this proved nothing about the order")
+        reason = _failure_reason(outcomes[HANG])
+        assert reason is not None, "a file that wedged and then died was not failed"
+        assert _both_ends(_ceiling_end(_REACHED_CEILING_SECONDS),
+                          _DEATH_END) in reason, (
+            "the row names one mode for two attempts that ended differently, so it "
+            f"reports a failure this run never had: {reason}")
+        for name in CORPUS:
+            if name == HANG:
+                continue
+            assert _failure_reason(outcomes[name]) is None, (
+                f"{name} was failed by its neighbour: {_failure_reason(outcomes[name])}")
     finally:
         pool.close()
 
