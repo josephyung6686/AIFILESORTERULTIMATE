@@ -21,14 +21,15 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass, fields as _dataclass_fields
 
 from database_agent.db import transaction
 
 from placement import events as placement_events
 from placement.vocabulary import (
-    DISPOSITIONS, NODE_ROLES, PROPOSED, RESIDUAL_ROLE, check,
+    DISPOSITIONS, NODE_ROLES, PROPOSED, RESIDUAL_ROLE, SCOPED_GENERAL,
+    SHARED_MATERIAL, check,
 )
 
 
@@ -637,6 +638,91 @@ def entry_for(conn: sqlite3.Connection, *, plan_version: str,
         "node_id = ? AND superseded_by IS NULL", (plan_version, node_id),
     ).fetchone()
     return None if row is None else _entry_of(row["payload"])
+
+
+#: What a node's ROLE means, in the words the C and D drafts already use for it.
+#: An `ordinary` node needs no sentence: the label chain and the expected values
+#: say everything there is to say about it, and a phrase added for symmetry would
+#: be this module authoring a meaning P10 did not write.
+#:
+#: The other three are load-bearing and each carries a rule of its own. The scoped
+#: fallback is where `00`:111 sends a file whose deeper level is unsupported; the
+#: shared branch is `00`:113's answer to material that serves more than one home,
+#: and without it "do not choose one home arbitrarily" has nothing to choose
+#: INSTEAD; the residual area is `00`:120's, and its `disposition` is the half that
+#: says whether naming it moves anything.
+_ROLE_MEANING: dict[str, str] = {
+    SCOPED_GENERAL: "scoped fallback under its parent",
+    SHARED_MATERIAL: "shared branch, for material that serves more than one",
+    RESIDUAL_ROLE: "residual area",
+}
+
+
+def node_profile(entry: IndexEntry, *, siblings: int = 1,
+                 own_folder: bool = False) -> str:
+    """§6.2's destination profile as one line, for a dossier's `candidate` item.
+
+    **`104` R-17 and packet §7 G3.** The dossier handed a model a list of minted
+    node ids and nothing else: `field_glossary` maps a node id to nothing, and
+    `Dossier` has no profile field, so `00`:110's "each candidate's node profile"
+    reached the model as `node_f1d70c8a_3`. `00`:105 is explicit about what a
+    frozen node is -- "not merely a string such as Academics/Columbia/2026-Spring/
+    PHYS1401/Homework; it is an evidence-backed representation of what belongs
+    there" -- and every field it lists is already on `IndexEntry`. This is the
+    projection of them, and nothing else: a READ of P10's profile, the way the
+    rest of this module is a read of P10's freeze.
+
+    **Nothing here is authored about the person's material.** The label chain is
+    P10's own `display_label`s, the expected values are the frozen node's own
+    `ExpectedValue`s, the document types are the profile's `known_document_types`,
+    and the role is P10's `node_role`. What this function adds is four connectives
+    -- `>`, `expects`, `holds`, `one of N folders under` -- and the two sentences
+    in `_ROLE_MEANING` and below.
+
+    **No path and no member file id.** `IndexEntry` deliberately carries no path
+    (§7.11: "P11 names a node and P12 resolves a path"), and
+    `representative_files` are the person's row identifiers rather than a
+    description of the folder, so neither is written here. A model that cannot see
+    a path cannot echo one back as a destination.
+
+    `siblings` is `00`:105's parent-child context -- "Homework is one of several
+    work-type branches beneath PHYS1401" -- and is the caller's count because the
+    entry knows its parent and not its parent's other children. ONE sibling is the
+    node itself and says nothing, so it is not stated.
+
+    `own_folder` is `104` §13.8's half: the model can only name refinement or
+    removal if the dossier says which candidate is the folder the file is in now.
+    """
+    parts = [" > ".join((*entry.ancestor_labels, entry.display_label))]
+    role = _ROLE_MEANING.get(entry.node_role)
+    if role is not None:
+        parts.append(f"{role}, {entry.disposition}" if entry.disposition
+                     else role)
+    if entry.expected_values:
+        parts.append("expects " + "; ".join(
+            f"{field}={value}" for field, value in entry.expected_values))
+    if entry.known_document_types:
+        parts.append("holds " + ", ".join(entry.known_document_types))
+    if siblings > 1:
+        under = (entry.ancestor_labels[-1] if entry.ancestor_labels
+                 else "the top of the tree")
+        parts.append(f"one of {siblings} folders under {under}")
+    if own_folder:
+        parts.append("the file sits in this folder now")
+    return " | ".join(parts)
+
+
+def sibling_counts(entries: Sequence[IndexEntry]) -> dict[str | None, int]:
+    """How many of these entries share each parent. One pass, for one dossier.
+
+    Keyed by `parent_node_id` INCLUDING `None`, because a plan whose every node is
+    a root (which `104` §14.2 measured on the owner's corpus: "every `tree_nodes`
+    row has `parent_node_id = None`") still has a count worth stating.
+    """
+    counts: dict[str | None, int] = {}
+    for entry in entries:
+        counts[entry.parent_node_id] = counts.get(entry.parent_node_id, 0) + 1
+    return counts
 
 
 def entries_for_plan(conn: sqlite3.Connection, *,

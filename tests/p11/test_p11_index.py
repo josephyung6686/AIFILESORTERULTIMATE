@@ -8,7 +8,7 @@ import pytest
 from placement import vocabulary as v
 from placement.index import (
     FrozenTreeRequired, build_destination_index, entries_for_plan, entry_for,
-    legal_node_ids, node_exists,
+    legal_node_ids, node_exists, node_profile,
 )
 from p11.conftest import FIXED_CLOCK
 from p11.p10_fixtures import FROZEN_TREE, tree_with
@@ -235,3 +235,74 @@ def test_the_index_builds_on_a_connection_that_still_holds_a_transaction(tmp_pat
             conn, plan_version="plan-1")
     finally:
         conn.close()
+
+
+# --- R-17 / packet G3: the node profile the dossier's `candidate` item carries ----
+#
+# `00`:105 says a frozen node is "an evidence-backed representation of what belongs
+# there" -- "the branch's domain, template, expected field values, parent and child
+# meanings, ... user-selected label" -- and `00`:110 says the model receives "each
+# candidate's node profile". The index already holds every one of those fields; what
+# was missing was the projection of them into one readable line, so
+# `_judge_with_model` had nothing but an opaque id to hand over.
+
+
+def test_a_node_profile_reads_from_the_top_of_the_tree_down(p11_conn):
+    build_destination_index(p11_conn, FROZEN_TREE, **BUILD)
+    entry = entry_for(p11_conn, plan_version="plan-1", node_id="n-course")
+    line = node_profile(entry)
+    assert line.startswith("Academics > PHYS1401")
+    # The values a file in it is expected to carry, and what it is known to hold.
+    assert "expects subject=PHYS1401" in line
+    assert "holds syllabus" in line
+
+
+def test_a_node_profile_names_the_role_that_is_not_ordinary(p11_conn):
+    # C-R3 and C-R5 both turn on the role: the scoped fallback is what a file with
+    # no supported deeper level goes to, and the shared branch is what stops a file
+    # that serves two homes being pushed into one of them.
+    build_destination_index(p11_conn, FROZEN_TREE, **BUILD)
+    general = node_profile(entry_for(p11_conn, plan_version="plan-1",
+                                     node_id="n-general"))
+    shared = node_profile(entry_for(p11_conn, plan_version="plan-1",
+                                    node_id="n-course-shared"))
+    review = node_profile(entry_for(p11_conn, plan_version="plan-1",
+                                    node_id="n-review-later"))
+    ordinary = node_profile(entry_for(p11_conn, plan_version="plan-1",
+                                      node_id="n-course"))
+    assert "scoped fallback" in general
+    assert "shared branch" in shared
+    assert "residual area" in review and v.REVIEW_ONLY in review
+    assert "scoped fallback" not in ordinary and "residual area" not in ordinary
+
+
+def test_a_node_profile_says_how_many_folders_stand_beside_it(p11_conn):
+    # `00`:105's "parent-child context showing that Homework is one of several
+    # work-type branches beneath PHYS1401". One sibling is no context at all, so it
+    # is not stated.
+    build_destination_index(p11_conn, FROZEN_TREE, **BUILD)
+    entry = entry_for(p11_conn, plan_version="plan-1", node_id="n-course")
+    assert "one of 4 folders under Academics" in node_profile(entry, siblings=4)
+    assert "one of" not in node_profile(entry, siblings=1)
+
+
+def test_a_node_profile_says_when_the_file_is_already_in_that_folder(p11_conn):
+    # §13.8's refinement-versus-removal split is the model's to name, and it can
+    # only name it if the dossier says which candidate is the person's own folder.
+    build_destination_index(p11_conn, FROZEN_TREE, **BUILD)
+    entry = entry_for(p11_conn, plan_version="plan-1", node_id="n-course")
+    assert "the file sits in this folder now" in node_profile(entry,
+                                                              own_folder=True)
+    assert "sits in this folder now" not in node_profile(entry)
+
+
+def test_a_node_profile_carries_no_path_and_no_member_file_id(p11_conn):
+    # §7.11 and B3: P11 names a node and P12 resolves a path. `IndexEntry` holds no
+    # path by design, and the representative FILE IDS are the person's rows rather
+    # than a description of the folder, so neither reaches the bytes a model sees.
+    build_destination_index(p11_conn, FROZEN_TREE, **BUILD)
+    for entry in entries_for_plan(p11_conn, plan_version="plan-1"):
+        line = node_profile(entry, siblings=3, own_folder=True)
+        assert "/" not in line
+        for member in entry.representative_files:
+            assert member not in line

@@ -47,9 +47,11 @@ from decimal import Decimal
 from database_agent.supersede import mark_superseded
 from llm_harness import P8Verdict, Refusal
 from llm_harness.vocabulary import ABSTAIN as P8_ABSTAIN
-from llm_harness.records import DossierRequest
+from llm_harness.records import DossierRequest, EvidenceItem
 from llm_harness.vocabulary import (
-    C_PLACEMENT, CHOOSE_RESIDUAL_DESTINATION, D_RESIDUAL, REJECT as P8_REJECT,
+    C_PLACEMENT, CHOOSE_RESIDUAL_DESTINATION,
+    CONTEXT_SUPPORTED as P8_CONTEXT_SUPPORTED, D_RESIDUAL,
+    DIRECT_ANCHOR as P8_DIRECT_ANCHOR, REJECT as P8_REJECT,
     SEVERAL_LEGAL_NODES_PLAUSIBLE, USER_OPTED_RESIDUAL_SET_INTO_AI_REVIEW,
 )
 
@@ -62,7 +64,9 @@ from placement.groups import (
     AcceptedGroup, ExcludedOutlier, GroupPlan, accepted_group_as_of,
     confirm_shared_parent, excluded_outlier_for, resolve_multi_home,
 )
-from placement.index import entries_for_plan, entry_for, legal_node_ids
+from placement.index import (
+    entries_for_plan, entry_for, legal_node_ids, node_profile, sibling_counts,
+)
 from placement.learning import basis_key_for, suppressed_nodes
 from placement.p8_seam import (
     call_placement, evidence_snapshot_id_for, placement_authorities,
@@ -91,7 +95,7 @@ from placement.vocabulary import (
     CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH, DIRECT, EXISTING, FILE,
     MARGIN_TRUE_VACUOUS, MARK_STATE, NO_SHARED_BRANCH,
     MULTIPLE_SUPPORTED_HOMES, NO_SUPPORTED_DESTINATION, PLACE, PLACEMENT,
-    PRIVACY_BLOCKED, RESIDUAL, RESIDUAL_ROLE,
+    POSSIBLE, PRIVACY_BLOCKED, RESIDUAL, RESIDUAL_ROLE,
     RETURN_TO_PLACEMENT, SEND_TO_APPROVED_NODE, SHARED_MATERIAL,
     SHARED_MATERIAL_DECISION, USER_CHOSE_DESTINATION, USER_CONFIRMED, WEAK,
 )
@@ -987,7 +991,16 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
             result = _judge_with_model(
                 conn, subject=subject, inputs=inputs, retrieval=retrieval,
                 evidence=evidence, call_site=C_PLACEMENT,
-                observed_at=observed_at)
+                observed_at=observed_at,
+                # §13.5's ranking, handed over as the shortlist. `assess` has
+                # already applied §6.10's arithmetic, `_staying_put_wins_a_tie`
+                # and the refinement exemption, so `scored[0]` is the
+                # deterministic winner -- including the unique direct match,
+                # which is now the top-ranked candidate rather than a bypass.
+                ranked=tuple(item.node_id for item in assessment.scored),
+                own_folder_node_id=(
+                    inputs.the_folder_each_file_is_in or {}).get(subject.file_id),
+            )
             if isinstance(result, Refusal):
                 # P7 denied the release, from inside `run_call`. That is §8.4's
                 # own answer arrived at from the other direction, and it is the
@@ -1461,8 +1474,100 @@ def _observed_only(result, *, prompt):
         result, outcome=P8_ABSTAIN, disposition=P8_ABSTAIN, may_propose=False)
 
 
+#: What a `candidate` item's role makes it at site D. The C draft names one kind of
+#: offered folder (`candidate`); the D draft names two, and the difference is the
+#: one the person made: a `residual_area` is a home for material that belongs to no
+#: folder in particular (`00`:120), a `branch` is a branch of the main tree that a
+#: return sends the file back to (`00`:107). P11 does not decide which a node is --
+#: P10's `node_role` already did -- so this is a lookup and not a judgement.
+_D_ITEM_KIND: dict[str, str] = {RESIDUAL_ROLE: "residual_area"}
+
+
+def _offered_items(conn, *, plan_version: str, node_ids, call_site: str,
+                   own_folder_node_id: str | None) -> tuple[EvidenceItem, ...]:
+    """`00`:105's destination profile for every node the model may answer with.
+
+    **`104` R-17 and packet §7 G3.** The dossier used to carry the node ids alone:
+    "the live dossier carries `allowed_vocabulary` = legal node ids (minted,
+    opaque) and nothing about them: no label chain, no expected values, no known
+    document types, no 'this is the file's own folder'". Both drafts DESCRIBE these
+    items -- "its `evidence_ref` is an identifier from `allowed_vocabulary`, and its
+    `location` describes that folder, from the top of the tree down to the folder
+    itself, with the values a file in it is expected to carry" -- so the text the
+    owner is asked to ratify was true of the bench's dossier and false of the
+    product's. This is the builder change G3 names, and it is a READ of P10's
+    profile through `index.node_profile`; P11 authors no line of it.
+
+    One `entries_for_plan` per call, which is one query: the profile needs the
+    ancestors' labels and how many folders stand beside each candidate, and neither
+    is answerable from an entry alone.
+    """
+    entries = entries_for_plan(conn, plan_version=plan_version)
+    by_id = {entry.node_id: entry for entry in entries}
+    beside = sibling_counts(entries)
+    items: list[EvidenceItem] = []
+    for node_id in node_ids:
+        entry = by_id.get(node_id)
+        if entry is None:
+            # Offered by a caller and absent from the index. `legal_node_ids` and
+            # this read the same rows, so this is unreachable today; describing a
+            # node the index does not hold would be P11 inventing a folder.
+            continue
+        kind = ("candidate" if call_site == C_PLACEMENT
+                else _D_ITEM_KIND.get(entry.node_role, "branch"))
+        items.append(EvidenceItem(
+            evidence_ref=entry.node_id, kind=kind,
+            location=node_profile(
+                entry, siblings=beside.get(entry.parent_node_id, 1),
+                own_folder=entry.node_id == own_folder_node_id),
+            # A folder is not an excerpt of the file. It carries no span, it is
+            # never in `released_evidence`, and P7 releases none of it.
+            excerpt_span=None, reliability_state=DIRECT,
+            basis=P8_DIRECT_ANCHOR))
+    return tuple(items)
+
+
+def _residual_areas(conn, *, plan_version: str) -> tuple[str, ...]:
+    """`00`:120's approved residual library, in the index's own order.
+
+    The D draft says every id in `allowed_vocabulary` is described in
+    `evidence_items`, so the offer and the descriptions are one list. These are the
+    homes §7's own screen offers; the branches a return goes back to come from
+    retrieval beside them.
+    """
+    return tuple(entry.node_id
+                 for entry in entries_for_plan(conn, plan_version=plan_version)
+                 if entry.node_role == RESIDUAL_ROLE)
+
+
+def _accepted_group_items(group_ids) -> tuple[EvidenceItem, ...]:
+    """The groups the person accepted this file into, as the drafts describe them.
+
+    `00`:111's own example rests on this: `HW 3.pdf` is placed under a course it
+    never names, because an accepted group carries the level the file's text does
+    not. `_invented_dimension` exempts a `context` level from grounding for exactly
+    that reason, and the exemption's docstring names the absence this closes --
+    "the dossier carries no group values to ground it against (packet §7 G3)".
+
+    Every id here comes from `accepted_memberships_of`, so every one of them IS
+    accepted; the drafts' other case (a group the file was merely retrieved as a
+    candidate member of) has no producer at this seam and no item is written
+    claiming otherwise.
+    """
+    return tuple(
+        EvidenceItem(
+            evidence_ref=group_id, kind="accepted_group",
+            location="a group the person accepted this file into",
+            excerpt_span=None, reliability_state=POSSIBLE,
+            basis=P8_CONTEXT_SUPPORTED)
+        for group_id in group_ids
+    )
+
+
 def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
-                      evidence, call_site: str, observed_at: str):
+                      evidence, call_site: str, observed_at: str,
+                      ranked: tuple[str, ...] = (),
+                      own_folder_node_id: str | None = None):
     """§6.12 step 7, and step 8 with it. P11 assembles the REQUEST, never a check.
 
     Everything here is either P11's own answer or a caller injection. The four
@@ -1470,11 +1575,38 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
     C checks stay in `llm_harness/placement_validation.py` and P11 spells none of
     their reason codes.
 
-    `allowed_vocabulary` is P11's legal candidate set and is the single most
-    load-bearing value handed over: Site C rejects any destination outside it as
+    `allowed_vocabulary` is the SHORTLIST and is the single most load-bearing
+    value handed over: Site C rejects any destination outside it as
     `INVENTED_NODE`. It is set here rather than taken from the caller's
     `CallDependencies`, because a caller-supplied vocabulary is a caller-supplied
-    answer to "which nodes exist", which is the index's question.
+    answer to "which nodes may this file go to", which is the index's question and
+    the scores'.
+
+    **IT WAS `sorted(legal_node_ids(...))`, WHICH IS `104` R-17 AND PACKET G3.**
+    Every legal node in the plan, alphabetically, with nothing said about any of
+    them. `00`:110 asks for something narrower and richer -- "the small set of TOP
+    LEGAL DESTINATION CANDIDATES, each candidate's node profile" -- and `104` §13.5
+    says who ranks them: "Deterministic scores rank and shortlist the candidates
+    the model is shown... A unique direct match is the top-ranked candidate, not a
+    bypass." So `ranked` is `Assessment.scored`'s order, winner first, and
+    `_offered_items` describes every entry on it.
+
+    **The two walls are unchanged and they are different walls.** `INVENTED_NODE`
+    asks whether the answer is on the list the model was shown; `NODE_NOT_IN_FROZEN
+    _TREE` asks `node_exists`, which is the whole frozen tree and is not narrowed
+    here. `place_file` then re-checks the resolved node against
+    `legal_node_ids` before it writes anything. Narrowing the list narrows what may
+    be OFFERED, never what counts as legal.
+
+    **This is also `104` R-56's second abstention mechanism**, named there as "the
+    deterministic shortlist refusing an ungrounded choice": a model that names a
+    real folder it was not shown is refused, rather than placing a file on a node
+    the evidence never reached. The first mechanism is the drafts' own `none`,
+    which `_placement_site` already scores as `ABSTAIN`.
+
+    `ranked` EMPTY falls back to retrieval order, and that is the residual path:
+    §7.7 runs no `assess`, so D has no ranking of its own and its offer is the
+    approved residual library plus the branches retrieval reached.
 
     `evidence_snapshot_id` is minted here because nothing else mints one and
     `run_call` refuses a C or D request without it BEFORE the spend.
@@ -1503,14 +1635,30 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
                                         observation_keys=observation_keys)
     subject_ref = subject_ref_of(subject)
     legal = sorted(legal_node_ids(conn, plan_version=inputs.plan_version))
+    retrieved = tuple(dict.fromkeys(
+        candidate.node_id for candidate in retrieval.candidates))
     if call_site == C_PLACEMENT:
+        # The scores' order, and every candidate on it. `dict.fromkeys` rather
+        # than a set: this is a RANKING and a set has no first element.
+        offered = tuple(dict.fromkeys(ranked)) or retrieved
         sites = site_dependencies(placement=placement_authorities(
             conn, plan_version=inputs.plan_version, policy=inputs.policy,
             sensitivity_policy=inputs.sensitivity_policy))
     else:
+        # §7.7's own answer space, and the D draft's two item kinds: "the approved
+        # homes it may go to" (`00`:120's residual library, every residual node of
+        # the plan) and the branches a return could send it back to (`00`:107),
+        # which is what retrieval reached. `approved_target_ids` STAYS the whole
+        # legal set, so the validator accepts exactly what it accepted before and
+        # only what the model is SHOWN narrows.
+        offered = tuple(dict.fromkeys(
+            _residual_areas(conn, plan_version=inputs.plan_version) + retrieved))
         sites = site_dependencies(residual=residual_authorities(
             conn, plan_version=inputs.plan_version, approved_target_ids=legal,
             sensitivity_policy=inputs.sensitivity_policy))
+    profiles = _offered_items(
+        conn, plan_version=inputs.plan_version, node_ids=offered,
+        call_site=call_site, own_folder_node_id=own_folder_node_id)
 
     # §8.6's two spend ceilings, put on the budget P8 reserves against.
     #
@@ -1547,10 +1695,17 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
             budget,
             max_calls_per_1000_files=inputs.limits.max_llm_calls_per_thousand_files,
             max_estimated_cost=Decimal(inputs.limits.max_cost_per_scan)),
-        allowed_vocabulary=legal,
+        allowed_vocabulary=list(offered),
         proposal_class=PLACEMENT if call_site == C_PLACEMENT else RESIDUAL,
+        # THE RANKED WINNER, not `retrieval.candidates[0]`. `basis_key` is what a
+        # past rejection is keyed on (`learning.basis_key_for`), so it has to name
+        # the node this call is really about -- and that is the head of the
+        # shortlist the model was shown. Retrieval's order is the order six
+        # channels happened to answer in; `_staying_put_wins_a_tie` and §6.10's
+        # arithmetic can both put a different node first, and when they do, the
+        # rejection was being filed against a node nobody proposed.
         basis_key=basis_key_for(subject_id=subject.file_id,
-                                node_id=retrieval.candidates[0].node_id),
+                                node_id=offered[0]),
         learning_scope=FILE, learning_subject_id=subject.file_id,
     )
     request = DossierRequest(
@@ -1568,7 +1723,15 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
         # "P8 does not synthesise kind, location, reliability or basis". A
         # conversion here would have to invent three of them, so the caller that
         # built the evidence hands them over instead.
-        evidence_items=tuple(evidence["evidence_items"]),
+        #
+        # The FOLDERS are P11's, and they are the one thing here that is not the
+        # file's evidence: `00`:110's node profiles and accepted groups (R-17,
+        # G3). They carry no span, no observation key and no released text, so
+        # `build_dossier`'s three-key agreement is untouched -- it checks that
+        # every RELEASED key has builder metadata, and adds nothing about items
+        # that were never released.
+        evidence_items=(tuple(evidence["evidence_items"]) + profiles
+                        + _accepted_group_items(evidence.get("group_ids", ()))),
         conflicts=to_p8_conflicts(retrieval.conflicts),
         # P7 builds the release request; P11 holds the builder and never a `Gate`.
         # Assembling it here, after `may_assemble_dossier` answered, is what keeps
@@ -2058,7 +2221,9 @@ def _review_set_with_model(conn, *, item: ResidualSet, inputs: PipelineInputs,
             component_version=component_version, observed_at=observed_at)
         result = _judge_with_model(
             conn, subject=subject, inputs=inputs, retrieval=retrieval,
-            evidence=evidence, call_site=D_RESIDUAL, observed_at=observed_at)
+            evidence=evidence, call_site=D_RESIDUAL, observed_at=observed_at,
+            own_folder_node_id=(
+                inputs.the_folder_each_file_is_in or {}).get(file_id))
         if isinstance(result, Refusal):
             written.append(_residual_decision(
                 conn, subject=subject, inputs=inputs, outcome=ABSTAIN,
