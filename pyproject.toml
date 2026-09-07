@@ -40,7 +40,47 @@ readers = [
     "pdfminer.six>=20231228",
     "pyobjc-framework-Vision>=10.0; sys_platform == 'darwin'",
     "pyobjc-framework-Quartz>=10.0; sys_platform == 'darwin'",
+    # R-34, 2026-09-07. FOUR OF TWELVE WERE DECLARED. `src/readers/` imports twelve
+    # third-party top-level names and this list named four, so `pip install .[readers]`
+    # produced a deployment that believed it was complete and could not read a `.docx`,
+    # could not run the semantic recogniser, and could not reach a model. The list is
+    # now checked against the imports themselves by
+    # `tests/test_packaging_declares_what_the_readers_import.py`, which re-measures
+    # rather than comparing against anything anybody typed here.
+    #
+    # `readers/docx_python_docx.py`. The `.docx` reader `readers/deployment.py` wires
+    # as `read_docx`, and the module imports `docx` at file scope, so its absence is
+    # already loud -- it was simply never declared.
+    "python-docx>=1.1",
+    # `readers/doc_cocoa.py` reads §2.9's `.doc` through AppKit rather than through
+    # `subprocess`, which `test_single_egress.NETWORK_MODULES` puts out of reach of a
+    # reader. AppKit and Foundation both ship in this one distribution.
+    "pyobjc-framework-Cocoa>=10.0; sys_platform == 'darwin'",
+    # `readers/embedding_minilm.py`, the semantic recogniser's local encoder. It
+    # already refuses by name when these are missing -- `ModelUnavailable`, naming
+    # both -- which is the behaviour, not the declaration.
+    "onnxruntime>=1.17",
+    "tokenizers>=0.15",
+    "numpy>=1.26",
 ]
+
+# THE MODEL TRANSPORTS, SEPARATE FROM THE READERS ON PURPOSE. Both live under
+# `src/readers/` because they are deployment choices like every other reader, and
+# both are cloud SDKs. Folding them into `readers` would make the offline install --
+# the one `00` §8.4 calls the mode under which nothing about any file leaves the
+# device -- pull down two clients it will never open. `dependencies` stays empty
+# either way, so P5's rule is untouched by the split.
+models = [
+    # `readers/model_anthropic.py`.
+    "anthropic>=0.40",
+    # `readers/model_deepseek.py`, which speaks DeepSeek through the OpenAI client.
+    "openai>=1.40",
+]
+
+# The command a person types after installing. The name is the one `cli.py` already
+# gives its own `ArgumentParser`, so `--help` names the command that produced it.
+[project.scripts]
+database-agent = "cli:main"
 
 [build-system]
 requires = ["setuptools>=68"]

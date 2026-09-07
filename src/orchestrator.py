@@ -175,6 +175,26 @@ def _extraction_is_stale(conn: sqlite3.Connection, content_hash: str,
     return False
 
 
+def _already_extracted(conn: sqlite3.Connection, content_hash: str,
+                       extractor_name: str | None) -> bool:
+    """Does this content already have the run the router says it is owed?
+
+    Not "does it have any run": `extract_filesystem` writes one for every file
+    before the routed extractor is called, so a run killed between the two leaves
+    a file with a filesystem record and no reading of its contents. Asking for the
+    NAMED extractor is what makes that file resumable rather than permanently
+    half-done.
+
+    A file the router names no extractor for is owed nothing further -- §2.4's
+    `unsupported` is its terminal answer -- so any run at all settles it, and the
+    filesystem record is the one it will have.
+    """
+    runs = runs_for_content(conn, content_hash)
+    if extractor_name is None:
+        return bool(runs)
+    return any(run.extractor_name == extractor_name for run in runs)
+
+
 def _has_successful_ocr_coverage(
         conn: sqlite3.Connection, *, file_id: str, content_hash: str) -> bool:
     """Whether this exact file version already has completed OCR evidence.
@@ -396,13 +416,28 @@ def run_wave2(conn: sqlite3.Connection, selection_id: str, *,
         path = Path(file_row["current_path"])
         if str(path) in evicted:
             continue                      # 2b owns it, and owns it exactly once
-        if verdict["verdict"] != VERDICT_RECOMPUTE and not _extraction_is_stale(
-                conn, file_row["content_hash"], versions):
-            continue
+        # Routed BEFORE the skip, because the skip now needs to know which
+        # extractor this file is owed. `route` is a pure function over the row and
+        # writes nothing, so asking early costs a dictionary lookup.
         decision = route(file_id=file_row["file_id"],
                          content_hash=file_row["content_hash"], path=path,
                          extension=file_row["extension"],
                          detect_format=detect_format)
+        # A FILE THAT WAS NEVER EXTRACTED IS NOT A CACHED FILE, and that third
+        # clause is Phase 4 (b)'s finding. §1.2's stat verdict keys on path, mtime
+        # and size, and `_extraction_is_stale` only compares versions of runs that
+        # EXIST -- with no run at all its loop body never executes and it answers
+        # False. So a scan killed part way left every file it had indexed and not
+        # yet reached looking exactly like a file already done, and no later run
+        # ever read one: measured on a synthetic 200-file corpus, a run killed
+        # after 83 writes left 158 files indexed with no extraction, and the next
+        # run read ZERO of them. Resumption was resuming from the stat cache; it
+        # now resumes from the records, which is what `00`:136-153 asks for.
+        if (verdict["verdict"] != VERDICT_RECOMPUTE
+                and not _extraction_is_stale(conn, file_row["content_hash"], versions)
+                and _already_extracted(conn, file_row["content_hash"],
+                                       decision.extractor_name)):
+            continue
         stamp = now()
         try:
             results = [extract_filesystem(file_row=file_row, path=path, policy=policy,
@@ -661,13 +696,30 @@ def run_p1_p7(
             path = Path(file_row["current_path"])
             if str(path) in evicted:
                 continue
-            if verdict["verdict"] != VERDICT_RECOMPUTE and not _extraction_is_stale(
-                    conn, file_row["content_hash"], versions):
-                reused.add(file_id)
-                continue
+            # Routed BEFORE the skip, because the skip needs to know which
+            # extractor this file is owed. `route` is pure over the row and writes
+            # nothing, so asking early costs a dictionary lookup.
             decision = route(
                 file_id=file_id, content_hash=file_row["content_hash"], path=path,
                 extension=file_row["extension"], detect_format=detect_format)
+            # A FILE THAT WAS NEVER EXTRACTED IS NOT A REUSED FILE, and the third
+            # clause is Phase 4 (b)'s finding. §1.2's stat verdict keys on path,
+            # mtime and size, and `_extraction_is_stale` only compares versions of
+            # runs that EXIST -- with no run at all its loop body never executes
+            # and it answers False. So a scan killed part way left every file it
+            # had indexed and not yet reached looking exactly like a finished one,
+            # and no later run read any of them. Measured on a synthetic 200-file
+            # corpus: a run killed after 83 writes left 158 files indexed with no
+            # extraction, and the next run read ZERO of them and counted all 158
+            # as `reused`. Resumption was resuming from the stat cache; it now
+            # resumes from the records, which is what `00`:136-153 asks for.
+            if (verdict["verdict"] != VERDICT_RECOMPUTE
+                    and not _extraction_is_stale(
+                        conn, file_row["content_hash"], versions)
+                    and _already_extracted(conn, file_row["content_hash"],
+                                           decision.extractor_name)):
+                reused.add(file_id)
+                continue
             stamp = now()
             # `extract_filesystem` FIRST, and on this thread, because its first
             # statement is `admit()`. A path inside a protected container refuses
