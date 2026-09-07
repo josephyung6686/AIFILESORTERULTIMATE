@@ -169,11 +169,18 @@ def test_every_unplaced_file_is_in_exactly_one_set_and_no_other_file_is(tmp_path
     """The rule `surface_residual_sets` refuses a partition for breaking.
 
     A file in no set is never shown on the last screen that could mention it,
-    and a file in two is counted twice and can be filed twice. R-113 is a
-    SEPARATE row and is not solved here: a placement with a destination and a
-    blocked policy is a `place` decision, is not unplaced, and is in no set
-    before this change or after it -- which is what the second assertion says
-    in as many words, so that a later fix to R-113 has to come past it.
+    and a file in two is counted twice and can be filed twice.
+
+    **`104` R-113 EXTENDED THIS.** It used to read "every unplaced file", and
+    said in as many words that a placement with a destination and a blocked
+    policy was in no set and was a separate row. The ruling closed that: every
+    non-`place` decision AND every placement a policy is holding is in exactly
+    one set, so what a placement has to be to stay OUT of the sets is a
+    placement nothing is holding. The blocked halves are pinned on the corpora
+    that produce them, in
+    `tests/integration/test_cli_a_blocked_placement_is_in_a_review_set.py`;
+    this corpus produces none, so the second assertion below reads here as it
+    always did.
     """
     corpus = _three_reason_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
@@ -185,15 +192,18 @@ def test_every_unplaced_file_is_in_exactly_one_set_and_no_other_file_is(tmp_path
         f"a file is in two review sets: {sorted(members)}")
 
     decisions = _decisions(database)
-    unplaced = {d.subject.file_id for d in decisions
-                if d.outcome != pv.PLACE and d.subject.file_id}
-    assert set(members) == unplaced, (
-        f"the sets cover {sorted(set(members))} and the unplaced files are "
-        f"{sorted(unplaced)}")
-    placed = {d.subject.file_id for d in decisions
-              if d.outcome == pv.PLACE and d.subject.file_id}
-    assert not (placed & set(members)), (
-        "a file this run decided a destination for is being held for review too")
+    held = {d.subject.file_id for d in decisions
+            if d.subject.file_id and (
+                d.outcome != pv.PLACE
+                or d.review_policy == pv.BLOCKED_PENDING_USER)}
+    assert set(members) == held, (
+        f"the sets cover {sorted(set(members))} and the files owed a set are "
+        f"{sorted(held)}")
+    free = {d.subject.file_id for d in decisions
+            if d.outcome == pv.PLACE and d.subject.file_id
+            and d.review_policy != pv.BLOCKED_PENDING_USER}
+    assert not (free & set(members)), (
+        "a placement nothing is holding is being shown as held for review")
 
 
 def test_every_abstention_reason_has_a_review_set_of_its_own(tmp_path):

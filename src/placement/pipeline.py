@@ -95,7 +95,8 @@ from placement.scoring import assess, needs_model_call
 from placement.stage_output import emit_retrieval_stage, emit_scoring_stage
 from placement.store import current_decision, record_decision, subject_ref_of
 from placement.vocabulary import (
-    ABSTAIN, ABSTAIN_NO_SUPPORTED_DESTINATION, ASK_USER, BUDGET_DEFERRED,
+    ABSTAIN, ABSTAIN_NO_SUPPORTED_DESTINATION, ASK_USER,
+    BLOCKED_PENDING_USER, BUDGET_DEFERRED,
     CONFLICTING_FACTS, CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH, DIRECT,
     EXISTING, FILE, GENERIC_HUB_ONLY, LOW_MARGIN,
     MARGIN_TRUE_VACUOUS, MARK_STATE, NO_SHARED_BRANCH, SEMANTIC_ONLY,
@@ -692,6 +693,26 @@ class PipelineInputs:
     #: this field existed. That is a position the caller has taken rather than one
     #: this dataclass took for it.
     the_folder_each_file_is_in: Mapping[str, str]
+    #: `104` R-113. `(file_id, node_id) -> the folder the file is in now`, or
+    #: `None`, for a proposed move that would cross one of the person's own
+    #: top-level folders. `00`:20 makes crossing their choice and P12's freeze
+    #: refuses a move they have not made -- so a placement this answers is one
+    #: with a destination it cannot reach, and it belongs in a review set beside
+    #: the files nothing placed at all rather than on the "ready to file" line.
+    #:
+    #: INJECTED, and this is the one authority here that P11 could not derive if
+    #: it tried: the answer needs §1.1's folder landscape, which is a fact about
+    #: the command the run was typed in, not about the corpus.
+    #:
+    #: REQUIRED, WITH NO DEFAULT, exactly as `ask_about_file` and the two beside
+    #: it are, and `test_no_unfinished_knowledge_source_gained_an_implementation_
+    #: default` is the guard that says so: a field with a default here is P11
+    #: answering a question the design leaves to the deployment. Whether a person
+    #: has permitted moves across their own top-level folders is such a question,
+    #: and a caller that has not answered it must not silently get "yes, nothing
+    #: is held". A run that holds no move passes `None`, which is the same answer
+    #: `--may-cross-folders` gives, and it is a position that caller has taken.
+    a_move_the_person_has_not_permitted: object
 
     def __post_init__(self) -> None:
         require_policy(self.policy)
@@ -2607,10 +2628,36 @@ def run_corpus(conn: sqlite3.Connection, *, subjects, group_ids,
     unplaced = tuple(d.subject.file_id for d in decisions
                      if d.outcome != PLACE and d.subject.file_id)
 
+    # `104` R-113. AND EVERY PLACEMENT A POLICY IS HOLDING, which is not the
+    # same thing as an unplaced file and belongs on the same screen.
+    #
+    # A decision can name a destination and still move nothing: an unclassified
+    # subject's placement carries `blocked_pending_user` (`review_policy_for`'s
+    # first rule), and a move the person has not permitted across their own
+    # top-level folders is refused by P12 when the freeze reaches it. Both are
+    # `place`, so neither was in `unplaced`, so neither was in any review set --
+    # and the review sets are what `--send-set` addresses. The residual screen
+    # named these files and offered no gesture that could reach them.
+    #
+    # `unplaced_file_ids` STAYS NARROW. It is this pipeline's answer to "what
+    # did the run fail to place", read by callers that mean exactly that, and a
+    # placement with a destination is not one of them. What widens is the list
+    # handed to the review screen, which is a different question with a
+    # different name.
+    held_by_a_policy = tuple(
+        d.subject.file_id for d in decisions
+        if d.outcome == PLACE and d.subject.file_id
+        and (d.review_policy == BLOCKED_PENDING_USER
+             or (inputs.a_move_the_person_has_not_permitted is not None
+                 and d.destination is not None
+                 and inputs.a_move_the_person_has_not_permitted(
+                     d.subject.file_id, d.destination.node_id) is not None)))
+
     # §7.5. The §6 pass is complete for the corpus, which is the only condition
     # under which a file may be called residual.
     sets: tuple[ResidualSet, ...] = surface_residual_sets(
-        conn, plan_version=inputs.plan_version, unplaced=unplaced,
+        conn, plan_version=inputs.plan_version,
+        unplaced=unplaced + held_by_a_policy,
         partition=inputs.partition, limits=inputs.limits,
         placement_pass_complete=True, component_version=component_version,
         observed_at=observed_at)

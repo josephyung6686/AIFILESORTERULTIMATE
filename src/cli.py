@@ -5390,6 +5390,12 @@ def _semantic_classifier(rules, detector, semantic_model, now):
 NOT_YET_CLASSIFIED: str = "not-yet-classified"
 NO_MODEL_ALLOWED: str = "no-model-allowed"
 WAITING_ON_AN_ANSWER: str = "waiting-on-an-answer"
+#: `104` R-113. A placement whose destination is settled and whose MOVE is not:
+#: `00`:20 makes crossing a top-level folder the person's own choice, they have
+#: not made it, and `mutation/resolution.py` refuses the move when the freeze
+#: reaches it. The file has somewhere to go and cannot go there, which is a
+#: reason of its own and not "no folder matched".
+NOT_ALLOWED_TO_CROSS: str = "not-allowed-to-cross-folders"
 NOT_YET_PLACED: str = "not-yet-placed"
 PROTECTED_REVIEW_SET: str = "protected"
 
@@ -5403,6 +5409,11 @@ REVIEW_SET_REASONS: tuple[tuple[str, str, str], ...] = (
      "deciding these needed a model, and the privacy settings on the folder "
      "they are in do not let one be asked about them. Nothing about them left "
      "this device and nothing moved; the evidence is retained."),
+    (NOT_ALLOWED_TO_CROSS, "Not allowed to move across folders",
+     "this plan has somewhere for these to go and it is under a different "
+     "top-level folder from the one they are in now. Moving between your "
+     "top-level folders is your choice and you have not made it, so nothing "
+     "moved. `--may-cross-folders` is that permission."),
     (pv.NO_SUPPORTED_DESTINATION, "No folder matched",
      "no folder in this plan matched them well enough to be worth proposing."),
     (pv.MULTIPLE_SUPPORTED_HOMES, "More than one folder fits",
@@ -6031,8 +6042,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             "SELECT file_id, filename, extension, observed_timestamps "
             f"FROM files WHERE file_id IN ({marks})", tuple(file_ids))}
 
-    def residual_partition(unplaced: Sequence[str], *,
-                           plan_version: str) -> tuple[dict, ...]:
+    def residual_partition(unplaced: Sequence[str], *, plan_version: str,
+                           crossed=None) -> tuple[dict, ...]:
         """§7.5's review sets, divided by the reason the screen already prints.
 
         `104` R-115. This used to be ONE set of every ordinary unplaced file plus
@@ -6067,9 +6078,19 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         this deployment has no row for keeps the name the one pile had rather
         than being dropped: `surface_residual_sets` refuses a partition that
         misses a file, and a set nobody can name is a file nobody is shown.
-        R-113's blocked-with-destination case is untouched -- those files are
-        `place` decisions, never reach `unplaced`, and are in no set before this
-        change or after it.
+
+        **AND EVERY BLOCKED PLACEMENT IS IN ONE TOO (`104` R-113).** R-115's
+        invariant was "every non-`place` decision", and it left a hole the shape
+        of a decision that named a destination and could not act on it: an
+        unclassified file whose review policy is `blocked_pending_user`, and a
+        move the person has not permitted across their own top-level folders.
+        Both are `place` decisions, so neither reached `unplaced`, so neither was
+        in any review set -- and `--send-set` is the gesture the residual screen
+        offers, so the screen said "nothing on this screen says what these are"
+        about files no gesture on it could reach. They arrive here through
+        `run_corpus`, which now hands the blocked placements to
+        `surface_residual_sets` beside the unplaced files; what this function
+        adds is the NAME of the set each one lands in, off the same record.
 
         **The order is the table's, protected last.** Dict insertion order would
         follow the order files were decided in, so the same corpus would name its
@@ -6098,6 +6119,30 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             """Which set this file is in, off its own recorded decision."""
             decision = decided.get(file_id)
             if decision is None:
+                return NOT_YET_PLACED
+            if decision.outcome == pv.PLACE:
+                # `104` R-113. A placement is here only because a POLICY is
+                # holding it, and the policy is the set it belongs in.
+                #
+                # PRIVACY FIRST, because it is on the record and the crossing is
+                # derived: `blocked_pending_user` is reachable from exactly one
+                # place -- `review_policy_for`'s first rule, an unclassified
+                # subject -- so the same switch `_abstention_explanation` uses is
+                # asked here and gives the same answer it gives an abstention
+                # that stopped for the same fact. Two names for one state would
+                # be two names on one screen.
+                if decision.review_policy == pv.BLOCKED_PENDING_USER:
+                    return (NOT_YET_CLASSIFIED
+                            if is_unclassified(decision.privacy)
+                            else NO_MODEL_ALLOWED)
+                if (crossed is not None and decision.destination is not None
+                        and crossed(file_id,
+                                    decision.destination.node_id) is not None):
+                    return NOT_ALLOWED_TO_CROSS
+                # A placement nothing is holding is not residual at all, and
+                # `run_corpus` does not send one here. Reached only if it ever
+                # does, and then it keeps the name the one pile had rather than
+                # being dropped, exactly as an unknown abstention reason does.
                 return NOT_YET_PLACED
             reason = decision.abstention_reason
             if reason == pv.PRIVACY_BLOCKED:
@@ -6301,7 +6346,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         return {choice.display_path: choice.node_id
                 for choice in _every_destination(frozen)}
 
-    def _home_questions(frozen) -> dict[str, tuple[str, tuple[str, ...]]]:
+    def _home_questions(frozen, unreadable) -> dict[
+            str, tuple[str, tuple[str, ...]]]:
         """One question per folder nothing could be read from, and the words and
         destinations each of its files carries into P11.
 
@@ -6310,12 +6356,17 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         destinations exist, and they exist when the plan is frozen. The recording
         is idempotent by question id, so the second call for the residual pass adds
         nothing.
+
+        `unreadable` is `folders_nothing_could_be_read_from`'s answer, passed IN
+        rather than asked for again: it stands on `_files_something_was_read_out_of`,
+        a `DISTINCT` over `evidence` this codebase has measured as its largest
+        single read, and `already_answered` needs the very same list to know which
+        files a question named (`104` R-86). One reading, two readers.
         """
         node_for = _node_for(frozen)
         offer_for = _destinations_to_offer(frozen)
         asks: dict[str, tuple[str, tuple[str, ...]]] = {}
-        for folder, file_ids, held in folders_nothing_could_be_read_from(
-                conn, root=directory):
+        for folder, file_ids, held in unreadable:
             offered = offer_for(folder)
             if len(offered) < 2:
                 # Fewer than two places to put anything is not a choice, and
@@ -6443,17 +6494,48 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         observe_cd = (observe_placement_injections(
             conn, fact_authorities[0], routing=routing,
             plan_version=tree.tree.plan_version_id) if fact_authorities else {})
-        asks = _home_questions(tree.tree)
+        unreadable = folders_nothing_could_be_read_from(conn, root=directory)
+        asks = _home_questions(tree.tree, unreadable)
         node_of = _node_for(tree.tree)
+        # `104` R-86. THE FILES EACH HOME QUESTION WAS ASKED ABOUT, which is the
+        # scope its answer reaches. Derived from the very list the question was
+        # built from, so the two cannot come apart: `_home_questions` walks
+        # `unreadable` to write the questions and this walks it to say who they
+        # named. Protected files fall out here exactly as they fall out there --
+        # counted in the question, named in no list, and so decided one at a time
+        # rather than by an answer given about the folder around them.
+        asked_about = {file_id: folder
+                       for folder, file_ids, _ in unreadable
+                       for file_id in file_ids}
+        # `104` R-113. WOULD THIS MOVE CROSS A FOLDER THE PERSON KEEPS, asked of
+        # the same landscape `main` hands the report and the freeze: the three
+        # arguments are the ones this run was called with, so the dict cannot
+        # differ from the one built there. `None` when the person has already
+        # said such moves are allowed, because then nothing is being held.
+        crossed = (None if cross_folder_moves else crossing_folder_for(
+            conn, nodes=tree.tree.nodes,
+            landscape=high_level_folders(directory, also_read,
+                                         candidate_roots)))
 
         def already_answered(subject) -> str | None:
             """The node the person's answer names, in THIS plan version's tree.
 
-            Keyed on the FOLDER the file is in, because that is the scope the
-            question was asked at and §13 forbids reading an answer outside its
-            stated scope. A file that arrived in the folder after the answer was
-            given is covered by it, which is what a person means when they answer
-            about a folder rather than about three files.
+            **THE ANSWER REACHES THE FILES THE QUESTION NAMED, AND NO OTHERS**
+            (`104` R-86). The screen says "This decides where those 2 files are
+            filed"; this used to key on the folder the file happens to sit in, so
+            `--answer home:.=Coursework` about two unreadable scans re-homed all
+            33 files in the folder and the freeze that followed froze nothing.
+            The sentence and the reach are one fact and the sentence was right:
+            `chosen_destination` already states the rule -- "a person who says a
+            folder of unreadable scans belongs under `Vaccine records` has said
+            that about THOSE files" -- and this is the reading that was
+            contradicting it. A folder-wide answer needs a folder-wide question,
+            which this screen does not ask.
+
+            So a file the question did not name gets `None` and is decided by the
+            run exactly as it was before anybody answered: a readable file beside
+            the scans, a file that arrived after the question was asked, a
+            protected file that was counted and never named.
 
             **The stored answer is a folder chain and the resolution to a node id
             happens HERE, once per run.** Every run freezes a new plan version and
@@ -6468,14 +6550,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             the plan no longer builds is a real change they should see as the
             question coming back, not as a placement into a folder that is gone.
             """
-            row = conn.execute("SELECT current_path FROM files WHERE file_id = ?",
-                               (subject.file_id,)).fetchone()
-            if row is None:
-                return None
-            try:
-                folder = str(PurePosixPath(
-                    Path(row[0]).relative_to(directory).as_posix()).parent)
-            except ValueError:
+            folder = asked_about.get(subject.file_id)
+            if folder is None:
                 return None
             named = chosen_destination(conn, scope=f"{SCOPE_FOLDER}:{folder}")
             return None if named is None else node_of.get(named)
@@ -6492,7 +6568,15 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # is defined before the tree is built and P11 calls it with the
             # unplaced ids and nothing else.
             partition=lambda unplaced: residual_partition(
-                unplaced, plan_version=tree.tree.plan_version_id),
+                unplaced, plan_version=tree.tree.plan_version_id,
+                crossed=crossed),
+            # `104` R-113. WHICH OF THIS RUN'S PLACEMENTS A CROSSING RULE IS
+            # HOLDING, so P11 can put them in a review set beside the files it
+            # never placed. P11 cannot ask this for itself: the answer needs
+            # §1.1's folder landscape, which is a fact about the command this
+            # run was typed in and not about the corpus, and this is the same
+            # reading the report marks with and the freeze refuses on.
+            a_move_the_person_has_not_permitted=crossed,
             # §6.9, when a file has two homes. This deployment abstains rather than
             # asking, because there is no screen here to ask on and choosing one
             # institution is the failure §6.9 exists to prevent.
@@ -8286,6 +8370,41 @@ def high_level_folders(directory: Path, also_read: Sequence[Path],
                for folder in (*also_read, *candidate_roots)}}
 
 
+def crossing_folder_for(conn: sqlite3.Connection, *, nodes,
+                        landscape: Mapping[str, Path]):
+    """THE ONE READING of "would this move cross a folder the person keeps".
+
+    Returns `(file_id, node_id) -> the folder the file is in now` or `None`,
+    named the way a person names it.
+
+    One derivation, three readers: the screen marks such a proposal (`104` R-N),
+    the review sets hold it so `--send-set` can reach it (`104` R-113), and the
+    freeze refuses it. A second reading of this would eventually tell somebody a
+    move is fine that the freeze refuses, which is R-N exactly, and telling them
+    a file is in a review set that the screen says is ready to file, which is
+    R-113 from the other side.
+
+    P12's own predicate, imported rather than restated: `00`:20 makes crossing
+    the person's third choice and `mutation/resolution.py` is where that choice
+    is enforced.
+    """
+    paths = dict(conn.execute("SELECT file_id, current_path FROM files"))
+    anchors = {node.node_id: node.root_anchor for node in nodes}
+
+    def crossed(file_id: str, node_id: str) -> str | None:
+        anchor = anchors.get(node_id)
+        here = paths.get(file_id)
+        if anchor is None or here is None:
+            return None
+        source = source_high_level_folder(Path(here), landscape)
+        if source is None or source == anchor:
+            return None
+        # The folder's own name, not its path and not P10's anchor id.
+        return Path(landscape[source]).name if source in landscape else source
+
+    return crossed
+
+
 def _crossing_moves(conn: sqlite3.Connection, result: ProductionRun, *,
                     landscape: Mapping[str, Path]) -> dict[str, str]:
     """Every proposed placement that would cross a high-level folder. `104` R-N.
@@ -8294,30 +8413,19 @@ def _crossing_moves(conn: sqlite3.Connection, result: ProductionRun, *,
     Empty when the person has already said such moves are allowed, because then
     there is nothing to mark: the proposal is one the plan will carry out.
 
-    P12's own predicate, imported. `00`:20 makes crossing the person's third
-    choice, and a screen that answered it a second way would eventually tell
-    somebody a move is fine that the freeze refuses -- which is R-N exactly,
-    arrived at from the other side.
+    The reading itself is `crossing_folder_for`; this walks the run's decisions
+    through it.
     """
-    paths = dict(conn.execute("SELECT file_id, current_path FROM files"))
-    anchors = {node.node_id: node.root_anchor for node in result.tree.tree.nodes}
+    crossed = crossing_folder_for(conn, nodes=result.tree.tree.nodes,
+                                  landscape=landscape)
     crossing: dict[str, str] = {}
     for decision in result.placement.decisions:
         if decision.destination is None:
             continue
-        anchor = anchors.get(decision.destination.node_id)
-        if anchor is None:
-            continue
         for file_id in _files_of(decision):
-            here = paths.get(file_id)
-            if here is None:
-                continue
-            source = source_high_level_folder(Path(here), landscape)
-            if source is None or source == anchor:
-                continue
-            # The folder's own name, not its path and not P10's anchor id.
-            crossing[file_id] = (
-                Path(landscape[source]).name if source in landscape else source)
+            source = crossed(file_id, decision.destination.node_id)
+            if source is not None:
+                crossing[file_id] = source
     return crossing
 
 
