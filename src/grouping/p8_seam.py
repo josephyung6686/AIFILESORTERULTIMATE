@@ -79,7 +79,6 @@ from grouping.vocabulary import (
     COHERENT,
     CONTEXT_SUPPORTED,
     DIRECT_ANCHOR,
-    INCLUDED,
     INTERPRETATION,
     LLM,
     LLM_PROPOSED,
@@ -488,28 +487,25 @@ def _propose_group_category(conn: sqlite3.Connection, *, group: Group, answer,
         created_at=created_at)
 
 
-def _members_of(dossier, answer, *, context: bool):
+def _members_of(dossier, answer: ModelAnswer):
     """`(dossier file, P9 decision)` for every member this write covers.
 
-    **With an answer, the model's own per-member decisions**, which is R-16's other
-    half: `include`, `exclude` and `uncertain` were collapsed into one blanket
-    decision per branch, so a file the model excluded became a member and a file it
-    was unsure about became a certainty. A member the model did not mention gets no
-    row at all -- writing one would be P9 authoring a decision on the model's
-    behalf, which is what the blanket write was.
+    **The model's own per-member decisions**, which is R-16's other half:
+    `include`, `exclude` and `uncertain` were collapsed into one blanket decision
+    per branch, so a file the model excluded became a member and a file it was
+    unsure about became a certainty. A member the model did not mention gets no row
+    at all -- writing one would be P9 authoring a decision on the model's behalf,
+    which is what the blanket write was.
 
-    **Without one, the pre-R-16 reading**, and it is not a fallback for the live
-    site: `cli.observed_run_call` always wraps, so B's answers always arrive. This
-    is what a caller that holds a verdict and no response body has -- P8 accepted
-    the group's coherence and said nothing per file, so P9 reads the dossier's own
-    sides, which is exactly as coarse as that caller's evidence.
+    **`104` R-83: THERE IS NO READING HERE FOR A CALLER WITH NO ANSWER.** A second
+    branch took the dossier's own sides -- every anchor included, or every
+    candidate uncertain -- whenever `answer` was `None`, which is R-16's blanket
+    write still standing for "a caller holding a verdict and no response body".
+    That caller does not exist: `cli.observed_run_call` is the only route into this
+    function and it always wraps, and `apply_p8_verdict` now turns one away before
+    reaching here. The `context` flag went with the branch, because its only job
+    was to say which side to blanket.
     """
-    if answer is None:
-        return tuple(
-            (item, UNCERTAIN if context else INCLUDED)
-            for item in (dossier.candidate_files if context
-                         else dossier.anchor_files)
-        )
     by_id = {item.file_id: item
              for item in dossier.anchor_files + dossier.candidate_files}
     found = []
@@ -548,6 +544,15 @@ def apply_p8_verdict(
     root that supplied the prompt reads the model's own answers and hands them over
     as `Answered`, which is the same argument `model_placement` makes for
     `chosen_node_of` at site C.
+
+    **`104` R-83: AND THE WRAPPER IS NOW THE ONLY WAY IN.** R-16 left the blanket
+    write standing one branch further down, for a caller that had the verdict and
+    no response body: `_members_of` read the dossier's own sides and P9 wrote
+    memberships nobody had decided. It was never reachable from the live root, but
+    "not reachable today" is how a coarse path survives a refactor. An accepting
+    verdict arriving bare is a caller bug, so it is raised on exactly as a
+    non-verdict is -- before the group row is written, because a group recorded
+    beside a raise is a group whose author this run cannot name.
 
     **THE GROUP ROW IS INSERTED HERE WHEN ITS AUTHOR IS THE MODEL, and that is what
     made the three fields writable at all.** `groups` is append-only in the strong
@@ -632,8 +637,20 @@ def apply_p8_verdict(
                 evidence_refs=tuple(result.reasons), outcome=NO_GROUP)
         return _decision(group, dossier, stop_rule_outcome=outcome)
 
-    context = result.outcome == ACCEPT_CONTEXT_SUPPORTED
-    members = _members_of(dossier, answer, context=context)
+    if answer is None:
+        # `104` R-83, and the twin of the `not isinstance(result, P8Verdict)` raise
+        # above: RAISED WITH THE GROUP ROW UNWRITTEN, because nothing here can be
+        # written correctly. The four answers live in the response body, and only
+        # the root that supplied the prompt can read one, so a caller holding the
+        # verdict alone knows no member decision, no label and no category.
+        raise TypeError(
+            "apply_p8_verdict was handed a bare P8Verdict for an accepting "
+            "outcome. Pass `Answered(result=..., answer=...)` carrying the four "
+            "answers the composition root read back, or `ObservedOnly(result=...)` "
+            "when it could read none. The group row is withheld rather than "
+            "written with the blanket memberships `104` R-16 took out."
+        )
+    members = _members_of(dossier, answer)
     # THE OBLIGATION IS PER UNCERTAIN MEMBER, so the refusal is too. It read
     # `context and not plan_version_id`, which was right while the whole branch was
     # uncertain; a model may now call one member uncertain inside a group it

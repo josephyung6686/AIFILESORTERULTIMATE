@@ -27,6 +27,7 @@ from grouping.acceptance import (
 from grouping.p8_seam import (
     DossierDeferred,
     GroupDecision,
+    MemberDecision,
     apply_p8_verdict,
     build_dossier_request,
 )
@@ -132,6 +133,25 @@ def _apply(conn, result, *, group=None, dossier=None, plan_version_id=PLAN):
     )
 
 
+def _answered(verdict=None, *, coherent=COHERENT, category="academic",
+              label="PHYS1401 course materials", members=None):
+    from grouping.p8_seam import Answered, ModelAnswer
+
+    if members is None:
+        members = (
+            MemberDecision(file_id="lecture-08", decision=INCLUDED,
+                           why="states the course code"),
+            MemberDecision(file_id="midterm-practice", decision=INCLUDED,
+                           why="states the course code"),
+            MemberDecision(file_id="hw-3", decision=UNCERTAIN,
+                           why="retrieved beside them and states nothing"),
+        )
+    return Answered(
+        result=verdict if verdict is not None else _verdict(ACCEPT_DIRECT),
+        answer=ModelAnswer(coherent=coherent, category=category, label=label,
+                           members=tuple(members), citations=(KEY,)))
+
+
 def _request(dossier):
     """P9 supplies neither the model target nor the prompt; both are P8's, chosen
     by the caller that owns the run."""
@@ -215,7 +235,12 @@ def test_p9_imports_no_gate_no_transport_and_no_materialised_dossier():
 
 def test_accept_direct_writes_an_included_direct_anchor_membership(seam_conn):
     record_group(seam_conn, _group())
-    decision = _apply(seam_conn, _verdict(ACCEPT_DIRECT))
+    decision = _apply(seam_conn, _answered(members=(
+        MemberDecision(file_id="lecture-08", decision=INCLUDED,
+                       why="states the course code"),
+        MemberDecision(file_id="midterm-practice", decision=INCLUDED,
+                       why="states the course code"),
+    )))
     assert isinstance(decision, GroupDecision)
     memberships = memberships_for_group(seam_conn, GROUP)
     assert memberships
@@ -226,7 +251,12 @@ def test_accept_direct_writes_an_included_direct_anchor_membership(seam_conn):
 
 def test_accept_direct_needs_no_review_obligation(seam_conn):
     record_group(seam_conn, _group())
-    _apply(seam_conn, _verdict(ACCEPT_DIRECT))
+    _apply(seam_conn, _answered(members=(
+        MemberDecision(file_id="lecture-08", decision=INCLUDED,
+                       why="states the course code"),
+        MemberDecision(file_id="midterm-practice", decision=INCLUDED,
+                       why="states the course code"),
+    )))
     membership = memberships_for_group(seam_conn, GROUP)[0]
     with pytest.raises(AcceptanceStateAbsent):
         membership_review_state_as_of(
@@ -239,7 +269,10 @@ def test_accept_direct_needs_no_review_obligation(seam_conn):
 
 def test_a_context_membership_and_its_review_obligation_land_together(seam_conn):
     record_group(seam_conn, _group())
-    _apply(seam_conn, _verdict(ACCEPT_CONTEXT_SUPPORTED))
+    _apply(seam_conn, _answered(_verdict(ACCEPT_CONTEXT_SUPPORTED), members=(
+        MemberDecision(file_id="hw-3", decision=UNCERTAIN,
+                       why="retrieved beside them and states nothing"),
+    )))
     memberships = memberships_for_group(seam_conn, GROUP)
     assert memberships
     for membership in memberships:
@@ -255,7 +288,11 @@ def test_a_context_membership_without_a_plan_version_writes_nothing(seam_conn):
     the review, and a membership visible without its review is the failure."""
     record_group(seam_conn, _group())
     with pytest.raises(ValueError) as excinfo:
-        _apply(seam_conn, _verdict(ACCEPT_CONTEXT_SUPPORTED), plan_version_id=None)
+        _apply(seam_conn, _answered(_verdict(ACCEPT_CONTEXT_SUPPORTED), members=(
+        MemberDecision(file_id="hw-3", decision=UNCERTAIN,
+                       why="retrieved beside them and states nothing"),
+    )),
+               plan_version_id=None)
     # The record would refuse a blank `plan_version_id` too, and the transaction
     # would roll the membership back -- but only after writing it, and with a
     # message about a missing field rather than about a missing review.
@@ -276,7 +313,10 @@ def test_a_failed_acceptance_write_leaves_no_membership_behind(seam_conn, monkey
 
     monkeypatch.setattr(seam, "record_context_review_pending", boom)
     with pytest.raises(RuntimeError):
-        _apply(seam_conn, _verdict(ACCEPT_CONTEXT_SUPPORTED))
+        _apply(seam_conn, _answered(_verdict(ACCEPT_CONTEXT_SUPPORTED), members=(
+        MemberDecision(file_id="hw-3", decision=UNCERTAIN,
+                       why="retrieved beside them and states nothing"),
+    )))
     assert memberships_for_group(seam_conn, GROUP) == ()
 
 
@@ -455,8 +495,12 @@ def test_an_accepted_membership_carries_the_conflicts_naming_its_file(seam_conn)
     from grouping.store import memberships_for_group
 
     dossier = application_dossier_fixture()
-    _apply(seam_conn, _verdict(),
-           group=_group(group_id=dossier.group_id), dossier=dossier)
+    _apply(seam_conn, _answered(label=None, category=None, members=(
+        MemberDecision(file_id="essay-columbia", decision=INCLUDED,
+                       why="names the school it is written for"),
+        MemberDecision(file_id="admissions-checklist", decision=INCLUDED,
+                       why="lists what each application needs"),
+    )), group=_group(group_id=dossier.group_id), dossier=dossier)
 
     by_file = {
         item.file_id: item
@@ -475,25 +519,6 @@ def test_an_accepted_membership_carries_the_conflicts_naming_its_file(seam_conn)
 # include/exclude/uncertain collapses to blanket memberships". G11 says the same
 # from the packet's side: "The model's four answers are validated and then three of
 # them are dropped. B must be observe-only until P9 reads them."
-
-
-def _answered(verdict=None, *, coherent=COHERENT, category="academic",
-              label="PHYS1401 course materials", members=None):
-    from grouping.p8_seam import Answered, MemberDecision, ModelAnswer
-
-    if members is None:
-        members = (
-            MemberDecision(file_id="lecture-08", decision=INCLUDED,
-                           why="states the course code"),
-            MemberDecision(file_id="midterm-practice", decision=INCLUDED,
-                           why="states the course code"),
-            MemberDecision(file_id="hw-3", decision=UNCERTAIN,
-                           why="retrieved beside them and states nothing"),
-        )
-    return Answered(
-        result=verdict if verdict is not None else _verdict(ACCEPT_DIRECT),
-        answer=ModelAnswer(coherent=coherent, category=category, label=label,
-                           members=tuple(members), citations=(KEY,)))
 
 
 def test_r16_an_accepted_verdict_writes_the_label_the_category_and_the_verdict(
@@ -774,3 +799,49 @@ def test_r16_a_rejected_answer_writes_no_label_and_no_membership(seam_conn):
 
     assert memberships_for_group(seam_conn, GROUP) == ()
     assert current_group(seam_conn, GROUP).display_label is None
+
+
+# --- `104` R-83: the coarse path stops existing ----------------------------------
+#
+# R-16 replaced the blanket write at the top of the seam and left it standing one
+# branch below, for "a caller holding a verdict and no response body": `_members_of`
+# read the dossier's own sides -- every anchor included, or every candidate
+# uncertain -- and P9 wrote memberships nobody had decided. No such caller exists;
+# `cli.observed_run_call` is the only route in and it always wraps.
+
+
+@pytest.mark.parametrize("outcome", [ACCEPT_DIRECT, ACCEPT_CONTEXT_SUPPORTED])
+def test_r83_a_bare_accepting_verdict_raises_and_writes_no_group_row(
+        seam_conn, outcome):
+    """Both sides of the blanket, and the raise says what to pass instead.
+
+    THE GROUP IS NOT PRE-RECORDED HERE, which is the half that matters. The raise
+    lands before `_record_group_once`, so a caller bug loses the row rather than
+    writing a wrong one -- and `groups` is append-only, so a row written beside a
+    raise is a row nothing could ever correct.
+    """
+    from grouping.store import RecordAbsent, current_group
+
+    with pytest.raises(TypeError) as excinfo:
+        _apply(seam_conn, _verdict(outcome))
+
+    assert "Answered" in str(excinfo.value)
+    assert "ObservedOnly" in str(excinfo.value)
+    with pytest.raises(RecordAbsent):
+        current_group(seam_conn, GROUP)
+    assert memberships_for_group(seam_conn, GROUP) == ()
+
+
+def test_r83_a_wrapper_that_read_no_answer_is_the_same_caller_bug(seam_conn):
+    """The check is on the ANSWER and not on the wrapper's type. A root that
+    wrapped and read nothing has exactly what the bare caller had, and
+    `ObservedOnly` is the shape that says so; letting the wrapper stand as proof
+    would put the blanket write back through a shape."""
+    from grouping.p8_seam import Answered
+    from grouping.store import RecordAbsent, current_group
+
+    with pytest.raises(TypeError):
+        _apply(seam_conn, Answered(result=_verdict(ACCEPT_DIRECT), answer=None))
+
+    with pytest.raises(RecordAbsent):
+        current_group(seam_conn, GROUP)

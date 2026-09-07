@@ -30,11 +30,25 @@ from evidence_shape.schema import create_evidence_schema
 from evidence_shape.store import record_observation, record_run, record_text_unit
 from evidence_shape.text_units import TextUnit
 from extractors.schema import create_extraction_schema
-from grouping.p8_seam import GroupDecision, apply_p8_verdict, build_dossier_request
+from grouping.p8_seam import (
+    Answered,
+    GroupDecision,
+    MemberDecision,
+    ModelAnswer,
+    ObservedOnly,
+    apply_p8_verdict,
+    build_dossier_request,
+)
 from grouping.records import AnchorFact, Group
 from grouping.schema import create_grouping_schema
 from grouping.store import memberships_for_group, record_group
-from grouping.vocabulary import CANDIDATE, RULES, STRONGLY_IDENTIFIED_FILE
+from grouping.vocabulary import (
+    CANDIDATE,
+    COHERENT,
+    INCLUDED,
+    RULES,
+    STRONGLY_IDENTIFIED_FILE,
+)
 from llm_harness.budgets import create_budget_schema
 from llm_harness.records import P8Verdict
 from llm_harness.schema import create_llm_schema
@@ -254,10 +268,22 @@ def test_a_grounded_group_verdict_becomes_a_p9_membership(seam_conn):
     assert isinstance(verdicts[0], P8Verdict)
     assert verdicts[0].outcome == ACCEPT_DIRECT, verdicts[0].reasons
 
+    # `104` R-16 and R-83: the verdict names a `claim_ref` and carries no payload,
+    # so the model's per-member answers are read back by whoever supplied the
+    # prompt -- `cli.observed_run_call` in the live run -- and handed over as
+    # `Answered`. A bare verdict at this seam is refused, so the test stands where
+    # the composition root stands and reads the claim it just built.
+    answer = ModelAnswer(
+        coherent=COHERENT, category=None, label=None, members=tuple(
+            MemberDecision(file_id=file_id, decision=INCLUDED,
+                           why="states the course code")
+            for file_id in ("lecture-08", "midterm-practice")))
+
     record_group(seam_conn, _group())
     decision = apply_p8_verdict(
         seam_conn, group=_group(), dossier=course_dossier_fixture(),
-        result=verdicts[0], plan_version_id="plan-2", created_at=T0)
+        result=Answered(result=verdicts[0], answer=answer),
+        plan_version_id="plan-2", created_at=T0)
     memberships = memberships_for_group(seam_conn, GROUP)
     assert memberships
     assert decision.membership_ids == tuple(
@@ -597,9 +623,21 @@ def test_the_pipeline_reaches_the_real_run_call(seam_conn, live_group):
             }],
         }]}).encode("utf-8")
 
+    def root_run_call(conn, request, **authorities):
+        """Where the composition root stands. `104` R-83.
+
+        `llm_harness.run_call` returns the verdict alone, and the seam refuses one:
+        the model's four answers are in the response body, which only the root that
+        supplied the prompt can read. `_prompt()` is unratified, and `ObservedOnly`
+        is precisely what `cli.observed_run_call` returns for an unratified prompt
+        -- the call happens and nothing is applied. The arguments are forwarded
+        verbatim, so this is still the real `run_call` under P9's own bundle.
+        """
+        return ObservedOnly(llm_harness.run_call(conn, request, **authorities))
+
     result = live_group(
         seam_conn,
-        p8_run_call=llm_harness.run_call,
+        p8_run_call=root_run_call,
         p8_authorities=ModelCallAuthorities(
             gate=_live_gate(seam_conn),
             model_client=ModelClient(model_target=LOCAL, invoke=invoke),

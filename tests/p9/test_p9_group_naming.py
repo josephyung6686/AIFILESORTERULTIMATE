@@ -604,17 +604,20 @@ def test_naming_a_group_reads_the_record_and_opens_nothing(live, tmp_path):
 # --- D. the model path ------------------------------------------------------------
 
 
-def test_apply_p8_verdict_writes_no_category_and_no_label(live, tmp_path):
-    """The decision, pinned so it cannot drift into an invention.
+def test_a_bare_verdict_names_nothing_and_is_refused(live, tmp_path):
+    """The decision, pinned so it cannot drift into an invention. `104` R-83.
 
     §4.5 task 4 is the MODEL's: it proposes the label and the category, and P8's
-    validator has a reason code for proposing them without coherence. But
-    `P8Verdict` carries neither field, so the model's answer never arrives here.
-    Deriving one from `result.outcome` would be P9 authoring the model's proposal
-    on its behalf.
+    validator has a reason code for proposing them without coherence. `P8Verdict`
+    carries neither field, so a caller holding one and nothing else has no proposal
+    to write; deriving one from `result.outcome` would be P9 authoring the model's
+    answer on its behalf.
 
-    The group on disk is byte-identical across the call: what P8 said is recorded
-    where P8's answers live -- `validation_verdict_ref` on each membership.
+    This used to assert that such a call wrote no label -- and it also wrote a
+    membership per anchor, which is the same invention wearing a different column.
+    R-16 gave the seam the model's own answers by way of `Answered`, and this is
+    now refused outright. THE GROUP THE ENGINE ALREADY NAMED IS BYTE-IDENTICAL
+    ACROSS THE RAISE: nothing is written, and nothing already written is disturbed.
     """
     from grouping.fixtures import course_dossier_fixture
     from grouping.p8_seam import apply_p8_verdict
@@ -623,15 +626,14 @@ def test_apply_p8_verdict_writes_no_category_and_no_label(live, tmp_path):
     subject = _coursework(live, tmp_path)[0]
     group = _group_subject(live, subject).group
     before = current_group(live, group.group_id)
+    before_memberships = memberships_for_group(live, group.group_id)
 
     dossier = course_dossier_fixture()
     verdict = accepted_direct_verdict(dossier_id=dossier.dossier_id)
-    apply_p8_verdict(
-        live, group=group, dossier=dossier, result=verdict,
-        plan_version_id=PLAN, created_at=T0)
+    with pytest.raises(TypeError):
+        apply_p8_verdict(
+            live, group=group, dossier=dossier, result=verdict,
+            plan_version_id=PLAN, created_at=T0)
 
-    after = current_group(live, group.group_id)
-    assert after == before
-    written = memberships_for_group(live, group.group_id)
-    assert any(item.validation_verdict_ref == verdict.verdict_id
-               for item in written)
+    assert current_group(live, group.group_id) == before
+    assert memberships_for_group(live, group.group_id) == before_memberships
