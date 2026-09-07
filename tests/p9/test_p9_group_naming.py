@@ -151,7 +151,6 @@ def _knowledge(**over) -> GroupingKnowledge:
         retrieval=RetrievalKnowledge(
             document_compatible=None, channel_weights={}, similarity=None,
             similarity_threshold=None, embedding_identity=None, domain=None),
-        active_schema_for=lambda c, f, h: ("school", "subject", "work_type"),
         signal_evaluator_for=lambda domain: True,
         classification_store=_classified(),
         conflicts_for=lambda files: (),

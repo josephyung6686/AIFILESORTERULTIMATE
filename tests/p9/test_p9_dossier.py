@@ -187,7 +187,6 @@ def _assemble(conn, corpus, *, group=None, graph=None, limits=None, **overrides)
         group=group or _group(_fact(seed_id, seed_key), _fact(lecture_id, lecture_key)),
         graph=graph if graph is not None else _graph(corpus),
         limits=limits or _limits(),
-        active_schema_for=lambda c, f, h: ("subject",),
         signal_evaluator_for=lambda domain: True,
         classification_store=_classified(),
         conflicts=(),
@@ -349,8 +348,14 @@ def test_p9_drops_nothing_for_a_token_budget(dossier_conn, corpus):
 # --- missing domain knowledge is a refusal, not a guess --------------------------
 
 
+#: `active_schema_for` WAS THE FIRST OF THREE AND IS GONE (`104` R-09). It was the
+#: one of the three that no line in `src/` ever called, so demanding it here demanded
+#: a value assembly could not have used; `tests/integration/
+#: test_p9_active_schema_slot_retired.py` carries the measurement. The two that stay
+#: are read: `classification_store` resolves a handling class for every file in the
+#: graph, and `signal_evaluator_for` is P9's own open seam (`104` §14.2).
 @pytest.mark.parametrize(
-    "absent", ["active_schema_for", "signal_evaluator_for", "classification_store"])
+    "absent", ["signal_evaluator_for", "classification_store"])
 def test_missing_domain_knowledge_is_configuration_required(
     dossier_conn, corpus, absent,
 ):

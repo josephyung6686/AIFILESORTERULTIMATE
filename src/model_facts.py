@@ -46,6 +46,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
+from evidence_shape.canonical import canonical_json
 from evidence_shape.locator import serialize_locator
 from evidence_shape.store import unit_length_for_observation
 from facts.domains import ActivationSignals, active_field_allowlist
@@ -58,12 +59,20 @@ from llm_harness.fact_validation import FactValidationDependencies
 from llm_harness.fingerprint import prompt_fingerprint
 from llm_harness.harness import CallDependencies, run_call
 from llm_harness.records import (
-    DossierRequest, EvidenceItem, FolderLevel, PromptDefinition,
+    DossierRequest, EvidenceItem, FolderLevel, P8Verdict, PromptDefinition,
 )
 from llm_harness.sites import FactSiteDependencies, SiteDependencies
+from llm_harness.store import (
+    abstained_fields,
+    call_identity,
+    prior_call,
+    record_call_identity,
+    record_call_reuse,
+)
 from llm_harness.transport import ModelClient
 from llm_harness.vocabulary import A_FACT, DIRECT_ANCHOR, REMAINS_AMBIGUOUS
 from privacy.gate import Gate
+from privacy.policy import policy_at
 from privacy.items import Excerpt, Filename, sensitive_observation_keys
 from privacy.release import ModelCallRequest, ModelTarget, Target
 from privacy.vocabulary import ALWAYS_LOCAL_ZONES
@@ -249,6 +258,41 @@ class FactCallAuthorities:
     max_dossier_tokens: int
     observed_at: Callable[[], str]
     on_result: Callable[[str, object], None] | None
+    #: THE AUTHORED READINGS, AND THE WALL THEY STOP AT (`104` R-08). The shipped
+    #: recognition release carries 314 `needs_llm` rows -- prose saying, per
+    #: situation, what a model must decide here and when it must abstain -- which
+    #: `recognition.rules` loads into `SchemaRules.deferred_readings` and which
+    #: reached nothing (`102` §3: they appear "nowhere outside `src/recognition/`").
+    #: The composition root now hands them in, because this is the record one A_fact
+    #: call is built from and there is nowhere further for them to go.
+    #:
+    #: **They are collected and counted here and they are not sent.** The A_fact
+    #: template tells the model the dossier "has these keys and no others" and lists
+    #: fifteen; `llm_harness.dossier._body` writes exactly those fifteen. A
+    #: sixteenth makes the model's own instructions false about the bytes beside
+    #: them, and prompt text is the owner's to ratify. The key is the D2 packet's to
+    #: add, and `tests/integration/test_deferred_readings_reach_the_boundary.py`
+    #: fails the day it appears.
+    #:
+    #: Defaulted, unlike `folder_levels` above: an absent level list is a wiring
+    #: failure and refuses, while a deployment whose release compiled no reading for
+    #: a schema truthfully has none.
+    #:
+    #: Measured: `academic` holds 69 readings, 14,491 characters, against a 4,000
+    #: dossier ceiling -- so a SCHEMA's readings can never be sent per call. The
+    #: situation's own share (`academic.coursework` plus the schema-wide row) is 11
+    #: readings and 2,015, which is affordable in a stable prompt prefix (`104`
+    #: R-52). Narrowing this to the situation needs `recognition.rules._schema` to
+    #: keep the `row` each reading came from; today it flattens them and drops it.
+    deferred_readings: tuple[str, ...] = ()
+    #: `104` R-14's one-slot mailbox, or `None`. The composition root builds it,
+    #: the transport fills it, and `run_call` takes from it after `settle_call` to
+    #: write the usage row. Carried here rather than on `CallDependencies` because
+    #: that bundle is for authorities a caller MUST supply -- every field of it is
+    #: undefaulted and `tests/p8/test_p8_no_invention.py` enforces that -- while a
+    #: usage sink is optional by design: the local transport reports no usage, and
+    #: a deployment recording none is a real deployment.
+    usage_recorder: object | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "folder_levels",
@@ -567,6 +611,90 @@ def _call_dependencies(
     )
 
 
+def _policy_content(conn: sqlite3.Connection, policy_version: str) -> str:
+    """The policy IN FORCE, by what it says rather than by which row it is.
+
+    `00`:44 puts the policy among the cache key's terms. Keyed on the version STRING
+    the cache could never hit once, and that is measured rather than argued:
+    `privacy.policy._persist` mints `policy-{uuid4().hex}` on every call, and
+    `cli._model_fact_pass` sets a policy at the start of every run, so two runs under
+    an identical policy carry two version ids. Two runs measured on one corpus:
+    `policy-44204e77...` and `policy-47123308...`, same mode, same grants, same
+    redaction settings.
+
+    So the dimension is the CONTENT: mode, grants, redaction settings, move
+    permissions, suspended kinds and the plan the policy belongs to. `policy_version`
+    and `set_at` are left out because they are the two that move without the policy
+    changing. A policy that really does change -- consent withdrawn, a redaction
+    setting raised -- changes this string and invalidates every answer under it,
+    which is the half of `00`:44 that matters.
+    """
+    policy = policy_at(conn, policy_version)
+    return canonical_json({
+        "automatic_move_permissions": dict(policy.automatic_move_permissions),
+        "consent_grants": [list(pair) for pair in policy.consent_grants],
+        "operation_mode": policy.operation_mode,
+        "plan_version": policy.plan_version,
+        "redaction_settings": dict(policy.redaction_settings),
+        "suspended_item_kinds": sorted(policy.suspended_item_kinds),
+    })
+
+
+def call_identity_dimensions(
+    conn: sqlite3.Connection, *,
+    file_id: str,
+    content_hash: str,
+    observations: Sequence,
+    authorities: FactCallAuthorities,
+) -> dict[str, object]:
+    """`00`:44's cache key for one A_fact call, term by term.
+
+    > "Each extraction result is tied to the content hash and the exact process that
+    > produced it. The cache key includes content hash, extractor version, analysis
+    > tier, model identifier when relevant, and prompt fingerprint for model-derived
+    > results. This prevents stale results from surviving a content rewrite, avoids
+    > unnecessary work when a file is merely renamed, and makes model or prompt
+    > changes auditable."
+
+    Every term is read from something the call is actually built from, so a dimension
+    cannot say one thing while the call does another:
+
+      * `content_hash` is the file VERSION. A rewrite invalidates; a rename does not,
+        which is the second sentence's own promise.
+      * `extractor_versions` is the `(name, version)` of every observation this call
+        would carry -- the "exact process that produced it", read off the evidence
+        rather than off a constant, so an upgraded reader invalidates the answers
+        that rested on its output and no others.
+      * `model_id` is the target the gate is asked about and the client sends to.
+      * `prompt_fingerprint` covers the template, its id, the response schema and the
+        shaping policy, so any of them moving re-asks. §8.6's "analysis tier" is
+        inside it: `PromptDefinition.call_site` and `call_site_version` are two of the
+        six terms `fingerprint.prompt_fingerprint` hashes.
+      * `schema_id` is the situation's domain, which decides the field allowlist.
+      * `policy` is the policy's content -- see `_policy_content`.
+      * `plan_version` is `None` here and is carried anyway, for the reason
+        `store.CALL_IDENTITY_DIMENSIONS` gives.
+    """
+    return {
+        "call_site": A_FACT,
+        "content_hash": content_hash,
+        "extractor_versions": sorted(
+            {(observation.extractor_name, observation.extractor_version)
+             for observation in observations}),
+        "model_id": authorities.model_target.model_id,
+        # Null at A, and `build_fact_request` says why in its own words: "a fact is
+        # about a file version and not about a plan, and the same fact survives a
+        # re-plan". Read from the same place rather than restated, so the two cannot
+        # disagree about a call that is about to be built.
+        "plan_version": None,
+        "policy": _policy_content(conn, authorities.policy_version),
+        "prompt_fingerprint": prompt_fingerprint(authorities.prompt),
+        "schema_id": sorted(
+            signal.schema_id for signal in authorities.activation_signals.signals),
+        "subject_ref": file_id,
+    }
+
+
 def fact_call_stage(authorities: FactCallAuthorities):
     """One `facts.resolver.Stage`: the §8.6 `llm` producer, wired to a real model.
 
@@ -607,6 +735,39 @@ def fact_call_stage(authorities: FactCallAuthorities):
         vocabulary, visible_levels = open_question(
             pending, authorities.folder_levels)
 
+        # `104` R-13, AND IT IS HERE FOR ONE REASON: everything after this line
+        # costs. `run_call` reserves a budget slot, `gate.release` mints an audit
+        # row and a single-use capability, and `transport.issue` spends it. A
+        # lookup keyed on `dossier_id` -- the obvious key, and a stable one since
+        # R-58 -- could not run here at all: that address hashes `released_evidence`
+        # and so exists only AFTER the release is minted and the slot is taken. So
+        # the key is the identity of the question's CONTEXT, computed from the same
+        # inputs that determine the dossier, and the prior's `dossier_id` is stored
+        # on the row so a reuse names the answer it is reusing.
+        identity = call_identity_dimensions(
+            conn, file_id=file_id, content_hash=content_hash,
+            observations=observations, authorities=authorities)
+        identity_id = call_identity(identity)
+        prior = prior_call(conn, identity_id)
+        if prior is not None and vocabulary:
+            declined = abstained_fields(conn, prior["dossier_id"])
+            if set(vocabulary) <= declined:
+                # EVERY field still open was already declined under this exact
+                # identity. Asking again buys the same answer and spends a call for
+                # it -- measured on a two-file corpus, 2 calls on the first run and
+                # 2 more on an unchanged second, for 6 repeated abstentions.
+                #
+                # The `vocabulary` guard keeps an EMPTY offer on the path it is
+                # already on: a call that offers the model nothing is a different
+                # defect and reusing an answer for it would hide one behind the
+                # other.
+                record_call_reuse(
+                    conn, identity_id=identity_id,
+                    prior_dossier_id=prior["dossier_id"], call_site=A_FACT,
+                    subject_ref=file_id, reused_fields=vocabulary,
+                    observed_at=authorities.observed_at())
+                return ()
+
         before = {row["fact_id"] for row in facts_for_file(
             conn, file_id, content_hash)}
         result = run_call(
@@ -623,7 +784,22 @@ def fact_call_stage(authorities: FactCallAuthorities):
                 request, vocabulary, folder_levels=visible_levels,
                 authorities=authorities, observations=observations),
             observed_at=authorities.observed_at,
+            # `104` R-14. Handed to `run_call` and not to `CallDependencies`: it is
+            # optional, and that bundle's every field is required by construction.
+            usage_recorder=authorities.usage_recorder,
         )
+        if isinstance(result, P8Verdict):
+            # ONLY on a verdict, and the exclusions are the point. A refusal, a
+            # pre-call abstention, a call failure and a `ValidationUnavailable` are
+            # all states where no model answered this question, and remembering one
+            # as an answer would turn a transient failure -- a denied release, an
+            # exhausted budget, a provider that hung up -- into a permanent silence
+            # about the file. Those must be retried on the next run, which is what
+            # writing nothing here means.
+            record_call_identity(
+                conn, identity_id=identity_id, dossier_id=result.dossier_id,
+                call_site=A_FACT, subject_ref=file_id, dimensions=identity,
+                observed_at=authorities.observed_at())
         if authorities.on_result is not None:
             authorities.on_result(file_id, result)
         return tuple(row["fact_id"] for row in facts_for_file(

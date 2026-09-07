@@ -49,11 +49,39 @@ what came back. It repairs nothing and rewrites nothing.
 **No prompt text lives here, and no model behaviour is chosen here.** The prompt is
 `PromptDefinition.template_bytes`, authored at the composition root and
 fingerprinted into every audit record, fact row and cache key (`76`). Nothing here
-sets a system message, a temperature, a `response_format` or an `n`: a sentence or
-a knob added here would be a prompt nobody approved and no record names. The model
-id comes from the `ModelTarget` -- which of `83`'s three tiers this client is, is
-decided by the caller -- and the token ceiling is injected; §8.6 names its ceilings
-"configurable" and gives no values, so neither is chosen here.
+sets a system message, a temperature or an `n`: a sentence or a knob added here would
+be a prompt nobody approved and no record names. The model id comes from the
+`ModelTarget` -- which of `83`'s three tiers this client is, is decided by the
+caller -- and the token ceiling is injected; §8.6 names its ceilings "configurable"
+and gives no values, so neither is chosen here.
+
+**`response_format` IS SET, and the sentence above used to forbid it (`104` R-14).**
+The rule it states is right about what it was written against: a knob that changes
+what the model is ASKED is a prompt nobody approved. JSON mode is not that. The
+ratified A_fact template already says, in the owner's words, *"answer with one JSON
+object and nothing else"*, *"No code fence. No backticks"* and *"The first character
+you send is { and the last character you send is }"* -- so the flag makes the
+transport ENFORCE the ratified text rather than add to it, and the failure it removes
+is one this module already has to raise on: a reasoning model that spends the ceiling
+on prose returns something `response_text` can only reject. It also has a
+precondition the provider states -- the prompt must contain the word "json" or the
+reply comes back empty -- and `request_body` refuses rather than sending under a flag
+whose condition it has not met, because an empty reply arrives here as
+`NoAnswerFromModel` and is recorded against the model for a mistake made on this side.
+THE HONEST GAP: `prompt_fingerprint` hashes the template, its id, the response schema,
+the shaping policy and the call site, and no transport parameter, so two runs with and
+without this flag are indistinguishable in every audit row. The flag is therefore
+carried on the usage record, which is the only place that can say which of the two a
+call was.
+
+**What the provider says it spent is read, and it leaves by an injected sink**
+(`104` R-14, second half). `actual_cost` in the budget is a constant and no code
+observed a token count; `response_text` had the usage block in its hand and dropped
+it. `usage_of` reads it -- including DeepSeek's own `prompt_cache_hit_tokens`, which
+is the number `104` R-58's prefix work moves and which nothing in the product
+recorded. It leaves through `on_usage` rather than the return value because
+`ModelClient.invoke` is `Callable[[bytes], bytes]`: widening that contract is
+`llm_harness/transport.py`'s, and a reader may not reach into it.
 
 **A provider that declines, an answer cut off at the ceiling, and a reason this
 module cannot read are all refusals and never answers.** All arrive over HTTP 200.
@@ -77,7 +105,9 @@ answer.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable
+from dataclasses import dataclass
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Callable, Mapping
 
 if TYPE_CHECKING:  # pragma: no cover - annotation only; no run-time edge
     from privacy.release import ModelTarget
@@ -106,6 +136,16 @@ BASE_URL_NAME: str = "DEEPSEEK_BASE_URL"
 #: provider's to extend and the successes are not.
 FINISHED: str = "stop"
 
+#: `104` R-14. The provider's own name for "reply with one JSON object", which is
+#: what the ratified A_fact template already demands in prose. A mapping proxy so a
+#: caller cannot mutate the module's copy of a request term.
+JSON_MODE: Mapping[str, str] = MappingProxyType({"type": "json_object"})
+
+#: The provider's stated precondition for `JSON_MODE`, checked rather than assumed.
+#: Lower-cased comparison because the ratified template says "JSON" and the provider
+#: looks for the word, not the capitalisation.
+JSON_WORD: str = "json"
+
 
 class ModelCredentialMissing(RuntimeError):
     """No API key was injected, so no call can be made and none was."""
@@ -125,6 +165,92 @@ class ModelVisibleBytesNotText(RuntimeError):
 
 class NoAnswerFromModel(RuntimeError):
     """Something came back over HTTP 200 and it is not an answer to the dossier."""
+
+
+class PromptDoesNotAskForJson(RuntimeError):
+    """`JSON_MODE` is set and the prompt never says the word the provider needs."""
+
+
+@dataclass(frozen=True, slots=True)
+class Usage:
+    """What the provider says one call cost, in the provider's own numbers.
+
+    `104` R-14: `actual_cost` in the budget is a constant and nothing observed a
+    token count. This is the observation; pricing it is a deployment fact and no
+    price is invented here, the same rule that keeps the model id and the token
+    ceiling injected.
+
+    `prompt_cache_hit_tokens` and `prompt_cache_miss_tokens` are DeepSeek's and are
+    optional, because a provider that publishes neither still reports what it
+    charged for and that half must survive. They are also the numbers `104` R-58
+    moves: without them the frame-first prefix is visible only in a bench, never in
+    the product's own audit.
+    """
+
+    model_id: str
+    prompt_tokens: int
+    completion_tokens: int
+    prompt_cache_hit_tokens: int | None
+    prompt_cache_miss_tokens: int | None
+    response_format: str
+
+
+def request_body(*, model_id: str, max_tokens: int, prompt: str) -> dict:
+    """Every term of the one API call, as data, so the socket line stays the only
+    untestable statement in this module.
+
+    `_send` is two statements this project cannot exercise without spending money and
+    holding a key, and its docstring says so. What the request SAYS is a different
+    question from whether it can be sent, and it is answered here.
+    """
+    if JSON_WORD not in prompt.lower():
+        raise PromptDoesNotAskForJson(
+            f"{JSON_MODE['type']!r} is set and the prompt never contains the word "
+            f"{JSON_WORD!r}, which is the provider's stated precondition for it. "
+            f"Sent anyway the reply comes back empty, arrives here as "
+            f"NoAnswerFromModel, and is recorded against the model for a mistake "
+            f"made on this side."
+        )
+    return {
+        "model": model_id,
+        "max_tokens": max_tokens,
+        "messages": [{"role": "user", "content": prompt}],
+        # `104` R-14. The module docstring carries the whole argument for why this
+        # one knob is not a prompt nobody approved.
+        "response_format": dict(JSON_MODE),
+    }
+
+
+def usage_of(response: object, *, model_id: str) -> Usage | None:
+    """What the provider reported it spent, or `None` because it reported nothing.
+
+    `None` and never zeroes. A zero reads as "this call cost nothing", which is a
+    claim; absence is what is actually known, and `00`'s whole posture on unknowns is
+    that the two are different answers.
+    """
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return None
+    prompt_tokens = getattr(usage, "prompt_tokens", None)
+    completion_tokens = getattr(usage, "completion_tokens", None)
+    if not isinstance(prompt_tokens, int) or not isinstance(completion_tokens, int):
+        # A usage block that cannot say what the call cost is not a usage block.
+        # Reported as absent rather than as partial: half a number in a cost record
+        # is worse than no record, because it will be summed.
+        return None
+
+    def optional(name: str) -> int | None:
+        value = getattr(usage, name, None)
+        return value if isinstance(value, int) else None
+
+    return Usage(
+        model_id=model_id,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        prompt_cache_hit_tokens=optional("prompt_cache_hit_tokens"),
+        prompt_cache_miss_tokens=optional("prompt_cache_miss_tokens"),
+        response_format=JSON_MODE["type"],
+    )
 
 
 def _send(*, api_key: str, base_url: str, model_id: str, max_tokens: int,
@@ -154,9 +280,9 @@ def _send(*, api_key: str, base_url: str, model_id: str, max_tokens: int,
         api_key=api_key, base_url=base_url,
         timeout=timeout_seconds, max_retries=0,
     ).chat.completions.create(
-        model=model_id,
-        max_tokens=max_tokens,
-        messages=[{"role": "user", "content": prompt}],
+        # Every term of the request, built and checked by a pure function so this
+        # stays the one statement here nothing can exercise (`104` R-14).
+        **request_body(model_id=model_id, max_tokens=max_tokens, prompt=prompt),
     )
 
 
@@ -257,12 +383,22 @@ def deepseek_invoke(*, api_key: str | None, base_url: str | None,
                     model_target: ModelTarget, max_response_tokens: int,
                     timeout_seconds: float | None = None,
                     send: Callable[..., object] = _send,
+                    on_usage: Callable[[Usage | None], None] | None = None,
                     ) -> Callable[[bytes], bytes]:
     """A `ModelClient.invoke`: the model-visible bytes in, the model's answer out.
 
     Every refusal fires HERE, when the client is built, not on the first call: a
     deployment with no key, no endpoint or a mislabelled target stops before the
     scan rather than after it.
+
+    `on_usage` is `104` R-14's sink and is optional. It is a sink and not a return
+    value because `ModelClient.invoke` is `Callable[[bytes], bytes]` and widening
+    that contract belongs to `llm_harness/transport.py`, which a reader may not
+    reach into. It is called once per ANSWERED call, with `None` when the provider
+    reported no usage -- because "the provider told us nothing" is itself the
+    audit's answer, and silence there is indistinguishable from a call that never
+    happened. A deployment that records no usage supplies none, which is the state
+    `model_ollama`'s caller is in.
     """
     key = _require_credential(api_key)
     endpoint = _require_endpoint(base_url)
@@ -295,10 +431,17 @@ def deepseek_invoke(*, api_key: str | None, base_url: str | None,
                 "the released bytes are not UTF-8. Repairing them here would send "
                 "the model something the stored fingerprint does not describe."
             ) from problem
-        return response_text(send(
+        response = send(
             api_key=key, base_url=endpoint, model_id=model_id,
             max_tokens=max_response_tokens, prompt=prompt,
             timeout_seconds=timeout_seconds,
-        )).encode("utf-8")
+        )
+        # AFTER `response_text`, so a refusal is a refusal and not a cost. A
+        # `content_filter`, a `length` cut-off or an unreadable finish reason all
+        # raise there, and none of them is an answer this run may bill itself for.
+        answer = response_text(response)
+        if on_usage is not None:
+            on_usage(usage_of(response, model_id=model_id))
+        return answer.encode("utf-8")
 
     return invoke

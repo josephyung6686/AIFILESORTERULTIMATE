@@ -209,6 +209,61 @@ def _as_text(raw: bytes, *, name: str) -> str:
         ) from exc
 
 
+#: THE FRAME: the material that is the same for every file of one situation. The
+#: prompt's own two blobs lead it because they are the largest and the most constant
+#: (3,999 and 2,378 bytes on the A_fact revision); the vocabulary, its glossary and
+#: the folder levels follow, which are the situation's rather than the run's and
+#: change only when a file's OPEN field set changes.
+_FRAME_KEYS: tuple[str, ...] = (
+    "call_site", "response_schema", "shaping_policy", "policy_version",
+    "plan_version", "max_dossier_tokens", "reduction_rung", "eligibility_reason",
+    "allowed_vocabulary", "field_glossary", "folder_levels",
+)
+
+#: THIS FILE, and nothing else. `subject_ref` first because it always differs, so
+#: the shared run ends at the earliest point it possibly can and nothing about one
+#: person's file can sit inside another's prefix.
+_FILE_KEYS: tuple[str, ...] = (
+    "subject_ref", "conflicts", "evidence_items", "released_evidence",
+)
+
+#: `104` R-58. `canonical_json` sorts, and sorted the fifteen keys INTERLEAVE the
+#: two halves above: `conflicts` lands third and `evidence_items` fifth, so the
+#: bytes stop being shared 205 into an 8,999-byte body -- 2.3% -- and the glossary
+#: and the folder levels, which had not changed at all, are re-read on every call.
+#: Measured on the provider's own `prompt_cache_hit_tokens` over one dossier: 90% of
+#: the prompt served from cache frame first against 39% sorted, about 2,560 tokens a
+#: call. `104` R-52 makes the same argument about `num_ctx` and the KV cache; this is
+#: it at the byte level.
+#:
+#: A CONSTANT and not insertion order, because insertion order is whatever the next
+#: edit to `_body` happens to type, and a prefix that depends on that is a prefix
+#: nobody can rely on. `_ordered_body` refuses a mapping whose keys are not exactly
+#: these, so a sixteenth key is a failure at the seam rather than a silent append.
+_BODY_ORDER: tuple[str, ...] = _FRAME_KEYS + _FILE_KEYS
+
+
+def _ordered_body(body: Mapping[str, object]) -> bytes:
+    """`canonical_json`'s form, in `_BODY_ORDER` rather than in sorted order.
+
+    **Only the top level moves.** Every VALUE still goes through `canonical_json`,
+    so nested objects stay key-sorted, unpadded, UTF-8 and never ASCII-escaped --
+    which is what every cache key and replay diff outside these bytes depends on,
+    and what makes this still one form per value. Two equal dossiers still serialise
+    identically; a `dossier_id` is still a content address of the result.
+    """
+    if tuple(sorted(body)) != tuple(sorted(_BODY_ORDER)):
+        raise MalformedRecord(
+            "the model-visible body is emitted in a documented order and these are "
+            f"not its keys: {sorted(set(body) ^ set(_BODY_ORDER))}. A key with no "
+            "place in the order would be written wherever it was built, and the "
+            "template tells the model the dossier has these keys and no others."
+        )
+    return ("{" + ",".join(
+        f"{canonical_json(key)}:{canonical_json(body[key])}"
+        for key in _BODY_ORDER) + "}").encode("utf-8")
+
+
 def _body(
     *,
     call_site: str,
@@ -228,6 +283,11 @@ def _body(
 ) -> bytes:
     """One canonical form. `dossier_id`, `release_id` and `audit_id` are absent.
 
+    The mapping below is written in the order a reader of these fifteen keys would
+    want them, alphabetically; `_ordered_body` emits them in `_BODY_ORDER`, which is
+    frame first. The two orders are deliberately different and the constant is the
+    one that reaches a model (`104` R-58).
+
     **This is the only function in the product that writes an identifier into
     model-visible bytes**, which is why the keying lives here and nowhere else.
     Four slots carry one, and each is keyed by `wire_handles` before it is
@@ -236,7 +296,7 @@ def _body(
     upstream -- the `Dossier` record, the `llm_dossier` payload, the audit, the
     resolver -- keeps the identifiers it always had.
     """
-    return canonical_json({
+    return _ordered_body({
         "allowed_vocabulary": list(allowed_vocabulary),
         "call_site": call_site,
         # `conflict_id` is `f"{group_id}:{kind}"` at P9's seam, so it carried the
@@ -274,7 +334,7 @@ def _body(
         # about `subject_ref`; today's producers pass a group id, but the field is
         # a free string and the next producer's could be a title or a path.
         "subject_ref": wire_handle(subject_ref, key=handle_key),
-    }).encode("utf-8")
+    })
 
 
 def canonical_dossier_bytes(
