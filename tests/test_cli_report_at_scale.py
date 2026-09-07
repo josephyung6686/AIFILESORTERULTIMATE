@@ -167,12 +167,24 @@ def test_a_hold_split_into_four_hundred_batches_is_one_reason_said_once():
     # sentence is the fact, not the line.
     flat = " ".join(_printed(run, names).split())
 
-    assert flat.count(REASON) == 1, (
-        f"the hold's reason is printed {flat.count(REASON)} times; it is one "
-        "fact about 3,360 files and belongs on the screen once")
     assert flat.count(EXPLANATION) == 1, (
         f"the file-level explanation is printed {flat.count(EXPLANATION)} "
         "times for one reason shared by every one of those files")
+    # `104` R-124 MOVED WHERE THAT ONE PRINTING IS, and this assertion moved with
+    # it. The reason used to be on the screen twice for a group that prints one:
+    # four lines of "Same reason for each: <the decision's explanation>" and four
+    # more of `Held for review as "<set>": <the set's wording of the same fact>`.
+    # The held line is now the NAME only -- the part `--send-set` takes and the
+    # part the sentence above it does not carry -- so the set's own wording is
+    # not under the group at all. It is still on the screen wherever a set is
+    # listed on its own, which is what `test_a_set_covering_no_decided_file...`
+    # holds. The fact itself is still printed exactly once, which is what this
+    # test has always been about.
+    assert flat.count(REASON) == 0, (
+        f"the set's reason is restated {flat.count(REASON)} times under a group "
+        "whose 'Same reason for each' line has already said it")
+    assert flat.count('Held for review as "Not yet placed (1 of 420)"') == 1, (
+        "the set's NAME went with the restatement; it is what a person types")
 
 
 def test_four_hundred_batches_of_one_hold_are_one_group_and_not_four_hundred():
@@ -445,6 +457,15 @@ def test_show_protected_is_the_only_thing_that_expands_the_names():
     assert len(ordinary) == cli.NAMES_LISTED_PER_GROUP, (
         f"--show-protected also lengthened the ordinary list to {len(ordinary)}; "
         "it is not a verbosity flag")
+    # `104` R-125. The sentence that shortens the list ENDS. It read "...with the
+    # way to see it printed there -- summarised, but never silently", and stopped
+    # there: the reader is left to guess the word, and the word is the whole
+    # promise the standing rule makes about protected material.
+    flat = " ".join(shown.split())
+    assert "summarised, but never silently omitted." in flat, (
+        "the sentence about protected material trails off mid-clause")
+    assert "never silently omitted. " in flat or flat.endswith(
+        "never silently omitted."), flat
 
 
 
@@ -800,3 +821,89 @@ def test_with_a_residual_area_the_other_sentence_is_the_one_said_once():
     assert two.count(OTHER_AREAS) == 5, (
         f"{two.count(OTHER_AREAS)} of the five later holds say where it is:\n"
         + two)
+
+
+# ======================================================================================
+# `104` R-124: the same reason, twice, in two vocabularies
+# ======================================================================================
+
+def test_a_held_group_says_its_reason_once_and_not_in_two_vocabularies():
+    """`104` R-124. Measured on a 60-file corpus, a held group read like this:
+
+        Same reason for each: Deciding this file needed a model, and this
+        folder's privacy settings only let one that runs on this device be
+        asked about it; none is set up. Nothing about it left this device and
+        nothing moved; the evidence is retained.
+        Held for review as "A model was not allowed to look": deciding these
+        needed a model, and the privacy settings on the folder they are in do
+        not let one be asked about them. Nothing about them left this device
+        and nothing moved; the evidence is retained.
+
+    Eight lines, one fact, and R-115 is why the second one exists at all -- it
+    divided the sets by the reason the screen was already printing. The screen
+    keeps the reason where it was and the held line keeps the NAME, which is the
+    part a person types after `--send-set` and the part the sentence above it
+    never carried.
+    """
+    run, names = _six_held_groups("Review Later")
+    printed = _printed(run, names)
+    flat = " ".join(printed.split())
+
+    for label, reason in SIX_REASONS:
+        assert flat.count(reason) == 1, (
+            f"the reason behind {label!r} is on the screen "
+            f"{flat.count(reason)} times:\n{printed}")
+        # And the name is still there, with the one command that files it.
+        assert f'Held for review as "{label}".' in flat, (
+            f"the held line for {label!r} is not the name alone:\n{printed}")
+        assert (f"      --send-set {shlex.quote(f'{label}=Review Later')}") \
+            in printed, printed
+
+
+def test_a_hold_under_a_group_that_says_no_reason_keeps_its_own():
+    """The negative twin, and the reason R-124 is a condition and not a deletion.
+
+    `report` computes a group's reason as `"" if outcome is PLACE else
+    explanation`, so a placement waiting on somebody prints no "Same reason for
+    each" line at all -- and that is a group that holds review sets. Dropping the
+    set's reason there would leave a hold on the screen with nothing anywhere
+    saying why, which is the silent omission the standing rule forbids, arrived
+    at by way of a shortening.
+    """
+    run, names = _three_groups_in_one_state()
+    flat = " ".join(_printed(run, names).split())
+
+    assert "Same reason for each" not in flat, (
+        "the fixture no longer models a group that says no reason of its own, "
+        "so this test is no longer testing anything")
+    assert flat.count(REASON) == 1, (
+        "the only sentence on the screen saying why these are held went with a "
+        f"shortening:\n{flat}")
+
+
+def test_the_count_of_sets_under_a_heading_reads_after_the_name_alone():
+    """R-93's sentence, which follows the held line and is not R-124's to move.
+
+    "N review sets of it have files under this heading" is a fact about THIS
+    heading and it is still said under it. What changed above it is that the
+    line it follows is now a name and a full stop rather than a name, a colon
+    and a paragraph.
+    """
+    nodes = [_node("node_0", "Coursework"),
+             _node("res_0", "Review Later", role="residual")]
+    decisions, names, sets = [], {}, []
+    for index in range(1, 4):
+        members = []
+        for offset in range(8):
+            file_id = f"id-{index}-{offset}"
+            names[file_id] = f"note-{index}-{offset}.txt"
+            members.append(file_id)
+            decisions.append(_decision(
+                file_id=file_id, explanation="Nothing was decided: " + REASON))
+        sets.append(_set(f"No folder matched ({index} of 3)", members, REASON))
+    flat = " ".join(_printed(
+        _run(nodes=nodes, decisions=decisions, sets=sets), names).split())
+
+    assert 'Held for review as "No folder matched (1 of 3)". 3 review sets of ' \
+           'it have files under this heading' in flat, flat
+    assert flat.count(REASON) == 1, flat

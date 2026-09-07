@@ -8118,8 +8118,9 @@ def _how_to_say_what_these_are(questions: Sequence,
     return tuple(lines)
 
 
-def _review_note(items: Sequence,
-                 areas: Sequence[str]) -> tuple[tuple[str, ...], tuple[str, ...]]:
+def _review_note(items: Sequence, areas: Sequence[str], *,
+                 reason_already_said: bool = False
+                 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Why these sets are being held, and what a person can type about each one.
 
     TWO blocks, and the split is `104` R-122: this group's own lines, and the one
@@ -8162,6 +8163,29 @@ def _review_note(items: Sequence,
 
     It is lifted OUT of the per-reason loop as well, so a group whose held sets
     stopped for two reasons says it after both rather than after each.
+
+    **AND THE REASON ITSELF IS SAID ONCE.** `104` R-124: after R-115 divided the
+    sets by the reason the screen already prints, a held group said that reason
+    twice in different words -- four lines of "Same reason for each: deciding
+    this file needed a model, and this folder's privacy settings only let one
+    that runs on this device be asked about it" and then four more of `Held for
+    review as "A model was not allowed to look": deciding these needed a model,
+    and the privacy settings on the folder they are in do not let one be asked
+    about them`. `reason_already_said` is the caller saying it has printed the
+    first, and then the held line is only the NAME -- which is the part a person
+    types after `--send-set` and the part the first sentence does not carry.
+
+    **Only when the group really said it.** `report` computes its group reason as
+    `"" if outcome is PLACE else explanation`, so a placement waiting on somebody
+    -- which is a group that can hold a review set -- prints no "Same reason for
+    each" at all, and there the set's reason is the only reason on the screen.
+    The flag is off there and the words stay. Off, too, where this group holds
+    sets stopped for MORE than one reason, because then the reasons are what tell
+    the sets apart and the group's single sentence cannot be all of them.
+
+    The set's own `reason_not_placed` is not lost either way: a set covering no
+    decided file prints it under its own heading, and `review_surface` carries it
+    to the residual listing.
     """
     by_reason: dict[tuple[bool, str], list] = {}
     for item in items:
@@ -8172,8 +8196,12 @@ def _review_note(items: Sequence,
     # take. A group holding only PROTECTED sets gets no closing sentence, because
     # `--send-set` refuses protected material and the sentence offers it.
     unprotected = False
+    # One reason per group is what makes this safe: with two, dropping both
+    # would leave two sets under one sentence that describes neither exactly.
+    say_the_name_only = reason_already_said and len(by_reason) == 1
     for (protected, reason), held in by_reason.items():
-        opening = f'Held for review as "{held[0].label}": {reason}'
+        opening = (f'Held for review as "{held[0].label}".' if say_the_name_only
+                   else f'Held for review as "{held[0].label}": {reason}')
         if len(held) > 1:
             # Says what this function can SEE, and no more. §8.6's batches do not
             # respect the boundaries the report groups by, so one batch can hold
@@ -8751,7 +8779,8 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
                     "one so that the list stays shorter than the folder it "
                     "describes. None of these is protected material: that is "
                     "counted in its own block, with the way to see it printed "
-                    "there -- summarised, but never silently", indent="    "),
+                    "there -- summarised, but never silently omitted.",
+                    indent="    "),
                     file=out)
         if reason:
             print(_wrapped(f"Same reason for each: {reason}", indent="    "),
@@ -8831,7 +8860,11 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # number; being the same is not a reason to stop saying it under the
         # heading it is about.
         under_here = len(held_sets.get(key, ()))
-        note, closing = _review_note(held_sets.get(key, ()), areas)
+        # `104` R-124. `reason` is this group's "Same reason for each" line and
+        # is empty exactly where that line was not printed, so the flag is the
+        # screen's own record of whether the reason has been said.
+        note, closing = _review_note(held_sets.get(key, ()), areas,
+                                     reason_already_said=bool(reason))
         said_in_full = say(note, handle=handle,
             again=("Held for review; the set and the command are under the "
                    "{first}." if under_here < 2 else
