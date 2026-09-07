@@ -128,6 +128,7 @@ from privacy.classification_store import ClassificationStore
 from privacy.gate import Gate
 from privacy.defaults import LOCAL_FIRST_MODES
 from privacy.display import display_policy
+from privacy.moves import may_move_automatically
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.vocabulary import MODE_SEMANTICS
 from questions.explanation import explain_question, render_explanation
@@ -2772,6 +2773,87 @@ def p1_p7_authorities(*, now, detector,
         p7_component_version=COMPONENT_VERSION)
 
 
+def _file_id_of_subject(subject_ref: str) -> str | None:
+    """`placement.store.subject_ref_of`, read back, and only the file form.
+
+    P11 spells a file version `file:<id>:<hash>` and a group `group:<id>`. The
+    hash is dropped because §8.4's predicate re-reads it from `files` itself: a
+    caller-supplied hash would let a stale dossier ask about a version of the file
+    that is no longer the current one, and the answer would look authoritative.
+
+    Anything that is not the file form returns `None` and the caller refuses.
+    That includes P8's fixture shorthand `file-1`: a bare string read as a file id
+    would make this answer about a file nobody addressed, and a wrong answer here
+    is a protected file filed automatically.
+    """
+    kind, separator, rest = subject_ref.partition(":")
+    if not separator or kind != pv.FILE:
+        return None
+    file_id, _separator, _content_hash = rest.partition(":")
+    return file_id or None
+
+
+def _proposes_a_move(payload: Mapping[str, object]) -> bool:
+    """Does this response put the file somewhere? Site C's key and Site D's.
+
+    A response that moves nothing cannot ignore a move restriction, and refusing
+    one would be worse than pointless: `leave_in_current_location` and
+    `mark_review_later` are the two dispositions that leave a protected file
+    exactly where its owner put it, and a policy that rejected them would be
+    pushing protected material out of its own shelter.
+    """
+    for key in ("destination", "target"):
+        value = payload.get(key)
+        if isinstance(value, str) and value and value != "none":
+            return True
+    return False
+
+
+def sensitivity_policy_for(conn: sqlite3.Connection):
+    """P7's answer to P8's two sensitivity checks. An adapter, and nothing more.
+
+    **What was wrong.** `SENSITIVITY_POLICY_VIOLATION` (Site C) and
+    `SENSITIVITY_RESTRICTION_IGNORED` (Site D) are two of P8's fifteen placement
+    checks and both call one injected predicate. This file passed `None` for it on
+    every run this product has ever made and every test in the tree stubbed it
+    `True`, so nobody was asking P7 the question. The D2 bakeoff measured the
+    consequence: both local D texts filed the redacted statement into Receipts and
+    P8 accepted it.
+
+    **Why this is not a new rule.** §8.4's automatic-move predicate already exists
+    and is published as `privacy.moves.may_move_automatically`. It reads the live
+    classification record and, for a protected one, the user policy that permits
+    that file's move; it refuses by default; it writes nothing. This function
+    hands P8 that answer and adds two things only: which subject the dossier is
+    about, and whether the response proposes a move at all. Any further judgement
+    belongs in P7, which owns the classification.
+
+    **The cost, stated rather than hidden.** P7 refuses a file it has never
+    classified -- `unreadable_unclassified`, and its own docstring explains why the
+    branch order may not be reversed. On a corpus with no detector that is most of
+    the corpus. This is the correct answer to "may this be moved automatically" and
+    it is expensive, and the expense is P7's to change, not P11's to route around.
+
+    Injected alongside seven `None`s. `model_path_available` reads this field, so
+    supplying it alone does not switch the model path on -- there is still no
+    ratified placement prompt, and `model_placement` says why the other seven are
+    withheld together. A refusal, unlike a call, needs no prompt to be correct.
+    """
+    def permitted(dossier, payload: Mapping[str, object]) -> bool:
+        if not _proposes_a_move(payload):
+            return True
+        file_id = _file_id_of_subject(getattr(dossier, "subject_ref", "") or "")
+        if file_id is None or get_file(conn, file_id) is None:
+            return False
+        # `or ""` is both validator sites' own convention for a dossier that names
+        # no plan version: `current_policy` finds no row, so a protected file is
+        # refused and an unprotected one is not held hostage to the version.
+        return may_move_automatically(
+            conn, file_id, getattr(dossier, "plan_version", None) or "").allowed
+
+    return permitted
+
+
 # ======================================================================================
 # The user's decisions
 # ======================================================================================
@@ -4246,7 +4328,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # abstains with a reason instead of being decided by nothing.
             gate=None, model_client=None, prompt=None, call_dependencies=None,
             model_call_request=None, chosen_node_of=None, residual_action_of=None,
-            sensitivity_policy=None,
+            # SEVEN of the eight, not eight. This one is the exception and R-55 is
+            # why: P8's two sensitivity checks REFUSE with it, and a refusal that
+            # needs no ratified prompt should not wait for one. `None` here meant
+            # `SENSITIVITY_RESTRICTION_IGNORED` could never fire, which the D2
+            # bakeoff measured -- both local D texts filed the redacted statement
+            # into Receipts and P8 accepted it. Supplying it alone leaves
+            # `model_path_available` false, so the path stays off.
+            sensitivity_policy=sensitivity_policy_for(conn),
             # THE POLICY, and this file is where it belongs. P11 asks which files
             # are worth a person's attention and holds no answer of its own;
             # `folders_nothing_could_be_read_from` is the answer and carries the
