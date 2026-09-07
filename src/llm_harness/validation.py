@@ -29,9 +29,6 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
 from typing import Any
 
-from evidence_shape.locator import parse_locator
-from privacy.release import released_whole_heading_unit
-
 from llm_harness.authorship import COMPONENT_VERSION
 from llm_harness.records import (
     CallFailed,
@@ -341,47 +338,35 @@ def _heading_exposure(released: Sequence) -> tuple[int, int]:
     and the longest one's length in characters.
 
     **The ruling releases a whole heading unit and invents no length bound, so the
-    exposure is reported rather than capped.** `privacy.release.
-    released_whole_heading_unit` is the predicate the two release builders admit by,
-    called here on the way back so the number is about the items that were actually
-    released rather than the ones that were offered. The identifier INSIDE a heading
-    shares the heading's container path and is not counted: its span is a fraction of
-    the unit, and the predicate reads the span.
+    exposure is reported rather than capped.** Each released item already SAYS whether
+    it is that exemption: `resolve.materialise` asks
+    `privacy.release.released_whole_heading_unit` of P4's own `Location`, which is the
+    same predicate the two release builders admit by, and the answer travels as
+    `whole_heading_unit` through `ReleasedItem` and `ReleasedEvidence`. So this
+    function adds up what the items carry and derives nothing.
 
-    **A locator that will not parse is not counted, and it does not raise.** P7 writes
-    every address through `redaction.span_address`, whose own docstring records that
-    both addressing forms round-trip through `parse_locator` -- so a real release
-    always parses, and the only strings that do not are hand-written fixture addresses.
-    This function runs AFTER the model has answered and a release has been spent; a
-    counter that could raise here would destroy a verdict that already exists in order
-    to report a statistic about it. The count is the floor, and it is the honest one.
+    **It re-parsed the address, and that was wrong twice over.** `ReleasedItem.span` is
+    a serialisation of a `Location`, so parsing it back was re-deriving a structural
+    fact from its own printing -- and `parse_locator` refuses in three ways, all
+    `ValueError`, so a fixture address of `0:18` raised `NotInVocabulary` out of a
+    report and ended fourteen `tests/p8/test_p8_harness.py` calls that had already been
+    answered. A counter runs after the model has spoken and a release has been spent;
+    it is never the thing that decides a call's fate. An item that could not be
+    classified carries `False` and counts as nothing.
 
-    `ValueError` and not one named exception, because `parse_locator` refuses in three
-    ways -- `MalformedLocator` for a shape it cannot read, `NotInVocabulary` for a zone
-    or segment kind outside P4's closed sets, `MalformedLocation` for a location the
-    parts of which do not agree -- and all three are `ValueError`. Catching only the
-    first is what `tests/p8/test_p8_harness.py` caught: a fixture address of `0:18`
-    reaches the zone check, raises `NotInVocabulary`, and ended fourteen calls that had
-    already been answered. A counter is never the thing that decides a call's fate.
+    The identifier inside a heading is not counted, and that is the predicate's doing
+    rather than this function's: it shares the heading's container path but its span is
+    a fraction of the unit, so no exemption was taken to release it.
 
     `report_for_budget_exhausted` and `_zero_report` do not call this and report zero:
     both are built from a `DossierRequest` with no `Dossier` behind them, so no dossier
     reached a model and no heading unit left the device. Zero there is the measurement.
     """
-    count = 0
-    longest = 0
-    for item in released:
-        unit_length = getattr(item, "unit_length", None)
-        if unit_length is None:
-            continue
-        try:
-            location = parse_locator(item.address)
-        except ValueError:
-            continue
-        if released_whole_heading_unit(location, unit_length):
-            count += 1
-            longest = max(longest, unit_length)
-    return count, longest
+    units = [item for item in released
+             if getattr(item, "whole_heading_unit", False)]
+    lengths = [item.unit_length for item in units
+               if isinstance(item.unit_length, int)]
+    return len(units), max(lengths, default=0)
 
 
 def report_from_verdicts(

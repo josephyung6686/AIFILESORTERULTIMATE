@@ -333,6 +333,15 @@ class ReleasedEvidence:
     #: `None` reads as "no unit at this address", which is what it means on
     #: `ReleasedItem` too (§2.3's cell, §2.8's EXIF field), and never as "not measured".
     unit_length: int | None = None
+    #: `104` R-135. P7's own answer about this item -- a span covering the whole of a
+    #: unit that is a heading -- decided in `resolve.materialise` where P4's `Location`
+    #: still exists, and carried here so `report_from_verdicts` can COUNT rather than
+    #: re-derive. The first spelling parsed `address` back into a location at report
+    #: time; `tests/p8/test_p8_harness.py` ends fourteen already-answered calls when a
+    #: fixture address is not a locator, and a counter is never the thing that decides
+    #: a call's fate. Like `unit_length`, it is not among `RELEASED_EVIDENCE_FIELDS`
+    #: and never reaches the model.
+    whole_heading_unit: bool = False
 
     def __post_init__(self) -> None:
         if not self.observation_key or not self.address:
@@ -345,6 +354,10 @@ class ReleasedEvidence:
             raise MalformedRecord(
                 "unit_length is a measured length of stored text, so it is a "
                 "non-negative int or the absence of a unit")
+        if not isinstance(self.whole_heading_unit, bool):
+            raise MalformedRecord(
+                "whole_heading_unit is P7's answer about this item and is a boolean; "
+                "a truthy stand-in would be counted as an exposure nobody measured")
 
 
 @dataclass(frozen=True, slots=True)

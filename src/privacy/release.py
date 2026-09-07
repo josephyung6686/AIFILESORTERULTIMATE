@@ -295,6 +295,20 @@ class ReleasedItem:
     value: str
     zone: str
     unit_length: int | None
+    #: `104` R-135. Whether THIS item is the exemption `released_whole_heading_unit`
+    #: describes: a span covering the whole of a unit that is a heading.
+    #:
+    #: **Decided where the `Location` is, and carried; never re-derived.** `resolve.
+    #: materialise` holds P4's `Location` and answers the question there, once. The
+    #: first spelling of the count re-parsed `span` back into a `Location` at report
+    #: time, and `tests/p8/test_p8_harness.py` showed what that costs: a fixture whose
+    #: address is `0:18` raises out of `parse_locator`, and a call that had already
+    #: been answered ended on a statistic about it. A released item now says what it
+    #: is, and an item that could not be classified says `False`.
+    #:
+    #: Not in `content_mapping` and not on the wire, for `unit_length`'s reason below:
+    #: it is a measurement the refusal is taken against, not a value.
+    whole_heading_unit: bool = False
 
     def content_mapping(self) -> dict[str, str]:
         """What this item CONTRIBUTES to the model-visible bytes, and only that.

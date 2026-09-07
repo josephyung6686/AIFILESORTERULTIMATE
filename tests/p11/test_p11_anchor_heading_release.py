@@ -269,12 +269,13 @@ def test_two_heading_units_released_whole_are_counted_and_the_longer_measured():
         ReleasedEvidence(
             observation_key="obs-heading-1",
             address=f"heading:page=1/heading=1#0-{len(HEADING)}",
-            value=HEADING, zone="heading", unit_length=len(HEADING)),
+            value=HEADING, zone="heading", unit_length=len(HEADING),
+            whole_heading_unit=True),
         ReleasedEvidence(
             observation_key="obs-heading-2",
             address=f"heading:page=2/heading=1#0-{len(SECOND_HEADING)}",
             value=SECOND_HEADING, zone="heading",
-            unit_length=len(SECOND_HEADING)))
+            unit_length=len(SECOND_HEADING), whole_heading_unit=True))
 
     report = _report(dossier)
 
@@ -306,6 +307,34 @@ def test_a_dossier_with_no_whole_heading_reports_zero():
             zone="body", unit_length=400))
 
     report = _report(dossier)
+
+    assert report.heading_units_released == 0
+    assert report.longest_heading_unit_length == 0
+
+
+def test_an_item_that_could_not_be_classified_counts_as_nothing():
+    """The regression, and it cost fourteen already-answered calls.
+
+    The first spelling of this count parsed `ReleasedEvidence.address` back into a
+    `Location`. `parse_locator` refuses in three ways -- a shape it cannot read, a zone
+    or segment kind outside P4's closed sets, a location whose parts disagree -- and a
+    dossier built by hand, as `llm_harness.fixtures` and every harness test build one,
+    carries addresses that are not locators. `tests/p8/test_p8_harness.py` raised
+    `NotInVocabulary: zone='0'` out of `report_from_verdicts` and ended fourteen calls
+    the model had already answered.
+
+    A released item now SAYS what it is, decided in `resolve.materialise` where P4's
+    `Location` still exists. Nothing at report time derives, so nothing at report time
+    can refuse. An address that is not a locator is not an error here; it is an item
+    that is not a whole heading unit, and it counts as nothing.
+    """
+    from llm_harness.records import ReleasedEvidence
+
+    report = _report(_dossier_released(
+        ReleasedEvidence(observation_key="obs-fixture", address="0:18",
+                         value="Columbia University", zone="body"),
+        ReleasedEvidence(observation_key="obs-fixture-2", address="heading:course",
+                         value=HEADING, zone="heading")))
 
     assert report.heading_units_released == 0
     assert report.longest_heading_unit_length == 0
@@ -638,7 +667,8 @@ def _site_a_dossier_with_context(request, world):
             ReleasedEvidence(observation_key=line.observation_key,
                              address=f"heading:page=1/heading=1#0-{len(HEADING)}",
                              value=HEADING, zone="heading",
-                             unit_length=len(HEADING))),
+                             unit_length=len(HEADING),
+                             whole_heading_unit=True)),
         max_dossier_tokens=4000, reduction_rung=REDUCTION_NONE,
         release_id="rel-1")
 
@@ -879,3 +909,33 @@ def test_the_call_identity_moves_when_an_anchor_appears_beside_a_file(
         observations=(world["own"],) + context, authorities=authorities)
     assert folded["extractor_versions"] == without["extractor_versions"]
     assert call_identity(folded) == call_identity(without)
+
+
+def test_the_release_path_itself_sets_the_flag_the_counters_add_up(conn, tmp_path):
+    """The end-to-end half, and without it the counters could quietly be zero again.
+
+    `104` R-135's first defect was a field nothing populated. Moving the decision from
+    report time to resolution time re-creates exactly that risk one layer down: if
+    `materialise` never sets `whole_heading_unit`, every count is zero and every unit
+    test above still passes, because those tests construct the flag themselves.
+
+    So this one asks the REAL path. The heading, whose span covers the whole of a unit
+    that is a heading, comes back `True`. The identifier inside it, which shares the
+    heading's container path and is five characters of a twenty-seven character unit,
+    comes back `False` -- the case a count taken over the container alone would get
+    wrong.
+    """
+    from privacy.resolve import materialise
+
+    file_id, emitted = _anchor_corpus(conn, tmp_path)
+    (whole, code), = emitted
+
+    offered = releasable_excerpts(
+        conn, evidence_refs=[whole.observation_key, code.observation_key])
+    by_key = {one.observation_key: materialise(conn, one, within_file_ids=(file_id,))
+              for one in offered}
+
+    assert by_key[whole.observation_key].whole_heading_unit is True
+    assert by_key[whole.observation_key].value == HEADING
+    assert by_key[code.observation_key].whole_heading_unit is False
+    assert by_key[code.observation_key].value == "W3134"

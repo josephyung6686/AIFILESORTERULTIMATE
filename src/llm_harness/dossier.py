@@ -113,6 +113,10 @@ def _released_evidence(released: Released) -> tuple[ReleasedEvidence, ...]:
             # record and stops there. `report_from_verdicts` is the only reader, and
             # without it the two exposure counters could only ever report zero.
             unit_length=item.unit_length,
+            # `104` R-135's classification, decided at the point of resolution and
+            # carried straight through. Neither field is written by `_released_body`,
+            # so the four model-visible keys and the dossier address are unchanged.
+            whole_heading_unit=item.whole_heading_unit,
         )
         for item in released.materialised_items
     )

@@ -143,9 +143,15 @@ def test_context_truncated_travels_too(evidence):
 
 def test_materialised_holds_no_path_and_no_file_id(evidence, one_excerpt):
     # §8.4 puts "Paths" in the always-local set. The type cannot carry one.
+    #
+    # `whole_heading_unit` is the ninth name, added for `104` R-135: P7's own answer
+    # about whether this resolution is that row's exemption, decided here because this
+    # is the last place P4's `Location` exists. It is a boolean about a SPAN, so it
+    # carries nothing about where the file is, which is what this test is guarding.
     names = {field.name for field in dataclasses.fields(Materialised)}
     assert names == {"observation_key", "span", "value", "zone", "context_before",
-                     "context_after", "context_truncated", "unit_length"}
+                     "context_after", "context_truncated", "unit_length",
+                     "whole_heading_unit"}
     assert not names & {"file_id", "path", "current_path", "filename", "content_hash"}
 
 
