@@ -64,7 +64,8 @@ from tree_design.store import (
 from tree_design.templates import CompositionConflict
 from tree_design.user_edits import UserLevelEdit, user_level_edits
 from tree_design.upstream import (
-    AcceptedGroup, GroupMember, ProtectedArea, UpstreamUnavailable,
+    AcceptedGroup, AnchorAgreement, GroupMember, ProtectedArea,
+    UpstreamUnavailable,
     accepted_groups, cross_folder_moves, existing_folders,
     file_ids_in_directory, group_level_reader, protected_areas,
     settled_values_by_directory,
@@ -186,6 +187,16 @@ class TreeDesignAuthorities:
     #: still mean. `protected_handling_classes` refuses its absence because a set
     #: chosen there would weaken a floor; a mapping missing here weakens nothing.
     group_level_roles: Mapping[str, frozenset[str]] = MappingProxyType({})
+    #: `105` §14.4 with `104` R-131. What two anchors must BE before one of their
+    #: values becomes a folder level: independently originating, non-conflicting,
+    #: and about one course or one enrollment. `upstream.AnchorAgreement` carries
+    #: the whole of the rule and every field key inside it is the deployment's.
+    #:
+    #: `None` is the rule as it stood before the ruling -- one anchor's value is
+    #: the group's -- and it is the default for the same reason `group_level_roles`
+    #: defaults empty: a deployment that has not been handed the ruling keeps the
+    #: behaviour it had, and P10 authors neither the fields nor the rule.
+    anchor_agreement: AnchorAgreement | None = None
     #: Packet G12. WHO TO ASK FOR A TEMPLATE when C3 refuses -- when this branch's
     #: evidence recognises no shipped situation and `00`:97's site E is the answer.
     #: Handed the branch's accepted groups and its plan version; returns nothing,
@@ -465,7 +476,11 @@ def _option_bindings(conn, authorities, *, parent: Node,
     essentially the whole of P8--P11 at five thousand. It lives exactly as long as
     this branch's pass over its own candidates.
     """
-    group_value_for_member = group_level_reader(conn, groups=groups)
+    # `105` §14.4 travels with the reader rather than beside it: the agreement is
+    # about which anchors may speak for a group, and the reader is the one place
+    # that question is answered.
+    group_value_for_member = group_level_reader(
+        conn, groups=groups, agreement=authorities.anchor_agreement)
     # Keyed on the candidate RECORD, not on `id(candidate)`: `CompositionCandidate`
     # is a frozen dataclass and hashes by value, so two calls about the same
     # composition find the same pass — which is the property the three bindings

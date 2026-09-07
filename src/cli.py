@@ -93,6 +93,7 @@ from facts.rules import ACADEMIC_CONTEXT_TERMS, Rule, apply_rules
 from facts.unresolved import NO_CANDIDATE_EVIDENCE
 from facts.usable import record_pass
 from facts.fields import DOMAIN_FIELDS
+from facts.read_surface import DanglingCitation, evidence_chain
 from facts.states import VALIDATED, strength
 from facts.kind import tokens as kind_tokens
 from facts.kind import compile_vocabulary, kind_facts
@@ -155,8 +156,8 @@ from placement.pipeline import (
 from placement.residual import ProtectedSetNotReadable, prior_set_decisions
 from placement.schema import create_placement_schema
 from model_facts import (
-    FactCallAuthorities, fact_call_stage, measure_released_tokens,
-    pending_fields_for,
+    AnchorOnlyLevels, FactCallAuthorities, fact_call_stage,
+    measure_released_tokens, pending_fields_for,
 )
 from privacy.classification import UNREADABLE_UNCLASSIFIED, resolve_class
 from privacy.classification_store import ClassificationStore
@@ -168,6 +169,7 @@ from privacy.moves import may_move_automatically
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.resolve import (
     AmbiguousObservationKey, UnresolvableSpan, current_location,
+    filename_address,
 )
 from privacy.vocabulary import MODE_SEMANTICS
 from questions.explanation import explain_question, render_explanation
@@ -274,8 +276,9 @@ from model_template import template_request_for
 from tree_design.templates import CompositionConflict
 from scan_agent.selection import selection_candidate_roots
 from tree_design.upstream import (
-    UpstreamUnavailable, existing_folders, file_ids_in_directory,
-    handling_class_for, protected_areas, settled_values_by_directory,
+    AnchorAgreement, UpstreamUnavailable, existing_folders,
+    file_ids_in_directory, handling_class_for, protected_areas,
+    settled_values_by_directory,
 )
 from tree_design.schema import create_tree_schema
 #: The one word this command may put in a record's subject position. P10 already
@@ -798,6 +801,62 @@ def _no_group_contradiction(*_args: object, **_kwargs: object) -> bool:
     return False
 
 
+def _no_placement_contradiction(*_args: object, **_kwargs: object) -> bool:
+    """C's and D's `contradicts`, for the reason B's docstring already gives.
+
+    **Found by giving the placement sites a budget of their own.** C and D took
+    `fact_authorities.contradicts` -- `contradicts_stronger`, which indexes its
+    argument as a P6 fact row -- so the first real C call handed it a `Dossier`
+    and raised `TypeError: 'Dossier' object is not subscriptable` inside
+    `validation._validate_claim`. B's own comment records that exact failure and
+    that exact shape, "injecting one site's authority at another"; C had it too,
+    and nothing had reached it because C never won a slot from the budget site A
+    was emptying. The two defects were hiding each other.
+
+    The check is ANSWERED and not skipped: a placement answer names a destination
+    node and a residual answer names one of §7.7's actions, neither of which is a
+    value at a P6 field, so there is no stronger fact for one to contradict. The
+    truthful answer is the same `False` B gives one site over.
+    """
+    return False
+
+
+def observe_scan_budget(fact_budget: ScanBudget) -> ScanBudget:
+    """The ledger the observe and placement sites spend from, which is not A's.
+
+    Built from the fact pass's budget rather than beside it, because two of the
+    three inputs are facts about the RUN and not about the site: which scan this
+    is, and how many files it holds. What changes is the purse -- its own
+    `scan_id`, its own rate, floor and ceiling -- so a fact question can no longer
+    spend a slot a placement question needed.
+
+    **The defect this ends, measured.** Site A asks one call per FILE, so a corpus
+    where every file has an open question spends every slot the run has. On the
+    six-file corpus of `tests/integration/test_local_model_fact_pass.py` that is
+    five fact calls, after which site B is refused before a call and site C
+    records `BUDGET_EXHAUSTED`; on the owner's 199 files it is every run. The
+    sites that decide WHERE a file goes were being starved by the site that
+    decides WHAT it is, and nothing in the run said so: a starved site looks
+    exactly like a site nobody wired (`104` R-04).
+
+    **The other authorities are still A's and are still taken, not rebuilt.** The
+    gate, the costs, the policy version and the wire handle key are facts about
+    this deployment and this run; a second gate would be a second answer to "what
+    may leave this device". The budget is the one that was never a fact about the
+    run, and it is the only one this function replaces.
+
+    Not cached and not memoised: a `ScanBudget` is a value, the ledger lives in
+    the database under its `scan_id`, and two calls with one fact budget produce
+    two equal values that reserve from one row.
+    """
+    return ScanBudget(
+        scan_id=fact_budget.scan_id + OBSERVE_BUDGET_SUFFIX,
+        corpus_file_count=fact_budget.corpus_file_count,
+        max_calls_per_1000_files=OBSERVE_CALLS_PER_1000_FILES,
+        max_estimated_cost=OBSERVE_CALLS_PER_SCAN_CEILING,
+        min_calls_per_scan=OBSERVE_MIN_CALLS_PER_SCAN)
+
+
 def observe_group_authorities(fact_authorities, *, routing: TierRouting,
                               situation: str):
     """Site B, wired to run and to change nothing. `(p8_run_call, authorities)`.
@@ -860,7 +919,11 @@ def observe_group_authorities(fact_authorities, *, routing: TierRouting,
         # already and there is no smaller shape of it to fall back to.
         unreduced_fits=True, summarized_fits=False, anchors_fit=False,
         split_shard_fits=(), split_shards=(),
-        scan_budget=fact_authorities.scan_budget,
+        # NOT SITE A's, since `104` R-131's merge. `observe_scan_budget`
+        # carries why: one call per file spends every slot before an
+        # observe question is put, so this site drew from a purse the fact
+        # pass had already emptied.
+        scan_budget=observe_scan_budget(fact_authorities.scan_budget),
         estimated_cost=fact_authorities.estimated_cost,
         actual_cost=fact_authorities.actual_cost,
         allowed_vocabulary=observe_allowed_vocabulary(B_GROUP),
@@ -975,7 +1038,11 @@ def _template_dependencies(fact_authorities, catalogue, group) -> CallDependenci
         contradicts=_no_group_contradiction,
         unreduced_fits=True, summarized_fits=False, anchors_fit=False,
         split_shard_fits=(), split_shards=(),
-        scan_budget=fact_authorities.scan_budget,
+        # NOT SITE A's, since `104` R-131's merge. `observe_scan_budget`
+        # carries why: one call per file spends every slot before an
+        # observe question is put, so this site drew from a purse the fact
+        # pass had already emptied.
+        scan_budget=observe_scan_budget(fact_authorities.scan_budget),
         estimated_cost=fact_authorities.estimated_cost,
         actual_cost=fact_authorities.actual_cost,
         allowed_vocabulary=allowed_vocabulary_for(
@@ -1355,8 +1422,15 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
         residual_prompt=residual_prompt,
         model_target=routing.client_for(C_PLACEMENT).model_target,
         evidence_resolver=fact_authorities.evidence_resolver,
-        contradicts=fact_authorities.contradicts,
-        scan_budget=fact_authorities.scan_budget,
+        # NOT A's ORACLE, for the reason `_no_placement_contradiction` carries:
+        # `contradicts_stronger` reads its argument as a P6 fact row and a
+        # placement claim is not one.
+        contradicts=_no_placement_contradiction,
+        # NOT SITE A's, since `104` R-131's merge. `observe_scan_budget`
+        # carries why: one call per file spends every slot before an
+        # observe question is put, so this site drew from a purse the fact
+        # pass had already emptied.
+        scan_budget=observe_scan_budget(fact_authorities.scan_budget),
         estimated_cost=fact_authorities.estimated_cost,
         actual_cost=fact_authorities.actual_cost,
         policy_version=fact_authorities.policy_version,
@@ -1540,6 +1614,40 @@ FACT_CALL_MAX_RELEASED_OBSERVATIONS: int = 12
 #: model that abstains on everything is indistinguishable from a model nobody wired.
 FACT_CALLS_PER_1000_FILES: int = 1000
 FACT_MIN_CALLS_PER_SCAN: int = 1
+
+#: §8.6's spend ceilings for the OBSERVE AND PLACEMENT sites, which are not site A's
+#: and were site A's until now. `00` names these ceilings and states no values; the
+#: numbers below are the deployment's, exactly as the fact pair above.
+#:
+#: WHY A SECOND BUDGET AND NOT A LARGER ONE. B, C and D took `fact_authorities.
+#: scan_budget` -- the same object, the same `scan_id`, the same reservations -- on
+#: the argument that a budget is a fact about the run rather than about which site
+#: is asking. The measurement says otherwise: site A is one call per FILE, so a
+#: corpus where every file has an open question spends every slot before a
+#: placement question is ever put. Measured on the six-file local corpus of
+#: `tests/integration/test_local_model_fact_pass.py`: five fact calls, then site B
+#: refused before a call and site C recording `BUDGET_EXHAUSTED` -- the sites that
+#: decide WHERE a file goes starved by the site that decides WHAT it is. A larger
+#: shared number moves the corpus at which that happens and does not change it.
+#:
+#: The rate and the floor are the fact pass's own values, stated again rather than
+#: aliased: these are two policies that agree today, and a deployment that raises
+#: one has no reason to raise the other by accident.
+OBSERVE_CALLS_PER_1000_FILES: int = 1000
+OBSERVE_MIN_CALLS_PER_SCAN: int = 1
+
+#: The most calls the observe and placement sites may make in one scan. The same
+#: argument as `FACT_CALLS_PER_SCAN_CEILING` and the same units -- one call costs
+#: one -- and a separate number, because a run that spends its fact ceiling must
+#: still be able to place what it learned.
+OBSERVE_CALLS_PER_SCAN_CEILING: Decimal = Decimal("200")
+
+#: The observe budget's own `scan_id`, DERIVED from the fact pass's rather than
+#: minted, so a reader of `llm_budget_reservation` can see which run a row belongs
+#: to. That column is a bare key with no foreign key to the scan and is indexed on
+#: its own, so two ids are two ledgers -- and one id was the shared purse this
+#: separation exists to end.
+OBSERVE_BUDGET_SUFFIX: str = ":observe"
 
 #: What one A_fact call is charged, and what it settles for. THIS DEPLOYMENT
 #: MEASURES NEITHER A TOKEN NOR A PRICE: `readers.model_deepseek` returns no usage
@@ -3453,6 +3561,87 @@ def _work_type_vocabulary():
 
 WORK_TYPE_VOCABULARY = _work_type_vocabulary()
 
+#: The field the coursework `holder_institution` role resolves to, spelled here for
+#: the same reason `TERM_FIELD` and `WORK_TYPE_FIELD` are: the composition root is
+#: where a field key this deployment acts on is named, and P6, P8 and P10 each read
+#: it from what they are handed rather than from a second spelling of their own.
+SCHOOL_FIELD = "school"
+
+#: `105` §14.4's PERMITTED ANCHORS, as this deployment's shipped vocabulary already
+#: spells them. The owner's ruling names four kinds -- "a syllabus, an enrollment or
+#: registration letter, a transcript, a tuition or housing statement" -- and every
+#: member below is a term `WORK_TYPE_VOCABULARY` already ships for `academic`, so
+#: nothing here is a new vocabulary member and a test pins each one to the compiled
+#: release rather than to this list.
+#:
+#: WHAT IS DELIBERATELY OUT. `caption transcript` is a media captions file and not a
+#: record of study, so it is the one `transcript` term left out; `credit transcript`
+#: is in, because a transcript of academic credit is exactly the document §14.4
+#: names. The library ships no term for the ruling's fourth kind -- a TUITION OR
+#: HOUSING STATEMENT has no `work_type` term in any of the four schemas that declare
+#: the field -- so that kind cannot be admitted here at all today, and it is owed to
+#: the owner as a vocabulary member rather than invented in this file.
+#:
+#: The library also has no "letter" spelling for the enrollment and registration
+#: kinds; what it ships is the certificate, form, verification and confirmation an
+#: institution issues, which is the same document class under the names the release
+#: gives it. The owner's ruling is the wording, and this is the transcription.
+#:
+#: ANCHOR KIND IS NECESSARY AND NOT SUFFICIENT (§14.4). Membership here decides only
+#: that the file may be ASKED; whether its text establishes the institution's
+#: relationship to the course or enrollment being organised is the drafted rule 12
+#: of the A_fact text, the owner's to ratify, and whether an answer becomes a
+#: folder level is the two-anchor rule at P10.
+SCHOOL_ANCHOR_KINDS: frozenset[str] = frozenset({
+    "syllabus",
+    "enrollment certificate", "enrollment form", "enrollment verification",
+    "registration confirmation", "registration form",
+    "transcript", "transcript of records", "unofficial transcript",
+    "credit transcript",
+})
+
+
+def rests_on_a_name_alone(conn: sqlite3.Connection):
+    """`105` §14.4's pin: a FILENAME is never a source for a folder level.
+
+    `104` R-95 measured what a name-only answer produces. On a 52-file corpus the
+    local run wrote 38 `llm_supported` facts, every one of them a `school`, and
+    most of them were the file's own name -- `todo.txt`, `IMG_4822.jpg`,
+    `submission_backup.zip`. A name is the person's label for a file, not a
+    reading of what the document says, and §14.4 asks the anchor's own text to
+    establish the institution's relationship to the course.
+
+    **The question is asked of the CITATION and not of the value**, which is what
+    makes it checkable: the name is one observation with one key, `filename_
+    address` is where the gate and the builder both get it (`model_facts.
+    filename_citation` says so in its own words), and a fact citing that key and
+    nothing else rests on the name alone.
+
+    Two absences answer `True` -- a fact whose citations resolve to nothing, and a
+    fact citing nothing at all -- because a value with no reading behind it is
+    weaker than one resting on a name, not stronger. A `user_confirmed` value
+    legitimately cites nothing, and it never reaches here: the person's own answer
+    is admitted before this rule is asked (`upstream._group_level_agreed`).
+
+    A file with no addressable name answers `False`: there is no name for the
+    citation to be, so the value rests on something else by construction.
+    """
+
+    def rests(file_id: str, fact_id: str) -> bool:
+        try:
+            named = filename_address(conn, file_id).observation_key
+        except (UnresolvableSpan, AmbiguousObservationKey):
+            return False
+        try:
+            cited = {observation.observation_key
+                     for observation in evidence_chain(conn, fact_id=fact_id)}
+        except (LookupError, DanglingCitation):
+            return True
+        return not cited or cited == {named}
+
+    return rests
+
+
 #: P7's naming zones, MINUS `heading`, and the subtraction is the composition root's
 #: because it is a policy rather than a rule. A heading names a SECTION; a filename
 #: and a document title name the DOCUMENT, and `work_type` is a claim about the
@@ -3715,6 +3904,7 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
                           schema: str, folder_levels: tuple[FolderLevel, ...],
                           user_id: str, now,
                           deferred_readings: tuple[str, ...] = (),
+                          anchor_levels: tuple[FolderLevel, ...] = (),
                           usage_recorder: object | None = None,
                           on_result=None) -> FactCallAuthorities:
     """Everything one A_fact call needs, chosen here and nowhere else.
@@ -3749,6 +3939,20 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
     file in the situation, which is what makes it safe to send at all: §8.4's
     always-local set has no route into a library constant, and an example drawn from
     the corpus -- which would have one -- is not offered.
+
+    **`anchor_levels` is the second half of that answer** (`105` §14.4, `104`
+    R-131 with R-102). `folder_levels` above is what EVERY file of the situation is
+    asked; this is what only an ANCHOR is asked -- the school level, withheld from
+    every file by `104` §11.2 step 2 and restored by the owner's ruling to the
+    files whose own settled kind is one of `SCHOOL_ANCHOR_KINDS`. Empty is the
+    state R-102 measured (nothing writes a `school` fact and no corpus grows a
+    school level), so a caller that supplies none keeps that behaviour rather than
+    starting to ask by omission.
+
+    The protected half of §14.4 is `model_route_permitted`, CALLED here rather than
+    respelled: the same predicate the resolver's route is built from, so a
+    protected anchor is refused the question by the one rule that already refuses
+    it the call.
 
     **The gate's span classifier declines**, and that is the honest binding rather
     than a stub. P7's SPEC files identifier classes and the redaction transform
@@ -3839,7 +4043,23 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
         # `model_facts` carries the whole of why they stop at this record rather
         # than reaching the dossier, and the composition root's only job is to read
         # them off the release it already loaded.
-        deferred_readings=deferred_readings)
+        deferred_readings=deferred_readings,
+        # `105` §14.4. Built here because every part of it is this file's: which
+        # levels only an anchor is asked, which field says what a file IS, which
+        # kinds the shipped release spells as anchors, and the route's own
+        # protected bar. `None` when the caller withholds nothing, so a deployment
+        # that has not read the ruling asks exactly what it asked before.
+        anchor_only=(AnchorOnlyLevels(
+            levels=anchor_levels,
+            kind_field=WORK_TYPE_FIELD,
+            anchor_kinds=SCHOOL_ANCHOR_KINDS,
+            # THE ROUTE'S PREDICATE, not a second reading of the flag. Built on
+            # the same locality the client is pointed at, which is the one
+            # `model_fact_resolver` binds its own route to.
+            may_reach_a_model=model_route_permitted(
+                conn, locality=routing.client_for(A_FACT).model_target.locality,
+                unclassified_permits_local=UNCLASSIFIED_PERMITS_LOCAL))
+            if anchor_levels else None))
 
 
 def _stored_value_of(conn: sqlite3.Connection):
@@ -5895,6 +6115,21 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     # a high school (`104` §11.1).
     file_level_fields = tuple(level for level in folder_levels
                               if level.field not in group_level_fields)
+    # WHAT AN ANCHOR IS ASKED AND NO OTHER FILE IS (`105` §14.4, `104` R-131 with
+    # R-102). Step 2's withdrawal above is right about every file except the one
+    # that can answer: the syllabus, the enrollment or registration record and the
+    # transcript state the institution the course belongs to, and withholding the
+    # question from them too is what left R-102 -- nothing writes a `school` fact
+    # any more, so the coursework tree has no school level on any corpus. Split off
+    # the SAME row as the two lines above, so a release that binds the role
+    # differently moves all three together.
+    #
+    # `school` alone. The other group-level role -- coursework's `cycle_period` --
+    # stays withheld from every file: R-101 puts the term on B's per-course
+    # acceptances, and nothing here changes B.
+    anchor_level_fields = tuple(level for level in folder_levels
+                                if level.field in group_level_fields
+                                and level.field == SCHOOL_FIELD)
     clock = now()
     _bootstrap(conn)
     # `00`:20's THREE choices, as the person answered them. These were three
@@ -5957,6 +6192,19 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # because a role is what a dimension carries and the applicability row
             # is what turns one into the other.
             group_level_roles=GROUP_LEVEL_ROLES,
+            # `105` §14.4 with `104` R-131, and every field key in it is spelled
+            # here because this is the file that spells them. A school value
+            # becomes a folder level only from two anchors that ORIGINATE
+            # independently -- different bytes, and neither the other's copy
+            # (`duplicate_family`) or re-export (`version_family`) -- and that are
+            # about ONE course, which is the subject the anchors share. Two syllabi
+            # of unrelated courses name a school between them and no course's
+            # school, which is §14.4's own example.
+            anchor_agreement=AnchorAgreement(
+                fields=frozenset({SCHOOL_FIELD}),
+                origin_fields=(DUPLICATE_FAMILY_FIELD, VERSION_FAMILY_FIELD),
+                scope_field=SUBJECT_FIELD,
+                rests_on_a_name_alone=rests_on_a_name_alone(conn)),
             # PACKET G12. A C3 refusal -- "no recipe recognises the situation
             # these files are in" -- becomes a site-E request, observe-only.
             # `None` when the fact pass did not run, when there is no model, or
@@ -7048,6 +7296,10 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # syllabus anchor.
             folder_levels=file_level_fields, user_id=user_id,
             now=now,
+            # `105` §14.4. The school level, asked of the anchors and of nothing
+            # else. Empty when this situation binds no such role, which is every
+            # situation but coursework's today.
+            anchor_levels=anchor_level_fields,
             # `104` R-08, off the release `rules` above already loaded rather than a
             # second read of the library. Direct indexing and not `.get`: every one
             # of the nineteen schemas a `--situation` can resolve to is in the

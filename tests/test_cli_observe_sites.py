@@ -455,7 +455,11 @@ def _fact_authorities_with(**overrides):
     """Site A's authorities, reduced to the fields B borrows from them."""
     borrowed = dict(
         gate=object(), evidence_resolver=lambda key: None,
-        scan_budget=object(), estimated_cost=1, actual_cost=1,
+        # A REAL `ScanBudget` since `104` R-131's merge, and the stub that was
+        # here is why it has to be: the observe sites no longer take A's budget
+        # object, they derive their own from it (`cli.observe_scan_budget`), so a
+        # bare `object()` here stopped standing for the one field it stood for.
+        scan_budget=_fact_budget("scan-stub"), estimated_cost=1, actual_cost=1,
         policy_version="pv", wire_handle_key=b"k", observed_at=lambda: "T",
         usage_recorder=None)
     borrowed.update(overrides)
@@ -1281,3 +1285,97 @@ def test_a_ratified_local_row_is_refused_the_cloud_while_a_sibling_crosses(
     assert cli.observe_prompt(B_GROUP).ratified is True
     assert cli.observe_locality_permits(C_PLACEMENT, CLOUD) is False
     assert cli.observe_locality_permits(B_GROUP, CLOUD) is True
+
+
+# --- `104` R-131's merge: the observe sites' own ledger -----------------------
+
+def _fact_budget(scan_id: str = "scan-1", *, files: int = 6):
+    """The fact pass's budget as `cli.fact_call_authorities` builds one."""
+    from llm_harness.budgets import ScanBudget
+
+    return ScanBudget(
+        scan_id=scan_id, corpus_file_count=files,
+        max_calls_per_1000_files=cli.FACT_CALLS_PER_1000_FILES,
+        max_estimated_cost=cli.FACT_CALLS_PER_SCAN_CEILING,
+        min_calls_per_scan=cli.FACT_MIN_CALLS_PER_SCAN)
+
+
+def test_a_run_that_spends_every_fact_call_can_still_place_what_it_learned(
+        tmp_path):
+    """The defect, as the arithmetic that produced it.
+
+    Site A asks one call per FILE, so a corpus where every file has an open
+    question spends every slot the run has -- and B, C and D drew from that same
+    `ScanBudget`. Measured on the six-file corpus of `tests/integration/
+    test_local_model_fact_pass.py`: five fact calls, then site B refused before a
+    call and site C recording `BUDGET_EXHAUSTED`, so the sites that decide WHERE
+    a file goes were starved by the site that decides WHAT it is.
+
+    Exhausting the fact ledger here and then reserving from the observe one is
+    that whole story in two reservations.
+    """
+    import sqlite3
+
+    from llm_harness.budgets import (
+        BudgetExhausted, allowed_calls, create_budget_schema, reserve_call,
+    )
+
+    conn = sqlite3.connect(tmp_path / "budgets.sqlite")
+    conn.row_factory = sqlite3.Row
+    create_budget_schema(conn)
+    facts = _fact_budget()
+    observe = cli.observe_scan_budget(facts)
+
+    for _ in range(allowed_calls(facts)):
+        reserve_call(conn, facts, estimated_cost=cli.FACT_CALL_COST)
+    with pytest.raises(BudgetExhausted):
+        reserve_call(conn, facts, estimated_cost=cli.FACT_CALL_COST)
+
+    # The placement question the run could not put before this ruling.
+    reserved = reserve_call(conn, observe, estimated_cost=cli.FACT_CALL_COST)
+    assert reserved.scan_id == observe.scan_id
+
+
+def test_the_two_ledgers_are_two_rows_and_not_one(tmp_path):
+    """One `scan_id` was one purse. `llm_scan_budget` is keyed on that column and
+    `llm_budget_reservation` is indexed on it, so two ids are two ledgers -- and
+    the observe id is DERIVED from the fact one, so a reader can still see which
+    run a row belongs to."""
+    import sqlite3
+
+    from llm_harness.budgets import create_budget_schema, reserve_call
+
+    conn = sqlite3.connect(tmp_path / "budgets.sqlite")
+    conn.row_factory = sqlite3.Row
+    create_budget_schema(conn)
+    facts = _fact_budget()
+    observe = cli.observe_scan_budget(facts)
+
+    reserve_call(conn, facts, estimated_cost=cli.FACT_CALL_COST)
+    reserve_call(conn, observe, estimated_cost=cli.FACT_CALL_COST)
+
+    rows = {row["scan_id"]: row["calls_reserved"]
+            for row in conn.execute("SELECT * FROM llm_scan_budget")}
+    assert rows == {facts.scan_id: 1, observe.scan_id: 1}
+    assert observe.scan_id.startswith(facts.scan_id)
+
+
+def test_the_observe_ledger_is_the_runs_own_and_the_rest_is_still_site_as(
+        tmp_path):
+    """What the second budget changes and what it deliberately does not.
+
+    The scan and its file count are facts about the RUN, so they are carried; the
+    rate, the floor and the ceiling are the purse, so they are the observe
+    deployment's own. Everything else an observe site uses -- the gate, the costs,
+    the policy version, the wire handle key -- is still taken from site A's
+    authorities, because a second gate would be a second answer to what may leave
+    this device.
+    """
+    facts = _fact_budget(files=199)
+    observe = cli.observe_scan_budget(facts)
+
+    assert observe.corpus_file_count == facts.corpus_file_count
+    assert observe.scan_id != facts.scan_id
+    assert observe.max_calls_per_1000_files == cli.OBSERVE_CALLS_PER_1000_FILES
+    assert observe.min_calls_per_scan == cli.OBSERVE_MIN_CALLS_PER_SCAN
+    assert observe.max_estimated_cost == cli.OBSERVE_CALLS_PER_SCAN_CEILING
