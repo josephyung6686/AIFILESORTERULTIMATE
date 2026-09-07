@@ -85,7 +85,7 @@ def test_the_other_six_ceilings_are_untouched(conn):
     for name, key in CEILINGS.items():
         if name == "max_dossier_tokens":
             continue
-        expected = (cli.RESIDUAL_REVIEW_BATCH
+        expected = (cli.FILES_PER_REVIEW_SCREEN
                     if name == "max_residual_files_per_batch"
                     else cli.CEILING_VALUE)
         assert get_ceiling(conn, key) == expected, name

@@ -35,6 +35,7 @@ from grouping.records import AnchorFact, Group
 from grouping.schema import create_grouping_schema
 from grouping.store import memberships_for_group, record_group
 from grouping.vocabulary import (
+    ACCEPTED,
     CANDIDATE,
     COHERENT,
     CONTEXT_SUPPORTED,
@@ -845,3 +846,193 @@ def test_r83_a_wrapper_that_read_no_answer_is_the_same_caller_bug(seam_conn):
 
     with pytest.raises(RecordAbsent):
         current_group(seam_conn, GROUP)
+
+
+# --- `104` R-80: a second, differing answer about a group -----------------------
+#
+# `groups` is append-only in the strong sense, so the seam used to leave a
+# recorded row exactly as it stood and a second, differing answer reached the
+# record nowhere. The ruling: mint a superseding group carrying the memberships,
+# as `cli.review_and_accept` does for the person's label, with the reason
+# recorded -- and a person's acceptance outranks both model answers.
+
+from grouping.p8_seam import SECOND_ANSWER_DIFFERED  # noqa: E402
+
+
+def _second_answer(label, *, members=None, verdict_id="verdict-2"):
+    """The same group, answered again under its own verdict id.
+
+    A different `verdict_id` is not decoration: it is what the superseding
+    group's address is derived from, and two answers under one id would be one
+    answer arriving twice.
+    """
+    return _answered(_verdict(ACCEPT_DIRECT, verdict_id=verdict_id),
+                     label=label, members=members)
+
+
+def test_r80_a_second_differing_answer_supersedes_and_carries_the_memberships(
+        seam_conn):
+    """The row the first answer wrote is not touched, and it is not the last word.
+
+    The second answer names a different label, so a NEW group carries it, names
+    the row it supersedes and says why. Every file the superseded group held is
+    on the new row: the ones this answer decided again by its own decision, and
+    the one it did not mention by the carry -- which is the half that makes a
+    superseding id safe at all, because a new `group_id` is an id no membership
+    names until something carries them.
+    """
+    from grouping.store import current_group
+
+    first = _apply(seam_conn, _answered())
+    assert first.group_id == GROUP
+    held_first = {m.file_id for m in memberships_for_group(seam_conn, GROUP)}
+
+    second = _apply(seam_conn, _second_answer(
+        "PHYS1401, first half", members=(
+            MemberDecision(file_id="lecture-08", decision=INCLUDED,
+                           why="states the course code"),
+            MemberDecision(file_id="midterm-practice", decision=INCLUDED,
+                           why="states the course code"),
+        )))
+
+    superseding = current_group(seam_conn, second.group_id)
+    assert second.group_id != GROUP, "a supersession needs an id of its own"
+    assert superseding.display_label == "PHYS1401, first half"
+    assert superseding.label_source == LLM_PROPOSED
+    assert superseding.supersedes == GROUP
+    assert superseding.supersede_reason == SECOND_ANSWER_DIFFERED
+
+    # The first row stands, unedited, and says what became of it.
+    superseded = current_group(seam_conn, GROUP)
+    assert superseded.display_label == "PHYS1401 course materials"
+    assert superseded.superseded_by == second.group_id
+    assert superseded.supersede_reason == SECOND_ANSWER_DIFFERED
+
+    # THE MEMBERSHIPS TRAVELLED, and no file is in the new group twice.
+    carried = memberships_for_group(seam_conn, second.group_id)
+    assert {m.file_id for m in carried} == held_first
+    assert len(carried) == len(held_first), (
+        f"{[m.membership_id for m in carried]} holds one file twice")
+    # `hw-3` is the one this answer did not mention, so its row is the carried
+    # one -- the decision it was written with, under the new group.
+    hw3 = next(m for m in carried if m.file_id == "hw-3")
+    assert hw3.decision == UNCERTAIN
+    assert hw3.group_id == second.group_id
+    assert hw3.supersedes is None, (
+        "a carried membership is a record about another group, not a revision "
+        "of the one it came from")
+    # And its review obligation travelled with the decision, in this plan
+    # version: an uncertain membership visible without its review is the failure
+    # this module exists not to have.
+    assert membership_review_state_as_of(
+        seam_conn, plan_version_id=PLAN,
+        membership_id=hw3.membership_id) == PENDING_REVIEW
+    # The row the first answer wrote is untouched under the superseded group.
+    assert {m.file_id for m in memberships_for_group(seam_conn, GROUP)} == held_first
+
+
+def test_r80_the_same_answer_twice_supersedes_nothing(seam_conn):
+    """A rerun over unchanged evidence asks the same question of the same model.
+
+    Nothing about the group changed, so a superseding row would be a second row
+    saying what the first one says -- history nobody can read, one row per run.
+    The dossier and the verdict are new on every call by construction and are
+    deliberately not part of the comparison; what is compared is the ANSWER.
+    """
+    from grouping.store import current_group
+
+    _apply(seam_conn, _answered())
+    before = {row["group_id"] for row in
+              seam_conn.execute("SELECT group_id FROM groups")}
+
+    again = _apply(seam_conn, _second_answer("PHYS1401 course materials"))
+
+    assert again.group_id == GROUP
+    after = {row["group_id"] for row in
+             seam_conn.execute("SELECT group_id FROM groups")}
+    assert after == before, f"a second identical answer minted {after - before}"
+    assert current_group(seam_conn, GROUP).superseded_by is None
+    assert current_group(seam_conn, GROUP).display_label == \
+        "PHYS1401 course materials"
+
+
+def test_r80_a_person_accepted_group_is_not_superseded_by_a_model_answer(
+        seam_conn):
+    """The person's word outranks both of the model's, and outranks the second.
+
+    The acceptance is recorded on a SUPERSEDING row, because that is the only
+    form it takes: `cli.review_and_accept` mints a merged group carrying
+    `supersedes`, writes the acceptance on it, and never writes one against the
+    address P9 re-derives. A seam that looked for an acceptance on the id it was
+    handed would find none and overrule the person on every real run.
+
+    The answer is not lost. It is on disk in the harness's own tables under its
+    verdict id, which is what an unratified site does with every answer it gets;
+    what it is applied to is nothing.
+    """
+    from grouping.acceptance import record_acceptance
+    from grouping.records import GroupAcceptance
+    from grouping.store import current_group
+
+    _apply(seam_conn, _answered())
+    accepted_id = f"{GROUP}:as-the-person-named-it"
+    record_group(seam_conn, _group(
+        group_id=accepted_id, coherence_verdict=COHERENT,
+        group_category="academic", display_label="Coursework",
+        label_source=USER_EDITED, supersedes=GROUP,
+        supersede_reason="the rules merged P9's groups under the label the user "
+                         "supplied on the command line"))
+    record_acceptance(seam_conn, GroupAcceptance(
+        acceptance_id=f"acc:{accepted_id}", plan_version_id=PLAN,
+        group_id=accepted_id, membership_id=None, acceptance=ACCEPTED,
+        review_state=PENDING_REVIEW, user_edited_label="Coursework", aliases=(),
+        review_decision_ref=None, decided_by=RULES, created_at=T0))
+    before = {row["group_id"] for row in
+              seam_conn.execute("SELECT group_id FROM groups")}
+
+    decision = _apply(seam_conn, _second_answer("PHYS1401, first half"))
+
+    # Applied to nothing: no new group, no supersession of the accepted row, and
+    # no membership under a second author.
+    after = {row["group_id"] for row in
+             seam_conn.execute("SELECT group_id FROM groups")}
+    assert after == before, f"the model's answer minted {after - before}"
+    assert current_group(seam_conn, accepted_id).superseded_by is None
+    assert current_group(seam_conn, accepted_id).display_label == "Coursework"
+    assert memberships_for_group(seam_conn, accepted_id) == ()
+    assert decision.membership_ids == ()
+    assert decision.group_id == GROUP
+
+
+def test_r80_a_third_answer_supersedes_the_second_and_the_chain_stays_a_chain(
+        seam_conn):
+    """The shape the live pipeline hands in on every run after the first.
+
+    `grouping.pipeline` reads the standing row off the disk and passes THAT to
+    the seam, so from the second run on the group handed in carries the
+    `superseded_by` an earlier supersession stamped on it. A row minted by
+    `dataclasses.replace` of it would arrive already pointing at its own
+    predecessor while the link pointed that predecessor at the new row -- two
+    rows naming each other, in a chain the acceptance check has to walk to its
+    head. The walk terminating is what makes "a person's acceptance outranks
+    both answers" answerable at all.
+    """
+    from grouping.store import current_group
+
+    _apply(seam_conn, _answered())
+    second = _apply(seam_conn, _second_answer("PHYS1401, first half"))
+
+    third = _apply(
+        seam_conn,
+        _second_answer("PHYS1401, lectures only", verdict_id="verdict-3"),
+        # The stored row, as the pipeline hands it back on the next run.
+        group=current_group(seam_conn, GROUP))
+
+    assert third.group_id not in (GROUP, second.group_id)
+    written = current_group(seam_conn, third.group_id)
+    assert written.supersedes == second.group_id, (
+        "a third answer supersedes the head, not the row the address names")
+    assert written.superseded_by is None, (
+        "a row being written has nothing to say about what superseded it")
+    assert current_group(seam_conn, second.group_id).superseded_by == third.group_id
+    assert current_group(seam_conn, GROUP).superseded_by == second.group_id
