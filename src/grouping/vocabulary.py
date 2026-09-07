@@ -124,6 +124,23 @@ EDGE_TYPES: tuple[str, ...] = (
     EXISTING_RELATED_FOLDER, BOUNDED_SESSION, MUTUAL_SEMANTIC_RETRIEVAL,
 )
 
+
+def fact_bridge_ref(field_key: str, value: str) -> str:
+    """How a shared fact is NAMED when it is the third thing an edge runs through.
+
+    §4.3's generic-entity test is a count of one named entity, and three places
+    have to agree on the name or the count is of nothing: `retrieval` writes it on
+    the edge, `graph` exempts the seed's own basis by it, and P11 looks it up in
+    the frequency map the composition root measures. Two of those spelled it as an
+    f-string and the third counted bare values, so `entity_frequency.get(entity)`
+    missed every time and answered 0.
+
+    The field is part of the name and not decoration. `subject=exam` and
+    `work_type=exam` are two entities that share a word; counting them as one
+    would make the commoner of them drag the rarer over the ceiling.
+    """
+    return f"{field_key}={value}"
+
 # --- coherence and labels -------------------------------------------------------
 
 COHERENT: str = "coherent"

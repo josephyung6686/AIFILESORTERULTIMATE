@@ -105,7 +105,7 @@ from grouping.vocabulary import (
     ACCEPTED, BOUNDED_SESSION, COHERENT, COMPATIBLE_DOCUMENT_TYPE, DUPLICATE,
     EDGE_TYPES as P9_EDGE_TYPES, EXISTING_RELATED_FOLDER, INCLUDED,
     MUTUAL_SEMANTIC_RETRIEVAL, P1_INCLUDED_SCAN_STATE, PENDING_REVIEW, RULES,
-    SHARED_VALIDATED_FACT, USER_EDITED, VERSION_FAMILY,
+    SHARED_VALIDATED_FACT, USER_EDITED, VERSION_FAMILY, fact_bridge_ref,
 )
 from llm_harness.budgets import ScanBudget, create_budget_schema
 from llm_harness.prompt_library import (
@@ -3575,6 +3575,40 @@ def located_citations(conn: sqlite3.Connection, file_id: str,
     return tuple(located)
 
 
+def files_stating_each_fact(conn: sqlite3.Connection) -> dict[str, int]:
+    """§6.5's generic-entity count, MEASURED and spelled the way P9 names a bridge.
+
+    Two defects, one lookup. The count was `{fact.value: 1}` -- every value
+    declared unique, so the hub test `00`:63 asks for ("one high-frequency entity
+    acts as the only bridge") could never fire on any corpus by construction
+    (`104` R-11). And the key was the bare `canonical_value`, while the entity
+    `placement/graph.py:156` looks up is the bridge P9 recorded on the edge, which
+    since `104` R-59's third finding is `field=value` -- so every shared-fact
+    lookup missed and answered 0 whatever the ceiling was. `fact_bridge_ref` is
+    the one spelling all three sites read.
+
+    A folder label is not a key here and should not be. `existing-related-folder`
+    bridges through a folder the person made; it has no fact row, its frequency is
+    genuinely unknown to this map, and 0 is an honest answer rather than a missed
+    lookup.
+
+    Retracted facts are excluded. §3.13's `rejected` is a claim the person told
+    the product was wrong, and counting it would let a retraction go on making an
+    entity look common.
+    """
+    counts: dict[str, int] = {}
+    for row in conn.execute(
+            'SELECT ff.field_key AS field, v.canonical_value AS value, '
+            'COUNT(DISTINCT ff.file_id) AS files FROM file_facts ff '
+            'JOIN "values" v ON ff.value_id = v.value_id '
+            'WHERE ff.active = 1 AND ff.superseded_by IS NULL '
+            'AND ff.reliability_state != ? '
+            'GROUP BY ff.field_key, v.canonical_value',
+            (pv.DROPPED_RELIABILITY_STATE,)):
+        counts[fact_bridge_ref(row["field"], row["value"])] = row["files"]
+    return counts
+
+
 def typed_edges_of(conn: sqlite3.Connection,
                    file_id: str) -> tuple[dict, ...]:
     """P9's typed edges touching this file, in P11's shape (`104` R-12).
@@ -4152,37 +4186,26 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             labels.append(cursor.rsplit("/", 1)[-1])
         return tuple(labels)
 
-    #: value -> how many FILES in this corpus state it, built on first use.
+    #: `field=value` -> how many FILES in this corpus state it, built on first
+    #: use. The key is P9's bridge spelling, not the bare value: see
+    #: `files_stating_each_fact`.
     _files_stating: dict[str, int] = {}
     #: file id -> the frozen destination nodes that already list it, built on
     #: first use. One pass over the index entries for the whole run.
     _nodes_listing: dict[str, tuple[str, ...]] = {}
 
-    def _how_many_files_state_each_value() -> Mapping[str, int]:
-        """§6.5's generic-entity count, MEASURED (`104` R-11).
-
-        This was `{fact.value: 1}` -- every value declared unique, so the hub test
-        `00`:63 asks for ("one high-frequency entity acts as the only bridge") could
-        never fire and `high_frequency_entities` was empty on every corpus by
-        construction. The count is one `GROUP BY` over the same rows `evidence_for`
-        already reads.
+    def _how_many_files_state_each_fact() -> Mapping[str, int]:
+        """§6.5's count, held for the run.
 
         Built once and held, because P6 has finished writing facts by the time P11
         asks: the rule pass, the family pass and the model fact pass all run inside
         `downstream`, and `evidence_for` is called from P11 and from
-        `act_on_residual_sets`, both after. An EMPTY answer is not cached -- a corpus
-        whose facts are not written yet must not have emptiness frozen into it for
-        the rest of the run.
+        `act_on_residual_sets`, both after. An EMPTY answer is not cached -- a
+        corpus whose facts are not written yet must not have emptiness frozen into
+        it for the rest of the run.
         """
         if not _files_stating:
-            for row in conn.execute(
-                    'SELECT v.canonical_value AS value, '
-                    'COUNT(DISTINCT ff.file_id) AS files FROM file_facts ff '
-                    'JOIN "values" v ON ff.value_id = v.value_id '
-                    'WHERE ff.active = 1 AND ff.superseded_by IS NULL '
-                    'AND ff.reliability_state != ? GROUP BY v.canonical_value',
-                    (pv.DROPPED_RELIABILITY_STATE,)):
-                _files_stating[row["value"]] = row["files"]
+            _files_stating.update(files_stating_each_fact(conn))
         return _files_stating
 
     def _nodes_that_already_list(file_id: str) -> tuple[str, ...]:
@@ -4276,18 +4299,25 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             semantic_neighbours=semantic_neighbour_nodes(
                 conn, file_id, nodes_listing=_nodes_that_already_list),
             related_files=typed_edges_of(conn, file_id),
-            # §6.5's generic-entity suppression. A value seen in more files than
+            # §6.5's generic-entity suppression. A fact stated by more files than
             # this is treated as a hub rather than as a discriminator. Both numbers
             # are this deployment's; `00` states neither.
             #
-            # THE FREQUENCIES ARE NOW MEASURED (`104` R-11) and the CEILING is not,
-            # which is a gap for the owner rather than for this file. Every value
-            # used to be declared unique, so the ceiling could not fire whatever it
-            # was; with the counts real, the owner's 199 files put the commonest
-            # value at 11, and 200 still cannot fire. The measurement is the half
-            # that belongs here -- what counts as "everywhere" is a policy, and
-            # `00` states no number for it.
-            entity_frequency=_how_many_files_state_each_value(),
+            # THE FREQUENCIES ARE NOW MEASURED (`104` R-11) and keyed the way P9
+            # names a bridge (R-59), so this lookup answers something for the first
+            # time. THE CEILING is still unmeasured, and that is the owner's
+            # decision rather than this file's: on the owner's 199 files the 32
+            # distinct facts put the commonest at 11, so 200 cannot fire.
+            #
+            # This is now the ONLY place §4.3 could fire at all. P9's own hub test
+            # counts within ONE neighbourhood, and a neighbourhood retrieved on the
+            # seed's fact contains that fact and no other -- so with the seed's own
+            # basis exempt (as §4.3 requires: a group's basis is not an entity
+            # bridging UNRELATED groups) the shared-fact channel can never raise a
+            # hub, at any ceiling. P9's ceiling governs `existing-related-folder`
+            # and nothing else. A corpus-wide count is what finds an entity that
+            # bridges unrelated groups, and this map is the corpus-wide count.
+            entity_frequency=_how_many_files_state_each_fact(),
             generic_entity_frequency=200)
 
     def _protected_among(file_ids: Sequence[str]) -> frozenset[str]:

@@ -47,6 +47,7 @@ from grouping.vocabulary import (
     SR6,
     TENTATIVE_DISCOVERY,
     VERSION_FAMILY,
+    fact_bridge_ref,
 )
 
 #: Five channels name their edge type directly. The sixth does not, and that is
@@ -113,16 +114,26 @@ def _edge_type(neighbor, duplicate_or_version: DuplicateOrVersion | None,
     return verdict
 
 
-def _hub_entities(edges: Sequence[TypedEdge], frequency: int) -> frozenset[str]:
+def _hub_entities(edges: Sequence[TypedEdge], frequency: int, *,
+                  exempt: str | None = None) -> frozenset[str]:
     """Entities bridging at or above the injected frequency.
 
     The rule is a count, not a list of domains. A hard-coded university suffix or
     mail provider here would be P9 authoring a policy that belongs to
     configuration, and the corpus it was tuned on is not this user's.
+
+    `exempt` is THE SEED'S OWN BASIS and is §4.3 read literally (`104` R-59's
+    third finding). §4.3's count exists "to find an entity that bridges UNRELATED
+    groups", and the value this group was seeded on is by definition not that: it
+    is what makes these files one group. Counting it made a group of ten files
+    seeded on `work_type = photograph` suppress every edge it had, which is why
+    the shared-fact channel used to record no entity at all. The exemption is by
+    NAME and applies to one value in one graph, so an entity that is a hub for
+    some other seed is still a hub there.
     """
     counts: dict[str, int] = {}
     for edge in edges:
-        if edge.bridge_entity_ref is None:
+        if edge.bridge_entity_ref is None or edge.bridge_entity_ref == exempt:
             continue
         counts[edge.bridge_entity_ref] = counts.get(edge.bridge_entity_ref, 0) + 1
     return frozenset(
@@ -163,6 +174,13 @@ def build_graph(
         # "hub" the moment enough files corroborated it -- and §4.3's count, which
         # exists to find an entity that bridges UNRELATED groups, punished the
         # corroboration §4.3 asks the rules to make.
+        #
+        # STILL TRUE, AND THE SHARED-FACT CHANNEL NOW NAMES ONE (`104` R-59's
+        # third finding). What changed is not this line: the channel decides at
+        # `retrieval._shared_fact_neighbors` that it has an entity to name, and
+        # `_hub_entities` below is told to EXEMPT the seed's own basis by name. So
+        # the group's own basis still cannot make the group a hub, and every other
+        # channel's description is still not promoted to an identity here.
         bridge = neighbor.bridge_entity
         edge_id = _edge_id(group_id, seed_file_id, neighbor.file_id, edge_type, bridge)
         built.append(TypedEdge(
@@ -181,7 +199,14 @@ def build_graph(
         if neighbor.anchors:
             anchoring.add(edge_id)
 
-    hubs = _hub_entities(built, limits.generic_hub_frequency)
+    # The seed's own basis, spelled by `vocabulary.fact_bridge_ref` -- the one
+    # place the channel, this exemption and P11's frequency lookup all read it
+    # from -- so the exemption names one value rather than a channel. A seed with no field and
+    # no value (a user-created starting point, a structural family) exempts nothing.
+    seed = neighborhood.seed
+    seed_basis = (fact_bridge_ref(seed.field_key, seed.value)
+                  if seed.field_key and seed.value else None)
+    hubs = _hub_entities(built, limits.generic_hub_frequency, exempt=seed_basis)
     suppressed = tuple(
         TypedEdge(
             edge_id=edge.edge_id, from_file_id=edge.from_file_id,

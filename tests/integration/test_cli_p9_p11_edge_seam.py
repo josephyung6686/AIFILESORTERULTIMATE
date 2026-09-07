@@ -236,3 +236,66 @@ def test_without_the_semantic_model_the_channel_is_simply_empty(edges):
 
     assert cli.semantic_neighbour_nodes(
         edges, "sparse", nodes_listing=lambda file_id: ("node-7",)) == ()
+
+
+# --- the map P11 looks the bridge up in -------------------------------------
+
+def test_the_bridge_p9_writes_is_a_key_in_the_map_p11_looks_it_up_in(conn, tmp_path):
+    """§6.5's hub test is one `.get`, and a `.get` across two spellings answers 0
+    for ever.
+
+    `placement/graph.py:156` asks `entity_frequency.get(entity, 0) >=
+    generic_entity_frequency`, where `entity` is the bridge P9 recorded. Once the
+    shared-fact channel names its bridge (`104` R-59's third finding) that entity
+    is `field=value`, and this map was keyed on the bare `canonical_value` -- so
+    every shared-fact lookup missed, returned 0, and P11's half of the hub test
+    was as inert as P9's half had been. The two halves now spell it once, in
+    `grouping.vocabulary.fact_bridge_ref`.
+
+    A folder label is deliberately NOT a key here. `existing-related-folder`
+    bridges through a folder the person made, which is not a fact value and has
+    no row to count; its frequency is genuinely unknown to this map and 0 is the
+    honest answer rather than a missed lookup.
+    """
+    from database_agent.files_table import get_file, record_file
+    from database_agent.db import create_schema
+    from evidence_shape.schema import create_evidence_schema
+    from facts.fields import create_fields
+    from facts.file_facts import write_fact
+    from facts.values import ensure_value
+    from grouping.vocabulary import fact_bridge_ref
+
+    create_schema(conn)
+    create_evidence_schema(conn)
+    create_fields(conn)
+    for n, name in enumerate(("one.pdf", "two.pdf")):
+        ref = "sha256:" + f"{n:064d}"
+        path = tmp_path / "Coursework" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(name.encode("utf-8"))
+        file_id = record_file(
+            conn, path, filename=name, normalized_filename=name.lower(),
+            extension=".pdf", observed_size=len(name),
+            observed_timestamps='{"mtime": 1700000000.0}',
+            parent_folder_context="Coursework", mime_type="application/pdf",
+            detected_format="pdf", scan_state="included", materialized=True)
+        value_id = ensure_value(
+            conn, field_key="subject", canonical_value="PHYS1401",
+            first_evidence_ref=ref, origin="automatic")
+        write_fact(
+            conn, file_id=file_id,
+            content_hash=get_file(conn, file_id)["content_hash"],
+            field_key="subject", value_id=value_id,
+            reliability_state="validated", origin="deterministic_extractor",
+            evidence_refs=(ref,),
+            cache_key=f"sha256:{name}-subject",
+            active=True)
+
+    counts = cli.files_stating_each_fact(conn)
+    bridge = fact_bridge_ref("subject", "PHYS1401")
+
+    # what P9 records on the edge is a key in the map P11 reads
+    assert bridge in counts
+    assert counts[bridge] == 2
+    # and the bare value is NOT a second spelling of the same thing
+    assert "PHYS1401" not in counts
