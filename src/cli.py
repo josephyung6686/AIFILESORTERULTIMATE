@@ -3040,26 +3040,26 @@ SUBJECT_RULE = Rule(pattern=_SUBJECT_IDENTIFIER,
                     field_key=SUBJECT_FIELD,
                     canonical=lambda raw: _SEPARATOR.sub("", " ".join(raw.split())))
 
-#: `104` R-135'S ANCHOR VOCABULARY: the documents that STATE what a course is called.
-#: A strict subset of `SUBJECT_CONTEXT_TERMS` above, and the narrowing is the whole
-#: reason for a second list rather than a reuse of the first.
+#: `104` R-135 HAD A SECOND VOCABULARY HERE AND IT IS GONE, on the measurement.
+#: `COURSE_ANCHOR_TERMS` was a strict subset of `SUBJECT_CONTEXT_TERMS` above --
+#: `syllabus`, `registrar`, `enrolled in` -- asked of the text beside a course code so
+#: that only a document STATING what a course is called became an anchor. The reasoning
+#: read well: a homework sheet prints `W3134` beside `Problem Set 4`, and the syllabus
+#: prints it beside the course's own name.
 #:
-#: `SUBJECT_CONTEXT_TERMS` asks "is this reading about teaching?" -- twenty-six words
-#: wide, because a course code has to be recognisable in a problem set, an exam header
-#: and a citation. This asks a narrower question: "is this document the one that says
-#: what the course is called?" A homework sheet prints `W3134` beside `Problem Set 4`;
-#: the syllabus, the schedule and the enrolment record print it beside the course's own
-#: name. Widening this to the other list would let a document that merely MENTIONS a
-#: course become the evidence a model reads about that course's name.
+#: Run against the owner's own corpus it refused everything. 9283 observations, 1554
+#: read from inside a document, 106 passing the rule's own `is_code`, and all 106
+#: refused by this gate; three files in the whole corpus mention any of these words
+#: anywhere in their text, and not one of those prints a code. The document the premise
+#: described is not in this corpus. What is in it is 44 files that print a course code
+#: in their own text, and none of them could become evidence for any of the others.
 #:
-#: `registrar` and `transcript` earn places here that they do not have one field over.
-#: `SUBJECT_CONTEXT_TERMS` excludes `transcript` because "seven schemas author it" and
-#: it is no evidence that a nearby token is a course CODE. It is, however, exactly a
-#: document that prints codes beside course names, which is what this list is for.
-COURSE_ANCHOR_TERMS: tuple[str, ...] = (
-    "syllabus", "course outline", "course schedule", "class schedule",
-    "course description", "enrollment", "enrolment", "registration", "registrar",
-    "transcript", "enrolled in", "course catalog", "course catalogue")
+#: A gate that refuses 106 of 106 is not a narrowing, and choosing which lines name one
+#: course is the model's job at sites A and C -- the constitution's first rule, and site
+#: C's own sentence, "two spellings can be one thing ... yours to judge". So the list is
+#: removed rather than widened: widening it would be authoring a better guess at the
+#: same forbidden question. `SUBJECT_CONTEXT_TERMS` above is untouched; it answers a
+#: different question for `SUBJECT_RULE` and still does.
 
 #: §3.5's direct slot set, and §2.2/§2.3's suppression catalogue. `DirectSlots` has
 #: no default because the slot is the caller's, and THIS DEPLOYMENT NOW SHIPS NONE.
@@ -5785,7 +5785,7 @@ def anchor_context_observations(conn: sqlite3.Connection, *, scan_run_id: str,
     **Four narrowings, each structural.**
 
       * *Only the field the deployment ties this to.* `SUBJECT_FIELD` is cli's, beside
-        `SUBJECT_RULE` and `COURSE_ANCHOR_TERMS`, because which field a course code
+        `SUBJECT_RULE`, because which field a course code
         answers is a deployment's question and `model_facts` may not spell it. A call
         that is not asking it gets nothing.
       * *Only a document in this file's folder or above it.* `_folder_family`, over
@@ -7583,6 +7583,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         to judge from the evidence" -- and the constitution puts that judgement with the
         model. What was missing was the evidence, not the ruling.
 
+        **And it once decided one thing, which is why it now decides none.** It required
+        an anchor word beside the code, and on this corpus that refused all 106 readings
+        that pass `is_code`, so the table held zero rows and no dossier ever carried
+        context. See `COURSE_ANCHOR_TERMS`' former place above for the count. Every line
+        of a document's own text that prints a code is a statement now, and the release
+        cap on the call bounds how many of them reach one model.
+
         HERE, before `_model_fact_pass`, because a statement that arrives after the
         model has been asked is a statement nothing could be judged against.
         """
@@ -7599,7 +7606,6 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # the two readings the rule's own lookaheads exist to refuse.
             is_code=lambda text: SUBJECT_RULE.pattern.search(text) is not None,
             canonical=SUBJECT_RULE.canonical,
-            anchor_terms=COURSE_ANCHOR_TERMS,
             # A SPAN INSIDE THE DOCUMENT'S OWN WORDS. `filename`, `path`, `title` and
             # every `metadata:*` zone sit outside this predicate by construction, so a
             # folder named after a course can never become the evidence for what that
