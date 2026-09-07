@@ -324,7 +324,8 @@ def group_address(seed: Seed) -> str:
 
 
 def _group_for(seed: Seed, *, group_id: str, state: str,
-               conflicts: Sequence[object], anchor_file_ids: frozenset[str],
+               conflicts: Sequence[object],
+               anchor_file_ids: Sequence[str],
                created_at: str) -> Group:
     # Every file the graph says states this value DIRECTLY, not just the seed.
     # The SPEC's own definition of `anchor_count` is "number of files that
@@ -334,7 +335,11 @@ def _group_for(seed: Seed, *, group_id: str, state: str,
     facts = (
         (AnchorFact(
             field=seed.field_key, value=seed.value,
-            file_ids=tuple(sorted(anchor_file_ids or {seed.file_id})),
+            # In `anchoring_files`' order, which is the graph's node order,
+            # which retrieval ranked by content. `sorted()` here sorted the
+            # per-run `uuid4` file ids and made this stored list a different
+            # permutation every run (`104` R-78).
+            file_ids=tuple(anchor_file_ids) or (seed.file_id,),
             reliability_state=seed.reliability_state,
             observation_key=seed.observation_key),)
         if seed.field_key and seed.value and seed.observation_key

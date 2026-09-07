@@ -410,6 +410,69 @@ def test_an_unresolvable_key_becomes_no_excerpt_rather_than_a_quotation(
     assert lecture_key in {excerpt.observation_key for excerpt in dossier.excerpts}
 
 
+def test_a_shared_fact_never_lends_one_files_observation_to_another(
+    dossier_conn, corpus,
+):
+    """An `AnchorFact` stated by two files carries ONE observation key -- the
+    first file's. Attached to the second file it is a quotation from somewhere
+    else, and P7's gate resolves every requested item to its file and raises
+    `UnresolvableSpan` when that file is outside the request's target -- which it
+    is the moment the first file is withheld or bounded out of the graph.
+
+    Measured on a 52-file Downloads with qwen3:8b: the whole run died with that
+    traceback after 37 minutes of A-site calls, at the first B dossier, because
+    two cover letters cited a job posting's `term = Summer2026`.
+
+    So every excerpt on a dossier file is that file's own observation, and a
+    shared key the file has no observation for is no excerpt rather than a
+    borrowed one.
+    """
+    from evidence_shape.store import observations_by_key
+
+    seed_id, _sh, seed_key = corpus["Syllabus.pdf"]
+    lecture_id, _lh, lecture_key = corpus["Lecture.pdf"]
+    shared = AnchorFact(field="subject", value="PHYS1401",
+                        file_ids=(seed_id, lecture_id),
+                        reliability_state="validated", observation_key=seed_key)
+    dossier = _assemble(dossier_conn, corpus, group=_group(shared))
+
+    by_file = {item.file_id: item
+               for item in (*dossier.anchor_files, *dossier.candidate_files)}
+    assert seed_key in {e.observation_key for e in by_file[seed_id].excerpts}
+    assert seed_key not in {e.observation_key for e in by_file[lecture_id].excerpts}
+    # And the whole dossier: every excerpt resolves to the file it sits on.
+    for item in by_file.values():
+        for excerpt in item.excerpts:
+            owners = {o.file_id for o in observations_by_key(
+                dossier_conn, excerpt.observation_key)}
+            assert item.file_id in owners, (item.file_id, excerpt.observation_key)
+
+
+def test_a_dossier_with_no_excerpt_of_its_own_is_refused_not_requested(
+    dossier_conn, corpus,
+):
+    """The other half of the shared-fact case. When the file whose observation a
+    shared fact cites is withheld (unclassified), every remaining file states the
+    basis by the fact's word and cites nothing of its own. Such a dossier has no
+    item a release could resolve, and `ModelCallRequest` refuses to be built
+    from it -- measured as `MalformedRequest: a request with no items has
+    nothing to release` ending a 48-minute local-model run. It is refused here,
+    with the reason named, and P9 records the group as not judged.
+    """
+    seed_id, _sh, seed_key = corpus["Syllabus.pdf"]
+    lecture_id, _lh, _lk = corpus["Lecture.pdf"]
+    shared = AnchorFact(field="subject", value="PHYS1401",
+                        file_ids=(seed_id, lecture_id),
+                        reliability_state="validated", observation_key=seed_key)
+    result = _assemble(
+        dossier_conn, corpus, group=_group(shared),
+        classification_store=_classified(missing=(seed_id,)))
+
+    assert isinstance(result, DossierRefused)
+    assert "no excerpt" in result.reason
+    assert result.withheld == (seed_id,)
+
+
 # --- privacy: marked and counted, never opened -----------------------------------
 
 

@@ -40,6 +40,7 @@ from tools.groundtruth.run import label_for, run_situations         # noqa: E402
 from tools.groundtruth.score import (                               # noqa: E402
     over_marked, protected_verdict, score_situation,
 )
+from tools.groundtruth.shadow import shadow_block                   # noqa: E402
 
 
 def _promised_levels() -> dict[str, tuple[str, ...]]:
@@ -90,6 +91,16 @@ def main(argv: list[str] | None = None) -> int:
              "refusals BY REASON beside route withholding (`104` §7, R-46). It "
              "invokes no model and opens no socket; it works on a copy of each "
              "database, because releasing writes.")
+    parser.add_argument(
+        "--shadow", action="store_true",
+        help="also print what the sorting row WOULD be if site C's observed "
+             "verdicts were applied. Since Wave 3 a run with a model configured "
+             "records the dossier, the response and the validator's verdict at "
+             "site C and applies none of it, because the prompt is not ratified "
+             "-- so the row above cannot move until the owner ratifies, and the "
+             "owner has to decide BEFORE he can see what it would say. This is "
+             "that. It applies nothing, invokes no model, opens no socket, and "
+             "prints no file content. Works with `--score-only`.")
     parser.add_argument(
         "--enable-cloud", action="store_true",
         help="let the runs send files to the cloud model, and SPEND THE "
@@ -161,6 +172,20 @@ def main(argv: list[str] | None = None) -> int:
     card = "\n\n".join((card,
                          protected_evidence_report(runs, labels),
                          discrimination_report(runs, labels)))
+    # `104` §7 Phase 1 step 6, made readable BEFORE the decision it informs. The
+    # placement row above cannot move while site C's prompt is unratified, because
+    # `_observed_only` rewrites every verdict to an abstention -- so the owner is
+    # asked to ratify text whose effect the scoreboard cannot show him. This block
+    # is beside the real one and never instead of it, for the reason the payload
+    # block is appended rather than folded in: it answers a different question with
+    # a different provenance, and a number that needs a paragraph does not belong
+    # in the ten-second summary.
+    shadow_runs: tuple = ()
+    shadow_sources: dict[str, str] = {}
+    if args.shadow:
+        block, shadow_runs, shadow_sources = shadow_block(
+            runs, scores, labels, args.out, args.corpus)
+        card = "\n\n".join((card, block))
     # `104` §7 "Instruments": the scoreboard stays the scoreboard, and payload
     # inspection is appended to it. OFF by default and asked for by name, for the
     # reason `--enable-cloud` is: it rebuilds every file's dossier through the real
@@ -181,7 +206,8 @@ def main(argv: list[str] | None = None) -> int:
     print(card)
 
     (args.out / "scorecard.txt").write_text(card, encoding="utf-8")
-    (args.out / "per-file.tsv").write_text(per_file_table(runs, labels), encoding="utf-8")
+    (args.out / "per-file.tsv").write_text(
+        per_file_table(runs, labels, shadow_runs, shadow_sources), encoding="utf-8")
     if breaches:
         (args.out / "protected-breaches.txt").write_text(
             breach_detail(breaches), encoding="utf-8")

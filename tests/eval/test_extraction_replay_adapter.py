@@ -339,6 +339,43 @@ def test_two_versions_that_agree_are_one_measurement_and_do_not_refuse(bundled):
     assert driven.verdicts == {"match": 1}
 
 
+def _byte_identical_twin(*, observation_count: int):
+    """ANOTHER FILE with the same bytes: `IMG_4821 (1).jpg` beside `IMG_4821.jpg`.
+
+    Same content hash, same extractor at the same version, a different file id
+    -- and a different measurement, because the image extractor reads the
+    filename (`00`:32) and the twin's name does not match the camera pattern.
+    """
+    row = _p4_row(completeness="complete", observation_count=observation_count,
+                  coverage=COVERAGE)
+    row["run_id"], row["file_id"] = "run-pdf-twin", "file-2"
+    return row
+
+
+def test_two_files_with_the_same_bytes_are_not_an_ambiguous_measurement(bundled):
+    """A duplicate is the ordinary state of a Downloads folder, and it must not
+    make the folder unreplayable.
+
+    Measured on a 52-file synthetic corpus: `--record` then `--replay` on a fresh
+    database reported `extraction -- failed: AmbiguousExtractionMeasurement`
+    because `IMG_4821.jpg` and `IMG_4821 (1).jpg` share a content hash and differ
+    by the one filename-pattern observation. That is two files measured, not one
+    extractor at two versions, which is the only case the refusal is for."""
+    bundle_id = _bundle(
+        bundled,
+        rows=[_p4_row(completeness="complete", observation_count=7,
+                      coverage=COVERAGE), _byte_identical_twin(observation_count=6)],
+        expected_value=MEASURED)
+
+    driven = _drive(bundled, bundle_id, {"extraction": extraction_adapter})
+
+    rows = stage_outputs(bundled, driven.run_id, stage_id="extraction")
+    assert [row["outcome"] for row in rows] == ["produced", "produced"], rows
+    assert not any("AmbiguousExtractionMeasurement" in row["payload"] for row in rows)
+    # The first file's measurement is the one scored; the twin keeps its row.
+    assert driven.verdicts == {"match": 1}
+
+
 def test_the_refusal_is_reachable_on_its_own_terms(bundled):
     """The same refusal, raised rather than swallowed, so the message is pinned
     where a reader of the traceback will meet it."""

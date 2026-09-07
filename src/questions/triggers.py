@@ -316,7 +316,8 @@ class DestinationChoice:
 def question_for_unreadable_folder(*, folder: str,
                                    choices: Iterable[DestinationChoice],
                                    file_count: int,
-                                   protected_count: int) -> StructuralQuestion:
+                                   protected_count: int,
+                                   shown_as: str | None = None) -> StructuralQuestion:
     """The product opened these and read nothing. Only the person knows what they are.
 
     **Why this is a question and 73% of a corpus going unplaced is not.** §12
@@ -356,15 +357,21 @@ def question_for_unreadable_folder(*, folder: str,
     were = "was" if file_count == 1 else "were"
     them = "it" if file_count == 1 else "them"
     what = "what it is" if file_count == 1 else "what they are"
+    # `folder` is the SCOPE -- relative to the scan root, so the folder the
+    # person typed is `.` -- and it stays in the id and the scope because an
+    # answer is stored against it. What the person READS is `shown_as` when the
+    # caller has a better name: "Where should the files in . go?" was on a real
+    # screen, and `.` names nothing to anyone.
+    named = shown_as or folder
     held = ("" if not protected_count else
             f" {protected_count} more {'is' if protected_count == 1 else 'are'} "
             "protected material: counted here, not opened, and not named.")
     return StructuralQuestion(
         question_id=f"{HOME_KIND.kind_id}:{folder}",
         answer_class=STRUCTURAL,
-        prompt=f"Where should the files in {folder} go?",
+        prompt=f"Where should the files in {named} go?",
         evidence_context=(
-            f"{file_count} {files} in {folder} {were} opened and nothing readable "
+            f"{file_count} {files} in {named} {were} opened and nothing readable "
             f"came out of {them}, so nothing but you can say {what}.{held}"),
         unlocks=(
             f"This decides where that {file_count} {files} is filed. Until it is "

@@ -71,6 +71,69 @@ def _split_buckets(runs, labels):
     return confident, uncertain
 
 
+def sorting_lines(runs: Sequence[RunObservation],
+                  labels: Mapping[str, Label],
+                  *, heading: str, confident_on_uncertain: int) -> list[str]:
+    """The two sorting blocks, for any set of runs.
+
+    A FUNCTION rather than lines inside `scorecard`, because `--shadow` renders
+    this same pair over observations whose placement came from a site-C verdict
+    instead of from `placement_decisions`. The promise there is that the shadow
+    row is scored "with exactly the same rules as the applied placement", and the
+    only way to keep that promise honest is for both to be THIS code -- a second
+    renderer would drift the first time a bucket's wording or a denominator moved,
+    and the drift would read as a fact about the model.
+    """
+    confident_buckets, uncertain_buckets = _split_buckets(runs, labels)
+    n_confident = sum(confident_buckets.values())
+    n_uncertain = sum(uncertain_buckets.values())
+    lines = [f"{heading:<12}{n_confident} files whose right folder is known. "
+             f"Exact is the goal; the 99% target is this block."]
+    for bucket in SORTING_BUCKETS:
+        n = confident_buckets.get(bucket, 0)
+        lines.append(f"              {n:4d}  {_pct(n, n_confident)}  {bucket}")
+    lines.append("")
+    lines.append(f"            {n_uncertain} files whose right answer is 'ask the "
+                 f"person'. Here NOT PLACED is the pass.")
+    for bucket in SORTING_BUCKETS:
+        n = uncertain_buckets.get(bucket, 0)
+        if n:
+            lines.append(f"              {n:4d}  {_pct(n, n_uncertain)}  {bucket}")
+    lines.append(f"            {confident_on_uncertain} of them were answered "
+                 f"confidently anyway")
+    return lines
+
+
+def spillover_lines(scores: Sequence[SituationScore], *, heading: str) -> list[str]:
+    """What one answer applied to every file in the folder costs. Shared with `--shadow`."""
+    lines = [f"{heading:<12}a run answers one situation for EVERY file in the folder"]
+    for s in scores:
+        lines.append(f"              {s.situation:<32} placed {s.contaminated:4d} of "
+                     f"{s.contaminated_of} files labelled as something else")
+    return lines
+
+
+def row_104(runs: Sequence[RunObservation], labels: Mapping[str, Label],
+            scores: Sequence[SituationScore]) -> str:
+    """`104` §14.5's row, in its own order, so a reader need not re-derive it.
+
+    One line, and the same line for the applied row and the shadow one, because a
+    reader comparing them by eye is comparing two lines that were built the same
+    way.
+    """
+    confident_buckets, uncertain_buckets = _split_buckets(runs, labels)
+    n_confident = sum(confident_buckets.values())
+    abstained = uncertain_buckets.get(NOT_PLACED, 0)
+    n_uncertain = sum(uncertain_buckets.values())
+    return (f"{confident_buckets.get(PLACED_EXACT, 0)} / "
+            f"{confident_buckets.get(PLACED_PARENT, 0)} / "
+            f"{confident_buckets.get(PLACED_FLAT, 0)} / "
+            f"{confident_buckets.get(PLACED_WRONG, 0)} / "
+            f"{confident_buckets.get(NOT_PLACED, 0) + confident_buckets.get(NO_DECISION, 0)}"
+            f" ({n_confident})   abstained {abstained} of {n_uncertain}"
+            f"   spillover {sum(s.contaminated for s in scores)}")
+
+
 def scorecard(runs: Sequence[RunObservation],
               scores: Sequence[SituationScore],
               labels: Mapping[str, Label],
@@ -144,22 +207,11 @@ def scorecard(runs: Sequence[RunObservation],
     # Because `not placed` is the miss in one block and the PASS in the other,
     # and one column holding both would be unreadable in either direction.
     confident_buckets, uncertain_buckets = _split_buckets(runs, labels)
-    n_confident = sum(confident_buckets.values())
     n_uncertain = sum(uncertain_buckets.values())
 
-    w(f"SORTING     {n_confident} files whose right folder is known. "
-      f"Exact is the goal; the 99% target is this block.")
-    for bucket in SORTING_BUCKETS:
-        n = confident_buckets.get(bucket, 0)
-        w(f"              {n:4d}  {_pct(n, n_confident)}  {bucket}")
-    w("")
-    w(f"            {n_uncertain} files whose right answer is 'ask the person'. "
-      f"Here NOT PLACED is the pass.")
-    for bucket in SORTING_BUCKETS:
-        n = uncertain_buckets.get(bucket, 0)
-        if n:
-            w(f"              {n:4d}  {_pct(n, n_uncertain)}  {bucket}")
-    w(f"            {confident} of them were answered confidently anyway")
+    for line in sorting_lines(runs, labels, heading="SORTING",
+                              confident_on_uncertain=confident):
+        w(line)
     w("")
 
     # ---- copies, versions, one work in two formats -------------------------
@@ -327,10 +379,12 @@ def scorecard(runs: Sequence[RunObservation],
     w("")
 
     # ---- what one answer applied to everything costs -----------------------
-    w("SPILLOVER   a run answers one situation for EVERY file in the folder")
-    for s in scores:
-        w(f"              {s.situation:<32} placed {s.contaminated:4d} of "
-          f"{s.contaminated_of} files labelled as something else")
+    for line in spillover_lines(scores, heading="SPILLOVER"):
+        w(line)
+    w("")
+    # `104` §14.5's own order, so the row a reader has to paste into the diagnosis
+    # is printed rather than re-derived from the buckets above by hand.
+    w(f"ROW (104)   {row_104(runs, labels, scores)}")
     w("")
     # Printed on the card itself, not left in a handover message. Two numbers
     # on this scorecard were wrong in exactly this way before anyone noticed --
@@ -357,14 +411,42 @@ def scorecard(runs: Sequence[RunObservation],
 
 
 def per_file_table(runs: Sequence[RunObservation],
-                   labels: Mapping[str, Label]) -> str:
-    """One row per file, against the run its label names. Tab separated."""
+                   labels: Mapping[str, Label],
+                   shadow: Sequence[RunObservation] = (),
+                   sources: Mapping[str, str] | None = None) -> str:
+    """One row per file, against the run its label names. Tab separated.
+
+    `shadow` and `sources` are `--shadow`'s three extra COLUMNS, appended and never
+    interleaved: the file names and every existing column keep their positions, so
+    a reader's eye and anything parsing this file are unaffected by a flag they did
+    not pass. `got` is the node the run APPLIED and `shadow_got` the node the
+    site-C verdict would have placed, which is the "observed versus applied" pair.
+    `shadow_source` says which of the two the shadow row came from -- `verdict`, or
+    the word for why the applied outcome was carried instead.
+    """
     by_situation = {run.situation: run for run in runs}
-    header = ("path", "group", "situation", "sorting", "wanted", "got",
+    shadow_by_situation = {run.situation: run for run in shadow}
+    header = ["path", "group", "situation", "sorting", "wanted", "got",
               "completeness", "recovered", "protected_label", "protected_marked",
               "opened", "fields_correct", "fields_wrong", "fields_missing",
-              "uncertain", "family")
+              "uncertain", "family"]
+    if shadow:
+        header += ["shadow_sorting", "shadow_got", "shadow_source"]
     rows = ["\t".join(header)]
+
+    def tail(path: str, label: Label) -> list[str]:
+        """The three shadow cells for one file, or none at all."""
+        if not shadow:
+            return []
+        run = shadow_by_situation.get(label.situation)
+        observation = run.files.get(path) if run else None
+        source = (sources or {}).get(path, "")
+        if observation is None:
+            return [NO_DECISION, "", source]
+        bucket = ("protected" if label.protected
+                  else score_sorting(label, observation))
+        return [bucket, "/".join(observation.destination), source]
+
     for path in sorted(labels):
         label = labels[path]
         run = by_situation.get(label.situation)
@@ -374,7 +456,8 @@ def per_file_table(runs: Sequence[RunObservation],
                 path, label.group, label.situation, NO_DECISION,
                 "/".join(label.destination or ()), "", "", "",
                 str(label.protected), "", "", "", "", "",
-                "yes" if label.is_uncertain else "", label.family or ""]))
+                "yes" if label.is_uncertain else "", label.family or "",
+                *tail(path, label)]))
             continue
         c, wr, m, _ = score_fields(label, observation)
         rows.append("\t".join([
@@ -388,7 +471,8 @@ def per_file_table(runs: Sequence[RunObservation],
             "yes" if observation.protected_marked else "",
             "yes" if observation.opened else "no",
             str(c), str(wr), str(m),
-            "yes" if label.is_uncertain else "", label.family or ""]))
+            "yes" if label.is_uncertain else "", label.family or "",
+            *tail(path, label)]))
     return "\n".join(rows)
 
 
