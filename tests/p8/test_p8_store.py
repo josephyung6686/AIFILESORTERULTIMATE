@@ -604,3 +604,42 @@ def test_a_second_conclusion_over_one_response_is_refused_not_overwritten(p8_con
         "SELECT validator_version FROM llm_verdict WHERE verdict_id = ?",
         (verdict.verdict_id,),
     ).fetchone()["validator_version"] == verdict.validator_version
+
+
+# --- `104` R-142: a row written under an older record shape still loads ----------
+
+
+def test_the_round_trip_tolerates_a_field_the_row_never_had():
+    """r10 died 1.3 minutes in with zero calls, and this is the comparison.
+
+    A dossier recorded before `released_evidence` gained `unit_length` and
+    `whole_heading_unit` rebuilds with those two defaulted. The check compared
+    stored against rebuilt key by key at the TOP level only, so it could not see
+    that the added fields were inside the list entries: the two lists differed, and
+    `MalformedRecord` came out of a reuse decision and ended the run.
+
+    One direction, and only one. Everything the row says the rebuilt record must
+    still say, all the way down -- that is `load_dossier`'s whole guarantee, that no
+    field the model SAW is dropped. A key the record has and the row does not is a
+    field that did not exist when the row was written, and the record's own default
+    is what such a row means.
+    """
+    stored = {"released_evidence": [{"observation_key": "k", "value": "v"}]}
+    rebuilt = {"released_evidence": [
+        {"observation_key": "k", "value": "v", "unit_length": None,
+         "whole_heading_unit": False}],
+        "folder_levels": []}
+    assert store._still_holds(stored, rebuilt)
+
+
+def test_the_round_trip_still_refuses_a_field_the_model_saw_being_dropped():
+    """The guarantee that survives the tolerance, in its three shapes."""
+    nested = {"released_evidence": [{"observation_key": "k", "value": "v"}]}
+    # a value the row holds, changed
+    assert not store._still_holds(
+        nested, {"released_evidence": [{"observation_key": "k", "value": "OTHER"}]})
+    # a key the row holds, gone
+    assert not store._still_holds(
+        nested, {"released_evidence": [{"observation_key": "k"}]})
+    # an entry the row holds, gone
+    assert not store._still_holds(nested, {"released_evidence": []})
