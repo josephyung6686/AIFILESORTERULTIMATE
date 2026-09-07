@@ -242,6 +242,96 @@ def schema_invalid_verdict(dossier: Dossier, claim_ref: str = "schema") -> P8Ver
     )
 
 
+#: WHERE THE BYTES STOPPED BEING JSON, carried on the verdict's own address.
+#:
+#: `SCHEMA_INVALID` is the reason and it stays the reason: the reason codes are a
+#: closed vocabulary the owner approves member by member (`vocabulary.py` records the
+#: last such approval, 2026-09-02, in full), and "the response did not parse" is what
+#: this one already says. What it does not say is WHERE, and without that a run
+#: reports seven identical refusals and nobody can tell a truncation from a code fence
+#: from a stray bracket. `claim_ref` is the verdict's address, free text, and for a
+#: decode failure there is no claim to name -- so the address names the byte instead.
+JSON_DECODE_CLAIM_REF: str = "schema:json_decode@byte-{offset}"
+
+
+def _decode_claim_ref(offset: int) -> str:
+    return JSON_DECODE_CLAIM_REF.format(offset=offset)
+
+
+def _byte_offset(text: str, position: object) -> int:
+    """A character index from `json`, as the byte offset this module reports.
+
+    `JSONDecodeError.pos` counts CHARACTERS into the decoded string. Every offset
+    recorded here is a byte offset into the response as it was stored, because that
+    is the thing somebody would open.
+    """
+    if not isinstance(position, int) or position < 0:
+        return 0
+    return len(text[:position].encode("utf-8"))
+
+
+def _one_surplus_closing_bracket(text: str) -> object | None:
+    """A complete JSON document followed by exactly one stray `]` or `}`, parsed.
+
+    **This is the only repair, and the condition is a proof rather than a guess.**
+    `raw_decode` parses one complete value and says where it ended. If everything
+    after that end is whitespace and a single closing bracket, then the document was
+    finished before the surplus character and no value inside it can depend on that
+    character: a closing bracket cannot open, name, or extend anything. The bytes are
+    stored raw, so a replay re-derives the same repair from the same evidence.
+
+    **What is deliberately NOT repaired, with the measured shapes.** `105` §5.3 and
+    §4.7 record the defect this is about: deepseek-chat closes a payload whose last
+    key is a populated array as `...]]}],"citations":[` -- one bracket too many, in
+    the MIDDLE, with the citations still to come -- and `"merge_terms":[]}],"citations"`
+    one bracket short in the same position. Neither is a complete document plus a
+    stray character; each is a mis-close with content after it, and repairing one
+    means choosing which of several documents the model meant. There is no
+    unambiguous repair for those and this function refuses them, which is why `105`
+    §4.7's own fix was to reorder the payload so the last key is a scalar, not to
+    mend the bytes. A response missing a closing bracket at the very tail is refused
+    for the same reason: appending one is choosing between `]` and `}`, and between
+    one and several.
+
+    `raw_decode` does not skip leading whitespace, so the scan starts at the first
+    non-space character; a preamble or a code fence is not whitespace and fails here
+    exactly as it fails in `json.loads`.
+    """
+    start = len(text) - len(text.lstrip())
+    try:
+        value, end = json.JSONDecoder().raw_decode(text, start)
+    except ValueError:
+        return None
+    if text[end:].strip() not in ("]", "}"):
+        return None
+    return value
+
+
+def decode_response(response_bytes: object) -> tuple[object, str | None]:
+    """The one JSON parse every site's validator runs. `(value, None)` or `(None, ref)`.
+
+    The second member is the `claim_ref` a `schema_invalid_verdict` should carry: it
+    names the byte the decoder stopped on. `None` means the bytes decoded -- either
+    outright, or after `_one_surplus_closing_bracket` proved the surplus inert.
+    """
+    text = response_bytes
+    if isinstance(text, (bytes, bytearray)):
+        try:
+            text = text.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            return None, _decode_claim_ref(exc.start)
+    if not isinstance(text, str):
+        return None, _decode_claim_ref(0)
+    try:
+        return json.loads(text), None
+    except ValueError as exc:
+        offset = _byte_offset(text, getattr(exc, "pos", 0))
+    repaired = _one_surplus_closing_bracket(text)
+    if repaired is None:
+        return None, _decode_claim_ref(offset)
+    return repaired, None
+
+
 def report_from_verdicts(
     dossier: Dossier,
     verdicts: Sequence[P8Verdict],
@@ -497,10 +587,9 @@ def validate_response(
             ),
         )
 
-    try:
-        parsed = json.loads(response_bytes)
-    except (ValueError, TypeError, UnicodeDecodeError):
-        return _finished((schema_invalid_verdict(dossier),))
+    parsed, decode_ref = decode_response(response_bytes)
+    if decode_ref is not None:
+        return _finished((schema_invalid_verdict(dossier, decode_ref),))
 
     if not isinstance(parsed, Mapping) or not isinstance(parsed.get("claims"), list):
         return _finished((schema_invalid_verdict(dossier),))

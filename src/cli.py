@@ -2867,6 +2867,90 @@ def normalize_for_model(field_key: str, raw_value: str) -> str | None:
     return slot.canonical(raw_value) or None
 
 
+#: A TITLE'S SHAPE, AND IT IS THIS DEPLOYMENT'S, MEASURED RATHER THAN CHOSEN.
+#: `105` §1.3-§1.4 record every course name the model produced on the bench --
+#: `University Writing`, `AP World History`, `Introduction to Organic Chemistry`,
+#: `Machine Learning`, `Thermodynamics`, `Rotational Dynamics` -- and the longest is
+#: four words and 33 characters. Six words and 64 characters is that measurement with
+#: room above it, and it is the bound `'a' * 300` fails: a value longer than any title
+#: anyone has written is not a title somebody can be asked to confirm.
+SUBJECT_TITLE_MAX_WORDS: int = 6
+SUBJECT_TITLE_MAX_CHARACTERS: int = 64
+
+#: WORDS, AND THE FOUR MARKS THAT APPEAR INSIDE REAL COURSE NAMES. Letters, digits,
+#: single spaces, an apostrophe (`Women's History`), an ampersand (`Health & Society`)
+#: and an internal hyphen (`Anglo-Saxon Verse`), beginning and ending on a letter or a
+#: digit. Everything else is refused, and the refusals are the point rather than the
+#: admissions: `report.pdf` carries a dot, `(i)` carries brackets, `#corre 1 . 4 - 1 :
+#: 4 . 10 - 4` and `* DIEI ==outcomes in E` carry marks no name has, and `Addition
+#: principle-` ends on a hyphen because it is half of a heading. All six of those are
+#: values the deterministic `subject` slot was measured storing off a real disk
+#: (`tests/p6/test_p6_subject_slot.py`), and not one of them may return through here.
+_TITLE_SHAPE = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9 '&-]*[A-Za-z0-9])?")
+
+
+def normalize_for_review(field_key: str, raw_value: object) -> str | None:
+    """§3.6 check 3's SECOND question: is this a value a person could confirm?
+
+    **This exists because ten correct answers were thrown away.** On the owner's
+    pinned corpus, cloud, the model answered `subject` ten times on the files that are
+    genuinely coursework and all ten were refused `VALUE_NOT_NORMALIZABLE`: every one
+    was a course TITLE and `SUBJECT_RULE.pattern` requires a code. `105` §1.5 reports
+    the same thing as gap G15 -- until a title becomes "confirm this new value", *"no
+    title-named course can be filed"* -- and `104` §11.2 step 1 defines `subject` as
+    *"the course as the course names itself (code or title)"*.
+
+    **It is a second question and not a wider answer to the first one.**
+    `normalize_for_model` above is unchanged: it still asks whether the value is the
+    identifier the deterministic rule reads, and its `None` is still what stops a
+    model laundering `!` or a whole heading into a folder name. What this function
+    answers is `104` §13.7's question instead -- *"the model names, the user
+    confirms"* -- and its answer reaches P6 as `possible`, which `00`:42 fixes as the
+    state of a model output that *"may remain a possible clue for review"* and which
+    `facts.read_surface.PROPOSAL_ELIGIBLE_STATES` keeps out of every folder proposal.
+    So a title is offered to the person and cannot become a level until they answer.
+
+    **Four refusals, each one a value this deployment has already met.**
+
+    1. *A code, or a line containing one.* `_STRUCTURED` is the one definition of an
+       identifier this file authors; if it fires anywhere in the value, the direct
+       path owns the value and the phrase around it is what A_fact rule 4 refuses
+       ("the smallest run of characters that identifies the thing, not the phrase that
+       contains it"). This is what keeps `PHYS1401 Problem Set 4` -- stress case S1 --
+       refused.
+    2. *A term.* `_is_term` is the same test the `subject` rule holds itself off with,
+       so `Spring 2026` proposed as a subject is refused here for the reason it is
+       refused there and not for a second one.
+    3. *Nothing lower-case anywhere.* A course code and its fragments are written in
+       capitals and digits; a name is written in words. This is what keeps `PHYS` --
+       stress case S6's control, "a bare uppercase token ... a fragment of something
+       longer" -- and the measured whole headings `AUDIENCES IN GA4` and `ADVERTISING
+       REPORTS` out. It is also the honest limit of the rule: a title a document
+       prints in capitals is refused with them, and the person is not asked.
+    4. *A shape or a length no name has*, which is `_TITLE_SHAPE` and the two bounds
+       above.
+
+    Only `subject` has one. `work_type` was refused on seven of eight coursework files
+    in the same run and is the other half of G15; its members are the ratified
+    library's, so a value it has not seen is a different question -- a folder name
+    from a closed list -- and answering it here would be authoring a vocabulary.
+    """
+    if field_key != SUBJECT_RULE.field_key or not isinstance(raw_value, str):
+        return None
+    text = " ".join(raw_value.split())
+    if not text or len(text) > SUBJECT_TITLE_MAX_CHARACTERS:
+        return None
+    if len(text.split(" ")) > SUBJECT_TITLE_MAX_WORDS:
+        return None
+    if _TITLE_SHAPE.fullmatch(text) is None:
+        return None
+    if not any(character.islower() for character in text):
+        return None
+    if _is_term(text) or _STRUCTURED.search(text) is not None:
+        return None
+    return text
+
+
 def contradicts_stronger(proposal, existing_fact) -> bool:
     """§3.6 check 4: does a stronger fact contradict this proposal?
 
@@ -3347,6 +3431,10 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
         # for P6.
         normalizers={},
         normalize=normalize_for_model,
+        # Check 3's second question (`104` R-98). Without it, a course that names
+        # itself in words instead of a code is refused rather than offered: ten of
+        # ten `subject` answers on the owner's coursework files were.
+        normalize_for_review=normalize_for_review,
         contradicts=contradicts_stronger,
         evidence_resolver=_stored_value_of(conn),
         scan_budget=ScanBudget(

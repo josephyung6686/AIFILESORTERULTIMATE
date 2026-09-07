@@ -108,6 +108,29 @@ def _require_bool(value: object, *, name: str) -> bool | ValidationUnavailable:
 class FactValidationDependencies:
     normalize: Callable[[str, str], object]
     contradicts: Callable[[Proposal, sqlite3.Row], bool]
+    #: THE REVIEW HALF OF CHECK 3 (`104` R-98), AND IT IS THE DEPLOYMENT'S TOO.
+    #:
+    #: `normalize` answers "is this value storable as a fact this deployment can
+    #: canonicalise", and its `None` is `VALUE_NOT_NORMALIZABLE`. That refused ten of
+    #: ten correct `subject` answers on the owner's corpus, because every one was a
+    #: course TITLE and the deterministic rule reads a CODE. `104` §13.5 says a rule
+    #: may reject only a structurally invalid answer and §13.7 says a value the
+    #: library has not seen is proposed once and the person confirms it, so a title
+    #: is neither storable nor refusable: it is a candidate.
+    #:
+    #: This callback is what tells the two apart, and P8 does not author it any more
+    #: than it authors the other two (C-5). It answers a canonical form for a value a
+    #: PERSON could confirm, or `None`; a value only it can normalise is accepted
+    #: `accept_context_supported`, whose disposition is `llm_supported_review` and
+    #: whose P6 state is `possible` -- `00`:42's "possible clue for review", below the
+    #: floor `facts.read_surface.PROPOSAL_ELIGIBLE_STATES` puts under every folder.
+    #:
+    #: **Undefaulted, like the other two, and `None` is a value a caller states.**
+    #: `tests/p8/test_p8_no_invention.py` forbids a default on any P8 dependency
+    #: field: an authority nobody supplied must be a decision somebody made, not a
+    #: shape that quietly appeared. A deployment that authors no review normaliser
+    #: passes `None` and check 3 is exactly what it was before this field existed.
+    normalize_for_review: Callable[[str, str], object] | None
 
 
 def _missing(dependencies: FactValidationDependencies | None) -> tuple[str, ...]:
@@ -130,8 +153,20 @@ def p6_verdict_from_p8(verdict: P8Verdict) -> Verdict:
 
 
 def proposal_state_from_p8(verdict: P8Verdict) -> str:
-    """P6 `proposal_state` for a passing Site A outcome. Required; no default."""
-    if verdict.outcome == WEAK:
+    """P6 `proposal_state` for a passing Site A outcome. Required; no default.
+
+    **`accept_context_supported` writes `possible`, and that moved on 2026-09-07.**
+    It used to write `llm_supported`, which is the state a folder proposal may rest
+    on (`facts.read_surface.PROPOSAL_ELIGIBLE_STATES`). Nothing anywhere reads
+    `requires_review` -- `104` R-75 is that finding from the placement side -- so an
+    outcome that says a person must look at the value first was writing a fact that
+    P10 could turn into a folder before anybody looked. `00`:42 fixes the state for
+    exactly this case: a model output "useful but too weak to establish a fact may
+    remain a possible clue for review; it must not quietly become a folder proposal
+    or an asserted file property". Confirming the value is what raises it, and
+    confirming is the person's.
+    """
+    if verdict.outcome in (WEAK, ACCEPT_CONTEXT_SUPPORTED):
         return POSSIBLE
     return LLM_SUPPORTED
 
@@ -161,6 +196,36 @@ def _verdict(
         policy_version=policy_version,
         plan_version=None,
     )
+
+
+def _check_three(
+    dependencies: FactValidationDependencies,
+    field_key: str,
+    raw_value: object,
+) -> tuple[object, str]:
+    """Check 3, both halves, in one place so the write cannot answer it twice.
+
+    Returns the canonical form and the outcome it earns: the deployment's own
+    normaliser first, whose answer is `accept_direct`; then, only if that declined,
+    the review normaliser, whose answer is `accept_context_supported`. `(None, ...)`
+    is `VALUE_NOT_NORMALIZABLE` as before.
+
+    Called from `_run_checks` to decide and from `validate_fact_proposal` to write,
+    because a canonical form computed twice by two routes is `65` §4.2's failure
+    waiting on a seam.
+    """
+    if not isinstance(raw_value, str):
+        return None, REJECT
+    normalized = dependencies.normalize(field_key, raw_value)
+    if normalized is not None:
+        return normalized, ACCEPT_DIRECT
+    review = dependencies.normalize_for_review
+    if not callable(review):
+        return None, REJECT
+    candidate = review(field_key, raw_value)
+    if not isinstance(candidate, str) or not candidate:
+        return None, REJECT
+    return candidate, ACCEPT_CONTEXT_SUPPORTED
 
 
 def _run_checks(
@@ -232,8 +297,8 @@ def _run_checks(
             dossier_id=dossier_id,
         )
     raw_value = proposal.value
-    normalized = (dependencies.normalize(proposal.field_key, raw_value)
-                  if isinstance(raw_value, str) else None)
+    normalized, outcome = _check_three(
+        dependencies, proposal.field_key, raw_value)
     if normalized is None:
         return _verdict(
             request, proposal, outcome=REJECT,
@@ -263,7 +328,7 @@ def _run_checks(
                 dossier_id=dossier_id,
             )
     return _verdict(
-        request, proposal, outcome=ACCEPT_DIRECT,
+        request, proposal, outcome=outcome,
         reasons=(), citations_checked=checked, policy_version=policy_version,
         dossier_id=dossier_id,
     )
@@ -349,7 +414,12 @@ def validate_fact_proposal(
         # `tests/p8/test_p8_fact_validation.py` count those calls and caught it.
         canonical = None
         if p6.passed and not proposal.unknown and isinstance(proposal.value, str):
-            canonical = dependencies.normalize(proposal.field_key, proposal.value)
+            # `_check_three`, not `normalize`: a title accepted into review has no
+            # answer from the first normaliser, and reading only that one here wrote
+            # `canonical_value=None` onto a PASSING verdict -- which `ensure_value`
+            # raises on, ending the pass rather than storing the candidate.
+            canonical, _outcome = _check_three(
+                dependencies, proposal.field_key, proposal.value)
         apply_verdict(
             conn, request=request, proposal=proposal,
             verdict=p6,

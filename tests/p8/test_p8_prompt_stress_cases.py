@@ -64,7 +64,9 @@ from llm_harness.vocabulary import (
 # `src/cli.py` is the sole composition root and the only module in `src/` that owns
 # them (`cli.py:558`, `cli.py:600`). A second normaliser written here would be a
 # second deployment, and the whole point of the suite is to measure this one.
-from cli import contradicts_stronger, normalize_for_model  # noqa: E402
+from cli import (  # noqa: E402
+    contradicts_stronger, normalize_for_model, normalize_for_review,
+)
 from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 CLOCK = "2026-08-31T12:00:00+00:00"
@@ -214,6 +216,17 @@ def _world(
             fact_dependencies=FactValidationDependencies(
                 normalize=normalize_for_model,
                 contradicts=contradicts_stronger,
+                # CHECK 3'S REVIEW HALF IS ON HERE (`104` R-98), because this file's
+                # own promise is "the validator that actually runs" and the product
+                # now runs with all three callbacks. No row moved, and the three that
+                # could have are refused by construction: S1's `PHYS1401 Problem Set
+                # 4` carries an identifier, which `normalize_for_review` refuses
+                # because A_fact rule 4 says the code is the value and not the phrase
+                # around it; S6's control `PHYS` has no lower-case letter, which is
+                # how a code fragment is told from a name; S7's `Spring 2026` is a
+                # term. Every other `subject` value below is a code the FIRST half
+                # answers, and no other field has a review normaliser at all.
+                normalize_for_review=normalize_for_review,
             ),
         ),
         placement=None, residual=None, template=None,
