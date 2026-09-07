@@ -53,10 +53,12 @@ RECRUITING_FIELDS = {"target_employer", "job_title", "recruiting_cycle", "work_t
 COURSEWORK = ("PHYS 1401 syllabus.txt", "Lecture 08.txt", "PHYS 1401 notes.txt")
 COVER_LETTERS = ("Cover letter Acme.txt", "Cover letter Beta.txt")
 CAREER = COVER_LETTERS + ("Jane Doe resume.txt", "Job posting Acme.txt")
-#: `HW 3` is NOT here: its own word `homework` is academic's, the recogniser's
-#: near-miss names the coursework branch, and that reaches it (`00`:56's own
-#: example of a file that lacks the course code and still belongs).
-HELD = ("survey results.txt",)
+#: `104` R-140. A file NO branch reaches is the default branch's and is asked
+#: its questions: the survey matches nothing of either life. Only a file TWO
+#: branches reach is held: `two things` says academic's words and career's
+#: words in equal number, the recogniser ties, and no fact decides.
+DEFAULTED = ("survey results.txt",)
+HELD = ("two things.txt",)
 
 
 def _corpus(root: Path) -> Path:
@@ -102,6 +104,12 @@ def _corpus(root: Path) -> Path:
             "Columbia University, 2022\n",
         "survey results.txt":
             "Survey results\n\nQuestion 1: 42% agree. Question 2: 58% disagree.\n",
+        # One academic word (`curriculum`, `cohort`) for one career word
+        # (`scope of work`, `retainer`), no course code, no kind word in the
+        # name: the recogniser ties `academic`/`career` and no fact decides.
+        "two things.txt":
+            "Two things\n\nThe curriculum for this cohort, and the scope of work "
+            "for the retainer.\n",
     }
     for name, body in files.items():
         (corpus / name).write_text(body)
@@ -189,24 +197,38 @@ def test_site_a_asks_coursework_fields_only_of_the_coursework_branch(
                    for offered in log.get(name, ()) for field in ("subject",)), log
 
 
-# --- (b) a file no branch reaches makes no call and is held with its reason -------
+# --- (b) no branch: the default's questions; two branches: held with its reason --
 
 
-def test_a_file_no_branch_reaches_is_asked_nothing_and_held_with_its_reason(
+def test_a_file_no_branch_reaches_is_asked_the_default_branchs_questions(
+        tmp_path, stub, monkeypatch):
+    """`104` R-140. The person said what this folder is; a file nothing else
+    claims is asked that, and the model may still decline every field. Before
+    this ruling 147 of the owner's 199 files met no model at all."""
+    _corpus_, database, report = _local(tmp_path, stub, monkeypatch)
+    log = _call_log(database)
+
+    for name in DEFAULTED:
+        offered = frozenset().union(*log.get(name, [frozenset()]))
+        assert offered and offered <= COURSEWORK_FIELDS, (name, log, report)
+    assert "none of the folders this run proposes reaches them" not in _flat(report)
+
+
+def test_a_file_two_branches_reach_is_asked_nothing_and_held_with_its_reason(
         tmp_path, stub, monkeypatch):
     _corpus_, database, report = _local(tmp_path, stub, monkeypatch)
     log = _call_log(database)
 
     for name in HELD:
-        assert name not in log, ("a file no branch reaches was shown to a model",
+        assert name not in log, ("a file two branches reach was shown to a model",
                                  name, log[name])
     # Named on the fact-pass line, by its reason, and never quietly.
-    assert re.search(r"\d+ of \d+ files were not asked anything: none of the "
-                     r"folders this run proposes reaches them", _flat(report)), report
+    assert re.search(r"1 of \d+ files were not asked anything: two of the "
+                     r"folders this run proposes reach them equally", _flat(report)), report
     # Held under the review set its OWN placement reason names -- the set the
-    # screen already prints, `104` R-115 -- with the survey named in it.
+    # screen already prints, `104` R-115 -- with the file named in it.
     held_blocks = report.split("Waiting for you to say what these are")
-    assert any("survey results.txt" in block and "Held for review" in block
+    assert any("two things.txt" in block and "Held for review" in block
                for block in held_blocks[1:]), report
 
 

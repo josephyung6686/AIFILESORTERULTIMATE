@@ -4646,8 +4646,9 @@ def review_and_accept(conn: sqlite3.Connection,
     majority of its members are under -- its label and its schema -- and every
     other group under `default_branch`, which is the `--label`/`--situation`
     the person typed: ruling (1), the folder's default, "unchanged when nothing
-    else is known". A group whose members no branch reaches, or that two
-    branches tie over, is exactly the case where nothing else is known.
+    else is known". A group whose members two branches reach, or that two
+    branches tie over, is exactly the case where nothing else is known (`104`
+    R-140 already puts a file NO branch reaches under the default).
 
     **Dropping such a group instead was the reverted merge 8b9280d.** On the
     owner's corpus a course whose files carry no kind word in their names has
@@ -5276,17 +5277,19 @@ WITHHELD_PROTECTED: str = "protected"
 WITHHELD_PRIVACY: str = "privacy"
 
 #: `104` R-37's two reasons a file is asked nothing, beside the three above.
-#: `NOT_ASKED_UNREACHED` is a file no branch of this folder reaches, or two do;
-#: `NOT_ASKED_UNSETTLED` is a file under a branch whose situation the person has
-#: not yet chosen, so there is no question of that branch's to put to a model.
-NOT_ASKED_UNREACHED: str = "no_branch"
+#: `NOT_ASKED_AMBIGUOUS` is a file TWO branches of this folder reach, so no one
+#: branch's question applies (`104` R-140: a file NO branch reaches is asked the
+#: default branch's questions, and is not here); `NOT_ASKED_UNSETTLED` is a file
+#: under a branch whose situation the person has not yet chosen, so there is no
+#: question of that branch's to put to a model.
+NOT_ASKED_AMBIGUOUS: str = "two_branches"
 NOT_ASKED_UNSETTLED: str = "branch_unsettled"
 
 NOT_ASKED_SENTENCE: Mapping[str, str] = MappingProxyType({
-    NOT_ASKED_UNREACHED:
-        "none of the folders this run proposes reaches them, so there is no "
-        "question that applies to them yet. They are held for you below, under "
-        "the reason the plan records for each.",
+    NOT_ASKED_AMBIGUOUS:
+        "two of the folders this run proposes reach them equally, so neither "
+        "folder's question applies to them yet. They are held for you below, "
+        "under the reason the plan records for each.",
     NOT_ASKED_UNSETTLED:
         "they sit under a folder you have not yet said the situation of, and a "
         "model is asked a folder's questions only once its situation is known. "
@@ -5356,7 +5359,7 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
             f"quietly: {WITHHELD_SENTENCE[cause]} Each one has an `unresolved` "
             f"row per open field saying `privacy_withheld`, so none of them is "
             f"recorded as a file with nothing to say.", indent="  "), file=out)
-    # `104` R-37. A file the run's branches do not reach, or a file under a
+    # `104` R-37. A file two of the run's branches reach, or a file under a
     # branch whose situation the person has not yet said, was not shown to a
     # model under a question that does not apply to it. Named by its own reason,
     # like the withheld files above, and only when a run has more than one
@@ -7829,8 +7832,11 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 return resolver
             branch = partition.branch_of(file_id)
             if branch is None:
-                not_asked[NOT_ASKED_UNREACHED] = (
-                    not_asked.get(NOT_ASKED_UNREACHED, 0) + 1)
+                # `104` R-140: only a file TWO branches reach is here; a file
+                # none reaches is under the default branch and asked its
+                # questions.
+                not_asked[NOT_ASKED_AMBIGUOUS] = (
+                    not_asked.get(NOT_ASKED_AMBIGUOUS, 0) + 1)
                 return None
             chosen = resolvers.get(branch.label)
             if chosen is None:
