@@ -658,6 +658,26 @@ FACT_CALL_COST: Decimal = Decimal("1")
 #: count printed at the end of it.
 FACT_CALLS_PER_SCAN_CEILING: Decimal = Decimal("200")
 
+#: `104` R-14's price hook, and it is `None` because nobody has supplied a rate
+#: card. `00`:251 budgets "maximum model cost per scan" in MONEY, and the two
+#: numbers above are denominated in CALLS -- one per call, two hundred per scan --
+#: so what the budget enforces today is a call count wearing a cost's name.
+#:
+#: `llm_call_usage` now records what each call actually consumed beside what was
+#: reserved for it, so the tokens exist; turning them into money needs prices, and a
+#: price is a deployment fact this file may not invent any more than it invents a
+#: model id. When the owner supplies one this is where it goes -- a mapping from
+#: model id to a per-token rate, read by whatever prices the usage rows -- and until
+#: then nothing multiplies a token by a number somebody guessed.
+#:
+#: MEASURED, as the proposal for a token-denominated ceiling rather than as a change
+#: made here: an A_fact dossier on this branch is about 5,000 prompt tokens (`104`
+#: R-58: 8,020 template bytes plus a body under 9,000, and a real call reported
+#: 4,480 cache-hit of ~4,970 prompt tokens), so 200 calls is on the order of
+#: 1,000,000 prompt tokens per scan. Re-denominating the ceiling is the owner's:
+#: `00`:259 names coverage throttling as the failure a wrong number causes.
+TOKEN_PRICES = None
+
 #: §8.6's page cap for PDFs, and the only place the NUMBER is chosen. The reader
 #: takes `max_pages=None` -- read everything -- and this file hands it a ceiling
 #: through `macos_readers(read_pdf=...)`, the override seam that module's docstring
@@ -946,7 +966,47 @@ def _dotenv(path: Path) -> Mapping[str, str]:
     return values
 
 
-def model_route(*, out) -> TierRouting | None:
+class UsageMailbox:
+    """One slot holding what the provider reported for the call just made.
+
+    `104` R-14. The transport reads usage inside `invoke`; `harness.run_call` needs
+    it a moment later, when it holds the reservation, the release and the dossier at
+    once. `ModelClient.invoke` is `Callable[[bytes], bytes]`, so the number cannot
+    ride the return path, and this is the smallest thing that carries it: the
+    composition root builds one, hands it to the transport as `on_usage` and to
+    `run_call` as `usage_recorder`, and the two never learn about each other.
+
+    ONE SLOT AND NOT A QUEUE. `run_call` takes immediately after the call it made,
+    so a second value in the box would mean a call nobody settled; losing it loudly
+    at the next `take` is better than a queue quietly pairing one call's tokens with
+    another call's row.
+
+    IT IS ALSO THE TRANSLATION. `llm_harness` may not import `readers`, so a
+    provider's `Usage` type cannot cross that line; what crosses is a mapping whose
+    keys `store.USAGE_COLUMNS` names, built here, where both sides are known. `{}`
+    is a real answer and is not `None`: it means a call was made and the provider
+    reported nothing, which the row records as nulls.
+    """
+
+    def __init__(self) -> None:
+        self._held: dict | None = None
+
+    def __call__(self, usage) -> None:
+        self._held = {} if usage is None else {
+            "model_id": usage.model_id,
+            "prompt_tokens": usage.prompt_tokens,
+            "completion_tokens": usage.completion_tokens,
+            "prompt_cache_hit_tokens": usage.prompt_cache_hit_tokens,
+            "prompt_cache_miss_tokens": usage.prompt_cache_miss_tokens,
+            "response_format": usage.response_format,
+        }
+
+    def take(self) -> dict | None:
+        held, self._held = self._held, None
+        return held
+
+
+def model_route(*, out, on_usage=None) -> TierRouting | None:
     """`83`'s three clients, or `None` and a sentence saying why not.
 
     **`None` is a real answer and not a failure.** P6's direct and rule stages,
@@ -1010,7 +1070,12 @@ def model_route(*, out) -> TierRouting | None:
                                   for tier, name in MODEL_NAME_OF_TIER.items()},
                 tier_of_call_site=TIER_OF_CALL_SITE,
                 max_response_tokens=MAX_RESPONSE_TOKENS,
-                timeout_seconds=MODEL_CALL_TIMEOUT_SECONDS)
+                timeout_seconds=MODEL_CALL_TIMEOUT_SECONDS,
+                # `104` R-14, threaded and not read here. The LOCAL route below
+                # takes no such argument: `readers/model_ollama.py` names no usage
+                # field at all, so a local A_fact call reports nothing and its rows
+                # carry the reservation alone. That gap is reported, not papered.
+                on_usage=on_usage)
         except (ValueError, RuntimeError) as refusal:
             # Every refusal `readers/` can raise names what was missing and what to
             # set. Printed, not raised: a misconfigured model is not a reason to
@@ -2472,6 +2537,7 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
                           schema: str, folder_levels: tuple[FolderLevel, ...],
                           user_id: str, now,
                           deferred_readings: tuple[str, ...] = (),
+                          usage_recorder: object | None = None,
                           on_result=None) -> FactCallAuthorities:
     """Everything one A_fact call needs, chosen here and nowhere else.
 
@@ -2586,6 +2652,10 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
         max_dossier_tokens=GROUPING_LIMITS.max_dossier_tokens,
         observed_at=now,
         on_result=on_result,
+        # `104` R-14, forwarded and not read here for the same reason as the
+        # readings below: the composition root owns it and `model_facts` decides
+        # what a call does with it.
+        usage_recorder=usage_recorder,
         # `104` R-08. The situation's authored readings, forwarded and no more:
         # `model_facts` carries the whole of why they stop at this record rather
         # than reaching the dossier, and the composition root's only job is to read
@@ -3842,6 +3912,11 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         record: str | None = None,
         routing: TierRouting | None = None,
         semantic_model: Path | None = None,
+        # `104` R-14's mailbox, built beside `routing` by `main` and handed to both
+        # the transport and `run_call`. Defaulted: a deployment that records no
+        # usage is a real deployment, and every caller that predates this still
+        # composes a run.
+        usage_recorder: object | None = None,
         wire_handle_key: bytes | None = None) -> ProductionRun:
     """One corpus, end to end. Assembles the authorities and calls the composition.
 
@@ -4644,6 +4719,9 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # compiled manifest, so a miss is a release that does not match this
             # build and is worth the crash.
             deferred_readings=rules.schemas[schema].deferred_readings,
+            # `104` R-14. `run` was handed this beside the routing it was handed,
+            # so the mailbox the transport fills is the mailbox `run_call` reads.
+            usage_recorder=usage_recorder,
             on_result=lambda file_id, result: outcomes.append((file_id, result)))
         resolver = model_fact_resolver(conn, authorities=authorities)
 
@@ -7085,11 +7163,16 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         print(f"\n{refusal}", file=out)
         return 2
     print(f"Plan database: {database}", file=out)
+    # `104` R-14. Built HERE and not inside `model_route`, because both halves of
+    # the wire start from this frame: the route hands it to the transport as
+    # `on_usage`, and `run` hands it to `run_call` as `usage_recorder`. One object,
+    # two faces, and neither side learns about the other.
+    usage_recorder = UsageMailbox()
     # BEFORE the run, and printed whichever way it goes. If this deployment cannot
     # call a model the person is told once, at the top, in a sentence about the
     # deployment -- rather than left to infer it from thirty file-level sentences
     # at the bottom that each read as a statement about one of their files.
-    routing = model_route(out=out)
+    routing = model_route(out=out, on_usage=usage_recorder)
     if args.enable_cloud:
         # Applied on the invocation that supplies it, exactly as `--answer` and
         # `--reject` are: a person who has just said yes should not have to run the
@@ -7195,6 +7278,7 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                      # reasons a run sends nothing -- which is the same pair
                      # `announce_cloud_posture` has just told the person about.
                      routing=routing,
+                     usage_recorder=usage_recorder,
                      semantic_model=args.semantic_model,
                      wire_handle_key=wire_handle_key_for(database))
     except RecordingNameTaken as refusal:

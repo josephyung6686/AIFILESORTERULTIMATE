@@ -286,17 +286,33 @@ BEGIN SELECT RAISE(ABORT, 'a reuse record is append-only, never overwritten'); E
 #: `response_format` is here because `prompt_fingerprint` does not cover transport
 #: parameters, so this row is the only place that can say whether a call was made
 #: with JSON mode on. It comes out the day the fingerprint covers it.
+#:
+#: `reserved_cost` is the OTHER half of the pair and is the only NOT NULL column
+#: among the numbers: what the budget put aside before the call is always known,
+#: while what the provider reported may not be. The budget is unchanged -- its unit
+#: is calls, `cli.FACT_CALL_COST` is 1 against a 200-per-scan ceiling, and
+#: `settle_call` still settles one call as one -- and the pair is what makes the
+#: distance between the estimate and the truth readable per call and per scan
+#: without changing what the budget enforces. Re-denominating the ceiling in tokens
+#: is an owner question: `00`:259 names coverage throttling as the failure a wrong
+#: number causes.
+#:
+#: Every observed column is NULLABLE, and that is the audit's answer rather than a
+#: gap: a provider that reports no usage still made a call, and a row of nulls says
+#: "asked, and it told us nothing" where no row at all is indistinguishable from a
+#: call that never happened.
 LLM_CALL_USAGE_DDL = """
 CREATE TABLE IF NOT EXISTS llm_call_usage (
     usage_id                 TEXT PRIMARY KEY,
     dossier_id               TEXT NOT NULL,
     release_id               TEXT NOT NULL,
-    model_id                 TEXT NOT NULL,
-    prompt_tokens            INTEGER NOT NULL,
-    completion_tokens        INTEGER NOT NULL,
+    model_id                 TEXT,
+    prompt_tokens            INTEGER,
+    completion_tokens        INTEGER,
     prompt_cache_hit_tokens  INTEGER,
     prompt_cache_miss_tokens INTEGER,
-    response_format          TEXT NOT NULL,
+    response_format          TEXT,
+    reserved_cost            TEXT NOT NULL,
     observed_at              TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS llm_call_usage_dossier ON llm_call_usage (dossier_id);

@@ -285,6 +285,14 @@ class FactCallAuthorities:
     #: R-52). Narrowing this to the situation needs `recognition.rules._schema` to
     #: keep the `row` each reading came from; today it flattens them and drops it.
     deferred_readings: tuple[str, ...] = ()
+    #: `104` R-14's one-slot mailbox, or `None`. The composition root builds it,
+    #: the transport fills it, and `run_call` takes from it after `settle_call` to
+    #: write the usage row. Carried here rather than on `CallDependencies` because
+    #: that bundle is for authorities a caller MUST supply -- every field of it is
+    #: undefaulted and `tests/p8/test_p8_no_invention.py` enforces that -- while a
+    #: usage sink is optional by design: the local transport reports no usage, and
+    #: a deployment recording none is a real deployment.
+    usage_recorder: object | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "folder_levels",
@@ -776,6 +784,9 @@ def fact_call_stage(authorities: FactCallAuthorities):
                 request, vocabulary, folder_levels=visible_levels,
                 authorities=authorities, observations=observations),
             observed_at=authorities.observed_at,
+            # `104` R-14. Handed to `run_call` and not to `CallDependencies`: it is
+            # optional, and that bundle's every field is required by construction.
+            usage_recorder=authorities.usage_recorder,
         )
         if isinstance(result, P8Verdict):
             # ONLY on a verdict, and the exclusions are the point. A refusal, a

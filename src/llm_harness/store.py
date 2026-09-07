@@ -523,36 +523,61 @@ def record_call_reuse(conn: sqlite3.Connection, *, identity_id: str,
     return reuse_id
 
 
+#: The observed half of a usage row, in insert order. The composition root
+#: translates its transport's own shape into exactly these names -- `llm_harness`
+#: may not import `readers`, so a provider's record cannot cross this line as a
+#: type, and a mapping whose keys are checked is what crosses instead.
+USAGE_COLUMNS: tuple[str, ...] = (
+    "model_id", "prompt_tokens", "completion_tokens", "prompt_cache_hit_tokens",
+    "prompt_cache_miss_tokens", "response_format",
+)
+
+
 def record_call_usage(conn: sqlite3.Connection, *, dossier_id: str, release_id: str,
-                      model_id: str, prompt_tokens: int, completion_tokens: int,
-                      prompt_cache_hit_tokens: int | None,
-                      prompt_cache_miss_tokens: int | None,
-                      response_format: str, observed_at: str) -> str:
-    """`104` R-14: what the provider says one call cost, kept where a run can read it.
+                      reserved_cost: str, observed: Mapping[str, object] | None,
+                      observed_at: str) -> str:
+    """`104` R-14: what one call reserved, beside what the provider says it consumed.
 
     `00`:251 budgets "maximum model cost per scan" and `harness.run_call` settles
-    every call against `CallDependencies.actual_cost`, a constant the composition root
-    picks before the call is made. Nothing has ever recorded what a call actually
-    consumed. This is that record, and it is deliberately NOT a price: turning tokens
-    into money needs a rate card, a rate card is a deployment fact, and this module
-    invents no numbers.
+    every call against `CallDependencies.actual_cost`, a value the composition root
+    fixes BEFORE the call. Nothing has ever recorded what a call actually consumed.
+    This is that record, and it changes nothing the budget enforces: the unit stays
+    calls, `settle_call` still settles one call as one, and the pair here is what
+    makes the distance between the estimate and the truth readable.
 
-    The two cache columns are optional because only some providers publish them, and
-    `None` is not zero: a zero would read as "no tokens were served from cache",
-    which is a claim, where absence is what is known.
+    `observed` is the transport's own reading, translated by the composition root
+    into this row's column names, or `None` when the provider reported nothing.
+    A row is written EITHER WAY: a call was made and the budget spent for it, and a
+    row of nulls says "asked, and it told us nothing" where no row is
+    indistinguishable from a call that never happened.
+
+    Deliberately NOT a price. Turning tokens into money needs a rate card, a rate
+    card is a deployment fact, and this module invents no numbers -- the same rule
+    that keeps the model id and the token ceiling injected. `cli.TOKEN_PRICES` is
+    where one goes when the owner supplies it.
 
     Appends no event. `database_agent.events` closes `EVENT_TYPES` and calls
     registration "a spec-level act"; a `model_call_usage` name is the owner's.
     """
+    fields = dict(observed or {})
+    unexpected = set(fields) - set(USAGE_COLUMNS)
+    if unexpected:
+        raise MalformedRecord(
+            f"a usage record carries {list(USAGE_COLUMNS)} and this one also "
+            f"carries {sorted(unexpected)}. A column this table does not have is a "
+            "number nobody can read back, and silently dropping it would lose the "
+            "one thing the row exists to keep."
+        )
     usage_id = _new_id()
     with transaction(conn):
         conn.execute(
             "INSERT INTO llm_call_usage ("
             "usage_id, dossier_id, release_id, model_id, prompt_tokens, "
             "completion_tokens, prompt_cache_hit_tokens, prompt_cache_miss_tokens, "
-            "response_format, observed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (usage_id, dossier_id, release_id, model_id, prompt_tokens,
-             completion_tokens, prompt_cache_hit_tokens, prompt_cache_miss_tokens,
-             response_format, observed_at),
+            "response_format, reserved_cost, observed_at"
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (usage_id, dossier_id, release_id,
+             *(fields.get(name) for name in USAGE_COLUMNS),
+             reserved_cost, observed_at),
         )
     return usage_id
