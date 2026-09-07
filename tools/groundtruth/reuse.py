@@ -64,8 +64,10 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import subprocess
 import sys
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Mapping
 
@@ -150,6 +152,81 @@ def prior_database(directory: Path, situation: str) -> Path:
     return directory / f"{situation.replace('.', '_')}.sqlite"
 
 
+#: What a run of the scoreboard records about the checkout that produced it. The
+#: product's own database holds no commit -- `cli.COMPONENT_VERSION` is a hand-
+#: written string and `run_manifest` belongs to P2's eval harness -- so a directory
+#: of databases cannot say what code wrote it unless the scoreboard says so. Written
+#: on every run that actually runs something, because the run that needs it is the
+#: one AFTER it, and a note written only when `--reuse-answers-from` is passed would
+#: never be there the first time anybody wanted one.
+PROVENANCE = "checkout.json"
+
+
+def provenance_note(out_dir: Path) -> Path:
+    return out_dir / PROVENANCE
+
+
+def _checkout() -> dict:
+    """The commit these databases were produced by, and whether it was clean.
+
+    `None` rather than a guess when git cannot answer -- a tarball, no git, a
+    detached worktree that has lost its repository. A missing commit is a fact
+    about the record and is reported as one; an invented one is not recoverable
+    by anybody reading it later.
+    """
+    def git(*arguments: str) -> str | None:
+        try:
+            done = subprocess.run(("git", "-C", str(_ROOT), *arguments),
+                                  capture_output=True, text=True, timeout=30)
+        except (OSError, subprocess.SubprocessError):
+            return None
+        return done.stdout.strip() if done.returncode == 0 else None
+
+    commit = git("rev-parse", "HEAD")
+    changes = git("status", "--porcelain")
+    return {
+        "commit": commit,
+        # A dirty checkout is the case where the commit alone is a lie, so it is
+        # recorded beside it rather than left for somebody to assume.
+        "dirty": None if changes is None else bool(changes),
+        "written_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def write_provenance(out_dir: Path) -> None:
+    provenance_note(out_dir).write_text(
+        json.dumps(_checkout(), indent=2, sort_keys=True), encoding="utf-8")
+
+
+def read_provenance(out_dir: Path) -> dict:
+    note = provenance_note(out_dir)
+    if not note.exists():
+        return {}
+    try:
+        loaded = json.loads(note.read_text(encoding="utf-8"))
+    except (TypeError, ValueError):
+        return {}
+    return loaded if isinstance(loaded, dict) else {}
+
+
+def describe_source(directory: Path) -> str:
+    """One line naming where answers came from, for the sidecar and the scorecard.
+
+    Says "commit not recorded" rather than nothing when the prior directory
+    predates this note or was written outside a checkout: a reader has to be able
+    to tell "produced by an unknown commit" from "produced by no commit", and the
+    two look identical if the sentence just goes quiet.
+    """
+    checkout = read_provenance(directory)
+    commit = checkout.get("commit")
+    if not commit:
+        return f"{directory} (commit not recorded)"
+    dirty = checkout.get("dirty")
+    state = "" if dirty is False else (
+        ", checkout was dirty" if dirty else ", cleanliness not recorded")
+    return f"{directory} at {commit[:12]}{state}"
+
+
 def seeded_note(out_dir: Path, situation: str) -> Path:
     """Where a run records what it was handed, beside the database it was handed to.
 
@@ -162,15 +239,27 @@ def seeded_note(out_dir: Path, situation: str) -> Path:
     return out_dir / f"{situation.replace('.', '_')}.seeded.json"
 
 
-def write_seeded(out_dir: Path, situation: str, given: "Seeded") -> None:
+def write_seeded(out_dir: Path, situation: str, given: "Seeded", *,
+                 source: Path) -> None:
+    """What this run was handed, and WHERE FROM, beside the database it went into.
+
+    The source is recorded and not just the counts, because the counts alone
+    cannot be checked by anybody: a person reading "verdict=5" months later has to
+    be able to go and look at the five.
+    """
     seeded_note(out_dir, situation).write_text(
         json.dumps({"answers": given.answers, "skipped": given.skipped,
-                    "rows": dict(given.rows)}, indent=2, sort_keys=True),
+                    "rows": dict(given.rows),
+                    "from": str(source),
+                    "from_database": str(prior_database(source, situation)),
+                    "source": describe_source(source),
+                    "prior_checkout": read_provenance(source)},
+                   indent=2, sort_keys=True),
         encoding="utf-8")
 
 
-def read_seeded(out_dir: Path, situation: str) -> dict[str, int]:
-    """Rows seeded into this situation's database, or `{}` if none ever were.
+def read_seeded(out_dir: Path, situation: str) -> tuple[dict[str, int], str]:
+    """Rows seeded into this situation's database and where from, or `({}, "")`.
 
     Unreadable is treated as none, and deliberately: this decides how a number is
     LABELLED, and a scoreboard that refused to print because a note beside it was
@@ -178,13 +267,13 @@ def read_seeded(out_dir: Path, situation: str) -> dict[str, int]:
     """
     note = seeded_note(out_dir, situation)
     if not note.exists():
-        return {}
+        return {}, ""
     try:
-        return {str(k): int(v)
-                for k, v in json.loads(note.read_text(encoding="utf-8"))
-                .get("rows", {}).items()}
-    except (TypeError, ValueError):
-        return {}
+        loaded = json.loads(note.read_text(encoding="utf-8"))
+        rows = {str(k): int(v) for k, v in loaded.get("rows", {}).items()}
+    except (AttributeError, TypeError, ValueError):
+        return {}, ""
+    return rows, str(loaded.get("source", ""))
 
 
 def _llm_schema_objects(conn: sqlite3.Connection) -> set[tuple[str, str, str]]:

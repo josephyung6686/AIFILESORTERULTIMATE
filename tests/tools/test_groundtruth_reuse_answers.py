@@ -631,3 +631,65 @@ def test_a_situation_whose_seeding_fails_does_not_take_the_others_down(
     assert results[0].exit_code == 1
     assert "seeding failed, and the run was not started" in results[0].stderr
     assert "the disk went away mid-scan" in results[0].stderr
+
+
+def test_a_seeded_row_can_be_traced_to_the_run_and_the_commit_it_came_from(
+        prior, tmp_path):
+    """A count nobody can trace is a number a reader has to take on trust.
+
+    This one is about money somebody either did or did not spend, so the sidecar
+    and the scorecard both name the prior directory and the commit that produced
+    it. The commit has to come from the scoreboard, because the product's own
+    database records none: `cli.COMPONENT_VERSION` is a hand-written string and
+    `run_manifest` belongs to P2's eval harness.
+    """
+    import subprocess as sp
+
+    from tools.groundtruth.reuse import provenance_note, write_provenance
+
+    labels = tmp_path / "labels.json"
+    labels.write_text(json.dumps(LABELS), encoding="utf-8")
+    # The prior directory was written by a scoreboard run, so it carries the note.
+    write_provenance(prior)
+    head = sp.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+                  capture_output=True, text=True).stdout.strip()
+    out = tmp_path / "out"
+
+    completed = _score(out, labels, "--reuse-answers-from", str(prior))
+
+    assert completed.returncode in (0, 1), completed.stderr
+    # The run this one produced says what wrote it, for whoever seeds from IT.
+    assert json.loads(provenance_note(out).read_text(
+        encoding="utf-8"))["commit"] == head
+    note = json.loads(
+        (out / f"{SITUATION.replace('.', '_')}.seeded.json").read_text(
+            encoding="utf-8"))
+    assert note["from"] == str(prior)
+    assert note["prior_checkout"]["commit"] == head
+    assert head[:12] in note["source"] and str(prior) in note["source"]
+    card = (out / "scorecard.txt").read_text(encoding="utf-8")
+    assert f"from {prior} at {head[:12]}" in card
+
+
+def test_a_prior_that_never_said_what_produced_it_is_labelled_as_such(
+        prior, tmp_path):
+    """"Commit not recorded" and silence are different facts and must look it.
+
+    A directory written before this note existed, or outside a checkout, cannot
+    say what code produced its answers. Saying so is the honest form; going quiet
+    would let a reader assume the answers came from the checkout in front of them.
+    """
+    from tools.groundtruth.reuse import describe_source, provenance_note
+
+    assert not provenance_note(prior).exists()
+    assert describe_source(prior) == f"{prior} (commit not recorded)"
+
+    labels = tmp_path / "labels.json"
+    labels.write_text(json.dumps(LABELS), encoding="utf-8")
+    out = tmp_path / "out"
+
+    completed = _score(out, labels, "--reuse-answers-from", str(prior))
+
+    assert completed.returncode in (0, 1), completed.stderr
+    card = (out / "scorecard.txt").read_text(encoding="utf-8")
+    assert f"from {prior} (commit not recorded)" in card
