@@ -3519,6 +3519,14 @@ def refinement_for(node, file_count: int, *, was_split: bool) -> tuple[str, str]
     into. What was wrong was never that a measured branch is called shallow; it
     was that the sentence beside it was written in the person's voice about a
     judgement they were never asked to make.
+
+    **Each reason claims the actor and the count, and nothing else.** The rule
+    two paragraphs up is not suspended by adding a subject to the sentence: a
+    reason saying "left as one folder" would be the same unchecked claim about
+    SHAPE that the paragraph forbids, and it would be false in a case that
+    already exists -- an adopted folder nested under another adopted folder is
+    never `was_split`, keeps its pre-routing verdict, and is not one folder. The
+    actor and the number are both things this function has in its hands.
     """
     actor = actor_phrase(SURFACE_UNATTENDED)
     if node.parent_node_id is None or was_split:
@@ -3527,14 +3535,13 @@ def refinement_for(node, file_count: int, *, was_split: bool) -> tuple[str, str]
                 "were already settled in your files.")
     if file_count <= TREE_LIMITS.tiny_folder_max_files:
         return (SHALLOW_BY_CHOICE,
-                f"{actor} left this branch as one folder: it holds "
-                f"{file_count} file(s), few enough that splitting it further "
-                "could not help anyone find them. Nobody was asked, so say so "
-                "if you want it split.")
+                f"{actor} counted {file_count} file(s) in this branch -- few "
+                "enough that splitting it further could not help anyone find "
+                "them. Nobody was asked, so say so if you want it split.")
     return (REFINE_LATER,
-            f"{actor} left this branch as it is: it holds {file_count} files. "
-            "Nobody was asked how deep it should go, so it is not shallow on "
-            "purpose -- how far it is split is yours to decide.")
+            f"{actor} counted {file_count} files in this branch. Nobody was "
+            "asked how deep it should go, so it is not shallow on purpose -- "
+            "how far it is split is yours to decide.")
 
 
 # ======================================================================================
@@ -5989,11 +5996,11 @@ DEFAULTED_DECISIONS: tuple[tuple[str, str], ...] = (
     ("How deep each folder goes",
      "the top-level folder is treated as fully refined. Every branch under it is "
      f"counted: one holding {TREE_LIMITS.tiny_folder_max_files} file(s) or fewer "
-     "is left as one folder, because splitting it could not help anyone find "
-     "them, and every other one is marked as left for you to split further. "
-     "Nobody was asked which a branch should be, so the count is standing in "
-     "for an answer only you can give -- and each of those answers is recorded "
-     "as the rules', in the rules' words, not yours."),
+     "is marked shallow, because splitting it could not help anyone find "
+     "anything, and every other one is marked as left for you to split "
+     "further. Nobody was asked which a branch should be, so the count is "
+     "standing in for an answer only you can give -- and each of those "
+     "answers is recorded as the rules', in the rules' words, not yours."),
     ("Where material that belongs to two folders goes",
      "kept as your decision, file by file, rather than sent to one of them. It "
      "is the only answer a command with nobody to ask may make for you."),
