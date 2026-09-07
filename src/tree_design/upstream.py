@@ -26,6 +26,7 @@ from typing import Protocol
 from facts.fields import get_field
 from facts.read_surface import (
     PROPOSAL_ELIGIBLE_STATES, facts_for, is_destination_eligible,
+    preferred_in_field,
 )
 from facts.states import strength
 from facts.supersede import preferred_fact
@@ -421,7 +422,19 @@ def preferred_value_for(conn: sqlite3.Connection, *, file_id: str,
     — it "must not quietly become a folder proposal". P10 neither widens nor
     narrows that set.
     """
-    row = preferred_fact(conn, file_id=file_id, field_key=field_ref)
+    return _as_value(preferred_fact(conn, file_id=file_id, field_key=field_ref),
+                     field_ref=field_ref)
+
+
+def _as_value(row: sqlite3.Row | None, *, field_ref: str) -> FieldValue | None:
+    """P6's preferred row, as the value P10 reads off it -- or `None`.
+
+    The state filter and the shaping, stated ONCE. `_preferred_values_in_field`
+    below asks P6 the same question of the whole corpus at once, and if it built
+    its own `FieldValue` the two would be two places for §3.6's exclusion to
+    drift apart. Both go through here, so P10 has one rule for what a file
+    contributes at a dimension however the row was fetched.
+    """
     if row is None:
         return None
     if row["reliability_state"] not in PROPOSAL_ELIGIBLE_STATES:
@@ -432,6 +445,23 @@ def preferred_value_for(conn: sqlite3.Connection, *, file_id: str,
         display_label=row["display_label"] or row["canonical_value"],
         reliability=row["reliability_state"],
     )
+
+
+def _preferred_values_in_field(conn: sqlite3.Connection, *,
+                               field_ref: str) -> dict[str, FieldValue]:
+    """`preferred_value_for` for every file in the corpus, in one read.
+
+    P6 publishes the read (`facts.read_surface.preferred_in_field`); this adds
+    P10's state filter and P10's shape and nothing else, through `_as_value`,
+    which is the same function the per-file path returns through. A file whose
+    slot resolves to nothing, or to a state a folder proposal may not rest on, is
+    ABSENT -- so `.get(file_id)` is `preferred_value_for`'s own `None`.
+    """
+    return {
+        file_id: value
+        for file_id, row in preferred_in_field(conn, field_key=field_ref).items()
+        if (value := _as_value(row, field_ref=field_ref)) is not None
+    }
 
 
 def group_level_value(conn: sqlite3.Connection, *, group: AcceptedGroup,
@@ -525,49 +555,106 @@ def settled_values_in_directory(conn: sqlite3.Connection, *,
     `settled_values_stated_by_every_file` below is where it is asked and
     explained. No caller of the expectations needs it, which is why it is off.
     """
-    here = _rows_directly_inside(conn, directory_path)
-    # A SET OF ONE IS ALWAYS UNANIMOUS, which is why one file is not enough.
-    # Measured: a person had `Scans/` holding one scanned retainer agreement; that
-    # file settled `subject=CV20261234`, the folder "agreed" with it, and the
-    # product then offered to file a deposition transcript into a folder called
-    # Scans. One file agreeing with itself is evidence about the FILE. It becomes
-    # evidence about the FOLDER when a second file agrees -- which is the whole
-    # difference between a folder somebody curated and a folder things land in.
-    # `TreeLimits.tiny_folder_max_files` already carries the idea that a folder of
-    # one file says little; this is that idea where it decides a destination.
-    # `<= 1` rather than `< 2`: `test_p10_no_invention` forbids a numeric
-    # literal beyond zero and one in this package, and the rule is right --
-    # a threshold spelled here would be a number nobody authored.
-    if len(here) <= 1:
-        return ()
+    return settled_values_by_directory(
+        conn, directory_paths=(directory_path,),
+        stated_by_every_file=stated_by_every_file)[directory_path]
 
-    fields: list[str] = []
-    for row in here:
-        for fact in facts_for(conn, file_id=row["file_id"],
-                              content_hash=row["content_hash"]):
-            key = fact["field_key"]
-            if key not in fields and is_destination_eligible(
-                    conn, field_key=key):
-                fields.append(key)
 
-    settled: list[FieldValue] = []
-    for field_ref in fields:
-        readings = [preferred_value_for(conn, file_id=row["file_id"],
-                                        field_ref=field_ref)
-                    for row in here]
-        present = [reading for reading in readings if reading is not None]
-        if not present:
+def settled_values_by_directory(conn: sqlite3.Connection, *,
+                                directory_paths: Sequence[str],
+                                stated_by_every_file: bool = False,
+                                ) -> dict[str, tuple[FieldValue, ...]]:
+    """`settled_values_in_directory` for SEVERAL folders, reading each field once.
+
+    **The rule is unchanged and the reads are not.** Every refusal above still
+    decides each folder on its own -- unanimity, immediate children,
+    `is_destination_eligible`, and `_divides_the_corpus` -- and none of them looks
+    at the other folders in the list. What the list buys is the corpus read:
+    asked one folder at a time, `_divides_the_corpus` walked every file in the
+    corpus and asked P6 for its settled value at the field, so D folders and F
+    fields over N files asked D x F x N times and each ask re-read one file's
+    whole slot (`104` R-79: 175,892 of them over 588 invocations at a thousand
+    files, 7.8 s, and the term the corpus squares). Asked together, each field is
+    read once for the whole corpus (`facts.read_surface.preferred_in_field`) and
+    every folder answers out of that one reading.
+
+    Nothing is cached between calls and nothing is keyed by connection. A folder's
+    expectations are a function of what the facts say NOW, and a reading held
+    across calls would answer from what they said before -- the failure `104`
+    R-78 is about, one part over. The caller says which folders it is asking
+    about, and the reading lives exactly as long as the question.
+
+    An empty list returns an empty mapping rather than reading anything, for the
+    reason `versions_in_fields` gives: a caller with no folders is asking about
+    nothing.
+    """
+    if not directory_paths:
+        return {}
+
+    roster = _rows_of_every_file(conn)
+    within: dict[str, list[sqlite3.Row]] = {}
+    for row in roster:
+        within.setdefault(_parent_directory_of(row["current_path"]), []).append(row)
+    # `_rows_directly_inside`'s answer, for every folder asked at once and in the
+    # same order: one pass over `files` grouped by the parent it computes, rather
+    # than one pass over `files` per folder.
+    asked = {path: within.get(_normalised(path), []) for path in directory_paths}
+
+    fields_of: dict[str, list[str]] = {}
+    for path, here in asked.items():
+        # A SET OF ONE IS ALWAYS UNANIMOUS, which is why one file is not enough.
+        # Measured: a person had `Scans/` holding one scanned retainer agreement;
+        # that file settled `subject=CV20261234`, the folder "agreed" with it, and
+        # the product then offered to file a deposition transcript into a folder
+        # called Scans. One file agreeing with itself is evidence about the FILE.
+        # It becomes evidence about the FOLDER when a second file agrees -- which
+        # is the whole difference between a folder somebody curated and a folder
+        # things land in. `TreeLimits.tiny_folder_max_files` already carries the
+        # idea that a folder of one file says little; this is that idea where it
+        # decides a destination.
+        # `<= 1` rather than `< 2`: `test_p10_no_invention` forbids a numeric
+        # literal beyond zero and one in this package, and the rule is right --
+        # a threshold spelled here would be a number nobody authored.
+        if len(here) <= 1:
             continue
-        if len({reading.canonical_value for reading in present}) != 1:
-            continue
-        if not _divides_the_corpus(conn, field_ref=field_ref,
-                                   value=present[0].canonical_value,
-                                   inside={row["file_id"] for row in here}):
-            continue
-        if stated_by_every_file and len(present) != len(here):
-            continue
-        settled.append(present[0])
-    return tuple(settled)
+        fields: list[str] = []
+        for row in here:
+            for fact in facts_for(conn, file_id=row["file_id"],
+                                  content_hash=row["content_hash"]):
+                key = fact["field_key"]
+                if key not in fields and is_destination_eligible(
+                        conn, field_key=key):
+                    fields.append(key)
+        fields_of[path] = fields
+
+    reading_of: dict[str, dict[str, FieldValue]] = {}
+    for fields in fields_of.values():
+        for field_ref in fields:
+            if field_ref not in reading_of:
+                reading_of[field_ref] = _preferred_values_in_field(
+                    conn, field_ref=field_ref)
+
+    corpus = [row["file_id"] for row in roster]
+    answers: dict[str, tuple[FieldValue, ...]] = {}
+    for path, here in asked.items():
+        settled: list[FieldValue] = []
+        for field_ref in fields_of.get(path, ()):
+            reading = reading_of[field_ref]
+            readings = [reading.get(row["file_id"]) for row in here]
+            present = [found for found in readings if found is not None]
+            if not present:
+                continue
+            if len({found.canonical_value for found in present}) != 1:
+                continue
+            if not _divides_the_corpus(reading, corpus,
+                                       value=present[0].canonical_value,
+                                       inside={row["file_id"] for row in here}):
+                continue
+            if stated_by_every_file and len(present) != len(here):
+                continue
+            settled.append(present[0])
+        answers[path] = tuple(settled)
+    return answers
 
 
 def settled_values_stated_by_every_file(conn: sqlite3.Connection, *,
@@ -609,8 +696,8 @@ def settled_values_stated_by_every_file(conn: sqlite3.Connection, *,
                                        stated_by_every_file=True)
 
 
-def _divides_the_corpus(conn: sqlite3.Connection, *, field_ref: str, value: str,
-                        inside: set[str]) -> bool:
+def _divides_the_corpus(reading: dict[str, FieldValue], corpus: Sequence[str], *,
+                        value: str, inside: set[str]) -> bool:
     """Does anything OUTSIDE this folder disagree? If not, the claim says nothing.
 
     **The fourth appearance of one mistake, and the reason to name it as a class.**
@@ -628,12 +715,20 @@ def _divides_the_corpus(conn: sqlite3.Connection, *, field_ref: str, value: str,
     This is V2's own test -- "a level your files do not divide is measured and not
     built" -- applied to a folder instead of a level, and it needs no threshold:
     either some file disagrees or none does.
+
+    **It is handed the corpus's reading rather than asking for it, and that is the
+    whole of `104` R-79.** The question is unchanged -- every file outside, at one
+    field -- but this used to ask P6 for each of them one at a time, once per
+    folder per field, which is the same read repeated D x F times over the same N
+    files. `settled_values_by_directory` reads each field once and passes the
+    reading in; `reading.get` is `preferred_value_for`'s own answer for a file, and
+    absent is its `None`. The walk is still over `files`, so a fact whose file the
+    scan never recorded is still consulted by nobody.
     """
-    for row in conn.execute("SELECT file_id FROM files"):
-        if row["file_id"] in inside:
+    for file_id in corpus:
+        if file_id in inside:
             continue
-        other = preferred_value_for(conn, file_id=row["file_id"],
-                                    field_ref=field_ref)
+        other = reading.get(file_id)
         if other is not None and other.canonical_value != value:
             return True
     return False
@@ -659,12 +754,21 @@ def _parent_directory_of(path: str) -> str:
     return ""
 
 
+def _rows_of_every_file(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """P3's roster, in P3's own order, which is what `files` returns.
+
+    One statement in one place, so the folder read and the corpus walk cannot come
+    to disagree about which files exist or in what order they are considered.
+    """
+    return conn.execute(
+        "SELECT file_id, content_hash, current_path FROM files").fetchall()
+
+
 def _rows_directly_inside(conn: sqlite3.Connection, directory_path: str):
     """The file rows sitting DIRECTLY in one directory. Never in a descendant."""
-    return [row for row in conn.execute(
-        "SELECT file_id, content_hash, current_path FROM files").fetchall()
-        if _parent_directory_of(row["current_path"]) == _normalised(
-            directory_path)]
+    return [row for row in _rows_of_every_file(conn)
+            if _parent_directory_of(row["current_path"]) == _normalised(
+                directory_path)]
 
 
 def file_ids_in_directory(conn: sqlite3.Connection, *,

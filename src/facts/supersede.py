@@ -47,6 +47,7 @@ column by name.
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Sequence
 
 from database_agent.supersede import chain, mark_superseded
 
@@ -200,6 +201,30 @@ def _best_cited(rows: list[sqlite3.Row]) -> sqlite3.Row:
     return max(ranked, key=lambda row: strength(row["reliability_state"]))
 
 
+def preferred_of_slot(rows: Sequence[sqlite3.Row]) -> sqlite3.Row | None:
+    """`preferred_fact`'s decision, over a slot a caller has already read.
+
+    Split out so a read of the WHOLE CORPUS cannot answer a slot differently from
+    the per-file read. `facts.read_surface.preferred_in_field` is that read: it
+    fetches every slot at one field in two statements and then asks THIS
+    function, which is the same three cases the per-file path asks, over the same
+    rows in the same order. Two transcriptions of a three-case rule is how the
+    two come to disagree -- `read_surface.proposal_eligible`'s docstring records
+    what happened the last time two reads in one module disagreed about one file.
+
+    It takes no connection, so it can reach no second answer: everything the
+    decision rests on is in the rows.
+    """
+    live = [row for row in rows if row["superseded_by"] is None]
+    confirmed = [row for row in live if row["reliability_state"] == USER_CONFIRMED]
+    if confirmed:
+        live = confirmed
+    if len({row["value_id"] for row in live}) == 1:
+        return _best_cited(live)
+    pointed = [row for row in live if row["preferred"]]
+    return pointed[0] if len(pointed) == 1 else None
+
+
 def preferred_fact(conn: sqlite3.Connection, *, file_id: str,
                    field_key: str) -> sqlite3.Row | None:
     """The row a reader should show for this slot, or `None`.
@@ -232,16 +257,12 @@ def preferred_fact(conn: sqlite3.Connection, *, file_id: str,
     Live means not superseded. `active` is a different axis and is Task 4's: §8.2's
     mechanism for the pointer is supersession, and reading a second column here would
     make the pointer depend on two rules instead of one.
+
+    The three cases are `preferred_of_slot` above, and they are stated once: the
+    corpus-wide read in `facts.read_surface` reads slots its own way and then asks
+    the same function, so neither read can conclude what the other would not.
     """
-    live = [row for row in _slot(conn, file_id=file_id, field_key=field_key)
-            if row["superseded_by"] is None]
-    confirmed = [row for row in live if row["reliability_state"] == USER_CONFIRMED]
-    if confirmed:
-        live = confirmed
-    if len({row["value_id"] for row in live}) == 1:
-        return _best_cited(live)
-    pointed = [row for row in live if row["preferred"]]
-    return pointed[0] if len(pointed) == 1 else None
+    return preferred_of_slot(_slot(conn, file_id=file_id, field_key=field_key))
 
 
 def fact_history(conn: sqlite3.Connection, *, file_id: str,

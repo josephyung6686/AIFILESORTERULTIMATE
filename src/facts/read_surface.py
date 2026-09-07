@@ -34,8 +34,18 @@ Where this module queries P6's tables directly, and why that is not a layering b
 `evidence_chain` is addressed by `fact_id` alone -- a reviewer clicking a citation has
 the fact id and nothing else -- and no module publishes a by-`fact_id` read.
 `values_with_counts` needs one aggregate across the whole corpus. Both are `SELECT`s over
-`file_facts`, which is P6's own table. Everything else composes the published functions
-and adds no second answer.
+`file_facts`, which is P6's own table.
+
+`versions_proposing`, `versions_in_fields` and `preferred_in_field` are the same case
+one step larger: each is a per-file read of this module's own asked of the CORPUS, and
+each exists because a neighbour asking it one file at a time is quadratic (`104` R-72
+and R-79). A corpus-wide read belongs HERE and nowhere else -- `grouping/retrieval.py`
+said so before the first of them existed -- and none of the three decides anything the
+per-file read does not: the first two restate `proposal_eligible`'s and `_in_fields`'
+filters, and the third hands its rows to `facts.supersede.preferred_of_slot`, which is
+the per-file decision itself rather than a copy of it.
+
+Everything else composes the published functions and adds no second answer.
 """
 from __future__ import annotations
 
@@ -55,7 +65,7 @@ from facts.photo_event import EVENT_FIELD
 from facts.session import DOWNLOAD_SESSION_FIELD
 from facts import states as _states
 from facts.states import STRENGTH_ORDER
-from facts.supersede import fact_history
+from facts.supersede import fact_history, preferred_of_slot
 from facts.unresolved import unresolved_for_file
 from facts.values import values_in_field
 
@@ -320,6 +330,54 @@ def versions_in_fields(
         grouped.setdefault((row["file_id"], row["content_hash"]), []).append(row)
     return {version: sorted(found, key=_version_order)
             for version, found in grouped.items()}
+
+
+def preferred_in_field(conn: sqlite3.Connection, *,
+                       field_key: str) -> dict[str, sqlite3.Row]:
+    """`facts.supersede.preferred_fact` asked of the CORPUS instead of of one file.
+
+    **The same shape of read as `versions_proposing` above, for the same reason,
+    one part further downstream.** P10 asked `preferred_fact` per file per field
+    per folder: `tree_design.upstream._divides_the_corpus` walks every file in the
+    corpus to find out whether anything outside a folder disagrees, so a corpus of
+    N files and F destination-eligible fields and D folders asked D x F x N times
+    and each of those reads the asking file's whole slot again (`104` R-79:
+    175,892 calls over 588 invocations at a thousand files, and the term that
+    grows with the square). This reads one field's slots once.
+
+    A file is a KEY here only when its slot resolves; a slot that resolves to
+    `None` is absent, so `.get(file_id)` is `preferred_fact`'s own `None` and a
+    caller needs no second test.
+
+    **UNFILTERED BY STATE, deliberately.** `preferred_fact` decides over every live
+    row -- a `rejected` row and a `validated` one are two values and the slot is
+    unresolvable -- so a state filter in the SQL would answer a slot the per-file
+    read answers `None`. Whichever states may then become a folder proposal is
+    `PROPOSAL_ELIGIBLE_STATES`, applied by the caller, exactly where
+    `preferred_value_for` applies it.
+
+    Two statements and not one, because `_slot` is two: the joined read is
+    `facts_for_file`'s, which is an INNER JOIN and therefore drops a fact whose
+    field or value the catalogue has lost, and the raw read is what P1's `chain`
+    yields for such a row. Keeping both reproduces `_slot`'s own
+    `joined.get(fact_id, member)` fallback rather than quietly narrowing the slot.
+    """
+    slots: dict[str, list[sqlite3.Row]] = {}
+    for row in conn.execute("SELECT * FROM file_facts WHERE field_key = ?",
+                            (field_key,)):
+        slots.setdefault(row["file_id"], []).append(row)
+    shown = {row["fact_id"]: row for row in conn.execute(
+        _ACROSS_VERSIONS + 'WHERE f.field_key = ?', (field_key,))}
+    answers: dict[str, sqlite3.Row] = {}
+    for file_id, rows in slots.items():
+        # `_slot` returns its rows in `fact_id` order and `_best_cited` breaks a
+        # tie on the first of them, so the order is part of the answer.
+        found = preferred_of_slot(sorted(
+            (shown.get(row["fact_id"], row) for row in rows),
+            key=lambda row: row["fact_id"]))
+        if found is not None:
+            answers[file_id] = found
+    return answers
 
 
 def evidence_chain(conn: sqlite3.Connection, *, fact_id: str) -> list[Observation]:
