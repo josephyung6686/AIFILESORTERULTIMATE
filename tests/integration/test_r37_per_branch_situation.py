@@ -281,3 +281,125 @@ def test_the_per_branch_answer_is_honoured_and_scoped_to_that_branch(
     # the coursework levels, and the career branch's are recruiting's.
     assert "Coursework" in report and "career" in report
     del asked_of_career
+
+
+# --- the default branch keeps its course and term levels on a multi-branch run ---
+
+#: Two courses with terms, one course whose every file two branches reach, and
+#: the career files. Offline; no stub. `MATH 2000` is the reverted merge's case:
+#: no kind word in any name, so no anchor; its course code beside `instructor`
+#: so P9 groups it on `subject`; three career terms so the recogniser reads it
+#: as `career` and both branches reach it. Held, and still coursework's to file.
+TWO_LIVES = {
+    "PHYS 1401 syllabus.txt":
+        "PHYS 1401 Syllabus\n\nSpring 2026. Instructor: Dr. Lee. Credits: 3.\n",
+    "PHYS 1401 lecture 08.txt":
+        "PHYS 1401 Lecture 08\n\nSpring 2026. Torque and angular momentum.\n",
+    "PHYS 1401 homework 3.txt": "PHYS 1401 Homework 3\n\nSpring 2026. Due Friday.\n",
+    "PHYS 1401 midterm exam.txt": "PHYS 1401 Midterm Exam\n\nSpring 2026. Closed book.\n",
+    "ECON 2010 syllabus.txt":
+        "ECON 2010 Syllabus\n\nFall 2025. Instructor: Prof. Ng. Credits: 3.\n",
+    "ECON 2010 lecture 02.txt": "ECON 2010 Lecture 02\n\nFall 2025. Aggregate demand.\n",
+    "ECON 2010 homework 1.txt": "ECON 2010 Homework 1\n\nFall 2025. Elasticity problems.\n",
+    "ECON 2010 final exam.txt": "ECON 2010 Final Exam\n\nFall 2025. Two hours.\n",
+    "MATH 2000 week 1.txt":
+        "Prepared by the TA. Deliverable for MATH 2000. Instructor: Dr. Wu. "
+        "Milestone one. Fall 2025.\n",
+    "MATH 2000 week 2.txt":
+        "Prepared by the TA. Deliverable for MATH 2000. Instructor: Dr. Wu. "
+        "Milestone two. Fall 2025.\n",
+    "MATH 2000 week 3.txt":
+        "Prepared by the TA. Deliverable for MATH 2000. Instructor: Dr. Wu. "
+        "Milestone three. Fall 2025.\n",
+    "HW 3.txt": "Homework 3\n\nProblem 1. A ball is thrown upward...\n",
+    "Cover letter Acme.txt":
+        "Cover Letter\n\nDear Hiring Manager,\nI am writing to apply for the "
+        "Software Engineer position at Acme Corp. My resume is attached.\n",
+    "Cover letter Beta.txt":
+        "Cover letter\n\nDear Recruiting Team at Beta Ltd,\nPlease consider my "
+        "application for the Data Analyst role. Job title: Data Analyst.\n",
+    "Jane Doe resume.txt":
+        "Jane Doe\nCurriculum Vitae / Resume\n\nWork experience\n2024-2026 "
+        "Software Engineer, Acme Corp.\n",
+    "Job posting Acme.txt":
+        "Job description: Software Engineer\nAcme Corp is hiring. Job title: "
+        "Software Engineer. Approved job description.\n",
+    "survey results.txt":
+        "Survey results\n\nQuestion 1: 42% agree. Question 2: 58% disagree.\n",
+}
+
+#: What the coursework branch filed BEFORE the per-branch change (measured at
+#: ac712bb on this corpus): every placed coursework file under its term and its
+#: course. The ruling adds a branch beside this; it takes nothing from it.
+COURSEWORK_CHAINS_BEFORE = {
+    "Coursework/Spring2026/PHYS1401/syllabus": 1,
+    "Coursework/Spring2026/PHYS1401/lecture": 1,
+    "Coursework/Spring2026/PHYS1401/homework": 1,
+    "Coursework/Spring2026/PHYS1401/exam": 1,
+    "Coursework/Fall2025/ECON2010/syllabus": 1,
+    "Coursework/Fall2025/ECON2010/lecture": 1,
+    "Coursework/Fall2025/ECON2010/homework": 1,
+    "Coursework/Fall2025/ECON2010/exam": 1,
+    "Coursework/Fall2025/MATH2000": 3,
+}
+
+
+def _chains(database: Path) -> dict[str, int]:
+    """Place decisions of the last plan version, by destination chain."""
+    from collections import Counter
+
+    from placement.store import decisions_for_plan
+    from tree_design.store import nodes_for_version
+    conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        plan_version = conn.execute(
+            "SELECT plan_version FROM placement_decisions "
+            "ORDER BY rowid DESC LIMIT 1").fetchone()[0]
+        nodes = {node.node_id: node for node in nodes_for_version(conn, plan_version)}
+
+        def chain(node_id: str) -> str:
+            parts: list[str] = []
+            while node_id in nodes:
+                parts.append(nodes[node_id].display_label)
+                node_id = nodes[node_id].parent_node_id
+            return "/".join(reversed(parts))
+
+        return dict(Counter(
+            chain(decision.destination.node_id)
+            for decision in decisions_for_plan(conn, plan_version=plan_version)
+            if decision.outcome == "place"))
+    finally:
+        conn.close()
+
+
+def test_the_default_branch_keeps_its_course_and_term_levels_beside_a_second_branch(
+        tmp_path):
+    """The pin the reverted merge lacked (`104` R-37, merge 8b9280d reverted).
+
+    On the owner's corpus the coursework branch came out flat by kind --
+    `Coursework/exam` 7, `Coursework/homework` 3 -- because the groups of the
+    held files were not accepted and the course and term levels went with them.
+    Here the same shape: `MATH 2000`'s three files are held (two branches reach
+    them), and the branch must still file them under `Fall2025/MATH2000`, with
+    every other coursework file exactly where it went before, and `career`
+    standing beside `Coursework` rather than inside it.
+    """
+    corpus = tmp_path / "holder" / "corpus"
+    corpus.mkdir(parents=True)
+    for name, body in TWO_LIVES.items():
+        (corpus / name).write_text(body)
+    database = tmp_path / "holder" / "plan.sqlite"
+    report = _run(corpus, database)
+
+    chains = _chains(database)
+    coursework = {chain: count for chain, count in chains.items()
+                  if chain.startswith("Coursework")}
+    assert coursework == COURSEWORK_CHAINS_BEFORE, (chains, report)
+    folders = report.split("Folders in this plan:", 1)[1].split("Files:", 1)[0]
+    roots = [line.strip() for line in folders.splitlines()
+             if line.startswith("  ") and not line.startswith("    ")]
+    assert roots == ["Coursework", "career"] or roots == ["career", "Coursework"], roots
+    assert not any(chain.startswith("Coursework") and
+                   ("cover letter" in chain or "resume" in chain)
+                   for chain in chains), chains

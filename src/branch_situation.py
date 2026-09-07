@@ -28,16 +28,29 @@ cover letter as `clinical_practice` and a résumé as `college_applications`, an
 what a file is made of, not which life it is part of. It is a REACH signal here,
 into branches an anchor has already opened, and never opens one.
 
-**Reach, in three forms, each the product's own existing signal:**
+**Reach, in three forms, each the product's own existing signal, and IN THAT
+ORDER -- a fact outranks a reading:**
 
 * an anchor of the branch;
-* a direct or validated fact on one of the branch schema's own fields, stated by
-  an anchor of that branch as well -- a course code shared with the syllabus. Not
-  `term` and not `work_type`: `cli.FIELDS_THAT_CANNOT_ANCHOR_A_MOVE` says those two
-  cannot carry a file into a folder, and `Summer2026` shared between a syllabus and
-  a cover letter is the bridge that filed the cover letters under Coursework;
-* the recogniser's reading of the file -- its settled schema, its one near-miss,
-  or the schemas it tied on -- where that names a branch that exists.
+* failing that, a direct or validated fact on one of the branch schema's own
+  fields -- `subject` is academic's, `employer` and `job_title` are career's --
+  which is P6's own conclusion about the file (a course code beside academic
+  context IS a course fact, `00`:57) and needs no anchor to second it. Not
+  `term` and not `work_type`: `cli.FIELDS_THAT_CANNOT_ANCHOR_A_MOVE` says those
+  two cannot carry a file into a folder, and `Summer2026` shared between a
+  syllabus and a cover letter is the bridge that filed the cover letters under
+  Coursework;
+* failing both, the recogniser's reading of the file -- its settled schema, its
+  one near-miss, or the schemas it tied on -- where that names a branch that
+  exists.
+
+The order is the finding of the reverted merge 8b9280d. That merge let the
+reading stand beside the fact, and a course whose files carried no kind word in
+their names -- so no anchor -- but read as `career` to the term recogniser was
+carried whole into the career branch: on the owner's corpus the coursework
+branch lost its courses and came out flat by kind. The recogniser answers what
+a file is made of; a validated `subject` says which course it is part of, and
+the second question is the one a branch asks.
 
 A file exactly one branch reaches is under it. A file two reach, or none, is
 HELD: it is asked nothing, and P11 records for it whatever reason it would have
@@ -222,26 +235,23 @@ def partition_by_branch(
             anchor_file_ids=tuple(anchors_of.get(default_schema, ())),
             file_ids=tuple(file_id for file_id, _hash in roster)),), held=())
 
-    # What each branch's anchors state, on the fields that may carry a file in.
-    stated_by_anchors: dict[str, set[tuple[str, str]]] = {}
-    for schema_id in schemas:
-        reaching_fields = set(fields_of_schema(schema_id)) - BRIDGES_THAT_DO_NOT_REACH
-        stated_by_anchors[schema_id] = {
-            (field, value) for anchor in anchors_of.get(schema_id, ())
-            for field, value in facts[anchor] if field in reaching_fields}
+    # The fields that carry a file into each branch: the schema's own, less the
+    # two bridges.
+    own_fields = {
+        schema_id: set(fields_of_schema(schema_id)) - BRIDGES_THAT_DO_NOT_REACH
+        for schema_id in schemas}
 
     under: dict[str, list[str]] = {schema_id: [] for schema_id in schemas}
     held: list[str] = []
     for file_id, content_hash in roster:
-        reached: set[str] = set()
         if file_id in anchored_to:
-            reached.add(anchored_to[file_id])
+            reached = {anchored_to[file_id]}
         else:
-            for schema_id in schemas:
-                if any(fact in stated_by_anchors[schema_id]
-                       for fact in facts[file_id]):
-                    reached.add(schema_id)
-            reached |= _named_by(verdict_of(file_id, content_hash)) & set(schemas)
+            reached = {schema_id for schema_id in schemas
+                       if any(field in own_fields[schema_id]
+                              for field, _value in facts[file_id])}
+            if not reached:
+                reached = _named_by(verdict_of(file_id, content_hash)) & set(schemas)
         if len(reached) == 1:
             under[next(iter(reached))].append(file_id)
         else:

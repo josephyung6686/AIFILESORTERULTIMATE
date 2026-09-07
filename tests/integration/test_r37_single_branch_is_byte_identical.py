@@ -7,10 +7,12 @@ kind-of-file anchor the library owns belongs to the situation the person typed -
 the run proposes one branch, and the ruling pins that such a run is byte-identical
 to the run before the change: the same screen and the same derived records.
 
-**The fixture was captured at `ec6e46f`, before any of R-37's code existed**, by
-running this module as a script (`python3 tests/integration/<this file> capture`).
-A fixture captured after the change would prove only that the code agrees with
-itself. Every minted id is replaced by what it names, exactly as
+**The fixture is captured on the base WITHOUT R-37's code**, by running this
+module as a script (`python3 tests/integration/<this file> capture`) in a
+checkout of that base -- first `ec6e46f`, and after the branch was rebased onto
+the revert of its first merge, `ac712bb`, whose upstream merges had moved seven
+lines of this screen. A fixture captured after the change would prove only that
+the code agrees with itself; when the base moves, recapture it there, never here. Every minted id is replaced by what it names, exactly as
 `test_two_runs_of_one_folder_agree` replaces them, so what is compared is what the
 run concluded and not which uuid it drew.
 

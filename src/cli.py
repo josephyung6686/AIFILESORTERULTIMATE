@@ -4372,21 +4372,34 @@ def review_and_accept(conn: sqlite3.Connection,
                       group_category: str, label: str,
                       created_at: str,
                       branch_for: Callable[[str], Branch | None] | None = None,
+                      default_branch: Branch | None = None,
                       on_accepted: Callable[[str, Branch | None], None] | None = None,
                       ) -> tuple[str, ...]:
     """The review screen, non-interactively: keep everything, as one named group.
 
     **`104` R-37: one named group PER BRANCH, when the run proposes more than
     one.** `branch_for(file_id)` is `BranchPartition.branch_of` bound to this
-    run's partition; with it, each P9 group is accepted under the branch most of
-    its members are under -- its label and its schema -- rather than under the
-    one `--label`. A group whose members are under no branch, or split evenly
-    between two, is not accepted: its files are the ones the ruling holds for
-    review, and accepting them under a branch would be the walkthrough's cover
-    letters under `Coursework` again. `None` keeps every group under `label`,
-    which is the run with one branch and is byte-identical to the run before.
-    `on_accepted` is told each merged id and its branch, so the design can hand
-    P10 the branch's own situation signal.
+    run's partition; with it, each P9 group is accepted under the branch a strict
+    majority of its members are under -- its label and its schema -- and every
+    other group under `default_branch`, which is the `--label`/`--situation`
+    the person typed: ruling (1), the folder's default, "unchanged when nothing
+    else is known". A group whose members no branch reaches, or that two
+    branches tie over, is exactly the case where nothing else is known.
+
+    **Dropping such a group instead was the reverted merge 8b9280d.** On the
+    owner's corpus a course whose files carry no kind word in their names has
+    no anchor, its files are held, its `subject` group went unaccepted, and the
+    coursework branch lost the course and term levels it had -- 14 labelled
+    coursework files landed in `Coursework/exam`, `Coursework/homework`.
+    Reproduced on a synthetic corpus (`tests/integration/test_r37_per_branch_
+    situation.py`): `Coursework/Fall2025/MATH2000` (3 files) vanished. The
+    site-A half of the ruling is untouched by this: a held file is still asked
+    nothing; where its group is FILED offline is the default's, as before.
+
+    `None` keeps every group under `label`, which is the run with one branch and
+    is byte-identical to the run before. `on_accepted` is told each merged id
+    and its branch, so the design can hand P10 the branch's own situation
+    signal.
 
     **The justification this docstring used to give was false, and correcting it
     matters more than it looks.** It said `src/grouping/pipeline.py` writes
@@ -4433,7 +4446,10 @@ def review_and_accept(conn: sqlite3.Connection,
     if branch_for is None:
         buckets = [(None, group_category, label, grouped)]
     else:
-        buckets = _grouped_by_branch(grouped, branch_for)
+        if default_branch is None:
+            raise ValueError("accepting per branch needs the default branch to "
+                             "accept the rest under")
+        buckets = _grouped_by_branch(conn, grouped, branch_for, default_branch)
     accepted: list[str] = []
     for branch, category, branch_label, bucket in buckets:
         merged_id = _accept_as_one(
@@ -4445,32 +4461,43 @@ def review_and_accept(conn: sqlite3.Connection,
     return tuple(accepted)
 
 
-def _grouped_by_branch(grouped: Sequence[GroupingResult],
-                       branch_for: Callable[[str], Branch | None]):
+def _grouped_by_branch(conn: sqlite3.Connection,
+                       grouped: Sequence[GroupingResult],
+                       branch_for: Callable[[str], Branch | None],
+                       default: Branch):
     """P9's formed groups, bucketed by the branch most of their members are under.
 
     In BRANCH order, the default first, and within a bucket in P9's own order, so
     two runs over one folder accept the same groups under the same addresses.
     A group with no member under any branch, or with two branches tied for its
-    members, is in no bucket and is not accepted -- see `review_and_accept`.
+    members, is the DEFAULT's -- see `review_and_accept` for why it is not
+    dropped.
+
+    **The vote is over the group's STORED members, not over `result.memberships`.**
+    A `GroupingResult` is one subject file through the sequence and carries that
+    one file's membership only, so a vote over it was a vote of one: a course
+    group whose seed happened to be a held file was dropped whole, and on the
+    owner's corpus that emptied the coursework branch of its courses and left it
+    built flat by kind (the reverted merge 8b9280d). `memberships_for_group` is
+    what `_accept_as_one` carries into the merged group, so the vote and the
+    merge read the same members.
     """
     buckets: dict[str, tuple[Branch, list[GroupingResult]]] = {}
     for result in grouped:
         votes: dict[str, int] = {}
         branches: dict[str, Branch] = {}
-        for membership in result.memberships:
+        for membership in memberships_for_group(conn, result.group.group_id):
             branch = branch_for(membership.file_id)
             if branch is None:
                 continue
             votes[branch.label] = votes.get(branch.label, 0) + 1
             branches[branch.label] = branch
-        if not votes:
-            continue
-        most = max(votes.values())
-        leaders = [name for name, count_ in votes.items() if count_ == most]
-        if len(leaders) != 1:
-            continue
-        chosen = branches[leaders[0]]
+        chosen = default
+        if votes:
+            most = max(votes.values())
+            leaders = [name for name, count_ in votes.items() if count_ == most]
+            if len(leaders) == 1:
+                chosen = branches[leaders[0]]
         buckets.setdefault(chosen.label, (chosen, []))[1].append(result)
     ordered = sorted(buckets.values(),
                      key=lambda pair: (not pair[0].is_default, pair[0].label))
@@ -6313,6 +6340,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         return review_and_accept(db, results, group_category=schema, label=label,
                                  created_at=clock,
                                  branch_for=partition.branch_of,
+                                 default_branch=partition.default,
                                  on_accepted=remember)
 
     def approve_plan(db: sqlite3.Connection, accepted: Sequence[str],
