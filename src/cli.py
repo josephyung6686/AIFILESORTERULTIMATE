@@ -5416,6 +5416,16 @@ REVIEW_SET_WORDS: Mapping[str, tuple[str, str]] = MappingProxyType({
     PROTECTED_REVIEW_SET: PROTECTED_REVIEW_SET_WORDS,
 })
 
+#: The rows a decision's own reason may name, and the protected key is NOT in it.
+#: `PROTECTED_REVIEW_SET` is the string `"protected"`, which is also
+#: `placement.vocabulary.PROTECTED`; a lookup over `REVIEW_SET_WORDS` would let
+#: any code spelled that way put a file into the protected set without P7 having
+#: marked it -- a set carrying the flag `require_set_actionable` raises on, filled
+#: by something other than the classification that decides it. Protection is
+#: decided by `_protected_among` and by nothing else.
+ORDINARY_REVIEW_SET_KEYS: frozenset[str] = frozenset(
+    key for key, _, _ in REVIEW_SET_REASONS)
+
 
 def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str,
         user_id: str, now, out=None,
@@ -6061,7 +6071,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 # so they may not share a set either.
                 return (NOT_YET_CLASSIFIED if is_unclassified(decision.privacy)
                         else NO_MODEL_ALLOWED)
-            if reason in REVIEW_SET_WORDS:
+            if reason in ORDINARY_REVIEW_SET_KEYS:
                 return reason
             if decision.outcome == pv.ASK_USER:
                 # Not an abstention: the run turned it into a question the report
