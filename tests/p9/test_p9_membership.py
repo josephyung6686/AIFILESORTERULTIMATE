@@ -773,8 +773,8 @@ def test_r16_a_member_basis_is_the_dossiers_and_not_the_list_it_came_from(
 def test_r16_an_observed_answer_is_recorded_and_applied_to_nothing(seam_conn):
     """The half that does not move: under an unratified prompt the site records
     its dossier, its response and its verdict, and applies none of it. `104` §7
-    Phase 1 step 6, and it is what `cli.observed_run_call` wraps while
-    `drafts_status()` says `unratified`."""
+    Phase 1 step 6, and it is what `cli.observed_run_call` wraps while this
+    draft's own row says `unratified`."""
     from grouping.p8_seam import ObservedOnly
     from grouping.store import current_group, memberships_for_group
 

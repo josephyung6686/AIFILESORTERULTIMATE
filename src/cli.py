@@ -122,8 +122,8 @@ from grouping.vocabulary import (
 from llm_harness.budgets import ScanBudget, create_budget_schema
 from llm_harness.prompt_library import (
     a_fact_response_schema_bytes, a_fact_shaping_policy_bytes,
+    DRAFT_STATUS_WORDS, RATIFIED, RATIFIED_LOCAL,
     a_fact_template_folder_levels_bytes, draft_bytes, draft_status,
-    drafts_status,
 )
 from llm_harness.harness import CallDependencies, run_call
 from llm_harness.records import (
@@ -702,6 +702,31 @@ OBSERVE_TEMPLATE_ID: Mapping[str, str] = MappingProxyType({
 })
 
 assert set(OBSERVE_TEMPLATE_ID) == OBSERVE_CALL_SITES
+
+
+#: WHAT EACH STATUS WORD BUYS, and the two questions it answers are not one
+#: question. `prompt_library` holds the vocabulary and judges nothing with it; the
+#: meaning of a word is a policy and policies are the composition root's.
+#:
+#: **APPLY** is "the site acts on this answer instead of recording it and moving
+#: on" -- `PromptDefinition.ratified`, which every applier reads off the object.
+#: **CROSS** is "these bytes may leave the device" -- the `104` §13 count.
+#:
+#: `ratified_local` is in the first and not the second, and that gap is the whole
+#: point of the word: `104` §15.1 ratifies C's `eliminate-v2` FOR THE LOCAL MODEL
+#: and leaves the cloud to R-82, because a local run sends nothing anywhere and
+#: showing a person's folder labels to a provider is a different consent. A single
+#: word would have made the owner grant both to get either.
+STATUS_APPLIES: frozenset[str] = frozenset({RATIFIED_LOCAL, RATIFIED})
+STATUS_MAY_CROSS_THE_INTERNET: frozenset[str] = frozenset({RATIFIED})
+
+#: Both are read against the library's closed vocabulary HERE, at import, because
+#: a typo in either would be a set that silently never matches -- an approval that
+#: never takes effect, or a gate that never opens -- and a run would look normal
+#: the whole way through. Crossing implies applying: text nobody will act on has
+#: no business on the internet either.
+assert STATUS_APPLIES <= DRAFT_STATUS_WORDS
+assert STATUS_MAY_CROSS_THE_INTERNET < STATUS_APPLIES
 
 
 #: WHAT A REJECTED B PROPOSAL IS CALLED, spelled once. `proposal_class` is not a
@@ -1293,10 +1318,17 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
     locality = routing.locality_for(C_PLACEMENT)
     if not observe_locality_permits(C_PLACEMENT, locality):
         return {}
-    require_observe_locality(C_PLACEMENT, locality)
-    require_observe_locality(D_RESIDUAL, routing.locality_for(D_RESIDUAL))
     placement_prompt = prompt_for(C_PLACEMENT)
-    residual_prompt = prompt_for(D_RESIDUAL)
+    # D IS ASKED ONLY WHERE ITS OWN WORD PERMITS. C and D are ratified separately,
+    # and the day C's word opened a target that D's did not, this line RAISED over
+    # D -- turning C off on that target for a refusal about D's text. `None` is the
+    # deployment `PipelineInputs.prompt_for` already knows: C wired and D not, and
+    # a residual set that asks for a model is refused there, at the moment it
+    # asks, naming the site that has no text. Nothing of D's leaves the device
+    # under a word that forbids it, which is the count this gate keeps.
+    residual_permitted = observe_locality_permits(
+        D_RESIDUAL, routing.locality_for(D_RESIDUAL))
+    residual_prompt = prompt_for(D_RESIDUAL) if residual_permitted else None
     authorities = PlacementCallAuthorities(
         gate=fact_authorities.gate,
         model_client=routing.client_for(C_PLACEMENT),
@@ -1321,7 +1353,8 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
         chosen_node_of=(_chosen_node_of(conn) if placement_prompt.ratified
                         else _must_not_apply(C_PLACEMENT)),
         residual_action_of=(_residual_action_of(conn)
-                            if residual_prompt.ratified
+                            if residual_prompt is not None
+                            and residual_prompt.ratified
                             else _must_not_apply(D_RESIDUAL)))
     built = model_path_injections(conn, authorities, plan_version=plan_version)
     built.pop("sensitivity_policy", None)
@@ -1360,12 +1393,16 @@ def observe_prompt(call_site: str) -> PromptDefinition:
         # the packet's word (`prompt_library.draft_status`), so the owner can
         # ratify one site's text without ratifying the other three.
         #
+        # `ratified_local` COUNTS AS RATIFIED HERE and not at the locality gate:
+        # this field is "act on the answer", which a local run may do, and the
+        # gate is "these bytes may leave the device", which it may not.
+        #
         # THE ID KEEPS `unratified` IN ITS NAME AFTER THE ROW IS RATIFIED: the id
         # names the FILE, not the file's standing, so the record written under it
         # says which text was used and the manifest row says whether that text was
         # ratified at the time. Renaming on ratification would strand every record
         # already written under the old id.
-        ratified=draft_status(template_id) == "ratified",
+        ratified=draft_status(template_id) in STATUS_APPLIES,
         shaping_policy_bytes=shaping_policy)
 
 
@@ -1422,11 +1459,16 @@ def observe_locality_permits(call_site: str, locality: str) -> bool:
     happens at the composition root before a corpus has been read.
 
     **THE GATE IS THE TEXT'S STANDING, NOT THE SITE'S NAME**, and it is read per
-    draft (`prompt_library.draft_status`) rather than per packet, so ratifying C's
-    text alone lifts C's refusal and leaves B, D and E refused. What the count
-    counts is prompts nobody approved, so a text the owner HAS approved is no
-    longer what this gate is about; the residual question of whether a cloud model
-    may see a person's folder labels is `104` R-82's and is not decided here.
+    draft (`prompt_library.draft_status`) rather than per packet, so one site's
+    word never speaks for the other three.
+
+    **AND RATIFYING IS NOT THE SAME ACT AS OPENING THE CLOUD.** `104` §15.1 puts
+    C's `eliminate-v2` to the owner FOR THE LOCAL MODEL, with the cloud waiting on
+    R-82's signature, so the two are separate words and this gate reads only the
+    second: `ratified_local` acts on its answer here and is still refused a cloud
+    target; `ratified` is the word that says these bytes may leave the device.
+    Local is permitted under every word, including `unratified`, which is the
+    behaviour that has always been true -- nothing leaves the machine.
 
     `A_fact` is unaffected and stays cloud-eligible: it is not in this set, its
     text is ratified, and `WIRED_CALL_SITES` is what governs it.
@@ -1435,16 +1477,25 @@ def observe_locality_permits(call_site: str, locality: str) -> bool:
         return True
     if locality == LOCAL:
         return True
-    return draft_status(OBSERVE_TEMPLATE_ID[call_site]) == "ratified"
+    return (draft_status(OBSERVE_TEMPLATE_ID[call_site])
+            in STATUS_MAY_CROSS_THE_INTERNET)
 
 
 def require_observe_locality(call_site: str, locality: str) -> None:
-    """`observe_locality_permits`, as a refusal that names what was wrong."""
+    """`observe_locality_permits`, as a refusal that names what was wrong.
+
+    **THE SENTENCE NAMES THIS DRAFT'S OWN WORD, not the packet's.** The packet's
+    word is only a default now, so a refusal quoting it could be flatly false
+    about the row it is refusing -- a packet reading `ratified` over a row that
+    says `unratified` would print "a D2 DRAFT ('ratified')" and send a reader to
+    argue with the wrong line. The word here is the word the gate actually read.
+    """
     if observe_locality_permits(call_site, locality):
         return
     raise UnratifiedPromptOnACloudTarget(
         f"call site {call_site!r} is observe-only and its prompt is a D2 DRAFT "
-        f"({drafts_status()!r}), but the routing sends it to a {locality!r} model. "
+        f"({draft_status(OBSERVE_TEMPLATE_ID[call_site])!r}), but the routing "
+        f"sends it to a {locality!r} model. "
         f"`104` §13 counts 0 cloud calls with unratified prompts and this is where "
         f"that count is kept. Unratified text is text nobody has agreed to send: "
         f"on this device that is a question of taste, and over the internet it is "

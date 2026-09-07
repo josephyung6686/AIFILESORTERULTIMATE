@@ -27,7 +27,8 @@ for _path in (str(_ROOT), str(_ROOT / "src")):
 
 import cli  # noqa: E402
 from llm_harness.prompt_library import (  # noqa: E402
-    DraftNotInManifest, draft_bytes, draft_row, drafts_status,
+    DRAFT_STATUS_WORDS, DraftNotInManifest, RATIFIED, RATIFIED_LOCAL,
+    UNRATIFIED, draft_bytes, draft_row, draft_status, drafts_status,
 )
 from llm_harness.vocabulary import (  # noqa: E402
     A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE,
@@ -70,14 +71,18 @@ def test_an_observe_site_is_refused_a_cloud_model(site):
         cli.require_observe_locality(site, CLOUD)
 
 
-def test_the_refusal_says_the_packet_is_unratified_in_the_packets_own_word():
-    """Read from the manifest, never remembered here: if the owner ratifies the
-    packet the sentence stops claiming otherwise without anyone editing it."""
+def test_the_refusal_says_this_drafts_status_in_the_manifests_own_word():
+    """Read from the manifest, never remembered here: if the owner ratifies this
+    draft the sentence stops claiming otherwise without anyone editing it.
+
+    THE DRAFT'S WORD AND NOT THE PACKET'S. The packet's word is only the default a
+    silent row inherits, so a sentence quoting it can be false about the row it is
+    refusing; the inverse case is pinned below. Today the two coincide."""
     # B is the unratified site since C's row was ratified on 7 Sep 2026.
     with pytest.raises(cli.UnratifiedPromptOnACloudTarget) as caught:
         cli.require_observe_locality(B_GROUP, CLOUD)
 
-    assert drafts_status() in str(caught.value)
+    assert repr(draft_status(WINNERS[B_GROUP])) in str(caught.value)
     assert cli.LOCAL_MODEL_NAME in str(caught.value)
 
 
@@ -815,7 +820,7 @@ def test_a_ratified_row_ratifies_its_own_site_and_leaves_the_other_three(
     and the shortest path to a real exact number. D and E have never produced one
     and must not start applying because C did. One word on one row, and the packet
     still says `unratified` over all of them."""
-    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], "ratified"))
+    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], RATIFIED))
 
     assert drafts_status() == "unratified"
     assert cli.observe_prompt(C_PLACEMENT).ratified is True
@@ -829,7 +834,7 @@ def test_the_ratified_rows_id_still_says_unratified_and_still_loads_its_bytes(
     would strand every record already written under the old id, so what a record
     says is WHICH TEXT was used and the manifest row says whether that text was
     ratified at the time."""
-    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], "ratified"))
+    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], RATIFIED))
 
     prompt = cli.observe_prompt(C_PLACEMENT)
 
@@ -943,10 +948,10 @@ def test_a_template_id_nobody_published_has_no_status_either():
 def test_the_cloud_refusal_lifts_for_the_ratified_site_and_holds_for_the_rest(
         manifest_with):
     """What `104` §13's count counts is CLOUD CALLS WITH UNRATIFIED PROMPTS, so
-    the gate is the text's standing and not the site's name. A ratified text is
-    text the owner agreed to send; the remaining question -- whether a cloud model
-    may see a person's folder labels -- is R-82's and is not decided here."""
-    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], "ratified"))
+    the gate is the text's standing and not the site's name. `ratified` is the
+    word that says these bytes may leave the device, and it says it about one
+    draft."""
+    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], RATIFIED))
 
     assert cli.observe_locality_permits(C_PLACEMENT, CLOUD) is True
     cli.require_observe_locality(C_PLACEMENT, CLOUD)
@@ -963,18 +968,24 @@ def test_the_cloud_refusal_lifts_for_the_ratified_site_and_holds_for_the_rest(
 
 def test_the_real_manifest_on_disk_ratifies_c_alone():
     """THE PIN. On 7 Sep 2026 the owner ratified C's eliminate-v2 row and nothing
-    else: the packet's word stays `unratified`, B, D and E inherit it, and the
-    manifest is the owner's to edit and nobody else's. C's cloud target is
-    permitted by this word (P1's gate reads the row); what keeps C local today
-    is the configured model, and R-82 is signed before any cloud key is."""
+    else, FOR THE LOCAL MODEL (`104` §15.1: the cloud waits on R-82), so the row's
+    word is `ratified_local`: the packet's word stays `unratified`, B, D and E
+    inherit it, and the manifest is the owner's to edit and nobody else's. C's
+    cloud target is refused by this word, and not by whichever model happens to
+    be configured -- the gate is the text's standing, in code."""
     from llm_harness.prompt_library import draft_status
 
-    assert drafts_status() == "unratified"
+    assert drafts_status() == UNRATIFIED
     for site in sorted(WINNERS):
         expected = site == C_PLACEMENT
-        assert (draft_status(WINNERS[site]) == "ratified") is expected, site
+        word = RATIFIED_LOCAL if expected else UNRATIFIED
+        assert draft_status(WINNERS[site]) == word, site
+        assert ("status" in draft_row(WINNERS[site])) is expected, site
+        # The site acts on its answer, and its text still does not leave the
+        # device: the local word applies and does not cross.
         assert cli.observe_prompt(site).ratified is expected, site
-        assert cli.observe_locality_permits(site, CLOUD) is expected, site
+        assert cli.observe_locality_permits(site, LOCAL) is True, site
+        assert cli.observe_locality_permits(site, CLOUD) is False, site
 
 
 # --- P2: the real resolvers behind C and D, and the stub that guards a draft ------
@@ -1154,3 +1165,118 @@ def test_p2_each_site_is_turned_on_by_its_own_prompt_and_not_by_its_neighbours(
     assert built["chosen_node_of"](_cd_verdict("ds-c4")) == "n-general"
     with pytest.raises(cli.ObservedSiteMustNotApply, match=D_RESIDUAL):
         built["residual_action_of"](object())
+
+
+# --- P1 follow-up: ratifying is not the same act as opening the cloud --------
+#
+# `104` §15.1 and `105` §12.1 put C's `eliminate-v2` to the owner FOR THE LOCAL
+# MODEL, with the cloud waiting on R-82's signature. With one word for "approved"
+# those are one act: the word that lets a site act on its answer is the word that
+# lets its text cross the internet, so the owner would have to grant both to get
+# either. `ratified_local` is the word that separates them.
+
+
+def test_the_status_vocabulary_is_three_closed_words():
+    """A word outside the list is not a further state -- every reader tests
+    membership, so an unrecognised word reads as 'not approved'."""
+    assert DRAFT_STATUS_WORDS == {UNRATIFIED, RATIFIED_LOCAL, RATIFIED}
+    assert (UNRATIFIED, RATIFIED_LOCAL, RATIFIED) == (
+        "unratified", "ratified_local", "ratified")
+
+
+def test_what_each_word_buys_is_two_questions_and_not_one():
+    """Asserted at `cli` import as well, so a typo is loud before a corpus is
+    read: a mistyped set never matches, which is an approval that never takes
+    effect or a gate that never opens, and a run would look normal throughout."""
+    assert cli.STATUS_APPLIES == {RATIFIED_LOCAL, RATIFIED}
+    assert cli.STATUS_MAY_CROSS_THE_INTERNET == {RATIFIED}
+    assert cli.STATUS_APPLIES <= DRAFT_STATUS_WORDS
+    # Crossing implies applying: text nobody will act on has no business on the
+    # internet either.
+    assert cli.STATUS_MAY_CROSS_THE_INTERNET < cli.STATUS_APPLIES
+    assert UNRATIFIED not in cli.STATUS_APPLIES
+
+
+def test_ratified_local_acts_on_its_answer_and_is_still_refused_the_cloud(
+        manifest_with):
+    """The word the owner was actually asked for. C acts on its placement here
+    and its text does not leave the device; R-82 is the signature the cloud waits
+    on, and it is a different question about a person's folder labels."""
+    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], RATIFIED_LOCAL))
+
+    assert draft_status(WINNERS[C_PLACEMENT]) == RATIFIED_LOCAL
+    assert cli.observe_prompt(C_PLACEMENT).ratified is True
+
+    assert cli.observe_locality_permits(C_PLACEMENT, LOCAL) is True
+    cli.require_observe_locality(C_PLACEMENT, LOCAL)
+
+    assert cli.observe_locality_permits(C_PLACEMENT, CLOUD) is False
+    with pytest.raises(cli.UnratifiedPromptOnACloudTarget, match=C_PLACEMENT):
+        cli.require_observe_locality(C_PLACEMENT, CLOUD)
+
+
+def test_ratified_local_ratifies_one_site_and_leaves_the_other_three_alone(
+        manifest_with):
+    """The per-draft rule and the per-reach rule are independent: one word on one
+    row moves that row's site and nothing else, whichever of the two words it is.
+    D and E have no measured row and must not start applying because C did."""
+    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], RATIFIED_LOCAL))
+
+    for site in (B_GROUP, D_RESIDUAL, E_TEMPLATE):
+        assert draft_status(WINNERS[site]) == UNRATIFIED
+        assert cli.observe_prompt(site).ratified is False
+        assert cli.observe_locality_permits(site, CLOUD) is False
+
+
+def test_the_full_word_lifts_both_and_the_local_word_lifts_only_the_first(
+        manifest_with):
+    """The two words side by side, which is the whole of the difference: both
+    apply, one crosses."""
+    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], RATIFIED))
+
+    assert cli.observe_prompt(C_PLACEMENT).ratified is True
+    assert cli.observe_locality_permits(C_PLACEMENT, CLOUD) is True
+    cli.require_observe_locality(C_PLACEMENT, CLOUD)
+
+
+def test_the_cloud_refusal_names_this_drafts_word_and_not_the_packets(
+        manifest_with):
+    """The inverse case, and the reason the sentence changed. A packet reading
+    `ratified` over a row that says `unratified` would print "a D2 DRAFT
+    ('ratified')" and send a reader to argue with the wrong line."""
+    def packet_ratified_row_not(manifest):
+        manifest["status"] = RATIFIED
+        for row in manifest["drafts"]:
+            if row.get("template_id") == WINNERS[C_PLACEMENT]:
+                row["status"] = UNRATIFIED
+
+    manifest_with(packet_ratified_row_not)
+
+    assert drafts_status() == RATIFIED
+    assert draft_status(WINNERS[C_PLACEMENT]) == UNRATIFIED
+
+    with pytest.raises(cli.UnratifiedPromptOnACloudTarget) as caught:
+        cli.require_observe_locality(C_PLACEMENT, CLOUD)
+
+    sentence = str(caught.value)
+    assert repr(UNRATIFIED) in sentence
+    assert repr(RATIFIED) not in sentence
+
+
+def test_a_ratified_local_row_is_refused_the_cloud_while_a_sibling_crosses(
+        manifest_with):
+    """Two words in one manifest at once. Neither site borrows the other's reach:
+    the gate asks each draft its own word."""
+    def two_words(manifest):
+        for row in manifest["drafts"]:
+            if row.get("template_id") == WINNERS[C_PLACEMENT]:
+                row["status"] = RATIFIED_LOCAL
+            elif row.get("template_id") == WINNERS[B_GROUP]:
+                row["status"] = RATIFIED
+
+    manifest_with(two_words)
+
+    assert cli.observe_prompt(C_PLACEMENT).ratified is True
+    assert cli.observe_prompt(B_GROUP).ratified is True
+    assert cli.observe_locality_permits(C_PLACEMENT, CLOUD) is False
+    assert cli.observe_locality_permits(B_GROUP, CLOUD) is True

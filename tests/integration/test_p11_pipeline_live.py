@@ -286,8 +286,8 @@ def test_the_deterministic_path_runs_end_to_end_with_no_p8_at_all(live, tmp_path
 
     THE WORLD IS THE PRODUCT'S OWN, and R-19 is why it has to be named. Every
     model injection is here, including a real `Gate`, and the prompt's text is
-    UNRATIFIED, which is what `cli.observe_prompt` reads off `drafts_status()`
-    today. Under Q-A (`104` §13.5) a configured model that DECIDES is asked about
+    UNRATIFIED, which is what `cli.observe_prompt` reads off this draft's own
+    manifest row (`prompt_library.draft_status`) today. Under Q-A (`104` §13.5) a configured model that DECIDES is asked about
     every placeable file, so "a gate exists and no call happened" is no longer a
     sentence about §6.6 alone -- it is a sentence about ratification, and this
     test now says which. The twin below is the other half.
