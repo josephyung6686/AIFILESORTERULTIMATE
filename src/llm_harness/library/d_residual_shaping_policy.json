@@ -1,0 +1,24 @@
+{
+  "policy_id": "d_residual.shaping.unratified.2026-09-06",
+  "call_site": "D_residual",
+  "what_this_is": "How the dossier beside it was shaped, so the reader knows what it is looking at and what it is not. It describes the SHAPING, never the file: every sentence here is the same on every file in every corpus, and nothing in it is evidence.",
+  "closed_world": "The dossier is the whole of what was sent. There is no document behind it, no page, no filename, no path, no surrounding sentence, and no home beyond the areas and branches listed. A target can only be an identifier present in allowed_vocabulary or one of the two marking words, and a citation can only be anchored in a value present in released_evidence.",
+  "selection": {
+    "unit": "one file of a residual review set the person opted into, and the approved homes of one frozen plan",
+    "what_is_offered": "the file's recognised text, extracted text, metadata or archive manifest as observations the local extractors already produced, each addressed by an observation_key and bounded by a span; every residual area the person enabled, with its name, its disposition and what it holds; the branches a return can send the file back to, each named by the group or packet it was built from; broad parent branches; and every stronger relationship the engine flagged",
+    "what_is_never_offered": "complete extracted text, whole documents, paths, filenames, the contents of protected material, file hashes, image EXIF, GPS, the person's own typed words, and raw sensitive values; a protected file does not reach this call at all",
+    "ordering": "homes in the engine's order, which carries no meaning for the answer; evidence with the most placed first -- title, heading and metadata before body -- then a bounded number of the rest",
+    "bounded": "the count and the length are both capped before the request is built; what did not fit was not sent and is not described"
+  },
+  "reduction_ladder": [
+    "none: the dossier fits and is sent unreduced",
+    "summarized_facts: facts stand in for their evidence",
+    "preserved_anchors: only the anchoring evidence is kept",
+    "split: the subject is sent as several dossiers, each judged on its own",
+    "deferred: nothing is sent"
+  ],
+  "reduction_rung_in_force": "the dossier's own reduction_rung key says which rung this one was built at",
+  "redaction": "identifiers the local policy recognises are transformed before the value is written into the dossier. A redacted value is the value that was sent, and it is the only text a citation can quote.",
+  "what_is_done_with_the_answer": "the action is checked against the eight; a target is checked against allowed_vocabulary, against the frozen plan and against the enabled areas, and refused if it contains a slash; every citation is checked against the released value it names and against the file being reviewed; every flagged stronger relationship must appear in relationships_considered, and one overlooked returns the file to the main organizer; the sensitivity policy is applied; a review-later answer is recorded as unresolved and moves nothing; a return sends the file back through placement. An answer that fails a check is recorded as having failed it. Nothing here is a hint about which answer passes.",
+  "declining": "leaving the file in place, marking it for review later and abstaining are recorded as correct outcomes. They are not failures and are not counted as failures."
+}
