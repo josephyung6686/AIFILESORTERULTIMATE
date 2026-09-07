@@ -215,8 +215,27 @@ def test_the_stage_hands_the_ladder_the_observations_it_is_about_to_send():
     assert "observations" in passed, (
         "the ladder must be measured against the observations the request is "
         "built from; any other list is a different dossier")
-    assert isinstance(passed["observations"], ast.Name)
-    assert passed["observations"].id == "observations"
+    # `104` R-135: the request is built from the file's own readings AND the
+    # context readings its folder's anchors supply, so the list the ladder
+    # measures is that union -- `observations + context` -- and not the file's
+    # readings alone. Measuring the smaller list would be the very defect this
+    # pin exists for: a dossier the ladder never weighed.
+    def named(node):
+        """The name a list expression is about: `x`, or `tuple(x)` / `list(x)`,
+        which only change the container and never the members measured."""
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id in ("tuple", "list") and len(node.args) == 1):
+            node = node.args[0]
+        assert isinstance(node, ast.Name), ast.dump(node)
+        return node.id
+
+    measured = passed["observations"]
+    if isinstance(measured, ast.BinOp):
+        assert isinstance(measured.op, ast.Add)
+        assert {named(measured.left), named(measured.right)} == {
+            "observations", "context"}
+    else:
+        assert named(measured) == "observations"
 
 
 # --- the door's own backstop ------------------------------------------------
