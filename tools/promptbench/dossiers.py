@@ -125,13 +125,16 @@ def model_visible_bytes(dossier: Dossier, prompt: PromptDefinition, *,
     return assemble(prompt, serialise_dossier(body, layout).encode("utf-8"))
 
 
-#: The keys that are the same on every file of one situation, in the order the
-#: stable-prefix lever wants them, and the keys that belong to the file.
-FRAME_KEYS = ("allowed_vocabulary", "call_site", "field_glossary", "folder_levels",
-              "readings", "max_dossier_tokens", "plan_version", "policy_version",
-              "reduction_rung", "response_schema", "shaping_policy")
-FILE_KEYS = ("subject_ref", "eligibility_reason", "evidence_items",
-             "released_evidence", "conflicts")
+#: The product's own frame-first order (`104` R-58, `llm_harness.dossier._FRAME_KEYS`
+#: and `_FILE_KEYS` on the schema agent's branch, 2026-09-06), with `readings`
+#: where that branch says it must go: at the end of the frame, after
+#: `folder_levels`, so it stays inside the shared prefix. The situation frame
+#: first, then this file's own keys, `subject_ref` first because it always differs.
+FRAME_KEYS = ("call_site", "response_schema", "shaping_policy", "policy_version",
+              "plan_version", "max_dossier_tokens", "reduction_rung",
+              "eligibility_reason", "allowed_vocabulary", "field_glossary",
+              "folder_levels", "readings")
+FILE_KEYS = ("subject_ref", "conflicts", "evidence_items", "released_evidence")
 
 
 def serialise_dossier(body: dict, layout: str) -> str:

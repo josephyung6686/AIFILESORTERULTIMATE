@@ -62,6 +62,22 @@ def test_the_frame_first_layout_puts_every_frame_key_before_every_file_key():
     positions = {k: text.index(f'"{k}":') for k in _body()}
     assert max(positions[k] for k in FRAME_KEYS) < min(positions[k] for k in FILE_KEYS)
     assert json.loads(text) == _body()   # same content, different order
+    # `readings` closes the frame, right after `folder_levels`, and `subject_ref`
+    # opens the file part: the order the product's own `_BODY_ORDER` will carry.
+    assert positions["folder_levels"] < positions["readings"] < positions["subject_ref"]
+    assert FRAME_KEYS[-2:] == ("folder_levels", "readings")
+    assert FILE_KEYS[0] == "subject_ref"
+
+
+def test_the_frame_first_order_is_the_products_order_where_the_product_has_one():
+    """On the schema agent's branch `dossier._BODY_ORDER` is frame then file with
+    fifteen keys; ours is the same fifteen in the same order plus `readings`."""
+    ours = tuple(k for k in FRAME_KEYS + FILE_KEYS if k != "readings")
+    assert ours == (
+        "call_site", "response_schema", "shaping_policy", "policy_version",
+        "plan_version", "max_dossier_tokens", "reduction_rung", "eligibility_reason",
+        "allowed_vocabulary", "field_glossary", "folder_levels",
+        "subject_ref", "conflicts", "evidence_items", "released_evidence")
 
 
 def test_the_frame_first_layout_refuses_a_key_it_has_no_place_for():
