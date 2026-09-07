@@ -1074,6 +1074,47 @@ def test_the_frozen_tree_says_who_decided_how_deep_each_branch_goes(tmp_path):
             f"{row['refinement_reason']!r}")
 
 
+def test_the_residual_home_says_who_keeps_it_flat(tmp_path):
+    """The other `shallow-by-choice` this command writes, and the one that stays.
+
+    `--residual "Review Later"` really is the person's gesture -- the template is
+    enabled because they typed its name -- but the FLATNESS is not theirs.
+    `RESIDUAL_MAX_DEPTH` is zero, so the home is flat by construction and nothing
+    could split it however the person answered. `shallow-by-choice` is therefore
+    the true value here, where `refine-later` would say the opposite; what was
+    missing is the same thing `refinement_for` was missing, the author of the
+    sentence. Read off the frozen tree rather than the tuple, because the tuple
+    is what P10 is handed and the node is what P13 will show.
+    """
+    import sqlite3
+
+    from tree_design.provenance import actor_phrase
+    from tree_design.vocabulary import SURFACE_UNATTENDED
+
+    corpus = _uneven_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    code, printed = _run([str(corpus), "--situation", "academic.coursework",
+                          "--label", "Coursework", "--user", "jy",
+                          "--residual", "Review Later",
+                          "--database", str(database)])
+    assert code == 0, printed
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    homes = [dict(r) for r in conn.execute(
+        "SELECT display_label, refinement_disposition, refinement_reason "
+        "FROM tree_nodes WHERE display_label = 'Review Later'")]
+    conn.close()
+
+    assert homes, "the residual home this run enabled is not in the frozen tree"
+    actor = actor_phrase(SURFACE_UNATTENDED)
+    for home in homes:
+        assert home["refinement_disposition"] == "shallow-by-choice", home
+        assert home["refinement_reason"].startswith(actor), (
+            "the residual home's flatness is the product's design and the "
+            f"record does not say whose it is: {home['refinement_reason']!r}")
+
+
 def test_the_tree_record_does_not_claim_a_person_saw_a_canvas(tmp_path):
     """The same overclaim as the group record above, one part further downstream.
 

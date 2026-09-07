@@ -4346,11 +4346,18 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # the home is flat DELIBERATELY, and `refine-later` would say the
             # opposite -- that it is unfinished and something should still
             # split it. P11 reads this rather than re-deriving it.
+            #
+            # Whose deliberate design, though. `--residual` is the person's
+            # gesture and the template is here because they typed its name, but
+            # the FLATNESS is the product's: nothing could split this home
+            # however they answered. So the sentence opens with the same actor
+            # `refinement_for` uses, for the same reason -- a `shallow-by-choice`
+            # that does not say whose choice it was is R-28 in one more place.
             residual_refinement=(
                 SHALLOW_BY_CHOICE,
-                "This is a home for files that do not belong to any one "
-                "folder. It is meant to stay flat, so nothing here will be "
-                "split into deeper folders."),
+                f"{actor_phrase(SURFACE_UNATTENDED)} keep this home flat. It is "
+                "for files that do not belong to any one folder, so nothing "
+                "here will be split into deeper folders."),
             # §6.9's policy. NOT optional -- `validate_for_freeze` refuses a plan
             # version without one, because a file that belongs to two homes leaves
             # P11 having to pick an institution. `mandatory-review` is the answer
