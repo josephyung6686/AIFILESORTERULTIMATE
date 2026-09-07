@@ -396,3 +396,52 @@ def test_a_malformed_address_is_returned_whole_rather_than_repaired():
 
     assert _file_id_of(f"{SUBJECT_FILE}:no-hash-here") == "no-hash-here"
     assert _file_id_of("no-colons-at-all") == "no-colons-at-all"
+
+
+# --- `104` R-15, pinned as it will fire the moment C answers ------------------
+
+@pytest.mark.xfail(strict=True, reason=(
+    "104 R-15: `_invented_dimension` compares a dimension's VALUE against "
+    "`dossier.allowed_vocabulary`, which P11 fills with the legal NODE IDS. A "
+    "real institution, date or project is never a node id, so every grounded "
+    "answer is rejected as invented. Phase 3 owns the validators; the fix is to "
+    "check the value against the evidence it cites, and the node-id set stays "
+    "the check for `destination` alone, which is what it was written for."))
+def test_a_real_institution_is_not_an_invented_one():
+    """The check that makes site C reject every correct answer it will ever give.
+
+    Written as a STRICT xfail rather than left latent: it fails now for the exact
+    reason it will fail on a real corpus, and the moment Phase 3 fixes the
+    validator this test passes and the marker's own strictness reports it. A
+    latent defect with no test is one nobody is told about when it stops being
+    latent.
+
+    `104` R-15 is rated High and "latent, code" precisely because nothing called
+    it -- and W2-D is the wave that calls it. Observe mode is what keeps that
+    safe: the verdict is recorded and applied to nothing.
+    """
+    from llm_harness.placement_validation import _invented_dimension
+
+    # What P11 puts in `allowed_vocabulary`: the legal destinations.
+    node_ids = {"node_f1d70c8a_1", "node_f1d70c8a_2"}
+    # What a correct model answer looks like -- a real institution, cited.
+    payload = {"per_dimension_support": [
+        {"dimension": "institution", "value": "Columbia University",
+         "support": "cited"}]}
+
+    assert _invented_dimension(payload, node_ids) is None
+
+
+def test_the_same_check_is_right_about_a_destination_and_that_half_stays():
+    """The half of R-15 that is NOT broken, asserted beside it so a fix cannot
+    take it away. A destination outside the frozen tree IS invented, and the
+    node-id set is exactly the right vocabulary for that question -- which is the
+    question this check was written for before it was pointed at values too."""
+    from llm_harness.placement_validation import _invented_dimension
+
+    node_ids = {"node_f1d70c8a_1"}
+    payload = {"per_dimension_support": [
+        {"dimension": "institution", "value": "node_f1d70c8a_1",
+         "support": "cited"}]}
+
+    assert _invented_dimension(payload, node_ids) is None
