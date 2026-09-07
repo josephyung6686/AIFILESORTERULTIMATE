@@ -82,9 +82,28 @@ class PromptDefinition:
     call_site: str
     call_site_version: str
     shaping_policy_bytes: bytes
+    #: WHETHER THE OWNER RATIFIED THIS TEXT, set by the loader from the packet
+    #: manifest rather than inferred from the id. The finish line's invariant is
+    #: that no verdict produced under an unratified prompt is ever applied,
+    #: whatever mode flags say, and a property that governs application belongs on
+    #: the object that carries the text.
+    #:
+    #: `False` BY DEFAULT, which is the safe direction: a caller that says nothing
+    #: gets a prompt whose answers are recorded and not acted on. The opposite
+    #: default would apply a verdict on the strength of an omission.
+    #:
+    #: The id convention is what the manifest enforces; this is what the code
+    #: reads. A string test would make the invariant depend on a naming habit, and
+    #: a renamed draft would start applying.
+    ratified: bool = False
 
     def __post_init__(self) -> None:
         _require(self.call_site, CALL_SITES, name="call_site")
+        if not isinstance(self.ratified, bool):
+            raise MalformedRecord(
+                "prompt definition `ratified` is a bool set by the loader from "
+                "the packet manifest; anything else is a caller guessing at "
+                "whether the owner approved this text")
         if not self.template_id or not self.call_site_version:
             raise MalformedRecord("prompt definition requires template_id and call_site_version")
         if not self.template_bytes:
