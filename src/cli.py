@@ -45,6 +45,7 @@ import sys
 import uuid
 import textwrap
 import unicodedata
+from collections import namedtuple
 from decimal import Decimal
 from itertools import count
 from pathlib import Path, PurePosixPath
@@ -59,6 +60,10 @@ from database_agent.cloud_consent import (
 from database_agent.db import DatabaseInsideCorpus, open_database
 from database_agent.files_table import (
     PATH_NO_LONGER_EXISTS, SUPERSEDED_CONTENT, get_file,
+)
+from extractors.archive import (
+    EXTRACTOR_NAME as ARCHIVE_EXTRACTOR_NAME,
+    LOCKED_REASON_PREFIX,
 )
 from extractors.image import PERCEPTUAL_HASH_FIELD
 from extractors.router import SOURCE_TYPE_BY_FORMAT
@@ -4419,7 +4424,61 @@ def _protected_file_count(conn: sqlite3.Connection, scan_run_id: str) -> int:
                if file_id in withheld)
 
 
-def _print_protected(areas, *, protected_files: int, out) -> None:
+#: One locked container, as the screen needs it: the name the person calls it and
+#: the reader's own sentence about why it was not opened.
+LockedContainer = namedtuple("LockedContainer", "name reason")
+
+
+def locked_reasons(conn: sqlite3.Connection,
+                   scan_run_id: str) -> dict[str, str]:
+    """Section 2.5's password-protected archives in this scan, by file. `104` R-D.
+
+    Read off P4's own extraction record rather than re-derived: the reader put the
+    reason there, P5 made the run `unreadable`, and that table is "THE
+    extraction-outcome record for the whole system". Matched on
+    `LOCKED_REASON_PREFIX` and on the archive extractor, so `malformed archive:` --
+    the other thing an `unreadable_reason` can say -- is never counted as marked.
+
+    Over THIS scan's roster, for the reason `_protected_file_count` gives: the
+    number stands beside a count of this run's containers and files, and a locked
+    archive from an earlier scan of another folder would make the total a sum of
+    two questions.
+
+    ONE LOOKUP, read twice: by the block at the top of the report and by the line
+    where the file itself is listed. Two lookups would be two answers to "is this
+    archive locked", and the screen would eventually carry both.
+    """
+    reasons = {
+        row["file_id"]: row["failure_reason"]
+        for row in conn.execute(
+            "SELECT file_id, failure_reason FROM extraction_runs "
+            "WHERE extractor_name = ? AND completeness = 'unreadable' "
+            "AND failure_reason LIKE ?",
+            (ARCHIVE_EXTRACTOR_NAME, f"{LOCKED_REASON_PREFIX}%"))}
+    found: dict[str, str] = {}
+    for file_id, _hash in corpus_roster(conn, scan_run_id):
+        reason = reasons.get(file_id)
+        if reason is None:
+            continue
+        # The reader's sentence, without P5's tail. `extract_archive` appends
+        # "; section 2.5 marks it rather than forcing it open" -- true, and it is
+        # what the block's own heading already says, so printing it here would say
+        # the same thing twice on one screen.
+        found[file_id] = (
+            reason.split(f"{LOCKED_REASON_PREFIX}: ", 1)[-1].split("; section")[0])
+    return found
+
+
+def locked_containers(conn: sqlite3.Connection, scan_run_id: str,
+                      names: Mapping[str, str]) -> tuple[LockedContainer, ...]:
+    """The same archives, named the way the person names them, for the block."""
+    return tuple(sorted(
+        LockedContainer(name=names.get(file_id, file_id), reason=reason)
+        for file_id, reason in locked_reasons(conn, scan_run_id).items()))
+
+
+def _print_protected(areas, *, protected_files: int,
+                     locked: Sequence[LockedContainer] = (), out=None) -> None:
     """Everything this run marked and set aside, under ONE word and ONE total.
 
     **`104` R-J.** Two lines apart the report used to say "Protected containers: 0
@@ -4448,8 +4507,8 @@ def _print_protected(areas, *, protected_files: int, out) -> None:
     hiding place.
     """
     out = out if out is not None else sys.stdout
-    print(f"\nProtected: {len(areas) + protected_files} marked and counted",
-          file=out)
+    print(f"\nProtected: {len(areas) + len(locked) + protected_files} "
+          f"marked and counted", file=out)
     if areas:
         print(f"  Application and system folders: {len(areas)}, never opened",
               file=out)
@@ -4458,6 +4517,23 @@ def _print_protected(areas, *, protected_files: int, out) -> None:
             print(f"      {area.path}", file=out)
         print("  Nothing inside these was read, indexed, classified or moved, and "
               "none of them is a place anything can be filed.", file=out)
+    if locked:
+        # `104` R-D. A THIRD KIND, and it belongs with the folders rather than
+        # with the files: nothing inside it was read either. Section 2.5 -- an
+        # archive whose members are encrypted is "marked as unreadable ... rather
+        # than forced open" -- and the standing rule is that what is marked is
+        # COUNTED, on the screen and not only in the database. `03938ae` recorded
+        # it correctly and said it nowhere.
+        #
+        # NAMED, like the folders above and unlike the files below. The name is
+        # the archive's own, which the person sees in Finder anyway; what stays
+        # unprinted is the MEMBER list, because a locked archive's members can be
+        # `passport.pdf` and `00`:201 is exactly about that list.
+        print(f"  Password-protected containers: {len(locked)}, never opened",
+              file=out)
+        for container in locked:
+            print(f"    {container.name}", file=out)
+            print(_wrapped(container.reason, indent="      "), file=out)
     if protected_files:
         print(_wrapped(
             f"Protected material: {protected_files} "
@@ -6134,6 +6210,9 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         _print_protected(
             protected_areas(conn, scan_run_id=p1_p7.scan_run_id),
             protected_files=_protected_file_count(conn, p1_p7.scan_run_id),
+            locked=locked_containers(
+                conn, p1_p7.scan_run_id,
+                file_names(conn, directory, *also_read)),
             out=out)
         # HERE for the reason above it, one rule further out. Every argument that
         # comment makes for the protected block is an argument for §1.1's other
@@ -7349,6 +7428,7 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
            invite_freeze: bool = False,
            list_every_name: bool = False,
            show_protected: bool = False,
+           locked: Mapping[str, str] = MappingProxyType({}),
            not_carried: Sequence = ()) -> tuple[str, ...]:
     """The run, in the order a person would ask about it.
 
@@ -7521,9 +7601,18 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # key. A protected file is marked and counted as ITSELF; it does not
         # take the syllabus beside it behind the summary with it.
         protected_here = _protected(decision, sets)
+        # `104` R-D. A PASSWORD-PROTECTED ARCHIVE KEYS APART. Its decision reads
+        # like every other unplaced file's -- "No legal destination cleared
+        # §6.10's conditions" -- which is true and says nothing about the one
+        # thing this file's record does know, so it was folded in with twelve
+        # others and, past the ten-name cap, was not even printed. Section 2.5
+        # marks it; the standing rule counts what is marked; and a count a person
+        # cannot find the file behind is half a count.
+        locked_here = tuple(sorted(
+            file_id for file_id in _files_of(decision) if file_id in locked))
         key = (decision.outcome, where, reason, review,
                decision.review_policy if decision.outcome == pv.PLACE else None,
-               settled, same_folder, protected_here)
+               settled, same_folder, protected_here, locked_here)
         members.setdefault(key, []).extend(_files_of(decision))
         shielded[key] = shielded.get(key, False) or protected_here
         marks = held_seen.setdefault(key, set())
@@ -7556,7 +7645,8 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
           + (f", {awaiting} waiting for you to approve" if awaiting else ""),
           file=out)
     for key in ordered:
-        outcome, where, reason, review, policy, settled, same_folder, _ = key
+        outcome, where, reason, review, policy, settled, same_folder, _, \
+            locked_here = key
         files = sorted(members[key], key=lambda f: names.get(f, f))
         # A placement's headline comes from its REVIEW POLICY, because that is
         # what says whether anything may happen to the file. An unknown policy
@@ -7636,6 +7726,17 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         if reason:
             print(_wrapped(f"Same reason for each: {reason}", indent="    "),
                   file=out)
+        # `104` R-D, said where the file is listed and not only at the top. The
+        # member NAMES are not printed: a locked archive's members can be
+        # `passport.pdf`, which is the list `00`:201 is about.
+        for file_id in locked_here:
+            print(_wrapped(
+                f"{names.get(file_id, file_id)} is password-protected: "
+                f"{locked[file_id]}. It is counted with the protected material "
+                f"at the top of this report; section 2.5 marks an archive like "
+                f"this rather than forcing it open, so nothing in it was read "
+                f"and nothing about it was assembled for a model.",
+                indent="    "), file=out)
         # `_role_lines`' convention: a line that begins with a space is a line
         # the person is meant to paste, and it is printed exactly as it is.
         for note in _review_note(held_sets.get(key, ()), areas):
@@ -8675,6 +8776,10 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                    invite_freeze=not args.freeze,
                    list_every_name=args.freeze,
                    show_protected=args.show_protected,
+                   # Read here and passed IN, for the reason `report`'s own
+                   # docstring gives about `questions`: it takes a finished run
+                   # and a naming table and holds no connection.
+                   locked=locked_reasons(conn, result.p1_p7.scan_run_id),
                    # A §7.6 set answer belongs to the plan version it was given
                    # in, and every run mints a new one, so an answer given
                    # yesterday is not applied today. That is

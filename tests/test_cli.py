@@ -3803,3 +3803,50 @@ def test_the_protected_block_says_nothing_twice_when_there_is_one_kind():
     assert "Protected material: 2 files" in block
     assert "Application and system folders" not in block
     assert UNTOUCHED not in block
+
+
+# --- `104` R-D: the locked archive on the screen --------------------------------
+
+
+def _locked(name, reason):
+    return SimpleNamespace(name=name, reason=reason)
+
+
+def test_a_password_protected_archive_is_counted_as_a_container():
+    """`03938ae` marked it in the record and the screen went on saying nothing.
+
+    The run recorded "password-protected: 2 of 2 member(s) are encrypted; names
+    listed, contents not read" and made the extraction `unreadable`; the person
+    read "This file has not been classified", folded in with twelve other files,
+    and `--show-protected` did not count it. §2.5 marks a locked archive rather
+    than forcing it open, and the standing rule says what is marked is counted --
+    on the screen, not only in the database.
+    """
+    printed = io.StringIO()
+    cli._print_protected(
+        (), protected_files=0,
+        locked=(_locked("submission_backup.zip",
+                        "2 of 2 member(s) are encrypted; names listed, "
+                        "contents not read"),),
+        out=printed)
+    block = printed.getvalue()
+
+    assert "Protected: 1 marked and counted" in block
+    assert "Password-protected containers: 1, never opened" in block
+    assert "submission_backup.zip" in block
+    # The members are LISTED and UNREAD, and the sentence says both.
+    assert "names listed, contents not read" in block
+
+
+def test_a_locked_container_and_a_protected_folder_are_one_total():
+    printed = io.StringIO()
+    cli._print_protected(
+        (_area("Notes.app", "/tmp/demo/Notes.app"),), protected_files=3,
+        locked=(_locked("locked.zip", "1 of 1 member(s) are encrypted"),),
+        out=printed)
+    block = printed.getvalue()
+
+    assert "Protected: 5 marked and counted" in block
+    assert "Application and system folders: 1, never opened" in block
+    assert "Password-protected containers: 1, never opened" in block
+    assert "Protected material: 3 files" in block

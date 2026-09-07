@@ -28,7 +28,9 @@ import zipfile
 from pathlib import Path
 from typing import Callable
 
-from extractors.archive import ArchiveManifest, ArchiveMember
+from extractors.archive import (
+    LOCKED_REASON_PREFIX, ArchiveManifest, ArchiveMember,
+)
 
 #: §2.5's own word for the format, and the key `extractors.router` maps to the
 #: `archive` family. Named rather than spelled twice.
@@ -87,7 +89,7 @@ def zipfile_reader(*, max_members: int | None = None,
         # are not readable. Without this line a locked archive was indexed as
         # an ordinary one and nothing downstream could tell.
         encrypted = sum(1 for info in infos if info.flag_bits & 0x1)
-        locked = (f"password-protected: {encrypted} of {total} member(s) are "
+        locked = (f"{LOCKED_REASON_PREFIX}: {encrypted} of {total} member(s) are "
                   "encrypted; names listed, contents not read"
                   if encrypted else None)
         # The sum of what the members CLAIM, and only over the ones listed -- a
