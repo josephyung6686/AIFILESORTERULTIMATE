@@ -69,13 +69,27 @@ PROTECTED_SECRET = "K12345678"
 
 
 def _corpus(root: Path) -> Path:
-    """`tests/integration/test_103_diagnosis_backlog.py::_corpus`, plus the fifth.
+    """`tests/integration/test_103_diagnosis_backlog.py::_corpus`, plus two.
 
     The four are that file's, unchanged, so the two tests describe one corpus. The
     fifth is protected, and it is here rather than in a test of its own because the
     guarantee is about what happens WHEN THE MODEL IS RUNNING over a mixed folder:
     a protected file that is never sent while its neighbours are is the standing
     rule working, and a protected file alone in a corpus proves nothing about it.
+
+    **The sixth is `00`:57's own example, and it is here because `104` §11.2 step 2
+    made the corpus unable to demonstrate its own pass test without one.** With
+    `school` and `term` withheld from site A -- they are the group's, not each
+    file's -- the only fields a coursework file is offered are `subject` and
+    `work_type`, and both have rules that refuse the one thing this corpus releases
+    to a model: the file's own name. The four originals therefore have nothing a
+    copied span can validly answer, and "at least one `llm_supported` fact"
+    (`103` §10) became unreachable for a correct reason.
+
+    `Problem Set 4` is the file `00`:57 names beside `HW 3.pdf`: it states its
+    course and carries none of §3.5's five context terms (`syllabus`, `lecture`,
+    `credits`, `instructor`, `semester`), so the deterministic rule declines it and
+    the question genuinely reaches the model. That is what site A is for.
     """
     corpus = root / "holder" / "corpus"
     corpus.mkdir(parents=True)
@@ -85,6 +99,16 @@ def _corpus(root: Path) -> Path:
         "Lecture 08 - Rotational Dynamics\nPHYS 1401\nTorque and angular momentum.\n")
     (corpus / "HW 3.txt").write_text(
         "Homework 3\n\nProblem 1. A ball is thrown upward...\n")
+    (corpus / "BUSIB 4300 Problem Set 4.txt").write_text(
+        # `Fall 2024` AND NOT `Spring 2026`, and the difference is not cosmetic.
+        # An observation key is content-addressed, so two files carrying the same
+        # line in the same zone carry the SAME key -- and P7's
+        # `_consent_reference` resolves a key to ONE current file and refuses the
+        # release when that file is outside the request's target set. Repeating
+        # the syllabus's term here made every site-B call in this corpus raise
+        # `UnresolvableSpan` before any of this wave's changes, which is a real
+        # defect and is reported rather than worked around anywhere but here.
+        "Problem Set 4\nFall 2024\n\nProblem 1. Compute the net present value.\n")
     (corpus / "Columbia Essay.txt").write_text(
         "Dear Admissions Committee at Columbia University,\nMy essay follows.\n")
     (corpus / PROTECTED_NAME).write_text(
@@ -98,6 +122,17 @@ def _corpus(root: Path) -> Path:
 def dossier_in(payload: str) -> dict:
     """The JSON half of the model-visible bytes, as the model would read it."""
     return json.loads(payload.split(DOSSIER_FOLLOWS, 1)[1])
+
+
+#: How many tokens the stub lifts out of a released value. TWO, not the whole
+#: line, and the difference is what a real model does: `value_grounding` accepts
+#: "a whole-token RUN of a released value", and every field whose rule is a shape
+#: -- `subject`'s course-code pattern is anchored `\\A ... \\Z` -- is answered with
+#: the run and never with the sentence it sits in. Copying the whole line made the
+#: stub's only possible `subject` answer the file's own name plus its extension,
+#: which is `VALUE_NOT_NORMALIZABLE` for a correct reason and told this test
+#: nothing about the wiring it exists to check.
+_SPAN_TOKENS = 2
 
 
 def _first_supportable(dossier: dict) -> tuple[str, str, str, str] | None:
@@ -114,7 +149,8 @@ def _first_supportable(dossier: dict) -> tuple[str, str, str, str] | None:
     for item in released:
         if len(grounding_tokens(item["value"])) < 2:
             continue
-        span = item["value"].strip().splitlines()[0].strip()
+        line = item["value"].strip().splitlines()[0]
+        span = " ".join(line.split()[:_SPAN_TOKENS])
         if not span or not fields:
             continue
         return fields[0], span, item["observation_key"], span
@@ -343,6 +379,32 @@ def test_the_request_carries_thinking_off_and_a_window(tmp_path, stub, monkeypat
         assert request["options"]["num_ctx"] >= len(
             request["messages"][0]["content"]) // 2
         assert request["options"]["num_ctx"] <= cli.LOCAL_CONTEXT_CEILING
+
+
+def test_site_a_is_never_asked_the_school_of_one_file(tmp_path, stub, monkeypatch):
+    """`104` §11.2 step 2, on the bytes that actually left for the model.
+
+    `00`:57 puts the course's school on the syllabus ANCHOR and has the group carry
+    the sparse members, so it is not a question to put to each file -- and when it
+    was, twenty files answered it with whatever school each of them happened to
+    mention and five essays from a university course were filed under a high school
+    (`104` §11.1's first row).
+
+    Asserted on `allowed_vocabulary`, because that is both what the model is shown
+    and what the validator holds it to: a field absent from it is a question never
+    asked, not an answer thrown away. `subject` and `work_type` are still there,
+    which is what makes this a narrowing rather than an empty dossier.
+    """
+    _local_run(tmp_path, stub, monkeypatch)
+
+    asked = [dossier_in(prompt).get("allowed_vocabulary", ())
+             for prompt in stub.prompts() if DOSSIER_FOLLOWS in prompt]
+    a_site = [vocabulary for vocabulary in asked
+              if "subject" in vocabulary or "work_type" in vocabulary]
+
+    assert a_site, "no A_fact call was made, so this proves nothing"
+    for vocabulary in a_site:
+        assert "school" not in vocabulary, vocabulary
 
 
 # --- the standing rule, under a model that is running -------------------------

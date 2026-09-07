@@ -23,6 +23,7 @@ import json
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Callable, Mapping, Sequence
 
 from database_agent.db import create_schema
@@ -298,6 +299,71 @@ def schema_for_situation(catalogue: TemplateCatalogue, situation: str) -> str:
             "material these files are is the person's answer to give rather than "
             "this module's to pick")
     return schemas[0]
+
+
+#: `104` §11.2 STEP 2, and `00`:57 is the sentence it implements: the course's
+#: school and term sit on the syllabus ANCHOR and "the graph does not automatically
+#: copy those missing facts onto sparse files" -- the group carries them and the
+#: sparse members belong to the group. So `holder_institution` and `cycle_period`
+#: are levels whose VALUE is the group's, and the per-file question that produced
+#: twenty `school` facts on twenty files (`104` §11.1's first row: five essays from
+#: a university course filed under a high school) is not asked at all.
+#:
+#: KEYED BY SCHEMA AND NOT GLOBAL, because the same role means different things in
+#: different lives. `cycle_period` binds `term` under `academic` -- one semester,
+#: one course, stated by the syllabus -- and binds a statement month under
+#: `wave2_commerce`, which every statement states about itself and no group
+#: carries. A global set would take a per-file fact away from the domain that owns
+#: it.
+#:
+#: ROLES AND NOT FIELD KEYS. The role is the template library's own word for what a
+#: level is FOR, and `role_bindings` is what turns it into a P6 field key for one
+#: situation; `group_level_fields_for` below does that resolution and this constant
+#: does none of it. A field key here would be a second binding table beside the
+#: library's, and the library's would stop being the answer.
+#:
+#: **`cycle_period` IS THE SECOND ROLE §11.2 STEP 2 NAMES AND IS NOT ENABLED YET,
+#: AND THE REASON WAS MEASURED RATHER THAN REASONED.** P10 is never shown the
+#: course-grain groups: `cli._merge_reviewed_groups` writes ONE accepted group per
+#: `--label`, so "the group's term" on a coursework branch means "the term every
+#: coursework anchor in the corpus agrees on". Run over two courses in two
+#: semesters under one label, that is a disagreement, `group_level_value` answers
+#: `None` the way `preferred_value_for` does, and the two `Semester` folders a
+#: person had before -- `Spring2026` and `Fall2024`, built from each file's own
+#: rule-written `term` -- disappear. `school` loses nothing by the same route
+#: because nothing produces one per file today.
+#:
+#: So the mechanism is built for any role and enabled for the one whose defect was
+#: measured (`104` §11.1's first row, and the fix chain's own test names `school`
+#: twice and `term` never). The second is an owner question: it turns on when P10
+#: can see a course-grain group -- B ratified and writing per-course acceptances,
+#: or the `--label` merge retired.
+GROUP_LEVEL_ROLES: Mapping[str, frozenset[str]] = MappingProxyType({
+    "academic": frozenset({"holder_institution"}),
+})
+
+
+def group_level_fields_for(catalogue: TemplateCatalogue,
+                           situation: str) -> frozenset[str]:
+    """The P6 field keys this situation fills from the GROUP rather than the file.
+
+    `GROUP_LEVEL_ROLES` names the roles; the applicability row's own
+    `role_bindings` say which field key each role means here. A role the row does
+    not bind is not a level this situation builds and contributes nothing, which is
+    `folder_levels_for`'s own posture on the same data.
+
+    Empty is the ordinary answer: 22 of the 23 schemas name no group-level role, so
+    every level in them stays the file's own.
+    """
+    roles = GROUP_LEVEL_ROLES.get(schema_for_situation(catalogue, situation))
+    if not roles:
+        return frozenset()
+    ref = f"recognition:{situation}"
+    rows = [row for row in catalogue.applicabilities.values()
+            if ref in row.detection_signal_refs]
+    return frozenset(
+        item.field_ref for row in rows for item in row.role_bindings
+        if item.role_ref in roles and item.field_ref)
 
 
 def folder_levels_for(catalogue: TemplateCatalogue,

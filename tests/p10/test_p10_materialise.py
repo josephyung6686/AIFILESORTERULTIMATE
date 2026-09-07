@@ -116,6 +116,147 @@ def test_the_levels_carry_p6s_real_values_and_p10_composes_none(seeded):
     assert materialised.levels[1].members_by_value == {"BUSIB 4300": 2, "PHYS1401": 1}
 
 
+# --- `104` §11.2 step 2: a level whose value the group carries -----------------
+
+
+def _course_group(seeded, *, anchors, members):
+    """One accepted group: its anchors state the basis, its members are carried."""
+    from tree_design.upstream import AcceptedGroup, GroupMember
+    from grouping.vocabulary import CONTEXT_SUPPORTED, DIRECT_ANCHOR
+
+    def _member(name, basis):
+        file_id, content_hash, _key = seeded.subjects[name]
+        return GroupMember(file_id=file_id, content_hash=content_hash, basis=basis)
+
+    return AcceptedGroup(
+        group_id="g_busib", label="BUSIB 4300", domain="academic",
+        members=tuple(
+            [_member(name, DIRECT_ANCHOR) for name in anchors]
+            + [_member(name, CONTEXT_SUPPORTED) for name in members]),
+        anchor_facts=(), excluded_members=())
+
+
+def _group_reader(*groups):
+    """`group_value_for_member` as `tree_design.pipeline` builds one."""
+    from tree_design.upstream import group_level_value
+
+    def read(conn):
+        by_file = {}
+        for group in groups:
+            for member in group.members:
+                by_file.setdefault(member.file_id, group)
+
+        def value_for(member, field_ref):
+            group = by_file.get(member.file_id)
+            if group is None:
+                return None
+            return group_level_value(conn, group=group, field_ref=field_ref)
+        return value_for
+    return read
+
+
+def test_an_essay_in_a_course_group_inherits_the_groups_school(seeded, tmp_path):
+    """`104` §11.2 step 2's own test, first half. `00`:57 is the sentence.
+
+    The syllabus states the school; the essay states the course and nothing else,
+    which is the sparse member the design describes ("HW 3.pdf may contain only
+    equations and the phrase 'Homework 3'"). The school level is the COURSE's, so
+    the essay lands under it -- and the essay never had to be asked what school it
+    was for, which is the question that filed five university essays under a high
+    school (`104` §11.1).
+    """
+    conn = seeded.conn
+    seeded.add_subject(tmp_path, "essay", "BUSIB 4300 Essay 2",
+                       (("subject", "BUSIB 4300"),))
+    group = _course_group(seeded, anchors=("syllabus",), members=("essay",))
+
+    _, evidence = materialise_branch(
+        conn, _candidate(("holder_institution", "school")),
+        branch_node_id="n_academics",
+        members=seeded.members("syllabus", "essay"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES,
+        group_level_roles=frozenset({"holder_institution"}),
+        group_value_for_member=_group_reader(group)(conn))
+
+    assert evidence.levels[0].values == ("Columbia",)
+    assert evidence.levels[0].members_by_value["Columbia"] == frozenset(
+        {seeded.file_id("syllabus"), seeded.file_id("essay")})
+    assert evidence.unresolved_by_field["school"] == frozenset()
+
+
+def test_an_essay_outside_any_group_gets_no_school_level(seeded, tmp_path):
+    """The second half, and it is the half that stops the collector coming back.
+
+    This essay carries a `school` fact of its own -- the school it MENTIONS, which
+    is `00`:44's "authored_by-class metadata" and never a level. In no group, it
+    contributes no value at a group-level dimension and is unresolved there, which
+    §5.11 permits and which reaches the person as a file waiting on them.
+    """
+    conn = seeded.conn
+    seeded.add_subject(tmp_path, "loose", "Essay 2 Final Draft",
+                       (("school", "Georgetown Prep"),))
+
+    _, evidence = materialise_branch(
+        conn, _candidate(("holder_institution", "school")),
+        branch_node_id="n_academics", members=seeded.members("loose"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES,
+        group_level_roles=frozenset({"holder_institution"}),
+        group_value_for_member=_group_reader()(conn))
+
+    assert evidence.levels[0].values == ()
+    assert "Georgetown Prep" not in evidence.levels[0].display_labels
+    assert evidence.unresolved_by_field["school"] == frozenset(
+        {seeded.file_id("loose")})
+
+
+def test_a_group_level_dimension_with_no_reader_is_refused_not_filled_per_file(
+        seeded):
+    """Absent means refuse. Falling back to `preferred_value_for` here is exactly
+    the collector `104` §11.1 measured, and it would be silent: every level would
+    be built and every essay filed under the school it happened to mention."""
+    with pytest.raises(ConfigurationRequired):
+        materialise_branch(
+            seeded.conn, _candidate(("holder_institution", "school")),
+            branch_node_id="n_academics", members=seeded.members("syllabus"),
+            ancestor_field_refs=(), ancestor_depth=0,
+            handling_class_for_member=ONE_CLASS,
+            protected_handling_classes=PROTECTED_CLASSES,
+            group_level_roles=frozenset({"holder_institution"}))
+
+
+def test_two_anchors_naming_two_schools_leave_the_group_unresolved(seeded, tmp_path):
+    """`preferred_value_for`'s multiplicity posture, one level up.
+
+    Two syllabi naming two schools is a real state, and picking between them would
+    close P6's OQ6 by accident at the group grain. The members become unresolved at
+    that level rather than filed under whichever anchor sorted first.
+    """
+    conn = seeded.conn
+    seeded.add_subject(tmp_path, "other", "BUSIB 4300 Syllabus (transfer)",
+                       (("school", "Barnard"), ("subject", "BUSIB 4300")))
+    seeded.add_subject(tmp_path, "essay", "BUSIB 4300 Essay 2",
+                       (("subject", "BUSIB 4300"),))
+    group = _course_group(seeded, anchors=("syllabus", "other"), members=("essay",))
+
+    _, evidence = materialise_branch(
+        conn, _candidate(("holder_institution", "school")),
+        branch_node_id="n_academics",
+        members=seeded.members("syllabus", "other", "essay"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES,
+        group_level_roles=frozenset({"holder_institution"}),
+        group_value_for_member=_group_reader(group)(conn))
+
+    assert evidence.levels[0].values == ()
+    assert evidence.unresolved_by_field["school"] == frozenset(
+        seeded.file_id(name) for name in ("syllabus", "other", "essay"))
+
+
 def test_a_file_with_no_settled_value_is_unresolved_and_gets_no_branch(seeded):
     conn = seeded.conn
     _, evidence = materialise_branch(

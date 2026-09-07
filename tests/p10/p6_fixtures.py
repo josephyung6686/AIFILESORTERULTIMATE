@@ -84,7 +84,10 @@ class SeededCorpus:
     """
 
     conn: object
-    subjects: Mapping[str, tuple[str, str, str]]
+    #: A `dict` and not a `Mapping`, because `add_subject` writes into it: a
+    #: fixture that can only describe §5.5's three files cannot describe `00`:57's
+    #: sparse member, which is a file the three do not contain.
+    subjects: dict[str, tuple[str, str, str]]
 
     def members(self, *names: str) -> tuple[GroupMember, ...]:
         return tuple(
@@ -101,6 +104,20 @@ class SeededCorpus:
         is exercised without a second fixture."""
         file_id, content_hash, key = self.subjects[name]
         _fact(self.conn, file_id, content_hash, key, field_key, value)
+
+    def add_subject(self, tmp_path, name: str, raw: str,
+                    facts: tuple[tuple[str, str], ...] = ()) -> None:
+        """A FOURTH file, with only the facts named -- possibly none.
+
+        §5.5's three each carry a school, which is the shape that made the
+        per-file school look like the right question. `104` §11.2 step 2 needs the
+        other shape in a fixture: a file that states the course and NOT the
+        school, which is `00`:57's sparse member and is what a group carries.
+        """
+        file_id, content_hash, key = _subject(self.conn, tmp_path, name, raw)
+        self.subjects[name] = (file_id, content_hash, key)
+        for field_key, value in facts:
+            _fact(self.conn, file_id, content_hash, key, field_key, value)
 
 
 def seed_academics(conn, tmp_path) -> SeededCorpus:

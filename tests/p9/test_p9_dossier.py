@@ -213,6 +213,135 @@ def test_direct_evidence_and_inferred_context_arrive_in_separate_arrays(
     assert all(item.basis == CONTEXT_SUPPORTED for item in dossier.candidate_files)
 
 
+# --- `104` §11.2 step 2: the fields the group carries ---------------------------
+
+
+def _write_fact(conn, *, file_id, content_hash, key, field_key, value,
+                state="validated"):
+    """One P6 fact, through P6's own writers. `tests/p10/p6_fixtures` in miniature."""
+    from facts.values import ensure_value
+    from facts.file_facts import write_fact
+
+    value_id = ensure_value(conn, field_key=field_key, canonical_value=value,
+                            first_evidence_ref=key, origin="automatic")
+    write_fact(conn, file_id=file_id, content_hash=content_hash,
+               field_key=field_key, value_id=value_id, reliability_state=state,
+               origin="rule", evidence_refs=(key,),
+               cache_key=f"ck_{file_id}_{field_key}_{value}", active=True)
+
+
+@pytest.fixture()
+def facts_conn(dossier_conn):
+    from facts.fields import create_fields
+
+    create_fields(dossier_conn)
+    return dossier_conn
+
+
+def test_the_anchors_school_and_term_reach_the_dossier_as_anchor_facts(
+    facts_conn, corpus,
+):
+    """`104` §11.2 step 2, and `00`:57 is the sentence it implements.
+
+    Site A no longer asks each file what school it is for, so the only place the
+    course's school can be seen is the group -- and the group is what the model is
+    asked about at B. The syllabus states it; the dossier carries it beside the
+    basis, on the group AND on the anchor that said it, so the model can tell one
+    syllabus's answer from a neighbourhood's consensus.
+    """
+    seed_id, seed_hash, seed_key = corpus["Syllabus.pdf"]
+    _write_fact(facts_conn, file_id=seed_id, content_hash=seed_hash, key=seed_key,
+                field_key="school", value="Columbia")
+    _write_fact(facts_conn, file_id=seed_id, content_hash=seed_hash, key=seed_key,
+                field_key="term", value="Spring 2026")
+
+    dossier = _assemble(facts_conn, corpus,
+                        group_level_fields=frozenset({"school", "term"}))
+
+    carried = {(fact.field, fact.value) for fact in dossier.key_facts}
+    assert ("school", "Columbia") in carried
+    assert ("term", "Spring 2026") in carried
+    assert ("subject", "PHYS1401") in carried, "the basis is still first and still here"
+    syllabus = next(item for item in dossier.anchor_files if item.file_id == seed_id)
+    assert ("school", "Columbia") in {
+        (fact.field, fact.value) for fact in syllabus.key_facts}
+
+
+def test_what_a_candidate_says_about_the_school_is_not_the_groups_answer(
+    facts_conn, corpus,
+):
+    """`00`:44's collector, refused at the source.
+
+    A candidate is in the neighbourhood because something retrieved it. The school
+    it happens to mention is `authored_by`-class metadata about that one file and
+    never the course's -- which is exactly how five essays from a university course
+    came to be filed under a high school (`104` §11.1).
+    """
+    homework_id, homework_hash, homework_key = corpus["Homework.pdf"]
+    _write_fact(facts_conn, file_id=homework_id, content_hash=homework_hash,
+                key=homework_key, field_key="school", value="Georgetown Prep")
+
+    dossier = _assemble(facts_conn, corpus,
+                        group_level_fields=frozenset({"school", "term"}))
+
+    assert "Georgetown Prep" not in {fact.value for fact in dossier.key_facts}
+    homework = next(item for item in dossier.candidate_files
+                    if item.file_id == homework_id)
+    assert "school" not in {fact.field for fact in homework.key_facts}
+
+
+def test_a_weak_reading_on_the_anchor_stays_a_clue_and_does_not_become_the_groups(
+    facts_conn, corpus,
+):
+    """`00`:42: a weak reading "may remain a possible clue for review; it must not
+    quietly become a folder proposal". A group-level anchor IS a folder proposal
+    for every member of the group, so the bar is the one P10 uses for a per-file
+    level and not a looser one."""
+    seed_id, seed_hash, seed_key = corpus["Syllabus.pdf"]
+    _write_fact(facts_conn, file_id=seed_id, content_hash=seed_hash, key=seed_key,
+                field_key="school", value="Columbia", state="possible")
+
+    dossier = _assemble(facts_conn, corpus,
+                        group_level_fields=frozenset({"school", "term"}))
+
+    assert "school" not in {fact.field for fact in dossier.key_facts}
+
+
+def test_two_anchors_stating_one_term_are_one_fact_with_two_files_behind_it(
+    facts_conn, corpus,
+):
+    """`AnchorFact.file_ids` means "the files that INDEPENDENTLY state this", and
+    two rows each claiming one file would understate that support to the model the
+    same way `_group_for`'s one-tuple understated it to P10."""
+    for name in ("Syllabus.pdf", "Lecture.pdf"):
+        file_id, content_hash, key = corpus[name]
+        _write_fact(facts_conn, file_id=file_id, content_hash=content_hash,
+                    key=key, field_key="term", value="Spring 2026")
+
+    dossier = _assemble(facts_conn, corpus,
+                        group_level_fields=frozenset({"school", "term"}))
+
+    terms = [fact for fact in dossier.key_facts if fact.field == "term"]
+    assert len(terms) == 1
+    assert set(terms[0].file_ids) == {corpus["Syllabus.pdf"][0],
+                                      corpus["Lecture.pdf"][0]}
+
+
+def test_the_group_level_fields_do_not_decide_who_is_an_anchor(facts_conn, corpus):
+    """`stating` is the group's BASIS and nothing else. A file that names a school
+    and not the course is not an independent statement of the course, and promoting
+    it to a direct anchor would merge the two arrays the dossier keeps apart."""
+    homework_id, homework_hash, homework_key = corpus["Homework.pdf"]
+    _write_fact(facts_conn, file_id=homework_id, content_hash=homework_hash,
+                key=homework_key, field_key="school", value="Columbia")
+
+    dossier = _assemble(facts_conn, corpus,
+                        group_level_fields=frozenset({"school"}))
+
+    assert homework_id in {item.file_id for item in dossier.candidate_files}
+    assert homework_id not in {item.file_id for item in dossier.anchor_files}
+
+
 def test_a_candidate_names_the_channel_that_retrieved_it(dossier_conn, corpus):
     """A reviewer has to be able to tell a shared validated fact from a semantic
     guess; without the channel, both read as "it was in the neighbourhood"."""

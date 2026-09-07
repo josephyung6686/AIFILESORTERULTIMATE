@@ -24,7 +24,10 @@ from cli import fact_call_authorities, load_shipped_catalogue, read_packaged_lib
 from facts.domains import DOMAIN_FIELDS, UNIVERSAL_SCOPE
 from llm_harness.records import EvidenceItem, FolderLevel
 from llm_harness.vocabulary import DIRECT_ANCHOR
-from production import folder_levels_for, schema_for_situation, shipped_situations
+from production import (
+    GROUP_LEVEL_ROLES, folder_levels_for, group_level_fields_for,
+    schema_for_situation, shipped_situations,
+)
 from tree_design.config import ConfigurationRequired
 
 
@@ -76,6 +79,88 @@ def test_every_level_field_is_inside_that_situations_own_allowlist(catalogue):
 def test_a_situation_the_library_does_not_carry_is_refused(catalogue):
     with pytest.raises(ConfigurationRequired):
         folder_levels_for(catalogue, "academic.courswork")
+
+
+# --- `104` §11.2 step 2: which levels the GROUP carries -------------------------
+
+
+def test_courseworks_school_is_the_courses_and_not_each_files(catalogue):
+    """`00`:57 read off the library rather than restated.
+
+    "The syllabus and lecture may each state PHYS1401 directly ... the homework may
+    have a homework-like name": the course's school is a fact about the COURSE and
+    the sparse members are carried by the group. Asked of every file instead,
+    `school` was answered by twenty of them with whatever school each happened to
+    mention, and five essays from a university course were filed under a high
+    school (`104` §11.1).
+
+    The roles are named in `production.GROUP_LEVEL_ROLES`; the FIELD KEYS come from
+    the row's own `role_bindings`, so a release that binds a role differently moves
+    this answer with it.
+    """
+    assert group_level_fields_for(catalogue, "academic.coursework") == frozenset(
+        {"school"})
+
+
+def test_the_term_is_not_routed_to_the_group_yet_and_the_reason_is_measured(
+        catalogue):
+    """`104` §11.2 step 2 names `cycle_period` beside `holder_institution`, and it
+    is deliberately not enabled. The mechanism is the same one and takes any role;
+    what it needs and does not have is a course-grain group.
+
+    `cli._merge_reviewed_groups` writes ONE accepted group per `--label`, so "the
+    group's term" means "the term every coursework anchor in the corpus agrees
+    on". Measured on two courses in two semesters under one label: the group value
+    is a disagreement, `Semester` falls to no value, and the two folders a person
+    had -- `Spring2026` and `Fall2024`, built from each file's own rule-written
+    `term` -- disappear. `school` loses nothing by that route because nothing
+    writes one per file today.
+
+    This test is the record of that decision, so enabling the role means deleting
+    it and saying why in the same commit.
+    """
+    assert "term" not in group_level_fields_for(catalogue, "academic.coursework")
+    assert "cycle_period" not in GROUP_LEVEL_ROLES["academic"]
+
+
+def test_the_same_role_stays_the_files_own_in_a_life_that_means_something_else(
+        catalogue):
+    """Keyed by SCHEMA, and this is why.
+
+    `cycle_period` binds `term` under `academic` -- one semester, stated by the
+    syllabus -- and `application_cycle` under `college_applications`, which an
+    application document states about itself. A global set of roles would take a
+    per-file fact away from the domain that owns it.
+    """
+    assert group_level_fields_for(
+        catalogue, "applications.scholarship-fellowship") == frozenset()
+    assert group_level_fields_for(catalogue, "career.recruiting") == frozenset()
+
+
+def test_every_group_level_field_is_one_of_that_situations_own_levels(catalogue):
+    """A field the group carries must be a field the tree BUILDS, or nothing reads
+    it: `materialise_branch` asks the group only at a dimension it is already
+    walking. A set naming something outside the levels would be silently inert."""
+    for situation in sorted({row.name for row in shipped_situations(catalogue)}):
+        levels = {level.field for level in folder_levels_for(catalogue, situation)}
+        assert group_level_fields_for(catalogue, situation) <= levels, situation
+
+
+def test_site_a_is_asked_the_levels_the_file_answers_for_itself(catalogue):
+    """The split the composition root makes, as a set difference on the same row.
+
+    This is what "stop offering them per file at site A" means in code:
+    `pending_fields_for` offers `pending & {level.field}` and that set becomes the
+    dossier's `allowed_vocabulary`, so a level withheld here is a question never
+    asked rather than an answer thrown away.
+    """
+    levels = folder_levels_for(catalogue, "academic.coursework")
+    group_level = group_level_fields_for(catalogue, "academic.coursework")
+    asked = tuple(level.field for level in levels
+                  if level.field not in group_level)
+
+    assert asked == ("term", "subject", "work_type")
+    assert "school" not in asked
 
 
 def test_the_labels_are_the_librarys_own_and_not_authored_here(catalogue):

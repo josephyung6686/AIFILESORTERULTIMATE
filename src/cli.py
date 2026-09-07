@@ -197,7 +197,8 @@ from questions.vocabulary import (
 )
 from production import (
     CorpusAuthorities, CorpusDecisions, P1P7Authorities, ProductionRun,
-    bootstrap_p1_p7, corpus_roster, folder_levels_for, load_shipped_catalogue,
+    bootstrap_p1_p7, corpus_roster, folder_levels_for, group_level_fields_for,
+    GROUP_LEVEL_ROLES, load_shipped_catalogue,
     nearest_situations, read_packaged_library_file, schema_for_situation,
     shipped_situations,
     run_production_corpus,
@@ -4992,6 +4993,22 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     # one place a policy may be chosen -- is visibly the one that decides what the
     # model is asked.
     folder_levels = folder_levels_for(catalogue, situation)
+    # `104` §11.2 STEP 2. The levels whose value the GROUP carries, split off here
+    # and used twice below: they are withheld from site A, and P10 is told to read
+    # them off the accepted group instead. Read from the same row as the levels
+    # themselves, so a release that binds a role differently moves both halves at
+    # once and neither can be true of the other's data.
+    group_level_fields = group_level_fields_for(catalogue, situation)
+    # WHAT SITE A IS ASKED, which is no longer every level. `model_facts.
+    # pending_fields_for` offers `pending & {level.field}` and that set becomes the
+    # dossier's `allowed_vocabulary`, so a level withheld here is a question not
+    # asked -- which is exactly `00`:57's rule that the course's school and term
+    # belong to the syllabus anchor and reach a sparse file through its GROUP. Asked
+    # per file, `school` was answered by twenty files with the school each of them
+    # happened to mention, and five essays from a university course were filed under
+    # a high school (`104` §11.1).
+    file_level_fields = tuple(level for level in folder_levels
+                              if level.field not in group_level_fields)
     clock = now()
     _bootstrap(conn)
     # `00`:20's THREE choices, as the person answered them. These were three
@@ -5049,6 +5066,11 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         ids = count()
         return TreeDesignAuthorities(
             catalogue=release, group_reader=AcceptedGroupEnumeration(conn),
+            # `104` §11.2 step 2, and it is the SAME constant the fact pass split
+            # its levels on, handed to P10 as roles rather than as field keys
+            # because a role is what a dimension carries and the applicability row
+            # is what turns one into the other.
+            group_level_roles=GROUP_LEVEL_ROLES,
             limits=TREE_LIMITS, root_anchor=ROOT_ANCHOR,
             selection_id=selection_id, scan_run_id=scan_run_id[0],
             active_domains=(schema,),
@@ -5881,7 +5903,11 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             conn, routing=routing, scan_run_id=run_id,
             corpus_file_count=len(roster), policy_version=policy_version,
             wire_handle_key=wire_handle_key, schema=schema,
-            folder_levels=folder_levels, user_id=user_id,
+            # THE FILE'S OWN LEVELS, not the situation's whole set. `104` §11.2
+            # step 2: a level the group carries is not a question to ask each file,
+            # and the fields split off above are the ones `00`:57 puts on the
+            # syllabus anchor.
+            folder_levels=file_level_fields, user_id=user_id,
             now=now,
             # `104` R-08, off the release `rules` above already loaded rather than a
             # second read of the library. Direct indexing and not `.get`: every one
@@ -6126,7 +6152,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 signal_evaluator_for=lambda domain: True,
                 classification_store=ClassificationStore(conn).current,
                 conflicts_for=lambda file_ids: (),
-                duplicate_or_version=_duplicate_or_version),
+                duplicate_or_version=_duplicate_or_version,
+                # `104` §11.2 step 2, the other end of the split made at the top
+                # of `run`. Site A is no longer asked these; the group's anchors
+                # carry them into B's dossier, and P10 reads a level's value off
+                # the group. THE SAME SET at both ends, computed once from the
+                # person's own situation, so "not asked per file" and "carried by
+                # the group" cannot come to mean two different field sets.
+                group_level_fields=group_level_fields),
             user_seed_for=lambda file_id, content_hash: None,
             # `104` §7 Phase 1 step 6: site B runs and applies nothing. Both are
             # `None` when no model was configured, when B's tier is not on this

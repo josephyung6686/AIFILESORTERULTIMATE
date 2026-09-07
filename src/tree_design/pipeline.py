@@ -40,6 +40,7 @@ import dataclasses
 import sqlite3
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
+from types import MappingProxyType
 
 from tree_design.candidates import (
     EXISTING_FOLDER_SOURCES, BranchCandidate, VerticalOption,
@@ -65,7 +66,8 @@ from tree_design.user_edits import UserLevelEdit, user_level_edits
 from tree_design.upstream import (
     AcceptedGroup, GroupMember, ProtectedArea, UpstreamUnavailable,
     accepted_groups, cross_folder_moves, existing_folders,
-    file_ids_in_directory, protected_areas, settled_values_in_directory,
+    file_ids_in_directory, group_level_value, protected_areas,
+    settled_values_in_directory,
 )
 from tree_design.validation import ValidationReport, run_checks
 from tree_design.vocabulary import (
@@ -172,6 +174,18 @@ class TreeDesignAuthorities:
     template_context_for: Callable[[str | None, int], object | None]
     mint_node_id: Callable[[], str]
     mint_version_id: Callable[[], str]
+    #: `104` §11.2 step 2, keyed by SCHEMA: the template roles whose value belongs
+    #: to the accepted group rather than to each file. `production.
+    #: GROUP_LEVEL_ROLES` is the deployment's answer and P10 derives none of it --
+    #: which role means what is the library's, and `00`:57 is the sentence that
+    #: makes coursework's school and term the group's.
+    #:
+    #: Defaulted to the empty mapping rather than required, and the default is the
+    #: honest reading rather than a guess: with no mapping every level is the
+    #: file's own, which is what P10 has always done and what 22 of the 23 schemas
+    #: still mean. `protected_handling_classes` refuses its absence because a set
+    #: chosen there would weaken a floor; a mapping missing here weakens nothing.
+    group_level_roles: Mapping[str, frozenset[str]] = MappingProxyType({})
 
     def __post_init__(self) -> None:
         if not isinstance(self.limits, TreeLimits):
@@ -366,15 +380,58 @@ def _route(conn, authorities, *, branch_node_id: str,
         user_edits=user_edits)
 
 
+def _group_level_roles(authorities, candidate: CompositionCandidate) -> frozenset[str]:
+    """The roles this candidate fills from the group. `104` §11.2 step 2.
+
+    Read off the candidate's OWN applicability rows, because the mapping is keyed
+    by schema and a branch may hold several lives: `cycle_period` is the course's
+    term under `academic` and a statement month under commerce, and a branch that
+    holds both must not make the second one the group's.
+
+    P10 authors none of it. `TreeDesignAuthorities.group_level_roles` is the
+    composition root's answer, and the catalogue is what turns a row into a schema.
+    """
+    roles = authorities.group_level_roles
+    if not roles:
+        return frozenset()
+    rows = authorities.catalogue.applicabilities
+    found: set[str] = set()
+    for ref in candidate.applicability_refs:
+        row = rows.get(ref.key())
+        if row is not None:
+            found |= set(roles.get(row.uses_schema, frozenset()))
+    return frozenset(found)
+
+
 def _option_bindings(conn, authorities, *, parent: Node,
-                     members: Sequence[GroupMember]):
+                     members: Sequence[GroupMember],
+                     groups: Sequence[AcceptedGroup] = ()):
     """`materialise`, `validate` and `preview` for one branch, sharing one pass.
 
     `vertical_options` calls all three per candidate and they must agree: a
     validator that saw different levels from the projection would accept a tree
     that cannot be built, or refuse one that can. So `materialise_branch` runs
     once per candidate and both views are remembered.
+
+    `groups` is the branch's own accepted groups and is what makes `104` §11.2
+    step 2 answerable: a group-level dimension's value is read off the GROUP a
+    member belongs to, so the members have to be traceable back to their groups
+    here, where both are in hand. A member in no group of this branch has no such
+    value and is unresolved at that level.
     """
+    #: Which group each member is here under. First one wins, in branch order,
+    #: which is `_members`' own rule for the same shared file: two groups in one
+    #: branch may both claim it and it is counted once.
+    group_of: dict[str, AcceptedGroup] = {}
+    for group in groups:
+        for member in group.members:
+            group_of.setdefault(member.file_id, group)
+
+    def group_value_for_member(member: GroupMember, field_ref: str):
+        group = group_of.get(member.file_id)
+        if group is None:
+            return None
+        return group_level_value(conn, group=group, field_ref=field_ref)
     # Keyed on the candidate RECORD, not on `id(candidate)`: `CompositionCandidate`
     # is a frozen dataclass and hashes by value, so two calls about the same
     # composition find the same pass — which is the property the three bindings
@@ -389,7 +446,13 @@ def _option_bindings(conn, authorities, *, parent: Node,
                 conn, candidate, branch_node_id=parent.node_id,
                 members=members, ancestor_field_refs=(), ancestor_depth=0,
                 handling_class_for_member=authorities.handling_class_for_member,
-                protected_handling_classes=authorities.protected_handling_classes)
+                protected_handling_classes=authorities.protected_handling_classes,
+                # `104` §11.2 step 2. The roles are the deployment's answer, read
+                # here for THIS candidate's own schemas so a role that is the
+                # group's under `academic` stays the file's under a recipe that
+                # means something else by it.
+                group_level_roles=_group_level_roles(authorities, candidate),
+                group_value_for_member=group_value_for_member)
         except (MaterialisationRefused, UpstreamUnavailable, CompositionConflict):
             # §8.6 wants deferred work visible rather than absent: a candidate
             # that cannot be populated still becomes an option, with no counts
@@ -857,7 +920,7 @@ def _design_one_branch(conn, authorities, decisions, *, candidate, groups,
     report = _route(conn, authorities, branch_node_id=parent.node_id,
                     groups=groups, user_edits=user_edits)
     materialise, validate, preview, evidence_by, reports = _option_bindings(
-        conn, authorities, parent=parent, members=members)
+        conn, authorities, parent=parent, members=members, groups=groups)
     options = vertical_options(
         report, branch_members=[member.file_id for member in members],
         materialise=materialise, validate=validate, limits=authorities.limits,
