@@ -477,7 +477,7 @@ def test_a_file_that_was_never_asked_about_gets_its_own_line_and_its_own_reason(
     out = io.StringIO()
 
     cli._print_fact_pass(
-        written=0, withheld=0, files=1, model_id=MODEL_ID, out=out,
+        written=0, withheld={}, files=1, model_id=MODEL_ID, out=out,
         outcomes=[("f1", _verdict(claim_ref=PRE_CALL_NAMESPACE,
                                   reasons=(BUDGET_EXHAUSTED,)))])
     printed = out.getvalue()
@@ -502,3 +502,41 @@ def test_the_printed_sent_count_is_the_number_of_responses_on_disk(
     assert line, report
     assert int(line.group(1)) == responses, report
     assert responses == len(stub.requests), report
+
+
+def test_a_protected_file_is_not_told_that_nothing_has_classified_it():
+    """The sentence was false about the one file it was most often printed for.
+
+    `PRIVACY_BAR` is one word for three different reasons the route withholds a
+    file, and the screen printed the unclassified sentence for all of them. A
+    protected file IS classified -- the detector reached `sensitive_personal` and
+    said so -- and telling its owner nothing had classified it is not a rounding
+    of the truth, it is the opposite of what happened, on the line that explains
+    why their passport was left alone."""
+    out = io.StringIO()
+
+    cli._print_fact_pass(
+        written=0, withheld={cli.WITHHELD_PROTECTED: 1}, files=2,
+        model_id=MODEL_ID, out=out, outcomes=[])
+    # Collapsed, because `_wrapped` breaks these sentences across lines and a
+    # phrase split by a newline is the same sentence to the person reading it.
+    printed = " ".join(out.getvalue().split())
+
+    assert "protected material" in printed
+    assert "nothing has classified them" not in printed
+
+
+def test_the_two_reasons_the_route_withholds_for_get_a_line_each():
+    """Counted and named separately, because a person with one protected file and
+    one the detector abstained on has two different things to do about them."""
+    out = io.StringIO()
+
+    cli._print_fact_pass(
+        written=0, files=3, model_id=MODEL_ID, out=out, outcomes=[],
+        withheld={cli.WITHHELD_PROTECTED: 1, cli.WITHHELD_UNCLASSIFIED: 2})
+    printed = " ".join(out.getvalue().split())
+
+    assert "1 of 3 files were not sent" in printed
+    assert "2 of 3 files were not sent" in printed
+    assert "protected material" in printed
+    assert "nothing has classified them" in printed

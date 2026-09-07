@@ -3382,7 +3382,32 @@ def _sent_and_abstained(
     return sent, abstained
 
 
-def _print_fact_pass(*, written: int, withheld: int, files: int,
+#: WHY THE ROUTE WITHHELD A FILE, in the words the screen uses. One `PRIVACY_BAR`
+#: covers three different sentences and a person is owed the one that is true about
+#: their file: a protected file was withheld BECAUSE it is protected, and telling
+#: them nothing had classified it is false about a file the detector classified.
+WITHHELD_UNCLASSIFIED: str = "unclassified"
+WITHHELD_PROTECTED: str = "protected"
+WITHHELD_PRIVACY: str = "privacy"
+
+#: The sentence each cause earns. Written out rather than assembled, because a
+#: reason a person reads is prose and not a code with a template around it.
+WITHHELD_SENTENCE: Mapping[str, str] = MappingProxyType({
+    WITHHELD_UNCLASSIFIED:
+        "nothing has classified them, and §8.4 makes a handling class a "
+        "precondition of asking a model about a file. This is about the "
+        "detector, not about your files.",
+    WITHHELD_PROTECTED:
+        "they are protected material (§8.4), so nothing about them was "
+        "assembled for a model. That is a decision about sensitivity and not a "
+        "gap in what this run could read.",
+    WITHHELD_PRIVACY:
+        "this folder's privacy policy does not clear them for the model this "
+        "run would ask.",
+})
+
+
+def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
                      outcomes: Sequence[tuple[str, object]], model_id: str,
                      out) -> None:
     """What the model pass actually did, in counts a person can check.
@@ -3421,14 +3446,12 @@ def _print_fact_pass(*, written: int, withheld: int, files: int,
         for reason, count_ in sorted(abstained.items()):
             print(f"  {count_} not asked: {reason.replace('_', ' ')} "
                   f"({reason}), decided before any call was made.", file=out)
-    if withheld:
+    for cause, count_ in sorted(withheld.items()):
         print(_wrapped(
-            f"{withheld} of {files} files were not sent, and were not skipped "
-            f"quietly: nothing has classified them, and §8.4 makes a handling "
-            f"class a precondition of asking a model about a file. Each one has "
-            f"an `unresolved` row per open field saying `privacy_withheld`, so "
-            f"none of them is recorded as a file with nothing to say. This is "
-            f"about the detector, not about your files.", indent="  "), file=out)
+            f"{count_} of {files} files were not sent, and were not skipped "
+            f"quietly: {WITHHELD_SENTENCE[cause]} Each one has an `unresolved` "
+            f"row per open field saying `privacy_withheld`, so none of them is "
+            f"recorded as a file with nothing to say.", indent="  "), file=out)
     named = {"Refusal": "the gate refused the release",
              "CallFailed": "the call did not come back",
              "ValidationUnavailable": "something the check needed was missing",
@@ -4474,15 +4497,30 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         resolver = model_fact_resolver(conn, authorities=authorities)
 
         written: list[str] = []
-        withheld: list[str] = []
+        # WHY EACH FILE WAS WITHHELD, not just how many. The route bars for two
+        # different reasons and `PRIVACY_BAR` is one word for both, so the screen
+        # said "nothing has classified them" about a file that IS classified and
+        # was withheld for being protected. `104` R-02 widened the route to bar
+        # unclassified files on a cloud target as well, which puts a third
+        # sentence behind the same word. The store is asked here, where the file
+        # ids still are, and `_print_fact_pass` prints what it is told.
+        store = ClassificationStore(conn)
+        withheld: dict[str, int] = {}
         for file_id, content_hash in roster:
             result = resolver.resolve(
                 conn, file_id=file_id, content_hash=content_hash)
             written.extend(result.fact_ids)
-            if result.stages_barred.get(LLM_ROUTE) == PRIVACY_BAR:
-                withheld.append(file_id)
+            if result.stages_barred.get(LLM_ROUTE) != PRIVACY_BAR:
+                continue
+            row = get_file(conn, file_id)
+            record = (store.current(file_id, row["content_hash"])
+                      if row is not None else None)
+            cause = (WITHHELD_UNCLASSIFIED if record is None
+                     else WITHHELD_PROTECTED if record.protected
+                     else WITHHELD_PRIVACY)
+            withheld[cause] = withheld.get(cause, 0) + 1
         _print_fact_pass(
-            written=len(written), withheld=len(withheld),
+            written=len(written), withheld=withheld,
             files=len(roster), outcomes=outcomes,
             model_id=routing.model_id_for(A_FACT), out=out)
 
