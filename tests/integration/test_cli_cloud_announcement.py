@@ -24,10 +24,24 @@ import cli
 
 
 class _Routing:
-    """Enough of `TierRouting` to be announced. It is never called, which is the point."""
+    """Enough of `TierRouting` to be announced. It is never called, which is the point.
+
+    TWO QUESTIONS, because the notice now asks two. `locality_for` arrived with
+    D1's local half: a model on the person's own machine gets a different sentence,
+    and a stub that answered only "which model" would let the local branch go
+    unexercised here while looking exercised. `"cloud"` is this stub's answer, so
+    every test in this file is about the CLOUD notice, which is what they were
+    written to be about; the local notice has its own tests in
+    `tests/test_cli_model_route.py`.
+    """
+
+    locality = "cloud"
 
     def model_id_for(self, site):
         return f"model-for-{site}"
+
+    def locality_for(self, site):
+        return self.locality
 
 
 class _Consent:

@@ -51,6 +51,13 @@ from llm_harness.transport import ModelClient
 from privacy.release import ModelTarget
 
 from readers.model_deepseek import CLOUD, PROVIDER, deepseek_invoke
+from readers.model_ollama import (
+    DEFAULT_BASE_URL as LOCAL_DEFAULT_BASE_URL,
+    LOCAL,
+    MODEL_NAME as LOCAL_MODEL_NAME,
+    PROVIDER as LOCAL_PROVIDER,
+    ollama_invoke,
+)
 
 #: `83` §2's three, in the policy's own words. `reasoning` is also spelled by
 #: `questions/proposal.py`, which refuses a sending record naming any other tier;
@@ -168,6 +175,21 @@ class TierRouting:
         """
         return self.client_for(call_site).model_target.model_id
 
+    def locality_for(self, call_site: str) -> str:
+        """WHETHER IT LEAVES THE DEVICE, which is the other thing a person is owed.
+
+        Beside `model_id_for` and for the same reason it exists: a person told
+        their sentence is going to a named model has been told more than one told
+        it is going to "an external provider", and a person told it is going to a
+        named model ON THEIR OWN MACHINE has been told the thing that decides
+        whether any of it matters. `00`:189-193 draws every one of its four modes
+        along this line, and `Gate.release` decides by this value.
+
+        A method rather than a reach through `client_for(...).model_target`, so
+        the screen and the gate ask the same object the same question.
+        """
+        return self.client_for(call_site).model_target.locality
+
 
 def deepseek_routing(*, api_key: str | None, base_url: str | None,
                      model_id_of_tier: Mapping[str, str],
@@ -205,4 +227,91 @@ def deepseek_routing(*, api_key: str | None, base_url: str | None,
                 max_response_tokens=max_response_tokens,
                 timeout_seconds=timeout_seconds),
         )
+    return TierRouting(tier_of_call_site=table, client_of_tier=clients)
+
+
+def ollama_routing(*, model_id: str | None, base_url: str | None,
+                   tier_of_call_site: Mapping[str, str],
+                   max_response_tokens: int, context_ceiling: int,
+                   timeout_seconds: float,
+                   serves: str | None = None,
+                   beside: TierRouting | None = None) -> TierRouting:
+    """One local client, and which tiers it answers depends on what else is here.
+
+    **`00`:189-193's second mode, and D1's local half.** The deployment fact this
+    carries is that the person has installed a model on their own machine. There
+    is exactly ONE of it -- ollama serves whatever model they pulled -- so unlike
+    `deepseek_routing` there is no per-tier name to read and no per-tier refusal
+    to make.
+
+    **ALONE, IT ANSWERS EVERY TIER, and that is not the silent downgrade `83` §4
+    forbids.** That rule is about a call site quietly receiving a model somebody
+    chose for a different kind of judgement. A deployment with one model has one
+    destination for every question it can ask, the person chose it, and the screen
+    names it. What `83` forbids is the substitution nobody sees; a single installed
+    model announced under every tier is the opposite of that. The alternative --
+    refusing REASONING and FAST -- would make `announce_cloud_posture` raise
+    `TierUnavailable` before the scan on a deployment that is correctly configured.
+
+    **BESIDE A CLOUD ROUTING, IT TAKES ONE TIER: the one `serves` requires.** D1 is
+    "local model first", and `104` §7 Phase 0a names the site it goes first for. So
+    the caller says WHICH call site the local model is for, and this resolves that
+    site's tier through the same table every other lookup uses; every other tier
+    keeps the client the cloud routing built. Which site is policy and lives in
+    `src/cli.py`, which is why it arrives as an argument rather than a constant
+    here.
+
+    `serves` and `beside` travel together: a local model beside a cloud one that
+    served no named site would be a client this deployment configured, paid the
+    memory for, and could not reach.
+    """
+    if not isinstance(model_id, str) or not model_id.strip():
+        raise ValueError(
+            f"no local model was named. Set {LOCAL_MODEL_NAME} in the environment "
+            f"this run starts from to the id of a model `ollama list` shows, for "
+            f"example `qwen3:8b`. Absent means refuse, never guess: there is no "
+            f"model this module would pick on a person's behalf, and a run that "
+            f"carried on would tell them their files were judged when nothing "
+            f"judged them.")
+    table = _checked_table(tier_of_call_site)
+    if serves is not None and serves not in table:
+        raise UnroutedCallSite(
+            f"the local model is said to serve call site {serves!r}, which is not "
+            f"routed to a tier, so there is no tier for it to take. `83` §3's last "
+            f"row refuses an unlisted site rather than inventing one for it. The "
+            f"routed sites are {sorted(table)}.")
+    # THE WINDOW TRAVELS WITH THE TARGET, so §8.4's record of what the model was
+    # given says which window it was given it in. One number for the run, the same
+    # one `ollama_invoke` sends as `num_ctx` on every call, and
+    # `tests/readers/test_model_ollama.py` asserts the transport reports back the
+    # number the target carries rather than trusting that it does.
+    target = ModelTarget(locality=LOCAL, model_id=model_id.strip(),
+                         provider=LOCAL_PROVIDER,
+                         context_tokens=context_ceiling)
+    # ONE object under however many keys it ends up under. `transport.issue`
+    # audits `model_target`, and two clients claiming one model would be two
+    # descriptions of one destination in §8.4's record.
+    client = ModelClient(
+        model_target=target,
+        invoke=ollama_invoke(
+            model_target=target,
+            base_url=base_url if base_url else LOCAL_DEFAULT_BASE_URL,
+            max_response_tokens=max_response_tokens,
+            context_ceiling=context_ceiling,
+            timeout_seconds=timeout_seconds),
+    )
+    if beside is None:
+        return TierRouting(tier_of_call_site=table,
+                           client_of_tier={tier: client for tier in TIERS})
+    if serves is None:
+        raise ValueError(
+            f"a local model was configured beside a cloud routing and no call site "
+            f"was named for it. D1 is that the local model goes FIRST for a named "
+            f"site -- {LOCAL_MODEL_NAME} plus a cloud key is that deployment -- and "
+            f"a local client serving nothing is a model this machine loaded and "
+            f"nothing can reach.")
+    clients = dict(beside.client_of_tier)
+    # The SAME table every other lookup uses, so the tier the local model takes is
+    # the tier that site was already routed to and not a second opinion about it.
+    clients[table[serves]] = client
     return TierRouting(tier_of_call_site=table, client_of_tier=clients)
