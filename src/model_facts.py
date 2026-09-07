@@ -325,9 +325,14 @@ def measure_released_tokens(request, resolved: Sequence) -> int:
 
     `resolved` is what is about to leave, AFTER redaction -- so the number the door
     compares against P1's ceiling is the number of characters the provider would
-    receive. The four reference-only kinds carry no value and are absent from
+    receive. The three reference-only kinds carry no value and are absent from
     `resolved` by design (`gate.REFERENCE_ONLY`), so they add nothing here, which is
     correct: an evidence reference is "an id only -- no content".
+
+    The FILENAME is not one of them since `104` R-06 (`gate.NAME_BEARING`): it
+    resolves to the person's own name for the file and its characters are counted
+    here like any other released value, because they are characters the provider
+    would receive.
 
     `request` is unread, and is taken because P7's signature offers it. A caller
     that measured `request.max_dossier_tokens` instead of the payload would be

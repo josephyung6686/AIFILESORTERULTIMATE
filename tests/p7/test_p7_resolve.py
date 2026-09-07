@@ -25,8 +25,9 @@ from evidence_shape.text_units import TextUnit
 import privacy
 from privacy.redaction import RegionOriginUnspecified, span_address
 from privacy.resolve import (
-    MATERIALISERS, AmbiguousObservationKey, Materialised, UnresolvableSpan,
-    current_location, current_observation, materialise,
+    FILESYSTEM_SOURCE_TYPE, MATERIALISERS, AmbiguousObservationKey, Materialised,
+    UnresolvableSpan, current_location, current_observation, materialise,
+    materialise_filename,
 )
 
 CONTENT_HASH = "a" * 64
@@ -589,3 +590,90 @@ def test_materialise_still_refuses_two_live_rows_in_one_file(evidence, two_versi
     with pytest.raises(AmbiguousObservationKey):
         materialise(evidence, Item(key, TextSpan(16, 27)),
                     within_file_ids=("file-1",))
+
+
+# --- §7.7's filename: a `file_id` becomes an address becomes a value ---------
+#
+# `104` R-06. The gate holds a `file_id` and the model needs the person's own name
+# for the file; the derivation is here because this module is the only one that may
+# ask P4 anything.
+
+FILE_NAME = "PHYS1401 homework 3.pdf"
+
+
+def _a_filename_observation(conn, *, name=FILE_NAME, source_type=None,
+                            extractor_name="filesystem.record", run_id="run-name"
+                            ) -> str:
+    """`extractors/filesystem.py`'s own shape: one unit at the EMPTY container path,
+    one whole-name span, `source_type: filesystem`."""
+    source_type = FILESYSTEM_SOURCE_TYPE if source_type is None else source_type
+    record_run(conn, ExtractionRun(
+        run_id=run_id, file_id="file-1", content_hash=CONTENT_HASH,
+        extractor_name=extractor_name, extractor_version="0.1.0",
+        source_type=source_type, analysis_tier="filesystem", config={},
+        completeness="complete", started_at=FIXED_CLOCK, observation_count=1))
+    record_text_unit(conn, TextUnit(run_id=run_id, container_path=(), text=name))
+    location = Location(zone="filename", container_path=(),
+                        text_span=TextSpan(0, len(name)))
+    an_observation(conn, run_id=run_id, version="0.1.0", location=location,
+                   raw_value=name, context_before=None, context_after=None,
+                   extractor_name=extractor_name, source_type=source_type)
+    return key_for(location, extractor_name=extractor_name, raw_value=name)
+
+
+def test_the_source_family_is_p4s_own_vocabulary_member(evidence):
+    """Not a string this module invented, and not the extractor's NAME either.
+
+    An extractor name is an implementation detail that a version bump may change;
+    §2.9's format family is P4's published vocabulary and is what
+    `extractors/filesystem.py` declares itself to be in its first sentence."""
+    from evidence_shape.vocabulary import SOURCE_TYPES
+    from extractors.filesystem import SOURCE_TYPE
+
+    assert FILESYSTEM_SOURCE_TYPE in SOURCE_TYPES
+    assert FILESYSTEM_SOURCE_TYPE == SOURCE_TYPE
+
+
+def test_a_filename_resolves_to_the_persons_own_name_for_the_file(evidence):
+    key = _a_filename_observation(evidence)
+    got = materialise_filename(evidence, "file-1")
+    assert got.value == FILE_NAME
+    assert got.zone == "filename"
+    assert got.observation_key == key
+
+
+def test_a_file_with_no_filesystem_record_refuses(evidence, one_excerpt):
+    """"Absent means refuse, never guess." `files.filename` holds the same
+    characters and is not consulted: a value the model could not cite back is not
+    evidence, and a second computation of a P3 value is the drift O5 forbids."""
+    with pytest.raises(UnresolvableSpan):
+        materialise_filename(evidence, "file-1")
+
+
+def test_a_name_pattern_in_the_same_zone_is_not_the_name(evidence):
+    """Measured on the owner's corpus: `extractors/image.py` writes the camera or
+    screenshot name PATTERN it matched into `zone="filename"` as well. One file
+    carried both rows, and the zone alone had two answers. The source family is what
+    separates the name from a signal derived from it -- so this resolves rather than
+    refusing, and it resolves to the NAME."""
+    key = _a_filename_observation(evidence)
+    a_run(evidence, "run-image", "1.0.0", FIXED_CLOCK)
+    pattern_location = Location(zone="filename", container_path=())
+    an_observation(evidence, run_id="run-image", version="1.0.0",
+                   location=pattern_location, raw_value="screenshot",
+                   context_before=None, context_after=None,
+                   extractor_name="image.metadata", source_type="image")
+
+    got = materialise_filename(evidence, "file-1")
+    assert got.observation_key == key
+    assert got.value == FILE_NAME
+
+
+def test_two_live_filesystem_records_refuse_rather_than_choosing(evidence):
+    """The retraction case, one kind along. Two live readings of the name mean the
+    current name is not known, and a released name that was superseded is a name the
+    person has already changed."""
+    _a_filename_observation(evidence)
+    _a_filename_observation(evidence, name="renamed.pdf", run_id="run-name-2")
+    with pytest.raises(AmbiguousObservationKey):
+        materialise_filename(evidence, "file-1")
