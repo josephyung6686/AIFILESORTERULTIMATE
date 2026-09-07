@@ -241,7 +241,8 @@ def ollama_routing(*, model_id: str | None, base_url: str | None,
                    max_response_tokens: int, context_ceiling: int,
                    timeout_seconds: float,
                    serves: str | None = None,
-                   beside: TierRouting | None = None) -> TierRouting:
+                   beside: TierRouting | None = None,
+                   on_usage=None) -> TierRouting:
     """One local client, and which tiers it answers depends on what else is here.
 
     **`00`:189-193's second mode, and D1's local half.** The deployment fact this
@@ -270,6 +271,12 @@ def ollama_routing(*, model_id: str | None, base_url: str | None,
     `serves` and `beside` travel together: a local model beside a cloud one that
     served no named site would be a client this deployment configured, paid the
     memory for, and could not reach.
+
+    `on_usage` is `104` R-14's sink, threaded through unread exactly as
+    `deepseek_routing` threads it. It matters MORE here than there: `cli.model_route`
+    gives the local model site A_fact whenever one is configured, so without this the
+    deployment D1 steers toward would record a reservation for every fact call and
+    no tokens at all.
     """
     if not isinstance(model_id, str) or not model_id.strip():
         raise ValueError(
@@ -304,7 +311,7 @@ def ollama_routing(*, model_id: str | None, base_url: str | None,
             base_url=base_url if base_url else LOCAL_DEFAULT_BASE_URL,
             max_response_tokens=max_response_tokens,
             context_ceiling=context_ceiling,
-            timeout_seconds=timeout_seconds),
+            timeout_seconds=timeout_seconds, on_usage=on_usage),
     )
     if beside is None:
         return TierRouting(tier_of_call_site=table,
