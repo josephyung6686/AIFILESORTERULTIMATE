@@ -713,9 +713,12 @@ def test_the_report_names_the_decisions_nobody_was_asked_about():
     about -- including one holding 21 files. `shallow-by-choice` LITERALLY MEANS
     the user chose it, a frozen tree is permanent, and P13 shows that sentence
     back to them as their own. The verdict is now counted rather than assumed
-    (`refinement_for`), so a branch is told it is shallow only when it is; that
-    the count stands in for an answer nobody gave is still a decision made for
-    the person, and this is where the command says so.
+    (`refinement_for`), so a branch is told it is shallow only when it is, AND
+    every reason now opens with the actor that produced it -- "The rules", the
+    same subject §8.2's events carry on this run -- so the sentence P13 shows
+    back can no longer be mistaken for the person's own. That the count stands
+    in for an answer nobody gave is still a decision made for the person, and
+    this is where the command says so.
 
     This does not build the registry. It stops the record being silently false.
     """
@@ -990,6 +993,126 @@ def test_the_label_is_still_recorded_as_the_persons_because_it_is(tmp_path):
     assert rows, "the label the person typed is not on any group"
     assert all(r["label_source"] == "user-edited" for r in rows), rows
     assert any(r["user_edited_label"] == "Coursework" for r in edited), edited
+
+
+def _uneven_corpus(tmp_path):
+    """A corpus whose branches come out at uneven depth, on purpose.
+
+    Three courses over two terms, one of them with a single file, so the freeze
+    has to answer §5.8's question BOTH ways in one run: a branch at or under
+    `tiny_folder_max_files` and a branch above it. A corpus that produced only
+    one of the two would let a reason go unread.
+    """
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    bodies = (("PHYS1401", "Spring 2026"), ("PHYS1401", "Spring 2026"),
+              ("CHEM1500", "Fall 2025"), ("CHEM1500", "Fall 2025"),
+              ("MATH2010", "Fall 2025"))
+    for index, (course, term) in enumerate(bodies):
+        (corpus / f"f{index}.txt").write_text(
+            f"{course} Syllabus\nInstructor: Dr. Ramirez\n{term}\n")
+    return corpus
+
+
+def test_the_frozen_tree_says_who_decided_how_deep_each_branch_goes(tmp_path):
+    """R-28's live half: `shallow-by-choice` in the person's own voice.
+
+    `refinement_for` stamps a permanent answer to §5.8's question -- is this
+    branch short on purpose, or unfinished? -- on every legal destination, and
+    P13 shows that answer's reason back to the person. Run with nobody at the
+    screen the answer is the RULES', taken from a file count, and the reason
+    said "splitting it further would not help YOU find anything": a judgement
+    written in the person's voice about a branch they were never shown.
+
+    `00`:136 requires the record of an act to name who acted, and the harness
+    already spells that word -- `actor_phrase(SURFACE_UNATTENDED)` returns "The
+    rules", the same subject §8.2's own event sentences carry on this run. The
+    disposition VALUE stays as measured (`shallow-by-choice` where the count
+    says splitting cannot help, `refine-later` above the band); what changes is
+    that the sentence beside it names its author instead of borrowing the
+    person's.
+    """
+    import sqlite3
+
+    from tree_design.provenance import actor_phrase
+    from tree_design.vocabulary import SURFACE_UNATTENDED
+
+    corpus = _uneven_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    code, printed = _run([str(corpus), "--situation", "academic.coursework",
+                          "--label", "Coursework", "--user", "jy",
+                          "--database", str(database)])
+    assert code == 0, printed
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    rows = [dict(r) for r in conn.execute(
+        "SELECT refinement_disposition, refinement_reason FROM tree_nodes "
+        "WHERE refinement_disposition IS NOT NULL")]
+    conn.close()
+
+    assert rows, "no branch carried a refinement answer at all"
+    shallow = [r for r in rows
+               if r["refinement_disposition"] == "shallow-by-choice"]
+    assert shallow, (
+        "this corpus stopped producing a shallow branch, so the sentence this "
+        f"test exists to read is unreachable: {rows}")
+
+    actor = actor_phrase(SURFACE_UNATTENDED)
+    for row in rows:
+        reason = row["refinement_reason"]
+        assert reason.startswith(actor), (
+            f"{row['refinement_disposition']!r} carries a reason that does not "
+            f"say who decided it: {reason!r}")
+    for row in shallow:
+        assert "Nobody was asked" in row["refinement_reason"], (
+            "`shallow-by-choice` literally means somebody chose the shallowness; "
+            "with nobody at the screen the reason has to say so: "
+            f"{row['refinement_reason']!r}")
+        assert "help you find" not in row["refinement_reason"], (
+            "the reason still reads as the person's own judgement: "
+            f"{row['refinement_reason']!r}")
+
+
+def test_the_residual_home_says_who_keeps_it_flat(tmp_path):
+    """The other `shallow-by-choice` this command writes, and the one that stays.
+
+    `--residual "Review Later"` really is the person's gesture -- the template is
+    enabled because they typed its name -- but the FLATNESS is not theirs.
+    `RESIDUAL_MAX_DEPTH` is zero, so the home is flat by construction and nothing
+    could split it however the person answered. `shallow-by-choice` is therefore
+    the true value here, where `refine-later` would say the opposite; what was
+    missing is the same thing `refinement_for` was missing, the author of the
+    sentence. Read off the frozen tree rather than the tuple, because the tuple
+    is what P10 is handed and the node is what P13 will show.
+    """
+    import sqlite3
+
+    from tree_design.provenance import actor_phrase
+    from tree_design.vocabulary import SURFACE_UNATTENDED
+
+    corpus = _uneven_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    code, printed = _run([str(corpus), "--situation", "academic.coursework",
+                          "--label", "Coursework", "--user", "jy",
+                          "--residual", "Review Later",
+                          "--database", str(database)])
+    assert code == 0, printed
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    homes = [dict(r) for r in conn.execute(
+        "SELECT display_label, refinement_disposition, refinement_reason "
+        "FROM tree_nodes WHERE display_label = 'Review Later'")]
+    conn.close()
+
+    assert homes, "the residual home this run enabled is not in the frozen tree"
+    actor = actor_phrase(SURFACE_UNATTENDED)
+    for home in homes:
+        assert home["refinement_disposition"] == "shallow-by-choice", home
+        assert home["refinement_reason"].startswith(actor), (
+            "the residual home's flatness is the product's design and the "
+            f"record does not say whose it is: {home['refinement_reason']!r}")
 
 
 def test_the_tree_record_does_not_claim_a_person_saw_a_canvas(tmp_path):
@@ -3605,13 +3728,13 @@ def test_a_branch_is_only_told_it_holds_few_files_when_it_actually_does():
     band = cli.TREE_LIMITS.tiny_folder_max_files
 
     _, few = cli.refinement_for(_refinement_node("n_0"), band, was_split=False)
-    assert "few enough files" in few, few
+    assert "few enough" in few, few
     # And it says the number, so the claim is falsifiable by the person reading it.
     assert str(band) in few, few
 
     disposition, many = cli.refinement_for(_refinement_node("n_0"), band + 20,
                                           was_split=False)
-    assert "few enough files" not in many, many
+    assert "few enough" not in many, many
     assert disposition != cli.SHALLOW_BY_CHOICE, (disposition, many)
     assert str(band + 20) in many, many
 
@@ -3622,5 +3745,5 @@ def test_a_branch_is_only_told_it_holds_few_files_when_it_actually_does():
     split, why = cli.refinement_for(_refinement_node("n_0"), band + 20,
                                     was_split=True)
     assert split == REFINED, (split, why)
-    assert "few enough files" not in why, why
+    assert "few enough" not in why, why
 
