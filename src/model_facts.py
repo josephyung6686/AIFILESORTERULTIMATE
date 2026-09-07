@@ -569,47 +569,110 @@ def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
     refused with `UnresolvableSpan` after the release had been minted.
     """
     sensitive = sensitive_observation_keys(conn, file_id)
-    offered = []
-    for observation in observations_for_version(conn, file_id, content_hash):
-        where = observation.location
-        if where.zone in ALWAYS_LOCAL_ZONES:
-            continue
-        if observation.observation_key in sensitive:
-            continue
-        if not observation.raw_value:
-            continue
-        unit_length = unit_length_for_observation(conn, observation)
-        if where.text_span is None:
-            # The two span-less shapes, told apart exactly as `resolve.materialise`
-            # tells them apart: by the unit at the observation's own path.
-            if (unit_length is not None
-                    and len(observation.raw_value) >= unit_length):
-                continue
-        else:
-            if unit_length is None:
-                # `materialise` raises `UnresolvableSpan` here rather than denying:
-                # a span with nothing to take a substring of is a contract failure,
-                # and this call is not the place to discover it.
-                continue
-            # `104` R-135: a whole HEADING unit is released; a whole document is not.
-            # `privacy.release.released_whole_heading_unit` carries the reasoning and
-            # the count that stands in for the length bound this deployment refuses to
-            # invent. It is the SAME predicate `GroundingReport`'s two counters are
-            # computed from, so what this admits and what the report calls exposure
-            # cannot become two conditions.
-            if (where.text_span.start <= 0
-                    and where.text_span.end >= unit_length
-                    and not released_whole_heading_unit(where, unit_length)):
-                continue
-        offered.append(observation)
+    offered = [observation
+               for observation in observations_for_version(conn, file_id, content_hash)
+               if may_be_released(conn, observation, sensitive=sensitive)]
 
     def placed(observation) -> tuple[int, str]:
-        zone = observation.location.zone
-        rank = (_ZONE_PREFERENCE.index(zone) if zone in _ZONE_PREFERENCE
-                else len(_ZONE_PREFERENCE))
-        return (rank, observation.observation_key)
+        return (zone_rank(observation.location.zone), observation.observation_key)
 
     return tuple(sorted(offered, key=placed)[:limit])
+
+
+def zone_rank(zone: str) -> int:
+    """`releasable_observations`' own ordering term, published rather than copied.
+
+    A caller that assembles a set of readings ITSELF -- `104` R-135's context builder
+    gathers lines from several neighbouring files -- has to order them before it caps
+    them, and ordering them by a second spelling of this table would be two answers to
+    "which reading does this product prefer to send".
+    """
+    return (_ZONE_PREFERENCE.index(zone) if zone in _ZONE_PREFERENCE
+            else len(_ZONE_PREFERENCE))
+
+
+def may_be_released(conn: sqlite3.Connection, observation, *,
+                    sensitive: frozenset) -> bool:
+    """The four exclusions above, asked of ONE reading. No ranking and no cap.
+
+    Split out for `104` R-135's third defect, which is worth writing down because the
+    code read as though it were doing the right thing. `anchor_context_observations`
+    collected the line readings it wanted and then kept only those that also appeared in
+    `releasable_observations(file_id=<the stating file>, limit=...)` -- that file's own
+    RANKED, CAPPED dossier. A minted body line is `possible` reliability in the `body`
+    zone and never reaches a syllabus's top twelve, so it was dropped for losing a
+    competition it was never in. Measured over the first 9 files asked on r9: 120
+    statements refused as "line not among releasable", 7 of 9 files ending with no
+    context at all, while nothing about those readings was unreleasable.
+
+    So the question a caller asks about a NAMED reading is asked about that reading.
+    The rules are identical and are not restated: this function IS the body of the
+    loop above.
+
+    Not here, and deliberately: the classification gate. Whether the file this reading
+    belongs to is protected or unclassified is a question about the FILE, and
+    `cli.anchor_context_observations` asks it once per stating file through
+    `ClassificationStore` before it asks anything about readings. Asking it per reading
+    would be one `classifications` read per line for one answer.
+    """
+    where = observation.location
+    if where.zone in ALWAYS_LOCAL_ZONES:
+        return False
+    if observation.observation_key in sensitive:
+        return False
+    if not observation.raw_value:
+        return False
+    unit_length = unit_length_for_observation(conn, observation)
+    if where.text_span is None:
+        # The two span-less shapes, told apart exactly as `resolve.materialise`
+        # tells them apart: by the unit at the observation's own path.
+        if unit_length is not None and len(observation.raw_value) >= unit_length:
+            return False
+        return True
+    if unit_length is None:
+        # `materialise` raises `UnresolvableSpan` here rather than denying: a span
+        # with nothing to take a substring of is a contract failure, and this call
+        # is not the place to discover it.
+        return False
+    # `104` R-135: a whole HEADING unit is released; a whole document is not.
+    # `privacy.release.released_whole_heading_unit` carries the reasoning and the
+    # count that stands in for the length bound this deployment refuses to invent.
+    # It is the SAME predicate `GroundingReport`'s two counters are computed from,
+    # so what this admits and what the report calls exposure cannot become two
+    # conditions.
+    if (where.text_span.start <= 0
+            and where.text_span.end >= unit_length
+            and not released_whole_heading_unit(where, unit_length)):
+        return False
+    return True
+
+
+def releasable_readings(conn: sqlite3.Connection, *, file_id: str,
+                        content_hash: str, keys) -> tuple:
+    """The NAMED readings of one file that a model may be shown. No ranking, no cap.
+
+    `releasable_observations` above answers "what may this file offer, best first,
+    capped" -- the question a call about that file asks. This answers "may these
+    particular readings be shown", which is the question a caller asks when the file is
+    a NEIGHBOUR and the readings were chosen for a reason of its own. `104` R-135's
+    context builder is that caller; `may_be_released` records what happened when the
+    two questions were answered with one function.
+
+    Returned in `keys`' own order, so the caller's reason for choosing them survives to
+    wherever it does its own ordering.
+    """
+    wanted = tuple(dict.fromkeys(keys))
+    if not wanted:
+        return ()
+    sensitive = sensitive_observation_keys(conn, file_id)
+    by_key = {
+        observation.observation_key: observation
+        for observation in observations_for_version(conn, file_id, content_hash)
+    }
+    return tuple(
+        by_key[key] for key in wanted
+        if key in by_key and may_be_released(conn, by_key[key],
+                                             sensitive=sensitive))
 
 
 def _evidence_items(observations: Sequence) -> tuple[EvidenceItem, ...]:
