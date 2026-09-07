@@ -178,3 +178,62 @@ def test_the_command_a_person_types_prints_the_block(plan_database, capsys):
     assert "largest dossier RELEASED" in printed
     assert "canary: offered" in printed
     assert "canary: RELEASED" in printed
+    assert "filename canary: offered" in printed
+    assert "filename canary: released" in printed
+    assert "filename canary: protected" in printed
+
+
+# --- the filename canary (`104` R-06) ---------------------------------------
+
+class _Released:
+    """The two fields `filename_released` reads off a `privacy.release.ReleasedItem`."""
+
+    def __init__(self, zone: str, value: str):
+        self.zone = zone
+        self.value = value
+
+
+def test_the_filename_predicate_is_equality_at_the_filename_zone():
+    """Equality, and not the substring test the whole-document canary uses.
+
+    `a.py` occurs inside ordinary prose, so `in` would report a release that never
+    happened -- and the column this predicate feeds has to be trusted when it says
+    zero for a protected file.
+    """
+    from tools.groundtruth.payload import filename_released
+
+    assert filename_released((_Released("filename", "HW 3.pdf"),), "HW 3.pdf")
+    # the same characters at another address is not the filename being released
+    assert not filename_released((_Released("body", "HW 3.pdf"),), "HW 3.pdf")
+    # a name that merely OCCURS in a released excerpt is not the name being released
+    assert not filename_released(
+        (_Released("body", "see HW 3.pdf for the derivation"),), "HW 3.pdf")
+    assert not filename_released((_Released("filename", "HW 3.pdf"),), "")
+
+
+def test_the_filename_is_offered_for_every_built_dossier(plan_database):
+    """`e31c70f` put the item in every A_fact request; `104` R-06 is that nothing
+    then serialised it. The offered column is the half that was already true."""
+    report = inspect_database(plan_database, CORPUS, situation=SITUATION)
+    assert report.built, "the fixture corpus builds at least one dossier"
+    assert report.filename_offered == report.built
+
+
+def test_the_filename_actually_reaches_the_model_now(plan_database):
+    """R-06's pass condition, first half: a filename canary appears in the released
+    bytes for an ordinary file. Before the fix this list was empty on every corpus,
+    while the line above said the item had been offered on all of them."""
+    report = inspect_database(plan_database, CORPUS, situation=SITUATION)
+    assert report.released, "the fixture corpus releases at least one dossier"
+    assert report.filename_released == report.released
+
+
+def test_no_protected_file_releases_its_name(plan_database):
+    """R-06's pass condition, second half, and the one that is a safety flag rather
+    than a feature. §7.3: a Protected Records file "must not cause filenames or
+    content to be exposed in model prompts at all"."""
+    report = inspect_database(plan_database, CORPUS, situation=SITUATION)
+    assert report.protected, (
+        "the fixture corpus carries at least one protected file, or this test "
+        "passes by having nothing to check")
+    assert report.protected_filename_released == []
