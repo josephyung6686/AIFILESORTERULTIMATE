@@ -82,6 +82,8 @@ THE RULES
 
 12. The holder's school is answered only from an anchor document's own released text -- a syllabus, an enrollment or registration letter, a transcript, a tuition or housing statement -- and only when that text establishes that institution's relationship to the course or the enrollment being organised. The kind of document is not enough on its own. A transcript's transfer institutions are not the holder's school. A syllabus released by another university does not establish that the holder attends it. A filename, an email domain, a header that merely mentions a university, or a document addressed TO a school is not the holder's school. When the released text is not from such a document, or does not state that relationship, decline the field.
 
+13. Some released items are CONTEXT from another document in the same folder, and each one says which it is: its "basis" reads "context-supported" rather than "direct-anchor". A context line may support "subject", and the value is the course code or course name that line prints. It is not evidence about what THIS file is: do not answer "work_type", "term" or "school" from a context line. Everything the file's own text does not establish is still declined.
+
 Satisfying these rules is not the same as being right. They check that your answer is anchored in the evidence you were given; they do not check that it is true. Do not shape an answer to get past them.
 
 Your entire reply is one JSON object. No fence. No preamble. No trailing note.
