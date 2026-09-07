@@ -579,6 +579,16 @@ class PipelineInputs:
     chosen_node_of: object
     residual_action_of: object
     sensitivity_policy: object
+    #: WHICH MODEL WOULD BE ASKED -- P7's `ModelTarget`, or `None` when no model
+    #: is configured. `104` R-118: §8.4's gate has to know the target's locality
+    #: BEFORE a dossier exists, because a file the mode keeps off the cloud may
+    #: still be given to a local model, and until this field existed the only
+    #: place the target lived was inside `model_call_request`'s closure, which is
+    #: only ever called after the gate has answered. One target for both
+    #: placement sites, exactly as `PlacementCallAuthorities.model_target` is
+    #: one. Required with no default, and one of the nine that arrive together
+    #: or not at all.
+    model_target: object
     #: The question to put to the person about ONE file, or `None` for the files
     #: there is nothing to ask about. Called with the subject; answered with a
     #: `(question, node ids)` PAIR and never with an `Ask`.
@@ -727,7 +737,19 @@ class PipelineInputs:
         """
         return None not in (self.gate, self.model_client, self.prompt,
                             self.call_dependencies, self.model_call_request,
-                            self.chosen_node_of, self.sensitivity_policy)
+                            self.chosen_node_of, self.sensitivity_policy,
+                            self.model_target)
+
+    def target_locality(self) -> str | None:
+        """Where the model that would be asked runs, or `None` with none configured.
+
+        Read off `model_target` and nowhere else: the request builder closes
+        over the same target, but it is called only after §8.4's gate has
+        answered, and the gate is what needs this (`104` R-118).
+        """
+        if self.model_target is None:
+            return None
+        return self.model_target.locality
 
     def prompt_for(self, call_site: str) -> object:
         """The text THIS site is asked under. One field per site, never a shared one.
@@ -1062,7 +1084,10 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         # deterministic path called a BOUNDED AMBIGUITY has no answer to fall back
         # to either, and its abstention is the same one an offline run makes.
         offline_would_place = not needs_model_call(assessment, model_decides=False)
-        if not may_assemble_dossier(privacy):
+        # `104` R-118: asked about the target that would be sent to. A file the
+        # mode keeps off the cloud is a file a LOCAL model may be asked about.
+        if not may_assemble_dossier(privacy,
+                                    target_locality=inputs.target_locality()):
             if not offline_would_place:
                 return _abstention(conn, context, reason=PRIVACY_BLOCKED)
             gate_refused = True
@@ -1432,6 +1457,18 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
                 "kind of material it is -- so it was not shown to a model and "
                 "nothing moved. It is waiting for you to say what it is, not "
                 "marked sensitive and not judged on thin evidence."
+            )
+        if context.inputs.model_target is None:
+            # `104` R-118's third sentence. The only reason left for this state
+            # is the operation mode, and the mode forbids the CLOUD: a model on
+            # this device could be asked, and none is set up. The sentence
+            # below claims the settings forbid any model, which stopped being
+            # true the day a local one could be given a dossier.
+            return (
+                "Deciding this file needed a model, and this folder's privacy "
+                "settings only let one that runs on this device be asked about "
+                "it; none is set up. Nothing about it left this device and "
+                "nothing moved; the evidence is retained."
             )
         return (
             "Deciding this file needed a model, and this folder's privacy "
@@ -2402,7 +2439,8 @@ def _review_set_with_model(conn, *, item: ResidualSet, inputs: PipelineInputs,
                 conn, plan_version=inputs.plan_version,
                 set_id=item.set_id).choice,
             lifecycle_policy_ref=None)
-        if not may_assemble_dossier(privacy):
+        if not may_assemble_dossier(privacy,
+                                    target_locality=inputs.target_locality()):
             # §8.4 before the dossier, on the residual path exactly as on the
             # placement path. Protected material does not become releasable
             # because the file reached §7 instead of §6 -- and it is RECORDED

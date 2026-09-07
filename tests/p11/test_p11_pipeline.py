@@ -41,6 +41,7 @@ from evidence_shape.observation import observation_key
 from privacy.classification import ClassificationRecord
 from privacy.classification_store import ClassificationStore
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
+from privacy.release import ModelTarget
 
 from placement import vocabulary as v
 from placement.config import CEILINGS, SupportPolicy, placement_limits
@@ -158,7 +159,7 @@ def _inputs(conn, **overrides):
         max_return_cycles=1, gate=None, model_client=None, prompt=None,
         residual_prompt=None,
         call_dependencies=None, model_call_request=None, chosen_node_of=None,
-        residual_action_of=None, sensitivity_policy=None,
+        residual_action_of=None, sensitivity_policy=None, model_target=None,
         # Nothing to ask about and nothing already answered. Both are
         # required with no default, so a fixture states its position
         # rather than inheriting one.
@@ -490,16 +491,24 @@ def _verdict(outcome=ACCEPT_CONTEXT_SUPPORTED,
         plan_version="plan-1")
 
 
+#: The two targets a placement run can be configured with. `_model_inputs`
+#: names the local one by default; a test that asks what a CLOUD target may be
+#: given overrides `model_target` with the other.
+LOCAL_TARGET = ModelTarget(locality="local", model_id="llama-local",
+                           provider="on-device")
+CLOUD_TARGET = ModelTarget(locality="cloud", model_id="cloud-judge",
+                           provider="provider")
+
+
 def _model_call_request(*, subject_ref, evidence_items, max_dossier_tokens):
     """A real P7 release request. `DossierRequest` refuses anything else, which
     is what makes the assertions below a binding against the live seam."""
     from privacy.items import Excerpt, TextSpan
-    from privacy.release import ModelCallRequest, ModelTarget, Target
+    from privacy.release import ModelCallRequest, Target
 
     return ModelCallRequest(
         stage="placement", target=Target(file_ids=(subject_ref.split(":")[1],)),
-        model_target=ModelTarget(locality="local", model_id="llama-local",
-                                 provider="on-device"),
+        model_target=LOCAL_TARGET,
         requested_items=tuple(
             Excerpt(observation_key=item.evidence_ref,
                     span=TextSpan(start=0, end=8), reason="anchor excerpt")
@@ -545,7 +554,11 @@ def _model_inputs(conn, **overrides):
                   call_dependencies=_call_dependencies(),
                   model_call_request=_model_call_request,
                   chosen_node_of=lambda _verdict: "n-course-shared",
-                  sensitivity_policy=lambda *_a, **_k: True)
+                  sensitivity_policy=lambda *_a, **_k: True,
+                  # The target `_model_call_request` names, stated once more
+                  # where §8.4's gate can read it BEFORE the request is built
+                  # (`104` R-118).
+                  model_target=LOCAL_TARGET)
     values.update(overrides)
     return _inputs(conn, **values)
 
@@ -650,6 +663,11 @@ def test_an_offline_install_says_so_rather_than_naming_the_file_sensitive(
     install may send nothing anywhere. Telling an ordinary spreadsheet that it is
     "protected material" would be as wrong in the other direction, so the record
     reads `privacy.protected` and says which of the two happened.
+
+    A CLOUD target, since `104` R-118: the mode forbids the cloud and nothing
+    else, so a local model may now be asked about this file and the sentence
+    below would be false of it. The install this test describes is one whose
+    only configured model is off the device.
     """
     import placement.pipeline as pipeline
 
@@ -663,13 +681,164 @@ def test_an_offline_install_says_so_rather_than_naming_the_file_sensitive(
     subject = Subject(kind=v.FILE, file_id=file_id, content_hash=content_hash,
                       group_id=None, member_file_ids=())
     decision = _place(skeleton, subject=subject,
-                      inputs=_model_inputs(skeleton),
+                      inputs=_model_inputs(skeleton, model_target=CLOUD_TARGET),
                       evidence=_evidence(**AMBIGUOUS))
     assert decision.abstention_reason == v.PRIVACY_BLOCKED
     assert "protected material" not in decision.explanation
     # `104` R-M: the same distinction, said without citing §8.4 at the person.
     assert "privacy settings do not let one be asked" in decision.explanation
     assert "§" not in decision.explanation
+
+
+# --- `104` R-118: a local model gets a dossier the mode alone kept from it ---------
+#
+# Measured on the owner's corpus with qwen3:8b configured: 199 placement decisions,
+# 176 `abstain privacy_blocked`, 0 site-C dossiers. `privacy_state_for` asked only
+# whether the CLOUD was forbidden, and under a local-only mode it always is, so
+# every file was `local_only` and `may_assemble_dossier` refused them all without
+# knowing the target was on this device. §8.4 in P7's own words: "A LOCAL model is
+# permitted under both". The five cases below are the seam, end to end.
+
+
+def _ordinary_subject(conn, tmp_path, *, name, handling_class="personal_non_sensitive",
+                      classify=True):
+    file_id, content_hash = _real_file(conn, tmp_path / "corpus",
+                                       name=name, body=b"%PDF-1.4 o")
+    if classify:
+        _classify(conn, file_id=file_id, content_hash=content_hash,
+                  protected=False, handling_class=handling_class)
+    return Subject(kind=v.FILE, file_id=file_id, content_hash=content_hash,
+                   group_id=None, member_file_ids=())
+
+
+def test_r118_a_local_model_is_asked_about_a_file_the_mode_alone_kept_local(
+        skeleton, monkeypatch, tmp_path):
+    """(a) `local_model` mode, LOCAL target, `personal_non_sensitive` file: the
+    dossier is assembled, site C is asked, and its verdict is what places it."""
+    import placement.pipeline as pipeline
+
+    seen = {}
+
+    def _fake_call(conn, request, **kwargs):
+        seen["site"] = request.call_site
+        seen["target"] = request.model_call_request.model_target.locality
+        return _verdict()
+
+    monkeypatch.setattr(pipeline, "call_placement", _fake_call)
+    _policy(skeleton, mode="local_model")
+    subject = _ordinary_subject(skeleton, tmp_path, name="notes.pdf")
+    decision = _place(skeleton, subject=subject, inputs=_model_inputs(skeleton),
+                      evidence=_evidence(**AMBIGUOUS))
+
+    assert seen == {"site": "C_placement", "target": "local"}
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-course-shared"
+    assert decision.confidence_class == v.CONTEXT_SUPPORTED_GROUP_MATCH
+    assert decision.privacy.model_eligibility == v.LOCAL_ONLY
+    assert decision.privacy.local_only_reasons == (v.MODE_FORBIDS_CLOUD,)
+
+
+def test_r118_the_same_file_is_still_kept_from_a_cloud_target(
+        skeleton, monkeypatch, tmp_path):
+    """(b) The twin: the mode forbids the cloud, and a cloud target is refused
+    before any dossier exists."""
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    _policy(skeleton, mode="local_model")
+    subject = _ordinary_subject(skeleton, tmp_path, name="notes-2.pdf")
+    decision = _place(skeleton, subject=subject,
+                      inputs=_model_inputs(skeleton, model_target=CLOUD_TARGET),
+                      evidence=_evidence(**AMBIGUOUS))
+
+    assert decision.outcome == v.ABSTAIN
+    assert decision.abstention_reason == v.PRIVACY_BLOCKED
+    assert "privacy settings do not let one be asked" in decision.explanation
+    assert skeleton.execute(
+        "SELECT count(*) AS c FROM llm_verdict").fetchone()["c"] == 0
+
+
+def test_r118_protected_material_is_shown_to_no_model_local_included(
+        skeleton, monkeypatch, tmp_path):
+    """(c) The standing rule: read on this device and shown to no model."""
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    _policy(skeleton, mode="local_model")
+    subject = _protected_subject(skeleton, tmp_path, name="passport-r118.pdf")
+    decision = _place(skeleton, subject=subject, inputs=_model_inputs(skeleton),
+                      evidence=_evidence(**AMBIGUOUS))
+
+    assert decision.outcome == v.ABSTAIN
+    assert decision.abstention_reason == v.PRIVACY_BLOCKED
+    assert "protected material" in decision.explanation
+    assert v.PROTECTED_REASON in decision.privacy.local_only_reasons
+
+
+def test_r118_an_unclassified_file_stays_off_a_local_model_with_the_flag_as_it_is(
+        skeleton, monkeypatch, tmp_path):
+    """(d) Open question 5 is the owner's, and P11's pinned answer is still no."""
+    import placement.pipeline as pipeline
+    from placement import privacy as p11_privacy
+
+    assert p11_privacy.LOCAL_CALLS_ON_UNCLASSIFIED is False
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    _policy(skeleton, mode="local_model")
+    subject = _ordinary_subject(skeleton, tmp_path, name="scan-r118.pdf",
+                                classify=False)
+    decision = _place(skeleton, subject=subject, inputs=_model_inputs(skeleton),
+                      evidence=_evidence(**AMBIGUOUS))
+
+    assert decision.outcome == v.ABSTAIN
+    assert decision.abstention_reason == v.PRIVACY_BLOCKED
+    assert "has not been classified" in decision.explanation
+    assert v.UNCLASSIFIED_REASON in decision.privacy.local_only_reasons
+
+
+def test_r118_with_no_model_configured_nothing_changes_and_the_sentence_is_honest(
+        skeleton, tmp_path):
+    """(e) The offline path. No target, so no dossier and the same abstention as
+    before -- and the sentence no longer claims the settings forbid ANY model,
+    because they do not: one on this device could be asked, and none is set up."""
+    _policy(skeleton, mode="local_model")
+    subject = _ordinary_subject(skeleton, tmp_path, name="notes-3.pdf")
+    decision = _place(skeleton, subject=subject, inputs=_inputs(skeleton),
+                      evidence=_evidence(**AMBIGUOUS))
+
+    assert decision.outcome == v.ABSTAIN
+    assert decision.abstention_reason == v.PRIVACY_BLOCKED
+    assert "only let one that runs on this device be asked" in decision.explanation
+    assert "none is set up" in decision.explanation
+    assert "do not let one be asked" not in decision.explanation
+    assert "protected material" not in decision.explanation
+    assert "§" not in decision.explanation
+    assert skeleton.execute(
+        "SELECT count(*) AS c FROM llm_verdict").fetchone()["c"] == 0
+
+
+def test_r118_the_record_says_why_a_file_was_local_only(skeleton, tmp_path):
+    """The `privacy` payload carries the reasons, and they survive the store."""
+    _policy(skeleton, mode="local_model")
+    subject = _protected_subject(skeleton, tmp_path, name="passport-r118-2.pdf")
+    decision = _place(skeleton, subject=subject, inputs=_inputs(skeleton),
+                      evidence=_evidence(**AMBIGUOUS))
+
+    assert set(decision.privacy.local_only_reasons) == {
+        v.MODE_FORBIDS_CLOUD, v.PROTECTED_REASON}
+    stored = current_decision(skeleton, plan_version="plan-1",
+                              subject_ref=f"file:{subject.file_id}:{subject.content_hash}")
+    assert stored.privacy == decision.privacy
+    assert stored.privacy.local_only_reasons == decision.privacy.local_only_reasons
+    payload = json.loads(skeleton.execute(
+        "SELECT payload FROM placement_decisions WHERE plan_version = ? AND "
+        "subject_ref = ? AND superseded_by IS NULL",
+        ("plan-1", f"file:{subject.file_id}:{subject.content_hash}"),
+    ).fetchone()["payload"])
+    assert set(payload["privacy"]["local_only_reasons"]) == {
+        v.MODE_FORBIDS_CLOUD, v.PROTECTED_REASON}
 
 
 def test_an_unclassified_file_does_not_read_as_a_passport_or_as_thin_evidence(

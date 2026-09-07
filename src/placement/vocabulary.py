@@ -287,6 +287,20 @@ MODEL_ELIGIBILITY: tuple[str, ...] = (
     LOCAL_ONLY, DOSSIER_PERMITTED, REDACTED_ELIGIBILITY,
 )
 
+#: WHY a file is `local_only` -- the three reasons `placement.privacy` derives it
+#: from, carried on the record so a reader can see which one decided and so
+#: `may_assemble_dossier` can answer for a LOCAL target without re-deriving them
+#: (`104` R-118). They are not the same question: the mode forbids only the
+#: CLOUD and §8.4 says a local model "may run" under it; the protected flag
+#: binds every model; an unclassified file is Open question 5, which P11 keeps
+#: answering with a pinned `False`.
+MODE_FORBIDS_CLOUD: str = "mode_forbids_cloud"
+UNCLASSIFIED_REASON: str = "unclassified"
+PROTECTED_REASON: str = "protected"
+LOCAL_ONLY_REASONS: tuple[str, ...] = (
+    MODE_FORBIDS_CLOUD, UNCLASSIFIED_REASON, PROTECTED_REASON,
+)
+
 AUTO_ELIGIBLE: str = "auto_eligible"
 REVIEW_REQUIRED: str = "review_required"
 BLOCKED_PENDING_USER: str = "blocked_pending_user"

@@ -104,7 +104,7 @@ def test_an_unclassified_file_reads_p7s_own_answer_instead_of_refusing(p11_conn)
     # And §8.4's precondition holds: classification comes before escalation, so
     # nothing about a file nobody classified is assembled for a model.
     assert state.model_eligibility == v.LOCAL_ONLY
-    assert may_assemble_dossier(state) is False
+    assert may_assemble_dossier(state, target_locality="cloud") is False
 
 
 def test_an_unclassified_file_is_not_a_protected_one(p11_conn):
@@ -156,7 +156,7 @@ def test_offline_mode_makes_everything_local_only(p11_conn):
     _policy(p11_conn, mode="offline")
     state = _state(p11_conn)
     assert state.model_eligibility == v.LOCAL_ONLY
-    assert may_assemble_dossier(state) is False
+    assert may_assemble_dossier(state, target_locality="cloud") is False
 
 
 def test_local_model_mode_is_local_only_on_p7s_own_authority(p11_conn):
@@ -173,7 +173,115 @@ def test_a_non_sensitive_file_in_hybrid_mode_may_reach_a_dossier(p11_conn):
     _policy(p11_conn)
     state = _state(p11_conn)
     assert state.model_eligibility == v.DOSSIER_PERMITTED
-    assert may_assemble_dossier(state) is True
+    assert may_assemble_dossier(state, target_locality="cloud") is True
+
+
+# --- `104` R-118: the state says WHY it is local-only, and the target decides ----
+#
+# Under `offline` and `local_model` the mode forbids the CLOUD, and §8.4 says in
+# the same breath that "only local rules and local models may run". A state that
+# folded three reasons into one boolean and a predicate that never asked which
+# model would be sent to refused a local model every dossier: 176 of the owner's
+# 199 decisions abstained `privacy_blocked` with qwen3:8b configured and site C
+# was never asked. The reasons now travel on the record and the predicate reads
+# them against the target's locality.
+
+
+def test_a_file_the_mode_alone_keeps_local_may_be_given_to_a_local_model(p11_conn):
+    _classify(p11_conn)
+    _policy(p11_conn, mode="local_model")
+    state = _state(p11_conn)
+    assert state.model_eligibility == v.LOCAL_ONLY
+    assert state.local_only_reasons == (v.MODE_FORBIDS_CLOUD,)
+    assert may_assemble_dossier(state, target_locality="local") is True
+    # And the cloud is exactly what the mode forbids.
+    assert may_assemble_dossier(state, target_locality="cloud") is False
+
+
+def test_offline_mode_permits_a_local_model_on_p7s_own_authority(p11_conn):
+    # `cli.OPERATION_MODE` is `offline`, and it is the mode a local-model run
+    # actually writes: the owner's qwen3:8b run was under it. P7's own predicate
+    # says a local model may run under both local-only modes, and P11 asks P7
+    # rather than drawing an offline-versus-local_model line of its own.
+    _classify(p11_conn)
+    _policy(p11_conn, mode="offline")
+    assert mode_forbids("offline", "local") is False
+    state = _state(p11_conn)
+    assert state.local_only_reasons == (v.MODE_FORBIDS_CLOUD,)
+    assert may_assemble_dossier(state, target_locality="local") is True
+
+
+def test_protected_material_is_shown_to_no_model_local_included(p11_conn):
+    _classify(p11_conn, handling_class="sensitive_personal", protected=True)
+    _policy(p11_conn, mode="local_model")
+    state = _state(p11_conn)
+    assert v.PROTECTED_REASON in state.local_only_reasons
+    assert may_assemble_dossier(state, target_locality="local") is False
+    assert may_assemble_dossier(state, target_locality="cloud") is False
+    # The flag binds on its own: under `hybrid` the mode permits the cloud and
+    # the passport is still local-only, for one reason.
+    _policy(p11_conn, mode="hybrid")
+    state = _state(p11_conn)
+    assert state.local_only_reasons == (v.PROTECTED_REASON,)
+    assert may_assemble_dossier(state, target_locality="local") is False
+
+
+def test_an_unclassified_file_stays_off_a_local_model_while_question_5_is_open(
+        p11_conn):
+    from placement import privacy as p11_privacy
+
+    # The pinned answer, read here so a flip is a red test and not a quiet one.
+    assert p11_privacy.LOCAL_CALLS_ON_UNCLASSIFIED is False
+    _policy(p11_conn, mode="local_model")
+    state = _state(p11_conn)
+    assert set(state.local_only_reasons) == {v.UNCLASSIFIED_REASON,
+                                             v.MODE_FORBIDS_CLOUD}
+    assert may_assemble_dossier(state, target_locality="local") is False
+
+
+def test_no_target_means_no_dossier_whatever_the_reason(p11_conn):
+    # The offline path -- no model configured -- is unchanged: a local-only
+    # state is refused, and a permitted one still has nothing to be given to.
+    _classify(p11_conn)
+    _policy(p11_conn, mode="local_model")
+    assert may_assemble_dossier(_state(p11_conn), target_locality=None) is False
+
+
+def test_a_local_only_state_with_no_recorded_reason_is_blocked_for_every_target():
+    # What every decision row written before the reasons existed reads back as.
+    # Nothing clears §8.4's gate by omission.
+    from placement.records import PrivacyState
+
+    state = PrivacyState(handling_class="personal_non_sensitive", protected=False,
+                         model_eligibility=v.LOCAL_ONLY, consent_audit_ref=None)
+    assert state.local_only_reasons == ()
+    assert may_assemble_dossier(state, target_locality="local") is False
+    assert may_assemble_dossier(state, target_locality="cloud") is False
+
+
+def test_a_reason_on_a_permitted_state_is_malformed():
+    from placement.records import MalformedPlacementRecord, PrivacyState
+
+    with pytest.raises(MalformedPlacementRecord):
+        PrivacyState(handling_class="personal_non_sensitive", protected=False,
+                     model_eligibility=v.DOSSIER_PERMITTED, consent_audit_ref=None,
+                     local_only_reasons=(v.MODE_FORBIDS_CLOUD,))
+    with pytest.raises(v.OutOfVocabulary):
+        PrivacyState(handling_class="personal_non_sensitive", protected=False,
+                     model_eligibility=v.LOCAL_ONLY, consent_audit_ref=None,
+                     local_only_reasons=("because",))
+
+
+def test_the_target_locality_is_keyword_only_and_p7s_vocabulary():
+    from placement.records import PrivacyState
+
+    state = PrivacyState(handling_class="personal_non_sensitive", protected=False,
+                         model_eligibility=v.LOCAL_ONLY, consent_audit_ref=None,
+                         local_only_reasons=(v.MODE_FORBIDS_CLOUD,))
+    with pytest.raises(TypeError):
+        may_assemble_dossier(state)  # a caller that forgot the target is refused
+    with pytest.raises(v.OutOfVocabulary):
+        may_assemble_dossier(state, target_locality="on-device")
 
 
 def test_unclassified_arrives_only_as_absence_so_the_carry_has_one_path(p11_conn):

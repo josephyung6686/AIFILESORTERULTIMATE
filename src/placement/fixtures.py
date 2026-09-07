@@ -29,6 +29,7 @@ from placement.vocabulary import (
     ABSTAIN, ABSTAIN_NO_SUPPORTED_DESTINATION, ACCEPT_DIRECT, AUTO_ELIGIBLE,
     BUDGET_DEFERRED, CLASSES, CONTEXT_SUPPORTED, DIRECT, DOSSIER_PERMITTED,
     EXACT_FACT_MATCH, FILE, LEAVE_IN_PLACE, LOCAL_ONLY, MARGIN_TRUE_VACUOUS,
+    PROTECTED_REASON,
     NO_SUPPORTED_DESTINATION, ORDINARY, PLACE, PLACEMENT, PLACEMENT_SCORING,
     RESIDUAL, REVIEW_REQUIRED, REVIEW_WITH_MODEL, WEAK,
 )
@@ -51,7 +52,8 @@ _PRIVACY = PrivacyState(handling_class=PERSONAL_NON_SENSITIVE, protected=False,
 #: P7's flag travels with the class, because §8.4 Open question 1 leaves their
 #: relation unsettled and has neighbouring parts CONSUME the flag.
 _PROTECTED = PrivacyState(handling_class=SENSITIVE_PERSONAL, protected=True,
-                          model_eligibility=LOCAL_ONLY, consent_audit_ref=None)
+                          model_eligibility=LOCAL_ONLY, consent_audit_ref=None,
+                          local_only_reasons=(PROTECTED_REASON,))
 
 _FACT = MatchingFact(file_fact_id="ff-1", field="subject", value="PHYS1401",
                      reliability=DIRECT, evidence_ref="obs-syllabus")

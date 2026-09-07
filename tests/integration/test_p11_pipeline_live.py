@@ -233,6 +233,10 @@ def _inputs(conn, **overrides):
         limits=placement_limits(conn), partition=None, ask_or_abstain=lambda ids: v.ABSTAIN,
         max_return_cycles=1, gate=None, model_client=_model_client(),
         prompt=_prompt(), residual_prompt=None,
+        # The same LOCAL target `_model_client` and `_model_call_request` name,
+        # where §8.4's gate reads it before the request exists (`104` R-118).
+        model_target=ModelTarget(locality="local", model_id="llama-local",
+                                 provider="on-device"),
         call_dependencies=_call_dependencies(),
         model_call_request=_model_call_request,
         chosen_node_of=lambda _verdict: "n-course-shared",
