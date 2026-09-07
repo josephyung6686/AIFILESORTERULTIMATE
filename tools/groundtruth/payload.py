@@ -304,7 +304,8 @@ def inspect_database(database: Path, corpus: Path, *,
     from database_agent.budget import get_ceiling
     from database_agent.files_table import get_file
     from model_facts import (
-        build_fact_request, dossier_tokens, measure_released_tokens,
+        build_fact_request, dossier_tokens, filename_citation,
+        measure_released_tokens,
         releasable_observations,
     )
     from privacy.items import Filename
@@ -391,7 +392,12 @@ def inspect_database(database: Path, corpus: Path, *,
 
             request = build_fact_request(
                 _fact_request(conn, file_id, content_hash, authorities),
-                observations, model_target=authorities.model_target,
+                observations,
+                # The same citation the product resolves, from the same function, so
+                # the `filename canary: offered` column counts what a real run would
+                # offer rather than what this file happens to pass (`104` R-06).
+                filename=filename_citation(conn, file_id),
+                model_target=authorities.model_target,
                 prompt=authorities.prompt,
                 max_dossier_tokens=authorities.max_dossier_tokens)
 

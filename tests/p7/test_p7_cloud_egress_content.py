@@ -150,9 +150,9 @@ def test_no_releasable_kind_is_one_of_the_nine():
 def test_a_file_id_that_is_a_path_is_refused():
     """§8.4's first always-local word is "Paths"."""
     with pytest.raises(AlwaysLocalRequested, match="path separator"):
-        Filename(file_id="/Users/someone/Documents/passport.pdf")
+        Filename(file_id="/Users/someone/Documents/passport.pdf", observation_key="sha256:" + "f" * 64)
     with pytest.raises(AlwaysLocalRequested, match="path separator"):
-        Filename(file_id="corpus\\passport.pdf")
+        Filename(file_id="corpus\\passport.pdf", observation_key="sha256:" + "f" * 64)
 
 
 def test_the_complete_list_of_what_a_request_may_carry():
@@ -176,7 +176,10 @@ def test_the_complete_list_of_what_a_request_may_carry():
         "CandidateLabel": ("label",),
         "MetadataField": ("name",),
         "EvidenceReference": ("observation_key",),
-        "Filename": ("file_id",),
+        # `observation_key` since `104` R-06's merge: still a REFERENCE and not
+        # content -- the same shape `EvidenceReference` has -- and present because
+        # P8 refuses a released key the request never asked for.
+        "Filename": ("file_id", "observation_key"),
     }
 
 

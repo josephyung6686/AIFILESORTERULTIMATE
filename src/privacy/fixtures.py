@@ -115,6 +115,11 @@ UNEXTRACTED_CONTENT_HASH: str = hashlib.sha256(FIXTURE_BYTES).hexdigest()
 #: `record_file` mints the real one, which is why `file_id` is a substituted field.
 FIXTURE_FILE_ID: str = "fixture-file"
 
+#: The placeholder key a fixture `Filename` names, substituted the same way the
+#: `file_id` is. `104` R-06 made the field required: the request has to ask for
+#: the key the door hands back, or P8 reads the release as a forged one.
+FIXTURE_FILENAME_KEY: str = "sha256:" + "f" * 64
+
 #: The four identities a decision carries that only the gate can mint. `Released`
 #: refuses an empty `release_id` and an unstamped `policy_version` (§6: "the gate owns
 #: the policy and STAMPS the version"), so a fixture cannot leave them blank -- it
@@ -895,7 +900,8 @@ FIXTURES: tuple[GateFixture, ...] = (
                                    protected=True, basis="safety_domain"),
         area=FIXTURE_AREA,
         request=_request(stage="placement", model_target=CLOUD_MODEL,
-                         items=(Filename(file_id=FIXTURE_FILE_ID),),
+                         items=(Filename(file_id=FIXTURE_FILE_ID,
+                                        observation_key=FIXTURE_FILENAME_KEY),),
                          fingerprint="fp-16", max_dossier_tokens=2000),
         decision=_denied(
             "protected_records_template",

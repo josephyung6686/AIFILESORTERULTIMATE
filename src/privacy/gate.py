@@ -665,6 +665,25 @@ class Gate:
         released down that path; `UnresolvableSpan` is raised there, which is where
         it was raised before this method existed.
         """
+        if isinstance(item, NAME_BEARING):
+            # §7.7's FILENAME IS THE KIND THE ZONE LIST PROTECTS AGAINST, not a kind
+            # the zone list refuses (`104` R-06, the merge). `filename` is in
+            # `ALWAYS_LOCAL_ZONES` so that an EXCERPT may not address it; the name
+            # itself is `00`:124's first releasable field and comes through
+            # `NAME_BEARING`'s own door. Asking this method for its zone would hand
+            # `check_item` the one answer that refuses the kind outright -- which is
+            # what happened the moment `Filename` gained an `observation_key` for P8
+            # to match the release against, and it took the whole fact pass down as
+            # `always_local_item`.
+            #
+            # This is not the excerpt door widened. The refusal that keeps the two
+            # apart is `check_item`'s on an `Excerpt` naming a `filename`-zone
+            # observation, and that is untouched: an `Excerpt` still has its zone
+            # looked up here and is still refused. Nor does it widen the protected
+            # rule -- a protected file's name is stopped by
+            # `protected_records_template` and `ProtectedItemRequested`, neither of
+            # which reads a zone.
+            return None
         key = getattr(item, "observation_key", None)
         if key is None:
             return None

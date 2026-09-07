@@ -231,7 +231,7 @@ def test_the_filename_is_released_beside_the_excerpt_and_not_dropped(gate_conn):
     _policy_suspending(gate_conn, ())
 
     decision = _gate(gate_conn).release(_request(
-        items=(Filename(file_id=file_id),
+        items=(Filename(file_id=file_id, observation_key="sha256:" + "f" * 64),
                Excerpt(observation_key=key, span=SPAN, reason="heading")),
         file_ids=(file_id,)))
 
@@ -293,7 +293,7 @@ def test_a_kind_in_none_of_the_tuples_is_refused_whatever_it_is(gate_conn):
     readable = (*TEXT_BEARING, *NAME_BEARING, *REFERENCE_ONLY)
     for item in (Excerpt(observation_key=key, span=SPAN, reason="heading"),
                  CandidateLabel(label="Passport"), MetadataField(name="page_count"),
-                 EvidenceReference(observation_key=key), Filename(file_id=file_id),
+                 EvidenceReference(observation_key=key), Filename(file_id=file_id, observation_key="sha256:" + "f" * 64),
                  SelfDescription(question_id=A_ROLE)):
         kind = kind_of(item)
         try:

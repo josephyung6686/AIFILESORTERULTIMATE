@@ -478,7 +478,7 @@ def test_a_filename_on_a_protected_records_file_is_denied(gate_conn):
     decision = _gate(
         gate_conn,
         template_for=lambda _file_id: "Protected Records",
-    ).release(_request(items=(Filename(file_id=file_id),),
+    ).release(_request(items=(Filename(file_id=file_id, observation_key="sha256:" + "f" * 64),),
                        model_target=LOCAL, file_ids=(file_id,), stage="residual"))
     assert isinstance(decision, Denied)
     assert decision.reason == "protected_records_template"
@@ -983,7 +983,7 @@ def test_a_filename_reaches_the_model_as_a_released_item(gate_conn):
               handling_class="public_low", protected=False)
 
     decision = _gate(gate_conn, classifier=_no_redaction).release(
-        _request(items=(Filename(file_id=file_id),), file_ids=(file_id,)))
+        _request(items=(Filename(file_id=file_id, observation_key="sha256:" + "f" * 64),), file_ids=(file_id,)))
 
     assert isinstance(decision, Released)
     assert len(decision.materialised_items) == 1
@@ -1003,7 +1003,7 @@ def test_the_released_filename_carries_an_audit_row_naming_its_address(gate_conn
               handling_class="public_low", protected=False)
 
     decision = _gate(gate_conn, classifier=_no_redaction).release(
-        _request(items=(Filename(file_id=file_id),), file_ids=(file_id,)))
+        _request(items=(Filename(file_id=file_id, observation_key="sha256:" + "f" * 64),), file_ids=(file_id,)))
 
     assert isinstance(decision, Released)
     row = gate_conn.execute("SELECT * FROM events WHERE event_id = ?",
@@ -1025,7 +1025,7 @@ def test_a_filename_is_never_released_for_a_protected_file(gate_conn):
               handling_class="highly_sensitive_credential_bearing", protected=True)
 
     decision = _gate(gate_conn, classifier=_no_redaction).release(
-        _request(items=(Filename(file_id=file_id),), model_target=LOCAL,
+        _request(items=(Filename(file_id=file_id, observation_key="sha256:" + "f" * 64),), model_target=LOCAL,
                  file_ids=(file_id,), stage="residual"))
 
     assert isinstance(decision, Denied)
@@ -1045,4 +1045,4 @@ def test_a_filename_with_no_filesystem_observation_refuses_rather_than_guessing(
 
     with pytest.raises(UnresolvableSpan):
         _gate(gate_conn, classifier=_no_redaction).release(
-            _request(items=(Filename(file_id=file_id),), file_ids=(file_id,)))
+            _request(items=(Filename(file_id=file_id, observation_key="sha256:" + "f" * 64),), file_ids=(file_id,)))

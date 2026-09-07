@@ -344,3 +344,90 @@ def test_the_blocked_line_names_both_stops_and_every_gate_reason(plan_database):
     assert "8 never built" in card
     assert "protected_cloud=130" in card
     assert "no_safety_evidence=19" in card
+
+
+# --- the filename is asked for and released as ONE key (`104` R-06, the merge) ---
+
+def test_the_filename_key_is_requested_and_released_together(plan_database):
+    """P8 refuses "a released key nobody requested ... a forged or mismatched
+    release" (`llm_harness/dossier.py`). R-06 released the name keyed on its
+    filesystem observation while the request asked for nothing, so on the merged
+    branch every A_fact call died as `ValidationUnavailable(missing=
+    ('released_key_not_requested', 'builder_evidence_metadata'))` -- 0 dossiers, 0
+    calls, 15 red tests across three files.
+
+    The two halves are one address now, because both come from
+    `resolve.filename_address`: the `Filename` item carries it, the builder's
+    `EvidenceItem` describes it, `dossier._requested_keys` reads it off the item,
+    and the door hands the same key back.
+    """
+    import sqlite3
+
+    from llm_harness.dossier import _requested_keys
+    from model_facts import filename_citation
+    from privacy.items import Filename
+
+    conn = sqlite3.connect(f"file:{plan_database}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        file_id = conn.execute("SELECT file_id FROM files LIMIT 1").fetchone()[0]
+        citation = filename_citation(conn, file_id)
+        assert citation is not None, "the fixture corpus names its files"
+        item = Filename(file_id=file_id, observation_key=citation.evidence_ref)
+    finally:
+        conn.close()
+
+    # ONE address, spelled once, on both halves of the check P8 makes.
+    assert item.observation_key == citation.evidence_ref
+
+    class _Req:
+        model_call_request = type("_M", (), {"requested_items": (item,)})()
+        evidence_items = (citation,)
+
+    assert item.observation_key in _requested_keys(_Req)
+    assert item.observation_key in {e.evidence_ref for e in _Req.evidence_items}
+
+
+def test_the_instruments_two_filename_columns_agree_over_the_same_files(
+        plan_database):
+    """The end-to-end half, with the dossier's own validator standing between the
+    two columns: a name released without being requested cannot reach this line,
+    because the call it belonged to would have been refused."""
+    report = inspect_database(plan_database, CORPUS, situation=SITUATION)
+    assert report.built, "the fixture corpus builds at least one dossier"
+    assert report.filename_offered == report.built
+    assert report.filename_released == report.released
+    assert report.protected_filename_released == []
+
+
+def test_the_filename_row_sits_among_the_files_keys_and_not_in_the_frame():
+    """R-58's shared prefix is the FRAME, and the frame is constant across the files
+    of one situation. The filename is per-file material, so it rides in
+    `evidence_items` and `released_evidence` -- both `_FILE_KEYS` -- and putting it
+    in the frame would end the prefix at the first file."""
+    from llm_harness.dossier import _FILE_KEYS, _FRAME_KEYS
+
+    assert "evidence_items" in _FILE_KEYS
+    assert "released_evidence" in _FILE_KEYS
+    assert not {"evidence_items", "released_evidence"} & set(_FRAME_KEYS)
+
+
+def test_a_file_p4_cannot_name_offers_no_filename_rather_than_failing_the_call(
+        plan_database):
+    """`filesystem` writes a name for every indexed file, so an unnameable file is a
+    corpus assembled without that extractor rather than a contract failure. The
+    precedent is `_offerable_observations`, which filters an unaddressable
+    observation out BEFORE offering it: "this call is not the place to discover it".
+
+    Not silent: no `Filename` item is offered, so the instrument's `offered` column
+    falls with its `released` column instead of the two parting."""
+    import sqlite3
+
+    from model_facts import filename_citation
+
+    conn = sqlite3.connect(f"file:{plan_database}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        assert filename_citation(conn, "a-file-id-p4-never-heard-of") is None
+    finally:
+        conn.close()
