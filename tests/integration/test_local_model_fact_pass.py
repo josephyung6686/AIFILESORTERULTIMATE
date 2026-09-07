@@ -561,7 +561,7 @@ def test_the_two_reasons_the_route_withholds_for_get_a_line_each():
     assert "1 of 3 files were not sent" in printed
     assert "2 of 3 files were not sent" in printed
     assert "protected material" in printed
-    assert "nothing has classified them" in printed
+    assert "nothing has said yet what kind of material they are" in printed
 
 
 def test_a_gate_refusal_is_named_by_the_gates_own_word_and_is_not_counted_as_sent():

@@ -326,15 +326,18 @@ def test_a_file_with_two_supported_homes_is_told_it_has_two_homes(skeleton):
     assert "No legal destination cleared" not in decision.explanation
 
 
-def test_an_ordinary_abstention_still_says_no_legal_destination_cleared(skeleton):
+def test_an_ordinary_abstention_still_says_nothing_matched(skeleton):
     # The negative twin of the two tests above and below. A file nothing supports
-    # gets the sentence it always got; a fix that gave every abstention a
-    # reassuring new voice would pass those two and erase the one honest report
-    # of a genuine evidence failure.
+    # is told so plainly; a fix that gave every abstention a reassuring new voice
+    # would pass those two and erase the one honest report of a genuine evidence
+    # failure. `104` R-M took the section number out of this sentence and left
+    # the finding in it: no folder was a supported home.
     decision = _place(skeleton,
                       evidence=_evidence(facts=(), semantic_neighbours=()))
     assert decision.abstention_reason == v.NO_SUPPORTED_DESTINATION
-    assert decision.explanation.startswith("No legal destination cleared")
+    assert decision.explanation.startswith(
+        "No folder in this plan matched it well enough")
+    assert "§" not in decision.explanation
     assert "protected" not in decision.explanation
     assert "more than one" not in decision.explanation
 
@@ -663,7 +666,9 @@ def test_an_offline_install_says_so_rather_than_naming_the_file_sensitive(
                       evidence=_evidence(**AMBIGUOUS))
     assert decision.abstention_reason == v.PRIVACY_BLOCKED
     assert "protected material" not in decision.explanation
-    assert "did not clear this file for a model" in decision.explanation
+    # `104` R-M: the same distinction, said without citing §8.4 at the person.
+    assert "privacy settings do not let one be asked" in decision.explanation
+    assert "§" not in decision.explanation
 
 
 def test_an_unclassified_file_does_not_read_as_a_passport_or_as_thin_evidence(

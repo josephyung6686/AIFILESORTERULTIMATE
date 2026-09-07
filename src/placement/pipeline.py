@@ -43,6 +43,7 @@ import sqlite3
 from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal
+from types import MappingProxyType
 
 from database_agent.supersede import mark_superseded
 from llm_harness import P8Verdict, Refusal
@@ -95,8 +96,9 @@ from placement.stage_output import emit_retrieval_stage, emit_scoring_stage
 from placement.store import current_decision, record_decision, subject_ref_of
 from placement.vocabulary import (
     ABSTAIN, ABSTAIN_NO_SUPPORTED_DESTINATION, ASK_USER, BUDGET_DEFERRED,
-    CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH, DIRECT, EXISTING, FILE,
-    MARGIN_TRUE_VACUOUS, MARK_STATE, NO_SHARED_BRANCH,
+    CONFLICTING_FACTS, CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH, DIRECT,
+    EXISTING, FILE, GENERIC_HUB_ONLY, LOW_MARGIN,
+    MARGIN_TRUE_VACUOUS, MARK_STATE, NO_SHARED_BRANCH, SEMANTIC_ONLY,
     MULTIPLE_SUPPORTED_HOMES, NO_SUPPORTED_DESTINATION, PLACE, PLACEMENT,
     POSSIBLE, PRIVACY_BLOCKED, RESIDUAL, RESIDUAL_ROLE,
     RETURN_TO_PLACEMENT, SEND_TO_APPROVED_NODE, SHARED_MATERIAL,
@@ -1241,6 +1243,43 @@ def _supported_homes(context: _Context) -> tuple[str, ...]:
                  if item.support_score >= threshold)
 
 
+#: `104` R-M. WHAT EACH ABSTENTION MEANS, in the person's words.
+#:
+#: The screen used to end every one of these with "No legal destination cleared
+#: §6.10's conditions ({reason})" -- a paragraph number and an engine word, on the
+#: screen of somebody looking at their own folder. Measured by a fresh session on
+#: a 52-file corpus: 31 occurrences of "§6.10's" on one report.
+#:
+#: **The section reference is not lost by coming off the screen.** It is in the
+#: RECORD, structurally rather than as prose: `PlacementDecision.two_condition` IS
+#: §6.10's measurement -- support, margin, the threshold and the policy that set
+#: them -- `privacy` is §8.4's class, and `abstention_reason` is the closed code
+#: for which condition failed. The person reads the sentence; a lead reads the row.
+#:
+#: One sentence per member of `ABSTENTION_REASONS`, and `_abstention_explanation`
+#: falls back to the general one for a member added without a sentence, so a new
+#: code can never reach a person as a bare word.
+REASON_IN_WORDS: Mapping[str, str] = MappingProxyType({
+    NO_SUPPORTED_DESTINATION:
+        "No folder in this plan matched it well enough to be worth proposing.",
+    LOW_MARGIN:
+        "Two folders in this plan fit it about equally well, so picking one "
+        "would have been a guess rather than a decision.",
+    SEMANTIC_ONLY:
+        "The only thing linking it to a folder was that they read alike, which "
+        "is not enough on its own to move a file.",
+    GENERIC_HUB_ONLY:
+        "The only thing it shares with a folder is a word many of your files "
+        "share, which says nothing about where this one belongs.",
+    CONFLICTING_FACTS:
+        "What this run read about it points at more than one folder, and the "
+        "readings disagree with each other.",
+    NO_SHARED_BRANCH:
+        "The files it belongs with are not all under one branch, so there is no "
+        "single home to propose for them.",
+})
+
+
 def _abstention_explanation(context: _Context, *, reason: str) -> str:
     """What the person is told, which is not always what the machine recorded.
 
@@ -1264,8 +1303,8 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
     if reason == MULTIPLE_SUPPORTED_HOMES:
         homes = _supported_homes(context)
         return (
-            f"{', '.join(homes)} each cleared §6.10's support threshold and "
-            "nothing in the evidence separates them, so this file has more than "
+            f"{', '.join(homes)} each match this file well enough on their own, "
+            "and nothing in the evidence separates them, so it has more than "
             "one supported home. Nothing moved: which one is its home is a "
             "choice about your material, not a gap in the evidence."
         )
@@ -1286,7 +1325,7 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
         # the rule that decided the outcome; the other names a step that ran on
         # the way there and would still have refused if it had agreed.
         return (
-            "This file is protected material (§8.4), so nothing about it was "
+            "This file is protected material, so nothing about it was "
             "assembled for a model and it was left exactly where it is. That "
             "is a deliberate decision about sensitivity, not a failure to "
             "find a destination."
@@ -1320,14 +1359,14 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
                 "marked sensitive and not judged on thin evidence."
             )
         return (
-            "Deciding this file needed a model, and §8.4 did not clear this file "
-            "for a model call. Nothing about it left this device and nothing "
-            "moved; the evidence is retained."
+            "Deciding this file needed a model, and this folder's privacy "
+            "settings do not let one be asked about it. Nothing about it left "
+            "this device and nothing moved; the evidence is retained."
         )
     return (
-        f"No legal destination cleared §6.10's conditions ({reason}). "
-        "Abstaining is the correct outcome; the evidence is retained and the "
-        "file has not moved."
+        f"{REASON_IN_WORDS.get(reason, 'No folder in this plan was a supported home for it.')} "
+        "Declining to place it is the right answer rather than a failure: "
+        "nothing moved, and everything this run read about it is kept."
     )
 
 

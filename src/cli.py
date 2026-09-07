@@ -4306,11 +4306,11 @@ WITHHELD_PRIVACY: str = "privacy"
 #: reason a person reads is prose and not a code with a template around it.
 WITHHELD_SENTENCE: Mapping[str, str] = MappingProxyType({
     WITHHELD_UNCLASSIFIED:
-        "nothing has classified them, and §8.4 makes a handling class a "
-        "precondition of asking a model about a file. This is about the "
-        "detector, not about your files.",
+        "nothing has said yet what kind of material they are, and this product "
+        "will not ask a model about a file until something has. This is about "
+        "the detector, not about your files.",
     WITHHELD_PROTECTED:
-        "they are protected material (§8.4), so nothing about them was "
+        "they are protected material, so nothing about them was "
         "assembled for a model. That is a decision about sensitivity and not a "
         "gap in what this run could read.",
     WITHHELD_PRIVACY:

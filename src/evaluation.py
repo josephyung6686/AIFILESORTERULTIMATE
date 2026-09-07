@@ -418,7 +418,7 @@ def replay_lines(run: EvaluationRun, *,
         lines.append("  -- this bundle carries no expectation, so nothing was")
         lines.append("     measured against a label. A bundle with no labels is a")
         lines.append("     corpus snapshot, not a reference corpus, and the")
-        lines.append("     labelling is hand work (§8.5).")
+        lines.append("     labelling is hand work somebody has to do.")
     lines.append("")
 
     lines.append("Where the error began")

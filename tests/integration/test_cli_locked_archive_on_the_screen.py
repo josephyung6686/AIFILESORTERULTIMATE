@@ -82,9 +82,8 @@ def test_the_locked_archive_says_what_it_is_where_the_file_is_listed(tmp_path):
     """Its own group, and its own sentence.
 
     It used to sit inside "Waiting for you to say what these are -- 13 files"
-    under "No legal destination cleared §6.10's conditions
-    (no_supported_destination)", which is true of every one of those files and
-    says nothing about the one thing this file's record actually knows.
+    under one shared reason, which is true of every one of those files and says
+    nothing about the one thing this file's record actually knows.
     """
     corpus = _corpus(tmp_path)
     _, report = _run(corpus, tmp_path / "holder" / "plan.sqlite")
