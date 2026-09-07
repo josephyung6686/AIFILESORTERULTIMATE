@@ -115,6 +115,10 @@ class RunObservation:
     #: here: this class reports what is in the database, and what that means for a
     #: reader is the scorecard's sentence to write.
     seeded: Mapping[str, int] = field(default_factory=dict)
+    #: The prior run those rows came from, as a line a person can act on: the
+    #: directory and the commit that produced it. Counts without a source cannot
+    #: be checked by anybody, which is the whole reason a seeded row is labelled.
+    seeded_from: str = ""
     #: R-46's two-sided count: files this run stopped BEFORE a model, split by
     #: which of the two stops caught them. A scoreboard that asked
     #: `cli.model_route_permitted` and stopped reported "19 blocked" while 130
@@ -243,13 +247,15 @@ def _destination_of(node_id, nodes) -> tuple[str, ...]:
 
 def observe_run(database: str | Path, corpus_root: str | Path, *,
                 situation: str, label: str, promised_levels=(), report: str = "",
-                seeded: Mapping[str, int] | None = None) -> RunObservation:
+                seeded: Mapping[str, int] | None = None,
+                seeded_from: str = "") -> RunObservation:
     """Read one plan database into observations, one per corpus-relative path."""
     root = str(Path(corpus_root).resolve())
     connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
     try:
         return _observe(connection, root, situation, label,
-                        tuple(promised_levels), report, dict(seeded or {}))
+                        tuple(promised_levels), report, dict(seeded or {}),
+                        seeded_from)
     finally:
         connection.close()
 
@@ -262,7 +268,7 @@ def _relative(path: str, root: str) -> str | None:
 
 
 def _observe(connection, root, situation, label, promised_levels, report,
-             seeded=None):
+             seeded=None, seeded_from=""):
     nodes = {r["node_id"]: (r["display_label"], r["parent_node_id"])
              for r in _rows(connection, "select node_id, display_label, "
                                         "parent_node_id from tree_nodes")}
@@ -425,6 +431,7 @@ def _observe(connection, root, situation, label, promised_levels, report,
                                                "structural_questions")[0]["n"],
         model=_model_tally(connection),
         seeded=dict(seeded or {}),
+        seeded_from=seeded_from,
         blocked_at_route=_blocked[0],
         gate_refusals=_blocked[1],
         never_built=_blocked[2],

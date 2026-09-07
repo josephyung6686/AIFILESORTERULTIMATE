@@ -37,7 +37,7 @@ from tools.groundtruth.protected_evidence import (                  # noqa: E402
     report as protected_evidence_report,
 )
 from tools.groundtruth.reuse import (                               # noqa: E402
-    ReuseRefused, read_seeded, refuse_unless_seedable,
+    ReuseRefused, read_seeded, refuse_unless_seedable, write_provenance,
 )
 from tools.groundtruth.run import label_for, run_situations         # noqa: E402
 from tools.groundtruth.score import (                               # noqa: E402
@@ -192,6 +192,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.enable_cloud:
             print(f"!! SENDING TO THE CLOUD MODEL: {len(situations)} runs over "
                   f"{corpus_files} files each. This spends money.", flush=True)
+        # Written on every run that runs something, and BEFORE the runs, so a
+        # crash halfway still leaves the directory saying what produced what is in
+        # it. The product's database records no commit, so without this a
+        # directory of databases cannot say what code wrote it -- and the run that
+        # needs to know is the next one, which is why it is not written only when
+        # `--reuse-answers-from` is passed.
+        write_provenance(args.out)
         results = run_situations(
             args.corpus, situations, args.out, workers=args.workers,
             load_ceiling=args.load_ceiling, force=args.force,
@@ -214,13 +221,14 @@ def main(argv: list[str] | None = None) -> int:
         if not database.exists():
             missing.append(situation)
             continue
+        # Read from the out directory rather than carried from `results`, so
+        # `--score-only` over a seeded run months later still knows which rows
+        # nobody paid for, and where they came from. `104` R-123.
+        seeded_rows, seeded_from = read_seeded(args.out, situation)
         runs.append(observe_run(
             database, args.corpus, situation=situation, label=label_for(situation),
             promised_levels=promised.get(situation, ()),
-            # Read from the out directory rather than carried from `results`, so
-            # `--score-only` over a seeded run months later still knows which rows
-            # nobody paid for. `104` R-123.
-            seeded=read_seeded(args.out, situation),
+            seeded=seeded_rows, seeded_from=seeded_from,
             report=report.read_text(encoding="utf-8") if report.exists() else ""))
     if missing:
         print(f"no database for: {', '.join(missing)}", file=sys.stderr)

@@ -316,6 +316,11 @@ def scorecard(runs: Sequence[RunObservation],
         w("            seeded from a prior run, not bought here: " + ", ".join(
             f"{k.removeprefix('llm_')}={seeded[k]}" for k in sorted(seeded)
             if seeded[k]))
+        # WHERE FROM, and not only how many. A count nobody can trace back to the
+        # run that produced it is a number a reader has to take on trust, and this
+        # one is about money somebody either did or did not spend.
+        for source in sorted({run.seeded_from for run in runs if run.seeded_from}):
+            w(f"            from {source}")
     w("            field values by origin: " + (
         ", ".join(f"{k}={n}" for k, n in origins.most_common())
         or "none filled at all"))

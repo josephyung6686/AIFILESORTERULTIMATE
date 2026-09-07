@@ -164,7 +164,8 @@ def run_situations(corpus: Path, situations, out_dir: Path, *,
                 # scoreboard's benefit. `--score-only` re-reads these databases
                 # weeks later and has to be able to tell a seeded row from one
                 # this run paid for.
-                write_seeded(out_dir, situation, given)
+                write_seeded(out_dir, situation, given,
+                             source=reuse_answers_from)
             except Exception:
                 return RunResult(situation, label_for(situation), database,
                                  report, 1, time.monotonic() - started,
