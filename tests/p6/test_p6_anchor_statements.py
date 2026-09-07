@@ -38,7 +38,6 @@ HEADING = "COMS W3134: Data Structures"
 RECORD = dict(
     is_code=lambda text: cli.SUBJECT_RULE.pattern.search(text) is not None,
     canonical=cli.SUBJECT_RULE.canonical,
-    anchor_terms=cli.COURSE_ANCHOR_TERMS,
     reads_in_document=cli.reads_a_structured_string)
 
 
@@ -152,7 +151,10 @@ def test_a_name_never_yields_an_anchor_statement(p6_conn, tmp_path, zone):
 
     The gate is `cli.reads_a_structured_string` -- a span inside `body` or `heading` --
     so these three zones are outside it by construction rather than by a second list.
-    The same reading, with the same anchor words around it, records nothing.
+    This is the refusal that did NOT move when the anchor-word gate was removed, and it
+    is the one that matters: with any in-document code line now a statement, the wall
+    between a document's words and its NAME is the whole of what keeps a folder called
+    `Data Structures` from becoming the evidence for what `Data Structures` means.
     """
     file_id, content_hash = _file(p6_conn, tmp_path, "W3134.pdf")
     _observe(p6_conn, file_id=file_id, content_hash=content_hash, raw="W3134",
@@ -164,15 +166,58 @@ def test_a_name_never_yields_an_anchor_statement(p6_conn, tmp_path, zone):
     assert anchor_statements_for(p6_conn, SCAN) == ()
 
 
-def test_a_document_that_only_mentions_a_course_states_nothing(p6_conn, tmp_path):
-    """A problem set prints the code too. It does not say what the course is called."""
+def test_a_body_line_that_prints_a_code_is_a_statement(p6_conn, tmp_path):
+    """THIS TEST FLIPPED, and the measurement is why.
+
+    It asserted the opposite: a problem set prints the code but does not say what the
+    course is CALLED, so an anchor word -- `syllabus`, `registrar`, `enrolled in` -- had
+    to appear beside the code. Run against the owner's corpus that gate refused all 106
+    readings that pass `is_code`. Three files in the whole corpus mention any of those
+    words anywhere in their text and none of them prints a code, so the table held zero
+    rows and no dossier ever carried context. The document the rule described is not in
+    this corpus; 44 files that print a code in their own text are.
+
+    A gate that refuses 106 of 106 is code deciding, badly, the question the
+    constitution gives the model -- site C's own sentence is "two spellings can be one
+    thing ... yours to judge". So every line of a document's own text that prints a code
+    is a statement, this one included, and no anchor word appears anywhere near it.
+    """
     file_id, content_hash = _file(p6_conn, tmp_path, "hw3.pdf")
-    _observe(p6_conn, file_id=file_id, content_hash=content_hash, raw="W3134",
-             span=TextSpan(0, 5), before="Problem Set 4\n", after=" due Friday")
+    identifier = _observe(
+        p6_conn, file_id=file_id, content_hash=content_hash, raw="W3134",
+        zone="body", span=TextSpan(0, 5), before="Problem Set 4\n",
+        after=" due Friday")
     record_anchor_statements(p6_conn, scan_run_id=SCAN,
                              file_versions=[(file_id, content_hash)], **RECORD)
 
-    assert anchor_statements_for(p6_conn, SCAN) == ()
+    statements = anchor_statements_for(p6_conn, SCAN)
+    assert [one.canonical_code for one in statements] == ["W3134"]
+    assert statements[0].code_evidence_ref == identifier.observation_key
+
+
+def test_two_code_lines_in_one_document_are_two_statements(p6_conn, tmp_path):
+    """One document, two courses, two rows, and no preference between them.
+
+    A transcript or a schedule prints several codes, and with the anchor-word gate gone
+    it is an ordinary case rather than a corner. Nothing here chooses: `canonical_code`
+    orders the read for §8.5's replay and is not a ranking, and which of the two a given
+    file belongs to is the model's judgement at sites A and C.
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path, "schedule.pdf")
+    first = _observe(p6_conn, file_id=file_id, content_hash=content_hash,
+                     raw="W3134", zone="body", span=TextSpan(0, 5),
+                     before="Autumn\n", after=" 10:10am", ordinal=1)
+    second = _observe(p6_conn, file_id=file_id, content_hash=content_hash,
+                      raw="E1006", zone="body", span=TextSpan(0, 5),
+                      before="Autumn\n", after=" 1:10pm", ordinal=2)
+    record_anchor_statements(p6_conn, scan_run_id=SCAN,
+                             file_versions=[(file_id, content_hash)], **RECORD)
+
+    statements = anchor_statements_for(p6_conn, SCAN)
+    assert {one.canonical_code for one in statements} == {"W3134", "E1006"}
+    assert {one.code_evidence_ref for one in statements} == {
+        first.observation_key, second.observation_key}
+    assert {one.stating_file_id for one in statements} == {file_id}
 
 
 @pytest.mark.parametrize("heading,code", [

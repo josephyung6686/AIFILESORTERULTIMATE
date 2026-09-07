@@ -18,20 +18,33 @@ two spellings are one course is site C's own sentence -- *"two spellings can be 
 thing ... yours to judge from the evidence"* -- and the defect this module addresses is
 that the evidence never arrived.
 
-**Three refusals, and each is structural rather than a judgement.**
+**Two refusals, and each is structural rather than a judgement.**
 
 * *A statement is read from the document, never from its name.* Only readings the
   caller's `reads_in_document` predicate admits, which in this deployment is a SPAN
   inside `body` or `heading`. `filename`, `path`, `title` and every `metadata:*` zone
   are outside it by construction, so a folder called `Data Structures` can never make
   itself the evidence for what `Data Structures` means.
-* *An anchor is a document teaching the course, not one mentioning it.*
-  `facts.rules.context_check` over the caller's anchor terms -- the same predicate §3.5
-  uses, so "this was a syllabus" is established the one way this codebase establishes
-  anything about context.
 * *A reading is a course code only if the deployment's own rule says so.* `is_code` is
   the caller's, and it is the rule's asserting pattern rather than the wider shape the
   product reads everywhere.
+
+**There was a third and it is GONE, removed on the measurement rather than on the
+argument.** It required an anchor word -- `syllabus`, `registrar`, `enrolled in` --
+beside the code, on the reasoning that "a homework sheet prints `W3134` beside `Problem
+Set 4`; the syllabus prints it beside the course's own name". Run against the owner's
+own corpus: 9283 observations, 1554 of them read from inside a document, 106 passing
+`is_code`, and ALL 106 refused by that gate. Three files in the whole corpus mention any
+anchor term anywhere in their text and not one of those prints a code. So the table held
+zero rows, no dossier ever carried context, and the premise the gate was built on --
+that some document here prints `COMS W3134: Data Structures` -- was never true of this
+corpus. What it holds is 44 files that print a course code in their own text.
+
+**So a statement is any line of a document's own text that prints a course code**, and
+which of those lines mean the same course is the model's judgement at sites A and C.
+That is the constitution's first rule read straight: a gate refusing 106 of 106 was code
+deciding, badly, a question the model was already asked to decide. What bounds how many
+reach one call is the release cap the call already has, not a vocabulary.
 
 **Two citations per statement, and the second is the point.** The identifier reading is
 cited because it is what made the line findable. The reading that CONTAINS it -- the
@@ -50,8 +63,7 @@ from typing import Callable
 from evidence_shape.canonical import sha256_of
 from evidence_shape.locator import serialize_container_path
 
-from facts.evidence import cite, context_pair, observations_for_version
-from facts.rules import context_check
+from facts.evidence import cite, observations_for_version
 from facts.schema import ANCHOR_STATEMENTS_TABLE
 
 __all__ = [
@@ -130,21 +142,25 @@ def record_anchor_statements(conn: sqlite3.Connection, *, scan_run_id: str,
                              file_versions: Sequence[tuple[str, str]],
                              is_code: Callable[[str], bool],
                              canonical: Callable[[str], str],
-                             anchor_terms: Sequence[str],
                              reads_in_document: Callable[[str], bool],
                              ) -> tuple[str, ...]:
-    """Record every anchor line the corpus states. Returns the statement ids.
+    """Record every line of the corpus that prints a course code. Returns the ids.
 
-    A CORPUS producer, which is why it is not a `FactResolver` stage: what a syllabus
+    A CORPUS producer, which is why it is not a `FactResolver` stage: what one document
     states is about every other file of that course, and a stage asked about one file
     version at a time cannot see it. `facts.families` runs at the same place for the
     same reason.
 
+    **`anchor_terms` is gone**, and the module docstring carries the measurement that
+    removed it: it refused 106 of the 106 readings this corpus has, because no document
+    here prints an anchor word beside a code. A gate that refuses everything is not a
+    narrowing, and deciding which lines name one course is the model's.
+
     Nothing is authored here. The predicate that says a reading is a course, its
-    canonicaliser, the anchor vocabulary and the predicate that says which readings are
-    the document's own words are all the caller's, exactly as `Rule` takes its three.
-    `facts.rules` states the rule this follows: "Every other domain's terms arrive on the
-    `Rule`, because the SPEC defers them."
+    canonicaliser and the predicate that says which readings are the document's own
+    words are all the caller's, exactly as `Rule` takes its three. `facts.rules` states
+    the rule this follows: "Every other domain's terms arrive on the `Rule`, because the
+    SPEC defers them."
 
     No `unresolved` row is ever written. A statement is not a FIELD anybody attempted,
     and B7's abstention is a record about a field.
@@ -157,9 +173,6 @@ def record_anchor_statements(conn: sqlite3.Connection, *, scan_run_id: str,
                 continue
             reading = " ".join(observation.raw_value.split())
             if not is_code(reading):
-                continue
-            before, after, _truncated = context_pair(observation)
-            if not context_check(before, after, anchor_terms):
                 continue
             code = canonical(reading)
             if not code:

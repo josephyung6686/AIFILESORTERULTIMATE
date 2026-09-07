@@ -413,7 +413,6 @@ def _anchor_corpus(conn, tmp_path, *, lines=(HEADING,)):
         conn, scan_run_id="scan-r135", file_versions=[(file_id, content_hash)],
         is_code=lambda text: cli.SUBJECT_RULE.pattern.search(text) is not None,
         canonical=cli.SUBJECT_RULE.canonical,
-        anchor_terms=cli.COURSE_ANCHOR_TERMS,
         reads_in_document=cli.reads_a_structured_string)
     return file_id, tuple(emitted)
 
@@ -487,19 +486,56 @@ def test_two_anchor_lines_for_one_course_both_appear_and_neither_is_chosen(
 def test_a_document_that_states_no_course_offers_no_anchor_line(conn, tmp_path):
     """The empty case, and it is the one that says this is not a widening.
 
-    `_corpus` builds the same heading with no anchor row recorded against it -- no
-    syllabus context, so `facts.rules.context_check` refused it. Nothing is offered,
-    which is the proof that this reads the anchor table rather than offering every
-    heading in the corpus to every judge.
+    ITS PREMISE CHANGED WITH THE RULE. It used to record the same syllabus heading and
+    rely on the anchor-word gate refusing it for want of the word `syllabus` nearby.
+    That gate is gone -- on the owner's corpus it refused all 106 readings that pass
+    `is_code` -- so a heading printing a code IS a statement now, and the honest empty
+    case is a document that prints no code at all.
+
+    Nothing is offered for it, which is what says this reads the anchor table rather
+    than handing every heading in the corpus to every judge.
     """
     import cli
+    from facts.anchor_statements import record_anchor_statements
     from facts.fields import create_fields
 
-    _file_id, _whole, code = _corpus(conn, tmp_path)
+    create_schema(conn)
+    create_evidence_schema(conn)
     create_fields(conn)
+    conn.executescript(SENSITIVITY_DDL)
+
+    prose = "Reading list and office hours"
+    path = tmp_path / "notes.pdf"
+    path.write_bytes(prose.encode())
+    file_id = record_file(
+        conn, path, filename="notes.pdf", normalized_filename="notes.pdf",
+        extension=".pdf", observed_size=len(prose.encode()),
+        observed_timestamps=json.dumps({"mtime": 1_700_000_000.0}),
+        parent_folder_context="Courses", mime_type="application/pdf",
+        detected_format="pdf", scan_state="included", materialized=True)
+    content_hash = get_file(conn, file_id)["content_hash"]
+    record_run(conn, ExtractionRun(
+        run_id="run-notes", file_id=file_id, content_hash=content_hash,
+        extractor_name="pdf.text", extractor_version="1.0.0",
+        source_type="text_document", analysis_tier="native", config={},
+        completeness="complete", started_at=CLOCK, finished_at=CLOCK))
+    container = (Segment("page", 1), Segment("heading", 1))
+    record_text_unit(conn, TextUnit(
+        run_id="run-notes", container_path=container, text=prose))
+    record_observation(conn, Observation(
+        file_id=file_id, content_hash=content_hash, extractor_name="pdf.text",
+        extractor_version="1.0.0", source_type="text_document", raw_value=prose,
+        location=Location("heading", container, text_span=TextSpan(0, len(prose))),
+        occurrence_count=1, observed_at=CLOCK, reliability="possible",
+        run_id="run-notes"))
+    record_anchor_statements(
+        conn, scan_run_id="scan-empty", file_versions=[(file_id, content_hash)],
+        is_code=lambda text: cli.SUBJECT_RULE.pattern.search(text) is not None,
+        canonical=cli.SUBJECT_RULE.canonical,
+        reads_in_document=cli.reads_a_structured_string)
 
     assert cli.anchor_line_citations(
-        conn, scan_run_id="scan-r135", file_id=code.file_id) == ()
+        conn, scan_run_id="scan-empty", file_id=file_id) == ()
 
 
 # --------------------------------------------------------------------------
@@ -598,7 +634,6 @@ def _folder_corpus(conn, tmp_path, *, coursework_folder="Courses/Data Structures
         file_versions=[(syllabus, syllabus_hash), (homework, homework_hash)],
         is_code=lambda text: cli.SUBJECT_RULE.pattern.search(text) is not None,
         canonical=cli.SUBJECT_RULE.canonical,
-        anchor_terms=cli.COURSE_ANCHOR_TERMS,
         reads_in_document=cli.reads_a_structured_string)
     return dict(syllabus=syllabus, syllabus_hash=syllabus_hash, line=line,
                 homework=homework, homework_hash=homework_hash, own=own)
@@ -841,7 +876,6 @@ def test_no_filename_and_no_path_ever_becomes_an_anchor(conn, tmp_path):
         conn, scan_run_id="scan-r135", file_versions=[(file_id, content_hash)],
         is_code=lambda text: cli.SUBJECT_RULE.pattern.search(text) is not None,
         canonical=cli.SUBJECT_RULE.canonical,
-        anchor_terms=cli.COURSE_ANCHOR_TERMS,
         reads_in_document=cli.reads_a_structured_string)
 
     assert anchor_statements_for(conn, "scan-r135") == ()
