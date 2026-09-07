@@ -228,12 +228,14 @@ def test_the_observe_lever_turns_a_verdict_into_an_abstention():
         requires_review=False, citations_checked=(), scope=SCOPE_NODE,
         validator_version="vv", policy_version="pv", plan_version=None)
     unratified = cli.observe_prompt(C_PLACEMENT)
-    ratified = dataclasses.replace(unratified, template_id="c_placement.ratified.1")
+    # THE FIELD, not the id. A renamed draft must not start applying, and a
+    # ratified prompt keeping a draft's id must not keep abstaining.
+    ratified = dataclasses.replace(unratified, ratified=True)
 
     assert _observed_only(placed, prompt=unratified).outcome == ABSTAIN
     assert _observed_only(placed, prompt=unratified).may_propose is False
     # And a ratified site is untouched, which is what makes this reversible: the
-    # id changes and the site starts applying on the same run.
+    # loader sets the field and the site starts applying on the same run.
     assert _observed_only(placed, prompt=ratified) is placed
 
 
@@ -246,3 +248,35 @@ def test_a_refusal_is_not_rewritten_into_an_abstention():
     missing = ValidationUnavailable(missing=("prompt",))
 
     assert _observed_only(missing, prompt=cli.observe_prompt(C_PLACEMENT)) is missing
+
+
+def test_the_signal_is_the_field_and_not_the_template_id():
+    """The ruling in one assertion. A draft renamed to look ratified must still
+    abstain, and a ratified prompt that kept a draft's id must still apply --
+    otherwise the finish line's invariant rests on a naming habit."""
+    import dataclasses
+
+    from placement.pipeline import _observed_only
+
+    draft = cli.observe_prompt(C_PLACEMENT)
+    renamed = dataclasses.replace(draft, template_id="c_placement.ratified.2026")
+    kept_id = dataclasses.replace(draft, ratified=True)
+
+    from llm_harness.records import P8Verdict
+    from llm_harness.vocabulary import SCOPE_NODE
+    verdict = P8Verdict(
+        verdict_id="v", dossier_id="d", claim_ref="c", outcome="accept_direct",
+        disposition="llm_supported", reasons=(), may_propose=True,
+        requires_review=False, citations_checked=(), scope=SCOPE_NODE,
+        validator_version="vv", policy_version="pv", plan_version=None)
+
+    assert _observed_only(verdict, prompt=renamed) is not verdict
+    assert _observed_only(verdict, prompt=kept_id) is verdict
+
+
+def test_the_fact_prompt_says_it_is_ratified_and_the_drafts_say_they_are_not():
+    """`planning/82` §0 records the owner ratifying A's text; the packet's own
+    `status` is `unratified`. Both are read rather than assumed."""
+    assert cli.a_fact_prompt().ratified is True
+    for site in cli.OBSERVE_CALL_SITES:
+        assert cli.observe_prompt(site).ratified is False

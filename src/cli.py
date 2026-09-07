@@ -929,6 +929,10 @@ def observe_prompt(call_site: str) -> PromptDefinition:
         response_schema_bytes=response_schema,
         call_site=call_site,
         call_site_version="1",
+        # THE PACKET'S OWN STATUS, read from the manifest. Every one of these is a
+        # D2 draft and `drafts_status()` says `unratified`; when the owner ratifies
+        # the packet this becomes true without a line of this file changing.
+        ratified=drafts_status() == "ratified",
         shaping_policy_bytes=shaping_policy)
 
 
@@ -2823,6 +2827,12 @@ def a_fact_prompt() -> PromptDefinition:
         response_schema_bytes=a_fact_response_schema_bytes(),
         call_site=A_FACT,
         call_site_version="1",
+        # RATIFIED, and `planning/82-FACT-PROMPT-DRAFT.md` §0 is the record of it.
+        # The id says `unratified` because the folder-levels REVISION has not been
+        # put to the owner; what is ratified is the text this revision derives
+        # from, and site A has always applied its answers on that basis. Stated
+        # here rather than parsed out of the id, which is the whole of the ruling.
+        ratified=True,
         shaping_policy_bytes=a_fact_shaping_policy_bytes())
 
 

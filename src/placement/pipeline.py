@@ -1385,17 +1385,16 @@ def _require_verdict(result, *, call_site: str) -> P8Verdict:
 #: and D in observe mode -- the call happens, the dossier, response and verdict are
 #: recorded, and nothing is applied -- until Phase 3 fixes R-15 and R-16.
 #:
-#: READ OFF THE PROMPT, because the prompt is the thing that makes it true. Every
-#: D2 draft id says `unratified` in the id itself, the packet manifest enforces it,
-#: and a record written under one already says so on its face. The alternative was
-#: a set of site names imported from the composition root, which points the
-#: dependency the wrong way -- P11 would learn which sites are provisional from the
-#: file that assembles it.
+#: READ OFF THE PROMPT'S OWN FIELD, which the loader sets from the packet
+#: manifest. Not a set of site names imported from the composition root, which
+#: would point the dependency the wrong way -- P11 would learn which sites are
+#: provisional from the file that assembles it. And not a test on the id string,
+#: which would make the invariant depend on a naming habit and start applying the
+#: moment a draft was renamed.
 #:
-#: A site running under text nobody ratified must not act on the answer. That is
-#: the whole rule, and it needs no second list to stay true: ratify the text, the
-#: id changes, and the site starts applying on the same run.
-UNRATIFIED_MARKER: str = "unratified"
+#: A site running under text nobody ratified must not act on the answer. Ratify
+#: the text, the loader sets the field, and the site starts applying on the same
+#: run.
 
 
 def _observed_only(result, *, prompt):
@@ -1416,8 +1415,7 @@ def _observed_only(result, *, prompt):
     Not a `Refusal`: the gate permitted this and P7 refused nothing, and a refusal
     row would say the door stopped a call the door allowed.
     """
-    template_id = getattr(prompt, "template_id", "") or ""
-    if UNRATIFIED_MARKER not in template_id:
+    if getattr(prompt, "ratified", False):
         return result
     if not isinstance(result, P8Verdict):
         # A refusal, a failed call or a missing capability is already an outcome

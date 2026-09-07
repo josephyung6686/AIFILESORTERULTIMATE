@@ -174,6 +174,8 @@ def _model_client():
 
 def _prompt():
     return PromptDefinition(
+        # The live pipeline test means this path to apply.
+        ratified=True,
         template_id="template.placement", template_bytes=b"TEMPLATE",
         response_schema_bytes=b'{"type":"object"}', call_site=C_PLACEMENT,
         call_site_version="1", shaping_policy_bytes=b'{"policy":"authored"}')
