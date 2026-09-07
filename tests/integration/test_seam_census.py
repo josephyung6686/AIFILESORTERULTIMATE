@@ -373,10 +373,20 @@ def test_the_place_decisions_a_real_run_writes_are_ones_p12_can_plan(tmp_path):
     database = tmp_path / "plan.sqlite"
     first = io.StringIO()
     assert cli.main(_argv(corpus, database), out=first) == 0, first.getvalue()
+    # THE NAME THE SCREEN PRINTED, read off the first run rather than written
+    # here. Since `104` R-115 a review set is named for the reason its files
+    # stopped -- one set per reason, not one pile cut into batches -- so a
+    # literal on this side would be this test asserting against its own guess at
+    # which reason this corpus produces. `act_on_residual_sets` addresses a set
+    # by the label the report printed, and this is that label.
+    held = [line for line in first.getvalue().splitlines()
+            if "Held for review as " in line]
+    assert len(held) == 1, first.getvalue()
+    label = held[0].split('Held for review as "', 1)[1].split('"', 1)[0]
     second = io.StringIO()
     assert cli.main(_argv(corpus, database)
                     + ["--residual", RESIDUAL_AREA,
-                       "--send-set", f"Not yet placed={RESIDUAL_AREA}"],
+                       "--send-set", f"{label}={RESIDUAL_AREA}"],
                     out=second) == 0, second.getvalue()
     report = _unwrapped(second.getvalue())
 
