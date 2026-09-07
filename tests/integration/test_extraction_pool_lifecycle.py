@@ -250,6 +250,111 @@ def _pool() -> _RemembersItsWorkers:
                                 seconds_per_extraction=300.0)
 
 
+#: THE CORPUS WHERE A VIOLATION AND A WEDGE MEET. The violator is first, so its
+#: `CONTRACT` outcome reaches the caller and raises while the wedger -- submitted
+#: right behind it -- is still inside its reader. That is the one arrangement in
+#: which `close()` is entered with a worker that will never answer a stop sentinel.
+WEDGER = "01-wedge.pdf"
+WEDGED_CORPUS = (VIOLATOR, WEDGER) + CORPUS
+
+#: Long enough that only a kill can end it, short enough that a broken bound fails
+#: this test slowly rather than stopping the suite. `test_extraction_pool_time_
+#: ceiling.py` states the same rule about its own sleep at length.
+_WEDGE_SECONDS = 60.0
+
+#: The ceiling the wedged-close test runs under, and it is SMALL where `_pool`'s is
+#: generous. Here the ceiling is the thing under test -- it is how long `_shutdown`
+#: waits before it stops asking politely -- so it has to be short enough to be
+#: reached and long enough that a worker spawn does not reach it by itself.
+_CLOSE_CEILING_SECONDS = 5.0
+
+
+def _read_pdf_violating_beside_a_wedge(path: Path) -> PdfDocument:
+    """One file raises the contract violation; the next never comes back.
+
+    Module level, for `spawn`. The wedge is a sleep and not an exception or an
+    `os._exit`, for the reason the ceiling suite gives: the worker stays alive,
+    healthy and useless, which is what a dispatch deadlock inside Vision looks like
+    from Python and is the one thing a stop sentinel cannot reach.
+    """
+    name = Path(path).name
+    if name == VIOLATOR:
+        raise ContractViolation(
+            "the router named an extractor `current_versions()` has no entry for")
+    if name == WEDGER:
+        time.sleep(_WEDGE_SECONDS)
+    time.sleep(_READ_SECONDS)
+    text = f"{Path(path).stem} is readable"
+    return PdfDocument(metadata={}, pages=(PdfPage(
+        number=1, text=text,
+        regions=(Region(zone="body", start=0, end=len(text)),)),))
+
+
+def _wedging_context() -> ExtractionContext:
+    """What a worker builds for itself. Module level, so `spawn` can name it."""
+    return ExtractionContext(
+        policy=SafetyPolicy(is_protected_container=lambda path: False,
+                            is_dataless=lambda path: False),
+        readers=Readers(
+            read_pdf=_read_pdf_violating_beside_a_wedge,
+            read_docx=lambda path: DocxDocument(core_properties={}),
+            read_text_document=lambda path: TextDocument(text="text"),
+            read_long_tail=lambda path, transcribe=False: LongTailFile(),
+            read_manifest=lambda path: ArchiveManifest(archive_type="zip"),
+            read_image=lambda path: ImageRecord(image_format="PNG",
+                                                dimensions="1x1", width=1, height=1),
+            find_structured_strings=lambda text: (),
+            recognize_markers=lambda names: (),
+            dimension_signal=lambda width, height: None,
+            filename_pattern=lambda name: None,
+            ocr_engine=None),
+        transcription_authorized=lambda: False)
+
+
+def test_a_violation_raised_beside_a_wedged_worker_still_returns_and_kills_it(
+        live_db, tmp_path):
+    """The exit that was still unbounded after R-138's first two commits.
+
+    Every path in `ProcessPool` that meets a worker which will not answer kills it
+    first -- the ceiling branch says "KILL BEFORE SHUTDOWN, and the order is the
+    whole of it", and `_rebuild` does the same. `_shutdown` was the third caller and
+    killed nothing, so a `ContractViolation` raised while a worker sat inside a
+    reader went out through `run_p1_p7`'s `finally` into `shutdown(wait=True)` and
+    joined the executor manager thread with no bound. The caller had its exception
+    and the process never came back: the same silent hang the ceiling exists to end,
+    relocated to the way out.
+
+    THE TWO ASSERTIONS ARE DIFFERENT PROMISES and a fix could keep one without the
+    other. Returning inside the bound says the wait ended; no live worker says it
+    ended by killing rather than by giving up and leaving them running, which is
+    what `shutdown(wait=False)` did before this file existed and what left
+    forty-seven interpreters on the owner's machine.
+    """
+    pool = _RemembersItsWorkers(
+        workers=2, context_factory=_wedging_context, lookahead_per_worker=2,
+        seconds_per_extraction=_CLOSE_CEILING_SECONDS)
+    before = _live_children()
+    root = _corpus(tmp_path, "wedged", WEDGED_CORPUS)
+
+    started_at = time.monotonic()
+    with pytest.raises(ContractViolation):
+        _run(live_db, root, pool)
+    elapsed = time.monotonic() - started_at
+
+    assert elapsed < _WEDGE_SECONDS, (
+        "the run waited for the wedged reader on its way out instead of for the "
+        f"ceiling: {elapsed:.1f}s against a wedge of {_WEDGE_SECONDS}s")
+
+    started = pool.worker_pids - before
+    assert started, (
+        "no worker process was ever started, so this test proves nothing about "
+        "shutting one down")
+    assert _still_alive(started) == set(), (
+        f"{len(_still_alive(started))} of {len(started)} worker processes survived a "
+        "run that raised while one of them was wedged. `_shutdown` gave up waiting "
+        "and left them running, which is the leak this file was written for.")
+
+
 def test_a_finished_run_leaves_no_worker_process_alive(live_db, tmp_path):
     """The ordinary way out. Every file read, the window drained, `close()` called by
     `run_p1_p7` on its way out -- and when it returns there is nothing left running.

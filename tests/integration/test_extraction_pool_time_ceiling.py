@@ -1281,3 +1281,143 @@ def test_no_worker_outlives_the_run(targeted_ocr_run):
     assert multiprocessing.active_children() == [], (
         "a worker process outlived the run: "
         f"{[(child.name, child.pid) for child in multiprocessing.active_children()]}")
+
+
+# --------------------------------------------------------------------------
+# R-138: the same pass, when its worker DIES rather than wedges.
+# --------------------------------------------------------------------------
+
+#: The file whose OCR engine kills its worker outright. A different file from
+#: `OCR_HANG` and a different module-level engine, because the two paths reach
+#: `_failure_outcome` through different branches of `result()` -- a ceiling and a
+#: `BrokenProcessPool` -- and a fix that attributed one correctly could still get
+#: the other wrong.
+OCR_CRASH = "02-crash.pdf"
+CRASH_CORPUS = ("01-alpha.pdf", OCR_CRASH, "03-charlie.pdf")
+
+
+def _crashing_ocr_engine(path, config=None):
+    """`os._exit(1)` inside the OCR pass, in a spawned worker, every time.
+
+    The recovery suite's reader, pointed at the engine instead of the PDF reader.
+    NOT an exception: `os._exit` skips every handler, flushes nothing and leaves the
+    executor with a worker that never answers, which is what a segfault inside
+    Apple's Vision framework looks like from Python. `_ocr` catches exceptions and
+    turns them into a `failed` OCR run all by itself, so an exception here would
+    never reach the pool at all and would prove nothing about the death path.
+
+    It crashes on BOTH attempts, with no marker, because a file is written off only
+    after two. One attempt would be retried and read.
+    """
+    if Path(path).name == OCR_CRASH:
+        os._exit(1)
+    text = f"{Path(path).stem} was recognised"
+    return OcrOutput(provider="Test Vision", provider_version="1",
+                     regions=(OcrRegion(page=1, region=1, text=text),),
+                     pages_processed=1, pages_total=1)
+
+
+def _readers_whose_ocr_crashes() -> Readers:
+    return replace(_readers(_read_pdf_quickly),
+                   ocr_engine=_crashing_ocr_engine, ocr_config={})
+
+
+def _crashing_ocr_context() -> ExtractionContext:
+    """What a worker builds for itself. Module level, so `spawn` can import it."""
+    return ExtractionContext(
+        policy=_open_policy(), readers=_readers_whose_ocr_crashes(),
+        transcription_authorized=lambda: False)
+
+
+@pytest.fixture(scope="module")
+def crashed_ocr_run(tmp_path_factory):
+    """One run whose middle file's OCR pass kills its worker twice, at ONE worker."""
+    root = tmp_path_factory.mktemp("r138-crash") / "corpus"
+    root.mkdir()
+    for index, name in enumerate(CRASH_CORPUS):
+        (root / name).write_bytes(b"%PDF-1.4 " + str(index).encode() * 8)
+
+    conn = open_database(tmp_path_factory.mktemp("r138-crash-db") / "crash.sqlite")
+    for schema in (create_schema, create_scan_schema, create_evidence_schema,
+                   create_extraction_schema, create_facts_schema,
+                   create_privacy_schema, create_eval_schema):
+        schema(conn)
+
+    pool = ProcessPool(workers=1, context_factory=_crashing_ocr_context,
+                       lookahead_per_worker=2,
+                       seconds_per_extraction=_CEILING_SECONDS)
+    try:
+        _run(conn, root, pool, readers=_readers_whose_ocr_crashes(),
+             targeted_ocr_needed=_no_usable_facts)
+    finally:
+        pool.close()
+    yield conn
+    conn.close()
+
+
+def test_a_targeted_pass_whose_worker_dies_is_recorded_on_the_ocr_tier(
+        crashed_ocr_run):
+    """The death path's half of R-138's attribution, which no test drove.
+
+    A wedged targeted pass and a crashed one reach `_failure_outcome` through
+    different branches of `result()` -- one from `FuturesTimeout`, one from
+    `BrokenProcessPool` -- and share only the function that writes the row. The
+    ceiling's half is asserted above; this is the other, and it is here because
+    "correct by construction" is a claim about today's branches.
+
+    The row must name the DEATH and not a ceiling, because the two are different
+    facts about the machine and R-120 is the whole argument for keeping them apart:
+    a person told a run met a repeat of a failure it never met is sent to look for
+    a defect in the file rather than for the state that produced it.
+    """
+    runs = _tiered(crashed_ocr_run)
+
+    completeness, reason = runs[(OCR_CRASH, "ocr")]
+    assert completeness == "failed", runs
+    assert reason is not None, f"the crashed pass was recorded as a success: {runs}"
+    assert _both_ends(_DEATH_END, _DEATH_END) in reason, reason
+    assert str(_CEILING_SECONDS) not in reason, (
+        "the row blames a ceiling for a worker that died: " + reason)
+
+
+def test_the_crashed_pass_leaves_the_native_reading_alone(crashed_ocr_run):
+    """The same guard the ceiling half makes, against the other branch.
+
+    `_failure_outcome` names `request.decision.extractor_name` for an extraction
+    request, and a `TargetedOcrRequest` carries no decision at all -- reading one
+    would be an `AttributeError` inside the recovery path, which is the one place
+    in the pool that must not raise. So this asserts both that the native run
+    survived and that there is exactly ONE of it, which is what
+    `authoritative_result` counts before it refuses to choose.
+    """
+    conn = crashed_ocr_run
+    runs = _tiered(conn)
+
+    assert runs[(OCR_CRASH, "native")] == ("complete", None), (
+        f"the native read was marked by its OCR pass's crash: {runs}")
+
+    natives = conn.execute(
+        "SELECT COUNT(*) FROM extraction_runs r JOIN files f "
+        "ON f.file_id = r.file_id "
+        "WHERE f.filename = ? AND r.analysis_tier = 'native'", (OCR_CRASH,)
+    ).fetchone()[0]
+    assert natives == 1, (
+        f"{natives} native runs for one file version after an OCR worker died")
+
+
+def test_the_neighbours_of_a_crashed_pass_are_read_and_recognised(crashed_ocr_run):
+    """A pool death fails EVERY future in flight, not only the guilty one.
+
+    That is the shape `_rebuild` exists for, one level up from where the recovery
+    suite proves it: the window is held back and resubmitted rather than failed, so
+    surviving somebody else's crash costs a file nothing. Both neighbours have to
+    come back whole on both tiers.
+    """
+    runs = _tiered(crashed_ocr_run)
+
+    for name in CRASH_CORPUS:
+        if name == OCR_CRASH:
+            continue
+        assert runs[(name, "native")] == ("complete", None), runs[(name, "native")]
+        assert runs[(name, "ocr")] == ("complete", None), (
+            f"{name} lost its OCR pass to its neighbour's crash: {runs}")
