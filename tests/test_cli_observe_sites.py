@@ -745,3 +745,219 @@ def test_r16_a_readable_answer_reaches_the_seam_as_answered(harness_db,
     assert isinstance(wrapped, Answered)
     assert wrapped.answer.label == "PHYS1401 course materials"
     assert wrapped.result.dossier_id == "ds-b4"
+
+
+# --- P1: one status word per draft, so one site can be ratified alone --------
+#
+# `104` §15.1's first blocker. The packet manifest carried ONE `status` for B, C,
+# D and E together and `observe_prompt` read it for every observe site, so the
+# owner could not ratify C's `eliminate-v2` -- the one text with a measured row
+# behind it -- without also ratifying D and E, which have never produced one.
+#
+# The fixture manifest is a COPY of the real library directory with the manifest
+# JSON rewritten in place, so the digests in it still verify against the real
+# bytes beside it and `draft_bytes` loads for real. Nothing under `src/` is
+# touched by any test here, and the last test below is the pin that says so.
+
+
+@pytest.fixture
+def manifest_with(tmp_path, monkeypatch):
+    """Point the library at a copy of itself whose manifest rows say what a test
+    needs, and put it back afterwards.
+
+    `_manifest` is `lru_cache`d, so the cache is cleared on BOTH sides: leaving a
+    fixture manifest cached would make the next test read it instead of the real
+    file, and under `pytest-randomly` the next test is not the one you wrote it
+    after.
+    """
+    import shutil
+
+    from llm_harness import prompt_library
+
+    def point_at(mutate):
+        library = tmp_path / "library"
+        shutil.copytree(prompt_library.DRAFTS_FILE.parent, library)
+        manifest = json.loads(
+            prompt_library.DRAFTS_FILE.read_text(encoding="utf-8"))
+        mutate(manifest)
+        path = library / prompt_library.DRAFTS_FILE.name
+        path.write_text(json.dumps(manifest), encoding="utf-8")
+        monkeypatch.setattr(prompt_library, "DRAFTS_FILE", path)
+        prompt_library._manifest.cache_clear()
+        return path
+
+    prompt_library._manifest.cache_clear()
+    yield point_at
+    prompt_library._manifest.cache_clear()
+
+
+def _set_row_status(template_id, status):
+    """A mutation for `manifest_with`: give one row its own `status` word."""
+    def mutate(manifest):
+        rows = [row for row in manifest["drafts"]
+                if row.get("template_id") == template_id]
+        assert rows, f"no row for {template_id} to give a status to"
+        for row in rows:
+            row["status"] = status
+    return mutate
+
+
+def test_a_ratified_row_ratifies_its_own_site_and_leaves_the_other_three(
+        manifest_with):
+    """`104` §15.1: C's `eliminate-v2` is the text with a measured row behind it
+    and the shortest path to a real exact number. D and E have never produced one
+    and must not start applying because C did. One word on one row, and the packet
+    still says `unratified` over all of them."""
+    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], "ratified"))
+
+    assert drafts_status() == "unratified"
+    assert cli.observe_prompt(C_PLACEMENT).ratified is True
+    for site in (B_GROUP, D_RESIDUAL, E_TEMPLATE):
+        assert cli.observe_prompt(site).ratified is False
+
+
+def test_the_ratified_rows_id_still_says_unratified_and_still_loads_its_bytes(
+        manifest_with):
+    """The id names the FILE, not the file's standing. Renaming it on ratification
+    would strand every record already written under the old id, so what a record
+    says is WHICH TEXT was used and the manifest row says whether that text was
+    ratified at the time."""
+    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], "ratified"))
+
+    prompt = cli.observe_prompt(C_PLACEMENT)
+
+    assert "unratified" in prompt.template_id
+    assert prompt.template_id == WINNERS[C_PLACEMENT]
+    assert prompt.ratified is True
+    assert draft_bytes(prompt.template_id)[0] == prompt.template_bytes
+
+
+def test_a_row_with_no_status_of_its_own_is_under_the_packets_word(
+        manifest_with):
+    """Inheritance keeps the packet meaningful -- one line still moves every row
+    that has not spoken for itself -- and it keeps the safe default, which is what
+    the real manifest relies on today."""
+    from llm_harness.prompt_library import draft_status
+
+    for site in sorted(WINNERS):
+        assert "status" not in draft_row(WINNERS[site])
+        assert draft_status(WINNERS[site]) == "unratified"
+
+    def ratify_the_packet(manifest):
+        manifest["status"] = "ratified"
+
+    manifest_with(ratify_the_packet)
+
+    assert drafts_status() == "ratified"
+    for site in sorted(WINNERS):
+        assert draft_status(WINNERS[site]) == "ratified"
+        assert cli.observe_prompt(site).ratified is True
+
+
+def test_a_status_word_nobody_defined_is_refused_before_any_call(manifest_with):
+    """`ratified` is read as an equality test, so `pending` is not a third state:
+    it would read as 'not ratified' and look like a decision somebody made. The
+    refusal names the row rather than the packet, so a reader knows which line to
+    fix."""
+    from llm_harness.prompt_library import draft_status
+
+    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], "pending"))
+
+    with pytest.raises(DraftNotInManifest, match="eliminate-v2") as caught:
+        draft_status(WINNERS[C_PLACEMENT])
+    assert "pending" in str(caught.value)
+
+    # And the same refusal on the path a run actually takes, before a byte of a
+    # person's file has been read.
+    with pytest.raises(DraftNotInManifest, match="pending"):
+        cli.observe_prompt(C_PLACEMENT)
+    with pytest.raises(DraftNotInManifest, match="pending"):
+        cli.observe_locality_permits(C_PLACEMENT, CLOUD)
+
+    # A neighbour that said nothing is unharmed: one bad row is one bad row.
+    assert cli.observe_prompt(B_GROUP).ratified is False
+
+
+def test_a_packet_status_word_nobody_defined_is_refused_too(manifest_with):
+    """The packet's word is the default every silent row inherits, so an
+    unrecognised word there is the same defect wearing a wider hat."""
+    from llm_harness.prompt_library import draft_status
+
+    def mutate(manifest):
+        manifest["status"] = "Ratified"
+
+    manifest_with(mutate)
+
+    with pytest.raises(DraftNotInManifest, match="Ratified"):
+        drafts_status()
+    with pytest.raises(DraftNotInManifest, match="Ratified"):
+        draft_status(WINNERS[C_PLACEMENT])
+
+
+def test_two_rows_naming_one_text_and_disagreeing_about_status_is_refused(
+        manifest_with):
+    """Two rows may share an id -- A_fact's glossary arms are two glossaries over
+    one template -- and that is not an error. Two rows sharing an id and
+    DISAGREEING about status is, for the reason `draft_row` refuses rows that
+    disagree about files: the pick between them would be arbitrary, and the thing
+    being picked is whether the owner approved this text."""
+    from llm_harness.prompt_library import (
+        DraftManifestAmbiguous, draft_status,
+    )
+
+    a_fact_id = "a_fact.unratified.folder-levels.2026-09-04"
+
+    def mutate(manifest):
+        rows = [row for row in manifest["drafts"]
+                if row.get("template_id") == a_fact_id]
+        assert len(rows) > 1, "this test needs the shared-id rows to still exist"
+        rows[0]["status"] = "ratified"
+        rows[1]["status"] = "unratified"
+
+    manifest_with(mutate)
+
+    with pytest.raises(DraftManifestAmbiguous, match=a_fact_id):
+        draft_status(a_fact_id)
+
+
+def test_a_template_id_nobody_published_has_no_status_either():
+    """Absent means refuse, never guess -- and a status invented for an id nobody
+    published would be a standing the owner never gave any text."""
+    from llm_harness.prompt_library import draft_status
+
+    with pytest.raises(DraftNotInManifest, match="anchors-first-v9"):
+        draft_status("b_group.unratified.anchors-first-v9.2026-09-06")
+
+
+def test_the_cloud_refusal_lifts_for_the_ratified_site_and_holds_for_the_rest(
+        manifest_with):
+    """What `104` §13's count counts is CLOUD CALLS WITH UNRATIFIED PROMPTS, so
+    the gate is the text's standing and not the site's name. A ratified text is
+    text the owner agreed to send; the remaining question -- whether a cloud model
+    may see a person's folder labels -- is R-82's and is not decided here."""
+    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], "ratified"))
+
+    assert cli.observe_locality_permits(C_PLACEMENT, CLOUD) is True
+    cli.require_observe_locality(C_PLACEMENT, CLOUD)
+
+    for site in (B_GROUP, D_RESIDUAL, E_TEMPLATE):
+        assert cli.observe_locality_permits(site, CLOUD) is False
+        with pytest.raises(cli.UnratifiedPromptOnACloudTarget, match=site):
+            cli.require_observe_locality(site, CLOUD)
+
+    # LOCAL is untouched on both sides of the line.
+    for site in sorted(WINNERS):
+        assert cli.observe_locality_permits(site, LOCAL) is True
+
+
+def test_the_real_manifest_on_disk_ratifies_nothing_and_this_change_did_not():
+    """THE PIN. This wave added the ABILITY to ratify one site; it ratified none.
+    Every observe site still reads False off the real file, every cloud target is
+    still refused, and the manifest is the owner's to edit and nobody else's."""
+    from llm_harness.prompt_library import draft_status
+
+    assert drafts_status() == "unratified"
+    for site in sorted(WINNERS):
+        assert draft_status(WINNERS[site]) == "unratified"
+        assert cli.observe_prompt(site).ratified is False
+        assert cli.observe_locality_permits(site, CLOUD) is False

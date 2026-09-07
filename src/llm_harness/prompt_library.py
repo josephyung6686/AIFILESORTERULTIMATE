@@ -216,19 +216,45 @@ def _manifest() -> dict:
     return json.loads(DRAFTS_FILE.read_text(encoding="utf-8"))
 
 
+#: THE ONLY TWO WORDS A STATUS MAY BE, packet-wide or on one row. A third word is
+#: not a third state: `ratified` is read as an equality test everywhere it is read
+#: (`observe_prompt`, `observe_locality_permits`), so a typo like `Ratified` or
+#: `ratifed` reads as "not ratified" and quietly withholds the owner's approval,
+#: and a word like `pending` would look like a decision nobody has defined. Absent
+#: means refuse; unrecognised means refuse louder.
+DRAFT_STATUS_WORDS: frozenset[str] = frozenset({"unratified", "ratified"})
+
+
+def _require_status_word(status: str, where: str) -> str:
+    """`status`, or a refusal naming where the unrecognised word was found."""
+    if status not in DRAFT_STATUS_WORDS:
+        raise DraftNotInManifest(
+            f"{where} carries status {status!r}, and the only words a status may "
+            f"be are {sorted(DRAFT_STATUS_WORDS)}. `ratified` is read as an "
+            f"equality test, so a third word is not a third state: it reads as "
+            f"'not ratified' and withholds an approval the owner may have given, "
+            f"or hides one they never gave. Absent means refuse and unrecognised "
+            f"means refuse here.")
+    return status
+
+
 def drafts_status() -> str:
     """The one word the whole packet is under. Read, never assumed.
 
     `cli.py` prints it in the refusal it raises when an observe-only site is
     pointed at a cloud model, so the sentence a person sees is the manifest's own
     word rather than this module's memory of it.
+
+    THE PACKET'S WORD IS THE DEFAULT AND NOT THE VERDICT: a row may carry its own
+    `status`, and `draft_status` is what a call site asks. This stays the packet's
+    word so the refusal sentence keeps describing the packet.
     """
     status = _manifest().get("status")
     if not isinstance(status, str) or not status.strip():
         raise DraftNotInManifest(
             f"{DRAFTS_FILE} carries no `status`. The packet's status is what says "
             f"whether its text may be sent, and absent means refuse.")
-    return status
+    return _require_status_word(status, f"{DRAFTS_FILE.name} (the packet)")
 
 
 def draft_row(template_id: str) -> dict:
@@ -257,6 +283,59 @@ def draft_row(template_id: str) -> dict:
             f"{len(files)} different sets of files: {sorted(files)}. An id that "
             f"does not identify bytes cannot be recorded against a call.")
     return rows[0]
+
+
+def draft_status(template_id: str) -> str:
+    """The word ONE draft is under: its own row's, or the packet's if it has none.
+
+    **Why a row needs its own word.** The packet manifest carried one `status` for
+    B, C, D and E together and `observe_prompt` read it for every observe site, so
+    the owner could not ratify one text without ratifying four. `104` §15.1: C's
+    `eliminate-v2` is the text with a measured row behind it and the shortest path
+    to a real exact number; D and E have never produced a measured row and must not
+    start applying because C did. A per-row word is what makes "ratify C alone" a
+    thing the owner can say.
+
+    **Inheritance, and which direction it runs.** A row without a `status` is under
+    the packet's word. That keeps the packet meaningful -- one line still moves
+    every row that has not spoken for itself -- and it keeps the safe default:
+    today no row carries a word, the packet says `unratified`, and every site reads
+    `unratified` exactly as it did before this function existed.
+
+    **A row's word is not its id.** `template_id` keeps `unratified` in its name
+    after the row is ratified, because the id names the FILE and not the file's
+    standing: a record already written under that id must keep resolving to the
+    same bytes, and renaming the id on ratification would strand every one of them.
+    So the record written under the id says WHICH TEXT was used, and the manifest
+    row says whether that text was ratified at the time.
+
+    Two rows may share an id (A_fact's glossary arms do), which is not an error --
+    but two rows sharing an id and disagreeing about status is, for the same reason
+    `draft_row` refuses two rows that disagree about files: the pick between them
+    would be arbitrary, and the thing being picked is whether the owner approved
+    this text.
+    """
+    row = draft_row(template_id)
+    rows = [other for other in _manifest().get("drafts", ())
+            if isinstance(other, dict)
+            and other.get("template_id") == template_id]
+    words = {other["status"] for other in rows if "status" in other}
+    if len(words) > 1:
+        raise DraftManifestAmbiguous(
+            f"template_id {template_id!r} appears on {len(rows)} rows carrying "
+            f"{len(words)} different statuses: {sorted(words)}. Which row is "
+            f"picked would decide whether the owner approved this text, and that "
+            f"is not a coin to toss. Rows that name one text state one status.")
+    if "status" in row or words:
+        found = row["status"] if "status" in row else next(iter(words))
+        if not isinstance(found, str):
+            raise DraftNotInManifest(
+                f"the row for {template_id!r} carries a non-string `status` "
+                f"({found!r}); a status is one of "
+                f"{sorted(DRAFT_STATUS_WORDS)} and nothing else")
+        return _require_status_word(
+            found, f"the {template_id!r} row of {DRAFTS_FILE.name}")
+    return drafts_status()
 
 
 def draft_bytes(template_id: str) -> tuple[bytes, bytes, bytes]:

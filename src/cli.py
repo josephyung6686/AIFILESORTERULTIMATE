@@ -122,7 +122,8 @@ from grouping.vocabulary import (
 from llm_harness.budgets import ScanBudget, create_budget_schema
 from llm_harness.prompt_library import (
     a_fact_response_schema_bytes, a_fact_shaping_policy_bytes,
-    a_fact_template_folder_levels_bytes, draft_bytes, drafts_status,
+    a_fact_template_folder_levels_bytes, draft_bytes, draft_status,
+    drafts_status,
 )
 from llm_harness.harness import CallDependencies, run_call
 from llm_harness.records import (
@@ -1206,10 +1207,16 @@ def observe_prompt(call_site: str) -> PromptDefinition:
         response_schema_bytes=response_schema,
         call_site=call_site,
         call_site_version="1",
-        # THE PACKET'S OWN STATUS, read from the manifest. Every one of these is a
-        # D2 draft and `drafts_status()` says `unratified`; when the owner ratifies
-        # the packet this becomes true without a line of this file changing.
-        ratified=drafts_status() == "ratified",
+        # THIS DRAFT'S OWN STATUS, read from its manifest row and falling back to
+        # the packet's word (`prompt_library.draft_status`), so the owner can
+        # ratify one site's text without ratifying the other three.
+        #
+        # THE ID KEEPS `unratified` IN ITS NAME AFTER THE ROW IS RATIFIED: the id
+        # names the FILE, not the file's standing, so the record written under it
+        # says which text was used and the manifest row says whether that text was
+        # ratified at the time. Renaming on ratification would strand every record
+        # already written under the old id.
+        ratified=draft_status(template_id) == "ratified",
         shaping_policy_bytes=shaping_policy)
 
 
@@ -1230,8 +1237,8 @@ def prompt_for(call_site: str) -> PromptDefinition:
 
     **`ratified` is the definition's, everywhere it is read.** `_observed_only`,
     `PipelineInputs.model_decides` and `observed_run_call` all read the field off
-    the object rather than parsing the id, so the day the owner ratifies the packet
-    every site starts applying on the same run and no line of this file changes.
+    the object rather than parsing the id, so the day the owner ratifies a draft
+    the site asked under it starts applying and no line of this file changes.
     """
     if call_site == A_FACT:
         return a_fact_prompt()
@@ -1252,25 +1259,34 @@ def observe_locality_permits(call_site: str, locality: str) -> bool:
     """Whether this site may be asked at this destination. LOCAL ONLY, in code.
 
     **`104` §13's standing count is "0 cloud calls with unratified prompts", and a
-    count nobody enforces is a hope.** Every prompt these four sites would send is
-    a D2 DRAFT: `drafts_2026-09-06.json` carries `"status": "unratified"` and every
-    `template_id` in it says `unratified` in the id itself, so a record written
-    under one says so. `planning/82` §0 records the owner ratifying `A_fact`'s text
-    and nothing else.
+    count nobody enforces is a hope.** Today every prompt these four sites would
+    send is a D2 DRAFT: `drafts_2026-09-06.json` carries `"status": "unratified"`,
+    no row overrides it, and every `template_id` in it says `unratified` in the id
+    itself, so a record written under one says so. `planning/82` §0 records the
+    owner ratifying `A_fact`'s text and nothing else.
 
     Unratified text is text nobody has agreed to send. On this machine that is a
     question of taste; over the internet it is a person's dossier reaching a
     provider under a prompt their owner never approved, and it cannot be taken
     back. So the difference is enforced where it is a fact rather than promised in
-    a comment: a cloud target for an observe site RAISES, and the raise happens at
-    the composition root before a corpus has been read.
+    a comment: a cloud target for an UNRATIFIED observe site RAISES, and the raise
+    happens at the composition root before a corpus has been read.
+
+    **THE GATE IS THE TEXT'S STANDING, NOT THE SITE'S NAME**, and it is read per
+    draft (`prompt_library.draft_status`) rather than per packet, so ratifying C's
+    text alone lifts C's refusal and leaves B, D and E refused. What the count
+    counts is prompts nobody approved, so a text the owner HAS approved is no
+    longer what this gate is about; the residual question of whether a cloud model
+    may see a person's folder labels is `104` R-82's and is not decided here.
 
     `A_fact` is unaffected and stays cloud-eligible: it is not in this set, its
     text is ratified, and `WIRED_CALL_SITES` is what governs it.
     """
     if call_site not in OBSERVE_CALL_SITES:
         return True
-    return locality == LOCAL
+    if locality == LOCAL:
+        return True
+    return draft_status(OBSERVE_TEMPLATE_ID[call_site]) == "ratified"
 
 
 def require_observe_locality(call_site: str, locality: str) -> None:
