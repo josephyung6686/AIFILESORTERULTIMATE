@@ -283,3 +283,196 @@ def test_this_module_holds_no_name_to_code_mapping(p6_conn):
     assert columns == {"statement_id", "scan_run_id", "stating_file_id",
                        "stating_content_hash", "canonical_code",
                        "code_evidence_ref", "line_evidence_ref"}
+
+
+# ----------------------------------------------------------------------------
+# The LINE, when the document carries no reading that is one
+# ----------------------------------------------------------------------------
+
+BODY = "Autumn term\nCOMS W3134 Data Structures\nMeets Tuesdays at 10:10\n"
+
+#: Where the code sits inside it, stated by the fixture rather than parsed, for
+#: `_syllabus`' reason: this file measures the MINTING and must not contain a second
+#: implementation of the reading.
+BODY_CODE_START = BODY.index("W3134")
+BODY_LINE = "COMS W3134 Data Structures"
+
+
+def _text_document(conn, tmp_path, *, text=BODY, name="notes.txt", unit=True):
+    """A `.txt` as the product actually reads one: ONE body unit, and inside it a
+    span-less whole-document reading beside the span the structured-string pass found.
+
+    That is the shape `104` R-135's second measurement is about. `extractors/pdf.py`
+    gives a heading its own unit and its own reading, so a PDF heading has a containing
+    reading to cite; a `.txt` body has one reading with no span, and a span-less sibling
+    is exactly what `_containing_span_reading` skips.
+    """
+    from evidence_shape.store import record_text_unit
+    from evidence_shape.text_units import TextUnit
+
+    file_id, content_hash = _file(conn, tmp_path, name)
+    run_id = f"run-{file_id}"
+    record_run(conn, ExtractionRun(
+        run_id=run_id, file_id=file_id, content_hash=content_hash,
+        extractor_name="text.structured", extractor_version="1.0.0",
+        source_type="text_document", analysis_tier="native", config={},
+        completeness="complete", started_at=CLOCK, finished_at=CLOCK))
+    if unit:
+        record_text_unit(conn, TextUnit(
+            run_id=run_id, container_path=(), text=text))
+
+    def observe(raw, span):
+        observation = Observation(
+            file_id=file_id, content_hash=content_hash,
+            extractor_name="text.structured", extractor_version="1.0.0",
+            source_type="text_document", raw_value=raw,
+            location=Location("body", (), text_span=span),
+            occurrence_count=1, observed_at=CLOCK, reliability="possible",
+            run_id=run_id)
+        record_observation(conn, observation)
+        return observation
+
+    whole = observe(text, None)
+    start = text.index("W3134")
+    code = observe("W3134", TextSpan(start, start + 5))
+    return (file_id, content_hash), whole, code
+
+
+def test_a_body_code_gets_its_line_minted_as_a_reading_of_its_own(p6_conn, tmp_path):
+    """`104` R-135's second measurement, and the whole path turned on it.
+
+    On the owner's corpus: `anchor_statements` held 99 rows and the citation shapes were
+    `code: body span` 91 / `line: none` 91 against `code: heading span` 8 /
+    `line: heading span` 8. So 91 statements of 99 carried no line, the context path
+    passed over every one, and the first 18 fresh `A_fact` dossiers of a live run
+    carried 125 released items with not one context item among them.
+
+    The line is now MINTED: a span reading of the code's own unit, from the newline
+    before to the newline after, recorded through the same store the extractors use and
+    carrying its own extractor name so nothing reads it as something a document
+    extractor found. The code's own reading is untouched.
+    """
+    from evidence_shape.store import get_observation
+    from facts.anchor_statements import LINE_EXTRACTOR
+
+    version, whole, code = _text_document(p6_conn, tmp_path)
+    record_anchor_statements(p6_conn, scan_run_id=SCAN, file_versions=[version],
+                             **RECORD)
+
+    statements = anchor_statements_for(p6_conn, SCAN)
+    assert len(statements) == 1
+    one = statements[0]
+    assert one.code_evidence_ref == code.observation_key
+    assert one.line_evidence_ref is not None
+    assert one.line_evidence_ref not in (code.observation_key,
+                                         whole.observation_key)
+
+    row = p6_conn.execute(
+        "SELECT observation_id FROM evidence WHERE observation_key = ?",
+        (one.line_evidence_ref,)).fetchone()
+    minted = get_observation(p6_conn, row["observation_id"])
+    assert minted.raw_value == BODY_LINE
+    assert minted.location.text_span.start == BODY.index(BODY_LINE)
+    assert minted.location.text_span.end == BODY.index(BODY_LINE) + len(BODY_LINE)
+    assert minted.location.zone == "body"
+    # Its provenance is this producer's and not the document extractor's, so a reader
+    # can always tell a minted line from one a pass over the bytes found.
+    assert minted.extractor_name == LINE_EXTRACTOR
+    assert minted.run_id == code.run_id
+    # And the code's own reading is exactly as it was.
+    assert get_observation(p6_conn, p6_conn.execute(
+        "SELECT observation_id FROM evidence WHERE observation_key = ?",
+        (code.observation_key,)).fetchone()["observation_id"]).raw_value == "W3134"
+
+
+def test_minting_twice_writes_one_reading(p6_conn, tmp_path):
+    """A re-scan cites the row it wrote last time. The handle is content-addressed, so
+    a second insert would be the same reading twice under two ids, and §8.5 replays a
+    run and compares it."""
+    from facts.anchor_statements import LINE_EXTRACTOR
+
+    version, _whole, _code = _text_document(p6_conn, tmp_path)
+    record_anchor_statements(p6_conn, scan_run_id=SCAN, file_versions=[version],
+                             **RECORD)
+    first = anchor_statements_for(p6_conn, SCAN)[0].line_evidence_ref
+    record_anchor_statements(p6_conn, scan_run_id=SCAN, file_versions=[version],
+                             **RECORD)
+
+    assert anchor_statements_for(p6_conn, SCAN)[0].line_evidence_ref == first
+    assert p6_conn.execute(
+        "SELECT count(*) FROM evidence WHERE extractor_name = ?",
+        (LINE_EXTRACTOR,)).fetchone()[0] == 1
+
+
+def test_a_heading_document_still_cites_the_heading_and_mints_nothing(
+        p6_conn, tmp_path):
+    """A reading the document already carries always wins. `extractors/pdf.py` wrote
+    the heading; minting a second reading of the same characters would put an invented
+    row beside a real one for no gain."""
+    from facts.anchor_statements import LINE_EXTRACTOR
+
+    version, line, _identifier = _syllabus(p6_conn, tmp_path)
+    record_anchor_statements(p6_conn, scan_run_id=SCAN, file_versions=[version],
+                             **RECORD)
+
+    assert anchor_statements_for(p6_conn, SCAN)[0].line_evidence_ref == (
+        line.observation_key)
+    assert p6_conn.execute(
+        "SELECT count(*) FROM evidence WHERE extractor_name = ?",
+        (LINE_EXTRACTOR,)).fetchone()[0] == 0
+
+
+@pytest.mark.parametrize("zone", ["filename", "path", "title"])
+def test_a_name_never_gets_a_line_minted_over_it(p6_conn, tmp_path, zone):
+    """§8.4's members 1 and 6, and the constraint the ruling names first.
+
+    The in-document rule runs BEFORE any of this, so a name never becomes a statement
+    and so never reaches the minting at all. Asserted on the evidence table rather than
+    on the return value, because what would be wrong here is a ROW: a minted reading
+    over a filename would be a path-derived reading wearing a body reading's shape, and
+    every release rule downstream reads the zone off exactly that row.
+    """
+    from facts.anchor_statements import LINE_EXTRACTOR
+
+    file_id, content_hash = _file(p6_conn, tmp_path, "W3134.pdf")
+    _observe(p6_conn, file_id=file_id, content_hash=content_hash, raw="W3134",
+             zone=zone, span=TextSpan(0, 5))
+    record_anchor_statements(p6_conn, scan_run_id=SCAN,
+                             file_versions=[(file_id, content_hash)], **RECORD)
+
+    assert anchor_statements_for(p6_conn, SCAN) == ()
+    assert p6_conn.execute(
+        "SELECT count(*) FROM evidence WHERE extractor_name = ?",
+        (LINE_EXTRACTOR,)).fetchone()[0] == 0
+
+
+def test_a_code_with_no_stored_unit_keeps_no_line(p6_conn, tmp_path):
+    """The first of the two refusals, and it is why the caller has a fallback.
+
+    Without the unit's stored text there is nothing to read the line back FROM, and a
+    minted reading whose characters are not the stored characters fails
+    `check_span_anchor` at the door -- after a release has been minted. So the statement
+    keeps `line=None`, and `cli.anchor_context_observations` offers the code's own span
+    instead of passing the file over.
+    """
+    version, _whole, code = _text_document(p6_conn, tmp_path, unit=False)
+    record_anchor_statements(p6_conn, scan_run_id=SCAN, file_versions=[version],
+                             **RECORD)
+
+    statements = anchor_statements_for(p6_conn, SCAN)
+    assert [one.code_evidence_ref for one in statements] == [code.observation_key]
+    assert statements[0].line_evidence_ref is None
+
+
+def test_a_line_that_is_only_the_code_mints_nothing(p6_conn, tmp_path):
+    """The second refusal. The reading would carry the characters the code already
+    carries and differ only in its handle, which is noise; the caller's fallback offers
+    the code, and that is the same text by a shorter route."""
+    version, _whole, code = _text_document(
+        p6_conn, tmp_path, text="Autumn term\nW3134\nMeets Tuesdays\n")
+    record_anchor_statements(p6_conn, scan_run_id=SCAN, file_versions=[version],
+                             **RECORD)
+
+    statements = anchor_statements_for(p6_conn, SCAN)
+    assert [one.code_evidence_ref for one in statements] == [code.observation_key]
+    assert statements[0].line_evidence_ref is None

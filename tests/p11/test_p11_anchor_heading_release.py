@@ -1151,3 +1151,163 @@ def test_a_maximal_dossier_round_trips_and_survives_the_seeder_re_addressing(con
     assert seeded.subject_ref == "file-translated"
     assert seeded.released_evidence == dossier.released_evidence
     assert seeded.evidence_items == dossier.evidence_items
+
+
+# --------------------------------------------------------------------------
+# The minted line, and the fallback, reaching a neighbour's subject call
+# --------------------------------------------------------------------------
+
+#: A schedule as a `.txt` is read: one body unit, one span-less whole reading, and the
+#: span the structured-string pass found inside it. `104` R-135's second measurement
+#: says this is 91 of the corpus's 99 statements and the PDF heading shape is 8.
+SCHEDULE = "Autumn term\nCOMS W3134 Data Structures\nMeets Tuesdays at 10:10\n"
+
+
+def _body_neighbour(conn, tmp_path, *, text=SCHEDULE,
+                    folder="Courses/Data Structures"):
+    """A body-shaped stating file beside a piece of coursework, both classified."""
+    import cli
+    from facts.anchor_statements import record_anchor_statements
+    from facts.fields import create_fields
+    from privacy.schema import create_privacy_schema
+
+    create_schema(conn)
+    create_evidence_schema(conn)
+    create_fields(conn)
+    create_privacy_schema(conn)
+    conn.executescript(SENSITIVITY_DDL)
+
+    def store(name, body, *, spanned):
+        path = tmp_path / folder / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(body.encode())
+        file_id = record_file(
+            conn, path, filename=name, normalized_filename=name.lower(),
+            extension=Path(name).suffix, observed_size=len(body.encode()),
+            observed_timestamps=json.dumps({"mtime": 1_700_000_000.0}),
+            parent_folder_context=folder, mime_type="text/plain",
+            detected_format="txt", scan_state="included", materialized=True)
+        content_hash = get_file(conn, file_id)["content_hash"]
+        run_id = f"run-{name}"
+        record_run(conn, ExtractionRun(
+            run_id=run_id, file_id=file_id, content_hash=content_hash,
+            extractor_name="text.structured", extractor_version="1.0.0",
+            source_type="text_document", analysis_tier="native", config={},
+            completeness="complete", started_at=CLOCK, finished_at=CLOCK))
+        record_text_unit(conn, TextUnit(
+            run_id=run_id, container_path=(), text=body))
+
+        def observe(raw, span):
+            observation = Observation(
+                file_id=file_id, content_hash=content_hash,
+                extractor_name="text.structured", extractor_version="1.0.0",
+                source_type="text_document", raw_value=raw,
+                location=Location("body", (), text_span=span),
+                occurrence_count=1, observed_at=CLOCK, reliability="possible",
+                run_id=run_id)
+            record_observation(conn, observation)
+            return observation
+
+        whole = observe(body, None)
+        code = None
+        if spanned:
+            start = body.index("W3134")
+            code = observe("W3134", TextSpan(start, start + 5))
+        _classified(conn, file_id, content_hash,
+                    refs=(whole.observation_key,))
+        return file_id, content_hash, whole, code
+
+    stating, stating_hash, _whole, code = store(
+        "schedule.txt", text, spanned=True)
+    homework, homework_hash, own, _none = store(
+        "homework3.txt", COURSEWORK + "\n", spanned=False)
+
+    record_anchor_statements(
+        conn, scan_run_id="scan-r135",
+        file_versions=[(stating, stating_hash), (homework, homework_hash)],
+        is_code=lambda one: cli.SUBJECT_RULE.pattern.search(one) is not None,
+        canonical=cli.SUBJECT_RULE.canonical,
+        reads_in_document=cli.reads_a_structured_string)
+    return dict(stating=stating, code=code, homework=homework,
+                homework_hash=homework_hash, own=own)
+
+
+def test_a_minted_line_is_releasable_and_reaches_a_neighbours_subject_call(
+        conn, tmp_path):
+    """`104` R-135's second blocker, end to end and on the shape that is 91 of 99.
+
+    Before the minting the measured run was unambiguous: `anchor_statements` held 99
+    rows from 40 files, the first 18 fresh `A_fact` dossiers all sat in folders holding
+    a stating file, 15 of them asked `subject`, and not one carried a context item --
+    125 released items, every one `direct-anchor`. `_containing_span_reading` had no
+    span-bearing sibling to find in a `.txt` body, so 91 statements carried no line and
+    `anchor_context_observations` skipped every one.
+
+    Three things are asserted because three could each break it alone: the minted
+    reading survives `releasable_observations` (it is a span inside a body unit, so the
+    whole-unit refusal does not touch it), it reaches the neighbour's dossier, and it
+    arrives marked `context-supported` with the stating file in the target so P7 will
+    resolve it.
+    """
+    import cli
+    from llm_harness.vocabulary import CONTEXT_SUPPORTED
+    from model_facts import build_fact_request, releasable_observations
+    from privacy.resolve import materialise
+
+    world = _body_neighbour(conn, tmp_path)
+    context = cli.anchor_context_observations(
+        conn, scan_run_id="scan-r135", file_id=world["homework"],
+        fields=("subject",), limit=10)
+
+    assert len(context) == 1
+    minted = context[0]
+    assert minted.raw_value == "COMS W3134 Data Structures"
+    assert minted.file_id == world["stating"]
+
+    # It is releasable in its own right, which is the step that used to be untestable
+    # because nothing ever produced the reading.
+    offered = releasable_observations(
+        conn, file_id=world["stating"],
+        content_hash=get_file(conn, world["stating"])["content_hash"], limit=20)
+    assert minted.observation_key in {one.observation_key for one in offered}
+
+    request = _fact_request(conn, world, context)
+    built = build_fact_request(
+        request, (world["own"],), context=context,
+        model_target=_target(), prompt=_prompt(), max_dossier_tokens=4000)
+    carried = {item.evidence_ref: item for item in built.evidence_items}
+
+    assert carried[minted.observation_key].basis == CONTEXT_SUPPORTED
+    assert built.model_call_request.target.file_ids == (
+        world["homework"], world["stating"])
+    # And what the model would actually read is the line, not the five characters.
+    from privacy.items import Excerpt
+
+    released = materialise(
+        conn, Excerpt(observation_key=minted.observation_key,
+                      span=minted.location.text_span, reason="context"),
+        within_file_ids=(world["stating"],))
+    assert released.value == "COMS W3134 Data Structures"
+
+
+def test_when_no_line_can_be_minted_the_code_span_is_offered_instead(
+        conn, tmp_path):
+    """The fallback, and it is offered rather than skipped for a measured reason.
+
+    Skipping is what the loop used to do, and it skipped 91 statements of 99. When the
+    line would carry the code's own characters -- here the schedule prints the code on a
+    line by itself -- there is nothing to mint, and the code's span is what the corpus
+    has. A code beside a neighbouring file is less than a line, and it is more than the
+    nothing this path delivered on every file of the measured run.
+    """
+    import cli
+
+    world = _body_neighbour(
+        conn, tmp_path, text="Autumn term\nW3134\nMeets Tuesdays at 10:10\n")
+    context = cli.anchor_context_observations(
+        conn, scan_run_id="scan-r135", file_id=world["homework"],
+        fields=("subject",), limit=10)
+
+    assert [one.observation_key for one in context] == [
+        world["code"].observation_key]
+    assert context[0].raw_value == "W3134"

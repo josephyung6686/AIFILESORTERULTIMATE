@@ -25,7 +25,7 @@ import json
 import sqlite3
 import uuid
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from database_agent.db import transaction
 from database_agent.events import append_event
@@ -36,10 +36,12 @@ from evidence_shape.conformance import validate_run
 from evidence_shape.runs import (
     RUN_FIELDS, ExtractionRun, MalformedRun, run_from_mapping,
 )
-from evidence_shape.location import Segment
+from evidence_shape.location import Location, Segment, TextSpan
 from evidence_shape.locator import serialize_container_path
 from evidence_shape.observation import OBSERVATION_FIELDS, OBSERVATION_ROW_FIELDS, Observation, observation_from_mapping
-from evidence_shape.text_units import TEXT_UNIT_FIELDS, TextUnit, text_unit_from_mapping
+from evidence_shape.text_units import (
+    TEXT_UNIT_FIELDS, TextUnit, raw_value_at, text_unit_from_mapping,
+)
 from database_agent.supersede import chain, mark_superseded
 
 
@@ -317,6 +319,63 @@ def unit_for_observation(conn: sqlite3.Connection,
     """Conformance rule 10's lookup: the unit an observation's span points into."""
     return text_unit_at(conn, observation.run_id,
                         observation.location.container_path)
+
+
+def line_reading_for(conn: sqlite3.Connection, observation: Observation, *,
+                    extractor_name: str, extractor_version: str
+                    ) -> Observation | None:
+    """A second reading of the LINE an existing reading's span sits on. Not recorded.
+
+    **Here because P4 owns the text, and the repo says so with a test.**
+    `tests/p7/test_p7_no_invention.py`'s L2 guard names the three packages that may
+    bind a materialiser -- `evidence_shape`, `privacy`, `orchestrator` -- and a fourth
+    is an architectural change, not a convenience. `104` R-135 needs a reading of the
+    line a course code sits on, which needs `raw_value_at` over the stored unit; so the
+    read happens where the text already lives and the caller receives a RECORD.
+
+    The line is the previous newline (or the unit's start) to the next newline (or its
+    end), half-open and in code points, which is what `TextSpan` is. Returned rather
+    than written: whether this reading may exist at all is the caller's rule -- `104`
+    R-135's producer asks its own deployment's in-document predicate before recording
+    one -- and P4 does not decide what a caller is allowed to have.
+
+    `None` in three cases, and none of them is a repair. No span: rule 10 applies to a
+    span-bearing reading. No stored unit, or a span reaching past it: there is nothing
+    to read the characters back from, and a reading whose `raw_value` is not the stored
+    substring fails RAW-1 at `check_span_anchor`. A line identical to the span it was
+    asked about: the reading would carry the same characters and differ only in its
+    handle.
+
+    The result satisfies `check_span_anchor` against the same unit by construction --
+    same run, same container path, `raw_value` taken with `raw_value_at` -- and its
+    `observation_key` is content-addressed like any other, so recording it twice is one
+    row if the caller checks first.
+    """
+    span = observation.location.text_span
+    if span is None:
+        return None
+    unit = unit_for_observation(conn, observation)
+    if unit is None or span.end > unit.length:
+        return None
+    text = unit.text
+    start = text.rfind("\n", 0, span.start) + 1
+    end = text.find("\n", span.end)
+    end = unit.length if end == -1 else end
+    if start == span.start and end == span.end:
+        return None
+    return replace(
+        observation,
+        extractor_name=extractor_name,
+        extractor_version=extractor_version,
+        raw_value=raw_value_at(unit, TextSpan(start, end)),
+        location=Location(observation.location.zone,
+                          observation.location.container_path,
+                          text_span=TextSpan(start, end)),
+        normalized_value=None,
+        context_before=None,
+        context_after=None,
+        context_truncated=False,
+    )
 
 
 def unit_length_for_observation(conn: sqlite3.Connection,

@@ -12,8 +12,8 @@ from evidence_shape.store import (
 )
 from evidence_shape.location import Location, Segment, TextSpan
 from evidence_shape.observation import Observation
-from evidence_shape.store import get_observation, observation_row, observations_by_key, observations_for_file, observations_for_run, record_observation, record_text_unit, text_unit_at, text_units_for_run, unit_for_observation, unit_length_for_observation
-from evidence_shape.text_units import TextUnit
+from evidence_shape.store import get_observation, line_reading_for, observation_row, observations_by_key, observations_for_file, observations_for_run, record_observation, record_text_unit, text_unit_at, text_units_for_run, unit_for_observation, unit_length_for_observation
+from evidence_shape.text_units import TextUnit, check_span_anchor
 
 
 def _run(**overrides):
@@ -357,3 +357,95 @@ def test_the_length_only_lookup_says_nothing_rather_than_zero_when_no_unit_exist
     """
     record_run(p4_conn, _run())
     assert unit_length_for_observation(p4_conn, _observation()) is None
+
+
+# --- the line a span sits on ------------------------------------------------
+
+MULTILINE = "Autumn term\nBUSIB 4300 Managerial Economics\nMeets Tuesdays\n"
+MULTILINE_LINE = "BUSIB 4300 Managerial Economics"
+
+
+def _multiline(p4_conn, *, text=MULTILINE, unit=True):
+    """One body unit and a span inside it, the shape a `.txt` is read as."""
+    record_run(p4_conn, _run())
+    if unit:
+        record_text_unit(p4_conn, TextUnit(
+            run_id="r1", container_path=(), text=text))
+    start = text.index("BUSIB 4300")
+    return _observation(
+        raw_value="BUSIB 4300",
+        location=Location("body", (), text_span=TextSpan(start, start + 10)),
+        normalized_value=None, context_before=None, context_after=None)
+
+
+def test_the_line_reading_is_the_span_between_the_newlines(p4_conn):
+    """`104` R-135 needs a reading whose words are the whole line, and a `.txt` body is
+    one reading with no span, so there is none to find. This builds it: previous newline
+    to next newline, half-open and in code points, over the unit P4 already holds.
+
+    It is HERE and not in the caller because `tests/p7/test_p7_no_invention.py`'s L2
+    guard names the three packages that may bind a materialiser, and reading the line
+    back needs `raw_value_at`. The read happens where the text lives.
+    """
+    observation = _multiline(p4_conn)
+
+    line = line_reading_for(p4_conn, observation, extractor_name="facts.line",
+                            extractor_version="1.0.0")
+
+    assert line.raw_value == MULTILINE_LINE
+    assert line.location.text_span == TextSpan(
+        MULTILINE.index(MULTILINE_LINE),
+        MULTILINE.index(MULTILINE_LINE) + len(MULTILINE_LINE))
+    assert line.location.zone == observation.location.zone
+    assert line.location.container_path == observation.location.container_path
+    assert line.run_id == observation.run_id
+    # Its own provenance, so a reader can tell it from a reading of the bytes.
+    assert line.extractor_name == "facts.line"
+    # And it satisfies rule 10 against the same unit, which is what makes it
+    # releasable rather than a record P7 would refuse at the door.
+    check_span_anchor(line, unit_for_observation(p4_conn, line))
+
+
+def test_the_line_reading_is_built_and_not_recorded(p4_conn):
+    """Whether the reading may exist is the caller's rule -- `104` R-135's producer asks
+    its deployment's in-document predicate first -- so P4 hands back a record and
+    writes nothing."""
+    observation = _multiline(p4_conn)
+    before = p4_conn.execute("SELECT count(*) c FROM evidence").fetchone()["c"]
+
+    line_reading_for(p4_conn, observation, extractor_name="facts.line",
+                     extractor_version="1.0.0")
+
+    assert p4_conn.execute(
+        "SELECT count(*) c FROM evidence").fetchone()["c"] == before
+
+
+def test_a_span_with_no_stored_unit_has_no_line(p4_conn):
+    """Nothing to read the characters back from. A reading whose `raw_value` is not the
+    stored substring fails RAW-1 at `check_span_anchor`, so none is offered."""
+    observation = _multiline(p4_conn, unit=False)
+
+    assert line_reading_for(p4_conn, observation, extractor_name="facts.line",
+                            extractor_version="1.0.0") is None
+
+
+def test_a_span_that_is_already_the_whole_line_has_no_line(p4_conn):
+    """The reading would carry the same characters and differ only in its handle."""
+    observation = _multiline(p4_conn, text="Autumn term\nBUSIB 4300\nTuesdays\n")
+
+    assert line_reading_for(p4_conn, observation, extractor_name="facts.line",
+                            extractor_version="1.0.0") is None
+
+
+def test_a_span_less_reading_has_no_line(p4_conn):
+    """Rule 10 applies to a span-bearing reading; a whole-document reading has no
+    span to find a line around."""
+    record_run(p4_conn, _run())
+    record_text_unit(p4_conn, TextUnit(
+        run_id="r1", container_path=(), text=MULTILINE))
+    whole = _observation(
+        raw_value=MULTILINE, location=Location("body", ()),
+        normalized_value=None, context_before=None, context_after=None)
+
+    assert line_reading_for(p4_conn, whole, extractor_name="facts.line",
+                            extractor_version="1.0.0") is None
