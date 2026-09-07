@@ -32,16 +32,14 @@ from llm_harness.vocabulary import (  # noqa: E402
 from readers.model_deepseek import CLOUD  # noqa: E402
 from readers.model_ollama import LOCAL  # noqa: E402
 
-#: The packet's winner per site, `105` §9. B is `anchors-first-v2` and not the v3
-#: the wave named: no v3 file and no v3 row exists in the library or the manifest,
-#: and v2 is the newest B row that does. The substitution is recorded here so it is
-#: visible to a reader rather than only to whoever read the commit.
-WINNERS = {
-    B_GROUP: "b_group.unratified.anchors-first-v2.2026-09-06",
-    C_PLACEMENT: "c_placement.unratified.eliminate-v2.2026-09-06",
-    D_RESIDUAL: "d_residual.unratified.ladder.2026-09-06",
-    E_TEMPLATE: "e_template.unratified.what-a-person-opens-v2.2026-09-06",
-}
+#: Read from the product, not repeated here. `cli.OBSERVE_TEMPLATE_ID` is the one
+#: table that points a site at its text, and a copy in the tests would be a second
+#: table to keep true -- which is the drift these tests exist to catch elsewhere.
+#:
+#: B IS ON v2 AND THE WAVE NAMED v3: `anchors-first-v3` is on the prompts branch
+#: and has not merged, so it is in no manifest this branch can read. The
+#: substitution is asserted below rather than left to a commit message.
+WINNERS = cli.OBSERVE_TEMPLATE_ID
 
 
 def test_the_observe_set_is_the_four_sites_that_have_no_ratified_text():
@@ -146,3 +144,37 @@ def test_the_observe_hook_is_a_wrapper_and_not_a_flag():
     assert dataclasses.is_dataclass(ObservedOnly)
     assert [f.name for f in dataclasses.fields(ObservedOnly)] == ["result"]
     assert ObservedOnly.__dataclass_params__.frozen
+
+
+def test_b_is_asked_under_v2_until_the_prompts_branch_merges_v3():
+    """The substitution, pinned where a reader meets it rather than in a commit.
+
+    `anchors-first-v3` is on the prompts branch (c06b7da..053c3be) and is in no
+    manifest this branch can read; `draft_bytes` refuses an id it cannot verify
+    against a recorded digest, which is the correct behaviour and not an obstacle
+    to route around. Files are not copied between worktrees to make it resolve
+    early: the digest is what makes a record's text checkable, and a file that
+    arrived by hand has no row to check it against."""
+    assert cli.OBSERVE_TEMPLATE_ID[B_GROUP].endswith("anchors-first-v2.2026-09-06")
+
+    with pytest.raises(DraftNotInManifest, match="anchors-first-v3"):
+        draft_bytes("b_group.unratified.anchors-first-v3.2026-09-06")
+
+
+@pytest.mark.parametrize("site", sorted(cli.OBSERVE_TEMPLATE_ID))
+def test_the_prompt_each_observe_site_is_asked_under_says_unratified(site):
+    """Every `llm_response` and `llm_verdict` row written at these sites carries
+    the template id, so the id saying `unratified` is what makes an observe run
+    auditable after the fact rather than on trust."""
+    prompt = cli.observe_prompt(site)
+
+    assert prompt.call_site == site
+    assert "unratified" in prompt.template_id
+    assert prompt.template_bytes and prompt.response_schema_bytes
+    assert prompt.shaping_policy_bytes
+
+
+def test_the_prompt_table_names_every_observe_site_and_no_other():
+    """A site with no text would refuse at the first call rather than at the
+    composition root, which is the half-injection the product refuses elsewhere."""
+    assert set(cli.OBSERVE_TEMPLATE_ID) == cli.OBSERVE_CALL_SITES

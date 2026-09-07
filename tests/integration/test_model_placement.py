@@ -24,6 +24,11 @@ from decimal import Decimal
 
 import pytest
 
+# ALIASED: this module already binds `FILE` to a file-id fixture at line 51,
+# and P11's subject kind is a different thing wearing the same word.
+from placement.vocabulary import FILE as SUBJECT_FILE
+from placement.vocabulary import GROUP as SUBJECT_GROUP
+
 from database_agent.db import create_schema
 from evidence_shape.location import Location, Segment, TextSpan
 from evidence_shape.observation import Observation
@@ -336,3 +341,58 @@ def test_a_value_p5_signalled_sensitive_is_never_offered_to_a_placement_model(db
     offered = releasable_excerpts(db, evidence_refs=(flagged, ordinary))
 
     assert [item.observation_key for item in offered] == [ordinary]
+
+
+# --- `104` R-58: the file address has three parts ----------------------------
+
+def test_a_file_address_comes_back_as_the_file_id_and_not_the_id_plus_its_hash():
+    """`placement.store.subject_ref_of` writes `file:<file_id>:<content_hash>`.
+
+    `_file_id_of` partitioned on the first colon and returned everything after
+    it, so every file address came back as `<file_id>:<content_hash>` -- a string
+    that matches no row in `files`. Dead while nothing called it and wrong the
+    moment site C is wired, which is the wave that wires it.
+    """
+    from model_placement import _file_id_of
+    from placement.store import subject_ref_of
+
+    class _Subject:
+        kind = SUBJECT_FILE
+        file_id = "9ee1dc75-2f17-40e0-8869-34d3c1a49ac5"
+        content_hash = "a" * 64
+        group_id = None
+
+    address = subject_ref_of(_Subject())
+
+    assert address.count(":") == 2, address
+    assert _file_id_of(address) == _Subject.file_id
+
+
+def test_a_file_id_that_contains_a_colon_survives_the_trim():
+    """The old docstring's reason for refusing a right-hand split, kept and
+    answered rather than dropped: P11 promises nothing about a file id's shape,
+    so an id containing a colon must survive. The content hash cannot contain one
+    -- it is sha256 hex -- so the LAST colon is the boundary between id and hash
+    however many the id has."""
+    from model_placement import _file_id_of
+
+    assert _file_id_of(f"{SUBJECT_FILE}:has:colons:in:id:{'b' * 64}") == "has:colons:in:id"
+
+
+def test_a_group_address_is_untouched_because_it_carries_no_hash():
+    """`subject_ref_of` writes two parts for a group and three for a file, and
+    the same function reads both. Trimming a hash off a group address would take
+    the group id with it."""
+    from model_placement import _file_id_of
+
+    assert _file_id_of(f"{SUBJECT_GROUP}:group-1") == "group-1"
+
+
+def test_a_malformed_address_is_returned_whole_rather_than_repaired():
+    """A caller looking up half an address gets no row; inventing the missing
+    half would get it the WRONG row. `84` §1's absent-means-refuse, at the one
+    place where a plausible repair is available and is worse than none."""
+    from model_placement import _file_id_of
+
+    assert _file_id_of(f"{SUBJECT_FILE}:no-hash-here") == "no-hash-here"
+    assert _file_id_of("no-colons-at-all") == "no-colons-at-all"

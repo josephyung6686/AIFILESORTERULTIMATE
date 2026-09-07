@@ -635,6 +635,50 @@ OBSERVE_CALL_SITES: frozenset[str] = frozenset(
 assert not (WIRED_CALL_SITES & OBSERVE_CALL_SITES)
 
 
+#: WHICH DRAFT EACH OBSERVE SITE IS ASKED UNDER, `105` §9's winner per site. One
+#: line each, and the id is the whole of what points at the text: `draft_bytes`
+#: resolves it through the packet's manifest and verifies the bytes against the
+#: digest recorded there, so re-pointing a site is an edit to this table and to
+#: nothing else.
+#:
+#: B IS ON v2 AND THE WAVE NAMED v3. `anchors-first-v3` exists on the prompts
+#: branch (c06b7da..053c3be) and has not merged to main, so it is in no manifest
+#: this branch can read and `draft_bytes` refuses an id it cannot verify -- which
+#: is the correct behaviour and not an obstacle to work around. Files are NOT
+#: copied between worktrees to make it resolve early: the digest is what makes a
+#: record's text checkable, and a file that arrived by hand has no row to check it
+#: against. When the prompts merge lands, this one line becomes v3.
+OBSERVE_TEMPLATE_ID: Mapping[str, str] = MappingProxyType({
+    B_GROUP: "b_group.unratified.anchors-first-v2.2026-09-06",
+    C_PLACEMENT: "c_placement.unratified.eliminate-v2.2026-09-06",
+    D_RESIDUAL: "d_residual.unratified.ladder.2026-09-06",
+    E_TEMPLATE: "e_template.unratified.what-a-person-opens-v2.2026-09-06",
+})
+
+assert set(OBSERVE_TEMPLATE_ID) == OBSERVE_CALL_SITES
+
+
+def observe_prompt(call_site: str) -> PromptDefinition:
+    """The draft this deployment asks `call_site` under. Composed HERE, not in P8.
+
+    `a_fact_prompt`'s rule, applied to a site whose text is not ratified: the
+    library holds the bytes and verifies them against their digests, and the
+    composition root picks the id, the call site and the version. The difference
+    is the id itself, which carries `unratified` and the packet's date, so every
+    `llm_response` and `llm_verdict` row written here says on its face that the
+    text behind it was a draft.
+    """
+    template_id = OBSERVE_TEMPLATE_ID[call_site]
+    template, response_schema, shaping_policy = draft_bytes(template_id)
+    return PromptDefinition(
+        template_id=template_id,
+        template_bytes=template,
+        response_schema_bytes=response_schema,
+        call_site=call_site,
+        call_site_version="1",
+        shaping_policy_bytes=shaping_policy)
+
+
 class UnratifiedPromptOnACloudTarget(RuntimeError):
     """An observe-only site was pointed at a model off this device."""
 
