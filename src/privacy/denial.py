@@ -414,6 +414,19 @@ def deny_unclassified(*, file_ids: Sequence[str], locality: str,
     "Absence of a classification resolves to `unreadable_unclassified`, never to
     `public_low`", which is §8.6's "Cost exhaustion must never turn into
     lower-quality automatic classification" applied to the one case that matters.
+
+    **THE SENTENCE NAMES `pending` FROM 2026-09-07 (`105` §14.3), and the two words
+    it now holds apart are the whole of the amendment.** The ruling: "'On neither
+    list' distinguishes an assessed ordinary document from one the detector failed to
+    recognise, which is pending." A person reading this denial was being told the
+    file was unclassified without being told which of the two had happened -- nothing
+    looked at it, or something looked and found nothing -- and those want different
+    things done about them. The first is answered by running the detector; the second
+    is answered by nothing, because there is nothing to answer.
+
+    The reason stays `unclassified`. §14.3 says pending is "treated like unclassified
+    for every gate", so a tenth denial reason would be a second name for one refusal
+    and would make `DENIAL_ORDER` decide between two spellings of the same thing.
     """
     seen = ("no extraction run has completed for it"
             if completeness is None else f"its extraction completeness is {completeness!r}")
@@ -422,7 +435,10 @@ def deny_unclassified(*, file_ids: Sequence[str], locality: str,
         explanation=(
             f"{len(tuple(file_ids))} file(s) resolve to handling class "
             "'unreadable_unclassified': no classification record exists and "
-            f"{seen}. §8.4 requires the system to 'classify data into handling "
+            f"{seen}. Their privacy class is 'pending' and not 'ordinary' -- nothing "
+            "has assessed these bytes, which is a different answer from a document "
+            "that was assessed and found to be on neither restricted list. §8.4 "
+            "requires the system to 'classify data into handling "
             "classes before LLM escalation', so an unclassified file has not met the "
             f"precondition for a {locality} model call. Absence of a classification "
             "is not evidence that the file carries nothing, and it never resolves to "
@@ -497,17 +513,61 @@ def deny_no_safety_evidence(*, file_ids: Sequence[str], locality: str,
 
 
 def deny_protected_records_template(*, file_ids: Sequence[str],
-                                    model_target) -> Denied:
-    """§7.3, and it binds a LOCAL target too -- which is why it outranks the cloud rule."""
-    return deny(
-        "protected_records_template",
-        explanation=(
-            f"{len(tuple(file_ids))} file(s) are held under the "
+                                    model_target,
+                                    protected_kind: bool = False) -> Denied:
+    """§7.3, and it binds a LOCAL target too -- which is why it outranks the cloud rule.
+
+    **TWO ROUTES REACH THIS REASON FROM 2026-09-07, AND THE SENTENCE MUST SAY WHICH.**
+    The original is §7.3's residual template. The second is `105` §14.3: a file whose
+    recognised KIND is on §13.3's protected list is "shown to no model and filed one
+    at a time by the person", which binds every target exactly as §7.3 does.
+
+    `protected_kind` exists because the two must not share one sentence. A file
+    refused on its kind is NOT under the residual template -- `Gate._template_for`
+    returns `None` for it -- so the original wording would tell the person something
+    false about their own file. That is the defect `vocabulary.DENIAL_REASONS` already
+    names one reason along: a ninth reason exists at all because answering a
+    `detector_no_safety_evidence` file with `unclassified` would say the product never
+    looked when it had.
+
+    It DEFAULTS to the template route rather than being required, unlike the six
+    keywords `items.check_item` takes, and the argument is that here the default is
+    not a permission or a downgrade: it is which of two true sentences to print, the
+    three existing callers are all the template route, and a caller who forgets gets
+    the wording that was correct before this parameter existed.
+
+    **THE REASON CODE IS STILL `protected_records_template` FOR BOTH, AND FOR THE KIND
+    ROUTE THAT NAME IS WRONG.** `DENIAL_REASONS` is the owner's closed set of nine and
+    widening it is a P7 contract revision, so a tenth reason -- `protected_kind` -- is
+    with the owner and this is the provisional home until they rule. Everything the
+    PERSON reads is true; what is inaccurate is the machine-readable code, and the
+    swap is this branch plus one member. `tests/p7/test_p7_privacy_classes.py`'s
+    `test_the_kind_refusal_says_nothing_false_about_a_residual_template` is what holds
+    the sentence honest in the meantime, and no test asserts the reason string.
+    """
+    count = len(tuple(file_ids))
+    if protected_kind:
+        explanation = (
+            f"{count} file(s) carry `105` §13.3's `protected` privacy class: "
+            "identity documents, medical records, financial statements and tax "
+            "returns, credentials and password vaults, legal documents naming the "
+            "person. §14.3: those kinds are shown to no model and are filed one at a "
+            f"time by the person, so the {model_target.locality} target does not "
+            "change the answer, and neither does a consent grant for this area -- a "
+            "grant is §8.4's instrument for the protected FLAG, which is a different "
+            "question from the list."
+        )
+    else:
+        explanation = (
+            f"{count} file(s) are held under the "
             f"{PROTECTED_RECORDS_TEMPLATE!r} residual template. §7.3: it 'should "
             "normally remain local-only and must not cause filenames or content to "
             "be exposed in model prompts.' That binds every model, so the "
             f"{model_target.locality} target does not change the answer."
-        ),
+        )
+    return deny(
+        "protected_records_template",
+        explanation=explanation,
         remedy_options=(
             RemedyOption("decide_locally",
                          "§7.3: normally local-only; deterministic rules and local "

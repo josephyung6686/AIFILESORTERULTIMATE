@@ -33,7 +33,7 @@ if TYPE_CHECKING:  # pragma: no cover - annotations only; no run-time edge
     from privacy.redaction import RedactionManifest
 
 __all__ = [
-    "LOCALITIES", "ModelTarget", "Target", "ModelCallRequest", "ReleasedItem",
+    "LOCALITIES", "CLOUD_LOCALITY", "ModelTarget", "Target", "ModelCallRequest", "ReleasedItem",
     "Released", "Denied",
     "NeedsConsent", "ReleaseDecision", "REQUEST_FIELDS", "RELEASED_FIELDS",
     "RELEASED_EVIDENCE_FIELDS", "CONTENT_BOUND_FIELDS",
@@ -66,6 +66,18 @@ class NoPolicyInForce(RuntimeError):
 
 #: SPEC §6: `model_target { locality: local | cloud, model_id, provider }`.
 LOCALITIES: tuple[str, str] = ("local", "cloud")
+
+#: The member of `LOCALITIES` that means the bytes leave the device. Named because
+#: modules were comparing against the literal `"cloud"`, and brief §11 bans a bare
+#: string. SPELLED, not indexed: `LOCALITIES[1]` is the other half of that same rule
+#: -- an index couples every consumer to the tuple's ORDER, and a reorder would then
+#: change what this means with no test failing. The guard below is what ties the two
+#: together, so a rename in `LOCALITIES` is an ImportError rather than a comparison
+#: that silently stops matching.
+CLOUD_LOCALITY: str = "cloud"
+if CLOUD_LOCALITY not in LOCALITIES:
+    raise ImportError(
+        f"{CLOUD_LOCALITY!r} is not one of SPEC §6's localities {LOCALITIES}")
 
 
 @dataclass(frozen=True, slots=True)

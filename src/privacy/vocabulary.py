@@ -37,6 +37,16 @@ P3's two are about READING -- a file inside a protected container never acquires
 it. P7's three are about RELEASE, which is a policy the user can override through
 consent, and that is exactly what makes it a different refusal. `src/privacy/` imports
 neither of P3's constants; the distinction is pinned in `tests/p7/test_p7_vocabulary.py`.
+
+**STILL FIVE AFTER 2026-09-07, AND THE NEW ONE IS A REUSE RATHER THAN A SIXTH.**
+`105` §14.3's privacy classes put the value `protected` in `PRIVACY_CLASSES`, and it
+is the FIRST of the five above spelled again -- P7's flag on
+`classification.ClassificationRecord` -- not a new word. A class value meaning "this
+file is protected" and a flag meaning "this file is protected" must not be two
+strings, which is the same argument that keeps the other four apart. What is not
+settled by reusing the word is whether the class and the flag pick out the same set
+of files; that is SPEC Open question 1, still open, and
+`classification.privacy_class_of` consumes the flag rather than inferring it.
 """
 from __future__ import annotations
 
@@ -430,6 +440,170 @@ DETECTOR_NO_SAFETY_EVIDENCE: str = "detector_no_safety_evidence"
 #: significant event affecting a file" and §8.6's requirement that the UI show what
 #: has been deferred and why.
 AUDIT_OUTCOMES: tuple[str, ...] = ("released", "denied", "consent_requested")
+
+
+# --- `105` §14.3: the two named lists, and the four privacy classes ----------
+#
+# THE OWNER'S RULING OF 7 SEPTEMBER 2026 (`105` §14.3, amending §13.3), recorded at
+# the members because a closed vocabulary carries its own approval:
+#
+#   "Keep both lists, apply the most restrictive matching rule to the content and
+#    its derivatives regardless of file format, and classify unresolved cases as
+#    pending rather than ordinary."
+#
+# R-89 is why the lists exist. On the owner's own corpus a receipt, an order
+# confirmation, a boarding pass and a screenshot were all being called "protected
+# material (§8.4)" on a corpus whose `00`:120 names Receipts and Confirmations as
+# their DESTINATION -- so the two lists were being read as one, and a file that
+# should have been filed by a rule was being held back as if it were a passport.
+# Two lists, two names, two different consequences.
+#
+# STILL NO DETECTION RULE, and this block does not weaken the module docstring's
+# paragraph above. There is no regex, no gazetteer, no filename pattern, no keyword
+# and no threshold here. These are the NAMES a detector writes; how a receipt is
+# recognised as a receipt is hand-authored elsewhere, exactly as SPEC *Deferred*
+# says. `privacy.classification.privacy_class_for` reads these names and recognises
+# nothing.
+
+#: Shown to NO CLOUD MODEL, and filed by rules and local models. `105` §13.3's own
+#: five, in the owner's order. A file on this list is not withheld from the product:
+#: it is withheld from the network, which is the whole difference from the list below.
+ALWAYS_LOCAL_KIND_RECEIPT: str = "receipt"
+ALWAYS_LOCAL_KIND_ORDER_CONFIRMATION: str = "order_confirmation"
+ALWAYS_LOCAL_KIND_BOARDING_PASS_OR_TICKET: str = "boarding_pass_or_ticket"
+ALWAYS_LOCAL_KIND_OWN_ACCOUNT_SCREENSHOT: str = "own_account_or_message_screenshot"
+ALWAYS_LOCAL_KIND_BANK_OR_CARD_NOTIFICATION: str = "bank_or_card_notification"
+
+ALWAYS_LOCAL_KINDS: tuple[str, ...] = (
+    ALWAYS_LOCAL_KIND_RECEIPT,
+    ALWAYS_LOCAL_KIND_ORDER_CONFIRMATION,
+    ALWAYS_LOCAL_KIND_BOARDING_PASS_OR_TICKET,
+    ALWAYS_LOCAL_KIND_OWN_ACCOUNT_SCREENSHOT,
+    ALWAYS_LOCAL_KIND_BANK_OR_CARD_NOTIFICATION,
+)
+
+#: Shown to NO MODEL AT ALL, and filed one at a time by the person. `105` §13.3's
+#: own five, in the owner's order.
+PROTECTED_KIND_IDENTITY_DOCUMENT: str = "identity_document"
+PROTECTED_KIND_MEDICAL_RECORD: str = "medical_record"
+PROTECTED_KIND_FINANCIAL_STATEMENT_OR_TAX_RETURN: str = (
+    "financial_statement_or_tax_return")
+PROTECTED_KIND_CREDENTIALS_OR_PASSWORD_VAULT: str = "credentials_or_password_vault"
+PROTECTED_KIND_LEGAL_DOCUMENT_NAMING_THE_PERSON: str = (
+    "legal_document_naming_the_person")
+
+PROTECTED_KINDS: tuple[str, ...] = (
+    PROTECTED_KIND_IDENTITY_DOCUMENT,
+    PROTECTED_KIND_MEDICAL_RECORD,
+    PROTECTED_KIND_FINANCIAL_STATEMENT_OR_TAX_RETURN,
+    PROTECTED_KIND_CREDENTIALS_OR_PASSWORD_VAULT,
+    PROTECTED_KIND_LEGAL_DOCUMENT_NAMING_THE_PERSON,
+)
+
+#: The owner's own words for each of the ten, carried beside the snake_case
+#: identifier the way `HANDLING_CLASS_LABELS` carries §8.4's five lines. A later
+#: paraphrase is a failing test, and the reason is the same one §13.3 was written to
+#: settle: "screenshots that show a person's own account or messages" is a narrower
+#: promise than "screenshots", and the narrower one is the one that was ruled.
+RESTRICTED_KIND_LABELS: Mapping[str, str] = MappingProxyType({
+    ALWAYS_LOCAL_KIND_RECEIPT: "receipts",
+    ALWAYS_LOCAL_KIND_ORDER_CONFIRMATION: "order confirmations",
+    ALWAYS_LOCAL_KIND_BOARDING_PASS_OR_TICKET: "boarding passes and tickets",
+    ALWAYS_LOCAL_KIND_OWN_ACCOUNT_SCREENSHOT:
+        "screenshots that show a person's own account or messages",
+    ALWAYS_LOCAL_KIND_BANK_OR_CARD_NOTIFICATION: "bank or card notifications",
+    PROTECTED_KIND_IDENTITY_DOCUMENT:
+        "identity documents (passport, licence, national id)",
+    PROTECTED_KIND_MEDICAL_RECORD: "medical records",
+    PROTECTED_KIND_FINANCIAL_STATEMENT_OR_TAX_RETURN:
+        "financial statements and tax returns",
+    PROTECTED_KIND_CREDENTIALS_OR_PASSWORD_VAULT: "credentials and password vaults",
+    PROTECTED_KIND_LEGAL_DOCUMENT_NAMING_THE_PERSON:
+        "legal documents naming the person",
+})
+
+#: The ten together. A kind outside it is not an error -- §13.3: "A kind on neither
+#: list is ordinary" -- and this is the set a caller checks when it means to name a
+#: RESTRICTED one. That distinction is the whole of `check_restricted_kind` below.
+RESTRICTED_KINDS: tuple[str, ...] = ALWAYS_LOCAL_KINDS + PROTECTED_KINDS
+
+if set(ALWAYS_LOCAL_KINDS) & set(PROTECTED_KINDS):
+    raise ImportError(
+        "a document kind is on both of `105` §13.3's lists. The lists are the "
+        "owner's and the precedence between them is a rule about a FILE matching "
+        "two kinds, never about one kind belonging to two lists"
+    )
+
+
+def check_restricted_kind(value: object) -> str:
+    """One of the ten kinds `105` §13.3 restricts, refusing an outsider.
+
+    NOT a check on every document kind, and the difference matters. The universe of
+    document kinds is open -- a syllabus, an essay, a photograph -- and P7 publishes
+    no list of it; §13.3 closes only the two RESTRICTED lists and rules everything
+    else ordinary. So `privacy_class_for` does not call this on the kinds it is
+    given, because an unrecognised kind there is an ordinary document and not a
+    mistake.
+
+    It exists for the detector writing INTO this vocabulary, which must name a
+    restricted kind by the constant beside it and never by a literal (brief §11:
+    "Never a bare string, never an index"). That is what stops `"reciept"` from
+    becoming an ordinary file in silence: the misspelling is a `NameError` at the
+    call site rather than a downgrade three modules away.
+    """
+    return _check(value, RESTRICTED_KINDS, "restricted document kinds")
+
+
+#: `105` §14.3's precedence, and THE ORDER IS THE RULE rather than a presentation
+#: choice: "Precedence, explicit: protected, then always-local, then ordinary."
+#: `privacy_class_for` walks this tuple and returns the first class that matches, so
+#: a reorder here changes what the product does -- which is why the test asserts the
+#: sequence and not merely the membership.
+#:
+#: A screenshot of a bank statement is PROTECTED although account screenshots are
+#: always-local; a receipt containing credentials is PROTECTED. Both are the owner's
+#: own examples and both are the same sentence: the most restrictive matching rule
+#: wins, applied to the CONTENT and its derivatives whatever the file format.
+#:
+#: **`pending` IS THE FOURTH AND IT IS NOT A DEGREE OF SENSITIVITY.** The other three
+#: say what was found; `pending` says nothing was looked at. §14.3: "'On neither
+#: list' distinguishes an assessed ordinary document from one the detector failed to
+#: recognise, which is pending." It is last in the tuple because it is outside the
+#: precedence, the way `rejected` is outside §3.13's ranking, and `first match wins`
+#: never reaches it -- `privacy_class_for` returns it from its own branch.
+#:
+#: **`protected` HERE IS DELIBERATELY THE SAME WORD AS P7'S FLAG, not a sixth
+#: spelling.** The module docstring counts five strings sharing the stem and says no
+#: two are the same word; this one IS one of the five, reused rather than added,
+#: because a class value meaning "this file is protected" and a flag meaning "this
+#: file is protected" must not be two words. What the ruling does NOT settle is
+#: whether the two are the same SET -- that is SPEC Open question 1, still open, and
+#: `classification.privacy_class_of` consumes the flag rather than inferring it.
+PRIVACY_CLASS_PROTECTED: str = "protected"
+PRIVACY_CLASS_ALWAYS_LOCAL: str = "always_local"
+PRIVACY_CLASS_ORDINARY: str = "ordinary"
+PRIVACY_CLASS_PENDING: str = "pending"
+
+PRIVACY_CLASSES: tuple[str, ...] = (
+    PRIVACY_CLASS_PROTECTED,
+    PRIVACY_CLASS_ALWAYS_LOCAL,
+    PRIVACY_CLASS_ORDINARY,
+    PRIVACY_CLASS_PENDING,
+)
+
+#: The class each restricted list produces, derived from the two tuples rather than
+#: retyped, so a member moved between the lists moves its consequence with it. The
+#: owner "may move any kind between the lists" (§13.3) and that move must be one
+#: edit.
+PRIVACY_CLASS_BY_KIND: Mapping[str, str] = MappingProxyType({
+    **{kind: PRIVACY_CLASS_PROTECTED for kind in PROTECTED_KINDS},
+    **{kind: PRIVACY_CLASS_ALWAYS_LOCAL for kind in ALWAYS_LOCAL_KINDS},
+})
+
+
+def check_privacy_class(value: object) -> str:
+    return _check(value, PRIVACY_CLASSES, "privacy classes")
+
 
 
 # --- the eleven questions the design leaves open -----------------------------

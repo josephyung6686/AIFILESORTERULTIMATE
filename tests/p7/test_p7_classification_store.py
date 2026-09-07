@@ -410,6 +410,11 @@ def test_the_projection_carries_the_record_and_not_a_second_vocabulary(store):
         "content_hash": HASH_A,
         "evidence_refs": list(PASSPORT_KEYS),
         "observed_at": FIXED_CLOCK,
+        # `105` §14.3's ninth field. It travels in the projection because a reader
+        # of `files.sensitivity_state` that could not see the privacy class would
+        # have to infer it from `protected`, and the owner ruled on 7 Sep 2026 that
+        # the two are different questions with different consequences.
+        "privacy_class": "ordinary",
     }
 
 
