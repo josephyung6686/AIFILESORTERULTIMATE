@@ -272,7 +272,10 @@ def main(argv: list[str] | None = None) -> int:
                             out=Path("/tmp/promptbench-dossier"),
                             catalogue=_catalogue())
         sys.stdout.write(model_visible_bytes(
-            prepared["dossier"], candidate.prompt()).decode("utf-8"))
+            prepared["dossier"], candidate.prompt(),
+            readings=(readings_for(candidate.readings_rows)
+                      if candidate.readings_rows else None),
+            layout=candidate.layout).decode("utf-8"))
         sys.stdout.write("\n")
         return 0
     out = args.out or (_ROOT / "tools" / "promptbench" / "out"
