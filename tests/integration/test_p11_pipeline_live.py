@@ -14,6 +14,7 @@ this pipeline would have crashed on.
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 from decimal import Decimal
 
@@ -266,13 +267,60 @@ def _evidence(obs, **overrides):
     return values
 
 
+def _unratified():
+    return dataclasses.replace(_prompt(), ratified=False)
+
+
 def test_the_deterministic_path_runs_end_to_end_with_no_p8_at_all(live, tmp_path):
     """§6.6, on the real chain. A unique direct match is decided by P11 alone.
 
     Real retrieval over the real index, real scoring, P7's real classification and
     policy, and the real append-only store -- and `llm_verdict` is empty, which is
-    the only way to prove "never called for direct unique matches" rather than
+    the only way to prove the deterministic path really ran alone rather than
     assume it.
+
+    THE WORLD IS THE PRODUCT'S OWN, and R-19 is why it has to be named. Every
+    model injection is here, including a real `Gate`, and the prompt's text is
+    UNRATIFIED, which is what `cli.observe_prompt` reads off `drafts_status()`
+    today. Under Q-A (`104` §13.5) a configured model that DECIDES is asked about
+    every placeable file, so "a gate exists and no call happened" is no longer a
+    sentence about §6.6 alone -- it is a sentence about ratification, and this
+    test now says which. The twin below is the other half.
+    """
+    file_id, content_hash = _corpus_file(live, tmp_path / "corpus")
+    obs = _observation(live, file_id=file_id, content_hash=content_hash)
+    _classify(live, file_id=file_id, content_hash=content_hash, obs=obs)
+    _policy(live)
+    subject = Subject(kind=v.FILE, file_id=file_id, content_hash=content_hash,
+                      group_id=None, member_file_ids=())
+    decision = place_file(
+        live, subject=subject,
+        inputs=_inputs(live, gate=_gate(live), prompt=_unratified()),
+        evidence=_evidence(obs, group_ids=("g-phys1401", "g-shared"),
+                           semantic_neighbours=()),
+        component_version="P11-live", observed_at=FIXED_CLOCK)
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-course"
+    assert decision.review_policy == v.AUTO_ELIGIBLE
+    assert live.execute(
+        "SELECT count(*) AS c FROM llm_verdict").fetchone()["c"] == 0
+
+
+def test_r19_the_same_unique_direct_match_reaches_p8_when_the_model_decides(
+        live, tmp_path):
+    """The other half, on the same chain and the same file.
+
+    `00`'s placement amendment: "A unique direct match is the top-ranked
+    candidate, not a bypass." Ratify the text and the file the test above placed
+    without asking anybody is asked -- P7 releases, P8 validates, and a verdict
+    row exists where there was none.
+
+    IT DOES NOT PLACE, and that is P8 judging rather than P11 refusing: the
+    borrowed fixture response names `node-legal`, which is not a node of this
+    plan, so Site C's `INVENTED_NODE` refuses it and `transcribe` records the
+    abstention. That is the design working -- the model decides and the rules
+    validate structure -- and it is why a real resolver is the LAST step of
+    turning the site on rather than the first.
     """
     file_id, content_hash = _corpus_file(live, tmp_path / "corpus")
     obs = _observation(live, file_id=file_id, content_hash=content_hash)
@@ -286,11 +334,9 @@ def test_the_deterministic_path_runs_end_to_end_with_no_p8_at_all(live, tmp_path
         evidence=_evidence(obs, group_ids=("g-phys1401", "g-shared"),
                            semantic_neighbours=()),
         component_version="P11-live", observed_at=FIXED_CLOCK)
-    assert decision.outcome == v.PLACE
-    assert decision.destination.node_id == "n-course"
-    assert decision.review_policy == v.AUTO_ELIGIBLE
     assert live.execute(
-        "SELECT count(*) AS c FROM llm_verdict").fetchone()["c"] == 0
+        "SELECT count(*) AS c FROM llm_verdict").fetchone()["c"] == 1
+    assert decision.outcome == v.ABSTAIN
 
 
 def test_the_whole_chain_runs_from_p11s_request_to_p8s_validator(live, tmp_path):

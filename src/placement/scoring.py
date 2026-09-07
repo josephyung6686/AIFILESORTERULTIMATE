@@ -357,8 +357,30 @@ def assess(retrieval, graphs, *, policy: SupportPolicy,
     )
 
 
-def needs_model_call(assessment: Assessment) -> bool:
+def needs_model_call(assessment: Assessment, *, model_decides: bool = False) -> bool:
     """§6.6: never for a direct unique match; only for a bounded ambiguity.
+
+    **UNLESS A MODEL DECIDES, WHICH IS R-19 AND THE OWNER'S Q-A RULING.** `104`
+    §13.5 and `00`'s placement amendment, in the same words: "A unique direct
+    match and the score-and-margin threshold no longer place a file without a
+    model call. Every placement goes through the model. Deterministic scores rank
+    and shortlist the candidates the model is shown... A unique direct match is
+    the top-ranked candidate, not a bypass." So the two clauses below stop being
+    reasons to skip the question and become reasons the answer is cheap to get
+    right: the file arrives at site C with the deterministic winner ranked first.
+
+    `model_decides` is the CALLER's fact and not this module's: a model is
+    configured AND its text is ratified (`PipelineInputs.model_decides`). It
+    defaults to False, so the offline path -- and every caller that has not
+    stated a position -- gets exactly the routing it had. That is `00`'s own
+    fallback: "with no model configured, the deterministic path remains the
+    fallback and places only what it can validate."
+
+    ONE CLAUSE DOES NOT MOVE, and it is the first line below: an assessment with
+    no candidate at all is asked of nobody. `00`:106 forbids inventing a
+    destination after freeze, so a file with no legal candidate has nothing for a
+    model to CHOOSE between, and sending it is inviting the invention the whole
+    of §6 exists to prevent. "Every placeable file" is the ruling's own scope.
 
     An assessment with no candidate at all also needs no call: there is nothing
     for a model to choose between, and asking one would be inviting it to invent.
@@ -380,7 +402,11 @@ def needs_model_call(assessment: Assessment) -> bool:
     between moving a file and leaving it exactly where its owner put it.
     `_staying_put_wins_a_tie` above is what makes `scored[0]` the answer here.
     """
-    if assessment.unique_direct_match or not assessment.scored:
+    if not assessment.scored:
+        return False
+    if model_decides:
+        return True
+    if assessment.unique_direct_match:
         return False
     if assessment.stays_put and assessment.abstention_reason is None:
         return False

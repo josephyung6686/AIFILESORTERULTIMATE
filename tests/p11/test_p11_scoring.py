@@ -9,8 +9,8 @@ from placement.graph import NodeLocalGraph, build_node_local_graph
 from placement.index import build_destination_index, entry_for
 from placement.records import ConflictConsidered, GraphAnchor, MatchingFact, Subject
 from placement.retrieval import (
-    ACCEPTED_GROUP, Candidate, DIRECT_FACT, GRAPH_RELATIONSHIP, Retrieval,
-    SEMANTIC_NEIGHBOUR, retrieve,
+    ACCEPTED_GROUP, CURATED_FOLDER, Candidate, DIRECT_FACT, GRAPH_RELATIONSHIP,
+    Retrieval, SEMANTIC_NEIGHBOUR, retrieve,
 )
 from placement.scoring import assess, needs_model_call
 from p11.conftest import FIXED_CLOCK
@@ -326,3 +326,73 @@ def test_the_three_stages_bind_end_to_end_against_the_frozen_tree(p11_conn):
     # And §6.3's suppression survived the whole chain: `n-course-alt` was ruled
     # out and recorded, not merely left unranked.
     assert retrieval.conflicts[0].suppressed_node_ids == ("n-course-alt",)
+
+
+# --- R-19 (Q-A): when a model decides, every placeable file is asked ---------------
+#
+# `104` §13.5 and `00`'s placement amendment: "Every placement goes through the
+# model. Deterministic scores rank and shortlist the candidates the model is
+# shown... A unique direct match is the top-ranked candidate, not a bypass. This
+# governs whenever a model is configured; with no model configured, the
+# deterministic path remains the fallback."
+#
+# So the two clauses that used to END the question -- a unique direct match, and a
+# file already sitting where the answer says it belongs -- become reasons the
+# model's answer is CHEAP to get right, not reasons to skip asking. What survives
+# untouched is the offline path: the argument defaults to False, and every caller
+# that does not pass it gets exactly the routing it had.
+
+
+def test_r19_a_unique_direct_match_is_asked_when_a_model_decides():
+    result = assess(_retrieval([_candidate()]), {"n-course": _graph()},
+                    policy=POLICY)
+    assert result.unique_direct_match is True
+    # The fallback, unchanged: no model configured, no call, §6.6 as written.
+    assert needs_model_call(result) is False
+    assert needs_model_call(result, model_decides=True) is True
+
+
+def test_r19_a_file_already_where_it_belongs_is_asked_when_a_model_decides():
+    own = _candidate("n-own", channels=(DIRECT_FACT, CURATED_FOLDER))
+    rival = _candidate("n-proposed", channels=(DIRECT_FACT,))
+    result = assess(_retrieval([own, rival]), {}, policy=POLICY,
+                    their_own_folder_node_ids=frozenset({"n-own"}))
+    assert result.stays_put is True
+    assert result.abstention_reason is None
+    assert needs_model_call(result) is False
+    assert needs_model_call(result, model_decides=True) is True
+
+
+def test_r19_a_file_with_no_candidate_at_all_is_asked_of_nobody():
+    """The one clause that does NOT move. `00`:106 forbids inventing a
+    destination after freeze, so a file with no legal candidate has nothing for
+    a model to choose between and asking one would be inviting it to invent."""
+    result = assess(_retrieval([]), {}, policy=POLICY)
+    assert result.scored == ()
+    assert needs_model_call(result) is False
+    assert needs_model_call(result, model_decides=True) is False
+
+
+def test_r19_an_ambiguous_file_is_asked_either_way():
+    two = [_candidate(), _candidate(node_id="n-course-alt",
+                                    channels=(ACCEPTED_GROUP,), facts=())]
+    result = assess(_retrieval(two),
+                    {"n-course": _graph(), "n-course-alt": _graph("n-course-alt")},
+                    policy=POLICY)
+    assert needs_model_call(result) is True
+    assert needs_model_call(result, model_decides=True) is True
+
+
+def test_r19_the_ranking_is_what_shortlists_and_the_winner_is_the_top_of_it():
+    """"Scores rank and shortlist the candidates the model is shown" -- the
+    deterministic winner is `scored[0]` and stays recorded in rank order, which
+    is what makes a unique direct match the top candidate rather than a bypass."""
+    two = [_candidate(), _candidate(node_id="n-course-alt",
+                                    channels=(ACCEPTED_GROUP,), facts=())]
+    result = assess(_retrieval(two),
+                    {"n-course": _graph(), "n-course-alt": _graph("n-course-alt")},
+                    policy=POLICY)
+    assert [s.node_id for s in result.scored] == ["n-course", "n-course-alt"]
+    assert [(a.node_id, a.rank) for a in result.alternatives] == [
+        ("n-course", 1), ("n-course-alt", 2)]
+    assert result.scored[0].support_score > result.scored[1].support_score
