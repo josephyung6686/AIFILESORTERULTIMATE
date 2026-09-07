@@ -84,10 +84,25 @@ TITLES: tuple[str, ...] = (
     "AP World History",
     "Introduction to Organic Chemistry",
     "Machine Learning",
-    "Thermodynamics",
     "Rotational Dynamics",
     "Calculus 2",
 )
+
+#: MOVED OUT OF `TITLES` BY `104` R-135 ON 2026-09-07, and moved rather than deleted
+#: because the value is still a real course name and the cost of refusing it is real.
+#:
+#: R-135 measured nine of 22 wrong `subject` facts as a SINGLE WORD -- a department,
+#: not a course -- and rules a bare word out unconditionally. No shape separates
+#: `Physics` from `Thermodynamics`, and a gazetteer of department names could not be
+#: complete, so the refusal is by shape and this word is inside it.
+#:
+#: **The bound is what keeps it from being a coverage regression.** A one-word course
+#: name is still filable when an anchor document in the same corpus names it beside a
+#: code -- `PHYS 1401: Thermodynamics` -- and then it is filed as the CODE, which is
+#: what the labels wanted. `tests/p6/test_p6_course_alias.py` holds both halves:
+#: `test_a_bare_department_word_is_never_a_subject` and
+#: `test_a_one_word_course_the_anchor_names_is_still_filable`.
+BARE_WORDS: tuple[str, ...] = ("Thermodynamics",)
 
 #: What must stay refused, and where each one comes from. The first four are this
 #: task's own list; the rest are values another test file already measured off a real
@@ -134,6 +149,18 @@ def test_a_title_normalises_only_into_the_review_path(raw):
     """The ten refusals, reversed -- into review, and no further."""
     assert normalize_for_model("subject", raw) is None
     assert normalize_for_review("subject", raw) == raw
+
+
+@pytest.mark.parametrize("raw", BARE_WORDS)
+def test_a_one_word_title_is_refused_until_an_anchor_names_it(raw):
+    """`104` R-135's third ruling, asked of the two normalisers with no alias table.
+
+    This is the one place R-98's list moved. Both paths refuse, so the value is
+    `VALUE_NOT_NORMALIZABLE` and nobody is asked to confirm a word that is as likely to
+    be the department as the course.
+    """
+    assert normalize_for_model("subject", raw) is None
+    assert normalize_for_review("subject", raw) is None
 
 
 @pytest.mark.parametrize("raw", STAYS_REFUSED)

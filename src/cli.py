@@ -88,6 +88,10 @@ from facts.domains import ActivationSignal, ActivationSignals
 from facts.photo_event import media_type
 from facts.budgets import LLM_ROUTE
 from facts.resolver import PRIVACY_BAR, FactResolver
+from facts.course_alias import (
+    CourseAliases, NAMED, UNKNOWN, build_course_aliases, load_course_aliases,
+    resolve_subject_facts,
+)
 from facts.rules import ACADEMIC_CONTEXT_TERMS, Rule, apply_rules
 from facts.unresolved import NO_CANDIDATE_EVIDENCE
 from facts.usable import record_pass
@@ -2729,6 +2733,62 @@ SUBJECT_RULE = Rule(pattern=_SUBJECT_IDENTIFIER,
                     field_key=SUBJECT_FIELD,
                     canonical=lambda raw: _SEPARATOR.sub("", " ".join(raw.split())))
 
+#: `104` R-135'S ANCHOR VOCABULARY: the documents that STATE what a course is called.
+#: A strict subset of `SUBJECT_CONTEXT_TERMS` above, and the narrowing is the whole
+#: point of having a second list rather than reusing the first.
+#:
+#: `SUBJECT_CONTEXT_TERMS` asks "is this reading about teaching?" -- twenty-six words
+#: wide, because a course code has to be recognisable in a problem set, an exam header
+#: and a citation. This list asks a different and much narrower question: "is this
+#: document the REGISTRY of what the course is called?" A homework sheet prints
+#: `W3134` beside `Problem Set 4`; only the syllabus, the schedule and the enrolment
+#: record print `W3134` beside `Data Structures` as a statement of identity. Widening
+#: this list to the other one would let a document that MENTIONS a course define that
+#: course's name for every other file in the corpus, which is the one power an alias
+#: table must not hand out.
+#:
+#: `registrar` and `transcript` earn their places here for a reason they do not have
+#: one field over: `SUBJECT_CONTEXT_TERMS`' exclusion note refuses `transcript` because
+#: "seven schemas author it" and a transcript is not evidence that a nearby token is a
+#: course CODE. It is, however, exactly a document that lists codes beside course
+#: names, which is what this list is for.
+COURSE_ANCHOR_TERMS: tuple[str, ...] = (
+    "syllabus", "course outline", "course schedule", "class schedule",
+    "course description", "enrollment", "enrolment", "registration", "registrar",
+    "transcript", "enrolled in", "course catalog", "course catalogue")
+
+#: The marks a course line puts between its code and its name, longest first so the
+#: spaced forms are tried before a bare dash. Measured shapes, not invented ones:
+#: `COMS W3134: Data Structures` is the owner's own syllabus (`104` R-135), and the
+#: dash forms are how a schedule table prints the same pair.
+#:
+#: A BARE hyphen is deliberately absent. `Anglo-Saxon Verse` carries an internal
+#: hyphen -- `_TITLE_SHAPE` admits it by name -- so splitting on `-` would cut a course
+#: name in half and record `Saxon Verse` as the title of a course called `Anglo`.
+COURSE_TITLE_SEPARATORS: tuple[str, ...] = (
+    " — ", " – ", " - ", "—", "–", ":")
+
+#: A DEPARTMENT PREFIX: the letters that stand before the code and are not part of the
+#: reading. `COMS W3134` reaches P6 as `W3134` because `_STRUCTURED` claims one token
+#: and `COMS` survives only in `context_before` -- `_SUBJECT_IDENTIFIER`'s comment says
+#: so in as many words: "it IS a truncation of `ENGI E1006`, and it is a truncation
+#: this rule cannot repair".
+#:
+#: TWO CAPITALS MINIMUM, which is the same refusal `_SUBJECT_IDENTIFIER`'s first
+#: lookahead makes and for the identical reason. A one-letter word before a number is a
+#: roman numeral or a list marker -- `General Chemistry I 1403` -- and admitting it
+#: would recreate the `I1403` misfiling through the alias table.
+_DEPARTMENT_PREFIX = re.compile(r"[A-Z]{2,}")
+
+#: THE ABSENT TABLE, spelled once as an EMPTY one so the bare-word refusal has a single
+#: home. `104` R-135's third ruling -- a bare department word is never a subject -- is
+#: unconditional, so it must fire on a run that built no aliases at all. Writing that
+#: shape test a second time in this file would be two homes for one rule; an empty
+#: `CourseAliases` answers `BARE_WORD` for `Physics` and `UNKNOWN` for `Data
+#: Structures` from the same code path a populated one uses.
+_NO_COURSE_ALIASES = CourseAliases(codes_by_title={}, code_by_spelling={},
+                                   refs_by_pair={})
+
 #: §3.5's direct slot set, and §2.2/§2.3's suppression catalogue. `DirectSlots` has
 #: no default because the slot is the caller's, and THIS DEPLOYMENT NOW SHIPS NONE.
 #: That is a decision and not an omission: the one slot it had read a shape out of
@@ -2951,7 +3011,8 @@ def _canonical_file_type(text: str) -> str | None:
     return token or None
 
 
-def normalize_for_model(field_key: str, raw_value: str) -> str | None:
+def normalize_for_model(field_key: str, raw_value: str, *,
+                        aliases: CourseAliases | None = None) -> str | None:
     """§3.6 check 3: "the proposed value can be normalized safely". `None` = it cannot.
 
     **This closes the C-5 deadlock, and where it closes it is the point.**
@@ -3033,9 +3094,30 @@ def normalize_for_model(field_key: str, raw_value: str) -> str | None:
             # of `text` rather than `raw_value` because the collapse above is the
             # same one the rule's canonicaliser applies, so `PHYS  1401` off a
             # two-column page is the one identifier it was before the move.
+            table = _NO_COURSE_ALIASES if aliases is None else aliases
             if SUBJECT_RULE.pattern.search(text) is None:
-                return None
-            return SUBJECT_RULE.canonical(text) or None
+                # `104` R-135. A TITLE THE CORPUS ITSELF EXPLAINS IS THE CODE, and
+                # this is the only branch that changes what this function admits.
+                # Measured: 19 of 22 wrong `subject` facts were a title or a bare
+                # word where the label wanted the code, and the syllabus states both
+                # spellings on one line. Nothing is invented -- `resolve` answers
+                # `NAMED` only when an anchor document in THIS corpus printed the
+                # code beside this name, and the fact that follows cites that line.
+                #
+                # A title the table cannot name still returns `None` here and reaches
+                # R-98's review path through `normalize_for_review` below, unchanged.
+                # An ambiguous one and a bare department word return `None` from BOTH,
+                # which is check 3's `VALUE_NOT_NORMALIZABLE` and is the refusal R-135
+                # asks for.
+                reading = table.resolve(text)
+                return reading.code if reading.outcome == NAMED else None
+            code = SUBJECT_RULE.canonical(text) or None
+            # `104` R-91, closed where the rule cannot close it. `COMS W3134` and
+            # `W3134` are one course and the canonicaliser above cannot know it: it
+            # collapses a separator, and the department prefix is not in the value.
+            # The anchor line that printed them together is what states they are one,
+            # so the table -- and only the table -- may re-spell a code here.
+            return None if code is None else table.canonical_spelling(code)
         return text
     if slot.matches is not None and not slot.matches(raw_value):
         return None
@@ -3064,7 +3146,37 @@ SUBJECT_TITLE_MAX_CHARACTERS: int = 64
 _TITLE_SHAPE = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9 '&-]*[A-Za-z0-9])?")
 
 
-def normalize_for_review(field_key: str, raw_value: object) -> str | None:
+def _subject_title_shape(raw_value: object) -> str | None:
+    """The four refusals below, and ONLY those: is this value SHAPED like a title?
+
+    Split out of `normalize_for_review` by `104` R-135, which put a second and
+    different question in front of the first one -- "which course is it?" -- and gave
+    that question two callers. `facts.course_alias.build_course_aliases` asks the SHAPE
+    question about the words after a colon on a syllabus line, and must not also be
+    asked the POLICY question, or an anchor that states `PHYS 1401: Thermodynamics`
+    would be refused for stating a one-word course name and the alias that fixes the
+    bare-word case could never be built from it.
+
+    So: shape here, policy in `normalize_for_review`. One implementation of each.
+    """
+    if not isinstance(raw_value, str):
+        return None
+    text = " ".join(raw_value.split())
+    if not text or len(text) > SUBJECT_TITLE_MAX_CHARACTERS:
+        return None
+    if len(text.split(" ")) > SUBJECT_TITLE_MAX_WORDS:
+        return None
+    if _TITLE_SHAPE.fullmatch(text) is None:
+        return None
+    if not any(character.islower() for character in text):
+        return None
+    if _is_term(text) or _STRUCTURED.search(text) is not None:
+        return None
+    return text
+
+
+def normalize_for_review(field_key: str, raw_value: object, *,
+                         aliases: CourseAliases | None = None) -> str | None:
     """§3.6 check 3's SECOND question: is this a value a person could confirm?
 
     **This exists because ten correct answers were thrown away.** On the owner's
@@ -3110,23 +3222,25 @@ def normalize_for_review(field_key: str, raw_value: object) -> str | None:
     library's, so a value it has not seen is a different question -- a folder name
     from a closed list -- and answering it here would be authoring a vocabulary.
     """
-    if field_key != SUBJECT_RULE.field_key or not isinstance(raw_value, str):
+    if field_key != SUBJECT_RULE.field_key:
         return None
-    text = " ".join(raw_value.split())
-    if not text or len(text) > SUBJECT_TITLE_MAX_CHARACTERS:
+    text = _subject_title_shape(raw_value)
+    if text is None:
         return None
-    if len(text.split(" ")) > SUBJECT_TITLE_MAX_WORDS:
-        return None
-    if _TITLE_SHAPE.fullmatch(text) is None:
-        return None
-    if not any(character.islower() for character in text):
-        return None
-    if _is_term(text) or _STRUCTURED.search(text) is not None:
-        return None
-    return text
+    # `104` R-135's fifth refusal, and the ONLY question this function asks that the
+    # four above do not. `UNKNOWN` -- a title no anchor in this corpus explains -- is
+    # R-98 unchanged and is the one outcome that still reaches a person. The other
+    # three do not: `NAMED` belongs to `normalize_for_model`, which ran first and took
+    # it as a code; `AMBIGUOUS` is a name two courses share, and asking a person to
+    # confirm it would be asking them to confirm a value that means two things;
+    # `BARE_WORD` is the nine single-word subjects R-135 measured, where a department
+    # was recorded as the course.
+    table = _NO_COURSE_ALIASES if aliases is None else aliases
+    return text if table.resolve(text).outcome == UNKNOWN else None
 
 
-def contradicts_stronger(proposal, existing_fact) -> bool:
+def contradicts_stronger(proposal, existing_fact, *,
+                         aliases: CourseAliases | None = None) -> bool:
     """§3.6 check 4: does a stronger fact contradict this proposal?
 
     `build_request` supplies only facts ALREADY STRONGER than an LLM conclusion --
@@ -3151,7 +3265,16 @@ def contradicts_stronger(proposal, existing_fact) -> bool:
     """
     if existing_fact["field_key"] != proposal.field_key:
         return False
-    proposed = normalize_for_model(proposal.field_key, proposal.value)
+    # THE SAME TABLE CHECK 3 USED, and the keyword exists only so that it can be.
+    # `104` R-135 gave `normalize_for_model` a second way to answer -- a title the
+    # corpus's own anchor explains becomes a code -- and this function's whole promise
+    # is that the comparison happens AFTER canonicalisation. Called without the table,
+    # check 3 would accept `Data Structures` as `W3134` while check 4 normalised the
+    # same words to `None` and answered `False` by its "unnormalizable answers False"
+    # rule, so a file whose validated fact says `E1006` would get a second live
+    # `subject` beside it -- one file, two subjects, two folder levels, which is `65`
+    # §4.2's failure and the one `resolve_subject_facts` refuses to create.
+    proposed = normalize_for_model(proposal.field_key, proposal.value, aliases=aliases)
     if proposed is None:
         return False
     return existing_fact["canonical_value"] != proposed
@@ -3549,6 +3672,14 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
     `sensitive_observation_keys`, the file-level bar above, and the gate's own
     `_precheck_items`.
     """
+    # `104` R-135's alias table, read ONCE per call-authorities build and closed over
+    # by both normalisers below. Read rather than built here: `_course_alias_pass`
+    # builds it over the whole corpus before this runs, because an alias a syllabus
+    # states is about every OTHER file of that course and no per-file authority can
+    # see it. An empty table is the honest answer for a corpus with no anchor document,
+    # and it is the same object shape a populated one has, so the two paths below have
+    # one behaviour and not two.
+    course_aliases = load_course_aliases(conn, scan_run_id)
     return FactCallAuthorities(
         gate=Gate(
             conn, store=ClassificationStore(conn), plan_version=PLAN_VERSION,
@@ -3605,12 +3736,15 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
         # `FactRequest` carries it and a caller that skipped it would be choosing
         # for P6.
         normalizers={},
-        normalize=normalize_for_model,
+        # BOUND TO THIS SCAN'S ALIAS TABLE (`104` R-135), and bound with `partial` so
+        # the two-argument signature P8 calls stays exactly two arguments. P8 authors
+        # neither of these (C-5) and must not learn that a corpus has an alias table.
+        normalize=partial(normalize_for_model, aliases=course_aliases),
         # Check 3's second question (`104` R-98). Without it, a course that names
         # itself in words instead of a code is refused rather than offered: ten of
         # ten `subject` answers on the owner's coursework files were.
-        normalize_for_review=normalize_for_review,
-        contradicts=contradicts_stronger,
+        normalize_for_review=partial(normalize_for_review, aliases=course_aliases),
+        contradicts=partial(contradicts_stronger, aliases=course_aliases),
         evidence_resolver=_stored_value_of(conn),
         scan_budget=ScanBudget(
             scan_id=scan_run_id, corpus_file_count=corpus_file_count,
@@ -6814,6 +6948,58 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             files=len(roster), outcomes=outcomes,
             model_id=routing.model_id_for(A_FACT), out=out)
 
+    def _course_alias_pass(run_id: str) -> None:
+        """`104` R-135's alias table, and the subject facts it makes reachable.
+
+        **A corpus producer, for `_family_pass`'s reason in a different field.** The
+        statement "W3134 is the course called Data Structures" lives on ONE document --
+        the syllabus -- and is about every other file of that course. A `FactResolver`
+        stage is asked about one file version at a time and could never see it, which is
+        why 19 of the owner's 43 labelled course codes were missing entirely and 19 more
+        were the title recorded where the code belonged.
+
+        **Two halves, and they read DIFFERENT zones on purpose.** The build half takes
+        only `reads_a_structured_string` readings -- a span inside `body` or `heading`,
+        the document's own words -- so an alias is never read out of a filename, a path
+        or a `/Title`. The resolve half reads `NAMING_ZONES`, which is exactly those
+        places, because that is where a coursework file prints the course's NAME. A
+        folder called `Data Structures` is the thing being explained; it may be
+        explained BY the syllabus and must never explain itself.
+
+        **HERE, before `_model_fact_pass` and before P9.** The model's normalisers close
+        over this table -- `fact_call_authorities` reads it -- so it has to exist before
+        the authorities are built. And a fact that arrives after grouping is a fact no
+        group could form on, which is the same sentence `_family_pass` is placed by.
+
+        **Everything it takes is this file's.** The identifier pattern, its
+        canonicaliser, the anchor vocabulary, the separators, the department shape and
+        the title shape are all named above; `facts.course_alias` authors none of them,
+        for the reason `facts.rules` gives about its own five terms.
+        """
+        roster = corpus_roster(conn, run_id)
+        if not roster:
+            return
+        build_course_aliases(
+            conn, scan_run_id=run_id, file_versions=roster,
+            code_pattern=_STRUCTURED, canonical=SUBJECT_RULE.canonical,
+            # TWO KNOBS AND THEY ARE NOT THE SAME ONE. `_SUBJECT_IDENTIFIER`'s comment
+            # states the separation this call keeps: "what the product SEES and what it
+            # ASSERTS are two knobs". `_STRUCTURED` is what it sees, and it is right for
+            # finding the OTHER codes printed on an anchor line; the rule's own pattern
+            # is what it asserts, and only that may decide that a reading IS a course.
+            # Without the split, `General Chemistry I 1403: Sample Exam 1` builds the
+            # alias `Sample Exam 1 -> I1403` -- the truncation the rule's first lookahead
+            # exists to refuse -- and `Spring 2026: Data Structures` builds a course out
+            # of a term.
+            is_code=lambda text: SUBJECT_RULE.pattern.search(text) is not None,
+            anchor_terms=COURSE_ANCHOR_TERMS, separators=COURSE_TITLE_SEPARATORS,
+            department_prefix=_DEPARTMENT_PREFIX, title_of=_subject_title_shape,
+            reads_in_document=reads_a_structured_string)
+        resolve_subject_facts(
+            conn, load_course_aliases(conn, run_id), file_versions=roster,
+            field_key=SUBJECT_FIELD, naming_zones=NAMING_ZONES,
+            title_of=_subject_title_shape)
+
     def _family_pass(run_id: str) -> None:
         """§3.11's two family fields, over the whole corpus at once.
 
@@ -6934,6 +7120,9 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # §3.11's universal families, BEFORE the model pass and before P9 groups.
         # See `_family_pass` for why a corpus producer cannot be a resolver stage.
         _family_pass(p1_p7.scan_run_id)
+        # `104` R-135. BEFORE the model pass, which closes over the table this
+        # builds, and before P9, which groups on the facts it writes.
+        _course_alias_pass(p1_p7.scan_run_id)
         # §8.6's THIRD producer, and the only point in the run where it can stand.
         # See `model_fact_resolver` for why it is a second pass and not the `llm`
         # stage of the pass P1-P7 already ran. BEFORE the three blocks below on

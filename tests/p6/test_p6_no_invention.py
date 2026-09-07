@@ -94,11 +94,20 @@ DECLARED_MODULES = frozenset({
     # context check and writes one fact per match with no margin -- a file naming
     # two kinds of work would get two live `work_type` facts, which is the defect
     # the removed term slot was deleted over.
-    "authorship", "budgets", "cache", "date_facts", "dates", "direct", "discount",
-    "domains", "evidence", "facets", "families", "fields", "file_facts", "learning", "llm_seam",
-    "photo_event", "plan_versions", "read_surface", "resolver", "rules", "schema",
-    "session", "states", "stage_output", "supersede", "unresolved", "usable", "values",
-    "vocabulary", "kind",
+    # `course_alias` is a third module beyond the plan's list, added 2026-09-07 for
+    # `104` R-135 and named here for the reason the other two are. The statement "this
+    # code is the course called Data Structures" is made by ONE anchor document and is
+    # about every other file of that course, so no `FactResolver` stage -- each asked
+    # about one file version -- can hold it; `facts.families` is the existing corpus
+    # producer and this is the second. It could not go in `rules.py`, whose `Rule` is a
+    # pattern plus a context check over a SINGLE observation and has nowhere to put a
+    # table, nor in `values.py`, whose `aliases` column records a MERGE of two values
+    # and carries no per-alias evidence ref.
+    "authorship", "budgets", "cache", "course_alias", "date_facts", "dates", "direct",
+    "discount", "domains", "evidence", "facets", "families", "fields", "file_facts",
+    "learning", "llm_seam", "photo_event", "plan_versions", "read_surface", "resolver",
+    "rules", "schema", "session", "states", "stage_output", "supersede", "unresolved",
+    "usable", "values", "vocabulary", "kind",
 })
 
 #: Every module-level COLLECTION P6 publishes, with the task that owns it. A plain string
@@ -141,6 +150,7 @@ DECLARED_VOCABULARIES = frozenset({
     "PLAN_VERSIONED", "SHARED_ACROSS_PLAN_VERSIONS",          # Task 23 S8.8
     "VALUE_RENDERINGS_COLUMNS",                               # Task 23 the owed seam
     "PROPOSAL_ELIGIBLE_STATES",                               # Task 24 S3.6
+    "ALIAS_KINDS", "SUBJECT_OUTCOMES",                        # `104` R-135 course_alias
 })
 
 #: The ONLY module-level numbers in `facts`, by exact (module, binding). Every entry is a
