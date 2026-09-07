@@ -85,6 +85,7 @@ from facts.rules import ACADEMIC_CONTEXT_TERMS, Rule, apply_rules
 from facts.unresolved import NO_CANDIDATE_EVIDENCE
 from facts.usable import record_pass
 from facts.fields import DOMAIN_FIELDS
+from facts.states import VALIDATED, strength
 from facts.kind import tokens as kind_tokens
 from facts.kind import compile_vocabulary, kind_facts
 from grouping.acceptance import group_state_as_of, record_acceptance
@@ -97,13 +98,14 @@ from grouping.records import Group, GroupAcceptance
 from grouping.retrieval import EmbeddingIdentity, RetrievalKnowledge
 from grouping.schema import create_grouping_schema
 from grouping.store import (
-    current_group, memberships_for_group, record_group, record_membership,
-    stop_rule_outcome_for,
+    current_group, live_memberships_of_file, memberships_for_group, record_group,
+    record_membership, stop_rule_outcome_for,
 )
 from grouping.vocabulary import (
-    ACCEPTED, COHERENT, DUPLICATE, MUTUAL_SEMANTIC_RETRIEVAL,
-    P1_INCLUDED_SCAN_STATE, PENDING_REVIEW, RULES, SHARED_VALIDATED_FACT,
-    USER_EDITED, VERSION_FAMILY,
+    ACCEPTED, BOUNDED_SESSION, COHERENT, COMPATIBLE_DOCUMENT_TYPE, DUPLICATE,
+    EDGE_TYPES as P9_EDGE_TYPES, EXISTING_RELATED_FOLDER, INCLUDED,
+    MUTUAL_SEMANTIC_RETRIEVAL, P1_INCLUDED_SCAN_STATE, PENDING_REVIEW, RULES,
+    SHARED_VALIDATED_FACT, USER_EDITED, VERSION_FAMILY,
 )
 from llm_harness.budgets import ScanBudget, create_budget_schema
 from llm_harness.prompt_library import (
@@ -113,10 +115,19 @@ from llm_harness.prompt_library import (
 from llm_harness.records import FolderLevel, PromptDefinition
 from llm_harness.schema import create_llm_schema
 from llm_harness.vocabulary import (
-    A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE,
+    A_FACT, B_GROUP, C_PLACEMENT, CONTEXT_SUPPORTED, D_RESIDUAL, DIRECT_ANCHOR,
+    E_TEMPLATE,
 )
 from placement import vocabulary as pv
 from placement.config import CEILINGS, SupportPolicy, placement_limits
+from placement.graph import (
+    COMPATIBLE_DOCUMENT_TYPE as P11_COMPATIBLE_DOCUMENT_TYPE,
+    DUPLICATE as P11_DUPLICATE,
+    EDGE_TYPES as P11_EDGE_TYPES,
+    EXISTING_RELATED_FOLDER as P11_EXISTING_RELATED_FOLDER,
+    SHARED_VALIDATED_FACT as P11_SHARED_VALIDATED_FACT,
+    VERSION_FAMILY as P11_VERSION_FAMILY,
+)
 from placement.pipeline import (
     PipelineInputs, ResidualSendRefused, act_on_residual_sets,
 )
@@ -132,6 +143,9 @@ from privacy.gate import Gate
 from privacy.defaults import LOCAL_FIRST_MODES
 from privacy.display import display_policy
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
+from privacy.resolve import (
+    AmbiguousObservationKey, UnresolvableSpan, current_location,
+)
 from privacy.vocabulary import MODE_SEMANTICS
 from questions.explanation import explain_question, render_explanation
 from questions.effects import changed_answer, diff_for_answer_change
@@ -3368,6 +3382,228 @@ SEMANTIC_CHANNEL_WEIGHTS: Mapping[str, int] = MappingProxyType({
     SHARED_VALIDATED_FACT: 2, MUTUAL_SEMANTIC_RETRIEVAL: 1})
 
 
+# --- P9's typed edges, read by P11 (`104` R-12) -------------------------------------
+#
+# P9 and P11 publish the same five relationships under different spellings --
+# `grouping.vocabulary` hyphenates and `placement.graph` uses underscores -- and
+# `build_node_local_graph` raises `ValueError` on a type it does not know. So a P9
+# edge row cannot be handed to P11 as it stands, and the translation belongs HERE:
+# the composition root is where two parts' vocabularies are allowed to meet, and
+# neither part may hold a second spelling of the other's.
+#
+# NOT AN ALIAS TABLE, and the difference is checkable rather than asserted: every
+# key and every value is the OTHER MODULE'S OWN CONSTANT, imported by name, so a
+# member renamed on either side is an `ImportError` and a member ADDED on either
+# side fails `test_cli_p9_p11_edge_seam.py`, which compares this mapping against
+# both published tuples. Nothing here invents a relationship, and nothing here
+# decides what a relationship means.
+
+#: P9's spelling -> P11's, for the five relationships both parts carry.
+P9_TO_P11_EDGE_TYPE: Mapping[str, str] = MappingProxyType({
+    SHARED_VALIDATED_FACT: P11_SHARED_VALIDATED_FACT,
+    DUPLICATE: P11_DUPLICATE,
+    VERSION_FAMILY: P11_VERSION_FAMILY,
+    COMPATIBLE_DOCUMENT_TYPE: P11_COMPATIBLE_DOCUMENT_TYPE,
+    EXISTING_RELATED_FOLDER: P11_EXISTING_RELATED_FOLDER,
+})
+
+#: P9's other two, named as DROPPED rather than left out of the mapping silently.
+#: `placement/graph.py` is explicit that neither is an edge there: "a semantic
+#: neighbour is deliberately absent: it is a retrieval channel and never an edge,
+#: because an embedding alone is insufficient". `00`:63 is the same sentence --
+#: a group is not supported "when the graph is connected only by embeddings". The
+#: semantic channel reaches P11 as `semantic_neighbours`, which is a retrieval
+#: channel, and never as an edge.
+NOT_A_PLACEMENT_EDGE: tuple[str, ...] = (BOUNDED_SESSION, MUTUAL_SEMANTIC_RETRIEVAL)
+
+
+def bridge_entity_for(edge_type: str, bridge: str | None) -> str | None:
+    """The entity an edge rests on, in a form that may be shown.
+
+    §6.5's hub test asks whether a neighbourhood is held together by one entity
+    that appears everywhere, and `NodeLocalGraph` carries the entity onto the
+    review surface. P9 records the `existing-related-folder` channel's bridge as
+    the folder's ABSOLUTE PATH -- measured on the owner's corpus:
+    `/Users/<name>/.../Desktop/Python 1006` -- and §8.4's always-local list opens
+    with the word "Paths". So that one channel's bridge is reduced to the folder's
+    LABEL, which is the form `_folders_this_file_is_already_in` already uses for
+    exactly this value and exactly this reason.
+
+    KEYED ON THE EDGE TYPE, never on the shape of the string. "Does this look like
+    a path" is a guess; "this channel's bridge IS a folder" is P9's own definition
+    of the channel, and the type vocabulary is closed.
+
+    Every other channel's bridge is passed through as recorded. Today that is
+    `None` on all 204 of the owner's `shared-validated-fact` edges -- P9 stores no
+    bridge on the one channel §6.5's hub test is actually about -- which is a P9
+    finding and not something to reconstruct here: `build_node_local_graph`'s own
+    docstring says P11 "discovers no relationship of its own here, because that
+    would be a second grouping engine and P9 owns grouping".
+    """
+    if edge_type == EXISTING_RELATED_FOLDER and bridge:
+        return str(bridge).rstrip("/\\").rsplit("/", 1)[-1]
+    return bridge
+
+
+def citation_basis_for(reliability_state: str) -> str:
+    """`00`:57's split -- direct anchors against context-supported members -- read
+    off §3.13's own ladder rather than from a list written out here.
+
+    `validated`, `direct` and `user_confirmed` are readings of the file's own bytes
+    or the person's own word, which is what `00`:58 calls direct evidence. Below
+    them, `llm_supported` is inference by definition and `possible` is P4's state
+    for "free text, OCR, A FILENAME or any unlabeled position" -- which is exactly
+    `00`:57's HW 3.pdf, included on a homework-like NAME and called
+    context-supported there in those words.
+
+    Reading the ladder rather than enumerating a set means a state added to §3.13
+    is placed by its rank instead of silently falling to one side. `rejected` has
+    no rank and raises; the caller has already excluded it, because a placement
+    resting on a claim the person retracted is a contradiction and not a weak fact.
+    """
+    return (DIRECT_ANCHOR if strength(reliability_state) >= strength(VALIDATED)
+            else CONTEXT_SUPPORTED)
+
+
+def content_hash_of(conn: sqlite3.Connection, file_id: str) -> str | None:
+    row = conn.execute("SELECT content_hash FROM files WHERE file_id = ?",
+                       (file_id,)).fetchone()
+    return None if row is None else row["content_hash"]
+
+
+def accepted_memberships_of(conn: sqlite3.Connection, file_id: str, *,
+                            accepted: Sequence[str]) -> tuple[str, ...]:
+    """The accepted groups THIS FILE is in (`104` R-11).
+
+    This used to be `tuple(accepted_ids)` -- every accepted group in the run,
+    offered to every file in it, so `retrieval.retrieve`'s `ACCEPTED_GROUP`
+    channel fired for a file that belonged to nothing and scored it into the
+    branch some other file's group had built. Measured (`104` §11.1, `exp1`):
+    removing the fabricated credit moved "not placed" 32 -> 35 and left `wrong`
+    and spillover unchanged, so it was never the regression -- it was three
+    placements resting on evidence that did not exist.
+
+    Keyed on the content hash as well as the file, which is `live_memberships_
+    of_file`'s own rule and P9's: a membership belongs to a file VERSION, so a
+    file edited between runs does not inherit the memberships of its old bytes.
+
+    `decision` is checked, not assumed. `review_and_accept` writes `included`
+    for everything today (`104` R-16 is that defect), and the day it writes
+    `excluded` or `uncertain` this must not go on reading them as membership.
+    """
+    content_hash = content_hash_of(conn, file_id)
+    if content_hash is None:
+        return ()
+    wanted = frozenset(accepted)
+    return tuple(dict.fromkeys(
+        membership.group_id
+        for membership in live_memberships_of_file(
+            conn, file_id=file_id, content_hash=content_hash)
+        if membership.group_id in wanted and membership.decision == INCLUDED))
+
+
+def located_citations(conn: sqlite3.Connection, file_id: str,
+                      refs: Sequence[str]) -> tuple:
+    """Every citation of a fact that resolves to a live location IN THIS FILE.
+
+    `00`:62 requires the validator to check "that every cited text span or
+    metadata field exists in SQLite", so a citation that does not resolve is not
+    evidence and is dropped rather than carried with a made-up address. On the
+    owner's corpus all 525 citations resolve; the filter is what makes that
+    checkable rather than assumed.
+
+    EVERY citation, not `refs[0]` (`104` R-11). The owner's 97 live facts carry
+    525 citations between them -- one carries 65 -- and the dossier was showing
+    the model 97 of them and calling the rest absent.
+    """
+    located = []
+    for ref in dict.fromkeys(refs):
+        try:
+            current = current_location(conn, ref, within_file_ids=(file_id,))
+        except (UnresolvableSpan, AmbiguousObservationKey):
+            continue
+        if current.file_id != file_id:
+            continue
+        located.append((ref, current.location))
+    return tuple(located)
+
+
+def typed_edges_of(conn: sqlite3.Connection,
+                   file_id: str) -> tuple[dict, ...]:
+    """P9's typed edges touching this file, in P11's shape (`104` R-12).
+
+    P9 records these in `group_edges` and P11 read `()` -- so
+    `build_node_local_graph` saw no relationships at all, `is_typed_support`
+    was False for every file in every corpus, and `00`:109's "the node-local
+    graph should include typed relationships" described nothing.
+
+    `hub_suppressed` edges are left out. P9 has already judged those a
+    generic-hub bridge with the ceiling P9 was given; re-offering them here
+    would be P11 overturning that judgement with a different threshold, and on
+    the owner's corpus it would also carry 294 folder PATHS into the graph.
+
+    `weight` is P9's when P9 has one and 1.0 when it has none, which today is
+    every edge (`grouping/graph.py` constructs them `weight=None`). With every
+    weight equal, §8.6's "reduce to the strongest" cut falls to the file-id
+    tiebreak `build_node_local_graph` already applies -- deterministic, and
+    honest about ranking nothing.
+
+    `anchor_file_id` is P9's `from_file_id`: the seed the neighbourhood was
+    drawn around. `to_file_id` is the OTHER file, whichever end this one is.
+    """
+    related = []
+    for row in conn.execute(
+            "SELECT from_file_id, to_file_id, edge_type, weight, "
+            "bridge_entity_ref FROM group_edges "
+            "WHERE (from_file_id = ? OR to_file_id = ?) "
+            "AND superseded_by IS NULL AND hub_suppressed = 0 ORDER BY rowid",
+            (file_id, file_id)):
+        spelling = P9_TO_P11_EDGE_TYPE.get(row["edge_type"])
+        if spelling is None:
+            continue
+        related.append({
+            "edge_type": spelling,
+            "to_file_id": (row["to_file_id"] if row["from_file_id"] == file_id
+                           else row["from_file_id"]),
+            "anchor_file_id": row["from_file_id"],
+            "weight": 1.0 if row["weight"] is None else float(row["weight"]),
+            "entity": bridge_entity_for(row["edge_type"],
+                                        row["bridge_entity_ref"]),
+        })
+    return tuple(related)
+
+
+def semantic_neighbour_nodes(conn: sqlite3.Connection, file_id: str, *,
+                             nodes_listing) -> tuple[str, ...]:
+    """§4.4's channel, delivered where §6.3 reads it (`104` R-12).
+
+    `3ac0c0b` built the semantic channel and stored its edges; nothing read
+    them. `00`:56 is why the channel exists -- "embeddings ... can find files
+    such as HW 3.pdf that lack the course code but resemble lecture notes" --
+    and `00`:107 is why they arrive here rather than as edges: "Full-text and
+    OCR embeddings should retrieve semantically compatible node profiles and
+    representative files, especially when the target file is sparse."
+
+    So a semantic neighbour brings the DESTINATIONS it is already listed in,
+    and it brings nothing else. `00`:56's other half is enforced by that shape:
+    "embeddings never establish the group by themselves. A semantic neighbor is
+    simply a file worth bringing into the evidence packet."
+
+    Empty without `--semantic-model`, because P9 writes no such edge then.
+    """
+    neighbours = dict.fromkeys(
+        (row["to_file_id"] if row["from_file_id"] == file_id
+         else row["from_file_id"])
+        for row in conn.execute(
+            "SELECT from_file_id, to_file_id FROM group_edges "
+            "WHERE (from_file_id = ? OR to_file_id = ?) AND edge_type = ? "
+            "AND superseded_by IS NULL AND hub_suppressed = 0 ORDER BY rowid",
+            (file_id, file_id, MUTUAL_SEMANTIC_RETRIEVAL)))
+    return tuple(dict.fromkeys(
+        node_id for neighbour in neighbours
+        for node_id in nodes_listing(neighbour)))
+
+
 @lru_cache(maxsize=2)
 def _encoder_at(model_dir: Path):
     """One loaded model per directory per process, shared by both consumers.
@@ -3871,9 +4107,64 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             labels.append(cursor.rsplit("/", 1)[-1])
         return tuple(labels)
 
+    #: value -> how many FILES in this corpus state it, built on first use.
+    _files_stating: dict[str, int] = {}
+    #: file id -> the frozen destination nodes that already list it, built on
+    #: first use. One pass over the index entries for the whole run.
+    _nodes_listing: dict[str, tuple[str, ...]] = {}
+
+    def _how_many_files_state_each_value() -> Mapping[str, int]:
+        """§6.5's generic-entity count, MEASURED (`104` R-11).
+
+        This was `{fact.value: 1}` -- every value declared unique, so the hub test
+        `00`:63 asks for ("one high-frequency entity acts as the only bridge") could
+        never fire and `high_frequency_entities` was empty on every corpus by
+        construction. The count is one `GROUP BY` over the same rows `evidence_for`
+        already reads.
+
+        Built once and held, because P6 has finished writing facts by the time P11
+        asks: the rule pass, the family pass and the model fact pass all run inside
+        `downstream`, and `evidence_for` is called from P11 and from
+        `act_on_residual_sets`, both after. An EMPTY answer is not cached -- a corpus
+        whose facts are not written yet must not have emptiness frozen into it for
+        the rest of the run.
+        """
+        if not _files_stating:
+            for row in conn.execute(
+                    'SELECT v.canonical_value AS value, '
+                    'COUNT(DISTINCT ff.file_id) AS files FROM file_facts ff '
+                    'JOIN "values" v ON ff.value_id = v.value_id '
+                    'WHERE ff.active = 1 AND ff.superseded_by IS NULL '
+                    'AND ff.reliability_state != ? GROUP BY v.canonical_value',
+                    (pv.DROPPED_RELIABILITY_STATE,)):
+                _files_stating[row["value"]] = row["files"]
+        return _files_stating
+
+    def _nodes_that_already_list(file_id: str) -> tuple[str, ...]:
+        """The frozen destination nodes whose profile names this file.
+
+        §6.2's node profile carries "representative member files", and this is that
+        list read backwards. It is how a SEMANTIC neighbour turns into a destination:
+        `retrieval.retrieve` takes `semantic_neighbours` as NODE ids, and what P9's
+        channel knows about is FILES, so the two are joined by the node profiles the
+        freeze already wrote.
+        """
+        if not _nodes_listing:
+            collected: dict[str, list[str]] = {}
+            for row in conn.execute(
+                    "SELECT node_id, payload FROM placement_index_entries "
+                    "WHERE superseded_by IS NULL ORDER BY rowid"):
+                for member in json.loads(row["payload"]).get(
+                        "representative_files", ()):
+                    collected.setdefault(member, []).append(row["node_id"])
+            _nodes_listing.update((member, tuple(dict.fromkeys(nodes)))
+                                  for member, nodes in collected.items())
+        return _nodes_listing.get(file_id, ())
+
     def evidence_for(file_id: str) -> dict:
         """§6.3's evidence for one file: the facts P6 actually settled about it."""
         facts, items = [], []
+        seen_items: set[tuple] = set()
         # §3.13's `rejected` is P11's DROPPED state, and this is the third of the
         # three stages that believed a retracted fact (8260f46 fixed P9's and
         # P11's and named this one). A `--reject` writes a `rejected` row that is
@@ -3894,27 +4185,64 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             from llm_harness.records import EvidenceItem
             from placement.records import MatchingFact
 
-            refs = json.loads(row["evidence_refs"] or "[]")
-            ref = refs[0] if refs else None
+            # THE REAL ADDRESSES, and every one of them (`104` R-11). This read
+            # `refs[0]` and then described it as `location="heading"`, span
+            # `(0, len(value))`, basis `direct-anchor` -- three values invented at
+            # the seam. The span was the length of the FACT VALUE, so a model asked
+            # to check a citation was handed coordinates into a string that is not
+            # the document; the zone said `heading` for a value read out of a table,
+            # a filename or OCR; and `direct-anchor` was printed over an
+            # `llm_supported` guess. Nothing downstream could tell the difference,
+            # which is what made `00`:58's "the dossier explicitly distinguishes
+            # direct evidence from inferred context" untrue at the byte level.
+            located = located_citations(
+                conn, file_id, json.loads(row["evidence_refs"] or "[]"))
+            if not located:
+                # A fact whose every citation has gone is a fact nothing can cite.
+                # `00`:62's validator checks that each cited span exists; carrying
+                # this one forward would put an unresolvable address in front of it.
+                continue
+            basis = citation_basis_for(row["reliability_state"])
             facts.append(MatchingFact(
                 file_fact_id=row["fact_id"], field=row["field_key"],
                 value=row["canonical_value"],
                 reliability=row["reliability_state"],
-                evidence_ref=ref))
-            items.append(EvidenceItem(
-                evidence_ref=ref, kind="fact", location="heading",
-                excerpt_span=(0, len(row["canonical_value"])),
-                reliability_state=row["reliability_state"],
-                basis="direct-anchor"))
+                evidence_ref=located[0][0]))
+            for ref, location in located:
+                span = location.text_span
+                item = (ref, location.zone,
+                        None if span is None else (span.start, span.end),
+                        row["reliability_state"], basis)
+                # An identical item twice says nothing twice. Two facts citing one
+                # observation under DIFFERENT reliabilities are two readings of that
+                # address and both are kept.
+                if item in seen_items:
+                    continue
+                seen_items.add(item)
+                items.append(EvidenceItem(
+                    evidence_ref=ref, kind="fact", location=location.zone,
+                    excerpt_span=item[2],
+                    reliability_state=row["reliability_state"], basis=basis))
         return dict(
             facts=tuple(facts), evidence_items=tuple(items),
-            group_ids=tuple(accepted_ids),
+            group_ids=accepted_memberships_of(
+                conn, file_id, accepted=accepted_ids),
             curated_folder_labels=_folders_this_file_is_already_in(file_id),
-            semantic_neighbours=(), related_files=(),
+            semantic_neighbours=semantic_neighbour_nodes(
+                conn, file_id, nodes_listing=_nodes_that_already_list),
+            related_files=typed_edges_of(conn, file_id),
             # §6.5's generic-entity suppression. A value seen in more files than
             # this is treated as a hub rather than as a discriminator. Both numbers
             # are this deployment's; `00` states neither.
-            entity_frequency={fact.value: 1 for fact in facts},
+            #
+            # THE FREQUENCIES ARE NOW MEASURED (`104` R-11) and the CEILING is not,
+            # which is a gap for the owner rather than for this file. Every value
+            # used to be declared unique, so the ceiling could not fire whatever it
+            # was; with the counts real, the owner's 199 files put the commonest
+            # value at 11, and 200 still cannot fire. The measurement is the half
+            # that belongs here -- what counts as "everywhere" is a policy, and
+            # `00` states no number for it.
+            entity_frequency=_how_many_files_state_each_value(),
             generic_entity_frequency=200)
 
     def _protected_among(file_ids: Sequence[str]) -> frozenset[str]:
