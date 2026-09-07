@@ -1763,3 +1763,32 @@ def test_r17_the_basis_key_names_the_ranked_winner(skeleton, monkeypatch):
            evidence=_evidence(**AMBIGUOUS))
     assert seen["basis_key"] == basis_key_for(subject_id="f1",
                                               node_id="n-course")
+
+
+def test_r17_site_d_describes_every_home_it_offers(skeleton, monkeypatch):
+    """The D draft says every id in `allowed_vocabulary` is described in
+    `evidence_items`, and the live builder described none of them.
+
+    §7.7 runs no `assess`, so D has no ranking of its own; what it offers is
+    `00`:120's approved residual library plus the branches retrieval reached, in
+    the draft's own two kinds. `approved_target_ids` stays the whole legal set, so
+    the validator accepts exactly what it accepted before -- only what the model is
+    SHOWN narrows.
+    """
+    seen = _asked(monkeypatch, verdict=_verdict(disposition=P8_LEAVE_IN_PLACE))
+    result = _corpus(skeleton)
+    _decide(skeleton, result.residual_sets[0].set_id)
+    _review(skeleton, result, inputs=_model_inputs(
+        skeleton, partition=_partition,
+        residual_action_of=lambda _v: (LEAVE_IN_CURRENT_LOCATION, None)))
+
+    described = {item.evidence_ref: item for item in seen["items"]
+                 if item.kind in ("residual_area", "branch")}
+    assert set(seen["allowed"]) == set(described)
+    # The person's residual library is offered whether or not retrieval reached it.
+    assert "n-review-later" in described
+    assert described["n-review-later"].kind == "residual_area"
+    assert "residual area" in described["n-review-later"].location
+    assert v.REVIEW_ONLY in described["n-review-later"].location
+    # And no site-C kind at a site whose text names two others.
+    assert not [item for item in seen["items"] if item.kind == "candidate"]

@@ -464,10 +464,158 @@ def test_the_group_site_applies_its_answer_once_the_owner_ratifies_the_text(
         monkeypatch):
     """The other half, and it is the reversibility the finish line needs: the
     loader sets the field from the manifest and the site starts applying on the
-    same run, with no line of `cli.py` changing."""
+    same run, with no line of `cli.py` changing.
+
+    A token that is not a `P8Verdict` has no answer to read, so it comes back
+    wrapped -- "record and apply nothing" is the safe direction for anything this
+    root cannot account for. `test_r16_*` below drives the same wrapper with a real
+    verdict and a real response row."""
     from grouping.p8_seam import ObservedOnly
 
     result = _b_result(monkeypatch, ratified=True)
 
-    assert not isinstance(result, ObservedOnly)
-    assert result == "the verdict run_call produced"
+    assert isinstance(result, ObservedOnly)
+
+
+# --- `104` R-16: the composition root reads the model's four answers -------------
+
+
+def _b_verdict(dossier_id="ds-b1"):
+    from llm_harness.records import P8Verdict
+
+    return P8Verdict(
+        verdict_id=f"{dossier_id}:claim-0", dossier_id=dossier_id,
+        claim_ref="claim-0", outcome="accept_direct",
+        disposition="direct_membership", reasons=(), may_propose=True,
+        requires_review=False, citations_checked=(), scope="group",
+        validator_version="vv", policy_version="pv", plan_version=None)
+
+
+def _b_response(conn, dossier_id, payload, *, citations=None):
+    from llm_harness.store import record_response
+
+    body = {"payload": payload}
+    if citations is not None:
+        body["citations"] = citations
+    record_response(
+        conn, dossier_id=dossier_id,
+        response_bytes=json.dumps({"claims": [body]}).encode("utf-8"),
+        model_id="fixture", prompt_fingerprint="fp", release_audit_id=1,
+        release_id="rel-1", observed_at="2026-09-07T00:00:00Z")
+
+
+@pytest.fixture()
+def harness_db(tmp_path):
+    from database_agent.db import create_schema, open_database
+    from llm_harness.schema import create_llm_schema
+
+    conn = open_database(tmp_path / "b.sqlite")
+    create_schema(conn)
+    create_llm_schema(conn)
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+
+def test_r16_the_root_reads_the_models_four_answers_off_its_own_response(
+        harness_db):
+    """`P8Verdict` carries a `claim_ref` and no payload, so §4.5's four answers
+    reach P9 only if whoever supplied the prompt reads them back. `src/grouping/`
+    may not import `llm_harness.records` at all, which is why this is here."""
+    from grouping.vocabulary import COHERENT, EXCLUDED, INCLUDED, UNCERTAIN
+
+    _b_response(harness_db, "ds-b1", {
+        "coherent": "yes", "basis": "direct-anchor", "category": "academic",
+        "label": "PHYS1401 course materials",
+        "members": [
+            {"file_id": "lecture-08", "decision": "include", "why": "states it",
+             "evidence_refs": []},
+            {"file_id": "midterm", "decision": "exclude", "why": "another course",
+             "evidence_refs": []},
+            {"file_id": "hw-3", "decision": "uncertain", "why": "retrieved only",
+             "evidence_refs": []}],
+        "outliers": [], "merge_terms": []},
+        citations=[{"evidence_ref": "obs-1", "cited_span": "PHYS1401",
+                    "why_it_supports": "states the course"}])
+
+    answer = cli.group_answer_of(harness_db, _b_verdict())
+
+    assert answer.coherent == COHERENT
+    assert answer.label == "PHYS1401 course materials"
+    assert answer.category == "academic"
+    assert answer.citations == ("obs-1",)
+    assert [(m.file_id, m.decision) for m in answer.members] == [
+        ("lecture-08", INCLUDED), ("midterm", EXCLUDED), ("hw-3", UNCERTAIN)]
+
+
+def test_r16_the_two_vocabularies_are_translated_at_the_root_and_nowhere_else(
+        harness_db):
+    """The schema's words are `include`/`exclude`/`uncertain` and `yes`/`no`/
+    `insufficient`; P9's are `MEMBERSHIP_DECISIONS` and `COHERENCE_VERDICTS`. A
+    table inside `src/grouping/` would be a second copy of a contract the prompt
+    owns, and `test_only_the_vocabulary_module_spells_a_closed_p9_value` refuses
+    the literals there. `insufficient` is `abstained` and not `not-coherent`: "I
+    could not tell" is a different answer from "these are not one group"."""
+    from grouping.vocabulary import (
+        ABSTAINED, COHERENCE_VERDICTS, MEMBERSHIP_DECISIONS, NOT_COHERENT,
+    )
+
+    assert set(cli.GROUP_MEMBER_DECISION.values()) == set(MEMBERSHIP_DECISIONS)
+    assert set(cli.GROUP_COHERENCE.values()) <= set(COHERENCE_VERDICTS)
+    assert cli.GROUP_COHERENCE["insufficient"] == ABSTAINED
+    assert cli.GROUP_COHERENCE["no"] == NOT_COHERENT
+
+
+def test_r16_an_answer_this_root_cannot_read_records_and_applies_nothing(
+        harness_db, monkeypatch):
+    """Every unreadable shape is one outcome and it is the safe one. Returning the
+    bare verdict would put back exactly the blanket memberships R-16 names."""
+    from grouping.p8_seam import ObservedOnly
+
+    # No response row at all.
+    assert cli.group_answer_of(harness_db, _b_verdict()) is None
+    # A response that is not JSON.
+    from llm_harness.store import record_response
+    record_response(harness_db, dossier_id="ds-b2", response_bytes=b"not json",
+                    model_id="m", prompt_fingerprint="fp", release_audit_id=1,
+                    release_id="rel-2", observed_at="2026-09-07T00:00:00Z")
+    assert cli.group_answer_of(harness_db, _b_verdict("ds-b2")) is None
+    # And a verdict that is not one.
+    assert cli.group_answer_of(harness_db, "a refusal") is None
+
+    monkeypatch.setattr(cli, "run_call", lambda *_a, **_k: _b_verdict("ds-b3"))
+    wrapped = cli.observed_run_call(
+        harness_db, SimpleNamespace(subject_ref="group:g-1"),
+        gate=None, model_client=None,
+        prompt=dataclasses.replace(cli.observe_prompt(B_GROUP), ratified=True),
+        validation_dependencies=_BDeps(), observed_at=None)
+    assert isinstance(wrapped, ObservedOnly)
+
+
+def test_r16_a_readable_answer_reaches_the_seam_as_answered(harness_db,
+                                                            monkeypatch):
+    """The whole boundary in one turn: `run_call` writes the response, this root
+    reads it back at the moment it is the last one for that dossier, and the seam
+    receives the verdict and the answer together."""
+    from grouping.p8_seam import Answered
+
+    _b_response(harness_db, "ds-b4", {
+        "coherent": "yes", "basis": "direct-anchor", "category": "academic",
+        "label": "PHYS1401 course materials",
+        "members": [{"file_id": "lecture-08", "decision": "include",
+                     "why": "states it", "evidence_refs": []}],
+        "outliers": [], "merge_terms": []},
+        citations=[{"evidence_ref": "obs-1", "cited_span": "PHYS1401",
+                    "why_it_supports": "states the course"}])
+    monkeypatch.setattr(cli, "run_call", lambda *_a, **_k: _b_verdict("ds-b4"))
+
+    wrapped = cli.observed_run_call(
+        harness_db, SimpleNamespace(subject_ref="group:g-1"),
+        gate=None, model_client=None,
+        prompt=dataclasses.replace(cli.observe_prompt(B_GROUP), ratified=True),
+        validation_dependencies=_BDeps(), observed_at=None)
+
+    assert isinstance(wrapped, Answered)
+    assert wrapped.answer.label == "PHYS1401 course materials"
+    assert wrapped.result.dossier_id == "ds-b4"

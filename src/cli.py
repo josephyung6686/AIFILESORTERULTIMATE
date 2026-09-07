@@ -95,7 +95,7 @@ from grouping.config import GroupingLimits
 from grouping.embeddings import (
     EmbeddingConfig, EmbeddingsOff, EmbeddingsOn, EncodedVector,
     FileVersionRef)
-from grouping.p8_seam import ObservedOnly
+from grouping.p8_seam import Answered, MemberDecision, ModelAnswer, ObservedOnly
 from placement.vocabulary import GROUP
 from grouping.pipeline import (
     GroupingKnowledge, GroupingResult, ModelCallAuthorities,
@@ -108,10 +108,11 @@ from grouping.store import (
     record_membership, stop_rule_outcome_for,
 )
 from grouping.vocabulary import (
-    ACCEPTED, BOUNDED_SESSION, COHERENT, COMPATIBLE_DOCUMENT_TYPE, DUPLICATE,
-    EDGE_TYPES as P9_EDGE_TYPES, EXISTING_RELATED_FOLDER, INCLUDED,
-    MUTUAL_SEMANTIC_RETRIEVAL, P1_INCLUDED_SCAN_STATE, PENDING_REVIEW, RULES,
-    SHARED_VALIDATED_FACT, USER_EDITED, VERSION_FAMILY, fact_bridge_ref,
+    ABSTAINED, ACCEPTED, BOUNDED_SESSION, COHERENT, COMPATIBLE_DOCUMENT_TYPE,
+    DUPLICATE, EDGE_TYPES as P9_EDGE_TYPES, EXCLUDED, EXISTING_RELATED_FOLDER,
+    INCLUDED, MUTUAL_SEMANTIC_RETRIEVAL, NOT_COHERENT, P1_INCLUDED_SCAN_STATE,
+    PENDING_REVIEW, RULES, SHARED_VALIDATED_FACT, UNCERTAIN, USER_EDITED,
+    VERSION_FAMILY, fact_bridge_ref,
 )
 from llm_harness.budgets import ScanBudget, create_budget_schema
 from llm_harness.prompt_library import (
@@ -119,7 +120,8 @@ from llm_harness.prompt_library import (
     a_fact_template_folder_levels_bytes, draft_bytes, drafts_status,
 )
 from llm_harness.harness import CallDependencies, run_call
-from llm_harness.records import FolderLevel, PromptDefinition
+from llm_harness.records import FolderLevel, P8Verdict, PromptDefinition
+from llm_harness.store import last_response_bytes
 from llm_harness.sites import SiteDependencies
 from llm_harness.schema import create_llm_schema
 from llm_harness.vocabulary import (
@@ -862,9 +864,99 @@ def observed_run_call(conn, request, *, gate, model_client, prompt,
     result = run_call(
         conn, request, gate=gate, model_client=model_client, prompt=prompt,
         validation_dependencies=deps, observed_at=observed_at)
-    if getattr(prompt, "ratified", False):
-        return result
-    return ObservedOnly(result)
+    if not getattr(prompt, "ratified", False):
+        return ObservedOnly(result)
+    answer = group_answer_of(conn, result)
+    if answer is None:
+        # RECORD AND APPLY NOTHING, which is the safe direction and not a
+        # fallback. A verdict whose response this root cannot read is a verdict
+        # whose per-member decisions, label and category are unknown, and applying
+        # it would put back exactly the blanket memberships `104` R-16 names.
+        return ObservedOnly(result)
+    return Answered(result=result, answer=answer)
+
+
+def group_answer_of(conn: sqlite3.Connection, result: object):
+    """The model's §4.5 four answers for one B call, read back at the boundary.
+
+    **This is the composition root's job and nobody else's.** `P8Verdict` names a
+    `claim_ref` and carries no payload, so the model's own answers "can only be read
+    by whoever knows the response shape -- which is whoever supplied the prompt"
+    (`model_placement`, for `chosen_node_of` at site C). `src/grouping/` may not
+    import `llm_harness.records` at all, so P9 could not read one if it wanted to.
+
+    **Read here rather than later**, and `last_response_bytes` says why: this runs
+    the statement after `run_call` returned, so the row it reads is the row that
+    call wrote.
+
+    `None` whenever there is nothing to apply -- not a verdict, no response on
+    disk, unparseable bytes, a claim that is not the one the verdict judged -- and
+    the caller turns every one of those into "recorded, applied to nothing".
+
+    The two vocabularies are translated HERE, from the response schema's words to
+    P9's, for the reason `MemberDecision` gives: a table in P9 would be a second
+    copy of a contract the prompt owns.
+    """
+    if not isinstance(result, P8Verdict):
+        return None
+    raw = last_response_bytes(conn, result.dossier_id)
+    if raw is None:
+        return None
+    try:
+        claims = json.loads(raw).get("claims")
+    except (json.JSONDecodeError, AttributeError):
+        return None
+    if not isinstance(claims, list) or not claims:
+        return None
+    claim = claims[0]
+    if not isinstance(claim, dict):
+        return None
+    payload = claim.get("payload")
+    if not isinstance(payload, dict):
+        return None
+    members = []
+    for entry in payload.get("members") or ():
+        if not isinstance(entry, dict):
+            continue
+        decision = GROUP_MEMBER_DECISION.get(entry.get("decision"))
+        if decision is None or not entry.get("file_id"):
+            continue
+        members.append(MemberDecision(
+            file_id=str(entry["file_id"]), decision=decision,
+            why=str(entry.get("why") or "")))
+    citations = tuple(
+        str(item.get("evidence_ref")) for item in (claim.get("citations") or ())
+        if isinstance(item, dict) and item.get("evidence_ref"))
+    coherent = GROUP_COHERENCE.get(payload.get("coherent"))
+    label = payload.get("label")
+    category = payload.get("category")
+    return ModelAnswer(
+        coherent=coherent,
+        category=str(category) if isinstance(category, str) else None,
+        label=str(label) if isinstance(label, str) else None,
+        members=tuple(members), citations=citations)
+
+
+#: The B response schema's words for a member, and P9's. The left column is
+#: `$defs.payload.properties.members.items.properties.decision.enum` and the right
+#: is `grouping.vocabulary.MEMBERSHIP_DECISIONS`. Spelled at the composition root
+#: because that is where both contracts are known: P9 does not read a response and
+#: the schema does not know P9's words.
+GROUP_MEMBER_DECISION: Mapping[str, str] = MappingProxyType({
+    "include": INCLUDED,
+    "exclude": EXCLUDED,
+    "uncertain": UNCERTAIN,
+})
+
+#: The same translation for §4.5's first task. `insufficient` is `abstained` and
+#: not `not-coherent`: the model saying it could not tell is a different answer
+#: from the model saying these files are not one group, and `COHERENCE_VERDICTS`
+#: keeps them apart.
+GROUP_COHERENCE: Mapping[str, str] = MappingProxyType({
+    "yes": COHERENT,
+    "no": NOT_COHERENT,
+    "insufficient": ABSTAINED,
+})
 
 
 class ObservedSiteMustNotApply(RuntimeError):
