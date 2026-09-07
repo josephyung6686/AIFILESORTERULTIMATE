@@ -704,6 +704,26 @@ class PipelineInputs:
                             self.call_dependencies, self.model_call_request,
                             self.chosen_node_of, self.sensitivity_policy)
 
+    def model_decides(self) -> bool:
+        """Whether this run's model DECIDES placements, which is R-19's condition.
+
+        Two facts, and both are needed. The path has to exist -- `00`'s amendment
+        governs "whenever a model is configured", and with none the deterministic
+        path remains the fallback. And the text has to be RATIFIED, read off the
+        prompt's own field the way `_observed_only` reads it, because a site
+        running under text nobody approved records its answer and applies
+        nothing: routing every placeable file to a site whose verdict is
+        rewritten to `abstain` would replace each exact placement with a file
+        that has no home, which is the opposite of what the ruling asks for.
+
+        A METHOD and not a field. `PipelineInputs` fields carry no defaults on
+        purpose -- a field gaining one is P11 answering a question the design
+        says is the deployment's -- and this answers nothing: it reads two things
+        the caller already stated.
+        """
+        return self.model_path_available() and bool(
+            getattr(self.prompt, "ratified", False))
+
 
 @dataclass(frozen=True)
 class CorpusResult:
@@ -960,7 +980,7 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
     # validator -- runs INSIDE `run_call`; P11 supplies authorities and reads a
     # verdict, and re-checks none of Site C's fifteen.
     chosen_node_id: str | None = None
-    if needs_model_call(assessment):
+    if needs_model_call(assessment, model_decides=inputs.model_decides()):
         if not may_assemble_dossier(privacy):
             return _abstention(conn, context, reason=PRIVACY_BLOCKED)
         if inputs.model_path_available():
@@ -997,15 +1017,29 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
 
     node_id = chosen_node_id or assessment.scored[0].node_id
     entry = entry_for(conn, plan_version=inputs.plan_version, node_id=node_id)
-    # A model-decided placement is a context-supported one by construction: the
-    # deterministic path had already declined to call it an exact match, which is
-    # the only reason a model was asked. Carrying `assessment.confidence_class`
-    # through unchanged would label a `place` "abstain: no supported destination"
-    # -- a record whose label contradicts its own outcome.
-    confidence = (CONTEXT_SUPPORTED_GROUP_MATCH if chosen_node_id is not None
-                  else assessment.confidence_class)
-    two = (dataclasses.replace(assessment.two_condition, requires_review=True)
-           if chosen_node_id is not None else assessment.two_condition)
+    # WHAT THE PLACED NODE ACTUALLY IS, asked once and read four times below.
+    #
+    # This used to be `chosen_node_id is not None` and it rested on a sentence
+    # R-19 made false: "the deterministic path had already declined to call it an
+    # exact match, which is the only reason a model was asked". Under Q-A a
+    # unique direct match is asked too (`00` Amendments, `104` §13.5), so "a
+    # model was asked" no longer says anything about the evidence -- and the
+    # record must not get worse for having been checked. A model that confirms
+    # the top-ranked candidate on a unique direct match placed an exact fact
+    # match, and calling it context-supported would name a fact match that did
+    # happen as one that did not.
+    #
+    # The other direction is what the same predicate closes: when the model
+    # chooses a DIFFERENT node, `evidence_type` used to read `direct` off
+    # `unique_direct_match` while `confidence_class` said context-supported --
+    # one record, two answers. Unreachable before R-19, reachable now.
+    direct = (assessment.unique_direct_match
+              and node_id == assessment.scored[0].node_id)
+    confidence = (assessment.confidence_class if direct
+                  else CONTEXT_SUPPORTED_GROUP_MATCH)
+    two = (assessment.two_condition if direct
+           else dataclasses.replace(assessment.two_condition,
+                                    requires_review=True))
     decision_id, supersedes = _identity(
         conn, plan_version=inputs.plan_version, subject_ref=subject_ref,
         observed_at=observed_at)
@@ -1020,7 +1054,7 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         decision_depth=DecisionDepth(node_depth=entry.depth,
                                      supported_depth=entry.depth,
                                      unsupported_levels=()),
-        evidence_type=DIRECT if assessment.unique_direct_match else CONTEXT_SUPPORTED,
+        evidence_type=DIRECT if direct else CONTEXT_SUPPORTED,
         confidence_class=confidence,
         matching_facts=_facts_of(retrieval, entry.node_id),
         group_support=None,
@@ -1037,7 +1071,7 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         deferred_stage=None, privacy=privacy,
         review_policy=review_policy_for(
             privacy_state=privacy, two_condition=two, group_support=None,
-            unique_direct_match=assessment.unique_direct_match,
+            unique_direct_match=direct,
             destination_disposition=entry.disposition,
             automatic_move_permitted=automatic_move_permitted),
         explanation=_explain(entry, assessment, retrieval,
@@ -1400,10 +1434,12 @@ def _require_verdict(result, *, call_site: str) -> P8Verdict:
 def _observed_only(result, *, prompt):
     """The model's answer, recorded and then set aside. §6.12's abstention path.
 
-    R-15 IS WHY, and it is not hypothetical: `_invented_dimension` compares a
-    dimension's VALUE against the legal node ids, so every grounded answer site C
-    gives is rejected as invented. R-16 is the same shape at B. Applying a verdict
-    under a validator known to be wrong writes the wrong thing confidently.
+    RATIFICATION IS WHY, and it is the whole of why: prompt text is the owner's
+    to approve, and a verdict produced under text nobody approved is a reading of
+    a question the product has not agreed to ask. R-15 was the second reason and
+    is gone -- `_invented_dimension` now grounds a level's value in the file's own
+    evidence rather than looking it up in the legal node ids -- and R-16 is still
+    that shape at B.
 
     The verdict is REWRITTEN rather than dropped, and the difference matters: the
     real one is already on disk, written by `run_call` before this returns, so what

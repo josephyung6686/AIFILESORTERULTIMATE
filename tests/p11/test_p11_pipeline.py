@@ -29,8 +29,11 @@ from llm_harness.harness import CallDependencies
 from llm_harness.records import EvidenceItem, P8Verdict
 from llm_harness.schema import create_llm_schema
 from llm_harness.vocabulary import (
-    ACCEPT_CONTEXT_SUPPORTED, CHOOSE_RESIDUAL_DESTINATION,
+    ABSTAIN as P8_ABSTAIN, ACCEPT_CONTEXT_SUPPORTED,
+    ACCEPT_DIRECT as P8_ACCEPT_DIRECT, CHOOSE_RESIDUAL_DESTINATION,
     LEAVE_IN_CURRENT_LOCATION, LEAVE_IN_PLACE as P8_LEAVE_IN_PLACE,
+    MOVE_PLAN_ELIGIBLE as P8_MOVE_PLAN_ELIGIBLE,
+    NO_SUPPORTED_DESTINATION as P8_NO_SUPPORTED_DESTINATION,
     RETURN_CONFIRMED_GROUP, RETURN_TO_PLACEMENT as P8_RETURN_TO_PLACEMENT,
     VALID_REVIEW_REQUIRED,
 )
@@ -1448,3 +1451,158 @@ def test_an_unclassified_file_is_not_told_that_nothing_could_read_it(
     assert "read enough" not in decision.explanation
     assert "unreadable" not in decision.explanation
     assert "able to read" not in decision.explanation
+
+
+# --- R-19 (Q-A): the model decides, the rules validate ----------------------------
+#
+# `104` §13.5, and `00`'s placement amendment in the same words: "A unique direct
+# match and the score-and-margin threshold no longer place a file without a model
+# call. Every placement goes through the model... A unique direct match is the
+# top-ranked candidate, not a bypass. This governs whenever a model is configured;
+# with no model configured, the deterministic path remains the fallback."
+#
+# The three worlds a run can be in, and this section pins all three: no model path
+# at all (the offline default, unchanged); a model path whose text nobody ratified
+# (the answer is recorded and applied to nothing, so the deterministic placement
+# stands); and a model path under a ratified text (the model decides).
+
+
+def _asking(monkeypatch, verdict=None, seen=None):
+    """Site C answered by a stub, with a note of whether it was asked at all."""
+    import placement.pipeline as pipeline
+
+    def _fake_call(conn, request, **kwargs):
+        if seen is not None:
+            seen["asked"] = seen.get("asked", 0) + 1
+            seen["allowed"] = kwargs["call_dependencies"].allowed_vocabulary
+        return _verdict() if verdict is None else verdict
+
+    monkeypatch.setattr(pipeline, "call_placement", _fake_call)
+
+
+def _accepts_directly():
+    return _verdict(outcome=P8_ACCEPT_DIRECT, disposition=P8_MOVE_PLAN_ELIGIBLE)
+
+
+def test_r19_a_unique_direct_match_is_asked_when_a_model_decides(skeleton,
+                                                                 monkeypatch):
+    seen: dict = {}
+    _asking(monkeypatch, verdict=_accepts_directly(), seen=seen)
+    decision = _place(skeleton,
+                      inputs=_model_inputs(skeleton,
+                                           chosen_node_of=lambda _v: "n-course"))
+    assert seen["asked"] == 1
+    assert "n-course" in seen["allowed"]
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-course"
+
+
+def test_r19_a_model_that_confirms_the_top_candidate_records_the_match_it_is(
+        skeleton, monkeypatch):
+    """The record does not get worse for having been checked. The deterministic
+    path called this an exact fact match; a model asked to confirm it and
+    confirming it does not turn the facts into context, and `evidence_type`
+    would otherwise say `direct` beside a `confidence_class` saying the
+    opposite."""
+    _asking(monkeypatch, verdict=_accepts_directly())
+    decided = _place(skeleton,
+                     inputs=_model_inputs(skeleton,
+                                          chosen_node_of=lambda _v: "n-course"))
+    offline = _place(skeleton)
+    assert decided.destination.node_id == offline.destination.node_id
+    assert decided.confidence_class == offline.confidence_class == v.EXACT_FACT_MATCH
+    assert decided.evidence_type == offline.evidence_type == v.DIRECT
+    assert decided.review_policy == offline.review_policy == v.AUTO_ELIGIBLE
+    assert decided.two_condition.requires_review is False
+
+
+def test_r19_a_model_that_chooses_another_node_is_a_context_supported_placement(
+        skeleton, monkeypatch):
+    """The other half of the same predicate: the deterministic winner WAS a
+    unique direct match, the model chose somewhere else, and the record must not
+    describe the answer nobody took."""
+    _asking(monkeypatch)
+    decision = _place(
+        skeleton,
+        inputs=_model_inputs(skeleton,
+                             chosen_node_of=lambda _v: "n-course-shared"))
+    assert decision.destination.node_id == "n-course-shared"
+    assert decision.confidence_class == v.CONTEXT_SUPPORTED_GROUP_MATCH
+    assert decision.evidence_type == v.CONTEXT_SUPPORTED
+    assert decision.review_policy == v.REVIEW_REQUIRED
+    assert decision.two_condition.requires_review is True
+
+
+def test_r19_a_model_abstention_on_a_unique_direct_match_places_nothing(
+        skeleton, monkeypatch):
+    """"The model decides" has to mean this too, or it means nothing: the file
+    the deterministic path would have placed is not placed when the model
+    declines it. `00`:114 -- correct abstention is a successful outcome."""
+    _asking(monkeypatch,
+            verdict=_verdict(outcome=P8_ABSTAIN,
+                             disposition=P8_NO_SUPPORTED_DESTINATION))
+    decision = _place(skeleton, inputs=_model_inputs(skeleton))
+    assert decision.outcome == v.ABSTAIN
+
+
+def test_r19_an_unratified_prompt_leaves_the_deterministic_placement_alone(
+        skeleton, monkeypatch):
+    """A site running under text nobody ratified applies nothing, so it must not
+    take the deterministic answer away either. Widening the routing on the
+    strength of a model whose answer is discarded would turn every exact
+    placement into an abstention -- `_observed_only` rewrites the verdict to
+    `abstain`, and `transcribe` reads that as a file with no home."""
+    import placement.pipeline as pipeline
+
+    def _never(*_a, **_k):
+        raise AssertionError("an unratified prompt decides nothing, so a file "
+                             "the deterministic path settles is not sent")
+
+    monkeypatch.setattr(pipeline, "call_placement", _never)
+    decision = _place(skeleton,
+                      inputs=_model_inputs(skeleton,
+                                           prompt=SimpleNamespace(ratified=False)))
+    offline = _place(skeleton)
+    assert decision.outcome == offline.outcome == v.PLACE
+    assert decision.destination.node_id == offline.destination.node_id
+    assert decision.confidence_class == offline.confidence_class
+
+
+def test_r19_an_unratified_prompt_still_observes_the_ambiguous_file(skeleton,
+                                                                    monkeypatch):
+    """And the observe path is NOT narrowed: the files §6.6 already sent are
+    still sent, still recorded, and still applied to nothing."""
+    seen: dict = {}
+    _asking(monkeypatch, seen=seen)
+    decision = _place(skeleton,
+                      inputs=_model_inputs(skeleton,
+                                           prompt=SimpleNamespace(ratified=False)),
+                      evidence=_evidence(**AMBIGUOUS))
+    assert seen["asked"] == 1
+    assert decision.outcome == v.ABSTAIN
+
+
+def test_r19_with_no_model_configured_nothing_about_the_offline_run_changes(
+        skeleton):
+    """The fallback `00`'s amendment keeps: "with no model configured, the
+    deterministic path remains the fallback and places only what it can
+    validate"."""
+    decision = _place(skeleton)
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-course"
+    assert decision.confidence_class == v.EXACT_FACT_MATCH
+    assert decision.review_policy == v.AUTO_ELIGIBLE
+    assert skeleton.execute(
+        "SELECT count(*) AS c FROM llm_verdict").fetchone()["c"] == 0
+
+
+def test_r19_deciding_is_the_path_and_the_ratification_together(skeleton):
+    ratified = _model_inputs(skeleton)
+    assert ratified.model_path_available() is True
+    assert ratified.model_decides() is True
+    draft = _model_inputs(skeleton, prompt=SimpleNamespace(ratified=False))
+    assert draft.model_path_available() is True
+    assert draft.model_decides() is False
+    offline = _inputs(skeleton)
+    assert offline.model_path_available() is False
+    assert offline.model_decides() is False
