@@ -1144,15 +1144,25 @@ def _reuse_is_current(conn: sqlite3.Connection, prior, *, request: FactRequest,
         # append a supersession per run for nothing.
         return True
 
-    response = last_response(conn, prior["dossier_id"])
-    if response is None:
-        return False
-    dossier = load_dossier(
-        conn, prior["dossier_id"], release_id=response["release_id"])
-    if dossier is None:
-        return False
-    if dossier_address(dossier, authorities.prompt,
-                       handle_key=authorities.wire_handle_key) != dossier.dossier_id:
+    # ONE BAD ROW IS ONE FILE'S COST, NEVER THE RUN'S. `104` R-142, and R-136 and
+    # R-O before it. r10 died 1.3 minutes in with zero calls made, because a prior
+    # dossier that would not rebuild raised out of this decision and out of the
+    # stage; a reuse that cannot be decided is a reuse that does not happen, and
+    # the file is asked. Every refusal below already returns `False` for exactly
+    # that reason, and a row this deployment cannot read is one more of them.
+    try:
+        response = last_response(conn, prior["dossier_id"])
+        if response is None:
+            return False
+        dossier = load_dossier(
+            conn, prior["dossier_id"], release_id=response["release_id"])
+        if dossier is None:
+            return False
+        if (dossier_address(dossier, authorities.prompt,
+                            handle_key=authorities.wire_handle_key)
+                != dossier.dossier_id):
+            return False
+    except MalformedRecord:
         return False
 
     checked = dispatch(

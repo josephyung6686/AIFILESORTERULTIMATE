@@ -317,3 +317,56 @@ def _deps():
         normalize=cli.normalize_for_model,
         contradicts=cli.contradicts_stronger,
         normalize_for_review=cli.normalize_for_review)
+
+
+# --- `104` R-142: an unreadable prior costs one file, never the run ---------------
+
+
+def _rewrite_dossier_body(corpus, change) -> None:
+    """Edit the stored dossier bodies the way an older record shape left them.
+
+    The table is append-only by trigger and the state this needs is one no current
+    checkout can write: a row recorded before a field existed. The trigger is
+    dropped in the open, because a fixture that needs a forbidden state should say
+    so where a reader can see it.
+    """
+    conn = sqlite3.connect(corpus.parent / "plan.sqlite")
+    conn.row_factory = sqlite3.Row
+    try:
+        for trigger in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'trigger' AND "
+                "tbl_name = 'llm_dossier'").fetchall():
+            conn.execute(f"DROP TRIGGER {trigger['name']}")
+        for row in conn.execute(
+                "SELECT dossier_id, payload FROM llm_dossier").fetchall():
+            body = json.loads(row["payload"])
+            change(body)
+            conn.execute("UPDATE llm_dossier SET payload = ? WHERE dossier_id = ?",
+                         (json.dumps(body, sort_keys=True), row["dossier_id"]))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def test_a_dossier_that_truly_will_not_rebuild_costs_one_file_and_not_the_run(
+        corpus, socket, monkeypatch):
+    """The other half: the guard still refuses, and the run still finishes.
+
+    A field the model SAW that the rebuild would drop is a real fault and
+    `load_dossier` still raises on it. What must not follow is r10: the reuse
+    decision answers "not current", the file is asked fresh, and every other file
+    is unaffected. One bad row is one file's cost.
+    """
+    _run(corpus)
+    first = len(socket)
+
+    def drop_an_evidence_item(body):
+        if body.get("released_evidence"):
+            body["released_evidence"] = body["released_evidence"][:-1]
+
+    _rewrite_dossier_body(corpus, drop_an_evidence_item)
+    _bump(monkeypatch, "r142")
+    _run(corpus)
+
+    assert len(socket) == first * 2, socket.subjects()[first:]
+    assert not _supersessions(corpus)

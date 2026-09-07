@@ -250,6 +250,33 @@ def standing_verdicts(conn: sqlite3.Connection, dossier_id: str) -> list[sqlite3
     ))
 
 
+def _still_holds(stored: object, rebuilt: object) -> bool:
+    """Does the rebuilt record still say everything the ROW says? `104` R-142.
+
+    One direction, and only one. Every key the row holds must be in the rebuilt
+    record with the same value, all the way down -- that is `load_dossier`'s whole
+    guarantee, that no field the model SAW is dropped on the way back in. A key the
+    rebuilt record has and the row does not is a field that did not exist when the
+    row was written, and the record's own default is what such a row means.
+
+    It was a flat comparison, and r10 died on it: a dossier recorded before
+    `released_evidence` gained `unit_length` and `whole_heading_unit` rebuilt with
+    those two defaulted, the two lists differed, and `MalformedRecord` came out of
+    a reuse decision and ended the run. The nesting is the whole difference -- the
+    added fields are inside the list entries, so nothing at the top level could see
+    them.
+    """
+    if isinstance(stored, dict):
+        return isinstance(rebuilt, dict) and all(
+            name in rebuilt and _still_holds(value, rebuilt[name])
+            for name, value in stored.items())
+    if isinstance(stored, list):
+        return (isinstance(rebuilt, list) and len(stored) == len(rebuilt)
+                and all(_still_holds(one, other)
+                        for one, other in zip(stored, rebuilt)))
+    return stored == rebuilt
+
+
 def load_dossier(conn: sqlite3.Connection, dossier_id: str, *,
                  release_id: str) -> object | None:
     """The stored `Dossier` for one id, rebuilt and checked. `None` when absent.
@@ -277,7 +304,7 @@ def load_dossier(conn: sqlite3.Connection, dossier_id: str, *,
     body = json.loads(row["payload"])
     dossier = dossier_from_stored_body(body, release_id=release_id)
     rebuilt = _jsonable(dossier)
-    if any(rebuilt.get(name) != value for name, value in body.items()):
+    if not _still_holds(body, rebuilt):
         raise MalformedRecord(
             f"dossier {dossier_id} does not survive the round trip out of its own "
             "row; a record rebuilt with a field dropped would be judged against "
