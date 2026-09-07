@@ -1097,6 +1097,67 @@ def test_a_site_d_verdict_p8_rejected_is_never_acted_on(skeleton, monkeypatch):
     assert written[0].destination is None
 
 
+def test_a_site_d_verdict_that_abstains_is_never_acted_on(skeleton, monkeypatch):
+    """The twin of the rejection above, and site D's half of the observe lever.
+
+    `_observed_only` rewrites an unratified site's verdict to `abstain` and says
+    both callers then take "their existing abstention path without consulting a
+    resolver". That was true at C, where `transcribe` turns every non-`place`
+    outcome into an abstention, and false here: `abstain` is not `reject`, so the
+    resolver was consulted and an unratified D ended the run on the first file of a
+    set the person had sent to a model.
+
+    A RATIFIED D IS UNCHANGED BY THE SAME GUARD, which is why it is a guard rather
+    than a new outcome: `_residual_site` rewrites the model's own `abstain` action
+    to exactly this verdict, and `outcome_for_action` answers
+    `(abstain, no_supported_destination)` for it -- the decision written below is
+    the decision the resolver path wrote.
+    """
+    def _never_reached(_verdict):
+        raise AssertionError(
+            "an abstaining Site D verdict has no action to apply, and consulting "
+            "a resolver about one is how the observe lever leaked at this site")
+
+    _sites(monkeypatch, _verdict(outcome=P8_ABSTAIN, disposition=P8_ABSTAIN,
+                                 requires_review=False))
+    result = _corpus(skeleton)
+    _decide(skeleton, result.residual_sets[0].set_id)
+    written = _review(skeleton, result, inputs=_model_inputs(
+        skeleton, partition=_partition, residual_action_of=_never_reached))
+
+    assert len(written) == 1
+    assert written[0].outcome == v.ABSTAIN
+    assert written[0].abstention_reason == v.NO_SUPPORTED_DESTINATION
+    assert written[0].destination is None
+
+
+def test_a_site_d_weak_verdict_still_reaches_the_resolver(skeleton, monkeypatch):
+    """The discrimination the guard above has to make, asserted from the other side.
+
+    `mark_review_later` arrives as `weak` -- `_residual_site` rewrites it there --
+    and it IS one of §7.7's eight actions, so it is read from the response like any
+    other. A guard that swept `weak` in with `abstain` would turn every request to
+    look at a file later into "no supported destination".
+    """
+    from llm_harness.vocabulary import (
+        MARK_REVIEW_LATER as P8_MARK_REVIEW_LATER,
+        REVIEW_LATER as P8_REVIEW_LATER, WEAK as P8_WEAK,
+    )
+
+    # `may_propose` is False by the record's own rule: `weak` forbids True, and a
+    # request to look at a file later proposes no move.
+    _sites(monkeypatch, dataclasses.replace(
+        _verdict(), outcome=P8_WEAK, disposition=P8_REVIEW_LATER,
+        requires_review=False, may_propose=False))
+    result = _corpus(skeleton)
+    _decide(skeleton, result.residual_sets[0].set_id)
+    written = _review(skeleton, result, inputs=_model_inputs(
+        skeleton, partition=_partition,
+        residual_action_of=lambda _v: (P8_MARK_REVIEW_LATER, None)))
+
+    assert written[0].outcome == v.MARK_REVIEW_LATER
+
+
 def test_the_residual_action_is_refused_when_no_resolver_was_injected(skeleton,
                                                                       monkeypatch):
     # §7.7's action lives in the model's response, which P8 validates and P11
