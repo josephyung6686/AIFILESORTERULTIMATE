@@ -862,23 +862,23 @@ The one table the owner needs to read the local model's fitness for placement. "
 
 What the table supports on 2026-09-06: on the two sites measured locally with 62 calls under four wordings, the local model produced no abstention of any kind on six should-abstain cases and no false abstention on twenty-five answerable ones. It is not a wording effect — the same texts produce 4 of 4 and 1 of 2 on the cloud — and it is the AbstentionBench finding (§6 R2) at 8B scale with thinking off. For placement, where a wrong placement moves a file into somebody's folder and stays there (`00`:114), a model that never says `none` is not fit under any text measured here; `104` R-18's setting (thinking on, a separated budget) is the next measurement, and it belongs to D1, not D2.
 
-## 12. Put to the owner on 7 Sep 2026: the five things only the owner can ratify
+## 13. Put to the owner on 7 Sep 2026: the five things only the owner can ratify (superseded by §14 the same day)
 
 Drafts by the lead, in the packet's own convention: a revision is a new file and a new manifest row, never an edit to a row a run has recorded. Nothing below is in force. The owner's word per item is "ratify as written" or an amendment in a sentence; the lead then writes the file and the row.
 
-### 12.1 Site C, `c_placement.unratified.eliminate-v2.2026-09-06`
+### 13.1 Site C, `c_placement.unratified.eliminate-v2.2026-09-06`
 
-The text in `src/llm_harness/library/c_placement_template.eliminate-v2.txt` (97 lines, §3.6 above), unchanged. Ratifying it sets that manifest row's `status` to `ratified` once P1 (per-row status) has merged; P2 (a real resolver) must be merged before the run that uses it. Local model first; the cloud waits on R-82.
+The text in `src/llm_harness/library/c_placement_template.eliminate-v2.txt` (97 lines; the text's measured results are §2.7, the ratification question §3.6), unchanged. Ratifying it sets that manifest row's `status` to `ratified` once P1 (per-row status) has merged; P2 (a real resolver) must be merged before the run that uses it. Local model first; the cloud waits on R-82.
 
-### 12.2 R-101, term spellings (a closed vocabulary of forms in `facts/dates.py`)
+### 13.2 R-101, term spellings (a closed vocabulary of forms in `facts/dates.py`)
 
 Accepted today: `<Season> <YYYY>` (`Spring 2026`, also `Spring2026`, `2026-Spring`), `AY <YYYY>-<YY>`, `<Named term> <YYYY>` (`Michaelmas Term 2024`). Proposed additions, each a dedicated pattern with its own id, never generic parsing: `<YYYY>-<YYYY> Term <n>` and `<YYYY>-<YYYY> Semester <n>` (the two-term academic year's own spelling, 28 refused answers on the owner's corpus). Proposed refusals, stated so the validator's reason names them: a bare year (`2019`), a bare range (`2023-2024`) with no term word, and a season initial with a year (`S2026`: Spring or Summer). Grain: per course, written by B per course once B is ratified; the one-group-per-label merge retires then.
 
-### 12.3 R-89, two lists, two names (closed vocabularies in `privacy/vocabulary.py`)
+### 13.3 R-89, two lists, two names (closed vocabularies in `privacy/vocabulary.py`)
 
 Always-local kinds, shown to no cloud model and filed by rules and local models: receipts, order confirmations, boarding passes and tickets, screenshots that show a person's own account or messages, bank or card notifications. Protected kinds, shown to no model and filed one at a time by the person: identity documents (passport, licence, national id), medical records, financial statements and tax returns, credentials and password vaults, legal documents naming the person. A kind on neither list is ordinary. The owner may move any kind between the lists.
 
-### 12.4 R-102 with R-95, the school rule as A_fact v2 text
+### 13.4 R-102 with R-95, the school rule as A_fact v2 text
 
 A new file `a_fact_template.v2.txt` = the ratified text plus one rule appended to THE RULES, and one row in the manifest under a new id `a_fact.unratified.folder-levels-v2.2026-09-07`:
 
@@ -886,6 +886,52 @@ A new file `a_fact_template.v2.txt` = the ratified text plus one rule appended t
 
 No other line changes. Code side (not the owner's): the field is asked only of files whose kind is one of those anchors, and one institution becomes a folder level only when two anchors agree.
 
-### 12.5 R-106 with R-119, the A_fact response schema v2
+### 13.5 R-106 with R-119, the A_fact response schema v2
 
 A new file `a_fact_response_schema.v2.json`, three deltas from the ratified schema, and a manifest row: (a) `$defs.claim.properties` gains `claim_ref` as an optional string (the field the claim is about; the code already reads it and this repo's fixtures already send it); (b) `$defs.payload.properties.value` allows the empty string, with the description "an empty value declines this field; it is recorded as an abstention, never as a wrong answer"; (c) the schema's top-level `description` states template rule 8 in one sentence ("never two claims about one field; the validator destroys the whole answer when it sees two"), because that rule has no schema form. Everything else, including every `additionalProperties: false`, stays.
+
+
+## 14. The owner's ruling of 7 Sep 2026 on §13: Site C stays inactive; all five are amended before ratification
+
+Recorded as given. Each amendment is the ruling; §13's drafts are superseded where they differ. Every ratification is bound to the exact prompt, schema, shaping policy and model configuration reviewed, named by digest, not by section.
+
+### 14.1 Site C (amends §13.1). Decision rule and shape
+
+Ruling: "Choose the unique fully supported destination after resolving ancestors and shared branches, judge contradictions within the same role and scope, allow verifiable accepted-group support without file citations, and remove citation-count ties as a placement veto."
+
+- The contradiction: accepted groups may support every required level, group identifiers cannot be cited, so with no supporting file text `support = next_support = 0`, rule 6 demands "none", and the C response schema (`c_placement_response_schema.json:88`) forbids an empty citations list (verified with the JSON Schema validator). The packet already records the related failure: the correct shared-branch answer rejected for insufficient margin. Prompt, schema and validator change together.
+- Citation counts do not establish uniqueness (one passage can support a parent and its child; several citations can repeat one nondiscriminating fact). Counts stay as diagnostics; the supported-destination comparison decides.
+- The contradiction rule is replaced by: "Strike a candidate only when the released evidence establishes an incompatible value for the same dimension, semantic role, and scope; mentioning another institution, term, project, or course is not itself a contradiction." (An application essay may name a former school and a target university.)
+- The shared-branch exception preserves every earlier check: it cannot resurrect a contradicted candidate, invent support for every ancestor, or choose arbitrarily between two supported shared branches. Each level is marked direct or context by its actual support.
+
+### 14.2 Term spellings (amends §13.2)
+
+Ruling: "Keep the proposed accepted forms and refusals, preserve the distinction between academic-year and individual-term granularity, and infer no equivalence between numbered terms, semesters, or seasons without evidence for that course's calendar."
+
+`AY 2024-25` does not identify a semester. `2023-2024 Semester 1` does not establish `Fall 2023`. `Term 1` and `Semester 1` are not automatically one value. The original spelling is preserved alongside the normalized identity, and the result is bound to the relevant course.
+
+### 14.3 The two lists (amends §13.3)
+
+Ruling: "Keep both lists, apply the most restrictive matching rule to the content and its derivatives regardless of file format, and classify unresolved cases as pending rather than ordinary."
+
+Precedence, explicit: protected, then always-local, then ordinary. "On neither list" distinguishes an assessed ordinary document from one the detector failed to recognise, which is pending. A screenshot of a bank statement is protected although account screenshots are always-local; a receipt containing credentials is protected. OCR text, excerpts and summaries retain the source's restriction. Classification precedes the model call it governs: a protected document is never sent to a model to discover that it is protected.
+
+### 14.4 The school rule (amends §13.4)
+
+Ruling: "Answer school only when a permitted anchor establishes the institution's relevant relationship to the course or enrollment being organized, and create that scoped folder level only from two independently originating, nonconflicting anchors, subject to the protected-document rule."
+
+Anchor kind is necessary, not sufficient: a transcript may name transfer institutions; a syllabus downloaded from another university does not establish attendance. The glossary's "the holder's school" meaning, which the packet records as the cause of the Georgetown Prep collector, must agree with the prompt; restricting document kinds alone does not resolve it. "Two anchors agree" needs independence (two copies of one syllabus are one source) and scope (documents from unrelated courses cannot jointly establish a course's school). Interaction with 14.3: a tuition or housing statement classified protected cannot become model-eligible because it is also an anchor; manual confirmation can supply that information.
+
+### 14.5 The response schema (amends §13.5)
+
+Ruling: "Keep one canonical decline shape, define empty-string handling as an explicit, versioned compatibility conversion to abstention, keep supported values nonempty, and make payload.field authoritative for field identity regardless of optional claim_ref, while preserving closed objects and duplicate-field rejection."
+
+§13.5's three deltas applied in memory to the schema: `unknown` with no value is valid; an empty value alone is invalid; an empty value plus citations is valid. The decline branch (`a_fact_response_schema.json:36`) forbids a value while the support branch requires citations, so an empty value never becomes a coherent decline. The canonical `unknown` representation stays; a tolerated empty-string answer is normalised into it by a versioned compatibility rule that preserves the raw response and records the conversion, without bypassing closed-object or duplicate-field checks.
+
+### 14.6 Activation criteria (new)
+
+The local C results in this packet (§2.5 / §2.7's local arms) show 0 of 4 required abstentions with two wrong placements accepted by validation; eliminate-v2's improvement is cloud-measured and its local behaviour is not established. Before activation, the revised bundle (prompt v3, schema v2, validator) must pass the context-only, shared-branch, multiple-institution, parent/child and existing should-abstain cases through the actual deployment validator under the intended local model configuration. P1 and P2 merging alone do not establish that.
+
+### 14.7 Measurement rules (new)
+
+The seeded run measures downstream changes while holding prior fact answers fixed; it cannot demonstrate that revised extraction wording works on answers it reuses. Fresh answers are reported separately from reused ones. Placement outcomes are reported in five classes: correct placement, incorrect placement, appropriate abstention, unnecessary abstention, invalid output. The reuse identity (`model_facts.py`) includes the prompt and schema fingerprints; validator or normalisation changes must re-evaluate cached responses rather than retain obsolete verdicts, and this must be verified.
