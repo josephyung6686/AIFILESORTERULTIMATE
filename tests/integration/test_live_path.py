@@ -58,6 +58,7 @@ from facts.resolver import FactResolver
 from facts.usable import record_pass
 from grouping.config import GroupingLimits
 from grouping.embeddings import EmbeddingsOff
+from grouping.p8_seam import Answered, ObservedOnly
 from grouping.pipeline import (
     GroupingKnowledge,
     ModelCallAuthorities,
@@ -327,7 +328,13 @@ class Recorder:
     def __call__(self, model_visible_bytes: bytes) -> bytes:
         self.calls.append(model_visible_bytes)
         body = self.dossier_of(model_visible_bytes)
-        members = [item["evidence_ref"] for item in body["evidence_items"]
+        # ONE ENTRY PER MEMBER, with the decision and the sentence -- the shape
+        # `104` R-16 gave §4.5 task 2, and the shape the composition root reads
+        # back. P8's own `_included_members` takes a bare ref or a mapping with a
+        # `file_id`, so this is the richer of the two shapes it already accepts.
+        members = [{"file_id": item["evidence_ref"], "decision": "include",
+                    "why": "states the group's basis"}
+                   for item in body["evidence_items"]
                    if item["kind"] == "member"]
         released = body["released_evidence"][0]
         good = {
@@ -341,8 +348,9 @@ class Recorder:
         }
         bad = {
             "claim_ref": "invented",
-            "payload": {"coherent": True,
-                        "members": ["a-file-nobody-retrieved"]},
+            "payload": {"coherent": True, "members": [
+                {"file_id": "a-file-nobody-retrieved", "decision": "include",
+                 "why": "invented"}]},
             "citations": [{
                 "evidence_ref": released["observation_key"],
                 "cited_span": "a span the release does not contain",
@@ -512,6 +520,33 @@ def _model_authorities(live: LiveRun, recorder: Recorder) -> ModelCallAuthoritie
         model_target=CLOUD)
 
 
+def _root_run_call(conn, request, **authorities):
+    """`run_call`, and then the answer read back. What a composition root does.
+
+    `104` R-83: `run_call` returns the verdict alone, and the seam refuses one --
+    §4.5's four answers live in the response body, and only the site that supplied
+    the prompt can read that. `cli.group_answer_of` is the live reader and is
+    CALLED here rather than copied, so the translation cannot drift from the root
+    this stands in for. `run_call` itself is substituted in no way: P9's request
+    and P9's five keyword arguments are forwarded verbatim.
+
+    ONE THING THE LIVE ROOT DOES THAT THIS DOES NOT: `cli.observed_run_call` reads
+    `prompt.ratified` first and returns `ObservedOnly` for every unratified prompt,
+    which is `104` §7 Phase 1 step 6. `_prompt()` here is a fixture and carries no
+    ratification, so applying that gate would make every assertion below about a
+    membership pass by having nothing to apply. The gate has its own tests at
+    `tests/test_cli_observe_sites.py`; this file is the path from a directory on
+    disk to a P9 membership, and needs the answer to arrive.
+    """
+    from cli import group_answer_of
+
+    result = run_call(conn, request, **authorities)
+    answer = group_answer_of(conn, result)
+    if answer is None:
+        return ObservedOnly(result)
+    return Answered(result=result, answer=answer)
+
+
 class _WiredRunCall:
     """The real `run_call`, over the request P9 actually built.
 
@@ -535,8 +570,12 @@ class _WiredRunCall:
         self.request = request
         # `**authorities` is P9's bundle, arriving under `run_call`'s own keyword
         # names. Forwarded verbatim: this wrapper no longer knows what is in it.
-        self.result = run_call(conn, request, **authorities)
-        return self.result
+        # `self.result` is P8's own return value and stays that: a test reads it
+        # to see what P8 handed back. What P9 is given is the wrapped form, which
+        # is what the composition root hands it. `104` R-83.
+        wrapped = _root_run_call(conn, request, **authorities)
+        self.result = wrapped.result
+        return wrapped
 
 
 def _group(live: LiveRun, p8_run_call, *, recorder: Recorder):
@@ -813,7 +852,9 @@ def test_p9_calls_run_call_with_its_real_signature(live):
     `run_call` requires five more keyword-only arguments -- `gate`, `model_client`,
     `prompt`, `validation_dependencies`, `observed_at` -- so the first real call
     raises `TypeError` before any verdict can exist."""
-    result = _group(live, run_call, recorder=Recorder())
+    # `_root_run_call` forwards to the real `run_call` verbatim, so a signature
+    # P9 cannot call still raises here. `104` R-83 is why it is not passed raw.
+    result = _group(live, _root_run_call, recorder=Recorder())
     assert result.model_result is not None, result.not_implemented_reason
 
 

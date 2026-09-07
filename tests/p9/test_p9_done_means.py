@@ -53,17 +53,26 @@ def p9_conn(conn):
 
 def test_the_course_example_is_reproduced_exactly(p9_conn):
     """`Lecture 08` and `Midterm Practice` are included on direct evidence.
-    `HW 3` is uncertain and context-supported, and carries a pending review."""
+    `HW 3` is uncertain and context-supported, and carries a pending review.
+
+    ONE CALL AND ONE ANSWER, since `104` R-16 and R-83. This ran the seam twice --
+    an `accept_direct` verdict for the anchors and an `accept_context_supported`
+    one for the candidates -- because the blanket write took a whole side of the
+    dossier per outcome and the example needed both sides. The model says which
+    file is which, so §4.6 is one accepted group carrying three member decisions,
+    and the basis of each is what the dossier's builder concluded about that file.
+    """
     from grouping.fixtures import course_dossier_fixture
-    from grouping.p8_seam import apply_p8_verdict
-    from grouping.store import memberships_for_group, record_group
-    from llm_harness.records import P8Verdict
-    from llm_harness.vocabulary import (
-        ACCEPT_CONTEXT_SUPPORTED,
-        ACCEPT_DIRECT,
-        CONTEXT_SUPPORTED_MEMBERSHIP,
-        DIRECT_MEMBERSHIP,
+    from grouping.p8_seam import (
+        Answered,
+        MemberDecision,
+        ModelAnswer,
+        apply_p8_verdict,
     )
+    from grouping.store import memberships_for_group, record_group
+    from grouping.vocabulary import COHERENT
+    from llm_harness.records import P8Verdict
+    from llm_harness.vocabulary import ACCEPT_DIRECT, DIRECT_MEMBERSHIP
 
     from grouping.records import AnchorFact, Group
     from grouping.vocabulary import CANDIDATE, RULES
@@ -80,22 +89,25 @@ def test_the_course_example_is_reproduced_exactly(p9_conn):
         created_at=T0)
     record_group(p9_conn, group)
 
-    def _verdict(outcome, disposition, ref):
-        return P8Verdict(
-            verdict_id=ref, dossier_id=dossier.dossier_id, claim_ref="members",
-            outcome=outcome, disposition=disposition, reasons=(), may_propose=True,
-            requires_review=outcome == ACCEPT_CONTEXT_SUPPORTED,
-            citations_checked=(), scope="group", validator_version="P8/0.1.0",
-            policy_version="policy-1", plan_version=None)
+    verdict = P8Verdict(
+        verdict_id="v-direct", dossier_id=dossier.dossier_id, claim_ref="members",
+        outcome=ACCEPT_DIRECT, disposition=DIRECT_MEMBERSHIP, reasons=(),
+        may_propose=True, requires_review=False,
+        citations_checked=(), scope="group", validator_version="P8/0.1.0",
+        policy_version="policy-1", plan_version=None)
 
     apply_p8_verdict(
         p9_conn, group=group, dossier=dossier,
-        result=_verdict(ACCEPT_DIRECT, DIRECT_MEMBERSHIP, "v-direct"),
-        plan_version_id=PLAN, created_at=T0)
-    apply_p8_verdict(
-        p9_conn, group=group, dossier=dossier,
-        result=_verdict(ACCEPT_CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_MEMBERSHIP,
-                        "v-context"),
+        result=Answered(result=verdict, answer=ModelAnswer(
+            coherent=COHERENT, category=None, label=None,
+            members=(
+                MemberDecision(file_id="lecture-08", decision=INCLUDED,
+                               why="states the course code in its heading"),
+                MemberDecision(file_id="midterm-practice", decision=INCLUDED,
+                               why="states the course code in its heading"),
+                MemberDecision(file_id="hw-3", decision=UNCERTAIN,
+                               why="retrieved beside them and states nothing"),
+            ))),
         plan_version_id=PLAN, created_at=T0)
 
     by_file = {
