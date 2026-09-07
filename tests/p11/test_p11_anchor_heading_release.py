@@ -1164,7 +1164,7 @@ SCHEDULE = "Autumn term\nCOMS W3134 Data Structures\nMeets Tuesdays at 10:10\n"
 
 
 def _body_neighbour(conn, tmp_path, *, text=SCHEDULE,
-                    folder="Courses/Data Structures"):
+                    folder="Courses/Data Structures", protected_stating=False):
     """A body-shaped stating file beside a piece of coursework, both classified."""
     import cli
     from facts.anchor_statements import record_anchor_statements
@@ -1177,7 +1177,7 @@ def _body_neighbour(conn, tmp_path, *, text=SCHEDULE,
     create_privacy_schema(conn)
     conn.executescript(SENSITIVITY_DDL)
 
-    def store(name, body, *, spanned):
+    def store(name, body, *, spanned, protected=False):
         path = tmp_path / folder / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(body.encode())
@@ -1213,12 +1213,15 @@ def _body_neighbour(conn, tmp_path, *, text=SCHEDULE,
         if spanned:
             start = body.index("W3134")
             code = observe("W3134", TextSpan(start, start + 5))
-        _classified(conn, file_id, content_hash,
-                    refs=(whole.observation_key,))
+        # ONE live record per file version: `ClassificationStore.strongest` refuses
+        # two at one reliability, so the protected case is built here rather than
+        # written over an ordinary one.
+        _classified(conn, file_id, content_hash, refs=(whole.observation_key,),
+                    protected=protected)
         return file_id, content_hash, whole, code
 
     stating, stating_hash, _whole, code = store(
-        "schedule.txt", text, spanned=True)
+        "schedule.txt", text, spanned=True, protected=protected_stating)
     homework, homework_hash, own, _none = store(
         "homework3.txt", COURSEWORK + "\n", spanned=False)
 
@@ -1230,6 +1233,58 @@ def _body_neighbour(conn, tmp_path, *, text=SCHEDULE,
         reads_in_document=cli.reads_a_structured_string)
     return dict(stating=stating, code=code, homework=homework,
                 homework_hash=homework_hash, own=own)
+
+
+def _body_neighbour_extra(conn, tmp_path, *, name, text,
+                          folder="Courses/Data Structures"):
+    """A SECOND stating file in the same folder, so "which anchor" is a real question.
+
+    Returns its file id. The corpus is re-recorded for this file alone, which is what
+    `record_anchor_statements` does per version anyway.
+    """
+    import cli
+    from facts.anchor_statements import record_anchor_statements
+
+    path = tmp_path / folder / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(text.encode())
+    file_id = record_file(
+        conn, path, filename=name, normalized_filename=name.lower(),
+        extension=Path(name).suffix, observed_size=len(text.encode()),
+        observed_timestamps=json.dumps({"mtime": 1_700_000_000.0}),
+        parent_folder_context=folder, mime_type="text/plain",
+        detected_format="txt", scan_state="included", materialized=True)
+    content_hash = get_file(conn, file_id)["content_hash"]
+    run_id = f"run-{name}"
+    record_run(conn, ExtractionRun(
+        run_id=run_id, file_id=file_id, content_hash=content_hash,
+        extractor_name="text.structured", extractor_version="1.0.0",
+        source_type="text_document", analysis_tier="native", config={},
+        completeness="complete", started_at=CLOCK, finished_at=CLOCK))
+    record_text_unit(conn, TextUnit(
+        run_id=run_id, container_path=(), text=text))
+
+    def observe(raw, span):
+        observation = Observation(
+            file_id=file_id, content_hash=content_hash,
+            extractor_name="text.structured", extractor_version="1.0.0",
+            source_type="text_document", raw_value=raw,
+            location=Location("body", (), text_span=span),
+            occurrence_count=1, observed_at=CLOCK, reliability="possible",
+            run_id=run_id)
+        record_observation(conn, observation)
+        return observation
+
+    whole = observe(text, None)
+    start = text.index("E1006")
+    observe("E1006", TextSpan(start, start + 5))
+    _classified(conn, file_id, content_hash, refs=(whole.observation_key,))
+    record_anchor_statements(
+        conn, scan_run_id="scan-r135", file_versions=[(file_id, content_hash)],
+        is_code=lambda one: cli.SUBJECT_RULE.pattern.search(one) is not None,
+        canonical=cli.SUBJECT_RULE.canonical,
+        reads_in_document=cli.reads_a_structured_string)
+    return file_id
 
 
 def test_a_minted_line_is_releasable_and_reaches_a_neighbours_subject_call(
@@ -1311,3 +1366,150 @@ def test_when_no_line_can_be_minted_the_code_span_is_offered_instead(
     assert [one.observation_key for one in context] == [
         world["code"].observation_key]
     assert context[0].raw_value == "W3134"
+
+
+# --------------------------------------------------------------------------
+# The release check is asked of the READINGS, not of the stating file's ranking
+# --------------------------------------------------------------------------
+
+def _crowd(conn, file_id, content_hash, *, count):
+    """`count` more readings of the stating file, every one ranked ABOVE a body line.
+
+    `title` is first in `model_facts._ZONE_PREFERENCE` and `body` is fourth, so these
+    fill the head of that file's own ranking. The point of the fixture is that they are
+    perfectly ordinary readings: nothing here is unreleasable, and nothing about them
+    says anything about the line.
+    """
+    for index in range(count):
+        value = f"Reading {index} of this document"
+        container = (Segment("field", label=f"note-{index}"),)
+        record_text_unit(conn, TextUnit(
+            run_id="run-schedule.txt", container_path=container,
+            text=value + " and more besides"))
+        record_observation(conn, Observation(
+            file_id=file_id, content_hash=content_hash,
+            extractor_name="text.structured", extractor_version="1.0.0",
+            source_type="text_document", raw_value=value,
+            location=Location("title", container,
+                              text_span=TextSpan(0, len(value))),
+            occurrence_count=1, observed_at=CLOCK, reliability="direct",
+            run_id="run-schedule.txt"))
+
+
+def test_a_minted_line_survives_a_stating_file_whose_own_ranking_is_full(
+        conn, tmp_path):
+    """`104` R-135's third defect, and the code read as though it were doing right.
+
+    The builder collected the line keys it wanted and then kept only those that also
+    appeared in `releasable_observations(file_id=<the stating file>, limit=12)` -- that
+    file's OWN ranked, capped dossier. A minted body line is `possible` reliability in
+    the `body` zone and never reaches a syllabus's top twelve, so it was dropped for
+    losing a competition it was never in. Measured over the first 9 files asked on r9:
+    120 statements refused as "line not among releasable", and 7 of those 9 files ended
+    with no context at all, while nothing about the readings was unreleasable.
+
+    Here the stating file carries twenty `title` readings, all ranked above `body`, so
+    the line is far outside its own top twelve. It is offered anyway, because the
+    question asked of it is "may this reading be released", not "did it place".
+    """
+    import cli
+    from model_facts import releasable_observations
+
+    world = _body_neighbour(conn, tmp_path)
+    stating_hash = get_file(conn, world["stating"])["content_hash"]
+    _crowd(conn, world["stating"], stating_hash, count=20)
+
+    # The premise, measured rather than assumed: the line really is off the ranking.
+    ranked = releasable_observations(
+        conn, file_id=world["stating"], content_hash=stating_hash, limit=12)
+    context = cli.anchor_context_observations(
+        conn, scan_run_id="scan-r135", file_id=world["homework"],
+        fields=("subject",), limit=10)
+
+    assert len(context) == 1
+    assert context[0].raw_value == "COMS W3134 Data Structures"
+    assert context[0].observation_key not in {
+        one.observation_key for one in ranked}
+
+
+def test_a_line_in_a_protected_stating_file_is_still_refused(conn, tmp_path):
+    """The gate's refusal that did NOT move, and the reason it is asked per FILE.
+
+    The target gains the stating file's id, so `Gate._decisive` classifies it and a
+    protected neighbour denies the fact call of an unrelated file beside it. Asking the
+    release question of the readings does not widen that by an inch: a protected file
+    contributes nothing, whatever its readings look like.
+    """
+    import cli
+
+    world = _body_neighbour(conn, tmp_path, protected_stating=True)
+
+    assert cli.anchor_context_observations(
+        conn, scan_run_id="scan-r135", file_id=world["homework"],
+        fields=("subject",), limit=10) == ()
+
+
+def test_a_whole_body_line_is_refused_and_a_heading_is_released(conn, tmp_path):
+    """The whole-unit rule and `104` R-135's exemption, both intact under the new call.
+
+    `releasable_readings` runs the same four exclusions as `releasable_observations`,
+    so a span covering a whole `body` unit is still a full document and refused, and a
+    span covering a whole `heading` unit is still the thing §8.4 names as what to send
+    instead. Asked of named readings rather than of a ranking, which is the only thing
+    that changed.
+    """
+    from model_facts import releasable_readings
+
+    file_id, emitted = _anchor_corpus(conn, tmp_path)
+    (whole, code), = emitted
+    content_hash = get_file(conn, file_id)["content_hash"]
+
+    page = (Segment("page", 2),)
+    prose = "A whole page of this document, which is not a heading."
+    record_text_unit(conn, TextUnit(
+        run_id="run-anchor", container_path=page, text=prose))
+    body = Observation(
+        file_id=file_id, content_hash=content_hash, extractor_name="pdf.text",
+        extractor_version="1.0.0", source_type="text_document", raw_value=prose,
+        location=Location("body", page, text_span=TextSpan(0, len(prose))),
+        occurrence_count=1, observed_at=CLOCK, reliability="possible",
+        run_id="run-anchor")
+    record_observation(conn, body)
+
+    offered = releasable_readings(
+        conn, file_id=file_id, content_hash=content_hash,
+        keys=[body.observation_key, whole.observation_key,
+              code.observation_key])
+
+    assert [one.observation_key for one in offered] == [
+        whole.observation_key, code.observation_key]
+
+
+def test_the_cap_bounds_the_context_items_and_not_the_candidates(conn, tmp_path):
+    """The cap is on what this call SENDS, which is what a release cap is for.
+
+    Two stating files in the folder, each with a line to offer. At `limit=1` exactly one
+    context item arrives -- not one per file, and not one per file's ranking. The one
+    that arrives is the first in the product's own zone preference and then in the order
+    `anchor_statements_for` recorded, which is `104` R-135's whole answer to "which
+    anchor": nothing here prefers a nearer folder or a shorter path, because which
+    anchor names this file's course is the model's judgement.
+    """
+    import cli
+
+    world = _body_neighbour(conn, tmp_path)
+    second = _body_neighbour_extra(
+        conn, tmp_path, name="handbook.txt",
+        text="Programme handbook\nENGI E1006 Introduction to Computing\nPage 2\n")
+
+    uncapped = cli.anchor_context_observations(
+        conn, scan_run_id="scan-r135", file_id=world["homework"],
+        fields=("subject",), limit=10)
+    capped = cli.anchor_context_observations(
+        conn, scan_run_id="scan-r135", file_id=world["homework"],
+        fields=("subject",), limit=1)
+
+    assert len(uncapped) == 2
+    assert {one.file_id for one in uncapped} == {world["stating"], second}
+    assert len(capped) == 1
+    assert capped[0].observation_key == uncapped[0].observation_key

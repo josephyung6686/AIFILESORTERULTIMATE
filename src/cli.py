@@ -165,7 +165,7 @@ from placement.residual import ProtectedSetNotReadable, prior_set_decisions
 from placement.schema import create_placement_schema
 from model_facts import (
     AnchorOnlyLevels, FactCallAuthorities, fact_call_stage,
-    measure_released_tokens, pending_fields_for, releasable_observations,
+    measure_released_tokens, pending_fields_for, releasable_readings, zone_rank,
 )
 from privacy.classification import UNREADABLE_UNCLASSIFIED, resolve_class
 from privacy.classification_store import ClassificationStore
@@ -5952,21 +5952,26 @@ def anchor_context_observations(conn: sqlite3.Connection, *, scan_run_id: str,
       * *Never the file itself.* Its own readings are already offered as direct
         evidence; the same reading twice, once as context, would tell the model a file
         corroborates itself.
-      * *Only a classified, unprotected neighbour, and only its releasable readings.*
-        The gate would refuse the rest, and it would refuse the WHOLE call: the target
-        gains this file's id, so `Gate._decisive` classifies it and an unclassified or
-        protected syllabus denies the fact call of an unrelated file beside it. That
-        is `releasable_observations`' own rule applied once more -- "each is one of the
-        gate's own refusals applied a step early, so the call is never BUILT rather
-        than built and denied" -- and it is why this asks
-        `model_facts.releasable_observations` for the stating file rather than
-        assembling an address itself: the zone rules, P5's per-value signal and the
-        whole-unit rule all come with it, including `104` R-135's own exemption, which
-        is what makes a heading releasable at all.
+      * *Only a classified, unprotected neighbour.* The gate would refuse the rest, and
+        it would refuse the WHOLE call: the target gains this file's id, so
+        `Gate._decisive` classifies it and an unclassified or protected syllabus denies
+        the fact call of an unrelated file beside it. That is `releasable_observations`'
+        own rule applied once more -- "each is one of the gate's own refusals applied a
+        step early, so the call is never BUILT rather than built and denied". It is a
+        question about the FILE and is asked once per stating file.
+      * *And only readings the gate would release.* `model_facts.releasable_readings`
+        asks the four exclusions OF THE NAMED READINGS -- the zone rules, P5's
+        per-value signal, the whole-unit rule with `104` R-135's heading exemption --
+        with no ranking and no per-file cap, so nothing is dropped for placing badly
+        in a competition it was never entered in. Its docstring carries what asking the
+        other question cost.
 
-    Nothing is chosen. Every anchor near the file is offered and the model decides;
-    two syllabuses naming two courses both arrive, which is the case the constitution's
-    "no sorting rules" exists for.
+    Nothing is chosen and nothing is preferred by distance. Every anchor near the file
+    is offered and the model decides; two syllabuses naming two courses both arrive,
+    which is the case the constitution's "no sorting rules" exists for. When more
+    arrive than `limit` allows, the order is the product's own zone preference and then
+    the order `anchor_statements_for` recorded -- a nearer folder is not a stronger
+    claim, and treating it as one would be this module answering the model's question.
     """
     if SUBJECT_FIELD not in tuple(fields):
         return ()
@@ -5975,7 +5980,10 @@ def anchor_context_observations(conn: sqlite3.Connection, *, scan_run_id: str,
         return ()
     subject_path = row["current_path"]
     store = ClassificationStore(conn)
-    wanted: dict[str, set[str]] = {}
+    # STATEMENT ORDER, kept, because it is the tie-break below. `anchor_statements_for`
+    # imposes `(canonical_code, stating_file_id, code_evidence_ref)` for §8.5's replay,
+    # and a dict keyed on the stating file threw that away.
+    wanted: list[tuple[str, str]] = []
     for statement in anchor_statements_for(conn, scan_run_id):
         # `104` R-135's fallback: the LINE when the corpus has one and the code's own
         # span when it does not. `facts.anchor_statements` mints a line for a code that
@@ -5998,16 +6006,39 @@ def anchor_context_observations(conn: sqlite3.Connection, *, scan_run_id: str,
             # `Denied(unclassified)` for a cloud target and a protected one is
             # `ProtectedItemRequested`; either would cost this file its whole call.
             continue
-        wanted.setdefault(statement.stating_file_id, set()).add(ref)
-    offered = []
-    for stating_file_id, keys in wanted.items():
+        wanted.append((statement.stating_file_id, ref))
+
+    # THE RELEASE CHECK IS ASKED OF THESE READINGS, and that is `104` R-135's third
+    # defect. It used to ask `releasable_observations` for the stating file's own
+    # ranked, capped dossier and keep the wanted keys that appeared in it -- so a
+    # minted body line, `possible` reliability in the `body` zone, was dropped for
+    # failing to reach a syllabus's top twelve, a competition it was never in.
+    # Measured over the first 9 files asked on r9: 120 statements refused as "line not
+    # among releasable" and 7 of those 9 files ending with no context at all, while
+    # nothing about the readings was unreleasable. `releasable_readings` asks the same
+    # four exclusions of the named readings, with no ranking and no per-file cap.
+    by_file: dict[str, list[str]] = {}
+    for stating_file_id, ref in wanted:
+        by_file.setdefault(stating_file_id, []).append(ref)
+    offered: dict[str, object] = {}
+    for stating_file_id, keys in by_file.items():
         stating = get_file(conn, stating_file_id)
-        for observation in releasable_observations(
+        for observation in releasable_readings(
                 conn, file_id=stating_file_id,
-                content_hash=stating["content_hash"], limit=limit):
-            if observation.observation_key in keys:
-                offered.append(observation)
-    return tuple(offered)
+                content_hash=stating["content_hash"], keys=keys):
+            offered[observation.observation_key] = observation
+
+    # THE CAP IS ON THE CONTEXT ITEMS, not on any file's candidates: it bounds what
+    # this call sends, which is what a release cap is for. Ordered by the product's own
+    # zone preference and then by statement order -- `model_facts.zone_rank` is that
+    # table published rather than copied. Nothing here prefers a nearer folder or a
+    # shorter path; which anchor names this file's course is the model's judgement, and
+    # a distance rule would be this module answering it.
+    order = {ref: index for index, (_file, ref) in enumerate(wanted)}
+    return tuple(sorted(
+        offered.values(),
+        key=lambda one: (zone_rank(one.location.zone),
+                         order[one.observation_key]))[:limit])
 
 
 def files_stating_each_fact(conn: sqlite3.Connection) -> dict[str, int]:
