@@ -855,3 +855,13 @@ Proposals, not enactments. Nothing below is in force until the owner says so; vo
 | R-107 | A claim that both declines and asserts is recorded as an abstention AND the verdict carries a `malformed_claim` note naming what was dropped; rule 11 destroys the whole response only for a parse failure. A template wording change for the owner's v2 text. |
 | R-113 | Every non-`place` decision is in exactly one review set (R-115's invariant extended): a placement with a destination and a blocked policy joins the set of its blocking reason ("A model was not allowed to look" or "Not allowed to move across folders"), so `--send-set` reaches it. |
 | R-121 | One answer, one name, in `privacy/vocabulary`: an unclassified file MAY reach a LOCAL model and never a cloud one (the CLI's answer; the design's "only local rules and local models may run"); P11's separate pin goes. `sensitive_personal` without the protected flag follows the flag, as built. |
+
+### 15.4 What is the owner's, as of 7 Sep evening (nothing below is wired until the owner says)
+
+1. **`DENIAL_REASONS`, tenth member `protected_kind`** (R-89/R-130): the kind refusal's sentence is already true; its reason code still reads `protected_records_template`. One branch in `privacy/denial.py`, one member in the vocabulary; no test asserts the string.
+2. **Site C text `eliminate-v3`, response schema v2, shaping policy v2** (R-126, 105 §14): drafts under `tools/promptbench/drafts/`; ratify as a NEW manifest row when a measured run says `eliminate-v2` is the limit.
+3. **A_fact v2** (R-131 rule 12 the school rule; rule 13 the context line, `c4c508d` on `r131-school`, draft `tools/promptbench/drafts/a_fact_template.v2.txt`, fingerprint `2deaf0b38ab3f3b4`): with one decision inside it -- the ratified text's inventory sentence says a released item has four keys, and R-135 writes a fifth (`basis`) that rule 13 names; amend the sentence or strike the mention.
+4. **`field_glossary` v2** (`school` entry; the `subject` context wording is 105 §1.7's open third arm).
+5. **B ratification** after the first honest C-live number (r6 or r7).
+6. **R-82** before any cloud key; C's row stays `ratified_local` until then.
+7. **R-136's sibling**: a `CallFailed` on one file still ends the run; ruled when a measured run produces it (signature: a run ending at one file with an `llm_call_failure` row).
