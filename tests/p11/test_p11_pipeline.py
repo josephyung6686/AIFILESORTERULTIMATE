@@ -29,8 +29,11 @@ from llm_harness.harness import CallDependencies
 from llm_harness.records import EvidenceItem, P8Verdict
 from llm_harness.schema import create_llm_schema
 from llm_harness.vocabulary import (
-    ACCEPT_CONTEXT_SUPPORTED, CHOOSE_RESIDUAL_DESTINATION,
+    ABSTAIN as P8_ABSTAIN, ACCEPT_CONTEXT_SUPPORTED,
+    ACCEPT_DIRECT as P8_ACCEPT_DIRECT, CHOOSE_RESIDUAL_DESTINATION,
     LEAVE_IN_CURRENT_LOCATION, LEAVE_IN_PLACE as P8_LEAVE_IN_PLACE,
+    MOVE_PLAN_ELIGIBLE as P8_MOVE_PLAN_ELIGIBLE,
+    NO_SUPPORTED_DESTINATION as P8_NO_SUPPORTED_DESTINATION,
     RETURN_CONFIRMED_GROUP, RETURN_TO_PLACEMENT as P8_RETURN_TO_PLACEMENT,
     VALID_REVIEW_REQUIRED,
 )
@@ -153,6 +156,7 @@ def _inputs(conn, **overrides):
         limits=placement_limits(conn),
         partition=None, ask_or_abstain=lambda ids: v.ABSTAIN,
         max_return_cycles=1, gate=None, model_client=None, prompt=None,
+        residual_prompt=None,
         call_dependencies=None, model_call_request=None, chosen_node_of=None,
         residual_action_of=None, sensitivity_policy=None,
         # Nothing to ask about and nothing already answered. Both are
@@ -527,8 +531,13 @@ def _model_inputs(conn, **overrides):
     # `ratified=True`: these tests mean the model path to APPLY. A bare stand-in
     # answers `False` to `prompt.ratified`, which is the observe abstention and
     # the safe default -- a prompt that says nothing is not acted on.
+    # TWO PROMPTS, one per placement site. `_judge_with_model` serves C and D and
+    # reads `prompt_for(call_site)`, so a fixture that supplied only C's would send
+    # every residual call under C's text -- which is the defect the field exists to
+    # remove, re-created in the fixture.
     values = dict(gate=object(), model_client=object(),
                   prompt=SimpleNamespace(ratified=True),
+                  residual_prompt=SimpleNamespace(ratified=True),
                   call_dependencies=_call_dependencies(),
                   model_call_request=_model_call_request,
                   chosen_node_of=lambda _verdict: "n-course-shared",
@@ -1448,3 +1457,338 @@ def test_an_unclassified_file_is_not_told_that_nothing_could_read_it(
     assert "read enough" not in decision.explanation
     assert "unreadable" not in decision.explanation
     assert "able to read" not in decision.explanation
+
+
+# --- R-19 (Q-A): the model decides, the rules validate ----------------------------
+#
+# `104` §13.5, and `00`'s placement amendment in the same words: "A unique direct
+# match and the score-and-margin threshold no longer place a file without a model
+# call. Every placement goes through the model... A unique direct match is the
+# top-ranked candidate, not a bypass. This governs whenever a model is configured;
+# with no model configured, the deterministic path remains the fallback."
+#
+# The three worlds a run can be in, and this section pins all three: no model path
+# at all (the offline default, unchanged); a model path whose text nobody ratified
+# (the answer is recorded and applied to nothing, so the deterministic placement
+# stands); and a model path under a ratified text (the model decides).
+
+
+def _asking(monkeypatch, verdict=None, seen=None):
+    """Site C answered by a stub, with a note of whether it was asked at all."""
+    import placement.pipeline as pipeline
+
+    def _fake_call(conn, request, **kwargs):
+        if seen is not None:
+            seen["asked"] = seen.get("asked", 0) + 1
+            seen["allowed"] = kwargs["call_dependencies"].allowed_vocabulary
+        return _verdict() if verdict is None else verdict
+
+    monkeypatch.setattr(pipeline, "call_placement", _fake_call)
+
+
+def _accepts_directly():
+    return _verdict(outcome=P8_ACCEPT_DIRECT, disposition=P8_MOVE_PLAN_ELIGIBLE)
+
+
+def test_r19_a_unique_direct_match_is_asked_when_a_model_decides(skeleton,
+                                                                 monkeypatch):
+    seen: dict = {}
+    _asking(monkeypatch, verdict=_accepts_directly(), seen=seen)
+    decision = _place(skeleton,
+                      inputs=_model_inputs(skeleton,
+                                           chosen_node_of=lambda _v: "n-course"))
+    assert seen["asked"] == 1
+    assert "n-course" in seen["allowed"]
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-course"
+
+
+def test_r19_a_model_that_confirms_the_top_candidate_records_the_match_it_is(
+        skeleton, monkeypatch):
+    """The record does not get worse for having been checked. The deterministic
+    path called this an exact fact match; a model asked to confirm it and
+    confirming it does not turn the facts into context, and `evidence_type`
+    would otherwise say `direct` beside a `confidence_class` saying the
+    opposite."""
+    _asking(monkeypatch, verdict=_accepts_directly())
+    decided = _place(skeleton,
+                     inputs=_model_inputs(skeleton,
+                                          chosen_node_of=lambda _v: "n-course"))
+    offline = _place(skeleton)
+    assert decided.destination.node_id == offline.destination.node_id
+    assert decided.confidence_class == offline.confidence_class == v.EXACT_FACT_MATCH
+    assert decided.evidence_type == offline.evidence_type == v.DIRECT
+    assert decided.review_policy == offline.review_policy == v.AUTO_ELIGIBLE
+    assert decided.two_condition.requires_review is False
+
+
+def test_r19_a_model_that_chooses_another_node_is_a_context_supported_placement(
+        skeleton, monkeypatch):
+    """The other half of the same predicate: the deterministic winner WAS a
+    unique direct match, the model chose somewhere else, and the record must not
+    describe the answer nobody took."""
+    _asking(monkeypatch)
+    decision = _place(
+        skeleton,
+        inputs=_model_inputs(skeleton,
+                             chosen_node_of=lambda _v: "n-course-shared"))
+    assert decision.destination.node_id == "n-course-shared"
+    assert decision.confidence_class == v.CONTEXT_SUPPORTED_GROUP_MATCH
+    assert decision.evidence_type == v.CONTEXT_SUPPORTED
+    assert decision.review_policy == v.REVIEW_REQUIRED
+    assert decision.two_condition.requires_review is True
+
+
+def test_r19_a_model_abstention_on_a_unique_direct_match_places_nothing(
+        skeleton, monkeypatch):
+    """"The model decides" has to mean this too, or it means nothing: the file
+    the deterministic path would have placed is not placed when the model
+    declines it. `00`:114 -- correct abstention is a successful outcome."""
+    _asking(monkeypatch,
+            verdict=_verdict(outcome=P8_ABSTAIN,
+                             disposition=P8_NO_SUPPORTED_DESTINATION))
+    decision = _place(skeleton, inputs=_model_inputs(skeleton))
+    assert decision.outcome == v.ABSTAIN
+
+
+def test_r19_an_unratified_prompt_leaves_the_deterministic_placement_alone(
+        skeleton, monkeypatch):
+    """A site running under text nobody ratified applies nothing, so it must not
+    take the deterministic answer away either. Widening the routing on the
+    strength of a model whose answer is discarded would turn every exact
+    placement into an abstention -- `_observed_only` rewrites the verdict to
+    `abstain`, and `transcribe` reads that as a file with no home."""
+    import placement.pipeline as pipeline
+
+    def _never(*_a, **_k):
+        raise AssertionError("an unratified prompt decides nothing, so a file "
+                             "the deterministic path settles is not sent")
+
+    monkeypatch.setattr(pipeline, "call_placement", _never)
+    decision = _place(skeleton,
+                      inputs=_model_inputs(skeleton,
+                                           prompt=SimpleNamespace(ratified=False)))
+    offline = _place(skeleton)
+    assert decision.outcome == offline.outcome == v.PLACE
+    assert decision.destination.node_id == offline.destination.node_id
+    assert decision.confidence_class == offline.confidence_class
+
+
+def test_r19_an_unratified_prompt_still_observes_the_ambiguous_file(skeleton,
+                                                                    monkeypatch):
+    """And the observe path is NOT narrowed: the files §6.6 already sent are
+    still sent, still recorded, and still applied to nothing."""
+    seen: dict = {}
+    _asking(monkeypatch, seen=seen)
+    decision = _place(skeleton,
+                      inputs=_model_inputs(skeleton,
+                                           prompt=SimpleNamespace(ratified=False)),
+                      evidence=_evidence(**AMBIGUOUS))
+    assert seen["asked"] == 1
+    assert decision.outcome == v.ABSTAIN
+
+
+def test_r19_with_no_model_configured_nothing_about_the_offline_run_changes(
+        skeleton):
+    """The fallback `00`'s amendment keeps: "with no model configured, the
+    deterministic path remains the fallback and places only what it can
+    validate"."""
+    decision = _place(skeleton)
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-course"
+    assert decision.confidence_class == v.EXACT_FACT_MATCH
+    assert decision.review_policy == v.AUTO_ELIGIBLE
+    assert skeleton.execute(
+        "SELECT count(*) AS c FROM llm_verdict").fetchone()["c"] == 0
+
+
+def test_r19_deciding_is_the_path_and_the_ratification_together(skeleton):
+    ratified = _model_inputs(skeleton)
+    assert ratified.model_path_available() is True
+    assert ratified.model_decides() is True
+    draft = _model_inputs(skeleton, prompt=SimpleNamespace(ratified=False))
+    assert draft.model_path_available() is True
+    assert draft.model_decides() is False
+    offline = _inputs(skeleton)
+    assert offline.model_path_available() is False
+    assert offline.model_decides() is False
+
+
+# --- R-17 and packet G3: a ranked shortlist, each entry with its profile ----------
+#
+# `00`:110 -- the model "receives a placement dossier containing ... the small set
+# of top legal destination candidates, EACH CANDIDATE'S NODE PROFILE, representative
+# files already accepted in those nodes" -- and `104` §13.5: "Deterministic scores
+# rank and shortlist the candidates the model is shown". What it received instead
+# was every legal node id in the plan, alphabetically, with nothing said about any
+# of them: `field_glossary` maps a node id to nothing and `Dossier` has no profile
+# field (packet §7, G3). A model shown `node_f1d70c8a_3` and `node_f1d70c8a_5` is
+# not choosing between two folders; it is guessing between two strings.
+
+
+def _asked(monkeypatch, verdict=None):
+    """Site C or D answered by a stub, with the request and the deps it was given."""
+    import placement.pipeline as pipeline
+
+    seen: dict = {}
+
+    def _fake_call(conn, request, **kwargs):
+        seen["request"] = request
+        seen["allowed"] = kwargs["call_dependencies"].allowed_vocabulary
+        seen["basis_key"] = kwargs["call_dependencies"].basis_key
+        seen["items"] = tuple(request.evidence_items)
+        return _verdict() if verdict is None else verdict
+
+    monkeypatch.setattr(pipeline, "call_placement", _fake_call)
+    return seen
+
+
+def _items_of(seen, kind):
+    return {item.evidence_ref: item.location
+            for item in seen["items"] if item.kind == kind}
+
+
+def test_r17_the_model_is_shown_the_ranking_and_not_the_whole_frozen_tree(
+        skeleton, monkeypatch):
+    seen = _asked(monkeypatch)
+    _place(skeleton, inputs=_model_inputs(skeleton),
+           evidence=_evidence(**AMBIGUOUS))
+    # The three candidates §6.3 actually retrieved, in `assess`'s order, the
+    # deterministic winner first. A LIST and not a set: position is what "ranked"
+    # means, and `sorted(legal_node_ids(...))` threw it away.
+    assert list(seen["allowed"]) == ["n-course", "n-course-shared", "n-general"]
+    # Legal, and not retrieved for this file. Offering them is what made
+    # `allowed_vocabulary` an answer to "which nodes exist" instead of "which
+    # nodes might this file belong to".
+    assert "n-academics" not in seen["allowed"]
+    assert "n-review-later" not in seen["allowed"]
+    # Suppressed by §6.3 as a conflict (`n-course-alt` expects PHYS1402). A
+    # candidate the rules ruled out is not a candidate the model reconsiders.
+    assert "n-course-alt" not in seen["allowed"]
+
+
+def test_r17_every_node_the_model_may_answer_with_arrives_with_its_profile(
+        skeleton, monkeypatch):
+    seen = _asked(monkeypatch)
+    _place(skeleton, inputs=_model_inputs(skeleton),
+           evidence=_evidence(**AMBIGUOUS))
+    candidates = _items_of(seen, "candidate")
+    # The C draft: "its `evidence_ref` is an identifier from `allowed_vocabulary`,
+    # and its `location` describes that folder, from the top of the tree down".
+    assert set(candidates) == set(seen["allowed"])
+    assert candidates["n-course"].startswith("Academics > PHYS1401")
+    assert "expects subject=PHYS1401" in candidates["n-course"]
+    assert "holds syllabus" in candidates["n-course"]
+    assert "scoped fallback" in candidates["n-general"]
+    assert "shared branch" in candidates["n-course-shared"]
+
+
+def test_r17_a_candidate_item_is_reference_only_and_names_no_span(
+        skeleton, monkeypatch):
+    # `records.py`: "P8 does not synthesise kind, location, reliability or basis".
+    # A node profile is not an excerpt of the file, so it carries no span and it
+    # never enters `released_evidence` -- P7 releases the file's text and a folder
+    # the person approved is not the file's text.
+    seen = _asked(monkeypatch)
+    _place(skeleton, inputs=_model_inputs(skeleton),
+           evidence=_evidence(**AMBIGUOUS))
+    for item in seen["items"]:
+        if item.kind == "candidate":
+            assert item.excerpt_span is None
+            assert "/" not in item.location
+
+
+def test_r17_the_candidate_the_file_already_sits_in_says_so(skeleton,
+                                                            monkeypatch):
+    # §13.8's split is the model's to name and the draft asks it to
+    # ("deeper_in_own_folder" / "out_of_own_folder"); it can only name it if the
+    # dossier says which candidate is the folder the file is in now.
+    seen = _asked(monkeypatch)
+    _place(skeleton,
+           inputs=_model_inputs(skeleton,
+                                the_folder_each_file_is_in={"f1": "n-course"}),
+           evidence=_evidence(**AMBIGUOUS))
+    candidates = _items_of(seen, "candidate")
+    assert "the file sits in this folder now" in candidates["n-course"]
+    assert "sits in this folder now" not in candidates["n-course-shared"]
+
+
+def test_r17_an_accepted_group_arrives_as_an_item_of_its_own(skeleton,
+                                                             monkeypatch):
+    # The C draft's second kind: "an `accepted_group` item names a group the
+    # person has already accepted this file into ... that is context that can
+    # support a folder even when the file's own text does not name the course".
+    # `_invented_dimension` exempts a `context` level from grounding precisely
+    # because the dossier used to carry nothing to ground one against.
+    seen = _asked(monkeypatch)
+    _place(skeleton, inputs=_model_inputs(skeleton),
+           evidence=_evidence(**AMBIGUOUS))
+    groups = _items_of(seen, "accepted_group")
+    assert set(groups) == {"g-shared"}
+    assert "accepted" in groups["g-shared"]
+
+
+def test_r17_the_shortlist_and_its_head_are_the_scores_and_not_retrieval_order(
+        skeleton, monkeypatch):
+    """`104` §13.5 gives the ranking to the deterministic SCORES.
+
+    Retrieval and scoring agree on this fixture -- both read the same six
+    channels -- so the two orders are pinned apart deliberately here. What the
+    model is shown, and what a past rejection is keyed on, are the ASSESSMENT's
+    order: `basis_key_for` read `retrieval.candidates[0]`, which is the order six
+    channels happened to answer in and not a ranking of anything.
+    """
+    import placement.pipeline as pipeline
+
+    real = pipeline.assess
+
+    def _reversed(*args, **kwargs):
+        out = real(*args, **kwargs)
+        return dataclasses.replace(out, scored=tuple(reversed(out.scored)))
+
+    monkeypatch.setattr(pipeline, "assess", _reversed)
+    seen = _asked(monkeypatch)
+    _place(skeleton, inputs=_model_inputs(skeleton),
+           evidence=_evidence(**AMBIGUOUS))
+    assert list(seen["allowed"]) == ["n-general", "n-course-shared", "n-course"]
+    assert seen["basis_key"] == basis_key_for(subject_id="f1",
+                                              node_id="n-general")
+
+
+def test_r17_the_basis_key_names_the_ranked_winner(skeleton, monkeypatch):
+    # The unreversed control, so the test above measures the ordering and not a
+    # pipeline that always names the last node.
+    seen = _asked(monkeypatch)
+    _place(skeleton, inputs=_model_inputs(skeleton),
+           evidence=_evidence(**AMBIGUOUS))
+    assert seen["basis_key"] == basis_key_for(subject_id="f1",
+                                              node_id="n-course")
+
+
+def test_r17_site_d_describes_every_home_it_offers(skeleton, monkeypatch):
+    """The D draft says every id in `allowed_vocabulary` is described in
+    `evidence_items`, and the live builder described none of them.
+
+    §7.7 runs no `assess`, so D has no ranking of its own; what it offers is
+    `00`:120's approved residual library plus the branches retrieval reached, in
+    the draft's own two kinds. `approved_target_ids` stays the whole legal set, so
+    the validator accepts exactly what it accepted before -- only what the model is
+    SHOWN narrows.
+    """
+    seen = _asked(monkeypatch, verdict=_verdict(disposition=P8_LEAVE_IN_PLACE))
+    result = _corpus(skeleton)
+    _decide(skeleton, result.residual_sets[0].set_id)
+    _review(skeleton, result, inputs=_model_inputs(
+        skeleton, partition=_partition,
+        residual_action_of=lambda _v: (LEAVE_IN_CURRENT_LOCATION, None)))
+
+    described = {item.evidence_ref: item for item in seen["items"]
+                 if item.kind in ("residual_area", "branch")}
+    assert set(seen["allowed"]) == set(described)
+    # The person's residual library is offered whether or not retrieval reached it.
+    assert "n-review-later" in described
+    assert described["n-review-later"].kind == "residual_area"
+    assert "residual area" in described["n-review-later"].location
+    assert v.REVIEW_ONLY in described["n-review-later"].location
+    # And no site-C kind at a site whose text names two others.
+    assert not [item for item in seen["items"] if item.kind == "candidate"]

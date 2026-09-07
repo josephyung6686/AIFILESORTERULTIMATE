@@ -41,13 +41,14 @@ SUBJECT = "file:gap-1"
 PLAN = "plan-gap"
 
 
-def _c_case(*, conflicts=(), items=()) -> Case:
+def _c_case(*, conflicts=(), items=(), extra_evidence=()) -> Case:
     heading = evidence(subject_ref=SUBJECT, address="heading:1",
                        value="PHYS 1401 Problem Set 4", zone="heading")
     return Case(
         case_id="G-C", site=C_PLACEMENT, title="gap world", persona="Priya",
         traces=("104:R-15", "00:114"), subject_ref=SUBJECT,
-        allowed_vocabulary=("node-hw", "node-course"), evidence=(heading,),
+        allowed_vocabulary=("node-hw", "node-course"),
+        evidence=(heading,) + tuple(extra_evidence),
         items=tuple(items) or (
             Item(evidence_ref="node-hw", kind="candidate",
                  location="Coursework > PHYS1401 > homework"),
@@ -162,22 +163,32 @@ def test_g1_site_d_a_model_that_echoes_the_shown_relationship_did_consider_it():
         r for v in verdict.verdicts for r in v["reasons"]]
 
 
-# --- G2: R-15, a real per-level value is "invented" at site C ---------------------
+# --- G2: R-15, CLOSED. The per-level check is grounding, not the node-id list -----
+#
+# The xfail here asserted that a real `project` value is not invented, and it was
+# right about the defect and wrong about the world it asserted it in: this case's
+# only evidence is a `PHYS 1401` heading, so `PVA-RDP` is not something the file
+# states and rejecting it is correct under `104` §13.6's grounding rule. Both
+# directions are pinned instead, in a world where the file does state it.
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "G2 (104 R-15): _invented_dimension checks per_dimension_support VALUES for "
-    "date, institution and project against allowed_vocabulary, which at site C "
-    "is the node-id list, so any real project value is INVENTED_PROJECT."))
-def test_g2_a_real_project_value_in_per_dimension_support_is_not_invented():
-    case = _c_case()
+def _project_case():
+    """The same gap world, with a body line that names the project."""
+    return _c_case(extra_evidence=(
+        evidence(subject_ref=SUBJECT, address="body:2",
+                 value="Prepared for the PVA-RDP study", zone="body"),))
+
+
+def test_g2_a_project_value_the_files_own_evidence_states_is_not_invented():
+    case = _project_case()
     verdict = judge(case, dossier_of(case), _c_response(case, per_dimension_support=[
         {"dimension": "project", "value": "PVA-RDP", "support": "direct"}]),
         schema={"type": "object"}, site_dependencies=site_dependencies_for(case))
     assert verdict.worst_outcome == ACCEPT_DIRECT, verdict.verdicts
 
 
-def test_g2_measured_the_reason_is_invented_project():
+def test_g2_a_project_value_the_file_never_states_is_still_invented():
+    """The control: grounding is a real check and did not become a rubber stamp."""
     case = _c_case()
     verdict = judge(case, dossier_of(case), _c_response(case, per_dimension_support=[
         {"dimension": "project", "value": "PVA-RDP", "support": "direct"}]),
@@ -185,22 +196,55 @@ def test_g2_measured_the_reason_is_invented_project():
     assert [INVENTED_PROJECT] in [v["reasons"] for v in verdict.verdicts]
 
 
-# --- G3: the live C/D dossier carries opaque node ids and no profile -------------
+def test_g2_a_node_id_no_longer_launders_a_value():
+    """What the defect made possible, gone: `node-course` is a legal destination
+    and says nothing about what this file's text contains."""
+    case = _c_case()
+    verdict = judge(case, dossier_of(case), _c_response(case, per_dimension_support=[
+        {"dimension": "project", "value": "node-course", "support": "direct"}]),
+        schema={"type": "object"}, site_dependencies=site_dependencies_for(case))
+    assert [INVENTED_PROJECT] in [v["reasons"] for v in verdict.verdicts]
 
 
-def test_g3_a_node_id_in_allowed_vocabulary_gets_no_meaning_and_no_profile_field():
-    """`field_glossary` is keyed by P6 field key; a minted node id maps to nothing,
-    and `Dossier` has no field a builder could put a node profile in. What the
-    bench does instead -- a `candidate` evidence item whose `location` carries the
-    label chain -- is a builder change the packet asks the owner to approve."""
+# --- G3, CLOSED: the live C/D dossier now carries the profile the drafts describe --
+
+
+def test_g3_a_node_id_still_gets_no_meaning_from_the_glossary_and_no_field():
+    """The two halves of G3 that were never the fix, asserted unchanged.
+
+    `field_glossary` is keyed by P6 FIELD KEY, so a minted node id maps to nothing
+    and always would have; and `Dossier` has no profile field, because the profile
+    is not a sixteenth key. `dossier._BODY_ORDER` refuses one (`104` R-58), and the
+    drafts describe the profile as an `evidence_item`, which is a key the dossier
+    already has.
+    """
     assert field_glossary(("node-7f3a", "node-0c11")) == {}
     assert "candidate_profiles" not in Dossier.__dataclass_fields__
     assert "node_profiles" not in Dossier.__dataclass_fields__
-    # pipeline._judge_with_model hands P8 the legal node ids as the vocabulary
-    # and nothing else about them.
+
+
+def test_g3_the_builder_change_the_packet_asked_for_has_landed():
+    """`104` R-17: the vocabulary is the ranked shortlist and every id is described.
+
+    This asserted the DEFECT -- `allowed_vocabulary=legal` over
+    `sorted(legal_node_ids(...))`, "the live dossier carries ... no label chain, no
+    expected values, no known document types, no 'this is the file's own folder'".
+    G3's own consequence line says "**Ratifying C or D ratifies that builder
+    change**", so the pin turns round with the change rather than being deleted:
+    `_judge_with_model` now offers `Assessment.scored`'s order at C and the
+    approved residual library plus the retrieved branches at D, and `_offered_items`
+    describes every one of them through `placement.index.node_profile`.
+
+    The behaviour is pinned end to end in `tests/p11/test_p11_pipeline.py`'s R-17
+    section against the real pipeline; what is asserted here is that the source of
+    the gap is gone, because that is what this register row was written about.
+    """
     source = (REPO / "src" / "placement" / "pipeline.py").read_text("utf-8")
-    assert "allowed_vocabulary=legal" in source
-    assert "legal = sorted(legal_node_ids(" in source
+    assert "allowed_vocabulary=legal" not in source
+    assert "allowed_vocabulary=list(offered)" in source
+    assert "_offered_items(" in source
+    profiles = (REPO / "src" / "placement" / "index.py").read_text("utf-8")
+    assert "def node_profile(" in profiles
 
 
 # --- G4: nothing in src constructs site B's authorities ----------------------------

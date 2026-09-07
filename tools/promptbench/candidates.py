@@ -40,6 +40,12 @@ class Candidate:
     shaping_policy_file: str
     glossary_file: str | None
     note: str
+    #: Which stress suite the candidate is measured on (None: the site's own).
+    suite: str | None = None
+    #: Recognition rows whose `needs_llm` readings ride in a `readings` key, and
+    #: the byte layout the bench emulates for them (`canonical` or `frame-first`).
+    readings_rows: tuple[str, ...] = ()
+    layout: str = "canonical"
 
     def _read(self, name: str) -> bytes:
         path = LIBRARY / name
@@ -83,7 +89,10 @@ def candidates_for(site: str) -> tuple[Candidate, ...]:
             response_schema_file=row["response_schema_file"],
             shaping_policy_file=row["shaping_policy_file"],
             glossary_file=row.get("glossary_file"),
-            note=row.get("note", ""))
+            note=row.get("note", ""),
+            suite=row.get("suite"),
+            readings_rows=tuple(row.get("readings_rows", ())),
+            layout=row.get("layout", "canonical"))
         for row in rows
     )
 

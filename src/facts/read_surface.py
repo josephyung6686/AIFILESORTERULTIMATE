@@ -233,6 +233,95 @@ def _citation_order(observation: Observation) -> tuple[str, str, str, str]:
             observation.observed_at, observation.run_id)
 
 
+#: `facts_for_file`'s own total order, restated where the corpus-wide reads below
+#: need it. `_ordered` above is the same tuple over one file's rows: the two reads
+#: group by version first and then order within the group, so a group is the list the
+#: per-file read returns and a caller's last-wins pick lands on the same row.
+def _version_order(row: sqlite3.Row) -> tuple[str, str, str]:
+    return (row["field_key"], row["canonical_value"], row["fact_id"])
+
+
+#: `facts_for_file`'s SELECT without its `WHERE`, so the two reads below publish the
+#: SAME columns the per-file read does -- `canonical_value` and `display_label` are
+#: joined on, and a caller reading either off one read and not the other is the drift
+#: this module's own docstrings keep warning about.
+_ACROSS_VERSIONS = (
+    'SELECT f.*, '
+    '       v.canonical_value AS canonical_value, '
+    '       v.display_label AS display_label '
+    'FROM file_facts AS f '
+    'JOIN fields AS fl ON fl.field_key = f.field_key '
+    'JOIN "values" AS v ON v.value_id = f.value_id '
+)
+
+
+def versions_proposing(conn: sqlite3.Connection, *, field_key: str,
+                       value: str) -> dict[tuple[str, str], sqlite3.Row]:
+    """Every file version whose proposal-eligible facts state this exact pair.
+
+    **`proposal_eligible`'s question asked of the corpus instead of of one file, and
+    it exists because a caller asking it one file at a time is quadratic.** P9's
+    shared-fact channel called `proposal_eligible` for every candidate and then looked
+    up ONE key in each result; over a 1,000-file corpus that was 1,000,000 of the
+    run's 2,273,532 `facts_for_file` calls and 25,000,000 at five thousand files.
+    `grouping/retrieval.py`'s docstring named this module as the place such a read
+    belongs -- "an index read is P6's to publish if this becomes the bottleneck" --
+    and this is that read.
+
+    The filters are `proposal_eligible`'s exactly and by construction:
+    `PROPOSAL_ELIGIBLE_STATES`, `active` truthy, `superseded_by IS NULL`.
+    `f.active != 0` and not `= 1`, because the per-file read tests the column for
+    truth rather than for one.
+
+    Ordering happens in Python, not in SQL. A caller keeps the LAST row for a key
+    under `(field_key, canonical_value, fact_id)`, which is Python's ordering of
+    those strings; SQLite's BINARY collation agrees on the ids this product mints and
+    there is no reason to depend on its agreeing.
+    """
+    placeholders = ", ".join("?" * len(PROPOSAL_ELIGIBLE_STATES))
+    rows = conn.execute(
+        _ACROSS_VERSIONS
+        + 'WHERE f.field_key = ? AND v.canonical_value = ? '
+          'AND f.active != 0 AND f.superseded_by IS NULL '
+          f'AND f.reliability_state IN ({placeholders})',
+        (field_key, value, *PROPOSAL_ELIGIBLE_STATES)).fetchall()
+    latest: dict[tuple[str, str], sqlite3.Row] = {}
+    for row in rows:
+        version = (row["file_id"], row["content_hash"])
+        held = latest.get(version)
+        if held is None or _version_order(held) < _version_order(row):
+            latest[version] = row
+    return latest
+
+
+def versions_in_fields(
+    conn: sqlite3.Connection, *, field_keys: Sequence[str],
+) -> dict[tuple[str, str], list[sqlite3.Row]]:
+    """`_in_fields` for the whole corpus, one statement, ordered per version.
+
+    UNFILTERED, and that is a difference from `versions_proposing` rather than an
+    oversight: `_in_fields` reads `facts_for_file` and narrows by field key alone.
+    §3.9 holds a download session at `possible` precisely so it never reaches
+    `proposal_eligible`, and a state filter here would empty the channel that reads
+    it.
+
+    An empty `field_keys` returns an empty mapping rather than the whole table: the
+    per-file read narrows to a set, and a caller with no fields is asking about
+    nothing.
+    """
+    if not field_keys:
+        return {}
+    placeholders = ", ".join("?" * len(field_keys))
+    rows = conn.execute(
+        _ACROSS_VERSIONS + f'WHERE f.field_key IN ({placeholders})',
+        tuple(field_keys)).fetchall()
+    grouped: dict[tuple[str, str], list[sqlite3.Row]] = {}
+    for row in rows:
+        grouped.setdefault((row["file_id"], row["content_hash"]), []).append(row)
+    return {version: sorted(found, key=_version_order)
+            for version, found in grouped.items()}
+
+
 def evidence_chain(conn: sqlite3.Connection, *, fact_id: str) -> list[Observation]:
     """One fact walked back to the P4 observations it cites.
 

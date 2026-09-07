@@ -27,6 +27,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 
 from llm_harness.vocabulary import (  # noqa: E402
+    F_ROLE_SHORTLIST,
     A_FACT, ABSTAIN, ACCEPT_CONTEXT_SUPPORTED, ACCEPT_DIRECT, B_GROUP, C_PLACEMENT,
     D_RESIDUAL, E_TEMPLATE,
 )
@@ -97,7 +98,8 @@ def test_the_text_is_a_constant_that_names_the_dossier_exactly(candidate):
         "The dossier has these keys and no others:")), None)
     assert line is not None, "R2: one line names the key set"
     named = [k.strip().rstrip(".") for k in line.split(":", 1)[1].split(",")]
-    assert named == DOSSIER_KEYS, named
+    expected = sorted(DOSSIER_KEYS + (["readings"] if candidate.readings_rows else []))
+    assert named == expected, named
     for key in FIELD_KEYS:
         assert f'"{key}"' not in text, f"R18: {key!r} in a worked example"
     assert "2026-09" not in text and "2025" not in text, "R17: nothing that varies"
@@ -152,6 +154,9 @@ def _instantiate(candidate, case, shape: dict) -> bytes:
     payload = claim["payload"]
     if "citations" in claim:
         claim["citations"] = _cite(case)
+    if candidate.site == F_ROLE_SHORTLIST:
+        payload["situation"] = case.expect.get("situation") or "none"
+        payload["alternatives"] = []
     if candidate.site == C_PLACEMENT:
         payload["destination"] = case.expect.get("destination", "none")
         if "citations" in claim:
@@ -240,3 +245,8 @@ def test_the_model_visible_bytes_carry_the_template_then_the_dossier(candidate):
     assert payload.startswith(template)
     body = json.loads(payload[len(template):].decode("utf-8"))
     assert sorted(body) == DOSSIER_KEYS
+    # A candidate that carries readings names a sixteenth key, `readings`, which
+    # the run adds to these bytes (105 §1.8, §12); the bare bytes never carry it.
+    line = next(l for l in template.decode("utf-8").splitlines()
+                if l.startswith("The dossier has these keys and no others:"))
+    assert ("readings" in line) == bool(candidate.readings_rows)

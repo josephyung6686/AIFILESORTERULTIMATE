@@ -107,7 +107,8 @@ def _inputs(conn, **overrides):
                              minimum_support_threshold=0.5, margin_threshold=0.2),
         limits=placement_limits(conn), partition=_partition,
         ask_or_abstain=lambda ids: v.ABSTAIN, max_return_cycles=1,
-        gate=None, model_client=None, prompt=None, call_dependencies=None,
+        gate=None, model_client=None, prompt=None, residual_prompt=None,
+        call_dependencies=None,
         model_call_request=None, chosen_node_of=None, residual_action_of=None,
         sensitivity_policy=None,
         # Nothing to ask about and nothing already answered. Both are
