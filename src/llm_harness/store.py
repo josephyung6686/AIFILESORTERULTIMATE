@@ -633,7 +633,30 @@ EMPTY_DIMENSION_VALUES: Mapping[str, object] = {
     "extractor_versions": [],
     "schema_id": [],
     "plan_version": None,
+    # `104` R-135's tenth term: the observation keys of the context readings a
+    # call was shown. A call shown none carries `[]`, which is what every call
+    # before the term existed carried in fact -- so a prior recorded under nine
+    # dimensions pairs under ten exactly when this run offers the file no context.
+    "context_refs": [],
 }
+
+#: THE SIX EVERY CALL HAS, so a mapping missing one is not an older shape of the
+#: key but a record nobody can read; an invented value would pair two calls that
+#: were never the same. Everything else in `CALL_IDENTITY_DIMENSIONS` MUST have an
+#: empty value above, checked here at import: `104` R-141 was found on the owner's
+#: corpus because the tenth dimension was added on one branch and the empty-value
+#: table written on another, and the seeder then refused all 238 prior answers
+#: with `no_empty_value_for_context_refs`. A table that can drift from the
+#: dimension set is the defect; this assertion is what keeps them one thing.
+ALWAYS_PRESENT_DIMENSIONS: frozenset[str] = frozenset({
+    "call_site", "content_hash", "model_id", "policy", "prompt_fingerprint",
+    "subject_ref",
+})
+assert set(CALL_IDENTITY_DIMENSIONS) - ALWAYS_PRESENT_DIMENSIONS <= set(
+    EMPTY_DIMENSION_VALUES), (
+    "a call identity dimension has no empty value: "
+    f"{sorted(set(CALL_IDENTITY_DIMENSIONS) - ALWAYS_PRESENT_DIMENSIONS - set(EMPTY_DIMENSION_VALUES))}")
+assert not (set(EMPTY_DIMENSION_VALUES) & ALWAYS_PRESENT_DIMENSIONS)
 
 
 class DimensionWithoutAnEmptyValue(MalformedRecord):
