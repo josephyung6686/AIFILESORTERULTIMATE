@@ -527,6 +527,25 @@ class GroundingReport:
     reduction_rung: str
     release_audit_id: int | None
     dossier_builder: str
+    #: `104` R-135'S EXPOSURE COUNT, AND IT STANDS IN FOR A NUMBER NOBODY AUTHORED.
+    #: The ruling releases a span covering a whole HEADING unit, because §8.4 names a
+    #: heading as what to send instead of a full document, and it sets no length bound:
+    #: a bound would be an invented threshold and this deployment invents none. So the
+    #: exposure is reported rather than capped. `heading_units_released` is how many
+    #: released items were a whole heading unit; `longest_heading_unit_length` is the
+    #: longest of them in characters.
+    #:
+    #: They are here rather than in a log because §8.5 replays a run and compares it,
+    #: and because the first live scorecard has to show this number rather than an
+    #: estimate of it. `recognition/detector.py` records body prose set in large type
+    #: being tagged `heading` by a typographic guess; if that is releasing paragraphs,
+    #: `longest_heading_unit_length` is where it becomes visible.
+    #:
+    #: Defaulted, unlike every field above, and that is deliberate: a caller that has
+    #: not been taught to count reports zero rather than failing to construct, so this
+    #: row cannot break a call site that has nothing to do with R-135.
+    heading_units_released: int = 0
+    longest_heading_unit_length: int = 0
 
     def __post_init__(self) -> None:
         _require(self.call_site, CALL_SITES, name="call_site")
@@ -538,6 +557,10 @@ class GroundingReport:
             raise MalformedRecord("GroundingReport requires dossier, model, and fingerprint")
         if not self.validator_version or not self.dossier_builder:
             raise MalformedRecord("validator_version and dossier_builder are required")
+        for name in ("heading_units_released", "longest_heading_unit_length"):
+            value = getattr(self, name)
+            if type(value) is not int or value < 0:
+                raise MalformedRecord(f"{name} is a count, and a count is never negative")
 
 
 @dataclass(frozen=True, slots=True)

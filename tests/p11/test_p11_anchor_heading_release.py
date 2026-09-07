@@ -112,20 +112,18 @@ def test_the_code_inside_the_heading_is_released(conn, tmp_path):
     assert [one.observation_key for one in offered] == [code.observation_key]
 
 
-def test_the_heading_that_states_both_spellings_is_refused(conn, tmp_path):
-    """`104` R-135's blocker, measured rather than asserted.
+def test_the_heading_that_states_both_spellings_is_released(conn, tmp_path):
+    """`104` R-135, after the ruling. This test FLIPPED, deliberately.
 
-    The one reading in the corpus that carries the code AND the course's name is
-    refused, and the refusal is §8.4's whole-document rule firing on a HEADING:
-    `model_placement.releasable_excerpts` skips a span whose `start <= 0` and whose
-    `end >= unit_length`, and `extractors/pdf.py` gives a heading observation exactly
-    that span over exactly that unit.
+    It measured the blocker first: the one reading in the corpus that carries the code
+    AND the course's name was refused, because §8.4's whole-document rule fired on a
+    HEADING. §8.4's sentence is "should not send full documents where a short heading or
+    OCR excerpt is enough", so the rule was refusing the alternative it exists to prefer.
 
-    §8.4's sentence is "should not send full documents where a short heading or OCR
-    excerpt is enough" -- a heading is the thing it names as sufficient, so the rule is
-    refusing the alternative it exists to prefer. Whether that changes is a decision
-    about what leaves the device, and this test states the current behaviour so the
-    decision is taken against a number rather than a guess.
+    The ruling is `privacy.release.unit_is_a_heading`: a whole heading unit is released,
+    a whole document is not, and no length bound is invented. The exposure is counted
+    instead. Both readings now reach the model, which is what site C's own instruction
+    to judge two spellings needs in order to mean anything.
     """
     _file_id, whole, code = _corpus(conn, tmp_path)
 
@@ -133,19 +131,18 @@ def test_the_heading_that_states_both_spellings_is_refused(conn, tmp_path):
         conn, evidence_refs=[whole.observation_key, code.observation_key])
 
     keys = [one.observation_key for one in offered]
-    assert whole.observation_key not in keys
-    assert keys == [code.observation_key]
+    assert whole.observation_key in keys
+    assert code.observation_key in keys
 
 
-def test_site_a_refuses_the_same_heading_for_the_same_reason(conn, tmp_path):
-    """The refusal is the PRODUCT's, not site C's, and that is what makes it a
-    coverage question rather than a placement one.
+def test_site_a_releases_the_same_heading_for_the_same_reason(conn, tmp_path):
+    """The ruling is the PRODUCT's, not site C's, which is why both sites move together.
 
-    `model_facts.releasable_observations` carries the identical whole-unit condition
-    (`src/model_facts.py:449-455`), so the heading that states the course's code and
-    its name together never reaches the fact model either. Constitution 2: "Any
-    successfully-read file must reach the model" -- the file does reach it; the one
-    reading that would settle this row does not, at either site.
+    `model_facts.releasable_observations` carried the identical whole-unit condition and
+    takes the identical exemption, so the heading that states the course's code and its
+    name together now reaches the fact model too. Constitution 2: "Any successfully-read
+    file must reach the model" -- the file always reached it; the one reading that
+    settles this row did not, at either site, and now does at both.
     """
     from model_facts import releasable_observations
 
@@ -157,7 +154,7 @@ def test_site_a_refuses_the_same_heading_for_the_same_reason(conn, tmp_path):
     keys = [one.observation_key for one in offered]
 
     assert code.observation_key in keys
-    assert whole.observation_key not in keys
+    assert whole.observation_key in keys
 
 
 def test_no_release_carries_the_context_beside_a_span(conn, tmp_path):
@@ -175,3 +172,33 @@ def test_no_release_carries_the_context_beside_a_span(conn, tmp_path):
     assert "context_after" not in RELEASED_EVIDENCE_FIELDS
     assert not hasattr(ReleasedItem(observation_key="", span="", value="", zone="",
                                     unit_length=None), "context_before")
+
+
+def test_a_whole_body_unit_is_still_refused(conn, tmp_path):
+    """The half of the ruling that did NOT move, and the reason it is safe.
+
+    `104` R-135 exempts a whole HEADING unit and nothing else. A span covering a whole
+    `body` unit is a full document, which is exactly what §8.4 forbids sending, and the
+    exemption is structural -- the innermost container segment -- so it cannot widen to
+    a page by accident. Without this assertion the ruling would read as "whole units are
+    releasable now", which is not what was ruled.
+    """
+    from evidence_shape.location import Location, Segment, TextSpan
+
+    _file_id, _whole, code = _corpus(conn, tmp_path)
+    file_id = code.file_id
+    page = (Segment("page", 1),)
+    prose = "The whole of a page of this document, which is not a heading."
+    record_text_unit(conn, TextUnit(
+        run_id="run-syllabus", container_path=page, text=prose))
+    body = Observation(
+        file_id=file_id, content_hash=code.content_hash, extractor_name="pdf.text",
+        extractor_version="1.0.0", source_type="text_document", raw_value=prose,
+        location=Location("body", page, text_span=TextSpan(0, len(prose))),
+        occurrence_count=1, observed_at=CLOCK, reliability="possible",
+        run_id="run-syllabus")
+    record_observation(conn, body)
+
+    offered = releasable_excerpts(conn, evidence_refs=[body.observation_key])
+
+    assert offered == ()

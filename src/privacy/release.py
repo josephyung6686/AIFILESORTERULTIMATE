@@ -198,6 +198,45 @@ class ModelCallRequest:
 REQUEST_FIELDS: tuple[str, ...] = tuple(f.name for f in fields(ModelCallRequest))
 
 
+#: The segment kind whose unit IS a heading. P4's own vocabulary, not a second copy:
+#: `extractors/pdf.py` addresses a heading by `segment("heading", index=...)` and
+#: `evidence_shape.location.Segment` checks the kind against `SEGMENT_KINDS`.
+HEADING_SEGMENT: str = "heading"
+
+
+def unit_is_a_heading(location) -> bool:
+    """Whether this observation's UNIT is a heading rather than a document.
+
+    **`104` R-135's ruling, and it is one line because the question is structural.**
+    Both release-request builders refuse a span covering the whole of its unit, which is
+    §8.4's *"should not send full documents where a short heading or OCR excerpt is
+    enough"*. `extractors/pdf.py:181` makes every heading its OWN text unit and gives
+    the heading observation a span of `(0, len)` over it -- so the refusal fired on
+    every heading in the product, at site A and site C alike, and refused the very thing
+    §8.4 names as the sufficient alternative to a full document.
+
+    Measured before the ruling: the one reading in the owner's corpus that states
+    `COMS W3134: Data Structures` -- the code and the course's name together -- reached
+    no model, so 19 of 43 labelled course codes were missing and 19 more were the title
+    recorded where the code belonged, and site C's own instruction to judge two
+    spellings had nothing to judge from.
+
+    **A heading unit is not a document, and that is the whole test.** The innermost
+    container segment says which it is. There is NO LENGTH BOUND here on purpose: a
+    bound is a number nobody authored, and this deployment refuses to invent one. The
+    exposure is COUNTED instead -- `llm_harness.records.GroundingReport` carries how
+    many whole heading units a call released and the longest one's length -- so the
+    first scorecard shows the real number rather than an estimate of it.
+
+    The known way this is wrong is not this function's to fix: `recognition/detector.py`
+    records body prose set in large type being tagged `heading` by a typographic guess.
+    A heading that is really prose is that detector's defect, and the count above is
+    what will show it.
+    """
+    path = location.container_path
+    return bool(path) and path[-1].kind == HEADING_SEGMENT
+
+
 @dataclass(frozen=True, slots=True)
 class ReleasedItem:
     """One item as the MODEL sees it. SPEC §6: "post-redaction values only".

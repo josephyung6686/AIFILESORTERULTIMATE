@@ -588,6 +588,13 @@ def test_grounding_report_carries_the_spec_measurement_fields():
         "reduction_rung",
         "release_audit_id",
         "dossier_builder",
+        # `104` R-135's exposure count. The ruling releases a whole HEADING unit and
+        # sets NO length bound, because a bound is a number nobody authored; the
+        # exposure is reported instead, so the first live scorecard shows how much
+        # heading text actually left and how long the longest piece was. Defaulted, so
+        # a caller that has not been taught to count still constructs.
+        "heading_units_released",
+        "longest_heading_unit_length",
     )
     assert report.release_audit_id == 17
     with pytest.raises((MalformedRecord, ValueError)):
