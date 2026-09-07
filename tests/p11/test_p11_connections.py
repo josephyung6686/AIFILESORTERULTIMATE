@@ -479,7 +479,8 @@ def test_a_run_without_a_support_policy_or_limits_refuses(p11_conn):
         chosen_by_user=lambda subject: None,
         fields_that_cannot_anchor_a_move=frozenset(),
         their_own_folder_made_for_what_it_holds={}, p2=None,
-        the_folder_each_file_is_in={})
+        the_folder_each_file_is_in={},
+        a_move_the_person_has_not_permitted=None)
     PipelineInputs(**good)                     # the control: this one builds
     with _pytest.raises(ConfigurationRequired):
         PipelineInputs(**{**good, "policy": None})

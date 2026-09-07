@@ -418,7 +418,8 @@ def test_a_residual_call_with_no_residual_prompt_refuses_rather_than_borrowing_c
         ask_about_file=None, chosen_by_user=None,
         fields_that_cannot_anchor_a_move=frozenset(),
         their_own_folder_made_for_what_it_holds={}, p2=None,
-        the_folder_each_file_is_in={})
+        the_folder_each_file_is_in={},
+        a_move_the_person_has_not_permitted=None)
     inputs = object.__new__(PipelineInputs)
     for name, value in values.items():
         object.__setattr__(inputs, name, value)

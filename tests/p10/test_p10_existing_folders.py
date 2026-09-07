@@ -348,14 +348,85 @@ def test_one_file_agreeing_with_itself_is_not_a_folder_expectation(corpus,
             ] == ["BUSIB 4300"]
 
 
+def test_one_file_speaking_in_a_folder_of_two_is_not_a_folder_expectation(
+        corpus, tmp_path):
+    """`104` R-87. The sixth appearance, and the half the folder-size floor
+    misses.
+
+    The floor above counts the files IN the folder. §5.11 counts a silent file
+    as silent -- rightly: a file that says nothing has not disagreed with
+    anything -- so a folder holding two files where only ONE settles a field is
+    unanimous at that field on the strength of one file, and clears a floor
+    written about folder size.
+
+    Measured on the walkthrough: `old stuff` held a PHYS1401 problem set and one
+    other thing, claimed `work_type = problem set` from the first, and then tied
+    with the course folder the same run had just proposed -- three more problem
+    sets abstained between the two, and the folder somebody drops things into
+    had become a rival destination profile for a course.
+
+    Here: `syllabus` states `work_type = Syllabus` and `lab` states no
+    `work_type` at all. One file agreeing with itself is evidence about the
+    FILE, whether the folder around it holds one file or ten.
+    """
+    from tree_design.upstream import settled_values_in_directory
+
+    one_spoke = put_in_folder(corpus, tmp_path, "old stuff", ("syllabus", "lab"))
+    values = settled_values_in_directory(corpus.conn, directory_path=one_spoke)
+
+    assert not [value for value in values if value.field_ref == "work_type"], (
+        "one file stated the kind and the other said nothing; the folder claimed "
+        f"{[value.canonical_value for value in values]} from it")
+
+
+def test_two_files_that_agree_still_make_a_folder_expectation(corpus, tmp_path):
+    """The discriminating half of `104` R-87: this is a floor, not a ban.
+
+    Two files that both settle the same subject are what the design has always
+    meant by a folder the person curated, and the ruling changes nothing about
+    them. Stated separately from the floor above so that a change which quietly
+    emptied every adopted folder would fail here rather than pass twice.
+    """
+    from tree_design.upstream import settled_values_in_directory
+
+    together = put_in_folder(corpus, tmp_path, "Business", ("syllabus", "hw3"))
+    assert [(value.field_ref, value.canonical_value) for value
+            in settled_values_in_directory(corpus.conn, directory_path=together)
+            ] == [("subject", "BUSIB 4300")]
+
+
+def test_the_folder_keeps_its_name_when_it_may_claim_nothing(corpus, tmp_path):
+    """`104` R-87 is Q-D's REFINEMENT and not its removal.
+
+    An adopted folder that may no longer claim a value off one file is still in
+    the tree, still `existing`, still carrying its real path, and still wearing
+    its own name -- which is a channel of its own: `placement.index` writes
+    `display_label` as a source field and `retrieve` matches it separately from
+    `expected_values`. A folder called `PHYS1401` is found by a file that names
+    PHYS1401 whatever its contents have or have not said.
+    """
+    folder = put_in_folder(corpus, tmp_path, "old stuff", ("syllabus", "lab"))
+    seed_folder(corpus, folder, str(tmp_path), files=2)
+
+    result = design(corpus, dec=decisions(
+        branch_group_ids=("g_columbia_coursework", folder)))
+    node = adopted(result, corpus.conn, folder)
+
+    assert node is not None, "the folder was dropped rather than refined"
+    assert node.node_type == EXISTING
+    assert node.display_label == "old stuff"
+    assert node.expected_values == ()
+
+
 def test_a_kind_that_merely_leads_is_an_expectation_but_not_what_a_folder_is_for(
         corpus, tmp_path):
     """UNANIMITY IS NOT COVERAGE, and the two answers must stay different.
 
-    A folder holding a syllabus and a lab report: only one of them says what kind
-    of thing it is, and a file that says nothing has not disagreed -- §5.11
-    permits a tree "even if some files remain unresolved" -- so the folder
-    unanimously expects `Syllabus` and that is the right answer for §6.2.
+    A folder holding two syllabi and a lab report: two of them say what kind of
+    thing they are and agree, the third says nothing, and a file that says
+    nothing has not disagreed -- §5.11 permits a tree "even if some files remain
+    unresolved" -- so the folder unanimously expects `Syllabus` and that is the
+    right answer for §6.2.
 
     It is the wrong answer to a different question. `00`:100 treats a folder the
     person made as a strong expression of intent, and P11 refuses to carry a file
@@ -369,22 +440,35 @@ def test_a_kind_that_merely_leads_is_an_expectation_but_not_what_a_folder_is_for
     So `settled_values_stated_by_every_file` keeps only what every file states,
     and this is the corpus where the two functions must not agree. Collapse them
     and `Desktop` becomes a folder made for résumés.
+
+    **TWO SPEAKERS AND ONE SILENT FILE, since `104` R-87.** This read `syllabus`
+    and `lab` -- one speaker -- and that shape is now refused by both functions,
+    because one file agreeing with itself is evidence about the file. The
+    distinction this test exists for is untouched by that floor and the measured
+    case it comes from was never one file either: `Desktop`'s four résumés among
+    eleven things are four speakers and seven silent files. So the fixture is
+    the shape the docstring always described.
     """
+    from p10.p6_fixtures import SeededCorpus
     from tree_design.upstream import (settled_values_in_directory,
                                       settled_values_stated_by_every_file)
 
-    leading = put_in_folder(corpus, tmp_path, "Desk", ("syllabus", "lab"))
+    SeededCorpus(conn=corpus.conn, subjects=corpus.files).add_subject(
+        tmp_path, "second syllabus", "BUSIB 4300 Syllabus, second copy",
+        (("work_type", "Syllabus"),))
+    leading = put_in_folder(corpus, tmp_path, "Desk",
+                            ("syllabus", "second syllabus", "lab"))
 
     assert "Syllabus" in [
         value.canonical_value for value
         in settled_values_in_directory(corpus.conn, directory_path=leading)], (
-        "a kind one file names and the other is silent about is still what the "
+        "a kind two files name and a third is silent about is still what the "
         "folder expects, and §6.2 needs that answer")
     assert not [value for value
                 in settled_values_stated_by_every_file(
                     corpus.conn, directory_path=leading)
                 if value.field_ref == "work_type"], (
-        "one file of two naming a kind made the folder look built for that "
+        "two files of three naming a kind made the folder look built for that "
         "kind, which is `Desktop` described as `Kid`")
 
 

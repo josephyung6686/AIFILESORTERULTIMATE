@@ -239,16 +239,24 @@ def test_the_comparison_above_rests_on_folders_that_answer_differently(corpus,
 
 def test_the_coverage_question_still_reaches_the_same_answer(corpus, tmp_path):
     """`settled_values_stated_by_every_file` is a different question and it must
-    keep coming out different: a folder where one file names a kind and the other
-    is silent EXPECTS that kind but was not MADE for it."""
+    keep coming out different: a folder where two files name a kind and a third
+    is silent EXPECTS that kind but was not MADE for it.
+
+    Two namers and not one, since `104` R-87: one file agreeing with itself is
+    evidence about the FILE, so a single speaker now settles nothing at all and
+    the two functions would agree here for the wrong reason. The measured case
+    this pins -- `Desktop`, four résumés among eleven things -- was always
+    several speakers beside several silent files.
+    """
     folders = _build(corpus, tmp_path, SMALL)
     leading = str(tmp_path / "Coursework" / "desk")
-    for index in range(2):
+    for index in range(3):
         _file(corpus, tmp_path, f"desk-{index}.pdf", folder="Coursework/desk")
         _fact(corpus, _last_file(corpus), field_key="subject", value="DESK001",
               run_id=f"run-desk-{index}")
-    _fact(corpus, _last_file(corpus), field_key="work_type", value="Resume",
-          run_id="run-desk-kind")
+        if index < 2:
+            _fact(corpus, _last_file(corpus), field_key="work_type",
+                  value="Resume", run_id=f"run-desk-kind-{index}")
 
     expects = settled_values_in_directory(corpus, directory_path=leading)
     made_for = settled_values_stated_by_every_file(corpus, directory_path=leading)

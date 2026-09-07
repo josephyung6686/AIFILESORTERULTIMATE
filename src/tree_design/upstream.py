@@ -644,6 +644,15 @@ def settled_values_in_directory(conn: sqlite3.Connection, *,
     folder of unreadable files both expect nothing, which is the honest answer
     for each.
 
+    **And a field where exactly ONE file settled a value yields nothing either**
+    (`104` R-87). Silence is not disagreement and it is not agreement: a folder
+    of five where one file says `work_type = problem set` and four say nothing
+    was unanimous on the strength of one file, and that is the FILE's evidence
+    rather than the FOLDER's. An adopted folder may claim a value from its name
+    or from two or more files that agree, never from one -- the second half of
+    the sentence the folder-size floor below already says, asked of the files
+    that spoke rather than of the files that are there.
+
     `stated_by_every_file` narrows the third rule and nothing else: it keeps only
     the values that are not merely unanimous among the files that spoke but are
     stated by every file in the folder. That is a different question from this
@@ -739,6 +748,32 @@ def settled_values_by_directory(conn: sqlite3.Connection, *,
             readings = [reading.get(row["file_id"]) for row in here]
             present = [found for found in readings if found is not None]
             if not present:
+                continue
+            # `104` R-87. TWO FILES THAT AGREE, OR NONE. A SET OF ONE IS ALWAYS
+            # UNANIMOUS, and the floor above says that of a folder holding one
+            # file; this says it of the files that actually SPOKE, which is the
+            # same sentence and the half that was missing.
+            #
+            # §5.11 counts a silent file as silent -- deliberately, and that
+            # stays -- so a folder of five where ONE file settles `work_type`
+            # and four say nothing was unanimous on the strength of one file.
+            # Measured on the walkthrough: `old stuff` held a PHYS1401 problem
+            # set and a shopping list, claimed `work_type = problem set` from
+            # the first, and then tied with the course folder the same run had
+            # proposed -- so three more problem sets abstained between the two.
+            # One folder somebody dropped a file into had become a rival
+            # destination profile for the course.
+            #
+            # The folder is not removed and keeps its NAME: `placement.index`
+            # writes `display_label` as a source field of its own, so a folder
+            # called `PHYS1401` is still reached by a file that names PHYS1401.
+            # What it loses is a claim about its contents that its contents
+            # made once. That is Q-D's refinement rather than its removal.
+            #
+            # `<= 1` and not a number: `test_p10_no_invention` forbids a numeric
+            # literal beyond zero and one in this package, and the rule is right
+            # -- a threshold spelled here would be one nobody authored.
+            if len(present) <= 1:
                 continue
             if len({found.canonical_value for found in present}) != 1:
                 continue

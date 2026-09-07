@@ -163,7 +163,16 @@ def surface_residual_sets(conn: sqlite3.Connection, *, plan_version: str,
                           placement_pass_complete: bool,
                           component_version: str,
                           observed_at: str) -> tuple[ResidualSet, ...]:
-    """§7.5's screen. A visible summary in review sets, not an automatic cleanup."""
+    """§7.5's screen. A visible summary in review sets, not an automatic cleanup.
+
+    `unplaced` is WHAT THIS SCREEN HOLDS, which since `104` R-113 is a wider
+    thing than its name: `run_corpus` sends the files nothing placed AND the
+    placements a policy is holding -- a destination that cannot be reached is
+    still a file waiting on the person, and `--send-set` is the gesture this
+    screen offers them. The rule below is unchanged and it is the reason the
+    caller widens the list rather than the guard being loosened: whatever
+    arrives here is in exactly one set or it is never shown.
+    """
     if not placement_pass_complete:
         raise PlacementPassIncomplete(
             "§7.1: residual review runs only after normal group-aware "
@@ -188,9 +197,10 @@ def surface_residual_sets(conn: sqlite3.Connection, *, plan_version: str,
         missing = sorted(set(remaining) - set(partitioned))
         extra = sorted(set(partitioned) - set(remaining))
         raise ValueError(
-            f"the partition covers {sorted(partitioned)} and the unplaced files "
-            f"are {sorted(remaining)}: missing {missing}, invented {extra}. Every "
-            "unplaced file appears in exactly one review set or it is never shown"
+            f"the partition covers {sorted(partitioned)} and the files held for "
+            f"review are {sorted(remaining)}: missing {missing}, invented "
+            f"{extra}. Every one of them appears in exactly one review set or "
+            "it is never shown"
         )
     surfaced: list[ResidualSet] = []
     with transaction(conn):
