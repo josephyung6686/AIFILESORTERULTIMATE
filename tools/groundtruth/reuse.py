@@ -129,6 +129,12 @@ class Seeded:
     #: payload that is not a dossier. Each one costs a question asked again the
     #: first time the validator moves, which is what it cost before R-137.
     untranslated: int = 0
+    #: WHY each left-behind answer was left, counted per reason. `104` R-141: a
+    #: bare `skipped` cannot be diagnosed, and it covers five different faults --
+    #: the prior did not know the subject, this corpus does not hold those bytes,
+    #: the path moved, the dimensions would not digest, or two prior answers
+    #: reached one question here.
+    skipped_reasons: Mapping[str, int] = field(default_factory=dict)
 
 
 def _src_on_path() -> None:
@@ -334,6 +340,7 @@ def write_seeded(out_dir: Path, situation: str, given: "Seeded", *,
                     # old address is never overwritten in silence; it is written
                     # down here.
                     "addresses": dict(given.addresses),
+                    "skipped_reasons": dict(given.skipped_reasons),
                     "untranslated": given.untranslated,
                     "prior_checkout": read_provenance(source)},
                    indent=2, sort_keys=True),
@@ -753,14 +760,45 @@ def seed(fresh: Path, prior: Path, *, corpus: Path) -> Seeded:
             digests: set[str] = set()
             written: set[tuple[str, str]] = set()
             skipped = 0
+            reasons: dict[str, int] = {}
+
+            def leave_behind(reason: str) -> None:
+                """One answer not seeded, and WHY. `104` R-141.
+
+                A bare count cannot be diagnosed. The owner's r8 reported "238 not
+                in this corpus" against a prior whose `files` table paired 199 of
+                199 with this run's, and the number could not say whether the
+                prior did not know the subject, this corpus does not hold the
+                file, or the path had moved -- three different faults wearing one
+                number, and no way to tell which without the databases in hand.
+                """
+                nonlocal skipped
+                skipped += 1
+                reasons[reason] = reasons.get(reason, 0) + 1
+
             for row in conn.execute(
                     "SELECT identity_id, dossier_id, call_site, subject_ref, "
                     "dimensions, observed_at FROM prior.llm_call_identity"
                     ).fetchall():
                 version = there.get(row["subject_ref"])
-                mine = here.get(version) if version is not None else None
+                if version is None:
+                    # The PRIOR's own `files` table does not know the subject this
+                    # identity names. Nothing about this corpus is involved, and a
+                    # message about this corpus would send a reader to the wrong
+                    # database.
+                    leave_behind("subject_not_in_the_prior")
+                    continue
+                mine = here.get(version)
                 if mine is None:
-                    skipped += 1
+                    # The pair is `(current_path, content_hash)`. Which HALF of it
+                    # missed is the whole diagnosis: bytes this scan holds under
+                    # another path is a rename or a re-spelled corpus root, and
+                    # bytes it does not hold at all is a file that changed or went.
+                    _path, content = version
+                    leave_behind(
+                        "path_moved_or_renamed"
+                        if content in {key[1] for key in here}
+                        else "not_in_this_corpus")
                     continue
                 # A row whose mapping this checkout cannot take a digest over is
                 # SKIPPED and never fatal. The schema check upstream compares
@@ -773,7 +811,7 @@ def seed(fresh: Path, prior: Path, *, corpus: Path) -> Seeded:
                     dimensions["subject_ref"] = mine
                     digest = call_identity(dimensions)
                 except Exception:
-                    skipped += 1
+                    leave_behind("dimensions_this_checkout_cannot_digest")
                     continue
                 # `(identity, dossier)` is the primary key, and two prior rows
                 # CAN land on one pair here: their prior file ids differ and both
@@ -781,7 +819,7 @@ def seed(fresh: Path, prior: Path, *, corpus: Path) -> Seeded:
                 # than inserted twice, because the second insert would abort the
                 # whole seeding over two rows that say the same thing.
                 if (digest, row["dossier_id"]) in written:
-                    skipped += 1
+                    leave_behind("two_prior_answers_to_one_question")
                     continue
                 # HELD, not written, until the dossier's new address is known.
                 # `104` R-137 moves that address, and `(identity_id, dossier_id)`
@@ -856,7 +894,8 @@ def seed(fresh: Path, prior: Path, *, corpus: Path) -> Seeded:
             conn.execute("DETACH DATABASE prior")
         return Seeded(answers=len(digests), rows=rows, skipped=skipped,
                       responses=rows.get("llm_response", 0),
-                      addresses=addresses, untranslated=untranslated)
+                      addresses=addresses, untranslated=untranslated,
+                      skipped_reasons=reasons)
     finally:
         conn.close()
 

@@ -482,3 +482,61 @@ def test_a_changed_file_is_asked_fresh_even_when_the_validator_moved(
     assert len(socket) - paid_for == 1, socket.subjects()[paid_for:]
     assert _asked_again(second, given) == {"week two notes.txt"}
     assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == 1
+
+
+def test_a_seed_of_a_seed_pairs_every_answer_the_prior_held(
+        corpus, socket, tmp_path, monkeypatch):
+    """`104` R-141: a prior that was itself seeded is still a prior.
+
+    Measured on the owner's r8, seeded from r6: `answers 0, skipped 238`, "238 not
+    in this corpus", while the two `files` tables paired 199 of 199 by path and by
+    content hash. A rerun of a rerun paid for everything, which is every rerun
+    after the first.
+    """
+    a_dir, b_dir, c_dir = tmp_path / "a", tmp_path / "b", tmp_path / "c"
+    a_dir.mkdir()
+    first, second, third = (a_dir / "x.sqlite", b_dir / "x.sqlite",
+                            c_dir / "x.sqlite")
+    _run(corpus, first)
+    paid_for = len(socket)
+
+    given_b = seed(second, first, corpus=corpus)
+    _run(corpus, second)
+    assert given_b.skipped == 0 and given_b.answers == paid_for
+
+    monkeypatch.setattr(
+        fact_validation, "VALIDATOR_VERSION",
+        f"{fact_validation.VALIDATOR_VERSION}+r141")
+    given_c = seed(third, second, corpus=corpus)
+    _run(corpus, third)
+
+    assert given_c.skipped == 0, (
+        f"a seed of a seed left {given_c.skipped} answers behind")
+    assert given_c.answers == given_b.answers
+    assert len(socket) == paid_for, socket.subjects()[paid_for:]
+
+
+def test_the_note_says_why_each_answer_was_left_behind(
+        corpus, socket, tmp_path):
+    """`104` R-141: a bare count cannot be diagnosed, and three faults wore one.
+
+    The owner's r8 reported "238 not in this corpus" against a prior whose files
+    paired 199 of 199, and the number could not say whether the prior did not know
+    the subject, this corpus did not hold the file, or the path had moved.
+    """
+    prior_dir, fresh_dir = tmp_path / "prior", tmp_path / "fresh"
+    prior_dir.mkdir()
+    fresh_dir.mkdir()
+    first = prior_dir / f"{SITUATION.replace('.', '_')}.sqlite"
+    second = prior_database(fresh_dir, SITUATION)
+    _run(corpus, first)
+
+    (corpus / "week two notes.txt").rename(corpus / "renamed between runs.txt")
+    given = seed(second, first, corpus=corpus)
+    write_seeded(fresh_dir, SITUATION, given, source=prior_dir)
+
+    assert given.skipped == 1
+    assert given.skipped_reasons == {"path_moved_or_renamed": 1}
+    note = json.loads(
+        seeded_note(fresh_dir, SITUATION).read_text(encoding="utf-8"))
+    assert note["skipped_reasons"] == {"path_moved_or_renamed": 1}
