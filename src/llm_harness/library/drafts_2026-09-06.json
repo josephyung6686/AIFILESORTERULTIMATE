@@ -131,6 +131,15 @@
    "response_schema_file": "e_template_response_schema.json",
    "shaping_policy_file": "e_template_shaping_policy.json",
    "note": "what-a-person-opens with the payload reordered so sensitivity_policy_ref, a string, is its last key (G13: the provider closed on a populated array one bracket short in 15 of 24 responses)."
+  },
+  {
+   "site": "B_group",
+   "candidate": "anchors-first-v3",
+   "template_id": "b_group.unratified.anchors-first-v3.2026-09-06",
+   "template_file": "b_group_template.anchors-first-v3.txt",
+   "response_schema_file": "b_group_response_schema.json",
+   "shaping_policy_file": "b_group_shaping_policy.json",
+   "note": "anchors-first-v2 with the payload reordered so basis, a word, is its last key (G13: the provider closes on a list one bracket short; 6 of 15 v2 responses on the cloud)."
   }
  ],
  "digests": {
@@ -158,6 +167,7 @@
   "e_template_template.what-a-person-opens-v2.txt": "54be24318b0fa488ae8f94a96e3568b7c2d1b882812cf6a0aaff7b929e93e1d6",
   "c_placement_template.eliminate-v2.txt": "9fd0c4940f6839c6fc591a6d1df74859186e72dcdc7307c2d4bc60f9151ff9ff",
   "b_group_template.anchors-first-v2.txt": "6590cc82dfab9e8322c61b4607519a5301fed7d7620aee2557110d698d242558",
-  "field_glossary_proposal_subject_2026-09-06.json": "5e6233eac17e5f263634b5d60facb9a7dc4412af3016b6fb3d0b9b9c4828ea10"
+  "field_glossary_proposal_subject_2026-09-06.json": "5e6233eac17e5f263634b5d60facb9a7dc4412af3016b6fb3d0b9b9c4828ea10",
+  "b_group_template.anchors-first-v3.txt": "d114f4f052bd1fb253dbf8207a212a539479e06c6ebc56987ff63141b267367b"
  }
 }
