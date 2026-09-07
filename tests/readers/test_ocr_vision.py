@@ -305,3 +305,53 @@ def test_a_box_that_touches_the_top_stays_inside_the_page(screenshot):
     box = _box(_Rect(0.0, 0.8, 1.0, 0.2))
     assert box["y"] == pytest.approx(0.0)
     assert 0.0 <= box["y"] <= 1.0
+
+
+# --- `104` R-L: the library's own noise ------------------------------------------
+
+_QUIET_PROBE = """
+import sys
+sys.path.insert(0, {src!r})
+from pathlib import Path
+from readers.ocr_vision import vision_ocr
+
+path = Path({path!r})
+vision_ocr()(path, config={{"languages": ["en-US"], "dpi": 200,
+                           "recognition_level": "accurate"}})
+sys.stderr.write("PROBE-OWN-STDERR" + chr(10))
+sys.stderr.flush()
+"""
+
+
+def test_a_file_that_is_not_a_pdf_prints_nothing_of_core_graphics_own(tmp_path):
+    """`CoreGraphics PDF has logged an error` was the first thing a person saw.
+
+    Five copies of it stood above every report, before the plan, before the tree,
+    before the count of files -- one per extraction worker. It is not this
+    product's message and it is not about the person's file: the engine hands
+    every OCR candidate to `CGPDFDocumentCreateWithURL` to learn whether it is a
+    PDF, and Core Graphics writes that line straight to file descriptor 2 the
+    first time in a process that the answer is no.
+
+    IN A SUBPROCESS, and that is the whole test rather than an implementation
+    detail: Core Graphics logs this ONCE per process, so an in-process assertion
+    would pass on the second test to run whether or not anything was fixed.
+
+    The second assertion is the one that keeps the fix honest -- the product's own
+    stderr still comes through. Silencing the run's own voice to hide a library's
+    would be a worse defect than the one being fixed.
+    """
+    import subprocess
+    import sys
+
+    not_a_pdf = tmp_path / "Econ notes week 5.txt"
+    not_a_pdf.write_text("Week 5: elasticity of demand.\n")
+    src = str(Path(__file__).resolve().parents[2] / "src")
+
+    done = subprocess.run(
+        [sys.executable, "-c", _QUIET_PROBE.format(src=src, path=str(not_a_pdf))],
+        capture_output=True, text=True, timeout=300)
+
+    assert done.returncode == 0, done.stderr
+    assert "CoreGraphics" not in done.stderr, done.stderr
+    assert "PROBE-OWN-STDERR" in done.stderr
