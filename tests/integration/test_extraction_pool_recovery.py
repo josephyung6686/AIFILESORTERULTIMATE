@@ -196,7 +196,13 @@ def test_a_file_that_kills_its_worker_becomes_one_failed_run(live_db, corpus, po
     assert POISON in rows, "the file that killed the worker got no run row at all"
     _, reason = rows[POISON]
     assert reason is not None, f"the poisoned file was recorded as a success: {rows}"
-    assert "died twice" in reason, reason
+    # R-120. Two attempts, each named by its own end and in the order they happened.
+    # This reader dies both times so the halves read alike, but the sentence is the
+    # one a mixed pair also gets -- the sibling ceiling file holds the other three
+    # orders. The old row said "died twice", which was the death path's words applied
+    # to whatever the first attempt had actually done.
+    assert ("attempt 1: the worker process died (BrokenProcessPool); "
+            "attempt 2: the worker process died (BrokenProcessPool)") in reason, reason
 
 
 def test_the_other_three_files_are_read_normally(live_db, corpus, pool):
