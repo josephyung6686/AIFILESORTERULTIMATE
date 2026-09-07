@@ -101,7 +101,10 @@ def test_a_fact_on_the_schemas_own_field_reaches_and_a_bridge_does_not():
 
     assert partition.branch_of("notes").label == "Coursework"
     assert partition.branch_of("other course").label == "Coursework"
-    assert "posting" in partition.held
+    # `104` R-140: a term alone reaches nothing, and a file nothing reaches is
+    # the default branch's, not held.
+    assert partition.branch_of("posting").is_default
+    assert partition.held == ()
 
 
 def test_a_fact_outranks_the_recognisers_reading():
@@ -132,13 +135,16 @@ def test_the_recognisers_reading_reaches_a_branch_that_exists_and_opens_none():
 
     assert partition.branch_of("posting").label == "career"
     assert partition.branch_of("cv").label == "career"
-    assert partition.held == ("survey",)
+    # `medical` opens no branch and the survey reaches none: the default's.
+    assert partition.branch_of("survey").is_default
+    assert partition.held == ()
     assert {branch.schema for branch in partition.branches} == {"academic", "career"}
 
 
 def test_a_file_two_branches_reach_is_held_not_guessed():
     """Facts of two branches' own fields, or a reading that ties between two
-    branches with no fact to settle it: nothing decides, so nobody guesses."""
+    branches with no fact to settle it: nothing decides, so nobody guesses.
+    `104` R-140 keeps this the ONLY held case; a file nothing reaches defaults."""
     partition = _partition(
         ("syllabus", "cover letter", "both facts", "tied reading"),
         facts={"syllabus": (("work_type", "syllabus"), ("subject", "PHYS1401")),

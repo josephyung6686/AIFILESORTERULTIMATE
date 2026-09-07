@@ -52,9 +52,13 @@ branch lost its courses and came out flat by kind. The recogniser answers what
 a file is made of; a validated `subject` says which course it is part of, and
 the second question is the one a branch asks.
 
-A file exactly one branch reaches is under it. A file two reach, or none, is
-HELD: it is asked nothing, and P11 records for it whatever reason it would have
-recorded anyway, which is the review set the screen already prints it under.
+A file exactly one branch reaches is under it. A file NO branch reaches is the
+DEFAULT branch's (`104` R-140): the person said what this folder is with
+`--situation`, coverage is sacred, and a model may still decline every field.
+Measured on the owner's corpus before R-140, 147 of 199 files met no model at all
+and site C had nothing to judge. Only a file TWO branches reach is HELD: it is
+asked nothing, and P11 records for it whatever reason it would have recorded
+anyway, which is the review set the screen already prints it under.
 
 **With one branch the partition is the folder, byte for byte.** Every file is
 under the default branch, nothing is held, and the run is the run it was; that is
@@ -119,7 +123,11 @@ class Branch:
 
 @dataclass(frozen=True)
 class BranchPartition:
-    """The run's top-level branches and the files none of them reaches."""
+    """The run's top-level branches and the files two of them reach.
+
+    `held` is the genuinely ambiguous files: two branches reach each of them and
+    nothing decides. A file no branch reaches is under the default branch.
+    """
 
     branches: tuple[Branch, ...]
     held: tuple[str, ...]
@@ -254,6 +262,8 @@ def partition_by_branch(
                 reached = _named_by(verdict_of(file_id, content_hash)) & set(schemas)
         if len(reached) == 1:
             under[next(iter(reached))].append(file_id)
+        elif not reached:
+            under[default_schema].append(file_id)
         else:
             held.append(file_id)
 
