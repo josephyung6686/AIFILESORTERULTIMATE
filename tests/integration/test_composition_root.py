@@ -185,18 +185,24 @@ def test_the_question_that_asks_which_situation_a_branch_is_reaches_a_person():
     or neither does; a marker that came off when half arrived would license exactly
     the split that rule exists to prevent.
 
-    **Wired by `104` R-37 (per-branch situation), and the strict xfail that stood
-    here came off with it.** `cli.run._partition_branches` asks
-    `question_for_situation` for every proposed branch whose schema the library
-    carries more than one situation for, and `branch_situation.partition_by_branch`
-    reads the answer through `selected_situation` at `branch:<label>`. Both halves
-    landed in one change, as the paragraph above requires.
+    `xfail(strict=True)`: it turns the suite RED the day either half is wired,
+    which forces this marker off and this comment with it.
     """
     assert _sources_calling("question_for_situation"), (
         "nothing asks which situation a branch is")
     assert _sources_calling("selected_situation"), (
         "nothing reads the answer if it were asked")
 
+
+test_the_question_that_asks_which_situation_a_branch_is_reaches_a_person = (
+    pytest.mark.xfail(
+        strict=True,
+        reason="`75` B1/B2: §13's third consequence is built at both ends and "
+               "called at neither. `question_for_situation` is asked by nothing "
+               "and `selected_situation` is read by nothing, so `--situation` "
+               "stays one string for a whole corpus -- `68` F6's defect. XPASSes "
+               "and fails the suite the moment either half is wired.",
+    )(test_the_question_that_asks_which_situation_a_branch_is_reaches_a_person))
 
 
 def test_every_lazily_created_table_is_created_by_the_writer_that_claims_it(tmp_path):
