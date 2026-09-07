@@ -321,6 +321,45 @@ def unit_for_observation(conn: sqlite3.Connection,
                         observation.location.container_path)
 
 
+#: The namespace a DERIVED reading's extractor name sits in. A convention and not a
+#: list, so a producer written next year opts in by naming itself and no consumer has
+#: to be edited to know about it.
+DERIVED_NAMESPACE: str = "derived."
+
+
+def is_derived_extractor(extractor_name: str) -> bool:
+    """Whether readings from this extractor are derived. The row-level spelling."""
+    return extractor_name.startswith(DERIVED_NAMESPACE)
+
+
+def is_derived(observation: Observation) -> bool:
+    """Whether this reading is an ADDRESSABLE COPY rather than evidence about the file.
+
+    **`104` R-135's ruling, and it is one predicate because two consumers need one
+    answer.** A derived reading re-expresses text an earlier pass already stored, at a
+    new address, so that it can be CITED and so that another file's dossier can carry
+    it as context. It says nothing new about what the file it was cut from IS, and a
+    consumer that counts it as evidence counts the file's own words twice.
+
+    Measured, twice, on the chain. `test_step4_recognition_as_a_gate`: a course
+    notebook stopped being recognised as `code` and became `academic`, because the
+    minted line carries the course's NAME while the code reading it was cut around
+    carries only the code -- so words that were never evidence about the notebook
+    became evidence about it. `test_p15_a_promised_gesture_is_offered`: `starter.py`'s
+    docstring prints `BUSIB 4300 Homework 2 starter`, the minted line's context then
+    carried `Homework`, §3.5's rule pass read the copy as a second reading, a validated
+    course fact appeared, and a file the test's premise says nothing reaches was
+    placed.
+
+    So `facts.rules` and `recognition.detector` skip derived readings through this
+    function. What does NOT change: the reading stays live, stays citable, and stays
+    releasable. Site A may release it as the file's own text -- it IS the file's own
+    text -- and `104` R-135's context path is untouched, which is the whole reason it
+    exists.
+    """
+    return is_derived_extractor(observation.extractor_name)
+
+
 def line_reading_for(conn: sqlite3.Connection, observation: Observation, *,
                     extractor_name: str, extractor_version: str
                     ) -> Observation | None:

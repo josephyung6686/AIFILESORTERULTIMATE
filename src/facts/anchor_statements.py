@@ -62,7 +62,9 @@ from typing import Callable
 
 from evidence_shape.canonical import sha256_of
 from evidence_shape.locator import serialize_container_path
-from evidence_shape.store import line_reading_for, record_observation
+from evidence_shape.store import (
+    DERIVED_NAMESPACE, line_reading_for, record_observation,
+)
 
 from facts.evidence import cite, observations_for_version
 from facts.schema import ANCHOR_STATEMENTS_TABLE
@@ -111,7 +113,13 @@ def _statement_identity(*, scan_run_id: str, stating_content_hash: str,
 #: the extractor that read the document: this reading was not produced by that pass, and
 #: `observation_key` hashes the extractor name, so a minted line and a real one are two
 #: different handles even over identical characters.
-LINE_EXTRACTOR: str = "facts.anchor_statements.line"
+#:
+#: IN P4'S DERIVED NAMESPACE, which is what makes `evidence_shape.store.is_derived`
+#: true of it. `104` R-135's ruling: a minted line is an addressable copy for citation
+#: and for another file's context, and never evidence about the file it was cut from.
+#: The rule pass and the recogniser skip it through that one predicate; the release
+#: path does not, because the words are the file's own.
+LINE_EXTRACTOR: str = DERIVED_NAMESPACE + "anchor_statements.line"
 
 #: This producer's version, moved when what it mints changes. `observation_key` does NOT
 #: hash it (MINOR 8), so a bump re-reads the same corpus into the same handles.

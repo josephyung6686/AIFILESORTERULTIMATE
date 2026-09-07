@@ -37,6 +37,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from evidence_shape.canonical import canonical_json
+from evidence_shape.store import is_derived
 from evidence_shape.vocabulary import ANALYSIS_TIERS
 
 from facts.cache import pass_cache_key
@@ -152,8 +153,16 @@ def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
       `context_check_failed` when it did not.
     """
     written: list[str] = []
-    observations = sorted(observations_for_version(conn, file_id, content_hash),
-                          key=lambda o: o.observation_key)
+    # `104` R-135: a DERIVED reading is an addressable copy of this file's own words
+    # and never a second reading of them. `starter.py`'s docstring prints
+    # `BUSIB 4300 Homework 2 starter`; the minted line's context carried `Homework`,
+    # this pass read the copy, and a validated course fact appeared for a file whose
+    # own reading had already been judged. One predicate, P4's, so the rule pass and
+    # the recogniser cannot disagree about what a copy is.
+    observations = sorted(
+        (one for one in observations_for_version(conn, file_id, content_hash)
+         if not is_derived(one)),
+        key=lambda o: o.observation_key)
     for observation in observations:
         before, after, truncated = context_pair(observation)
         for rule in rules:

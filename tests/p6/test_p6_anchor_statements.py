@@ -27,6 +27,8 @@ from facts.anchor_statements import (
     anchor_statements_for, record_anchor_statements,
 )
 
+from extractors.long_tail import SENSITIVITY_DDL
+
 import cli
 
 CLOCK = "2026-09-07T00:00:00Z"
@@ -476,3 +478,71 @@ def test_a_line_that_is_only_the_code_mints_nothing(p6_conn, tmp_path):
     statements = anchor_statements_for(p6_conn, SCAN)
     assert [one.code_evidence_ref for one in statements] == [code.observation_key]
     assert statements[0].line_evidence_ref is None
+
+
+def test_a_minted_line_is_derived_and_the_rule_pass_skips_it(p6_conn, tmp_path):
+    """`104` R-135's ruling: a copy is not a second thing the file says about itself.
+
+    Measured on the chain. `starter.py`'s docstring prints `BUSIB 4300 Homework 2
+    starter`; the minted line's context then carried `Homework`, §3.5's rule pass read
+    the copy as a second reading, a validated course fact appeared, and a file the
+    premise of `test_p15_a_promised_gesture_is_offered` says nothing reaches was placed.
+
+    The predicate is P4's and reads a NAMESPACE rather than a list, so the rule pass and
+    the recogniser cannot disagree about what a copy is and a producer written later
+    opts in by naming itself.
+    """
+    from evidence_shape.store import DERIVED_NAMESPACE, get_observation, is_derived
+    from facts.file_facts import facts_for_file
+    from facts.discount import MetadataScreen
+    from facts.rules import Rule, apply_rules
+
+    version, _whole, _code = _text_document(p6_conn, tmp_path)
+    record_anchor_statements(p6_conn, scan_run_id=SCAN, file_versions=[version],
+                             **RECORD)
+    ref = anchor_statements_for(p6_conn, SCAN)[0].line_evidence_ref
+    minted = get_observation(p6_conn, p6_conn.execute(
+        "SELECT observation_id FROM evidence WHERE observation_key = ?",
+        (ref,)).fetchone()["observation_id"])
+
+    assert minted.extractor_name.startswith(DERIVED_NAMESPACE)
+    assert is_derived(minted) is True
+
+    # The rule pass reads this file's readings and never the copy. `Data Structures` is
+    # in the minted line and in no primary reading with a rule-matching shape, so a
+    # fact resting on it is a fact the copy created.
+    written = apply_rules(
+        p6_conn, file_id=version[0], content_hash=version[1],
+        rules=(Rule(pattern=cli.SUBJECT_RULE.pattern,
+                    required_context_terms=("structures",),
+                    field_key="subject",
+                    canonical=cli.SUBJECT_RULE.canonical),),
+        screen=MetadataScreen())
+    cited = "".join(row["evidence_refs"] or ""
+                    for row in facts_for_file(p6_conn, version[0], version[1]))
+
+    assert ref not in cited, written
+
+
+def test_a_derived_reading_is_still_citable_and_still_releasable(p6_conn, tmp_path):
+    """The half that must NOT move, and it is the whole reason the reading exists.
+
+    Skipping a copy as EVIDENCE ABOUT THE FILE is not withdrawing it. It stays live, it
+    stays the citation `anchor_statements` recorded, and `model_facts` still offers it
+    -- site A releases it as the file's own text, because it IS the file's own text,
+    and `104` R-135's context path carries it to a neighbour. A fix that made the
+    reading unreachable would have closed the row it was written for.
+    """
+    from model_facts import releasable_readings
+
+    version, _whole, _code = _text_document(p6_conn, tmp_path)
+    record_anchor_statements(p6_conn, scan_run_id=SCAN, file_versions=[version],
+                             **RECORD)
+    ref = anchor_statements_for(p6_conn, SCAN)[0].line_evidence_ref
+
+    p6_conn.executescript(SENSITIVITY_DDL)
+    offered = releasable_readings(
+        p6_conn, file_id=version[0], content_hash=version[1], keys=[ref])
+
+    assert [one.observation_key for one in offered] == [ref]
+    assert offered[0].raw_value == BODY_LINE

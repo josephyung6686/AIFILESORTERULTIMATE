@@ -48,6 +48,8 @@ from types import MappingProxyType
 
 from database_agent.files_table import get_file
 
+from evidence_shape.store import is_derived_extractor
+
 from facts.domains import SCHEMA_IDS, UnknownSchema
 
 from privacy.classification import UNREADABLE_UNCLASSIFIED, ClassificationRecord
@@ -419,9 +421,23 @@ class Detector:
         seen: dict[tuple[str, str], int] = {}
         for row in conn.execute(
                 "SELECT observation_key, raw_value, normalized_value, source_type, "
-                "location FROM evidence WHERE file_id = ? AND content_hash = ? "
-                "AND superseded_by IS NULL ORDER BY rowid",
+                "location, extractor_name FROM evidence WHERE file_id = ? "
+                "AND content_hash = ? AND superseded_by IS NULL ORDER BY rowid",
                 (file_id, content_hash)):
+            # `104` R-135: a DERIVED reading is an addressable copy of this file's own
+            # words, minted so a model can CITE the line a course code sits on and so
+            # another file's dossier can carry it as context. It is not a second thing
+            # the file says about itself. `evidence_shape.store.is_derived_extractor`
+            # is the one predicate, P4's, and it reads a namespace rather than a list,
+            # so a producer written later opts in by naming itself.
+            #
+            # Measured: with the mint recording and without this, a course notebook
+            # stopped being recognised as `code` and became `academic` -- the minted
+            # line carries the course's NAME, which the code reading it was cut around
+            # does not, so words that were never evidence about the notebook became
+            # evidence about it.
+            if is_derived_extractor(row["extractor_name"]):
+                continue
             # The file KIND is a property of the file and not of the observation
             # that named it, so this is read before the refusal below: narrowing
             # which words count must not narrow `file_kind_plausible` as well.
