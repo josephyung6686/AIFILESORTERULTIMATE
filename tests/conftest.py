@@ -20,6 +20,26 @@ from database_agent.db import open_database
 #: a test opts INTO, not something it inherits from the developer's own machine.
 os.environ.setdefault("GRAPH_AGENT_NO_DOTENV", "1")
 
+#: AND NO TEST MAY CALL THE DEVELOPER'S OWN LOCAL MODEL EITHER. The line above
+#: stops `.env` reaching a run; it does not stop an EXPORTED name, and
+#: `GRAPH_AGENT_LOCAL_MODEL` is the one that would be exported -- a local model
+#: costs nothing, so a person who set it for a real run has no reason to unset it
+#: before running the suite.
+#:
+#: What that would do is worse than the key, not better. Every integration test
+#: that drives `cli.main` would silently acquire a model, the fact pass would fire
+#: on synthetic corpora, and a suite that takes five minutes would take hours while
+#: appearing merely slow. The failures would be timeouts and non-determinism, read
+#: as flakiness rather than as the ambient configuration they are.
+#:
+#: POPPED, not `setdefault`-ed to empty: `model_route` treats an empty value as
+#: absent, but a test that wants a local model sets one with `monkeypatch.setenv`
+#: and must start from a name that is genuinely not there. A test that wants the
+#: developer's real model must set it deliberately and say why -- which is the
+#: same opt-in the note above describes.
+os.environ.pop("GRAPH_AGENT_LOCAL_MODEL", None)
+os.environ.pop("OLLAMA_BASE_URL", None)
+
 #: The repository root, which is also pytest's working directory.
 _ROOT: Path = Path(__file__).resolve().parents[1]
 

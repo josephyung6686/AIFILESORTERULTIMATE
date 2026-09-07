@@ -109,6 +109,21 @@ class RunObservation:
     #: What the model path actually did this run. Every count is a table the
     #: product wrote, never a guess from the report on screen.
     model: Mapping[str, int] = field(default_factory=dict)
+    #: R-46's two-sided count: files this run stopped BEFORE a model, split by
+    #: which of the two stops caught them. A scoreboard that asked
+    #: `cli.model_route_permitted` and stopped reported "19 blocked" while 130
+    #: more were refused at the door, and a number meaning "the route let N
+    #: through" was read as "N reached a model".
+    blocked_at_route: int = 0
+    #: The door's own refusals, keyed by the word it refused with. Read from what
+    #: the run RECORDED, not predicted by re-running the gate --
+    #: `tools.groundtruth.payload` is the instrument that predicts, and the two
+    #: answer different questions about the same corpus.
+    gate_refusals: Mapping[str, int] = field(default_factory=dict)
+    #: Files that reached neither: nothing releasable, so no dossier was built and
+    #: there was nothing for the gate to refuse. Counted because R-46 is that a
+    #: file which did not reach a model must be counted somewhere.
+    never_built: int = 0
 
 
 #: The tables the LLM path writes. A run that called nothing leaves them all at
@@ -116,6 +131,83 @@ class RunObservation:
 MODEL_TABLES = ("llm_dossier", "llm_response", "llm_verdict", "llm_refusal",
                 "llm_call_failure", "llm_pre_call_abstention",
                 "llm_grounding_report", "llm_budget_reservation")
+
+
+#: Where `record_refusal` puts P7's word. `_payload` serialises the whole
+#: `Refusal`, whose `denied` half carries the reason, so the word is one level in.
+#: Read defensively: a payload this cannot read is counted under its own name
+#: rather than dropped, because dropping it would be the undercount again.
+def _refusal_reason(payload: str) -> str:
+    try:
+        loaded = json.loads(payload)
+    except (TypeError, ValueError):
+        return "unreadable_refusal_payload"
+    if isinstance(loaded, dict):
+        denied = loaded.get("denied")
+        if isinstance(denied, dict) and isinstance(denied.get("reason"), str):
+            return denied["reason"]
+        if isinstance(loaded.get("reason"), str):
+            return loaded["reason"]
+    return "unstated"
+
+
+def _blocked_tally(connection) -> tuple[int, dict[str, int], int]:
+    """The three numbers R-46 needed, all from tables the product wrote.
+
+    **Route.** `unresolved` rows reading `privacy_withheld` are what
+    `facts.resolver` writes when `cli.model_route_permitted` says no, one per open
+    field, so the FILES are what is counted and not the rows.
+
+    **Gate.** `llm_refusal`, grouped by the reason inside the payload P7 denied
+    with. Grouped rather than summed because "protected" and "no safety evidence"
+    are different things to fix and one number hides which.
+
+    **Never built.** Files with no dossier, no refusal and no response: nothing
+    releasable, so there was nothing to refuse. A file that reached no model has
+    to be counted somewhere, and this is the somewhere for these.
+    """
+    try:
+        route = _rows(connection, "select count(distinct file_id) as n from "
+                                  "unresolved where reason = 'privacy_withheld'")
+        at_route = route[0]["n"] if route else 0
+    except sqlite3.Error:
+        at_route = 0
+    gate: dict[str, int] = {}
+    try:
+        for row in _rows(connection, "select payload from llm_refusal"):
+            reason = _refusal_reason(row["payload"])
+            gate[reason] = gate.get(reason, 0) + 1
+    except sqlite3.Error:
+        gate = {}
+    # THE REMAINDER, SO THE THREE PARTITION AND CANNOT DOUBLE-COUNT. A file
+    # withheld at the route has no dossier row, and so does a file the gate
+    # refused: `record_dossier` fires inside `_issue_and_validate`, which
+    # `run_call` reaches only after `gate.release` has returned `Released`. So
+    # "included files with no dossier" is all three groups at once, and printing
+    # it as the third beside the other two would report 19 + 149 + 176 blocked
+    # files out of 176 -- R-46's own failure, counting one file twice, on the
+    # line built to stop it.
+    #
+    # Never-built is therefore what is LEFT: no dossier, not withheld at the
+    # route, and not one of the door's refusals. One refusal is one file here
+    # because A_fact asks once per file, which is what makes the subtraction
+    # sound; a negative would mean that stopped being true, so it is reported
+    # rather than clamped away.
+    try:
+        without = _rows(connection, """
+            select count(*) as n from files f
+             where f.scan_state = 'included'
+               and not exists (select 1 from llm_dossier d
+                                where d.subject_ref = f.file_id)
+               and not exists (select 1 from unresolved u
+                                where u.file_id = f.file_id
+                                  and u.reason = 'privacy_withheld')
+        """)[0]["n"]
+    except sqlite3.Error:
+        without = 0
+    never = without - sum(gate.values())
+    return (at_route, dict(sorted(gate.items(), key=lambda kv: (-kv[1], kv[0]))),
+            never)
 
 
 def _model_tally(connection) -> dict[str, int]:
@@ -316,6 +408,7 @@ def _observe(connection, root, situation, label, promised_levels, report):
     for node_id in nodes:
         depth = max(depth, len(_destination_of(node_id, nodes)))
 
+    _blocked = _blocked_tally(connection)
     return RunObservation(
         situation=situation,
         label=label,
@@ -324,6 +417,9 @@ def _observe(connection, root, situation, label, promised_levels, report):
         structural_questions=_rows(connection, "select count(*) as n from "
                                                "structural_questions")[0]["n"],
         model=_model_tally(connection),
+        blocked_at_route=_blocked[0],
+        gate_refusals=_blocked[1],
+        never_built=_blocked[2],
         node_count=len(nodes),
         built_depth=max(0, depth - 1),   # below the top-level folder
         report=report,

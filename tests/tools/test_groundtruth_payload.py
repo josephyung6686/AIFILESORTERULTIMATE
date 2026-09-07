@@ -15,6 +15,7 @@ from __future__ import annotations
 # Done HERE rather than in a `conftest.py`, for the reason the sibling test module
 # spells out: with no `__init__.py` in the tests tree, a `conftest.py` in this
 # directory would take the bare name `conftest` away from `tests/p5`'s.
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -101,17 +102,34 @@ def test_the_blocked_line_counts_the_gate_and_not_only_the_route(plan_database):
     """R-46, in one assertion.
 
     A scoreboard that asked `cli.model_route_permitted` and stopped reported "19
-    blocked" while 130 more were refused at the door. On this fixture corpus the
-    same shape appears: the route withholds fewer files than the gate refuses, so
-    a count taken at the route alone is an undercount, and the block names both.
+    blocked" while 130 more were refused at the door. A count taken at the route
+    alone was an undercount, and the block names both.
+
+    **THE ASSERTION CHANGED SHAPE WHEN R-02 LANDED, exactly as its own note said
+    it would.** This read `at_the_gate > at_the_route`, and R-02 is what stops
+    that being true: the route now asks `unclassified_denies` with the target's
+    locality, so the unclassified files a cloud gate was refusing are withheld one
+    step earlier and move from the second column to the first. The block getting
+    LOPSIDED is the fix working, and pinning which side is bigger would have
+    pinned the defect.
+
+    What R-46 was about survives unchanged and is what is asserted instead: both
+    columns are reported, they account for every blocked file between them, and
+    every gate reason is named. A number that means "the route let N through" must
+    never again be read as "N reached a model".
     """
     report = inspect_database(plan_database, CORPUS, situation=SITUATION)
     at_the_route = sum(1 for one in report.files if not one.route_permitted)
     at_the_gate = sum(report.gate_refusals_by_reason().values())
-    assert at_the_gate > at_the_route, (
-        "if the gate ever stops refusing more than the route withholds, this "
-        "assertion is the wrong shape -- but the reasons below must still be "
-        "reported, which is what R-46 was about")
+    # BOTH COLUMNS CARRY FILES, which is the whole of what R-46 needed and the
+    # only shape that survives R-02 moving files between them. They are not
+    # disjoint and must not be summed: the route flag is recorded for every file
+    # and the outcome is measured for every file, so one file can appear in both.
+    # `test_every_file_is_accounted_for` owns the arithmetic, over the outcomes.
+    assert at_the_route > 0, "the route withholds nothing, so column one is untested"
+    assert at_the_gate > 0, (
+        "the gate refuses nothing, so a count taken at the route alone would look "
+        "complete -- which is the reading R-46 was about")
     block = render(report)
     assert "withheld at the route" in block
     assert "stopped at the gate" in block
@@ -178,3 +196,92 @@ def test_the_command_a_person_types_prints_the_block(plan_database, capsys):
     assert "largest dossier RELEASED" in printed
     assert "canary: offered" in printed
     assert "canary: RELEASED" in printed
+
+
+# --- R-46's blocked line, on both instruments over one database ---------------
+
+def test_the_scoreboards_blocked_line_agrees_with_the_payload_instrument(
+        plan_database):
+    """`104` §7 asks for "a 'blocked' line that counts gate refusals by reason as
+    well as route withholding, so R-46 cannot recur", and there are now two things
+    that count it. They must not disagree about the half they both measure.
+
+    **THE ROUTE IS THE HALF THEY BOTH MEASURE, and it is asserted equal.** Both
+    ask `cli.model_route_permitted` about the same files in the same database, so
+    a difference here would mean one of them is asking a different question --
+    which is R-02 in the instruments instead of in the product.
+
+    **THE GATE IS NOT, AND SAYING SO IS THE POINT.** `payload` re-runs
+    `Gate.release` offline to PREDICT what the door would refuse; the scoreboard
+    reads `llm_refusal`, which is what the door ACTUALLY refused. Over a fixture
+    run with no model configured, nothing was ever offered to the gate, so the
+    recorded count is zero while the predicted count is not. Asserting them equal
+    would be asserting that a prediction is a measurement. What is asserted is
+    that each is the number its own source holds, and that the scoreboard prints
+    all three columns so neither can be read as the whole.
+    """
+    from tools.groundtruth.measure import observe_run
+    from tools.groundtruth.report import scorecard
+
+    report = inspect_database(plan_database, CORPUS, situation=SITUATION)
+    run = observe_run(plan_database, CORPUS, situation=SITUATION,
+                      label=label_for(SITUATION))
+
+    predicted_route = sum(1 for one in report.files if not one.route_permitted)
+    predicted_gate = sum(report.gate_refusals_by_reason().values())
+    assert predicted_route or predicted_gate, "this fixture predicts no blocking"
+
+    # THE FIXTURE RAN WITH NO MODEL, so the product never consulted the route and
+    # never offered the door anything. Every recorded number is therefore zero,
+    # and that is the correct answer to "what did this run block", not a
+    # disagreement with the instrument that answers "what WOULD it block".
+    assert run.blocked_at_route == 0
+    assert run.gate_refusals == {}
+    assert sum(run.gate_refusals.values()) == _count(
+        plan_database, "select count(*) as n from llm_refusal")
+
+    card = scorecard([run], [], {}, [], [],
+                     corpus_files=len(run.files), seconds=0.0)
+    assert "no model was configured" in card, (
+        "three zeros beside a never-built count would read as a corpus the "
+        "product had nothing to say about")
+    assert "tools.groundtruth.payload" in card, (
+        "a person who wanted these numbers has to be told what to run for them")
+
+
+def _count(database, sql: str) -> int:
+    connection = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    try:
+        return connection.execute(sql).fetchone()[0]
+    finally:
+        connection.close()
+
+
+def test_the_blocked_line_names_both_stops_and_every_gate_reason(plan_database):
+    """R-46 as a rendering, on a run that DID reach a model.
+
+    The fixture cannot produce one without a model, so the counts are supplied
+    directly and what is asserted is the block: both stops named, every gate
+    reason printed under its own word, and never-built counted beside them. A
+    number meaning "the route let N through" must not be printable as the whole
+    of what was blocked, and one summed gate number would hide which door to fix.
+    """
+    import dataclasses
+    from tools.groundtruth.measure import observe_run
+    from tools.groundtruth.report import scorecard
+
+    run = observe_run(plan_database, CORPUS, situation=SITUATION,
+                      label=label_for(SITUATION))
+    asked = dataclasses.replace(
+        run, blocked_at_route=19, never_built=8,
+        gate_refusals={"protected_cloud": 130, "no_safety_evidence": 19},
+        model=dict(run.model, llm_dossier=180, llm_refusal=149))
+
+    card = scorecard([asked], [], {}, [], [],
+                     corpus_files=len(asked.files), seconds=0.0)
+
+    assert "19 withheld at the route" in card
+    assert "149 stopped at the gate" in card
+    assert "8 never built" in card
+    assert "protected_cloud=130" in card
+    assert "no_safety_evidence=19" in card
