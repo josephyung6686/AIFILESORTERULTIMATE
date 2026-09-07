@@ -3780,7 +3780,15 @@ def _nesting_choices(options) -> tuple[NestingChoice, ...]:
     """
     choices = []
     for option in options:
-        warnings = list(option.warnings)
+        # P10's `Warning_` is a record: a `reason` written for the person, wrapped
+        # in three internal node ids they cannot act on. `NestingChoice.warnings`
+        # is declared `tuple[str, ...]` and lands on the `--answer` line the
+        # person is told to TYPE, so what goes there is the reason and nothing
+        # else -- a repr on that line was the defect
+        # `test_the_screen_never_prints_a_python_repr_or_an_internal_node_id`
+        # pinned.
+        warnings = [getattr(warning, "reason", warning)
+                    for warning in option.warnings]
         report = option.validation
         if report is not None and report.failures:
             warnings.extend(f"{failure.check}: {failure.reason}"
