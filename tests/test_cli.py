@@ -474,14 +474,17 @@ def test_the_folder_list_is_not_headed_by_the_internal_plan_version():
 
 def test_the_review_set_is_not_a_second_count_of_the_same_files():
     """`Files: 4 decided, 0 placed` and `Not yet placed (4 files)` were one fact
-    printed twice. The set's own reason is not the same fact and stays."""
+    printed twice. The reason is one fact too (`104` R-124): it is said once,
+    under "Same reason for each", and the held line names only the set."""
     run, names = _coursework()
     printed = _printed(run, names)
 
     assert printed.count("4 files") == 1, printed
     assert "For review:" not in printed
-    assert "no destination in this tree matched" in " ".join(printed.split())
-    assert "Not yet placed" in printed
+    flat = " ".join(printed.split())
+    assert flat.count("Same reason for each:") == 1, printed
+    assert 'Held for review as "Not yet placed".' in flat, printed
+    assert "no destination in this tree matched" not in flat, printed
 
 
 def test_a_review_set_covering_no_decided_file_is_still_printed():

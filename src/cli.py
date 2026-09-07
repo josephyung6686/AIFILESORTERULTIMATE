@@ -8118,8 +8118,14 @@ def _how_to_say_what_these_are(questions: Sequence,
     return tuple(lines)
 
 
-def _review_note(items: Sequence, areas: Sequence[str]) -> tuple[str, ...]:
+def _review_note(items: Sequence, areas: Sequence[str], *,
+                 reason_already_said: bool = False
+                 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Why these sets are being held, and what a person can type about each one.
+
+    TWO blocks, and the split is `104` R-122: this group's own lines, and the one
+    sentence about the PLAN. The caller prints the first under every group and
+    the second once on the screen.
 
     LINES, not one sentence, and a line that begins with a space is printed
     exactly as it is -- `_role_lines`' convention, for `_role_lines`' reason. A
@@ -8142,14 +8148,60 @@ def _review_note(items: Sequence, areas: Sequence[str]) -> tuple[str, ...]:
     A hold with no command beside it is the product saying it noticed and will do
     nothing. With no residual area enabled the sentence says how to make one
     rather than naming a flag that would refuse.
+
+    **AND THAT SENTENCE IS ABOUT THE PLAN, NOT ABOUT THIS GROUP.** `104` R-122:
+    after R-114 the 52-file screen was still 412 lines because this block is what
+    kept repeating -- eight groups, eight printings of "this plan has nowhere to
+    put them yet", which R-114's fold could not touch because the `Held for
+    review as "<set>"` line above it names a different set each time and the fold
+    keys on the block being word for word the same. The set name is this group's
+    fact and stays under it; whether the plan has anywhere to put anything is one
+    fact about the plan, and it is returned separately so the caller can say it
+    once. Returned rather than printed here for the same reason `report` folds
+    rather than `_review_note` does: this function sees one group and the fold is
+    a fact about the whole screen.
+
+    It is lifted OUT of the per-reason loop as well, so a group whose held sets
+    stopped for two reasons says it after both rather than after each.
+
+    **AND THE REASON ITSELF IS SAID ONCE.** `104` R-124: after R-115 divided the
+    sets by the reason the screen already prints, a held group said that reason
+    twice in different words -- four lines of "Same reason for each: deciding
+    this file needed a model, and this folder's privacy settings only let one
+    that runs on this device be asked about it" and then four more of `Held for
+    review as "A model was not allowed to look": deciding these needed a model,
+    and the privacy settings on the folder they are in do not let one be asked
+    about them`. `reason_already_said` is the caller saying it has printed the
+    first, and then the held line is only the NAME -- which is the part a person
+    types after `--send-set` and the part the first sentence does not carry.
+
+    **Only when the group really said it.** `report` computes its group reason as
+    `"" if outcome is PLACE else explanation`, so a placement waiting on somebody
+    -- which is a group that can hold a review set -- prints no "Same reason for
+    each" at all, and there the set's reason is the only reason on the screen.
+    The flag is off there and the words stay. Off, too, where this group holds
+    sets stopped for MORE than one reason, because then the reasons are what tell
+    the sets apart and the group's single sentence cannot be all of them.
+
+    The set's own `reason_not_placed` is not lost either way: a set covering no
+    decided file prints it under its own heading, and `review_surface` carries it
+    to the residual listing.
     """
     by_reason: dict[tuple[bool, str], list] = {}
     for item in items:
         by_reason.setdefault((item.protected, item.reason_not_placed),
                              []).append(item)
     lines: list[str] = []
+    # Whether anything under this heading is a hold a `--residual` area could
+    # take. A group holding only PROTECTED sets gets no closing sentence, because
+    # `--send-set` refuses protected material and the sentence offers it.
+    unprotected = False
+    # One reason per group is what makes this safe: with two, dropping both
+    # would leave two sets under one sentence that describes neither exactly.
+    say_the_name_only = reason_already_said and len(by_reason) == 1
     for (protected, reason), held in by_reason.items():
-        opening = f'Held for review as "{held[0].label}": {reason}'
+        opening = (f'Held for review as "{held[0].label}".' if say_the_name_only
+                   else f'Held for review as "{held[0].label}": {reason}')
         if len(held) > 1:
             # Says what this function can SEE, and no more. §8.6's batches do not
             # respect the boundaries the report groups by, so one batch can hold
@@ -8198,14 +8250,22 @@ def _review_note(items: Sequence, areas: Sequence[str]) -> tuple[str, ...]:
                 "protected, which is never summarised away")
         if protected:
             continue
+        unprotected = True
+    # Word for word what used to sit at the end of each reason's block, so the
+    # screen loses a repeat and no sentence. Exactly one of the two is possible:
+    # with one area every set already carries its `--send-set` line and there is
+    # nothing further to say, which is why a single area produces no closing
+    # sentence at all and never did.
+    closing: tuple[str, ...] = ()
+    if unprotected:
         if areas[1:]:
-            lines.append(f'This plan also has {", ".join(areas[1:])}.')
+            closing = (f'This plan also has {", ".join(areas[1:])}.',)
         elif not areas:
-            lines.append(
+            closing = (
                 "This plan has nowhere to put them yet: enable an area with "
                 '`--residual "Review Later"` and each of these sets can be sent '
-                "there with one command.")
-    return tuple(lines)
+                "there with one command.",)
+    return tuple(lines), closing
 
 
 def high_level_folders(directory: Path, also_read: Sequence[Path],
@@ -8578,16 +8638,22 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
     # one line left behind says where the paragraph is.
     already_said: dict[tuple[str, ...], str] = {}
 
-    def say(block: Sequence[str], *, handle: str, again: str) -> None:
+    def say(block: Sequence[str], *, handle: str, again: str) -> bool:
         """A shared paragraph, in full the first time and pointed at after.
 
         `_role_lines`' convention holds inside the block: a line that begins with
         a space is a line the person is meant to paste and is printed exactly as
         it is. The line that REPLACES a repeat is prose and carries no command --
         the command is up where the block is, which is what it says.
+
+        True when the block was printed IN FULL, which `104` R-122 reads to
+        decide whether a SECOND block below it needs saying: a group already
+        holding a one-line pointer at another group is pointed at a place that
+        carries both, and a second pointer under the first would be a repeat of
+        the kind this function exists to remove.
         """
         if not block:
-            return
+            return False
         printed = tuple(block)
         first = already_said.get(printed)
         if first is None:
@@ -8595,8 +8661,9 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             for line in printed:
                 print(line if line.startswith(" ")
                       else _wrapped(line, indent="    "), file=out)
-            return
+            return True
         print(_wrapped(again.format(first=first), indent="    "), file=out)
+        return False
 
     print(f"\nFiles: {len(decisions)} decided, {placed} ready to file"
           + (f", {awaiting} waiting for you to approve" if awaiting else ""),
@@ -8712,7 +8779,8 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
                     "one so that the list stays shorter than the folder it "
                     "describes. None of these is protected material: that is "
                     "counted in its own block, with the way to see it printed "
-                    "there -- summarised, but never silently", indent="    "),
+                    "there -- summarised, but never silently omitted.",
+                    indent="    "),
                     file=out)
         if reason:
             print(_wrapped(f"Same reason for each: {reason}", indent="    "),
@@ -8792,12 +8860,54 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # number; being the same is not a reason to stop saying it under the
         # heading it is about.
         under_here = len(held_sets.get(key, ()))
-        say(_review_note(held_sets.get(key, ()), areas), handle=handle,
+        # `104` R-124. `reason` is this group's "Same reason for each" line and
+        # is empty exactly where that line was not printed, so the flag is the
+        # screen's own record of whether the reason has been said.
+        note, closing = _review_note(held_sets.get(key, ()), areas,
+                                     reason_already_said=bool(reason))
+        said_in_full = say(note, handle=handle,
             again=("Held for review; the set and the command are under the "
                    "{first}." if under_here < 2 else
                    f"Held for review, and {under_here} review sets of it have "
                    "files under this heading; they are named there with the "
                    "command, under the {first}."))
+        # `104` R-122. WHETHER THE PLAN HAS ANYWHERE TO PUT A HELD SET is one
+        # fact about the plan, so it is said in full under the first held group
+        # that has one and pointed at under every later one. The set's name and
+        # its `--send-set` line stay above, under every group, because those are
+        # the group's own facts and the name is what a person types.
+        #
+        # Two sentences and two pointers: with no residual area the sentence says
+        # how to make one, and with more than one it names the others. A single
+        # pointer worded to fit both would be true of neither.
+        #
+        # NO `{first}` HANDLE HERE, and R-114's own measurement is why. A held
+        # group is usually a group with no destination, so its handle is the
+        # whole heading -- `group above headed "Waiting for you to choose where
+        # these go"` -- and a pointer carrying it wraps to two lines, which is
+        # exactly the length of the sentence it replaced: measured on a 60-file
+        # corpus, folding with the handle saved nothing at all, and with two
+        # `--residual` areas it replaced a one-line sentence with a two-line
+        # pointer and made the screen LONGER. A fold that does not shorten is
+        # not a fold.
+        #
+        # "The first held group above" is EXACT and not approximate. `ordered`
+        # sorts on `shielded` first, so every protected group is last; a
+        # protected file keys its own group through `protected_here`, so the
+        # first group on the screen holding anything is holding an unprotected
+        # set; and nothing is in `already_said` when it is reached, so it prints
+        # its note in full and carries the sentence. There is no screen on which
+        # the first held group is not the one this line points at.
+        #
+        # Skipped where the block above it FOLDED, because that group is already
+        # carrying one line pointing at a group that says both.
+        if said_in_full:
+            say(closing, handle=handle,
+                again=("Sent the same way as the first held group above, once "
+                       "an area exists."
+                       if not areas else
+                       "The other areas are named under the first held group "
+                       "above."))
 
     # §7.5's sets are printed where the files they cover are printed, so the same
     # four files are never counted twice in two vocabularies. A set covering no
