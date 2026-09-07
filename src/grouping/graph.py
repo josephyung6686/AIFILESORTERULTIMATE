@@ -141,13 +141,31 @@ def _hub_entities(edges: Sequence[TypedEdge], frequency: int, *,
     )
 
 
-def _rank(edge: TypedEdge, anchoring: frozenset[str]) -> tuple[int, str]:
-    """Direct anchors first, then everything else by a stable address.
+def _rank(edge: TypedEdge, anchoring: frozenset[str]) -> int:
+    """Direct anchors first, then everything else in the order retrieval ranked it.
 
     Dropping an anchor to keep a semantic edge leaves a graph that still reads as
-    connected while the evidence that made it a group is gone.
+    connected while the evidence that made it a group is gone. That is the whole
+    of the rule; WITHIN each of the two classes the order is retrieval's, kept by
+    a stable sort, which is why this returns one number and not a pair.
+
+    **IT USED TO RETURN `(class, edge_id)`, AND THAT WAS `104` R-78.** `_edge_id`
+    hashes the group id and both file ids, and a `file_id` is a `uuid4` minted
+    when P1 first indexes the path -- so on two runs over one folder from an empty
+    database the edges of one graph sort into an unrelated order. `build_graph`
+    does not merely PRINT in this order, it CUTS in it: `max_graph_nodes` keeps
+    the first N files reached, so which files were in the graph -- and therefore
+    which files anchored the group, and which edges were stored at all -- was a
+    fresh draw every run. Measured on a 63-file synthetic corpus, two runs of
+    identical code over identical bytes gave 574 and 573 edges; the owner's 199
+    files gave 511 and 510.
+
+    `_edge_id` itself is untouched. It is a content address WITHIN one database,
+    which is what `record_edges`'s supersession (`104` R-67) and a stored
+    `Support.edge_ref` need it to be. What changed is that no decision is taken by
+    it: an address is for finding a thing again, not for choosing between things.
     """
-    return (0 if edge.edge_id in anchoring else 1, edge.edge_id)
+    return 0 if edge.edge_id in anchoring else 1
 
 
 def build_graph(
@@ -219,7 +237,11 @@ def build_graph(
         for edge in built
     )
 
-    ordered = sorted(suppressed, key=lambda edge: _rank(edge, frozenset(anchoring)))
+    # `suppressed` is in `neighborhood.neighbors` order, which retrieval ranked by
+    # channel weight and then by content; a STABLE sort on the anchor class alone
+    # therefore promotes the anchors and leaves that order otherwise intact.
+    anchors = frozenset(anchoring)
+    ordered = sorted(suppressed, key=lambda edge: _rank(edge, anchors))
     kept: list[TypedEdge] = []
     reached: list[str] = [seed_file_id]
     dropped: list[str] = []
@@ -236,11 +258,16 @@ def build_graph(
         group_id=group_id,
         seed_file_id=seed_file_id,
         file_ids=tuple(reached),
-        edges=tuple(sorted(kept, key=lambda edge: edge.edge_id)),
+        # In the order they were kept, which is retrieval's content order with the
+        # anchors first. Re-sorting by `edge_id` here was the second half of
+        # `104` R-78: it decided nothing, and it made the stored row order of one
+        # graph a per-run permutation, so no two runs could be compared row for
+        # row. Dropping it removes an ordering by a minted id and adds none.
+        edges=tuple(kept),
         capped=bool(dropped),
         omissions=tuple(
             f"max_graph_nodes={limits.max_graph_nodes}: {file_id}"
-            for file_id in sorted(set(dropped))
+            for file_id in dict.fromkeys(dropped)
         ),
     )
 
@@ -273,13 +300,22 @@ def _standing_reject(
 
 def anchoring_files(
     graph: LocalEvidenceGraph, *, seed_anchors: bool,
-) -> frozenset[str]:
-    """Every file that states the group's basis DIRECTLY.
+) -> tuple[str, ...]:
+    """Every file that states the group's basis DIRECTLY, in the graph's own order.
 
     The seed is one of them when its own fact is validated: a group of one, seeded
     by a direct fact, has an anchor even though no edge points at it. Counting only
     edge endpoints would say a file cannot anchor itself, which is the opposite of
     what a strongly-identified seed is.
+
+    **A TUPLE AND NOT A SET (`104` R-78).** `Group.anchor_facts` stores this list
+    and the record is compared between runs; a set had to be put in SOME order to
+    be stored, the order taken was `sorted()` over the `file_id`s, and a `file_id`
+    is a per-run `uuid4`, so the same group's anchors were written in an unrelated
+    order every run. `graph.file_ids` is the graph's node order, which retrieval
+    ranked by content, so ordering by it is ordering by content. Deduplicated, so
+    `len()` still counts files and not edges -- `meets_support_bar` reads it as a
+    count of INDEPENDENT anchors.
     """
     reached = {
         edge.to_file_id for edge in graph.edges
@@ -287,7 +323,12 @@ def anchoring_files(
     }
     if seed_anchors:
         reached.add(graph.seed_file_id)
-    return frozenset(reached)
+    ordered = [file_id for file_id in graph.file_ids if file_id in reached]
+    # A file that anchors and is not a graph node cannot exist -- `build_graph`
+    # adds every edge's target to `reached` before keeping the edge -- and if one
+    # ever did, dropping it silently would understate the group's own support.
+    ordered.extend(sorted(reached.difference(ordered)))
+    return tuple(ordered)
 
 
 def meets_support_bar(

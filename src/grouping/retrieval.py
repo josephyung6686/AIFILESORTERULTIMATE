@@ -143,15 +143,27 @@ class _Candidate:
 
 
 def _corpus(conn: sqlite3.Connection, *, seed: Seed) -> list[_Candidate]:
-    """Every included file version except the seed's own.
+    """Every included file version except the seed's own, in CONTENT order.
 
     Reads P1's published columns only. `scan_state` is P3's, and a file that is
     not `included` never enters a neighbourhood — an excluded file reaching a
     dossier would be the scan boundary failing silently.
+
+    **`current_path` AND NOT `file_id` IS THE TIE-BREAK (`104` R-78).** A
+    `file_id` is a `uuid4` minted when P1 first indexes the path, so on two runs
+    over one folder from an empty database the same two files get two unrelated
+    ids. This order is the order every cap downstream cuts at, so ordering the
+    tie by the minted id made WHICH duplicate survives a cap a fresh coin flip
+    every run: measured on a 63-file synthetic corpus, two runs of identical code
+    over identical bytes gave 574 and 573 edges. Two candidates tie here only when
+    their bytes are identical, and the stable content answer for two copies of one
+    document is where each of them lives -- which is also the thing the person can
+    see. A path is unique among `included` rows because `observe_path` retires the
+    old row when the bytes at a path change.
     """
     rows = conn.execute(
         "SELECT file_id, content_hash, directory_position, detected_format "
-        "FROM files WHERE scan_state = ? ORDER BY content_hash, file_id",
+        "FROM files WHERE scan_state = ? ORDER BY content_hash, current_path",
         (P1_INCLUDED_SCAN_STATE,),
     ).fetchall()
     return [
@@ -434,10 +446,20 @@ def retrieve_neighbors(
     if embeddings_enabled:
         found.extend(_semantic_neighbors(conn, seed, candidates, knowledge))
 
-    def rank(neighbor: Neighbor) -> tuple[int, str, str]:
-        weight = knowledge.channel_weights.get(neighbor.channel, 0)
-        return (-weight, neighbor.content_hash, neighbor.file_id)
+    # The corpus order IS the content order (`_corpus` reads
+    # `ORDER BY content_hash, current_path`), so ranking by a candidate's place
+    # in it is ranking by content -- and it is the same order the previous
+    # `(content_hash, file_id)` key produced, except where two candidates carry
+    # the same bytes and the minted id decided between them (`104` R-78).
+    position = {candidate.file_id: index
+                for index, candidate in enumerate(candidates)}
 
+    def rank(neighbor: Neighbor) -> tuple[int, int]:
+        weight = knowledge.channel_weights.get(neighbor.channel, 0)
+        return (-weight, position.get(neighbor.file_id, len(position)))
+
+    # Stable, so two neighbours that are the same FILE found by two channels of
+    # equal weight keep the order the channels were asked in above.
     ordered = sorted(found, key=rank)
     kept = ordered[: limits.max_retrieved_neighbors]
     capped = len(ordered) > len(kept)
