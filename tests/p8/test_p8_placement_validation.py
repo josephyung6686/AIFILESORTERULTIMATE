@@ -836,6 +836,50 @@ def test_r15_a_destination_outside_the_frozen_tree_is_still_rejected():
     assert _validate_c(absent)[0][0].outcome == REJECT
 
 
+def test_r56_a_real_folder_the_model_was_not_shown_is_refused_by_the_shortlist():
+    """`104` R-56's second abstention mechanism, now that R-17 has a shortlist.
+
+    R-56: "an abstention mechanism ... that does not depend on the model
+    volunteering one (a structural 'none of these' option scored by the validator,
+    OR THE DETERMINISTIC SHORTLIST REFUSING AN UNGROUNDED CHOICE)". Measured there:
+    `qwen3:8b` produced zero abstentions on six should-abstain cases and the
+    validator accepted two of its wrong placements.
+
+    `node-legal-elsewhere` is a folder the frozen tree really has -- `node_exists`
+    says so, which is what makes this different from
+    `test_r15_a_destination_outside_the_frozen_tree_is_still_rejected` -- and it is
+    not on the list this file's evidence reached. Before R-17 the vocabulary was
+    every legal node, so this answer was ACCEPTED and the file moved into a folder
+    no channel had connected it to.
+    """
+    elsewhere = _with_payload_fields(_c_direct_pair(),
+                                     destination="node-legal-elsewhere")
+    deps = _placement_deps(elsewhere)
+    assert deps.node_exists("node-legal-elsewhere", "plan-1") is True
+    assert "node-legal-elsewhere" not in elsewhere.dossier.allowed_vocabulary
+    verdict = _validate_c(elsewhere)[0][0]
+    assert verdict.reasons == (INVENTED_NODE,)
+    assert verdict.outcome == REJECT
+    assert verdict.may_propose is False
+
+
+def test_r56_the_other_mechanism_is_none_and_it_costs_the_model_nothing():
+    """The first of R-56's two, and the control for the test above.
+
+    "none" is not a rejection: it is the abstention `00`:114 calls a successful
+    outcome, and the drafts tell the model so ("`none` is a correct answer and it
+    is recorded as one"). So the two mechanisms are distinguishable in the record
+    -- a refused invention is `REJECT` with a reason, an abstention is `ABSTAIN`
+    with none -- and a shortlist that refuses an ungrounded choice does not turn
+    every uncertain file into a model error.
+    """
+    abstained = _with_payload_fields(_c_direct_pair(), destination="none")
+    verdict = _validate_c(abstained)[0][0]
+    assert verdict.outcome == ABSTAIN
+    assert verdict.disposition == NO_SUPPORTED_DESTINATION
+    assert verdict.reasons == ()
+
+
 def test_r15_no_site_c_fixture_puts_a_value_in_the_node_id_vocabulary():
     """The workaround R-15 forced, gone. `allowed_vocabulary` at C is node ids;
     a fixture that had to add `date-2026` to it to make a date pass was

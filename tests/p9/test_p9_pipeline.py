@@ -572,6 +572,63 @@ def test_the_release_is_bound_to_the_prompt_that_will_be_sent(
         prompt_fingerprint(prompt))
 
 
+def _prompt(*, ratified: bool):
+    from llm_harness.records import PromptDefinition
+
+    return PromptDefinition(
+        template_id="template.grouping", template_bytes=b"TEMPLATE",
+        response_schema_bytes=b'{"type":"object"}', call_site="B_group",
+        call_site_version="1", shaping_policy_bytes=b'{"policy":"authored"}',
+        ratified=ratified)
+
+
+def test_r16_the_group_row_waits_for_its_author_when_a_ratified_model_decides(
+    pipeline_conn, subject,
+):
+    """`104` R-16, and the reason it could not be fixed with a later write.
+
+    `groups_never_overwritten` refuses an UPDATE of `coherence_verdict`,
+    `group_category`, `display_label` or `label_source`, and a superseding row
+    needs a new `group_id` that every membership and `group_acceptance` row would
+    then not name. So the model's §4.5 task 4 reaches the record only if the row is
+    written ONCE, after its author has spoken -- which is what `apply_p8_verdict`
+    now does. The spy returns `None` (no model on this device), so the pipeline's
+    own `NO_MODEL_CONFIGURED` path records the group and nothing is lost.
+    """
+    from grouping.store import standing_group
+
+    seen = []
+    result = _run(pipeline_conn, subject,
+                  p8_run_call=lambda conn, request, **kw: (
+                      seen.append(standing_group(conn, request.subject_ref))
+                      or None),
+                  p8_authorities=_model_authorities(prompt=_prompt(ratified=True)))
+
+    # Not on disk at the moment the model was asked.
+    assert seen == [None]
+    # And on disk by the time the run returns, because every path out records it.
+    assert standing_group(pipeline_conn, result.group.group_id) is not None
+
+
+def test_r16_an_unratified_prompt_records_the_group_up_front_as_before(
+    pipeline_conn, subject,
+):
+    """The discriminating twin. A site whose text nobody has approved records its
+    answer and applies nothing, so the engine is still the author and the row is
+    written where it always was -- which is also what a deployment with no model at
+    all gets, unchanged."""
+    from grouping.store import standing_group
+
+    seen = []
+    _run(pipeline_conn, subject,
+         p8_run_call=lambda conn, request, **kw: (
+             seen.append(standing_group(conn, request.subject_ref)) or None),
+         p8_authorities=_model_authorities(prompt=_prompt(ratified=False)))
+
+    assert seen and seen[0] is not None
+    assert seen[0].label_source is not None
+
+
 def test_a_group_stopped_by_a_conflict_names_the_conflict_that_stopped_it(
     pipeline_conn, subject,
 ):

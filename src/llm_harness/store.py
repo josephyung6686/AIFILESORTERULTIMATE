@@ -185,6 +185,29 @@ def record_response(conn: sqlite3.Connection, *, dossier_id: str, response_bytes
     return response_id
 
 
+def last_response_bytes(conn: sqlite3.Connection, dossier_id: str) -> bytes | None:
+    """The most recently recorded response for one dossier, or `None`.
+
+    **Read at the call boundary and nowhere else.** `104` R-16: a site that applies
+    the model's own answers needs the answer, and `P8Verdict` carries a `claim_ref`
+    and no payload. The composition root reads this IMMEDIATELY after `run_call`
+    returns, when the row `run_call` just wrote is the last one for that dossier, so
+    "most recent" is exact rather than a guess. A later reader has no such
+    guarantee: two calls over identical content are one dossier and two responses
+    (`record_response`'s own sentence), so this is not the function to reach for
+    from a screen or a report.
+
+    `None` when the call produced no response -- a refusal, a pre-call abstention, a
+    transport failure. Every one of those is already an outcome the caller applies
+    nothing to.
+    """
+    row = conn.execute(
+        "SELECT response_bytes FROM llm_response WHERE dossier_id = ? "
+        "ORDER BY rowid DESC LIMIT 1", (dossier_id,),
+    ).fetchone()
+    return None if row is None else bytes(row["response_bytes"])
+
+
 def record_verdict(conn: sqlite3.Connection, verdict: P8Verdict, *,
                    model_id: str, prompt_fingerprint: str, release_audit_id: int,
                    observed_at: str) -> str:
