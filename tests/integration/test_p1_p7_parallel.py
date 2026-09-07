@@ -447,7 +447,7 @@ def test_two_runs_through_real_workers_produce_the_same_database(
     root = _corpus(tmp_path, "corpus")
     for conn in (first_db, second_db):
         pool = ProcessPool(workers=2, context_factory=_real_context,
-                           lookahead_per_worker=2, floor=0,
+                           lookahead_per_worker=2,
         seconds_per_extraction=_POOL_CEILING_SECONDS)
         try:
             _run(conn, root, pool=pool, readers=_readers(), policy=_open_policy())
@@ -474,7 +474,7 @@ def test_the_real_pool_agrees_with_the_serial_one_row_for_row(
          readers=_readers(), policy=_open_policy())
 
     pool = ProcessPool(workers=2, context_factory=_real_context,
-                       lookahead_per_worker=2, floor=0,
+                       lookahead_per_worker=2,
         seconds_per_extraction=_POOL_CEILING_SECONDS)
     try:
         _run(second_db, root, pool=pool, readers=_readers(),
@@ -489,36 +489,40 @@ def test_the_real_pool_agrees_with_the_serial_one_row_for_row(
 
 
 # --------------------------------------------------------------------------
-# The floor: below it, no worker is started at all.
+# R-138: what starts a worker, now that the floor no longer decides.
 # --------------------------------------------------------------------------
 
-def test_a_run_below_the_floor_never_starts_a_worker(second_db, tmp_path):
-    """Seven interpreters to read eight files is the wrong trade, and this is the
-    assertion that keeps it from being made.
+def test_a_corpus_far_too_small_for_a_pool_still_gets_one(second_db, tmp_path):
+    """R-138, and it is the exact inversion of the test that used to stand here.
 
-    A spawned worker re-imports the composition root and Apple's Vision framework at
-    about five seconds of CPU each, so seven of them cost thirty-five CPU-seconds
-    before one file is read. Measured on the owner's real files: four files take 1.0s
-    serial and 3.4s with seven workers; twelve take 2.7s and 8.2s. Small folders are
-    his ORDINARY case, so below the floor the pool reads on the calling thread.
+    There was a floor of thirty-two submissions, and below it every request was
+    performed on the calling thread -- because a spawned worker re-imports the
+    composition root and Apple's Vision framework, and small folders are the owner's
+    ORDINARY case. The measurement was real and the trade was wrong: nothing bounds
+    a reader running on the calling thread, and `readers/ocr_vision.py` reaches a
+    framework whose dispatch queues deadlock. r6 hung ten minutes at 0 % CPU inside
+    CoreImage with `EXTRACTION_WORKERS` at seven and a floor of thirty-two, which is
+    to say on the calling thread, below the floor, exactly where the assertion this
+    replaces said a worker must not be.
 
-    `started` and not `_pool is None` is what the assertion reads, and the difference
-    is the whole test: `run_p1_p7` closes the pool on its way out and `close()` sets
-    `_pool` back to None, so after a run the two cases are indistinguishable. The
-    first version of this test asked the wrong one and passed whether or not seven
-    interpreters had been started.
+    Eight files is a quarter of the old floor. Every one of them is read in a
+    worker, and the assertion reads `started` rather than `_pool is not None` for
+    the reason the old test gave: `run_p1_p7` closes the pool on its way out, so
+    after a run the two questions have different answers and only one is the one
+    being asked.
     """
     from extraction_pool import ProcessPool
 
     root = _corpus(tmp_path, "small")
     pool = ProcessPool(workers=7, context_factory=_real_context,
-                       lookahead_per_worker=2, floor=len(CORPUS),
-        seconds_per_extraction=_POOL_CEILING_SECONDS)
+                       lookahead_per_worker=2,
+                       seconds_per_extraction=_POOL_CEILING_SECONDS)
     try:
         _run(second_db, root, pool=pool, readers=_readers(),
              policy=_open_policy())
-        assert pool.started is False, (
-            "a worker pool was started for a corpus smaller than the floor")
+        assert pool.started is True, (
+            "a corpus of eight files was read on the calling thread, where no "
+            "ceiling can reach a wedged reader")
     finally:
         pool.close()
 
@@ -528,59 +532,71 @@ def test_a_run_below_the_floor_never_starts_a_worker(second_db, tmp_path):
     assert runs == len(CORPUS), "the files were not read at all"
 
 
-def test_a_run_above_the_floor_does_start_workers(second_db, tmp_path):
-    """The negative twin. Without it the floor could be hard-wired to "never build a
-    pool" and every test above would still pass while the product had no concurrency
-    at all."""
+def test_one_worker_is_a_process_and_not_the_calling_thread(second_db, tmp_path):
+    """R-138 at the count the composition root used to answer with `InlinePool`.
+
+    `cli.extraction_pool` returned a pool that read here whenever `workers == 1`,
+    and a deadline is enforced by killing a process -- a Python timeout does not
+    interrupt a C dispatch wait on the thread doing the waiting. So one worker has
+    to mean one PROCESS, and this is the assertion that says it does. Without it,
+    a `ProcessPool` that quietly degraded to the calling thread at its smallest
+    size would pass every other test in this file.
+    """
     from extraction_pool import ProcessPool
 
-    root = _corpus(tmp_path, "big-enough")
-    pool = ProcessPool(workers=2, context_factory=_real_context,
-                       lookahead_per_worker=2, floor=2,
-        seconds_per_extraction=_POOL_CEILING_SECONDS)
+    root = _corpus(tmp_path, "one-worker")
+    pool = ProcessPool(workers=1, context_factory=_real_context,
+                       lookahead_per_worker=2,
+                       seconds_per_extraction=_POOL_CEILING_SECONDS)
     try:
         _run(second_db, root, pool=pool, readers=_readers(),
              policy=_open_policy())
         assert pool.started is True, (
-            "no worker pool was started for a corpus well above the floor")
+            "one worker was served on the calling thread, where the ceiling "
+            "cannot reach a wedged reader")
     finally:
         pool.close()
 
+    runs = second_db.execute(
+        "SELECT COUNT(*) FROM extraction_runs "
+        "WHERE extractor_name = 'pdf.text'").fetchone()[0]
+    assert runs == len(CORPUS), "the files were not read at all"
 
-def test_the_floor_does_not_change_a_single_row(first_db, second_db, tmp_path):
-    """Whichever side of the floor a file falls on, the database is the same one.
 
-    This is the assertion that makes the floor an optimisation rather than a second
-    code path: a pool whose floor splits the corpus in half runs some files here and
-    some in a worker, and the rows must be indistinguishable from the serial run's --
-    same order, same spans, same keys.
+def test_a_run_that_reads_nothing_starts_no_interpreter(second_db, tmp_path):
+    """What survives of the floor: reads are what cost money, so reads are what
+    start interpreters.
+
+    The executor is built on the first SUBMIT and not in `__init__`, so a corpus
+    whose every file is already extracted at the current versions submits nothing
+    and pays for nothing. That is the floor's own best sentence -- "a
+    ten-thousand-file corpus that is entirely cached submits nothing" -- and it is
+    the half of the floor that was never about the calling thread, so it is the
+    half that is kept.
+
+    Two runs, one database, one corpus. The second submits nothing.
     """
     from extraction_pool import ProcessPool
 
-    root = _corpus(tmp_path, "corpus")
-    _run(first_db, root, pool=InlinePool(_real_context()),
-         readers=_readers(), policy=_open_policy())
-
-    split = ProcessPool(workers=2, context_factory=_real_context,
-                        lookahead_per_worker=2, floor=len(CORPUS) // 2,
-        seconds_per_extraction=_POOL_CEILING_SECONDS)
+    root = _corpus(tmp_path, "twice")
+    first = ProcessPool(workers=2, context_factory=_real_context,
+                        lookahead_per_worker=2,
+                        seconds_per_extraction=_POOL_CEILING_SECONDS)
     try:
-        _run(second_db, root, pool=split, readers=_readers(),
+        _run(second_db, root, pool=first, readers=_readers(),
              policy=_open_policy())
-        assert split.started is True, "the corpus did not cross the floor"
     finally:
-        split.close()
+        first.close()
+    assert first.started is True, "the first run read nothing, so this proves nothing"
 
-    serial, straddling = _fingerprint(first_db), _fingerprint(second_db)
-    for table in ("runs", "evidence", "text_units", "routing"):
-        assert straddling[table] == serial[table], (
-            f"{table} differs when half the corpus was read here and half in a worker")
-
-
-def test_a_pool_refuses_a_floor_that_is_not_a_count():
-    from extraction_pool import ProcessPool
-
-    with pytest.raises(ValueError, match="count of submissions"):
-        ProcessPool(workers=2, context_factory=_real_context,
-                    lookahead_per_worker=2, floor=-1,
-        seconds_per_extraction=_POOL_CEILING_SECONDS)
+    again = ProcessPool(workers=2, context_factory=_real_context,
+                        lookahead_per_worker=2,
+                        seconds_per_extraction=_POOL_CEILING_SECONDS)
+    try:
+        _run(second_db, root, pool=again, readers=_readers(),
+             policy=_open_policy())
+        assert again.started is False, (
+            "a second run over an unchanged corpus started worker processes for "
+            "files it did not read")
+    finally:
+        again.close()

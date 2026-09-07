@@ -32,11 +32,13 @@ is the same normalisation `w4-scale` used to compare plan rows across a code
 change, spelled out here so the guard says what it is checking.
 
 **The pool is real.** The corpus is deliberately larger than
-`cli.EXTRACTION_POOL_FLOOR`, so `ProcessPool` starts and the files are read in
-seven worker processes that finish in whatever order the operating system
-schedules. A run under `InlinePool` has to reach the same answer, and the last
-test asks for that: a product whose plan depends on how many cores it was given is
-not one either.
+`cli.EXTRACTION_WORKERS`, so the files are read in seven worker processes that
+finish in whatever order the operating system schedules and at least two of them
+are always reading at once. A run at ONE worker has to reach the same answer, and
+the last test asks for that: a product whose plan depends on how many cores it was
+given is not one either. Both counts are `ProcessPool` since R-138 -- the deadline
+that stops a wedged reader stops it by killing a process -- so what the last test
+varies is overlap and nothing else.
 """
 from __future__ import annotations
 
@@ -157,10 +159,18 @@ def corpus(tmp_path_factory) -> Path:
             f"Course: {SHARED_COURSE}\n\n{sentence}\n", encoding="utf-8")
 
     written = sum(1 for path in root.rglob("*") if path.is_file())
-    assert written > cli.EXTRACTION_POOL_FLOOR, (
-        f"{written} files is at or below the pool floor of "
-        f"{cli.EXTRACTION_POOL_FLOOR}, so every read would happen on the calling "
-        "thread and this file would not be testing a parallel run at all")
+    # ENOUGH FILES THAT THE WORKERS ARE GENUINELY CONCURRENT. It used to be a
+    # comparison against `cli.EXTRACTION_POOL_FLOOR`: below that floor every read
+    # happened on the calling thread, so a corpus under it would have tested a
+    # serial run while claiming to test a parallel one. R-138 removed the floor --
+    # a reader on the calling thread cannot be given a deadline -- so every corpus
+    # is now read in workers and the question this guards is the other one: a
+    # corpus smaller than the worker count never has two readers running at once,
+    # and an ordering defect needs two.
+    assert written > cli.EXTRACTION_WORKERS, (
+        f"{written} files against {cli.EXTRACTION_WORKERS} workers, so no two "
+        "reads would ever overlap and this file would not be testing a parallel "
+        "run at all")
     return root
 
 
@@ -382,10 +392,12 @@ def test_a_serial_run_reaches_the_same_answer_as_a_parallel_one(
         corpus, tmp_path_factory, two_runs):
     """Nothing about the plan may depend on how many cores read the files.
 
-    `InlinePool` is what a run below the pool floor does and what every one of
-    the suite's other end-to-end tests exercises; `ProcessPool` is what a real
-    folder gets. If the two disagree, the guard above is measuring one path and
-    the product ships the other.
+    One worker and seven are both `ProcessPool` since R-138 -- a deadline is
+    enforced by killing a process, so a deployment that read on the calling thread
+    was a deployment whose runs could hang -- and what differs between them is
+    only how many readers overlap. That is exactly what must not reach the plan.
+    If the two disagree, the guard above is measuring one path and the product
+    ships the other.
     """
     workspace = tmp_path_factory.mktemp("r78-serial")
     database = workspace / "serial.sqlite"

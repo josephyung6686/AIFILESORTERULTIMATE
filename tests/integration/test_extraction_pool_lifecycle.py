@@ -238,15 +238,15 @@ def _run(conn: sqlite3.Connection, root: Path, pool):
 
 
 def _pool() -> _RemembersItsWorkers:
-    #: `floor=0` so every request really crosses a process boundary -- with the
-    #: shipped floor this corpus would stay on the calling thread and no worker would
-    #: exist to leak. Two workers and a look-ahead of two, so the window is genuinely
+    #: Every request crosses a process boundary, which is R-138's doing: under the
+    #: floor this corpus would have stayed on the calling thread and no worker would
+    #: have existed to leak. Two workers and a look-ahead of two, so the window is
     #: in flight when the violating run leaves through its `finally`.
     #: R-50's ceiling, required and with no default. Generous, because nothing in
     #: this file is about the ceiling: what it counts is operating-system processes
     #: after a run ends, and a ceiling that fired would be a different test.
     return _RemembersItsWorkers(workers=2, context_factory=_context,
-                                lookahead_per_worker=2, floor=0,
+                                lookahead_per_worker=2,
                                 seconds_per_extraction=300.0)
 
 

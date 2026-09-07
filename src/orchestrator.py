@@ -642,10 +642,17 @@ def run_p1_p7(
     historical ambiguity is refused rather than resolved by guessing "latest".
 
     `pool` is WHERE `extract_initial` runs, and it has no default: a pool is chosen
-    by the composition root or it is not chosen at all. `extraction_pool.InlinePool`
-    runs it on this thread and is the serial behaviour this function has always had;
-    `ProcessPool` runs it in worker processes. Neither changes WHEN a row is written
-    -- every database write stays here, on this thread, in roster order.
+    by the composition root or it is not chosen at all. `extraction_pool.ProcessPool`
+    runs it in worker processes and is what every deployment builds since R-138, at
+    every worker count, because a reader on the calling thread cannot be given a
+    deadline; `InlinePool` runs it on this thread and is the serial shape the suite
+    drives. Neither changes WHEN a row is written -- every database write stays here,
+    on this thread, in roster order.
+
+    **`extract_targeted_ocr` BELOW IS NOT UNDER THAT DEADLINE.** It runs on this
+    thread, after `pool.close()`, and it reaches the same Vision engine the pool
+    exists to bound. R-138 bounded the extraction loop and left this one, and it is
+    named here rather than left to be discovered.
     """
     scan_run_id = scan(
         conn, selection_id, source=source, mime_type_for=mime_type_for,

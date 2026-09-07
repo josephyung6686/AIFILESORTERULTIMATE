@@ -230,7 +230,7 @@ from production import (
 from readers.deployment import macos_readers
 from readers.pdf_pdfium import pdfium_reader
 from readers.signatures import signature_detector
-from extraction_pool import ExtractionContext, InlinePool, ProcessPool
+from extraction_pool import ExtractionContext, ProcessPool
 from model_placement import (
     PlacementCallAuthorities, model_path_injections,
 )
@@ -1852,37 +1852,6 @@ EXTRACTION_WORKERS: int = 7
 #: 5,760-file run holds a handful of extraction batches in memory rather than all of
 #: them. Two is the smallest depth that keeps a worker busy across one write.
 EXTRACTION_LOOKAHEAD_PER_WORKER: int = 2
-
-#: HOW MANY FILES A RUN MUST WANT TO READ before seven interpreters are worth
-#: starting. Below it `ProcessPool` reads on the calling thread; above it the pool is
-#: built. Measured on the owner's real files on an idle machine, wall seconds:
-#:
-#:      LIGHT files (notes, json, source)     HEAVY files (PDF)
-#:      files   workers=1  workers=7          files   workers=1  workers=7
-#:          4      1.0        3.4                 8    65.5       61.0
-#:         12      2.7        8.2                16    95.4       89.2
-#:         24      5.5        6.7                32   152.8      145.0
-#:
-#: The two columns disagree, and that disagreement is why this number is 32 and not
-#: 8. On heavy files the pool already wins at eight. On light files it is THREE TIMES
-#: SLOWER at twelve and still behind at twenty-four. The harm is asymmetric -- the win
-#: on PDFs is 7 per cent, the loss on a folder of notes is 200 -- so the floor sits
-#: above the highest count where the pool was MEASURED TO LOSE, rather than at the
-#: lowest where it was measured to win.
-#:
-#: A count is the wrong axis, and it is the only axis available. What decides the
-#: crossover is the WEIGHT of what is about to be read, and a run cannot know that
-#: until it has read it. Thirty-two is where the two answers stop disagreeing.
-#:
-#: A spawned worker re-imports this file and Apple's Vision framework, about five
-#: seconds of CPU each, so seven of them cost thirty-five CPU-seconds before one file
-#: is read. Small folders are the owner's ORDINARY case -- one course's material, the
-#: loose files at the top of Documents -- so paying that to read four files is wrong
-#: for the product, not merely wasteful.
-#:
-#: It counts SUBMISSIONS and not files in the folder: a ten-thousand-file corpus that
-#: is entirely cached submits nothing and stays inline, which is the right answer.
-EXTRACTION_POOL_FLOOR: int = 32
 
 #: R-50. HOW LONG ONE EXTRACTION MAY TAKE BEFORE ITS WORKER IS KILLED.
 #:
@@ -4437,17 +4406,26 @@ def extraction_context() -> ExtractionContext:
 def extraction_pool(*, workers: int):
     """WHERE `extract_initial` runs, given how many processes may run it.
 
-    One worker is not a pool of one: it is `InlinePool`, the same thread, the same
-    call order, no spawn and no seven-second interpreter start for a run of three
-    text files. That is the behaviour this product had before the module existed and
-    it stays reachable by asking for it, rather than by an option nobody can find.
+    **A PROCESS AT EVERY WORKER COUNT, INCLUDING ONE, and R-138 is why.** One worker
+    used to be `InlinePool` -- the same thread, the same call order, no spawn and no
+    interpreter start for a run of three text files -- and that is the behaviour this
+    product had before `extraction_pool` existed. It is also a reader with no
+    deadline, and `readers/ocr_vision.py` and `readers/doc_cocoa.py` reach into
+    Apple's Vision, Quartz and AppKit through PyObjC, where a wedge is not
+    hypothetical: R-138's r6 hung ten minutes at 0 % CPU inside CoreImage's
+    `CI::Context::recursive_render`, waiting on a dispatch group.
+
+    `ProcessPool`'s ceiling is the only thing in this product that can end such a
+    wait, and it ends it by KILLING A PROCESS -- a Python timeout does not interrupt
+    a C dispatch wait on the thread doing the waiting. So a deployment that reads on
+    the calling thread is a deployment whose runs can hang, whatever its worker
+    count, and there is now no such deployment. `InlinePool` remains what the suite
+    drives when it wants extraction without concurrency; it is not what a person's
+    scan runs on.
     """
-    if workers == 1:
-        return InlinePool(extraction_context())
     return ProcessPool(
         workers=workers, context_factory=extraction_context,
         lookahead_per_worker=EXTRACTION_LOOKAHEAD_PER_WORKER,
-        floor=EXTRACTION_POOL_FLOOR,
         seconds_per_extraction=EXTRACTION_SECONDS_PER_FILE)
 
 
