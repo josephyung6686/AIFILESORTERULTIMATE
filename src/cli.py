@@ -1104,6 +1104,134 @@ GROUP_COHERENCE: Mapping[str, str] = MappingProxyType({
 })
 
 
+class PlacementAnswerUnreadable(RuntimeError):
+    """A C or D verdict this root cannot read the model's own answer behind.
+
+    UNREACHABLE UNLESS THE ROW `run_call` WROTE IS GONE. A verdict P8 accepted was
+    produced by parsing the response and validating the payload, so the
+    destination is a non-empty string that was in the shortlist and the action is
+    one of §7.7's eight; the bytes are on disk because `issue` recorded them before
+    the validator ran. What is left is a contract failure -- no response for the
+    dossier, bytes that no longer parse, no claim carrying the verdict's own
+    `claim_ref` -- and it is raised rather than turned into an abstention for the
+    reason `place_file` already raises three lines below `chosen_node_of`: naming
+    one of §6.10's closed abstention reasons would record a conclusion nothing
+    reached, and placing on a guess would file a file the model never chose.
+    """
+
+
+def _validated_payload(conn: sqlite3.Connection, verdict) -> dict | None:
+    """The payload of the CLAIM THIS VERDICT JUDGED, or `None`.
+
+    **The composition root's job and nobody else's**, for the reason
+    `group_answer_of` gives at site B and `model_placement` gives for
+    `chosen_node_of`: `P8Verdict` names a `claim_ref` and carries no payload, so
+    the model's own answer "can only be read by whoever knows the response shape --
+    which is whoever supplied the prompt". `src/placement/` never sees a response
+    body and P8 hands back a judgement rather than an answer.
+
+    **Read at the call boundary**, which is what makes `last_response_bytes` exact
+    here: `place_file` consults `chosen_node_of` with no other call in between, and
+    `_review_set_with_model` consults `residual_action_of` the same way, so the
+    most recent response for that dossier is the one the call just wrote.
+
+    **Matched on `claim_ref`, never taken by position.** C's schema allows exactly
+    one claim today, but the verdict says WHICH claim it judged, and a reader that
+    took the first would read a different claim's destination the day a schema
+    allows two. The effective ref is `validation._validate_claim`'s own rule: the
+    claim's own `claim_ref` when it has one, `claim-<index>` otherwise.
+    """
+    raw = last_response_bytes(conn, verdict.dossier_id)
+    if raw is None:
+        return None
+    try:
+        claims = json.loads(raw).get("claims")
+    # `ValueError` covers `JSONDecodeError` and the `UnicodeDecodeError` bytes that
+    # are not UTF-8 raise; `AttributeError` is a body that parsed to something with
+    # no `get`. Every one of them is "this root cannot read the answer", and the
+    # caller turns that into a refusal rather than a placement.
+    except (ValueError, TypeError, AttributeError):
+        return None
+    if not isinstance(claims, list):
+        return None
+    for index, claim in enumerate(claims):
+        if not isinstance(claim, dict):
+            continue
+        ref = (str(claim["claim_ref"]) if claim.get("claim_ref")
+               else f"claim-{index}")
+        if ref != verdict.claim_ref:
+            continue
+        payload = claim.get("payload")
+        return payload if isinstance(payload, dict) else None
+    return None
+
+
+def _chosen_node_of(conn: sqlite3.Connection):
+    """Site C's real resolver: the node id the VALIDATED verdict names.
+
+    **It re-validates nothing, and that restraint is the whole of it.** P8's Site C
+    checks have all run by the time a verdict exists: `_placement_site` refuses a
+    destination outside `allowed_vocabulary` as `INVENTED_NODE` -- and
+    `allowed_vocabulary` is the ranked shortlist P11 showed the model -- refuses
+    one the frozen tree does not hold as `NODE_NOT_IN_FROZEN_TREE`, and applies the
+    two-condition reason codes above both. A second opinion here would be a rule
+    with no way to be reconciled with the first, which is `p8_seam`'s own position,
+    and `place_file` re-checks the resolved node against `legal_node_ids` anyway
+    before it writes. So this reads the accepted payload and hands back what it
+    says.
+
+    **Reached only when the verdict PLACED.** `place_file` transcribes first and
+    takes the abstention path for every outcome that is not `place`, so an
+    abstaining, weak or rejected answer never arrives here -- including the
+    abstention `_observed_only` writes over an unratified site's verdict, which is
+    why the raising stub is still what the composition root injects while C's text
+    is a draft.
+    """
+    def resolve(verdict) -> str:
+        payload = _validated_payload(conn, verdict)
+        destination = payload.get("destination") if payload else None
+        if not isinstance(destination, str) or not destination:
+            raise PlacementAnswerUnreadable(
+                f"the accepted Site C verdict {verdict.verdict_id!r} names claim "
+                f"{verdict.claim_ref!r} of dossier {verdict.dossier_id!r}, and "
+                f"this deployment cannot read a destination out of the response "
+                f"P8 validated to reach it. P11 places nothing on a guess.")
+        return destination
+    return resolve
+
+
+def _residual_action_of(conn: sqlite3.Connection):
+    """Site D's real resolver: §7.7's action and its target, as the verdict names.
+
+    The same restraint as `_chosen_node_of`, for the same reason. P8 has already
+    checked the action against `RESIDUAL_ACTIONS`, checked a target-bearing
+    action's target against the approved residual set and the frozen tree, and
+    rewritten `mark_review_later` and `abstain` into its own outcomes. The
+    `disposition` it hands back is deliberately coarser than the eight --
+    `residual_destination` covers both the destination choice and the broad parent,
+    `return_to_placement` covers both returns -- so which of the eight was chosen
+    can only be read from the response, and `_residual_action_and_target` refuses
+    an action outside `ACTION_OUTCOME` on the way out.
+
+    `target` is passed through as the response carries it: a node id for the two
+    choices, a group or packet id for the two returns, one of `MARKED_STATES` for
+    the mark, and `None` for the three that name nothing. `outcome_for_action` owns
+    which of those each action may have, and refuses the rest.
+    """
+    def resolve(verdict) -> tuple[str, object]:
+        payload = _validated_payload(conn, verdict)
+        action = payload.get("action") if payload else None
+        if not isinstance(action, str) or not action:
+            raise PlacementAnswerUnreadable(
+                f"the Site D verdict {verdict.verdict_id!r} names claim "
+                f"{verdict.claim_ref!r} of dossier {verdict.dossier_id!r}, and "
+                f"this deployment cannot read an action out of the response P8 "
+                f"validated to reach it. §7.7 has eight actions and none of them "
+                f"is a guess.")
+        return action, payload.get("target")
+    return resolve
+
+
 class ObservedSiteMustNotApply(RuntimeError):
     """An observe-only site reached the code that would act on its answer."""
 
@@ -1111,24 +1239,32 @@ class ObservedSiteMustNotApply(RuntimeError):
 def _must_not_apply(call_site: str):
     """`chosen_node_of` and `residual_action_of` for a site that applies nothing.
 
-    `model_path_available()` reads all eight injections as a set, so these must be
-    present for C and D to run at all. They must also never be REACHED: the
-    observe lever in `_judge_with_model` rewrites the verdict to an abstention, and
-    both callers take their existing abstention path without consulting a resolver.
+    **STILL THE INJECTION WHILE THE SITE'S TEXT IS A DRAFT, and no longer the only
+    one.** `_chosen_node_of` and `_residual_action_of` above are the real
+    resolvers, and `observe_placement_injections` picks between them and this one
+    off the site's OWN prompt: a ratified C gets the real reader, an unratified C
+    gets this. That is the same field `_observed_only`, `PipelineInputs.
+    model_decides` and `observed_run_call` read, so one site can be turned on
+    without the other three, and none of them is turned on by a rename.
 
-    So they raise. A resolver that returned a plausible node would place a file on
-    the strength of a validator `104` R-15 says is wrong about every real value,
-    and it would do it silently the first time the lever was moved or removed. This
-    fails loudly instead, which is what an unreachable branch owes the next person
-    to make it reachable.
+    `model_path_available()` reads all eight injections as a set, so these must be
+    present for C and D to run at all. Under an unratified prompt they must also
+    never be REACHED: the observe lever in `_judge_with_model` rewrites the verdict
+    to an abstention, and both callers take their existing abstention path without
+    consulting a resolver.
+
+    So they raise. A resolver that returned a plausible node under text nobody
+    approved would place a file on an answer to a question the product has not
+    agreed to ask, and it would do it silently. This fails loudly instead, which is
+    what an unreachable branch owes the next person to make it reachable.
     """
     def resolve(_verdict: object):
         raise ObservedSiteMustNotApply(
             f"{call_site} is observe-only and something asked it to apply an "
             f"answer. `104` §7 Phase 1 step 6 records the verdict and applies "
-            f"nothing until Phase 3 fixes R-15 and R-16, and the abstention that "
-            f"keeps this unreachable is in `_judge_with_model`. Writing a real "
-            f"resolver is the LAST step of turning this site on, not the first.")
+            f"nothing while the site's text is a draft, and the abstention that "
+            f"keeps this unreachable is in `_judge_with_model`. Ratify the text "
+            f"and the composition root injects the real resolver instead.")
     return resolve
 
 
@@ -1142,6 +1278,14 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
 
     `{}` when there is no routing or when C's tier is not on this device, which
     leaves every field as `placement_inputs` had it and the model path off.
+
+    **THE RESOLVERS ARE PICKED PER SITE, OFF THAT SITE'S OWN PROMPT.** A ratified
+    site gets the real reader -- `_chosen_node_of` for C, `_residual_action_of` for
+    D -- and an unratified one gets `_must_not_apply`, which raises. Two prompts
+    are read and two decisions are made, because C and D are ratified separately
+    and a shared answer would turn one site on with the other; the field is the
+    prompt's own `ratified`, exactly as `_observed_only` reads it, so the loader
+    turns a site on and no line of this function changes.
     """
     if routing is None:
         return {}
@@ -1150,6 +1294,8 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
         return {}
     require_observe_locality(C_PLACEMENT, locality)
     require_observe_locality(D_RESIDUAL, routing.locality_for(D_RESIDUAL))
+    placement_prompt = prompt_for(C_PLACEMENT)
+    residual_prompt = prompt_for(D_RESIDUAL)
     authorities = PlacementCallAuthorities(
         gate=fact_authorities.gate,
         model_client=routing.client_for(C_PLACEMENT),
@@ -1160,8 +1306,8 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
         # prompt's. D's answer names one of §7.7's eight actions and C's schema has
         # no `action` key, so every residual answer was heading for
         # `SCHEMA_INVALID` -- for obeying text that was not its own either.
-        prompt=prompt_for(C_PLACEMENT),
-        residual_prompt=prompt_for(D_RESIDUAL),
+        prompt=placement_prompt,
+        residual_prompt=residual_prompt,
         model_target=routing.client_for(C_PLACEMENT).model_target,
         evidence_resolver=fact_authorities.evidence_resolver,
         contradicts=fact_authorities.contradicts,
@@ -1171,8 +1317,11 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
         policy_version=fact_authorities.policy_version,
         wire_handle_key=fact_authorities.wire_handle_key,
         sensitivity_policy=sensitivity_policy_for(conn),
-        chosen_node_of=_must_not_apply(C_PLACEMENT),
-        residual_action_of=_must_not_apply(D_RESIDUAL))
+        chosen_node_of=(_chosen_node_of(conn) if placement_prompt.ratified
+                        else _must_not_apply(C_PLACEMENT)),
+        residual_action_of=(_residual_action_of(conn)
+                            if residual_prompt.ratified
+                            else _must_not_apply(D_RESIDUAL)))
     built = model_path_injections(conn, authorities, plan_version=plan_version)
     built.pop("sensitivity_policy", None)
     return built

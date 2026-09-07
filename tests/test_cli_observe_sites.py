@@ -745,3 +745,182 @@ def test_r16_a_readable_answer_reaches_the_seam_as_answered(harness_db,
     assert isinstance(wrapped, Answered)
     assert wrapped.answer.label == "PHYS1401 course materials"
     assert wrapped.result.dossier_id == "ds-b4"
+
+
+# --- P2: the real resolvers behind C and D, and the stub that guards a draft ------
+
+
+def _cd_verdict(dossier_id, *, claim_ref="claim-0", scope="file",
+                outcome="accept_direct", disposition="move_plan_eligible"):
+    from llm_harness.records import P8Verdict
+
+    return P8Verdict(
+        verdict_id=f"{dossier_id}:{claim_ref}", dossier_id=dossier_id,
+        claim_ref=claim_ref, outcome=outcome, disposition=disposition,
+        reasons=(), may_propose=True, requires_review=False,
+        citations_checked=(), scope=scope, validator_version="vv",
+        policy_version="pv", plan_version="plan-1")
+
+
+def _cd_response(conn, dossier_id, claims):
+    from llm_harness.store import record_response
+
+    record_response(
+        conn, dossier_id=dossier_id,
+        response_bytes=json.dumps({"claims": claims}).encode("utf-8"),
+        model_id="fixture", prompt_fingerprint="fp", release_audit_id=1,
+        release_id="rel-c", observed_at="2026-09-07T00:00:00Z")
+
+
+def test_p2_the_c_resolver_reads_the_destination_off_the_validated_answer(
+        harness_db):
+    """`P8Verdict` names a `claim_ref` and not a destination, so which node the
+    model chose can only be read by whoever supplied the prompt. This is site C's
+    half of what `group_answer_of` does at site B, and it re-validates nothing:
+    P8's `INVENTED_NODE` has already refused any destination outside the shortlist
+    P11 showed the model."""
+    _cd_response(harness_db, "ds-c1", [{
+        "payload": {"destination": "n-course-shared", "support": 1,
+                    "next_support": 0, "refinement": "not_applicable"}}])
+
+    assert cli._chosen_node_of(harness_db)(_cd_verdict("ds-c1")) == (
+        "n-course-shared")
+
+
+def test_p2_the_resolver_reads_the_claim_the_verdict_judged_and_not_the_first(
+        harness_db):
+    """The verdict says WHICH claim it judged. Taking `claims[0]` by position is
+    right for today's one-claim schema and wrong the day one allows two, and the
+    effective ref is `validation._validate_claim`'s own rule -- the claim's own
+    `claim_ref` when it has one, `claim-<index>` otherwise."""
+    _cd_response(harness_db, "ds-c2", [
+        {"payload": {"destination": "n-general"}},
+        {"claim_ref": "second", "payload": {"destination": "n-course-shared"}}])
+
+    resolve = cli._chosen_node_of(harness_db)
+
+    assert resolve(_cd_verdict("ds-c2", claim_ref="claim-0")) == "n-general"
+    assert resolve(_cd_verdict("ds-c2", claim_ref="second")) == "n-course-shared"
+
+
+def test_p2_the_d_resolver_reads_the_action_and_the_target_it_names(harness_db):
+    """§7.7's action is in the response and nowhere else: P8 rewrites it into a
+    coarser `disposition` where `residual_destination` covers both the destination
+    choice and the broad parent. `target` is passed through as the answer carries
+    it, and `outcome_for_action` owns which actions may have one."""
+    _cd_response(harness_db, "ds-d1", [{
+        "payload": {"action": "choose_approved_residual_destination",
+                    "target": "n-review-later", "stop_reason": "recorded"}}])
+    _cd_response(harness_db, "ds-d2", [{
+        "payload": {"action": "mark_review_later", "target": None,
+                    "stop_reason": "recorded"}}])
+
+    resolve = cli._residual_action_of(harness_db)
+
+    assert resolve(_cd_verdict("ds-d1", scope="file")) == (
+        "choose_approved_residual_destination", "n-review-later")
+    assert resolve(_cd_verdict("ds-d2", scope="file")) == (
+        "mark_review_later", None)
+
+
+@pytest.mark.parametrize("resolver", ["_chosen_node_of", "_residual_action_of"])
+def test_p2_an_answer_this_root_cannot_read_raises_rather_than_guessing(
+        harness_db, resolver):
+    """Unreachable unless the row `run_call` wrote is gone: a verdict P8 accepted
+    was produced by parsing the response, and `issue` recorded the bytes before the
+    validator ran. Raised rather than turned into an abstention, for the reason
+    `place_file` already raises three lines below `chosen_node_of` -- naming one of
+    §6.10's closed reasons would record a conclusion nothing reached, and placing
+    on a guess would file a file the model never chose."""
+    from llm_harness.store import record_response
+
+    resolve = getattr(cli, resolver)(harness_db)
+
+    # No response row for the dossier at all.
+    with pytest.raises(cli.PlacementAnswerUnreadable):
+        resolve(_cd_verdict("ds-missing"))
+    # Bytes that no longer parse.
+    record_response(harness_db, dossier_id="ds-bad", response_bytes=b"not json",
+                    model_id="m", prompt_fingerprint="fp", release_audit_id=1,
+                    release_id="rel-bad", observed_at="2026-09-07T00:00:00Z")
+    with pytest.raises(cli.PlacementAnswerUnreadable):
+        resolve(_cd_verdict("ds-bad"))
+    # A response carrying no claim the verdict judged.
+    _cd_response(harness_db, "ds-other", [{"claim_ref": "elsewhere",
+                                           "payload": {"destination": "n-x",
+                                                       "action": "abstain"}}])
+    with pytest.raises(cli.PlacementAnswerUnreadable):
+        resolve(_cd_verdict("ds-other", claim_ref="claim-0"))
+
+
+def _placement_injections(monkeypatch, conn, *, ratified):
+    """`observe_placement_injections` with C's and D's text ratified or not.
+
+    The prompt is composed by `prompt_for`, and the FIELD is what every reader in
+    the product tests -- `_observed_only`, `PipelineInputs.model_decides`,
+    `observed_run_call`. So the lever moved here is the field and never the
+    manifest, which is the owner's and not an agent's.
+    """
+    import cli as _cli
+
+    monkeypatch.setattr(_cli, "prompt_for", lambda site: dataclasses.replace(
+        _cli.observe_prompt(site), ratified=ratified))
+    return _cli.observe_placement_injections(
+        conn, _fact_authorities_with(contradicts=lambda *_a, **_k: False),
+        routing=_LocalRouting(), plan_version="plan-1")
+
+
+def test_p2_an_unratified_site_is_wired_to_the_stub_that_raises(harness_db,
+                                                                monkeypatch):
+    """The observe state, unchanged. Both resolvers are present -- `model_path_
+    available()` reads them as a set and C and D could not run without them -- and
+    both refuse to apply an answer, because the abstention that keeps them
+    unreachable is in `_judge_with_model` and a resolver that returned a plausible
+    node under text nobody approved would place a file silently."""
+    built = _placement_injections(monkeypatch, harness_db, ratified=False)
+
+    assert set(cli.OBSERVE_PLACEMENT_FIELDS) <= set(built)
+    for field, site in (("chosen_node_of", C_PLACEMENT),
+                        ("residual_action_of", D_RESIDUAL)):
+        with pytest.raises(cli.ObservedSiteMustNotApply, match=site):
+            built[field](object())
+
+
+def test_p2_a_ratified_site_is_wired_to_the_resolver_that_reads_the_answer(
+        harness_db, monkeypatch):
+    """The last step of turning site C on, and the only one left after P1.
+
+    The composition root picks per site off that site's OWN prompt, so ratifying
+    C's text alone gives C the real reader and leaves D's stub in place. Asserted
+    by behaviour and not by identity: the wired callable reads the response row
+    `run_call` wrote and answers with the node the model named."""
+    _cd_response(harness_db, "ds-c3", [{
+        "payload": {"destination": "n-course-shared"}}])
+    _cd_response(harness_db, "ds-d3", [{
+        "payload": {"action": "leave_in_current_location", "target": None}}])
+
+    built = _placement_injections(monkeypatch, harness_db, ratified=True)
+
+    assert built["chosen_node_of"](_cd_verdict("ds-c3")) == "n-course-shared"
+    assert built["residual_action_of"](_cd_verdict("ds-d3")) == (
+        "leave_in_current_location", None)
+
+
+def test_p2_each_site_is_turned_on_by_its_own_prompt_and_not_by_its_neighbours(
+        harness_db, monkeypatch):
+    """C and D are ratified separately -- that is the whole point of P1's per-draft
+    status -- so one shared read of `ratified` would turn D on with C. Ratify C
+    alone and D keeps the stub."""
+    import cli as _cli
+
+    monkeypatch.setattr(_cli, "prompt_for", lambda site: dataclasses.replace(
+        _cli.observe_prompt(site), ratified=site == C_PLACEMENT))
+    _cd_response(harness_db, "ds-c4", [{"payload": {"destination": "n-general"}}])
+
+    built = _cli.observe_placement_injections(
+        harness_db, _fact_authorities_with(contradicts=lambda *_a, **_k: False),
+        routing=_LocalRouting(), plan_version="plan-1")
+
+    assert built["chosen_node_of"](_cd_verdict("ds-c4")) == "n-general"
+    with pytest.raises(cli.ObservedSiteMustNotApply, match=D_RESIDUAL):
+        built["residual_action_of"](object())

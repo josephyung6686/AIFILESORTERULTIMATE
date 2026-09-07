@@ -527,3 +527,206 @@ def test_a_refusal_is_the_privacy_answer_and_a_non_verdict_is_refused_loudly(
         pipeline.call_placement = real
     # And the discriminating twin: a `Refusal` is NOT raised, it is recorded.
     assert issubclass(Refusal, object)
+
+
+# --- P2: the real resolver behind site C, on this same live chain -----------------
+#
+# `test_r19_the_same_unique_direct_match_reaches_p8_when_the_model_decides` above
+# ends with "a real resolver is the LAST step of turning this site on rather than
+# the first". These are that step, measured: `cli._chosen_node_of` is the resolver
+# the composition root injects once C's text is ratified, and the client below is
+# scripted rather than fixed -- it reads the dossier it was handed and answers out
+# of it, because the shortlist, the wire handles and the conflict ids are all
+# minted by the run and knowable no other way.
+
+
+def _scripted_client(answer):
+    """A real `ModelClient` whose reply is composed from the dossier it is shown.
+
+    `assemble` is `template_bytes + canonical_dossier_bytes`, so the dossier the
+    model sees is recoverable from the bytes it is invoked with -- which is the
+    only honest way to cite a released item: `_check_citation` matches the
+    citation against the WIRE HANDLE the dossier issued, and the handle is an HMAC
+    under a key the test never reproduces by hand.
+    """
+    from llm_harness.transport import ModelClient
+
+    def invoke(model_visible: bytes) -> bytes:
+        body = json.loads(model_visible[len(b"TEMPLATE"):])
+        return json.dumps(answer(body)).encode("utf-8")
+
+    return ModelClient(
+        model_target=ModelTarget(locality="local", model_id="llama-local",
+                                 provider="on-device"),
+        invoke=invoke)
+
+
+def _places_at(pick):
+    """A site C answer that P8 accepts, naming the node `pick` chooses.
+
+    Every value is read out of the dossier: the destination from the shortlist P11
+    ranked, the citation from what P7 actually released, and `conflicts_considered`
+    from the conflict ids the dossier carries -- Site C rejects an answer that
+    ignored one, and the ids are content addresses of the suppression this run
+    performed, so they cannot be written down in advance.
+    """
+    def answer(body):
+        released = body["released_evidence"][0]
+        return {"claims": [{
+            "payload": {
+                "destination": pick(body["allowed_vocabulary"]),
+                "per_dimension_support": [{"dimension": "subject",
+                                           "value": released["value"],
+                                           "support": "direct"}],
+                "alternatives": [],
+                "conflicts_considered": [item["conflict_id"]
+                                         for item in body["conflicts"]],
+                "support": 1, "next_support": 0,
+                "refinement": "not_applicable"},
+            "citations": [{"evidence_ref": released["observation_key"],
+                           "cited_span": released["value"],
+                           "why_it_supports": "the file states this"}]}]}
+    return answer
+
+
+def _ambiguous(obs):
+    """Evidence the deterministic path cannot resolve, so BOTH halves are testable.
+
+    A `work_type` fact matches no node's expected value and contradicts none, so
+    there is no direct-fact channel and `unique_direct_match` is False; the two
+    accepted groups reach two candidates through the group channel. That matters
+    for the unratified half: `model_decides()` is False without a ratified prompt,
+    and on a unique direct match `needs_model_call` would then make no call at all
+    -- the case the deterministic test at the top of this file already pins. Here
+    the call happens either way and only the APPLICATION differs.
+    """
+    return _evidence(
+        obs,
+        facts=(MatchingFact(file_fact_id="ff1", field="work_type",
+                            value="homework", reliability=v.DIRECT,
+                            evidence_ref=obs),),
+        group_ids=("g-phys1401", "g-shared"), semantic_neighbours=())
+
+
+def _live_file(live, tmp_path):
+    file_id, content_hash = _corpus_file(live, tmp_path / "corpus")
+    obs = _observation(live, file_id=file_id, content_hash=content_hash)
+    _classify(live, file_id=file_id, content_hash=content_hash, obs=obs)
+    _policy(live)
+    return Subject(kind=v.FILE, file_id=file_id, content_hash=content_hash,
+                   group_id=None, member_file_ids=()), obs
+
+
+def test_p2_a_ratified_c_places_the_file_at_the_node_the_model_named(live,
+                                                                     tmp_path):
+    """`104` §15.1's second code piece, end to end on the real chain.
+
+    P7 releases, the model answers out of the dossier, P8's fifteen Site C checks
+    accept it, and `cli._chosen_node_of` reads the destination off the response
+    that verdict was made from. The node it names is the RUNNER-UP on P11's own
+    ranking, which is the whole of "model decides, rules validate": the
+    deterministic path could not resolve this file at all, and the placement is the
+    model's answer rather than the top of the list it was shown.
+    """
+    import cli
+    import placement.pipeline as pipeline
+
+    subject, obs = _live_file(live, tmp_path)
+    seen = {}
+    real = pipeline.call_placement
+
+    def _observe(conn, request, **kwargs):
+        seen["shortlist"] = tuple(kwargs["call_dependencies"].allowed_vocabulary)
+        return real(conn, request, **kwargs)      # the REAL call still happens
+
+    pipeline.call_placement = _observe
+    try:
+        decision = place_file(
+            live, subject=subject,
+            inputs=_inputs(live, gate=_gate(live),
+                           model_client=_scripted_client(
+                               _places_at(lambda shortlist: shortlist[-1])),
+                           chosen_node_of=cli._chosen_node_of(live)),
+            evidence=_ambiguous(obs), component_version="P11-live",
+            observed_at=FIXED_CLOCK)
+    finally:
+        pipeline.call_placement = real
+
+    verdict = live.execute("SELECT outcome FROM llm_verdict").fetchall()
+    assert [row["outcome"] for row in verdict] == ["accept_direct"]
+    assert decision.outcome == v.PLACE
+    # THE RUNNER-UP, and the two halves of that are asserted apart: the shortlist
+    # really had a choice on it, and the file went to the END of it rather than the
+    # head. A resolver that returned `scored[0]`, or a pipeline that ignored the
+    # one it was given, passes neither.
+    assert len(seen["shortlist"]) > 1
+    assert decision.destination.node_id == seen["shortlist"][-1]
+    assert decision.destination.node_id != seen["shortlist"][0]
+    assert decision.destination.node_id == "n-course-shared"
+    # The record names the actor. §6.11: a reviewer can only apply a different
+    # level of trust to a model-chosen destination if the record says it was one.
+    assert "hierarchical destination judge" in decision.explanation
+
+
+def test_p2_an_unratified_c_records_the_verdict_and_applies_nothing(live,
+                                                                    tmp_path):
+    """The observe state, pinned on the same file and the same answer.
+
+    `_observed_only` rewrites the verdict to an abstention, `transcribe` takes the
+    abstention path, and the resolver is never consulted -- which is asserted by
+    injecting the raising stub the composition root injects for an unratified site.
+    The verdict itself is on disk: recorded, and applied to nothing.
+    """
+    import cli
+
+    subject, obs = _live_file(live, tmp_path)
+    decision = place_file(
+        live, subject=subject,
+        inputs=_inputs(live, gate=_gate(live), prompt=_unratified(),
+                       model_client=_scripted_client(
+                           _places_at(lambda shortlist: shortlist[-1])),
+                       chosen_node_of=cli._must_not_apply(C_PLACEMENT)),
+        evidence=_ambiguous(obs), component_version="P11-live",
+        observed_at=FIXED_CLOCK)
+
+    # THE REAL VERDICT IS ON DISK AND IT ACCEPTED. `_observed_only`'s rewrite is
+    # in memory only -- `run_call` recorded the row before it returned -- so the
+    # run is auditable afterwards as "the model answered, and this deployment
+    # applied nothing", which is what observe-only means.
+    recorded = live.execute("SELECT outcome FROM llm_verdict").fetchall()
+    assert [row["outcome"] for row in recorded] == ["accept_direct"]
+    assert decision.outcome == v.ABSTAIN
+    assert decision.destination is None
+
+
+@pytest.mark.parametrize("ratified", [True, False])
+def test_p2_a_node_outside_the_shortlist_is_refused_by_the_seam(live, tmp_path,
+                                                                ratified):
+    """The wall the resolver rests on, and it is P8's rather than P11's.
+
+    `allowed_vocabulary` is the ranked shortlist P11 showed the model, and
+    `_placement_site` refuses anything outside it as `INVENTED_NODE` before a
+    verdict is accepted. So a scripted answer naming a real node of this plan that
+    this file's evidence never reached is rejected, `transcribe` abstains, and the
+    resolver is not reached whether the text is ratified or not.
+    """
+    import cli
+
+    from llm_harness.vocabulary import INVENTED_NODE
+
+    subject, obs = _live_file(live, tmp_path)
+    prompt = _prompt() if ratified else _unratified()
+    decision = place_file(
+        live, subject=subject,
+        inputs=_inputs(live, gate=_gate(live), prompt=prompt,
+                       model_client=_scripted_client(
+                           _places_at(lambda _shortlist: "n-review-later")),
+                       chosen_node_of=cli._must_not_apply(C_PLACEMENT)),
+        evidence=_ambiguous(obs), component_version="P11-live",
+        observed_at=FIXED_CLOCK)
+
+    recorded = live.execute("SELECT payload FROM llm_verdict").fetchone()
+    if ratified:
+        assert json.loads(recorded["payload"])["reasons"] == [INVENTED_NODE]
+    assert decision.outcome == v.ABSTAIN
+    assert decision.destination is None

@@ -2484,9 +2484,28 @@ def _review_set_with_model(conn, *, item: ResidualSet, inputs: PipelineInputs,
                 observed_at=observed_at))
             continue
         verdict = _require_verdict(result, call_site=D_RESIDUAL)
-        if verdict.outcome == P8_REJECT:
-            # P8 refused the model's answer. Acting on the action anyway would
-            # carry out a proposal the validator threw away.
+        if verdict.outcome in (P8_REJECT, P8_ABSTAIN):
+            # P8 refused the model's answer, or there was no answer to act on.
+            # Acting on the action anyway would carry out a proposal the validator
+            # threw away.
+            #
+            # `P8_ABSTAIN` IS SITE D'S HALF OF THE OBSERVE LEVER, and it was
+            # missing. `_observed_only` rewrites an unratified site's verdict to
+            # `abstain` and says both callers then "take their existing abstention
+            # path without consulting a resolver" -- which was true at C, where
+            # `transcribe` turns every non-`place` outcome into an abstention, and
+            # false here: `abstain` is not `reject`, so an unratified D reached
+            # `residual_action_of` and the raising stub ended the run on the first
+            # file of a set the person had sent to a model. That is the site D twin
+            # of the defect `104` §15.1 names at C.
+            #
+            # Behaviour-preserving for a RATIFIED D, which is why it is a guard and
+            # not a new outcome: `_residual_site` rewrites the model's own
+            # `abstain` action to this same verdict, and `outcome_for_action`
+            # answers `(abstain, NO_SUPPORTED_DESTINATION)` for it, so the decision
+            # written here is the decision the resolver path wrote. `weak` is NOT a
+            # member: `mark_review_later` arrives as `weak` and is an action the
+            # resolver must read.
             written.append(_residual_decision(
                 conn, subject=subject, inputs=inputs, outcome=ABSTAIN,
                 qualifier=NO_SUPPORTED_DESTINATION, residual=residual,
