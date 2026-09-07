@@ -319,6 +319,31 @@ def test_a_shared_fact_never_lends_one_files_observation_to_another(
             assert item.file_id in owners, (item.file_id, excerpt.observation_key)
 
 
+def test_a_dossier_with_no_excerpt_of_its_own_is_refused_not_requested(
+    dossier_conn, corpus,
+):
+    """The other half of the shared-fact case. When the file whose observation a
+    shared fact cites is withheld (unclassified), every remaining file states the
+    basis by the fact's word and cites nothing of its own. Such a dossier has no
+    item a release could resolve, and `ModelCallRequest` refuses to be built
+    from it -- measured as `MalformedRequest: a request with no items has
+    nothing to release` ending a 48-minute local-model run. It is refused here,
+    with the reason named, and P9 records the group as not judged.
+    """
+    seed_id, _sh, seed_key = corpus["Syllabus.pdf"]
+    lecture_id, _lh, _lk = corpus["Lecture.pdf"]
+    shared = AnchorFact(field="subject", value="PHYS1401",
+                        file_ids=(seed_id, lecture_id),
+                        reliability_state="validated", observation_key=seed_key)
+    result = _assemble(
+        dossier_conn, corpus, group=_group(shared),
+        classification_store=_classified(missing=(seed_id,)))
+
+    assert isinstance(result, DossierRefused)
+    assert "no excerpt" in result.reason
+    assert result.withheld == (seed_id,)
+
+
 # --- privacy: marked and counted, never opened -----------------------------------
 
 

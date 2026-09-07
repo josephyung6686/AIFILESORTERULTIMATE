@@ -248,6 +248,24 @@ def assemble_group_dossier(
             ),
             withheld=tuple(withheld),
         )
+    if not any(item.excerpts for item in (*anchors, *candidates)):
+        # Anchors, and not one quotation among them. A shared `AnchorFact`
+        # carries the first stating file's observation key; when that file was
+        # withheld or bounded out of the graph, every remaining file states the
+        # basis by the fact's word and cites nothing of its own. A request with
+        # no items is what `ModelCallRequest` refuses to construct -- measured:
+        # `MalformedRequest: a request with no items has nothing to release`
+        # ended a 48-minute local-model run at this site. Refused HERE, as a
+        # dossier that names why, so P9 records "not judged" and moves on.
+        return DossierRefused(
+            group_id=group.group_id,
+            reason=(
+                "no file in the graph carries an observation of its own for the "
+                "group's basis; the cited observations belong to files outside "
+                "the graph, so there is no excerpt a release could resolve"
+            ),
+            withheld=tuple(withheld),
+        )
 
     capped = tuple(
         line.split(": ", 1)[1] for line in graph.omissions if ": " in line
