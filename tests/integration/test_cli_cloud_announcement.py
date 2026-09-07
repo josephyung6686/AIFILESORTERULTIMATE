@@ -201,19 +201,43 @@ def test_the_wired_set_agrees_with_the_injections_rather_than_with_itself():
             "site that cannot construct a request")
     assert cli.A_FACT in cli.WIRED_CALL_SITES
 
-    # C and D -- NOT wired, and the announcement says so. `model_path_available`
-    # reads these as a set: with them `None` a file that needs a judgement abstains.
+    # C and D -- INJECTED in observe mode, and still NOT wired. They no longer
+    # appear as named keywords at all: `model_path_available` reads the set
+    # all-or-nothing, so they arrive as one splat and a per-name check would read
+    # `None` for a field that is present. What this asserts instead is that the
+    # splat is the one the observe builder fills, and that neither site joined
+    # `WIRED_CALL_SITES` -- which is the claim on the screen about where a
+    # person's files may be SENT, and these two are asked under D2 drafts that go
+    # nowhere but this device.
     for name in ("gate", "model_client", "prompt", "call_dependencies"):
-        assert _is_none(placement.get(name)), (
-            f"placement's {name} is no longer None. If C_placement was just "
-            "wired, add it to WIRED_CALL_SITES -- but only once a prompt is "
-            "ratified for it too, or the announcement becomes untrue one step "
-            "later.")
+        assert placement.get(name) is None, (
+            f"placement's {name} is a named keyword again. The eight arrive "
+            "together or not at all; naming one is the half-injection "
+            "`model_path_available` exists to catch.")
+        assert name in cli.OBSERVE_PLACEMENT_FIELDS
     assert cli.C_PLACEMENT not in cli.WIRED_CALL_SITES
+    assert cli.C_PLACEMENT in cli.OBSERVE_CALL_SITES
+    assert cli.D_RESIDUAL in cli.OBSERVE_CALL_SITES
+    # B -- INJECTED, AND STILL NOT WIRED, which is the distinction this test now
+    # has to carry. `104` §7 Phase 1 step 6 runs B in observe mode: it builds a
+    # dossier through the real gate, calls the model and records the verdict, and
+    # applies nothing. So its injections are real expressions -- asserting them
+    # `None` would now fail for the right reason and stop the wiring -- while
+    # `WIRED_CALL_SITES` must NOT gain it, because that set is what the screen
+    # promises about where a person's files may be SENT, and B's text is a D2
+    # draft that goes nowhere but this device.
     for name in ("p8_run_call", "p8_authorities"):
-        assert _is_none(grouping.get(name)), f"P9's {name} is no longer None"
-    assert cli.B_GROUP not in cli.WIRED_CALL_SITES
+        assert not _is_none(grouping.get(name)), (
+            f"P9's {name} is None again, so site B records nothing and `104` "
+            f"R-04 is open at that site")
+    assert cli.B_GROUP in cli.OBSERVE_CALL_SITES
+    assert cli.B_GROUP not in cli.WIRED_CALL_SITES, (
+        "observe-only is not wired: adding B here would tell a person their "
+        "files may be sent for grouping, under text nobody ratified")
     assert cli.D_RESIDUAL not in cli.WIRED_CALL_SITES
+
+    # And the two sets stay disjoint at the one place that reads both.
+    assert not (cli.WIRED_CALL_SITES & cli.OBSERVE_CALL_SITES)
 
     # And the derived flag is derived, not written beside the set.
     assert cli.MODEL_CALL_SITES_WIRED is bool(cli.WIRED_CALL_SITES)

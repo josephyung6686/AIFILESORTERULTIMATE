@@ -95,7 +95,11 @@ from grouping.config import GroupingLimits
 from grouping.embeddings import (
     EmbeddingConfig, EmbeddingsOff, EmbeddingsOn, EncodedVector,
     FileVersionRef)
-from grouping.pipeline import GroupingKnowledge, GroupingResult
+from grouping.p8_seam import ObservedOnly
+from placement.vocabulary import GROUP
+from grouping.pipeline import (
+    GroupingKnowledge, GroupingResult, ModelCallAuthorities,
+)
 from grouping.records import Group, GroupAcceptance
 from grouping.retrieval import EmbeddingIdentity, RetrievalKnowledge
 from grouping.schema import create_grouping_schema
@@ -112,9 +116,11 @@ from grouping.vocabulary import (
 from llm_harness.budgets import ScanBudget, create_budget_schema
 from llm_harness.prompt_library import (
     a_fact_response_schema_bytes, a_fact_shaping_policy_bytes,
-    a_fact_template_folder_levels_bytes,
+    a_fact_template_folder_levels_bytes, draft_bytes, drafts_status,
 )
+from llm_harness.harness import CallDependencies, run_call
 from llm_harness.records import FolderLevel, PromptDefinition
+from llm_harness.sites import SiteDependencies
 from llm_harness.schema import create_llm_schema
 from llm_harness.vocabulary import (
     A_FACT, B_GROUP, C_PLACEMENT, CONTEXT_SUPPORTED, D_RESIDUAL, DIRECT_ANCHOR,
@@ -198,6 +204,9 @@ from readers.deployment import macos_readers
 from readers.pdf_pdfium import pdfium_reader
 from readers.signatures import signature_detector
 from extraction_pool import ExtractionContext, InlinePool, ProcessPool
+from model_placement import (
+    PlacementCallAuthorities, model_path_injections,
+)
 from readers.model_deepseek import BASE_URL_NAME, CLOUD, CREDENTIAL_NAME
 from readers.model_ollama import (
     BASE_URL_NAME as LOCAL_BASE_URL_NAME,
@@ -630,6 +639,355 @@ WIRED_CALL_SITES: frozenset[str] = frozenset({A_FACT})
 #: Whether ANY site can reach a model. Derived, never written: two spellings of one
 #: fact is how the announcement got out of step with the code the first time.
 MODEL_CALL_SITES_WIRED: bool = bool(WIRED_CALL_SITES)
+
+
+#: THE FOUR SITES THAT RUN AND APPLY NOTHING. `104` §7 Phase 1 step 6: *"R-04 for
+#: B, C, D, E in observe-only mode: inject the built authorities; record dossiers,
+#: responses and verdicts; apply nothing until Phase 3 fixes R-15 and R-16."*
+#:
+#: SEPARATE FROM `WIRED_CALL_SITES` AND NOT AN EXTENSION OF IT, because the two
+#: sets answer different questions and one set answering both is how the
+#: announcement lied the first time. `WIRED_CALL_SITES` is "a person's files may be
+#: SENT here", which is what the screen promises and what consent is about. This is
+#: "the product asks and then throws the answer away". A member here sends nothing
+#: over the internet and changes nothing about the plan, so folding it into the
+#: other set would put four false sentences on the screen.
+OBSERVE_CALL_SITES: frozenset[str] = frozenset(
+    {B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE})
+
+#: The two sets are disjoint BY CONSTRUCTION and the assertion is here rather than
+#: in a test, because a site in both would be a site that both applies its answer
+#: and discards it, and there is no run that could be correct.
+assert not (WIRED_CALL_SITES & OBSERVE_CALL_SITES)
+
+
+#: WHICH DRAFT EACH OBSERVE SITE IS ASKED UNDER, `105` §9's winner per site. One
+#: line each, and the id is the whole of what points at the text: `draft_bytes`
+#: resolves it through the packet's manifest and verifies the bytes against the
+#: digest recorded there, so re-pointing a site is an edit to this table and to
+#: nothing else.
+#:
+#: B IS ON v2 AND THE WAVE NAMED v3. `anchors-first-v3` exists on the prompts
+#: branch (c06b7da..053c3be) and has not merged to main, so it is in no manifest
+#: this branch can read and `draft_bytes` refuses an id it cannot verify -- which
+#: is the correct behaviour and not an obstacle to work around. Files are NOT
+#: copied between worktrees to make it resolve early: the digest is what makes a
+#: record's text checkable, and a file that arrived by hand has no row to check it
+#: against. When the prompts merge lands, this one line becomes v3.
+OBSERVE_TEMPLATE_ID: Mapping[str, str] = MappingProxyType({
+    B_GROUP: "b_group.unratified.anchors-first-v2.2026-09-06",
+    C_PLACEMENT: "c_placement.unratified.eliminate-v2.2026-09-06",
+    D_RESIDUAL: "d_residual.unratified.ladder.2026-09-06",
+    E_TEMPLATE: "e_template.unratified.what-a-person-opens-v2.2026-09-06",
+})
+
+assert set(OBSERVE_TEMPLATE_ID) == OBSERVE_CALL_SITES
+
+
+#: WHAT A REJECTED B PROPOSAL IS CALLED, spelled once. `proposal_class` is not a
+#: harness vocabulary: `eligibility.py:51` matches it EXACTLY against
+#: `learning_records.proposal_class`, so it is an identity the composition root
+#: names and must keep stable -- a rename stops every past rejection suppressing
+#: what it was recorded to suppress. `model_facts` spells its own
+#: `fact.llm_extraction`, and this follows that shape: the subject kind, then what
+#: the model was asked to do.
+GROUP_PROPOSAL_CLASS: str = "group.llm_coherence"
+
+
+def observe_allowed_vocabulary(call_site: str) -> tuple[str, ...]:
+    """The closed set the answer must come from, READ OUT OF THE SCHEMA.
+
+    **The B schema defines no closed set for the category, and that is deliberate
+    rather than missing.** `$defs.payload.properties.category` is
+    `{"type": "string", "minLength": 1}` -- free text -- which is `104` §13.7
+    already honoured in the text the model is shown: *"Model names, user
+    confirms... A value the library has not seen is proposed once; the user
+    confirms or renames it."* A closed category list here would reverse that
+    ruling in code while the prompt beside it said otherwise.
+
+    What the payload DOES close is `basis`, and that is the group's judgement
+    rather than one member's: direct anchor, context supported, or generic
+    similarity. `allowed_vocabulary` reaches the dossier the model is shown
+    (`harness.py:303`), so it is that set.
+
+    READ FROM THE SCHEMA AND NOT SPELLED HERE. The model is shown one list and
+    validated against another the moment those are two literals, and this is the
+    file that would hold the second one.
+    """
+    _template, response_schema, _policy = draft_bytes(
+        OBSERVE_TEMPLATE_ID[call_site])
+    schema = json.loads(response_schema)
+    payload = schema.get("$defs", {}).get("payload", {})
+    basis = payload.get("properties", {}).get("basis", {}).get("enum")
+    if not basis:
+        raise ValueError(
+            f"the response schema for {call_site!r} closes no `basis` set, so "
+            f"there is no vocabulary to show the model. `84` §1: absent means "
+            f"refuse. A caller that invented one would show the model options "
+            f"its own instructions do not list.")
+    return tuple(basis)
+
+
+def _no_group_contradiction(*_args: object, **_kwargs: object) -> bool:
+    """B's `contradicts`. There is no per-field fact at a group site to contradict.
+
+    Named and spelled once rather than passed as a lambda, so the reason survives
+    where the value is read: this is not "no check", it is the check answered.
+    """
+    return False
+
+
+def observe_group_authorities(fact_authorities, *, routing: TierRouting,
+                              situation: str):
+    """Site B, wired to run and to change nothing. `(p8_run_call, authorities)`.
+
+    **Everything shared with site A is TAKEN from A's authorities rather than
+    rebuilt.** The gate, the budget, the costs, the policy version and the wire
+    handle key are facts about this deployment and this run, not about which site
+    is asking; a second `Gate` built beside the first would be a second answer to
+    "what may leave this device" and the two would drift on the next ruling. What
+    differs is the client, the prompt, and the five learning fields below.
+
+    `(None, None)` when there is no routing, or when B's tier does not resolve to
+    a model on this device. That second case is not an error: a deployment with a
+    cloud key and no local model is correctly configured and simply does not run
+    the observe sites, because their text is unratified. `require_observe_locality`
+    is the backstop for anyone who builds these another way.
+    """
+    if routing is None:
+        return None, None
+    locality = routing.locality_for(B_GROUP)
+    if not observe_locality_permits(B_GROUP, locality):
+        return None, None
+    require_observe_locality(B_GROUP, locality)
+    client = routing.client_for(B_GROUP)
+    #: The half that is the same for every group in the run. The two that are not
+    #: -- which group, and on what basis -- are set per call below, because
+    #: `ModelCallAuthorities` is built once and `group_subject` runs per subject.
+    shared = CallDependencies(
+        proposal_class=GROUP_PROPOSAL_CLASS,
+        # §8.7's SCOPE VOCABULARY, and it is closed: file, group, node, template,
+        # domain, corpus. The convention `model_facts` sets is that the scope names
+        # the KIND of subject and `learning_subject_id` is that subject's id --
+        # `"file"` beside `request.file_id`. A group verdict is about a group, so
+        # the pair is `"group"` beside the group id, which is also what keeps a
+        # rejection of one group from suppressing another.
+        learning_scope=GROUP,
+        # Both replaced per call, from the request. Present here because
+        # `run_call` reads the whole set before the first call and a `None` in
+        # either would refuse every one of them.
+        basis_key=GROUP,
+        learning_subject_id=GROUP,
+        evidence_resolver=fact_authorities.evidence_resolver,
+        # B has no bundle of its own: `SiteDependencies` names fact, placement,
+        # residual and template, and `validate_group_response` takes none of them.
+        # Four `None`s is the truthful answer and not an omission.
+        site_dependencies=SiteDependencies(
+            fact=None, placement=None, residual=None, template=None),
+        # NOT A's `contradicts_stronger`, and the difference is the site rather
+        # than a preference. That function answers "does this proposed FIELD VALUE
+        # contradict a stronger fact already on the file", reads `field_key` and
+        # `canonical_value` off a row, and B hands its validator a dossier and a
+        # group. There is no per-field fact at the group site for a coherence
+        # answer to contradict, so the truthful answer is always no --
+        # `tools/promptbench/judge.py` reaches the same conclusion and spells it
+        # `_never_contradicts`. A callable is required, and passing A's raised
+        # `TypeError: 'Dossier' object is not subscriptable` on the first real B
+        # call, which is the shape of injecting one site's authority at another.
+        contradicts=_no_group_contradiction,
+        # One rung, for `model_facts`' reason: the dossier is built at the cap
+        # already and there is no smaller shape of it to fall back to.
+        unreduced_fits=True, summarized_fits=False, anchors_fit=False,
+        split_shard_fits=(), split_shards=(),
+        scan_budget=fact_authorities.scan_budget,
+        estimated_cost=fact_authorities.estimated_cost,
+        actual_cost=fact_authorities.actual_cost,
+        allowed_vocabulary=observe_allowed_vocabulary(B_GROUP),
+        # B judges an existing group's coherence. It proposes no field and builds
+        # no level, so the truthful list is empty rather than `None`.
+        folder_levels=(),
+        policy_version=fact_authorities.policy_version,
+        wire_handle_key=fact_authorities.wire_handle_key)
+
+    def observed_run_call(conn, request, *, gate, model_client, prompt,
+                          validation_dependencies, observed_at):
+        """`run_call`, with the per-group half of the learning key filled in.
+
+        `group_subject` runs per subject and `ModelCallAuthorities` is built once,
+        so the two fields that identify WHICH proposal a past rejection would
+        suppress cannot be set at composition. They are set here, from the request
+        the pipeline just built, which is the same thing `_judge_with_model` does
+        for C and D and for the same reason.
+
+        `basis_key` IS THE SUBJECT ADDRESS AND NOT THE GROUP'S `proposed_basis`,
+        which is what it should become. The basis is on the DOSSIER and
+        `p8_run_call` is handed only the request, so it is not reachable from here.
+        Inert while B applies nothing -- `assess_call` uses the pair to find a
+        user's past REJECT, and an observe run writes none -- and it must be the
+        basis before B applies anything.
+        """
+        subject = getattr(request, "subject_ref", "") or ""
+        deps = dataclasses.replace(
+            validation_dependencies,
+            basis_key=subject or validation_dependencies.basis_key,
+            learning_subject_id=(subject.partition(":")[2]
+                                 or validation_dependencies.learning_subject_id))
+        return ObservedOnly(run_call(
+            conn, request, gate=gate, model_client=model_client, prompt=prompt,
+            validation_dependencies=deps, observed_at=observed_at))
+
+    return observed_run_call, ModelCallAuthorities(
+        gate=fact_authorities.gate,
+        model_client=client,
+        prompt=observe_prompt(B_GROUP),
+        validation_dependencies=shared,
+        observed_at=fact_authorities.observed_at,
+        # The SAME target the client is pointed at, read off the client rather
+        # than built beside it.
+        model_target=client.model_target)
+
+
+class ObservedSiteMustNotApply(RuntimeError):
+    """An observe-only site reached the code that would act on its answer."""
+
+
+def _must_not_apply(call_site: str):
+    """`chosen_node_of` and `residual_action_of` for a site that applies nothing.
+
+    `model_path_available()` reads all eight injections as a set, so these must be
+    present for C and D to run at all. They must also never be REACHED: the
+    observe lever in `_judge_with_model` rewrites the verdict to an abstention, and
+    both callers take their existing abstention path without consulting a resolver.
+
+    So they raise. A resolver that returned a plausible node would place a file on
+    the strength of a validator `104` R-15 says is wrong about every real value,
+    and it would do it silently the first time the lever was moved or removed. This
+    fails loudly instead, which is what an unreachable branch owes the next person
+    to make it reachable.
+    """
+    def resolve(_verdict: object):
+        raise ObservedSiteMustNotApply(
+            f"{call_site} is observe-only and something asked it to apply an "
+            f"answer. `104` §7 Phase 1 step 6 records the verdict and applies "
+            f"nothing until Phase 3 fixes R-15 and R-16, and the abstention that "
+            f"keeps this unreachable is in `_judge_with_model`. Writing a real "
+            f"resolver is the LAST step of turning this site on, not the first.")
+    return resolve
+
+
+def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
+                                 routing: TierRouting, plan_version: str) -> dict:
+    """Sites C and D, wired to run and to change nothing. Seven of the eight.
+
+    `sensitivity_policy` is NOT here: R-55 supplies it at `placement_inputs`
+    already, and P8's two sensitivity checks refuse with it whether or not a model
+    is configured. Overwriting it from here would take a refusal away.
+
+    `{}` when there is no routing or when C's tier is not on this device, which
+    leaves every field as `placement_inputs` had it and the model path off.
+    """
+    if routing is None:
+        return {}
+    locality = routing.locality_for(C_PLACEMENT)
+    if not observe_locality_permits(C_PLACEMENT, locality):
+        return {}
+    require_observe_locality(C_PLACEMENT, locality)
+    require_observe_locality(D_RESIDUAL, routing.locality_for(D_RESIDUAL))
+    authorities = PlacementCallAuthorities(
+        gate=fact_authorities.gate,
+        model_client=routing.client_for(C_PLACEMENT),
+        # C's text. D's is a different draft and `_judge_with_model` is shared, so
+        # the prompt it sends is C's for both -- which is a REAL limitation of
+        # wiring two sites through one function and is reported rather than hidden.
+        prompt=observe_prompt(C_PLACEMENT),
+        model_target=routing.client_for(C_PLACEMENT).model_target,
+        evidence_resolver=fact_authorities.evidence_resolver,
+        contradicts=fact_authorities.contradicts,
+        scan_budget=fact_authorities.scan_budget,
+        estimated_cost=fact_authorities.estimated_cost,
+        actual_cost=fact_authorities.actual_cost,
+        policy_version=fact_authorities.policy_version,
+        wire_handle_key=fact_authorities.wire_handle_key,
+        sensitivity_policy=sensitivity_policy_for(conn),
+        chosen_node_of=_must_not_apply(C_PLACEMENT),
+        residual_action_of=_must_not_apply(D_RESIDUAL))
+    built = model_path_injections(conn, authorities, plan_version=plan_version)
+    built.pop("sensitivity_policy", None)
+    return built
+
+
+#: The seven `model_path_injections` fills for C and D. `sensitivity_policy` is
+#: the eighth and is supplied at `placement_inputs` by R-55 whether or not a model
+#: is configured, so it is not in this set and is never overwritten from here.
+OBSERVE_PLACEMENT_FIELDS: tuple[str, ...] = (
+    "gate", "model_client", "prompt", "call_dependencies", "model_call_request",
+    "chosen_node_of", "residual_action_of",
+)
+
+
+def observe_prompt(call_site: str) -> PromptDefinition:
+    """The draft this deployment asks `call_site` under. Composed HERE, not in P8.
+
+    `a_fact_prompt`'s rule, applied to a site whose text is not ratified: the
+    library holds the bytes and verifies them against their digests, and the
+    composition root picks the id, the call site and the version. The difference
+    is the id itself, which carries `unratified` and the packet's date, so every
+    `llm_response` and `llm_verdict` row written here says on its face that the
+    text behind it was a draft.
+    """
+    template_id = OBSERVE_TEMPLATE_ID[call_site]
+    template, response_schema, shaping_policy = draft_bytes(template_id)
+    return PromptDefinition(
+        template_id=template_id,
+        template_bytes=template,
+        response_schema_bytes=response_schema,
+        call_site=call_site,
+        call_site_version="1",
+        shaping_policy_bytes=shaping_policy)
+
+
+class UnratifiedPromptOnACloudTarget(RuntimeError):
+    """An observe-only site was pointed at a model off this device."""
+
+
+def observe_locality_permits(call_site: str, locality: str) -> bool:
+    """Whether this site may be asked at this destination. LOCAL ONLY, in code.
+
+    **`104` §13's standing count is "0 cloud calls with unratified prompts", and a
+    count nobody enforces is a hope.** Every prompt these four sites would send is
+    a D2 DRAFT: `drafts_2026-09-06.json` carries `"status": "unratified"` and every
+    `template_id` in it says `unratified` in the id itself, so a record written
+    under one says so. `planning/82` §0 records the owner ratifying `A_fact`'s text
+    and nothing else.
+
+    Unratified text is text nobody has agreed to send. On this machine that is a
+    question of taste; over the internet it is a person's dossier reaching a
+    provider under a prompt their owner never approved, and it cannot be taken
+    back. So the difference is enforced where it is a fact rather than promised in
+    a comment: a cloud target for an observe site RAISES, and the raise happens at
+    the composition root before a corpus has been read.
+
+    `A_fact` is unaffected and stays cloud-eligible: it is not in this set, its
+    text is ratified, and `WIRED_CALL_SITES` is what governs it.
+    """
+    if call_site not in OBSERVE_CALL_SITES:
+        return True
+    return locality == LOCAL
+
+
+def require_observe_locality(call_site: str, locality: str) -> None:
+    """`observe_locality_permits`, as a refusal that names what was wrong."""
+    if observe_locality_permits(call_site, locality):
+        return
+    raise UnratifiedPromptOnACloudTarget(
+        f"call site {call_site!r} is observe-only and its prompt is a D2 DRAFT "
+        f"({drafts_status()!r}), but the routing sends it to a {locality!r} model. "
+        f"`104` §13 counts 0 cloud calls with unratified prompts and this is where "
+        f"that count is kept. Unratified text is text nobody has agreed to send: "
+        f"on this device that is a question of taste, and over the internet it is "
+        f"a person's dossier reaching a provider under a prompt their owner never "
+        f"approved. Configure {LOCAL_MODEL_NAME} and the observe sites run here; "
+        f"ratify the text and the site joins WIRED_CALL_SITES instead.")
 
 #: How many of a file's observations may be offered to the A_fact call, and the only
 #: place the NUMBER is chosen. §8.4 asks for "a compact dossier ... selected
@@ -5150,6 +5508,9 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         return here
 
     def placement_inputs(tree) -> PipelineInputs:
+        observe_cd = (observe_placement_injections(
+            conn, fact_authorities[0], routing=routing,
+            plan_version=tree.tree.plan_version_id) if fact_authorities else {})
         asks = _home_questions(tree.tree)
         node_of = _node_for(tree.tree)
 
@@ -5199,8 +5560,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # §6.12 step 7's model path, absent in every part. `model_path_available`
             # reads these as a set: with them `None`, a file that needs a judgement
             # abstains with a reason instead of being decided by nothing.
-            gate=None, model_client=None, prompt=None, call_dependencies=None,
-            model_call_request=None, chosen_node_of=None, residual_action_of=None,
+            # `104` §7 Phase 1 step 6: C and D run and apply nothing. Seven of
+            # the eight arrive together or not at all -- `model_path_injections`
+            # is all-or-nothing, and a half set is the failure
+            # `model_path_available` exists to catch. Empty when no model is
+            # configured or when C's tier is not on this device, which leaves
+            # every one of them `None` and the model path off, exactly as before.
+            **{**dict.fromkeys(OBSERVE_PLACEMENT_FIELDS), **observe_cd},
             # SEVEN of the eight, not eight. This one is the exception and R-55 is
             # why: P8's two sensitivity checks REFUSE with it, and a refusal that
             # needs no ratified prompt should not wait for one. `None` here meant
@@ -5220,6 +5586,11 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 _their_own_folder_made_for_what_it_holds(tree.tree)),
             p2=None,
             the_folder_each_file_is_in=_the_folder_each_file_is_in(tree.tree))
+
+    #: One slot, filled by `_model_fact_pass` when it builds A's authorities and
+    #: read by `downstream` for the observe sites. A list because the pass is a
+    #: closure and this is the one value that has to cross out of it.
+    fact_authorities: list = []
 
     def _model_fact_pass(run_id: str) -> None:
         """Ask a model about the fields the deterministic producers left open.
@@ -5296,6 +5667,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # so the mailbox the transport fills is the mailbox `run_call` reads.
             usage_recorder=usage_recorder,
             on_result=lambda file_id, result: outcomes.append((file_id, result)))
+        # KEPT FOR THE OBSERVE SITES, which need the same gate, budget, costs,
+        # policy version and handle key. Stashed rather than rebuilt: a second
+        # `Gate` beside this one would be a second answer to "what may leave this
+        # device", and the two would drift on the next ruling. Every early return
+        # above leaves the cell empty, which is what stops B being asked on a run
+        # where A was not.
+        fact_authorities[:] = [authorities]
         resolver = model_fact_resolver(conn, authorities=authorities)
 
         written: list[str] = []
@@ -5452,6 +5830,11 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # purpose: they report what the scan found, and a fact this pass writes is
         # part of what the scan found.
         _model_fact_pass(p1_p7.scan_run_id)
+        # AFTER the fact pass, because that is what builds the authorities these
+        # borrow, and BEFORE P9 groups, because that is what asks site B.
+        observe_b = (observe_group_authorities(
+            fact_authorities[0], routing=routing, situation=situation)
+            if fact_authorities else (None, None))
         # HERE, and not in `report`. The scan has finished and every design stage
         # after this point can refuse by name -- and `main` reaches `report` only
         # when none of them does. Printed at the end, the count of what was marked
@@ -5519,7 +5902,12 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 conflicts_for=lambda file_ids: (),
                 duplicate_or_version=_duplicate_or_version),
             user_seed_for=lambda file_id, content_hash: None,
-            embeddings=_embeddings, p8_run_call=None, p8_authorities=None,
+            # `104` §7 Phase 1 step 6: site B runs and applies nothing. Both are
+            # `None` when no model was configured, when B's tier is not on this
+            # device, or when the fact pass did not run -- and a `None` pair is
+            # the deterministic run P9 has always made.
+            embeddings=_embeddings,
+            p8_run_call=observe_b[0], p8_authorities=observe_b[1],
             placement_inputs=placement_inputs, evidence_for=evidence_for,
             # §8.5's replay measures a run against a reference corpus with
             # hand-labelled expectations. This command scans a person's own

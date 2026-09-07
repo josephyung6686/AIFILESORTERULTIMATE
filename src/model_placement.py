@@ -4,8 +4,10 @@
 **Why this file exists at all.** `PipelineInputs` carries eight fields for the
 model path -- `gate`, `model_client`, `prompt`, `call_dependencies`,
 `model_call_request`, `chosen_node_of`, `residual_action_of`,
-`sensitivity_policy` -- and `src/cli.py` has passed `None` for every one of them
-since P11 landed. `model_path_available()` has therefore been `False` on every run
+`sensitivity_policy` -- and `src/cli.py` passed `None` for every one of them from P11 landing
+until the R-55 work began supplying `sensitivity_policy`, and
+`model_path_available()` reads them as a set, so it was `False` on every run
+this product had made and step 7 had never executed. `model_path_available()` has therefore been `False` on every run
 this product has ever made, and step 7 has never executed. P11 is complete:
 `_judge_with_model` assembles the request, `p8_seam` holds the four Site C
 authorities and the three Site D ones, and `placement_validation` runs fifteen
@@ -49,6 +51,7 @@ from llm_harness.harness import CallDependencies
 from llm_harness.records import EvidenceItem, PromptDefinition
 from privacy.items import Excerpt, sensitive_observation_keys
 from privacy.release import ModelCallRequest, ModelTarget, Target
+from placement.vocabulary import FILE
 from privacy.vocabulary import ALWAYS_LOCAL_ZONES
 
 #: P8's stage name for a placement call, and the `ModelCallRequest.stage` §8.4's
@@ -250,14 +253,39 @@ def _model_call_request_builder(conn: sqlite3.Connection, *,
 
 
 def _file_id_of(subject_ref: str) -> str:
-    """P11's `subject_ref_of`, read back. `"file:<id>"` and `"group:<id>"`.
+    """P11's `subject_ref_of`, read back. THE FILE FORM HAS THREE PARTS.
 
-    Split on the FIRST colon only: a file id is a uuid today and P11 promises
-    nothing about its shape, so a right-hand split would truncate the first id
-    that contains one.
+    `placement.store.subject_ref_of` writes `f"{FILE}:{file_id}:{content_hash}"`
+    for a file and `f"{kind}:{group_id}"` for a group. This partitioned on the
+    first colon and returned everything after it, so every file address came back
+    as `<file_id>:<content_hash>` -- an id that matches no row in `files`. Dead
+    while nothing called it, wrong the moment site C is wired, which is the wave
+    that wires it.
+
+    **BOTH ENDS ARE TRIMMED AND NEITHER IS TRIMMED BY GUESSWORK.** The kind comes
+    off the front by the first colon, which is right because the kind is a closed
+    vocabulary with no colon in it. The content hash comes off the BACK by the
+    last colon, which is right for the reason the old docstring gave for refusing
+    a right-hand split: P11 promises nothing about a file id's shape, so an id
+    containing a colon must survive. A hash cannot contain one -- it is sha256
+    hex -- so the LAST colon is the boundary between id and hash however many the
+    id has.
+
+    The kinds are imported from P11's own vocabulary rather than spelled here: a
+    second copy of `"file"` is a second thing to keep true.
     """
-    _kind, _sep, identifier = subject_ref.partition(":")
-    return identifier or subject_ref
+    kind, separator, rest = subject_ref.partition(":")
+    if not separator:
+        return subject_ref
+    if kind != FILE:
+        return rest or subject_ref
+    identifier, hash_separator, _content_hash = rest.rpartition(":")
+    if not hash_separator:
+        # A file address with no hash is not one `subject_ref_of` writes. Returned
+        # whole rather than repaired: a caller looking up half an address gets no
+        # row, and inventing the missing half would get it the WRONG row.
+        return rest
+    return identifier or rest
 
 
 def _call_dependencies(authorities: PlacementCallAuthorities) -> CallDependencies:

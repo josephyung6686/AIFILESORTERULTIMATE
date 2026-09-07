@@ -24,6 +24,11 @@ from decimal import Decimal
 
 import pytest
 
+# ALIASED: this module already binds `FILE` to a file-id fixture at line 51,
+# and P11's subject kind is a different thing wearing the same word.
+from placement.vocabulary import FILE as SUBJECT_FILE
+from placement.vocabulary import GROUP as SUBJECT_GROUP
+
 from database_agent.db import create_schema
 from evidence_shape.location import Location, Segment, TextSpan
 from evidence_shape.observation import Observation
@@ -336,3 +341,107 @@ def test_a_value_p5_signalled_sensitive_is_never_offered_to_a_placement_model(db
     offered = releasable_excerpts(db, evidence_refs=(flagged, ordinary))
 
     assert [item.observation_key for item in offered] == [ordinary]
+
+
+# --- `104` R-58: the file address has three parts ----------------------------
+
+def test_a_file_address_comes_back_as_the_file_id_and_not_the_id_plus_its_hash():
+    """`placement.store.subject_ref_of` writes `file:<file_id>:<content_hash>`.
+
+    `_file_id_of` partitioned on the first colon and returned everything after
+    it, so every file address came back as `<file_id>:<content_hash>` -- a string
+    that matches no row in `files`. Dead while nothing called it and wrong the
+    moment site C is wired, which is the wave that wires it.
+    """
+    from model_placement import _file_id_of
+    from placement.store import subject_ref_of
+
+    class _Subject:
+        kind = SUBJECT_FILE
+        file_id = "9ee1dc75-2f17-40e0-8869-34d3c1a49ac5"
+        content_hash = "a" * 64
+        group_id = None
+
+    address = subject_ref_of(_Subject())
+
+    assert address.count(":") == 2, address
+    assert _file_id_of(address) == _Subject.file_id
+
+
+def test_a_file_id_that_contains_a_colon_survives_the_trim():
+    """The old docstring's reason for refusing a right-hand split, kept and
+    answered rather than dropped: P11 promises nothing about a file id's shape,
+    so an id containing a colon must survive. The content hash cannot contain one
+    -- it is sha256 hex -- so the LAST colon is the boundary between id and hash
+    however many the id has."""
+    from model_placement import _file_id_of
+
+    assert _file_id_of(f"{SUBJECT_FILE}:has:colons:in:id:{'b' * 64}") == "has:colons:in:id"
+
+
+def test_a_group_address_is_untouched_because_it_carries_no_hash():
+    """`subject_ref_of` writes two parts for a group and three for a file, and
+    the same function reads both. Trimming a hash off a group address would take
+    the group id with it."""
+    from model_placement import _file_id_of
+
+    assert _file_id_of(f"{SUBJECT_GROUP}:group-1") == "group-1"
+
+
+def test_a_malformed_address_is_returned_whole_rather_than_repaired():
+    """A caller looking up half an address gets no row; inventing the missing
+    half would get it the WRONG row. `84` §1's absent-means-refuse, at the one
+    place where a plausible repair is available and is worse than none."""
+    from model_placement import _file_id_of
+
+    assert _file_id_of(f"{SUBJECT_FILE}:no-hash-here") == "no-hash-here"
+    assert _file_id_of("no-colons-at-all") == "no-colons-at-all"
+
+
+# --- `104` R-15, pinned as it will fire the moment C answers ------------------
+
+@pytest.mark.xfail(strict=True, reason=(
+    "104 R-15: `_invented_dimension` compares a dimension's VALUE against "
+    "`dossier.allowed_vocabulary`, which P11 fills with the legal NODE IDS. A "
+    "real institution, date or project is never a node id, so every grounded "
+    "answer is rejected as invented. Phase 3 owns the validators; the fix is to "
+    "check the value against the evidence it cites, and the node-id set stays "
+    "the check for `destination` alone, which is what it was written for."))
+def test_a_real_institution_is_not_an_invented_one():
+    """The check that makes site C reject every correct answer it will ever give.
+
+    Written as a STRICT xfail rather than left latent: it fails now for the exact
+    reason it will fail on a real corpus, and the moment Phase 3 fixes the
+    validator this test passes and the marker's own strictness reports it. A
+    latent defect with no test is one nobody is told about when it stops being
+    latent.
+
+    `104` R-15 is rated High and "latent, code" precisely because nothing called
+    it -- and W2-D is the wave that calls it. Observe mode is what keeps that
+    safe: the verdict is recorded and applied to nothing.
+    """
+    from llm_harness.placement_validation import _invented_dimension
+
+    # What P11 puts in `allowed_vocabulary`: the legal destinations.
+    node_ids = {"node_f1d70c8a_1", "node_f1d70c8a_2"}
+    # What a correct model answer looks like -- a real institution, cited.
+    payload = {"per_dimension_support": [
+        {"dimension": "institution", "value": "Columbia University",
+         "support": "cited"}]}
+
+    assert _invented_dimension(payload, node_ids) is None
+
+
+def test_the_same_check_is_right_about_a_destination_and_that_half_stays():
+    """The half of R-15 that is NOT broken, asserted beside it so a fix cannot
+    take it away. A destination outside the frozen tree IS invented, and the
+    node-id set is exactly the right vocabulary for that question -- which is the
+    question this check was written for before it was pointed at values too."""
+    from llm_harness.placement_validation import _invented_dimension
+
+    node_ids = {"node_f1d70c8a_1"}
+    payload = {"per_dimension_support": [
+        {"dimension": "institution", "value": "node_f1d70c8a_1",
+         "support": "cited"}]}
+
+    assert _invented_dimension(payload, node_ids) is None

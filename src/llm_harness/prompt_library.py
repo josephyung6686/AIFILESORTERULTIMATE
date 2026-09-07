@@ -40,6 +40,7 @@ what makes the attempt loud rather than silent.
 from __future__ import annotations
 
 import hashlib
+import json
 from functools import lru_cache
 from pathlib import Path
 
@@ -179,3 +180,109 @@ def a_fact_response_schema_bytes() -> bytes:
 def a_fact_shaping_policy_bytes() -> bytes:
     """The A_fact shaping policy, verified against its digest on first read."""
     return _read(A_FACT_SHAPING_POLICY_FILE, A_FACT_SHAPING_POLICY_SHA256)
+
+
+# --- the D2 drafts, by id, and NONE of them is ratified -----------------------
+
+#: The manifest `planning/105-D2-PROMPT-PACKET.md` put to the owner. It is an
+#: INDEX and not a ratification: its own `status` is `unratified` and every
+#: `template_id` in it carries that word, so any record written under one says so
+#: on its face.
+#:
+#: The manifest itself is read as-is and carries the digests that verify the FILES
+#: it names. That asymmetry is deliberate and worth stating: a digest of the index
+#: would have to live somewhere, and the only somewhere is this file, which would
+#: make adding a draft an edit to `src/` -- exactly what `104` §13 wants a packet
+#: to avoid. What must not drift is the TEXT a record points at, and that is what
+#: `digests` pins.
+DRAFTS_FILE = (
+    Path(__file__).resolve().parent / "library" / "drafts_2026-09-06.json")
+
+
+class DraftNotInManifest(RuntimeError):
+    """No row in the packet carries this template id."""
+
+
+class DraftManifestAmbiguous(RuntimeError):
+    """Two rows share a template id and disagree about which files it is."""
+
+
+@lru_cache(maxsize=1)
+def _manifest() -> dict:
+    if not DRAFTS_FILE.is_file():
+        raise RatifiedTextMissing(
+            f"{DRAFTS_FILE} is not on disk; this package ships no default "
+            f"prompt text, draft or otherwise")
+    return json.loads(DRAFTS_FILE.read_text(encoding="utf-8"))
+
+
+def drafts_status() -> str:
+    """The one word the whole packet is under. Read, never assumed.
+
+    `cli.py` prints it in the refusal it raises when an observe-only site is
+    pointed at a cloud model, so the sentence a person sees is the manifest's own
+    word rather than this module's memory of it.
+    """
+    status = _manifest().get("status")
+    if not isinstance(status, str) or not status.strip():
+        raise DraftNotInManifest(
+            f"{DRAFTS_FILE} carries no `status`. The packet's status is what says "
+            f"whether its text may be sent, and absent means refuse.")
+    return status
+
+
+def draft_row(template_id: str) -> dict:
+    """The manifest row for one template id, or a refusal naming what is there.
+
+    TWO ROWS MAY SHARE AN ID and that is not an error by itself: A_fact's
+    `ratified-glossary` and `proposed-glossary` are two GLOSSARIES over one
+    template, so they name the same text. What is an error is two rows sharing an
+    id and disagreeing about which files it is, because then the id does not
+    identify bytes and a record written under it points at nothing definite.
+    """
+    rows = [row for row in _manifest().get("drafts", ())
+            if isinstance(row, dict) and row.get("template_id") == template_id]
+    if not rows:
+        known = sorted({row.get("template_id") for row in
+                        _manifest().get("drafts", ()) if isinstance(row, dict)})
+        raise DraftNotInManifest(
+            f"no draft in {DRAFTS_FILE.name} carries template_id "
+            f"{template_id!r}. A prompt is named by its id and this package "
+            f"invents none. The ids it holds are {known}.")
+    files = {(row.get("template_file"), row.get("response_schema_file"),
+              row.get("shaping_policy_file")) for row in rows}
+    if len(files) > 1:
+        raise DraftManifestAmbiguous(
+            f"template_id {template_id!r} appears on {len(rows)} rows naming "
+            f"{len(files)} different sets of files: {sorted(files)}. An id that "
+            f"does not identify bytes cannot be recorded against a call.")
+    return rows[0]
+
+
+def draft_bytes(template_id: str) -> tuple[bytes, bytes, bytes]:
+    """The template, response schema and shaping policy for one draft id.
+
+    Each verified against the manifest's digest by the same `_read` the ratified
+    text uses, and for the same reason: a prompt's identity is its bytes, and a
+    revision is a new file and a new row rather than an edit to a row a run has
+    already recorded.
+    """
+    row = draft_row(template_id)
+    digests = _manifest().get("digests")
+    if not isinstance(digests, dict):
+        raise DraftNotInManifest(
+            f"{DRAFTS_FILE.name} carries no `digests` map, so its text cannot be "
+            f"verified and is not read")
+    out: list[bytes] = []
+    for key in ("template_file", "response_schema_file", "shaping_policy_file"):
+        name = row.get(key)
+        if not isinstance(name, str) or not name:
+            raise DraftNotInManifest(
+                f"the row for {template_id!r} names no {key}; a call needs all "
+                f"three and a partial prompt is not a smaller prompt")
+        if name not in digests:
+            raise DraftNotInManifest(
+                f"{name} has no digest in {DRAFTS_FILE.name}, so the bytes on "
+                f"disk cannot be shown to be the bytes the packet described")
+        out.append(_read(DRAFTS_FILE.parent / name, digests[name]))
+    return out[0], out[1], out[2]
