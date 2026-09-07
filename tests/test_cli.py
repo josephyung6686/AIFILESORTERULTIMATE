@@ -2985,8 +2985,15 @@ def test_a_protected_set_is_not_offered_a_command_that_would_refuse(tmp_path):
     assert "--send-set" not in protected.split("\n\n", 1)[0], protected
     # The twin, in the same run: the ordinary set IS still offered it, so this
     # is a distinction and not the feature quietly being switched off.
+    #
+    # NAMED BY WHAT IT IS NOT, since `104` R-115. The ordinary set used to be
+    # called "Not yet placed" whatever it held; the sets are now divided by the
+    # reason the screen already prints, so which label this corpus produces is
+    # a fact about the corpus. What this test is about is the DISTINCTION --
+    # protected refuses the gesture and ordinary is offered it -- and that is
+    # asserted here without pinning a name that R-115 deliberately moved.
     ordinary = next(block for block in printed.split("Held for review as ")
-                    if block.startswith('"Not yet placed'))
+                    if block.startswith('"') and not block.startswith('"Protected'))
     assert "--send-set" in ordinary.split("\n\n", 1)[0], ordinary
 
 

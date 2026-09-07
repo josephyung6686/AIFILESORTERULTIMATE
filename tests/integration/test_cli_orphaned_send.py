@@ -75,7 +75,16 @@ PHOTOS = 26
 DELETED = 8
 
 #: What the screen prints, and therefore what the person types.
-FIRST_LABEL = "Not yet placed (1 of 4)"
+#:
+#: NAMED BY ITS REASON SINCE `104` R-115, and the `(i of n)` is unchanged. The
+#: sets used to be one pile called "Not yet placed" cut into eight-file batches;
+#: they are now divided by the reason the screen already prints over each group,
+#: and the ceiling then splits each of those. Twenty-six photographs that no
+#: folder matched are one reason and four batches, exactly as before -- which is
+#: why every assertion in this file still holds and only the name moved. The
+#: control test below asserts this string IS what the screen offers, so a further
+#: rename fails there first rather than as five stale comparisons.
+FIRST_LABEL = "No folder matched (1 of 4)"
 FIRST_SET = f"{FIRST_LABEL}=Review Later"
 
 #: The words the missing sentence has to carry. Asserted as a phrase rather than
@@ -238,7 +247,7 @@ def test_a_stale_send_leaves_the_person_a_plan_and_a_way_forward(tmp_path):
     assert "No plan was made" not in stale, stale
     # The plan itself, and the refusal beside it rather than instead of it.
     assert "Folders in this plan" in stale, stale
-    assert "Not yet placed (1 of 3)" in stale, stale
+    assert "No folder matched (1 of 3)" in stale, stale
 
 
 #: The sentence that is true only when the area really is unenabled. Named once
