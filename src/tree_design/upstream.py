@@ -460,15 +460,105 @@ def _preferred_values_in_field(conn: sqlite3.Connection, *,
     slot resolves to nothing, or to a state a folder proposal may not rest on, is
     ABSENT -- so `.get(file_id)` is `preferred_value_for`'s own `None`.
     """
+    return _as_values(preferred_in_field(conn, field_key=field_ref),
+                      field_ref=field_ref)
+
+
+def _as_values(rows: dict[str, sqlite3.Row], *,
+               field_ref: str) -> dict[str, FieldValue]:
+    """`_as_value` over a corpus read already in hand.
+
+    Split out so a caller that needs the ROWS as well as the values -- `105`
+    §14.4's rule asks which fact a value came from -- reads the field once and
+    shapes it through the same filter, rather than reading it twice or shaping it
+    itself.
+    """
     return {
         file_id: value
-        for file_id, row in preferred_in_field(conn, field_key=field_ref).items()
+        for file_id, row in rows.items()
         if (value := _as_value(row, field_ref=field_ref)) is not None
     }
 
 
+def _canonical_in_field(conn: sqlite3.Connection, *,
+                        field_ref: str) -> dict[str, str]:
+    """One field's settled value per file, WITHOUT P10's proposal-eligible filter.
+
+    `_preferred_values_in_field` above applies `PROPOSAL_ELIGIBLE_STATES` because
+    its answers become folders, and `00`:42 is about what may become one. This
+    read answers the opposite kind of question: `105` §14.4's independence test
+    uses a family value to REFUSE a second source, so filtering it at the folder
+    bar would make the weakest signals -- a near-duplicate family P6 records at
+    `possible` (`facts.families.VERSION_FAMILY_STATES`) -- fail to refuse
+    anything, which is the unsafe direction. The slot is still P6's: a file whose
+    slot does not resolve is absent, exactly as it is above.
+    """
+    return {file_id: row["canonical_value"]
+            for file_id, row in preferred_in_field(
+                conn, field_key=field_ref).items()}
+
+
+@dataclass(frozen=True)
+class AnchorAgreement:
+    """What two anchors must be, for one of their values to become a folder level.
+
+    `105` §14.4, the owner's ruling of 7 Sep 2026: "create that scoped folder
+    level only from two independently originating, nonconflicting anchors". The
+    packet says in its own words what "two anchors agree" was missing --
+    independence, because "two copies of one syllabus are one source", and scope,
+    because "documents from unrelated courses cannot jointly establish a course's
+    school".
+
+    **P10 names no field and chooses no rule; it applies one it is handed.** Every
+    member here is injected by the composition root, which is the only place a
+    field key this deployment acts on is spelled:
+
+    * `fields` -- the group-level fields this governs. A field outside it takes
+      `_group_level_from` unchanged, which is what "nothing here changes B" means:
+      the term is not in this set, and B's per-course acceptances carry the same
+      rule when B is ratified.
+    * `origin_fields` -- the fields whose shared value makes two anchors ONE
+      source. A duplicate family is a document and its copy; a version family is a
+      document and its re-export, which is the second half of §14.4's independence
+      test. A content hash is compared as well and is not a field.
+    * `scope_field` -- the fact two anchors must SHARE to be jointly about one
+      thing. Two syllabi of one course share the course; two syllabi of unrelated
+      courses share only a school, and §14.4 says that is not a course's school.
+      An anchor with no value at this field is in no scope and joins with nobody:
+      the cautious direction, because a folder is the strongest assertion this
+      product makes about a value.
+    * `rests_on_a_name_alone` -- optional, and it is the filename rule. A value
+      taken from nothing but the file's own name is not a reading of the document,
+      and `104` R-95 measured what it produces when it is: 38 `llm_supported`
+      rows on 52 files, most of them filenames, `todo.txt` and
+      `submission_backup.zip` among them, every one of them a `school`. Asked per
+      candidate anchor as `(file_id, fact_id)`; the composition root answers it,
+      because whether a citation IS the filename is P4's and P7's question and not
+      P10's.
+    """
+
+    fields: frozenset[str]
+    origin_fields: tuple[str, ...]
+    scope_field: str
+    rests_on_a_name_alone: Callable[[str, str], bool] | None = None
+
+    def __post_init__(self) -> None:
+        if not self.fields:
+            raise UpstreamUnavailable(
+                "an agreement governing no field governs nothing; a deployment "
+                "that has not read `105` §14.4 supplies no agreement rather than "
+                "an empty one, and every field keeps the rule it had")
+        if not self.scope_field:
+            raise UpstreamUnavailable(
+                "`105` §14.4's scope half is what stops two anchors from "
+                "unrelated courses establishing a course's school, and there is "
+                "no scope without a fact they share; P10 names none of its own")
+
+
 def group_level_value(conn: sqlite3.Connection, *, group: AcceptedGroup,
-                      field_ref: str) -> FieldValue | None:
+                      field_ref: str,
+                      agreement: AnchorAgreement | None = None,
+                      ) -> FieldValue | None:
     """The one value this GROUP contributes at this dimension, or `None`.
 
     `104` §11.2 step 2, and `00`:57 is what it implements: "the syllabus and
@@ -500,13 +590,15 @@ def group_level_value(conn: sqlite3.Connection, *, group: AcceptedGroup,
     `group_level_reader`, which asks once per group and hands the same answer to
     every member. This form remains for a caller holding one group.
     """
-    return group_level_values(conn, groups=(group,),
-                              field_ref=field_ref)[group.group_id]
+    return group_level_values(conn, groups=(group,), field_ref=field_ref,
+                              agreement=agreement)[group.group_id]
 
 
 def group_level_values(conn: sqlite3.Connection, *,
                        groups: Sequence[AcceptedGroup],
-                       field_ref: str) -> dict[str, FieldValue | None]:
+                       field_ref: str,
+                       agreement: AnchorAgreement | None = None,
+                       ) -> dict[str, FieldValue | None]:
     """`group_level_value` for SEVERAL groups at one dimension, in one read.
 
     **The rule is unchanged and the reads are not**, which is
@@ -523,12 +615,27 @@ def group_level_values(conn: sqlite3.Connection, *,
     what the facts say NOW. The reading lives exactly as long as the question.
 
     An empty list returns an empty mapping rather than reading anything.
+
+    **`agreement` is `105` §14.4's second half and it governs the fields it names
+    and no others.** Absent -- and absent is the default -- every field takes the
+    rule above unchanged. Present, a field it names must clear
+    `_group_level_agreed` as well, and the extra corpus reads it needs are made
+    once here for the same reason the value's own read is: they are properties of
+    the corpus at a field, not of a group or of a member.
     """
     if not groups:
         return {}
-    reading = _preferred_values_in_field(conn, field_ref=field_ref)
-    return {group.group_id: _group_level_from(group, reading)
-            for group in groups}
+    rows = preferred_in_field(conn, field_key=field_ref)
+    reading = _as_values(rows, field_ref=field_ref)
+    if agreement is None or field_ref not in agreement.fields:
+        return {group.group_id: _group_level_from(group, reading)
+                for group in groups}
+    scope = _preferred_values_in_field(conn, field_ref=agreement.scope_field)
+    origins = {field: _canonical_in_field(conn, field_ref=field)
+               for field in agreement.origin_fields}
+    return {group.group_id: _group_level_agreed(
+        group, reading, rows=rows, scope=scope, origins=origins,
+        agreement=agreement) for group in groups}
 
 
 def _group_level_from(group: AcceptedGroup,
@@ -554,8 +661,123 @@ def _group_level_from(group: AcceptedGroup,
     return max(found, key=lambda item: strength(item.reliability))
 
 
+def _group_level_agreed(group: AcceptedGroup, reading: dict[str, FieldValue], *,
+                        rows: dict[str, sqlite3.Row],
+                        scope: dict[str, FieldValue],
+                        origins: dict[str, dict[str, str]],
+                        agreement: AnchorAgreement) -> FieldValue | None:
+    """`_group_level_from`, with `105` §14.4's three conditions on top of it.
+
+    Every refusal `_group_level_from` already makes is made here first and in the
+    same words -- direct anchors and nobody else, no anchor no value, disagreement
+    is `None`, the strongest agreeing reliability wins -- and what is added is the
+    ruling: the value must come from TWO anchors that originate independently and
+    that are about one course or one enrollment. A group with one syllabus has a
+    school on that syllabus and no school level, which is `00`:42's own posture
+    ("a possible clue for review") applied one level up.
+
+    **A filename is never a source**, so a candidate resting on nothing but the
+    file's own name is dropped before it is counted -- not after, because an
+    anchor that cannot count must not be able to make a second anchor's value
+    disagree with itself either.
+
+    **The person's own answer stands alone and is asked for no agreement.**
+    `PROPOSAL_ELIGIBLE_STATES` is the ladder weakest-first, so its last member is
+    the strongest state P6 has, and R-80's rule -- "a person's acceptance always
+    outranks both answers" -- would be broken by a rule that made a confirmed
+    school wait for a second document to agree with it. This is also §14.4's own
+    remedy for the protected anchor it excludes from the model: "manual
+    confirmation can supply that information", and a confirmation that could not
+    produce the level would supply nothing.
+    """
+    found: list[tuple[GroupMember, FieldValue]] = []
+    for member in group.members:
+        if member.basis != DIRECT_ANCHOR:
+            continue
+        value = reading.get(member.file_id)
+        if value is None:
+            continue
+        if agreement.rests_on_a_name_alone is not None and (
+                agreement.rests_on_a_name_alone(
+                    member.file_id, rows[member.file_id]["fact_id"])):
+            continue
+        found.append((member, value))
+    if not found:
+        return None
+    values = [value for _, value in found]
+    if len({value.canonical_value for value in values}) != 1:
+        return None
+    strongest = max(values, key=lambda item: strength(item.reliability))
+    if strength(strongest.reliability) == strength(PROPOSAL_ELIGIBLE_STATES[-1]):
+        return strongest
+    if not _two_sources_in_one_scope(found, scope=scope, origins=origins):
+        return None
+    return strongest
+
+
+def _two_sources_in_one_scope(
+        found: Sequence[tuple[GroupMember, FieldValue]], *,
+        scope: dict[str, FieldValue],
+        origins: dict[str, dict[str, str]]) -> bool:
+    """§14.4's independence and scope, asked together because they are one test.
+
+    Two independent anchors about two different courses are not two anchors about
+    either of them, so the sources are counted WITHIN a scope and never across
+    scopes. An anchor whose scope fact is missing is counted in no scope at all:
+    `00`:42 again, and the same direction `_group_level_from` takes when two
+    anchors disagree.
+    """
+    by_scope: dict[str, list[frozenset[tuple[str, str]]]] = {}
+    for member, _value in found:
+        in_scope = scope.get(member.file_id)
+        if in_scope is None:
+            continue
+        by_scope.setdefault(in_scope.canonical_value, []).append(
+            _origin_of(member, origins))
+    return any(_independent_sources(marks) for marks in by_scope.values())
+
+
+def _origin_of(member: GroupMember,
+               origins: dict[str, dict[str, str]],
+               ) -> frozenset[tuple[str, str]]:
+    """What makes this anchor the same document as another one, if it is.
+
+    The version's content hash, and every family value P6 has recorded for it. Two
+    anchors sharing any of these marks are one source: the same bytes, a copy of
+    them, or a re-export of the same document. Marks are `(what, value)` pairs so
+    a hash and a family value cannot collide by spelling.
+    """
+    marks = {("", member.content_hash)}
+    for field, reading in origins.items():
+        value = reading.get(member.file_id)
+        if value is not None:
+            marks.add((field, value))
+    return frozenset(marks)
+
+
+def _independent_sources(marks: Sequence[frozenset[tuple[str, str]]]) -> bool:
+    """Are these anchors more than one source? Merge, then count.
+
+    Sharing is transitive -- a syllabus, its copy and the copy's re-export are one
+    document however they are paired -- so the marks are merged into buckets and
+    the buckets are counted, rather than the anchors being compared pairwise.
+    """
+    buckets: list[set[tuple[str, str]]] = []
+    for one in marks:
+        merged = set(one)
+        separate = []
+        for bucket in buckets:
+            if bucket & merged:
+                merged |= bucket
+            else:
+                separate.append(bucket)
+        buckets = separate + [merged]
+    return len(buckets) > 1
+
+
 def group_level_reader(conn: sqlite3.Connection, *,
                        groups: Sequence[AcceptedGroup],
+                       agreement: AnchorAgreement | None = None,
                        ) -> Callable[[GroupMember, str], FieldValue | None]:
     """`materialise_branch`'s `group_value_for_member`, for one branch's groups.
 
@@ -596,7 +818,7 @@ def group_level_reader(conn: sqlite3.Connection, *,
         by_group = answered.get(field_ref)
         if by_group is None:
             by_group = answered[field_ref] = group_level_values(
-                conn, groups=groups, field_ref=field_ref)
+                conn, groups=groups, field_ref=field_ref, agreement=agreement)
         return by_group[group.group_id]
 
     return value_for

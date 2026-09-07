@@ -228,6 +228,111 @@ def open_question(pending: Sequence[str],
 
 
 @dataclass(frozen=True)
+class AnchorOnlyLevels:
+    """The levels asked of an ANCHOR and of no other file (`105` §14.4, `104` R-131).
+
+    `104` §11.2 step 2 withdrew `school` from the per-file question outright, and
+    `104` R-102 is what that cost: nothing writes a `school` fact any more, so no
+    corpus grows a school level at all. The owner's ruling of 7 Sep restores the
+    question to the files that can answer it -- "Answer school only when a
+    permitted anchor establishes the institution's relevant relationship to the
+    course or enrollment being organized" -- and leaves it withdrawn everywhere
+    else.
+
+    **Anchor kind is necessary and it is not sufficient**, which is §14.4's own
+    sentence and the reason this record carries a kind rather than a verdict: a
+    transcript may name transfer institutions and a syllabus released by another
+    university does not establish attendance, so what the KIND buys is the right
+    to be asked, and the prompt decides the answer -- the drafted rule 12 of
+    `tools/promptbench/drafts/a_fact_template.v2.txt`, which is the owner's to
+    ratify and which nothing loads. Nothing here reads a value.
+
+    **The kind is the file's own settled kind and never the model's.**
+    `anchor_only_levels` reads it off `FactRequest.existing_facts`, which
+    `facts.llm_seam.build_request` has already computed as every ACTIVE fact
+    stronger than an LLM conclusion -- so the kind behind the question is
+    `validated`, `direct` or `user_confirmed`, and a model's own guess about what
+    a file is can never open the question about it. No second read and no second
+    definition of "validated".
+
+    **The protected half is the route's answer, asked again here rather than
+    respelled.** §14.4 binds this to §14.3: "a tuition or housing statement
+    classified protected cannot become model-eligible because it is also an
+    anchor". This deployment already bars a protected file from every model on
+    every locality (`cli.model_route_permitted`, held by
+    `tests/integration/test_local_model_fact_pass.py::
+    test_a_protected_file_is_never_sent_to_the_local_model_either`), so the flag
+    is READ through that same predicate -- one function, two call sites -- and
+    P7's classification is not re-derived here. A second spelling of the gate's
+    rule beside the gate's rule is how the two came to disagree once already
+    (`104` R-02).
+
+    `levels` is a tuple of the situation's own `FolderLevel` records, split off by
+    the composition root from the levels it withholds; `kind_field` and
+    `anchor_kinds` are the deployment's, drawn from the shipped recognition
+    release. This module authors none of the three.
+    """
+
+    levels: tuple[FolderLevel, ...]
+    kind_field: str
+    anchor_kinds: frozenset[str]
+    may_reach_a_model: Callable[[str], bool]
+
+    def __post_init__(self) -> None:
+        if not self.levels:
+            raise ValueError(
+                "an anchor-only rule with no level withholds nothing and restores "
+                "nothing; a deployment that asks every file the same question "
+                "supplies no rule at all rather than an empty one")
+        # The same check the every-file list gets, from the same function: these
+        # levels reach `open_question` beside those, and a mapping here would be a
+        # caller authoring a label exactly as it would there.
+        object.__setattr__(self, "levels", require_folder_levels(self.levels))
+        if not self.anchor_kinds:
+            raise ValueError(
+                "`105` §14.4 admits a file to the question by its KIND, so a rule "
+                "with no anchor kinds can never admit one -- which is the same "
+                "silence as `104` R-102 and would be indistinguishable from it")
+
+
+def anchor_only_levels(request: FactRequest,
+                       rule: AnchorOnlyLevels | None) -> tuple[FolderLevel, ...]:
+    """§14.4's predicate: the levels this ONE file may be asked, beyond the rest.
+
+    Called with the request the builder has just built, so the kind it reads is
+    the one `build_request` already established and not a second reading of the
+    store. `()` for every file that is not an anchor of a permitted kind, which is
+    `open_question`'s own way of not asking: a level absent from the offered
+    vocabulary is a question the dossier never puts.
+
+    The cheap test runs first and it is also the safe one: the kind is already in
+    memory, and the classification is read only for a file that would otherwise be
+    asked.
+    """
+    if rule is None:
+        return ()
+    if _settled_kind(request, rule.kind_field) not in rule.anchor_kinds:
+        return ()
+    if not rule.may_reach_a_model(request.file_id):
+        return ()
+    return rule.levels
+
+
+def _settled_kind(request: FactRequest, kind_field: str) -> str | None:
+    """What this file version IS, as its own settled facts say, or `None`.
+
+    `existing_facts` is `build_request`'s own tuple -- active, not excluded and
+    stronger than an LLM conclusion -- so this ranks no state and names none. A
+    file carrying two live facts at that field is not resolved here: the first is
+    taken, and P6's slot had to settle the field before either became a fact.
+    """
+    for row in request.existing_facts:
+        if row["field_key"] == kind_field:
+            return row["canonical_value"]
+    return None
+
+
+@dataclass(frozen=True)
 class FactCallAuthorities:
     """Everything one A_fact call needs and this module authors none of.
 
@@ -305,6 +410,14 @@ class FactCallAuthorities:
     #: did before this field existed, so the default is the old behaviour rather than
     #: a fallback that guesses.
     normalize_for_review: Callable[[str, str], object] | None = None
+    #: `105` §14.4 / `104` R-131 and R-102. The levels a file is asked ONLY when it
+    #: is an anchor of a permitted kind, on top of `folder_levels` above, which
+    #: every file of the situation is asked. `None` is the state `104` R-102
+    #: measured -- the group-level fields withheld from every file, so nothing
+    #: writes a `school` fact and no corpus grows a school level -- and it stays the
+    #: default, because restoring the question is the OWNER's ruling and a
+    #: deployment that has not read it must not start asking by omission.
+    anchor_only: AnchorOnlyLevels | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "folder_levels",
@@ -811,8 +924,19 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # What is still open on THIS file, in the order the tree is built in. A
         # subset of `request.allowlist`, which is what check 1 measures the answer
         # against, so nothing offered here can be rejected for being out of schema.
+        #
+        # THE ANCHOR'S OWN LEVELS ARE ADDED HERE AND NOWHERE ELSE (`105` §14.4).
+        # `authorities.folder_levels` is what every file of the situation is asked;
+        # `anchor_only_levels` answers what THIS file may be asked on top of it,
+        # and it answers `()` for all but an anchor of a permitted kind. Added
+        # before `open_question` rather than after it so the vocabulary and the
+        # shown levels are one computation: a level offered without its field, or a
+        # field offered without its level, is the mismatch
+        # `dossier._folder_levels_body` refuses.
         vocabulary, visible_levels = open_question(
-            pending, authorities.folder_levels)
+            pending,
+            authorities.folder_levels
+            + anchor_only_levels(request, authorities.anchor_only))
 
         # `104` R-13, AND IT IS HERE FOR ONE REASON: everything after this line
         # costs. `run_call` reserves a budget slot, `gate.release` mints an audit
