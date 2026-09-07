@@ -1178,12 +1178,13 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
     return built
 
 
-#: The eight `model_path_injections` fills for C and D. `sensitivity_policy` is
-#: the ninth and is supplied at `placement_inputs` by R-55 whether or not a model
+#: The nine `model_path_injections` fills for C and D. `sensitivity_policy` is
+#: the tenth and is supplied at `placement_inputs` by R-55 whether or not a model
 #: is configured, so it is not in this set and is never overwritten from here.
 OBSERVE_PLACEMENT_FIELDS: tuple[str, ...] = (
     "gate", "model_client", "prompt", "residual_prompt", "call_dependencies",
     "model_call_request", "chosen_node_of", "residual_action_of",
+    "model_target",
 )
 
 

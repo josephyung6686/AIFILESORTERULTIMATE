@@ -67,7 +67,7 @@ PLACEMENT_STAGE: str = "placement_interpretation"
 MODEL_PATH_FIELDS: tuple[str, ...] = (
     "gate", "model_client", "prompt", "residual_prompt", "call_dependencies",
     "model_call_request", "chosen_node_of", "residual_action_of",
-    "sensitivity_policy",
+    "sensitivity_policy", "model_target",
 )
 
 
@@ -374,4 +374,7 @@ def model_path_injections(conn: sqlite3.Connection,
         "chosen_node_of": authorities.chosen_node_of,
         "residual_action_of": authorities.residual_action_of,
         "sensitivity_policy": authorities.sensitivity_policy,
+        # `104` R-118: §8.4's gate reads the target's LOCALITY before a dossier
+        # exists, and the builder above closes over the same target too late.
+        "model_target": authorities.model_target,
     }

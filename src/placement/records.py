@@ -29,7 +29,8 @@ from grouping.vocabulary import USER_ATTACHED
 from placement.vocabulary import (
     ABSTAIN, ABSTENTION_REASONS, ACCEPT_CONTEXT_SUPPORTED, ASK_USER,
     AUTO_ELIGIBLE, BUDGET_DEFERRED, CLASSES, CONFIDENCE_CLASSES, EVIDENCE_TYPES,
-    FILE, MARGIN_TRUE_VACUOUS, MARKED_STATES, MARK_STATE, MEETS_MARGIN_VALUES,
+    FILE, LOCAL_ONLY, LOCAL_ONLY_REASONS, MARGIN_TRUE_VACUOUS, MARKED_STATES,
+    MARK_STATE, MEETS_MARGIN_VALUES,
     MODEL_ELIGIBILITY, NODE_ROLES, ORIGIN_STAGES, OUTCOMES, PLACE, PLACEMENT,
     RESIDUAL, RETURN_TARGET_KINDS, RETURN_TO_PLACEMENT, REVIEW_POLICIES,
     SET_CHOICES, STAGE_IDS, SUBJECT_KINDS, VALIDATED, VERDICTS, check,
@@ -355,6 +356,19 @@ class PrivacyState:
     protected: bool
     model_eligibility: str
     consent_audit_ref: int | None
+    #: WHY `model_eligibility` is `local_only`, in `LOCAL_ONLY_REASONS`, and
+    #: empty otherwise. `104` R-118: the state used to say only THAT a file was
+    #: local-only, and a local model was refused every dossier because nobody
+    #: could tell a file the mode kept off the cloud from a passport. The reasons
+    #: travel with the state so `placement.privacy.may_assemble_dossier` reads
+    #: "local-only because of X, and the target is local" off the record rather
+    #: than deriving X a second time.
+    #:
+    #: Defaulted to empty, and the default is SAFE rather than permissive: a
+    #: `local_only` state carrying no reason -- which is what every decision row
+    #: written before this field existed reads back as -- is blocked for every
+    #: target. Nothing clears §8.4's gate by omission.
+    local_only_reasons: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         check(self.handling_class, CLASSES, name="handling_class")
@@ -363,6 +377,14 @@ class PrivacyState:
             raise MalformedPlacementRecord(
                 "`protected` is P7's flag and is a boolean; a null here would be "
                 "read as `false` by every consumer that tests it"
+            )
+        for reason in _freeze(self, "local_only_reasons"):
+            check(reason, LOCAL_ONLY_REASONS, name="local_only_reasons")
+        if self.local_only_reasons and self.model_eligibility != LOCAL_ONLY:
+            raise MalformedPlacementRecord(
+                f"{self.model_eligibility!r} carries no local-only reason; a "
+                "reason on a state that is not `local_only` describes a "
+                "restriction the record does not impose"
             )
 
 

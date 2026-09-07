@@ -81,15 +81,31 @@ from privacy.release import LOCALITIES
 from placement.records import PrivacyState, USER_ATTACHED
 from placement.vocabulary import (
     AUTO_ELIGIBLE, BLOCKED_PENDING_USER, DISPOSITIONS, DOSSIER_PERMITTED,
-    LEAVE_IN_PLACE_DISPOSITION, LOCAL_ONLY, PHYSICAL_DESTINATION, REVIEW_ONLY,
-    REVIEW_REQUIRED, check,
+    LEAVE_IN_PLACE_DISPOSITION, LOCAL_ONLY, MODE_FORBIDS_CLOUD,
+    PHYSICAL_DESTINATION, PROTECTED_REASON, REVIEW_ONLY, REVIEW_REQUIRED,
+    UNCLASSIFIED_REASON, check,
 )
 
-#: The locality every §8.4 question in this module is asked about. `local` is the
-#: other member and P11 never asks about it: a local model call is Open question 6
-#: and P7 owns the answer.
+#: §8.4's two localities, P7's spelling. `privacy_state_for` asks about the
+#: CLOUD -- whether anything about this file may leave the device -- and
+#: `may_assemble_dossier` is then asked about the target that would actually be
+#: sent to, which since `104` R-118 may be LOCAL: under `offline` and
+#: `local_model` the mode forbids the cloud and "only local rules and local
+#: models may run", and a state that answered only the cloud question refused
+#: the local model every dossier on the owner's corpus (176 of 199 decisions).
 CLOUD: str = "cloud"
-assert CLOUD in LOCALITIES
+LOCAL: str = "local"
+assert CLOUD in LOCALITIES and LOCAL in LOCALITIES
+
+#: P7 SPEC Open question 5 -- may an unclassified file reach a LOCAL model? --
+#: as P11 answers it. `unclassified_denies` has no default for this on purpose
+#: ("Unanswered, so the caller answers it and P7 names no winner"), and P11's
+#: answer is the strict reading: no. It is pinned here as ONE name so the
+#: answer cannot drift between the state and the predicate, and it is not the
+#: deployment's: `cli.UNCLASSIFIED_PERMITS_LOCAL` answers the same question
+#: `True` for the gate and the fact route, which is `104` R-02's shape again
+#: and is the owner's to reconcile, not this module's to flip.
+LOCAL_CALLS_ON_UNCLASSIFIED: bool = False
 
 class PolicyRequired(RuntimeError):
     """No P7 policy in force for this plan version. Never assumed."""
@@ -117,21 +133,28 @@ def privacy_state_for(conn: sqlite3.Connection, *, file_id: str,
         )
     handling_class = resolve_class(record)
     protected = record.protected if record is not None else False
-    # Three separate reasons for `local_only`, none of them P11's own rule.
-    # Open question 5 -- may an unclassified file reach a LOCAL model? -- is not
-    # answered here and is not answered by this call: `unclassified_denies` returns
-    # True for `cloud` before it reads the flag, and `cloud` is the only locality
-    # P11 asks about (see CLOUD above).
-    unclassified = handling_class == UNREADABLE_UNCLASSIFIED and unclassified_denies(
-        locality=CLOUD, local_calls_on_unclassified=False)
-    local_only = (unclassified
-                  or mode_forbids(policy.operation_mode, CLOUD)
-                  or protected)
+    # Three separate reasons for `local_only`, none of them P11's own rule, and
+    # each RECORDED rather than folded into one boolean (`104` R-118). The
+    # question asked here is about the CLOUD -- may anything about this file
+    # leave the device? -- and the answer is the state. Which model may then be
+    # given a dossier is `may_assemble_dossier`'s question, asked with the
+    # target in hand, and it needs to know WHICH of the three fired: the mode
+    # forbids only the cloud, the flag binds every model, and the unclassified
+    # case is Open question 5 (`LOCAL_CALLS_ON_UNCLASSIFIED` above).
+    reasons: list[str] = []
+    if handling_class == UNREADABLE_UNCLASSIFIED and unclassified_denies(
+            locality=CLOUD, local_calls_on_unclassified=LOCAL_CALLS_ON_UNCLASSIFIED):
+        reasons.append(UNCLASSIFIED_REASON)
+    if mode_forbids(policy.operation_mode, CLOUD):
+        reasons.append(MODE_FORBIDS_CLOUD)
+    if protected:
+        reasons.append(PROTECTED_REASON)
     return PrivacyState(
         handling_class=handling_class,
         protected=protected,
-        model_eligibility=LOCAL_ONLY if local_only else DOSSIER_PERMITTED,
+        model_eligibility=LOCAL_ONLY if reasons else DOSSIER_PERMITTED,
         consent_audit_ref=None,
+        local_only_reasons=tuple(reasons),
     )
 
 
@@ -145,9 +168,49 @@ def is_unclassified(privacy_state: PrivacyState) -> bool:
     return privacy_state.handling_class == UNREADABLE_UNCLASSIFIED
 
 
-def may_assemble_dossier(privacy_state: PrivacyState) -> bool:
-    """§8.4's gate, asked before the dossier exists rather than after it is built."""
-    return privacy_state.model_eligibility != LOCAL_ONLY
+def may_assemble_dossier(privacy_state: PrivacyState, *,
+                         target_locality: str | None) -> bool:
+    """§8.4's gate, asked before the dossier exists rather than after it is built.
+
+    `target_locality` is the locality of the model that would be ASKED, or `None`
+    when no model is configured, and it is keyword-only with no default because
+    the answer turns on it (`104` R-118). The state says whether anything may
+    leave the device and why; this says whether THIS target may be given a
+    dossier, reading the reasons off the record:
+
+    * not `local_only` -- yes, for any target;
+    * no target -- no. There is no dossier without a model to give it to;
+    * a cloud target -- no. Every reason for `local_only` forbids the cloud;
+    * a LOCAL target -- yes only when every reason permits it. The protected
+      flag never does: the standing rule is "read on this device and shown to no
+      model". An unclassified file is Open question 5, answered by
+      `LOCAL_CALLS_ON_UNCLASSIFIED` through P7's own predicate. The mode alone
+      always does: `mode_forbids` refuses "the target's locality, never the
+      call", and §8.4 says a local model "may run" under both local-only modes.
+    * a `local_only` state carrying NO reason -- no, for every target. That is
+      what a decision row written before the reasons were recorded reads back
+      as, and nothing clears this gate by omission.
+
+    What this does NOT do is loosen `Gate.release`. The gate keeps every one of
+    its own checks; this lets the pipeline reach it for files it would already
+    admit for a local target, and a refusal there is `104` R-74's.
+    """
+    if privacy_state.model_eligibility != LOCAL_ONLY:
+        return True
+    if target_locality is None:
+        return False
+    check(target_locality, LOCALITIES, name="target_locality")
+    if target_locality != LOCAL:
+        return False
+    reasons = set(privacy_state.local_only_reasons)
+    if not reasons:
+        return False
+    if PROTECTED_REASON in reasons:
+        return False
+    if UNCLASSIFIED_REASON in reasons and unclassified_denies(
+            locality=LOCAL, local_calls_on_unclassified=LOCAL_CALLS_ON_UNCLASSIFIED):
+        return False
+    return True
 
 
 def automatic_move_permitted_for(conn: sqlite3.Connection, *, file_id: str,

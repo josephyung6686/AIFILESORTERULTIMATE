@@ -107,13 +107,17 @@ def test_with_no_ratified_prompt_every_injection_is_absent_together(db):
     site D's OWN text, and until it existed `_judge_with_model` sent site C's for
     both -- a residual answer naming one of §7.7's eight actions, judged against a
     schema with no `action` key in it.
+
+    `model_target` is the tenth (`104` R-118): §8.4's gate reads the target's
+    locality BEFORE a dossier exists, and a target handed over without the rest
+    would be the half-injection this set exists to refuse.
     """
     injections = model_path_injections(db, _authorities(), plan_version=PLAN)
 
     assert set(injections) == {
         "gate", "model_client", "prompt", "residual_prompt", "call_dependencies",
         "model_call_request", "chosen_node_of", "residual_action_of",
-        "sensitivity_policy",
+        "sensitivity_policy", "model_target",
     }
     assert all(injections[name] is None for name in injections)
 
