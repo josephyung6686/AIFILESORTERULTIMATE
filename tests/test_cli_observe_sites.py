@@ -27,7 +27,8 @@ for _path in (str(_ROOT), str(_ROOT / "src")):
 
 import cli  # noqa: E402
 from llm_harness.prompt_library import (  # noqa: E402
-    DraftNotInManifest, draft_bytes, draft_row, drafts_status,
+    DRAFT_STATUS_WORDS, DraftNotInManifest, RATIFIED, RATIFIED_LOCAL,
+    UNRATIFIED, draft_bytes, draft_row, draft_status, drafts_status,
 )
 from llm_harness.vocabulary import (  # noqa: E402
     A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE,
@@ -70,14 +71,18 @@ def test_an_observe_site_is_refused_a_cloud_model(site):
         cli.require_observe_locality(site, CLOUD)
 
 
-def test_the_refusal_says_the_packet_is_unratified_in_the_packets_own_word():
-    """Read from the manifest, never remembered here: if the owner ratifies the
-    packet the sentence stops claiming otherwise without anyone editing it."""
+def test_the_refusal_says_this_drafts_status_in_the_manifests_own_word():
+    """Read from the manifest, never remembered here: if the owner ratifies this
+    draft the sentence stops claiming otherwise without anyone editing it.
+
+    THE DRAFT'S WORD AND NOT THE PACKET'S. The packet's word is only the default a
+    silent row inherits, so a sentence quoting it can be false about the row it is
+    refusing; the inverse case is pinned below. Today the two coincide."""
     # B is the unratified site since C's row was ratified on 7 Sep 2026.
     with pytest.raises(cli.UnratifiedPromptOnACloudTarget) as caught:
         cli.require_observe_locality(B_GROUP, CLOUD)
 
-    assert drafts_status() in str(caught.value)
+    assert repr(draft_status(WINNERS[B_GROUP])) in str(caught.value)
     assert cli.LOCAL_MODEL_NAME in str(caught.value)
 
 
@@ -413,7 +418,8 @@ def test_a_residual_call_with_no_residual_prompt_refuses_rather_than_borrowing_c
         ask_about_file=None, chosen_by_user=None,
         fields_that_cannot_anchor_a_move=frozenset(),
         their_own_folder_made_for_what_it_holds={}, p2=None,
-        the_folder_each_file_is_in={})
+        the_folder_each_file_is_in={},
+        a_move_the_person_has_not_permitted=None)
     inputs = object.__new__(PipelineInputs)
     for name, value in values.items():
         object.__setattr__(inputs, name, value)
@@ -449,7 +455,11 @@ def _fact_authorities_with(**overrides):
     """Site A's authorities, reduced to the fields B borrows from them."""
     borrowed = dict(
         gate=object(), evidence_resolver=lambda key: None,
-        scan_budget=object(), estimated_cost=1, actual_cost=1,
+        # A REAL `ScanBudget` since `104` R-131's merge, and the stub that was
+        # here is why it has to be: the observe sites no longer take A's budget
+        # object, they derive their own from it (`cli.observe_scan_budget`), so a
+        # bare `object()` here stopped standing for the one field it stood for.
+        scan_budget=_fact_budget("scan-stub"), estimated_cost=1, actual_cost=1,
         policy_version="pv", wire_handle_key=b"k", observed_at=lambda: "T",
         usage_recorder=None)
     borrowed.update(overrides)
@@ -815,7 +825,7 @@ def test_a_ratified_row_ratifies_its_own_site_and_leaves_the_other_three(
     and the shortest path to a real exact number. D and E have never produced one
     and must not start applying because C did. One word on one row, and the packet
     still says `unratified` over all of them."""
-    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], "ratified"))
+    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], RATIFIED))
 
     assert drafts_status() == "unratified"
     assert cli.observe_prompt(C_PLACEMENT).ratified is True
@@ -829,7 +839,7 @@ def test_the_ratified_rows_id_still_says_unratified_and_still_loads_its_bytes(
     would strand every record already written under the old id, so what a record
     says is WHICH TEXT was used and the manifest row says whether that text was
     ratified at the time."""
-    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], "ratified"))
+    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], RATIFIED))
 
     prompt = cli.observe_prompt(C_PLACEMENT)
 
@@ -943,10 +953,10 @@ def test_a_template_id_nobody_published_has_no_status_either():
 def test_the_cloud_refusal_lifts_for_the_ratified_site_and_holds_for_the_rest(
         manifest_with):
     """What `104` §13's count counts is CLOUD CALLS WITH UNRATIFIED PROMPTS, so
-    the gate is the text's standing and not the site's name. A ratified text is
-    text the owner agreed to send; the remaining question -- whether a cloud model
-    may see a person's folder labels -- is R-82's and is not decided here."""
-    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], "ratified"))
+    the gate is the text's standing and not the site's name. `ratified` is the
+    word that says these bytes may leave the device, and it says it about one
+    draft."""
+    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], RATIFIED))
 
     assert cli.observe_locality_permits(C_PLACEMENT, CLOUD) is True
     cli.require_observe_locality(C_PLACEMENT, CLOUD)
@@ -963,18 +973,24 @@ def test_the_cloud_refusal_lifts_for_the_ratified_site_and_holds_for_the_rest(
 
 def test_the_real_manifest_on_disk_ratifies_c_alone():
     """THE PIN. On 7 Sep 2026 the owner ratified C's eliminate-v2 row and nothing
-    else: the packet's word stays `unratified`, B, D and E inherit it, and the
-    manifest is the owner's to edit and nobody else's. C's cloud target is
-    permitted by this word (P1's gate reads the row); what keeps C local today
-    is the configured model, and R-82 is signed before any cloud key is."""
+    else, FOR THE LOCAL MODEL (`104` §15.1: the cloud waits on R-82), so the row's
+    word is `ratified_local`: the packet's word stays `unratified`, B, D and E
+    inherit it, and the manifest is the owner's to edit and nobody else's. C's
+    cloud target is refused by this word, and not by whichever model happens to
+    be configured -- the gate is the text's standing, in code."""
     from llm_harness.prompt_library import draft_status
 
-    assert drafts_status() == "unratified"
+    assert drafts_status() == UNRATIFIED
     for site in sorted(WINNERS):
         expected = site == C_PLACEMENT
-        assert (draft_status(WINNERS[site]) == "ratified") is expected, site
+        word = RATIFIED_LOCAL if expected else UNRATIFIED
+        assert draft_status(WINNERS[site]) == word, site
+        assert ("status" in draft_row(WINNERS[site])) is expected, site
+        # The site acts on its answer, and its text still does not leave the
+        # device: the local word applies and does not cross.
         assert cli.observe_prompt(site).ratified is expected, site
-        assert cli.observe_locality_permits(site, CLOUD) is expected, site
+        assert cli.observe_locality_permits(site, LOCAL) is True, site
+        assert cli.observe_locality_permits(site, CLOUD) is False, site
 
 
 # --- P2: the real resolvers behind C and D, and the stub that guards a draft ------
@@ -1154,3 +1170,212 @@ def test_p2_each_site_is_turned_on_by_its_own_prompt_and_not_by_its_neighbours(
     assert built["chosen_node_of"](_cd_verdict("ds-c4")) == "n-general"
     with pytest.raises(cli.ObservedSiteMustNotApply, match=D_RESIDUAL):
         built["residual_action_of"](object())
+
+
+# --- P1 follow-up: ratifying is not the same act as opening the cloud --------
+#
+# `104` §15.1 and `105` §12.1 put C's `eliminate-v2` to the owner FOR THE LOCAL
+# MODEL, with the cloud waiting on R-82's signature. With one word for "approved"
+# those are one act: the word that lets a site act on its answer is the word that
+# lets its text cross the internet, so the owner would have to grant both to get
+# either. `ratified_local` is the word that separates them.
+
+
+def test_the_status_vocabulary_is_three_closed_words():
+    """A word outside the list is not a further state -- every reader tests
+    membership, so an unrecognised word reads as 'not approved'."""
+    assert DRAFT_STATUS_WORDS == {UNRATIFIED, RATIFIED_LOCAL, RATIFIED}
+    assert (UNRATIFIED, RATIFIED_LOCAL, RATIFIED) == (
+        "unratified", "ratified_local", "ratified")
+
+
+def test_what_each_word_buys_is_two_questions_and_not_one():
+    """Asserted at `cli` import as well, so a typo is loud before a corpus is
+    read: a mistyped set never matches, which is an approval that never takes
+    effect or a gate that never opens, and a run would look normal throughout."""
+    assert cli.STATUS_APPLIES == {RATIFIED_LOCAL, RATIFIED}
+    assert cli.STATUS_MAY_CROSS_THE_INTERNET == {RATIFIED}
+    assert cli.STATUS_APPLIES <= DRAFT_STATUS_WORDS
+    # Crossing implies applying: text nobody will act on has no business on the
+    # internet either.
+    assert cli.STATUS_MAY_CROSS_THE_INTERNET < cli.STATUS_APPLIES
+    assert UNRATIFIED not in cli.STATUS_APPLIES
+
+
+def test_ratified_local_acts_on_its_answer_and_is_still_refused_the_cloud(
+        manifest_with):
+    """The word the owner was actually asked for. C acts on its placement here
+    and its text does not leave the device; R-82 is the signature the cloud waits
+    on, and it is a different question about a person's folder labels."""
+    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], RATIFIED_LOCAL))
+
+    assert draft_status(WINNERS[C_PLACEMENT]) == RATIFIED_LOCAL
+    assert cli.observe_prompt(C_PLACEMENT).ratified is True
+
+    assert cli.observe_locality_permits(C_PLACEMENT, LOCAL) is True
+    cli.require_observe_locality(C_PLACEMENT, LOCAL)
+
+    assert cli.observe_locality_permits(C_PLACEMENT, CLOUD) is False
+    with pytest.raises(cli.UnratifiedPromptOnACloudTarget, match=C_PLACEMENT):
+        cli.require_observe_locality(C_PLACEMENT, CLOUD)
+
+
+def test_ratified_local_ratifies_one_site_and_leaves_the_other_three_alone(
+        manifest_with):
+    """The per-draft rule and the per-reach rule are independent: one word on one
+    row moves that row's site and nothing else, whichever of the two words it is.
+    D and E have no measured row and must not start applying because C did."""
+    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], RATIFIED_LOCAL))
+
+    for site in (B_GROUP, D_RESIDUAL, E_TEMPLATE):
+        assert draft_status(WINNERS[site]) == UNRATIFIED
+        assert cli.observe_prompt(site).ratified is False
+        assert cli.observe_locality_permits(site, CLOUD) is False
+
+
+def test_the_full_word_lifts_both_and_the_local_word_lifts_only_the_first(
+        manifest_with):
+    """The two words side by side, which is the whole of the difference: both
+    apply, one crosses."""
+    manifest_with(_set_row_status(WINNERS[C_PLACEMENT], RATIFIED))
+
+    assert cli.observe_prompt(C_PLACEMENT).ratified is True
+    assert cli.observe_locality_permits(C_PLACEMENT, CLOUD) is True
+    cli.require_observe_locality(C_PLACEMENT, CLOUD)
+
+
+def test_the_cloud_refusal_names_this_drafts_word_and_not_the_packets(
+        manifest_with):
+    """The inverse case, and the reason the sentence changed. A packet reading
+    `ratified` over a row that says `unratified` would print "a D2 DRAFT
+    ('ratified')" and send a reader to argue with the wrong line."""
+    def packet_ratified_row_not(manifest):
+        manifest["status"] = RATIFIED
+        for row in manifest["drafts"]:
+            if row.get("template_id") == WINNERS[C_PLACEMENT]:
+                row["status"] = UNRATIFIED
+
+    manifest_with(packet_ratified_row_not)
+
+    assert drafts_status() == RATIFIED
+    assert draft_status(WINNERS[C_PLACEMENT]) == UNRATIFIED
+
+    with pytest.raises(cli.UnratifiedPromptOnACloudTarget) as caught:
+        cli.require_observe_locality(C_PLACEMENT, CLOUD)
+
+    sentence = str(caught.value)
+    assert repr(UNRATIFIED) in sentence
+    assert repr(RATIFIED) not in sentence
+
+
+def test_a_ratified_local_row_is_refused_the_cloud_while_a_sibling_crosses(
+        manifest_with):
+    """Two words in one manifest at once. Neither site borrows the other's reach:
+    the gate asks each draft its own word."""
+    def two_words(manifest):
+        for row in manifest["drafts"]:
+            if row.get("template_id") == WINNERS[C_PLACEMENT]:
+                row["status"] = RATIFIED_LOCAL
+            elif row.get("template_id") == WINNERS[B_GROUP]:
+                row["status"] = RATIFIED
+
+    manifest_with(two_words)
+
+    assert cli.observe_prompt(C_PLACEMENT).ratified is True
+    assert cli.observe_prompt(B_GROUP).ratified is True
+    assert cli.observe_locality_permits(C_PLACEMENT, CLOUD) is False
+    assert cli.observe_locality_permits(B_GROUP, CLOUD) is True
+
+
+# --- `104` R-131's merge: the observe sites' own ledger -----------------------
+
+def _fact_budget(scan_id: str = "scan-1", *, files: int = 6):
+    """The fact pass's budget as `cli.fact_call_authorities` builds one."""
+    from llm_harness.budgets import ScanBudget
+
+    return ScanBudget(
+        scan_id=scan_id, corpus_file_count=files,
+        max_calls_per_1000_files=cli.FACT_CALLS_PER_1000_FILES,
+        max_estimated_cost=cli.FACT_CALLS_PER_SCAN_CEILING,
+        min_calls_per_scan=cli.FACT_MIN_CALLS_PER_SCAN)
+
+
+def test_a_run_that_spends_every_fact_call_can_still_place_what_it_learned(
+        tmp_path):
+    """The defect, as the arithmetic that produced it.
+
+    Site A asks one call per FILE, so a corpus where every file has an open
+    question spends every slot the run has -- and B, C and D drew from that same
+    `ScanBudget`. Measured on the six-file corpus of `tests/integration/
+    test_local_model_fact_pass.py`: five fact calls, then site B refused before a
+    call and site C recording `BUDGET_EXHAUSTED`, so the sites that decide WHERE
+    a file goes were starved by the site that decides WHAT it is.
+
+    Exhausting the fact ledger here and then reserving from the observe one is
+    that whole story in two reservations.
+    """
+    import sqlite3
+
+    from llm_harness.budgets import (
+        BudgetExhausted, allowed_calls, create_budget_schema, reserve_call,
+    )
+
+    conn = sqlite3.connect(tmp_path / "budgets.sqlite")
+    conn.row_factory = sqlite3.Row
+    create_budget_schema(conn)
+    facts = _fact_budget()
+    observe = cli.observe_scan_budget(facts)
+
+    for _ in range(allowed_calls(facts)):
+        reserve_call(conn, facts, estimated_cost=cli.FACT_CALL_COST)
+    with pytest.raises(BudgetExhausted):
+        reserve_call(conn, facts, estimated_cost=cli.FACT_CALL_COST)
+
+    # The placement question the run could not put before this ruling.
+    reserved = reserve_call(conn, observe, estimated_cost=cli.FACT_CALL_COST)
+    assert reserved.scan_id == observe.scan_id
+
+
+def test_the_two_ledgers_are_two_rows_and_not_one(tmp_path):
+    """One `scan_id` was one purse. `llm_scan_budget` is keyed on that column and
+    `llm_budget_reservation` is indexed on it, so two ids are two ledgers -- and
+    the observe id is DERIVED from the fact one, so a reader can still see which
+    run a row belongs to."""
+    import sqlite3
+
+    from llm_harness.budgets import create_budget_schema, reserve_call
+
+    conn = sqlite3.connect(tmp_path / "budgets.sqlite")
+    conn.row_factory = sqlite3.Row
+    create_budget_schema(conn)
+    facts = _fact_budget()
+    observe = cli.observe_scan_budget(facts)
+
+    reserve_call(conn, facts, estimated_cost=cli.FACT_CALL_COST)
+    reserve_call(conn, observe, estimated_cost=cli.FACT_CALL_COST)
+
+    rows = {row["scan_id"]: row["calls_reserved"]
+            for row in conn.execute("SELECT * FROM llm_scan_budget")}
+    assert rows == {facts.scan_id: 1, observe.scan_id: 1}
+    assert observe.scan_id.startswith(facts.scan_id)
+
+
+def test_the_observe_ledger_is_the_runs_own_and_the_rest_is_still_site_as(
+        tmp_path):
+    """What the second budget changes and what it deliberately does not.
+
+    The scan and its file count are facts about the RUN, so they are carried; the
+    rate, the floor and the ceiling are the purse, so they are the observe
+    deployment's own. Everything else an observe site uses -- the gate, the costs,
+    the policy version, the wire handle key -- is still taken from site A's
+    authorities, because a second gate would be a second answer to what may leave
+    this device.
+    """
+    facts = _fact_budget(files=199)
+    observe = cli.observe_scan_budget(facts)
+
+    assert observe.corpus_file_count == facts.corpus_file_count
+    assert observe.scan_id != facts.scan_id
+    assert observe.max_calls_per_1000_files == cli.OBSERVE_CALLS_PER_1000_FILES
+    assert observe.min_calls_per_scan == cli.OBSERVE_MIN_CALLS_PER_SCAN
+    assert observe.max_estimated_cost == cli.OBSERVE_CALLS_PER_SCAN_CEILING

@@ -374,6 +374,37 @@ def test_an_unclassified_file_is_denied_and_that_is_the_ordinary_path(gate_conn)
     assert decision.reason == "unclassified"
 
 
+def test_r121_the_owners_answer_to_question_5_cannot_reach_the_cloud_decision(
+        gate_conn):
+    """`104` R-121 and §15.3: a LOCAL model may be asked, a cloud one may never be.
+
+    The gate is driven here with the answer the deployment now ships --
+    `privacy.denial.UNCLASSIFIED_PERMITS_LOCAL`, the ONE name `cli.py` and
+    `placement/privacy.py` both read since R-121 -- and a CLOUD target is still
+    refused `unclassified`. `unclassified_denies` answers True for the cloud
+    before it reads the flag at all, so the widening has no path to a send.
+
+    The gate keeps taking this as a KEYWORD rather than importing the constant.
+    `unclassified_permits_local` has no default, here or in the predicate, so
+    nothing clears §8.4 by omission; R-121 is about there being one definition of
+    the answer, not about the gate deciding it for itself.
+    """
+    from privacy.denial import UNCLASSIFIED_PERMITS_LOCAL
+
+    file_id = _file(gate_conn, "unknown-r121.pdf", "hash-r121")
+    # `hybrid`, so the MODE permits a cloud target and the refusal below is the
+    # unclassified reason's own rather than the mode's.
+    _policy(gate_conn, "hybrid")
+    key = _evidence(gate_conn, file_id, "hash-r121")
+    decision = _gate(
+        gate_conn,
+        unclassified_permits_local=UNCLASSIFIED_PERMITS_LOCAL).release(_request(
+            items=(Excerpt(observation_key=key, span=SPAN, reason="heading"),),
+            file_ids=(file_id,), model_target=CLOUD))
+    assert isinstance(decision, Denied)
+    assert decision.reason == "unclassified"
+
+
 def test_absence_never_resolves_to_a_lower_class(gate_conn):
     """SPEC §1: absence resolves to `unreadable_unclassified`, NEVER to `public_low`.
 

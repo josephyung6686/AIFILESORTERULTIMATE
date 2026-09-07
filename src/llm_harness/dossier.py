@@ -28,6 +28,7 @@ from pathlib import Path
 from evidence_shape.canonical import canonical_json
 from llm_harness.fingerprint import dossier_content_address
 from llm_harness.records import (
+    Conflict,
     Dossier,
     DossierRequest,
     EvidenceItem,
@@ -376,6 +377,73 @@ def dossier_address(
         canonical_dossier_bytes(dossier, prompt, handle_key=handle_key),
         allowed_vocabulary=dossier.allowed_vocabulary,
         allowed_schema_bytes=prompt.response_schema_bytes,
+    )
+
+
+def dossier_from_stored_body(body: Mapping[str, object], *,
+                             release_id: str) -> Dossier:
+    """Rebuild a `Dossier` from the body `store.record_dossier` wrote. `104` R-127.
+
+    **It is HERE and not beside the row it reads, because there is one dossier
+    writer.** `test_p8_dossier.test_only_the_dossier_module_and_the_fixtures_
+    construct_a_dossier` says why in its own words -- "a second dossier writer can
+    address a dossier differently from `build_dossier`" -- and a rebuild is
+    exactly that risk: a record put back together with a field dropped or a tuple
+    left a list would re-derive different model-visible bytes and so a different
+    content address. Keeping it beside `build_dossier` and `dossier_address` puts
+    the rebuild and the check that it round-trips in one place, where a change to
+    the record's shape reaches both.
+
+    **`release_id` is a parameter because the row does not hold one.**
+    `record_dossier` strips it -- the row is addressed by content, and the
+    capability that paid for a call is not content -- and `Dossier.__post_init__`
+    refuses a record without one. The caller reads it off the response it is about
+    to re-judge, which is the release that actually paid for those bytes.
+
+    `folder_levels` is read with a default because it is defaulted on the record:
+    a row written before that field existed carries no such key, and refusing one
+    would make an old database unreadable to say that a new field is absent.
+    """
+    if not release_id:
+        raise MalformedRecord(
+            "a stored dossier is rebuilt with the release that paid for the "
+            "response being re-judged; P8 does not mint one to fill the field")
+    return Dossier(
+        dossier_id=body["dossier_id"],
+        call_site=body["call_site"],
+        subject_ref=body["subject_ref"],
+        eligibility_reason=body["eligibility_reason"],
+        plan_version=body["plan_version"],
+        policy_version=body["policy_version"],
+        allowed_vocabulary=tuple(body["allowed_vocabulary"]),
+        evidence_items=tuple(
+            EvidenceItem(
+                evidence_ref=item["evidence_ref"],
+                kind=item["kind"],
+                location=item["location"],
+                excerpt_span=(None if item["excerpt_span"] is None
+                              else tuple(item["excerpt_span"])),
+                reliability_state=item["reliability_state"],
+                basis=item["basis"],
+            ) for item in body["evidence_items"]),
+        conflicts=tuple(
+            Conflict(conflict_id=item["conflict_id"], kind=item["kind"])
+            for item in body["conflicts"]),
+        released_evidence=tuple(
+            ReleasedEvidence(
+                observation_key=item["observation_key"],
+                address=item["address"],
+                value=item["value"],
+                zone=item["zone"],
+            ) for item in body["released_evidence"]),
+        max_dossier_tokens=body["max_dossier_tokens"],
+        reduction_rung=body["reduction_rung"],
+        release_id=release_id,
+        folder_levels=tuple(
+            FolderLevel(
+                field=item["field"], label=item["label"],
+                requirement=item["requirement"],
+            ) for item in body.get("folder_levels", ())),
     )
 
 

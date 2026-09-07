@@ -81,7 +81,8 @@ from privacy.audit import AuditRecord, append_audit
 from privacy.authorship import SUBSYSTEM
 from privacy.binding import content_digest_of, mint_release
 from privacy.classification import (
-    UNREADABLE_UNCLASSIFIED, ClassificationRecord, resolve_class,
+    UNREADABLE_UNCLASSIFIED, ClassificationRecord, derivative_privacy_class,
+    privacy_class_of, resolve_class,
 )
 from privacy.consent import (ConsentRequirement, grant_authorizes,
                              open_consent_request)
@@ -102,8 +103,8 @@ from privacy.items import (
 from privacy.policy import current_policy
 from privacy.redaction import RedactionManifest, apply_redaction, span_address
 from privacy.release import (
-    DECISION_ORDER, Denied, MalformedRequest, ModelCallRequest, NeedsConsent,
-    NoPolicyInForce, ReleaseDecision, Released, ReleasedItem,
+    CLOUD_LOCALITY, DECISION_ORDER, Denied, MalformedRequest, ModelCallRequest,
+    NeedsConsent, NoPolicyInForce, ReleaseDecision, Released, ReleasedItem,
 )
 from privacy.resolve import (
     AmbiguousObservationKey, UnresolvableSpan, current_location, materialise,
@@ -117,6 +118,7 @@ from privacy.resolve import (
 # -- the gate CONSUMES a basis another part wrote and produces none.
 from privacy.vocabulary import (
     DETECTOR_NO_SAFETY_EVIDENCE as _DETECTOR_NO_SAFETY_EVIDENCE,
+    PRIVACY_CLASS_ALWAYS_LOCAL, PRIVACY_CLASS_PENDING, PRIVACY_CLASS_PROTECTED,
 )
 # Imported as a MODULE, not by name: `Gate.revoke` and `Gate.delete_derived` are the
 # same two words as the functions they delegate to, and an aliased import would give
@@ -288,9 +290,84 @@ class Gate:
                 lambda: deny_protected_records_template(
                     file_ids=file_ids, model_target=request.model_target)
 
+        # `105` §14.3, clause 3: a file the detector did not assess is `pending`,
+        # and `pending` is treated like unclassified for every gate. The two sets
+        # are computed SEPARATELY and then asserted equal rather than one being
+        # derived from the other, because "they agree" is the claim clause 3 makes
+        # and a derivation would make it true by construction instead of checking
+        # it. `privacy_class_of` reads the RECORD and `resolve_class` reads the
+        # class; a future field on the record that made a classified file pending,
+        # or a stored `unreadable_unclassified` that D2 forbids, breaks the
+        # agreement here rather than three modules downstream.
+        # `105` §14.3's privacy class, per file, read off the record's own field.
+        # NOT the `protected` flag: the owner ruled on 7 Sep 2026 that the two stay
+        # different questions. The flag is §8.4's and keeps §8.4's consent path
+        # exactly as it is -- a granted local scope still releases a flagged file.
+        # The class is §13.3's and is about the document's recognised KIND, and a
+        # protected KIND is shown to no model at all. The two sets differ in both
+        # directions, which is why both are read here and neither is derived from
+        # the other.
+        privacy_classes = {file_id: privacy_class_of(record)
+                           for file_id, record in records.items()}
+
+        # §13.3's protected list: "shown to no model and filed one at a time by the
+        # person." EVERY TARGET, and REGARDLESS OF CONSENT GRANTS -- a grant is
+        # §8.4's instrument for the flag, and reading it here would let a protected
+        # KIND in a granted area sail out on the cloud side, which is the one
+        # outcome this list exists to prevent.
+        protected_kind_ids = tuple(sorted(
+            file_id for file_id, name in privacy_classes.items()
+            if name == PRIVACY_CLASS_PROTECTED))
+        if protected_kind_ids and "protected_records_template" not in builders:
+            # `protected_kind=True` picks the sentence that is TRUE of this file.
+            # The reason CODE still says "template" and this file is not under one;
+            # `DENIAL_REASONS` is the owner's closed set of nine, a tenth is with
+            # them, and `deny_protected_records_template`'s docstring carries the
+            # whole of that. Nothing a person reads is false in the meantime.
+            builders["protected_records_template"] = \
+                lambda: deny_protected_records_template(
+                    file_ids=protected_kind_ids, model_target=request.model_target,
+                    protected_kind=True)
+
+        # §13.3's always-local list: "shown to no cloud model and filed by rules and
+        # local models." Cloud only, so the file keeps reaching the local model that
+        # files it -- which is the whole difference between this list and the one
+        # above, and the R-89 defect was the two being read as one.
+        #
+        # THE INHERITANCE IS PERFORMED HERE and not assumed. §14.3: "OCR text,
+        # excerpts and summaries retain the source's restriction." What this request
+        # would release is a derivative of the file, so the class the refusal is
+        # about is `derivative_privacy_class` of the file's own -- asked rather than
+        # taken, so the one place the product relies on inheritance is the one place
+        # it calls the function that defines it.
+        always_local_ids = tuple(sorted(
+            file_id for file_id, name in privacy_classes.items()
+            if derivative_privacy_class(name) == PRIVACY_CLASS_ALWAYS_LOCAL
+        )) if locality == CLOUD_LOCALITY else ()
+        if always_local_ids and "always_local_item" not in builders:
+            inherited = AlwaysLocalRequested(
+                f"{len(always_local_ids)} file(s) carry privacy class "
+                f"{PRIVACY_CLASS_ALWAYS_LOCAL!r} (`105` §13.3: receipts, order "
+                f"confirmations, boarding passes and tickets, screenshots of a "
+                f"person's own account or messages, bank or card notifications), "
+                f"and §14.3 gives an excerpt, an OCR text or a summary of one the "
+                f"source's restriction. Those kinds are shown to no cloud model and "
+                f"are filed by rules and local models, so this {locality} target is "
+                f"refused and a local one is not")
+            builders["always_local_item"] = lambda: deny_always_local_item(
+                inherited, file_ids=always_local_ids)
+
+        pending = tuple(sorted(
+            file_id for file_id, record in records.items()
+            if privacy_class_of(record) == PRIVACY_CLASS_PENDING))
         unclassified = tuple(sorted(
             file_id for file_id, name in classes.items()
             if name == UNREADABLE_UNCLASSIFIED))
+        assert pending == unclassified, (
+            f"{sorted(set(pending) ^ set(unclassified))} are {PRIVACY_CLASS_PENDING!r} "
+            f"on one reading and not the other. `105` §14.3 rules an unassessed file "
+            f"pending rather than ordinary and treats pending like unclassified for "
+            f"every gate, which holds only while the two agree")
         if unclassified and unclassified_denies(
                 locality=locality,
                 local_calls_on_unclassified=self._unclassified_permits_local):
@@ -465,6 +542,31 @@ class Gate:
         if chosen is not None:
             return self._denied(late[chosen](), request, policy, decisive, hashes,
                                 observed_at)
+
+        # 4b -- `105` §14.3, clause 5: "Classification precedes the model call it
+        # governs: a protected document is never sent to a model to discover that it
+        # is protected." Nothing below this line can still refuse, so a file whose
+        # bytes nothing has assessed reaching here has met §8.4's precondition by
+        # accident rather than by rule.
+        #
+        # AN ASSERTION AND NOT A DENIAL, on the precedent of the `DECISION_ORDER`
+        # assert at the top of this method. A `Denied` is §8.4's answer to "may this
+        # be sent", drawn from a closed vocabulary of reasons the owner approved and
+        # written for a person to read; a pending file arriving here is the ladder
+        # above having failed to fire, which is a defect in this file and not an
+        # outcome anyone needs shown. The reason the person WOULD see already exists
+        # and is `unclassified`.
+        #
+        # It asks `unclassified_denies` rather than restating its condition, so
+        # "unless the local-unclassified rule admits it" is the rule itself and not a
+        # second copy of it -- Open question 5 is still unanswered and the answer is
+        # still the caller's `unclassified_permits_local`.
+        assert not pending or not unclassified_denies(
+            locality=locality,
+            local_calls_on_unclassified=self._unclassified_permits_local), (
+            f"{list(pending)} reach a dossier with no assessed classification, and "
+            f"the local-unclassified rule does not admit them for a {locality} "
+            f"target. `105` §14.3: classification precedes the model call it governs")
 
         # 5 -- the one write, before the value exists.
         audit_id = append_audit(

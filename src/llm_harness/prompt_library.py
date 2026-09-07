@@ -216,13 +216,27 @@ def _manifest() -> dict:
     return json.loads(DRAFTS_FILE.read_text(encoding="utf-8"))
 
 
-#: THE ONLY TWO WORDS A STATUS MAY BE, packet-wide or on one row. A third word is
-#: not a third state: `ratified` is read as an equality test everywhere it is read
-#: (`observe_prompt`, `observe_locality_permits`), so a typo like `Ratified` or
-#: `ratifed` reads as "not ratified" and quietly withholds the owner's approval,
-#: and a word like `pending` would look like a decision nobody has defined. Absent
-#: means refuse; unrecognised means refuse louder.
-DRAFT_STATUS_WORDS: frozenset[str] = frozenset({"unratified", "ratified"})
+#: THE THREE WORDS A STATUS MAY BE, packet-wide or on one row, and this list is
+#: CLOSED. A word outside it is not a fourth state: every reader tests membership
+#: of one of the sets `cli.py` builds from these three, so `Ratified` or `ratifed`
+#: or `pending` all read as "not approved" -- which either withholds an approval
+#: the owner gave or, worse, looks like a decision nobody has defined. Absent means
+#: refuse; unrecognised means refuse louder.
+#:
+#: THE MIDDLE WORD IS THE ONE THE PRODUCT NEEDED. `104` §15.1 and `105` §12.1 put
+#: C's `eliminate-v2` to the owner FOR THE LOCAL MODEL, with the cloud waiting on
+#: R-82's signature, because nothing leaves the device on a local run and the
+#: cloud question is a separate consent about a person's folder labels. With two
+#: words those are one act: the word that lets a site act on its answer is also the
+#: word that lets its text cross the internet. `ratified_local` separates them --
+#: the site acts, the cloud stays shut -- so the owner's first ratification is the
+#: one they were actually asked for.
+UNRATIFIED: str = "unratified"
+RATIFIED_LOCAL: str = "ratified_local"
+RATIFIED: str = "ratified"
+
+DRAFT_STATUS_WORDS: frozenset[str] = frozenset(
+    {UNRATIFIED, RATIFIED_LOCAL, RATIFIED})
 
 
 def _require_status_word(status: str, where: str) -> str:
@@ -230,11 +244,12 @@ def _require_status_word(status: str, where: str) -> str:
     if status not in DRAFT_STATUS_WORDS:
         raise DraftNotInManifest(
             f"{where} carries status {status!r}, and the only words a status may "
-            f"be are {sorted(DRAFT_STATUS_WORDS)}. `ratified` is read as an "
-            f"equality test, so a third word is not a third state: it reads as "
-            f"'not ratified' and withholds an approval the owner may have given, "
-            f"or hides one they never gave. Absent means refuse and unrecognised "
-            f"means refuse here.")
+            f"be are {sorted(DRAFT_STATUS_WORDS)}. The list is closed and a word "
+            f"outside it is not a further state: every reader tests membership, "
+            f"so an unrecognised word reads as 'not approved' and either "
+            f"withholds an approval the owner gave or looks like a decision "
+            f"nobody has defined. Absent means refuse and unrecognised means "
+            f"refuse here.")
     return status
 
 
@@ -301,6 +316,12 @@ def draft_status(template_id: str) -> str:
     every row that has not spoken for itself -- and it keeps the safe default:
     today no row carries a word, the packet says `unratified`, and every site reads
     `unratified` exactly as it did before this function existed.
+
+    **The word says how far the approval reaches, not just whether there is one.**
+    `ratified_local` is an approval to ACT on the answer with the cloud still shut
+    (`104` §15.1: C for the local model, cloud after R-82); `ratified` is both.
+    Which word means what is `cli.py`'s -- this returns the word and judges
+    nothing with it.
 
     **A row's word is not its id.** `template_id` keeps `unratified` in its name
     after the row is ratified, because the id names the FILE and not the file's

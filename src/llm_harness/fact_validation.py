@@ -9,9 +9,13 @@ oracle implementations stay with the caller; omitting either callback is
 """
 from __future__ import annotations
 
+import hashlib
+import inspect
 import sqlite3
+import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
+from functools import lru_cache
 
 from facts.llm_seam import (
     FOUR_CHECKS,
@@ -26,6 +30,7 @@ from llm_harness.authorship import COMPONENT_VERSION
 from llm_harness.records import (
     CheckedCitation,
     Citation,
+    CompatibilityConversion,
     Dossier,
     P8Verdict,
     ValidationUnavailable,
@@ -145,6 +150,140 @@ def _missing(dependencies: FactValidationDependencies | None) -> tuple[str, ...]
     return tuple(missing)
 
 
+#: The modules whose BYTES decide a Site A verdict. `104` R-127.
+#:
+#: Check 1 and check 4 are here; check 2 is `llm_harness.validation.check_citations`
+#: and check 3's grounding half is `llm_harness.value_grounding.value_is_grounded`.
+#: A change in any of the three changes what a stored response means, so all three
+#: are digested and none is assumed stable because it is a different file.
+_JUDGEMENT_MODULES: tuple[str, ...] = (
+    __name__, "llm_harness.validation", "llm_harness.value_grounding",
+)
+
+
+@lru_cache(maxsize=None)
+def _file_digest(path: str) -> str:
+    """SHA-256 of one source file, twelve hex characters of it.
+
+    Cached on the path: the file cannot change under a running process in a way
+    this deployment then acts on, and `cli.py` is 400 kilobytes that would
+    otherwise be re-read once per verdict.
+    """
+    try:
+        with open(path, "rb") as source:
+            return hashlib.sha256(source.read()).hexdigest()[:12]
+    except OSError:
+        # A module with no readable source -- frozen, zipped, built in a test. Say
+        # so rather than return a constant that would silently stop moving.
+        return "unreadable"
+
+
+def _module_digest(name: str) -> str:
+    module = sys.modules.get(name)
+    path = getattr(module, "__file__", None)
+    return "absent" if path is None else _file_digest(path)
+
+
+@lru_cache(maxsize=None)
+def _callable_version(function: object) -> str:
+    """What identifies ONE injected callback across a code change.
+
+    Three terms, and each one catches a change the other two miss:
+
+    * `module.qualname` -- the deployment swapped one normaliser for another. The
+      file is untouched, so a file digest alone would call the two the same.
+    * the digest of the file it is DEFINED IN -- `cli.normalize_for_model` is a
+      dispatcher over `DIRECT_SLOTS`, `_canonical_file_type`, `TERM_FIELD` and
+      `SUBJECT_RULE`, and `normalize_for_review` reads `_TITLE_SHAPE`, `_is_term`
+      and two bounds. Every one of those is a normalisation rule that lives
+      OUTSIDE the function's own source, so digesting only its source would miss
+      exactly the changes `105` §14.7 is about.
+    * the digest of its own source text -- two callables in one file, one of them
+      edited, is a change the file digest reports and the qualname does not
+      distinguish; carrying both means neither has to be trusted alone.
+
+    **The limit, stated rather than hidden:** a normaliser whose behaviour comes
+    from DATA -- a library file, a schema release, a table read at run time -- is
+    not seen here. This digests code.
+    """
+    module = getattr(function, "__module__", None) or "?"
+    qualname = getattr(function, "__qualname__", None) or repr(function)
+    path = inspect.getsourcefile(function) if callable(function) else None
+    file_part = "absent" if path is None else _file_digest(path)
+    try:
+        own = hashlib.sha256(
+            inspect.getsource(function).encode("utf-8")).hexdigest()[:12]
+    except (OSError, TypeError):
+        own = "unreadable"
+    return f"{module}.{qualname}@{file_part}:{own}"
+
+
+#: THE VALIDATOR'S OWN VERSION, and it is a digest and not a number on purpose.
+#:
+#: `104` R-127: a verdict recorded under an older validator was reused as it stood,
+#: because the reuse identity carries the prompt and the schema and says nothing
+#: about the code that judged the answer. A hand-bumped constant is how that
+#: happened -- it is only ever right while somebody remembers to bump it, and R-119
+#: (an empty value became an abstention) and R-98 (a title became a candidate) both
+#: changed what a stored response MEANS without touching any version string.
+#: A digest cannot be forgotten.
+#:
+#: The cost is churn and it is the cheap side of the trade: a comment edited in one
+#: of these three files re-judges every cached response on the next run, which
+#: spends CPU and appends rows and buys not one model call.
+VALIDATOR_VERSION: str = "{0}+A_fact/{1}".format(
+    COMPONENT_VERSION,
+    hashlib.sha256("|".join(
+        f"{name}:{_module_digest(name)}" for name in _JUDGEMENT_MODULES
+    ).encode("utf-8")).hexdigest()[:12],
+)
+
+
+def judgement_version(dependencies: FactValidationDependencies) -> str:
+    """The version of EVERYTHING that decided this verdict: validator and normalisers.
+
+    `105` §14.7 asks for one thing in two halves -- "validator or normalisation
+    changes must re-evaluate cached responses rather than retain obsolete verdicts"
+    -- and this is the one string that answers both, because there is one column to
+    answer them in. `llm_verdict.validator_version` is what a stored verdict says
+    about the code that wrote it, and a normaliser version kept anywhere else would
+    be a second record of the same thing, free to disagree with it.
+
+    The three callbacks are all of it. `normalize` and `contradicts` are checks 3
+    and 4, `normalize_for_review` is check 3's review half (`104` R-98), and P8
+    authors none of the three (C-5): they are the DEPLOYMENT's answer, so the
+    deployment's answer changing is a validator change seen from the other side.
+    """
+    parts = [VALIDATOR_VERSION]
+    for name in ("normalize", "normalize_for_review", "contradicts"):
+        function = getattr(dependencies, name, None)
+        parts.append(
+            f"{name}=" + ("none" if function is None
+                          else _callable_version(function)))
+    return "{0}+n/{1}".format(
+        VALIDATOR_VERSION,
+        hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()[:12],
+    )
+
+
+def version_address(version: str) -> str:
+    """The part of a verdict's address that says which judgement reached it.
+
+    `104` R-127. `llm_verdict.verdict_id` is a primary key, and Site A's already
+    names the claim and the response -- `sites._addressed_to_the_response` adds
+    the second so that two calls over one dossier do not collide. It did not name
+    the JUDGE, so one response read twice under two validators arrived twice at
+    one address with two conclusions, and `record_verdict` refuses that rather
+    than overwrite it. It is right to; the address was simply short of a term.
+
+    Every Site A verdict carries this, not only a re-judged one, and that is the
+    point: a fresh call over a response some older validator already judged is
+    the same collision by the other route, and a term that is only sometimes
+    present is a key that is only sometimes unique.
+    """
+    return hashlib.sha256(version.encode("utf-8")).hexdigest()[:12]
+
+
 def p6_verdict_from_p8(verdict: P8Verdict) -> Verdict:
     """Map a Site A `P8Verdict` onto the distinct live P6 `Verdict`."""
     if verdict.outcome != REJECT:
@@ -181,6 +320,7 @@ def _verdict(
     citations_checked: Sequence[CheckedCitation],
     policy_version: str,
     dossier_id: str,
+    compatibility: CompatibilityConversion | None = None,
 ) -> P8Verdict:
     return P8Verdict(
         verdict_id=f"{dossier_id}:{proposal.field_key}",
@@ -196,7 +336,26 @@ def _verdict(
         validator_version=COMPONENT_VERSION,
         policy_version=policy_version,
         plan_version=None,
+        compatibility=compatibility,
     )
+
+
+#: THE COMPATIBILITY RULE THIS MODULE APPLIES, AND ITS VERSION (`104` R-132).
+#:
+#: `105` §14.5: the canonical decline stays `unknown` with an `insufficiency_statement`
+#: and no value, a supported value stays non-empty, and the ratified schema keeps
+#: `minLength: 1` -- so `""` is a shape the schema forbids and the CODE tolerates. A
+#: tolerance nobody can name is indistinguishable from a bug, so it is named here and
+#: numbered: every verdict it produces carries `empty_value_to_unknown/1`.
+#:
+#: **The version moves when the RULE moves, not when this file does.** `104` §14.7
+#: says a validator or normalisation change must re-evaluate cached responses rather
+#: than retain obsolete verdicts; a stored verdict that names version 1 is a verdict
+#: some later reader can decide to re-judge, and it can only decide that if the
+#: version is on the record. Widening what counts as empty, or changing what the
+#: conversion drops, is version 2.
+EMPTY_VALUE_TO_UNKNOWN_RULE: str = "empty_value_to_unknown"
+EMPTY_VALUE_TO_UNKNOWN_VERSION: str = "1"
 
 
 def _declined_the_field(raw_value: object) -> bool:
@@ -342,10 +501,33 @@ def _run_checks(
         # BEFORE check 3, and after checks 1 and 2 on purpose. An empty answer about
         # a field nobody asked for is still a field nobody asked for, and putting it
         # in `abstained_fields` would suppress a question that was never valid.
+        #
+        # AND IT IS A CONVERSION, WHICH IS A THING THE RECORD SAYS (`104` R-132).
+        # The outcome is the canonical `abstain` an explicit `unknown` earns and
+        # nothing about it is new; what is new is that the verdict now names the
+        # rule that produced it, its version, the field, and what the conversion
+        # dropped -- the value as the model wrote it and the keys it cited -- so a
+        # reader can tell a decline the model GAVE from one the validator MADE.
+        # Reaching here at all means checks 1 and 2 passed; the closed-object and
+        # duplicate-field refusals are earlier still, in `sites`, and this cannot
+        # route around either of them.
+        dropped = _freeze_str_sequence(proposal.citations, name="citations")
+        if isinstance(dropped, ValidationUnavailable):
+            # The record refuses a citation key that is not a string, and a record
+            # that refuses must not refuse by raising out of a function whose whole
+            # contract is `P8Verdict | ValidationUnavailable`.
+            return dropped
         return _verdict(
             request, proposal, outcome=ABSTAIN, reasons=(),
             citations_checked=checked, policy_version=policy_version,
             dossier_id=dossier_id,
+            compatibility=CompatibilityConversion(
+                rule_id=EMPTY_VALUE_TO_UNKNOWN_RULE,
+                version=EMPTY_VALUE_TO_UNKNOWN_VERSION,
+                field=proposal.field_key,
+                dropped_value=raw_value,
+                dropped_citations=dropped,
+            ),
         )
     normalized, outcome = _check_three(
         dependencies, proposal.field_key, raw_value)
@@ -455,6 +637,24 @@ def validate_fact_proposal(
         )
         if isinstance(p8, ValidationUnavailable):
             return p8
+
+    # `104` R-127, and it is ONE stamp in ONE place for a reason: `_verdict` builds
+    # this record at nine call sites and a version repeated nine times is nine
+    # places for it to be wrong in. Every verdict Site A returns goes out through
+    # here, so here is where it says which code -- validator AND the deployment's
+    # normalisers -- reached it, and here is where its ADDRESS says so too. The
+    # reuse decision in `model_facts.fact_call_stage` compares a stored verdict's
+    # copy of this string against a freshly computed one and re-judges the stored
+    # response when they differ; the address is what lets both conclusions be
+    # recorded, because §8.2 supersedes and never overwrites.
+    #
+    # `_verdict`'s own `validator_version` is provisional and always replaced here.
+    # It is left as it was because moving it would put this change into the nine
+    # call sites this line exists to avoid.
+    version = judgement_version(dependencies)
+    p8 = replace(
+        p8, validator_version=version,
+        verdict_id=f"{p8.verdict_id}@{version_address(version)}")
 
     if apply_consequence:
         # CHECK 3'S OWN ANSWER, carried to the write instead of being dropped.

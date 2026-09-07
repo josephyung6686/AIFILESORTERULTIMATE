@@ -61,8 +61,13 @@ def _case() -> Case:
 
 def _response(case: Case, *, destination, cite: bool = True) -> bytes:
     key = wire_handle(case.evidence[0].key, key=BENCH_HANDLE_KEY)
-    claim = {"payload": {"destination": destination, "per_dimension_support": [],
-                         "alternatives": ["node-b"], "conflicts_considered": [],
+    # One supported level and nothing standing beside the destination: under
+    # `105` §14.1 an empty level list is BELOW_SUPPORT_THRESHOLD and a listed
+    # alternative is INSUFFICIENT_MARGIN.
+    claim = {"payload": {"destination": destination, "per_dimension_support": [
+                             {"dimension": "course", "value": "PHYS 1401",
+                              "support": "direct"}],
+                         "alternatives": [], "conflicts_considered": [],
                          "support": 1, "next_support": 0}}
     if cite:
         claim["citations"] = [{"evidence_ref": key, "cited_span": "PHYS 1401",

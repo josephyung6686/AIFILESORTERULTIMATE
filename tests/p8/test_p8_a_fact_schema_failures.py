@@ -207,7 +207,10 @@ def _cases(world: World):
 
     `(case, claim builder, expected verdicts)`. A `claim_ref` of the form
     `claim-N:<rule>` means the whole response died on claim N for that rule; a field
-    key means one claim was judged and the rest of the response survived.
+    key means one claim was judged and the rest of the response survived; and
+    `<field>:<rule>:<name>` (`104` R-132) means ONE claim was refused for a rule and
+    the rest of the response survived, with both names the rule is about on the
+    record.
     """
     cite = _cite(world)
     support = _support(world)
@@ -276,9 +279,38 @@ def _cases(world: World):
         # the owner has made it: `104` R-119 says an empty value is the `abstain`
         # outcome for that field. So this row moves and no xfail is filed beside it;
         # the code and the schema still disagree, and the ruling is the reason.
+        #
+        # `104` R-132 (`105` §14.5) says what that disagreement IS, in these words:
+        # THE SCHEMA-FORBIDDEN SHAPE `""` IS TOLERATED BY THE CODE AS A CONVERSION.
+        # The schema is untouched -- `minLength: 1` stands, the canonical decline is
+        # still `unknown` with an `insufficiency_statement` and no value, and a
+        # supported value is still non-empty. The tolerance lives in the validator
+        # alone, is named and numbered (`empty_value_to_unknown/1`), and every
+        # verdict it produces carries that name, the field and what was dropped, so
+        # a reader can tell a decline the model GAVE from one the validator MADE.
+        # The strict-xfail policy for every OTHER schema-forbidden shape is
+        # unchanged: those still await a ruling, and this row had one.
         ("an empty value",
          {"payload": {"field": "subject", "value": ""}, "citations": [cite]},
          ((ABSTAIN, (), "subject"),)),
+        # `104` R-132(d). `payload.field` is authoritative for the field's identity,
+        # and a `claim_ref` that is not a field name says nothing about identity --
+        # this repo's own fixtures send `"c1"`. So the claim is judged, and the
+        # verdict is addressed by `payload.field` exactly as it always was.
+        ("a claim_ref that is not a field name",
+         dict(support, claim_ref="c1"),
+         ((ACCEPT_DIRECT, (), "subject"),)),
+        ("a claim_ref that repeats payload.field",
+         dict(support, claim_ref="subject"),
+         ((ACCEPT_DIRECT, (), "subject"),)),
+        # And the disagreement: TWO answerable fields on one claim, so the claim
+        # does not say which question it answered. One claim refused, the response
+        # alive -- rule 8's whole-answer destruction is for two CLAIMS about one
+        # field, which is a different defect. The address names both names.
+        ("a claim_ref naming a different answerable field",
+         dict(support, claim_ref="school"),
+         ((REJECT, (SCHEMA_INVALID,),
+           "subject:claim_ref_disagrees_with_field:school"),)),
         ("a value emitted as a number",
          {"payload": {"field": "subject", "value": 1401}, "citations": [cite]},
          ((REJECT, (VALUE_NOT_NORMALIZABLE,), "subject"),)),
@@ -291,9 +323,9 @@ def _cases(world: World):
 def test_the_matrix_of_one_deviation_at_a_time(world):
     """Every row, run against the validator that actually runs.
 
-    Read the `claim_ref` column: it is what the record could not say before. Eleven
-    of these sixteen shapes destroy the whole response and five do not, and until
-    now every one of the eleven arrived as the same four words.
+    Read the `claim_ref` column: it is what the record could not say before.
+    Thirteen of these nineteen shapes destroy the whole response and six do not, and
+    until now every one of the thirteen arrived as the same four words.
     """
     for case, claim, expected in _cases(world):
         assert _judge(world, {"claims": [claim]}) == expected, case
@@ -409,6 +441,13 @@ def test_claim_ref_is_forbidden_by_the_ratified_schema_and_read_by_the_validator
     response shape with `claim_ref` in it as optional, `_validate_claim` reads it, and
     this repo's own stress-case fixtures send it. The A_fact template mentions it
     nowhere. Whichever way the owner rules, one of the three has to move.
+
+    `104` R-132 (`105` §14.5(d)) rules on what `claim_ref` MEANS without moving any
+    of the three: `payload.field` is authoritative for the field's identity whatever
+    an optional `claim_ref` says. So the schema still closes the claim object and the
+    validator still reads the key -- the gap below is unchanged, and the assertions
+    still hold -- and what the code no longer does is let the two disagree in
+    silence. The disagreement is refused, with both names on the record.
     """
     assert "claim_ref" not in RESPONSE_SCHEMA["$defs"]["claim"]["properties"]
     assert RESPONSE_SCHEMA["$defs"]["claim"]["additionalProperties"] is False
@@ -417,6 +456,185 @@ def test_claim_ref_is_forbidden_by_the_ratified_schema_and_read_by_the_validator
 
     assert '"claim_ref": str,' in validation.__doc__
     assert "claim_ref" not in TEMPLATE_TEXT
+
+
+# --- `104` R-132: what the empty-value conversion does NOT reach ------------------
+#
+# `105` §14.5(c): the conversion never bypasses the closed-object check or the
+# duplicate-field check. Both sit in front of it -- rule 8's is `sites._fact_site`,
+# before any claim is validated, and the closed-object rule is the schema's own --
+# and an empty value changes neither.
+
+
+def _schema_refusals(response) -> tuple[str, ...]:
+    """Every reason the ratified schema, run as a schema, refuses this response."""
+    import jsonschema
+
+    return tuple(sorted(
+        error.message for error in
+        jsonschema.Draft202012Validator(RESPONSE_SCHEMA).iter_errors(response)))
+
+
+def test_an_empty_value_with_a_second_claim_is_still_the_duplicate_destruction(world):
+    """R-132(c), rule 8. The conversion is not a way to smuggle a second answer in.
+
+    Two claims about `subject`, one of them the empty answer. Rule 8's refusal is
+    decided from `payload.field` -- which R-132(d) makes authoritative -- and it is
+    decided BEFORE any claim is judged, so the whole answer is destroyed and neither
+    claim reaches the conversion.
+    """
+    cite = _cite(world)
+    empty = {"payload": {"field": "subject", "value": ""}, "citations": [cite]}
+    assert _judge(world, {"claims": [empty, _support(world)]}) == (
+        (REJECT, (SCHEMA_INVALID,), "claims:duplicate_field:subject"),)
+    assert _judge(world, {"claims": [_support(world), empty]}) == (
+        (REJECT, (SCHEMA_INVALID,), "claims:duplicate_field:subject"),)
+
+
+def test_an_empty_value_inside_an_object_with_an_extra_key_is_still_schema_invalid(
+        world):
+    """R-132(c), the closed objects. The conversion does not amend the schema.
+
+    Measured against the ratified schema itself, run as a schema. A valid support
+    claim passes, so the refusals below are the deviations and not the fixture. The
+    empty value alone is refused (`minLength: 1` stands), the unexpected key alone
+    is refused (`additionalProperties: false` stands), and the two together are
+    refused for BOTH reasons. The tolerance R-132 grants lives in the validator and
+    reaches exactly one shape; the closed-object rule is not in its reach.
+    """
+    cite = _cite(world)
+    valid = {"payload": {"field": "subject", "value": "PHYS 1401"},
+             "citations": [cite]}
+    empty = {"payload": {"field": "subject", "value": ""}, "citations": [cite]}
+    extra = copy.deepcopy(valid)
+    extra["payload"]["confidence"] = 0.9
+    surplus = copy.deepcopy(empty)
+    surplus["payload"]["confidence"] = 0.9
+
+    assert _schema_refusals({"claims": [valid]}) == ()
+    empty_only = _schema_refusals({"claims": [empty]})
+    extra_only = _schema_refusals({"claims": [extra]})
+    assert any("non-empty" in message for message in empty_only), empty_only
+    assert any("Additional properties" in message for message in extra_only), extra_only
+    both = _schema_refusals({"claims": [surplus]})
+    assert any("non-empty" in message for message in both), both
+    assert any("Additional properties" in message for message in both), both
+    # And the gap this file exists to pin, unmoved: the CODE accepts the extra key,
+    # as `test_an_extra_key_is_accepted_by_the_code_and_refused_by_the_schema`
+    # records for a non-empty value. R-132 changed the empty value's outcome and
+    # nothing about unexpected keys, so the two defects still compose the way they
+    # did -- the abstention is the conversion's, the extra key is the standing gap.
+    assert _judge(world, {"claims": [surplus]}) == ((ABSTAIN, (), "subject"),)
+
+
+def test_the_conversion_record_reaches_the_verdict_through_the_real_dispatcher(world):
+    """R-132(b), end to end: `sites.dispatch`, not `validate_fact_proposal` alone."""
+    cite = _cite(world)
+    result = dispatch(
+        world.conn, world.dossier,
+        json.dumps({"claims": [
+            {"payload": {"field": "subject", "value": '""'},
+             "citations": [cite]}]}).encode("utf-8"),
+        site_dependencies=world.dependencies, evidence_resolver=world.resolver,
+        contradicts=contradicts_stronger, model_id="schema-model",
+        prompt_fingerprint="sha256:schema", dossier_builder="schema-suite",
+        release_audit_id=None, policy_version=POLICY, apply_consequence=False,
+        handle_key=FIXTURE_HANDLE_KEY)
+    verdicts, _report = result
+    note = verdicts[0].compatibility
+    assert note is not None
+    assert note.rule == "empty_value_to_unknown/1"
+    assert note.field == "subject"
+    # The value as the model wrote it, quotes intact, and the citation it dropped.
+    assert note.dropped_value == '""'
+    assert note.dropped_citations == (world.dossier.evidence_items[0].evidence_ref,)
+
+
+def test_a_claim_ref_disagreement_refuses_that_claim_and_judges_the_others(world):
+    """R-132(d). `payload.field` is authoritative; a claim naming two fields is refused.
+
+    The refusal is per claim and not rule 8's whole-answer destruction: the second
+    claim here is judged normally. `"c1"` is the boundary -- an identifier is not a
+    second answer to "which field", and this repo's fixtures send one.
+    """
+    cite = _cite(world)
+    disagreeing = {"payload": {"field": "subject", "value": "PHYS 1401"},
+                   "citations": [cite], "claim_ref": "school"}
+    declining = {"payload": {"field": "school"},
+                 "unknown": {"insufficiency_statement": "none"}}
+    assert _judge(world, {"claims": [disagreeing, declining]}) == (
+        (REJECT, (SCHEMA_INVALID,),
+         "subject:claim_ref_disagrees_with_field:school"),
+        (ABSTAIN, (), "school"),
+    )
+    # An identifier disagrees with nothing, and neither does the field's own name.
+    for harmless in ("c1", "claim-0", "subject"):
+        assert _judge(world, {"claims": [dict(
+            _support(world), claim_ref=harmless)]}) == (
+                (ACCEPT_DIRECT, (), "subject"),), harmless
+
+
+def test_the_duplicate_field_check_still_reads_payload_field_not_claim_ref(world):
+    """R-132(d) again, from rule 8's side. Two claim_refs cannot split one field."""
+    first = dict(_support(world), claim_ref="c1")
+    second = dict(_support(world), claim_ref="c2")
+    assert _judge(world, {"claims": [first, second]}) == (
+        (REJECT, (SCHEMA_INVALID,), "claims:duplicate_field:subject"),)
+
+
+def test_an_empty_value_that_disagrees_about_its_field_is_refused_not_converted(
+        world):
+    """The two rules meet: identity is settled before an answer is converted."""
+    cite = _cite(world)
+    assert _judge(world, {"claims": [
+        {"payload": {"field": "subject", "value": ""}, "citations": [cite],
+         "claim_ref": "school"}]}) == (
+        (REJECT, (SCHEMA_INVALID,),
+         "subject:claim_ref_disagrees_with_field:school"),)
+
+
+def test_a_refused_disagreement_leaves_the_field_open_and_a_conversion_answers_it(
+        world):
+    """WHAT THE TWO ADDRESSES COST AT REUSE, on the record rather than by accident.
+
+    `store.answered_fields` reads `claim_ref` and treats it as the field (R-109), so
+    an address decides whether the next run asks again. A CONVERTED empty answer is
+    addressed `subject`: the model answered, the field is settled for this dossier
+    and the identical question is not bought twice. A REFUSED disagreement is
+    addressed with both names, so `subject` is NOT among the answered fields and the
+    next run asks it again -- which is what should happen, because the claim never
+    said which field it was about. It is the same cost every structural refusal in
+    this file already pays; `claims:duplicate_field:subject` pays it too.
+    """
+    from llm_harness.store import answered_fields, record_verdict
+
+    cite = _cite(world)
+
+    def recorded(claim) -> frozenset[str]:
+        verdicts, _report = dispatch(
+            world.conn, world.dossier,
+            json.dumps({"claims": [claim]}).encode("utf-8"),
+            site_dependencies=world.dependencies, evidence_resolver=world.resolver,
+            contradicts=contradicts_stronger, model_id="schema-model",
+            prompt_fingerprint="sha256:schema", dossier_builder="schema-suite",
+            release_audit_id=None, policy_version=POLICY, apply_consequence=False,
+            handle_key=FIXTURE_HANDLE_KEY)
+        for verdict in verdicts:
+            record_verdict(
+                world.conn, verdict, model_id="schema-model",
+                prompt_fingerprint="sha256:schema", release_audit_id=17,
+                observed_at=CLOCK)
+        return answered_fields(world.conn, world.dossier.dossier_id)
+
+    disagreeing = recorded(
+        {"payload": {"field": "subject", "value": ""}, "citations": [cite],
+         "claim_ref": "school"})
+    assert "subject" not in disagreeing
+    assert "subject:claim_ref_disagrees_with_field:school" in disagreeing
+
+    converted = recorded(
+        {"payload": {"field": "subject", "value": ""}, "citations": [cite]})
+    assert "subject" in converted
 
 
 # --- the declining branch: three shapes the code accepts and both documents forbid -

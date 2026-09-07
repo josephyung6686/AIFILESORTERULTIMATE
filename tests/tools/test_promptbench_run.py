@@ -38,7 +38,7 @@ def _fake_c_client(payload: bytes) -> tuple[bytes, CallMeta]:
     response = {"claims": [{
         "payload": {"destination": candidates[0], "per_dimension_support": [
             {"dimension": "a level", "value": value[:6], "support": "direct"}],
-            "alternatives": candidates[1:2], "conflicts_considered": conflicts,
+            "alternatives": [], "conflicts_considered": conflicts,
             "support": 1, "next_support": 0, "refinement": "not_applicable"},
         "citations": [{"evidence_ref": handle, "cited_span": value[:6],
                        "why_it_supports": "the released text carries it"}]}]}

@@ -19,7 +19,8 @@ Recorded response shape (stable; later site validators reuse it)::
          "unknown": {"insufficiency_statement": str}}
     ]}
 
-Exactly one of a non-empty ``citations`` list or ``unknown`` is valid.
+Exactly one of a non-empty ``citations`` list or ``unknown`` is valid, unless
+the site's ``uncited_claim`` hook admits an empty list (site C, `105` §14.1).
 """
 from __future__ import annotations
 
@@ -480,6 +481,7 @@ def _validate_claim(
     site_validator: Callable[..., Any],
     oracle: Callable[..., Any] | None,
     handles: Mapping[str, str],
+    uncited_claim: Callable[[Dossier, Mapping[str, object]], str | None] | None = None,
 ) -> P8Verdict | ValidationUnavailable:
     claim_ref = f"claim-{index}"
     if not isinstance(raw, Mapping):
@@ -522,15 +524,50 @@ def _validate_claim(
         )
 
     if citations_raw is None or citations_raw == []:
-        return _make_verdict(
+        # A claim with no citation is uncited -- unless the SITE says this one
+        # is admissible without any (site C's context-only placement, `105`
+        # §14.1: every level supported by an accepted group, which cannot be
+        # cited). The site hook names the outcome; the claim then takes the
+        # same road as a cited one -- the contradiction oracle, then the site
+        # validator, which is where the group support is verified. Nothing
+        # here is grounded in file text, so `_acceptance_outcome` is not
+        # consulted: with no citations it would answer `accept_direct`.
+        admitted = uncited_claim(dossier, raw) if uncited_claim is not None else None
+        if admitted is None:
+            return _make_verdict(
+                dossier=dossier,
+                claim_ref=claim_ref,
+                outcome=REJECT,
+                reasons=(UNCITED_CLAIM,),
+                may_propose=False,
+                requires_review=False,
+                citations_checked=(),
+            )
+        if oracle is None:
+            return ValidationUnavailable(missing=("contradicts",))
+        if oracle(payload, dossier):
+            return _make_verdict(
+                dossier=dossier,
+                claim_ref=claim_ref,
+                outcome=REJECT,
+                reasons=(CONTRADICTED_BY_STRONGER,),
+                may_propose=False,
+                requires_review=False,
+                citations_checked=(),
+            )
+        verdict = _make_verdict(
             dossier=dossier,
             claim_ref=claim_ref,
-            outcome=REJECT,
-            reasons=(UNCITED_CLAIM,),
-            may_propose=False,
-            requires_review=False,
+            outcome=admitted,
+            reasons=(),
+            may_propose=True,
+            requires_review=admitted == ACCEPT_CONTEXT_SUPPORTED,
             citations_checked=(),
         )
+        replacement = site_validator(dossier, raw, verdict)
+        if replacement is not None:
+            return replacement
+        return verdict
     if not isinstance(citations_raw, Sequence) or isinstance(citations_raw, (str, bytes)):
         return schema_invalid_verdict(dossier, claim_ref)
 
@@ -613,8 +650,14 @@ def validate_response(
     dossier_builder: str,
     release_audit_id: int | None,
     handle_key: bytes,
+    uncited_claim: Callable[[Dossier, Mapping[str, object]], str | None] | None = None,
 ) -> tuple[tuple[P8Verdict, ...], GroundingReport] | ValidationUnavailable:
     """Validate recorded response bytes against a released dossier.
+
+    ``uncited_claim`` is a site's answer to "may this claim stand with no
+    citation at all?": given the dossier and the raw claim it returns the
+    outcome the claim starts from, or ``None`` for the universal answer, which
+    is ``UNCITED_CLAIM``. Absent, nothing changes for any site.
 
     ``evidence_resolver`` maps a P4 ``observation_key`` to the released/redacted
     material the model saw, or ``None`` if that key was not shown.
@@ -670,6 +713,7 @@ def validate_response(
             site_validator=site_validator,
             oracle=oracle,
             handles=handles,
+            uncited_claim=uncited_claim,
         )
         if isinstance(result, ValidationUnavailable):
             return result

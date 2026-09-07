@@ -127,6 +127,12 @@ def test_p7_is_reached_only_through_the_surfaces_it_published():
     module's own docstring, so reading them is the opposite of P11 inventing a
     policy for absence. `unclassified_denies` is the matching gate predicate,
     beside `mode_forbids` and owned by the same module.
+
+    `privacy.denial.UNCLASSIFIED_PERMITS_LOCAL` joined it for `104` R-121. P11
+    used to pin its own answer to P7 SPEC Open question 5 while `cli.py` pinned
+    the opposite one; the owner ruled one answer under one name (`104` §15.3), so
+    P11 now READS P7's published answer instead of holding a second. One more
+    name from P7 is the shape of the fix, not a widening of the surface.
     """
     reached = _importers_of("privacy")
     assert set(reached) == {"privacy.py", "vocabulary.py"}
@@ -137,6 +143,7 @@ def test_p7_is_reached_only_through_the_surfaces_it_published():
         "privacy.classification_store", "privacy.classification_store.ClassificationStore",
         "privacy.denial", "privacy.denial.mode_forbids",
         "privacy.denial.unclassified_denies",
+        "privacy.denial.UNCLASSIFIED_PERMITS_LOCAL",
         "privacy.moves", "privacy.moves.may_move_automatically",
         "privacy.policy", "privacy.policy.current_policy",
         "privacy.release", "privacy.release.LOCALITIES",
@@ -472,7 +479,8 @@ def test_a_run_without_a_support_policy_or_limits_refuses(p11_conn):
         chosen_by_user=lambda subject: None,
         fields_that_cannot_anchor_a_move=frozenset(),
         their_own_folder_made_for_what_it_holds={}, p2=None,
-        the_folder_each_file_is_in={})
+        the_folder_each_file_is_in={},
+        a_move_the_person_has_not_permitted=None)
     PipelineInputs(**good)                     # the control: this one builds
     with _pytest.raises(ConfigurationRequired):
         PipelineInputs(**{**good, "policy": None})

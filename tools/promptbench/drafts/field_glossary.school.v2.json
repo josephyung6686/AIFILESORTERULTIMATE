@@ -1,0 +1,20 @@
+{
+  "_": "DRAFT FOR THE OWNER, NOT RATIFIED, 2026-09-07. The `school` entry of `src/llm_harness/library/field_glossary.json`, rewritten so that the glossary and the A_fact prompt say one thing. `105` §14.4 rules that the glossary's \"the holder's school\" meaning, which the packet records as the cause of the Georgetown Prep collector, must agree with the prompt, and that restricting document kinds alone does not resolve it. This file carries that one entry and nothing else: it is a fragment for the owner to rule on, not a glossary, and it is deliberately outside `src/llm_harness/library/` so that no loader can read it.\n\nWHAT THE RATIFIED MEANING CAUSED, MEASURED. Under \"the institution the holder attends, attended, or teaches at - the person's own school, never the application target\", `105` §1.3 records `school = \"Georgetown Prep\"` on A01, the university essay that names the author's old school, and `104` §11.1 records the same wording putting five essays from a university course under a high school on the owner's own corpus. `105` §1.7 records what the first repair alone did: under \"not any school the person attended\" the model moved from the school attended to the school applied to -- `University of Chicago` on A01 and `Duke` on A09 -- so a wording that names only one of the two collectors moves the answer between them. This meaning names the relationship positively and both collectors as MENTIONS, which is the only way to exclude them without excluding the right answer: the institution that offers the course is ordinarily one the person attends too, so an entry reading \"not a school the person attended\" would tell a model to decline Columbia on Columbia's own syllabus.\n\nTHE CONVENTION THIS DOES NOT YET SATISFY, said plainly. Every meaning in the ratified glossary is transcribed from a source that already existed and `tests/p8/test_p8_field_glossary.py::test_every_meaning_is_verbatim_from_its_cited_source` re-reads it. The sentence below is drafted, not transcribed, so the citation named in `source` becomes true only once the owner's ratified wording is recorded at `105` §14.4 -- the owner's word is what makes it owner text. If the owner amends a word of it, the amended sentence is the one recorded and this file is superseded.",
+  "_status": {
+    "status": "unratified",
+    "date": "2026-09-07",
+    "differs_from": "src/llm_harness/library/field_glossary.json",
+    "differing_keys": [
+      "school"
+    ],
+    "ruled_in": "planning/105-D2-PROMPT-PACKET.md §14.4",
+    "row": "planning/104-DIAGNOSIS-FINAL.md R-131 with R-102 and R-95",
+    "paired_with": "tools/promptbench/drafts/a_fact_template.v2.txt (rule 12)"
+  },
+  "fields": {
+    "school": {
+      "meaning": "the institution that offers this course or holds this enrollment, as the anchor document's own released text establishes it; a school the document only mentions is not it -- not one the person attended earlier, and not one a document is addressed to",
+      "source": "planning/105-D2-PROMPT-PACKET.md §14.4"
+    }
+  }
+}

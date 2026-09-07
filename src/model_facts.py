@@ -46,6 +46,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
+from database_agent.db import transaction
 from evidence_shape.canonical import canonical_json
 from evidence_shape.locator import serialize_locator
 from evidence_shape.store import unit_length_for_observation
@@ -55,23 +56,31 @@ from facts.evidence import observations_for_version
 from facts.llm_seam import FactRequest, build_request
 from facts.states import EXCLUDED_STATE
 from llm_harness.budgets import ScanBudget
-from llm_harness.fact_validation import FactValidationDependencies
+from llm_harness.dossier import dossier_address
+from llm_harness.fact_validation import FactValidationDependencies, judgement_version
 from llm_harness.fingerprint import prompt_fingerprint
 from llm_harness.harness import CallDependencies, run_call
 from llm_harness.records import (
     REFUSAL_EXCEPTIONS,
-    DossierRequest, EvidenceItem, FolderLevel, P8Verdict, PromptDefinition,
+    DossierRequest, EvidenceItem, FolderLevel, MalformedRecord, P8Verdict,
+    PromptDefinition, ValidationUnavailable,
 )
-from llm_harness.sites import FactSiteDependencies, SiteDependencies
+from llm_harness.sites import FactSiteDependencies, SiteDependencies, dispatch
 from llm_harness.store import (
     answered_fields,
     call_identity,
+    last_response,
+    load_dossier,
     prior_call,
     record_call_identity,
     record_call_reuse,
+    record_verdict,
     refusal_outcome,
+    standing_verdicts,
+    supersede_verdict,
 )
 from llm_harness.transport import ModelClient
+from llm_harness.validation import DOSSIER_BUILDER
 from llm_harness.vocabulary import (
     A_FACT, CONTEXT_SUPPORTED, DIRECT_ANCHOR, REMAINS_AMBIGUOUS,
 )
@@ -232,6 +241,111 @@ def open_question(pending: Sequence[str],
 
 
 @dataclass(frozen=True)
+class AnchorOnlyLevels:
+    """The levels asked of an ANCHOR and of no other file (`105` §14.4, `104` R-131).
+
+    `104` §11.2 step 2 withdrew `school` from the per-file question outright, and
+    `104` R-102 is what that cost: nothing writes a `school` fact any more, so no
+    corpus grows a school level at all. The owner's ruling of 7 Sep restores the
+    question to the files that can answer it -- "Answer school only when a
+    permitted anchor establishes the institution's relevant relationship to the
+    course or enrollment being organized" -- and leaves it withdrawn everywhere
+    else.
+
+    **Anchor kind is necessary and it is not sufficient**, which is §14.4's own
+    sentence and the reason this record carries a kind rather than a verdict: a
+    transcript may name transfer institutions and a syllabus released by another
+    university does not establish attendance, so what the KIND buys is the right
+    to be asked, and the prompt decides the answer -- the drafted rule 12 of
+    `tools/promptbench/drafts/a_fact_template.v2.txt`, which is the owner's to
+    ratify and which nothing loads. Nothing here reads a value.
+
+    **The kind is the file's own settled kind and never the model's.**
+    `anchor_only_levels` reads it off `FactRequest.existing_facts`, which
+    `facts.llm_seam.build_request` has already computed as every ACTIVE fact
+    stronger than an LLM conclusion -- so the kind behind the question is
+    `validated`, `direct` or `user_confirmed`, and a model's own guess about what
+    a file is can never open the question about it. No second read and no second
+    definition of "validated".
+
+    **The protected half is the route's answer, asked again here rather than
+    respelled.** §14.4 binds this to §14.3: "a tuition or housing statement
+    classified protected cannot become model-eligible because it is also an
+    anchor". This deployment already bars a protected file from every model on
+    every locality (`cli.model_route_permitted`, held by
+    `tests/integration/test_local_model_fact_pass.py::
+    test_a_protected_file_is_never_sent_to_the_local_model_either`), so the flag
+    is READ through that same predicate -- one function, two call sites -- and
+    P7's classification is not re-derived here. A second spelling of the gate's
+    rule beside the gate's rule is how the two came to disagree once already
+    (`104` R-02).
+
+    `levels` is a tuple of the situation's own `FolderLevel` records, split off by
+    the composition root from the levels it withholds; `kind_field` and
+    `anchor_kinds` are the deployment's, drawn from the shipped recognition
+    release. This module authors none of the three.
+    """
+
+    levels: tuple[FolderLevel, ...]
+    kind_field: str
+    anchor_kinds: frozenset[str]
+    may_reach_a_model: Callable[[str], bool]
+
+    def __post_init__(self) -> None:
+        if not self.levels:
+            raise ValueError(
+                "an anchor-only rule with no level withholds nothing and restores "
+                "nothing; a deployment that asks every file the same question "
+                "supplies no rule at all rather than an empty one")
+        # The same check the every-file list gets, from the same function: these
+        # levels reach `open_question` beside those, and a mapping here would be a
+        # caller authoring a label exactly as it would there.
+        object.__setattr__(self, "levels", require_folder_levels(self.levels))
+        if not self.anchor_kinds:
+            raise ValueError(
+                "`105` §14.4 admits a file to the question by its KIND, so a rule "
+                "with no anchor kinds can never admit one -- which is the same "
+                "silence as `104` R-102 and would be indistinguishable from it")
+
+
+def anchor_only_levels(request: FactRequest,
+                       rule: AnchorOnlyLevels | None) -> tuple[FolderLevel, ...]:
+    """§14.4's predicate: the levels this ONE file may be asked, beyond the rest.
+
+    Called with the request the builder has just built, so the kind it reads is
+    the one `build_request` already established and not a second reading of the
+    store. `()` for every file that is not an anchor of a permitted kind, which is
+    `open_question`'s own way of not asking: a level absent from the offered
+    vocabulary is a question the dossier never puts.
+
+    The cheap test runs first and it is also the safe one: the kind is already in
+    memory, and the classification is read only for a file that would otherwise be
+    asked.
+    """
+    if rule is None:
+        return ()
+    if _settled_kind(request, rule.kind_field) not in rule.anchor_kinds:
+        return ()
+    if not rule.may_reach_a_model(request.file_id):
+        return ()
+    return rule.levels
+
+
+def _settled_kind(request: FactRequest, kind_field: str) -> str | None:
+    """What this file version IS, as its own settled facts say, or `None`.
+
+    `existing_facts` is `build_request`'s own tuple -- active, not excluded and
+    stronger than an LLM conclusion -- so this ranks no state and names none. A
+    file carrying two live facts at that field is not resolved here: the first is
+    taken, and P6's slot had to settle the field before either became a fact.
+    """
+    for row in request.existing_facts:
+        if row["field_key"] == kind_field:
+            return row["canonical_value"]
+    return None
+
+
+@dataclass(frozen=True)
 class FactCallAuthorities:
     """Everything one A_fact call needs and this module authors none of.
 
@@ -323,6 +437,14 @@ class FactCallAuthorities:
     #: only on a neighbour's words is `ACCEPT_CONTEXT_SUPPORTED` and carries a review
     #: obligation.
     anchor_context_for: Callable[..., Sequence] | None = None
+    #: `105` §14.4 / `104` R-131 and R-102. The levels a file is asked ONLY when it
+    #: is an anchor of a permitted kind, on top of `folder_levels` above, which
+    #: every file of the situation is asked. `None` is the state `104` R-102
+    #: measured -- the group-level fields withheld from every file, so nothing
+    #: writes a `school` fact and no corpus grows a school level -- and it stays the
+    #: default, because restoring the question is the OWNER's ruling and a
+    #: deployment that has not read it must not start asking by omission.
+    anchor_only: AnchorOnlyLevels | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "folder_levels",
@@ -714,6 +836,23 @@ def build_fact_request(
     )
 
 
+def fact_dependencies(
+        authorities: FactCallAuthorities) -> FactValidationDependencies:
+    """The C-5 trio this deployment answers, in ONE spelling.
+
+    A live call and `104` R-127's re-judgement of a stored one must be judged by
+    the same three callbacks, and `judgement_version` digests exactly this bundle.
+    Built twice from the same authorities it would still be the same functions --
+    but the day a fourth callback is added, one of the two spellings would get it
+    and the other would not, and the version would then describe a validator that
+    is not the one that ran.
+    """
+    return FactValidationDependencies(
+        normalize=authorities.normalize,
+        contradicts=authorities.contradicts,
+        normalize_for_review=authorities.normalize_for_review)
+
+
 def _call_dependencies(
     request: FactRequest,
     allowed_vocabulary: Sequence[str], *,
@@ -740,10 +879,7 @@ def _call_dependencies(
         site_dependencies=SiteDependencies(
             fact=FactSiteDependencies(
                 fact_request=request,
-                fact_dependencies=FactValidationDependencies(
-                    normalize=authorities.normalize,
-                    contradicts=authorities.contradicts,
-                    normalize_for_review=authorities.normalize_for_review)),
+                fact_dependencies=fact_dependencies(authorities)),
             placement=None, residual=None, template=None),
         contradicts=authorities.contradicts,
         # MEASURED, not asserted. This was the literal `True`, which told §8.6's
@@ -888,6 +1024,168 @@ def call_identity_dimensions(
     }
 
 
+#: What one supersession says it was, in `llm_verdict_supersession.reason`.
+#: `104` R-127, `105` §14.7's words: the response is unchanged and the judgement
+#: of it is not, so the reason names the judgement and not the answer.
+REVALIDATED: str = "re-validated under {version}"
+
+
+def _reuse_is_current(conn: sqlite3.Connection, prior, *, request: FactRequest,
+                      vocabulary: Sequence[str],
+                      authorities: FactCallAuthorities) -> bool:
+    """Are the prior's verdicts a judgement THIS validator would still make?
+
+    `104` R-127 / `105` §14.7: *"validator or normalisation changes must
+    re-evaluate cached responses rather than retain obsolete verdicts"*. The reuse
+    identity carries the prompt and the schema fingerprints and says nothing about
+    the code that judged the answer, so a verdict written before R-119 taught the
+    validator that an empty value is an abstention, or before R-98 taught it that a
+    course title is a candidate rather than a refusal, went on suppressing the
+    question under a conclusion the validator no longer reaches.
+
+    **Re-judged, not re-asked, and the identity is untouched.** Adding the version
+    to `CALL_IDENTITY_DIMENSIONS` would have been the shorter change and it would
+    have bought the same model answer a second time for every validator edit --
+    the dimension comment says what the key is for, and the answer is not what
+    changed. The stored response is the model's; only the reading of it moved. So
+    nothing here calls a model, and `True` from this function means the prior's
+    conclusions are the current validator's own.
+
+    **When it answers `False` the caller asks again**, and every one of those is a
+    case where this deployment cannot honestly re-read the bytes:
+
+    * no stored response -- the identity was recorded for a dossier whose answer is
+      not in this database (a seeded run that copied verdicts and not responses, a
+      row from before responses were kept). Nothing to re-judge.
+    * the dossier row will not rebuild, or rebuilds to different bytes than the
+      ones it is addressed by. `dossier_id` is the content address of the
+      MODEL-VISIBLE bytes and those carry handles keyed by a per-database secret
+      (`cli.wire_handle_key_for`, "minted once per database"), so a database that
+      inherited another's responses -- which is exactly what `104` R-123's
+      `--reuse-answers-from` builds -- holds bytes this run cannot resolve. Judged
+      anyway, every citation in them would fail to resolve and the run would record
+      a fresh rejection for each and reuse THAT. Asking again costs a call and
+      tells the truth; the alternative is a wrong answer for free.
+    * the re-judgement is `ValidationUnavailable` -- an authority is missing, so
+      there is no verdict, so there is nothing to stand on.
+    """
+    version = judgement_version(fact_dependencies(authorities))
+    standing = standing_verdicts(conn, prior["dossier_id"])
+    open_fields = set(vocabulary)
+    if not any(row["claim_ref"] in open_fields
+               and row["validator_version"] != version for row in standing):
+        # Either everything standing was written by this exact validator and these
+        # exact normalisers, or what was not is about a claim this call is not
+        # asking about. A stale verdict on a field nobody has open changes no
+        # decision, and re-judging it every run to find that out again would
+        # append a supersession per run for nothing.
+        return True
+
+    response = last_response(conn, prior["dossier_id"])
+    if response is None:
+        return False
+    dossier = load_dossier(
+        conn, prior["dossier_id"], release_id=response["release_id"])
+    if dossier is None:
+        return False
+    if dossier_address(dossier, authorities.prompt,
+                       handle_key=authorities.wire_handle_key) != dossier.dossier_id:
+        return False
+
+    checked = dispatch(
+        conn, dossier, bytes(response["response_bytes"]),
+        site_dependencies=SiteDependencies(
+            fact=FactSiteDependencies(
+                fact_request=request,
+                fact_dependencies=fact_dependencies(authorities)),
+            placement=None, residual=None, template=None),
+        evidence_resolver=authorities.evidence_resolver,
+        contradicts=authorities.contradicts,
+        model_id=response["model_id"],
+        prompt_fingerprint=response["prompt_fingerprint"],
+        dossier_builder=DOSSIER_BUILDER,
+        release_audit_id=response["release_audit_id"],
+        policy_version=dossier.policy_version,
+        # A REPLAY WRITES NO SECOND CONSEQUENCE, and `dispatch` says why in its
+        # own words: `apply_verdict` writes P6's fact or its `unresolved` row and
+        # `write_unresolved` is always an INSERT, so a re-judgement that applied
+        # its consequence would record that the model declined twice for one
+        # thing it declined once. `pending_fields_for` has already run for this
+        # file too, so a consequence written here would move the ground the
+        # `vocabulary` below is measured against.
+        apply_consequence=False,
+        handle_key=authorities.wire_handle_key,
+    )
+    if isinstance(checked, ValidationUnavailable):
+        return False
+    verdicts, _report = checked
+    if not verdicts:
+        return False
+
+    # ONE TRANSACTION, AND A REFUSAL RATHER THAN A CRASH IF IT CANNOT CLOSE.
+    #
+    # `record_verdict` raises `MalformedRecord` when this address already holds a
+    # DIFFERENT conclusion, and there is one way to reach that: the version covers
+    # the validator and the deployment's three callbacks, and it does not cover the
+    # live authorities they are handed -- `evidence_resolver` answers "does this
+    # observation key still resolve in the store", and an observation that has since
+    # gone takes check 2's coarse half with it. One version, two conclusions, and
+    # the second is not something to write over the first.
+    #
+    # A run must not end on it. `transaction` rolls back to its savepoint, so
+    # nothing is half-recorded, and a re-judgement that cannot be written is a
+    # re-judgement this deployment does not have -- which is the same answer as a
+    # response it cannot read: ask the question again.
+    try:
+        with transaction(conn):
+            recorded = {}
+            for verdict in verdicts:
+                # No id is minted here. `validate_fact_proposal` already put the
+                # judgement version in the address of every Site A verdict, so a
+                # re-judgement arrives at a row of its own and a repeat of one
+                # arrives back at the row it wrote -- where `record_verdict`
+                # compares the payload and does nothing, which is what makes a
+                # run that died between the record and the supersession finish
+                # the job on the next pass instead of duplicating half of it.
+                record_verdict(
+                    conn, verdict,
+                    model_id=response["model_id"],
+                    prompt_fingerprint=response["prompt_fingerprint"],
+                    release_audit_id=response["release_audit_id"],
+                    observed_at=authorities.observed_at())
+                recorded[verdict.claim_ref] = verdict.verdict_id
+            # EVERY standing verdict on the dossier, not only the stale ones and
+            # not only the open fields. The response was re-read whole, so every
+            # conclusion drawn from it is replaced by the conclusion this
+            # validator draws; a row left standing under the old version would
+            # put the comparison above back into `False` on the next run and
+            # re-judge for ever. A claim the re-judgement no longer names at all
+            # -- a stricter parser answering one `schema_invalid` verdict for the
+            # whole response -- is superseded by that verdict, which is the
+            # truthful link: the response as a whole is now judged differently.
+            #
+            # A row this validator has ALREADY written is skipped rather than
+            # linked to itself, and that is what closes the loop after an
+            # ask-again: a run that could not re-judge asked instead and left the
+            # old conclusion standing beside the new one, so this pass supersedes
+            # the old and leaves the new alone. One run, not a chain.
+            fallback = recorded.get(verdicts[0].claim_ref)
+            for row in standing:
+                new_id = recorded.get(row["claim_ref"], fallback)
+                if new_id is None or new_id == row["verdict_id"]:
+                    continue
+                supersede_verdict(
+                    conn, row["verdict_id"], new_id,
+                    reason=REVALIDATED.format(version=version),
+                    model_id=response["model_id"],
+                    prompt_fingerprint=response["prompt_fingerprint"],
+                    release_audit_id=response["release_audit_id"],
+                    observed_at=authorities.observed_at())
+    except MalformedRecord:
+        return False
+    return True
+
+
 def fact_call_stage(authorities: FactCallAuthorities):
     """One `facts.resolver.Stage`: the §8.6 `llm` producer, wired to a real model.
 
@@ -943,8 +1241,45 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # What is still open on THIS file, in the order the tree is built in. A
         # subset of `request.allowlist`, which is what check 1 measures the answer
         # against, so nothing offered here can be rejected for being out of schema.
+        #
+        # THE ANCHOR'S OWN LEVELS ARE ADDED HERE AND NOWHERE ELSE (`105` §14.4).
+        # `authorities.folder_levels` is what every file of the situation is asked;
+        # `anchor_only_levels` answers what THIS file may be asked on top of it,
+        # and it answers `()` for all but an anchor of a permitted kind. Added
+        # before `open_question` rather than after it so the vocabulary and the
+        # shown levels are one computation: a level offered without its field, or a
+        # field offered without its level, is the mismatch
+        # `dossier._folder_levels_body` refuses.
+        anchor_levels = anchor_only_levels(request, authorities.anchor_only)
         vocabulary, visible_levels = open_question(
-            pending, authorities.folder_levels)
+            pending, authorities.folder_levels + anchor_levels)
+        # A FILENAME IS NEVER A SOURCE FOR AN ANCHOR-ONLY FIELD (`105` §14.4), and
+        # the only way to say that to a model is not to show it the name. A call
+        # whose whole question is the anchor's own -- the syllabus whose subject,
+        # term and kind are already settled, asked its school and nothing else --
+        # is offered no `Filename` item, so the name cannot be cited for the one
+        # field the ruling forbids it to answer.
+        #
+        # MEASURED, on the six-file corpus of `tests/integration/
+        # test_local_model_fact_pass.py`: the local model answered `school` by
+        # copying the file's own name, `PHYS 1401 syllabus.txt`, the single
+        # `school` fact the run wrote cited the filename observation and nothing
+        # else -- `104` R-95's finding reproducing live -- and that fact then
+        # entered the group dossier and cost the run its site-B call. `104` R-95's
+        # own corpus is the same failure at scale: 38 model facts on 52 files,
+        # every one a `school`, most of them filenames.
+        #
+        # NARROW ON PURPOSE, and the gap is stated rather than papered over: a
+        # call that offers `school` BESIDE an open `subject` or `term` still shows
+        # the name, because those two are answered from names legitimately and
+        # blinding them would cost the coverage this wave exists to win. On such a
+        # call the model may still cite the name for `school`; the fact is written,
+        # and P10's two-anchor rule refuses it a folder level
+        # (`upstream._group_level_agreed`). Closing it at the fact itself needs a
+        # per-field citation screen inside P8's check 2, which is a seam this
+        # module does not own.
+        name_may_be_cited = bool(
+            set(vocabulary) - {level.field for level in anchor_levels})
 
         # `104` R-13, AND IT IS HERE FOR ONE REASON: everything after this line
         # costs. `run_call` reserves a budget slot, `gate.release` mints an audit
@@ -966,7 +1301,15 @@ def fact_call_stage(authorities: FactCallAuthorities):
             context=context)
         identity_id = call_identity(identity)
         prior = prior_call(conn, identity_id)
-        if prior is not None and vocabulary:
+        if prior is not None and vocabulary and _reuse_is_current(
+                conn, prior, request=request, vocabulary=vocabulary,
+                authorities=authorities):
+            # `104` R-127 STANDS BEFORE `answered_fields` AND NOT AFTER IT, because
+            # what it changes is which verdicts are standing. A re-judgement
+            # supersedes the conclusions it replaces, and `answered_fields` reads
+            # only the non-superseded rows -- so asking "is every open field
+            # answered" first would answer it against the judgement this validator
+            # has just stopped making.
             answered = answered_fields(conn, prior["dossier_id"])
             if set(vocabulary) <= answered:
                 # EVERY field still open was already ANSWERED under this exact
@@ -1013,7 +1356,8 @@ def fact_call_stage(authorities: FactCallAuthorities):
                 conn,
                 build_fact_request(
                     request, observations,
-                    filename=filename_citation(conn, file_id),
+                    filename=(filename_citation(conn, file_id)
+                              if name_may_be_cited else None),
                     context=context,
                     model_target=authorities.model_target,
                     prompt=authorities.prompt,

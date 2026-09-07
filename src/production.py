@@ -391,6 +391,24 @@ def situation_schema_family(catalogue: TemplateCatalogue,
 #: twice and `term` never). The second is an owner question: it turns on when P10
 #: can see a course-grain group -- B ratified and writing per-course acceptances,
 #: or the `--label` merge retired.
+#:
+#: **AND SINCE 7 SEP 2026 IT IS A SECOND REASON AND NOT ONLY A MEASUREMENT.** `105`
+#: §14.2 rules that a term "is bound to the relevant course" and that no equivalence
+#: is inferred "between numbered terms, semesters, or seasons without evidence for
+#: that course's calendar". A one-group-per-`--label` group is not a course: it is
+#: every coursework anchor in the corpus, and two courses inside it may keep two
+#: calendars -- one writing `Fall 2024`, the other `2023-2024 Semester 1`, which
+#: `104` R-101 measured fifteen times on the owner's own corpus and which
+#: `facts.dates` now parses under two dedicated ids on purpose. Reading "the group's
+#: term" off that group would either merge two calendars or, as `group_level_value`
+#: actually behaves, answer `None` and delete both `Semester` folders.
+#:
+#: So the term stays the FILE's own value, and a file belongs to ONE course -- which
+#: is the binding §14.2 asks for, at the only grain that exists today. Enabling the
+#: role now needs both things: a course-grain group AND the ruling's binding
+#: satisfied by it. `tests/integration/test_template_levels_wiring.py` holds the
+#: decision; `tests/integration/test_production_corpus.py` holds the two-course
+#: evidence that the per-file route keeps two calendars apart.
 GROUP_LEVEL_ROLES: Mapping[str, frozenset[str]] = MappingProxyType({
     "academic": frozenset({"holder_institution"}),
 })

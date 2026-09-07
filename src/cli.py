@@ -73,7 +73,8 @@ from extractors.filesystem import SOURCE_TYPE as FILESYSTEM_SOURCE_TYPE
 from extractors.safety import SafetyPolicy
 from facts.date_facts import date_facts
 from facts.dates import (
-    ACADEMIC_YEAR_RANGE, NAMED_TERM_YEAR, SEASON_YEAR, DatePattern, DatePatterns,
+    ACADEMIC_YEAR_RANGE, NAMED_TERM_YEAR, SEASON_YEAR, YEAR_RANGE_SEMESTER_NUMBER,
+    YEAR_RANGE_TERM_NUMBER, DatePattern, DatePatterns,
 )
 from facts.direct import DirectSlot, DirectSlots, direct_facts
 from facts.families import (
@@ -95,6 +96,7 @@ from facts.rules import ACADEMIC_CONTEXT_TERMS, Rule, apply_rules
 from facts.unresolved import NO_CANDIDATE_EVIDENCE
 from facts.usable import record_pass
 from facts.fields import DOMAIN_FIELDS
+from facts.read_surface import DanglingCitation, evidence_chain
 from facts.states import VALIDATED, strength
 from facts.kind import tokens as kind_tokens
 from facts.kind import compile_vocabulary, kind_facts
@@ -112,8 +114,9 @@ from grouping.records import Group, GroupAcceptance
 from grouping.retrieval import EmbeddingIdentity, RetrievalKnowledge
 from grouping.schema import create_grouping_schema
 from grouping.store import (
-    current_group, live_memberships_of_file, memberships_for_group, record_group,
-    record_membership, stop_rule_outcome_for,
+    carry_memberships, current_group, live_memberships_of_file,
+    memberships_for_group, record_group, record_membership,
+    stop_rule_outcome_for,
 )
 from grouping.vocabulary import (
     ABSTAINED, ACCEPTED, BOUNDED_SESSION, COHERENT, COMPATIBLE_DOCUMENT_TYPE,
@@ -125,8 +128,8 @@ from grouping.vocabulary import (
 from llm_harness.budgets import ScanBudget, create_budget_schema
 from llm_harness.prompt_library import (
     a_fact_response_schema_bytes, a_fact_shaping_policy_bytes,
+    DRAFT_STATUS_WORDS, RATIFIED, RATIFIED_LOCAL,
     a_fact_template_folder_levels_bytes, draft_bytes, draft_status,
-    drafts_status,
 )
 from llm_harness.harness import CallDependencies, run_call
 from llm_harness.records import (
@@ -156,12 +159,12 @@ from placement.pipeline import (
 from placement.residual import ProtectedSetNotReadable, prior_set_decisions
 from placement.schema import create_placement_schema
 from model_facts import (
-    FactCallAuthorities, fact_call_stage, measure_released_tokens,
-    pending_fields_for, releasable_observations,
+    AnchorOnlyLevels, FactCallAuthorities, fact_call_stage,
+    measure_released_tokens, pending_fields_for, releasable_observations,
 )
 from privacy.classification import UNREADABLE_UNCLASSIFIED, resolve_class
 from privacy.classification_store import ClassificationStore
-from privacy.denial import unclassified_denies
+from privacy.denial import UNCLASSIFIED_PERMITS_LOCAL, unclassified_denies
 from privacy.gate import Gate
 from privacy.defaults import LOCAL_FIRST_MODES
 from privacy.display import display_policy
@@ -169,7 +172,7 @@ from privacy.moves import may_move_automatically
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.resolve import (
     AmbiguousObservationKey, UnresolvableSpan, current_location,
-    current_observation,
+    current_observation, filename_address,
 )
 from privacy.vocabulary import MODE_SEMANTICS
 from questions.explanation import explain_question, render_explanation
@@ -276,8 +279,9 @@ from model_template import template_request_for
 from tree_design.templates import CompositionConflict
 from scan_agent.selection import selection_candidate_roots
 from tree_design.upstream import (
-    UpstreamUnavailable, existing_folders, file_ids_in_directory,
-    handling_class_for, protected_areas, settled_values_by_directory,
+    AnchorAgreement, UpstreamUnavailable, existing_folders,
+    file_ids_in_directory, handling_class_for, protected_areas,
+    settled_values_by_directory,
 )
 from tree_design.schema import create_tree_schema
 #: The one word this command may put in a record's subject position. P10 already
@@ -334,26 +338,36 @@ SUPPORT_POLICY = SupportPolicy(
 #: person's disk rather than optimising one.
 CEILING_VALUE: int = 8
 
-#: ONE OF THE SEVEN IS NOT A SPEND CEILING, and it had this value only because
-#: it was in the same loop. `residual.max_files_per_review_batch` does not bound
-#: what a run COSTS -- it bounds how many files a person is shown in one review
-#: set, and §8.6 splits a set at this number rather than truncating it. So it
-#: also decides how many separate `--send-set` commands they must type to file
-#: one hold: measured on a 5,000-file corpus, 420 sets from a single hold and
-#: therefore 420 commands.
+#: ONE OF THE SEVEN IS NOT A SPEND CEILING, and it carried `CEILING_VALUE` only
+#: because it was in the same loop. `residual.max_files_per_review_batch` does
+#: not bound what a run COSTS -- it bounds how many files a person is shown in
+#: one review set, and §8.6 splits a set at this number rather than truncating
+#: it. So the name says what it is: a screenful of files, not a spend.
 #:
-#: It is separated here rather than re-valued, because the two directions are a
-#: real trade and the trade is not this file's to settle. A larger batch is
-#: fewer commands AND a bigger set accepted in one gesture with no per-file
-#: look, which is exactly the scrutiny `--send-set` spends. `00` states no value
-#: and the design's own answer -- §7.6 makes the person authorise a set before
-#: anything happens to it -- is about spend, not about typing.
+#: TWENTY-FIVE, AND NOT EIGHT, IS A NUMBER SOMEBODY CHOSE. Eight was the spend
+#: ceiling's, and `104` R-93 is the row that says so: a person read "Not yet
+#: placed (1 of 4)" through "(4 of 4)" on 52 files and nobody had picked the 4.
+#: Twenty-five is one screen's worth -- the count a person can still read
+#: before saying yes to it -- and it is PROPOSED IN `104` §15.3, pending the
+#: owner's word. It is not ratified and this comment may not say it is.
 #:
-#: So this stays at `CEILING_VALUE` and the question is named rather than
-#: quietly answered: whether 420 commands is fixed by a bigger batch or by
-#: letting one gesture address a HOLD instead of a batch, is the owner's, and
-#: the second is a gesture change (`84` §1).
-RESIDUAL_REVIEW_BATCH: int = CEILING_VALUE
+#: TWO CLAUSES TRAVEL WITH THE NUMBER. It applies WITHIN a reason set (R-115),
+#: which is the division a person can act on, so it never divides files that
+#: belong together until 25 of them share one reason. And a set of 25 or fewer
+#: is UNNUMBERED: "(1 of 1)" names a split that did not happen.
+#:
+#: It also decides how many separate `--send-set` commands a person must type to
+#: file one hold. That was measured at eight -- 420 sets from a single hold on a
+#: 5,000-file corpus, and therefore 420 commands -- and 25 divides the same hold
+#: into roughly a third as many. The trade the old comment named is real and the
+#: number does not settle it: a larger set is fewer commands AND a bigger set
+#: accepted in one gesture with no per-file look, which is exactly the scrutiny
+#: `--send-set` spends. One screen is where the two meet.
+#:
+#: The question beside it is still open and is still the owner's: whether one
+#: gesture should be able to address a HOLD instead of a batch (`84` §1). That
+#: is a gesture change, not a number.
+FILES_PER_REVIEW_SCREEN: int = 25
 
 #: §5.7's and §5.9's tree bounds. `00` states no numbers for these either.
 TREE_LIMITS = TreeLimits(
@@ -386,18 +400,18 @@ GROUPING_LIMITS = GroupingLimits(
 #: `offline`, so a file that needed a judgement reported "§8.4 did not clear this
 #: file for a model call" -- a sentence a person reads as a fact about their own
 #: file when it is a fact about this line. `model_route` below says which it is.
-#: §8.4's Open question 5, answered once for this deployment and read by BOTH the
-#: gate and the route. It was a literal at the `Gate(...)` call and a `True` the
-#: route did not consult at all, which is `104` R-02 in one line: two places
-#: deciding whether an unclassified file may reach a model, and only one of them
-#: was asked. One name, so they cannot answer differently.
-#:
-#: ANSWERED `True` ON 2026-09-05 against the premise the run disproved -- "an
-#: unclassified file is one nothing has read successfully". 95 of the owner's 199
-#: files were unclassified and every one had evidence.
-UNCLASSIFIED_PERMITS_LOCAL: bool = True
-
 OPERATION_MODE: str = "offline"
+
+# §8.4's Open question 5 -- may an unclassified file reach a LOCAL model? -- IS NO
+# LONGER ANSWERED HERE. It was a `True` pinned on this line while
+# `placement/privacy.py` pinned `False` on another, which is `104` R-121: one
+# question, two places deciding it, and the second one blocking the 86 unclassified
+# files of the owner's local run before the gate was ever asked. The owner ruled it
+# one answer under one name (`104` §15.3), and that name is
+# `privacy.denial.UNCLASSIFIED_PERMITS_LOCAL`, imported at the top of this module
+# and read as `cli.UNCLASSIFIED_PERMITS_LOCAL` at both call sites below, by
+# `tools/groundtruth/payload.py`, and by the tests that pin the route and the gate
+# to one answer. Importing it rather than restating it is the whole fix.
 
 #: The mode a person selects by enabling cloud sending, and the choice between
 #: §8.4's two non-local modes is not a detail.
@@ -708,6 +722,31 @@ OBSERVE_TEMPLATE_ID: Mapping[str, str] = MappingProxyType({
 assert set(OBSERVE_TEMPLATE_ID) == OBSERVE_CALL_SITES
 
 
+#: WHAT EACH STATUS WORD BUYS, and the two questions it answers are not one
+#: question. `prompt_library` holds the vocabulary and judges nothing with it; the
+#: meaning of a word is a policy and policies are the composition root's.
+#:
+#: **APPLY** is "the site acts on this answer instead of recording it and moving
+#: on" -- `PromptDefinition.ratified`, which every applier reads off the object.
+#: **CROSS** is "these bytes may leave the device" -- the `104` §13 count.
+#:
+#: `ratified_local` is in the first and not the second, and that gap is the whole
+#: point of the word: `104` §15.1 ratifies C's `eliminate-v2` FOR THE LOCAL MODEL
+#: and leaves the cloud to R-82, because a local run sends nothing anywhere and
+#: showing a person's folder labels to a provider is a different consent. A single
+#: word would have made the owner grant both to get either.
+STATUS_APPLIES: frozenset[str] = frozenset({RATIFIED_LOCAL, RATIFIED})
+STATUS_MAY_CROSS_THE_INTERNET: frozenset[str] = frozenset({RATIFIED})
+
+#: Both are read against the library's closed vocabulary HERE, at import, because
+#: a typo in either would be a set that silently never matches -- an approval that
+#: never takes effect, or a gate that never opens -- and a run would look normal
+#: the whole way through. Crossing implies applying: text nobody will act on has
+#: no business on the internet either.
+assert STATUS_APPLIES <= DRAFT_STATUS_WORDS
+assert STATUS_MAY_CROSS_THE_INTERNET < STATUS_APPLIES
+
+
 #: WHAT A REJECTED B PROPOSAL IS CALLED, spelled once. `proposal_class` is not a
 #: harness vocabulary: `eligibility.py:51` matches it EXACTLY against
 #: `learning_records.proposal_class`, so it is an identity the composition root
@@ -763,6 +802,62 @@ def _no_group_contradiction(*_args: object, **_kwargs: object) -> bool:
     where the value is read: this is not "no check", it is the check answered.
     """
     return False
+
+
+def _no_placement_contradiction(*_args: object, **_kwargs: object) -> bool:
+    """C's and D's `contradicts`, for the reason B's docstring already gives.
+
+    **Found by giving the placement sites a budget of their own.** C and D took
+    `fact_authorities.contradicts` -- `contradicts_stronger`, which indexes its
+    argument as a P6 fact row -- so the first real C call handed it a `Dossier`
+    and raised `TypeError: 'Dossier' object is not subscriptable` inside
+    `validation._validate_claim`. B's own comment records that exact failure and
+    that exact shape, "injecting one site's authority at another"; C had it too,
+    and nothing had reached it because C never won a slot from the budget site A
+    was emptying. The two defects were hiding each other.
+
+    The check is ANSWERED and not skipped: a placement answer names a destination
+    node and a residual answer names one of §7.7's actions, neither of which is a
+    value at a P6 field, so there is no stronger fact for one to contradict. The
+    truthful answer is the same `False` B gives one site over.
+    """
+    return False
+
+
+def observe_scan_budget(fact_budget: ScanBudget) -> ScanBudget:
+    """The ledger the observe and placement sites spend from, which is not A's.
+
+    Built from the fact pass's budget rather than beside it, because two of the
+    three inputs are facts about the RUN and not about the site: which scan this
+    is, and how many files it holds. What changes is the purse -- its own
+    `scan_id`, its own rate, floor and ceiling -- so a fact question can no longer
+    spend a slot a placement question needed.
+
+    **The defect this ends, measured.** Site A asks one call per FILE, so a corpus
+    where every file has an open question spends every slot the run has. On the
+    six-file corpus of `tests/integration/test_local_model_fact_pass.py` that is
+    five fact calls, after which site B is refused before a call and site C
+    records `BUDGET_EXHAUSTED`; on the owner's 199 files it is every run. The
+    sites that decide WHERE a file goes were being starved by the site that
+    decides WHAT it is, and nothing in the run said so: a starved site looks
+    exactly like a site nobody wired (`104` R-04).
+
+    **The other authorities are still A's and are still taken, not rebuilt.** The
+    gate, the costs, the policy version and the wire handle key are facts about
+    this deployment and this run; a second gate would be a second answer to "what
+    may leave this device". The budget is the one that was never a fact about the
+    run, and it is the only one this function replaces.
+
+    Not cached and not memoised: a `ScanBudget` is a value, the ledger lives in
+    the database under its `scan_id`, and two calls with one fact budget produce
+    two equal values that reserve from one row.
+    """
+    return ScanBudget(
+        scan_id=fact_budget.scan_id + OBSERVE_BUDGET_SUFFIX,
+        corpus_file_count=fact_budget.corpus_file_count,
+        max_calls_per_1000_files=OBSERVE_CALLS_PER_1000_FILES,
+        max_estimated_cost=OBSERVE_CALLS_PER_SCAN_CEILING,
+        min_calls_per_scan=OBSERVE_MIN_CALLS_PER_SCAN)
 
 
 def observe_group_authorities(fact_authorities, *, routing: TierRouting,
@@ -827,7 +922,11 @@ def observe_group_authorities(fact_authorities, *, routing: TierRouting,
         # already and there is no smaller shape of it to fall back to.
         unreduced_fits=True, summarized_fits=False, anchors_fit=False,
         split_shard_fits=(), split_shards=(),
-        scan_budget=fact_authorities.scan_budget,
+        # NOT SITE A's, since `104` R-131's merge. `observe_scan_budget`
+        # carries why: one call per file spends every slot before an
+        # observe question is put, so this site drew from a purse the fact
+        # pass had already emptied.
+        scan_budget=observe_scan_budget(fact_authorities.scan_budget),
         estimated_cost=fact_authorities.estimated_cost,
         actual_cost=fact_authorities.actual_cost,
         allowed_vocabulary=observe_allowed_vocabulary(B_GROUP),
@@ -942,7 +1041,11 @@ def _template_dependencies(fact_authorities, catalogue, group) -> CallDependenci
         contradicts=_no_group_contradiction,
         unreduced_fits=True, summarized_fits=False, anchors_fit=False,
         split_shard_fits=(), split_shards=(),
-        scan_budget=fact_authorities.scan_budget,
+        # NOT SITE A's, since `104` R-131's merge. `observe_scan_budget`
+        # carries why: one call per file spends every slot before an
+        # observe question is put, so this site drew from a purse the fact
+        # pass had already emptied.
+        scan_budget=observe_scan_budget(fact_authorities.scan_budget),
         estimated_cost=fact_authorities.estimated_cost,
         actual_cost=fact_authorities.actual_cost,
         allowed_vocabulary=allowed_vocabulary_for(
@@ -1297,10 +1400,17 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
     locality = routing.locality_for(C_PLACEMENT)
     if not observe_locality_permits(C_PLACEMENT, locality):
         return {}
-    require_observe_locality(C_PLACEMENT, locality)
-    require_observe_locality(D_RESIDUAL, routing.locality_for(D_RESIDUAL))
     placement_prompt = prompt_for(C_PLACEMENT)
-    residual_prompt = prompt_for(D_RESIDUAL)
+    # D IS ASKED ONLY WHERE ITS OWN WORD PERMITS. C and D are ratified separately,
+    # and the day C's word opened a target that D's did not, this line RAISED over
+    # D -- turning C off on that target for a refusal about D's text. `None` is the
+    # deployment `PipelineInputs.prompt_for` already knows: C wired and D not, and
+    # a residual set that asks for a model is refused there, at the moment it
+    # asks, naming the site that has no text. Nothing of D's leaves the device
+    # under a word that forbids it, which is the count this gate keeps.
+    residual_permitted = observe_locality_permits(
+        D_RESIDUAL, routing.locality_for(D_RESIDUAL))
+    residual_prompt = prompt_for(D_RESIDUAL) if residual_permitted else None
     authorities = PlacementCallAuthorities(
         gate=fact_authorities.gate,
         model_client=routing.client_for(C_PLACEMENT),
@@ -1315,8 +1425,15 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
         residual_prompt=residual_prompt,
         model_target=routing.client_for(C_PLACEMENT).model_target,
         evidence_resolver=fact_authorities.evidence_resolver,
-        contradicts=fact_authorities.contradicts,
-        scan_budget=fact_authorities.scan_budget,
+        # NOT A's ORACLE, for the reason `_no_placement_contradiction` carries:
+        # `contradicts_stronger` reads its argument as a P6 fact row and a
+        # placement claim is not one.
+        contradicts=_no_placement_contradiction,
+        # NOT SITE A's, since `104` R-131's merge. `observe_scan_budget`
+        # carries why: one call per file spends every slot before an
+        # observe question is put, so this site drew from a purse the fact
+        # pass had already emptied.
+        scan_budget=observe_scan_budget(fact_authorities.scan_budget),
         estimated_cost=fact_authorities.estimated_cost,
         actual_cost=fact_authorities.actual_cost,
         policy_version=fact_authorities.policy_version,
@@ -1325,7 +1442,8 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
         chosen_node_of=(_chosen_node_of(conn) if placement_prompt.ratified
                         else _must_not_apply(C_PLACEMENT)),
         residual_action_of=(_residual_action_of(conn)
-                            if residual_prompt.ratified
+                            if residual_prompt is not None
+                            and residual_prompt.ratified
                             else _must_not_apply(D_RESIDUAL)))
     built = model_path_injections(conn, authorities, plan_version=plan_version)
     built.pop("sensitivity_policy", None)
@@ -1364,12 +1482,16 @@ def observe_prompt(call_site: str) -> PromptDefinition:
         # the packet's word (`prompt_library.draft_status`), so the owner can
         # ratify one site's text without ratifying the other three.
         #
+        # `ratified_local` COUNTS AS RATIFIED HERE and not at the locality gate:
+        # this field is "act on the answer", which a local run may do, and the
+        # gate is "these bytes may leave the device", which it may not.
+        #
         # THE ID KEEPS `unratified` IN ITS NAME AFTER THE ROW IS RATIFIED: the id
         # names the FILE, not the file's standing, so the record written under it
         # says which text was used and the manifest row says whether that text was
         # ratified at the time. Renaming on ratification would strand every record
         # already written under the old id.
-        ratified=draft_status(template_id) == "ratified",
+        ratified=draft_status(template_id) in STATUS_APPLIES,
         shaping_policy_bytes=shaping_policy)
 
 
@@ -1426,11 +1548,16 @@ def observe_locality_permits(call_site: str, locality: str) -> bool:
     happens at the composition root before a corpus has been read.
 
     **THE GATE IS THE TEXT'S STANDING, NOT THE SITE'S NAME**, and it is read per
-    draft (`prompt_library.draft_status`) rather than per packet, so ratifying C's
-    text alone lifts C's refusal and leaves B, D and E refused. What the count
-    counts is prompts nobody approved, so a text the owner HAS approved is no
-    longer what this gate is about; the residual question of whether a cloud model
-    may see a person's folder labels is `104` R-82's and is not decided here.
+    draft (`prompt_library.draft_status`) rather than per packet, so one site's
+    word never speaks for the other three.
+
+    **AND RATIFYING IS NOT THE SAME ACT AS OPENING THE CLOUD.** `104` §15.1 puts
+    C's `eliminate-v2` to the owner FOR THE LOCAL MODEL, with the cloud waiting on
+    R-82's signature, so the two are separate words and this gate reads only the
+    second: `ratified_local` acts on its answer here and is still refused a cloud
+    target; `ratified` is the word that says these bytes may leave the device.
+    Local is permitted under every word, including `unratified`, which is the
+    behaviour that has always been true -- nothing leaves the machine.
 
     `A_fact` is unaffected and stays cloud-eligible: it is not in this set, its
     text is ratified, and `WIRED_CALL_SITES` is what governs it.
@@ -1439,16 +1566,25 @@ def observe_locality_permits(call_site: str, locality: str) -> bool:
         return True
     if locality == LOCAL:
         return True
-    return draft_status(OBSERVE_TEMPLATE_ID[call_site]) == "ratified"
+    return (draft_status(OBSERVE_TEMPLATE_ID[call_site])
+            in STATUS_MAY_CROSS_THE_INTERNET)
 
 
 def require_observe_locality(call_site: str, locality: str) -> None:
-    """`observe_locality_permits`, as a refusal that names what was wrong."""
+    """`observe_locality_permits`, as a refusal that names what was wrong.
+
+    **THE SENTENCE NAMES THIS DRAFT'S OWN WORD, not the packet's.** The packet's
+    word is only a default now, so a refusal quoting it could be flatly false
+    about the row it is refusing -- a packet reading `ratified` over a row that
+    says `unratified` would print "a D2 DRAFT ('ratified')" and send a reader to
+    argue with the wrong line. The word here is the word the gate actually read.
+    """
     if observe_locality_permits(call_site, locality):
         return
     raise UnratifiedPromptOnACloudTarget(
         f"call site {call_site!r} is observe-only and its prompt is a D2 DRAFT "
-        f"({drafts_status()!r}), but the routing sends it to a {locality!r} model. "
+        f"({draft_status(OBSERVE_TEMPLATE_ID[call_site])!r}), but the routing "
+        f"sends it to a {locality!r} model. "
         f"`104` §13 counts 0 cloud calls with unratified prompts and this is where "
         f"that count is kept. Unratified text is text nobody has agreed to send: "
         f"on this device that is a question of taste, and over the internet it is "
@@ -1481,6 +1617,40 @@ FACT_CALL_MAX_RELEASED_OBSERVATIONS: int = 12
 #: model that abstains on everything is indistinguishable from a model nobody wired.
 FACT_CALLS_PER_1000_FILES: int = 1000
 FACT_MIN_CALLS_PER_SCAN: int = 1
+
+#: §8.6's spend ceilings for the OBSERVE AND PLACEMENT sites, which are not site A's
+#: and were site A's until now. `00` names these ceilings and states no values; the
+#: numbers below are the deployment's, exactly as the fact pair above.
+#:
+#: WHY A SECOND BUDGET AND NOT A LARGER ONE. B, C and D took `fact_authorities.
+#: scan_budget` -- the same object, the same `scan_id`, the same reservations -- on
+#: the argument that a budget is a fact about the run rather than about which site
+#: is asking. The measurement says otherwise: site A is one call per FILE, so a
+#: corpus where every file has an open question spends every slot before a
+#: placement question is ever put. Measured on the six-file local corpus of
+#: `tests/integration/test_local_model_fact_pass.py`: five fact calls, then site B
+#: refused before a call and site C recording `BUDGET_EXHAUSTED` -- the sites that
+#: decide WHERE a file goes starved by the site that decides WHAT it is. A larger
+#: shared number moves the corpus at which that happens and does not change it.
+#:
+#: The rate and the floor are the fact pass's own values, stated again rather than
+#: aliased: these are two policies that agree today, and a deployment that raises
+#: one has no reason to raise the other by accident.
+OBSERVE_CALLS_PER_1000_FILES: int = 1000
+OBSERVE_MIN_CALLS_PER_SCAN: int = 1
+
+#: The most calls the observe and placement sites may make in one scan. The same
+#: argument as `FACT_CALLS_PER_SCAN_CEILING` and the same units -- one call costs
+#: one -- and a separate number, because a run that spends its fact ceiling must
+#: still be able to place what it learned.
+OBSERVE_CALLS_PER_SCAN_CEILING: Decimal = Decimal("200")
+
+#: The observe budget's own `scan_id`, DERIVED from the fact pass's rather than
+#: minted, so a reader of `llm_budget_reservation` can see which run a row belongs
+#: to. That column is a bare key with no foreign key to the scan and is indexed on
+#: its own, so two ids are two ledgers -- and one id was the shared purse this
+#: separation exists to end.
+OBSERVE_BUDGET_SUFFIX: str = ":observe"
 
 #: What one A_fact call is charged, and what it settles for. THIS DEPLOYMENT
 #: MEASURES NEITHER A TOKEN NOR A PRICE: `readers.model_deepseek` returns no usage
@@ -2411,8 +2581,44 @@ _SEASON_YEAR_SOURCE = (
 _ACADEMIC_YEAR_SOURCE = rf"\bAY[ \-_]?{_YEAR}[ ]?[-/][ ]?[0-9]{{2}}\b"
 _NAMED_TERM_SOURCE = rf"\b{_TERM_NAME}(?:[ \-_]Term)?[ \-_]{_YEAR}\b"
 
+#: THE TWO-TERM ACADEMIC YEAR'S OWN SPELLING, RULED IN BY THE OWNER ON 7 SEP 2026.
+#: `105` §13.2 proposed them and §14.2 ruled "Keep the proposed accepted forms and
+#: refusals". `104` R-101 is the measurement that asked for them: on the owner's
+#: corpus, 114 `term` answers were refused `VALUE_NOT_NORMALIZABLE` and the single
+#: commonest refused shape was `2023-2024 Term 1`, fifteen times. A person whose
+#: university writes its calendar that way got no term folder at all.
+#:
+#: TWO SOURCES AND TWO IDS, NEVER ONE WITH THE WORD IN A GROUP. §14.2: "`Term 1` and
+#: `Semester 1` are not automatically one value" and no equivalence is inferred
+#: "between numbered terms, semesters, or seasons without evidence for that course's
+#: calendar". One source with `(?:Term|Semester)` would still parse both, but it
+#: would hand `date_matches` ONE pattern id for two calendars, and the id is what
+#: `DateMatch` carries so a test can assert which pattern claimed the span.
+#:
+#: `[1-9]` and not `[0-9]+`: a term number is a small ordinal, and `Term 0` and
+#: `Term 12` are not calendars anyone writes. The years are both `_YEAR` for the
+#: reason `_YEAR` exists at all -- `[0-9]{4}` claimed the COURSE NUMBER in
+#: `BUSIB 4300 Spring 2026` -- and the separator is `[-/]` because that is what
+#: `_ACADEMIC_YEAR_SOURCE` already accepts between the halves of an academic year.
+#:
+#: NOT WIDENED BEYOND THE RULING. `Semester 1 2023-2024` (reversed), `2023-24 Term 1`
+#: (a two-digit second half) and a check that the two years are consecutive are all
+#: absent on purpose: the owner ruled on two forms, and a fourth spelling admitted
+#: here would be this file adding to a vocabulary the owner closed.
+_TERM_NUMBER_SOURCE = rf"\b{_YEAR}[ ]?[-/][ ]?{_YEAR}[ \-_]Term[ \-_]?[1-9]\b"
+_SEMESTER_NUMBER_SOURCE = rf"\b{_YEAR}[ ]?[-/][ ]?{_YEAR}[ \-_]Semester[ \-_]?[1-9]\b"
+
+#: THE ORDER OF THE FIVE IS NOT LOAD-BEARING, AND THAT IS WORTH STATING because
+#: alternation order usually is. No two of these can claim overlapping text: the
+#: three older sources each require a word the numbered forms do not contain -- a
+#: season, the letters `AY`, or one of the five term names -- and the numbered forms
+#: require two four-digit years in front of `Term` or `Semester`, which none of the
+#: three can supply. `test_p6_term_forms` asserts it rather than resting on this
+#: paragraph: every ruled form is claimed by EXACTLY ONE pattern of the catalogue.
+#: The two new sources lead because they are the two the owner ruled in.
 _TERM = re.compile("|".join(
-    (_SEASON_YEAR_SOURCE, _ACADEMIC_YEAR_SOURCE, _NAMED_TERM_SOURCE)),
+    (_TERM_NUMBER_SOURCE, _SEMESTER_NUMBER_SOURCE,
+     _SEASON_YEAR_SOURCE, _ACADEMIC_YEAR_SOURCE, _NAMED_TERM_SOURCE)),
     re.IGNORECASE)
 
 
@@ -2480,8 +2686,18 @@ def _is_an_identifier(raw: str) -> bool:
 #: AND `2025Spring`. Order is a spelling, not a fact.
 #:
 #: Every token that DISTINGUISHES two terms is kept and nothing else is: the season
-#: or the term's name, and the year or the year range. Only case, separators, the
-#: written order and the noise word `Term` are dropped.
+#: or the term's name, and the year or the year range. Only case, separators and the
+#: written order are dropped.
+#:
+#: **`Term` IS DROPPED FROM `Michaelmas Term 2024` AND KEPT IN `2023-2024 Term 1`,
+#: AND THAT IS NOT AN INCONSISTENCY.** In `Michaelmas Term 2024` the word carries
+#: nothing: `Michaelmas` already names the term and `Michaelmas 2024` is the same
+#: calendar written shorter. In `2023-2024 Term 1` the word is the ONLY thing that
+#: says which calendar the number counts in, and `105` §14.2 makes that identity:
+#: "`Term 1` and `Semester 1` are not automatically one value". Drop it there and
+#: two universities on different calendars share a folder on the strength of an
+#: ordinal. So the four canonicalisers below keep exactly what tells two terms
+#: apart, which for the numbered forms includes the word.
 def _canonical_season_year(raw: str) -> str:
     season = re.search(_SEASON, raw, re.IGNORECASE).group(0)
     return f"{season.capitalize()}{re.search(r'[0-9]{4}', raw).group(0)}"
@@ -2497,6 +2713,32 @@ def _canonical_named_term(raw: str) -> str:
     return f"{name.capitalize()}{re.search(r'[0-9]{4}', raw).group(0)}"
 
 
+def _canonical_year_range_number(raw: str, *, word: str) -> str:
+    """`2023-2024 Term 1` and `2023 / 2024 term-1` are one value; `Semester 1` is not.
+
+    The word is passed in rather than read out of the text, because the two forms
+    are two PATTERNS with two ids and each one already knows which it is. Reading it
+    back out would be the generic parsing §3.10 forbids, one step downstream of the
+    pattern that decided.
+
+    THE NUMBER IS THE ONE THE WORD INTRODUCES, and it is found through the word for
+    that reason. `[0-9](?![0-9])` -- the first digit with no digit after it -- reads
+    `2023-2024 Term 1` as `Term 3`, because `2023` ends in a lone `3`. Anchoring on
+    the word is the only reading that cannot be fooled by a year's own last digit.
+    """
+    years = re.findall(_YEAR, raw)
+    number = re.search(rf"{word}[ \-_]?([1-9])", raw, re.IGNORECASE).group(1)
+    return f"{years[0]}-{years[1]}{word}{number}"
+
+
+def _canonical_year_range_term(raw: str) -> str:
+    return _canonical_year_range_number(raw, word="Term")
+
+
+def _canonical_year_range_semester(raw: str) -> str:
+    return _canonical_year_range_number(raw, word="Semester")
+
+
 DATE_PATTERNS = DatePatterns(patterns=(
     DatePattern(pattern_id=SEASON_YEAR,
                 pattern=re.compile(_SEASON_YEAR_SOURCE, re.IGNORECASE),
@@ -2507,7 +2749,72 @@ DATE_PATTERNS = DatePatterns(patterns=(
     DatePattern(pattern_id=NAMED_TERM_YEAR,
                 pattern=re.compile(_NAMED_TERM_SOURCE, re.IGNORECASE),
                 canonical=_canonical_named_term),
+    # `105` §14.2's two additions. Their ids are `facts.dates`', their expressions
+    # and canonical forms are this deployment's, exactly as the three above.
+    DatePattern(pattern_id=YEAR_RANGE_TERM_NUMBER,
+                pattern=re.compile(_TERM_NUMBER_SOURCE, re.IGNORECASE),
+                canonical=_canonical_year_range_term),
+    DatePattern(pattern_id=YEAR_RANGE_SEMESTER_NUMBER,
+                pattern=re.compile(_SEMESTER_NUMBER_SOURCE, re.IGNORECASE),
+                canonical=_canonical_year_range_semester),
 ))
+
+#: THE THREE SHAPES THE OWNER REFUSED, NAMED SO A REFUSAL CAN SAY WHICH.
+#: `105` §13.2 stated them and §14.2 kept them: a bare year (`2019`), a bare range
+#: with no term word (`2023-2024`), and a season initial with a year (`S2026`, which
+#: is Spring or Summer and there is no way to tell). All three were already refused
+#: by not matching any pattern; what they did not have was a NAME, and §13.2 asks for
+#: them "stated so the validator's reason names them".
+#:
+#: **THE NAME REACHES THE DEPLOYMENT AND NOT THE P8 VERDICT, AND THAT IS THE HONEST
+#: LIMIT.** `P8Verdict.reasons` is checked against `llm_harness.vocabulary`'s closed
+#: `ALL_REASON_CODES`, so a fourth reason code would be a new member of a vocabulary
+#: this ruling did not open. The outcome on the wire is `VALUE_NOT_NORMALIZABLE`
+#: exactly as before; `term_refusal` below is what says which of the three shapes
+#: earned it, and it is asked directly by this deployment's own tests.
+#:
+#: THE FIRST TWO USE `_YEAR` AND NOT `[0-9]{4}`, for the reason `_YEAR` exists:
+#: `4300` is a course number, not a year, and calling it a refused bare year would
+#: name the wrong defect for a value that was never a term candidate.
+TERM_REFUSAL_BARE_YEAR = "bare_year"
+TERM_REFUSAL_BARE_RANGE = "bare_range"
+TERM_REFUSAL_SEASON_INITIAL = "season_initial"
+
+_TERM_REFUSALS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (TERM_REFUSAL_BARE_YEAR, re.compile(rf"{_YEAR}\Z")),
+    (TERM_REFUSAL_BARE_RANGE,
+     re.compile(rf"{_YEAR}[ ]?[-/][ ]?(?:{_YEAR}|[0-9]{{2}})\Z")),
+    (TERM_REFUSAL_SEASON_INITIAL,
+     re.compile(rf"[SFWA][ \-_]?{_YEAR}\Z", re.IGNORECASE)),
+)
+
+
+def term_refusal(text: str) -> str | None:
+    """Which refused shape this value is, or `None` if it is not one of the three.
+
+    A YEAR IS NOT A TERM. `2019` says which year a document is from and says nothing
+    about which semester's work it is, and a folder called `2019` beside `Fall2019`
+    and `Spring2019` is a fourth folder holding the files the other two could not
+    claim. `2023-2024` is the same refusal with the range's shape: it is an academic
+    YEAR, and §14.2 rules that "`AY 2024-25` does not identify a semester" -- so a
+    range that does not even carry the `AY` marker certainly does not.
+    `S2026` is refused because it is genuinely two answers: five of the owner's 114
+    refused values were `S2026`, and Spring and Summer are different semesters.
+    `[SFWA]` and not `S` alone: the refusal is that an INITIAL is not a season word,
+    and `F2026` and `W2026` are refused by every pattern above for the same reason
+    `S2026` is. Naming only the ambiguous one would leave the other three refused
+    with no name, which is the state this constant exists to end. Nothing is admitted
+    by widening a refusal.
+
+    Asked of the whole value, never of a span. A document that PRINTS `2019` in a
+    sentence is not proposing it as a term; this is the model's answer to "what term
+    is this", and the shapes above are answers that name something else.
+    """
+    for name, pattern in _TERM_REFUSALS:
+        if pattern.fullmatch(text) is not None:
+            return name
+    return None
+
 
 #: The field §3.10's producer fills. Spelled once, because `_rule_stage` and
 #: `normalize_for_model` both need it and neither may re-spell it. (The third
@@ -3021,6 +3328,16 @@ def normalize_for_model(field_key: str, raw_value: str) -> str | None:
             # this, a model proposing `Spring 2026` would store `Spring 2026`
             # beside the producer's `Spring2026` -- the several-spellings failure,
             # re-created across the seam instead of inside one stage.
+            #
+            # THE NAMED REFUSALS ARE ASKED FIRST, and the order is what makes the
+            # name true rather than decorative: after the pattern loop every value
+            # that reaches `None` is indistinguishable, and `104` R-101 is a table of
+            # 114 refusals nobody could sort. `term_refusal` runs on the whole value
+            # and none of its three shapes is also an accepted form, so asking it
+            # first admits nothing and refuses nothing new -- it only says WHICH.
+            refused = term_refusal(text)
+            if refused is not None:
+                return None
             claimed = next((one for one in DATE_PATTERNS.patterns
                             if one.pattern.fullmatch(text)), None)
             return None if claimed is None else claimed.canonical(text)
@@ -3267,6 +3584,87 @@ def _work_type_vocabulary():
 
 
 WORK_TYPE_VOCABULARY = _work_type_vocabulary()
+
+#: The field the coursework `holder_institution` role resolves to, spelled here for
+#: the same reason `TERM_FIELD` and `WORK_TYPE_FIELD` are: the composition root is
+#: where a field key this deployment acts on is named, and P6, P8 and P10 each read
+#: it from what they are handed rather than from a second spelling of their own.
+SCHOOL_FIELD = "school"
+
+#: `105` §14.4's PERMITTED ANCHORS, as this deployment's shipped vocabulary already
+#: spells them. The owner's ruling names four kinds -- "a syllabus, an enrollment or
+#: registration letter, a transcript, a tuition or housing statement" -- and every
+#: member below is a term `WORK_TYPE_VOCABULARY` already ships for `academic`, so
+#: nothing here is a new vocabulary member and a test pins each one to the compiled
+#: release rather than to this list.
+#:
+#: WHAT IS DELIBERATELY OUT. `caption transcript` is a media captions file and not a
+#: record of study, so it is the one `transcript` term left out; `credit transcript`
+#: is in, because a transcript of academic credit is exactly the document §14.4
+#: names. The library ships no term for the ruling's fourth kind -- a TUITION OR
+#: HOUSING STATEMENT has no `work_type` term in any of the four schemas that declare
+#: the field -- so that kind cannot be admitted here at all today, and it is owed to
+#: the owner as a vocabulary member rather than invented in this file.
+#:
+#: The library also has no "letter" spelling for the enrollment and registration
+#: kinds; what it ships is the certificate, form, verification and confirmation an
+#: institution issues, which is the same document class under the names the release
+#: gives it. The owner's ruling is the wording, and this is the transcription.
+#:
+#: ANCHOR KIND IS NECESSARY AND NOT SUFFICIENT (§14.4). Membership here decides only
+#: that the file may be ASKED; whether its text establishes the institution's
+#: relationship to the course or enrollment being organised is the drafted rule 12
+#: of the A_fact text, the owner's to ratify, and whether an answer becomes a
+#: folder level is the two-anchor rule at P10.
+SCHOOL_ANCHOR_KINDS: frozenset[str] = frozenset({
+    "syllabus",
+    "enrollment certificate", "enrollment form", "enrollment verification",
+    "registration confirmation", "registration form",
+    "transcript", "transcript of records", "unofficial transcript",
+    "credit transcript",
+})
+
+
+def rests_on_a_name_alone(conn: sqlite3.Connection):
+    """`105` §14.4's pin: a FILENAME is never a source for a folder level.
+
+    `104` R-95 measured what a name-only answer produces. On a 52-file corpus the
+    local run wrote 38 `llm_supported` facts, every one of them a `school`, and
+    most of them were the file's own name -- `todo.txt`, `IMG_4822.jpg`,
+    `submission_backup.zip`. A name is the person's label for a file, not a
+    reading of what the document says, and §14.4 asks the anchor's own text to
+    establish the institution's relationship to the course.
+
+    **The question is asked of the CITATION and not of the value**, which is what
+    makes it checkable: the name is one observation with one key, `filename_
+    address` is where the gate and the builder both get it (`model_facts.
+    filename_citation` says so in its own words), and a fact citing that key and
+    nothing else rests on the name alone.
+
+    Two absences answer `True` -- a fact whose citations resolve to nothing, and a
+    fact citing nothing at all -- because a value with no reading behind it is
+    weaker than one resting on a name, not stronger. A `user_confirmed` value
+    legitimately cites nothing, and it never reaches here: the person's own answer
+    is admitted before this rule is asked (`upstream._group_level_agreed`).
+
+    A file with no addressable name answers `False`: there is no name for the
+    citation to be, so the value rests on something else by construction.
+    """
+
+    def rests(file_id: str, fact_id: str) -> bool:
+        try:
+            named = filename_address(conn, file_id).observation_key
+        except (UnresolvableSpan, AmbiguousObservationKey):
+            return False
+        try:
+            cited = {observation.observation_key
+                     for observation in evidence_chain(conn, fact_id=fact_id)}
+        except (LookupError, DanglingCitation):
+            return True
+        return not cited or cited == {named}
+
+    return rests
+
 
 #: P7's naming zones, MINUS `heading`, and the subtraction is the composition root's
 #: because it is a policy rather than a rule. A heading names a SECTION; a filename
@@ -3530,6 +3928,7 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
                           schema: str, folder_levels: tuple[FolderLevel, ...],
                           user_id: str, now,
                           deferred_readings: tuple[str, ...] = (),
+                          anchor_levels: tuple[FolderLevel, ...] = (),
                           usage_recorder: object | None = None,
                           on_result=None) -> FactCallAuthorities:
     """Everything one A_fact call needs, chosen here and nowhere else.
@@ -3565,6 +3964,20 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
     always-local set has no route into a library constant, and an example drawn from
     the corpus -- which would have one -- is not offered.
 
+    **`anchor_levels` is the second half of that answer** (`105` §14.4, `104`
+    R-131 with R-102). `folder_levels` above is what EVERY file of the situation is
+    asked; this is what only an ANCHOR is asked -- the school level, withheld from
+    every file by `104` §11.2 step 2 and restored by the owner's ruling to the
+    files whose own settled kind is one of `SCHOOL_ANCHOR_KINDS`. Empty is the
+    state R-102 measured (nothing writes a `school` fact and no corpus grows a
+    school level), so a caller that supplies none keeps that behaviour rather than
+    starting to ask by omission.
+
+    The protected half of §14.4 is `model_route_permitted`, CALLED here rather than
+    respelled: the same predicate the resolver's route is built from, so a
+    protected anchor is refused the question by the one rule that already refuses
+    it the call.
+
     **The gate's span classifier declines**, and that is the honest binding rather
     than a stub. P7's SPEC files identifier classes and the redaction transform
     under *Deferred* and nothing in `src/` classifies a span into one, so a
@@ -3579,21 +3992,18 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
             conn, store=ClassificationStore(conn), plan_version=PLAN_VERSION,
             classifier=lambda value, *, context_before=None, context_after=None: None,
             transform=lambda value, *, identifier_class: "[redacted]",
-            # §8.4's Open question 5. ANSWERED `True` ON 2026-09-05, and the
-            # answer it replaces was reasoned from a premise the run disproved:
-            # "an unclassified file is one nothing has read successfully". 95 of
-            # the owner's 199 files were unclassified and every one had evidence.
-            # P7 leaves this to the caller precisely because the design does not
-            # settle it -- `unclassified_denies`' own docstring warns that denying
-            # local calls here "may block exactly the OCR-opaque screenshots §2.7
-            # and §7.8 want a model to interpret" -- and `no_safety_evidence_denies`
-            # answers the sibling question the same way, permitting local
-            # unconditionally. That sibling's own escape hatch read "LOCAL IS
-            # PERMITTED, and that is the half that keeps this from being a coverage
-            # regression wearing a safety fix's name", and no local model existed,
-            # so it became one; the owner narrowed it on 2026-09-07 (`104` §13.2,
-            # `96` §20.1). The answer here is untouched by that: local was permitted
-            # before and is permitted after.
+            # §8.4's Open question 5, and the ONE answer to it (`104` §15.3,
+            # R-121). The value is not restated here: it is
+            # `privacy.denial.UNCLASSIFIED_PERMITS_LOCAL`, the same name P11's
+            # `may_assemble_dossier` reads and the same name the route below is
+            # given, so the gate and the two callers ahead of it cannot answer
+            # differently. It used to be a literal at this call.
+            #
+            # The answer it replaces was reasoned from a premise the run
+            # disproved: "an unclassified file is one nothing has read
+            # successfully". 95 of the owner's 199 files were unclassified and
+            # every one had evidence. `no_safety_evidence_denies` answers the
+            # sibling question the same way, permitting local unconditionally.
             #
             # Nothing leaves the device on this branch: `unclassified_denies`
             # refuses every CLOUD release of an unclassified file unconditionally
@@ -3667,7 +4077,23 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
         anchor_context_for=lambda db, *, file_id, content_hash, fields: (
             anchor_context_observations(
                 db, scan_run_id=scan_run_id, file_id=file_id, fields=fields,
-                limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS)))
+                limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS)),
+        # `105` §14.4. Built here because every part of it is this file's: which
+        # levels only an anchor is asked, which field says what a file IS, which
+        # kinds the shipped release spells as anchors, and the route's own
+        # protected bar. `None` when the caller withholds nothing, so a deployment
+        # that has not read the ruling asks exactly what it asked before.
+        anchor_only=(AnchorOnlyLevels(
+            levels=anchor_levels,
+            kind_field=WORK_TYPE_FIELD,
+            anchor_kinds=SCHOOL_ANCHOR_KINDS,
+            # THE ROUTE'S PREDICATE, not a second reading of the flag. Built on
+            # the same locality the client is pointed at, which is the one
+            # `model_fact_resolver` binds its own route to.
+            may_reach_a_model=model_route_permitted(
+                conn, locality=routing.client_for(A_FACT).model_target.locality,
+                unclassified_permits_local=UNCLASSIFIED_PERMITS_LOCAL))
+            if anchor_levels else None))
 
 
 def _stored_value_of(conn: sqlite3.Connection):
@@ -4277,28 +4703,18 @@ def review_and_accept(conn: sqlite3.Connection,
                           "situation the user supplied on the command line"))
     record_group(conn, reviewed)
     for result in grouped:
-        for membership in memberships_for_group(conn, result.group.group_id):
-            record_membership(conn, _carried(membership, merged_id))
+        # `grouping.store`'s carry, not a local one. `104` R-80 gives the MODEL a
+        # supersession too -- a second, differing answer mints a superseding group
+        # the same way this does -- and two transforms for one act is two things
+        # to drift. The comment that used to be here is on the transform.
+        carry_memberships(conn, from_group_id=result.group.group_id,
+                          into_group_id=merged_id)
     record_acceptance(conn, GroupAcceptance(
         acceptance_id=f"acc:{merged_id}", plan_version_id=PLAN_VERSION,
         group_id=merged_id, membership_id=None, acceptance=ACCEPTED,
         review_state=PENDING_REVIEW, user_edited_label=label, aliases=(),
         review_decision_ref=None, decided_by=RULES, created_at=created_at))
     return (merged_id,)
-
-
-def _carried(membership, group_id: str):
-    import dataclasses
-
-    return dataclasses.replace(
-        membership, membership_id=f"{membership.membership_id}:{group_id}",
-        # NOT a supersession. A file's membership of the group P9 proposed and
-        # its membership of the group those were merged into are two records
-        # about two groups, not two versions of one. Superseding P9's row made
-        # it invisible to `memberships_for_group`, so a second run over the
-        # same database re-proposed the group, carried nothing, and handed P11
-        # an empty branch.
-        group_id=group_id, supersedes=None, supersede_reason=None)
 
 
 def choose_option(candidate, options) -> str:
@@ -4574,7 +4990,7 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
         # something does (`fact_call_authorities`' `measure_tokens`), so the two
         # have to be one number, and `00`:251 names one ceiling, not two.
         if name == "max_residual_files_per_batch":
-            value = RESIDUAL_REVIEW_BATCH
+            value = FILES_PER_REVIEW_SCREEN
         elif name == "max_dossier_tokens":
             value = GROUPING_LIMITS.max_dossier_tokens
         else:
@@ -5743,6 +6159,12 @@ def _semantic_classifier(rules, detector, semantic_model, now):
 NOT_YET_CLASSIFIED: str = "not-yet-classified"
 NO_MODEL_ALLOWED: str = "no-model-allowed"
 WAITING_ON_AN_ANSWER: str = "waiting-on-an-answer"
+#: `104` R-113. A placement whose destination is settled and whose MOVE is not:
+#: `00`:20 makes crossing a top-level folder the person's own choice, they have
+#: not made it, and `mutation/resolution.py` refuses the move when the freeze
+#: reaches it. The file has somewhere to go and cannot go there, which is a
+#: reason of its own and not "no folder matched".
+NOT_ALLOWED_TO_CROSS: str = "not-allowed-to-cross-folders"
 NOT_YET_PLACED: str = "not-yet-placed"
 PROTECTED_REVIEW_SET: str = "protected"
 
@@ -5756,6 +6178,11 @@ REVIEW_SET_REASONS: tuple[tuple[str, str, str], ...] = (
      "deciding these needed a model, and the privacy settings on the folder "
      "they are in do not let one be asked about them. Nothing about them left "
      "this device and nothing moved; the evidence is retained."),
+    (NOT_ALLOWED_TO_CROSS, "Not allowed to move across folders",
+     "this plan has somewhere for these to go and it is under a different "
+     "top-level folder from the one they are in now. Moving between your "
+     "top-level folders is your choice and you have not made it, so nothing "
+     "moved. `--may-cross-folders` is that permission."),
     (pv.NO_SUPPORTED_DESTINATION, "No folder matched",
      "no folder in this plan matched them well enough to be worth proposing."),
     (pv.MULTIPLE_SUPPORTED_HOMES, "More than one folder fits",
@@ -5875,6 +6302,21 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     # a high school (`104` §11.1).
     file_level_fields = tuple(level for level in folder_levels
                               if level.field not in group_level_fields)
+    # WHAT AN ANCHOR IS ASKED AND NO OTHER FILE IS (`105` §14.4, `104` R-131 with
+    # R-102). Step 2's withdrawal above is right about every file except the one
+    # that can answer: the syllabus, the enrollment or registration record and the
+    # transcript state the institution the course belongs to, and withholding the
+    # question from them too is what left R-102 -- nothing writes a `school` fact
+    # any more, so the coursework tree has no school level on any corpus. Split off
+    # the SAME row as the two lines above, so a release that binds the role
+    # differently moves all three together.
+    #
+    # `school` alone. The other group-level role -- coursework's `cycle_period` --
+    # stays withheld from every file: R-101 puts the term on B's per-course
+    # acceptances, and nothing here changes B.
+    anchor_level_fields = tuple(level for level in folder_levels
+                                if level.field in group_level_fields
+                                and level.field == SCHOOL_FIELD)
     clock = now()
     _bootstrap(conn)
     # `00`:20's THREE choices, as the person answered them. These were three
@@ -5937,6 +6379,19 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # because a role is what a dimension carries and the applicability row
             # is what turns one into the other.
             group_level_roles=GROUP_LEVEL_ROLES,
+            # `105` §14.4 with `104` R-131, and every field key in it is spelled
+            # here because this is the file that spells them. A school value
+            # becomes a folder level only from two anchors that ORIGINATE
+            # independently -- different bytes, and neither the other's copy
+            # (`duplicate_family`) or re-export (`version_family`) -- and that are
+            # about ONE course, which is the subject the anchors share. Two syllabi
+            # of unrelated courses name a school between them and no course's
+            # school, which is §14.4's own example.
+            anchor_agreement=AnchorAgreement(
+                fields=frozenset({SCHOOL_FIELD}),
+                origin_fields=(DUPLICATE_FAMILY_FIELD, VERSION_FAMILY_FIELD),
+                scope_field=SUBJECT_FIELD,
+                rests_on_a_name_alone=rests_on_a_name_alone(conn)),
             # PACKET G12. A C3 refusal -- "no recipe recognises the situation
             # these files are in" -- becomes a site-E request, observe-only.
             # `None` when the fact pass did not run, when there is no model, or
@@ -6417,8 +6872,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             "SELECT file_id, filename, extension, observed_timestamps "
             f"FROM files WHERE file_id IN ({marks})", tuple(file_ids))}
 
-    def residual_partition(unplaced: Sequence[str], *,
-                           plan_version: str) -> tuple[dict, ...]:
+    def residual_partition(unplaced: Sequence[str], *, plan_version: str,
+                           crossed=None) -> tuple[dict, ...]:
         """§7.5's review sets, divided by the reason the screen already prints.
 
         `104` R-115. This used to be ONE set of every ordinary unplaced file plus
@@ -6453,9 +6908,19 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         this deployment has no row for keeps the name the one pile had rather
         than being dropped: `surface_residual_sets` refuses a partition that
         misses a file, and a set nobody can name is a file nobody is shown.
-        R-113's blocked-with-destination case is untouched -- those files are
-        `place` decisions, never reach `unplaced`, and are in no set before this
-        change or after it.
+
+        **AND EVERY BLOCKED PLACEMENT IS IN ONE TOO (`104` R-113).** R-115's
+        invariant was "every non-`place` decision", and it left a hole the shape
+        of a decision that named a destination and could not act on it: an
+        unclassified file whose review policy is `blocked_pending_user`, and a
+        move the person has not permitted across their own top-level folders.
+        Both are `place` decisions, so neither reached `unplaced`, so neither was
+        in any review set -- and `--send-set` is the gesture the residual screen
+        offers, so the screen said "nothing on this screen says what these are"
+        about files no gesture on it could reach. They arrive here through
+        `run_corpus`, which now hands the blocked placements to
+        `surface_residual_sets` beside the unplaced files; what this function
+        adds is the NAME of the set each one lands in, off the same record.
 
         **The order is the table's, protected last.** Dict insertion order would
         follow the order files were decided in, so the same corpus would name its
@@ -6484,6 +6949,30 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             """Which set this file is in, off its own recorded decision."""
             decision = decided.get(file_id)
             if decision is None:
+                return NOT_YET_PLACED
+            if decision.outcome == pv.PLACE:
+                # `104` R-113. A placement is here only because a POLICY is
+                # holding it, and the policy is the set it belongs in.
+                #
+                # PRIVACY FIRST, because it is on the record and the crossing is
+                # derived: `blocked_pending_user` is reachable from exactly one
+                # place -- `review_policy_for`'s first rule, an unclassified
+                # subject -- so the same switch `_abstention_explanation` uses is
+                # asked here and gives the same answer it gives an abstention
+                # that stopped for the same fact. Two names for one state would
+                # be two names on one screen.
+                if decision.review_policy == pv.BLOCKED_PENDING_USER:
+                    return (NOT_YET_CLASSIFIED
+                            if is_unclassified(decision.privacy)
+                            else NO_MODEL_ALLOWED)
+                if (crossed is not None and decision.destination is not None
+                        and crossed(file_id,
+                                    decision.destination.node_id) is not None):
+                    return NOT_ALLOWED_TO_CROSS
+                # A placement nothing is holding is not residual at all, and
+                # `run_corpus` does not send one here. Reached only if it ever
+                # does, and then it keeps the name the one pile had rather than
+                # being dropped, exactly as an unknown abstention reason does.
                 return NOT_YET_PLACED
             reason = decision.abstention_reason
             if reason == pv.PRIVACY_BLOCKED:
@@ -6687,7 +7176,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         return {choice.display_path: choice.node_id
                 for choice in _every_destination(frozen)}
 
-    def _home_questions(frozen) -> dict[str, tuple[str, tuple[str, ...]]]:
+    def _home_questions(frozen, unreadable) -> dict[
+            str, tuple[str, tuple[str, ...]]]:
         """One question per folder nothing could be read from, and the words and
         destinations each of its files carries into P11.
 
@@ -6696,12 +7186,17 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         destinations exist, and they exist when the plan is frozen. The recording
         is idempotent by question id, so the second call for the residual pass adds
         nothing.
+
+        `unreadable` is `folders_nothing_could_be_read_from`'s answer, passed IN
+        rather than asked for again: it stands on `_files_something_was_read_out_of`,
+        a `DISTINCT` over `evidence` this codebase has measured as its largest
+        single read, and `already_answered` needs the very same list to know which
+        files a question named (`104` R-86). One reading, two readers.
         """
         node_for = _node_for(frozen)
         offer_for = _destinations_to_offer(frozen)
         asks: dict[str, tuple[str, tuple[str, ...]]] = {}
-        for folder, file_ids, held in folders_nothing_could_be_read_from(
-                conn, root=directory):
+        for folder, file_ids, held in unreadable:
             offered = offer_for(folder)
             if len(offered) < 2:
                 # Fewer than two places to put anything is not a choice, and
@@ -6829,17 +7324,48 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         observe_cd = (observe_placement_injections(
             conn, fact_authorities[0], routing=routing,
             plan_version=tree.tree.plan_version_id) if fact_authorities else {})
-        asks = _home_questions(tree.tree)
+        unreadable = folders_nothing_could_be_read_from(conn, root=directory)
+        asks = _home_questions(tree.tree, unreadable)
         node_of = _node_for(tree.tree)
+        # `104` R-86. THE FILES EACH HOME QUESTION WAS ASKED ABOUT, which is the
+        # scope its answer reaches. Derived from the very list the question was
+        # built from, so the two cannot come apart: `_home_questions` walks
+        # `unreadable` to write the questions and this walks it to say who they
+        # named. Protected files fall out here exactly as they fall out there --
+        # counted in the question, named in no list, and so decided one at a time
+        # rather than by an answer given about the folder around them.
+        asked_about = {file_id: folder
+                       for folder, file_ids, _ in unreadable
+                       for file_id in file_ids}
+        # `104` R-113. WOULD THIS MOVE CROSS A FOLDER THE PERSON KEEPS, asked of
+        # the same landscape `main` hands the report and the freeze: the three
+        # arguments are the ones this run was called with, so the dict cannot
+        # differ from the one built there. `None` when the person has already
+        # said such moves are allowed, because then nothing is being held.
+        crossed = (None if cross_folder_moves else crossing_folder_for(
+            conn, nodes=tree.tree.nodes,
+            landscape=high_level_folders(directory, also_read,
+                                         candidate_roots)))
 
         def already_answered(subject) -> str | None:
             """The node the person's answer names, in THIS plan version's tree.
 
-            Keyed on the FOLDER the file is in, because that is the scope the
-            question was asked at and §13 forbids reading an answer outside its
-            stated scope. A file that arrived in the folder after the answer was
-            given is covered by it, which is what a person means when they answer
-            about a folder rather than about three files.
+            **THE ANSWER REACHES THE FILES THE QUESTION NAMED, AND NO OTHERS**
+            (`104` R-86). The screen says "This decides where those 2 files are
+            filed"; this used to key on the folder the file happens to sit in, so
+            `--answer home:.=Coursework` about two unreadable scans re-homed all
+            33 files in the folder and the freeze that followed froze nothing.
+            The sentence and the reach are one fact and the sentence was right:
+            `chosen_destination` already states the rule -- "a person who says a
+            folder of unreadable scans belongs under `Vaccine records` has said
+            that about THOSE files" -- and this is the reading that was
+            contradicting it. A folder-wide answer needs a folder-wide question,
+            which this screen does not ask.
+
+            So a file the question did not name gets `None` and is decided by the
+            run exactly as it was before anybody answered: a readable file beside
+            the scans, a file that arrived after the question was asked, a
+            protected file that was counted and never named.
 
             **The stored answer is a folder chain and the resolution to a node id
             happens HERE, once per run.** Every run freezes a new plan version and
@@ -6854,14 +7380,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             the plan no longer builds is a real change they should see as the
             question coming back, not as a placement into a folder that is gone.
             """
-            row = conn.execute("SELECT current_path FROM files WHERE file_id = ?",
-                               (subject.file_id,)).fetchone()
-            if row is None:
-                return None
-            try:
-                folder = str(PurePosixPath(
-                    Path(row[0]).relative_to(directory).as_posix()).parent)
-            except ValueError:
+            folder = asked_about.get(subject.file_id)
+            if folder is None:
                 return None
             named = chosen_destination(conn, scope=f"{SCOPE_FOLDER}:{folder}")
             return None if named is None else node_of.get(named)
@@ -6878,7 +7398,15 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # is defined before the tree is built and P11 calls it with the
             # unplaced ids and nothing else.
             partition=lambda unplaced: residual_partition(
-                unplaced, plan_version=tree.tree.plan_version_id),
+                unplaced, plan_version=tree.tree.plan_version_id,
+                crossed=crossed),
+            # `104` R-113. WHICH OF THIS RUN'S PLACEMENTS A CROSSING RULE IS
+            # HOLDING, so P11 can put them in a review set beside the files it
+            # never placed. P11 cannot ask this for itself: the answer needs
+            # §1.1's folder landscape, which is a fact about the command this
+            # run was typed in and not about the corpus, and this is the same
+            # reading the report marks with and the freeze refuses on.
+            a_move_the_person_has_not_permitted=crossed,
             # §6.9, when a file has two homes. This deployment abstains rather than
             # asking, because there is no screen here to ask on and choosing one
             # institution is the failure §6.9 exists to prevent.
@@ -6988,6 +7516,10 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # syllabus anchor.
             folder_levels=file_level_fields, user_id=user_id,
             now=now,
+            # `105` §14.4. The school level, asked of the anchors and of nothing
+            # else. Empty when this situation binds no such role, which is every
+            # situation but coursework's today.
+            anchor_levels=anchor_level_fields,
             # `104` R-08, off the release `rules` above already loaded rather than a
             # second read of the library. Direct indexing and not `.get`: every one
             # of the nineteen schemas a `--situation` can resolve to is in the
@@ -8566,7 +9098,9 @@ def _review_note(items: Sequence, areas: Sequence[str], *,
     over the batch ceiling rather than truncating it, so over a real disk one
     hold arrives as `Not yet placed (1 of 420)` through `(420 of 420)`: 420 sets,
     one reason, and the reason was printed 420 times -- 9,460 lines for 4,068
-    files, measured. It is said once here and the batches are named beneath it.
+    files, measured at the eight-file ceiling `104` R-93 replaced. A screenful of
+    25 divides the same hold into fewer sets and changes nothing about this: the
+    reason is said once here and the batches are named beneath it.
 
     **The batches are not one fact.** `act_on_residual_sets` addresses a set by
     the label the report printed and refuses a bare label that names no surfaced
@@ -8714,6 +9248,41 @@ def high_level_folders(directory: Path, also_read: Sequence[Path],
                for folder in (*also_read, *candidate_roots)}}
 
 
+def crossing_folder_for(conn: sqlite3.Connection, *, nodes,
+                        landscape: Mapping[str, Path]):
+    """THE ONE READING of "would this move cross a folder the person keeps".
+
+    Returns `(file_id, node_id) -> the folder the file is in now` or `None`,
+    named the way a person names it.
+
+    One derivation, three readers: the screen marks such a proposal (`104` R-N),
+    the review sets hold it so `--send-set` can reach it (`104` R-113), and the
+    freeze refuses it. A second reading of this would eventually tell somebody a
+    move is fine that the freeze refuses, which is R-N exactly, and telling them
+    a file is in a review set that the screen says is ready to file, which is
+    R-113 from the other side.
+
+    P12's own predicate, imported rather than restated: `00`:20 makes crossing
+    the person's third choice and `mutation/resolution.py` is where that choice
+    is enforced.
+    """
+    paths = dict(conn.execute("SELECT file_id, current_path FROM files"))
+    anchors = {node.node_id: node.root_anchor for node in nodes}
+
+    def crossed(file_id: str, node_id: str) -> str | None:
+        anchor = anchors.get(node_id)
+        here = paths.get(file_id)
+        if anchor is None or here is None:
+            return None
+        source = source_high_level_folder(Path(here), landscape)
+        if source is None or source == anchor:
+            return None
+        # The folder's own name, not its path and not P10's anchor id.
+        return Path(landscape[source]).name if source in landscape else source
+
+    return crossed
+
+
 def _crossing_moves(conn: sqlite3.Connection, result: ProductionRun, *,
                     landscape: Mapping[str, Path]) -> dict[str, str]:
     """Every proposed placement that would cross a high-level folder. `104` R-N.
@@ -8722,30 +9291,19 @@ def _crossing_moves(conn: sqlite3.Connection, result: ProductionRun, *,
     Empty when the person has already said such moves are allowed, because then
     there is nothing to mark: the proposal is one the plan will carry out.
 
-    P12's own predicate, imported. `00`:20 makes crossing the person's third
-    choice, and a screen that answered it a second way would eventually tell
-    somebody a move is fine that the freeze refuses -- which is R-N exactly,
-    arrived at from the other side.
+    The reading itself is `crossing_folder_for`; this walks the run's decisions
+    through it.
     """
-    paths = dict(conn.execute("SELECT file_id, current_path FROM files"))
-    anchors = {node.node_id: node.root_anchor for node in result.tree.tree.nodes}
+    crossed = crossing_folder_for(conn, nodes=result.tree.tree.nodes,
+                                  landscape=landscape)
     crossing: dict[str, str] = {}
     for decision in result.placement.decisions:
         if decision.destination is None:
             continue
-        anchor = anchors.get(decision.destination.node_id)
-        if anchor is None:
-            continue
         for file_id in _files_of(decision):
-            here = paths.get(file_id)
-            if here is None:
-                continue
-            source = source_high_level_folder(Path(here), landscape)
-            if source is None or source == anchor:
-                continue
-            # The folder's own name, not its path and not P10's anchor id.
-            crossing[file_id] = (
-                Path(landscape[source]).name if source in landscape else source)
+            source = crossed(file_id, decision.destination.node_id)
+            if source is not None:
+                crossing[file_id] = source
     return crossing
 
 

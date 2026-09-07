@@ -34,12 +34,20 @@ from facts.unresolved import unresolved_for_file
 from facts.values import VALUE_ORIGINS, ensure_value
 from llm_harness.authorship import COMPONENT_VERSION
 from llm_harness.fact_validation import (
+    EMPTY_VALUE_TO_UNKNOWN_RULE,
+    EMPTY_VALUE_TO_UNKNOWN_VERSION,
     FactValidationDependencies,
+    judgement_version,
     p6_verdict_from_p8,
     proposal_state_from_p8,
     validate_fact_proposal,
 )
-from llm_harness.records import P8Verdict, ValidationUnavailable
+from llm_harness.records import (
+    MalformedRecord,
+    MalformedVerdict,
+    P8Verdict,
+    ValidationUnavailable,
+)
 from llm_harness.vocabulary import (
     ABSTAIN,
     ACCEPT_CONTEXT_SUPPORTED,
@@ -521,7 +529,11 @@ def test_passing_proposal_writes_llm_supported_via_apply_verdict(
     assert result.requires_review is False
     assert result.reasons == ()
     assert result.scope == "file"
-    assert result.validator_version == COMPONENT_VERSION
+    # `104` R-127: the harness's own component version is still the head of the
+    # string, and what follows it is the digest of the code and the normalisers
+    # that reached this conclusion -- which is what the reuse decision compares.
+    assert result.validator_version.startswith(COMPONENT_VERSION)
+    assert result.validator_version == judgement_version(_deps())
     assert result.plan_version is None
     assert result is not llm_seam.Verdict
     assert type(result) is P8Verdict
@@ -569,21 +581,35 @@ def test_unknown_for_field_outside_allowlist_is_still_unknown(subject_file, p6_c
     assert _reasons(p6_conn, request) == ["model_returned_unknown"]
 
 
-# --- `104` R-119: an empty answer is the model declining the field ----------------
+# --- `104` R-119, amended by R-132: the empty answer is a VERSIONED CONVERSION -----
 #
-# A local run answered 19 field claims with the empty string and every one was
+# R-119: a local run answered 19 field claims with the empty string and every one was
 # recorded `reject VALUE_NOT_NORMALIZABLE`. A decline is not a wrong answer: it must
 # score as `abstain`, and `store.answered_fields` must see it, or the next run asks
 # the same model the same question it has already declined.
+#
+# R-132 (`105` §14.5) amends that. The ratified schema keeps `minLength: 1` on the
+# value, so `""` is a shape the schema FORBIDS and the code TOLERATES -- and a
+# tolerance nobody can name is indistinguishable from a bug. The canonical decline
+# shape does not move (`unknown` with an `insufficiency_statement` and no value) and
+# a supported value stays non-empty; what moves is that the conversion into that
+# shape is now recorded on the verdict, naming the rule, its version, the field, and
+# what was dropped. The raw bytes were never at risk: `llm_response` holds them.
 
 EMPTY_ANSWERS = ("", "   ", "\t\n ", '""', '"  "')
 
 
-def _explicit_abstention(p6_conn, request, subject_file):
-    """The verdict an explicit `unknown` earns, with no consequence written."""
+def _explicit_abstention(p6_conn, request, subject_file, *, dependencies=None):
+    """The verdict an explicit `unknown` earns, with no consequence written.
+
+    `dependencies` is the JUDGE. Since R-127 a verdict's address names the
+    judgement that reached it (`version_address(judgement_version(deps))`), so two
+    verdicts are only comparable by address when the same dependencies judged
+    both -- a caller comparing against a converted verdict passes its own."""
+    kwargs = {} if dependencies is None else {"dependencies": dependencies}
     return _validate(
         p6_conn, request, _proposal(subject_file, unknown=True),
-        apply_consequence=False)
+        apply_consequence=False, **kwargs)
 
 
 def test_an_empty_value_is_an_abstention_and_not_a_rejection(subject_file, p6_conn):
@@ -632,6 +658,145 @@ def test_whitespace_and_a_quoted_empty_string_decline_the_same_way(
     assert result.reasons == ()
     assert facts_for_file(p6_conn, request.file_id, request.content_hash) == []
     assert _reasons(p6_conn, request) == ["model_returned_unknown"]
+
+
+@pytest.mark.parametrize("value", EMPTY_ANSWERS)
+def test_the_conversion_names_its_rule_its_version_the_field_and_what_it_dropped(
+        subject_file, p6_conn, value):
+    """`104` R-132: the verdict says the answer was CONVERTED, not given.
+
+    The rule is cited by id and version together, so a reader a run later knows
+    which rule produced the abstention and a changed rule is a new version rather
+    than a quiet re-reading. `dropped_value` is the value exactly as it arrived --
+    the quotes and the whitespace survive, because `'"  "'` and `''` are different
+    things a model did and the record should not flatten them into each other.
+    """
+    request = _request(p6_conn, subject_file)
+    key = subject_file[2]
+    result = _validate(
+        p6_conn, request, _proposal(subject_file, value=value),
+        dependencies=_deps(normalize=lambda field, raw: None))
+
+    note = result.compatibility
+    assert note is not None
+    assert note.rule_id == EMPTY_VALUE_TO_UNKNOWN_RULE
+    assert note.version == EMPTY_VALUE_TO_UNKNOWN_VERSION
+    assert note.rule == "empty_value_to_unknown/1"
+    assert note.field == "subject"
+    assert note.dropped_value == value
+    assert note.dropped_citations == (key,)
+
+
+def test_the_converted_abstention_is_otherwise_the_explicit_one(
+        subject_file, p6_conn):
+    """Identical to an explicit `unknown` everywhere except the conversion record.
+
+    `105` §14.5 keeps ONE canonical decline shape. So the outcome, the reasons, the
+    disposition and both propose/review flags are the explicit abstention's, and the
+    only field that differs is the note saying how this one was reached.
+    `citations_checked` differs by design and R-119 already pins why: an empty answer
+    still carried citations and checks 1 and 2 still judged them.
+    """
+    request = _request(p6_conn, subject_file)
+    # ONE JUDGE FOR BOTH: R-127 puts the judgement into the verdict's address, so
+    # the explicit abstention is judged under the same dependencies as the
+    # converted one, or the two addresses would differ for a reason that is not
+    # the conversion.
+    deps = _deps(normalize=lambda field, raw: None)
+    explicit = _explicit_abstention(p6_conn, request, subject_file,
+                                    dependencies=deps)
+    converted = _validate(
+        p6_conn, request, _proposal(subject_file, value=""),
+        dependencies=deps, apply_consequence=False)
+
+    assert explicit.compatibility is None
+    assert converted.compatibility is not None
+    for name in ("outcome", "reasons", "disposition", "may_propose",
+                 "requires_review", "scope", "verdict_id"):
+        assert getattr(converted, name) == getattr(explicit, name), name
+    assert p6_verdict_from_p8(converted) == p6_verdict_from_p8(explicit)
+    assert proposal_state_from_p8(converted) == proposal_state_from_p8(explicit)
+
+
+def test_a_value_the_normaliser_refuses_carries_no_conversion_record(
+        subject_file, p6_conn):
+    """The boundary from the record's side: only a CONVERTED answer carries a note."""
+    request = _request(p6_conn, subject_file)
+    rejected = _validate(
+        p6_conn, request, _proposal(subject_file, value="not a course at all"),
+        dependencies=_deps(normalize=lambda field, raw: None))
+    assert rejected.outcome == REJECT
+    assert rejected.compatibility is None
+
+    accepted = _validate(
+        p6_conn, request, _proposal(subject_file, value="BUSIB 4300"))
+    assert accepted.outcome == ACCEPT_DIRECT
+    assert accepted.compatibility is None
+
+
+def test_the_conversion_record_survives_being_stored_and_read_back(
+        subject_file, p6_conn):
+    """It is on the verdict PAYLOAD, which is the thing a later run opens."""
+    import json as _json
+
+    from llm_harness.schema import create_llm_schema
+    from llm_harness.store import record_verdict
+
+    create_llm_schema(p6_conn)
+    request = _request(p6_conn, subject_file)
+    result = _validate(
+        p6_conn, request, _proposal(subject_file, value='""'),
+        dependencies=_deps(normalize=lambda field, raw: None))
+    record_verdict(
+        p6_conn, result, model_id=MODEL, prompt_fingerprint=PROMPT,
+        release_audit_id=17, observed_at=CLOCK)
+
+    stored = _json.loads(p6_conn.execute(
+        "SELECT payload FROM llm_verdict WHERE verdict_id = ?",
+        (result.verdict_id,)).fetchone()["payload"])
+    assert stored["compatibility"] == {
+        "rule_id": "empty_value_to_unknown",
+        "version": "1",
+        "field": "subject",
+        "dropped_value": '""',
+        "dropped_citations": [subject_file[2]],
+    }
+
+
+def test_a_verdict_that_converted_nothing_stores_a_null_compatibility(
+        subject_file, p6_conn):
+    """An answer taken as given says so, rather than saying nothing."""
+    import json as _json
+
+    from llm_harness.schema import create_llm_schema
+    from llm_harness.store import record_verdict
+
+    create_llm_schema(p6_conn)
+    request = _request(p6_conn, subject_file)
+    result = _validate(p6_conn, request, _proposal(subject_file, unknown=True))
+    record_verdict(
+        p6_conn, result, model_id=MODEL, prompt_fingerprint=PROMPT,
+        release_audit_id=17, observed_at=CLOCK)
+
+    stored = _json.loads(p6_conn.execute(
+        "SELECT payload FROM llm_verdict WHERE verdict_id = ?",
+        (result.verdict_id,)).fetchone()["payload"])
+    assert stored["compatibility"] is None
+
+
+def test_a_note_that_is_not_a_conversion_record_is_refused(subject_file, p6_conn):
+    """A free-text note here would be a caller authoring a rule nobody versioned."""
+    request = _request(p6_conn, subject_file)
+    good = _validate(
+        p6_conn, request, _proposal(subject_file, value=""),
+        dependencies=_deps(normalize=lambda field, raw: None),
+        apply_consequence=False)
+    with pytest.raises(MalformedVerdict):
+        dataclasses.replace(good, compatibility="empty_value_to_unknown/1")
+    for bad in ({"version": ""}, {"version": 1}, {"rule_id": ""}, {"field": ""},
+                {"dropped_value": None}, {"dropped_citations": ("a", 2)}):
+        with pytest.raises(MalformedRecord):
+            dataclasses.replace(good.compatibility, **bad)
 
 
 def test_an_empty_answer_is_reused_as_a_decline_and_not_re_asked(

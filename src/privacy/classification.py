@@ -37,6 +37,21 @@ into." There is no regex, no gazetteer, no filename pattern and no keyword list.
 nothing: it returns the citation handles a detector would pass as `evidence_refs`.
 Until a detector is supplied, every real file resolves to `Denied(unclassified)` --
 a correct, locked door with nobody holding a key, and the honest v1 posture.
+
+**`105` §14.3's FOUR PRIVACY CLASSES ARE RESOLVED HERE AND RECOGNISED NOWHERE.**
+`privacy_class_for` applies the owner's precedence -- protected, then always-local,
+then ordinary -- over kind NAMES a detector already wrote, and `pending` is its
+answer when the detector did not assess the file at all. That is a resolution over
+`vocabulary`'s two closed lists, exactly as `resolve_class` is a resolution over the
+five handling classes, and it adds no rule for recognising a receipt. The paragraph
+above is unweakened: no regex, no gazetteer, no filename pattern, no keyword list.
+
+**CLASSIFICATION PRECEDES THE MODEL CALL IT GOVERNS**, which is §14.3's fifth
+sentence and a property of WHERE these functions are rather than of what they say. A
+document is never sent to a model to discover its class: `privacy_class_for` reads
+names and `privacy_class_of` reads a stored record, neither opens a file, and this
+module imports no model client and no transport. The gate asserts the ordering it
+depends on rather than assuming it.
 """
 from __future__ import annotations
 
@@ -53,13 +68,20 @@ from extractors.long_tail import POTENTIALLY_SENSITIVE, sensitivity_signals_for
 from privacy.vocabulary import (
     CLASSIFICATION_BASES, DETECTOR as _DETECTOR,
     DETECTOR_NO_SAFETY_EVIDENCE as _DETECTOR_NO_SAFETY_EVIDENCE,
-    OutOfVocabulary, check_handling_class,
+    PRIVACY_CLASS_BY_KIND, PRIVACY_CLASS_ORDINARY,
+    PRIVACY_CLASS_PENDING, PRIVACY_CLASS_PROTECTED, PRIVACY_CLASSES,
+    OutOfVocabulary, check_handling_class, check_privacy_class,
 )
 
-#: SPEC §2's eight, in SPEC §2's order.
+#: SPEC §2's eight, in SPEC §2's order, and `105` §14.3's ninth after them.
+#:
+#: The ninth is LAST and outside the SPEC's order on purpose: the eight are the
+#: design's own record and their sequence is quotable, while `privacy_class` is the
+#: owner's 7 Sep 2026 addition. Appending keeps the first eight readable as the
+#: SPEC's list rather than blending a later field into it.
 CLASSIFICATION_FIELDS: tuple[str, ...] = (
     "file_id", "content_hash", "handling_class", "protected", "basis",
-    "evidence_refs", "reliability_state", "observed_at",
+    "evidence_refs", "reliability_state", "observed_at", "privacy_class",
 )
 
 #: §8.4's fifth class, validated against Task 2's closed vocabulary at import: a
@@ -121,6 +143,36 @@ class ClassificationRecord:
     evidence_refs: tuple[str, ...]
     reliability_state: str
     observed_at: str
+    #: `105` §14.3's privacy class for these bytes: `protected`, `always_local` or
+    #: `ordinary`. NEVER `pending` -- the store refuses it on both sides of the
+    #: projection, exactly as it refuses `unreadable_unclassified`, because the
+    #: owner's ruling makes `pending` the reading of NO RECORD and a stored row
+    #: saying it would claim as a fact what the absence of a row already says.
+    #:
+    #: **IT HAS A DEFAULT AND THE OTHER EIGHT DO NOT. Read this before copying the
+    #: pattern.** A default in this package is normally the silent downgrade §8.6
+    #: forbids by name, and every other required keyword in `check_item` exists to
+    #: stop one. The argument for this one is narrow and it expires.
+    #:
+    #: A silent downgrade is a class the file HAD being replaced by a weaker one.
+    #: Nothing in this product recognises a §13.3 document kind: `recognition/
+    #: detector.py` works over `facts.domains.SCHEMA_IDS`, which are twenty-three
+    #: DOMAINS -- academic, finance, medical -- and not kinds like `receipt` or
+    #: `boarding_pass_or_ticket`. So a record written today has no restricted kind
+    #: to be downgraded FROM, and `ordinary` is the accurate reading of what was
+    #: assessed: §13.3's own "A kind on neither list is ordinary."
+    #:
+    #: The guard is at the WRITER instead, where it can work: a detector names a
+    #: restricted kind through `vocabulary.check_restricted_kind` or one of the ten
+    #: constants beside the lists, so a misspelling is a `NameError` there rather
+    #: than an ordinary file three modules away.
+    #:
+    #: **THE DAY A KIND RECOGNIZER SHIPS, THIS DEFAULT IS WRONG** -- it would then be
+    #: a real class being replaced by a weaker one, which is the failure this
+    #: paragraph argues it is not. `tests/p7/test_p7_privacy_classes.py`'s
+    #: `test_the_default_is_ordinary_and_this_is_the_condition_that_retires_it`
+    #: pins it and names that condition.
+    privacy_class: str = PRIVACY_CLASS_ORDINARY
 
     def __post_init__(self) -> None:
         for name in ("file_id", "content_hash", "reliability_state", "observed_at"):
@@ -130,6 +182,14 @@ class ClassificationRecord:
                     f"{name} must be a non-empty string; §8.2 preserves a record and "
                     f"cannot preserve {value!r}")
         check_handling_class(self.handling_class)
+        check_privacy_class(self.privacy_class)
+        if self.privacy_class == PRIVACY_CLASS_PENDING:
+            raise UnbackedClassification(
+                f"{PRIVACY_CLASS_PENDING!r} is the reading of NO RECORD (`105` "
+                "§14.3) and cannot be a field of one. A row saying it would claim, "
+                "as a fact, exactly what the absence of a row already says -- and "
+                "the two would then be able to disagree. This is D2's argument for "
+                f"{UNREADABLE_UNCLASSIFIED!r}, one column along.")
         if self.basis not in CLASSIFICATION_BASES:
             raise OutOfVocabulary(
                 f"basis {self.basis!r} is not one of {CLASSIFICATION_BASES}. P6's "
@@ -263,3 +323,126 @@ def sensitivity_signal_keys(conn: sqlite3.Connection,
             if row["signal"] == POTENTIALLY_SENSITIVE:
                 seen.setdefault(row["observation_key"], None)
     return tuple(seen)
+
+
+# --- `105` §14.3: the four privacy classes, and the precedence between them ---
+
+
+def privacy_class_for(kinds: Sequence[str] | None) -> str:
+    """The privacy class the recognised document kinds of a file resolve to.
+
+    THE OWNER'S RULING OF 7 SEPTEMBER 2026 (`105` §14.3): "Keep both lists, apply the
+    most restrictive matching rule to the content and its derivatives regardless of
+    file format, and classify unresolved cases as pending rather than ordinary."
+
+    `kinds` is what a detector RECOGNISED, and the two arguments are different
+    questions rather than two spellings of one:
+
+      `None`  -- the detector did not assess this file. `pending`.
+      `()`    -- the detector assessed it and matched no restricted kind. `ordinary`.
+
+    §14.3 is explicit that those two must not collapse: "'On neither list'
+    distinguishes an assessed ordinary document from one the detector failed to
+    recognise, which is pending." The empty tuple is the whole of the distinction and
+    it is why this function takes an optional sequence rather than a set.
+
+    **PRECEDENCE, AND IT IS APPLIED TO THE CONTENT AND NOT TO THE FORMAT.** Protected
+    beats always-local beats ordinary, so a file matching two lists takes the more
+    restrictive one. A screenshot of a bank statement is protected although account
+    screenshots are always-local; a receipt containing credentials is protected. Both
+    are the owner's own examples, both arrive here as two kinds on one file, and the
+    tuple order in `PRIVACY_CLASSES` is what decides them.
+
+    **THIS RECOGNISES NOTHING.** SPEC *Deferred*: "The design states *what* is
+    protected and never *how it is recognised*." It reads kind NAMES a detector
+    already wrote and holds no regex, no keyword and no threshold; a caller that
+    passed the wrong names gets the wrong class and this function cannot tell.
+
+    An unrecognised kind name is ORDINARY and not an error, because §13.3 rules it so
+    -- "A kind on neither list is ordinary" -- and because the universe of document
+    kinds is open while the two restricted lists are closed. The guard against a
+    misspelling is at the WRITER: `vocabulary.check_restricted_kind` and the ten
+    named constants beside the lists, so a detector naming a restricted kind spells
+    it once and a typo is a `NameError` there rather than a silent downgrade here.
+    """
+    if kinds is None:
+        return PRIVACY_CLASS_PENDING
+    if isinstance(kinds, str):
+        raise TypeError(
+            f"privacy_class_for takes a sequence of kind names or None, not the "
+            f"bare string {kinds!r}, which would be read as "
+            f"{len(kinds)} one-character kinds and resolve to 'ordinary'. `None` "
+            "means the detector did not assess the file; an empty sequence means it "
+            "assessed it and matched nothing.")
+    if not isinstance(kinds, Sequence):
+        raise TypeError(
+            f"privacy_class_for takes a sequence of kind names or None, not "
+            f"{type(kinds).__name__}. The distinction between 'assessed and matched "
+            "nothing' and 'not assessed' is the empty sequence against `None`, and a "
+            "type with no empty form cannot carry it.")
+    found = {PRIVACY_CLASS_BY_KIND[kind] for kind in kinds
+             if kind in PRIVACY_CLASS_BY_KIND}
+    for privacy_class in PRIVACY_CLASSES:
+        if privacy_class in found:
+            return privacy_class
+    return PRIVACY_CLASS_ORDINARY
+
+
+def derivative_privacy_class(source_class: str) -> str:
+    """The class an OCR text, an extracted excerpt or a summary carries.
+
+    `105` §14.3: "OCR text, excerpts and summaries retain the source's restriction."
+    So this returns the source's class unchanged, and the point of it being a
+    function rather than an assumption is that the inheritance is then something a
+    caller performs and a test can watch, instead of a property everyone believes.
+
+    A released excerpt of a protected file is impossible; an excerpt of an
+    always-local file is local only. Neither is a new rule about excerpts -- it is
+    the file's own rule, arriving with the derivative.
+
+    **THE FORMAT NEVER WEAKENS IT.** "regardless of file format" is in the ruling's
+    own sentence: OCR read off a photograph of a tax return carries the tax return's
+    restriction, and text extracted from a screenshot of a bank statement carries the
+    bank statement's. A derivative is a second copy of the content, so the way a
+    restriction is lost is by the copy being treated as a new thing with no history.
+
+    There is deliberately no downgrade parameter and no second argument. A caller
+    that wanted a derivative to be less restricted than its source would be asking
+    this function for permission it cannot give.
+    """
+    return check_privacy_class(source_class)
+
+
+def privacy_class_of(record: ClassificationRecord | None) -> str:
+    """The privacy class a file VERSION carries, read off its classification record.
+
+    Absence is `pending`, on the same argument `resolve_class` makes for
+    `unreadable_unclassified` and never `public_low`: no record means nothing has
+    assessed these bytes, and §14.3 rules an unassessed file pending rather than
+    ordinary. The two answers agree by construction -- a file this returns `pending`
+    for is exactly a file `resolve_class` returns `unreadable_unclassified` for --
+    which is what lets `pending` be "treated like unclassified for every gate"
+    without a second rule anywhere.
+
+    **THE RECORD'S OWN FIELD, AND NOT THE `protected` FLAG.** The two are different
+    questions and the owner ruled on 7 Sep 2026 that they stay different: the flag is
+    §8.4's, it keeps §8.4's consent path exactly as it is, and a granted local scope
+    still releases a flagged file. The class is §13.3's, it is about the document's
+    recognised KIND, and a protected-kind file is shown to no model at all. So the
+    two sets differ in both directions -- a file can be on the protected list without
+    the flag, and carry the flag without being on the list -- and this function reads
+    the field rather than deriving it from the flag, or the two could never disagree.
+
+    SPEC §2's "Neighbouring parts should consume the `protected` flag, not infer it
+    from the class" is untouched by that, and so is Open question 1. Nothing here
+    reads `handling_class`.
+    """
+    if record is None:
+        return PRIVACY_CLASS_PENDING
+    if not isinstance(record, ClassificationRecord):
+        raise TypeError(
+            f"privacy_class_of takes a ClassificationRecord or None, not "
+            f"{type(record).__name__}. A mapping that looks like one has not been "
+            "through the evidence-backed check, and `None` here means something "
+            "stronger than a missing argument: it means nothing assessed the bytes.")
+    return record.privacy_class

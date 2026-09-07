@@ -483,6 +483,69 @@ class CheckedCitation:
 
 
 @dataclass(frozen=True, slots=True)
+class CompatibilityConversion:
+    """A TOLERATED response shape, converted to a canonical one, said out loud.
+
+    `104` R-132 (`105` §14.5). The canonical decline is `unknown` with an
+    `insufficiency_statement` and no value; a supported value stays non-empty; and
+    the ratified `a_fact_response_schema.json` keeps `minLength: 1` on the value, so
+    an EMPTY answer is a shape the schema forbids. The code tolerates it anyway,
+    because a real model sends it and scoring a decline as a wrong answer is the
+    worse error -- R-119 measured 19 of them on the owner's corpus. Tolerating it
+    SILENTLY is the other error: a reader of the verdict could not tell an answer
+    the model gave from one the validator converted.
+
+    So the conversion is written down, and it is versioned. `rule_id` with `version`
+    is the citation -- `empty_value_to_unknown/1` -- so a run that reads a stored
+    verdict knows which rule produced it, and a changed rule is a NEW version rather
+    than a quiet re-reading of old records. `field` is what the claim was about,
+    taken from `payload.field`, which is authoritative. `dropped_value` is what the
+    conversion threw away, exactly as it arrived, quotes and whitespace intact
+    (`'"  "'` stays `'"  "'`), and `dropped_citations` are the keys the claim cited.
+
+    The RAW RESPONSE is not this record's job: `llm_response` already stores the
+    bytes the model sent, untouched. This says what the validator did to them.
+    """
+    rule_id: str
+    #: A STRING, like every other version this component records. `validator_version`
+    #: is `P8/0.1.0`, `policy_version` and `plan_version` are strings, and a rule that
+    #: someday needs `1.1` should not have to change type to say so. It is also what
+    #: keeps P8 from holding a bare number: `tests/p8/test_p8_no_invention.py` forbids
+    #: a public numeric constant in any P8 module, because a number in this component
+    #: is a threshold somebody invented, and the guard does not have to learn an
+    #: exception for a version that was never a threshold.
+    version: str
+    field: str
+    dropped_value: str
+    dropped_citations: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        _freeze_sequence(self, "dropped_citations")
+        if not self.rule_id or not self.field:
+            raise MalformedRecord(
+                "CompatibilityConversion.rule_id and .field are required"
+            )
+        if not isinstance(self.version, str) or not self.version:
+            raise MalformedRecord(
+                "CompatibilityConversion.version is a non-empty string; an "
+                "unversioned conversion is one no later reader can re-judge"
+            )
+        if not isinstance(self.dropped_value, str):
+            raise MalformedRecord(
+                "CompatibilityConversion.dropped_value is the raw string as received"
+            )
+        if any(not isinstance(item, str) for item in self.dropped_citations):
+            raise MalformedRecord(
+                "CompatibilityConversion.dropped_citations are evidence keys"
+            )
+
+    @property
+    def rule(self) -> str:
+        """Rule and version as one citable name: `empty_value_to_unknown/1`."""
+        return f"{self.rule_id}/{self.version}"
+
+
+@dataclass(frozen=True, slots=True)
 class P8Verdict:
     verdict_id: str
     dossier_id: str
@@ -497,6 +560,13 @@ class P8Verdict:
     validator_version: str
     policy_version: str
     plan_version: str | None
+    #: WHAT THE VALIDATOR CONVERTED, OR `None` BECAUSE IT CONVERTED NOTHING (R-132).
+    #:
+    #: Last, and defaulted, because every verdict the product has ever written is a
+    #: verdict on an answer taken as given: `None` is that, and it is the honest
+    #: reading of every older stored payload too. A note here says this verdict rests
+    #: on a shape the validator tolerated under a named, versioned rule.
+    compatibility: CompatibilityConversion | None = None
 
     def __post_init__(self) -> None:
         try:
@@ -521,6 +591,12 @@ class P8Verdict:
             raise MalformedVerdict("weak forbids may_propose=True")
         if any(not isinstance(item, CheckedCitation) for item in self.citations_checked):
             raise MalformedVerdict("citations_checked must be CheckedCitation records")
+        if self.compatibility is not None and not isinstance(
+                self.compatibility, CompatibilityConversion):
+            raise MalformedVerdict(
+                "compatibility must be a CompatibilityConversion record; a bare "
+                "note here is a caller authoring a rule nobody versioned"
+            )
 
 
 @dataclass(frozen=True, slots=True)

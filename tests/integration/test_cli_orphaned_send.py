@@ -25,17 +25,25 @@ before anything here was written:
    no sentence about it. `84` §6: a decision that no longer applies is named out
    loud, never silently omitted.
 
-THE STALE COMMAND IS THE WORSE HALF. Review sets are named by position in an
-arbitrary chunking -- `(1 of 4)` … `(4 of 4)` at a ceiling of eight. Delete files
-anywhere and they renumber, so a name that was correct yesterday names nothing
-today, and `ResidualSendRefused` propagates out of `run()` to `main()`'s
-`except REFUSALS`, which throws away a plan that had already been computed. One
-stale line in shell history and there is no plan at all, which makes scripts and
-notes-to-self actively dangerous for a command-line product.
+THE STALE COMMAND IS THE WORSE HALF. Review sets are named by position in a
+chunking the person did not choose -- `(1 of 2)` and `(2 of 2)` at one screen of
+25 (`104` R-93; it was `(1 of 4)` … `(4 of 4)` at the spend ceiling's eight).
+Delete files anywhere and they renumber, so a name that was correct yesterday
+names nothing today, and `ResidualSendRefused` propagates out of `run()` to
+`main()`'s `except REFUSALS`, which throws away a plan that had already been
+computed. One stale line in shell history and there is no plan at all, which
+makes scripts and notes-to-self actively dangerous for a command-line product.
+
+R-93 does not fix this and narrows it: at 25 a hold that fits on one screen is
+UNNUMBERED, so it has no index to go stale. The corpus below is one file over
+that, which is where the numbering still exists and can still be orphaned --
+and deleting that one file makes the remainder a single unnumbered set, which
+is the same defect arriving as a name that disappears rather than one that
+moves.
 
 Refusing is right -- §6's ruling is that a gesture acting on something other than
 what the person named is worse than one that stops and asks, and a renumbered
-`(1 of 4)` is a different set of files. Refusing by destroying the run is not,
+`(1 of 2)` is a different set of files. Refusing by destroying the run is not,
 especially when the refusal already knows and prints the names it DID surface.
 
 **`src/cli.py` belongs to the lead**, so the two xfails below name the defects
@@ -59,9 +67,10 @@ import cli  # noqa: E402
 #: Twenty-six photographs and two coursework files. The photographs are what a
 #: person actually has a lot of and cannot classify; the two coursework files
 #: exist so a tree gets built at all, because a corpus that designs no tree
-#: refuses before it can surface a review set. At the deployment ceiling of
-#: eight the photographs chunk into four sets, which is the smallest corpus that
-#: can renumber.
+#: refuses before it can surface a review set. At `104` R-93's screenful of 25
+#: the photographs chunk into two sets, which is the smallest corpus that can
+#: renumber -- twenty-five of them would be one unnumbered set with no index to
+#: go stale.
 #:
 #: TWENTY-SIX AND NOT TWENTY-FOUR since `9e7152e`. The two coursework files used
 #: to land in the review sets as well -- their branch stated nothing, so nothing
@@ -72,20 +81,34 @@ import cli  # noqa: E402
 #: about a file NOTHING can place, and a photograph carrying no fact is that
 #: file, where a syllabus whose subject named its own branch never was.
 PHOTOS = 26
-DELETED = 8
+#: ONE, AND IT IS THE WHOLE SECOND SET. `_delete_unrelated` takes the last
+#: photographs by name and the sets are named in that order, so the deleted file
+#: is the only member of `(2 of 2)` and none of the sent set's files are touched
+#: -- which is the premise of the stale-name test below. At the old ceiling of
+#: eight this was eight files out of four sets; it is one out of two now for the
+#: same reason, and the arithmetic is asserted rather than assumed by
+#: `test_a_stale_send_leaves_the_person_a_plan_and_a_way_forward`.
+DELETED = 1
 
 #: What the screen prints, and therefore what the person types.
 #:
 #: NAMED BY ITS REASON SINCE `104` R-115, and the `(i of n)` is unchanged. The
 #: sets used to be one pile called "Not yet placed" cut into eight-file batches;
 #: they are now divided by the reason the screen already prints over each group,
-#: and the ceiling then splits each of those. Twenty-six photographs that no
-#: folder matched are one reason and four batches, exactly as before -- which is
-#: why every assertion in this file still holds and only the name moved. The
-#: control test below asserts this string IS what the screen offers, so a further
-#: rename fails there first rather than as five stale comparisons.
-FIRST_LABEL = "No folder matched (1 of 4)"
+#: and the screenful then splits each of those. Twenty-six photographs that no
+#: folder matched are one reason and two batches since R-93 raised the split from
+#: eight to 25 -- which is why every assertion in this file still holds and only
+#: the index moved. The control test below asserts this string IS what the screen
+#: offers, so a further rename fails there first rather than as five stale
+#: comparisons.
+FIRST_LABEL = "No folder matched (1 of 2)"
 FIRST_SET = f"{FIRST_LABEL}=Review Later"
+
+#: And what the screen offers AFTER the deletion, when twenty-five photographs
+#: are one screen and the set is unnumbered. `104` R-93's second clause on the
+#: one screen where a person feels it: the name they typed yesterday is not the
+#: name of anything today.
+CURRENT_SET = "No folder matched=Review Later"
 
 #: The words the missing sentence has to carry. Asserted as a phrase rather than
 #: as a whole line because the exact wording is the lead's to settle in
@@ -125,7 +148,7 @@ def _run(corpus: Path, *extra: str) -> tuple[int, str]:
 
 
 def _delete_unrelated(corpus: Path) -> None:
-    """The last eight photographs -- none of them in the set that was sent."""
+    """The last photograph -- not in the set that was sent."""
     for index in range(PHOTOS - DELETED, PHOTOS):
         (corpus / f"photo {index:03d}.txt").unlink()
 
@@ -247,7 +270,15 @@ def test_a_stale_send_leaves_the_person_a_plan_and_a_way_forward(tmp_path):
     assert "No plan was made" not in stale, stale
     # The plan itself, and the refusal beside it rather than instead of it.
     assert "Folders in this plan" in stale, stale
-    assert "No folder matched (1 of 3)" in stale, stale
+    # WHAT THE SETS ARE CALLED NOW, which since `104` R-93 is a name with no
+    # index at all: the twenty-five that are left fit on one screen, so the
+    # split -- and the `(1 of 2)` the person typed -- is gone. Asserted through
+    # the gesture rather than through the label, because the stale label the
+    # refusal quotes back contains "No folder matched" too, and a bare substring
+    # would pass against a screen that only echoed the name that failed.
+    assert f"--send-set '{CURRENT_SET}'" in stale, stale
+    assert "(1 of 2)" in stale, (
+        "the refusal does not quote back the name the person actually typed")
 
 
 #: The sentence that is true only when the area really is unenabled. Named once

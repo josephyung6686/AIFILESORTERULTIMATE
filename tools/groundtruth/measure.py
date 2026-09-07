@@ -43,6 +43,33 @@ COMPLETENESS_ORDER = (
 )
 _RANK = {word: i for i, word in enumerate(COMPLETENESS_ORDER)}
 
+#: P8's spelling for the placement site, and the two verdict outcomes
+#: `placement.p8_seam.transcribe` turns into a placement. Spelled here rather than
+#: imported from `src/llm_harness/vocabulary.py` for the reason every other value
+#: in this package is read from the database and not from the product: the harness
+#: measures what a run WROTE, and a run written by an older build is still a run
+#: this must read. `shadow.ACCEPTING` is this tuple, imported, so there is one
+#: spelling and not two.
+C_PLACEMENT = "C_placement"
+ACCEPTING_VERDICTS = ("accept_direct", "accept_context_supported")
+
+#: The verdict outcomes that mean the model's answer FAILED -- `105` §14.7's
+#: "invalid output". The validator refused the claim, so the run got no usable
+#: answer for that file however the placement was afterwards decided.
+#:
+#: WHY THE VERDICT AND NOT THE RESPONSE BYTES. A response that did not decode, or
+#: decoded and did not fit the shape, is recorded as a `reject` verdict carrying
+#: the reason `SCHEMA_INVALID` (`tests/p8/test_p8_json_decode_at_the_tail.py`), so
+#: "failed schema or validation" is entirely readable from `llm_verdict.outcome`.
+#: Reading `llm_response.response_bytes` here to tell the two apart would put a
+#: column that carries `cited_span` -- quoted file content -- inside the one module
+#: whose docstring promises it counts and never reads.
+#:
+#: `abstain` is deliberately NOT here. It is the model declining to answer, which
+#: is an abstention and is scored as one; calling it invalid would count the
+#: caution the harness asks for as a defect.
+FAILED_VALIDATION = ("weak", "reject")
+
 
 @dataclass(frozen=True)
 class Observation:
@@ -76,6 +103,15 @@ class Observation:
     outcome: str | None            # 'place', 'abstain', ... or None
     destination: tuple[str, ...]   # folder labels, root first
     asked: bool                    # the decision carried a question for the person
+    #: The model's own answer ABOUT THIS FILE failed schema or validation --
+    #: `105` §14.7's fifth outcome class. See `FAILED_VALIDATION` for why this is
+    #: read from the verdict and never from the response bytes.
+    #:
+    #: Last, and defaulted, so every existing construction of this class keeps
+    #: working unchanged. A database with no `llm_*` tables leaves it `False` for
+    #: every file, which is the truth about such a run: no model answered, so no
+    #: model answer failed.
+    invalid_model_output: bool = False
 
     @property
     def extension(self) -> str:
@@ -134,6 +170,18 @@ class RunObservation:
     #: there was nothing for the gate to refuse. Counted because R-46 is that a
     #: file which did not reach a model must be counted somewhere.
     never_built: int = 0
+    #: Every folder chain this run's tree holds that a file may actually be filed
+    #: into, root first -- `tree_nodes` where `accepts_placement`. It is what
+    #: `105` §14.7's "the run had no legal candidate" is decided against: a file
+    #: whose right folder the run never built could not have been filed there, and
+    #: an abstention on it is the honest answer rather than a miss.
+    #:
+    #: `accepts_placement` and not merely "a node with that name": legal is the
+    #: product's own word, and a hub that refuses placement is not a candidate.
+    #: Empty on a run that built no tree, which makes every abstention appropriate
+    #: -- the right attribution, because the loss is the tree's and not the
+    #: placer's.
+    node_paths: tuple[tuple[str, ...], ...] = ()
 
 
 #: The tables the LLM path writes. A run that called nothing leaves them all at
@@ -218,6 +266,93 @@ def _blocked_tally(connection) -> tuple[int, dict[str, int], int]:
     never = without - sum(gate.values())
     return (at_route, dict(sorted(gate.items(), key=lambda kv: (-kv[1], kv[0]))),
             never)
+
+
+def _subject_file_id(subject_ref: str) -> str | None:
+    """The file id inside `file:{file_id}:{content_hash}`, or `None`.
+
+    `placement.store.subject_ref_of`, read back. The kind comes off the front by
+    the FIRST colon -- the kinds are a closed vocabulary with no colon in them --
+    and the hash off the back by the LAST, which is safe because a sha256 hex
+    digest contains none and P11 promises nothing about a file id's shape.
+    `shadow._file_id_of` is the same reading; this is deliberately the narrower
+    one, because a subject that is not a file is not a file of this corpus and has
+    nothing on the scorecard to be counted against.
+    """
+    kind, separator, rest = subject_ref.partition(":")
+    if not separator or kind != "file":
+        return None
+    identifier, hash_separator, _hash = rest.rpartition(":")
+    if not hash_separator:
+        return rest or None
+    return identifier or rest or None
+
+
+def _invalid_model_outputs(connection) -> set[str]:
+    """File ids whose recorded site-C answer failed schema or validation.
+
+    ONE ANSWER PER FILE, the last one. A site can be asked twice about one subject
+    -- a retry, or a second call after a code change -- and the last recorded
+    verdict is the run's answer, which is `store.last_response_bytes`'s own "most
+    recent for this dossier" rule and the rule `shadow._observed` follows. Ordered
+    by rowid because a reader of an old database has no other ordering.
+
+    A file whose last answer was ACCEPTED, or who was never asked, is not here: the
+    set holds only the failures, so a run with no model tables at all contributes
+    nothing and reports nothing, which is the truth about it.
+    """
+    try:
+        verdicts = {
+            row["dossier_id"]: row["outcome"]
+            for row in _rows(connection,
+                             "select dossier_id, outcome from llm_verdict "
+                             "where superseded_by is null order by rowid")}
+        dossiers = _rows(connection,
+                         "select dossier_id, subject_ref from llm_dossier "
+                         "where call_site = ? order by rowid", C_PLACEMENT)
+    except sqlite3.Error:
+        # No `llm_*` tables: an offline run, or a database written before P8's
+        # schema existed. "No model answered" is a measurement and not a failure,
+        # so it comes back empty rather than raising.
+        return set()
+
+    failed: dict[str, bool] = {}
+    for dossier in dossiers:
+        file_id = _subject_file_id(dossier["subject_ref"])
+        if file_id is None:
+            continue          # a group, or a subject this corpus has no file for
+        outcome = verdicts.get(dossier["dossier_id"])
+        if outcome is None:
+            # A refusal, a pre-call abstention or a failed call. None of those is a
+            # model RESPONSE that failed, so none of them is counted here -- the
+            # BLOCKED lines are where a file stopped before an answer is counted.
+            continue
+        failed[file_id] = outcome in FAILED_VALIDATION
+    return {file_id for file_id, bad in failed.items() if bad}
+
+
+def _placeable_chains(connection, nodes) -> tuple[tuple[str, ...], ...]:
+    """Every folder chain a file could legally have been filed into, root first.
+
+    `where accepts_placement` is an exact filter and not a truthiness guess:
+    `tree_design.schema` declares the column `INTEGER NOT NULL CHECK
+    (accepts_placement IN (0, 1))`, so there is no NULL for it to drop silently. A
+    node that vanishes from this list refused placement and did not merely fail to
+    say so.
+
+    A database whose `tree_nodes` has no such column at all -- an older build -- is
+    read as though every node accepted one. That is the HARSHER direction on
+    purpose: it makes more abstentions "unnecessary" rather than excusing them with
+    a column this run cannot see, and a number that flatters the product on the
+    strength of a missing column is the one failure this package exists to refuse.
+    """
+    try:
+        placeable = {row["node_id"] for row in _rows(
+            connection, "select node_id from tree_nodes where accepts_placement")}
+    except sqlite3.Error:
+        placeable = set(nodes)
+    return tuple(sorted(_destination_of(node_id, nodes)
+                        for node_id in nodes if node_id in placeable))
 
 
 def _model_tally(connection) -> dict[str, int]:
@@ -333,6 +468,8 @@ def _observe(connection, root, situation, label, promised_levels, report,
                                  "is not null"):
         routing[row["file_id"]] = row["unrouted_completeness"]
 
+    invalid_outputs = _invalid_model_outputs(connection)
+
     decisions: dict[str, sqlite3.Row] = {}
     for row in _rows(connection, "select subject_ref, outcome, node_id, payload from "
                                  "placement_decisions where superseded_by is null"):
@@ -385,6 +522,7 @@ def _observe(connection, root, situation, label, promised_levels, report,
             outcome=outcome,
             destination=destination,
             asked=asked,
+            invalid_model_output=file_id in invalid_outputs,
         )
 
     # A file the scan set aside never becomes a `files` row, and "never silently
@@ -415,7 +553,7 @@ def _observe(connection, root, situation, label, promised_levels, report,
             extractors=(), completeness="unreadable",
             content_recovered=False, protected_marked=False, handling_class=None,
             fields={}, field_origins={}, unresolved_fields=(), outcome=None,
-            destination=(), asked=False)
+            destination=(), asked=False, invalid_model_output=False)
 
     depth = 0
     for node_id in nodes:
@@ -437,5 +575,6 @@ def _observe(connection, root, situation, label, promised_levels, report,
         never_built=_blocked[2],
         node_count=len(nodes),
         built_depth=max(0, depth - 1),   # below the top-level folder
+        node_paths=_placeable_chains(connection, nodes),
         report=report,
     )

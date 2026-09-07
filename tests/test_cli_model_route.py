@@ -528,3 +528,106 @@ def test_with_sending_on_the_facts_are_still_said_to_stay_on_the_device(
 
     assert "on this device and do not leave it" in printed
     assert "qwen3:8b" in printed
+
+
+# --------------------------------------------------------------------------
+# `104` R-121: open question 5 has ONE answer, in ONE place
+# --------------------------------------------------------------------------
+
+def _src_root():
+    import pathlib
+
+    import privacy
+    return pathlib.Path(privacy.__file__).parent.parent
+
+
+def _binding_sites(name: str) -> list[str]:
+    """Every module under `src/` that ASSIGNS this name at module level.
+
+    AST, not `read_text()`, and `tests/p3/test_p3_no_invention.py` records why: a
+    comment or a docstring explaining why a value is absent matches a text scan for
+    that value, and this fix leaves several such comments behind on purpose. An
+    `ImportFrom` is not a binding site -- importing the one answer is the fix.
+    """
+    import ast
+
+    found: list[str] = []
+    for path in sorted(_src_root().rglob("*.py")):
+        tree = ast.parse(path.read_text(), filename=str(path))
+        for node in tree.body:
+            targets = []
+            if isinstance(node, ast.Assign):
+                targets = [t for t in node.targets if isinstance(t, ast.Name)]
+            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                targets = [node.target]
+            if any(target.id == name for target in targets):
+                found.append(str(path.relative_to(_src_root())))
+    return found
+
+
+def test_r121_open_question_5_is_answered_in_exactly_one_place():
+    """`104` R-121. The tree answered it twice and the two answers disagreed.
+
+    `cli.UNCLASSIFIED_PERMITS_LOCAL` said `True`, documented as read by both the
+    gate and the route "so they cannot answer differently";
+    `placement.privacy.LOCAL_CALLS_ON_UNCLASSIFIED` said `False`, so P11 refused a
+    dossier to all 86 unclassified files of the owner's local run before
+    `Gate.release` was ever asked. `104` §15.3 rules one answer under one name.
+
+    A grep for a second pin, which is this repo's own technique for "there is
+    exactly one of these", made over the AST so the comments the fix leaves behind
+    do not satisfy it.
+    """
+    assert _binding_sites("UNCLASSIFIED_PERMITS_LOCAL") == ["privacy/denial.py"]
+    # The retired second spelling is gone everywhere, not merely repointed.
+    assert _binding_sites("LOCAL_CALLS_ON_UNCLASSIFIED") == []
+
+
+def test_r121_the_three_readers_all_reach_that_one_definition():
+    """Every reader resolves the name, and none of them holds a spelling of its own.
+
+    THIS TEST CANNOT PROVE THERE IS ONE DEFINITION and does not claim to. The
+    answer is a bool and `True` is a singleton, so two modules each pinning their
+    own `True` would satisfy `is` here exactly as they satisfy `==`. What proves
+    the single definition is `test_r121_open_question_5_is_answered_in_exactly_one
+    _place` above, which walks the AST for a second binding site. This one proves
+    the complementary half: each reader reaches the name at all, and the gate takes
+    it as a keyword with no default rather than deciding it for itself.
+    """
+    import placement.privacy as p11_privacy
+    from privacy.denial import UNCLASSIFIED_PERMITS_LOCAL as the_answer
+
+    assert cli.UNCLASSIFIED_PERMITS_LOCAL is the_answer
+    assert p11_privacy.UNCLASSIFIED_PERMITS_LOCAL is the_answer
+    # THE GATE IS THE THIRD READER, and it reads through its keyword rather than
+    # through an import: `unclassified_permits_local` has no default anywhere, so
+    # nothing clears §8.4 by omission. What R-121 requires is that the value the
+    # gate is handed comes from the one definition, which is what `cli.py`'s two
+    # call sites do -- asserted by the two route tests above and by the gate's own
+    # `tests/p7/test_p7_release.py`.
+    import inspect
+
+    from privacy.denial import unclassified_denies
+    from privacy.gate import Gate
+
+    assert "unclassified_permits_local" in inspect.signature(Gate.__init__).parameters
+    assert inspect.signature(Gate.__init__).parameters[
+        "unclassified_permits_local"].default is inspect.Parameter.empty
+    assert inspect.signature(unclassified_denies).parameters[
+        "local_calls_on_unclassified"].default is inspect.Parameter.empty
+
+
+def test_r121_the_answer_is_that_a_local_model_may_be_asked_and_a_cloud_one_may_not():
+    """The ruling itself (`104` §15.3), asserted through P7's own predicate.
+
+    "An unclassified file MAY reach a LOCAL model and never a cloud one" -- the
+    design's "only local rules and local models may run" under the local-only
+    modes, and a local model sees nothing that leaves the device.
+    """
+    from privacy.denial import UNCLASSIFIED_PERMITS_LOCAL, unclassified_denies
+
+    assert UNCLASSIFIED_PERMITS_LOCAL is True
+    assert unclassified_denies(
+        locality=LOCAL, local_calls_on_unclassified=UNCLASSIFIED_PERMITS_LOCAL) is False
+    assert unclassified_denies(
+        locality=CLOUD, local_calls_on_unclassified=UNCLASSIFIED_PERMITS_LOCAL) is True

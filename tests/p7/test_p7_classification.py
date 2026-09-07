@@ -88,13 +88,21 @@ def a_run(file_id, content_hash, run_id="run-1", completeness="complete"):
         started_at=FIXED_CLOCK, observation_count=1, finished_at=FIXED_CLOCK)
 
 
-# --- SPEC §2's eight fields ---------------------------------------------------
+# --- SPEC §2's eight fields, and `105` §14.3's ninth ---------------------------
 
 def test_the_eight_fields_are_specs_eight_in_specs_order():
-    assert CLASSIFICATION_FIELDS == (
+    """SPEC §2's own eight, still first and still in the SPEC's order.
+
+    The ninth is the owner's 7 Sep 2026 addition (`105` §14.3) and is APPENDED, so
+    the leading eight stay readable as the design's list rather than having a later
+    field blended into them. Asserted as a prefix for that reason.
+    """
+    assert CLASSIFICATION_FIELDS[:8] == (
         "file_id", "content_hash", "handling_class", "protected", "basis",
         "evidence_refs", "reliability_state", "observed_at",
     )
+    assert CLASSIFICATION_FIELDS[8] == "privacy_class"
+    assert len(CLASSIFICATION_FIELDS) == 9
     assert tuple(f.name for f in dataclasses.fields(ClassificationRecord)) == \
         CLASSIFICATION_FIELDS
 

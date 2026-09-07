@@ -252,6 +252,7 @@ def _inputs(conn, **overrides):
         fields_that_cannot_anchor_a_move=frozenset({"work_type", "term"}),
         their_own_folder_made_for_what_it_holds={},
         the_folder_each_file_is_in={},
+        a_move_the_person_has_not_permitted=None,
         p2=None)
     values.update(overrides)
     return PipelineInputs(**values)
@@ -286,8 +287,8 @@ def test_the_deterministic_path_runs_end_to_end_with_no_p8_at_all(live, tmp_path
 
     THE WORLD IS THE PRODUCT'S OWN, and R-19 is why it has to be named. Every
     model injection is here, including a real `Gate`, and the prompt's text is
-    UNRATIFIED, which is what `cli.observe_prompt` reads off `drafts_status()`
-    today. Under Q-A (`104` §13.5) a configured model that DECIDES is asked about
+    UNRATIFIED, which is what `cli.observe_prompt` reads off this draft's own
+    manifest row (`prompt_library.draft_status`) today. Under Q-A (`104` §13.5) a configured model that DECIDES is asked about
     every placeable file, so "a gate exists and no call happened" is no longer a
     sentence about §6.6 alone -- it is a sentence about ratification, and this
     test now says which. The twin below is the other half.

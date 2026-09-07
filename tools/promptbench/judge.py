@@ -45,6 +45,40 @@ from tools.promptbench.cases import Case
 from tools.promptbench.dossiers import BENCH_HANDLE_KEY, resolver_for
 
 ACCEPTED = frozenset({ACCEPT_DIRECT, ACCEPT_CONTEXT_SUPPORTED})
+
+#: `105` §14.7's five outcome classes, keyed on what the PRODUCT does with the
+#: answer: an accepted placement moves the file (correct or incorrect by the
+#: case's destination), an abstention or a weak verdict sends it to a person
+#: (appropriate or unnecessary by whether the case should abstain), and a
+#: rejected or schema-invalid answer is invalid output.
+CORRECT_PLACEMENT = "correct placement"
+INCORRECT_PLACEMENT = "incorrect placement"
+APPROPRIATE_ABSTENTION = "appropriate abstention"
+UNNECESSARY_ABSTENTION = "unnecessary abstention"
+INVALID_OUTPUT = "invalid output"
+OUTCOME_CLASSES = (CORRECT_PLACEMENT, INCORRECT_PLACEMENT, APPROPRIATE_ABSTENTION,
+                   UNNECESSARY_ABSTENTION, INVALID_OUTPUT)
+
+
+def expected_class(case: Case) -> str:
+    """The class a case's author expects: derived from `should_abstain`, so it
+    cannot disagree with the expectation the case already carries."""
+    return APPROPRIATE_ABSTENTION if case.should_abstain else CORRECT_PLACEMENT
+
+
+def outcome_class(*, parsed: bool, json_schema_valid: bool, worst_outcome,
+                  verdicts: list[dict], should_abstain: bool,
+                  correct: bool | None) -> str:
+    if not parsed or not json_schema_valid or worst_outcome is None:
+        return INVALID_OUTPUT
+    if worst_outcome == REJECT or any(
+            SCHEMA_INVALID in v.get("reasons", ()) for v in verdicts):
+        return INVALID_OUTPUT
+    if worst_outcome in ACCEPTED:
+        if should_abstain or not correct:
+            return INCORRECT_PLACEMENT
+        return CORRECT_PLACEMENT
+    return APPROPRIATE_ABSTENTION if should_abstain else UNNECESSARY_ABSTENTION
 #: D actions that name no destination. A case whose expectation is one of these
 #: is a should-abstain case for the `00`:223 metric.
 D_NO_DESTINATION = frozenset({ABSTAIN, LEAVE_IN_CURRENT_LOCATION, MARK_REVIEW_LATER})
@@ -69,6 +103,9 @@ class Judgement:
     correct: bool | None
     abstain_correct: bool | None
     detail: dict = field(default_factory=dict)
+    #: `105` §14.7: one of `OUTCOME_CLASSES`, and the class the case expects.
+    outcome_class: str = ""
+    expected_class: str = ""
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -167,6 +204,7 @@ def _read_c(case: Case, claims: list[dict]) -> tuple[dict, bool]:
         "support": payload.get("support"),
         "next_support": payload.get("next_support"),
         "refinement": payload.get("refinement"),
+        "citations": claim.get("citations"),
         "unknown": claim.get("unknown"),
     }, abstained
 
@@ -281,6 +319,11 @@ def _correct(case: Case, answer: dict, accepted: bool) -> tuple[bool | None, dic
             return None, detail
         detail["destination_matches"] = answer["destination"] == want
         detail["accepted"] = accepted
+        levels = answer.get("per_dimension_support")
+        detail["context_only"] = bool(
+            isinstance(levels, list) and levels
+            and all(isinstance(l, dict) and l.get("support") == "context" for l in levels)
+            and not answer.get("citations"))
         return bool(answer["destination"] == want), detail
     if site == D_RESIDUAL:
         want_action = expect.get("action")
@@ -402,18 +445,24 @@ def judge(case: Case, dossier, response_bytes: bytes, *, schema: dict,
     abstain_correct = (abstained if should else None)
     if not should and correct is not None:
         detail["false_abstention"] = abstained
+    verdict_rows = [{"claim_ref": v.claim_ref, "outcome": v.outcome,
+                     "disposition": v.disposition, "reasons": list(v.reasons)}
+                    for v in verdicts]
     return Judgement(
         case_id=case.case_id, site=case.site, parsed=parsed is not None,
         json_schema_valid=schema_ok, json_schema_errors=schema_errors,
-        verdicts=[{"claim_ref": v.claim_ref, "outcome": v.outcome,
-                   "disposition": v.disposition, "reasons": list(v.reasons)}
-                  for v in verdicts],
+        verdicts=verdict_rows,
         worst_outcome=worst, accepted=accepted,
         citations_total=report.citations_total,
         citations_resolved=report.citations_resolved,
         citations_span_matched=report.citations_span_matched,
         abstained=abstained, answer=answer, should_abstain=should,
-        correct=correct, abstain_correct=abstain_correct, detail=detail)
+        correct=correct, abstain_correct=abstain_correct, detail=detail,
+        outcome_class=outcome_class(
+            parsed=parsed is not None, json_schema_valid=schema_ok,
+            worst_outcome=worst, verdicts=verdict_rows, should_abstain=should,
+            correct=correct),
+        expected_class=expected_class(case))
 
 
 def _judge_shortlist(case, dossier, parsed, schema_ok, schema_errors) -> Judgement:
@@ -477,7 +526,13 @@ def _judge_shortlist(case, dossier, parsed, schema_ok, schema_errors) -> Judgeme
         worst_outcome=outcome, accepted=accepted, citations_total=total,
         citations_resolved=resolved, citations_span_matched=matched,
         abstained=abstained, answer=answer, should_abstain=should, correct=correct,
-        abstain_correct=(abstained if should else None), detail=detail)
+        abstain_correct=(abstained if should else None), detail=detail,
+        outcome_class=outcome_class(
+            parsed=parsed is not None, json_schema_valid=schema_ok,
+            worst_outcome=outcome, verdicts=[{"reasons": reasons}],
+            should_abstain=should, correct=correct),
+        expected_class=expected_class(case))
 
 
-__all__ = ["ACCEPTED", "Judgement", "judge", "site_dependencies_for"]
+__all__ = ["ACCEPTED", "Judgement", "OUTCOME_CLASSES", "expected_class", "judge",
+           "outcome_class", "site_dependencies_for"]

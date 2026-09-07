@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import hashlib
 import sqlite3
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 
 from facts.llm_seam import FactRequest, Proposal
@@ -137,6 +137,54 @@ _CITATION_MALFORMED: str = "citation_malformed"
 #: Template rule 8: *"Never send two claims about the same field: that destroys your
 #: whole answer."*
 _DUPLICATE_FIELD: str = "duplicate_field"
+#: `104` R-132: a claim that names two answerable fields, one in `payload.field` and a
+#: different one in the optional `claim_ref`. Neither wins by being first; the claim
+#: is refused and the address names both.
+_CLAIM_REF_DISAGREES: str = "claim_ref_disagrees_with_field"
+
+
+def _answerable_fields(request) -> frozenset[str]:
+    """The field names this request can be about, or an empty set if it cannot say.
+
+    Only used to read the OPTIONAL `claim_ref`. A bad allowlist shape is
+    `_run_checks`'s `ValidationUnavailable` to report, not this function's to
+    pre-empt, so an unreadable one answers "no field names" and every `claim_ref` is
+    then just an identifier.
+    """
+    allowlist = getattr(request, "allowlist", None)
+    if isinstance(allowlist, (str, bytes)) or not isinstance(allowlist, Sequence):
+        return frozenset()
+    return frozenset(item for item in allowlist if isinstance(item, str) and item)
+
+
+def _claim_ref_disagreement(
+    claim: Mapping[str, object],
+    field_key: str,
+    answerable: frozenset[str],
+) -> str | None:
+    """The refusal address when `claim_ref` names a DIFFERENT answerable field.
+
+    **`payload.field` is authoritative and this does not change that** (`105`
+    §14.5): it named the proposal, it decided rule 8's duplicate check, and it is
+    the verdict's `claim_ref` on every claim that is judged. What this reads is the
+    claim's own optional `claim_ref`, which `13.5`(a) proposed to define as "the
+    field the claim is about".
+
+    **Only when it is a field name.** The template prints no `claim_ref` at all and
+    this repo's fixtures send `"c1"`; an identifier is not a second answer to "which
+    field", so it disagrees with nothing. A `claim_ref` that IS a member of the
+    request's allowlist and is not `payload.field` is a second answer, and a claim
+    that names two answerable fields does not say which one it answered.
+
+    Both names go in the address, truncated the way `_DUPLICATE_FIELD` truncates,
+    because the record has to survive being read a run later.
+    """
+    raw = claim.get("claim_ref")
+    if not isinstance(raw, str) or not raw:
+        return None
+    if raw == field_key or raw not in answerable:
+        return None
+    return f"{field_key[:40]}:{_CLAIM_REF_DISAGREES}:{raw[:40]}"
 
 
 def _claims(
@@ -300,8 +348,24 @@ def _fact_site(
             name for index, name in enumerate(fields) if name in fields[:index])
         return finished((schema_invalid_verdict(
             dossier, f"claims:{_DUPLICATE_FIELD}:{repeated[:40]}"),))
+    answerable = _answerable_fields(bundle.fact_request)
     verdicts = []
-    for proposal, citations in parsed:
+    # `parsed` is one entry per claim, in input order, and the loop above returned
+    # for every entry that was a refusal -- so `strict` is the invariant said out
+    # loud rather than a shape this zip could quietly drop half of.
+    for claim, (proposal, citations) in zip(claims, parsed, strict=True):
+        disagreement = _claim_ref_disagreement(
+            claim, proposal.field_key, answerable)
+        if disagreement is not None:
+            # ONE CLAIM REFUSED, THE RESPONSE ALIVE (`104` R-132, `105` §14.5(d)).
+            # `payload.field` is authoritative -- it decided the duplicate check
+            # above and it names this verdict -- so the refusal is not about which
+            # name wins. It is that a claim naming TWO answerable fields does not
+            # say which question it answered, and P8 does not choose. The address
+            # carries both, because a record saying only "invalid" is the failure
+            # this file's matrix was written to end.
+            verdicts.append(schema_invalid_verdict(dossier, disagreement))
+            continue
         verdict = validate_fact_proposal(
             conn, bundle.fact_request, proposal,
             dependencies=bundle.fact_dependencies,
