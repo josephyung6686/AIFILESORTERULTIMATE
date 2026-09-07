@@ -670,3 +670,133 @@ def test_the_answers_that_reach_a_group_are_never_folded_into_another_group():
         "an --answer reaches is a fact about that group and about no other")
     assert flat.count(
         "--answer reading.organization:CV1=law_practice") == 3, flat
+
+
+# ======================================================================================
+# `104` R-122: a sentence about the PLAN, printed under every group
+# ======================================================================================
+
+#: R-114 folded a block only where it was word for word the same, and the block
+#: under a hold never is: the `Held for review as "<set>"` line above it names a
+#: different set under every heading. So the sentence at the bottom of it -- "This
+#: plan has nowhere to put them yet: enable an area with `--residual`" -- was
+#: printed once per held group and the 52-file screen stayed at 412 lines.
+#:
+#: The set name is the GROUP's fact and stays under every group; it is what a
+#: person types after `--send-set`. Whether the plan has anywhere to put a held
+#: set is one fact about the PLAN, and it is said once.
+#:
+#: Six reasons and six EXPLANATIONS, because the report keys a group on the
+#: decision's explanation: six sets sharing one explanation are six lines under
+#: one heading, which is the multi-reason case and not this one.
+SIX_REASONS = (
+    ("Not yet said what kind of material",
+     "nothing has yet said what kind of material these are."),
+    ("A model was not allowed to look",
+     "the privacy settings on the folder they are in do not let one be asked."),
+    ("No folder matched",
+     "no folder in this plan matched them well enough to be worth proposing."),
+    ("More than one folder fits",
+     "more than one folder in this plan matches each of these well enough."),
+    ("Two folders fit about equally well",
+     "two folders fit each of these about equally well."),
+    ("The readings disagree",
+     "what this run read about these points at more than one folder."),
+)
+
+NOWHERE = "This plan has nowhere to put them yet"
+POINTER = "Sent the same way as the first held group above, once an area exists."
+OTHER_AREAS = "The other areas are named under the first held group above."
+
+
+def _six_held_groups(*areas: str):
+    """Six holds, six reasons, six headings, and one plan under all of them."""
+    nodes = [_node("node_0", "Coursework")]
+    nodes += [_node(f"res_{n}", area, role="residual")
+              for n, area in enumerate(areas)]
+    decisions, sets, names = [], [], {}
+    for index, (label, reason) in enumerate(SIX_REASONS):
+        members = []
+        for offset in range(4):
+            file_id = f"id-{index}-{offset}"
+            names[file_id] = f"folder-{index}/note-{index}-{offset}.txt"
+            members.append(file_id)
+            decisions.append(_decision(
+                file_id=file_id,
+                explanation=f"Nothing was decided about this file: {reason}"))
+        sets.append(_set(label, members, reason))
+    return _run(nodes=nodes, decisions=decisions, sets=sets), names
+
+
+def test_the_sentence_about_the_plan_is_printed_once_under_six_held_groups():
+    """`104` R-122, stated as the property that fixes it.
+
+    Six headings, six set names, and one sentence about whether the plan has
+    anywhere to put any of them. Before this change that sentence was printed six
+    times, because the block carrying it differed by the set's name and R-114's
+    fold keys on the block being identical.
+    """
+    run, names = _six_held_groups()
+    flat = " ".join(_printed(run, names).split())
+
+    assert flat.count("Held for review as ") == 6, (
+        f"six holds produced {flat.count('Held for review as ')} headings; the "
+        "set name is each group's own fact and stays under it")
+    said = flat.count(NOWHERE)
+    assert said == 1, (
+        f"the sentence about enabling an area is printed {said} times; it is "
+        "one fact about the plan")
+    assert flat.count(POINTER) == 5, (
+        "the five later holds should each say in one line where that sentence "
+        f"is; {flat.count(POINTER)} of them do:\n{flat}")
+
+
+def test_folding_that_sentence_drops_no_set_name_no_command_and_no_file():
+    """The half that matters more, and the same twin R-114 has.
+
+    Shortening may only ever remove a REPEAT. Every set is still named where a
+    person reads it, every `--send-set` is still on the screen with the name it
+    addresses, and every file this report named before is still named.
+    """
+    run, names = _six_held_groups("Review Later", "Reading Inbox")
+    printed = _printed(run, names)
+    flat = " ".join(printed.split())
+
+    for label, _ in SIX_REASONS:
+        assert f'Held for review as "{label}"' in flat, (
+            f'"{label}" is no longer named on the screen:\n{printed}')
+        assert (f"      --send-set "
+                f"{shlex.quote(f'{label}=Review Later')}") in printed, (
+            f'the one command that files "{label}" went with the repeat:\n'
+            + printed)
+    for name in names.values():
+        assert name in printed, f"{name} is no longer on the screen"
+
+
+def test_with_a_residual_area_the_other_sentence_is_the_one_said_once():
+    """The `--residual` screen, where a DIFFERENT sentence sits in that place.
+
+    Three states and not two. With no area the sentence says how to make one.
+    With exactly ONE area every set already carries its own `--send-set` line and
+    nothing further is said -- there is no alternative sentence to fold, which is
+    asserted here so that nobody adds one by mistake. With two or more, the
+    sentence names the areas the commands do not go to, and that is one fact
+    about the plan in the same way.
+    """
+    one = " ".join(_printed(*_six_held_groups("Review Later")).split())
+    assert NOWHERE not in one, (
+        "an area exists and the screen still says the plan has nowhere to put "
+        "them")
+    assert "This plan also has" not in one and OTHER_AREAS not in one, (
+        "a second sentence appeared where one area means there is nothing "
+        f"further to say:\n{one}")
+
+    two = " ".join(_printed(*_six_held_groups("Review Later",
+                                              "Reading Inbox")).split())
+    assert two.count("This plan also has Reading Inbox.") == 1, (
+        f"the areas this plan also has are named "
+        f"{two.count('This plan also has Reading Inbox.')} times; that is one "
+        "fact about the plan")
+    assert two.count(OTHER_AREAS) == 5, (
+        f"{two.count(OTHER_AREAS)} of the five later holds say where it is:\n"
+        + two)
