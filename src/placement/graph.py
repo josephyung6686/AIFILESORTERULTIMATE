@@ -84,6 +84,12 @@ def build_node_local_graph(*, subject, candidate, entry, related_files, limits,
     `related_files` are edges the caller already resolved from P6 facts, P9
     memberships and P3 folder context; P11 discovers no relationship of its own
     here, because that would be a second grouping engine and P9 owns grouping.
+
+    **THE CALLER'S ORDER IS PART OF THE CONTRACT (`104` R-111).** §8.6's two
+    ceilings below cut, and a stable sort on weight alone leaves everything they
+    did not rank in the order it arrived -- so an arbitrary order here is an
+    arbitrary answer, and `cli.typed_edges_of` is where the content order that
+    makes it reproducible is established.
     """
     from placement.store import subject_ref_of
 
@@ -105,9 +111,29 @@ def build_node_local_graph(*, subject, candidate, entry, related_files, limits,
         item for item in related_files
         if item["to_file_id"] in community or item["anchor_file_id"] in community
     ]
-    ordered = sorted(
-        kept, key=lambda item: (-item["weight"], item["to_file_id"]),
-    )
+    # Weight, and NOTHING ELSE. A stable sort, so edges of equal weight keep the
+    # order the caller handed them in -- which `cli.typed_edges_of` reads out of
+    # `group_edges` ordered by the other end's `(content_hash, current_path)`,
+    # then edge type and bridge.
+    #
+    # **IT USED TO BE `(-weight, to_file_id)`, AND THAT WAS `104` R-111.** A
+    # `file_id` is a `uuid4` P1 mints when it first indexes a path, and P9 stores
+    # no weight at all -- `typed_edges_of` gives every edge 1.0 -- so the whole of
+    # this ranking was a comparison between two minted ids, and the two cuts
+    # below are the ones that CHOOSE: `max_candidate_cluster_size` decides which
+    # files reach the graph and `max_local_graph_neighborhood` which edges
+    # survive. Two runs over one folder therefore recorded a different
+    # `graph_anchors` for the same placement -- 24 of 36 rows on R-78's corpus,
+    # 870 of 1,000 on the scale corpus -- while every other derived table was
+    # byte-identical. The file went to the same folder both times and could not
+    # be shown the same reason twice.
+    #
+    # Weight stays the cut's own business rather than moving to the caller: the
+    # day P9 records a real one it must dominate, and content break its ties.
+    # This is `104` R-78's `grouping.graph._rank` at the P11 seam, for the same
+    # reason -- an address is for finding a thing again, not for choosing between
+    # things.
+    ordered = sorted(kept, key=lambda item: -item["weight"])
     # §8.6's two ceilings on this object, applied in the order that makes both
     # hold. They bound different things and neither implies the other: a vague
     # file can reach five files through fifty edges, or fifty files through

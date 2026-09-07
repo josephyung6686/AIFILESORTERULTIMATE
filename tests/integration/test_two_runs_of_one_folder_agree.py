@@ -16,6 +16,13 @@ an order made out of THIS run's minted ids.
 `tests/p9/test_p9_the_cap_cuts_by_content.py` holds the mechanism; this file holds
 the property the product actually has to have.
 
+**And it has to hold to the end of the pipeline, not to the end of P9 (`104`
+R-111).** The tables below stopped at `unresolved`, so the day P9 became
+reproducible the guard went green while `placement_decisions` was still writing a
+different `graph_anchors` for 24 of this corpus's 36 files. The record of what a
+reviewer is shown is part of the answer; a stage left out of the list is a stage
+nothing measures.
+
 **What "the same" means here.** A `file_id` is a `uuid4` and a plan version, a
 group and a tree node all carry a minted address, so two from-empty runs can never
 be byte-identical as raw rows and it would be no virtue if they were. Every minted
@@ -50,15 +57,28 @@ UUID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 STAMP = re.compile(
     r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?([+-]\d{2}:\d{2}|Z)?")
+#: A plan version is minted `version_<hex>_<counter>`: no dashes, so `UUID` cannot
+#: see it, and it reaches every P11 table as a column AND inside three record ids.
+#: What a version IS to a reader is its place in the chain -- draft, refined,
+#: frozen -- which the counter names and the hex does not.
+PLAN_VERSION = re.compile(r"version_[0-9a-f]{6,}_(\d+)")
 
 #: What a run DERIVES, as opposed to what it was handed. Both halves are here on
 #: purpose: if `file_facts` and `evidence` ever disagree between two runs the
 #: cause is upstream of P9 and the diagnosis is a different one, so the guard
 #: should say which half moved rather than only that something did.
+#:
+#: **The three P11 tables are here because of `104` R-111.** Everything above
+#: `placement_decisions` agreed run to run from the day R-78 was closed, and the
+#: record of WHAT WAS SHOWN for a placement did not: `payload.graph_anchors`
+#: differed in 24 of this corpus's 36 rows, and in 870 of 1,000 on the scale
+#: agent's synthetic corpus. Stopping the guard at `unresolved` is what let a
+#: whole stage's reproducibility go unmeasured for one register row.
 DERIVED = (
     "extraction_runs", "evidence", "text_units", "file_facts",
     "groups", "memberships", "group_edges", "stop_rule_outcomes",
     "tree_nodes", "node_expected_values", "unresolved",
+    "placement_decisions", "placement_index_entries", "placement_group_plans",
 )
 
 #: Columns dropped rather than normalised, because the whole of their value is a
@@ -227,6 +247,8 @@ def _normalised(database: Path) -> dict[str, list[str]]:
             if not isinstance(value, str):
                 return value
             value = minted.sub(lambda found: names[found.group(0)], value)
+            value = PLAN_VERSION.sub(lambda found: f"<plan:{found.group(1)}>",
+                                     value)
             value = UUID.sub("<uuid>", value)
             value = STAMP.sub("<stamp>", value)
             return value.replace(str(root), "<root>") if root else value
@@ -321,6 +343,39 @@ def test_the_two_runs_propose_the_same_tree(two_runs, table):
     assert first[table] == second[table], (
         f"the folder tree this product proposes for one folder is not the same "
         f"tree on a second run: `{table}` differs")
+
+
+@pytest.mark.parametrize("table", ["placement_decisions",
+                                   "placement_index_entries",
+                                   "placement_group_plans"])
+def test_the_two_runs_record_the_same_placements(two_runs, table):
+    """`104` R-111. The placement was the same; the RECORD of it was not.
+
+    `placement_decisions.payload.graph_anchors` is §6.4's node-local graph as a
+    reviewer sees it -- which files were shown as connecting this one to that
+    folder. On two runs over this corpus 24 of 36 rows carried a different set,
+    while every table above agreed to the byte, so the file went to the same
+    place both times and could not be shown the same reason twice.
+
+    The mechanism was R-78's, one seam further down. `build_node_local_graph`
+    cut §8.6's two ceilings over `sorted(kept, key=(-weight, to_file_id))`, and
+    `cli.typed_edges_of` gives every edge `weight = 1.0` because P9 stores none
+    -- so the entire ranking was a comparison of two `uuid4`s minted by P1, and
+    the Downloads copies in this corpus are files that tie on everything else.
+
+    Parametrised over all three P11 tables rather than asserted on the payload
+    alone: if the cut ever starts moving `outcome` or `node_id`, the anchors were
+    feeding `is_typed_support` into a decision and that is a larger finding than
+    a record that reads differently.
+    """
+    first, second = two_runs
+    assert len(first[table]) == len(second[table]), (
+        f"two runs over one folder wrote {len(first[table])} and "
+        f"{len(second[table])} rows of `{table}`")
+    assert first[table] == second[table], (
+        f"`{table}` has the same number of rows in both runs and they are not "
+        "the same rows, so P11 recorded a different answer about two files it "
+        "could not tell apart by content (`104` R-111)")
 
 
 def test_a_serial_run_reaches_the_same_answer_as_a_parallel_one(
