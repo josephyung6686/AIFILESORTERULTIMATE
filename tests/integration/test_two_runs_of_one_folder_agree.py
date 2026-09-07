@@ -6,13 +6,15 @@ so every number this product reports about that corpus was a number from one
 draw. The scale agent's identity check had to be run from a fixed P1--P7 snapshot
 to mean anything, which is a way of saying the pipeline could not be measured.
 
-Reproduced here on synthetic files: two runs over one 46-file folder, from an
-empty database each time, gave 574 edges and 573. Diagnosed by minting `file_id`
-from the path instead of `uuid4` for one experiment, which made every derived
-table identical — so the difference was not extraction, not OCR and not the pool's
-landing order, but a derivation choosing in an order made out of THIS run's minted
-ids. `tests/p9/test_p9_the_cap_cuts_by_content.py` holds the mechanism; this file
-holds the property the product actually has to have.
+Reproduced here on synthetic files. Three runs over the 34-file folder this file
+builds, from an empty database each time, gave 463 edges, 456 and 457; a
+63-file version of the same corpus with PDFs and OCR'd images in it gave 574 and
+573. Diagnosed by minting `file_id` from the path instead of `uuid4` for one
+experiment, which made every derived table identical — so the difference was not
+extraction, not OCR and not the pool's landing order, but a derivation choosing in
+an order made out of THIS run's minted ids.
+`tests/p9/test_p9_the_cap_cuts_by_content.py` holds the mechanism; this file holds
+the property the product actually has to have.
 
 **What "the same" means here.** A `file_id` is a `uuid4` and a plan version, a
 group and a tree node all carry a minted address, so two from-empty runs can never
