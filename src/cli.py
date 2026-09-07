@@ -5115,21 +5115,48 @@ def typed_edges_of(conn: sqlite3.Connection,
     the owner's corpus it would also carry 294 folder PATHS into the graph.
 
     `weight` is P9's when P9 has one and 1.0 when it has none, which today is
-    every edge (`grouping/graph.py` constructs them `weight=None`). With every
-    weight equal, §8.6's "reduce to the strongest" cut falls to the file-id
-    tiebreak `build_node_local_graph` already applies -- deterministic, and
-    honest about ranking nothing.
+    every edge (`grouping/graph.py` constructs them `weight=None`). So §8.6's
+    "reduce to the strongest" cut ranks nothing, and WHAT BREAKS THE TIE IS THIS
+    ORDER BY -- which is why the rows come back in a content order and not in
+    `rowid`.
+
+    **IT USED TO BE `ORDER BY rowid`, AND THAT WAS `104` R-111.** This docstring
+    said the equal weights left the cut to "the file-id tiebreak
+    `build_node_local_graph` already applies -- deterministic, and honest about
+    ranking nothing". Deterministic WITHIN one database, and a `file_id` is a
+    `uuid4` P1 mints when it first indexes a path: on two runs over one folder
+    from an empty database, §8.6's two ceilings kept a different draw of edges
+    and `placement_decisions.payload.graph_anchors` -- the evidence a reviewer is
+    shown for a placement -- differed in 24 of 36 rows on the R-78 corpus and 870
+    of 1,000 on the scale corpus, while every other derived table was identical.
+
+    So the OTHER end's own bytes and its own path decide, which is R-78's key
+    (`grouping/retrieval._corpus` reads `ORDER BY content_hash, current_path`)
+    read at this seam. `edge_type` and the bridge follow, and the last term
+    separates the two directions one pair can be related in; below them two rows
+    are the same relationship recorded under two groups, and which comes first
+    cannot be seen. Ordering by `rowid` was ordering by P9's insertion, which is
+    an order this function has no contract for.
+
+    The join is LEFT because a `group_edges` row whose other end is not in
+    `files` is not something a run produces -- P9 draws edges between indexed
+    files -- but a unit fixture that writes edges without files still deserves an
+    answer rather than an empty tuple that looks like "no relationships".
 
     `anchor_file_id` is P9's `from_file_id`: the seed the neighbourhood was
     drawn around. `to_file_id` is the OTHER file, whichever end this one is.
     """
     related = []
     for row in conn.execute(
-            "SELECT from_file_id, to_file_id, edge_type, weight, "
-            "bridge_entity_ref FROM group_edges "
-            "WHERE (from_file_id = ? OR to_file_id = ?) "
-            "AND superseded_by IS NULL AND hub_suppressed = 0 ORDER BY rowid",
-            (file_id, file_id)):
+            "SELECT e.from_file_id, e.to_file_id, e.edge_type, e.weight, "
+            "e.bridge_entity_ref FROM group_edges e "
+            "LEFT JOIN files f ON f.file_id = CASE WHEN e.from_file_id = ? "
+            "  THEN e.to_file_id ELSE e.from_file_id END "
+            "WHERE (e.from_file_id = ? OR e.to_file_id = ?) "
+            "AND e.superseded_by IS NULL AND e.hub_suppressed = 0 "
+            "ORDER BY f.content_hash, f.current_path, e.edge_type, "
+            "  e.bridge_entity_ref, e.from_file_id = ?",
+            (file_id, file_id, file_id, file_id)):
         spelling = P9_TO_P11_EDGE_TYPE.get(row["edge_type"])
         if spelling is None:
             continue
