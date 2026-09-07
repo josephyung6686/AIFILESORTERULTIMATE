@@ -112,6 +112,8 @@
    "template_file": "c_placement_template.eliminate-v2.txt",
    "response_schema_file": "c_placement_response_schema.json",
    "shaping_policy_file": "c_placement_shaping_policy.json",
+   "status": "ratified",
+   "ratified_by": "the owner, 7 Sep 2026, in chat (\"I want the ratification done as soon as possible\"); applied by the lead. Local model first; the cloud waits on R-82 (104 §15.1). 105 §14's amendments follow as eliminate-v3, a new row.",
    "note": "eliminate plus three sentences, each a stated delta: a group is support and never a citation; a shared branch serving two accepted groups stands alone; refinement is not_applicable unless a candidate is described as the file's current folder."
   },
   {

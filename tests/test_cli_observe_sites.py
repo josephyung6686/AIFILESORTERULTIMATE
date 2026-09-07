@@ -58,7 +58,7 @@ def test_a_site_is_never_both_wired_and_observed():
     assert cli.WIRED_CALL_SITES == frozenset({A_FACT})
 
 
-@pytest.mark.parametrize("site", sorted(WINNERS))
+@pytest.mark.parametrize("site", sorted(s for s in WINNERS if s != C_PLACEMENT))
 def test_an_observe_site_is_refused_a_cloud_model(site):
     """The count `104` §13 keeps, kept in code. Unratified text is text nobody has
     agreed to send: on this device that is a question of taste, and over the
@@ -73,8 +73,9 @@ def test_an_observe_site_is_refused_a_cloud_model(site):
 def test_the_refusal_says_the_packet_is_unratified_in_the_packets_own_word():
     """Read from the manifest, never remembered here: if the owner ratifies the
     packet the sentence stops claiming otherwise without anyone editing it."""
+    # B is the unratified site since C's row was ratified on 7 Sep 2026.
     with pytest.raises(cli.UnratifiedPromptOnACloudTarget) as caught:
-        cli.require_observe_locality(C_PLACEMENT, CLOUD)
+        cli.require_observe_locality(B_GROUP, CLOUD)
 
     assert drafts_status() in str(caught.value)
     assert cli.LOCAL_MODEL_NAME in str(caught.value)
@@ -223,7 +224,9 @@ def test_the_observe_lever_turns_a_verdict_into_an_abstention():
         disposition="llm_supported", reasons=(), may_propose=True,
         requires_review=False, citations_checked=(), scope=SCOPE_NODE,
         validator_version="vv", policy_version="pv", plan_version=None)
-    unratified = cli.observe_prompt(C_PLACEMENT)
+    # C's real row is ratified since 7 Sep 2026, so the unratified premise is set
+    # on the field here rather than read off the manifest.
+    unratified = dataclasses.replace(cli.observe_prompt(C_PLACEMENT), ratified=False)
     # THE FIELD, not the id. A renamed draft must not start applying, and a
     # ratified prompt keeping a draft's id must not keep abstaining.
     ratified = dataclasses.replace(unratified, ratified=True)
@@ -254,7 +257,9 @@ def test_the_signal_is_the_field_and_not_the_template_id():
 
     from placement.pipeline import _observed_only
 
-    draft = cli.observe_prompt(C_PLACEMENT)
+    # An UNRATIFIED draft is the premise; C's real row is ratified since 7 Sep,
+    # so the field is set here rather than read off the manifest.
+    draft = dataclasses.replace(cli.observe_prompt(C_PLACEMENT), ratified=False)
     renamed = dataclasses.replace(draft, template_id="c_placement.ratified.2026")
     kept_id = dataclasses.replace(draft, ratified=True)
 
@@ -274,8 +279,10 @@ def test_the_fact_prompt_says_it_is_ratified_and_the_drafts_say_they_are_not():
     """`planning/82` §0 records the owner ratifying A's text; the packet's own
     `status` is `unratified`. Both are read rather than assumed."""
     assert cli.a_fact_prompt().ratified is True
+    # 7 Sep 2026: the owner ratified C's eliminate-v2 row (manifest `status`
+    # on that row); B, D and E stay under the packet's word.
     for site in cli.OBSERVE_CALL_SITES:
-        assert cli.observe_prompt(site).ratified is False
+        assert cli.observe_prompt(site).ratified is (site == C_PLACEMENT)
 
 
 # --- one seam, five sites, and no site under another's contract -------------------
@@ -329,7 +336,7 @@ def test_every_call_site_resolves_its_own_prompt_through_one_seam(site):
     assert prompt.shaping_policy_bytes
     # Read off the definition, never parsed out of the id (`records.py`: "a string
     # test would make the invariant depend on a naming habit").
-    assert prompt.ratified is (site in cli.WIRED_CALL_SITES)
+    assert prompt.ratified is (site in cli.WIRED_CALL_SITES or site == C_PLACEMENT)
 
 
 def test_no_two_sites_share_a_template_a_schema_or_a_policy():
@@ -839,9 +846,11 @@ def test_a_row_with_no_status_of_its_own_is_under_the_packets_word(
     the real manifest relies on today."""
     from llm_harness.prompt_library import draft_status
 
-    for site in sorted(WINNERS):
+    silent = sorted(s for s in WINNERS if s != C_PLACEMENT)
+    for site in silent:
         assert "status" not in draft_row(WINNERS[site])
         assert draft_status(WINNERS[site]) == "unratified"
+    assert "status" in draft_row(WINNERS[C_PLACEMENT])  # ratified 7 Sep 2026
 
     def ratify_the_packet(manifest):
         manifest["status"] = "ratified"
@@ -849,7 +858,7 @@ def test_a_row_with_no_status_of_its_own_is_under_the_packets_word(
     manifest_with(ratify_the_packet)
 
     assert drafts_status() == "ratified"
-    for site in sorted(WINNERS):
+    for site in silent:
         assert draft_status(WINNERS[site]) == "ratified"
         assert cli.observe_prompt(site).ratified is True
 
@@ -890,8 +899,10 @@ def test_a_packet_status_word_nobody_defined_is_refused_too(manifest_with):
 
     with pytest.raises(DraftNotInManifest, match="Ratified"):
         drafts_status()
+    # A row that carries its own word does not read the packet's, so the
+    # inheriting site is the one that sees the bad packet word.
     with pytest.raises(DraftNotInManifest, match="Ratified"):
-        draft_status(WINNERS[C_PLACEMENT])
+        draft_status(WINNERS[B_GROUP])
 
 
 def test_two_rows_naming_one_text_and_disagreeing_about_status_is_refused(
@@ -950,17 +961,20 @@ def test_the_cloud_refusal_lifts_for_the_ratified_site_and_holds_for_the_rest(
         assert cli.observe_locality_permits(site, LOCAL) is True
 
 
-def test_the_real_manifest_on_disk_ratifies_nothing_and_this_change_did_not():
-    """THE PIN. This wave added the ABILITY to ratify one site; it ratified none.
-    Every observe site still reads False off the real file, every cloud target is
-    still refused, and the manifest is the owner's to edit and nobody else's."""
+def test_the_real_manifest_on_disk_ratifies_c_alone():
+    """THE PIN. On 7 Sep 2026 the owner ratified C's eliminate-v2 row and nothing
+    else: the packet's word stays `unratified`, B, D and E inherit it, and the
+    manifest is the owner's to edit and nobody else's. C's cloud target is
+    permitted by this word (P1's gate reads the row); what keeps C local today
+    is the configured model, and R-82 is signed before any cloud key is."""
     from llm_harness.prompt_library import draft_status
 
     assert drafts_status() == "unratified"
     for site in sorted(WINNERS):
-        assert draft_status(WINNERS[site]) == "unratified"
-        assert cli.observe_prompt(site).ratified is False
-        assert cli.observe_locality_permits(site, CLOUD) is False
+        expected = site == C_PLACEMENT
+        assert (draft_status(WINNERS[site]) == "ratified") is expected, site
+        assert cli.observe_prompt(site).ratified is expected, site
+        assert cli.observe_locality_permits(site, CLOUD) is expected, site
 
 
 # --- P2: the real resolvers behind C and D, and the stub that guards a draft ------
