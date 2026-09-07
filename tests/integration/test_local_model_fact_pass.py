@@ -177,6 +177,11 @@ class StubOllama:
                     # Below the window every time: this stub is not the thing under
                     # test when the transport's truncation receipt is.
                     "prompt_eval_count": 16,
+                    # `104` R-14. ollama's own name for the answer's token count,
+                    # beside the prompt's. Both are what `usage_of` reads, and a
+                    # stub that reported only one would let a half-written usage row
+                    # pass for a whole one.
+                    "eval_count": 7,
                 }).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
@@ -584,3 +589,54 @@ def test_a_gate_refusal_is_named_by_the_gates_own_word_and_is_not_counted_as_sen
     assert "(Refusal)" not in printed, (
         "the class name is not the reason; it names the envelope the answer "
         "arrived in and tells a person nothing about what to do")
+
+
+# --- `104` R-14: what the local call consumed, beside what was reserved ---------
+
+def test_a_local_fact_call_records_the_tokens_it_actually_used(
+        tmp_path, stub, monkeypatch):
+    """The deployment D1 steers toward, recording what it spent.
+
+    The cloud half of R-14 landed first and left this one blind: `cli.model_route`
+    gives the LOCAL model site A_fact whenever one is configured, so on the ordinary
+    local deployment every usage row would have carried its reservation and no
+    tokens at all. Both routes are handed the same mailbox now.
+
+    `reserved_cost` is what the budget put aside -- one call, its unit -- and the
+    token counts are ollama's own. The pair is the point: the budget still enforces
+    calls, and the distance between the estimate and the truth is readable beside it
+    without changing what it enforces.
+    """
+    database, report = _local_run(tmp_path, stub, monkeypatch)
+
+    rows = _query(
+        database,
+        "SELECT prompt_tokens, completion_tokens, prompt_cache_hit_tokens, "
+        "model_id, response_format, reserved_cost FROM llm_call_usage")
+    responses = _query(database, "SELECT COUNT(*) FROM llm_response")[0][0]
+
+    assert len(rows) == responses >= 1, report
+    for prompt, completion, cache_hit, model_id, fmt, reserved in rows:
+        assert prompt == 16, "the stub's `prompt_eval_count`, read not invented"
+        assert completion == 7, "the stub's `eval_count`"
+        # ollama's `/api/chat` reports no cache counter. `None` says nobody counted,
+        # where a zero would claim nothing was served from cache -- and
+        # `prompt_eval_count` does fall on a hit, so the effect is in the total even
+        # though its size is not reported.
+        assert cache_hit is None
+        assert model_id == MODEL_ID
+        assert fmt == "json", "what this transport actually sends in `format`"
+        assert reserved == format(cli.FACT_CALL_COST, "f")
+
+
+def test_the_usage_row_joins_to_the_dossier_it_describes(tmp_path, stub, monkeypatch):
+    """A usage row nothing can join is a number with no call attached to it."""
+    database, report = _local_run(tmp_path, stub, monkeypatch)
+
+    joined = _query(
+        database,
+        "SELECT COUNT(*) FROM llm_call_usage u "
+        "JOIN llm_dossier d ON d.dossier_id = u.dossier_id")[0][0]
+    total = _query(database, "SELECT COUNT(*) FROM llm_call_usage")[0][0]
+
+    assert joined == total >= 1, report

@@ -353,6 +353,30 @@ def record_edges(
     An edge id is content-derived, so a replay re-derives the same edge and the
     event is appended only for one that is genuinely new -- two creation events
     for one edge would say it was created twice.
+
+    **AND WHEN THE ADDRESS ITSELF MOVES, THE OLD EDGE IS SUPERSEDED (`104` R-67).**
+    `_edge_id` hashes the bridge entity, so R-61's change -- from the neighbour's
+    `detail` to its `bridge_entity` -- gives the same logical edge a different id.
+    Under `INSERT OR IGNORE` alone a re-run then ADDS the newly addressed edge
+    BESIDE the old one and both stay live, so the same pair of files is related
+    twice and a reader cannot tell which relation the product currently believes.
+
+    `00`:136-153 settles what to do about it, and it is not deletion: *"The product
+    must never overwrite the evidence record merely because a later extractor or
+    model produces a different answer. A newer result should supersede an earlier
+    result while retaining the old observation and the reason it was superseded."*
+    The table already agrees -- its delete trigger says "an edge is superseded,
+    never removed" -- so the old row stays readable and gains a forward pointer.
+
+    Superseded on the PAIR AND THE KIND, `(from_file_id, to_file_id, edge_type)`,
+    which is the edge's identity as a statement about the corpus; `edge_id` is the
+    identity of one derivation of it. Only rows that are still live are touched, so
+    the first supersede_reason sticks the way §8.2 requires everywhere else.
+
+    `supersedes` is deliberately left NULL on the new row. One new edge may
+    supersede several old derivations, and a single-valued column cannot say so;
+    the back-pointers on the old rows carry the whole relation without lying about
+    its shape.
     """
     del group_id
     with transaction(conn):
@@ -388,25 +412,64 @@ def record_edges(
                         f"{edge.evidence_ref}"
                     ),
                 )
+            # `104` R-67. Every OTHER live derivation of this same statement --
+            # same files, same kind, different address -- is superseded by the one
+            # just written. Run after the insert so the superseding row exists to
+            # be pointed at, and scoped to `superseded_by IS NULL` so a reason
+            # already recorded is never rewritten.
+            conn.execute(
+                "UPDATE group_edges SET superseded_by = ?, supersede_reason = ? "
+                "WHERE from_file_id = ? AND to_file_id = ? AND edge_type = ? "
+                "AND edge_id <> ? AND superseded_by IS NULL",
+                (
+                    edge.edge_id,
+                    "a later run re-derived this relation under a different "
+                    "content address; the earlier derivation is kept and is no "
+                    "longer the product's current answer about these two files",
+                    edge.from_file_id, edge.to_file_id, edge.edge_type,
+                    edge.edge_id,
+                ),
+            )
     return tuple(edge.edge_id for edge in edges)
 
 
 def edges_for_group(
-    conn: sqlite3.Connection, group_id: str,
+    conn: sqlite3.Connection, group_id: str, *, include_superseded: bool = False,
 ) -> tuple[TypedEdge, ...]:
-    """Every stored edge, in insertion order. `group_id` is the caller's context;
-    the graph that reads them back knows which ids it drew."""
+    """The LIVE edges, in insertion order. `group_id` is the caller's context;
+    the graph that reads them back knows which ids it drew.
+
+    **Live, not all (`104` R-67).** A superseded edge is kept -- `00`:136-153
+    requires the old record to stay readable -- and keeping it is not the same as
+    still believing it. Returning both left the same pair of files related twice,
+    once under each derivation, so a reader could not tell which relation the
+    product currently holds and a count of edges grew with every re-run.
+
+    `include_superseded` is for the reader that wants the history rather than the
+    answer, which is the other half of what §8.2 preserves them for.
+    """
     del group_id
-    return tuple(
-        TypedEdge(
-            edge_id=row["edge_id"], from_file_id=row["from_file_id"],
-            to_file_id=row["to_file_id"], edge_type=row["edge_type"],
-            evidence_ref=row["evidence_ref"], weight=row["weight"],
-            bridge_entity_ref=row["bridge_entity_ref"],
-            hub_suppressed=bool(row["hub_suppressed"]),
-            created_at=row["created_at"], superseded_by=row["superseded_by"],
+    if include_superseded:
+        return tuple(
+            _edge_from(row)
+            for row in conn.execute("SELECT * FROM group_edges ORDER BY rowid")
         )
-        for row in conn.execute("SELECT * FROM group_edges ORDER BY rowid")
+    return tuple(
+        _edge_from(row)
+        for row in conn.execute(
+            "SELECT * FROM group_edges WHERE superseded_by IS NULL "
+            "ORDER BY rowid")
+    )
+
+
+def _edge_from(row) -> TypedEdge:
+    return TypedEdge(
+        edge_id=row["edge_id"], from_file_id=row["from_file_id"],
+        to_file_id=row["to_file_id"], edge_type=row["edge_type"],
+        evidence_ref=row["evidence_ref"], weight=row["weight"],
+        bridge_entity_ref=row["bridge_entity_ref"],
+        hub_suppressed=bool(row["hub_suppressed"]),
+        created_at=row["created_at"], superseded_by=row["superseded_by"],
     )
 
 

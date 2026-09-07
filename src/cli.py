@@ -1102,10 +1102,9 @@ def model_route(*, out, on_usage=None) -> TierRouting | None:
                 tier_of_call_site=TIER_OF_CALL_SITE,
                 max_response_tokens=MAX_RESPONSE_TOKENS,
                 timeout_seconds=MODEL_CALL_TIMEOUT_SECONDS,
-                # `104` R-14, threaded and not read here. The LOCAL route below
-                # takes no such argument: `readers/model_ollama.py` names no usage
-                # field at all, so a local A_fact call reports nothing and its rows
-                # carry the reservation alone. That gap is reported, not papered.
+                # `104` R-14, threaded and not read here. Both routes take it:
+                # the local one usually SERVES A_fact, so a sink wired only to the
+                # cloud would leave the ordinary deployment's rows tokenless.
                 on_usage=on_usage)
         except (ValueError, RuntimeError) as refusal:
             # Every refusal `readers/` can raise names what was missing and what to
@@ -1129,7 +1128,11 @@ def model_route(*, out, on_usage=None) -> TierRouting | None:
             context_ceiling=LOCAL_CONTEXT_CEILING,
             timeout_seconds=LOCAL_MODEL_TIMEOUT_SECONDS,
             serves=A_FACT if cloud is not None else None,
-            beside=cloud)
+            beside=cloud,
+            # `104` R-14, and this is the route that usually serves A_fact: a
+            # deployment with a local model gives it that site, so a usage row with
+            # no tokens on it would be the ordinary case rather than the exception.
+            on_usage=on_usage)
     except (ValueError, RuntimeError) as refusal:
         # NO MODEL AT ALL, and deliberately not the cloud one. A person who set
         # {LOCAL_MODEL_NAME} asked for the model on their own machine; quietly

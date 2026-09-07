@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sqlite3
+import time
 import uuid
 from collections.abc import Iterable
 from contextlib import contextmanager
@@ -15,6 +16,30 @@ from database_agent.cloud_consent import CLOUD_CONSENT_DDL
 #: 2 added `st_dev`/`st_ino` to `files` (see FILES_DDL). `create_schema` migrates
 #: an existing database in place, so the bump records the change rather than gating it.
 SCHEMA_VERSION = 2
+
+#: `104` R-66. How long a writer waits for another writer before it gives up.
+#:
+#: THE NUMBER WAS PYTHON'S AND NOBODY CHOSE IT. `sqlite3.connect` defaults `timeout`
+#: to 5.0 seconds and this module never said otherwise, so the product inherited a
+#: busy timeout that is short against what it actually does: a scan holds a write
+#: transaction open for as long as one extraction takes, and `00`:257 budgets a
+#: single OCR at minutes. Measured consequence: `sqlite3.OperationalError: database
+#: is locked` three times in one evening at `privacy/classification_store.py:135`,
+#: through `learning_seam.assign`, with two runs over one plan database.
+#:
+#: Thirty seconds is chosen against the work rather than against the error: it is
+#: longer than any single write this product makes and far shorter than the
+#: per-extraction ceiling (`cli.EXTRACTION_SECONDS_PER_FILE`, 600), so a lock this
+#: does not clear is a neighbour that is stuck rather than one that is busy.
+BUSY_TIMEOUT_MS: int = 30_000
+
+#: How many times a write transaction re-asks for the lock before it raises.
+#:
+#: BOUNDED, and the bound is the point. A retry loop with no end turns a deadlocked
+#: neighbour into a run that never finishes, which is `104` R-50's failure wearing a
+#: different hat -- and R-50 is why this product now kills a worker that never
+#: returns rather than waiting for it.
+WRITE_LOCK_ATTEMPTS: int = 3
 
 
 class DatabaseInsideCorpus(Exception):
@@ -47,8 +72,15 @@ def open_database(path: Path, *, scan_roots: Iterable[Path] = ()) -> sqlite3.Con
             )
     path = resolved
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, isolation_level=None)
+    # `104` R-66. The timeout is passed AND the pragma is set: the constructor
+    # argument is what the driver waits on, the pragma is what a reader of the
+    # database can see, and a setting nobody can read back is one that exists only
+    # in the source. `tests/test_database_contention.py` asks SQLite rather than
+    # this file.
+    conn = sqlite3.connect(path, isolation_level=None,
+                           timeout=BUSY_TIMEOUT_MS / 1000)
     conn.row_factory = sqlite3.Row
+    conn.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
     conn.execute("PRAGMA foreign_keys = ON")
     # R6 is "INSERT only ... no row rewrite". SQLite's REPLACE conflict resolution
     # deletes the conflicting row WITHOUT firing delete triggers unless recursive
@@ -81,14 +113,68 @@ def _deny_events_history_loss(action, arg1, arg2, dbname, source):
     return sqlite3.SQLITE_OK
 
 
+def _begin_immediately(conn: sqlite3.Connection, on_wait) -> None:
+    """Take the write lock AT THE BOUNDARY, waiting for another writer if need be.
+
+    `104` R-66, and the change from `BEGIN` is the whole of the fix. SQLite's plain
+    `BEGIN` is DEFERRED: it acquires nothing, and the write lock is taken by the
+    first write INSIDE the body. So a contended run raised `database is locked` at
+    whatever `INSERT` happened to be first -- measured at
+    `privacy/classification_store.py:135`, through `learning_seam.assign` -- halfway
+    through a unit of work, where no caller can retry without repeating what it had
+    already done, and where the traceback names a writer that did nothing wrong.
+
+    `BEGIN IMMEDIATE` moves the acquisition here, where retrying costs nothing
+    because nothing has happened yet. The busy timeout does most of the waiting; the
+    loop is for the case where a neighbour holds the lock for longer than one
+    timeout, and it is BOUNDED so a stuck neighbour becomes an error rather than a
+    run that never finishes.
+
+    `on_wait` is handed each wait in seconds. A retry nobody can see is a run that
+    is slow for no stated reason, and `00`:257's posture on deferred work is that it
+    is marked rather than absorbed.
+    """
+    for attempt in range(1, WRITE_LOCK_ATTEMPTS + 1):
+        started = time.monotonic()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            return
+        except sqlite3.OperationalError as contended:
+            waited = time.monotonic() - started
+            if on_wait is not None:
+                on_wait(waited)
+            if "locked" not in str(contended) and "busy" not in str(contended):
+                # Not contention. A malformed database or a closed connection is
+                # not something a retry improves, and retrying would turn a clear
+                # failure into a slow one.
+                raise
+            if attempt == WRITE_LOCK_ATTEMPTS:
+                raise sqlite3.OperationalError(
+                    f"the database stayed locked by another writer through "
+                    f"{WRITE_LOCK_ATTEMPTS} attempts of {BUSY_TIMEOUT_MS} ms "
+                    f"({attempt * BUSY_TIMEOUT_MS / 1000:g}s in all). Another run "
+                    f"over this plan database is holding a write open for longer "
+                    f"than any single write this product makes, so it is stuck "
+                    f"rather than busy."
+                ) from contended
+
+
 @contextmanager
-def transaction(conn: sqlite3.Connection):
+def transaction(conn: sqlite3.Connection, *, on_wait=None):
     """Explicit transaction boundary. Reentrant: nested callers use a SAVEPOINT
     so they cannot roll back an outer scope's work.
+
+    `on_wait` (`104` R-66) is called with the seconds spent waiting for another
+    writer, once per contended attempt, and never on the uncontended path. It is
+    optional because most callers have nowhere to put the number; the ones that do
+    can report it rather than leave a run unexplainedly slow.
     """
     in_flight = conn.in_transaction
     name = f"p1_{uuid.uuid4().hex}"
     if in_flight:
+        # NO LOCK IS TAKEN HERE, and that is deliberate: the outer scope already
+        # holds the write lock, so an inner `BEGIN IMMEDIATE` would be this
+        # connection waiting for itself.
         conn.execute(f"SAVEPOINT {name}")
         try:
             yield conn
@@ -98,7 +184,7 @@ def transaction(conn: sqlite3.Connection):
             raise
         conn.execute(f"RELEASE SAVEPOINT {name}")
         return
-    conn.execute("BEGIN")
+    _begin_immediately(conn, on_wait)
     try:
         yield conn
     except Exception:

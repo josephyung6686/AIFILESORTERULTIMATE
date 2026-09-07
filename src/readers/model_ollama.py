@@ -96,6 +96,7 @@ that picks them.
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable
 from urllib.parse import urlsplit
 
@@ -162,6 +163,11 @@ THINKING_FIELD: str = "thinking"
 #: server's to extend and the successes are not.
 FINISHED: str = "stop"
 
+#: What this transport asks the model to answer IN, sent as `format` on every
+#: request and recorded on the usage row (`104` R-14). Spelled once, because the
+#: request and the record must not be able to disagree about it.
+RESPONSE_FORMAT: str = "json"
+
 
 class OllamaUnavailable(RuntimeError):
     """The local model could not be reached, so no call happened."""
@@ -195,6 +201,62 @@ class ModelVisibleBytesNotText(RuntimeError):
 
 class NoAnswerFromModel(RuntimeError):
     """Something came back over HTTP 200 and it is not an answer to the dossier."""
+
+
+@dataclass(frozen=True, slots=True)
+class Usage:
+    """What ollama says one call cost, in ollama's own numbers (`104` R-14).
+
+    **Why this is not `model_deepseek.Usage`.** That would be an import from `src/`,
+    and this module has none at run time -- the property `model_deepseek`'s own
+    `CLOUD` constant cites when it declines to import P7's vocabulary. The two are
+    structurally identical on purpose and
+    `tests/readers/test_model_ollama_usage.py` asserts it, so a field added to one
+    and not the other fails rather than drifts.
+
+    **The two cache columns are always `None` here, and that is the truth rather
+    than a gap.** ollama reuses its KV cache across requests whose prompts share a
+    prefix -- which is what `104` R-52 and R-58 are both about -- but `/api/chat`
+    reports no count for it. A zero would claim nothing was served from cache; a
+    `None` says nobody counted. `prompt_eval_count` DOES fall when the cache hits,
+    so the effect is visible in the total even though its size is not reported.
+
+    `response_format` is `json` and not `json_object`: it is what this transport
+    actually sends in `format`, and the row records what the call was made with.
+    """
+
+    model_id: str
+    prompt_tokens: int
+    completion_tokens: int
+    prompt_cache_hit_tokens: int | None
+    prompt_cache_miss_tokens: int | None
+    response_format: str
+
+
+def usage_of(response: object, *, model_id: str) -> Usage | None:
+    """What ollama reported it spent, or `None` because it reported nothing.
+
+    `None` and never zeroes, for `model_deepseek.usage_of`'s reason: a zero reads as
+    "this call cost nothing", which is a claim, where absence is what is known.
+    `_answer` already reads `prompt_eval_count` for the truncation receipt and threw
+    it away afterwards; this is the same number, kept.
+    """
+    if not isinstance(response, dict):
+        return None
+    prompt_tokens = response.get("prompt_eval_count")
+    completion_tokens = response.get("eval_count")
+    if not isinstance(prompt_tokens, int) or not isinstance(completion_tokens, int):
+        # Half a number in a cost record is worse than no record, because it will
+        # be summed. Reported absent rather than partial.
+        return None
+    return Usage(
+        model_id=model_id,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        prompt_cache_hit_tokens=None,
+        prompt_cache_miss_tokens=None,
+        response_format=RESPONSE_FORMAT,
+    )
 
 
 def _post(url: str, body: bytes, *, timeout: float) -> bytes:
@@ -292,6 +354,7 @@ def ollama_invoke(*, model_target: "ModelTarget", base_url: str | None,
                   max_response_tokens: int, context_ceiling: int,
                   timeout_seconds: float | None,
                   post: Callable[..., bytes] = _post,
+                  on_usage: Callable[[Usage | None], None] | None = None,
                   ) -> Callable[[bytes], bytes]:
     """A `ModelClient.invoke`: the model-visible bytes in, the model's answer out.
 
@@ -299,6 +362,12 @@ def ollama_invoke(*, model_target: "ModelTarget", base_url: str | None,
     mislabelled target, a host that is not loopback, a number nobody chose. That
     is `deepseek_invoke`'s rule and the reason is the same -- a deployment that is
     going to refuse should refuse before it has read a person's folder.
+
+    `on_usage` is `104` R-14's sink and is optional, exactly as in
+    `deepseek_invoke`: a sink and not a return value because `ModelClient.invoke` is
+    `Callable[[bytes], bytes]`, called once per ANSWERED call, and handed `None` when
+    the server reported no counts -- because "it told us nothing" is itself the
+    audit's answer.
     """
     endpoint = _require_loopback(base_url)
     _require_target(model_target)
@@ -342,7 +411,7 @@ def ollama_invoke(*, model_target: "ModelTarget", base_url: str | None,
             # P8 parses the reply against `response_schema_bytes`. A model free to
             # answer in prose fails that check for a reason that is not about the
             # evidence, which would read as the model declining when it did not.
-            "format": "json",
+            "format": RESPONSE_FORMAT,
             # `104` R-18, sent rather than assumed. See the module docstring.
             "think": False,
             "options": {"temperature": 0, "seed": 1,
@@ -380,9 +449,16 @@ def ollama_invoke(*, model_target: "ModelTarget", base_url: str | None,
                 f"Start it with `ollama serve`. No call was made, so nothing was "
                 f"decided on the strength of a model that was never asked."
             ) from problem
-        return _answer(json.loads(raw), window=window,
-                       prompt_bytes=len(payload),
-                       response_tokens=response_tokens).encode("utf-8")
+        response = json.loads(raw)
+        # AFTER `_answer`, so a refusal is a refusal and not a cost. A `thinking`
+        # block, a `done_reason` of `length` and a prompt that tokenised worse than
+        # the floor all raise there, and none of them is an answer this run may bill
+        # itself for.
+        answer = _answer(response, window=window, prompt_bytes=len(payload),
+                         response_tokens=response_tokens)
+        if on_usage is not None:
+            on_usage(usage_of(response, model_id=model_id))
+        return answer.encode("utf-8")
 
     return _Invoke(invoke, used)
 
