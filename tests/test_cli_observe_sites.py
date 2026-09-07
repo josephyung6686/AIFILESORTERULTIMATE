@@ -107,8 +107,8 @@ def test_every_observe_sites_draft_loads_and_says_unratified_in_its_own_id(
 def test_a_template_id_nobody_published_is_refused_and_names_what_there_is():
     """`84` §1: absent means refuse, never guess. A loader that fell back to a
     sibling draft would send text under an id no record could be checked against."""
-    with pytest.raises(DraftNotInManifest, match="anchors-first-v3"):
-        draft_bytes("b_group.unratified.anchors-first-v3.2026-09-06")
+    with pytest.raises(DraftNotInManifest, match="anchors-first-v9"):
+        draft_bytes("b_group.unratified.anchors-first-v9.2026-09-06")
 
 
 # --- the hook the four sites apply nothing through --------------------------
@@ -146,19 +146,12 @@ def test_the_observe_hook_is_a_wrapper_and_not_a_flag():
     assert ObservedOnly.__dataclass_params__.frozen
 
 
-def test_b_is_asked_under_v2_until_the_prompts_branch_merges_v3():
-    """The substitution, pinned where a reader meets it rather than in a commit.
-
-    `anchors-first-v3` is on the prompts branch (c06b7da..053c3be) and is in no
-    manifest this branch can read; `draft_bytes` refuses an id it cannot verify
-    against a recorded digest, which is the correct behaviour and not an obstacle
-    to route around. Files are not copied between worktrees to make it resolve
-    early: the digest is what makes a record's text checkable, and a file that
-    arrived by hand has no row to check it against."""
-    assert cli.OBSERVE_TEMPLATE_ID[B_GROUP].endswith("anchors-first-v2.2026-09-06")
-
-    with pytest.raises(DraftNotInManifest, match="anchors-first-v3"):
-        draft_bytes("b_group.unratified.anchors-first-v3.2026-09-06")
+def test_b_is_asked_under_v3_now_that_its_manifest_row_is_here():
+    """The substitution `104` §12.5 waited on: v3 (`105` §4.7, the G13 bracket
+    defect gone) is in this branch's manifest since the prompts merge, so the id
+    resolves and its bytes verify against the recorded digest. Still unratified."""
+    assert cli.OBSERVE_TEMPLATE_ID[B_GROUP].endswith("anchors-first-v3.2026-09-06")
+    assert draft_bytes(cli.OBSERVE_TEMPLATE_ID[B_GROUP])
 
 
 @pytest.mark.parametrize("site", sorted(cli.OBSERVE_TEMPLATE_ID))

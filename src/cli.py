@@ -672,15 +672,13 @@ assert not (WIRED_CALL_SITES & OBSERVE_CALL_SITES)
 #: digest recorded there, so re-pointing a site is an edit to this table and to
 #: nothing else.
 #:
-#: B IS ON v2 AND THE WAVE NAMED v3. `anchors-first-v3` exists on the prompts
-#: branch (c06b7da..053c3be) and has not merged to main, so it is in no manifest
-#: this branch can read and `draft_bytes` refuses an id it cannot verify -- which
-#: is the correct behaviour and not an obstacle to work around. Files are NOT
-#: copied between worktrees to make it resolve early: the digest is what makes a
-#: record's text checkable, and a file that arrived by hand has no row to check it
-#: against. When the prompts merge lands, this one line becomes v3.
+#: B IS ON v3. `anchors-first-v3` is `105` §4.7's put-forward text (v1 with the
+#: G13 bracket defect gone); it entered this branch's manifest with the prompts
+#: merge, so `draft_bytes` can verify its bytes against a recorded digest. It is
+#: unratified like the other three: `ratified` stays false and the site applies
+#: nothing under it.
 OBSERVE_TEMPLATE_ID: Mapping[str, str] = MappingProxyType({
-    B_GROUP: "b_group.unratified.anchors-first-v2.2026-09-06",
+    B_GROUP: "b_group.unratified.anchors-first-v3.2026-09-06",
     C_PLACEMENT: "c_placement.unratified.eliminate-v2.2026-09-06",
     D_RESIDUAL: "d_residual.unratified.ladder.2026-09-06",
     E_TEMPLATE: "e_template.unratified.what-a-person-opens-v2.2026-09-06",
