@@ -119,7 +119,10 @@ from placement.pipeline import (
 )
 from placement.residual import ProtectedSetNotReadable, prior_set_decisions
 from placement.schema import create_placement_schema
-from model_facts import FactCallAuthorities, fact_call_stage, pending_fields_for
+from model_facts import (
+    FactCallAuthorities, fact_call_stage, measure_released_tokens,
+    pending_fields_for,
+)
 from privacy.classification import UNREADABLE_UNCLASSIFIED, resolve_class
 from privacy.classification_store import ClassificationStore
 from privacy.gate import Gate
@@ -2434,9 +2437,13 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
             # settle it -- `unclassified_denies`' own docstring warns that denying
             # local calls here "may block exactly the OCR-opaque screenshots §2.7
             # and §7.8 want a model to interpret" -- and `no_safety_evidence_denies`
-            # answers the sibling question the same way in its own words: "LOCAL IS
+            # answers the sibling question the same way, permitting local
+            # unconditionally. That sibling's own escape hatch read "LOCAL IS
             # PERMITTED, and that is the half that keeps this from being a coverage
-            # regression wearing a safety fix's name."
+            # regression wearing a safety fix's name", and no local model existed,
+            # so it became one; the owner narrowed it on 2026-09-07 (`104` §13.2,
+            # `96` §20.1). The answer here is untouched by that: local was permitted
+            # before and is permitted after.
             #
             # Nothing leaves the device on this branch: `unclassified_denies`
             # refuses every CLOUD release of an unclassified file unconditionally
@@ -2448,6 +2455,15 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
             scope_for=lambda file_id: scan_run_id,
             files_in_scope=lambda scope: tuple(
                 file_id for file_id, _hash in corpus_roster(conn, scan_run_id)),
+            # M9's backstop, supplied at last (`103` C7, `104` SF-5). `Gate` takes
+            # this with a `None` default because "P7 owns no tokenizer and inventing
+            # one would invent a number", and with nothing measuring,
+            # `over_dossier_ceiling` never ran -- so the stored ceiling could not
+            # have denied anything however it was set. The measurement is this
+            # deployment's and it says what it counts: characters, used as an upper
+            # bound on tokens, which errs towards refusing and never towards
+            # sending. `model_facts.dossier_tokens` carries the reasoning.
+            measure_tokens=measure_released_tokens,
             component_version=COMPONENT_VERSION, now=now, user_id=user_id),
         model_client=routing.client_for(A_FACT),
         prompt=a_fact_prompt(),
@@ -3164,10 +3180,25 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
     create_mutation_schema(conn)
     create_review_schema(conn)
     for name, key in CEILINGS.items():
-        # Named, so the one that is not a spend ceiling is visibly not one.
-        set_ceiling(conn, key,
-                    RESIDUAL_REVIEW_BATCH if name == "max_residual_files_per_batch"
-                    else CEILING_VALUE)
+        # Named, so the one that is not a spend ceiling is visibly not one, and so
+        # that the one with a SECOND ANSWER elsewhere is visibly the same number as
+        # the other answer. `model.max_dossier_tokens_per_call` was seeded at
+        # `CEILING_VALUE` (8) while every request this deployment builds carries
+        # `GROUPING_LIMITS.max_dossier_tokens` (4000) -- two answers to one question,
+        # four hundred times apart, and the gate reads the stored one on purpose
+        # ("a caller must not raise its own ceiling by echoing a larger one"). Eight
+        # tokens is not a small budget, it is an unreachable one: no dossier that
+        # says anything fits under it, so the number could only ever have been
+        # decorative or catastrophic depending on whether anything measured. Now
+        # something does (`fact_call_authorities`' `measure_tokens`), so the two
+        # have to be one number, and `00`:251 names one ceiling, not two.
+        if name == "max_residual_files_per_batch":
+            value = RESIDUAL_REVIEW_BATCH
+        elif name == "max_dossier_tokens":
+            value = GROUPING_LIMITS.max_dossier_tokens
+        else:
+            value = CEILING_VALUE
+        set_ceiling(conn, key, value)
 
 
 def _validate_residuals(names: Sequence[str]) -> tuple[str, ...]:

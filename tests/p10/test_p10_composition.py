@@ -128,12 +128,18 @@ def test_the_run_holds_one_answer_to_the_one_ceiling_three_parts_share(
             == cli.GROUPING_LIMITS.max_dossier_tokens)
 
 
-test_the_run_holds_one_answer_to_the_one_ceiling_three_parts_share = pytest.mark.xfail(
-    strict=True,
-    reason="measured 2026-08-31: the ledger a run writes says 8 and the two limit "
-           "objects `cli.py` builds by hand say 4000, for one §8.6 key. XPASSes the "
-           "day the composition root writes the number it actually runs under.",
-)(test_the_run_holds_one_answer_to_the_one_ceiling_three_parts_share)
+#: CLOSED 2026-09-07. Its author wrote "XPASSes the day the composition root writes
+#: the number it actually runs under", and today is that day: `cli._bootstrap` seeds
+#: `model.max_dossier_tokens_per_call` at `GROUPING_LIMITS.max_dossier_tokens`
+#: instead of `CEILING_VALUE`. The marker is off; the assertion above stands and is
+#: now the guard against the two numbers separating again. The two markers ABOVE this
+#: one -- P10's own `tree.*` keys, which `_bootstrap` still does not seed -- are
+#: untouched and still failing for their own reason, which is not this one.
+#:
+#: `104` SF-5 needed the same equality from the other end: `Gate` reads the STORED
+#: number and `model_facts` measures against the number the request carries, so
+#: until these two agreed a measured ceiling would have refused every dossier that
+#: says anything.
 
 
 def test_this_file_is_measuring_the_real_composition_root(tmp_path: Path):

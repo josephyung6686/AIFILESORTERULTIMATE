@@ -846,3 +846,55 @@ and `Covid -19 vaccination record (1).pdf`, which §14's vocabulary additions la
 the same pass moved to `sensitive_personal, protected=1`. §19's 41/37 split is
 therefore reproduced exactly, and the 41 that were the problem now say so in the
 column SPEC §2 provides for it.
+
+### 20.1 AMENDMENT, 2026-09-07: the rule is narrowed, on the owner's ruling of 2026-09-05
+
+*Added by Claude Fable 5.1. The ruling is `104` §13.2; the root cause is `104` §12.1.*
+
+**What §20 above got right, and it is kept.** A class existing is not evidence of
+having looked. 41 of 78 files stored `personal_non_sensitive, protected=0` had matched
+no safety word at all, and a Hong Kong identity card was among them; letting a class
+alone clear a cloud call turns 41 silences into 41 confident negatives. That reading
+stands and this amendment does not touch it.
+
+**What it got wrong, and the commit's own words say so.** §20's fix was written with
+an escape hatch — `privacy.denial.no_safety_evidence_denies`' docstring says *"LOCAL
+IS PERMITTED, and that is the half that keeps this from being a coverage regression
+wearing a safety fix's name."* **No local model existed.** So a rule meant to
+REDIRECT ordinary files to an on-device model was, in the product as built, a total
+cloud block. Measured on the owner's 199 files on 2026-09-05: 44 files on basis
+`detector` could pass and 155 could not — 41 on this basis, 95 unclassified, 19
+protected. It shipped inside `fd68cb6`, a six-workstream commit whose own measurement
+table is headed "no model", so the cloud effect was never measured by the commit that
+caused it.
+
+Against the owner's product constitution of 2026-09-05, rule 2 — *coverage is sacred:
+a gate excluding readable files from the engine is a defect* — that is not a safety
+tightening. It is a coverage regression wearing one's name, which is the sentence the
+docstring itself warned about.
+
+**The narrowing.** `no_safety_evidence_denies` now takes a second term and refuses a
+cloud release only when BOTH hold: the weak basis, **and** a request carrying no
+releasable reading of the file itself. `Gate.release` computes the second per file,
+from the request, with the same content-free lookup the always-local zone refusal
+already uses.
+
+- A file with a bounded excerpt of its own words is not a silence. It may reach a
+  cloud model.
+- A file whose request carries only a candidate label, a metadata field name or an
+  evidence reference is exactly §19's silence, and is still refused, with the denial's
+  sentence rewritten to name the half that decided.
+- A local call is still permitted unconditionally, evidence or none.
+- **Protected material is untouched.** `protected_cloud_denies` is a separate rung
+  with no carve-out outside `cloud_assisted` plus an explicit grant, and two tests
+  assert the widening cannot reach it.
+
+**The precondition the owner attached, and it was met first.** `104` §6 amended D1 so
+the cloud half could not ship while SF-1 (whole-document release, R-07) was open,
+"or the lift sends whole documents to the provider". SF-1 was closed in the same
+branch, before this landed, and the payload instrument measured what it was
+protecting on the owner's own files: **20 Word documents would have had their entire
+text released, largest 41,247 bytes, before the fix; 0 after.**
+
+`tests/p7/test_p7_no_safety_evidence.py` is rewritten around the amended meaning and
+carries both halves.
