@@ -66,7 +66,7 @@ from tree_design.user_edits import UserLevelEdit, user_level_edits
 from tree_design.upstream import (
     AcceptedGroup, GroupMember, ProtectedArea, UpstreamUnavailable,
     accepted_groups, cross_folder_moves, existing_folders,
-    file_ids_in_directory, group_level_value, protected_areas,
+    file_ids_in_directory, group_level_reader, protected_areas,
     settled_values_by_directory,
 )
 from tree_design.validation import ValidationReport, run_checks
@@ -458,20 +458,14 @@ def _option_bindings(conn, authorities, *, parent: Node,
     member belongs to, so the members have to be traceable back to their groups
     here, where both are in hand. A member in no group of this branch has no such
     value and is unresolved at that level.
-    """
-    #: Which group each member is here under. First one wins, in branch order,
-    #: which is `_members`' own rule for the same shared file: two groups in one
-    #: branch may both claim it and it is counted once.
-    group_of: dict[str, AcceptedGroup] = {}
-    for group in groups:
-        for member in group.members:
-            group_of.setdefault(member.file_id, group)
 
-    def group_value_for_member(member: GroupMember, field_ref: str):
-        group = group_of.get(member.file_id)
-        if group is None:
-            return None
-        return group_level_value(conn, group=group, field_ref=field_ref)
+    The reader is `upstream`'s, and per group rather than per member: the answer
+    does not vary between a group's members, and asking it once for each of them
+    was `104` R-110 -- 47.9 of 77.8 profiled seconds at a thousand files, and
+    essentially the whole of P8--P11 at five thousand. It lives exactly as long as
+    this branch's pass over its own candidates.
+    """
+    group_value_for_member = group_level_reader(conn, groups=groups)
     # Keyed on the candidate RECORD, not on `id(candidate)`: `CompositionCandidate`
     # is a frozen dataclass and hashes by value, so two calls about the same
     # composition find the same pass — which is the property the three bindings
