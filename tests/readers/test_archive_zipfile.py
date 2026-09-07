@@ -89,18 +89,45 @@ def test_an_encrypted_member_is_listed_and_never_decrypted(tmp_path):
     path = tmp_path / "locked.zip"
     with zipfile.ZipFile(path, "w") as archive:
         archive.writestr("secret.txt", "hidden")
-    # Flip the per-member encryption bit: the header now claims encryption while
-    # the bytes are untouched, which is exactly the state a reader must survive
-    # without trying to decrypt anything.
-    with zipfile.ZipFile(path) as archive:
-        info = archive.infolist()[0]
-    raw = bytearray(path.read_bytes())
-    raw[6] |= 0x01
-    path.write_bytes(bytes(raw))
+    _claim_encrypted(path)
 
     manifest = zipfile_reader()(path)
 
     assert [member.path for member in manifest.members] == ["secret.txt"]
+    # And MARKED, in the reader's own words. `infolist` read the flag from the
+    # central directory and decrypted nothing; the manifest says so, and P5 turns
+    # the reason into an `unreadable` run (`test_p5_archive`). Before this line
+    # the manifest was `complete`, so a locked archive on a person's disk was
+    # indexed exactly like an open one and nothing downstream could tell.
+    assert manifest.unreadable_reason == (
+        "password-protected: 1 of 1 member(s) are encrypted; names listed, "
+        "contents not read")
+    assert manifest.total == 1 and manifest.inspected == 1
+
+
+def _claim_encrypted(path) -> None:
+    """Set bit 0 of the general-purpose flag in EVERY header of the archive.
+
+    Both the local file header (`PK\\x03\\x04`, flag at +6) and the central
+    directory entry (`PK\\x01\\x02`, flag at +8): `zipfile.infolist` reads the
+    central directory, so flipping the local header alone -- which this test
+    once did -- claimed encryption where the reader never looks and asserted
+    nothing about the bit it does read. The bytes are otherwise untouched: the
+    header now claims encryption and any attempt to decrypt would fail, which is
+    exactly the state a reader must survive without trying.
+    """
+    raw = bytearray(path.read_bytes())
+    for signature, offset in ((b"PK\x03\x04", 6), (b"PK\x01\x02", 8)):
+        start = 0
+        while (at := raw.find(signature, start)) != -1:
+            raw[at + offset] |= 0x01
+            start = at + 1
+    path.write_bytes(bytes(raw))
+
+
+def test_an_open_archive_beside_a_locked_one_is_not_marked(tmp_path):
+    """The negative twin: the mark fires on the bit and on nothing else."""
+    manifest = zipfile_reader()(make_zip(tmp_path, {"notes.txt": "plain"}))
     assert manifest.unreadable_reason is None
 
 

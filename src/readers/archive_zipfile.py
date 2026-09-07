@@ -78,6 +78,18 @@ def zipfile_reader(*, max_members: int | None = None,
 
         total = len(infos)
         listed = infos if max_members is None else infos[:max_members]
+        # Bit 0 of the general-purpose flag is the header's own statement that
+        # the member is encrypted. It is read from the central directory like
+        # every other fact here and decrypts nothing. §2.5: a password-protected
+        # archive is "marked as unreadable ... rather than forced open", and the
+        # standing rule is marked and counted, never opened -- so the names are
+        # still listed (they are in clear) and the manifest says the contents
+        # are not readable. Without this line a locked archive was indexed as
+        # an ordinary one and nothing downstream could tell.
+        encrypted = sum(1 for info in infos if info.flag_bits & 0x1)
+        locked = (f"password-protected: {encrypted} of {total} member(s) are "
+                  "encrypted; names listed, contents not read"
+                  if encrypted else None)
         # The sum of what the members CLAIM, and only over the ones listed -- a
         # total covering members this manifest does not contain would be a number
         # nothing in it accounts for.
@@ -91,6 +103,6 @@ def zipfile_reader(*, max_members: int | None = None,
             members=tuple(_member(info) for info in listed),
             uncompressed_size=stated,
             inspected=len(listed), total=total,
-            unreadable_reason=None, partial_reason=partial)
+            unreadable_reason=locked, partial_reason=partial)
 
     return read_manifest
