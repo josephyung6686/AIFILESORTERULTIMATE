@@ -161,7 +161,7 @@ def test_the_passport_is_still_held_counted_and_never_named(tmp_path):
     printed = _run(_corpus(tmp_path, with_passport=True))
     collapsed = " ".join(printed.split())
 
-    assert "1 protected file, marked and counted, and none of them opened" \
+    assert "1 protected file, of the ones counted at the top of this report" \
         in collapsed, printed
     assert "--show-protected" in printed, printed
     # Neither the file nor anything it says reaches the screen.

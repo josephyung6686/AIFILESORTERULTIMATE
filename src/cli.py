@@ -4401,16 +4401,73 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
               f"{reason.replace('_', ' ')} ({reason}).", file=out)
 
 
-def _print_protected_areas(areas, out) -> None:
-    """§1.1's containers: marked, counted, named, and never opened."""
+def _protected_file_count(conn: sqlite3.Connection, scan_run_id: str) -> int:
+    """How many of THIS scan's files P7 marked protected. `104` R-J.
+
+    Over the roster and not over the whole table, because the count sits beside a
+    count of this run's containers and a number from an earlier scan of another
+    folder would make the total a sum of two different questions.
+
+    The same query `folders_nothing_could_be_read_from` already asks -- current
+    classification rows, `protected = 1` -- so the screen's two protected counts
+    cannot come from two readings of the same column.
+    """
+    withheld = {row[0] for row in conn.execute(
+        "SELECT DISTINCT file_id FROM classifications "
+        "WHERE protected = 1 AND superseded_by IS NULL")}
+    return sum(1 for file_id, _hash in corpus_roster(conn, scan_run_id)
+               if file_id in withheld)
+
+
+def _print_protected(areas, *, protected_files: int, out) -> None:
+    """Everything this run marked and set aside, under ONE word and ONE total.
+
+    **`104` R-J.** Two lines apart the report used to say "Protected containers: 0
+    marked, none opened" and, further down, "4 protected files, marked and
+    counted". §1.1's folders and §8.4's files, both called protected, two counts,
+    and nothing on the screen saying that one of them was not the other. A person
+    reads that as a contradiction, and they are right to.
+
+    `00`'s rule is one rule -- marked and counted, never opened, never silently
+    omitted -- so there is one heading and one total, and each KIND says
+    underneath it what is true of that kind.
+
+    **"Never opened" moved down to the folders, and that is not a wording
+    choice.** It is false of a §8.4 file: that file WAS opened -- read, indexed
+    and classified, on this device. What it was not is sent to a model or filed in
+    one gesture with everything else. Printing "none opened" over it would be a
+    comfort the run has not earned, which is the same defect as the two
+    vocabularies, one rung quieter.
+
+    **Folders are named; files are not.** A protected container is a folder on the
+    person's own disk that Finder shows them anyway, and `00`:201 is about the
+    other list: "a summary such as '11 protected identity records' may be safe to
+    show, while a visible list of passport filenames on a shared screen may not
+    be." `93-PROTECTED-DISCLOSURE-RULING.md` is the owner's decision behind that,
+    and `--show-protected` is on the screen every time so the summary is never a
+    hiding place.
+    """
     out = out if out is not None else sys.stdout
-    print(f"\nProtected containers: {len(areas)} marked, none opened", file=out)
-    for area in areas:
-        print(f"  {area.display_label}  ({area.label})", file=out)
-        print(f"    {area.path}", file=out)
+    print(f"\nProtected: {len(areas) + protected_files} marked and counted",
+          file=out)
     if areas:
+        print(f"  Application and system folders: {len(areas)}, never opened",
+              file=out)
+        for area in areas:
+            print(f"    {area.display_label}  ({area.label})", file=out)
+            print(f"      {area.path}", file=out)
         print("  Nothing inside these was read, indexed, classified or moved, and "
               "none of them is a place anything can be filed.", file=out)
+    if protected_files:
+        print(_wrapped(
+            f"Protected material: {protected_files} "
+            f"{'file' if protected_files == 1 else 'files'}, read on this device "
+            f"and shown to no model, and filed only one at a time by you. Their "
+            f"names are not printed here, because a list of them is the part of "
+            f"this report least safe to have on a screen somebody else can see. "
+            f"Nothing is being kept from you -- to see every one:", indent="  "),
+            file=out)
+        print("      --show-protected", file=out)
 
 
 def _print_set_aside(summary: Mapping[str, object], aside, out) -> None:
@@ -6074,8 +6131,10 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # `exclusion_verdicts` and the person was told nothing. "Marked, counted,
         # never silently omitted" has no success-path exception, so it is said as
         # soon as it is known.
-        _print_protected_areas(
-            protected_areas(conn, scan_run_id=p1_p7.scan_run_id), out)
+        _print_protected(
+            protected_areas(conn, scan_run_id=p1_p7.scan_run_id),
+            protected_files=_protected_file_count(conn, p1_p7.scan_run_id),
+            out=out)
         # HERE for the reason above it, one rule further out. Every argument that
         # comment makes for the protected block is an argument for §1.1's other
         # three rules: the verdict is in `exclusion_verdicts` by now, a stage
@@ -7054,9 +7113,16 @@ NAMES_LISTED_PER_GROUP: int = 10
 #: number in the heading above it can never disagree. The second line is indented
 #: and is therefore printed verbatim -- `_role_lines`' convention, because a
 #: command a text wrapper has broken is not a command.
+#: "AND NONE OF THEM OPENED" IS GONE (`104` R-J). It was never true of a §8.4
+#: file: this product read it, indexed it and classified it on this device --
+#: that is how it knows the file is protected at all. What it did not do is send
+#: it to a model or file it in one gesture with everything else, and those are
+#: the two sentences the group's own heading already carries. "Of the N counted
+#: at the top" ties this number to the one in `_print_protected`, so a person
+#: meeting the word twice can see it is one count and not two.
 PROTECTED_SUMMARY: tuple[str, ...] = (
-    "{count} protected file{plural}, marked and counted, and none of them "
-    "opened. Their names are not printed here, because a list of them is the "
+    "{count} protected file{plural}, of the ones counted at the top of this "
+    "report. Their names are not printed here, because a list of them is the "
     "part of this report least safe to have on a screen somebody else can see. "
     "Nothing is being kept from you -- to see every one:",
     "      --show-protected",

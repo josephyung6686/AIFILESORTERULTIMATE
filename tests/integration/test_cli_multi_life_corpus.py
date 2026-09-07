@@ -125,7 +125,7 @@ def test_a_person_with_three_lives_gets_a_plan_and_not_a_traceback(tmp_path):
     # asked for, so "present, not omitted" is now the count plus the command that
     # prints them, and this asserts both rather than the name.
     # `planning/93-PROTECTED-DISCLOSURE-RULING.md`.
-    assert "3 protected files, marked and counted" in " ".join(printed.split()), (
+    assert "3 protected files, of the ones counted at the top" in " ".join(printed.split()), (
         printed)
     assert "--show-protected" in printed, printed
     assert "Nothing was moved." in printed, printed

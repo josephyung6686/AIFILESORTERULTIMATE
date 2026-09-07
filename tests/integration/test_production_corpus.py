@@ -1100,9 +1100,9 @@ def test_the_command_runs_over_a_real_directory_and_leads_with_what_it_did_not_o
     out = capsys.readouterr().out
 
     assert code == 0, out
-    assert "Protected containers: 1 marked, none opened" in out
+    assert "Application and system folders: 1, never opened" in out
     assert "Numbers.app" in out
-    assert out.index("Protected containers") < out.index("Plan version")
+    assert out.index("Protected:") < out.index("Plan version")
     assert "[marked, not a destination]" in out
     # Every file gets a line, and a line that is not a placement gets a reason.
     assert "Files: 2 decided" in out

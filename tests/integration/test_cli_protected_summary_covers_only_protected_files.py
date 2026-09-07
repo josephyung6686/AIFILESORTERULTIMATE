@@ -81,7 +81,7 @@ def test_answering_the_folder_question_does_not_hide_ordinary_files_as_protected
     collapsed = " ".join(printed.split())
 
     # The passport is still marked, counted once, and not named.
-    assert "1 protected file, marked and counted, and none of them opened" \
+    assert "1 protected file, of the ones counted at the top of this report" \
         in collapsed, printed
     assert PASSPORT_NAME not in printed, printed
     # And its neighbours are named, not counted as protected beside it.
