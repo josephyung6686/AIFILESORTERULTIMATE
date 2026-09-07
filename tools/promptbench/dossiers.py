@@ -26,7 +26,7 @@ from llm_harness.records import (  # noqa: E402
 )
 from llm_harness.vocabulary import (  # noqa: E402
     A_FACT, ACCEPTED_GROUP_FITS_NO_EXISTING_TEMPLATE, B_GROUP, C_PLACEMENT,
-    COHERENCE_JUDGEMENT, D_RESIDUAL, E_TEMPLATE, REDUCTION_NONE,
+    COHERENCE_JUDGEMENT, D_RESIDUAL, E_TEMPLATE, F_ROLE_SHORTLIST, REDUCTION_NONE,
     REMAINS_AMBIGUOUS, SEVERAL_LEGAL_NODES_PLAUSIBLE,
     USER_OPTED_RESIDUAL_SET_INTO_AI_REVIEW,
 )
@@ -45,6 +45,9 @@ ELIGIBILITY = {
     C_PLACEMENT: SEVERAL_LEGAL_NODES_PLAUSIBLE,
     D_RESIDUAL: USER_OPTED_RESIDUAL_SET_INTO_AI_REVIEW,
     E_TEMPLATE: ACCEPTED_GROUP_FITS_NO_EXISTING_TEMPLATE,
+    # The situation call (105 §12) rides under the shortlist site: the rules
+    # looked and the file remains ambiguous, which is A's reason too.
+    F_ROLE_SHORTLIST: REMAINS_AMBIGUOUS,
 }
 
 
@@ -84,9 +87,16 @@ def dossier_of(case: Case, *, allowed_vocabulary=None,
         FolderLevel(field=f, label=l, requirement=r)
         for f, l, r in (folder_levels if folder_levels is not None
                         else case.folder_levels))
+    # The situation call (105 §12) has no CALL_SITES member yet and the ratified
+    # vocabulary lists no eligibility reasons for the shortlist site, so its
+    # record is built under A_fact's call-site string and A's "remains
+    # ambiguous" reason; the bench keys judging and reading on `case.site`. The
+    # one untruth in the model-visible bytes is `"call_site":"A_fact"`, and the
+    # template tells the model that key is bookkeeping.
+    call_site = A_FACT if case.site == F_ROLE_SHORTLIST else case.site
     return Dossier(
         dossier_id=f"promptbench:{case.site}:{case.case_id}",
-        call_site=case.site,
+        call_site=call_site,
         subject_ref=case.subject_ref,
         eligibility_reason=ELIGIBILITY[case.site],
         plan_version=case.plan_version,
@@ -153,7 +163,7 @@ def serialise_dossier(body: dict, layout: str) -> str:
 RECOGNITION_FILE = _ROOT / "src" / "recognition" / "library" / "recognition.json"
 
 
-def readings_for(rows) -> list[dict]:
+def readings_for(rows, *, strict: bool = True) -> list[dict]:
     """The `needs_llm` readings of the named recognition rows, verbatim.
 
     Transcribed, never authored: every `text` is byte-equal to a string in
@@ -165,7 +175,7 @@ def readings_for(rows) -> list[dict]:
     for row in wanted:
         schema = library[row.split(".")[0]]
         entries = [e for e in schema["needs_llm"] if e["row"] == row]
-        if not entries:
+        if not entries and strict:
             raise KeyError(f"no needs_llm entry for row {row!r}")
         for entry in entries:
             out.extend({"row": row, "text": text} for text in entry["readings"])

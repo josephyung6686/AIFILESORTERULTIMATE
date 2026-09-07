@@ -105,8 +105,9 @@ def run_site(*, site: str, candidate_names: list[str], model_names: list[str],
         if case_ids:
             wanted = set(case_ids)
             cases = tuple(case for case in cases if case.case_id in wanted)
-        readings = (readings_for(candidate.readings_rows)
-                    if candidate.readings_rows else None)
+        per_case_rows = "@case" in candidate.readings_rows
+        readings = (None if per_case_rows or not candidate.readings_rows
+                    else readings_for(candidate.readings_rows))
         log(f"[{site}] candidate {name} ({candidate.template_id}) "
             f"fingerprint {fingerprint[:16]}"
             + (f" suite {candidate.suite}" if candidate.suite else "")
@@ -114,6 +115,9 @@ def run_site(*, site: str, candidate_names: list[str], model_names: list[str],
         for case in cases:
             prepared = _prepare(case, candidate, site=site, out=out,
                                 catalogue=catalogue)
+            if per_case_rows:
+                readings = readings_for(
+                    case.authorities.get("readings_rows", ()), strict=False)
             payload = model_visible_bytes(prepared["dossier"], prompt,
                                           readings=readings, layout=candidate.layout)
             if dry_run:

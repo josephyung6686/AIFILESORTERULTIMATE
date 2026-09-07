@@ -36,9 +36,10 @@ from llm_harness.placement_validation import (  # noqa: E402
 from llm_harness.sites import SiteDependencies, dispatch  # noqa: E402
 from llm_harness.vocabulary import (  # noqa: E402
     A_FACT, ABSTAIN, ACCEPT_CONTEXT_SUPPORTED, ACCEPT_DIRECT, B_GROUP,
-    C_PLACEMENT, D_RESIDUAL, E_TEMPLATE, LEAVE_IN_CURRENT_LOCATION,
-    MARK_REVIEW_LATER, SCHEMA_INVALID,
+    C_PLACEMENT, D_RESIDUAL, E_TEMPLATE, F_ROLE_SHORTLIST,
+    LEAVE_IN_CURRENT_LOCATION, MARK_REVIEW_LATER, REJECT, SCHEMA_INVALID,
 )
+from llm_harness.wire_handles import wire_handle  # noqa: E402
 
 from tools.promptbench.cases import Case
 from tools.promptbench.dossiers import BENCH_HANDLE_KEY, resolver_for
@@ -114,7 +115,7 @@ def site_dependencies_for(case: Case, *, catalogue=None,
             catalogue = load_shipped_catalogue(read_packaged_library_file)
         return SiteDependencies(fact=None, placement=None, residual=None,
                                 template=template_dependencies(catalogue))
-    if site == B_GROUP:
+    if site in (B_GROUP, F_ROLE_SHORTLIST):
         return SiteDependencies(fact=None, placement=None, residual=None,
                                 template=None)
     raise ValueError(f"site A builds its authorities in site_a.py, not here: {site}")
@@ -252,8 +253,19 @@ def _read_a(case: Case, claims: list[dict]) -> tuple[dict, bool]:
     return {"fields": fields}, abstained
 
 
+def _read_s(case, claims):
+    """The situation call (105 §12), carried under the shortlist site: one claim,
+    `situation` from `allowed_vocabulary` or `none`."""
+    if not claims or not isinstance(claims[0], dict):
+        return {"situation": None, "alternatives": []}, False
+    payload = claims[0].get("payload", {}) or {}
+    situation = payload.get("situation")
+    return ({"situation": situation, "alternatives": list(payload.get("alternatives", []) or [])},
+            situation == "none" or "unknown" in claims[0])
+
+
 READERS = {C_PLACEMENT: _read_c, D_RESIDUAL: _read_d, B_GROUP: _read_b,
-           E_TEMPLATE: _read_e, A_FACT: _read_a}
+           E_TEMPLATE: _read_e, A_FACT: _read_a, F_ROLE_SHORTLIST: _read_s}
 
 
 # --- correctness --------------------------------------------------------------
@@ -334,6 +346,12 @@ def _correct(case: Case, answer: dict, accepted: bool) -> tuple[bool | None, dic
             detail["first_matches"] = bool(names) and names[0] == expect["first"]
             ok = ok and detail["first_matches"]
         return bool(ok), detail
+    if site == F_ROLE_SHORTLIST:
+        want = expect.get("situation")
+        if want in (None, "none"):
+            return None, detail
+        detail["situation_matches"] = answer["situation"] == want
+        return bool(answer["situation"] == want), detail
     if site == A_FACT:
         expected = expect.get("fields", {})
         got = answer["fields"]
@@ -358,6 +376,8 @@ def judge(case: Case, dossier, response_bytes: bytes, *, schema: dict,
           prompt_fingerprint: str = "bench") -> Judgement:
     parsed = _parse(response_bytes)
     schema_ok, schema_errors = _schema_check(parsed, schema)
+    if case.site == F_ROLE_SHORTLIST:
+        return _judge_shortlist(case, dossier, parsed, schema_ok, schema_errors)
     result = dispatch(
         conn, dossier, response_bytes,
         site_dependencies=site_dependencies,
@@ -394,6 +414,70 @@ def judge(case: Case, dossier, response_bytes: bytes, *, schema: dict,
         citations_span_matched=report.citations_span_matched,
         abstained=abstained, answer=answer, should_abstain=should,
         correct=correct, abstain_correct=abstain_correct, detail=detail)
+
+
+def _judge_shortlist(case, dossier, parsed, schema_ok, schema_errors) -> Judgement:
+    """No product validator stands behind the situation call yet (its CALL_SITES
+    member is the owner's), so the bench judges what one would: one claim;
+    `situation` copied from `allowed_vocabulary` or `none`; a named situation
+    cites released evidence whose span is in the value; `none` carries `unknown`.
+    Reasons use the product's words where it has them."""
+    values = {wire_handle(item.key, key=BENCH_HANDLE_KEY): item.value
+              for item in case.released()}
+    claims = _claims(parsed)
+    reasons: list[str] = []
+    total = resolved = matched = 0
+    outcome = REJECT
+    if parsed is None or not schema_ok or len(claims) != 1:
+        reasons.append(SCHEMA_INVALID)
+    else:
+        claim = claims[0]
+        payload = claim.get("payload", {}) or {}
+        situation = payload.get("situation")
+        if situation == "none" or "unknown" in claim:
+            if situation != "none" or "citations" in claim:
+                reasons.append(SCHEMA_INVALID)
+            else:
+                outcome = ABSTAIN
+        else:
+            if situation not in dossier.allowed_vocabulary:
+                reasons.append("INVENTED_SITUATION")
+            citations = claim.get("citations") or []
+            if not citations:
+                reasons.append("UNCITED_CLAIM")
+            for citation in citations:
+                total += 1
+                value = values.get(citation.get("evidence_ref"))
+                if value is None:
+                    reasons.append("CITATION_NOT_IN_DOSSIER")
+                    continue
+                resolved += 1
+                span = citation.get("cited_span")
+                if isinstance(span, str) and span and span in value:
+                    matched += 1
+                else:
+                    reasons.append("CITATION_SPAN_MISMATCH")
+            for alt in payload.get("alternatives", []) or []:
+                if alt not in dossier.allowed_vocabulary:
+                    reasons.append("INVENTED_SITUATION")
+            if not reasons:
+                outcome = ACCEPT_DIRECT
+    reasons = sorted(set(reasons))
+    answer, abstained = _read_s(case, claims)
+    accepted = outcome in ACCEPTED
+    correct, detail = _correct(case, answer, accepted)
+    should = case.should_abstain
+    if not should and correct is not None:
+        detail["false_abstention"] = abstained
+    return Judgement(
+        case_id=case.case_id, site=case.site, parsed=parsed is not None,
+        json_schema_valid=schema_ok, json_schema_errors=schema_errors,
+        verdicts=[{"claim_ref": "claim:0", "outcome": outcome,
+                   "disposition": "recorded", "reasons": reasons}],
+        worst_outcome=outcome, accepted=accepted, citations_total=total,
+        citations_resolved=resolved, citations_span_matched=matched,
+        abstained=abstained, answer=answer, should_abstain=should, correct=correct,
+        abstain_correct=(abstained if should else None), detail=detail)
 
 
 __all__ = ["ACCEPTED", "Judgement", "judge", "site_dependencies_for"]
