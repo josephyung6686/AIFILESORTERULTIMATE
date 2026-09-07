@@ -795,3 +795,44 @@ folder offline are not placed with the model on: the three `Essay 2 Final Draft`
   deliverable. That rule stays.
 
 *Section added by Claude Fable 5.1.*
+
+## 15. The lead's proposed rulings (7 Sep 2026)
+
+Proposals, not enactments. Nothing below is in force until the owner says so; vocabulary members, term spellings, the review-set number and any manifest change are the owner's word, applied by the lead on that word and never by an agent. To accept one, say "ratify R-nn as proposed"; to change one, say the alternative in a sentence.
+
+**Only four of the sixteen touch the exact number.** They come first. The other twelve are correctness and screen quality and can wait.
+
+### 15.1 What "ratify" is, and what stands in the way today
+
+- The packet manifest `src/llm_harness/library/drafts_2026-09-06.json` carries ONE `status` word for B, C, D and E together; `observe_prompt` reads `drafts_status() == "ratified"` for every observe site. Flipping it ratifies all four at once, and D and E have never produced a measured row. A_fact is separate: `a_fact_prompt` is `ratified=True` under its own text.
+- The only `chosen_node_of` behind site C is `_must_not_apply`, which raises. A ratified C today would raise on the first placeable file, not place it.
+- So two code pieces precede any ratification, both small, both to build after the restart: (P1) a per-draft `status` in the manifest, read by template id, so one site can be ratified alone; (P2) a real `chosen_node_of` for C that reads the node id off C's validated verdict (the P8 seam already checks it is in the shortlist), and a real `residual_action_of` for D when D's turn comes.
+- Then the shortest path to using the model: ratify C's `eliminate-v2` text (105 §3.6, 97 lines) for the LOCAL model. R-82 does not block local; nothing leaves the device. The first real exact number is one seeded local run (about two hours) after P1, P2 and "ratify C" land. Cloud C needs R-82 signed first.
+- B (`anchors-first-v3`, 105 §4.7), D (`ladder`), E (`what-a-person-opens-v2`): name them, ratify later. B is worth ratifying soon because R-101 and R-102 turn on with per-course acceptances; D and E have no measured row and should wait for one.
+
+### 15.2 The four that move exact
+
+| Row | Proposed ruling | Unblocks |
+|---|---|---|
+| C ratification | After P1 and P2: ratify `c_placement.unratified.eliminate-v2.2026-09-06` for local; cloud after R-82. | Placement by the model; the first exact number. |
+| R-100 with R-37 | Per-branch situation: a run answers the situation per top-level branch it proposes, not once per folder; site A asks the coursework fields only of files under a coursework branch or with a coursework anchor in reach; other files are asked nothing until their branch's situation is known. Offline unchanged. | Stops the 60 of 83 calls on non-coursework files and the refused `work_type` answers; the walkthrough's wrong proposals. |
+| R-102 with R-95 | `school` is asked only of anchor-kind files (syllabus, enrollment, transcript, registration), never inferred from a filename; one institution becomes a folder level only when two anchors agree; the per-file question stays withdrawn. The A_fact wording is a v2 text the owner writes or approves, recorded as a new manifest row. | The school level on a real corpus; ends the filename-as-school facts. |
+| R-101 | Term vocabulary accepts `<Season> <YYYY>`, `<YYYY>-<YYYY> Term <n>` and `<YYYY>-<YYYY> Semester <n>`; a bare year or `<YYYY>-<YYYY>` alone is refused (a year, not a term); `S2026` is refused (Spring or Summer). Grain: per course, written by B per course once B is ratified; the one-group-per-label merge retires then. | 114 refused terms on the local run; the Semester level. |
+
+### 15.3 The twelve that are correctness and screen quality
+
+| Row | Proposed ruling |
+|---|---|
+| R-76 | Keep both codes. `support` = accepted citations to distinct evidence for the chosen candidate; `next_support` = the same for the runner-up. BELOW_SUPPORT_THRESHOLD when support is 0; INSUFFICIENT_MARGIN when support minus next_support is 0. Meaning only; no code change. |
+| R-80 | Mint a superseding group carrying the memberships, as `cli.review_and_accept` does, with reason "the model answered differently"; a person's acceptance always outranks both answers. |
+| R-81 | Keep the narrowing: D is shown the approved residual areas plus the retrieved branches, never every legal node. |
+| R-82 | Sign off in two halves: LOCAL models may see the person's folder labels now (nothing leaves the device); CLOUD models may see them only after the cloud consent text names "your folder names" in its own sentence, so consent and crossing are the same act. |
+| R-86 | The answer's scope is the files the question named, not the folder. "Where should the files in Downloads go?" about 2 unreadable files decides those 2; a folder-wide answer needs a folder-wide question, which the screen asks separately. |
+| R-87 | An adopted folder may claim an expected value from its name or from two or more files that agree, never from one file. Q-D refinement, not removal. |
+| R-89 | Two lists, two names: always-local kinds (receipts, confirmations, boarding passes, personal screenshots) are shown to no cloud model and filed by rules and local models; protected kinds (identity documents, medical, financial statements, credentials) are shown to no model and filed one at a time. |
+| R-93 | The review-set batch is 25 files (one screen), applied within a reason set; a set under 25 is unnumbered. |
+| R-103 | Release 2 gesture `--confirm group:<id>`; precedence user_confirmed over group over model, written into the rule now, the gesture later. |
+| R-106 with R-119 | A v2 A_fact schema as a new manifest row: the `claim` object opens to an optional `claim_ref` string; the empty value is allowed with the documented meaning "declines the field"; rule 8 (never two claims about one field) stays in the validator and is stated in the schema's description. The old digest stays in place. |
+| R-107 | A claim that both declines and asserts is recorded as an abstention AND the verdict carries a `malformed_claim` note naming what was dropped; rule 11 destroys the whole response only for a parse failure. A template wording change for the owner's v2 text. |
+| R-113 | Every non-`place` decision is in exactly one review set (R-115's invariant extended): a placement with a destination and a blocked policy joins the set of its blocking reason ("A model was not allowed to look" or "Not allowed to move across folders"), so `--send-set` reaches it. |
+| R-121 | One answer, one name, in `privacy/vocabulary`: an unclassified file MAY reach a LOCAL model and never a cloud one (the CLI's answer; the design's "only local rules and local models may run"); P11's separate pin goes. `sensitive_personal` without the protected flag follows the flag, as built. |
