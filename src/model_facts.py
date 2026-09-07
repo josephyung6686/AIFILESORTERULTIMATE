@@ -59,6 +59,7 @@ from llm_harness.fact_validation import FactValidationDependencies
 from llm_harness.fingerprint import prompt_fingerprint
 from llm_harness.harness import CallDependencies, run_call
 from llm_harness.records import (
+    REFUSAL_EXCEPTIONS,
     DossierRequest, EvidenceItem, FolderLevel, P8Verdict, PromptDefinition,
 )
 from llm_harness.sites import FactSiteDependencies, SiteDependencies
@@ -68,6 +69,7 @@ from llm_harness.store import (
     prior_call,
     record_call_identity,
     record_call_reuse,
+    refusal_outcome,
 )
 from llm_harness.transport import ModelClient
 from llm_harness.vocabulary import A_FACT, DIRECT_ANCHOR, REMAINS_AMBIGUOUS
@@ -840,25 +842,42 @@ def fact_call_stage(authorities: FactCallAuthorities):
 
         before = {row["fact_id"] for row in facts_for_file(
             conn, file_id, content_hash)}
-        result = run_call(
-            conn,
-            build_fact_request(
-                request, observations,
-                filename=filename_citation(conn, file_id),
-                model_target=authorities.model_target,
+        # `104` R-O. The `try` covers the BUILDER as well as the call, and that is
+        # the whole reason it is here rather than only inside `run_call`:
+        # `build_fact_request` constructs the `ModelCallRequest` whose
+        # `__post_init__` raises `MalformedRequest`, and it builds the spans the
+        # gate later resolves. Both raised on the owner's corpus, from an argument
+        # expression `run_call` never sees.
+        #
+        # ONE FILE, NOT THE RUN. The stage returns the facts this file already has
+        # and the loop asks about the next one; nothing is written that would stop
+        # the next run asking again, because the identity below is recorded only
+        # for a verdict.
+        try:
+            result = run_call(
+                conn,
+                build_fact_request(
+                    request, observations,
+                    filename=filename_citation(conn, file_id),
+                    model_target=authorities.model_target,
+                    prompt=authorities.prompt,
+                    max_dossier_tokens=authorities.max_dossier_tokens),
+                gate=authorities.gate,
+                model_client=authorities.model_client,
                 prompt=authorities.prompt,
-                max_dossier_tokens=authorities.max_dossier_tokens),
-            gate=authorities.gate,
-            model_client=authorities.model_client,
-            prompt=authorities.prompt,
-            validation_dependencies=_call_dependencies(
-                request, vocabulary, folder_levels=visible_levels,
-                authorities=authorities, observations=observations),
-            observed_at=authorities.observed_at,
-            # `104` R-14. Handed to `run_call` and not to `CallDependencies`: it is
-            # optional, and that bundle's every field is required by construction.
-            usage_recorder=authorities.usage_recorder,
-        )
+                validation_dependencies=_call_dependencies(
+                    request, vocabulary, folder_levels=visible_levels,
+                    authorities=authorities, observations=observations),
+                observed_at=authorities.observed_at,
+                # `104` R-14. Handed to `run_call` and not to `CallDependencies`:
+                # it is optional, and that bundle's every field is required by
+                # construction.
+                usage_recorder=authorities.usage_recorder,
+            )
+        except REFUSAL_EXCEPTIONS as refusal:
+            result = refusal_outcome(
+                conn, call_site=A_FACT, subject_ref=file_id, error=refusal,
+                observed_at=authorities.observed_at())
         if isinstance(result, P8Verdict):
             # ONLY on a verdict, and the exclusions are the point. A refusal, a
             # pre-call abstention, a call failure and a `ValidationUnavailable` are

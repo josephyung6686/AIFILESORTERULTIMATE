@@ -120,7 +120,9 @@ from llm_harness.prompt_library import (
     a_fact_template_folder_levels_bytes, draft_bytes, drafts_status,
 )
 from llm_harness.harness import CallDependencies, run_call
-from llm_harness.records import FolderLevel, P8Verdict, PromptDefinition
+from llm_harness.records import (
+    CallRefused, FolderLevel, P8Verdict, PromptDefinition,
+)
 from llm_harness.store import last_response_bytes
 from llm_harness.sites import SiteDependencies
 from llm_harness.schema import create_llm_schema
@@ -4363,6 +4365,25 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
     for kind, count_ in sorted(kinds.items()):
         if kind in named:
             print(f"  {count_} refused: {named[kind]} ({kind}).", file=out)
+    # `104` R-O's line. A refusal raised inside a model-site call used to end the
+    # run with a traceback and no report at all, so there was nothing here to
+    # print; now it is an outcome, and an outcome a person is never told about is
+    # the same silence with better manners. Grouped by WHAT REFUSED, because
+    # "the gate could not read one of the items" and "the request could not be
+    # described" are different things for the lead to fix and the same
+    # non-event for the person.
+    refused_calls: dict[str, int] = {}
+    for _file_id, result in outcomes:
+        if isinstance(result, CallRefused):
+            refused_calls[result.refusal_class] = (
+                refused_calls.get(result.refusal_class, 0) + 1)
+    for refusal_class, count_ in sorted(refused_calls.items()):
+        print(_wrapped(
+            f"{count_} refused: a part of this product declined to answer and the "
+            f"run went on without it ({refusal_class}). Nothing about "
+            f"{'those files' if count_ != 1 else 'that file'} was decided by a "
+            f"model; what this device could read and decide on its own still "
+            f"stands, and the next run asks again.", indent="  "), file=out)
     # THE GATE'S OWN WORD, NOT THE CLASS NAME. "the gate refused the release
     # (Refusal)" names the Python type that carried the answer and says nothing
     # about the answer: protected material and a dossier over the ceiling are

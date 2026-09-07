@@ -90,6 +90,12 @@ from grouping.vocabulary import (
 #: at, and this one was looked at and deliberately not decided.
 NO_MODEL_CONFIGURED: str = "no_model_call_configured"
 
+#: `104` R-O. The reason a group carries when the call about it was
+#: refused rather than never configured: a person owed a sentence about
+#: why nothing was decided must not be told the product has no model when
+#: it has one that declined.
+MODEL_CALL_REFUSED: str = "model_call_refused"
+
 
 def _a_ratified_model_decides(p8_run_call, p8_authorities) -> bool:
     """Whether this run's model is going to decide, and its text is one somebody
@@ -696,40 +702,61 @@ def group_subject(
             not_implemented_reason=NO_MODEL_CONFIGURED)
 
     from grouping.p8_seam import (
+        REFUSAL_EXCEPTIONS,
         apply_p8_verdict,
         build_dossier_request,
         prompt_fingerprint_for,
+        refused_group_call,
     )
 
-    request = build_dossier_request(
-        dossier,
-        # P7's, not retrieval's. This read `knowledge.retrieval.embedding_identity`
-        # -- the local vector model channel 6 retrieves with, `(scope, model_id,
-        # model_version)`. The gate reads `.locality` off this field to decide
-        # whether bytes may leave the machine, and an embedding identity has none,
-        # so the gate raised `AttributeError` before deciding anything (and with
-        # retrieval configured off it was plain `None`). `ModelCallRequest`
-        # annotates the field `ModelTarget` and checks nothing, which is how a
-        # value from another subsystem reached the gate at all. `embedding_identity`
-        # was never a model target; it was the only identity `knowledge` had.
-        model_target=p8_authorities.model_target,
-        prompt_template_id="template.grouping",
-        # P7 binds the release to this fingerprint and the transport recomputes it
-        # from the prompt it sends, so the dossier's own content address bound the
-        # release to something that could never match -- and the mismatch is raised
-        # AFTER the release is spent. `prompt_fingerprint_for` is in `p8_seam`
-        # because that is the only file under `src/grouping/` allowed to know P8.
-        prompt_fingerprint=prompt_fingerprint_for(
-            p8_authorities.prompt, absent=dossier.dossier_fingerprint),
-        max_dossier_tokens=limits.max_dossier_tokens)
-    outcome_from_model = p8_run_call(
-        conn, request,
-        gate=p8_authorities.gate,
-        model_client=p8_authorities.model_client,
-        prompt=p8_authorities.prompt,
-        validation_dependencies=p8_authorities.validation_dependencies,
-        observed_at=p8_authorities.observed_at,
-    )
+    # `104` R-O. The `try` covers the BUILD and the call together, because the
+    # refusal that ended a real run here came out of `ModelCallRequest.__post_init__`
+    # inside `build_dossier_request` -- an argument expression `run_call`'s own
+    # `try` never sees. One group's call is refused; P9's work on that group is
+    # recorded and the corpus goes on.
+    try:
+        request = build_dossier_request(
+            dossier,
+            # P7's, not retrieval's. This read
+            # `knowledge.retrieval.embedding_identity` -- the local vector model
+            # channel 6 retrieves with, `(scope, model_id, model_version)`. The
+            # gate reads `.locality` off this field to decide whether bytes may
+            # leave the machine, and an embedding identity has none, so the gate
+            # raised `AttributeError` before deciding anything (and with
+            # retrieval configured off it was plain `None`). `ModelCallRequest`
+            # annotates the field `ModelTarget` and checks nothing, which is how
+            # a value from another subsystem reached the gate at all.
+            # `embedding_identity` was never a model target; it was the only
+            # identity `knowledge` had.
+            model_target=p8_authorities.model_target,
+            prompt_template_id="template.grouping",
+            # P7 binds the release to this fingerprint and the transport
+            # recomputes it from the prompt it sends, so the dossier's own
+            # content address bound the release to something that could never
+            # match -- and the mismatch is raised AFTER the release is spent.
+            # `prompt_fingerprint_for` is in `p8_seam` because that is the only
+            # file under `src/grouping/` allowed to know P8.
+            prompt_fingerprint=prompt_fingerprint_for(
+                p8_authorities.prompt, absent=dossier.dossier_fingerprint),
+            max_dossier_tokens=limits.max_dossier_tokens)
+        outcome_from_model = p8_run_call(
+            conn, request,
+            gate=p8_authorities.gate,
+            model_client=p8_authorities.model_client,
+            prompt=p8_authorities.prompt,
+            validation_dependencies=p8_authorities.validation_dependencies,
+            observed_at=p8_authorities.observed_at,
+        )
+    except REFUSAL_EXCEPTIONS as refusal:
+        refused = refused_group_call(
+            conn, group_id=group.group_id, error=refusal,
+            observed_at=p8_authorities.observed_at())
+        record_group(conn, group)
+        return _result(
+            seeds=seeds, neighborhood=neighborhood, graph=graph, group=group,
+            memberships=(membership,), dossier=dossier,
+            not_implemented_reason=(
+                f"{MODEL_CALL_REFUSED}:{refused.refusal_class}"))
     if outcome_from_model is None:
         record_group(conn, group)
         return _result(

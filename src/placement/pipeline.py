@@ -47,7 +47,10 @@ from decimal import Decimal
 from database_agent.supersede import mark_superseded
 from llm_harness import P8Verdict, Refusal
 from llm_harness.vocabulary import ABSTAIN as P8_ABSTAIN
-from llm_harness.records import DossierRequest, EvidenceItem
+from llm_harness.records import (
+    REFUSAL_EXCEPTIONS, CallRefused, DossierRequest, EvidenceItem,
+)
+from llm_harness.store import refusal_outcome
 from llm_harness.vocabulary import (
     C_PLACEMENT, CHOOSE_RESIDUAL_DESTINATION,
     CONTEXT_SUPPORTED as P8_CONTEXT_SUPPORTED, D_RESIDUAL,
@@ -1033,7 +1036,7 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         if not may_assemble_dossier(privacy):
             return _abstention(conn, context, reason=PRIVACY_BLOCKED)
         if inputs.model_path_available():
-            result = _judge_with_model(
+            result = _judged_or_refused(
                 conn, subject=subject, inputs=inputs, retrieval=retrieval,
                 evidence=evidence, call_site=C_PLACEMENT,
                 observed_at=observed_at,
@@ -1051,23 +1054,37 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
                 # own answer arrived at from the other direction, and it is the
                 # reason the record already has.
                 return _abstention(conn, context, reason=PRIVACY_BLOCKED)
-            verdict = _require_verdict(result, call_site=C_PLACEMENT)
-            outcome, reason, deferred = transcribe(verdict, assessment=assessment)
-            if outcome != PLACE:
-                return _abstention(conn, context, reason=reason,
-                                   deferred_stage=deferred)
-            # The model chose among P11's candidates; which one it chose is read
-            # back through the injected resolver, because `P8Verdict` names a
-            # `claim_ref` and not a destination.
-            chosen_node_id = inputs.chosen_node_of(verdict)
-            if chosen_node_id not in legal_node_ids(
-                    conn, plan_version=inputs.plan_version):
-                raise ValueError(
-                    f"{chosen_node_id!r} is not a legal destination of "
-                    f"{inputs.plan_version!r}. P8 already refuses an invented "
-                    "node; reaching here means the resolver disagreed with the "
-                    "index, and P11 places nothing on a disagreement"
-                )
+            # `104` R-O. A REFUSED CALL IS NOT AN ANSWER ABOUT THIS FILE, and
+            # `_require_verdict` says why in its own words: "§6.10's abstention
+            # reasons are a closed set and none of them means 'the call did not
+            # happen'; naming one would record a conclusion nothing reached". So
+            # nothing below runs, `chosen_node_id` stays `None`, and step 9 places
+            # the file the way a run with no model configured would -- which is
+            # exactly what §13.5's Q-A clause names as the fallback: "with no
+            # model configured the deterministic path remains the fallback". The
+            # refusal is already a `call_refused` event; what it is not is a
+            # reason to take this file's home away, nor -- as it was until now --
+            # a `ModelJudgementUnavailable` that ends the run on every file after
+            # it too.
+            if not isinstance(result, CallRefused):
+                verdict = _require_verdict(result, call_site=C_PLACEMENT)
+                outcome, reason, deferred = transcribe(
+                    verdict, assessment=assessment)
+                if outcome != PLACE:
+                    return _abstention(conn, context, reason=reason,
+                                       deferred_stage=deferred)
+                # The model chose among P11's candidates; which one it chose is
+                # read back through the injected resolver, because `P8Verdict`
+                # names a `claim_ref` and not a destination.
+                chosen_node_id = inputs.chosen_node_of(verdict)
+                if chosen_node_id not in legal_node_ids(
+                        conn, plan_version=inputs.plan_version):
+                    raise ValueError(
+                        f"{chosen_node_id!r} is not a legal destination of "
+                        f"{inputs.plan_version!r}. P8 already refuses an invented "
+                        "node; reaching here means the resolver disagreed with "
+                        "the index, and P11 places nothing on a disagreement"
+                    )
 
     # Step 9.
     if chosen_node_id is None and assessment.abstention_reason is not None:
@@ -1798,6 +1815,28 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
     ), prompt=prompt)
 
 
+def _judged_or_refused(conn, **kwargs):
+    """`_judge_with_model`, with `104` R-O's one difference: a refusal comes back.
+
+    The `try` covers the REQUEST BUILD as well as the call. `inputs.model_call_
+    request` and the `DossierRequest` above it construct P7's `ModelCallRequest`,
+    whose `__post_init__` raises `MalformedRequest` -- the second of the two
+    refusals that ended a real run -- and that raise never reaches `run_call`'s own
+    `try` because it happens while its argument is being built.
+
+    Recorded here rather than swallowed: the same `call_refused` event site A
+    writes, so one query over the run counts every refusal wherever it was raised.
+    """
+    try:
+        return _judge_with_model(conn, **kwargs)
+    except REFUSAL_EXCEPTIONS as refusal:
+        subject = kwargs["subject"]
+        return refusal_outcome(
+            conn, call_site=kwargs["call_site"],
+            subject_ref=subject_ref_of(subject),
+            error=refusal, observed_at=kwargs["observed_at"])
+
+
 # --- §6.8 and §6.9: the group plan -------------------------------------------------
 
 
@@ -2268,7 +2307,7 @@ def _review_set_with_model(conn, *, item: ResidualSet, inputs: PipelineInputs,
             curated_folder_labels=evidence["curated_folder_labels"],
             semantic_neighbours=evidence["semantic_neighbours"],
             component_version=component_version, observed_at=observed_at)
-        result = _judge_with_model(
+        result = _judged_or_refused(
             conn, subject=subject, inputs=inputs, retrieval=retrieval,
             evidence=evidence, call_site=D_RESIDUAL, observed_at=observed_at,
             own_folder_node_id=(
@@ -2278,6 +2317,19 @@ def _review_set_with_model(conn, *, item: ResidualSet, inputs: PipelineInputs,
                 conn, subject=subject, inputs=inputs, outcome=ABSTAIN,
                 qualifier=PRIVACY_BLOCKED, residual=residual, evidence=evidence,
                 component_version=component_version, observed_at=observed_at))
+            continue
+        if isinstance(result, CallRefused):
+            # `104` R-O, and the residual half of what site C does above: the
+            # file stays where the person's own decision put it, recorded and
+            # named, rather than the run ending on the set it belongs to.
+            # `NO_SUPPORTED_DESTINATION` is the honest qualifier -- D proposes a
+            # destination and none was proposed -- and `PRIVACY_BLOCKED` would be
+            # the untruth, because §8.4 allowed this dossier.
+            written.append(_residual_decision(
+                conn, subject=subject, inputs=inputs, outcome=ABSTAIN,
+                qualifier=NO_SUPPORTED_DESTINATION, residual=residual,
+                evidence=evidence, component_version=component_version,
+                observed_at=observed_at))
             continue
         verdict = _require_verdict(result, call_site=D_RESIDUAL)
         if verdict.outcome == P8_REJECT:

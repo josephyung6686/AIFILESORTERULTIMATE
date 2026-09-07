@@ -11,7 +11,10 @@ from dataclasses import dataclass
 from types import MappingProxyType
 
 from evidence_shape.vocabulary import RELIABILITY_STATES, check
-from privacy.release import Denied, ModelCallRequest, ModelTarget, NeedsConsent
+from privacy.release import (
+    Denied, MalformedRequest, ModelCallRequest, ModelTarget, NeedsConsent,
+)
+from privacy.resolve import AmbiguousObservationKey, UnresolvableSpan
 
 from llm_harness.vocabulary import (
     ACCEPT_CONTEXT_SUPPORTED,
@@ -628,6 +631,84 @@ class CallResult:
             raise MalformedRecord(
                 "CallResult.value must be P8Verdict, Refusal, PreCallAbstention, "
                 "or CallFailed"
+            )
+
+
+#: `104` R-O. The exceptions that mean A PART OF THE PRODUCT REFUSED, raised where
+#: a caller expected a decision, and the whole of that set.
+#:
+#: Every member is a refusal the raising site describes as one in its own words.
+#: `privacy.gate`: *"A kind this door has no reading for is REFUSED, by name ...
+#: this is a request the gate cannot evaluate at all."* `privacy.resolve`: an
+#: observation that belongs to a file outside the request, or that two rows answer
+#: two ways. `ModelCallRequest.__post_init__`: a request §8.4's audit record could
+#: not describe truthfully. None is a bug in the caller and none is a judgement
+#: about the subject; each is one call that cannot be made.
+#:
+#: **`NoPolicyInForce` IS NOT HERE, and that is the line between the two kinds.**
+#: The members above are per-subject and the next subject may well succeed; a run
+#: with no policy in force is misconfigured for every call it will ever make, and
+#: 199 identical refusal rows would bury the one sentence a person could act on.
+#:
+#: **Nor is anything wider.** A `TypeError` or an `AttributeError` at these seams is
+#: a programming error, and a catch that swallowed one would turn every future bug
+#: there into a quiet "0 facts written" -- which is the failure this exists to stop,
+#: wearing its name.
+#:
+#: HERE, and not in `harness.py`, because the sites that must catch it are not all
+#: allowed to know `harness.py`: `tests/p9/test_p9_no_invention.py` and
+#: `tests/p11/test_p11_connections.py` both hold `run_call` to one importer per
+#: package, and `privacy.resolve` is banned outright under `src/grouping/`. The
+#: records module is the surface every one of them already reads.
+REFUSAL_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    MalformedRequest, UnresolvableSpan, AmbiguousObservationKey,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class CallRefused:
+    """`104` R-O: a part of the product refused where a decision was expected.
+
+    NOT a `Refusal` and not a `PreCallAbstention`, and the difference is the whole
+    reason this exists. A `Refusal` carries P7's `Denied` -- §8.4's answer to "may
+    this be sent", drawn from a closed vocabulary of reasons the owner approved. A
+    `PreCallAbstention` says this subject was never eligible or the scan had no
+    budget left. `privacy.gate` names the third thing itself, at the site that
+    raises it: *"this is a request the gate cannot evaluate at all -- the same class
+    as `NoPolicyInForce` and `resolve.UnresolvableSpan`, which is why it
+    propagates."*
+
+    Propagating is right at the gate and wrong at the caller. Twice on a real
+    corpus the raise reached `main`: thirty-seven minutes of fact calls and then a
+    traceback with no report, and the same screen again after the first cause was
+    fixed. `00` §8 and `104` §7's Phase 1 step 6 want the other shape -- the call is
+    recorded as refused, by reason; the subject falls back to what this device could
+    decide alone; the run goes on and the report says how many were refused and why.
+
+    **`refusal_class` is the exception's TYPE NAME and never its message.** The
+    message that ended the second run named a file id and a filename;
+    `transport._client_exception_explanation` made the same reduction for the same
+    reason, and §8.4's property 4 -- nothing reaches a screen, a log or a durable
+    record that a person did not agree to send there -- is why. Nothing in `src/`
+    branches on the free text, so removing the channel costs no reader.
+
+    NOT a member of `CallResult`. That union is the four outcomes a call that
+    HAPPENED can have; a refusal at the door is not one of them, and widening it
+    here would let a refusal be recorded as though bytes had been sent.
+    """
+
+    call_site: str
+    subject_ref: str
+    refusal_class: str
+
+    def __post_init__(self) -> None:
+        _require(self.call_site, CALL_SITES, name="call_site")
+        if not self.subject_ref:
+            raise MalformedRecord("CallRefused.subject_ref is required")
+        if not self.refusal_class:
+            raise MalformedRecord(
+                "a refused call names what refused it; an unnamed refusal is a "
+                "silence with a row"
             )
 
 

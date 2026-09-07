@@ -32,7 +32,9 @@ from database_agent.events import append_event
 from evidence_shape.location import TextSpan
 from llm_harness.fingerprint import prompt_fingerprint
 from llm_harness.records import (
+    REFUSAL_EXCEPTIONS,
     CallFailed,
+    CallRefused,
     DossierRequest,
     EvidenceItem,
     P8Verdict,
@@ -40,6 +42,7 @@ from llm_harness.records import (
     Refusal,
     ValidationUnavailable,
 )
+from llm_harness.store import refusal_outcome
 # P8's `Conflict` is `(conflict_id, kind)`; P9's is `(kind, competing_values,
 # file_ids)`. Two records, one word, so the import is qualified rather than bare.
 from llm_harness.records import Conflict as P8Conflict
@@ -47,6 +50,7 @@ from llm_harness.vocabulary import (
     ABSTAIN,
     ACCEPT_CONTEXT_SUPPORTED,
     ACCEPT_DIRECT,
+    B_GROUP,
     BUDGET_EXHAUSTED,
     CITATION_NOT_FOUND,
     CITATION_NOT_IN_DOSSIER,
@@ -669,3 +673,21 @@ def apply_p8_verdict(
             )
             written.append(membership_id)
     return _decision(group, dossier, membership_ids=tuple(written))
+
+
+# --- `104` R-O: a refusal is an outcome here too -------------------------------
+
+
+def refused_group_call(conn: sqlite3.Connection, *, group_id: str,
+                       error: BaseException, observed_at: str) -> CallRefused:
+    """One refused site-B call, recorded and handed back.
+
+    HERE rather than in `pipeline.py` for the reason this module exists: it is the
+    only file under `src/grouping/` allowed to know P8, and
+    `tests/p9/test_p9_no_invention.py` reads every module's imports to keep it
+    that way. `REFUSAL_EXCEPTIONS` is re-exported above for the same reason -- the
+    caller needs the tuple and may not reach `privacy.resolve` for it.
+    """
+    return refusal_outcome(
+        conn, call_site=B_GROUP, subject_ref=group_id, error=error,
+        observed_at=observed_at)

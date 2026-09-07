@@ -27,7 +27,9 @@ from llm_harness.eligibility import Eligible, assess_call
 from llm_harness.placement_validation import record_cd_verdict
 from llm_harness.sites import SiteDependencies, dispatch
 from llm_harness.records import (
+    REFUSAL_EXCEPTIONS,
     CallFailed,
+    CallRefused,
     DossierRequest,
     P8Verdict,
     PreCallAbstention,
@@ -37,7 +39,9 @@ from llm_harness.records import (
     build_call_payload,
 )
 from llm_harness.store import (
+    record_call_refusal,
     record_call_usage,
+    refusal_outcome,
     record_dossier,
     record_grounding_report,
     record_pre_call_abstention,
@@ -73,7 +77,6 @@ from privacy.gate import Gate
 from privacy.release import (
     Denied, MalformedRequest, NeedsConsent, NoPolicyInForce, Released,
 )
-
 _SCOPE_BY_SITE = {
     A_FACT: SCOPE_FILE,
     B_GROUP: SCOPE_GROUP,
@@ -422,7 +425,7 @@ def run_call(
     usage_recorder: object | None = None,
 ) -> (
     P8Verdict | Refusal | NeedsConsent |
-    ValidationUnavailable | CallFailed
+    ValidationUnavailable | CallFailed | CallRefused
 ):
     """Evaluate one reference-only request. NeedsConsent is returned unchanged.
 
@@ -504,16 +507,32 @@ def run_call(
 
         try:
             decision = gate.release(unit.model_call_request)
-        except (MalformedRequest, NoPolicyInForce):
-            # BOTH of the gate's non-decisions, for the reason the comment below
-            # `_issue_and_validate` gives: a raise between `reserve_call` and
-            # `settle_call` that does not release the reservation takes a call and
-            # its estimated cost out of the scan budget permanently, with nothing
-            # left holding the id. `MalformedRequest` joined that set on 2026-09-02
-            # -- the gate now refuses a requested item it has no reading for rather
-            # than dropping it from the release -- and a refusal that silently
-            # spends a budget slot would be its own smaller version of the same
-            # defect.
+        except REFUSAL_EXCEPTIONS as refusal:
+            # `104` R-O. The reservation goes back first, for the reason the
+            # comment below `_issue_and_validate` gives: a raise between
+            # `reserve_call` and `settle_call` that does not release the
+            # reservation takes a call and its estimated cost out of the scan
+            # budget permanently, with nothing left holding the id. On a scan
+            # budget of one, the file AFTER the refusal would then be refused for
+            # a reason that was not about it.
+            #
+            # AND THEN IT IS AN OUTCOME RATHER THAN A RAISE. Twice on a real
+            # corpus this raise reached `main` -- `UnresolvableSpan` after
+            # thirty-seven minutes of fact calls, `MalformedRequest` after
+            # forty-eight -- and each time the person got a traceback instead of
+            # the report the run had already earned. `00` §8 and `104` §7's Phase
+            # 1 step 6 say the call is recorded as refused, by reason, and the run
+            # goes on; `UnresolvableSpan` was not even in the old tuple, so it
+            # also leaked the slot on its way out.
+            release_reservation(conn, reservation)
+            return refusal_outcome(
+                conn, call_site=unit.call_site, subject_ref=unit.subject_ref,
+                error=refusal, observed_at=observed_at())
+        except NoPolicyInForce:
+            # NOT a per-subject refusal: a run with no policy in force is
+            # misconfigured for every call it will ever make, and one loud stop is
+            # better for the person than 199 identical rows. The reservation is
+            # still given back, so a caller that catches this can carry on.
             release_reservation(conn, reservation)
             raise
 
@@ -539,6 +558,17 @@ def run_call(
                 reduction_rung=reduction.rung,
                 observed_at=observed_at(),
             )
+        except REFUSAL_EXCEPTIONS as refusal:
+            # `104` R-O on the far side of the release. `model_facts` records what
+            # this cost at site B -- "every unbounded observation refused with
+            # `UnresolvableSpan` after the release had been minted" -- so the
+            # refusal is not confined to the door. Settled rather than released:
+            # the release was spent, and a slot given back here would let one
+            # scan pay for a call twice.
+            settle_call(conn, reservation, actual_cost=deps.actual_cost)
+            return refusal_outcome(
+                conn, call_site=unit.call_site, subject_ref=unit.subject_ref,
+                error=refusal, observed_at=observed_at())
         except BaseException:
             # Only the gate's own terminal decisions released the reservation.
             # Every other raise between `reserve_call` and `settle_call` --

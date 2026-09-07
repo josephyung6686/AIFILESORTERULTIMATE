@@ -1792,3 +1792,45 @@ def test_r17_site_d_describes_every_home_it_offers(skeleton, monkeypatch):
     assert v.REVIEW_ONLY in described["n-review-later"].location
     # And no site-C kind at a site whose text names two others.
     assert not [item for item in seen["items"] if item.kind == "candidate"]
+
+
+# --- `104` R-O at site C --------------------------------------------------------
+
+
+def test_a_refusal_at_site_c_leaves_the_deterministic_placement_standing(
+        skeleton, monkeypatch):
+    """A refused call is not a judgement about the file, so it does not take the
+    file's home away.
+
+    `104` §13.5's Q-A clause is the rule: *"Q-A governs whenever a model is
+    configured; with no model configured the deterministic path remains the
+    fallback."* A call that could not be made is the same position as no model at
+    all for THIS file -- and the alternative, which is what the code did, is a
+    `ModelJudgementUnavailable` out of `_require_verdict` that ends the whole run
+    on the file after it as well.
+    """
+    import placement.pipeline as pipeline
+    from privacy.resolve import UnresolvableSpan
+
+    def _refuse(conn, request, **kwargs):
+        raise UnresolvableSpan(
+            "observation 'sha256:3ea4' belongs to a file outside request.target")
+
+    monkeypatch.setattr(pipeline, "call_placement", _refuse)
+    refused = _place(skeleton, inputs=_model_inputs(skeleton))
+    offline = _place(skeleton)
+
+    assert refused.outcome == offline.outcome == v.PLACE
+    assert refused.destination.node_id == offline.destination.node_id
+    assert refused.confidence_class == offline.confidence_class
+
+
+def test_a_programming_error_at_site_c_still_surfaces(skeleton, monkeypatch):
+    import placement.pipeline as pipeline
+
+    def _bug(conn, request, **kwargs):
+        raise AttributeError("'NoneType' object has no attribute 'locality'")
+
+    monkeypatch.setattr(pipeline, "call_placement", _bug)
+    with pytest.raises(AttributeError):
+        _place(skeleton, inputs=_model_inputs(skeleton))
