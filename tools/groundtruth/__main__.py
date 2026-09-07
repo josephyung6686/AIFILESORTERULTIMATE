@@ -107,9 +107,11 @@ def main(argv: list[str] | None = None) -> int:
         "--reuse-answers-from", type=Path, default=None, metavar="DIR",
         help="seed each fresh run with the MODEL ANSWERS of the run of the same "
              "situation in DIR, so a rerun after a code change does not buy "
-             "again what it already paid for (`104` R-123). Four tables are "
-             "copied and no others -- the call identity, the dossier it reached, "
-             "the response and the verdicts -- keyed by R-109's identity, whose "
+             "again what it already paid for (`104` R-123). Five tables are "
+             "copied and no others: the four a reuse is decided from -- the call "
+             "identity, the dossier it reached, the response and the verdicts -- "
+             "and the supersession rows that explain a superseded verdict, when "
+             "both of its verdicts travel. Keyed by R-109's identity, whose "
              "dimensions include the file's content hash, the prompt "
              "fingerprint, the model and the policy: a file, prompt, model or "
              "policy that moved is a different key and is asked again. Nothing "
@@ -170,12 +172,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"running {len(situations)} situations over {corpus_files} files, "
               f"{args.workers} at a time. Each run reads the whole corpus.")
         if args.reuse_answers_from is not None:
-            print(f"seeding each run's answers from {args.reuse_answers_from}. A "
-                  f"question whose file, prompt, model and policy are unchanged is "
-                  f"answered from that run and not asked again; everything else is "
-                  f"asked. The per-run lines below are THIS run's own spend, and "
-                  f"the MODEL CALLS tally in the scorecard counts the seeded rows "
-                  f"as well.")
+            # What the seeding DOES, never what it will save. A run that promised
+            # a saving on the line above and printed `reused 0` on the line below
+            # would be telling a person their key matched when it did not, and
+            # which questions were found is the only honest form of the claim.
+            print(f"seeding each run's answers from {args.reuse_answers_from}. "
+                  f"Every question is looked up under R-109's call identity "
+                  f"before it is asked, and `reused` on each line below is how "
+                  f"many were found there; `called` is this run's own spend. The "
+                  f"MODEL line in the scorecard counts the seeded rows as well.")
         if args.enable_cloud:
             print(f"!! SENDING TO THE CLOUD MODEL: {len(situations)} runs over "
                   f"{corpus_files} files each. This spends money.", flush=True)
