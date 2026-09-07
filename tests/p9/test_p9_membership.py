@@ -35,16 +35,23 @@ from grouping.schema import create_grouping_schema
 from grouping.store import memberships_for_group, record_group
 from grouping.vocabulary import (
     CANDIDATE,
+    COHERENT,
     CONTEXT_SUPPORTED,
     DIRECT_ANCHOR,
+    ENGINE,
+    EXCLUDED,
+    INCLUDED,
     INTERPRETATION,
     LLM,
+    LLM_PROPOSED,
     NO_GROUP,
     PENDING_REVIEW,
     RULES,
     SR5,
     STRONGLY_IDENTIFIED_FILE,
+    SUPPORTED,
     UNCERTAIN,
+    USER_EDITED,
     VALIDATION,
 )
 from llm_harness.records import CallFailed, P8Verdict, Refusal, ValidationUnavailable
@@ -458,3 +465,218 @@ def test_an_accepted_membership_carries_the_conflicts_naming_its_file(seam_conn)
     assert [c.kind for c in by_file["essay-columbia"].conflicts] == [
         "target_institution"]
     assert by_file["admissions-checklist"].conflicts == ()
+
+
+# --- `104` R-16 / packet G11: the model's four answers, applied ------------------
+#
+# `00` §4.5 gives the model four tasks -- coherence, the members, the outliers,
+# and (only if coherence holds) a label and a category. R-16: "`apply_p8_verdict`
+# writes no `display_label`, `group_category` or `coherence_verdict`; per-member
+# include/exclude/uncertain collapses to blanket memberships". G11 says the same
+# from the packet's side: "The model's four answers are validated and then three of
+# them are dropped. B must be observe-only until P9 reads them."
+
+
+def _answered(verdict=None, *, coherent=COHERENT, category="academic",
+              label="PHYS1401 course materials", members=None):
+    from grouping.p8_seam import Answered, MemberDecision, ModelAnswer
+
+    if members is None:
+        members = (
+            MemberDecision(file_id="lecture-08", decision=INCLUDED,
+                           why="states the course code"),
+            MemberDecision(file_id="midterm-practice", decision=INCLUDED,
+                           why="states the course code"),
+            MemberDecision(file_id="hw-3", decision=UNCERTAIN,
+                           why="retrieved beside them and states nothing"),
+        )
+    return Answered(
+        result=verdict if verdict is not None else _verdict(ACCEPT_DIRECT),
+        answer=ModelAnswer(coherent=coherent, category=category, label=label,
+                           members=tuple(members), citations=(KEY,)))
+
+
+def test_r16_an_accepted_verdict_writes_the_label_the_category_and_the_verdict(
+        seam_conn):
+    """The group row is INSERTED here, which is what made the three writable.
+
+    `groups_never_overwritten` refuses an UPDATE of any of these columns and a
+    superseding row needs a new `group_id`, so a later write was never available:
+    `grouping.pipeline` withholds the insert while a ratified model is about to
+    decide, and this is the one write for the row.
+    """
+    from grouping.store import current_group
+
+    _apply(seam_conn, _answered())
+
+    stored = current_group(seam_conn, GROUP)
+    assert stored.display_label == "PHYS1401 course materials"
+    assert stored.group_category == "academic"
+    assert stored.coherence_verdict == COHERENT
+
+
+def test_r16_the_record_says_the_model_decided_and_never_the_person(seam_conn):
+    """`104` R-28's actor rule: never say the person when the rules or the model
+    did. `label_source` is the three-author ladder -- engine, llm-proposed,
+    user-edited -- and this is the middle rung; the group also names the verdict
+    and the dossier the answer came from, so "the model decided" is checkable
+    rather than asserted."""
+    from grouping.store import current_group
+
+    _apply(seam_conn, _answered())
+
+    stored = current_group(seam_conn, GROUP)
+    assert stored.label_source == LLM_PROPOSED
+    assert stored.label_source not in (USER_EDITED, ENGINE)
+    assert stored.validation_verdict_ref == "verdict-1"
+    assert stored.dossier_id == "fixture-course-dossier"
+
+
+def test_r16_the_engine_keeps_the_row_when_the_model_proposes_no_label(seam_conn):
+    """`naming.engine_proposal` is still the author when the model is not.
+
+    "A group below the bar comes back untouched", and a model that accepts the
+    coherence without naming the group has proposed nothing to write. What lands is
+    exactly what a deterministic deployment would have written, which is why this
+    change is invisible to a run with no model."""
+    from grouping.store import current_group
+
+    engine_named = _group(state=SUPPORTED, coherence_verdict=COHERENT,
+                          group_category="academic", display_label="PHYS1401",
+                          label_source=ENGINE)
+    _apply(seam_conn, _answered(label=None), group=engine_named)
+
+    stored = current_group(seam_conn, GROUP)
+    assert stored.display_label == "PHYS1401"
+    assert stored.label_source == ENGINE
+
+
+def test_r16_a_group_already_on_disk_is_left_exactly_as_it_stands(seam_conn):
+    """The conservative half, and it is the owner question this leaves open.
+
+    A second, DIFFERING model answer about a group whose row already carries a
+    proposal is a real supersession -- a superseding row needs a new `group_id`
+    that every membership and `group_acceptance` row would then not name -- and it
+    is refused here rather than answered quietly, which is the position
+    `record_group`'s own docstring takes for a widened anchor set. The person's
+    label is protected by the same rule and by more besides."""
+    from grouping.store import current_group
+
+    record_group(seam_conn, _group(
+        state=SUPPORTED, coherence_verdict=COHERENT, group_category="academic",
+        display_label="My PHYS notes", label_source=USER_EDITED))
+    _apply(seam_conn, _answered())
+
+    stored = current_group(seam_conn, GROUP)
+    assert stored.display_label == "My PHYS notes"
+    assert stored.label_source == USER_EDITED
+
+
+def test_r16_an_excluded_member_is_recorded_excluded_and_reaches_no_reader_as_one(
+        seam_conn):
+    """"Excluded members are not members", at the writer AND at both readers.
+
+    The ROW is kept on purpose -- §8.7 stores a withdrawn membership with the
+    evidence that produced it, and `tree_design.upstream` publishes it as
+    `excluded_members` -- so what "not a member" means is that no reader counts it
+    as one, which is asserted here rather than assumed."""
+    from grouping.p8_seam import MemberDecision
+    from grouping.store import memberships_for_group
+
+    record_group(seam_conn, _group())
+    _apply(seam_conn, _answered(members=(
+        MemberDecision(file_id="lecture-08", decision=INCLUDED, why="states it"),
+        MemberDecision(file_id="midterm-practice", decision=EXCLUDED,
+                       why="a different course"),
+    )))
+
+    by_file = {item.file_id: item
+               for item in memberships_for_group(seam_conn, GROUP)}
+    assert by_file["midterm-practice"].decision == EXCLUDED
+    assert by_file["lecture-08"].decision == INCLUDED
+
+
+def test_r16_an_uncertain_member_is_uncertain_and_carries_its_review(seam_conn):
+    """"Uncertain members are recorded as uncertain, never silently included."
+    The review obligation lands with it, which is what makes an uncertain member
+    safe to show: P11 places it as a context-supported match and the person sees
+    it pending."""
+    from grouping.store import memberships_for_group
+
+    record_group(seam_conn, _group())
+    _apply(seam_conn, _answered())
+
+    by_file = {item.file_id: item
+               for item in memberships_for_group(seam_conn, GROUP)}
+    assert by_file["hw-3"].decision == UNCERTAIN
+    assert by_file["lecture-08"].decision == INCLUDED
+    assert membership_review_state_as_of(
+        seam_conn, membership_id=by_file["hw-3"].membership_id,
+        plan_version_id=PLAN) == PENDING_REVIEW
+
+
+def test_r16_a_member_the_model_did_not_name_gets_no_membership(seam_conn):
+    """The model answered about two of the three files in the dossier. P9 writes
+    what the model said and nothing else: a third membership here would be P9
+    authoring a decision on the model's behalf, which is what the blanket write
+    was."""
+    from grouping.p8_seam import MemberDecision
+    from grouping.store import memberships_for_group
+
+    record_group(seam_conn, _group())
+    _apply(seam_conn, _answered(members=(
+        MemberDecision(file_id="lecture-08", decision=INCLUDED, why="states it"),
+        MemberDecision(file_id="midterm-practice", decision=INCLUDED,
+                       why="states it"),
+    )))
+
+    assert {item.file_id for item in memberships_for_group(seam_conn, GROUP)} == {
+        "lecture-08", "midterm-practice"}
+
+
+def test_r16_a_member_basis_is_the_dossiers_and_not_the_list_it_came_from(
+        seam_conn):
+    """The blanket write took `anchor_files` for a direct verdict and
+    `candidate_files` for a context one, so the BASIS was decided by which branch
+    ran rather than by what the dossier says each file is. `DossierFile.basis` is
+    already one of `MEMBERSHIP_BASES` and is what the builder concluded."""
+    from grouping.store import memberships_for_group
+
+    record_group(seam_conn, _group())
+    _apply(seam_conn, _answered())
+
+    by_file = {item.file_id: item
+               for item in memberships_for_group(seam_conn, GROUP)}
+    assert by_file["lecture-08"].basis == DIRECT_ANCHOR
+    assert by_file["hw-3"].basis == CONTEXT_SUPPORTED
+
+
+def test_r16_an_observed_answer_is_recorded_and_applied_to_nothing(seam_conn):
+    """The half that does not move: under an unratified prompt the site records
+    its dossier, its response and its verdict, and applies none of it. `104` §7
+    Phase 1 step 6, and it is what `cli.observed_run_call` wraps while
+    `drafts_status()` says `unratified`."""
+    from grouping.p8_seam import ObservedOnly
+    from grouping.store import current_group, memberships_for_group
+
+    record_group(seam_conn, _group())
+    decision = _apply(seam_conn, ObservedOnly(result=_answered()))
+
+    assert decision.membership_ids == ()
+    assert memberships_for_group(seam_conn, GROUP) == ()
+    stored = current_group(seam_conn, GROUP)
+    assert stored.display_label is None
+    assert stored.coherence_verdict is None
+
+
+def test_r16_a_rejected_answer_writes_no_label_and_no_membership(seam_conn):
+    """The CHECK on `groups` says a label exists only beside `coherent`, and
+    `LABEL_WITHOUT_COHERENCE` says the same from the validator's side. A verdict
+    P8 did not accept applies nothing at all."""
+    from grouping.store import current_group, memberships_for_group
+
+    record_group(seam_conn, _group())
+    _apply(seam_conn, _answered(_verdict(REJECT)))
+
+    assert memberships_for_group(seam_conn, GROUP) == ()
+    assert current_group(seam_conn, GROUP).display_label is None

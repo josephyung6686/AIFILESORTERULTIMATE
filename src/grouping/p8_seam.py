@@ -23,6 +23,7 @@ P9 runs no reduction ladder. A budget-deferred P8 result becomes
 """
 from __future__ import annotations
 
+import dataclasses
 import sqlite3
 from dataclasses import dataclass
 
@@ -66,13 +67,18 @@ from grouping.records import (
     StopRuleOutcome,
     Support,
 )
-from grouping.store import record_failure_point, record_membership
+from grouping.store import (
+    record_failure_point, record_group, record_membership, standing_group,
+)
 from grouping.vocabulary import (
+    COHERENT,
     CONTEXT_SUPPORTED,
     DIRECT_ANCHOR,
     INCLUDED,
     INTERPRETATION,
     LLM,
+    LLM_PROPOSED,
+    MEMBERSHIP_DECISIONS,
     NO_GROUP,
     NOT_FLAGGED,
     SHARED_VALIDATED_FACT,
@@ -81,6 +87,7 @@ from grouping.vocabulary import (
     VALIDATION,
     VALIDATOR,
 )
+from facts.domains import SCHEMA_IDS
 
 #: The P8 reason codes that mean exactly SR5: the model could not explain the
 #: group with citations that held. P9 reads the codes and inspects no citation.
@@ -292,6 +299,72 @@ def _edge_support(dossier: CandidateGroupDossier, file_id: str) -> tuple[Support
 
 
 @dataclass(frozen=True)
+class MemberDecision:
+    """One file, and what the model said about it. `00` §4.5 task 2.
+
+    `decision` is one of P9's OWN three (`MEMBERSHIP_DECISIONS`), already
+    translated from the response schema's `include` / `exclude` / `uncertain` by
+    whoever read the response. P9 does not know the model's vocabulary and does not
+    learn it here: `test_only_the_vocabulary_module_spells_a_closed_p9_value`
+    refuses a literal, and a translation table living in this package would be P9
+    holding a second copy of a contract the prompt owns.
+
+    `why` is the model's sentence about this file and is kept so a person reading
+    the group sees the reason rather than the decision alone.
+    """
+
+    file_id: str
+    decision: str
+    why: str
+
+
+@dataclass(frozen=True)
+class ModelAnswer:
+    """§4.5's four tasks, as the site that supplied the prompt read them back.
+
+    **P9 parses nothing.** `P8Verdict` names a `claim_ref` and carries no payload,
+    so the model's own four answers can only be read by whoever knows the response
+    shape -- which is whoever supplied the prompt, exactly as `model_placement`
+    argues for `chosen_node_of` at site C. The composition root reads them and
+    hands over this record; this package never touches a response body.
+
+    `label` and `category` are `None` on any answer that is not coherent, because
+    the response schema forbids them there and `groups`' own CHECK constraint
+    refuses the row.
+
+    `coherent` is a `COHERENCE_VERDICTS` word, translated by the same reader for
+    the same reason as `MemberDecision.decision`. `citations` are the references
+    the model cited for the coherence it claimed, already checked by P8: this
+    package reads no citation and runs no second validator, and a test over its own
+    source text holds it to that.
+    """
+
+    coherent: str | None
+    category: str | None
+    label: str | None
+    members: tuple[MemberDecision, ...]
+    citations: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class Answered:
+    """A P8 result together with the model's own four answers. `104` R-16.
+
+    The twin of `ObservedOnly`, and a wrapper for the same reason: the two things
+    that must not drift are "the call happened" and "what the model actually said",
+    and a payload travelling beside the result can be read by one branch and missed
+    by another. A caller that forgets to unwrap gets an object `apply_p8_verdict`
+    refuses to treat as a verdict.
+
+    `result` is whatever `run_call` returned; a refusal or a failure arrives here
+    too, and `apply_p8_verdict` handles it exactly as it does unwrapped.
+    """
+
+    result: object
+    answer: ModelAnswer
+
+
+@dataclass(frozen=True)
 class ObservedOnly:
     """A real P8 outcome that this run recorded and will not act on.
 
@@ -318,6 +391,94 @@ class ObservedOnly:
     result: object
 
 
+def _record_group_once(conn: sqlite3.Connection, group: Group) -> None:
+    """Insert the group if it is not on disk yet, and never touch it if it is.
+
+    `104` R-16 moved the insert to the moment the AUTHOR is known, so this is the
+    one write for the row. It is a `SELECT` and not a flag on purpose: a boolean
+    threaded through the caller would have to be right on every path out, and this
+    asks the database the question it is the authority for.
+
+    **A group already recorded is left exactly as it stands, and that is the
+    conservative half.** A second model answer about a group whose row already
+    carries a proposal is a real supersession question -- a superseding row needs a
+    new `group_id`, which every membership and `group_acceptance` row would then
+    not name -- and it is refused here rather than answered quietly, which is the
+    same position `record_group`'s own docstring takes for a widened anchor set.
+    """
+    if standing_group(conn, group.group_id) is None:
+        record_group(conn, group)
+
+
+def _named_by_the_model(group: Group, answer, result, dossier) -> Group:
+    """§4.5 task 4, on the row, with the author named. `104` R-16 and R-28.
+
+    Returns the group UNCHANGED whenever the model proposed nothing -- no answer at
+    all, a coherence that is not `yes`, or no label -- so `naming.engine_proposal`'s
+    own conclusion stands and a deployment without a model is untouched.
+
+    **The category is written only when the library recognises it.** `00`'s Q-C
+    ruling (§13.7) is "model names, user confirms": a value the library has not seen
+    is PROPOSED once and joins the vocabulary when the person confirms it. P10
+    selects an applicability row BY `group_category`, so writing an unrecognised one
+    would file the material under a schema that speaks for somebody else's life --
+    `Group.__post_init__` refuses it for that reason. The label is kept either way,
+    because a label is words and a category is a routing decision.
+    """
+    if answer is None or answer.coherent != COHERENT or not answer.label:
+        return group
+    return dataclasses.replace(
+        group,
+        coherence_verdict=COHERENT,
+        # What the model pointed at for the coherence it is claiming, handed over
+        # already checked. The engine's are its anchor facts' observation keys.
+        coherence_citations=(tuple(dict.fromkeys(answer.citations))
+                             or group.coherence_citations),
+        group_category=(answer.category if answer.category in SCHEMA_IDS
+                        else None),
+        display_label=answer.label,
+        label_source=LLM_PROPOSED,
+        dossier_id=dossier.dossier_id,
+        validation_verdict_ref=result.verdict_id,
+    )
+
+
+def _members_of(dossier, answer, *, context: bool):
+    """`(dossier file, P9 decision)` for every member this write covers.
+
+    **With an answer, the model's own per-member decisions**, which is R-16's other
+    half: `include`, `exclude` and `uncertain` were collapsed into one blanket
+    decision per branch, so a file the model excluded became a member and a file it
+    was unsure about became a certainty. A member the model did not mention gets no
+    row at all -- writing one would be P9 authoring a decision on the model's
+    behalf, which is what the blanket write was.
+
+    **Without one, the pre-R-16 reading**, and it is not a fallback for the live
+    site: `cli.observed_run_call` always wraps, so B's answers always arrive. This
+    is what a caller that holds a verdict and no response body has -- P8 accepted
+    the group's coherence and said nothing per file, so P9 reads the dossier's own
+    sides, which is exactly as coarse as that caller's evidence.
+    """
+    if answer is None:
+        return tuple(
+            (item, UNCERTAIN if context else INCLUDED)
+            for item in (dossier.candidate_files if context
+                         else dossier.anchor_files)
+        )
+    by_id = {item.file_id: item
+             for item in dossier.anchor_files + dossier.candidate_files}
+    found = []
+    for member in answer.members:
+        item = by_id.get(member.file_id)
+        # A file id the dossier does not carry is `INVENTED_MEMBERSHIP` and P8 has
+        # already rejected the whole claim, so this is unreachable through the live
+        # seam; a decision outside P9's own three is the same shape of answer.
+        # Neither is repaired here.
+        if item is not None and member.decision in MEMBERSHIP_DECISIONS:
+            found.append((item, member.decision))
+    return tuple(found)
+
+
 def apply_p8_verdict(
     conn: sqlite3.Connection,
     *,
@@ -329,30 +490,38 @@ def apply_p8_verdict(
 ):
     """Map one authoritative P8 result onto P9's records.
 
-    `NeedsConsent` is returned unchanged and writes nothing: it is a question for
-    the user, not an outcome, and a P9 row about it would be P9 answering it.
+    `NeedsConsent` is returned unchanged and writes nothing about the answer: it is
+    a question for the user, not an outcome, and a P9 row about it would be P9
+    answering it. The GROUP is still recorded, because recording that a group was
+    proposed is not answering the question.
 
-    **This function writes no `group_category` and no `display_label`, and that is
-    a decision rather than an omission.** §4.5 task 4 IS the model's -- it proposes
-    both, and P8's validator has a reason code for proposing them without
-    coherence (`LABEL_WITHOUT_COHERENCE`). But `P8Verdict`
-    (`llm_harness/records.py:388`) has no field for either, so the answer the model
-    gave never arrives here. Deriving one from `result.outcome` would be P9
-    authoring the model's proposal on its behalf, which is the one thing this file
-    exists not to do.
+    **`104` R-16: §4.5's task 4 now reaches the record.** This wrote no
+    `display_label`, no `group_category` and no `coherence_verdict`, and collapsed
+    per-member include/exclude/uncertain into blanket memberships -- "the model's
+    four answers are validated and then three of them are dropped" (packet §7 G11).
+    `P8Verdict` still carries no payload and P9 still parses none: the composition
+    root that supplied the prompt reads the model's own answers and hands them over
+    as `Answered`, which is the same argument `model_placement` makes for
+    `chosen_node_of` at site C.
 
-    It writes no `coherence_verdict` either, and that one is a REPORTED GAP rather
-    than a settled rule: `result.outcome` genuinely carries P8's coherence answer,
-    but the group is already on disk by the time this runs (`pipeline.py` records
-    it before the dossier, so the engine's reason exists before the model sees
-    anything, per §4.1). §8.2 permits a record to be superseded and never
-    overwritten, and a superseding group row needs a new `group_id` -- which every
-    membership written below, every `group_acceptance` row, and
-    `GroupingResult.group` still name by the old one. That is a record-lifecycle
-    change across the acceptance seam, not a field fix, and it is not taken here
-    quietly. What P8 said is still on disk and still attributable: the memberships
-    carry `validation_verdict_ref`, an SR5 refusal becomes a `StopRuleOutcome`, and
-    a failed or refused call becomes a `FailurePoint`.
+    **THE GROUP ROW IS INSERTED HERE WHEN ITS AUTHOR IS THE MODEL, and that is what
+    made the three fields writable at all.** `groups` is append-only in the strong
+    sense: `groups_never_overwritten` refuses an UPDATE of any of these columns, and
+    a superseding row needs a new `group_id` that every membership, every
+    `group_acceptance` row and `GroupingResult.group` would then not name. So the
+    fix is not a later write -- it is writing the row ONCE, after the author is
+    known. `grouping.pipeline` withholds the insert exactly when a ratified model is
+    going to decide, and every path out of here records the group before it returns.
+    §4.1 is untouched: the engine's REASON -- `proposed_basis`, `pre_model_signals`,
+    `anchor_facts`, the stop rules -- is computed before the model sees anything and
+    is carried on the row this writes.
+
+    **The engine keeps its role, which is the fallback.** `naming.engine_proposal`
+    has already filled the three on the group handed in; when the model does not
+    accept, or accepts without a label, that is what lands, and a deterministic
+    deployment is unchanged in every respect. When the model does answer, its
+    proposal is what the row carries and `label_source` says so -- R-28's actor
+    rule: never say the person, and never say the engine, when the model decided.
     """
     if isinstance(result, ObservedOnly):
         # RECORDED AND NOT ACTED ON. `_decision`'s defaults are `membership_ids=()`
@@ -360,17 +529,25 @@ def apply_p8_verdict(
         # the group keeps the state P9's own engine gave it, and what the model
         # said is on disk in `llm_dossier`, `llm_response` and `llm_verdict` under
         # a template id carrying the word `unratified`.
+        _record_group_once(conn, group)
         return _decision(group, dossier)
 
+    answer: ModelAnswer | None = None
+    if isinstance(result, Answered):
+        answer, result = result.answer, result.result
+
     if isinstance(result, NeedsConsent):
+        _record_group_once(conn, group)
         return result
 
     if isinstance(result, CallFailed):
+        _record_group_once(conn, group)
         _failure(conn, group.group_id, dossier.dossier_id,
                  stage=INTERPRETATION, cause="call_failed", created_at=created_at)
         return _decision(group, dossier, failure_stage=INTERPRETATION)
 
     if isinstance(result, (Refusal, ValidationUnavailable)):
+        _record_group_once(conn, group)
         cause = ("privacy_gate_refused" if isinstance(result, Refusal)
                  else "validation_unavailable")
         _failure(conn, group.group_id, dossier.dossier_id,
@@ -392,11 +569,17 @@ def apply_p8_verdict(
         )
 
     if result.outcome == ABSTAIN and BUDGET_EXHAUSTED in result.reasons:
+        _record_group_once(conn, group)
         return _decision(group, dossier, deferred=DossierDeferred(
             group_id=group.group_id, dossier_id=dossier.dossier_id,
             reason=BUDGET_EXHAUSTED))
 
     if not accepting:
+        # NOT the model's label, and the schema agrees: `groups`' CHECK allows a
+        # label and a category only beside `coherent`, which is §4.5's own "only if
+        # coherence is supported" in SQL. So the row carries what the engine
+        # concluded and nothing the model proposed.
+        _record_group_once(conn, group)
         outcome = None
         if set(result.reasons) & _SR5_REASONS:
             outcome = StopRuleOutcome(
@@ -405,31 +588,48 @@ def apply_p8_verdict(
         return _decision(group, dossier, stop_rule_outcome=outcome)
 
     context = result.outcome == ACCEPT_CONTEXT_SUPPORTED
-    if context and not plan_version_id:
+    members = _members_of(dossier, answer, context=context)
+    # THE OBLIGATION IS PER UNCERTAIN MEMBER, so the refusal is too. It read
+    # `context and not plan_version_id`, which was right while the whole branch was
+    # uncertain; a model may now call one member uncertain inside a group it
+    # otherwise accepted directly, and that member needs the same review.
+    if any(decision == UNCERTAIN for _item, decision in members) and (
+            not plan_version_id):
         raise ValueError(
-            "a context-supported membership carries a review obligation, and the "
+            "an uncertain membership carries a review obligation, and the "
             "obligation is per plan version. Without one there is nowhere to "
             "record the review, and a membership visible without its review is "
             "the failure this rule exists to prevent."
         )
 
+    _record_group_once(conn, _named_by_the_model(group, answer, result, dossier))
+
     written: list[str] = []
     # One transaction. A membership that became visible while its review
     # obligation failed to record is an uncertain guess wearing a decision.
     with transaction(conn):
-        for item in (dossier.candidate_files if context else dossier.anchor_files):
+        for item, decision in members:
             membership_id = f"{group.group_id}:{item.file_id}:{result.verdict_id}"
-            support = (
-                _edge_support(dossier, item.file_id) if context
-                else _support_for(item)
-            )
+            # THE FILE'S OWN BASIS, from the dossier that described it. This read
+            # `CONTEXT_SUPPORTED if context else DIRECT_ANCHOR`, so the basis was
+            # decided by which branch ran rather than by what the builder concluded
+            # about the file -- and `DossierFile.basis` is already one of
+            # `MEMBERSHIP_BASES` and is that conclusion.
+            direct = item.basis == DIRECT_ANCHOR
+            support = _support_for(item) or _edge_support(dossier, item.file_id)
+            if not support:
+                # `records.py`: "a membership with no support cannot say why the
+                # file belongs". P9 authors none, so a member whose evidence the
+                # dossier does not carry gets no row -- and the model's decision
+                # about it is still on disk in `llm_response` under this verdict.
+                continue
             record_membership(conn, Membership(
                 membership_id=membership_id,
                 group_id=group.group_id,
                 file_id=item.file_id,
                 content_hash=item.content_hash,
-                basis=CONTEXT_SUPPORTED if context else DIRECT_ANCHOR,
-                decision=UNCERTAIN if context else INCLUDED,
+                basis=DIRECT_ANCHOR if direct else CONTEXT_SUPPORTED,
+                decision=decision,
                 decision_source=LLM,
                 support=support,
                 insufficient_evidence=False,
@@ -444,7 +644,12 @@ def apply_p8_verdict(
                 validation_verdict_ref=result.verdict_id,
                 created_at=created_at,
             ))
-            if context:
+            if decision == UNCERTAIN:
+                # THE OBLIGATION FOLLOWS THE DECISION, not the verdict's outcome.
+                # An uncertain member is one the model was not sure about, and it
+                # is safe to show only because a review is pending on it -- which
+                # is now true of a member the model called uncertain inside an
+                # `accept_direct` group as well.
                 record_context_review_pending(
                     conn, plan_version_id=plan_version_id,
                     group_id=group.group_id, membership_id=membership_id,
@@ -459,7 +664,7 @@ def apply_p8_verdict(
                 observed_at=created_at,
                 explanation=(
                     f"P8 verdict {result.verdict_id} ({result.outcome}) proposed "
-                    f"this membership"
+                    f"this membership as {decision}"
                 ),
             )
             written.append(membership_id)

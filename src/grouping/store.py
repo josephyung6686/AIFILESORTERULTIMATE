@@ -241,6 +241,19 @@ def current_group(conn: sqlite3.Connection, group_id: str) -> Group:
     )
 
 
+def standing_group(conn: sqlite3.Connection, group_id: str) -> Group | None:
+    """The recorded group under this id, or `None`. `current_group` without the raise.
+
+    Published because `apply_p8_verdict` has to answer "is this group on disk yet"
+    without treating absence as an error: `104` R-16 moves the group's INSERT to
+    the moment its AUTHOR is known, so a group reaching the P8 seam unrecorded is
+    the normal case for a deployment whose model decides, not a missing row.
+    """
+    row = conn.execute(
+        "SELECT group_id FROM groups WHERE group_id = ?", (group_id,)).fetchone()
+    return None if row is None else current_group(conn, group_id)
+
+
 def record_membership(conn: sqlite3.Connection, membership: Membership) -> str:
     """Insert one membership, or return the id when the same one is recorded."""
     _check_supersession(conn, "memberships", "membership_id", membership)

@@ -91,6 +91,25 @@ from grouping.vocabulary import (
 NO_MODEL_CONFIGURED: str = "no_model_call_configured"
 
 
+def _a_ratified_model_decides(p8_run_call, p8_authorities) -> bool:
+    """Whether this run's model is going to decide, and its text is one somebody
+    approved. `104` R-16's condition for withholding the group's insert.
+
+    THE PROMPT'S OWN FIELD, `getattr`-ed rather than imported: `ModelCallAuthorities`
+    annotates `prompt` as `object` because
+    `test_p9_never_imports_run_calls_neighbours` forbids every file under
+    `src/grouping/` from importing `llm_harness.records`, and an import is a second
+    route to a model. `PipelineInputs.model_decides` and `_observed_only` read the
+    same field at P11 and P8, so all three agree by construction.
+
+    `False` when either half is absent, which is the deterministic run and is the
+    behaviour this product has had on every run it has ever made.
+    """
+    if p8_run_call is None or p8_authorities is None:
+        return False
+    return bool(getattr(p8_authorities.prompt, "ratified", False))
+
+
 @dataclass(frozen=True)
 class ModelCallAuthorities:
     """`run_call`'s five keyword arguments, as P9 receives them.
@@ -622,7 +641,29 @@ def group_subject(
         group = standing
     else:
         group = engine_proposal(group)
-        record_group(conn, group)
+        # WITHHELD WHEN A RATIFIED MODEL IS ABOUT TO DECIDE (`104` R-16). `groups`
+        # is append-only in the strong sense -- `groups_never_overwritten` refuses
+        # an UPDATE of `coherence_verdict`, `group_category`, `display_label` or
+        # `label_source`, and a superseding row needs a new `group_id` that every
+        # membership and `group_acceptance` row would then not name -- so the
+        # model's §4.5 task 4 can only reach the record if the row is written ONCE,
+        # after its author has spoken. `apply_p8_verdict` writes it, with the
+        # model's proposal when the model made one and with `engine_proposal`'s
+        # when it did not.
+        #
+        # §4.1 IS NOT WEAKENED. "The engine's reason exists before the model sees
+        # anything" is `proposed_basis`, `pre_model_signals`, `anchor_facts` and the
+        # stop rules -- all computed above, all carried on the row, and none of them
+        # the model's. What moves is when the row is INSERTED, not when it is
+        # decided.
+        #
+        # Read off the prompt rather than off the presence of a client, and read
+        # the same field `_observed_only` and `model_decides` read: a site running
+        # under text nobody has approved records its answer and applies nothing, so
+        # for that deployment the engine is still the author and the row is written
+        # here exactly as before.
+        if not _a_ratified_model_decides(p8_run_call, p8_authorities):
+            record_group(conn, group)
     membership = _self_membership(
         group, seed, conflicts=conflicts, created_at=created_at)
     record_membership(conn, membership)
@@ -636,6 +677,10 @@ def group_subject(
         # hardcoded so the dossier does not need a second edit if it narrows.
         conflicts=conflicts, created_at=created_at)
     if isinstance(dossier, DossierRefused):
+        # Every path out from here records the group, because the row is no longer
+        # guaranteed to be on disk. `record_group` returns the id for a row it
+        # already holds, so this is one write however the run reached it.
+        record_group(conn, group)
         return _result(
             seeds=seeds, neighborhood=neighborhood, graph=graph, group=group,
             memberships=(membership,),
@@ -649,6 +694,7 @@ def group_subject(
         # The bundle is a REQUIRED parameter rather than a defaulted one so that
         # forgetting it is a `TypeError` at the call site, while a deployment with
         # no model says so by passing `None`.
+        record_group(conn, group)
         return _result(
             seeds=seeds, neighborhood=neighborhood, graph=graph, group=group,
             memberships=(membership,), dossier=dossier,
@@ -690,6 +736,7 @@ def group_subject(
         observed_at=p8_authorities.observed_at,
     )
     if outcome_from_model is None:
+        record_group(conn, group)
         return _result(
             seeds=seeds, neighborhood=neighborhood, graph=graph, group=group,
             memberships=(membership,), dossier=dossier,

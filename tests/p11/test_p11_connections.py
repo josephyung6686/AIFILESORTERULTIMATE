@@ -465,7 +465,7 @@ def test_a_run_without_a_support_policy_or_limits_refuses(p11_conn):
                                           margin_threshold=0.2),
         limits=placement_limits(p11_conn), partition=None,
         ask_or_abstain=None, max_return_cycles=None, gate=None,
-        model_client=None, prompt=None, call_dependencies=None,
+        model_client=None, prompt=None, residual_prompt=None, call_dependencies=None,
         model_call_request=None, chosen_node_of=None, residual_action_of=None,
         sensitivity_policy=None, ask_about_file=lambda subject: None,
         chosen_by_user=lambda subject: None,
@@ -487,22 +487,31 @@ def test_a_run_without_a_support_policy_or_limits_refuses(p11_conn):
 # --- what §6.12's pipeline still does NOT reach -----------------------------------
 
 
-def test_the_scoped_general_role_still_has_no_reader():
-    """§5.9's scoped fallback is in the vocabulary and nothing branches on it.
+def test_the_scoped_general_role_is_described_to_the_model_and_branched_on_by_nobody():
+    """§5.9's scoped fallback is TOLD to the model and still decides nothing here.
 
-    `SCOPED_GENERAL` is carried from P10 and a `scoped-general` node is indexed,
-    retrieved and placeable like any other -- but no module in `src/placement/`
-    treats it differently from an ordinary node, so §6.7's "scoped fallback under
-    a meaningful parent" has no expression in a decision beyond the node's role.
+    This asserted `readers == set()` and was named as a known gap: `SCOPED_GENERAL`
+    was carried from P10 and no module in `src/placement/` treated a
+    `scoped-general` node differently from an ordinary one, so §6.7's "scoped
+    fallback under a meaningful parent" had no expression at all.
 
-    Named as a KNOWN GAP so the day a reader appears this assertion fails and
-    somebody decides whether the branch is the right one.
+    The reader that appeared is `index.node_profile`, and it is the half R-17
+    closes: the C draft's own HOW TO DECIDE says "a candidate described as a scoped
+    fallback under a parent stands when the parent's levels are supported and no
+    child's deeper level is", and a model shown an opaque id cannot tell which
+    candidate that is. So the role is now a SENTENCE IN THE DOSSIER.
+
+    It is still not a BRANCH. `pipeline.py` writes the same decision for a
+    scoped-general destination as for any other, and §6.7's broad-parent case
+    (`unsupported_levels`, below) still has no writer. Both halves are asserted so
+    the day a decision branches on the role, this fails and somebody decides
+    whether the branch is the right one.
     """
     readers = {name for name, tree in _modules().items()
                if name != "vocabulary.py"
                and "SCOPED_GENERAL" in {node.id for node in ast.walk(tree)
                                         if isinstance(node, ast.Name)}}
-    assert readers == set()
+    assert readers == {"index.py"}
 
 
 def test_no_producer_fills_decision_depths_unsupported_levels():

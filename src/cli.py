@@ -95,7 +95,7 @@ from grouping.config import GroupingLimits
 from grouping.embeddings import (
     EmbeddingConfig, EmbeddingsOff, EmbeddingsOn, EncodedVector,
     FileVersionRef)
-from grouping.p8_seam import ObservedOnly
+from grouping.p8_seam import Answered, MemberDecision, ModelAnswer, ObservedOnly
 from placement.vocabulary import GROUP
 from grouping.pipeline import (
     GroupingKnowledge, GroupingResult, ModelCallAuthorities,
@@ -108,10 +108,11 @@ from grouping.store import (
     record_membership, stop_rule_outcome_for,
 )
 from grouping.vocabulary import (
-    ACCEPTED, BOUNDED_SESSION, COHERENT, COMPATIBLE_DOCUMENT_TYPE, DUPLICATE,
-    EDGE_TYPES as P9_EDGE_TYPES, EXISTING_RELATED_FOLDER, INCLUDED,
-    MUTUAL_SEMANTIC_RETRIEVAL, P1_INCLUDED_SCAN_STATE, PENDING_REVIEW, RULES,
-    SHARED_VALIDATED_FACT, USER_EDITED, VERSION_FAMILY, fact_bridge_ref,
+    ABSTAINED, ACCEPTED, BOUNDED_SESSION, COHERENT, COMPATIBLE_DOCUMENT_TYPE,
+    DUPLICATE, EDGE_TYPES as P9_EDGE_TYPES, EXCLUDED, EXISTING_RELATED_FOLDER,
+    INCLUDED, MUTUAL_SEMANTIC_RETRIEVAL, NOT_COHERENT, P1_INCLUDED_SCAN_STATE,
+    PENDING_REVIEW, RULES, SHARED_VALIDATED_FACT, UNCERTAIN, USER_EDITED,
+    VERSION_FAMILY, fact_bridge_ref,
 )
 from llm_harness.budgets import ScanBudget, create_budget_schema
 from llm_harness.prompt_library import (
@@ -119,7 +120,8 @@ from llm_harness.prompt_library import (
     a_fact_template_folder_levels_bytes, draft_bytes, drafts_status,
 )
 from llm_harness.harness import CallDependencies, run_call
-from llm_harness.records import FolderLevel, PromptDefinition
+from llm_harness.records import FolderLevel, P8Verdict, PromptDefinition
+from llm_harness.store import last_response_bytes
 from llm_harness.sites import SiteDependencies
 from llm_harness.schema import create_llm_schema
 from llm_harness.vocabulary import (
@@ -812,42 +814,149 @@ def observe_group_authorities(fact_authorities, *, routing: TierRouting,
         policy_version=fact_authorities.policy_version,
         wire_handle_key=fact_authorities.wire_handle_key)
 
-    def observed_run_call(conn, request, *, gate, model_client, prompt,
-                          validation_dependencies, observed_at):
-        """`run_call`, with the per-group half of the learning key filled in.
-
-        `group_subject` runs per subject and `ModelCallAuthorities` is built once,
-        so the two fields that identify WHICH proposal a past rejection would
-        suppress cannot be set at composition. They are set here, from the request
-        the pipeline just built, which is the same thing `_judge_with_model` does
-        for C and D and for the same reason.
-
-        `basis_key` IS THE SUBJECT ADDRESS AND NOT THE GROUP'S `proposed_basis`,
-        which is what it should become. The basis is on the DOSSIER and
-        `p8_run_call` is handed only the request, so it is not reachable from here.
-        Inert while B applies nothing -- `assess_call` uses the pair to find a
-        user's past REJECT, and an observe run writes none -- and it must be the
-        basis before B applies anything.
-        """
-        subject = getattr(request, "subject_ref", "") or ""
-        deps = dataclasses.replace(
-            validation_dependencies,
-            basis_key=subject or validation_dependencies.basis_key,
-            learning_subject_id=(subject.partition(":")[2]
-                                 or validation_dependencies.learning_subject_id))
-        return ObservedOnly(run_call(
-            conn, request, gate=gate, model_client=model_client, prompt=prompt,
-            validation_dependencies=deps, observed_at=observed_at))
-
     return observed_run_call, ModelCallAuthorities(
         gate=fact_authorities.gate,
         model_client=client,
-        prompt=observe_prompt(B_GROUP),
+        prompt=prompt_for(B_GROUP),
         validation_dependencies=shared,
         observed_at=fact_authorities.observed_at,
         # The SAME target the client is pointed at, read off the client rather
         # than built beside it.
         model_target=client.model_target)
+
+
+def observed_run_call(conn, request, *, gate, model_client, prompt,
+                      validation_dependencies, observed_at):
+    """`run_call`, with the per-group half of the learning key filled in, and
+    with B's answer withheld while B's text is a draft.
+
+    `group_subject` runs per subject and `ModelCallAuthorities` is built once, so
+    the two fields that identify WHICH proposal a past rejection would suppress
+    cannot be set at composition. They are set here, from the request the pipeline
+    just built, which is the same thing `_judge_with_model` does for C and D and
+    for the same reason.
+
+    `basis_key` IS THE SUBJECT ADDRESS AND NOT THE GROUP'S `proposed_basis`, which
+    is what it should become. The basis is on the DOSSIER and `p8_run_call` is
+    handed only the request, so it is not reachable from here. Inert while B
+    applies nothing -- `assess_call` uses the pair to find a user's past REJECT,
+    and an observe run writes none -- and it must be the basis before B applies
+    anything.
+
+    **`ObservedOnly` IS NOW CONDITIONAL, AND THAT IS THE FIX.** It wrapped
+    unconditionally and never read `prompt.ratified`, so B's answer was withheld by
+    the SHAPE of this function while every other site read the field:
+    `_observed_only` at C and D, `PipelineInputs.model_decides` at P11. The day the
+    owner ratifies `anchors-first-v3`, A, C and D would begin applying and B would
+    go on discarding, with nothing in the product saying why.
+
+    A MODULE-LEVEL FUNCTION and no longer a closure, because the prompt arrives as
+    an argument -- `grouping.pipeline` passes `p8_authorities.prompt` through -- so
+    closing over one was a second copy of a value already in the signature, and one
+    a test could not reach.
+    """
+    subject = getattr(request, "subject_ref", "") or ""
+    deps = dataclasses.replace(
+        validation_dependencies,
+        basis_key=subject or validation_dependencies.basis_key,
+        learning_subject_id=(subject.partition(":")[2]
+                             or validation_dependencies.learning_subject_id))
+    result = run_call(
+        conn, request, gate=gate, model_client=model_client, prompt=prompt,
+        validation_dependencies=deps, observed_at=observed_at)
+    if not getattr(prompt, "ratified", False):
+        return ObservedOnly(result)
+    answer = group_answer_of(conn, result)
+    if answer is None:
+        # RECORD AND APPLY NOTHING, which is the safe direction and not a
+        # fallback. A verdict whose response this root cannot read is a verdict
+        # whose per-member decisions, label and category are unknown, and applying
+        # it would put back exactly the blanket memberships `104` R-16 names.
+        return ObservedOnly(result)
+    return Answered(result=result, answer=answer)
+
+
+def group_answer_of(conn: sqlite3.Connection, result: object):
+    """The model's §4.5 four answers for one B call, read back at the boundary.
+
+    **This is the composition root's job and nobody else's.** `P8Verdict` names a
+    `claim_ref` and carries no payload, so the model's own answers "can only be read
+    by whoever knows the response shape -- which is whoever supplied the prompt"
+    (`model_placement`, for `chosen_node_of` at site C). `src/grouping/` may not
+    import `llm_harness.records` at all, so P9 could not read one if it wanted to.
+
+    **Read here rather than later**, and `last_response_bytes` says why: this runs
+    the statement after `run_call` returned, so the row it reads is the row that
+    call wrote.
+
+    `None` whenever there is nothing to apply -- not a verdict, no response on
+    disk, unparseable bytes, a claim that is not the one the verdict judged -- and
+    the caller turns every one of those into "recorded, applied to nothing".
+
+    The two vocabularies are translated HERE, from the response schema's words to
+    P9's, for the reason `MemberDecision` gives: a table in P9 would be a second
+    copy of a contract the prompt owns.
+    """
+    if not isinstance(result, P8Verdict):
+        return None
+    raw = last_response_bytes(conn, result.dossier_id)
+    if raw is None:
+        return None
+    try:
+        claims = json.loads(raw).get("claims")
+    except (json.JSONDecodeError, AttributeError):
+        return None
+    if not isinstance(claims, list) or not claims:
+        return None
+    claim = claims[0]
+    if not isinstance(claim, dict):
+        return None
+    payload = claim.get("payload")
+    if not isinstance(payload, dict):
+        return None
+    members = []
+    for entry in payload.get("members") or ():
+        if not isinstance(entry, dict):
+            continue
+        decision = GROUP_MEMBER_DECISION.get(entry.get("decision"))
+        if decision is None or not entry.get("file_id"):
+            continue
+        members.append(MemberDecision(
+            file_id=str(entry["file_id"]), decision=decision,
+            why=str(entry.get("why") or "")))
+    citations = tuple(
+        str(item.get("evidence_ref")) for item in (claim.get("citations") or ())
+        if isinstance(item, dict) and item.get("evidence_ref"))
+    coherent = GROUP_COHERENCE.get(payload.get("coherent"))
+    label = payload.get("label")
+    category = payload.get("category")
+    return ModelAnswer(
+        coherent=coherent,
+        category=str(category) if isinstance(category, str) else None,
+        label=str(label) if isinstance(label, str) else None,
+        members=tuple(members), citations=citations)
+
+
+#: The B response schema's words for a member, and P9's. The left column is
+#: `$defs.payload.properties.members.items.properties.decision.enum` and the right
+#: is `grouping.vocabulary.MEMBERSHIP_DECISIONS`. Spelled at the composition root
+#: because that is where both contracts are known: P9 does not read a response and
+#: the schema does not know P9's words.
+GROUP_MEMBER_DECISION: Mapping[str, str] = MappingProxyType({
+    "include": INCLUDED,
+    "exclude": EXCLUDED,
+    "uncertain": UNCERTAIN,
+})
+
+#: The same translation for §4.5's first task. `insufficient` is `abstained` and
+#: not `not-coherent`: the model saying it could not tell is a different answer
+#: from the model saying these files are not one group, and `COHERENCE_VERDICTS`
+#: keeps them apart.
+GROUP_COHERENCE: Mapping[str, str] = MappingProxyType({
+    "yes": COHERENT,
+    "no": NOT_COHERENT,
+    "insufficient": ABSTAINED,
+})
 
 
 class ObservedSiteMustNotApply(RuntimeError):
@@ -880,7 +989,7 @@ def _must_not_apply(call_site: str):
 
 def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
                                  routing: TierRouting, plan_version: str) -> dict:
-    """Sites C and D, wired to run and to change nothing. Seven of the eight.
+    """Sites C and D, wired to run and to change nothing. Eight of the nine.
 
     `sensitivity_policy` is NOT here: R-55 supplies it at `placement_inputs`
     already, and P8's two sensitivity checks refuse with it whether or not a model
@@ -899,10 +1008,15 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
     authorities = PlacementCallAuthorities(
         gate=fact_authorities.gate,
         model_client=routing.client_for(C_PLACEMENT),
-        # C's text. D's is a different draft and `_judge_with_model` is shared, so
-        # the prompt it sends is C's for both -- which is a REAL limitation of
-        # wiring two sites through one function and is reported rather than hidden.
-        prompt=observe_prompt(C_PLACEMENT),
+        # ONE PROMPT EACH. This said "the prompt it sends is C's for both -- which
+        # is a REAL limitation of wiring two sites through one function", and the
+        # limitation is gone rather than reported: `PipelineInputs.prompt_for`
+        # picks by call site and `run_call` refuses a request whose site is not the
+        # prompt's. D's answer names one of §7.7's eight actions and C's schema has
+        # no `action` key, so every residual answer was heading for
+        # `SCHEMA_INVALID` -- for obeying text that was not its own either.
+        prompt=prompt_for(C_PLACEMENT),
+        residual_prompt=prompt_for(D_RESIDUAL),
         model_target=routing.client_for(C_PLACEMENT).model_target,
         evidence_resolver=fact_authorities.evidence_resolver,
         contradicts=fact_authorities.contradicts,
@@ -919,12 +1033,12 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
     return built
 
 
-#: The seven `model_path_injections` fills for C and D. `sensitivity_policy` is
-#: the eighth and is supplied at `placement_inputs` by R-55 whether or not a model
+#: The eight `model_path_injections` fills for C and D. `sensitivity_policy` is
+#: the ninth and is supplied at `placement_inputs` by R-55 whether or not a model
 #: is configured, so it is not in this set and is never overwritten from here.
 OBSERVE_PLACEMENT_FIELDS: tuple[str, ...] = (
-    "gate", "model_client", "prompt", "call_dependencies", "model_call_request",
-    "chosen_node_of", "residual_action_of",
+    "gate", "model_client", "prompt", "residual_prompt", "call_dependencies",
+    "model_call_request", "chosen_node_of", "residual_action_of",
 )
 
 
@@ -951,6 +1065,37 @@ def observe_prompt(call_site: str) -> PromptDefinition:
         # the packet this becomes true without a line of this file changing.
         ratified=drafts_status() == "ratified",
         shaping_policy_bytes=shaping_policy)
+
+
+def prompt_for(call_site: str) -> PromptDefinition:
+    """THE ONE SEAM: what this deployment asks `call_site` under. `104` R-05.
+
+    Five sites, five texts, five response schemas and five shaping policies, and
+    exactly one function that pairs a site with its own. Two entry points would be
+    two places for a site to be handed a neighbour's contract -- and that was not
+    hypothetical: `observe_placement_injections` gave site D site C's prompt, so a
+    residual answer naming one of §7.7's eight actions would have been judged
+    against a schema with no `action` key in it.
+
+    **Nothing is composed here.** `a_fact_prompt` reads the ratified bytes and
+    their pinned digests, `observe_prompt` reads the D2 manifest and its digests,
+    and both refuse rather than fall back. What this adds is the routing, and the
+    routing is a lookup on `CALL_SITES`.
+
+    **`ratified` is the definition's, everywhere it is read.** `_observed_only`,
+    `PipelineInputs.model_decides` and `observed_run_call` all read the field off
+    the object rather than parsing the id, so the day the owner ratifies the packet
+    every site starts applying on the same run and no line of this file changes.
+    """
+    if call_site == A_FACT:
+        return a_fact_prompt()
+    if call_site in OBSERVE_CALL_SITES:
+        return observe_prompt(call_site)
+    raise ValueError(
+        f"{call_site!r} is not a call site this deployment has text for. The "
+        f"ratified site is {sorted(WIRED_CALL_SITES)} and the observe sites are "
+        f"{sorted(OBSERVE_CALL_SITES)}; a site with no prompt is refused here "
+        f"rather than given somebody else's.")
 
 
 class UnratifiedPromptOnACloudTarget(RuntimeError):
@@ -5608,14 +5753,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # §6.12 step 7's model path, absent in every part. `model_path_available`
             # reads these as a set: with them `None`, a file that needs a judgement
             # abstains with a reason instead of being decided by nothing.
-            # `104` §7 Phase 1 step 6: C and D run and apply nothing. Seven of
-            # the eight arrive together or not at all -- `model_path_injections`
+            # `104` §7 Phase 1 step 6: C and D run and apply nothing. Eight of
+            # the nine arrive together or not at all -- `model_path_injections`
             # is all-or-nothing, and a half set is the failure
             # `model_path_available` exists to catch. Empty when no model is
             # configured or when C's tier is not on this device, which leaves
             # every one of them `None` and the model path off, exactly as before.
             **{**dict.fromkeys(OBSERVE_PLACEMENT_FIELDS), **observe_cd},
-            # SEVEN of the eight, not eight. This one is the exception and R-55 is
+            # EIGHT of the nine, not nine. This one is the exception and R-55 is
             # why: P8's two sensitivity checks REFUSE with it, and a refusal that
             # needs no ratified prompt should not wait for one. `None` here meant
             # `SENSITIVITY_RESTRICTION_IGNORED` could never fire, which the D2

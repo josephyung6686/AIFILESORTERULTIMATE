@@ -199,7 +199,7 @@ def _inputs(corpus, result, **over):
         plan_version=result.tree.plan_version_id, tree=result.tree,
         policy=POLICY, limits=placement_limits(corpus.conn), partition=None,
         ask_or_abstain=lambda ids: v.ABSTAIN, max_return_cycles=1, gate=None,
-        model_client=None, prompt=None, call_dependencies=None,
+        model_client=None, prompt=None, residual_prompt=None, call_dependencies=None,
         model_call_request=None, chosen_node_of=None, residual_action_of=None,
         sensitivity_policy=None,
         # Nothing to ask about and nothing already answered. Both are

@@ -206,22 +206,45 @@ def test_g2_a_node_id_no_longer_launders_a_value():
     assert [INVENTED_PROJECT] in [v["reasons"] for v in verdict.verdicts]
 
 
-# --- G3: the live C/D dossier carries opaque node ids and no profile -------------
+# --- G3, CLOSED: the live C/D dossier now carries the profile the drafts describe --
 
 
-def test_g3_a_node_id_in_allowed_vocabulary_gets_no_meaning_and_no_profile_field():
-    """`field_glossary` is keyed by P6 field key; a minted node id maps to nothing,
-    and `Dossier` has no field a builder could put a node profile in. What the
-    bench does instead -- a `candidate` evidence item whose `location` carries the
-    label chain -- is a builder change the packet asks the owner to approve."""
+def test_g3_a_node_id_still_gets_no_meaning_from_the_glossary_and_no_field():
+    """The two halves of G3 that were never the fix, asserted unchanged.
+
+    `field_glossary` is keyed by P6 FIELD KEY, so a minted node id maps to nothing
+    and always would have; and `Dossier` has no profile field, because the profile
+    is not a sixteenth key. `dossier._BODY_ORDER` refuses one (`104` R-58), and the
+    drafts describe the profile as an `evidence_item`, which is a key the dossier
+    already has.
+    """
     assert field_glossary(("node-7f3a", "node-0c11")) == {}
     assert "candidate_profiles" not in Dossier.__dataclass_fields__
     assert "node_profiles" not in Dossier.__dataclass_fields__
-    # pipeline._judge_with_model hands P8 the legal node ids as the vocabulary
-    # and nothing else about them.
+
+
+def test_g3_the_builder_change_the_packet_asked_for_has_landed():
+    """`104` R-17: the vocabulary is the ranked shortlist and every id is described.
+
+    This asserted the DEFECT -- `allowed_vocabulary=legal` over
+    `sorted(legal_node_ids(...))`, "the live dossier carries ... no label chain, no
+    expected values, no known document types, no 'this is the file's own folder'".
+    G3's own consequence line says "**Ratifying C or D ratifies that builder
+    change**", so the pin turns round with the change rather than being deleted:
+    `_judge_with_model` now offers `Assessment.scored`'s order at C and the
+    approved residual library plus the retrieved branches at D, and `_offered_items`
+    describes every one of them through `placement.index.node_profile`.
+
+    The behaviour is pinned end to end in `tests/p11/test_p11_pipeline.py`'s R-17
+    section against the real pipeline; what is asserted here is that the source of
+    the gap is gone, because that is what this register row was written about.
+    """
     source = (REPO / "src" / "placement" / "pipeline.py").read_text("utf-8")
-    assert "allowed_vocabulary=legal" in source
-    assert "legal = sorted(legal_node_ids(" in source
+    assert "allowed_vocabulary=legal" not in source
+    assert "allowed_vocabulary=list(offered)" in source
+    assert "_offered_items(" in source
+    profiles = (REPO / "src" / "placement" / "index.py").read_text("utf-8")
+    assert "def node_profile(" in profiles
 
 
 # --- G4: nothing in src constructs site B's authorities ----------------------------

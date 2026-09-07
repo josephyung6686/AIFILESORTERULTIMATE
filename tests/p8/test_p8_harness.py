@@ -655,6 +655,75 @@ def test_missing_configuration_is_unavailable_with_no_gate_or_model_call(harness
     assert recorder.calls == []
 
 
+def test_a_prompt_for_another_site_is_refused_before_the_gate(harness_conn,
+                                                              subject):
+    """`PromptDefinition.call_site` was carried and never read.
+
+    The dossier the model is shown carries the prompt's own `response_schema` and
+    `shaping_policy` bytes (`dossier._body`), and `validate_response` judges the
+    answer against the SITE the request names. A prompt built for one site and sent
+    at another therefore shows the model one contract and measures it against a
+    different one, which `model_facts.pending_fields_for` already names as the
+    failure it is: "a model measured against one list and validated against another
+    can be rejected for obeying its instructions".
+
+    It was reachable and it was live: `cli.observe_placement_injections` handed
+    site D site C's prompt, because `_judge_with_model` serves both from one field.
+    This is the wall at the one place that holds the request and the prompt
+    together, so a caller that wires it another way is caught here rather than in a
+    verdict nobody can explain.
+
+    BEFORE THE GATE, with the rest of `_missing_configuration`: no release is
+    spent, no budget slot is taken and no bytes leave.
+    """
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
+    borrowed = dataclasses.replace(_prompt(), call_site=C_PLACEMENT)
+    request = _request(file_id=subject[0],
+                       fingerprint=prompt_fingerprint(borrowed), key=key)
+    gate = RecordingGate(harness_conn, prompt=borrowed, decision="released",
+                         key=key)
+    recorder = Recorder(reply=_direct_bytes(key))
+
+    result = _run(
+        harness_conn, request,
+        gate=gate,
+        model_client=ModelClient(model_target=CLOUD, invoke=recorder),
+        prompt=borrowed,
+        deps=_deps(site_dependencies=bundle),
+    )
+
+    assert isinstance(result, ValidationUnavailable)
+    assert "prompt_call_site" in result.missing
+    assert gate.requests == []
+    assert recorder.calls == []
+    assert _count(harness_conn, "llm_verdict") == 0
+
+
+def test_the_matching_prompt_is_the_control_and_still_runs(harness_conn, subject):
+    """The discriminating twin: the same request under its own site's prompt runs
+    the whole way, so the refusal above is measuring the site and not the fixture."""
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
+    prompt = _prompt()
+    assert prompt.call_site == _request().call_site
+    request = _request(file_id=subject[0], fingerprint=prompt_fingerprint(prompt),
+                       key=key)
+    gate = RecordingGate(harness_conn, prompt=prompt, decision="released", key=key)
+    recorder = Recorder(reply=_direct_bytes(key))
+
+    result = _run(
+        harness_conn, request,
+        gate=gate,
+        model_client=ModelClient(model_target=CLOUD, invoke=recorder),
+        prompt=prompt,
+        deps=_deps(site_dependencies=bundle),
+    )
+
+    assert isinstance(result, P8Verdict)
+    assert len(gate.requests) == 1
+
+
 def test_missing_proposal_identity_is_unavailable_before_the_gate(harness_conn):
     prompt = _prompt()
     request = _request(fingerprint=prompt_fingerprint(prompt))

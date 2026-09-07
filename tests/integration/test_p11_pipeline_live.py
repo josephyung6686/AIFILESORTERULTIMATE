@@ -232,7 +232,8 @@ def _inputs(conn, **overrides):
         plan_version="plan-1", tree=FROZEN_TREE, policy=POLICY,
         limits=placement_limits(conn), partition=None, ask_or_abstain=lambda ids: v.ABSTAIN,
         max_return_cycles=1, gate=None, model_client=_model_client(),
-        prompt=_prompt(), call_dependencies=_call_dependencies(),
+        prompt=_prompt(), residual_prompt=None,
+        call_dependencies=_call_dependencies(),
         model_call_request=_model_call_request,
         chosen_node_of=lambda _verdict: "n-course-shared",
         residual_action_of=None,
@@ -377,6 +378,7 @@ def test_the_whole_chain_runs_from_p11s_request_to_p8s_validator(live, tmp_path)
         seen["proposal_class"] = kwargs["call_dependencies"].proposal_class
         seen["basis_key"] = kwargs["call_dependencies"].basis_key
         seen["sites"] = kwargs["call_dependencies"].site_dependencies
+        seen["items"] = tuple(request.evidence_items)
         return real(conn, request, **kwargs)      # the REAL call still happens
 
     pipeline.call_placement = _observe
@@ -392,11 +394,24 @@ def test_the_whole_chain_runs_from_p11s_request_to_p8s_validator(live, tmp_path)
         pipeline.call_placement = real
 
     # The single most load-bearing value P11 hands P8: Site C rejects anything
-    # outside it as INVENTED_NODE, and it is P11's INDEX, never the caller's --
-    # `_call_dependencies` supplies None and the pipeline fills it.
+    # outside it as INVENTED_NODE, and it is P11's own -- `_call_dependencies`
+    # supplies None and the pipeline fills it.
+    #
+    # It is the RANKED SHORTLIST and no longer the whole legal set (`104` R-17,
+    # packet G3, and §13.5's "deterministic scores rank and shortlist the
+    # candidates the model is shown"). Both halves are asserted: every node offered
+    # is legal, and the legal nodes this file's evidence never reached are not
+    # offered. `n-ignored` was never legal at all (§5.10) and stays out of both.
+    legal = set(legal_node_ids(live, plan_version="plan-1"))
     assert seen["site"] == C_PLACEMENT
-    assert set(seen["allowed"]) == set(legal_node_ids(live, plan_version="plan-1"))
+    assert set(seen["allowed"]) <= legal
+    assert set(seen["allowed"]) < legal
     assert "n-ignored" not in seen["allowed"]
+    # Every offered node arrives with its profile, which is what the C draft says
+    # the dossier carries: "its `evidence_ref` is an identifier from
+    # `allowed_vocabulary`, and its `location` describes that folder".
+    assert {item.evidence_ref for item in seen["items"]
+            if item.kind == "candidate"} == set(seen["allowed"])
     # Required BEFORE the spend (`harness.py:154-165`) and minted by nobody else.
     assert seen["snapshot"].startswith("snap-")
     assert seen["proposal_class"] == v.PLACEMENT
