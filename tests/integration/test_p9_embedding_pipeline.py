@@ -165,7 +165,6 @@ def _knowledge(similarity, **overrides) -> GroupingKnowledge:
                 scope=CONFIG.scope, model_id=CONFIG.model_id,
                 model_version=CONFIG.model_version),
             domain=None),
-        active_schema_for=lambda c, f, h: ("subject",),
         signal_evaluator_for=lambda domain: True,
         classification_store=_classified,
         conflicts_for=lambda files: (),

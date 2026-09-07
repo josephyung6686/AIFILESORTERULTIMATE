@@ -448,7 +448,6 @@ def _live_knowledge():
         retrieval=RetrievalKnowledge(
             document_compatible=None, channel_weights={}, similarity=None,
             similarity_threshold=None, embedding_identity=None, domain=None),
-        active_schema_for=lambda c, f, h: ("subject",),
         signal_evaluator_for=lambda domain: True,
         classification_store=_classification,
         conflicts_for=lambda files: (),

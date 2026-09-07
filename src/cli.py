@@ -78,7 +78,9 @@ from facts.families import (
 from facts.discount import MetadataScreen
 from facts.learning import NoSuchClaim, reject_claim
 from facts.domains import ActivationSignal, ActivationSignals
-from facts.photo_event import MEDIA_TYPE_FIELD, media_type
+# `MEDIA_TYPE_FIELD` left this import with `104` R-09: the retired
+# `active_schema_for` literal was the only line in this file that named it.
+from facts.photo_event import media_type
 from facts.budgets import LLM_ROUTE
 from facts.resolver import PRIVACY_BAR, FactResolver
 from facts.rules import ACADEMIC_CONTEXT_TERMS, Rule, apply_rules
@@ -1375,8 +1377,9 @@ DATE_PATTERNS = DatePatterns(patterns=(
                 canonical=_canonical_named_term),
 ))
 
-#: The field §3.10's producer fills. Spelled once, because `active_schema_for` and
-#: `normalize_for_model` both need it and neither may re-spell it.
+#: The field §3.10's producer fills. Spelled once, because `_rule_stage` and
+#: `normalize_for_model` both need it and neither may re-spell it. (The third
+#: caller was P9's `active_schema_for`, retired with `104` R-09.)
 TERM_FIELD = "term"
 
 #: The same identifier, however it was printed. `PHYS 1401`, `PHYS-1401` and
@@ -4478,22 +4481,27 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 # was, and retrieval is by shared validated fact alone -- the
                 # deterministic path P9 is explicit is a complete path.
                 retrieval=_retrieval_knowledge,
-                # `DIRECT_SLOTS` is no longer the whole of the schema: `term`
-                # is filled by `_rule_stage` and has no slot (SPEC:409-410). A
-                # field missing here is a field P9 will not group on.
-                # `MEDIA_TYPE_FIELD` joins `TERM_FIELD` for the same reason the
-                # comment above gives: `_rule_stage` fills it, it has no slot, and
-                # a field missing here is a field P9 will not group on. It is
-                # destination-eligible, so leaving it out would fill the field and
-                # still never divide a level -- which is the whole defect.
-                # `WORK_TYPE_FIELD` joins them on the same reasoning, and it is the
-                # case the comment describes most exactly: it is the REQUIRED
-                # `artifact_kind` level of `def.subject-work-record`, so a run that
-                # filled it and left it out here would resolve the field and still
-                # never divide the level the recipe demands.
-                active_schema_for=lambda db, file_id, content_hash: (
-                    tuple(slot.field_key for slot in DIRECT_SLOTS.slots)
-                    + (TERM_FIELD, MEDIA_TYPE_FIELD, WORK_TYPE_FIELD)),
+                # `active_schema_for` STOOD HERE AND IS GONE (`104` R-09). The
+                # comment it carried argued, correctly, that a field missing from
+                # the tuple "is a field P9 will not group on" -- and the tuple had
+                # by then lost `school` and `subject` to `fd68cb6`, which emptied
+                # `DIRECT_SLOTS` and left the literal evaluating to
+                # `('term', 'media_type', 'work_type')`. Those two are exactly where
+                # `104` R-10's 22 model-written facts landed.
+                #
+                # Both halves of that argument were false, and only a run says so.
+                # P9 read the slot NOWHERE: `assemble_group_dossier` checked it
+                # callable and never called it. Handing in a callable that raises on
+                # any call leaves 57 of 57 P9 tests passing. What decides whether a
+                # fact may anchor a group is `grouping.seeds.ANCHOR_STATES` --
+                # `{direct, validated}` -- which is field-independent, so no
+                # derivation from `role_bindings` could have changed a single
+                # grouping outcome. Deriving it would have replaced a wrong dead
+                # value with a right dead one; wiring it into the seed path to give
+                # it a purpose would have widened the anchor bar behind a schema
+                # fix, and `00`:42 keeps a model conclusion out of a folder proposal
+                # deliberately. `tests/integration/test_p9_active_schema_slot_
+                # retired.py` carries both measurements.
                 signal_evaluator_for=lambda domain: True,
                 classification_store=ClassificationStore(conn).current,
                 conflicts_for=lambda file_ids: (),

@@ -416,7 +416,6 @@ def _knowledge(live: LiveRun, *, embedding_identity) -> GroupingKnowledge:
             document_compatible=None, channel_weights={}, similarity=None,
             similarity_threshold=None, embedding_identity=embedding_identity,
             domain=None),
-        active_schema_for=lambda conn, file_id, content_hash: ("subject",),
         signal_evaluator_for=lambda domain: True,
         classification_store=store.current,
         # A non-empty conflict set fires SR4 in `graph.evaluate_stop_rules`, which
