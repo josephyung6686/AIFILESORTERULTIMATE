@@ -470,17 +470,61 @@ def deny_no_safety_evidence(*, file_ids: Sequence[str], locality: str,
 
 
 def deny_protected_records_template(*, file_ids: Sequence[str],
-                                    model_target) -> Denied:
-    """§7.3, and it binds a LOCAL target too -- which is why it outranks the cloud rule."""
-    return deny(
-        "protected_records_template",
-        explanation=(
-            f"{len(tuple(file_ids))} file(s) are held under the "
+                                    model_target,
+                                    protected_kind: bool = False) -> Denied:
+    """§7.3, and it binds a LOCAL target too -- which is why it outranks the cloud rule.
+
+    **TWO ROUTES REACH THIS REASON FROM 2026-09-07, AND THE SENTENCE MUST SAY WHICH.**
+    The original is §7.3's residual template. The second is `105` §14.3: a file whose
+    recognised KIND is on §13.3's protected list is "shown to no model and filed one
+    at a time by the person", which binds every target exactly as §7.3 does.
+
+    `protected_kind` exists because the two must not share one sentence. A file
+    refused on its kind is NOT under the residual template -- `Gate._template_for`
+    returns `None` for it -- so the original wording would tell the person something
+    false about their own file. That is the defect `vocabulary.DENIAL_REASONS` already
+    names one reason along: a ninth reason exists at all because answering a
+    `detector_no_safety_evidence` file with `unclassified` would say the product never
+    looked when it had.
+
+    It DEFAULTS to the template route rather than being required, unlike the six
+    keywords `items.check_item` takes, and the argument is that here the default is
+    not a permission or a downgrade: it is which of two true sentences to print, the
+    three existing callers are all the template route, and a caller who forgets gets
+    the wording that was correct before this parameter existed.
+
+    **THE REASON CODE IS STILL `protected_records_template` FOR BOTH, AND FOR THE KIND
+    ROUTE THAT NAME IS WRONG.** `DENIAL_REASONS` is the owner's closed set of nine and
+    widening it is a P7 contract revision, so a tenth reason -- `protected_kind` -- is
+    with the owner and this is the provisional home until they rule. Everything the
+    PERSON reads is true; what is inaccurate is the machine-readable code, and the
+    swap is this branch plus one member. `tests/p7/test_p7_privacy_classes.py`'s
+    `test_the_kind_refusal_says_nothing_false_about_a_residual_template` is what holds
+    the sentence honest in the meantime, and no test asserts the reason string.
+    """
+    count = len(tuple(file_ids))
+    if protected_kind:
+        explanation = (
+            f"{count} file(s) carry `105` §13.3's `protected` privacy class: "
+            "identity documents, medical records, financial statements and tax "
+            "returns, credentials and password vaults, legal documents naming the "
+            "person. §14.3: those kinds are shown to no model and are filed one at a "
+            f"time by the person, so the {model_target.locality} target does not "
+            "change the answer, and neither does a consent grant for this area -- a "
+            "grant is §8.4's instrument for the protected FLAG, which is a different "
+            "question from the list."
+        )
+    else:
+        explanation = (
+            f"{count} file(s) are held under the "
             f"{PROTECTED_RECORDS_TEMPLATE!r} residual template. §7.3: it 'should "
             "normally remain local-only and must not cause filenames or content to "
             "be exposed in model prompts.' That binds every model, so the "
             f"{model_target.locality} target does not change the answer."
-        ),
+        )
+    return deny(
+        "protected_records_template",
+        explanation=explanation,
         remedy_options=(
             RemedyOption("decide_locally",
                          "§7.3: normally local-only; deterministic rules and local "

@@ -319,9 +319,15 @@ class Gate:
             file_id for file_id, name in privacy_classes.items()
             if name == PRIVACY_CLASS_PROTECTED))
         if protected_kind_ids and "protected_records_template" not in builders:
+            # `protected_kind=True` picks the sentence that is TRUE of this file.
+            # The reason CODE still says "template" and this file is not under one;
+            # `DENIAL_REASONS` is the owner's closed set of nine, a tenth is with
+            # them, and `deny_protected_records_template`'s docstring carries the
+            # whole of that. Nothing a person reads is false in the meantime.
             builders["protected_records_template"] = \
                 lambda: deny_protected_records_template(
-                    file_ids=protected_kind_ids, model_target=request.model_target)
+                    file_ids=protected_kind_ids, model_target=request.model_target,
+                    protected_kind=True)
 
         # §13.3's always-local list: "shown to no cloud model and filed by rules and
         # local models." Cloud only, so the file keeps reaching the local model that

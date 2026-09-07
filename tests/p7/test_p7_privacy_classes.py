@@ -61,7 +61,9 @@ from privacy.classification import (
 )
 from privacy.classification_store import ClassificationStore
 from privacy.defaults import MORE_REDACTING
-from privacy.denial import deny_unclassified
+from privacy.denial import (
+    PROTECTED_RECORDS_TEMPLATE, deny_protected_records_template, deny_unclassified,
+)
 from privacy.gate import Gate
 from privacy.items import Excerpt
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
@@ -825,3 +827,50 @@ def test_an_ordinary_file_is_released_so_the_refusals_above_are_the_lists(gate_c
     assert isinstance(decision, Released), (
         f"the control file was {type(decision).__name__}: the refusals above may "
         f"not be about the privacy class at all")
+
+
+def test_the_kind_refusal_says_nothing_false_about_a_residual_template(gate_conn):
+    """The sentence a person reads must be true of THEIR file.
+
+    Two routes reach `protected_records_template`: §7.3's residual template, and
+    `105` §14.3's protected KIND list. A file refused on its kind is not under the
+    template -- `Gate._template_for` returns `None` for it -- so printing §7.3's
+    original wording would tell the owner something false about their own document.
+    That is the defect `vocabulary.DENIAL_REASONS` already names one reason along: a
+    ninth reason exists at all because answering a `detector_no_safety_evidence` file
+    with `unclassified` would say the product never looked when it had.
+
+    THE REASON CODE IS STILL WRONG FOR THIS ROUTE and this test does not pretend
+    otherwise. `DENIAL_REASONS` is the owner's closed set of nine, a tenth called
+    `protected_kind` is with them, and no test here asserts the reason string, so the
+    swap is one branch and one member. What this pins is the half that is inside P7's
+    authority: everything the person reads is true today.
+    """
+    file_id, key = _classified_file(
+        gate_conn, name="tax-return", privacy_class=PRIVACY_CLASS_PROTECTED,
+        protected=False, grants=(("area-1", "cloud_model"),))
+    decision = _gate(gate_conn, permits_local=True).release(
+        _request(key=key, file_id=file_id, target=CLOUD))
+
+    assert isinstance(decision, Denied)
+    assert PROTECTED_RECORDS_TEMPLATE not in decision.explanation, (
+        "the refusal told the person their file is under a residual template it is "
+        "not under")
+    assert "13.3" in decision.explanation and "14.3" in decision.explanation, (
+        "the refusal must name the rule that actually fired")
+    assert "grant" in decision.explanation, (
+        "§8.4's grant is the instrument for the FLAG and does not reach this list; "
+        "a person whose scope IS granted needs the sentence to say so")
+    assert decision.remedy_options, "§8.6: a denial is never a dead end"
+
+
+def test_the_template_route_keeps_its_own_sentence(gate_conn):
+    """The other branch, unchanged. §7.3's residual template is still described as a
+    residual template, so widening the function for the kind route did not rewrite
+    the wording the three existing callers depend on.
+    """
+    denied = deny_protected_records_template(
+        file_ids=("f1",), model_target=CLOUD)
+    assert PROTECTED_RECORDS_TEMPLATE in denied.explanation
+    assert "7.3" in denied.explanation
+    assert "13.3" not in denied.explanation
