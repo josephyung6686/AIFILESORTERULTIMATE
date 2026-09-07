@@ -27,6 +27,11 @@ from readers.deployment import macos_readers
 #: refuses to pick one -- it is a policy and `cli.SPREADSHEET_CELL_CEILING` is
 #: where the product picks it -- so every caller states the one it means.
 CELL_CEILING_UNREACHED = 1_000_000
+
+#: OCR ceilings high enough that no fixture here reaches either. Same terms as
+#: the cell ceiling above: `macos_readers` refuses to pick §8.6's numbers, so
+#: every caller states the ones it means.
+OCR_CEILING_UNREACHED = 1_000_000
 from scan_agent.corpus_source import FilesystemCorpusSource
 from scan_agent.selection import record_selection
 
@@ -91,7 +96,9 @@ def go(db, corpus):                                          # noqa: F811
         policy=SafetyPolicy(is_protected_container=is_protected_container,
                             is_dataless=lambda path: False),
         readers=macos_readers(find_structured_strings=find_course_codes,
-                              spreadsheet_cell_ceiling=CELL_CEILING_UNREACHED),
+                              spreadsheet_cell_ceiling=CELL_CEILING_UNREACHED,
+        ocr_page_ceiling=OCR_CEILING_UNREACHED,
+        ocr_seconds_per_file=OCR_CEILING_UNREACHED),
         sink=RunWriter(db, author="P5"),
         now=lambda: "2026-08-21T12:00:00+00:00", context_window=40,
         no_usable_facts=TARGETED_OCR_UNAVAILABLE,

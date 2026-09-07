@@ -33,6 +33,11 @@ from readers.deployment import macos_readers  # noqa: E402
 #: where the product picks it -- so every caller states the one it means.
 CELL_CEILING_UNREACHED = 1_000_000
 
+#: OCR ceilings high enough that no fixture here reaches either. Same terms as
+#: the cell ceiling above: `macos_readers` refuses to pick §8.6's numbers, so
+#: every caller states the ones it means.
+OCR_CEILING_UNREACHED = 1_000_000
+
 TEXTUTIL = "/usr/bin/textutil"
 
 
@@ -50,7 +55,9 @@ def exam(tmp_path: Path) -> Path:
 
 def test_the_deployments_text_reader_reads_a_legacy_doc(exam):
     readers = macos_readers(find_structured_strings=lambda text: (),
-                            spreadsheet_cell_ceiling=CELL_CEILING_UNREACHED)
+                            spreadsheet_cell_ceiling=CELL_CEILING_UNREACHED,
+        ocr_page_ceiling=OCR_CEILING_UNREACHED,
+        ocr_seconds_per_file=OCR_CEILING_UNREACHED)
 
     document = readers.read_text_document(exam)
 
@@ -63,7 +70,9 @@ def test_the_deployments_text_reader_reads_a_legacy_doc(exam):
 def test_wiring_it_changed_nothing_for_the_formats_that_already_read(tmp_path):
     """A socket filled badly is worse than one left empty."""
     readers = macos_readers(find_structured_strings=lambda text: (),
-                            spreadsheet_cell_ceiling=CELL_CEILING_UNREACHED)
+                            spreadsheet_cell_ceiling=CELL_CEILING_UNREACHED,
+        ocr_page_ceiling=OCR_CEILING_UNREACHED,
+        ocr_seconds_per_file=OCR_CEILING_UNREACHED)
     (tmp_path / "syllabus.txt").write_text("PHYS 1403\n", encoding="utf-8")
     (tmp_path / "notes.md").write_text("# Lab 4\n\nAir track.\n", encoding="utf-8")
 
@@ -76,6 +85,8 @@ def test_the_override_seam_still_wins_over_the_wired_reader(tmp_path):
     provide, and a wired default that could not be replaced would close it."""
     readers = macos_readers(find_structured_strings=lambda text: (),
                             spreadsheet_cell_ceiling=CELL_CEILING_UNREACHED,
+        ocr_page_ceiling=OCR_CEILING_UNREACHED,
+        ocr_seconds_per_file=OCR_CEILING_UNREACHED,
                             read_text_document=lambda path: None)
 
     assert readers.read_text_document(tmp_path / "anything.txt") is None

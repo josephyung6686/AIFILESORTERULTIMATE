@@ -683,6 +683,36 @@ PDF_PAGE_CEILING: int = 50
 #: the ceiling wearing a full count.
 SPREADSHEET_CELL_CEILING: int = 2000
 
+#: §8.6's "Maximum pages OCRed per file" (`00`:245), and the only place it is chosen.
+#:
+#: WHY IT WAS MISSING RATHER THAN SET WRONG. `readers/ocr_vision.py` has honoured a
+#: `page_cap` since it was written -- it stops between pages, reports `capped=True`,
+#: and `extractors/ocr.py` turns that into `completeness="capped"` with P4's own
+#: `coverage {"processed": n, "total": m}`. `VISION_CONFIG` carried languages, dpi
+#: and recognition level and no ceiling, so `page_cap` was `None` on every run this
+#: product has made and §8.6's most expensive operation was the one with no bound.
+#:
+#: THE NUMBER, MEASURED. Over the owner's ground-truth corpus on 2026-09-06 with
+#: pdfium, no OCR and no model: 68 readable PDFs, median 2 pages, longest 287. At 20
+#: pages, 61 of the 68 are untouched; at 50 it is 63. Seven files buy the whole tail,
+#: and the tail is what §8.6 means by "a large scanned textbook should not consume
+#: the same budget as hundreds of ordinary PDFs". Twenty pages of Vision at 200 DPI
+#: is the order of a minute; 287 would be twenty.
+OCR_PAGE_CEILING: int = 20
+
+#: §8.6's "Maximum OCR time per file" (`00`:246), in seconds, and it is deliberately
+#: a fraction of `EXTRACTION_SECONDS_PER_FILE` below.
+#:
+#: THE TWO CLOCKS ARE RELATED AND THE ORDER MATTERS. R-50 gave `ProcessPool` a
+#: per-extraction ceiling that kills a worker wedged inside Vision, because a Python
+#: timeout cannot interrupt a C dispatch wait. That rescue costs the file everything:
+#: the worker dies holding whatever it had read. This ceiling is checked BETWEEN
+#: pages, so when it fires the run keeps the pages it finished and records why it
+#: stopped. An in-process limit is only worth having if it is reached first, which is
+#: why 120 sits well under 600 and why a test asserts the inequality rather than
+#: trusting whoever next edits one of them.
+OCR_SECONDS_PER_FILE: int = 120
+
 #: HOW MANY PROCESSES READ FILES AT ONCE, and the only place the number is chosen.
 #: `extraction_pool.ProcessPool` refuses to default it, for the reason every number
 #: in this product refuses to default: absent means refuse, never guess.
@@ -2697,7 +2727,13 @@ def extraction_context() -> ExtractionContext:
         readers=macos_readers(find_structured_strings=find_structured_strings,
                               read_pdf=pdfium_reader(
                                   max_pages=PDF_PAGE_CEILING),
-                              spreadsheet_cell_ceiling=SPREADSHEET_CELL_CEILING),
+                              spreadsheet_cell_ceiling=SPREADSHEET_CELL_CEILING,
+                              # §8.6's two per-file OCR ceilings. `_bootstrap`
+                              # publishes these same two numbers on P1's table, so
+                              # what bounded a run can be read back from the run's
+                              # own database rather than from this file.
+                              ocr_page_ceiling=OCR_PAGE_CEILING,
+                              ocr_seconds_per_file=OCR_SECONDS_PER_FILE),
         # Transcription opens audio and video. Not authorised, and saying so is
         # what keeps it off rather than the absence of a transcriber.
         transcription_authorized=lambda: False)
@@ -3204,6 +3240,17 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
         set_ceiling(conn, key,
                     RESIDUAL_REVIEW_BATCH if name == "max_residual_files_per_batch"
                     else CEILING_VALUE)
+    # §8.6's two per-file OCR ceilings, published because something obeys them.
+    #
+    # THE OTHER TWO P5 KEYS ARE LEFT UNSET ON PURPOSE. `ocr.max_time_per_scan` and
+    # `image.max_analysis_ops_per_scan` have no enforcement point anywhere in `src/`:
+    # nothing accumulates a per-scan OCR clock and nothing counts image operations.
+    # `database_agent/budget.py` opens by saying "P1 holds and publishes values; P1
+    # enforces none of them. Reading a ceiling is not enforcing it", and a published
+    # number nothing obeys is worse than an absent one, because it reads as a bound
+    # somebody chose. They stay absent until there is something to obey them.
+    set_ceiling(conn, "ocr.max_pages_per_file", OCR_PAGE_CEILING)
+    set_ceiling(conn, "ocr.max_time_per_file", OCR_SECONDS_PER_FILE)
 
 
 def _validate_residuals(names: Sequence[str]) -> tuple[str, ...]:
@@ -4867,6 +4914,33 @@ def _nothing_could_be_read_report(
     return tuple(lines)
 
 
+#: P4's two ceiling completenesses, and they are NOT interchangeable: `capped` read
+#: something and stopped, `deferred` never started. `extractors/stage_output.py`
+#: holds them as one tuple because both mean "a budget was reached"; the sentences
+#: they earn are different, which is why each is named here.
+CAPPED: str = "capped"
+DEFERRED: str = "deferred"
+
+#: WHICH CEILING STOPPED A `capped` RUN, by the `source_type` that recorded it.
+#: Three extractors write `capped` under three different ceilings and every one of
+#: those numbers is chosen in THIS file, which is why the mapping lives here and
+#: not in `review_run/progress.py`: P13 renders a cause and holds none.
+#:
+#: `text_document` is pdfium's, because `pdf.py` is the only extractor writing that
+#: source type that caps. The long-tail families other than `spreadsheet` carry no
+#: ceiling at all -- `readers/deployment.py` says why for the archive manifest and
+#: the same holds for the rest -- so `spreadsheet` is the only one of the six here.
+#: A source type absent from this mapping produces no sentence rather than a guess.
+_CAPPED_BY_SOURCE_TYPE: Mapping[str, str] = MappingProxyType({
+    "ocr": ("OCR stopped at this deployment's per-file ceiling of "
+            f"{OCR_PAGE_CEILING} pages or {OCR_SECONDS_PER_FILE} seconds"),
+    "text_document": ("PDF text extraction stopped at this deployment's ceiling "
+                      f"of {PDF_PAGE_CEILING} pages per file"),
+    "spreadsheet": ("a spreadsheet stopped at this deployment's ceiling of "
+                    f"{SPREADSHEET_CELL_CEILING} cells per file"),
+})
+
+
 def _no_extractor_cause(conn: sqlite3.Connection):
     """P13's `cause_for`, answered where this run actually knows the answer.
 
@@ -4887,6 +4961,32 @@ def _no_extractor_cause(conn: sqlite3.Connection):
     ).fetchone()[0]
 
     def cause_for(label: str) -> str | None:
+        if label == CAPPED:
+            # §8.6 requires the cause NAMED rather than implied, and THREE
+            # extractors write `capped` -- `ocr.py`, `pdf.py` and `long_tail.py` --
+            # under three different ceilings. `review_surface.progress` buckets by
+            # state, so one bucket holds all of them, and a sentence naming one
+            # ceiling for the whole bucket would be a wrong cause printed with
+            # confidence. That is worse than the gap it replaced: the gap was true.
+            # So the run is asked which ceilings actually fired.
+            fired = sorted(row[0] for row in conn.execute(
+                "SELECT DISTINCT source_type FROM extraction_runs "
+                "WHERE completeness = ?", (CAPPED,)))
+            named = [_CAPPED_BY_SOURCE_TYPE[source] for source in fired
+                     if source in _CAPPED_BY_SOURCE_TYPE]
+            if not named:
+                # A ceiling this file does not hold. P13's own sentence says the
+                # cause is unrecorded, which is the truth here.
+                return None
+            return ("; ".join(named)
+                    + " -- and what was read before stopping was kept")
+        if label == DEFERRED:
+            # A budget stopped this extractor BEFORE it started, so nothing about
+            # it is a routing failure and the sentence below would misattribute it.
+            # This build records no deferral -- `extractors/budgets.deferred_result`
+            # has no caller -- and P13's own "no ceiling is recorded" is the honest
+            # answer for one until something records which budget fired.
+            return None
         if routed or not unrouted:
             return None
         return ("no reader in this deployment handles these files' format, so "

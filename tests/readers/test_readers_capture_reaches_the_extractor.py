@@ -29,6 +29,11 @@ from readers.deployment import macos_readers
 #: where the product picks it -- so every caller states the one it means.
 CELL_CEILING_UNREACHED = 1_000_000
 
+#: OCR ceilings high enough that no fixture here reaches either. Same terms as
+#: the cell ceiling above: `macos_readers` refuses to pick §8.6's numbers, so
+#: every caller states the ones it means.
+OCR_CEILING_UNREACHED = 1_000_000
+
 OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
                            is_dataless=lambda path: False)
 
@@ -36,7 +41,9 @@ OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
 @pytest.fixture
 def readers():
     return macos_readers(find_structured_strings=lambda text: (),
-                         spreadsheet_cell_ceiling=CELL_CEILING_UNREACHED)
+                         spreadsheet_cell_ceiling=CELL_CEILING_UNREACHED,
+        ocr_page_ceiling=OCR_CEILING_UNREACHED,
+        ocr_seconds_per_file=OCR_CEILING_UNREACHED)
 
 
 def png(path, width, height):
@@ -126,6 +133,8 @@ def test_a_protected_container_is_never_asked_what_its_filename_looks_like(
     readers = macos_readers(
         find_structured_strings=lambda text: (),
         spreadsheet_cell_ceiling=CELL_CEILING_UNREACHED,
+        ocr_page_ceiling=OCR_CEILING_UNREACHED,
+        ocr_seconds_per_file=OCR_CEILING_UNREACHED,
         filename_pattern=lambda name: asked.append(name))
     path = png(tmp_path / "Photos.photoslibrary"
                / "Screenshot 2026-08-14 at 11.03.47.png", 2560, 1600)
