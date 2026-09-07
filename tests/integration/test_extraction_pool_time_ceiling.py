@@ -15,6 +15,16 @@ through PyObjC from the OCR reader. The other six workers sat in `sem_wait` with
 nothing to do. No exception is ever raised, no process ever dies, and `00`:257's
 budget rule -- a single file may not consume the run -- had nothing to enforce it.
 
+R-112 ADDED THE SECOND ATTEMPT. The kill was final and the file was written off, and
+eleven runs of the product over one pinned 263-file corpus showed that is the wrong
+answer: the same PNG, content hash `782ff3d1...`, was read completely in ten of them
+and wedged its worker in the eleventh -- the run that cost 626.4 seconds against 20 to
+26 for the rest, which is the whole of the "620 second cold path" this was first
+reported as. Sampled at the wedge, the worker was waiting on `CI::KernelCompileQueue`,
+which was blocked in `flock()` inside `MTLCompilerFSCache::openSync`: the Metal shader
+compiler's on-disk cache lock, shared by every process on the machine. So the file was
+never unreadable, and it is retried once, in the same run, before it is failed.
+
 **THE SLEEP IS BOUNDED AND THAT IS DELIBERATE.** A real deadlock is infinite; a test
 that reproduced it exactly would hang the suite when the ceiling regressed, and a
 guard that turns a red run into a hung one is worse than no guard. `_HANG_SECONDS` is
@@ -77,7 +87,12 @@ _CEILING_SECONDS = 8.0
 
 #: Longer than the ceiling by enough that no scheduling jitter can make the reader
 #: finish first, and short enough to be a slow failure rather than a hung suite.
-_HANG_SECONDS = 30.0
+#:
+#: R-112 RAISED IT, because a file may now cost TWO ceilings rather than one. The
+#: number's job is to be unreachable when the ceiling works and reached when it does
+#: not, and a permanently hung file is now killed twice before it is failed -- so a
+#: number that only cleared one ceiling would stop separating the two answers.
+_HANG_SECONDS = 90.0
 
 #: The ceiling the fake-clock tests run under, in FAKE seconds. Large on purpose:
 #: under a driven clock the only wait that ends at a ceiling is the one the script
@@ -104,15 +119,29 @@ class _ScriptedClock:
     actually does: one read to set the deadline, then one per wait. With
     `jump_after=1` the first wait of the first `result()` finds the ceiling already
     crossed and nothing else ever does.
+
+    `jumps` BOUNDS HOW MANY LEAPS THERE ARE, and R-112's retry is why it exists. A
+    file the ceiling kills is now tried a second time, and `result` reads the clock
+    three more times to do it: the wait that expires, the retry's deadline, and the
+    retry's own wait. So a file that must exhaust BOTH of its attempts needs
+    `jumps=3`, and after the budget is spent fake time stands still -- which is what
+    keeps every neighbour's fresh ceiling uncrossable, the property the test below
+    exists to hold. An unbounded clock would expire the neighbours too and prove the
+    opposite of what it was written to prove.
     """
 
-    def __init__(self, *, jump_after: int) -> None:
+    def __init__(self, *, jump_after: int, jumps: int = 1) -> None:
         self.calls = 0
         self._jump_after = jump_after
+        self._budget = jumps
+        self._now = 0.0
 
     def __call__(self) -> float:
         self.calls += 1
-        return 0.0 if self.calls <= self._jump_after else _FAKE_JUMP_SECONDS
+        if self.calls > self._jump_after and self._budget:
+            self._budget -= 1
+            self._now += _FAKE_JUMP_SECONDS
+        return self._now
 
 #: The neighbours are slow too, so they are genuinely still outstanding when the
 #: ceiling fires on the head. THIS NUMBER IS LOAD-BEARING and the first draft got it
@@ -124,6 +153,13 @@ class _ScriptedClock:
 _READ_SECONDS = 1.0
 
 
+def _readable(path: Path) -> PdfDocument:
+    text = f"{Path(path).stem} is readable"
+    return PdfDocument(metadata={}, pages=(PdfPage(
+        number=1, text=text,
+        regions=(Region(zone="body", start=0, end=len(text)),)),))
+
+
 def _read_pdf(path: Path) -> PdfDocument:
     if Path(path).name == HANG:
         # NOT an exception and NOT `os._exit`. The worker stays alive, healthy and
@@ -132,15 +168,40 @@ def _read_pdf(path: Path) -> PdfDocument:
         time.sleep(_HANG_SECONDS)
     else:
         time.sleep(_READ_SECONDS)
-    text = f"{Path(path).stem} is readable"
-    return PdfDocument(metadata={}, pages=(PdfPage(
-        number=1, text=text,
-        regions=(Region(zone="body", start=0, end=len(text)),)),))
+    return _readable(path)
 
 
-def _readers() -> Readers:
+#: Where the reader below records that one attempt has already been made. A FILE and
+#: not a variable, because the two attempts happen in two different processes: the
+#: pool kills every worker before it retries, so nothing in the first worker's memory
+#: survives to tell the second one anything.
+_HANG_ONCE_MARKER = "GRAPH_AGENT_TEST_HANG_ONCE_MARKER"
+
+
+def _read_pdf_hanging_once(path: Path) -> PdfDocument:
+    """Wedged on the first attempt, readable on the second. R-112's measured shape.
+
+    Not a weaker version of `_read_pdf` but a truer one. Measured over eleven runs of
+    the product on one 263-file corpus: the same PNG, byte for byte, was read
+    completely in ten of them and wedged its worker in the eleventh, inside the FIRST
+    Vision call that worker made -- `CI::ProgramNode::mainProgram` waiting on
+    `CI::KernelCompileQueue`, which was itself blocked in `flock()` inside
+    `MTLCompilerFSCache::openSync`. That is machine state, not the file's bytes, and
+    a second attempt does not meet it. `_read_pdf` is the other half of the same
+    truth -- a file whose reader never comes back at all -- and both are kept.
+    """
+    marker = Path(os.environ[_HANG_ONCE_MARKER])
+    if Path(path).name == HANG and not marker.exists():
+        # Written BEFORE the sleep, so the mark exists no matter when this worker is
+        # killed. A worker killed with SIGKILL runs nothing on its way out.
+        marker.write_text("one attempt has been made")
+        time.sleep(_HANG_SECONDS)
+    return _readable(path)
+
+
+def _readers(read_pdf=_read_pdf) -> Readers:
     return Readers(
-        read_pdf=_read_pdf,
+        read_pdf=read_pdf,
         read_docx=lambda path: DocxDocument(core_properties={}),
         read_text_document=lambda path: TextDocument(text="text"),
         read_long_tail=lambda path, transcribe=False: LongTailFile(),
@@ -161,6 +222,15 @@ def _hanging_context() -> ExtractionContext:
         policy=SafetyPolicy(is_protected_container=lambda path: False,
                             is_dataless=lambda path: False),
         readers=_readers(),
+        transcription_authorized=lambda: False)
+
+
+def _hanging_once_context() -> ExtractionContext:
+    """The same, with the reader that wedges once. Module level, for `spawn`."""
+    return ExtractionContext(
+        policy=SafetyPolicy(is_protected_container=lambda path: False,
+                            is_dataless=lambda path: False),
+        readers=_readers(_read_pdf_hanging_once),
         transcription_authorized=lambda: False)
 
 
@@ -249,6 +319,10 @@ def test_the_hung_file_is_marked_with_the_ceiling_and_the_extractor(
     assert reason is not None, f"the hung file was recorded as a success: {rows}"
     assert str(_CEILING_SECONDS) in reason, reason
     assert extractor in reason, reason
+    # R-112. The row has to say the run tried again, because it did: a file the
+    # ceiling kills is retried once, and a reason that named one ceiling would
+    # describe half of what happened to this file.
+    assert "twice" in reason, reason
 
 
 def test_a_ceiling_measured_from_submit_would_fail_the_queued_neighbours(
@@ -271,7 +345,11 @@ def test_a_ceiling_measured_from_submit_would_fail_the_queued_neighbours(
     60 fake seconds and none of them can expire. No sleep in this test races
     anything, so a loaded machine changes the timings and not the answer.
     """
-    clock = _ScriptedClock(jump_after=1)
+    # `jumps=3`: the wait that expires, the retry's deadline, and the retry's
+    # own wait. A file the ceiling kills is tried twice now, and this hang
+    # never comes back, so both attempts have to reach the ceiling for the
+    # row this test reads to exist at all.
+    clock = _ScriptedClock(jump_after=1, jumps=3)
     pool = ProcessPool(workers=2, context_factory=_hanging_context,
                        lookahead_per_worker=2, floor=0,
                        seconds_per_extraction=_FAKE_CEILING_SECONDS, now=clock)
@@ -341,7 +419,11 @@ def test_the_pool_is_whole_afterwards_and_reads_the_next_file(tmp_path, corpus):
     rebuild that produced a dead executor, or one that quietly fell back to the
     calling thread, fails that last line.
     """
-    clock = _ScriptedClock(jump_after=1)
+    # `jumps=3`: the wait that expires, the retry's deadline, and the retry's
+    # own wait. A file the ceiling kills is tried twice now, and this hang
+    # never comes back, so both attempts have to reach the ceiling for the
+    # row this test reads to exist at all.
+    clock = _ScriptedClock(jump_after=1, jumps=3)
     pool = ProcessPool(workers=2, context_factory=_hanging_context,
                        lookahead_per_worker=2, floor=0,
                        seconds_per_extraction=_FAKE_CEILING_SECONDS, now=clock)
@@ -373,6 +455,102 @@ def _failure_reason(outcome) -> str | None:
         if reason:
             return reason
     return None
+
+
+def _completeness(outcome) -> list[str]:
+    """What each run in the batch says about how much of the file it read."""
+    assert outcome.kind == DISPATCHED, outcome
+    return [result.run["completeness"] for result in outcome.dispatched.results]
+
+
+def test_a_file_the_ceiling_killed_is_read_on_the_retry_in_the_same_run(
+        tmp_path, corpus, monkeypatch):
+    """R-112. The ceiling ends a wedge; it does not decide the file is unreadable.
+
+    MEASURED, over eleven runs of the product on one pinned 263-file corpus. The
+    same PNG -- content hash `782ff3d1...` -- was read completely in ten runs and
+    wedged its worker in the eleventh, which cost that run 626.4 seconds against
+    20 to 26 for every other. Sampled at the wedge, the worker's main thread was in
+    `-[VNImageRequestHandler performRequests:]` -> `-[CIContext
+    render:toCVPixelBuffer:]` -> `CI::ProgramNode::mainProgram` ->
+    `__DISPATCH_WAIT_FOR_QUEUE__`, waiting on `CI::KernelCompileQueue`, which was
+    itself blocked in `flock()` inside `MTLCompilerFSCache::openSync` -- the Metal
+    shader compiler's on-disk cache lock, which is shared by every process on the
+    machine. Six of the seven workers took that lock and released it in about three
+    seconds; the seventh never came back.
+
+    So the thing that wedged was NOT the file. It was the state of a machine-wide
+    lock at the moment one worker made its first Vision call, and the very next run
+    over the identical bytes read it in a second. The old ruling -- "a deadlock
+    reached through the same bytes and the same framework will be reached again" --
+    is what that measurement refutes, and this test is the refutation: the file the
+    ceiling killed comes back READ, in the same run, without a person rerunning
+    anything.
+    """
+    marker = tmp_path / "one-attempt-was-made"
+    monkeypatch.setenv(_HANG_ONCE_MARKER, str(marker))
+    # THE REAL CLOCK, and this is the one test in the file that needs it. A driven
+    # clock's first wait expires with a timeout of zero, so the worker is killed
+    # before it has entered the reader at all -- and a first attempt that never
+    # reached the wedge cannot show that the SECOND one gets past it. Eight real
+    # seconds against a mark written in the reader's first statement is not a race:
+    # the mark is there long before the ceiling looks.
+    pool = ProcessPool(workers=2, context_factory=_hanging_once_context,
+                       lookahead_per_worker=2, floor=0,
+                       seconds_per_extraction=_CEILING_SECONDS)
+    try:
+        handles = [pool.submit(_request(corpus, name)) for name in CORPUS]
+        outcomes = {name: pool.result(handle)
+                    for name, handle in zip(CORPUS, handles)}
+
+        assert marker.exists(), (
+            "the reader never wedged, so this proved nothing about the retry")
+        assert _failure_reason(outcomes[HANG]) is None, (
+            "the file the ceiling killed was written off instead of retried: "
+            f"{_failure_reason(outcomes[HANG])}")
+        assert _completeness(outcomes[HANG]) == ["complete"], (
+            "the retry produced no reading of its own -- a file that came back "
+            "without the content it was killed for is a silent loss: "
+            f"{_completeness(outcomes[HANG])}")
+        for name in CORPUS:
+            assert _failure_reason(outcomes[name]) is None, (
+                f"{name} was failed by the retry: {_failure_reason(outcomes[name])}")
+    finally:
+        pool.close()
+
+
+def test_the_retry_is_one_and_a_file_that_wedges_twice_is_failed(
+        tmp_path, corpus):
+    """The bound. One retry, not a loop, and the second ceiling ends it.
+
+    A retry with no bound would let one wedged file spend the whole run a ceiling at
+    a time, which is `00`:257's rule broken by the recovery written to keep it. Two
+    attempts is the same bound the death path already allows a file that segfaults,
+    and it is reached here by a reader that never comes back at all.
+    """
+    clock = _ScriptedClock(jump_after=1, jumps=3)
+    pool = ProcessPool(workers=2, context_factory=_hanging_context,
+                       lookahead_per_worker=2, floor=0,
+                       seconds_per_extraction=_FAKE_CEILING_SECONDS, now=clock)
+    try:
+        handles = [pool.submit(_request(corpus, name)) for name in CORPUS]
+        outcomes = {name: pool.result(handle)
+                    for name, handle in zip(CORPUS, handles)}
+
+        reason = _failure_reason(outcomes[HANG])
+        assert reason is not None, "a file that never comes back was never failed"
+        assert "twice" in reason, (
+            "the row does not say the file was tried more than once, so a person "
+            f"reading it cannot tell what the run actually did: {reason}")
+        assert str(_FAKE_CEILING_SECONDS) in reason, reason
+        for name in CORPUS:
+            if name == HANG:
+                continue
+            assert _failure_reason(outcomes[name]) is None, (
+                f"{name} was failed by the retry of its neighbour: "
+                f"{_failure_reason(outcomes[name])}")
+    finally:
+        pool.close()
 
 
 def test_no_worker_outlives_the_pool(live_db, corpus, pool):
