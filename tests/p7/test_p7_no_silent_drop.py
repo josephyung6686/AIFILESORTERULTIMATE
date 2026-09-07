@@ -18,11 +18,21 @@ impossible -- the gate is the single door precisely so that "what was sent" and
 only way this class of defect ever arrives.
 
 **The fix is an allowlist and not a classification**, deliberately. `gate.TEXT_BEARING`
-is the two kinds that resolve to a value; `gate.REFERENCE_ONLY` is the four §4 says
-carry no content ("an evidence reference is an id only -- no content"), which are
-correctly absent from `materialised_items` and always were. Anything in NEITHER is
-refused by name. That is `84` §1's rule applied to the item table itself: a kind
-this gate has no reading for is a kind it refuses, not a kind it drops.
+is the two kinds that resolve to a value; `gate.NAME_BEARING` is §7.7's filename,
+which resolves to a value out of P4 from its `file_id`; `gate.REFERENCE_ONLY` is the
+three §4 says carry no content ("an evidence reference is an id only -- no content"),
+which are correctly absent from `materialised_items` and always were. Anything in
+NONE of the three is refused by name. That is `84` §1's rule applied to the item
+table itself: a kind this gate has no reading for is a kind it refuses, not a kind
+it drops.
+
+**`filename` MOVED, 2026-09-06, and it is this file's own defect one member along
+(`104` R-06).** It sat in `REFERENCE_ONLY` and it is not a reference-only kind: a
+`file_id` references something that HAS a value, and the value is §7.7's flagged
+sixth releasable kind. So the item was admitted, decided, audited -- and contributed
+nothing, which is a released call that does not carry what it said it carried. The
+allowlist was right and the classification inside it was wrong, which is exactly the
+failure mode the paragraph above warns about; it just wore the correct-looking name.
 
 Nothing here classifies `self_description`. It is the only kind currently in
 neither tuple, so it is what the tests below reach for -- and the refusal lifts on
@@ -59,7 +69,7 @@ import dataclasses
 import pytest
 
 from privacy.authorship import COMPONENT_VERSION
-from privacy.gate import REFERENCE_ONLY, TEXT_BEARING
+from privacy.gate import NAME_BEARING, REFERENCE_ONLY, TEXT_BEARING
 from privacy.items import (
     CandidateLabel, EvidenceReference, Excerpt, Filename, MetadataField,
     RequestedItem, SelfDescription, _KIND_BY_TYPE, kind_of,
@@ -69,7 +79,8 @@ from privacy.release import Denied, MalformedRequest, Released
 from privacy.vocabulary import ITEM_KINDS
 
 from p7.test_p7_release import (
-    OBSERVED_AT, PLAN_VERSION, SPAN, _classify, _evidence, _file, _gate, _request,
+    OBSERVED_AT, PLAN_VERSION, SPAN, _classify, _evidence, _file,
+    _filename_evidence, _gate, _request,
     gate_conn,  # noqa: F401 -- the fixture, used by name in every signature below
 )
 
@@ -93,9 +104,16 @@ def _policy_suspending(conn, kinds: tuple[str, ...]) -> Policy:
 
 
 def _seeded(conn) -> tuple[str, str]:
-    """One clean, releasable file and the observation key of its one excerpt."""
+    """One clean, releasable file and the observation key of its one excerpt.
+
+    The `filename`-zone observation is seeded too, because the product writes one
+    for every indexed file (`extractors/filesystem.py`) and a fixture that omits it
+    is a fixture in which §7.7's sixth kind cannot resolve. Its key is not returned:
+    the tests below are about the item table, not about that address.
+    """
     file_id = _file(conn, "notes.pdf", "hash-notes")
     key = _evidence(conn, file_id, "hash-notes")
+    _filename_evidence(conn, file_id, "notes.pdf")
     _classify(conn, file_id, "hash-notes", handling_class="public_low",
               protected=False, refs=(key,))
     return file_id, key
@@ -183,21 +201,43 @@ def test_a_denial_still_beats_the_refusal(gate_conn):
     assert decision.reason == "always_local_item"
 
 
-def test_the_four_reference_only_kinds_release_exactly_as_before(gate_conn):
-    """§4: an evidence reference is "an id only -- no content". These four are
+def test_the_three_reference_only_kinds_release_exactly_as_before(gate_conn):
+    """§4: an evidence reference is "an id only -- no content". These three are
     absent from `materialised_items` BY DESIGN and always were, and a check that
-    could not tell them from a dropped item would refuse the ordinary path."""
+    could not tell them from a dropped item would refuse the ordinary path.
+
+    THE FILENAME IS NO LONGER AMONG THEM (`104` R-06) and the next test is why: it
+    is asked for here as well, and the release now carries two values rather than
+    one. A reference-only kind and a kind that resolves are different answers, and
+    this file's whole subject is a request in which one of them was silently the
+    other."""
     file_id, key = _seeded(gate_conn)
     _policy_suspending(gate_conn, ())
 
     decision = _gate(gate_conn).release(_request(
         items=(Excerpt(observation_key=key, span=SPAN, reason="heading"),
                CandidateLabel(label="Passport"), MetadataField(name="page_count"),
-               EvidenceReference(observation_key=key), Filename(file_id=file_id)),
+               EvidenceReference(observation_key=key)),
         file_ids=(file_id,)))
 
     assert isinstance(decision, Released)
     assert len(decision.materialised_items) == 1
+
+
+def test_the_filename_is_released_beside_the_excerpt_and_not_dropped(gate_conn):
+    """`104` R-06, stated as this file states everything else: what was asked about
+    is accounted for. Two items in, two values out, and the name leads."""
+    file_id, key = _seeded(gate_conn)
+    _policy_suspending(gate_conn, ())
+
+    decision = _gate(gate_conn).release(_request(
+        items=(Filename(file_id=file_id, observation_key="sha256:" + "f" * 64),
+               Excerpt(observation_key=key, span=SPAN, reason="heading")),
+        file_ids=(file_id,)))
+
+    assert isinstance(decision, Released)
+    assert len(decision.materialised_items) == 2
+    assert [item.zone for item in decision.materialised_items] == ["filename", "body"]
 
 
 # --- the property, over the item table rather than over one kind ---------------------
@@ -206,13 +246,14 @@ def test_the_four_reference_only_kinds_release_exactly_as_before(gate_conn):
 def test_every_kind_is_materialised_or_reference_only_or_refused():
     """`84` §1 applied to the item table itself.
 
-    The two tuples do not have to COVER `ITEM_KINDS` -- `self_description` is in
-    neither today and that is the honest state of the door. What must hold is that
-    the gate has a reading for every kind: a value, an id, or a refusal. This
+    The three tuples do not have to COVER `ITEM_KINDS` -- `self_description` is in
+    none of them today and that is the honest state of the door. What must hold is
+    that the gate has a reading for every kind: a value, an id, or a refusal. This
     asserts the third by asserting the first two are disjoint and that whatever is
     left over is exactly what the release path refuses.
     """
-    materialised = {_KIND_BY_TYPE[cls] for cls in TEXT_BEARING}
+    materialised = ({_KIND_BY_TYPE[cls] for cls in TEXT_BEARING}
+                    | {_KIND_BY_TYPE[cls] for cls in NAME_BEARING})
     reference_only = {_KIND_BY_TYPE[cls] for cls in REFERENCE_ONLY}
 
     assert materialised.isdisjoint(reference_only), (
@@ -226,18 +267,18 @@ def test_every_kind_is_materialised_or_reference_only_or_refused():
         "assertion and say at the type which of the two readings it will get")
 
 
-def test_the_union_of_the_two_tuples_is_read_from_the_type_table(gate_conn):
-    """Neither tuple may hold a type `items.py` does not publish as a kind.
+def test_the_union_of_the_three_tuples_is_read_from_the_type_table(gate_conn):
+    """No tuple may hold a type `items.py` does not publish as a kind.
 
     Spelled once. A type listed here that `_KIND_BY_TYPE` does not know would make
     the gate's reading of an item disagree with the vocabulary's, and the gate's
     reading is the one that decides what leaves the device."""
-    for cls in (*TEXT_BEARING, *REFERENCE_ONLY):
+    for cls in (*TEXT_BEARING, *NAME_BEARING, *REFERENCE_ONLY):
         assert cls in _KIND_BY_TYPE
         assert cls in RequestedItem.__args__
 
 
-def test_a_kind_in_neither_tuple_is_refused_whatever_it_is(gate_conn):
+def test_a_kind_in_none_of_the_tuples_is_refused_whatever_it_is(gate_conn):
     """The property without `SelfDescription` in it, so this file outlives the door.
 
     Every published kind is put through the gate one at a time. Each one either
@@ -249,10 +290,10 @@ def test_a_kind_in_neither_tuple_is_refused_whatever_it_is(gate_conn):
     _policy_suspending(gate_conn, ("self_description",))
     gate = _gate(gate_conn)
 
-    readable = (*TEXT_BEARING, *REFERENCE_ONLY)
+    readable = (*TEXT_BEARING, *NAME_BEARING, *REFERENCE_ONLY)
     for item in (Excerpt(observation_key=key, span=SPAN, reason="heading"),
                  CandidateLabel(label="Passport"), MetadataField(name="page_count"),
-                 EvidenceReference(observation_key=key), Filename(file_id=file_id),
+                 EvidenceReference(observation_key=key), Filename(file_id=file_id, observation_key="sha256:" + "f" * 64),
                  SelfDescription(question_id=A_ROLE)):
         kind = kind_of(item)
         try:
@@ -269,4 +310,5 @@ def test_a_kind_in_neither_tuple_is_refused_whatever_it_is(gate_conn):
             f" without the gate having any reading for it -- which is the silent "
             f"drop, whatever the decision says")
         if isinstance(decision, Released):
-            assert bool(decision.materialised_items) == (type(item) in TEXT_BEARING)
+            assert bool(decision.materialised_items) == (
+                type(item) in (*TEXT_BEARING, *NAME_BEARING))

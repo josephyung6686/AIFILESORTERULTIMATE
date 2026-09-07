@@ -51,6 +51,12 @@ for _path in (str(_ROOT), str(_ROOT / "src")):
     if _path not in sys.path:
         sys.path.insert(0, _path)
 
+# The zone the product releases §7.7's filename at, read from the module that
+# resolves it rather than respelled here. Imported at module level, unlike the
+# heavy composition-root imports inside `inspect_database`, because
+# `filename_released` below is a pure function this file's tests call directly.
+from privacy.resolve import FILENAME_ZONE  # noqa: E402  (after the path setup)
+
 #: A base URL that cannot resolve and a key that is not the owner's. The routing
 #: object is built because `fact_call_authorities` requires one and because a
 #: measurement of a composition root that was built differently measures a different
@@ -92,10 +98,21 @@ class FilePayload:
     built_tokens: int
     over_ceiling: bool              # the BUILT dossier, whatever the gate then said
     canary_offered: bool            # a whole document was in what was offered
+    #: Live `classifications.protected`. Read for ONE column below, and it is the
+    #: column that has to be zero: §7.3 forbids a protected file's NAME in a prompt,
+    #: not only its content.
+    protected: bool
+    #: §7.7's filename, which `104` R-06 made a released value rather than an
+    #: admitted reference. `offered` is a `Filename` item in the request; `released`
+    #: is the file's own name found verbatim in what came back out of the door.
+    #: Two columns because they were the same number before R-06 and were both
+    #: wrong: the item was offered on every file and released on none.
+    filename_offered: bool
     released_items: int
     released_bytes: int
     measured_tokens: int
     canary_hit: bool                # a whole document was in what was RELEASED
+    filename_released: bool         # the file's own NAME was in what was released
 
 
 @dataclass
@@ -132,6 +149,25 @@ class PayloadReport:
     @property
     def canary_hits(self) -> list[FilePayload]:
         return [f for f in self.released if f.canary_hit]
+
+    @property
+    def filename_offered(self) -> list[FilePayload]:
+        return [f for f in self.built if f.filename_offered]
+
+    @property
+    def filename_released(self) -> list[FilePayload]:
+        return [f for f in self.released if f.filename_released]
+
+    @property
+    def protected_filename_released(self) -> list[FilePayload]:
+        """The one that must be empty on every corpus, forever. §7.3: a Protected
+        Records file "must not cause filenames or content to be exposed in model
+        prompts at all", and that sentence carries no locality qualifier."""
+        return [f for f in self.filename_released if f.protected]
+
+    @property
+    def protected(self) -> list[FilePayload]:
+        return [f for f in self.files if f.protected]
 
     def gate_refusals_by_reason(self) -> dict[str, int]:
         """Every file the door stopped, keyed by the word it stopped it with.
@@ -209,6 +245,34 @@ def _whole_document_texts(conn: sqlite3.Connection, file_id: str,
     return tuple(texts)
 
 
+def _protected_file_ids(conn: sqlite3.Connection) -> frozenset[str]:
+    """Every file carrying a live protected classification.
+
+    One read for the whole corpus rather than one per file: the column it feeds is a
+    count over the roster, and the per-file question has the same answer either way.
+    """
+    return frozenset(row[0] for row in conn.execute(
+        "SELECT DISTINCT file_id FROM classifications "
+        "WHERE protected = 1 AND superseded_by IS NULL"))
+
+
+def filename_released(released_items, name: str) -> bool:
+    """Did the person's own name for this file come back out of the door?
+
+    EQUALITY on the value, at the `filename` zone, and not the substring test the
+    whole-document canary uses. A name like `a.py` occurs inside ordinary prose, so
+    `in` would report a release that never happened -- and this column's whole job is
+    to be trusted when it says zero for a protected file.
+
+    An empty name matches nothing, for the reason an empty whole-document canary is
+    dropped: it would make every file a hit.
+    """
+    if not name:
+        return False
+    return any(item.zone == FILENAME_ZONE and item.value == name
+               for item in released_items)
+
+
 def canary_hit(released_values, canaries) -> bool:
     """Did any whole-document text turn up inside anything released?
 
@@ -240,9 +304,11 @@ def inspect_database(database: Path, corpus: Path, *,
     from database_agent.budget import get_ceiling
     from database_agent.files_table import get_file
     from model_facts import (
-        build_fact_request, dossier_tokens, measure_released_tokens,
+        build_fact_request, dossier_tokens, filename_citation,
+        measure_released_tokens,
         releasable_observations,
     )
+    from privacy.items import Filename
     from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
     from privacy.release import Denied, MalformedRequest, NeedsConsent, Released
     from privacy.resolve import AmbiguousObservationKey, UnresolvableSpan
@@ -306,11 +372,14 @@ def inspect_database(database: Path, corpus: Path, *,
         if ceiling is None:
             ceiling = cli.GROUPING_LIMITS.max_dossier_tokens
         report = PayloadReport(ceiling=int(ceiling))
+        protected_ids = _protected_file_ids(conn)
 
         for file_id, content_hash in roster:
             row = get_file(conn, file_id)
             path = _relative(row["current_path"], root) if row else file_id
+            name = row["filename"] if row else ""
             route = bool(permitted(file_id))
+            protected = file_id in protected_ids
 
             observations = releasable_observations(
                 conn, file_id=file_id, content_hash=content_hash,
@@ -318,8 +387,19 @@ def inspect_database(database: Path, corpus: Path, *,
             if not observations:
                 report.files.append(_nothing(
                     path=path, route=route, outcome="not_built",
-                    reason="nothing_releasable"))
+                    reason="nothing_releasable", protected=protected))
                 continue
+
+            request = build_fact_request(
+                _fact_request(conn, file_id, content_hash, authorities),
+                observations,
+                # The same citation the product resolves, from the same function, so
+                # the `filename canary: offered` column counts what a real run would
+                # offer rather than what this file happens to pass (`104` R-06).
+                filename=filename_citation(conn, file_id),
+                model_target=authorities.model_target,
+                prompt=authorities.prompt,
+                max_dossier_tokens=authorities.max_dossier_tokens)
 
             # MEASURED HERE, before the door, and kept whatever the door then says.
             # A dossier over the ceiling is DENIED, so a size read off `Released`
@@ -335,13 +415,15 @@ def inspect_database(database: Path, corpus: Path, *,
                 built_bytes=sum(len(value) for value in offered),
                 built_tokens=built_tokens,
                 over_ceiling=built_tokens > report.ceiling,
-                canary_offered=canary_hit(offered, wanted))
-
-            request = build_fact_request(
-                _fact_request(conn, file_id, content_hash, authorities),
-                observations, model_target=authorities.model_target,
-                prompt=authorities.prompt,
-                max_dossier_tokens=authorities.max_dossier_tokens)
+                canary_offered=canary_hit(offered, wanted),
+                protected=protected,
+                # ASKED OF THE REQUEST, never assumed of the builder. The whole of
+                # `104` R-06 is that an item can be in a request and reach nothing,
+                # so "was it offered" and "was it released" have to be two readings
+                # taken at two places.
+                filename_offered=any(
+                    isinstance(item, Filename)
+                    for item in request.model_call_request.requested_items))
 
             try:
                 decision = authorities.gate.release(request.model_call_request)
@@ -375,25 +457,32 @@ def inspect_database(database: Path, corpus: Path, *,
                 released_bytes=sum(len(value) for value in values),
                 measured_tokens=measure_released_tokens(
                     request.model_call_request, decision.materialised_items),
-                canary_hit=canary_hit(values, wanted), **built))
+                canary_hit=canary_hit(values, wanted),
+                filename_released=filename_released(
+                    decision.materialised_items, name),
+                **built))
         return report
     finally:
         conn.close()
 
 
 def _nothing(*, path: str, route: bool, outcome: str, reason: str | None,
-             built_items: int = 0, built_bytes: int = 0, built_tokens: int = 0,
-             over_ceiling: bool = False, canary_offered: bool = False
+             protected: bool = False, built_items: int = 0, built_bytes: int = 0,
+             built_tokens: int = 0, over_ceiling: bool = False,
+             canary_offered: bool = False, filename_offered: bool = False
              ) -> FilePayload:
     """A file that reached an outcome other than `Released`. The BUILT size travels
     with it -- a dossier the door refused was still assembled, and its size is the
-    number `104` R-07 is about."""
+    number `104` R-07 is about. So does `filename_offered`: a name put into a
+    request and stopped at the door was still put into a request."""
     return FilePayload(
         path=path, route_permitted=route, outcome=outcome, reason=reason,
         built_items=built_items, built_bytes=built_bytes,
         built_tokens=built_tokens, over_ceiling=over_ceiling,
-        canary_offered=canary_offered,
-        released_items=0, released_bytes=0, measured_tokens=0, canary_hit=False)
+        canary_offered=canary_offered, protected=protected,
+        filename_offered=filename_offered,
+        released_items=0, released_bytes=0, measured_tokens=0, canary_hit=False,
+        filename_released=False)
 
 
 def _fact_request(conn, file_id: str, content_hash: str, authorities):
@@ -453,6 +542,22 @@ def render(report: PayloadReport) -> str:
         "dossier;",
         "                                  offered is what was assembled, released "
         "is what left)",
+        f"  filename canary: offered       {len(report.filename_offered)}",
+        f"  filename canary: released      {len(report.filename_released)}",
+        f"  filename canary: protected     {len(report.protected_filename_released)}"
+        f" of {len(report.protected)} protected files",
+        "                                 (§7.7's sixth kind. Offered is a "
+        "`Filename` item in the",
+        "                                  request; released is the file's own name "
+        "found verbatim",
+        "                                  in what left. The third line is the one "
+        "that must be 0:",
+        "                                  §7.3 forbids a protected file's NAME in a "
+        "prompt, and",
+        "                                  before `104` R-06 the second line was 0 "
+        "as well --",
+        "                                  the item was offered on every file and "
+        "released on none)",
         "",
         f"  blocked: "
         f"{sum(1 for f in report.files if not f.route_permitted)} withheld at the "
@@ -482,6 +587,12 @@ def render(report: PayloadReport) -> str:
         lines.append("  !! WHOLE-DOCUMENT RELEASE. These files' entire text appeared "
                      "in a released payload:")
         for one in report.canary_hits:
+            lines.append(f"      {one.path}")
+    if report.protected_filename_released:
+        lines.append("")
+        lines.append("  !! PROTECTED FILENAME RELEASED. §7.3 forbids this outright, "
+                     "for any target:")
+        for one in report.protected_filename_released:
             lines.append(f"      {one.path}")
     offered_only = [one for one in report.canary_offered if not one.canary_hit]
     if offered_only:
@@ -521,11 +632,18 @@ def main(argv: list[str] | None = None) -> int:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(block + "\n", encoding="utf-8")
         print(f"\nwritten: {args.out}")
-    # Non-zero on either finding, and `canary_offered` counts as a finding: a whole
-    # document the builder assembled and the door refused is `104` SF-1 still open,
-    # caught one layer later than it should have been.
+    # Non-zero on any finding, and `canary_offered` counts as one: a whole document
+    # the builder assembled and the door refused is `104` SF-1 still open, caught one
+    # layer later than it should have been.
+    #
+    # A RELEASED FILENAME IS NOT A FINDING and must not become one -- it is what
+    # `104` R-06 asked for, and an instrument that failed on the fix it was extended
+    # to measure would be read as the fix being wrong. A released filename on a
+    # PROTECTED file is a finding, and it is the only one of the three filename
+    # columns that is.
     return 1 if (report.canary_offered or report.canary_hits
-                 or report.over_ceiling) else 0
+                 or report.over_ceiling
+                 or report.protected_filename_released) else 0
 
 
 if __name__ == "__main__":

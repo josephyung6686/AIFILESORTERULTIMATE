@@ -169,8 +169,11 @@ def test_the_edge_stores_its_evidence_and_its_bridge_entity_separately():
     ))
     anchor = next(e for e in graph.edges if e.to_file_id == "file-a")
     assert anchor.evidence_ref == "sha256:the-observation"
-    # The basis is not a bridge. It is what the group IS, not what joins it to
-    # something else, and counting it is counting corroboration.
+    # The graph records what the CHANNEL named and never reads `detail`. This
+    # neighbour names no bridge, so the edge carries none -- and the three fields
+    # stay three. (`104` R-59's third finding is that the shared-fact channel now
+    # names one; that is a decision in `retrieval`, not a reading here, and the
+    # exemption below is what makes it safe.)
     assert anchor.bridge_entity_ref is None
 
     folder = next(e for e in graph.edges if e.to_file_id == "file-b")
@@ -244,6 +247,97 @@ def test_an_entity_below_the_frequency_is_not_suppressed():
         limits=_limits(generic_hub_frequency=3),
     )
     assert not any(e.hub_suppressed for e in graph.edges)
+
+
+# --- the seed's own basis is exempt from its own hub count (`104` R-59) ----------
+#
+# §4.3's count exists "to find an entity that bridges UNRELATED groups". The value
+# a group was seeded on is what makes these files ONE group, so counting it made a
+# group suppress every edge it had the moment enough files corroborated it -- which
+# is why the shared-fact channel used to record no entity at all. It records one
+# now, and the exemption is what keeps the old sentence true.
+
+
+def test_the_seeds_own_basis_is_never_a_hub_however_many_files_state_it():
+    """A group of twenty files that all state `subject = BUSIB 4300` is a group
+    with twenty corroborations, not a group held together by a generic entity.
+    Before the exemption this suppressed all twenty edges at a ceiling of three."""
+    basis = "subject=BUSIB 4300"
+    graph = _build(
+        _hood(*[
+            _neighbor(f"file-{n}", SHARED_VALIDATED_FACT, anchors=True,
+                      detail=basis, bridge_entity=basis)
+            for n in range(20)
+        ]),
+        limits=_limits(generic_hub_frequency=3),
+    )
+    assert len(graph.edges) >= 1
+    assert not any(e.hub_suppressed for e in graph.edges)
+    assert {e.bridge_entity_ref for e in graph.edges} == {basis}
+
+
+def test_a_value_that_is_not_the_seeds_basis_is_a_hub_at_the_ceiling():
+    """The exemption names ONE value in ONE graph. Another entity bridging at the
+    ceiling is suppressed exactly as before, and being a fact rather than a folder
+    buys it nothing.
+
+    P9's retrieval cannot PRODUCE this case today: `_shared_fact_neighbors` returns
+    files sharing the seed's fact, so the only fact bridge in a seed's graph is the
+    seed's own. This is a test of the rule, not of a case the owner's corpus makes,
+    and the corpus-wide version of it is P11's `entity_frequency` -- which counts
+    every file rather than one neighbourhood, and is where an entity that bridges
+    UNRELATED groups can actually be seen (`104` R-59)."""
+    graph = _build(
+        _hood(
+            _neighbor("file-anchor", SHARED_VALIDATED_FACT, anchors=True,
+                      detail="subject=BUSIB 4300",
+                      bridge_entity="subject=BUSIB 4300"),
+            *[
+                _neighbor(f"file-{n}", EXISTING_RELATED_FOLDER,
+                          detail="authored_by=the university",
+                          bridge_entity="authored_by=the university")
+                for n in range(3)
+            ]),
+        limits=_limits(generic_hub_frequency=3),
+    )
+    suppressed = {e.bridge_entity_ref for e in graph.edges if e.hub_suppressed}
+    assert suppressed == {"authored_by=the university"}
+
+
+def test_a_value_shared_by_three_below_the_ceiling_is_not_a_hub():
+    """The lower half of the same rule, on a value that is not the basis."""
+    graph = _build(
+        _hood(
+            _neighbor("file-anchor", SHARED_VALIDATED_FACT, anchors=True,
+                      detail="subject=BUSIB 4300",
+                      bridge_entity="subject=BUSIB 4300"),
+            *[
+                _neighbor(f"file-{n}", EXISTING_RELATED_FOLDER,
+                          detail="Downloads", bridge_entity="Downloads")
+                for n in range(3)
+            ]),
+        limits=_limits(generic_hub_frequency=9),
+    )
+    assert not any(e.hub_suppressed for e in graph.edges)
+
+
+def test_a_seed_with_no_basis_exempts_nothing():
+    """A user-created starting point and a structural family carry no field and no
+    value, so there is no basis to exempt -- and an exemption of `None` must not
+    exempt every edge that names no entity."""
+    graph = _build(
+        _hood(*[
+            _neighbor(f"file-{n}", EXISTING_RELATED_FOLDER,
+                      detail="Downloads", bridge_entity="Downloads")
+            for n in range(3)
+        ], _neighbor("file-anchor", SHARED_VALIDATED_FACT, anchors=True),
+              seed=_seed(seed_kind="user-created-starting-point",
+                         field_key=None, value=None, reliability_state=None,
+                         observation_key=None, basis="the person said so")),
+        limits=_limits(generic_hub_frequency=3),
+    )
+    assert {e.bridge_entity_ref for e in graph.edges if e.hub_suppressed} == {
+        "Downloads"}
 
 
 def test_no_generic_hub_literal_is_written_into_p9():

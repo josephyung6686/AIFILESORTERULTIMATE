@@ -217,11 +217,30 @@ class Filename:
     Carries a `file_id`, not a name: SPEC §6 says requests carry references only, and
     the gate is what resolves the reference. A `file_id` holding a path separator is
     a path wearing an id's field name, and §8.4's first always-local word is "Paths".
+
+    IT ALSO CARRIES THE KEY OF THE OBSERVATION ITS NAME COMES FROM (`104` R-06, the
+    merge). The gate resolves the VALUE from the `file_id` -- that has not changed --
+    but the released item comes back keyed on that observation, and P8's dossier
+    refuses "a released key nobody requested ... a forged or mismatched release"
+    (`llm_harness/dossier.py`). So the request has to ASK for the key the door is
+    going to hand back, and `_requested_keys` reads exactly this field. The two are
+    the same address because both come from `resolve.filename_address`.
+
+    This is not the excerpt door reopened. An `Excerpt` naming this key would still
+    be refused by `check_item`: `filename` is in `ALWAYS_LOCAL_ZONES`, and it is that
+    refusal, not the absence of a key here, that keeps the two kinds apart.
     """
 
     file_id: str
+    observation_key: str
 
     def __post_init__(self) -> None:
+        if not self.observation_key:
+            raise ValueError(
+                "a Filename names the P4 observation its name is read from; without "
+                "it the gate releases a key the request never asked for and P8 "
+                "cannot tell that release from a forged one"
+            )
         if "/" in self.file_id or "\\" in self.file_id:
             raise AlwaysLocalRequested(
                 f"file_id={self.file_id!r} carries a path separator, and §8.4 places "

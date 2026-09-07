@@ -42,12 +42,28 @@ from types import MappingProxyType
 from evidence_shape.store import (
     get_observation, observations_by_key, unit_for_observation,
 )
-from evidence_shape.location import Location
+from evidence_shape.location import Location, TextSpan
 from evidence_shape.locator import location_from_mapping
 from evidence_shape.observation import Observation
 from evidence_shape.text_units import SpanAnchorError, check_span_anchor, raw_value_at
 
 from privacy.redaction import span_address
+
+#: The one zone a `items.Filename` may resolve through, and the zone
+#: `extractors/filesystem.py` writes the person's own name for the file into. Named
+#: here rather than in the gate because this module is the only one that reads P4.
+FILENAME_ZONE: str = "filename"
+
+#: §2.9's format family for P3's section 1.2 record, and the SECOND half of the
+#: address, without which the first half is not unique. Measured on the owner's 199
+#: files: `image.metadata` also writes a `filename`-zone observation -- the
+#: camera-or-screenshot NAME PATTERN it matched, span-less and shorter than the name
+#: -- so one of the 199 carried two live rows in the zone and "the filename" had two
+#: candidates. They are not two readings of one value: one is the name, the other is
+#: a signal derived from it, and `source_type` is the field that already tells them
+#: apart. A vocabulary member, checked against `SOURCE_TYPES` by
+#: `test_p7_resolve.py`, never a string this module invented.
+FILESYSTEM_SOURCE_TYPE: str = "filesystem"
 
 #: The P4 functions that turn a stored record into a string of document text, by
 #: module. Published so Task 21's single-locus guard names them instead of matching
@@ -239,12 +255,104 @@ def current_observation(conn: sqlite3.Connection, observation_key: str, *,
     return get_observation(conn, live[0])
 
 
+@dataclass(frozen=True, slots=True)
+class _NameAddress:
+    """The two fields `materialise` reads, derived from a `file_id`.
+
+    `items.Filename` carries a `file_id` and no address, because SPEC §6 says a
+    request carries references and the gate is what resolves one. `materialise`
+    reads `observation_key` and `span` and its docstring says it reads nothing
+    else, so the derivation ends in this shape rather than in a second resolver.
+    """
+
+    observation_key: str
+    span: TextSpan | None
+
+
+def filename_address(conn: sqlite3.Connection, file_id: str) -> _NameAddress:
+    """Where this file's own name lives, or a refusal. NO CONTENT IS SELECTED.
+
+    `extractors/filesystem.py` emits exactly one `zone="filename"` observation per
+    indexed file version -- P3's section 1.2 record made citable -- and that
+    observation is the only place a released filename may come from. `files.filename`
+    is the same characters and is deliberately NOT read here: that module's opening
+    paragraph refuses a second computation of a P3 value because "the two would
+    drift", and a released value the model cites has to resolve back through P4 for
+    `00`:62's validator to check the citation at all.
+
+    **THE ZONE IS NOT THE WHOLE ADDRESS**, and one real file is why. `image.py` also
+    writes into `zone="filename"`: the camera or screenshot name PATTERN it matched,
+    which is a signal derived from the name and not the name. Filtering on the zone
+    alone made that file ambiguous and unreleasable, and picking the longer of the
+    two would have been the guess this module does not make. The filter is the zone
+    AND §2.9's `filesystem` source family, which is what "P3's section 1.2 record,
+    re-emitted" means in P4's own vocabulary.
+
+    **Scoped to the file and not to its version, and the reason is the key.** An
+    `observation_key` is `sha256(content_hash | extractor | locator | raw_value)`, so
+    a file whose bytes changed carries a DIFFERENT key for the same name -- and P4's
+    supersession chain is what retires the old row. Filtering on `content_hash` here
+    would look stricter and buy nothing the liveness filter does not already buy,
+    while adding a way for the gate's own reading of "which version" to disagree with
+    P4's.
+
+    **Zero refuses and two refuses**, on this module's standing rule: absent means
+    refuse, never guess. Zero is a file the filesystem extractor never ran over, and
+    the whole name is not something to reconstruct from a column. Two live rows is
+    the retraction case `current_observation` argues at length -- picking one of two
+    would release a name a later reading may already have replaced.
+    """
+    keys: list[str] = []
+    spans: dict[str, TextSpan | None] = {}
+    for row in conn.execute(
+            "SELECT observation_key, location FROM evidence "
+            "WHERE file_id = ? AND superseded_by IS NULL AND source_type = ? "
+            "AND json_extract(location, '$.zone') = ? ORDER BY rowid",
+            (file_id, FILESYSTEM_SOURCE_TYPE, FILENAME_ZONE)):
+        key = row["observation_key"]
+        if key in spans:
+            # The same content-addressed key twice is one reading recorded twice,
+            # not two readings: identical bytes at an identical locator. It is the
+            # DISTINCT key that has to be single-valued.
+            continue
+        keys.append(key)
+        spans[key] = location_from_mapping(json.loads(row["location"])).text_span
+    if not keys:
+        raise UnresolvableSpan(
+            f"file {file_id!r} carries no live {FILENAME_ZONE!r}-zone "
+            f"{FILESYSTEM_SOURCE_TYPE!r} observation, so there is no address for its "
+            f"name. `extractors/filesystem.py` writes one for every indexed file; a "
+            f"file that has none was never indexed by it, and `files.filename` is "
+            f"not a fallback -- releasing a value the model could not then cite is "
+            f"what §7.7's flagged kind exists to avoid")
+    if len(keys) > 1:
+        raise AmbiguousObservationKey(
+            f"file {file_id!r} has {len(keys)} live {FILENAME_ZONE!r}-zone "
+            f"{FILESYSTEM_SOURCE_TYPE!r} observations; no unique current name "
+            f"exists, and picking one of two would release a name a later reading "
+            f"may already have retracted")
+    return _NameAddress(observation_key=keys[0], span=spans[keys[0]])
+
+
+def materialise_filename(conn: sqlite3.Connection, file_id: str) -> Materialised:
+    """`items.Filename` -> the person's own name for the file, through P4.
+
+    Two steps and no third: find the address, then take the ordinary materialiser
+    down it. The value, the span, the zone and the unit length are all P4's, so a
+    released filename is the same kind of citable thing an excerpt is.
+    """
+    return materialise(conn, filename_address(conn, file_id),
+                       within_file_ids=(file_id,))
+
+
 def materialise(conn: sqlite3.Connection, item, *,
                 within_file_ids: Sequence[str] | None = None) -> Materialised:
     """Resolve one requested item against local storage.
 
     `item` is Task 7's `Excerpt` or `RedactedIdentifier`: it needs an
     `observation_key` and a `span` of `TextSpan | None`, and nothing else is read.
+    `_NameAddress` above is the third shape, and it is that pair and not a fourth
+    reader: `materialise_filename` derives it from a `file_id` and comes back here.
     """
     observation = current_observation(conn, item.observation_key,
                                       within_file_ids=within_file_ids)

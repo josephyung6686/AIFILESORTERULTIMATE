@@ -428,7 +428,11 @@ def test_the_filename_sixth_kind_is_flagged_and_not_treated_as_settled():
     assert ITEM_KINDS[5] == "filename"
     assert len(ITEM_KINDS) == 7
     assert "filename" in OPEN_QUESTIONS[2].lower() or "Filename" in OPEN_QUESTIONS[2]
-    assert {f.name for f in __import__("dataclasses").fields(Filename)} == {"file_id"}
+    # Two fields, both references. `observation_key` joined `file_id` at `104`
+    # R-06's merge so that the key the door hands back is a key the request asked
+    # for; neither is a name, and the gate still resolves the name itself.
+    assert {f.name for f in __import__("dataclasses").fields(Filename)} == {
+        "file_id", "observation_key"}
     for path in modules():
         tokens = code_tokens(path)
         for settled in ("filename_resolved", "filename_settled",
@@ -454,7 +458,7 @@ def test_the_filename_sixth_kind_is_flagged_and_not_treated_as_settled():
     assert (inspect.signature(check_item).parameters["allow_unratified"].default
             is inspect.Parameter.empty)
 
-    item = Filename(file_id="f1")
+    item = Filename(file_id="f1", observation_key="sha256:" + "f" * 64)
     # Without the opt-in, the kind is unadmittable in BOTH protection states -- the
     # question is open, not open-for-unprotected-files.
     for protected in (True, False):

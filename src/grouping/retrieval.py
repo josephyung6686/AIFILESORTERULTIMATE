@@ -49,6 +49,7 @@ from grouping.vocabulary import (
     EXISTING_RELATED_FOLDER,
     MUTUAL_SEMANTIC_RETRIEVAL,
     SHARED_VALIDATED_FACT,
+    fact_bridge_ref,
 )
 
 #: Ranking order when no weight distinguishes two channels. Direct evidence
@@ -97,6 +98,15 @@ class Neighbor:
     basis a "hub" as soon as enough files corroborated it, and destroyed the group
     that had the most evidence. A description is not an entity, and the basis
     value is never the hub.
+
+    **STILL TRUE AFTER `104` R-59's third finding, and the difference is where the
+    exemption lives.** The shared-fact channel now names its entity here, because
+    it genuinely has one; what keeps "the basis value is never the hub" true is
+    `graph.build_graph`, which exempts the SEED'S OWN `field=value` from the hub
+    count by name. So the entity is recorded, travels onto the edge, and reaches
+    P11's `entity_frequency` -- and a group's own basis still cannot suppress the
+    group. Reading `detail` at the graph would have re-made the original mistake,
+    because it would have promoted every channel's DESCRIPTION at once.
     """
 
     file_id: str
@@ -193,6 +203,15 @@ def _shared_fact_neighbors(
             anchors=match["reliability_state"] in ANCHOR_STATES,
             evidence_ref=_first_ref(match),
             detail=f"{seed.field_key}={seed.value}",
+            # THE SHARED FACT IS A REAL ENTITY, recorded since `104` R-59's third
+            # finding, and it is safe to record only because `graph.build_graph`
+            # exempts the SEED'S OWN basis from the hub count. Spelled here rather
+            # than copied off `detail` at the graph, which is the mistake the type's
+            # docstring is about: these are two decisions, and one of them is that
+            # this channel genuinely has an entity to name. The SPELLING is
+            # `vocabulary.fact_bridge_ref`, because the graph's exemption and
+            # P11's frequency lookup have to find the same string.
+            bridge_entity=fact_bridge_ref(seed.field_key, seed.value),
         ))
     return found
 

@@ -41,8 +41,11 @@ from privacy.classification_store import ClassificationStore
 from privacy.consent import NeedsConsent, pending_consent
 from privacy.defaults import MORE_REDACTING
 from privacy.denial import DECIDABLE_FROM_REQUEST, DENIAL_ORDER
-from privacy.gate import TEXT_BEARING, Gate
-from privacy.items import Excerpt, Filename, RedactedIdentifier
+from privacy.gate import NAME_BEARING, TEXT_BEARING, Gate
+from privacy.items import (
+    CandidateLabel, EvidenceReference, Excerpt, Filename, MetadataField,
+    RedactedIdentifier,
+)
 from privacy.policy import Policy, UNSET_POLICY_VERSION, set_policy
 from privacy.redaction import RedactionManifest
 from privacy.release import (
@@ -475,7 +478,7 @@ def test_a_filename_on_a_protected_records_file_is_denied(gate_conn):
     decision = _gate(
         gate_conn,
         template_for=lambda _file_id: "Protected Records",
-    ).release(_request(items=(Filename(file_id=file_id),),
+    ).release(_request(items=(Filename(file_id=file_id, observation_key="sha256:" + "f" * 64),),
                        model_target=LOCAL, file_ids=(file_id,), stage="residual"))
     assert isinstance(decision, Denied)
     assert decision.reason == "protected_records_template"
@@ -715,9 +718,15 @@ def test_no_content_is_read_before_every_request_decidable_check_has_run(
 def test_materialised_items_hold_only_what_had_a_value_to_resolve(gate_conn):
     """SPEC §6: "materialised_items[] post-redaction values only."
 
-    §4: an evidence reference is "an id only -- no content", and a filename, a
-    candidate label and a metadata field carry no local content either. The gate does
-    not echo back what it did not touch; the caller still holds the request it sent.
+    §4: an evidence reference is "an id only -- no content", and a candidate label
+    and a metadata field NAME carry no local content either. The gate does not echo
+    back what it did not touch; the caller still holds the request it sent.
+
+    A FILENAME IS NOT ONE OF THOSE, since `104` R-06: it references a value and the
+    gate resolves it, so it is asked for here alongside a kind that carries nothing
+    and the two answers are different. `NAME_BEARING` is the tuple that says so, and
+    it is pinned beside `TEXT_BEARING` for the reason that one is pinned -- a kind
+    quietly joining or leaving either changes what leaves the device.
     """
     file_id = _file(gate_conn, "notes.pdf", "hash-notes")
     _policy(gate_conn, "hybrid")
@@ -726,7 +735,8 @@ def test_materialised_items_hold_only_what_had_a_value_to_resolve(gate_conn):
               handling_class="public_low", protected=False)
     decision = _gate(gate_conn).release(_request(
         items=(Excerpt(observation_key=key, span=SPAN, reason="heading"),
-               Filename(file_id=file_id)),
+               CandidateLabel(label="Coursework"), MetadataField(name="page_count"),
+               EvidenceReference(observation_key=key)),
         file_ids=(file_id,)))
     assert isinstance(decision, Released)
     assert len(decision.materialised_items) == 1
@@ -735,6 +745,7 @@ def test_materialised_items_hold_only_what_had_a_value_to_resolve(gate_conn):
     assert isinstance(decision.redaction_manifest, RedactionManifest)
     assert decision.redaction_manifest.any_redacted is True
     assert TEXT_BEARING == (Excerpt, RedactedIdentifier)
+    assert NAME_BEARING == (Filename,)
 
 
 def test_a_call_with_no_policy_in_force_raises_rather_than_defaulting(gate_conn):
@@ -916,3 +927,122 @@ def test_an_option_outside_the_four_raises_rather_than_reading_as_a_denial():
     from privacy.consent import grant_authorizes
     with pytest.raises(KeyError):
         grant_authorizes("cloud_model_but_only_tuesdays", "cloud")
+
+
+# --------------------------------------------------------------------------
+# R-06  the filename is SERIALISED, not merely admitted
+# --------------------------------------------------------------------------
+
+def _filename_evidence(conn: sqlite3.Connection, file_id: str, name: str) -> str:
+    """P3's section 1.2 record re-emitted the way `extractors/filesystem.py` emits it.
+
+    One run, one text unit at the EMPTY container path, one `zone="filename"`
+    observation spanning the whole name. This is the shape the product actually
+    writes for every indexed file, and `_evidence` above does not write it -- which
+    is why every filename test in this file proved only that the door did nothing
+    with the item.
+    """
+    digest = hashlib.sha256(f"{file_id}:filename".encode()).hexdigest()
+    run_id = new_id()
+    record_run(conn, ExtractionRun(
+        run_id=run_id, file_id=file_id, content_hash=digest,
+        extractor_name="filesystem.record", extractor_version="0.1.0",
+        source_type="filesystem", analysis_tier="filesystem", config={},
+        completeness="complete", started_at=OBSERVED_AT, observation_count=1))
+    record_text_unit(conn, TextUnit(run_id=run_id, container_path=(), text=name))
+    location = Location(zone="filename", container_path=(),
+                        text_span=TextSpan(start=0, end=len(name)))
+    record_observation(conn, Observation(
+        file_id=file_id, content_hash=digest, extractor_name="filesystem.record",
+        extractor_version="0.1.0", source_type="filesystem", raw_value=name,
+        location=location, occurrence_count=1, observed_at=OBSERVED_AT,
+        reliability="possible", run_id=run_id, context_before=None,
+        context_after=None, context_truncated=False))
+    return observation_key(
+        content_hash=digest, extractor_name="filesystem.record",
+        locator=serialize_locator(location), raw_value=name)
+
+
+def _no_redaction(value: str, *, context_before=None, context_after=None):
+    """The classifier's ordinary answer: this value is not an identifier."""
+    return None
+
+
+def test_a_filename_reaches_the_model_as_a_released_item(gate_conn):
+    """R-06. `e31c70f` put a `Filename` in the request and nothing serialised it.
+
+    §7.7 makes the filename the flagged SIXTH releasable kind and `00`:124 lists it
+    first in the residual dossier -- "The dossier includes the filename, file type,
+    creation date...". Admitting the item and never resolving it meant the model was
+    told a file existed and never told what the person had called it.
+    """
+    file_id = _file(gate_conn, "PHYS1401 homework 3.pdf", "hash-hw3")
+    _policy(gate_conn, "hybrid")
+    key = _filename_evidence(gate_conn, file_id, "PHYS1401 homework 3.pdf")
+    _classify(gate_conn, file_id, "hash-hw3",
+              handling_class="public_low", protected=False)
+
+    decision = _gate(gate_conn, classifier=_no_redaction).release(
+        _request(items=(Filename(file_id=file_id, observation_key="sha256:" + "f" * 64),), file_ids=(file_id,)))
+
+    assert isinstance(decision, Released)
+    assert len(decision.materialised_items) == 1
+    released = decision.materialised_items[0]
+    assert released.value == "PHYS1401 homework 3.pdf"
+    assert released.zone == "filename"
+    assert released.observation_key == key
+
+
+def test_the_released_filename_carries_an_audit_row_naming_its_address(gate_conn):
+    """§8.4's record "must describe the call". A value released and not recorded is
+    the silent drop the 1b block exists to end, one layer further in."""
+    file_id = _file(gate_conn, "notes.pdf", "hash-notes")
+    _policy(gate_conn, "hybrid")
+    key = _filename_evidence(gate_conn, file_id, "notes.pdf")
+    _classify(gate_conn, file_id, "hash-notes",
+              handling_class="public_low", protected=False)
+
+    decision = _gate(gate_conn, classifier=_no_redaction).release(
+        _request(items=(Filename(file_id=file_id, observation_key="sha256:" + "f" * 64),), file_ids=(file_id,)))
+
+    assert isinstance(decision, Released)
+    row = gate_conn.execute("SELECT * FROM events WHERE event_id = ?",
+                            (decision.audit_id,)).fetchone()
+    explanation = json.loads(row["explanation"])
+    assert [pair[0] for pair in explanation["excerpts_included"]] == [key]
+    # SPEC §7 again: the pair, never a second copy of the value.
+    assert "notes.pdf" not in row["explanation"]
+
+
+def test_a_filename_is_never_released_for_a_protected_file(gate_conn):
+    """§7.3, and it is the whole reason the kind goes through a door at all: a
+    Protected Records file "must not cause filenames or content to be exposed in
+    model prompts". Serialising the name opened no second route for that one."""
+    file_id = _file(gate_conn, "passport.pdf", "hash-passport")
+    _policy(gate_conn, "local_model")
+    _filename_evidence(gate_conn, file_id, "passport.pdf")
+    _classify(gate_conn, file_id, "hash-passport",
+              handling_class="highly_sensitive_credential_bearing", protected=True)
+
+    decision = _gate(gate_conn, classifier=_no_redaction).release(
+        _request(items=(Filename(file_id=file_id, observation_key="sha256:" + "f" * 64),), model_target=LOCAL,
+                 file_ids=(file_id,), stage="residual"))
+
+    assert isinstance(decision, Denied)
+    assert decision.reason == "protected_records_template"
+    assert not getattr(decision, "materialised_items", ())
+
+
+def test_a_filename_with_no_filesystem_observation_refuses_rather_than_guessing(
+        gate_conn):
+    """"Absent means refuse, never guess." The value comes from P4's `filename`-zone
+    observation and from nowhere else -- reading `files.filename` as a second source
+    is the drift `extractors/filesystem.py` names in its own opening paragraph."""
+    file_id = _file(gate_conn, "notes.pdf", "hash-notes")
+    _policy(gate_conn, "hybrid")
+    _classify(gate_conn, file_id, "hash-notes",
+              handling_class="public_low", protected=False)
+
+    with pytest.raises(UnresolvableSpan):
+        _gate(gate_conn, classifier=_no_redaction).release(
+            _request(items=(Filename(file_id=file_id, observation_key="sha256:" + "f" * 64),), file_ids=(file_id,)))

@@ -22,7 +22,8 @@ import pytest
 
 from cli import fact_call_authorities, load_shipped_catalogue, read_packaged_library_file
 from facts.domains import DOMAIN_FIELDS, UNIVERSAL_SCOPE
-from llm_harness.records import FolderLevel
+from llm_harness.records import EvidenceItem, FolderLevel
+from llm_harness.vocabulary import DIRECT_ANCHOR
 from production import folder_levels_for, schema_for_situation, shipped_situations
 from tree_design.config import ConfigurationRequired
 
@@ -270,7 +271,7 @@ def test_the_model_is_shown_the_filename_and_not_only_the_body():
     vocabulary` says in those words.
 
     The defect is that nothing then sends it through the door where the ban DOES
-    apply. `Filename(file_id=...)` exists, `items.UNRATIFIED_ITEM_KINDS` names it,
+    apply. `Filename(file_id=..., observation_key="sha256:" + "f" * 64)` exists, `items.UNRATIFIED_ITEM_KINDS` names it,
     and `gate._precheck_items` passes `allow_unratified=True` for the express
     purpose of admitting it for ordinary files and refusing it as
     `ProtectedItemRequested` for protected ones. The only construction of one in
@@ -304,8 +305,17 @@ def test_the_model_is_shown_the_filename_and_not_only_the_body():
     request = FactRequest(
         file_id="file-1", content_hash=_HASH, allowlist=("work_type",),
         citable_observations=(reading,), existing_facts=(), normalizers={})
+    # The builder's row for the name, which is what `filename_citation` resolves
+    # from P4 in a real run (`104` R-06's merge). It is supplied rather than
+    # resolved here because this test has no P4 tables -- and supplying it is the
+    # point: without a citation the request asks for no name, and the door has
+    # nothing to hand back that the request did not ask for.
+    name_key = "sha256:" + "f" * 64
     built = build_fact_request(
         request, (reading,),
+        filename=EvidenceItem(
+            evidence_ref=name_key, kind="filename", location="filename",
+            excerpt_span=None, reliability_state="direct", basis=DIRECT_ANCHOR),
         model_target=ModelTarget(
             locality="cloud", model_id="m", provider="p"),
         prompt=PromptDefinition(
@@ -313,7 +323,17 @@ def test_the_model_is_shown_the_filename_and_not_only_the_body():
             call_site=A_FACT, call_site_version="1", shaping_policy_bytes=b"{}"),
         max_dossier_tokens=1000)
 
-    assert Filename(file_id="file-1") in built.model_call_request.requested_items
+    # By KIND and by the file it names, not by an equal item: since `104` R-06's
+    # merge the `Filename` also carries the key of the observation the name is read
+    # from, and that key is P4's own for this corpus -- a literal typed here would
+    # be asserting the fixture's digest rather than that the name is offered.
+    names = [item for item in built.model_call_request.requested_items
+             if isinstance(item, Filename)]
+    assert [item.file_id for item in names] == ["file-1"]
+    # The item asks for the SAME key the builder described, which is what P8 checks
+    # before it will believe a released name.
+    assert names[0].observation_key == name_key
+    assert name_key in {item.evidence_ref for item in built.evidence_items}
 
 
 def test_the_model_is_never_offered_a_field_that_cannot_become_a_folder(catalogue):

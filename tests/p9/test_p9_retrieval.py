@@ -527,7 +527,8 @@ def test_retrieval_reads_only_the_versioned_vector_store():
 # --- a description is not an entity ---------------------------------------------
 
 
-def test_only_the_folder_channel_publishes_a_bridge_entity(corpus, tmp_path):
+def test_two_channels_publish_a_bridge_entity_and_the_rest_publish_none(
+        corpus, tmp_path):
     """`detail` describes why a channel returned a file; `bridge_entity` names the
     third thing the edge runs THROUGH. They were one field, and the graph read the
     description as an entity -- so `subject=PHYS1401`, the string every
@@ -536,8 +537,18 @@ def test_only_the_folder_channel_publishes_a_bridge_entity(corpus, tmp_path):
 
     A folder is a named thing that exists independently of the two files it joins,
     which is what makes `~/Downloads` bridging half the corpus the case §4.3 is
-    about. The other five channels carry either the group's own basis or a
-    description of the relation, and neither is an entity.
+    about.
+
+    THE SHARED FACT IS A NAMED THING TOO (`104` R-59's third finding), and it is
+    recorded now. What keeps the sentence above true is that `graph.build_graph`
+    exempts the SEED'S OWN `field=value` from the hub count by name -- §4.3 read
+    literally, since its count exists "to find an entity that bridges UNRELATED
+    groups" and the value this group was seeded on is what makes these files one
+    group. Before, the entity was thrown away to protect the count; now the count
+    knows which value not to hold against the group, and P11 gets the entity.
+
+    The other four channels carry a DESCRIPTION of the relation -- `pdf ~ pdf`,
+    `mutual >= 0.3` -- and a description is still not an entity.
     """
     seed_file = _file(corpus, tmp_path, "syllabus.pdf", folder="Coursework")
     sharing = _file(corpus, tmp_path, "lecture.pdf", folder="Coursework")
@@ -553,13 +564,17 @@ def test_only_the_folder_channel_publishes_a_bridge_entity(corpus, tmp_path):
         neighbour.channel for neighbour in result.neighbors
         if neighbour.bridge_entity is not None
     }
-    assert with_entity == {EXISTING_RELATED_FOLDER}, with_entity
+    assert with_entity == {EXISTING_RELATED_FOLDER, SHARED_VALIDATED_FACT}, \
+        with_entity
+    without = {
+        neighbour.channel for neighbour in result.neighbors
+        if neighbour.bridge_entity is None
+    }
+    assert BOUNDED_SESSION in without, without
 
     folder = next(n for n in result.neighbors if n.channel == EXISTING_RELATED_FOLDER)
     assert folder.bridge_entity == "Coursework"
 
-    # The basis is never the hub: it is what the group IS, and counting how many
-    # files state it is counting corroboration.
     anchor = next(n for n in result.neighbors if n.channel == SHARED_VALIDATED_FACT)
     assert anchor.detail == "subject=PHYS1401"
-    assert anchor.bridge_entity is None
+    assert anchor.bridge_entity == "subject=PHYS1401"

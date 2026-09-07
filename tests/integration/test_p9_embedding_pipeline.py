@@ -296,38 +296,67 @@ def test_an_enabled_runtime_built_past_its_own_validator_is_refused(
 # --- the bound, applied before any text is read ----------------------------------
 
 
-def test_a_large_eligible_set_is_cut_before_a_single_text_is_read(
-    embed_conn, corpus,
-):
-    """P9 never eagerly embeds the corpus. Encoding is paid at read time, so a cap
-    applied afterwards has already been exceeded. The seed takes one slot."""
+def test_the_neighbour_that_sorts_last_by_hash_is_still_offered(embed_conn, corpus):
+    """`104` R-59's second finding, and the case that shows why the cut was wrong.
+
+    This test used to assert the opposite -- "a large eligible set is CUT before a
+    single text is read", five texts read out of thirty, and the survivors named as
+    `file-00` to `file-03`, "the stable `(content_hash, file_id)` order". That
+    order is a digest. On the owner's 199 files it meant every seed in the corpus
+    was compared against the same nine versions, and `00`:56's own example --
+    "embeddings ... can find files such as HW 3.pdf that lack the course code but
+    resemble lecture notes and earlier problem sets" -- could only ever succeed if
+    those lecture notes happened to sort into the nine.
+
+    Here the seed's TRUE neighbour is listed among thirty and sorts last of all by
+    content hash. Under the cut it was never encoded, so the channel could not see
+    it however near it was. Now it is offered.
+
+    `00`:257's two reductions are both intact and both come after a score:
+    `retrieve_neighbors` cuts at `max_retrieved_neighbors` having ranked every
+    channel, and `build_graph` cuts at `max_graph_nodes` having ranked the edges.
+    """
     anchor, sparse = corpus
-    many = tuple(
-        FileVersionRef(file_id=f"file-{n:02d}", content_hash=f"hash-{n:02d}")
+    decoys = tuple(
+        FileVersionRef(file_id=f"file-{n:02d}",
+                       content_hash="0" * 60 + f"{n:04d}")
         for n in range(30)
     )
+    assert all(sparse[1] > ref.content_hash for ref in decoys), (
+        "the neighbour must sort last by content hash for this to bite")
+    many = decoys + (FileVersionRef(file_id=sparse[0], content_hash=sparse[1]),)
+
     encoder, text_for = SpyEncoder(), BoundedText()
-    _run(embed_conn, anchor, limits=_limits(max_graph_nodes=5),
-         embeddings=_on(encoder, text_for, many),
-         knowledge=_knowledge(_mutual(anchor[0], sparse[0])))
+    result = _run(embed_conn, anchor, limits=_limits(max_graph_nodes=5),
+                  embeddings=_on(encoder, text_for, many),
+                  knowledge=_knowledge(_mutual(anchor[0], sparse[0])))
 
-    assert len(text_for.calls) == 5
-    assert len(encoder.calls) == 5
+    encoded = {call[0] for call in text_for.calls}
+    assert sparse[0] in encoded, (
+        "the seed's real neighbour was never encoded, so the channel could not "
+        "find it -- which is the defect, not the bound")
     assert (anchor[0], anchor[1], CONFIG.scope) in text_for.calls
-    # And the survivors are the stable `(content_hash, file_id)` order, so two
-    # runs over one corpus encode the same versions.
-    encoded = [call[0] for call in text_for.calls if call[0] != anchor[0]]
-    assert encoded == ["file-00", "file-01", "file-02", "file-03"]
+    assert len(text_for.calls) == len(many) + 1
+    assert result.graph is not None
+    assert sparse[0] in {edge.to_file_id for edge in result.graph.edges}
 
 
-def test_a_graph_ceiling_of_one_leaves_room_for_the_seed_alone(embed_conn, corpus):
+def test_the_graph_ceiling_bounds_the_graph_and_not_the_vectors(embed_conn, corpus):
+    """`max_graph_nodes` is `00`:257's reduction of a scored GRAPH -- "reduce to
+    the strongest anchors and highest-quality edges" -- and it still does that.
+    What it no longer does is decide, before any similarity exists, which files
+    the channel is allowed to have an opinion about."""
     anchor, sparse = corpus
     encoder, text_for = SpyEncoder(), BoundedText()
-    _run(embed_conn, anchor, limits=_limits(max_graph_nodes=1),
-         embeddings=_on(encoder, text_for, (
-             FileVersionRef(file_id=sparse[0], content_hash=sparse[1]),)),
-         knowledge=_knowledge(_mutual(anchor[0], sparse[0])))
-    assert [call[0] for call in text_for.calls] == [anchor[0]]
+    result = _run(embed_conn, anchor, limits=_limits(max_graph_nodes=1),
+                  embeddings=_on(encoder, text_for, (
+                      FileVersionRef(file_id=sparse[0], content_hash=sparse[1]),)),
+                  knowledge=_knowledge(_mutual(anchor[0], sparse[0])))
+
+    assert sorted(call[0] for call in text_for.calls) == sorted(
+        [anchor[0], sparse[0]])
+    # the GRAPH is still bounded at one node, which is the seed
+    assert result.graph is not None and result.graph.edges == ()
 
 
 def test_a_duplicate_eligible_version_does_not_consume_a_cap_slot(

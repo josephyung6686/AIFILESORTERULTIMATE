@@ -74,6 +74,10 @@ from llm_harness.vocabulary import A_FACT, DIRECT_ANCHOR, REMAINS_AMBIGUOUS
 from privacy.gate import Gate
 from privacy.policy import policy_at
 from privacy.items import Excerpt, Filename, sensitive_observation_keys
+from privacy.resolve import (
+    AmbiguousObservationKey, UnresolvableSpan, current_location,
+    filename_address,
+)
 from privacy.release import ModelCallRequest, ModelTarget, Target
 from privacy.vocabulary import ALWAYS_LOCAL_ZONES
 
@@ -369,9 +373,14 @@ def measure_released_tokens(request, resolved: Sequence) -> int:
 
     `resolved` is what is about to leave, AFTER redaction -- so the number the door
     compares against P1's ceiling is the number of characters the provider would
-    receive. The four reference-only kinds carry no value and are absent from
+    receive. The three reference-only kinds carry no value and are absent from
     `resolved` by design (`gate.REFERENCE_ONLY`), so they add nothing here, which is
     correct: an evidence reference is "an id only -- no content".
+
+    The FILENAME is not one of them since `104` R-06 (`gate.NAME_BEARING`): it
+    resolves to the person's own name for the file and its characters are counted
+    here like any other released value, because they are characters the provider
+    would receive.
 
     `request` is unread, and is taken because P7's signature offers it. A caller
     that measured `request.max_dossier_tokens` instead of the payload would be
@@ -471,9 +480,61 @@ def _evidence_items(observations: Sequence) -> tuple[EvidenceItem, ...]:
     )
 
 
+def filename_citation(conn, file_id: str) -> EvidenceItem | None:
+    """The builder's metadata for §7.7's filename, or `None` when P4 cannot address it.
+
+    THE REQUEST HAS TO ASK FOR WHAT THE DOOR RELEASES (`104` R-06, the merge). The
+    gate materialises the name through `resolve.filename_address`; P8's dossier
+    refuses a released key that is not among the requested ones AND not among the
+    builder's `evidence_items`. Both halves are this one row, and it names the same
+    observation the gate will, because both call `filename_address`.
+
+    `None` rather than a raise when there is nothing to name. `filesystem` writes a
+    name for every indexed file, so this is the corpus assembled without that
+    extractor rather than a contract failure -- and the precedent is
+    `_offerable_observations` filtering an unaddressable observation out BEFORE
+    offering it: "this call is not the place to discover it". The consequence is
+    visible, not silent: no `Filename` item is offered, so the payload instrument's
+    `offered` column falls with its `released` column rather than the two parting.
+
+    `basis` is `direct_anchor` and `reliability_state` is P4's own for that
+    observation: a filename is the person's label read verbatim off the file, which
+    is the definition of a direct anchor rather than an inference.
+    """
+    try:
+        address = filename_address(conn, file_id)
+        located = current_location(conn, address.observation_key,
+                                   within_file_ids=(file_id,))
+    except (UnresolvableSpan, AmbiguousObservationKey):
+        return None
+    location = located.location
+    span = location.text_span
+    return EvidenceItem(
+        evidence_ref=address.observation_key,
+        kind="filename",
+        location=serialize_locator(location),
+        excerpt_span=None if span is None else (span.start, span.end),
+        reliability_state=_filename_reliability(conn, address.observation_key),
+        basis=DIRECT_ANCHOR,
+    )
+
+
+def _filename_reliability(conn, observation_key: str) -> str:
+    """P4's own word for the filename observation, never a constant typed here."""
+    row = conn.execute(
+        "SELECT reliability FROM evidence WHERE observation_key = ? "
+        "AND superseded_by IS NULL LIMIT 1", (observation_key,)).fetchone()
+    if row is None:
+        raise UnresolvableSpan(
+            f"observation {observation_key!r} resolved a location and then had no "
+            f"row; P4's evidence table answered two ways about one key")
+    return row["reliability"]
+
+
 def build_fact_request(
     request: FactRequest,
     observations: Sequence, *,
+    filename: EvidenceItem | None = None,
     model_target: ModelTarget,
     prompt: PromptDefinition,
     max_dossier_tokens: int,
@@ -498,7 +559,13 @@ def build_fact_request(
         # first of FACT_ELIGIBILITY's three and is the one that is true of every
         # file that reaches here.
         eligibility_reason=REMAINS_AMBIGUOUS,
-        evidence_items=_evidence_items(observations),
+        # THE FILENAME'S ROW FIRST, and among the FILE's keys rather than the
+        # frame's: `_FILE_KEYS` holds `evidence_items` and `released_evidence`,
+        # and R-58's shared prefix is the frame, which is constant across the
+        # files of one situation. A per-file name in it would end the prefix at
+        # the first file.
+        evidence_items=((filename,) if filename is not None else ())
+        + _evidence_items(observations),
         # P6 holds no conflict record of its own; §3.7's competing-value case is
         # settled by the ranking before a model is asked, so a file that reaches
         # here has none to declare.
@@ -525,7 +592,10 @@ def build_fact_request(
             # metadata rows -- while the word `homework` sits in the field it never
             # receives. A `file_id` and never a name: §6 says requests carry
             # references, and `Filename` itself refuses an id holding a separator.
-            requested_items=(Filename(file_id=request.file_id),) + tuple(
+            requested_items=((
+                Filename(file_id=request.file_id,
+                         observation_key=filename.evidence_ref),
+            ) if filename is not None else ()) + tuple(
                 Excerpt(
                     observation_key=observation.observation_key,
                     span=observation.location.text_span,
@@ -774,6 +844,7 @@ def fact_call_stage(authorities: FactCallAuthorities):
             conn,
             build_fact_request(
                 request, observations,
+                filename=filename_citation(conn, file_id),
                 model_target=authorities.model_target,
                 prompt=authorities.prompt,
                 max_dossier_tokens=authorities.max_dossier_tokens),

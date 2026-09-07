@@ -74,7 +74,7 @@ ONE_OF_EACH: tuple[RequestedItem, ...] = (
     CandidateLabel(label="Passport"),
     MetadataField(name="page_count"),
     EvidenceReference(observation_key=KEY),
-    Filename(file_id="file-1"),
+    Filename(file_id="file-1", observation_key="sha256:" + "f" * 64),
     SelfDescription(question_id="role:me"),
 )
 
@@ -136,7 +136,10 @@ def test_the_four_reference_only_shapes_are_the_ones_spec_six_requires():
     assert ITEM_FIELDS["candidate_label"] == ("label",)
     assert ITEM_FIELDS["metadata_field"] == ("name",)
     assert ITEM_FIELDS["evidence_reference"] == ("observation_key",)
-    assert ITEM_FIELDS["filename"] == ("file_id",)
+    # Two references, still no value. `observation_key` names the P4 row the gate
+    # will read the name from (`104` R-06's merge); it is the same kind of field as
+    # `evidence_reference`'s, and adding it keeps SPEC §6's "references only" true.
+    assert ITEM_FIELDS["filename"] == ("file_id", "observation_key")
 
 
 def test_no_item_kind_has_a_field_that_could_carry_document_content():
@@ -250,9 +253,9 @@ def test_a_file_id_that_is_a_path_is_refused_as_the_first_always_local_name():
     # §8.4's first always-local word is "Paths". A `file_id` carrying a separator is
     # a path wearing an id's field name. One character, not a pattern catalogue.
     with pytest.raises(AlwaysLocalRequested) as caught:
-        Filename(file_id="/Users/j/Documents/passport.pdf")
+        Filename(file_id="/Users/j/Documents/passport.pdf", observation_key="sha256:" + "f" * 64)
     assert "paths" in str(caught.value)
-    assert Filename(file_id="file-1").file_id == "file-1"
+    assert Filename(file_id="file-1", observation_key="sha256:" + "f" * 64).file_id == "file-1"
 
 
 def test_items_imports_no_mode_and_no_policy_so_the_nine_are_not_a_default():
@@ -322,7 +325,7 @@ def test_a_container_path_address_is_never_a_whole_document():
 
 def test_a_kind_with_no_span_is_never_a_whole_document():
     for item in (CandidateLabel(label="Passport"), MetadataField(name="page_count"),
-                 EvidenceReference(observation_key=KEY), Filename(file_id="file-1")):
+                 EvidenceReference(observation_key=KEY), Filename(file_id="file-1", observation_key="sha256:" + "f" * 64)):
         assert is_whole_document(item, unit_length=BODY_LENGTH) is False
 
 
@@ -430,7 +433,7 @@ def test_filename_is_the_unratified_sixth_kind_needs_joseph_b5d_c9a():
 
 def test_a_filename_cannot_be_admitted_without_the_explicit_opt_in():
     with pytest.raises(UnratifiedItemKind) as caught:
-        check_item(Filename(file_id="file-1"), unit_length=None, zone=None,
+        check_item(Filename(file_id="file-1", observation_key="sha256:" + "f" * 64), unit_length=None, zone=None,
                    protected=False,
                    sensitive_keys=frozenset(), allow_unratified=False,
                    suspension_permits_self_description=False)
@@ -452,7 +455,7 @@ def test_the_five_ratified_kinds_need_no_opt_in():
 
 
 def test_a_filename_is_permitted_for_a_non_protected_file():
-    admit(Filename(file_id="file-1"), protected=False)
+    admit(Filename(file_id="file-1", observation_key="sha256:" + "f" * 64), protected=False)
 
 
 def test_a_filename_is_denied_for_a_protected_file():
@@ -463,7 +466,7 @@ def test_a_filename_is_denied_for_a_protected_file():
     `NeedsConsent`, not a weaker check here.
     """
     with pytest.raises(ProtectedItemRequested) as caught:
-        admit(Filename(file_id="file-1"), protected=True)
+        admit(Filename(file_id="file-1", observation_key="sha256:" + "f" * 64), protected=True)
     assert "7.3" in str(caught.value)
 
 

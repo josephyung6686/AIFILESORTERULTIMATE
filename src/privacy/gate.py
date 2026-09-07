@@ -42,6 +42,14 @@ whole door and a reader checking it should not have to find the one method.
      `None` is the accurate answer rather than a missing one. §8.4 reaches those
      kinds through their own refusals -- `_refuse_always_local_name`, `Filename`'s
      path-separator check, `UNRATIFIED_ITEM_KINDS` -- not through the zone.
+
+     A `Filename` DOES reach a zone at step 3, and `None` here is still the accurate
+     answer rather than a stale one (`104` R-06). The item carries no key, so there
+     is nothing for `_located_zone` to look up; `resolve.materialise_filename`
+     derives the address from the `file_id` when the text is actually read. Asking
+     `check_item` about the filename's real zone would be asking it to refuse the
+     kind -- `filename` is in `ALWAYS_LOCAL_ZONES` exactly so that an EXCERPT cannot
+     address it, and `NAME_BEARING` below sets out why the two must not meet.
   2. **The observation key does not resolve.** This one is a genuine absence, and it
      is NOT treated as "not always-local". It cannot release anything: the same key
      is unreadable to `resolve.materialise`, which raises `UnresolvableSpan` at step
@@ -99,6 +107,7 @@ from privacy.release import (
 )
 from privacy.resolve import (
     AmbiguousObservationKey, UnresolvableSpan, current_location, materialise,
+    materialise_filename,
 )
 # Aliased under a leading underscore, the way `classification.py` binds `DETECTOR`,
 # and for that module's reason: `test_p7_skeleton_step` asserts that no name here
@@ -138,8 +147,40 @@ TEXT_BEARING: tuple[type, ...] = (Excerpt, RedactedIdentifier)
 #: exists to end, back again and wearing a classification that says it is fine.
 #: Its honest reading is materialised; the refusal below is what holds until one
 #: exists. (`build-role-matcher`, who owns the type, 2026-09-02.)
+#:
+#: **`Filename` LEFT THIS TUPLE 2026-09-06 (`104` R-06), and it was never a member
+#: by the same argument as the other three.** A `CandidateLabel` and a
+#: `MetadataField` NAME carry no local content and an `EvidenceReference` is "an id
+#: only". A `Filename` carries a `file_id`, which is a reference to something that
+#: DOES have a value -- the person's own name for the file, which §7.7 makes the
+#: flagged sixth RELEASABLE kind and `00`:124 lists first in the residual dossier.
+#: Filed here it was released as an id and never resolved, so `e31c70f`'s claim that
+#: the model is shown the filename was false at the byte level: the item entered the
+#: request, passed the door, and contributed nothing to `materialised_items`. That is
+#: the silent drop this tuple's own docstring exists to end, wearing a classification
+#: that said it was fine. It is `NAME_BEARING` below.
 REFERENCE_ONLY: tuple[type, ...] = (
-    CandidateLabel, MetadataField, EvidenceReference, Filename)
+    CandidateLabel, MetadataField, EvidenceReference)
+
+#: §7.7's sixth kind: a reference the gate resolves to a value out of P4, the way it
+#: resolves an excerpt, and the third reading this door has.
+#:
+#: **WHY IT IS NOT SIMPLY IN `TEXT_BEARING`, and the reason is a live refusal rather
+#: than a taxonomy.** `items.check_item` raises `AlwaysLocalRequested` for ANY item
+#: whose observation addresses a zone in `ALWAYS_LOCAL_ZONES`, and `filename` is one
+#: of the three -- put there (CR-01) precisely so that an `Excerpt` cannot address a
+#: filename and bypass §7.3's protected-records ban and §7.7's `allow_unratified`
+#: opt-in, "refused HERE and released THERE". `TEXT_BEARING` is what `_precheck_items`
+#: and `_postcheck_items` iterate, so admitting the filename to it would take the
+#: value out through the door that was closed for it and then refuse it at the door
+#: built for it. The kind travels its own path: refused for a protected file at the
+#: precheck exactly as before, and resolved at step 3 beside the excerpts.
+#:
+#: The whole-document refusal does not apply to it either, and that is deliberate
+#: rather than an omission: a filename observation spans its whole one-line unit, so
+#: `is_whole_document` is TRUE of every filename there has ever been. Releasing the
+#: whole of it is what the kind is for.
+NAME_BEARING: tuple[type, ...] = (Filename,)
 
 #: The one kind a suspension can cover, read from the type table rather than
 #: respelled. `80` §8.1 scopes the suspension to nothing but the self-description.
@@ -338,8 +379,9 @@ class Gate:
         # a decision with a crash. And BEFORE step 2, because the consent branch
         # filters on `TEXT_BEARING` as well and would otherwise be a second place an
         # item silently stops counting.
-        unreadable = tuple(item for item in request.requested_items
-                           if not isinstance(item, (*TEXT_BEARING, *REFERENCE_ONLY)))
+        unreadable = tuple(
+            item for item in request.requested_items
+            if not isinstance(item, (*TEXT_BEARING, *REFERENCE_ONLY, *NAME_BEARING)))
         if unreadable:
             raise MalformedRequest(
                 f"the gate has no materialiser and no reference-only reading for "
@@ -349,8 +391,9 @@ class Gate:
                 f"rest nowhere -- not in `materialised_items`, not in a denial, not "
                 f"in `AuditRecord.excerpts_included`. §8.4's record must describe "
                 f"the call, and a record that omits what was asked about does not. "
-                f"A kind reaches this only while it is in neither `TEXT_BEARING` "
-                f"nor `REFERENCE_ONLY`. To lift it: write a materialiser for the "
+                f"A kind reaches this only while it is in none of `TEXT_BEARING`, "
+                f"`NAME_BEARING` and `REFERENCE_ONLY`. To lift it: write a "
+                f"materialiser for the "
                 f"kind and then admit it, or say at the type that it carries no "
                 f"content and add it to `REFERENCE_ONLY`. Admitting it FIRST is "
                 f"not the shorter road -- `resolve.materialise` reads "
@@ -390,7 +433,17 @@ class Gate:
                 component_version=self._component_version, observed_at=observed_at)
 
         # 3 -- the only content read in the part.
-        resolved, manifest = self._materialise(text_items, file_ids)
+        #
+        # THE NAME LEADS, which is the order `model_facts.build_fact_request` builds
+        # the request in and the order `00`:124 lists the residual dossier in ("the
+        # filename, file type, creation date, extracted text or OCR..."). The gate's
+        # order is what `binding.content_digest_of` folds and what
+        # `dossier._released_body` writes, so the two agree by construction rather
+        # than by both happening to sort the same way.
+        name_items = tuple(item for item in request.requested_items
+                           if isinstance(item, NAME_BEARING))
+        resolved, manifest = self._materialise(text_items, file_ids,
+                                               name_items=name_items)
 
         # 4 -- the two reasons that needed the resolved text.
         late: dict[str, Callable[[], Denied]] = {}
@@ -612,6 +665,25 @@ class Gate:
         released down that path; `UnresolvableSpan` is raised there, which is where
         it was raised before this method existed.
         """
+        if isinstance(item, NAME_BEARING):
+            # §7.7's FILENAME IS THE KIND THE ZONE LIST PROTECTS AGAINST, not a kind
+            # the zone list refuses (`104` R-06, the merge). `filename` is in
+            # `ALWAYS_LOCAL_ZONES` so that an EXCERPT may not address it; the name
+            # itself is `00`:124's first releasable field and comes through
+            # `NAME_BEARING`'s own door. Asking this method for its zone would hand
+            # `check_item` the one answer that refuses the kind outright -- which is
+            # what happened the moment `Filename` gained an `observation_key` for P8
+            # to match the release against, and it took the whole fact pass down as
+            # `always_local_item`.
+            #
+            # This is not the excerpt door widened. The refusal that keeps the two
+            # apart is `check_item`'s on an `Excerpt` naming a `filename`-zone
+            # observation, and that is untouched: an `Excerpt` still has its zone
+            # looked up here and is still refused. Nor does it widen the protected
+            # rule -- a protected file's name is stopped by
+            # `protected_records_template` and `ProtectedItemRequested`, neither of
+            # which reads a zone.
+            return None
         key = getattr(item, "observation_key", None)
         if key is None:
             return None
@@ -647,11 +719,23 @@ class Gate:
         evidence does not carry stays refused rather than being admitted on the
         strength of items that would raise at `materialise` anyway.
 
-        The four `REFERENCE_ONLY` kinds do not count. A `CandidateLabel` is a
-        destination name, a `MetadataField` is a field NAME, an `EvidenceReference`
-        is "an id only -- no content", and a `Filename` is a `file_id`: a request
-        carrying nothing but those has nothing OF THE FILE in it, and admitting one
-        would be admitting exactly the silence `96` §19 measured.
+        The three `REFERENCE_ONLY` kinds do not count. A `CandidateLabel` is a
+        destination name, a `MetadataField` is a field NAME, and an
+        `EvidenceReference` is "an id only -- no content": a request carrying nothing
+        but those has nothing OF THE FILE in it, and admitting one would be admitting
+        exactly the silence `96` §19 measured.
+
+        **NOR DOES THE FILENAME, and it is the one member that now needs an argument
+        rather than a definition** (`104` R-06 made it resolve). The sentence this
+        condition is built on is `96` §19's: a class reached with no safety evidence
+        is a silence, and what lifts it is a READING OF THE FILE'S OWN BYTES for the
+        model to work from. A filename is the person's label on the outside of the
+        file; the filesystem extractor emits one for every indexed file, including
+        the ones whose bytes nothing could open. Counting it here would admit every
+        such file on evidence that is identical in the case the refusal exists for
+        and in the case it does not -- which is the condition doing no work while
+        appearing to. It is released once a call is permitted; it is not what
+        permits one.
         """
         owners: set[str] = set()
         scope = tuple(request.target.file_ids)
@@ -751,7 +835,8 @@ class Gate:
         return current.file_id, (item.observation_key, span_address(location))
 
     def _materialise(self, text_items: Sequence[object],
-                     file_ids: Sequence[str] = ()
+                     file_ids: Sequence[str] = (), *,
+                     name_items: Sequence[object] = ()
                      ) -> tuple[tuple[ReleasedItem, ...], RedactionManifest]:
         """(observation_key, span) -> text -> redacted text. `resolve` is the only
         module under `src/privacy/` that binds a P4 text materialiser (L2).
@@ -762,12 +847,21 @@ class Gate:
         type and carries none of them: this built a `Materialised` with `value`
         redacted and `context_before` / `context_after` copied raw off `found`,
         so an 8-character requested span released its whole text unit.
+
+        `name_items` are `NAME_BEARING` -- §7.7's filename, which addresses no span
+        of its own and is resolved from its `file_id` by `resolve`. It goes through
+        the SAME redaction, and that is not ceremony: `104` SF-2's identifier
+        classifier is unwritten, and when it is written a person whose file is called
+        `passport A1234567.pdf` must not be the one case it does not see.
         """
         resolved: list[ReleasedItem] = []
         entries = []
-        for item in text_items:
-            found = materialise(self._conn, item,
-                                within_file_ids=file_ids or None)
+        found_items = [materialise_filename(self._conn, item.file_id)
+                       for item in name_items]
+        found_items += [materialise(self._conn, item,
+                                    within_file_ids=file_ids or None)
+                        for item in text_items]
+        for found in found_items:
             value, entry = apply_redaction(
                 found.value, observation_key=found.observation_key,
                 span=found.span, context_before=found.context_before,

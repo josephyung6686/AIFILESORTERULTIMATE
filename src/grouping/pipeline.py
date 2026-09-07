@@ -165,12 +165,37 @@ def _bounded_versions(
     seed: Seed,
     limits: GroupingLimits,
 ) -> tuple[FileVersionRef, ...]:
-    """The eligible set, deduplicated, ordered and cut -- before any text is read.
+    """The eligible set, deduplicated and ordered. The CALLER's bound, not P9's.
 
-    The seed reserves one graph slot, so at most `max_graph_nodes - 1` others
-    survive. The order is `(content_hash, file_id)` so two runs over one corpus
-    encode the same versions rather than whichever the caller happened to list
-    first.
+    The order is `(content_hash, file_id)` so two runs over one corpus encode the
+    same versions rather than whichever the caller happened to list first.
+
+    **THE CUT AT `max_graph_nodes` WAS REMOVED 2026-09-06 (`104` R-59's second
+    finding), and what it was doing was not what its name said.** It read
+    `ordered[:max_graph_nodes - 1]` -- so on the owner's 199 files every seed in
+    the corpus was compared against the same NINE versions, the ones that happened
+    to sort first by content hash, and `00`:56's whole reason for the channel ("
+    embeddings ... can find files such as HW 3.pdf that lack the course code but
+    resemble lecture notes and earlier problem sets") could only ever succeed if
+    those lecture notes were among the nine.
+
+    `00`:257 bounds two things and this was neither. "A vague file should not
+    retrieve five hundred weakly related neighbors" bounds the NEIGHBOURS, which
+    `retrieve_neighbors` cuts at `max_retrieved_neighbors` AFTER ranking every
+    channel; "a local graph that exceeds its neighborhood limit should reduce to
+    the strongest anchors and highest-quality edges" bounds the GRAPH, which
+    `build_graph` cuts at `max_graph_nodes` after ranking. Both are reductions of
+    something that has been scored. Cutting the vectors first is a reduction of
+    something that has not, and `(content_hash, file_id)` is not a ranking -- it
+    is a digest. The cut has to come after the similarity, and the similarity
+    cannot exist before the vectors do.
+
+    What still bounds the cost: `ensure_file_embedding` is idempotent per (version,
+    scope, model), so the whole run pays for each version ONCE however many seeds
+    ask about it -- O(corpus), not O(seeds x cap). And the eligible set is the
+    caller's to choose: the composition root passes the run's own roster, which is
+    the corpus the person asked to organise and is the honest bound on how many
+    vectors a run may hold.
     """
     eligible = runtime.eligible_versions_for(conn, seed, limits.max_graph_nodes)
     seen: dict[tuple[str, str], FileVersionRef] = {}
@@ -178,8 +203,7 @@ def _bounded_versions(
         if ref.file_id == seed.file_id and ref.content_hash == seed.content_hash:
             continue
         seen.setdefault((ref.content_hash, ref.file_id), ref)
-    ordered = [seen[key] for key in sorted(seen)]
-    return tuple(ordered[:max(0, limits.max_graph_nodes - 1)])
+    return tuple(seen[key] for key in sorted(seen))
 
 
 def _prepare_embeddings(

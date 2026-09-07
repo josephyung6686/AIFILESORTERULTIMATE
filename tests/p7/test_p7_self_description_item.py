@@ -155,7 +155,7 @@ def test_the_other_six_kinds_are_unaffected_by_the_new_flag():
     from privacy.items import Filename
 
     with pytest.raises(UnratifiedItemKind):
-        _check(Filename(file_id="f1"), suspension_permits_self_description=True)
+        _check(Filename(file_id="f1", observation_key="sha256:" + "f" * 64), suspension_permits_self_description=True)
 
 
 # --- what the member has to carry -----------------------------------------------------
