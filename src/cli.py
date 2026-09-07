@@ -73,7 +73,8 @@ from extractors.filesystem import SOURCE_TYPE as FILESYSTEM_SOURCE_TYPE
 from extractors.safety import SafetyPolicy
 from facts.date_facts import date_facts
 from facts.dates import (
-    ACADEMIC_YEAR_RANGE, NAMED_TERM_YEAR, SEASON_YEAR, DatePattern, DatePatterns,
+    ACADEMIC_YEAR_RANGE, NAMED_TERM_YEAR, SEASON_YEAR, YEAR_RANGE_SEMESTER_NUMBER,
+    YEAR_RANGE_TERM_NUMBER, DatePattern, DatePatterns,
 )
 from facts.direct import DirectSlot, DirectSlots, direct_facts
 from facts.families import (
@@ -2242,8 +2243,44 @@ _SEASON_YEAR_SOURCE = (
 _ACADEMIC_YEAR_SOURCE = rf"\bAY[ \-_]?{_YEAR}[ ]?[-/][ ]?[0-9]{{2}}\b"
 _NAMED_TERM_SOURCE = rf"\b{_TERM_NAME}(?:[ \-_]Term)?[ \-_]{_YEAR}\b"
 
+#: THE TWO-TERM ACADEMIC YEAR'S OWN SPELLING, RULED IN BY THE OWNER ON 7 SEP 2026.
+#: `105` §13.2 proposed them and §14.2 ruled "Keep the proposed accepted forms and
+#: refusals". `104` R-101 is the measurement that asked for them: on the owner's
+#: corpus, 114 `term` answers were refused `VALUE_NOT_NORMALIZABLE` and the single
+#: commonest refused shape was `2023-2024 Term 1`, fifteen times. A person whose
+#: university writes its calendar that way got no term folder at all.
+#:
+#: TWO SOURCES AND TWO IDS, NEVER ONE WITH THE WORD IN A GROUP. §14.2: "`Term 1` and
+#: `Semester 1` are not automatically one value" and no equivalence is inferred
+#: "between numbered terms, semesters, or seasons without evidence for that course's
+#: calendar". One source with `(?:Term|Semester)` would still parse both, but it
+#: would hand `date_matches` ONE pattern id for two calendars, and the id is what
+#: `DateMatch` carries so a test can assert which pattern claimed the span.
+#:
+#: `[1-9]` and not `[0-9]+`: a term number is a small ordinal, and `Term 0` and
+#: `Term 12` are not calendars anyone writes. The years are both `_YEAR` for the
+#: reason `_YEAR` exists at all -- `[0-9]{4}` claimed the COURSE NUMBER in
+#: `BUSIB 4300 Spring 2026` -- and the separator is `[-/]` because that is what
+#: `_ACADEMIC_YEAR_SOURCE` already accepts between the halves of an academic year.
+#:
+#: NOT WIDENED BEYOND THE RULING. `Semester 1 2023-2024` (reversed), `2023-24 Term 1`
+#: (a two-digit second half) and a check that the two years are consecutive are all
+#: absent on purpose: the owner ruled on two forms, and a fourth spelling admitted
+#: here would be this file adding to a vocabulary the owner closed.
+_TERM_NUMBER_SOURCE = rf"\b{_YEAR}[ ]?[-/][ ]?{_YEAR}[ \-_]Term[ \-_]?[1-9]\b"
+_SEMESTER_NUMBER_SOURCE = rf"\b{_YEAR}[ ]?[-/][ ]?{_YEAR}[ \-_]Semester[ \-_]?[1-9]\b"
+
+#: THE ORDER OF THE FIVE IS NOT LOAD-BEARING, AND THAT IS WORTH STATING because
+#: alternation order usually is. No two of these can claim overlapping text: the
+#: three older sources each require a word the numbered forms do not contain -- a
+#: season, the letters `AY`, or one of the five term names -- and the numbered forms
+#: require two four-digit years in front of `Term` or `Semester`, which none of the
+#: three can supply. `test_p6_term_forms` asserts it rather than resting on this
+#: paragraph: every ruled form is claimed by EXACTLY ONE pattern of the catalogue.
+#: The two new sources lead because they are the two the owner ruled in.
 _TERM = re.compile("|".join(
-    (_SEASON_YEAR_SOURCE, _ACADEMIC_YEAR_SOURCE, _NAMED_TERM_SOURCE)),
+    (_TERM_NUMBER_SOURCE, _SEMESTER_NUMBER_SOURCE,
+     _SEASON_YEAR_SOURCE, _ACADEMIC_YEAR_SOURCE, _NAMED_TERM_SOURCE)),
     re.IGNORECASE)
 
 
@@ -2311,8 +2348,18 @@ def _is_an_identifier(raw: str) -> bool:
 #: AND `2025Spring`. Order is a spelling, not a fact.
 #:
 #: Every token that DISTINGUISHES two terms is kept and nothing else is: the season
-#: or the term's name, and the year or the year range. Only case, separators, the
-#: written order and the noise word `Term` are dropped.
+#: or the term's name, and the year or the year range. Only case, separators and the
+#: written order are dropped.
+#:
+#: **`Term` IS DROPPED FROM `Michaelmas Term 2024` AND KEPT IN `2023-2024 Term 1`,
+#: AND THAT IS NOT AN INCONSISTENCY.** In `Michaelmas Term 2024` the word carries
+#: nothing: `Michaelmas` already names the term and `Michaelmas 2024` is the same
+#: calendar written shorter. In `2023-2024 Term 1` the word is the ONLY thing that
+#: says which calendar the number counts in, and `105` §14.2 makes that identity:
+#: "`Term 1` and `Semester 1` are not automatically one value". Drop it there and
+#: two universities on different calendars share a folder on the strength of an
+#: ordinal. So the four canonicalisers below keep exactly what tells two terms
+#: apart, which for the numbered forms includes the word.
 def _canonical_season_year(raw: str) -> str:
     season = re.search(_SEASON, raw, re.IGNORECASE).group(0)
     return f"{season.capitalize()}{re.search(r'[0-9]{4}', raw).group(0)}"
@@ -2328,6 +2375,32 @@ def _canonical_named_term(raw: str) -> str:
     return f"{name.capitalize()}{re.search(r'[0-9]{4}', raw).group(0)}"
 
 
+def _canonical_year_range_number(raw: str, *, word: str) -> str:
+    """`2023-2024 Term 1` and `2023 / 2024 term-1` are one value; `Semester 1` is not.
+
+    The word is passed in rather than read out of the text, because the two forms
+    are two PATTERNS with two ids and each one already knows which it is. Reading it
+    back out would be the generic parsing §3.10 forbids, one step downstream of the
+    pattern that decided.
+
+    THE NUMBER IS THE ONE THE WORD INTRODUCES, and it is found through the word for
+    that reason. `[0-9](?![0-9])` -- the first digit with no digit after it -- reads
+    `2023-2024 Term 1` as `Term 3`, because `2023` ends in a lone `3`. Anchoring on
+    the word is the only reading that cannot be fooled by a year's own last digit.
+    """
+    years = re.findall(_YEAR, raw)
+    number = re.search(rf"{word}[ \-_]?([1-9])", raw, re.IGNORECASE).group(1)
+    return f"{years[0]}-{years[1]}{word}{number}"
+
+
+def _canonical_year_range_term(raw: str) -> str:
+    return _canonical_year_range_number(raw, word="Term")
+
+
+def _canonical_year_range_semester(raw: str) -> str:
+    return _canonical_year_range_number(raw, word="Semester")
+
+
 DATE_PATTERNS = DatePatterns(patterns=(
     DatePattern(pattern_id=SEASON_YEAR,
                 pattern=re.compile(_SEASON_YEAR_SOURCE, re.IGNORECASE),
@@ -2338,7 +2411,72 @@ DATE_PATTERNS = DatePatterns(patterns=(
     DatePattern(pattern_id=NAMED_TERM_YEAR,
                 pattern=re.compile(_NAMED_TERM_SOURCE, re.IGNORECASE),
                 canonical=_canonical_named_term),
+    # `105` §14.2's two additions. Their ids are `facts.dates`', their expressions
+    # and canonical forms are this deployment's, exactly as the three above.
+    DatePattern(pattern_id=YEAR_RANGE_TERM_NUMBER,
+                pattern=re.compile(_TERM_NUMBER_SOURCE, re.IGNORECASE),
+                canonical=_canonical_year_range_term),
+    DatePattern(pattern_id=YEAR_RANGE_SEMESTER_NUMBER,
+                pattern=re.compile(_SEMESTER_NUMBER_SOURCE, re.IGNORECASE),
+                canonical=_canonical_year_range_semester),
 ))
+
+#: THE THREE SHAPES THE OWNER REFUSED, NAMED SO A REFUSAL CAN SAY WHICH.
+#: `105` §13.2 stated them and §14.2 kept them: a bare year (`2019`), a bare range
+#: with no term word (`2023-2024`), and a season initial with a year (`S2026`, which
+#: is Spring or Summer and there is no way to tell). All three were already refused
+#: by not matching any pattern; what they did not have was a NAME, and §13.2 asks for
+#: them "stated so the validator's reason names them".
+#:
+#: **THE NAME REACHES THE DEPLOYMENT AND NOT THE P8 VERDICT, AND THAT IS THE HONEST
+#: LIMIT.** `P8Verdict.reasons` is checked against `llm_harness.vocabulary`'s closed
+#: `ALL_REASON_CODES`, so a fourth reason code would be a new member of a vocabulary
+#: this ruling did not open. The outcome on the wire is `VALUE_NOT_NORMALIZABLE`
+#: exactly as before; `term_refusal` below is what says which of the three shapes
+#: earned it, and it is asked directly by this deployment's own tests.
+#:
+#: THE FIRST TWO USE `_YEAR` AND NOT `[0-9]{4}`, for the reason `_YEAR` exists:
+#: `4300` is a course number, not a year, and calling it a refused bare year would
+#: name the wrong defect for a value that was never a term candidate.
+TERM_REFUSAL_BARE_YEAR = "bare_year"
+TERM_REFUSAL_BARE_RANGE = "bare_range"
+TERM_REFUSAL_SEASON_INITIAL = "season_initial"
+
+_TERM_REFUSALS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (TERM_REFUSAL_BARE_YEAR, re.compile(rf"{_YEAR}\Z")),
+    (TERM_REFUSAL_BARE_RANGE,
+     re.compile(rf"{_YEAR}[ ]?[-/][ ]?(?:{_YEAR}|[0-9]{{2}})\Z")),
+    (TERM_REFUSAL_SEASON_INITIAL,
+     re.compile(rf"[SFWA][ \-_]?{_YEAR}\Z", re.IGNORECASE)),
+)
+
+
+def term_refusal(text: str) -> str | None:
+    """Which refused shape this value is, or `None` if it is not one of the three.
+
+    A YEAR IS NOT A TERM. `2019` says which year a document is from and says nothing
+    about which semester's work it is, and a folder called `2019` beside `Fall2019`
+    and `Spring2019` is a fourth folder holding the files the other two could not
+    claim. `2023-2024` is the same refusal with the range's shape: it is an academic
+    YEAR, and §14.2 rules that "`AY 2024-25` does not identify a semester" -- so a
+    range that does not even carry the `AY` marker certainly does not.
+    `S2026` is refused because it is genuinely two answers: five of the owner's 114
+    refused values were `S2026`, and Spring and Summer are different semesters.
+    `[SFWA]` and not `S` alone: the refusal is that an INITIAL is not a season word,
+    and `F2026` and `W2026` are refused by every pattern above for the same reason
+    `S2026` is. Naming only the ambiguous one would leave the other three refused
+    with no name, which is the state this constant exists to end. Nothing is admitted
+    by widening a refusal.
+
+    Asked of the whole value, never of a span. A document that PRINTS `2019` in a
+    sentence is not proposing it as a term; this is the model's answer to "what term
+    is this", and the shapes above are answers that name something else.
+    """
+    for name, pattern in _TERM_REFUSALS:
+        if pattern.fullmatch(text) is not None:
+            return name
+    return None
+
 
 #: The field §3.10's producer fills. Spelled once, because `_rule_stage` and
 #: `normalize_for_model` both need it and neither may re-spell it. (The third
@@ -2831,6 +2969,16 @@ def normalize_for_model(field_key: str, raw_value: str) -> str | None:
             # this, a model proposing `Spring 2026` would store `Spring 2026`
             # beside the producer's `Spring2026` -- the several-spellings failure,
             # re-created across the seam instead of inside one stage.
+            #
+            # THE NAMED REFUSALS ARE ASKED FIRST, and the order is what makes the
+            # name true rather than decorative: after the pattern loop every value
+            # that reaches `None` is indistinguishable, and `104` R-101 is a table of
+            # 114 refusals nobody could sort. `term_refusal` runs on the whole value
+            # and none of its three shapes is also an accepted form, so asking it
+            # first admits nothing and refuses nothing new -- it only says WHICH.
+            refused = term_refusal(text)
+            if refused is not None:
+                return None
             claimed = next((one for one in DATE_PATTERNS.patterns
                             if one.pattern.fullmatch(text)), None)
             return None if claimed is None else claimed.canonical(text)

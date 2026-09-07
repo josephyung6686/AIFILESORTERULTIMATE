@@ -16,9 +16,15 @@ SPEC's production rules forbid in as many words:
 This is that path, and it is ten lines because both halves already existed:
 
     every observation of the version
-        -> `date_candidates`, one per span an explicit pattern claimed
+        -> `date_matches`, one record per span an explicit pattern claimed
+        -> `candidate_of`, the published projection onto §3.7's shape
         -> `rank`, which weights by P4's zone and sums the contributions per value
         -> `fill_or_abstain`, which fills at `validated` or records which refusal
+        -> `add_raw_variant`, so the wording the document used outlives the collapse
+
+The last line is `105` §14.2 and was added on 7 Sep 2026; the two before it are why
+the producer reads `date_matches` rather than `date_candidates`, which is the same
+two steps with the spelling already thrown away.
 
 **One term is one value, and that is decided upstream of the ranker.** A term written
 `Spring 2026` in the syllabus and `2026-Spring` in the filename is one semester, and
@@ -47,10 +53,11 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Mapping
 
-from facts.dates import DatePatterns, date_candidates
+from facts.dates import DatePatterns, candidate_of, date_matches
 from facts.evidence import observations_for_version
 from facts.facets import Candidate, fill_or_abstain, rank
 from facts.kind import page_of
+from facts.values import VALUE_ORIGINS, add_raw_variant, ensure_value
 
 
 def date_facts(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
@@ -101,14 +108,53 @@ def date_facts(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
     `first_page` is a required keyword with no default, like every other number here.
     """
     candidates: list[Candidate] = []
+    spellings: dict[str, set[str]] = {}
     for observation in observations_for_version(conn, file_id, content_hash):
         page = page_of(observation)
         if page is not None and page != first_page:
             continue
-        candidates.extend(date_candidates(observation, patterns=patterns))
+        # `date_matches` rather than `date_candidates`, AND THE PROJECTION IS STILL
+        # THE PUBLISHED ONE. `DateMatch` carries both `raw` and `value`; `Candidate`
+        # has no room for a spelling, so this producer takes the record and asks
+        # `candidate_of` for the same §3.7 shape `date_candidates` would have built.
+        # Re-typing those five lines here would leave `date_candidates` a projection
+        # only the tests exercise, which is `84` §5.5's defect on a new seam.
+        for match in date_matches(observation, patterns=patterns):
+            candidates.append(candidate_of(match))
+            spellings.setdefault(match.value, set()).add(match.raw)
+    ranked = rank(candidates, zone_weight=zone_weight, tier_weight=tier_weight)
     fact_id = fill_or_abstain(
         conn, file_id=file_id, content_hash=content_hash, field_key=field_key,
-        candidates=rank(candidates, zone_weight=zone_weight,
-                        tier_weight=tier_weight),
+        candidates=ranked,
         minimum_score=minimum_score, minimum_margin=minimum_margin)
-    return () if fact_id is None else (fact_id,)
+    if fact_id is None:
+        return ()
+    # §2.8's FIRST rendering -- "the raw observation remains exactly that wording" --
+    # and `105` §14.2 requires it of a term by name: "The original spelling is
+    # preserved alongside the normalized identity."
+    #
+    # THE CANONICALISER IS EXACTLY WHAT MAKES THIS A LOSS RATHER THAN A REDUNDANCY,
+    # which is `facts.direct` and `facts.rules`' own reason for the same call.
+    # `DatePattern.canonical` exists to collapse `Spring 2026`, `Spring2026` and
+    # `2026-Spring` into one semester, and once it has, `Spring2026` is the only
+    # surviving evidence of what any document printed. A person asked to confirm a
+    # term folder is being asked about a word their syllabus never used.
+    #
+    # THE WINNER'S SPELLINGS, AND `ranked[0]` IS THE WINNER. `rank` returns its
+    # aggregate already sorted by `facets._order` and `fill_or_abstain` sorts its
+    # input by the same key, so the element it filled from is this one. The loser's
+    # wording belongs to no fact and is not recorded against the value that won.
+    #
+    # `ensure_value` is idempotent and content-addressed over (field, canonical
+    # value), so calling it again returns the id `fill_or_abstain` just used and
+    # overwrites nothing -- there is no other way to learn that id from here, and
+    # widening `fill_or_abstain` to return it would change a signature four
+    # producers share for one producer's need.
+    winner = ranked[0]
+    value_id = ensure_value(conn, field_key=field_key,
+                            canonical_value=winner.value,
+                            first_evidence_ref=winner.evidence_refs[0],
+                            origin=VALUE_ORIGINS[0])
+    for raw in sorted(spellings[winner.value]):
+        add_raw_variant(conn, value_id, raw)
+    return (fact_id,)
