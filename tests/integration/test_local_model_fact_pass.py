@@ -257,16 +257,21 @@ def test_the_sent_line_is_true_and_names_the_local_model(tmp_path, stub, monkeyp
     """`103` §10's other half: "the 'Facts from a model' line prints the true sent
     count". A count of zero would mean the wiring reported a pass that did not
     happen, which is the untruth `WIRED_CALL_SITES` was added to stop."""
-    _, report = _local_run(tmp_path, stub, monkeypatch)
+    database, report = _local_run(tmp_path, stub, monkeypatch)
 
     line = re.search(r"Facts from a model: (\d+) written, from (\d+) files? "
                      r"sent to (\S+?)\.", report)
     assert line, report
     assert int(line.group(2)) >= 1, report
     assert line.group(3) == MODEL_ID, report
-    assert int(line.group(2)) == len(stub.requests), (
-        "the sent count is the number of calls that happened, not the number that "
-        "were considered")
+    # THE A CALLS, and not every call the run made. Site B now runs in observe
+    # mode against the same local model, so the stub sees its requests too. The
+    # line is about the FACT pass and names A's model, so counting every request
+    # against it would make it false the moment a second site was wired -- which
+    # is the direction `104` §7 Phase 1 step 6 moves in.
+    assert int(line.group(2)) == _calls_at(database, "A_fact"), (
+        "the sent count is the number of A_fact calls that happened, not the "
+        "number that were considered and not every site's calls")
 
 
 def test_the_audit_row_names_the_local_model_and_says_local(
@@ -497,11 +502,16 @@ def test_the_printed_sent_count_is_the_number_of_responses_on_disk(
 
     line = re.search(r"Facts from a model: \d+ written, from (\d+) files? sent",
                      report)
-    responses = _query(database, "SELECT COUNT(*) FROM llm_response")[0][0]
+    # SCOPED TO A, through the dossier that names the call site. `llm_response`
+    # now holds site B's rows as well -- B runs in observe mode against the same
+    # local model -- and the sentence on screen is about the fact pass.
+    responses = _calls_at(database, "A_fact")
 
     assert line, report
     assert int(line.group(1)) == responses, report
-    assert responses == len(stub.requests), report
+    assert responses < len(stub.requests), (
+        "site B reaches the same local model in observe mode, so the run makes "
+        "more calls than the fact line counts", report)
 
 
 def test_a_protected_file_is_not_told_that_nothing_has_classified_it():
@@ -577,3 +587,78 @@ def test_a_gate_refusal_is_named_by_the_gates_own_word_and_is_not_counted_as_sen
     assert "(Refusal)" not in printed, (
         "the class name is not the reason; it names the envelope the answer "
         "arrived in and tells a person nothing about what to do")
+
+
+def _calls_at(database, call_site: str) -> int:
+    """Responses recorded at one site, read through the dossier that names it.
+
+    NOT counted off the stub's prompts. Site B now reaches the same local model
+    in observe mode and its dossier is JSON in the same envelope, so a text probe
+    counts both; `llm_dossier.call_site` is what the product itself wrote down.
+    """
+    return _query(
+        database,
+        "SELECT COUNT(*) FROM llm_response r JOIN llm_dossier d "
+        "ON d.dossier_id = r.dossier_id WHERE d.call_site = ?", call_site)[0][0]
+
+
+# --- `104` §7 Phase 1 step 6: site B runs and applies nothing ----------------
+
+def test_site_b_records_a_dossier_a_response_and_a_verdict(
+        tmp_path, stub, monkeypatch):
+    """The first half of observe mode: the call HAPPENS and is written down.
+
+    A site that recorded nothing would be indistinguishable from a site nobody
+    wired, which is the state `104` R-04 names -- B, C, D and E injected as
+    `None` since P11 landed. The dossier proves a request was built through the
+    real gate, the response proves the model answered, and the verdict proves the
+    validator ran on what it said."""
+    database, _ = _local_run(tmp_path, stub, monkeypatch)
+
+    dossiers = _query(database, "SELECT COUNT(*) FROM llm_dossier "
+                                "WHERE call_site = 'B_group'")[0][0]
+    verdicts = _query(
+        database,
+        "SELECT COUNT(*) FROM llm_verdict v JOIN llm_dossier d "
+        "ON d.dossier_id = v.dossier_id WHERE d.call_site = 'B_group'")[0][0]
+
+    assert dossiers >= 1
+    assert _calls_at(database, "B_group") >= 1
+    assert verdicts >= 1
+
+
+def test_site_b_writes_no_accepted_group_and_no_membership_a_model_chose(
+        tmp_path, stub, monkeypatch):
+    """The second half, and the one that makes the first half safe.
+
+    `104` §7 Phase 1 step 6: "apply nothing until Phase 3 fixes R-15 and R-16."
+    R-16 is that `apply_p8_verdict` writes no `display_label`, no
+    `group_category` and no `coherence_verdict`, so a per-member
+    include/exclude/uncertain answer collapses to blanket memberships. Applying a
+    verdict under a mapping known to lose the answer writes the wrong thing
+    confidently.
+
+    `ObservedOnly` is what stops it, and the assertion is on the tables rather
+    than on the wrapper: no membership carries a verdict reference, because a
+    verdict reference is what a model-chosen membership would carry."""
+    database, _ = _local_run(tmp_path, stub, monkeypatch)
+
+    assert _calls_at(database, "B_group") >= 1, "B did not run, so this proves nothing"
+
+    from_model = _query(
+        database,
+        "SELECT COUNT(*) FROM memberships "
+        "WHERE validation_verdict_ref IS NOT NULL")[0][0]
+
+    assert from_model == 0, "a membership a model chose was written"
+
+
+def test_site_b_is_asked_under_a_draft_that_says_unratified(
+        tmp_path, stub, monkeypatch):
+    """What makes an observe run auditable after the fact. Every B row points at
+    a template id carrying the packet's status in the id itself, so nobody has to
+    remember which text a record was written under."""
+    database, _ = _local_run(tmp_path, stub, monkeypatch)
+
+    assert _calls_at(database, "B_group") >= 1
+    assert cli.OBSERVE_TEMPLATE_ID["B_group"].startswith("b_group.unratified.")
