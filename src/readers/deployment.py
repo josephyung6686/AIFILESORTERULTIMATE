@@ -74,7 +74,9 @@ def read_text_file(path: Path) -> TextDocument:
 
 
 def macos_readers(*, find_structured_strings: Callable[[str], tuple],
-                  spreadsheet_cell_ceiling: int, **overrides: Any) -> Readers:
+                  spreadsheet_cell_ceiling: int,
+                  ocr_page_ceiling: int, ocr_seconds_per_file: int,
+                  **overrides: Any) -> Readers:
     """The wired `Readers`. Pass `**overrides` to swap any single reader.
 
     `overrides` is how the PDF library gets swapped without touching this module --
@@ -94,6 +96,15 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
     the same act. `SENSOR_RATIO_TOLERANCE` above is the shape this deliberately does
     NOT take -- a number living in `readers/` with a comment explaining that it
     should not.
+
+    **`ocr_page_ceiling` and `ocr_seconds_per_file` are required on the same terms**,
+    and they are §8.6's `ocr.max_pages_per_file` and `ocr.max_time_per_file`. They go
+    into `ocr_config` rather than into the engine's constructor because that mapping
+    is stored on the run and folded into §3.4's cache key: a ceiling outside the key
+    would let two runs at different bounds look identical to the cache, so raising
+    the limit would leave the capped results from the lower one in place. `vision_ocr`
+    has read `page_cap` and `time_limit_seconds` since it was written; until now
+    nothing supplied either, so §8.6's most expensive operation ran unbounded.
     """
     # Imported HERE and not at module scope. `readers.ocr_vision` pulls in
     # Apple's Vision and Quartz frameworks, which cost 4.6s of `import cli`'s
@@ -128,7 +139,9 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
         "read_text_document": stdlib_text_document_reader(
             read_doc=cocoa_doc_reader()),
         "ocr_engine": vision_ocr(),
-        "ocr_config": dict(VISION_CONFIG),
+        "ocr_config": {**VISION_CONFIG,
+                       "page_cap": ocr_page_ceiling,
+                       "time_limit_seconds": ocr_seconds_per_file},
         "read_docx": python_docx_reader(),
         # §2.5's manifest, from the standard library. No ceiling: how many members
         # are worth listing is a deployment budget, and this deployment would

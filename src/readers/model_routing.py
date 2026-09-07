@@ -195,7 +195,8 @@ def deepseek_routing(*, api_key: str | None, base_url: str | None,
                      model_id_of_tier: Mapping[str, str],
                      tier_of_call_site: Mapping[str, str],
                      max_response_tokens: int,
-                     timeout_seconds: float) -> TierRouting:
+                     timeout_seconds: float,
+                     on_usage=None) -> TierRouting:
     """Three cloud clients, one per tier, from three injected model names.
 
     Every refusal this can produce fires HERE, at the root, before the scan: no
@@ -207,6 +208,11 @@ def deepseek_routing(*, api_key: str | None, base_url: str | None,
     `timeout_seconds` is threaded through for the same reason as every other
     number here: `deepseek_invoke` refuses to invent one, because a client with
     no timeout can hold a scan open for ever. It is `cli.py` that picks it.
+
+    `on_usage` is `104` R-14's sink and is threaded through unread: this function
+    neither creates it nor looks at what goes into it. Defaulted because a
+    deployment that records no usage is a real deployment -- `ollama_routing` below
+    has no such reading to give, its transport reporting no usage field at all.
     """
     table = _checked_table(tier_of_call_site)
     clients: dict[str, ModelClient] = {}
@@ -225,7 +231,7 @@ def deepseek_routing(*, api_key: str | None, base_url: str | None,
             invoke=deepseek_invoke(
                 api_key=api_key, base_url=base_url, model_target=target,
                 max_response_tokens=max_response_tokens,
-                timeout_seconds=timeout_seconds),
+                timeout_seconds=timeout_seconds, on_usage=on_usage),
         )
     return TierRouting(tier_of_call_site=table, client_of_tier=clients)
 

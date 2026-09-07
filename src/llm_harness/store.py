@@ -6,6 +6,7 @@ The writer→event matrix is closed. `model_call_issued` is Task 5 transport.
 """
 from __future__ import annotations
 
+import hashlib
 import sqlite3
 import uuid
 from collections.abc import Mapping
@@ -16,6 +17,7 @@ from database_agent.events import append_event
 from database_agent.supersede import mark_superseded
 from evidence_shape.canonical import canonical_json
 
+from llm_harness.vocabulary import ABSTAIN
 from llm_harness.authorship import (
     CALL_REFUSED,
     MODEL_RESPONSE_RECEIVED,
@@ -376,3 +378,206 @@ def record_call_failure(conn: sqlite3.Connection, *, dossier_id: str,
         (failure_id, dossier_id, failure_class, explanation, release_id, observed_at),
     )
     return failure_id
+
+
+# ======================================================================================
+# `104` R-13: a question already answered under the same identity is not asked again
+# ======================================================================================
+
+#: The dimensions a call's identity is taken over: `00`:44's own list -- "content
+#: hash, extractor version, analysis tier, model identifier when relevant, and prompt
+#: fingerprint" -- plus the terms that sentence leaves implicit at a site that has
+#: them. Spelled as a constant so the digest and the stored mapping cannot drift
+#: apart, and so a reader can see the whole of what invalidates a cached answer in
+#: one place.
+#:
+#: `subject_ref` is in the KEY and not only in the row: two files under one identity
+#: would let one file's declined fields answer for another's.
+#:
+#: `policy` is the policy's CONTENT and not its version string, and that is measured
+#: rather than preferred: `privacy.policy._persist` mints `policy-{uuid4()}` on every
+#: call, so two runs under an identical policy carry two version ids. Keyed on the
+#: string this cache could never hit once.
+#:
+#: `plan_version` is `None` at site A -- `model_facts.build_fact_request` says why,
+#: "a fact is about a file version and not about a plan" -- and is carried anyway,
+#: because it is a real dimension at C and D and a key whose shape changes per site
+#: is a key nobody can reason about.
+CALL_IDENTITY_DIMENSIONS: tuple[str, ...] = (
+    "call_site", "content_hash", "extractor_versions", "model_id", "plan_version",
+    "policy", "prompt_fingerprint", "schema_id", "subject_ref",
+)
+
+
+def call_identity(dimensions: Mapping[str, object]) -> str:
+    """SHA-256 over the canonical dimension mapping. Every key required, none extra.
+
+    **Why a digest over a mapping rather than a column per dimension.** The mapping
+    is stored beside the digest, so a row can be read back and its digest recomputed
+    from it. A column per dimension would let a row be written whose columns and
+    whose digest disagree, and the disagreement would be invisible.
+
+    **Why the asked field set is NOT a dimension.** It cannot be, and a run says so.
+    Run one asks about every open field; the model answers some and declines the
+    rest; run two's open set is the declined set, which is smaller. Keyed on the
+    asked set the two runs have different identities and the second re-asks
+    everything -- which is R-13 itself, reproduced by the fix meant to close it. So
+    this is the identity of the QUESTION'S CONTEXT, and which fields are still open
+    is what the reuse decision compares against the prior's abstentions.
+    """
+    missing = set(CALL_IDENTITY_DIMENSIONS) - set(dimensions)
+    extra = set(dimensions) - set(CALL_IDENTITY_DIMENSIONS)
+    if missing or extra:
+        raise MalformedRecord(
+            f"a call identity is taken over exactly "
+            f"{list(CALL_IDENTITY_DIMENSIONS)}; missing={sorted(missing)} "
+            f"unexpected={sorted(extra)}. A digest over a different set of terms is "
+            "a different cache, and one that silently accepted fewer terms would "
+            "reuse an answer across a change nobody saw."
+        )
+    return hashlib.sha256(
+        canonical_json({name: dimensions[name]
+                        for name in CALL_IDENTITY_DIMENSIONS}).encode("utf-8")
+    ).hexdigest()
+
+
+def record_call_identity(conn: sqlite3.Connection, *, identity_id: str,
+                         dossier_id: str, call_site: str, subject_ref: str,
+                         dimensions: Mapping[str, object],
+                         observed_at: str) -> None:
+    """Remember that this identity was asked, and which dossier answered it.
+
+    Appends no event: `database_agent.events` says registration "is a spec-level act
+    (rule 4) ... There is no run-time registration call", so `model_call_reused` is a
+    name the owner ratifies and the row carries the provenance until then.
+
+    Writing the same (identity, dossier) twice is not a second row and not an error:
+    two runs that reach the same dossier under the same identity have said the same
+    thing.
+    """
+    with transaction(conn):
+        stored = conn.execute(
+            "SELECT dimensions FROM llm_call_identity "
+            "WHERE identity_id = ? AND dossier_id = ?",
+            (identity_id, dossier_id),
+        ).fetchone()
+        if stored is not None:
+            return
+        conn.execute(
+            "INSERT INTO llm_call_identity ("
+            "identity_id, dossier_id, call_site, subject_ref, dimensions, "
+            "observed_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (identity_id, dossier_id, call_site, subject_ref,
+             canonical_json(dict(dimensions)), observed_at),
+        )
+
+
+def prior_call(conn: sqlite3.Connection, identity_id: str) -> sqlite3.Row | None:
+    """The most recent dossier asked under this identity, or `None`.
+
+    Most recent by insertion and not by `observed_at`: a run under a frozen clock
+    writes every row with one timestamp, and "the latest answer" has to survive that.
+    """
+    return conn.execute(
+        "SELECT identity_id, dossier_id, call_site, subject_ref, dimensions, "
+        "observed_at FROM llm_call_identity WHERE identity_id = ? "
+        "ORDER BY rowid DESC LIMIT 1",
+        (identity_id,),
+    ).fetchone()
+
+
+def abstained_fields(conn: sqlite3.Connection, dossier_id: str) -> frozenset[str]:
+    """Which fields the model declined under this dossier. `claim_ref` IS the field.
+
+    Read from `llm_verdict` rather than copied onto the identity row, because a
+    second copy of an answer is a second thing that can disagree with it. A
+    superseded verdict is excluded: a re-judgement is a different answer and must not
+    go on suppressing the ask.
+    """
+    return frozenset(
+        row["claim_ref"] for row in conn.execute(
+            "SELECT claim_ref FROM llm_verdict WHERE dossier_id = ? "
+            "AND outcome = ? AND superseded_by IS NULL",
+            (dossier_id, ABSTAIN),
+        )
+    )
+
+
+def record_call_reuse(conn: sqlite3.Connection, *, identity_id: str,
+                      prior_dossier_id: str, call_site: str, subject_ref: str,
+                      reused_fields, observed_at: str) -> str:
+    """One row per question not asked because it already had an answer.
+
+    A run that quietly makes fewer calls than the last one is indistinguishable from
+    a run that silently dropped files. This is the difference, written down.
+    """
+    reuse_id = _new_id()
+    with transaction(conn):
+        conn.execute(
+            "INSERT INTO llm_call_reuse ("
+            "reuse_id, identity_id, prior_dossier_id, call_site, subject_ref, "
+            "reused_fields, observed_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (reuse_id, identity_id, prior_dossier_id, call_site, subject_ref,
+             canonical_json(sorted(reused_fields)), observed_at),
+        )
+    return reuse_id
+
+
+#: The observed half of a usage row, in insert order. The composition root
+#: translates its transport's own shape into exactly these names -- `llm_harness`
+#: may not import `readers`, so a provider's record cannot cross this line as a
+#: type, and a mapping whose keys are checked is what crosses instead.
+USAGE_COLUMNS: tuple[str, ...] = (
+    "model_id", "prompt_tokens", "completion_tokens", "prompt_cache_hit_tokens",
+    "prompt_cache_miss_tokens", "response_format",
+)
+
+
+def record_call_usage(conn: sqlite3.Connection, *, dossier_id: str, release_id: str,
+                      reserved_cost: str, observed: Mapping[str, object] | None,
+                      observed_at: str) -> str:
+    """`104` R-14: what one call reserved, beside what the provider says it consumed.
+
+    `00`:251 budgets "maximum model cost per scan" and `harness.run_call` settles
+    every call against `CallDependencies.actual_cost`, a value the composition root
+    fixes BEFORE the call. Nothing has ever recorded what a call actually consumed.
+    This is that record, and it changes nothing the budget enforces: the unit stays
+    calls, `settle_call` still settles one call as one, and the pair here is what
+    makes the distance between the estimate and the truth readable.
+
+    `observed` is the transport's own reading, translated by the composition root
+    into this row's column names, or `None` when the provider reported nothing.
+    A row is written EITHER WAY: a call was made and the budget spent for it, and a
+    row of nulls says "asked, and it told us nothing" where no row is
+    indistinguishable from a call that never happened.
+
+    Deliberately NOT a price. Turning tokens into money needs a rate card, a rate
+    card is a deployment fact, and this module invents no numbers -- the same rule
+    that keeps the model id and the token ceiling injected. `cli.TOKEN_PRICES` is
+    where one goes when the owner supplies it.
+
+    Appends no event. `database_agent.events` closes `EVENT_TYPES` and calls
+    registration "a spec-level act"; a `model_call_usage` name is the owner's.
+    """
+    fields = dict(observed or {})
+    unexpected = set(fields) - set(USAGE_COLUMNS)
+    if unexpected:
+        raise MalformedRecord(
+            f"a usage record carries {list(USAGE_COLUMNS)} and this one also "
+            f"carries {sorted(unexpected)}. A column this table does not have is a "
+            "number nobody can read back, and silently dropping it would lose the "
+            "one thing the row exists to keep."
+        )
+    usage_id = _new_id()
+    with transaction(conn):
+        conn.execute(
+            "INSERT INTO llm_call_usage ("
+            "usage_id, dossier_id, release_id, model_id, prompt_tokens, "
+            "completion_tokens, prompt_cache_hit_tokens, prompt_cache_miss_tokens, "
+            "response_format, reserved_cost, observed_at"
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (usage_id, dossier_id, release_id,
+             *(fields.get(name) for name in USAGE_COLUMNS),
+             reserved_cost, observed_at),
+        )
+    return usage_id

@@ -72,6 +72,7 @@ inferred from position, and the sabotage that restores the old shape fails with
 from __future__ import annotations
 
 import os
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -247,9 +248,55 @@ class ProcessPool:
 
     def __init__(self, *, workers: int,
                  context_factory: Callable[[], ExtractionContext],
-                 lookahead_per_worker: int, floor: int) -> None:
+                 lookahead_per_worker: int, floor: int,
+                 seconds_per_extraction: float,
+                 now: Callable[[], float] = time.monotonic) -> None:
         if workers < 1:
             raise ValueError(f"a pool needs at least one worker, not {workers}")
+        #: R-50. HOW LONG ONE EXTRACTION MAY TAKE BEFORE ITS WORKER IS KILLED.
+        #:
+        #: The recovery above answers a worker that DIES. This answers one that never
+        #: returns, which is a different failure and was unanswerable: no exception is
+        #: raised, no process exits, and the parent waits in `result()` for ever at 0%
+        #: CPU. Measured on the owner's corpus, three of seventeen situations hung --
+        #: `applications.undergraduate-packet`, `business_operations.project-delivery`,
+        #: `code.notebooks-experiments`. Sampled, one worker's main thread was inside
+        #: `-[VNRecognizeTextRequest ...]` -> `-[CIContext render:toCVPixelBuffer:...]`
+        #: -> CoreImage -> `_dispatch_sync_f_slow` -> `__DISPATCH_WAIT_FOR_QUEUE__`: a
+        #: dispatch deadlock inside Apple's frameworks, reached through PyObjC from the
+        #: OCR reader. The other six workers sat in `sem_wait`.
+        #:
+        #: `00`:257 is the rule it enforces -- a single file may not consume the run --
+        #: and until now nothing could enforce it against a file that consumes the run
+        #: by doing nothing at all.
+        #:
+        #: NO DEFAULT, for the reason `workers`, `lookahead_per_worker` and `floor`
+        #: each give: it is a number, `cli.py` is the only file that picks one, and a
+        #: pool that defaulted the ceiling at which it kills a worker would be a part
+        #: choosing a policy with teeth.
+        if seconds_per_extraction <= 0:
+            raise ValueError(
+                f"a ceiling of {seconds_per_extraction} would fail every file "
+                "before it started; a ceiling is how long an extraction may take")
+        self._ceiling = float(seconds_per_extraction)
+        #: THE CLOCK THE CEILING IS MEASURED ON, and the one thing here that DOES
+        #: carry a default. `seconds_per_extraction` is a policy with teeth and
+        #: refuses one; a monotonic source is not a policy, `time.monotonic` is the
+        #: only real answer, and requiring every caller to pass it would be
+        #: ceremony rather than a decision.
+        #:
+        #: It is injectable because the guard that protects this ceiling's SEMANTICS
+        #: could not be written against the real clock. What the guard has to prove
+        #: is that the ceiling starts when the consuming loop begins waiting for a
+        #: file and not when the file was submitted -- and expressing that in real
+        #: seconds means a sleeping neighbour racing a wall clock, which fails on a
+        #: loaded machine for a reason that has nothing to do with the defect.
+        #: Observed: two of these tests failed at load 13 with "01-alpha.pdf was
+        #: failed by its neighbour" while eight suites ran, on CPU contention rather
+        #: than on the clock. Driven by a test, fake time can pass between submit
+        #: and the first wait, which is exactly the condition a submit-measured
+        #: ceiling gets wrong, and no amount of machine load changes the answer.
+        self._now = now
         self._workers = workers
         self._factory = context_factory
         #: How far the caller reads ahead. Deep enough that a worker is never idle
@@ -316,18 +363,80 @@ class ProcessPool:
         return future
 
     def result(self, handle: Any) -> ExtractionOutcome:
+        from concurrent.futures import TimeoutError as FuturesTimeout
         from concurrent.futures.process import BrokenProcessPool
         if isinstance(handle, _Here):
             if self._local is None:
                 self._local = self._factory()
             return perform(handle.request, self._local)
+        #: THE CLOCK STARTS WHEN THE CALLER STARTS WAITING FOR THIS FILE, not when
+        #: the request was submitted, and that is a correction with a measurement
+        #: behind it. Submitted-at was the first draft and the full suite failed it
+        #: within the hour: the hung file burned the ceiling while its neighbours
+        #: sat in the queue, so when their turn came they were already over it and
+        #: `01-alpha.pdf` and `02-bravo.pdf` were both marked timed out having done
+        #: nothing wrong. One deadlock would have failed the entire look-ahead
+        #: window on the owner's corpus -- the precise failure the death path's
+        #: `_rebuild` exists to prevent, reintroduced by this recovery.
+        #:
+        #: Results are consumed in submission order, so what this measures is "how
+        #: long has this file been the one holding up the run", which is the
+        #: question `00`:257 actually asks and the only one whose answer is not
+        #: distorted by the queue. The run still cannot hang: every wait is bounded.
+        deadline = self._now() + self._ceiling
         while True:
             current = handle
             while current in self._replaced:
                 current = self._replaced[current]
             request, attempts = self._outstanding.get(current, (None, 0))
             try:
-                outcome = current.result()
+                outcome = current.result(
+                    timeout=max(0.0, deadline - self._now()))
+            except FuturesTimeout:
+                # R-50. NOBODY DIED AND NOBODY ANSWERED. There is no retry here and
+                # that is deliberate: the death path retries because a segfault can
+                # be the pool's fault rather than the file's, and a deadlock reached
+                # through the same bytes and the same framework will be reached
+                # again. Retrying would cost the ceiling a second time and end in
+                # the same row.
+                if request is None:                  # pragma: no cover -- not ours
+                    raise
+                self._outstanding.pop(current, None)
+                # THE WINDOW IS HELD BACK FIRST, which is `_rebuild`'s rule reached
+                # by a different road. Killing the pool takes down every worker,
+                # including the ones reading innocent files, so anything still in
+                # flight has to be resubmitted rather than failed -- surviving
+                # somebody else's deadlock is not an attempt, and `_release`
+                # restores the count. A future that has already FINISHED keeps its
+                # result and its bookkeeping: it is not in flight, nothing was lost,
+                # and resubmitting it would write a second run row for a file the
+                # caller has not consumed yet.
+                lost = [(stale, held) for stale, held in self._outstanding.items()
+                        if not stale.done()]
+                # KILL BEFORE SHUTDOWN, and the order is the whole of it. A worker
+                # deadlocked inside a framework will not answer a stop sentinel, so
+                # `_shutdown`'s `wait=True` would wait on it for ever -- the hang
+                # this fix exists to end, moved into the recovery for it.
+                self._kill_workers()
+                self._shutdown()
+                for stale, _held in lost:
+                    self._outstanding.pop(stale, None)
+                # EXTENDED, NEVER ASSIGNED, and the difference is a lost window.
+                # This branch is reachable while a REBUILD's window is already
+                # deferred: a pool death isolates the suspect, `_outstanding` holds
+                # only that suspect, and the suspect then hangs. `lost` is empty
+                # there, and assigning would wipe the held-back window -- whose
+                # callers are holding handles whose futures were cancelled, so the
+                # run stops on the next file with nothing to say. `_release` below
+                # drains both.
+                self._deferred.extend((stale, held, count)
+                                      for stale, (held, count) in lost)
+                self._release()
+                return _failure_outcome(request, TimeoutError(
+                    f"no result within the {self._ceiling}s ceiling for one "
+                    f"extraction; the worker running "
+                    f"{request.decision.extractor_name} for this file was killed "
+                    "and the pool rebuilt, so the rest of the run continues"))
             except BrokenProcessPool as death:
                 if request is None:                  # pragma: no cover -- not ours
                     raise
@@ -350,6 +459,12 @@ class ProcessPool:
                         "the worker process handling this file died twice; "
                         f"{type(death).__name__}"))
                 self._rebuild(suspect=current)
+                # A NEW CLOCK, because a rebuild means this file is being read
+                # again from the start. Charging the retry the time its own
+                # predecessor's death cost would kill a file for surviving a
+                # segfault, which is the same unfairness the paragraph above is
+                # about, one exception further along.
+                deadline = self._now() + self._ceiling
                 continue
             except Exception as error:               # noqa: BLE001
                 # Never delivered at all -- an argument that would not pickle, a
@@ -367,6 +482,38 @@ class ProcessPool:
             self._outstanding.pop(current, None)
             self._release()
             return outcome
+
+    def _kill_workers(self) -> None:
+        """SIGKILL every worker, because one of them is not answering anything else.
+
+        `Process.terminate()` is SIGTERM and a process wedged in
+        `__DISPATCH_WAIT_FOR_QUEUE__` inside CoreImage does not run a Python signal
+        handler to see it -- Python's handler runs on the main thread between
+        bytecodes, and the main thread is inside the framework. `kill()` is the
+        signal the kernel delivers without asking the process.
+
+        The whole pool goes, not the one worker. `ProcessPoolExecutor` gives no way
+        to say which worker holds a given future, and killing the pool is what the
+        death path already does by other means: `_rebuild` replaces the executor and
+        the held-back window is resubmitted. The innocent workers lose at most the
+        extraction they were in, which is resubmitted with its attempt count
+        unchanged -- surviving somebody else's deadlock is not an attempt.
+
+        `_processes` is private and there is no public equivalent. Read defensively
+        so a future CPython that renames it degrades to the old behaviour -- a slow
+        `shutdown` -- rather than an AttributeError in the recovery path.
+        """
+        pool = self._pool
+        if pool is None:                             # pragma: no cover -- not ours
+            return
+        workers = list(getattr(pool, "_processes", {}).values())
+        for worker in workers:
+            try:
+                worker.kill()
+            except (OSError, ValueError):            # pragma: no cover -- raced
+                continue
+        for worker in workers:
+            worker.join(timeout=self._ceiling)
 
     def _rebuild(self, *, suspect: Any) -> None:
         """Replace the pool and put the suspect into it ALONE.

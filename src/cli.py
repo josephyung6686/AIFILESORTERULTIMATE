@@ -78,7 +78,9 @@ from facts.families import (
 from facts.discount import MetadataScreen
 from facts.learning import NoSuchClaim, reject_claim
 from facts.domains import ActivationSignal, ActivationSignals
-from facts.photo_event import MEDIA_TYPE_FIELD, media_type
+# `MEDIA_TYPE_FIELD` left this import with `104` R-09: the retired
+# `active_schema_for` literal was the only line in this file that named it.
+from facts.photo_event import media_type
 from facts.budgets import LLM_ROUTE
 from facts.resolver import PRIVACY_BAR, FactResolver
 from facts.rules import ACADEMIC_CONTEXT_TERMS, Rule, apply_rules
@@ -138,6 +140,7 @@ from privacy.denial import unclassified_denies
 from privacy.gate import Gate
 from privacy.defaults import LOCAL_FIRST_MODES
 from privacy.display import display_policy
+from privacy.moves import may_move_automatically
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.vocabulary import MODE_SEMANTICS
 from questions.explanation import explain_question, render_explanation
@@ -933,6 +936,26 @@ FACT_CALL_COST: Decimal = Decimal("1")
 #: count printed at the end of it.
 FACT_CALLS_PER_SCAN_CEILING: Decimal = Decimal("200")
 
+#: `104` R-14's price hook, and it is `None` because nobody has supplied a rate
+#: card. `00`:251 budgets "maximum model cost per scan" in MONEY, and the two
+#: numbers above are denominated in CALLS -- one per call, two hundred per scan --
+#: so what the budget enforces today is a call count wearing a cost's name.
+#:
+#: `llm_call_usage` now records what each call actually consumed beside what was
+#: reserved for it, so the tokens exist; turning them into money needs prices, and a
+#: price is a deployment fact this file may not invent any more than it invents a
+#: model id. When the owner supplies one this is where it goes -- a mapping from
+#: model id to a per-token rate, read by whatever prices the usage rows -- and until
+#: then nothing multiplies a token by a number somebody guessed.
+#:
+#: MEASURED, as the proposal for a token-denominated ceiling rather than as a change
+#: made here: an A_fact dossier on this branch is about 5,000 prompt tokens (`104`
+#: R-58: 8,020 template bytes plus a body under 9,000, and a real call reported
+#: 4,480 cache-hit of ~4,970 prompt tokens), so 200 calls is on the order of
+#: 1,000,000 prompt tokens per scan. Re-denominating the ceiling is the owner's:
+#: `00`:259 names coverage throttling as the failure a wrong number causes.
+TOKEN_PRICES = None
+
 #: §8.6's page cap for PDFs, and the only place the NUMBER is chosen. The reader
 #: takes `max_pages=None` -- read everything -- and this file hands it a ceiling
 #: through `macos_readers(read_pdf=...)`, the override seam that module's docstring
@@ -1037,6 +1060,36 @@ PDF_PAGE_CEILING: int = 50
 #: the ceiling wearing a full count.
 SPREADSHEET_CELL_CEILING: int = 2000
 
+#: §8.6's "Maximum pages OCRed per file" (`00`:245), and the only place it is chosen.
+#:
+#: WHY IT WAS MISSING RATHER THAN SET WRONG. `readers/ocr_vision.py` has honoured a
+#: `page_cap` since it was written -- it stops between pages, reports `capped=True`,
+#: and `extractors/ocr.py` turns that into `completeness="capped"` with P4's own
+#: `coverage {"processed": n, "total": m}`. `VISION_CONFIG` carried languages, dpi
+#: and recognition level and no ceiling, so `page_cap` was `None` on every run this
+#: product has made and §8.6's most expensive operation was the one with no bound.
+#:
+#: THE NUMBER, MEASURED. Over the owner's ground-truth corpus on 2026-09-06 with
+#: pdfium, no OCR and no model: 68 readable PDFs, median 2 pages, longest 287. At 20
+#: pages, 61 of the 68 are untouched; at 50 it is 63. Seven files buy the whole tail,
+#: and the tail is what §8.6 means by "a large scanned textbook should not consume
+#: the same budget as hundreds of ordinary PDFs". Twenty pages of Vision at 200 DPI
+#: is the order of a minute; 287 would be twenty.
+OCR_PAGE_CEILING: int = 20
+
+#: §8.6's "Maximum OCR time per file" (`00`:246), in seconds, and it is deliberately
+#: a fraction of `EXTRACTION_SECONDS_PER_FILE` below.
+#:
+#: THE TWO CLOCKS ARE RELATED AND THE ORDER MATTERS. R-50 gave `ProcessPool` a
+#: per-extraction ceiling that kills a worker wedged inside Vision, because a Python
+#: timeout cannot interrupt a C dispatch wait. That rescue costs the file everything:
+#: the worker dies holding whatever it had read. This ceiling is checked BETWEEN
+#: pages, so when it fires the run keeps the pages it finished and records why it
+#: stopped. An in-process limit is only worth having if it is reached first, which is
+#: why 120 sits well under 600 and why a test asserts the inequality rather than
+#: trusting whoever next edits one of them.
+OCR_SECONDS_PER_FILE: int = 120
+
 #: HOW MANY PROCESSES READ FILES AT ONCE, and the only place the number is chosen.
 #: `extraction_pool.ProcessPool` refuses to default it, for the reason every number
 #: in this product refuses to default: absent means refuse, never guess.
@@ -1090,6 +1143,41 @@ EXTRACTION_LOOKAHEAD_PER_WORKER: int = 2
 #: It counts SUBMISSIONS and not files in the folder: a ten-thousand-file corpus that
 #: is entirely cached submits nothing and stays inline, which is the right answer.
 EXTRACTION_POOL_FLOOR: int = 32
+
+#: R-50. HOW LONG ONE EXTRACTION MAY TAKE BEFORE ITS WORKER IS KILLED.
+#:
+#: The pool already survives a worker that DIES. It could not survive one that never
+#: returns, and that is not hypothetical: measured on the owner's corpus, three of
+#: seventeen scoreboard situations hung for ever at 0% CPU --
+#: `applications.undergraduate-packet`, `business_operations.project-delivery` and
+#: `code.notebooks-experiments`. Sampled, one worker's main thread was inside
+#: `-[VNRecognizeTextRequest ...]` -> `-[CIContext render:toCVPixelBuffer:...]` ->
+#: CoreImage -> `_dispatch_sync_f_slow` -> `__DISPATCH_WAIT_FOR_QUEUE__`, a dispatch
+#: deadlock inside Apple's frameworks reached through PyObjC by the OCR reader; the
+#: other six workers sat in `sem_wait`. `00`:257 says a single file may not consume
+#: the run, and nothing could enforce it against a file that consumes the run by
+#: doing nothing at all.
+#:
+#: WHAT IT MEASURES, because the first draft measured the wrong thing and the suite
+#: said so within the hour. It is the time this file has been THE ONE HOLDING UP THE
+#: RUN -- the clock starts when the consuming loop begins waiting for it, not when it
+#: was submitted. Measured from submit, a hung file burns the ceiling while the files
+#: behind it sit in the queue, so when their turn comes they are already over it: one
+#: deadlock marked `01-alpha.pdf` and `02-bravo.pdf` timed out having done nothing
+#: wrong, which is one deadlock failing the whole look-ahead window.
+#:
+#: So this is a DEADLOCK DETECTOR and not a performance budget. It is not competing
+#: with queueing depth, and it does not need to exceed `lookahead` extractions; it
+#: needs to exceed the slowest single honest extraction this deployment permits. That
+#: is OCR over a scanned page, measured at up to about twenty seconds on the owner's
+#: files, against a 50-page PDF ceiling and a 2,000-cell spreadsheet ceiling that are
+#: both faster.
+#:
+#: Six hundred seconds is ten minutes, thirty times the slowest honest read. A run
+#: that spends ten minutes waiting on one file has something wrong with it in every
+#: case this product can name, and the file is recorded `unexamined` with the ceiling
+#: and the reader in the row, which is a sentence an operator can act on.
+EXTRACTION_SECONDS_PER_FILE: float = 600.0
 
 #: The wire handle key. `llm_harness.wire_handles` digests every identifier that
 #: leaves this device under it -- `subject_ref`, every `conflict_id`, every released
@@ -1186,7 +1274,47 @@ def _dotenv(path: Path) -> Mapping[str, str]:
     return values
 
 
-def model_route(*, out) -> TierRouting | None:
+class UsageMailbox:
+    """One slot holding what the provider reported for the call just made.
+
+    `104` R-14. The transport reads usage inside `invoke`; `harness.run_call` needs
+    it a moment later, when it holds the reservation, the release and the dossier at
+    once. `ModelClient.invoke` is `Callable[[bytes], bytes]`, so the number cannot
+    ride the return path, and this is the smallest thing that carries it: the
+    composition root builds one, hands it to the transport as `on_usage` and to
+    `run_call` as `usage_recorder`, and the two never learn about each other.
+
+    ONE SLOT AND NOT A QUEUE. `run_call` takes immediately after the call it made,
+    so a second value in the box would mean a call nobody settled; losing it loudly
+    at the next `take` is better than a queue quietly pairing one call's tokens with
+    another call's row.
+
+    IT IS ALSO THE TRANSLATION. `llm_harness` may not import `readers`, so a
+    provider's `Usage` type cannot cross that line; what crosses is a mapping whose
+    keys `store.USAGE_COLUMNS` names, built here, where both sides are known. `{}`
+    is a real answer and is not `None`: it means a call was made and the provider
+    reported nothing, which the row records as nulls.
+    """
+
+    def __init__(self) -> None:
+        self._held: dict | None = None
+
+    def __call__(self, usage) -> None:
+        self._held = {} if usage is None else {
+            "model_id": usage.model_id,
+            "prompt_tokens": usage.prompt_tokens,
+            "completion_tokens": usage.completion_tokens,
+            "prompt_cache_hit_tokens": usage.prompt_cache_hit_tokens,
+            "prompt_cache_miss_tokens": usage.prompt_cache_miss_tokens,
+            "response_format": usage.response_format,
+        }
+
+    def take(self) -> dict | None:
+        held, self._held = self._held, None
+        return held
+
+
+def model_route(*, out, on_usage=None) -> TierRouting | None:
     """`83`'s three clients, or `None` and a sentence saying why not.
 
     **`None` is a real answer and not a failure.** P6's direct and rule stages,
@@ -1250,7 +1378,12 @@ def model_route(*, out) -> TierRouting | None:
                                   for tier, name in MODEL_NAME_OF_TIER.items()},
                 tier_of_call_site=TIER_OF_CALL_SITE,
                 max_response_tokens=MAX_RESPONSE_TOKENS,
-                timeout_seconds=MODEL_CALL_TIMEOUT_SECONDS)
+                timeout_seconds=MODEL_CALL_TIMEOUT_SECONDS,
+                # `104` R-14, threaded and not read here. The LOCAL route below
+                # takes no such argument: `readers/model_ollama.py` names no usage
+                # field at all, so a local A_fact call reports nothing and its rows
+                # carry the reservation alone. That gap is reported, not papered.
+                on_usage=on_usage)
         except (ValueError, RuntimeError) as refusal:
             # Every refusal `readers/` can raise names what was missing and what to
             # set. Printed, not raised: a misconfigured model is not a reason to
@@ -1802,8 +1935,9 @@ DATE_PATTERNS = DatePatterns(patterns=(
                 canonical=_canonical_named_term),
 ))
 
-#: The field §3.10's producer fills. Spelled once, because `active_schema_for` and
-#: `normalize_for_model` both need it and neither may re-spell it.
+#: The field §3.10's producer fills. Spelled once, because `_rule_stage` and
+#: `normalize_for_model` both need it and neither may re-spell it. (The third
+#: caller was P9's `active_schema_for`, retired with `104` R-09.)
 TERM_FIELD = "term"
 
 #: The same identifier, however it was printed. `PHYS 1401`, `PHYS-1401` and
@@ -2710,6 +2844,8 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
                           policy_version: str, wire_handle_key: bytes,
                           schema: str, folder_levels: tuple[FolderLevel, ...],
                           user_id: str, now,
+                          deferred_readings: tuple[str, ...] = (),
+                          usage_recorder: object | None = None,
                           on_result=None) -> FactCallAuthorities:
     """Everything one A_fact call needs, chosen here and nowhere else.
 
@@ -2823,7 +2959,16 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
         max_released_observations=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
         max_dossier_tokens=GROUPING_LIMITS.max_dossier_tokens,
         observed_at=now,
-        on_result=on_result)
+        on_result=on_result,
+        # `104` R-14, forwarded and not read here for the same reason as the
+        # readings below: the composition root owns it and `model_facts` decides
+        # what a call does with it.
+        usage_recorder=usage_recorder,
+        # `104` R-08. The situation's authored readings, forwarded and no more:
+        # `model_facts` carries the whole of why they stop at this record rather
+        # than reaching the dossier, and the composition root's only job is to read
+        # them off the release it already loaded.
+        deferred_readings=deferred_readings)
 
 
 def _stored_value_of(conn: sqlite3.Connection):
@@ -3134,7 +3279,13 @@ def extraction_context() -> ExtractionContext:
         readers=macos_readers(find_structured_strings=find_structured_strings,
                               read_pdf=pdfium_reader(
                                   max_pages=PDF_PAGE_CEILING),
-                              spreadsheet_cell_ceiling=SPREADSHEET_CELL_CEILING),
+                              spreadsheet_cell_ceiling=SPREADSHEET_CELL_CEILING,
+                              # §8.6's two per-file OCR ceilings. `_bootstrap`
+                              # publishes these same two numbers on P1's table, so
+                              # what bounded a run can be read back from the run's
+                              # own database rather than from this file.
+                              ocr_page_ceiling=OCR_PAGE_CEILING,
+                              ocr_seconds_per_file=OCR_SECONDS_PER_FILE),
         # Transcription opens audio and video. Not authorised, and saying so is
         # what keeps it off rather than the absence of a transcriber.
         transcription_authorized=lambda: False)
@@ -3153,7 +3304,8 @@ def extraction_pool(*, workers: int):
     return ProcessPool(
         workers=workers, context_factory=extraction_context,
         lookahead_per_worker=EXTRACTION_LOOKAHEAD_PER_WORKER,
-        floor=EXTRACTION_POOL_FLOOR)
+        floor=EXTRACTION_POOL_FLOOR,
+        seconds_per_extraction=EXTRACTION_SECONDS_PER_FILE)
 
 
 def p1_p7_authorities(*, now, detector,
@@ -3207,6 +3359,118 @@ def p1_p7_authorities(*, now, detector,
         corpus_form="snapshot", policy_settings={"operation_mode": operation_mode},
         file_entry_body=lambda row: {"payload_ref": row["content_hash"]},
         p7_component_version=COMPONENT_VERSION)
+
+
+def _file_id_of_subject(subject_ref: str) -> str | None:
+    """`placement.store.subject_ref_of`, read back, and only the file form.
+
+    P11 spells a file version `file:<id>:<hash>` and a group `group:<id>`. The
+    hash is dropped because §8.4's predicate re-reads it from `files` itself: a
+    caller-supplied hash would let a stale dossier ask about a version of the file
+    that is no longer the current one, and the answer would look authoritative.
+
+    Anything that is not the file form returns `None` and the caller refuses.
+    That includes P8's fixture shorthand `file-1`: a bare string read as a file id
+    would make this answer about a file nobody addressed, and a wrong answer here
+    is a protected file filed automatically.
+    """
+    kind, separator, rest = subject_ref.partition(":")
+    if not separator or kind != pv.FILE:
+        return None
+    file_id, _separator, _content_hash = rest.partition(":")
+    return file_id or None
+
+
+def _proposes_a_move(payload: Mapping[str, object]) -> bool:
+    """Does this response put the file somewhere? Site C's key and Site D's.
+
+    A response that moves nothing cannot ignore a move restriction, and refusing
+    one would be worse than pointless: `leave_in_current_location` and
+    `mark_review_later` are the two dispositions that leave a protected file
+    exactly where its owner put it, and a policy that rejected them would be
+    pushing protected material out of its own shelter.
+    """
+    for key in ("destination", "target"):
+        value = payload.get(key)
+        if isinstance(value, str) and value and value != "none":
+            return True
+    return False
+
+
+def sensitivity_policy_for(conn: sqlite3.Connection):
+    """P7's answer to P8's two sensitivity checks. An adapter, and nothing more.
+
+    **What was wrong.** `SENSITIVITY_POLICY_VIOLATION` (Site C) and
+    `SENSITIVITY_RESTRICTION_IGNORED` (Site D) are two of P8's fifteen placement
+    checks and both call one injected predicate. This file passed `None` for it on
+    every run this product has ever made and every test in the tree stubbed it
+    `True`, so nobody was asking P7 the question. The D2 bakeoff measured the
+    consequence: both local D texts filed the redacted statement into Receipts and
+    P8 accepted it.
+
+    **Why this is not a new rule.** §8.4's automatic-move predicate already exists
+    and is published as `privacy.moves.may_move_automatically`. It reads the live
+    classification record and, for a protected one, the user policy that permits
+    that file's move; it refuses by default; it writes nothing. This function
+    hands P8 that answer and adds two things only: which subject the dossier is
+    about, and whether the response proposes a move at all. Any further judgement
+    belongs in P7, which owns the classification.
+
+    **A proposal is not a move, and that is the one judgement this adapter makes.**
+    §8.4's predicate answers "may this be moved automatically" and refuses a file
+    P7 has never classified. That refusal is right for a move and wrong for a
+    proposal: P8 is validating something a person then reviews, automatic filing is
+    Release 2, and on the owner's corpus 95 of 199 readable files carry no
+    classification record. Refusing those would spend coverage protecting them from
+    a move this release does not make. So absence of a record permits the proposal
+    and P7 owns every other branch unchanged -- not protected is permitted,
+    protected is refused unless a user policy names the file. The handling class is
+    not read at all: `privacy/classification.py` says neighbouring parts consume
+    the `protected` flag rather than inferring it from the class, and leaves open
+    whether the two coincide.
+
+    Injected alongside seven `None`s. `model_path_available` reads this field, so
+    supplying it alone does not switch the model path on -- there is still no
+    ratified placement prompt, and `model_placement` says why the other seven are
+    withheld together. A refusal, unlike a call, needs no prompt to be correct.
+    """
+    def permitted(dossier, payload: Mapping[str, object]) -> bool:
+        if not _proposes_a_move(payload):
+            return True
+        file_id = _file_id_of_subject(getattr(dossier, "subject_ref", "") or "")
+        if file_id is None:
+            return False
+        row = get_file(conn, file_id)
+        if row is None:
+            return False
+        # AN UNCLASSIFIED FILE MAY BE PROPOSED, AND THIS IS THE ONE PLACE THE TWO
+        # QUESTIONS COME APART. §8.4's predicate answers "may this be moved
+        # automatically", and for a file P7 has never classified its answer is
+        # `unreadable_unclassified` and its refusal is right: it will not read
+        # absence as permission. P8 is judging a PROPOSAL that a person reviews,
+        # and automatic filing is Release 2. Refusing the proposal would take 95
+        # of the owner's 199 readable files out of the engine to protect them from
+        # a move nothing is going to make -- coverage spent on a risk that does not
+        # exist in this release. The file still reaches the person through the
+        # review-required path the offline run already gives it.
+        #
+        # THE CLASS IS NOT CONSULTED, deliberately. `privacy/classification.py`
+        # states the rule: "Neighbouring parts should consume the `protected` flag,
+        # not infer it from the class", and its Open question 1 -- whether
+        # `protected` is exactly the top two classes -- is unsettled. So P7's flag
+        # is the whole of the answer here and a handling class read as a second
+        # opinion would be P11 deciding a question P7 has left open.
+        if ClassificationStore(conn).current(file_id, row["content_hash"]) is None:
+            return True
+        # Classified. P7 owns every remaining branch: not protected is permitted,
+        # protected is refused unless a user policy names this file. `or ""` is both
+        # validator sites' own convention for a dossier with no plan version --
+        # `current_policy` finds no row, so a protected file is refused and an
+        # unprotected one is not held hostage to the version.
+        return may_move_automatically(
+            conn, file_id, getattr(dossier, "plan_version", None) or "").allowed
+
+    return permitted
 
 
 # ======================================================================================
@@ -3574,6 +3838,17 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
         else:
             value = CEILING_VALUE
         set_ceiling(conn, key, value)
+    # §8.6's two per-file OCR ceilings, published because something obeys them.
+    #
+    # THE OTHER TWO P5 KEYS ARE LEFT UNSET ON PURPOSE. `ocr.max_time_per_scan` and
+    # `image.max_analysis_ops_per_scan` have no enforcement point anywhere in `src/`:
+    # nothing accumulates a per-scan OCR clock and nothing counts image operations.
+    # `database_agent/budget.py` opens by saying "P1 holds and publishes values; P1
+    # enforces none of them. Reading a ceiling is not enforcing it", and a published
+    # number nothing obeys is worse than an absent one, because it reads as a bound
+    # somebody chose. They stay absent until there is something to obey them.
+    set_ceiling(conn, "ocr.max_pages_per_file", OCR_PAGE_CEILING)
+    set_ceiling(conn, "ocr.max_time_per_file", OCR_SECONDS_PER_FILE)
 
 
 def _validate_residuals(names: Sequence[str]) -> tuple[str, ...]:
@@ -4074,6 +4349,11 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         record: str | None = None,
         routing: TierRouting | None = None,
         semantic_model: Path | None = None,
+        # `104` R-14's mailbox, built beside `routing` by `main` and handed to both
+        # the transport and `run_call`. Defaulted: a deployment that records no
+        # usage is a real deployment, and every caller that predates this still
+        # composes a run.
+        usage_recorder: object | None = None,
         wire_handle_key: bytes | None = None) -> ProductionRun:
     """One corpus, end to end. Assembles the authorities and calls the composition.
 
@@ -4792,7 +5072,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # abstains with a reason instead of being decided by nothing.
             gate=None, model_client=None, prompt=None, call_dependencies=None,
             model_call_request=None, chosen_node_of=None, residual_action_of=None,
-            sensitivity_policy=None,
+            # SEVEN of the eight, not eight. This one is the exception and R-55 is
+            # why: P8's two sensitivity checks REFUSE with it, and a refusal that
+            # needs no ratified prompt should not wait for one. `None` here meant
+            # `SENSITIVITY_RESTRICTION_IGNORED` could never fire, which the D2
+            # bakeoff measured -- both local D texts filed the redacted statement
+            # into Receipts and P8 accepted it. Supplying it alone leaves
+            # `model_path_available` false, so the path stays off.
+            sensitivity_policy=sensitivity_policy_for(conn),
             # THE POLICY, and this file is where it belongs. P11 asks which files
             # are worth a person's attention and holds no answer of its own;
             # `folders_nothing_could_be_read_from` is the answer and carries the
@@ -4875,6 +5162,15 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             wire_handle_key=wire_handle_key, schema=schema,
             folder_levels=folder_levels, user_id=user_id,
             now=now,
+            # `104` R-08, off the release `rules` above already loaded rather than a
+            # second read of the library. Direct indexing and not `.get`: every one
+            # of the nineteen schemas a `--situation` can resolve to is in the
+            # compiled manifest, so a miss is a release that does not match this
+            # build and is worth the crash.
+            deferred_readings=rules.schemas[schema].deferred_readings,
+            # `104` R-14. `run` was handed this beside the routing it was handed,
+            # so the mailbox the transport fills is the mailbox `run_call` reads.
+            usage_recorder=usage_recorder,
             on_result=lambda file_id, result: outcomes.append((file_id, result)))
         # KEPT FOR THE OBSERVE SITES, which need the same gate, budget, costs,
         # policy version and handle key. Stashed rather than rebuilt: a second
@@ -5073,22 +5369,27 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 # was, and retrieval is by shared validated fact alone -- the
                 # deterministic path P9 is explicit is a complete path.
                 retrieval=_retrieval_knowledge,
-                # `DIRECT_SLOTS` is no longer the whole of the schema: `term`
-                # is filled by `_rule_stage` and has no slot (SPEC:409-410). A
-                # field missing here is a field P9 will not group on.
-                # `MEDIA_TYPE_FIELD` joins `TERM_FIELD` for the same reason the
-                # comment above gives: `_rule_stage` fills it, it has no slot, and
-                # a field missing here is a field P9 will not group on. It is
-                # destination-eligible, so leaving it out would fill the field and
-                # still never divide a level -- which is the whole defect.
-                # `WORK_TYPE_FIELD` joins them on the same reasoning, and it is the
-                # case the comment describes most exactly: it is the REQUIRED
-                # `artifact_kind` level of `def.subject-work-record`, so a run that
-                # filled it and left it out here would resolve the field and still
-                # never divide the level the recipe demands.
-                active_schema_for=lambda db, file_id, content_hash: (
-                    tuple(slot.field_key for slot in DIRECT_SLOTS.slots)
-                    + (TERM_FIELD, MEDIA_TYPE_FIELD, WORK_TYPE_FIELD)),
+                # `active_schema_for` STOOD HERE AND IS GONE (`104` R-09). The
+                # comment it carried argued, correctly, that a field missing from
+                # the tuple "is a field P9 will not group on" -- and the tuple had
+                # by then lost `school` and `subject` to `fd68cb6`, which emptied
+                # `DIRECT_SLOTS` and left the literal evaluating to
+                # `('term', 'media_type', 'work_type')`. Those two are exactly where
+                # `104` R-10's 22 model-written facts landed.
+                #
+                # Both halves of that argument were false, and only a run says so.
+                # P9 read the slot NOWHERE: `assemble_group_dossier` checked it
+                # callable and never called it. Handing in a callable that raises on
+                # any call leaves 57 of 57 P9 tests passing. What decides whether a
+                # fact may anchor a group is `grouping.seeds.ANCHOR_STATES` --
+                # `{direct, validated}` -- which is field-independent, so no
+                # derivation from `role_bindings` could have changed a single
+                # grouping outcome. Deriving it would have replaced a wrong dead
+                # value with a right dead one; wiring it into the seed path to give
+                # it a purpose would have widened the anchor bar behind a schema
+                # fix, and `00`:42 keeps a model conclusion out of a folder proposal
+                # deliberately. `tests/integration/test_p9_active_schema_slot_
+                # retired.py` carries both measurements.
                 signal_evaluator_for=lambda domain: True,
                 classification_store=ClassificationStore(conn).current,
                 conflicts_for=lambda file_ids: (),
@@ -5373,6 +5674,33 @@ def _nothing_could_be_read_report(
     return tuple(lines)
 
 
+#: P4's two ceiling completenesses, and they are NOT interchangeable: `capped` read
+#: something and stopped, `deferred` never started. `extractors/stage_output.py`
+#: holds them as one tuple because both mean "a budget was reached"; the sentences
+#: they earn are different, which is why each is named here.
+CAPPED: str = "capped"
+DEFERRED: str = "deferred"
+
+#: WHICH CEILING STOPPED A `capped` RUN, by the `source_type` that recorded it.
+#: Three extractors write `capped` under three different ceilings and every one of
+#: those numbers is chosen in THIS file, which is why the mapping lives here and
+#: not in `review_run/progress.py`: P13 renders a cause and holds none.
+#:
+#: `text_document` is pdfium's, because `pdf.py` is the only extractor writing that
+#: source type that caps. The long-tail families other than `spreadsheet` carry no
+#: ceiling at all -- `readers/deployment.py` says why for the archive manifest and
+#: the same holds for the rest -- so `spreadsheet` is the only one of the six here.
+#: A source type absent from this mapping produces no sentence rather than a guess.
+_CAPPED_BY_SOURCE_TYPE: Mapping[str, str] = MappingProxyType({
+    "ocr": ("OCR stopped at this deployment's per-file ceiling of "
+            f"{OCR_PAGE_CEILING} pages or {OCR_SECONDS_PER_FILE} seconds"),
+    "text_document": ("PDF text extraction stopped at this deployment's ceiling "
+                      f"of {PDF_PAGE_CEILING} pages per file"),
+    "spreadsheet": ("a spreadsheet stopped at this deployment's ceiling of "
+                    f"{SPREADSHEET_CELL_CEILING} cells per file"),
+})
+
+
 def _no_extractor_cause(conn: sqlite3.Connection):
     """P13's `cause_for`, answered where this run actually knows the answer.
 
@@ -5393,6 +5721,32 @@ def _no_extractor_cause(conn: sqlite3.Connection):
     ).fetchone()[0]
 
     def cause_for(label: str) -> str | None:
+        if label == CAPPED:
+            # §8.6 requires the cause NAMED rather than implied, and THREE
+            # extractors write `capped` -- `ocr.py`, `pdf.py` and `long_tail.py` --
+            # under three different ceilings. `review_surface.progress` buckets by
+            # state, so one bucket holds all of them, and a sentence naming one
+            # ceiling for the whole bucket would be a wrong cause printed with
+            # confidence. That is worse than the gap it replaced: the gap was true.
+            # So the run is asked which ceilings actually fired.
+            fired = sorted(row[0] for row in conn.execute(
+                "SELECT DISTINCT source_type FROM extraction_runs "
+                "WHERE completeness = ?", (CAPPED,)))
+            named = [_CAPPED_BY_SOURCE_TYPE[source] for source in fired
+                     if source in _CAPPED_BY_SOURCE_TYPE]
+            if not named:
+                # A ceiling this file does not hold. P13's own sentence says the
+                # cause is unrecorded, which is the truth here.
+                return None
+            return ("; ".join(named)
+                    + " -- and what was read before stopping was kept")
+        if label == DEFERRED:
+            # A budget stopped this extractor BEFORE it started, so nothing about
+            # it is a routing failure and the sentence below would misattribute it.
+            # This build records no deferral -- `extractors/budgets.deferred_result`
+            # has no caller -- and P13's own "no ceiling is recorded" is the honest
+            # answer for one until something records which budget fired.
+            return None
         if routed or not unrouted:
             return None
         return ("no reader in this deployment handles these files' format, so "
@@ -7328,11 +7682,16 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         print(f"\n{refusal}", file=out)
         return 2
     print(f"Plan database: {database}", file=out)
+    # `104` R-14. Built HERE and not inside `model_route`, because both halves of
+    # the wire start from this frame: the route hands it to the transport as
+    # `on_usage`, and `run` hands it to `run_call` as `usage_recorder`. One object,
+    # two faces, and neither side learns about the other.
+    usage_recorder = UsageMailbox()
     # BEFORE the run, and printed whichever way it goes. If this deployment cannot
     # call a model the person is told once, at the top, in a sentence about the
     # deployment -- rather than left to infer it from thirty file-level sentences
     # at the bottom that each read as a statement about one of their files.
-    routing = model_route(out=out)
+    routing = model_route(out=out, on_usage=usage_recorder)
     if args.enable_cloud:
         # Applied on the invocation that supplies it, exactly as `--answer` and
         # `--reject` are: a person who has just said yes should not have to run the
@@ -7438,6 +7797,7 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                      # reasons a run sends nothing -- which is the same pair
                      # `announce_cloud_posture` has just told the person about.
                      routing=routing,
+                     usage_recorder=usage_recorder,
                      semantic_model=args.semantic_model,
                      wire_handle_key=wire_handle_key_for(database))
     except RecordingNameTaken as refusal:

@@ -49,9 +49,17 @@ SITUATION = "academic.coursework"
 LABEL = "Coursework"
 MODEL_ID = "stub-qwen3:8b"
 
-#: The dossier is appended to the ratified template, and `canonical_json` sorts
-#: keys, so the JSON half begins here and nowhere else in the payload.
-DOSSIER_STARTS = '{"allowed_vocabulary"'
+#: The dossier is appended to the ratified template, and this is the template's own
+#: last sentence, so the JSON half is whatever follows it.
+#:
+#: IT USED TO BE `'{"allowed_vocabulary"'`, on the argument that `canonical_json`
+#: sorts keys so the body "begins here and nowhere else in the payload". True when
+#: written and false since `104` R-58: the body is emitted frame first now, so
+#: `call_site` leads and this locator found nothing at all. The coupling was
+#: invisible -- nothing said the locator rested on an ordering decision made in
+#: another module -- which is why the replacement leans on ratified text that cannot
+#: move without the owner rather than on a key order that can.
+DOSSIER_FOLLOWS = "The dossier follows."
 
 #: The one file in the corpus the detector marks protected. Measured rather than
 #: assumed: it comes back `sensitive_personal, protected=True, basis=safety_domain`
@@ -89,8 +97,7 @@ def _corpus(root: Path) -> Path:
 
 def dossier_in(payload: str) -> dict:
     """The JSON half of the model-visible bytes, as the model would read it."""
-    start = payload.index(DOSSIER_STARTS)
-    return json.loads(payload[start:])
+    return json.loads(payload.split(DOSSIER_FOLLOWS, 1)[1])
 
 
 def _first_supportable(dossier: dict) -> tuple[str, str, str, str] | None:

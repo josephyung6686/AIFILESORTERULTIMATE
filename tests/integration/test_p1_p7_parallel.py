@@ -46,6 +46,13 @@ from scan_agent.schema import create_scan_schema
 from scan_agent.selection import record_selection
 
 
+#: R-50's per-extraction ceiling, required and with no default. Generous
+#: here on purpose: nothing in this file is about the ceiling, and a value
+#: close to the sleeps above would make these tests fail for the one reason
+#: they are not about. `tests/integration/test_extraction_pool_time_ceiling.py`
+#: is where it is small.
+_POOL_CEILING_SECONDS: float = 300.0
+
 CLOCK = "2026-09-04T00:00:00+00:00"
 
 #: Enough files that a reversal is visible. Three would let a coincidence pass.
@@ -440,7 +447,8 @@ def test_two_runs_through_real_workers_produce_the_same_database(
     root = _corpus(tmp_path, "corpus")
     for conn in (first_db, second_db):
         pool = ProcessPool(workers=2, context_factory=_real_context,
-                           lookahead_per_worker=2, floor=0)
+                           lookahead_per_worker=2, floor=0,
+        seconds_per_extraction=_POOL_CEILING_SECONDS)
         try:
             _run(conn, root, pool=pool, readers=_readers(), policy=_open_policy())
         finally:
@@ -466,7 +474,8 @@ def test_the_real_pool_agrees_with_the_serial_one_row_for_row(
          readers=_readers(), policy=_open_policy())
 
     pool = ProcessPool(workers=2, context_factory=_real_context,
-                       lookahead_per_worker=2, floor=0)
+                       lookahead_per_worker=2, floor=0,
+        seconds_per_extraction=_POOL_CEILING_SECONDS)
     try:
         _run(second_db, root, pool=pool, readers=_readers(),
              policy=_open_policy())
@@ -503,7 +512,8 @@ def test_a_run_below_the_floor_never_starts_a_worker(second_db, tmp_path):
 
     root = _corpus(tmp_path, "small")
     pool = ProcessPool(workers=7, context_factory=_real_context,
-                       lookahead_per_worker=2, floor=len(CORPUS))
+                       lookahead_per_worker=2, floor=len(CORPUS),
+        seconds_per_extraction=_POOL_CEILING_SECONDS)
     try:
         _run(second_db, root, pool=pool, readers=_readers(),
              policy=_open_policy())
@@ -526,7 +536,8 @@ def test_a_run_above_the_floor_does_start_workers(second_db, tmp_path):
 
     root = _corpus(tmp_path, "big-enough")
     pool = ProcessPool(workers=2, context_factory=_real_context,
-                       lookahead_per_worker=2, floor=2)
+                       lookahead_per_worker=2, floor=2,
+        seconds_per_extraction=_POOL_CEILING_SECONDS)
     try:
         _run(second_db, root, pool=pool, readers=_readers(),
              policy=_open_policy())
@@ -551,7 +562,8 @@ def test_the_floor_does_not_change_a_single_row(first_db, second_db, tmp_path):
          readers=_readers(), policy=_open_policy())
 
     split = ProcessPool(workers=2, context_factory=_real_context,
-                        lookahead_per_worker=2, floor=len(CORPUS) // 2)
+                        lookahead_per_worker=2, floor=len(CORPUS) // 2,
+        seconds_per_extraction=_POOL_CEILING_SECONDS)
     try:
         _run(second_db, root, pool=split, readers=_readers(),
              policy=_open_policy())
@@ -570,4 +582,5 @@ def test_a_pool_refuses_a_floor_that_is_not_a_count():
 
     with pytest.raises(ValueError, match="count of submissions"):
         ProcessPool(workers=2, context_factory=_real_context,
-                    lookahead_per_worker=2, floor=-1)
+                    lookahead_per_worker=2, floor=-1,
+        seconds_per_extraction=_POOL_CEILING_SECONDS)

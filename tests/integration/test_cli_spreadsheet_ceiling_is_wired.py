@@ -104,4 +104,8 @@ def test_the_deployment_bundle_refuses_to_be_built_without_one():
     from readers.deployment import macos_readers
 
     with pytest.raises(TypeError):
-        macos_readers(find_structured_strings=lambda text: ())
+        # Every OTHER required ceiling is supplied, so the refusal is about
+        # this one. Omitting them all would let a later required argument
+        # keep this test green while the cell ceiling grew a default.
+        macos_readers(find_structured_strings=lambda text: (),
+                      ocr_page_ceiling=1, ocr_seconds_per_file=1)

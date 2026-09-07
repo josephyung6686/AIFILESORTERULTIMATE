@@ -2241,8 +2241,11 @@ def test_the_ocr_engine_is_still_wired_after_being_imported_late():
     is present, and it is not `None`.
     """
     from readers.deployment import macos_readers
-    readers = macos_readers(find_structured_strings=lambda _text: (),
-                            spreadsheet_cell_ceiling=cli.SPREADSHEET_CELL_CEILING)
+    readers = macos_readers(
+        find_structured_strings=lambda _text: (),
+        spreadsheet_cell_ceiling=cli.SPREADSHEET_CELL_CEILING,
+        ocr_page_ceiling=cli.OCR_PAGE_CEILING,
+        ocr_seconds_per_file=cli.OCR_SECONDS_PER_FILE)
     assert readers.ocr_engine is not None
 
 
