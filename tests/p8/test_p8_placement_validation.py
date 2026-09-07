@@ -38,7 +38,11 @@ from llm_harness.vocabulary import (
     EVIDENCE_NOT_IN_FILE_RECORD,
     GENERIC_HUB_ONLY,
     INSUFFICIENT_MARGIN,
+    INVENTED_DATE,
     INVENTED_FOLDER,
+    INVENTED_INSTITUTION,
+    INVENTED_NODE,
+    INVENTED_PROJECT,
     LEAVE_IN_PLACE,
     MOVE_PLAN_ELIGIBLE,
     NODE_NOT_IN_FROZEN_TREE,
@@ -719,3 +723,123 @@ def test_revalidate_missing_oracles_leaves_prior_row_historical(p8_conn):
     assert p8_conn.execute(
         "SELECT count(*) AS c FROM llm_verdict_supersession"
     ).fetchone()["c"] == 0
+
+
+# --- R-15: the per-level check is GROUNDING, never membership of the node list ----
+#
+# `104` R-15: `_invented_dimension` compared a level's VALUE against
+# `dossier.allowed_vocabulary`, which at site C is the list of legal NODE IDS. A
+# node id is not a value and a value is not a node id, so every real date,
+# institution and project a model reports is "invented" the day C is wired --
+# and the only way a fixture could pass was to put values into the node-id list,
+# which `_C_VOCAB` did.
+#
+# `104` §13.6 names the two hard checks: GROUNDING (the value is in the file's own
+# evidence) and SCHEMA (the dimension exists). These pin grounding in both
+# directions and pin that the frozen-tree checks above it did not move.
+
+
+def _c_direct_pair():
+    """The recorded site-C pair whose response is accepted with no reason."""
+    return next(p for p in SITE_C_OUTCOME_PAIRS if p.name == "direct_accept")
+
+
+def _also_saying(pair, value: str):
+    """The same pair, with the file's OWN released evidence also saying `value`.
+
+    Appended rather than replaced: the recorded citation quotes the released
+    value, so a replacement would fail `CITATION_SPAN_MISMATCH` and the test
+    would pass or fail for the wrong check.
+    """
+    released = tuple(
+        dataclasses.replace(item, value=f"{item.value} {value}")
+        for item in pair.dossier.released_evidence
+    )
+    return dataclasses.replace(
+        pair, dossier=dataclasses.replace(pair.dossier, released_evidence=released))
+
+
+def test_r15_a_project_value_the_files_own_evidence_states_is_not_invented():
+    pair = _with_payload_fields(
+        _also_saying(_c_direct_pair(), "PVA/RDP"),
+        per_dimension_support=[
+            {"dimension": "project", "value": "PVA/RDP", "support": "direct"},
+        ])
+    verdict = _validate_c(pair)[0][0]
+    assert verdict.reasons == (), verdict.reasons
+    assert verdict.outcome == ACCEPT_DIRECT
+
+
+def test_r15_a_project_value_the_file_never_states_is_still_invented():
+    pair = _with_payload_fields(
+        _c_direct_pair(),
+        per_dimension_support=[
+            {"dimension": "project", "value": "PVA/RDP", "support": "direct"},
+        ])
+    verdict = _validate_c(pair)[0][0]
+    assert verdict.reasons == (INVENTED_PROJECT,)
+    assert verdict.outcome == REJECT
+
+
+def test_r15_membership_of_the_node_id_list_no_longer_grounds_a_value():
+    """The defect, from the other side: a value that IS a legal node id is still
+    invented, because a node id says nothing about what the file states."""
+    pair = _c_direct_pair()
+    assert "node-alt" in pair.dossier.allowed_vocabulary
+    pair = _with_payload_fields(pair, per_dimension_support=[
+        {"dimension": "institution", "value": "node-alt", "support": "direct"},
+    ])
+    verdict = _validate_c(pair)[0][0]
+    assert verdict.reasons == (INVENTED_INSTITUTION,)
+    assert verdict.outcome == REJECT
+
+
+def test_r15_a_date_the_file_states_is_not_invented_and_one_it_does_not_is():
+    stated = _with_payload_fields(
+        _also_saying(_c_direct_pair(), "Spring 2026"),
+        per_dimension_support=[
+            {"dimension": "date", "value": "Spring 2026", "support": "direct"},
+        ])
+    assert _validate_c(stated)[0][0].reasons == ()
+    unstated = _with_payload_fields(
+        _c_direct_pair(),
+        per_dimension_support=[
+            {"dimension": "date", "value": "Spring 2026", "support": "direct"},
+        ])
+    assert _validate_c(unstated)[0][0].reasons == (INVENTED_DATE,)
+
+
+def test_r15_a_context_supported_level_is_not_grounded_against_this_files_evidence():
+    """A `context` level's value comes from the accepted group the file belongs
+    to, not from the file's own text (`00`:111, the C draft's rule 3), and the
+    dossier carries no group values to ground it against (packet G3). So the
+    check does not fire on one, and firing it would re-create R-15 one step over:
+    every context-supported level rejected as invented."""
+    pair = _with_payload_fields(
+        _c_direct_pair(),
+        per_dimension_support=[
+            {"dimension": "project", "value": "PVA/RDP", "support": "context"},
+        ])
+    verdict = _validate_c(pair)[0][0]
+    assert INVENTED_PROJECT not in verdict.reasons
+    assert verdict.outcome == ACCEPT_DIRECT
+
+
+def test_r15_a_destination_outside_the_frozen_tree_is_still_rejected():
+    """The two checks that sit ABOVE the dimension check do not move: a
+    destination that is not a legal node id, and one the tree no longer has."""
+    invented = _with_payload_fields(_c_direct_pair(), destination="node-hallucinated")
+    assert _validate_c(invented)[0][0].reasons == (INVENTED_NODE,)
+    assert _validate_c(invented)[0][0].outcome == REJECT
+    absent = dataclasses.replace(_c_direct_pair(), frozen_absent_nodes=("node-legal",))
+    assert _validate_c(absent)[0][0].reasons == (NODE_NOT_IN_FROZEN_TREE,)
+    assert _validate_c(absent)[0][0].outcome == REJECT
+
+
+def test_r15_no_site_c_fixture_puts_a_value_in_the_node_id_vocabulary():
+    """The workaround R-15 forced, gone. `allowed_vocabulary` at C is node ids;
+    a fixture that had to add `date-2026` to it to make a date pass was
+    describing the defect, not the contract."""
+    for pair in SITE_C_REASON_PAIRS + SITE_C_OUTCOME_PAIRS:
+        assert all(node_id.startswith("node-")
+                   for node_id in pair.dossier.allowed_vocabulary), pair.name

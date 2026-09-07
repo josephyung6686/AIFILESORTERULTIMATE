@@ -182,18 +182,67 @@ def _real_number(value: object) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
-def _invented_dimension(payload: Mapping[str, object], vocab: set[str]) -> str | None:
+#: The three levels `00`:114 names when it says the validator checks "that the
+#: model did not invent a date, institution, project, or node". The node is the
+#: destination and is checked above; these three are levels of the path.
+_DIMENSION_REASON: Mapping[str, str] = {
+    "date": INVENTED_DATE,
+    "institution": INVENTED_INSTITUTION,
+    "project": INVENTED_PROJECT,
+}
+
+
+def _stated_by_the_file(value: object, dossier: Dossier) -> bool:
+    """Whether the file's OWN released evidence says this.
+
+    The same predicate `validation._check_citation` uses, and deliberately the
+    same source: a cited span is matched against `ReleasedEvidence.value` and
+    nothing else, because that is what the model was shown. Matching a level's
+    value against the store instead would accept a value the model could not
+    have read and reject the one it did.
+    """
+    if not isinstance(value, str) or not value:
+        return False
+    return any(value in item.value for item in dossier.released_evidence)
+
+
+def _invented_dimension(payload: Mapping[str, object], dossier: Dossier) -> str | None:
+    """GROUNDING, which is what `104` §13.6 makes the hard check.
+
+    **R-15, and it was not hypothetical.** This compared a level's VALUE against
+    `dossier.allowed_vocabulary`, which at site C is the list of legal NODE IDS.
+    A node id is not a value and a value is not a node id, so the first real
+    `project`, `institution` or `date` a model reported was rejected as invented
+    the day C was wired -- and the only way a fixture could pass was to put
+    values into the node-id list, which `_C_VOCAB` did until this landed.
+
+    **`direct` levels only.** A `context` level's value comes from the accepted
+    group the file belongs to rather than from its own text (`00`:111, the C
+    draft's rule 3), and the dossier carries no group values to ground it
+    against (packet §7 G3: the live C dossier has no node profiles and no
+    accepted-group items). Grounding one against the FILE's evidence would
+    re-create R-15 one step over -- every context-supported level rejected as
+    invented -- so the check does not fire on one, and `00`:111's own example is
+    the reason: `HW 3.pdf` is placed under a course it never names.
+
+    **The schema half of §13.6 has no channel at C, and is not faked here.** At
+    site A the schema check is real (`active_schema_for` over the domain's
+    fields). At C the dimensions a model may name are the frozen tree's own
+    levels; `Dossier.folder_levels` is empty at C by design ("empty at B, C and
+    D, which design no tree") and `allowed_vocabulary` is node ids, so nothing
+    in the dossier says which levels exist. The response schema constrains
+    `dimension` to a non-empty string and `SCHEMA_INVALID` carries that much.
+    Naming the levels is the node-profile change R-17 makes; a check invented
+    here would be a rule guessing at the tree.
+    """
     for item in _dimensions(payload):
-        value = item.get("value")
-        dimension = item.get("dimension")
-        if value in vocab:
+        if item.get("support") != "direct":
             continue
-        if dimension == "date":
-            return INVENTED_DATE
-        if dimension == "institution":
-            return INVENTED_INSTITUTION
-        if dimension == "project":
-            return INVENTED_PROJECT
+        reason = _DIMENSION_REASON.get(item.get("dimension"))
+        if reason is None:
+            continue
+        if not _stated_by_the_file(item.get("value"), dossier):
+            return reason
     return None
 
 
@@ -221,7 +270,7 @@ def _placement_site(
         return _reject(verdict, INVENTED_NODE, NO_DESTINATION)
     if not dependencies.node_exists(destination, plan_version):
         return _reject(verdict, NODE_NOT_IN_FROZEN_TREE, NO_DESTINATION)
-    invented = _invented_dimension(payload, vocab)
+    invented = _invented_dimension(payload, dossier)
     if invented is not None:
         return _reject(verdict, invented, NO_DESTINATION)
     if any(item.get("support") == "unsupported" for item in _dimensions(payload)):

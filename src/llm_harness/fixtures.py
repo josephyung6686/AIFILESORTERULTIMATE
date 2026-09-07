@@ -357,7 +357,13 @@ SITE_B_OUTCOME_PAIRS: tuple[RecordedPair, ...] = (
     ),
 )
 
-_C_VOCAB = ("node-legal", "node-alt", "node-hub", "date-2026", "inst-1", "proj-1")
+#: NODE IDS, and only node ids. `date-2026`, `inst-1` and `proj-1` sat here
+#: until `104` R-15 was fixed, because `_invented_dimension` compared a level's
+#: VALUE against this list and a real value could only pass by being added to
+#: it. Grounding is now against the file's released evidence, so the workaround
+#: is gone and `test_r15_no_site_c_fixture_puts_a_value_in_the_node_id_
+#: vocabulary` keeps it gone.
+_C_VOCAB = ("node-legal", "node-alt", "node-hub")
 
 
 def _c_dossier(dossier_id: str, *, basis: str = DIRECT_ANCHOR,
@@ -374,8 +380,11 @@ def _c_dossier(dossier_id: str, *, basis: str = DIRECT_ANCHOR,
 def _c_payload(destination: str | None = "node-legal", **extra: object) -> dict:
     body: dict[str, object] = {
         "destination": destination,
+        # GROUNDED IN THE RELEASE, which is what `_invented_dimension` now
+        # checks: `_released_for` releases `SPAN` for the excerpt, so a level
+        # whose value is that span is a level the file itself states.
         "per_dimension_support": [
-            {"dimension": "date", "value": "date-2026", "support": "direct"},
+            {"dimension": "date", "value": SPAN, "support": "direct"},
         ],
         "alternatives": ["node-alt"],
         "conflicts_considered": [],
