@@ -64,13 +64,55 @@ HANG = "00-hang.pdf"
 
 CORPUS = (HANG, "01-alpha.pdf", "02-bravo.pdf", "03-charlie.pdf")
 
-#: What the ceiling is set to in these tests. Small, because every test here pays it
-#: once in wall time.
-_CEILING_SECONDS = 1.5
+#: What the ceiling is set to in the tests that still run on the REAL clock. It was
+#: 1.5, chosen tight so that three 1.0s neighbours on two workers would exceed it and
+#: catch a ceiling measured from submit. That relationship made this number a guard
+#: and also made it a race: at load 13, with eight suites running, the neighbours
+#: overran 1.5s on CPU contention and two tests failed with `01-alpha.pdf was failed
+#: by its neighbour` -- a true sentence about the machine and a false one about the
+#: code. The guard moved to `_ScriptedClock`, where fake time cannot be slowed down
+#: by anything, so this number is now free to be generous: eight times the 1.0s a
+#: neighbour needs, and still under `_HANG_SECONDS` so the hang is stopped.
+_CEILING_SECONDS = 8.0
 
 #: Longer than the ceiling by enough that no scheduling jitter can make the reader
 #: finish first, and short enough to be a slow failure rather than a hung suite.
 _HANG_SECONDS = 30.0
+
+#: The ceiling the fake-clock tests run under, in FAKE seconds. Large on purpose:
+#: under a driven clock the only wait that ends at a ceiling is the one the script
+#: sends past it, so every other wait has headroom no machine load can eat.
+_FAKE_CEILING_SECONDS = 60.0
+
+#: How far the scripted clock jumps. Past `_FAKE_CEILING_SECONDS` by a wide margin,
+#: so the crossing is unambiguous rather than a subtraction that lands near zero.
+_FAKE_JUMP_SECONDS = 10_000.0
+
+
+class _ScriptedClock:
+    """A monotonic source in fake seconds, driven rather than observed.
+
+    WHY THESE TESTS STOPPED USING THE REAL ONE. The defect this file guards is a
+    ceiling measured from SUBMIT rather than from the moment the consuming loop
+    begins waiting for a file. Expressed in real seconds that is a race -- sleeping
+    neighbours against a wall clock -- and a race is decided by the machine. Both
+    of the tests below failed at load 13 while eight suites ran, with `01-alpha.pdf
+    was failed by its neighbour`, on CPU contention and not on the clock. The
+    semantics are what the guard is about, so the clock is what the test drives.
+
+    `jump_after` counts CALLS, not files, because that is what `ProcessPool.result`
+    actually does: one read to set the deadline, then one per wait. With
+    `jump_after=1` the first wait of the first `result()` finds the ceiling already
+    crossed and nothing else ever does.
+    """
+
+    def __init__(self, *, jump_after: int) -> None:
+        self.calls = 0
+        self._jump_after = jump_after
+
+    def __call__(self) -> float:
+        self.calls += 1
+        return 0.0 if self.calls <= self._jump_after else _FAKE_JUMP_SECONDS
 
 #: The neighbours are slow too, so they are genuinely still outstanding when the
 #: ceiling fires on the head. THIS NUMBER IS LOAD-BEARING and the first draft got it
@@ -209,23 +251,55 @@ def test_the_hung_file_is_marked_with_the_ceiling_and_the_extractor(
     assert extractor in reason, reason
 
 
-def test_the_neighbours_are_read_normally(live_db, corpus, pool):
+def test_a_ceiling_measured_from_submit_would_fail_the_queued_neighbours(
+        tmp_path, corpus):
     """The whole promise, and the test that decided how the ceiling is measured.
 
     The window in flight behind the hung file must be resubmitted, not failed --
     the same rule the death path follows, for the same reason: surviving somebody
     else's deadlock is not an attempt.
 
-    THIS IS ALSO THE REGRESSION GUARD FOR THE CLOCK, and the numbers above are what
-    make it one. Three neighbours at 1.0s on two workers is more than the 1.5s
-    ceiling, so a ceiling measured FROM SUBMIT expires on files that are still in
-    the queue: the first draft did that and the full suite failed here with
-    "01-alpha.pdf was failed by its neighbour", `01-alpha.pdf` and `02-bravo.pdf`
-    both carrying the TimeoutError of a file they were merely standing behind. One
-    deadlock would have failed the whole look-ahead window on a real corpus. The
-    clock now starts when the consuming loop begins waiting for a file, so shortening
-    these sleeps or lengthening the ceiling would retire the guard without
-    retiring the defect.
+    THE CLOCK IS DRIVEN, AND THAT IS WHAT MAKES THIS A GUARD RATHER THAN A RACE.
+    The script sends fake time 10,000 seconds past a 60-second ceiling during the
+    hung file's wait. Every neighbour was submitted BEFORE that jump, so a ceiling
+    measured from submit finds all of them expired the moment it looks -- which is
+    exactly what the first draft did, and the full suite failed here with
+    `01-alpha.pdf was failed by its neighbour`, alpha and bravo both carrying the
+    TimeoutError of a file they were merely standing behind. One deadlock would
+    have failed the whole look-ahead window on a real corpus. Measured from the
+    moment the loop begins waiting for each file, every neighbour gets a fresh
+    60 fake seconds and none of them can expire. No sleep in this test races
+    anything, so a loaded machine changes the timings and not the answer.
+    """
+    clock = _ScriptedClock(jump_after=1)
+    pool = ProcessPool(workers=2, context_factory=_hanging_context,
+                       lookahead_per_worker=2, floor=0,
+                       seconds_per_extraction=_FAKE_CEILING_SECONDS, now=clock)
+    try:
+        handles = [pool.submit(_request(corpus, name)) for name in CORPUS]
+        outcomes = {name: pool.result(handle)
+                    for name, handle in zip(CORPUS, handles)}
+
+        assert _failure_reason(outcomes[HANG]) is not None, "the hang was not stopped"
+        for name in CORPUS:
+            if name == HANG:
+                continue
+            assert _failure_reason(outcomes[name]) is None, (
+                f"{name} was failed by its neighbour: {_failure_reason(outcomes[name])}")
+    finally:
+        pool.close()
+
+
+def test_the_neighbours_are_read_normally(live_db, corpus, pool):
+    """The same promise through a whole run, on the real clock, with real margins.
+
+    One real-time test is kept because a driven clock cannot prove the pool works
+    when nobody is driving it: the production ceiling is `time.monotonic` and a
+    default that had drifted would pass every test above. What this asserts is only
+    that a run over a corpus containing a hang finishes with its neighbours read --
+    no timing relationship between the sleeps and the ceiling is claimed here, and
+    that is deliberate. The relationship is the test above's, where it cannot be
+    decided by CPU contention.
     """
     _run(live_db, corpus, pool)
     rows = _runs(live_db)
@@ -267,9 +341,10 @@ def test_the_pool_is_whole_afterwards_and_reads_the_next_file(tmp_path, corpus):
     rebuild that produced a dead executor, or one that quietly fell back to the
     calling thread, fails that last line.
     """
+    clock = _ScriptedClock(jump_after=1)
     pool = ProcessPool(workers=2, context_factory=_hanging_context,
                        lookahead_per_worker=2, floor=0,
-                       seconds_per_extraction=_CEILING_SECONDS)
+                       seconds_per_extraction=_FAKE_CEILING_SECONDS, now=clock)
     try:
         handles = [pool.submit(_request(corpus, name))
                    for name in (HANG, "01-alpha.pdf", "02-bravo.pdf")]
