@@ -201,15 +201,23 @@ def test_the_wired_set_agrees_with_the_injections_rather_than_with_itself():
             "site that cannot construct a request")
     assert cli.A_FACT in cli.WIRED_CALL_SITES
 
-    # C and D -- NOT wired, and the announcement says so. `model_path_available`
-    # reads these as a set: with them `None` a file that needs a judgement abstains.
+    # C and D -- INJECTED in observe mode, and still NOT wired. They no longer
+    # appear as named keywords at all: `model_path_available` reads the set
+    # all-or-nothing, so they arrive as one splat and a per-name check would read
+    # `None` for a field that is present. What this asserts instead is that the
+    # splat is the one the observe builder fills, and that neither site joined
+    # `WIRED_CALL_SITES` -- which is the claim on the screen about where a
+    # person's files may be SENT, and these two are asked under D2 drafts that go
+    # nowhere but this device.
     for name in ("gate", "model_client", "prompt", "call_dependencies"):
-        assert _is_none(placement.get(name)), (
-            f"placement's {name} is no longer None. If C_placement was just "
-            "wired, add it to WIRED_CALL_SITES -- but only once a prompt is "
-            "ratified for it too, or the announcement becomes untrue one step "
-            "later.")
+        assert placement.get(name) is None, (
+            f"placement's {name} is a named keyword again. The eight arrive "
+            "together or not at all; naming one is the half-injection "
+            "`model_path_available` exists to catch.")
+        assert name in cli.OBSERVE_PLACEMENT_FIELDS
     assert cli.C_PLACEMENT not in cli.WIRED_CALL_SITES
+    assert cli.C_PLACEMENT in cli.OBSERVE_CALL_SITES
+    assert cli.D_RESIDUAL in cli.OBSERVE_CALL_SITES
     # B -- INJECTED, AND STILL NOT WIRED, which is the distinction this test now
     # has to carry. `104` §7 Phase 1 step 6 runs B in observe mode: it builds a
     # dossier through the real gate, calls the model and records the verdict, and
