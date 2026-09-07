@@ -749,18 +749,61 @@ class ProcessPool:
                 request, attempts=attempts - 1, ends=ends)
 
     def _shutdown(self) -> None:
-        if self._pool is not None:
-            # `wait=True`, and the two arguments do different jobs. `cancel_futures`
-            # drops the QUEUED window, which is what keeps a raise prompt; `wait`
-            # governs whether the worker PROCESSES are still running when this
-            # returns. It was False, and False meant `shutdown` returned before a
-            # single stop-sentinel had been sent -- leaving the reaping to
-            # `concurrent.futures.process._python_exit`, an interpreter-shutdown hook
-            # that a run killed by a signal never reaches. So what is waited for here
-            # is at most one extraction per worker, the ones already in a reader,
-            # never the queued window.
-            self._pool.shutdown(wait=True, cancel_futures=True)
-            self._pool = None
+        """Stop the pool, WAIT for it, and stop waiting at the ceiling.
+
+        `wait=True` and `cancel_futures` do different jobs. `cancel_futures` drops
+        the QUEUED window, which is what keeps a raise prompt; `wait` governs
+        whether the worker PROCESSES are still running when this returns. It was
+        False, and False meant `shutdown` returned before a single stop-sentinel had
+        been sent -- leaving the reaping to `concurrent.futures.process._python_exit`,
+        an interpreter-shutdown hook that a run killed by a signal never reaches. So
+        what is waited for here is at most one extraction per worker, the ones
+        already in a reader, never the queued window.
+
+        **AND THE WAIT IS BOUNDED, because "at most one extraction per worker" was an
+        assumption about workers that answer.** A worker wedged inside Apple's
+        frameworks answers no stop sentinel -- the ceiling branch and `_rebuild` both
+        say so, and both call `_kill_workers` before they come here. This method was
+        the third caller and it killed nothing, so the one path that reaches it with
+        a wedge still live -- a `ContractViolation` raised while a worker is inside a
+        reader, out through `run_p1_p7`'s `finally` -- joined the executor manager
+        thread with no bound at all. That is the silent hang the ceiling exists to
+        end, moved into the exit from the run.
+
+        So the join is given the pool's own ceiling, and then the workers are killed.
+        NO SECOND CONSTANT: the number that says how long one extraction may take is
+        the number that says how long stopping one may take, and a run that has
+        already decided to leave has nothing to gain by waiting longer than it would
+        have waited for the reading itself.
+
+        `Executor.shutdown` blocks and takes no timeout, so the bound is a thread.
+        It is a daemon because a run whose interpreter is going down must not be held
+        open by the helper that was cleaning up after it.
+        """
+        pool, self._pool = self._pool, None
+        if pool is None:
+            return
+        import threading
+
+        stopping = threading.Thread(
+            target=pool.shutdown, kwargs={"wait": True, "cancel_futures": True},
+            daemon=True)
+        stopping.start()
+        stopping.join(self._ceiling)
+        if stopping.is_alive():
+            # Nothing answered the sentinel. `_kill_workers` reads `self._pool`, so
+            # it is put back for the length of that call and taken away again: the
+            # attribute is what `close()` and `_executor` read to decide whether a
+            # pool exists, and a half-shut one must look alive to neither.
+            self._pool = pool
+            try:
+                self._kill_workers()
+            finally:
+                self._pool = None
+            # Bounded as well. The workers are dead by now -- `_kill_workers` joins
+            # each one -- so what is left is the manager thread noticing, and a wait
+            # that could not end is the defect this method has just stopped having.
+            stopping.join(self._ceiling)
 
     def close(self) -> None:
         """Cancel the window and stop, and BE STOPPED when this returns.
@@ -770,6 +813,13 @@ class ProcessPool:
         extraction before surfacing. It waits for the handful still inside a reader,
         because a worker this run has finished with must not still be alive when the
         run ends -- see `_watch_the_parent` for what a surviving one costs.
+
+        **AND IT RETURNS WHETHER OR NOT THEY ANSWER.** That `ContractViolation` exit
+        is the one path in this class that can reach a shutdown with a WEDGED worker
+        still live, because every other path that meets a wedge kills first. So
+        `_shutdown` waits one ceiling and then kills, and this method's promise --
+        be stopped when it returns -- is now true of a reader that has stopped
+        answering as well as of one that is merely slow.
         """
         self._shutdown()
         self._outstanding = {}
