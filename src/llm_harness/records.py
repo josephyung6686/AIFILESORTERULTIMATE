@@ -322,6 +322,17 @@ class ReleasedEvidence:
     address: str
     value: str
     zone: str
+    #: `104` R-135. P7's `ReleasedItem.unit_length` -- the length of the text unit the
+    #: address points into -- carried across so `report_from_verdicts` can say how much
+    #: of a unit this call released. It is the ONE field here the model never sees:
+    #: `dossier._released_body` writes `RELEASED_EVIDENCE_FIELDS` and this is not among
+    #: them, which is `ReleasedItem.content_mapping`'s own reason -- "it is the
+    #: measurement the whole-document refusal is taken against, not a value".
+    #:
+    #: Defaulted because a fixture or a test that predates the count still constructs;
+    #: `None` reads as "no unit at this address", which is what it means on
+    #: `ReleasedItem` too (§2.3's cell, §2.8's EXIF field), and never as "not measured".
+    unit_length: int | None = None
 
     def __post_init__(self) -> None:
         if not self.observation_key or not self.address:
@@ -329,6 +340,11 @@ class ReleasedEvidence:
                 "ReleasedEvidence requires observation_key and address; an item with "
                 "no address cannot bind a citation to what P7 released"
             )
+        if self.unit_length is not None and (
+                type(self.unit_length) is not int or self.unit_length < 0):
+            raise MalformedRecord(
+                "unit_length is a measured length of stored text, so it is a "
+                "non-negative int or the absence of a unit")
 
 
 @dataclass(frozen=True, slots=True)

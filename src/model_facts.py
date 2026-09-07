@@ -81,7 +81,7 @@ from privacy.resolve import (
     filename_address,
 )
 from privacy.release import (
-    ModelCallRequest, ModelTarget, Target, unit_is_a_heading,
+    ModelCallRequest, ModelTarget, Target, released_whole_heading_unit,
 )
 from privacy.vocabulary import ALWAYS_LOCAL_ZONES
 
@@ -454,11 +454,14 @@ def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
                 # and this call is not the place to discover it.
                 continue
             # `104` R-135: a whole HEADING unit is released; a whole document is not.
-            # `privacy.release.unit_is_a_heading` carries the reasoning and the count
-            # that stands in for the length bound this deployment refuses to invent.
+            # `privacy.release.released_whole_heading_unit` carries the reasoning and
+            # the count that stands in for the length bound this deployment refuses to
+            # invent. It is the SAME predicate `GroundingReport`'s two counters are
+            # computed from, so what this admits and what the report calls exposure
+            # cannot become two conditions.
             if (where.text_span.start <= 0
                     and where.text_span.end >= unit_length
-                    and not unit_is_a_heading(where)):
+                    and not released_whole_heading_unit(where, unit_length)):
                 continue
         offered.append(observation)
 

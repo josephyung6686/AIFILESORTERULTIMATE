@@ -39,6 +39,7 @@ __all__ = [
     "RELEASED_EVIDENCE_FIELDS", "CONTENT_BOUND_FIELDS",
     "DENIED_FIELDS", "NEEDS_CONSENT_FIELDS", "DECISION_TYPES", "DECISION_ORDER",
     "FORBIDDEN_PARAMETER_NAMES", "RELEASE_PARAMETERS", "MalformedRequest",
+    "HEADING_SEGMENT", "unit_is_a_heading", "released_whole_heading_unit",
     "MalformedDecision", "NoPolicyInForce",
 ]
 
@@ -235,6 +236,31 @@ def unit_is_a_heading(location) -> bool:
     """
     path = location.container_path
     return bool(path) and path[-1].kind == HEADING_SEGMENT
+
+
+def released_whole_heading_unit(location, unit_length: int | None) -> bool:
+    """Whether this item is the EXEMPTION above: a span covering a whole heading unit.
+
+    **The rule and its count are one expression, and that is the only reason this is a
+    function.** `104` R-135 releases a whole heading unit and sets no length bound, and
+    reports the exposure instead -- `llm_harness.records.GroundingReport` carries how
+    many whole heading units a call released and the longest one's length. A count
+    computed from a second spelling of the condition would drift from the condition the
+    moment either was edited, and the field it feeds would then report a number about
+    something else. `model_facts.releasable_observations` and
+    `model_placement.releasable_excerpts` admit by this predicate and
+    `llm_harness.validation.report_from_verdicts` counts by it, so there is one.
+
+    `unit_length` is `None` when P4 has no unit at the observation's own path -- §2.3's
+    cell and §2.8's EXIF field -- and a value with no unit is not the whole of one.
+    """
+    if unit_length is None:
+        return False
+    span = location.text_span
+    if span is None:
+        return False
+    return (span.start <= 0 and span.end >= unit_length
+            and unit_is_a_heading(location))
 
 
 @dataclass(frozen=True, slots=True)

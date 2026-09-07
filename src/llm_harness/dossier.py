@@ -107,6 +107,11 @@ def _released_evidence(released: Released) -> tuple[ReleasedEvidence, ...]:
             address=item.span,
             value=item.value,
             zone=item.zone,
+            # `104` R-135. Not on the wire and not in the dossier address: the four
+            # keys `_released_body` writes are unchanged, so this crosses into P8's
+            # record and stops there. `report_from_verdicts` is the only reader, and
+            # without it the two exposure counters could only ever report zero.
+            unit_length=item.unit_length,
         )
         for item in released.materialised_items
     )

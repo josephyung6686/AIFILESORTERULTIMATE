@@ -202,3 +202,110 @@ def test_a_whole_body_unit_is_still_refused(conn, tmp_path):
     offered = releasable_excerpts(conn, evidence_refs=[body.observation_key])
 
     assert offered == ()
+
+
+# --------------------------------------------------------------------------
+# The exposure the ruling reports instead of bounding
+# --------------------------------------------------------------------------
+
+#: A second heading unit, longer than the first, so "the longest" is a choice the
+#: assertion can catch getting wrong rather than the only number available.
+SECOND_HEADING = "COMS W3157: Advanced Programming, Fall 2026"
+
+
+def _dossier_released(*released):
+    """One site-A dossier carrying exactly these released items and nothing else.
+
+    Built by hand rather than from `llm_harness.fixtures` because that builder writes
+    one constant address into every item, and the counter reads the address.
+    """
+    from llm_harness.records import Dossier, EvidenceItem
+    from llm_harness.vocabulary import (
+        A_FACT, DIRECT_ANCHOR, REDUCTION_NONE, REMAINS_AMBIGUOUS,
+    )
+
+    return Dossier(
+        dossier_id="dossier-r135-exposure",
+        call_site=A_FACT,
+        subject_ref="file-1",
+        eligibility_reason=REMAINS_AMBIGUOUS,
+        plan_version=None,
+        policy_version="policy-1",
+        allowed_vocabulary=("subject",),
+        evidence_items=tuple(
+            EvidenceItem(
+                evidence_ref=item.observation_key, kind="excerpt",
+                location=item.address, excerpt_span=None,
+                reliability_state="direct", basis=DIRECT_ANCHOR)
+            for item in released),
+        conflicts=(),
+        released_evidence=tuple(released),
+        max_dossier_tokens=4000,
+        reduction_rung=REDUCTION_NONE,
+        release_id="rel-1")
+
+
+def _report(dossier):
+    from llm_harness.validation import report_from_verdicts
+
+    return report_from_verdicts(
+        dossier, (), model_id="local-model", prompt_fingerprint="fp-1",
+        dossier_builder="r135-exposure-suite", release_audit_id=None)
+
+
+def test_two_heading_units_released_whole_are_counted_and_the_longer_measured():
+    """`104` R-135's count, and the field it feeds was reporting zero until now.
+
+    The ruling sets NO length bound -- "a bound is a number nobody authored" -- and
+    reports the exposure instead. A declared counter nothing populates reports zero on
+    a run that released every heading in the corpus, which is worse than no counter:
+    it answers the question the ruling promised to answer, wrongly.
+
+    Two whole heading units here, of different lengths, so the longest is a choice.
+    """
+    from llm_harness.records import ReleasedEvidence
+
+    dossier = _dossier_released(
+        ReleasedEvidence(
+            observation_key="obs-heading-1",
+            address=f"heading:page=1/heading=1#0-{len(HEADING)}",
+            value=HEADING, zone="heading", unit_length=len(HEADING)),
+        ReleasedEvidence(
+            observation_key="obs-heading-2",
+            address=f"heading:page=2/heading=1#0-{len(SECOND_HEADING)}",
+            value=SECOND_HEADING, zone="heading",
+            unit_length=len(SECOND_HEADING)))
+
+    report = _report(dossier)
+
+    assert report.heading_units_released == 2
+    assert report.longest_heading_unit_length == len(SECOND_HEADING)
+    assert len(SECOND_HEADING) > len(HEADING)
+
+
+def test_a_dossier_with_no_whole_heading_reports_zero():
+    """Zero when zero, and the identifier INSIDE a heading is the case that matters.
+
+    `extractors/pdf.py` gives `W3134` the same container path as the heading it sits
+    in, so a count that read the container alone would report this call as an exposure
+    it is not: the span is five characters of a twenty-seven character unit and no
+    exemption was taken to release it. The predicate reads the span, and this is the
+    assertion that says so. A whole `body` unit is not counted either -- the release
+    builders refuse it, so a dossier could not carry one.
+    """
+    from llm_harness.records import ReleasedEvidence
+
+    dossier = _dossier_released(
+        ReleasedEvidence(
+            observation_key="obs-code",
+            address=f"heading:page=1/heading=1#{CODE_START}-{CODE_END}",
+            value="W3134", zone="heading", unit_length=len(HEADING)),
+        ReleasedEvidence(
+            observation_key="obs-body",
+            address="body:page=1#0-12", value="a short run",
+            zone="body", unit_length=400))
+
+    report = _report(dossier)
+
+    assert report.heading_units_released == 0
+    assert report.longest_heading_unit_length == 0

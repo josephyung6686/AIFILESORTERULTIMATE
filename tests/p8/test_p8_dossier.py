@@ -197,6 +197,12 @@ def test_canonical_bytes_carry_the_full_released_item_not_a_joined_value():
 
 
 def test_the_materialised_dossier_retains_an_immutable_released_evidence_map():
+    """`unit_length` joined this record for `104` R-135 and is the one field on it the
+    model never sees. The test above pins the WIRE shape at the four keys
+    `_released_body` writes; this one pins the RECORD, which now also carries P7's
+    measurement of the unit the address points into so `report_from_verdicts` can count
+    how much of a unit the call released. The two are deliberately different sets.
+    """
     dossier = _build()
     assert dossier.released_evidence == (
         ReleasedEvidence(
@@ -204,6 +210,7 @@ def test_the_materialised_dossier_retains_an_immutable_released_evidence_map():
             address="0:18",
             value="Columbia University",
             zone="body",
+            unit_length=64,
         ),
     )
     with pytest.raises(AttributeError):
