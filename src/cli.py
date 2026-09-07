@@ -763,6 +763,62 @@ def _no_group_contradiction(*_args: object, **_kwargs: object) -> bool:
     return False
 
 
+def _no_placement_contradiction(*_args: object, **_kwargs: object) -> bool:
+    """C's and D's `contradicts`, for the reason B's docstring already gives.
+
+    **Found by giving the placement sites a budget of their own.** C and D took
+    `fact_authorities.contradicts` -- `contradicts_stronger`, which indexes its
+    argument as a P6 fact row -- so the first real C call handed it a `Dossier`
+    and raised `TypeError: 'Dossier' object is not subscriptable` inside
+    `validation._validate_claim`. B's own comment records that exact failure and
+    that exact shape, "injecting one site's authority at another"; C had it too,
+    and nothing had reached it because C never won a slot from the budget site A
+    was emptying. The two defects were hiding each other.
+
+    The check is ANSWERED and not skipped: a placement answer names a destination
+    node and a residual answer names one of §7.7's actions, neither of which is a
+    value at a P6 field, so there is no stronger fact for one to contradict. The
+    truthful answer is the same `False` B gives one site over.
+    """
+    return False
+
+
+def observe_scan_budget(fact_budget: ScanBudget) -> ScanBudget:
+    """The ledger the observe and placement sites spend from, which is not A's.
+
+    Built from the fact pass's budget rather than beside it, because two of the
+    three inputs are facts about the RUN and not about the site: which scan this
+    is, and how many files it holds. What changes is the purse -- its own
+    `scan_id`, its own rate, floor and ceiling -- so a fact question can no longer
+    spend a slot a placement question needed.
+
+    **The defect this ends, measured.** Site A asks one call per FILE, so a corpus
+    where every file has an open question spends every slot the run has. On the
+    six-file corpus of `tests/integration/test_local_model_fact_pass.py` that is
+    five fact calls, after which site B is refused before a call and site C
+    records `BUDGET_EXHAUSTED`; on the owner's 199 files it is every run. The
+    sites that decide WHERE a file goes were being starved by the site that
+    decides WHAT it is, and nothing in the run said so: a starved site looks
+    exactly like a site nobody wired (`104` R-04).
+
+    **The other authorities are still A's and are still taken, not rebuilt.** The
+    gate, the costs, the policy version and the wire handle key are facts about
+    this deployment and this run; a second gate would be a second answer to "what
+    may leave this device". The budget is the one that was never a fact about the
+    run, and it is the only one this function replaces.
+
+    Not cached and not memoised: a `ScanBudget` is a value, the ledger lives in
+    the database under its `scan_id`, and two calls with one fact budget produce
+    two equal values that reserve from one row.
+    """
+    return ScanBudget(
+        scan_id=fact_budget.scan_id + OBSERVE_BUDGET_SUFFIX,
+        corpus_file_count=fact_budget.corpus_file_count,
+        max_calls_per_1000_files=OBSERVE_CALLS_PER_1000_FILES,
+        max_estimated_cost=OBSERVE_CALLS_PER_SCAN_CEILING,
+        min_calls_per_scan=OBSERVE_MIN_CALLS_PER_SCAN)
+
+
 def observe_group_authorities(fact_authorities, *, routing: TierRouting,
                               situation: str):
     """Site B, wired to run and to change nothing. `(p8_run_call, authorities)`.
@@ -825,7 +881,11 @@ def observe_group_authorities(fact_authorities, *, routing: TierRouting,
         # already and there is no smaller shape of it to fall back to.
         unreduced_fits=True, summarized_fits=False, anchors_fit=False,
         split_shard_fits=(), split_shards=(),
-        scan_budget=fact_authorities.scan_budget,
+        # NOT SITE A's, since `104` R-131's merge. `observe_scan_budget`
+        # carries why: one call per file spends every slot before an
+        # observe question is put, so this site drew from a purse the fact
+        # pass had already emptied.
+        scan_budget=observe_scan_budget(fact_authorities.scan_budget),
         estimated_cost=fact_authorities.estimated_cost,
         actual_cost=fact_authorities.actual_cost,
         allowed_vocabulary=observe_allowed_vocabulary(B_GROUP),
@@ -940,7 +1000,11 @@ def _template_dependencies(fact_authorities, catalogue, group) -> CallDependenci
         contradicts=_no_group_contradiction,
         unreduced_fits=True, summarized_fits=False, anchors_fit=False,
         split_shard_fits=(), split_shards=(),
-        scan_budget=fact_authorities.scan_budget,
+        # NOT SITE A's, since `104` R-131's merge. `observe_scan_budget`
+        # carries why: one call per file spends every slot before an
+        # observe question is put, so this site drew from a purse the fact
+        # pass had already emptied.
+        scan_budget=observe_scan_budget(fact_authorities.scan_budget),
         estimated_cost=fact_authorities.estimated_cost,
         actual_cost=fact_authorities.actual_cost,
         allowed_vocabulary=allowed_vocabulary_for(
@@ -1167,8 +1231,15 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
         residual_prompt=prompt_for(D_RESIDUAL),
         model_target=routing.client_for(C_PLACEMENT).model_target,
         evidence_resolver=fact_authorities.evidence_resolver,
-        contradicts=fact_authorities.contradicts,
-        scan_budget=fact_authorities.scan_budget,
+        # NOT A's ORACLE, for the reason `_no_placement_contradiction` carries:
+        # `contradicts_stronger` reads its argument as a P6 fact row and a
+        # placement claim is not one.
+        contradicts=_no_placement_contradiction,
+        # NOT SITE A's, since `104` R-131's merge. `observe_scan_budget`
+        # carries why: one call per file spends every slot before an
+        # observe question is put, so this site drew from a purse the fact
+        # pass had already emptied.
+        scan_budget=observe_scan_budget(fact_authorities.scan_budget),
         estimated_cost=fact_authorities.estimated_cost,
         actual_cost=fact_authorities.actual_cost,
         policy_version=fact_authorities.policy_version,
@@ -1315,6 +1386,40 @@ FACT_CALL_MAX_RELEASED_OBSERVATIONS: int = 12
 #: model that abstains on everything is indistinguishable from a model nobody wired.
 FACT_CALLS_PER_1000_FILES: int = 1000
 FACT_MIN_CALLS_PER_SCAN: int = 1
+
+#: §8.6's spend ceilings for the OBSERVE AND PLACEMENT sites, which are not site A's
+#: and were site A's until now. `00` names these ceilings and states no values; the
+#: numbers below are the deployment's, exactly as the fact pair above.
+#:
+#: WHY A SECOND BUDGET AND NOT A LARGER ONE. B, C and D took `fact_authorities.
+#: scan_budget` -- the same object, the same `scan_id`, the same reservations -- on
+#: the argument that a budget is a fact about the run rather than about which site
+#: is asking. The measurement says otherwise: site A is one call per FILE, so a
+#: corpus where every file has an open question spends every slot before a
+#: placement question is ever put. Measured on the six-file local corpus of
+#: `tests/integration/test_local_model_fact_pass.py`: five fact calls, then site B
+#: refused before a call and site C recording `BUDGET_EXHAUSTED` -- the sites that
+#: decide WHERE a file goes starved by the site that decides WHAT it is. A larger
+#: shared number moves the corpus at which that happens and does not change it.
+#:
+#: The rate and the floor are the fact pass's own values, stated again rather than
+#: aliased: these are two policies that agree today, and a deployment that raises
+#: one has no reason to raise the other by accident.
+OBSERVE_CALLS_PER_1000_FILES: int = 1000
+OBSERVE_MIN_CALLS_PER_SCAN: int = 1
+
+#: The most calls the observe and placement sites may make in one scan. The same
+#: argument as `FACT_CALLS_PER_SCAN_CEILING` and the same units -- one call costs
+#: one -- and a separate number, because a run that spends its fact ceiling must
+#: still be able to place what it learned.
+OBSERVE_CALLS_PER_SCAN_CEILING: Decimal = Decimal("200")
+
+#: The observe budget's own `scan_id`, DERIVED from the fact pass's rather than
+#: minted, so a reader of `llm_budget_reservation` can see which run a row belongs
+#: to. That column is a bare key with no foreign key to the scan and is indexed on
+#: its own, so two ids are two ledgers -- and one id was the shared purse this
+#: separation exists to end.
+OBSERVE_BUDGET_SUFFIX: str = ":observe"
 
 #: What one A_fact call is charged, and what it settles for. THIS DEPLOYMENT
 #: MEASURES NEITHER A TOKEN NOR A PRICE: `readers.model_deepseek` returns no usage

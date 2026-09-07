@@ -933,10 +933,36 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # shown levels are one computation: a level offered without its field, or a
         # field offered without its level, is the mismatch
         # `dossier._folder_levels_body` refuses.
+        anchor_levels = anchor_only_levels(request, authorities.anchor_only)
         vocabulary, visible_levels = open_question(
-            pending,
-            authorities.folder_levels
-            + anchor_only_levels(request, authorities.anchor_only))
+            pending, authorities.folder_levels + anchor_levels)
+        # A FILENAME IS NEVER A SOURCE FOR AN ANCHOR-ONLY FIELD (`105` §14.4), and
+        # the only way to say that to a model is not to show it the name. A call
+        # whose whole question is the anchor's own -- the syllabus whose subject,
+        # term and kind are already settled, asked its school and nothing else --
+        # is offered no `Filename` item, so the name cannot be cited for the one
+        # field the ruling forbids it to answer.
+        #
+        # MEASURED, on the six-file corpus of `tests/integration/
+        # test_local_model_fact_pass.py`: the local model answered `school` by
+        # copying the file's own name, `PHYS 1401 syllabus.txt`, the single
+        # `school` fact the run wrote cited the filename observation and nothing
+        # else -- `104` R-95's finding reproducing live -- and that fact then
+        # entered the group dossier and cost the run its site-B call. `104` R-95's
+        # own corpus is the same failure at scale: 38 model facts on 52 files,
+        # every one a `school`, most of them filenames.
+        #
+        # NARROW ON PURPOSE, and the gap is stated rather than papered over: a
+        # call that offers `school` BESIDE an open `subject` or `term` still shows
+        # the name, because those two are answered from names legitimately and
+        # blinding them would cost the coverage this wave exists to win. On such a
+        # call the model may still cite the name for `school`; the fact is written,
+        # and P10's two-anchor rule refuses it a folder level
+        # (`upstream._group_level_agreed`). Closing it at the fact itself needs a
+        # per-field citation screen inside P8's check 2, which is a seam this
+        # module does not own.
+        name_may_be_cited = bool(
+            set(vocabulary) - {level.field for level in anchor_levels})
 
         # `104` R-13, AND IT IS HERE FOR ONE REASON: everything after this line
         # costs. `run_call` reserves a budget slot, `gate.release` mints an audit
@@ -999,7 +1025,8 @@ def fact_call_stage(authorities: FactCallAuthorities):
                 conn,
                 build_fact_request(
                     request, observations,
-                    filename=filename_citation(conn, file_id),
+                    filename=(filename_citation(conn, file_id)
+                              if name_may_be_cited else None),
                     model_target=authorities.model_target,
                     prompt=authorities.prompt,
                     max_dossier_tokens=authorities.max_dossier_tokens),
