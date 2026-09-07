@@ -3381,6 +3381,53 @@ SEMANTIC_SIMILARITY_THRESHOLD: float = 0.30
 SEMANTIC_CHANNEL_WEIGHTS: Mapping[str, int] = MappingProxyType({
     SHARED_VALIDATED_FACT: 2, MUTUAL_SEMANTIC_RETRIEVAL: 1})
 
+#: P9 RETRIEVAL's own floor, split from recognition's `SEMANTIC_MIN_CHARS` on the
+#: owner's ruling of 2026-09-06 (`104` R-59). The two ask different questions of the
+#: same encoder -- recognition asks "what kind of thing is this", retrieval asks
+#: "which other file is this near" -- and `00`:56 names the second for exactly the
+#: files the first has least to say about: "embeddings ... can find files such as
+#: HW 3.pdf that lack the course code but resemble lecture notes and earlier problem
+#: sets". Recognition's 100 is measured in `planning/97` and is not moved here.
+SEMANTIC_RETRIEVAL_MIN_CHARS: int = 100
+
+
+def semantic_retrieval_text(conn: sqlite3.Connection, file_id: str,
+                            content_hash: str) -> str | None:
+    """The words P9's semantic channel encodes for one file version, or nothing.
+
+    **R-59, and it is the whole of why this is a named function.** The two lines
+    below used to sit inside `_embedding_runtime`'s `text_for` closure and read:
+
+        text = evidence_text(conn, file_id, content_hash, zones=..., char_budget=...)
+        return text if text and len(text) >= SEMANTIC_MIN_CHARS else None
+
+    `recognition.semantic.evidence_text` returns `(text, observation_keys)`. So
+    `len(text)` was 2 for every file that has ever been scanned, the guard returned
+    `None` unconditionally, and the channel `3ac0c0b` built has never computed a
+    vector -- for any file, at any length, in any run. `_mutual_semantic_neighbours`
+    returns `[]` at its `seed_vector is None` line, so no `mutual-semantic-retrieval`
+    edge has ever existed. Measured on the owner's 199 files: a tuple 199 times.
+
+    `d75dcb5`, the recognition commit that added the second return value, is an
+    ANCESTOR of `3ac0c0b`: the channel was written against this signature and was
+    dead on arrival rather than severed later.
+
+    A closure is why nothing caught it. `_embedding_runtime` cannot be entered
+    without loading MiniLM weights, which are machine state and not repository
+    state, and `tests/integration/test_p9_embedding_pipeline.py` injects its own
+    `embedding_text_for` -- so P9's half was tested and the composition root's half
+    was unreachable from any test. It is a module-level function now, and
+    `text_for` is one line.
+
+    **The zones are recognition's list and the filename leads it.** `00`:56 names
+    the filename among what a sparse file has, and `SEMANTIC_ZONES[0]` is
+    `filename`, so it is already in the vector: nothing is added here for it.
+    """
+    text, _keys = evidence_text(conn, file_id, content_hash,
+                                zones=SEMANTIC_ZONES,
+                                char_budget=SEMANTIC_CHAR_BUDGET)
+    return text if text and len(text) >= SEMANTIC_RETRIEVAL_MIN_CHARS else None
+
 
 # --- P9's typed edges, read by P11 (`104` R-12) -------------------------------------
 #
@@ -3660,11 +3707,9 @@ def _embedding_runtime(semantic_model, *, versions_for):
                              dimension=int(vector.shape[0]), encoding=cfg.encoding)
 
     def text_for(conn, file_id: str, content_hash: str, scope: str):
-        """This file version's own words. `recognition.semantic` already assembles
-        them and a second assembler here would be a second scope wearing one name."""
-        text = evidence_text(conn, file_id, content_hash,
-                             zones=SEMANTIC_ZONES, char_budget=SEMANTIC_CHAR_BUDGET)
-        return text if text and len(text) >= SEMANTIC_MIN_CHARS else None
+        """This file version's own words. One line, so it can be tested (R-59)."""
+        del scope        # the runtime's `config.scope`, already bound above
+        return semantic_retrieval_text(conn, file_id, content_hash)
 
     def similarity(left: bytes, right: bytes) -> float:
         """Cosine, and it IS a dot product here: `MiniLmEncoder.encode` returns
