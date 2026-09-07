@@ -861,3 +861,31 @@ The one table the owner needs to read the local model's fitness for placement. "
 | A_fact (per field) | 5 cases with every asked field to decline (A02, A04, A07, A09, A13) | **Produced per field, never per response**: `school` declined on A02, A07, A09 under all three glossaries and on A01 under the proposal alone; `subject` declined on A04, A09 under all three; but no arm declined every field on any should-abstain case (A04 and A13 always yield a school; A02, A07 always a subject). | not run (§8) |
 
 What the table supports on 2026-09-06: on the two sites measured locally with 62 calls under four wordings, the local model produced no abstention of any kind on six should-abstain cases and no false abstention on twenty-five answerable ones. It is not a wording effect — the same texts produce 4 of 4 and 1 of 2 on the cloud — and it is the AbstentionBench finding (§6 R2) at 8B scale with thinking off. For placement, where a wrong placement moves a file into somebody's folder and stays there (`00`:114), a model that never says `none` is not fit under any text measured here; `104` R-18's setting (thinking on, a separated budget) is the next measurement, and it belongs to D1, not D2.
+
+## 12. Put to the owner on 7 Sep 2026: the five things only the owner can ratify
+
+Drafts by the lead, in the packet's own convention: a revision is a new file and a new manifest row, never an edit to a row a run has recorded. Nothing below is in force. The owner's word per item is "ratify as written" or an amendment in a sentence; the lead then writes the file and the row.
+
+### 12.1 Site C, `c_placement.unratified.eliminate-v2.2026-09-06`
+
+The text in `src/llm_harness/library/c_placement_template.eliminate-v2.txt` (97 lines, §3.6 above), unchanged. Ratifying it sets that manifest row's `status` to `ratified` once P1 (per-row status) has merged; P2 (a real resolver) must be merged before the run that uses it. Local model first; the cloud waits on R-82.
+
+### 12.2 R-101, term spellings (a closed vocabulary of forms in `facts/dates.py`)
+
+Accepted today: `<Season> <YYYY>` (`Spring 2026`, also `Spring2026`, `2026-Spring`), `AY <YYYY>-<YY>`, `<Named term> <YYYY>` (`Michaelmas Term 2024`). Proposed additions, each a dedicated pattern with its own id, never generic parsing: `<YYYY>-<YYYY> Term <n>` and `<YYYY>-<YYYY> Semester <n>` (the two-term academic year's own spelling, 28 refused answers on the owner's corpus). Proposed refusals, stated so the validator's reason names them: a bare year (`2019`), a bare range (`2023-2024`) with no term word, and a season initial with a year (`S2026`: Spring or Summer). Grain: per course, written by B per course once B is ratified; the one-group-per-label merge retires then.
+
+### 12.3 R-89, two lists, two names (closed vocabularies in `privacy/vocabulary.py`)
+
+Always-local kinds, shown to no cloud model and filed by rules and local models: receipts, order confirmations, boarding passes and tickets, screenshots that show a person's own account or messages, bank or card notifications. Protected kinds, shown to no model and filed one at a time by the person: identity documents (passport, licence, national id), medical records, financial statements and tax returns, credentials and password vaults, legal documents naming the person. A kind on neither list is ordinary. The owner may move any kind between the lists.
+
+### 12.4 R-102 with R-95, the school rule as A_fact v2 text
+
+A new file `a_fact_template.v2.txt` = the ratified text plus one rule appended to THE RULES, and one row in the manifest under a new id `a_fact.unratified.folder-levels-v2.2026-09-07`:
+
+> 12. The holder's school is answered only from an anchor document's own released text: a syllabus, an enrollment or registration letter, a transcript, a tuition or housing statement. A filename, an email domain, a header that merely mentions a university, or a document addressed TO a school is not the holder's school. When the released text is not from such a document, decline the field.
+
+No other line changes. Code side (not the owner's): the field is asked only of files whose kind is one of those anchors, and one institution becomes a folder level only when two anchors agree.
+
+### 12.5 R-106 with R-119, the A_fact response schema v2
+
+A new file `a_fact_response_schema.v2.json`, three deltas from the ratified schema, and a manifest row: (a) `$defs.claim.properties` gains `claim_ref` as an optional string (the field the claim is about; the code already reads it and this repo's fixtures already send it); (b) `$defs.payload.properties.value` allows the empty string, with the description "an empty value declines this field; it is recorded as an abstention, never as a wrong answer"; (c) the schema's top-level `description` states template rule 8 in one sentence ("never two claims about one field; the validator destroys the whole answer when it sees two"), because that rule has no schema form. Everything else, including every `additionalProperties: false`, stays.
