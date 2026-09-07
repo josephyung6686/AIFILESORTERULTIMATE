@@ -90,23 +90,6 @@ class ReuseRefused(Exception):
     """
 
 
-#: The tables copied verbatim, in insert order, once the identity and the dossier
-#: have been TRANSLATED. Each filter reads `main`, which by then holds exactly the
-#: dossiers whose file this corpus still has at that path with those bytes: a prior
-#: answer about a file that moved or changed is left behind, and so is everything
-#: under it. Filtering against the prior instead would copy a response and a verdict
-#: whose dossier never arrived.
-SEED_PLAN: tuple[tuple[str, str], ...] = (
-    ("llm_response", "WHERE dossier_id IN (SELECT dossier_id FROM main.llm_dossier)"),
-    ("llm_verdict", "WHERE dossier_id IN (SELECT dossier_id FROM main.llm_dossier)"),
-    # Both endpoints, so a supersession can never name a verdict that is not here.
-    # `llm_verdict` is filled by the line above before this one reads it.
-    ("llm_verdict_supersession",
-     "WHERE old_verdict_id IN (SELECT verdict_id FROM main.llm_verdict) "
-     "AND new_verdict_id IN (SELECT verdict_id FROM main.llm_verdict)"),
-)
-
-
 def _canonical(mapping) -> str:
     """The dimensions as `store.canonical_json` writes them, so a re-read matches."""
     _src_on_path()
@@ -135,6 +118,17 @@ class Seeded:
     #: moved on", and a person choosing whether to trust a cheap rerun needs to
     #: know which. Every one of them costs a question asked again, and nothing else.
     skipped: int = 0
+    #: OLD ADDRESS -> NEW, one entry per seeded dossier. `104` R-137 moves the
+    #: address because the bytes it is taken over now name this run's file, and a
+    #: content address that changed silently is a record nobody can check. This is
+    #: where the prior's own address is kept, so a seeded row can still be found in
+    #: the database it came from.
+    addresses: Mapping[str, str] = field(default_factory=dict)
+    #: Seeded dossiers whose address could NOT be recomputed and so kept the
+    #: prior's: not an A_fact dossier, no stored response to name a release, or a
+    #: payload that is not a dossier. Each one costs a question asked again the
+    #: first time the validator moves, which is what it cost before R-137.
+    untranslated: int = 0
 
 
 def _src_on_path() -> None:
@@ -334,6 +328,13 @@ def write_seeded(out_dir: Path, situation: str, given: "Seeded", *,
                     "from": str(source),
                     "from_database": str(prior_database(source, situation)),
                     "source": describe_source(source),
+                    # `104` R-137. A seeded dossier is filed under an address this
+                    # run recomputed, and the address it had in the prior run is
+                    # how anybody checks it against the database it came from. The
+                    # old address is never overwritten in silence; it is written
+                    # down here.
+                    "addresses": dict(given.addresses),
+                    "untranslated": given.untranslated,
                     "prior_checkout": read_provenance(source)},
                    indent=2, sort_keys=True),
         encoding="utf-8")
@@ -531,6 +532,156 @@ def _file_versions(rows) -> dict:
             for row in rows}
 
 
+def _re_address(row, mine: str, *, release_id, key: bytes, prompt) -> tuple[str, str]:
+    """One prior dossier, re-addressed for the file id THIS database gives it.
+
+    `104` R-137. The seeder already translates `llm_dossier.subject_ref`, the
+    column; the PAYLOAD kept the prior run's file id, and `dossier_id` is the
+    content address of bytes that carry `subject_ref` as a wire handle. So a
+    seeded dossier named a file this database does not have, and R-127's
+    re-judgement refused it -- `validate_fact_proposal` will not judge a dossier
+    and a request that name different files, and it is right not to. Every rerun
+    across a validator change therefore paid for every answer again, which is the
+    measured cost this closes.
+
+    The address is RECOMPUTED by the product's own `dossier_address` over the
+    rewritten record, exactly as the identity's digest is recomputed by
+    `call_identity` over the rewritten mapping, and for the same reason: a
+    hand-edited address is the one thing that reads back as sound and is not.
+
+    Returns the address unchanged when the row cannot be rebuilt into a `Dossier`
+    -- a payload that is not one, a dossier no response was ever stored for, a
+    call site whose address this function has no prompt for. Unchanged is what
+    the seeder did for every row before this existed, so such a row costs a
+    question asked again and nothing else; the count is reported rather than
+    swallowed.
+    """
+    _src_on_path()
+    from llm_harness.dossier import dossier_address, dossier_from_stored_body
+    from llm_harness.vocabulary import A_FACT
+
+    if row["call_site"] != A_FACT or not release_id:
+        return row["dossier_id"], row["payload"]
+    try:
+        body = json.loads(row["payload"])
+        body["subject_ref"] = mine
+        dossier = dossier_from_stored_body(body, release_id=release_id)
+        address = dossier_address(dossier, prompt, handle_key=key)
+    except Exception:
+        return row["dossier_id"], row["payload"]
+    body["dossier_id"] = address
+    return address, _canonical(body)
+
+
+def _copy_responses(conn: sqlite3.Connection, addresses: Mapping[str, str]) -> int:
+    """The stored bytes, under this run's address for the dossier they answer.
+
+    `response_bytes` are the model's own and carry no address: what the model
+    said about a file does not change because this database calls that file
+    something else.
+    """
+    columns = [column["name"] for column in
+               conn.execute("PRAGMA main.table_info(llm_response)")]
+    named = ", ".join(columns)
+    marks = ", ".join("?" for _ in columns)
+    copied = 0
+    for row in conn.execute(
+            f"SELECT {named} FROM prior.llm_response").fetchall():
+        address = addresses.get(row["dossier_id"])
+        if address is None:
+            continue
+        values = [address if name == "dossier_id" else row[name]
+                  for name in columns]
+        conn.execute(
+            f"INSERT INTO main.llm_response ({named}) VALUES ({marks})", values)
+        copied += 1
+    return copied
+
+
+def _copy_verdicts(conn: sqlite3.Connection,
+                   addresses: Mapping[str, str]) -> tuple[int, dict[str, str]]:
+    """Every verdict, re-keyed onto the dossier's new address. `104` R-137.
+
+    Site A's `verdict_id` BEGINS with the dossier it judged --
+    `fact_validation._verdict` builds `dossier:field` and two suffixes are added
+    after it -- so moving the dossier moves the verdict's own address with it. The
+    prefix is replaced by slice rather than reassembled, because the two suffixes
+    are P8's to compose and this is not the place to learn their shape.
+
+    The payload is rewritten with it. `store._payload` is `_jsonable` of the
+    record, so the two ids inside it must say what the columns say; a row whose
+    payload names an address its own column does not is exactly the disagreement
+    every content-addressed table here exists to prevent. A verdict whose id does
+    not begin with its dossier is left where it is and counted, never guessed at.
+    """
+    columns = [column["name"] for column in
+               conn.execute("PRAGMA main.table_info(llm_verdict)")]
+    named = ", ".join(columns)
+    marks = ", ".join("?" for _ in columns)
+    moved: dict[str, str] = {}
+    copied = 0
+    for row in conn.execute(f"SELECT {named} FROM prior.llm_verdict").fetchall():
+        address = addresses.get(row["dossier_id"])
+        if address is None:
+            continue
+        verdict_id = row["verdict_id"]
+        if verdict_id.startswith(row["dossier_id"]):
+            verdict_id = address + verdict_id[len(row["dossier_id"]):]
+        payload = row["payload"]
+        try:
+            body = json.loads(payload)
+            if isinstance(body, dict) and "dossier_id" in body:
+                body["dossier_id"] = address
+                body["verdict_id"] = verdict_id
+                payload = _canonical(body)
+        except Exception:
+            pass
+        values = []
+        for name in columns:
+            if name == "dossier_id":
+                values.append(address)
+            elif name == "verdict_id":
+                values.append(verdict_id)
+            elif name == "payload":
+                values.append(payload)
+            else:
+                values.append(row[name])
+        conn.execute(
+            f"INSERT INTO main.llm_verdict ({named}) VALUES ({marks})", values)
+        moved[row["verdict_id"]] = verdict_id
+        copied += 1
+    return copied, moved
+
+
+def _copy_supersessions(conn: sqlite3.Connection,
+                        verdict_ids: Mapping[str, str]) -> int:
+    """Only when BOTH endpoints travelled, so a supersession can never dangle."""
+    columns = [column["name"] for column in
+               conn.execute("PRAGMA main.table_info(llm_verdict_supersession)")]
+    named = ", ".join(columns)
+    marks = ", ".join("?" for _ in columns)
+    copied = 0
+    for row in conn.execute(
+            f"SELECT {named} FROM prior.llm_verdict_supersession").fetchall():
+        old_id = verdict_ids.get(row["old_verdict_id"])
+        new_id = verdict_ids.get(row["new_verdict_id"])
+        if old_id is None or new_id is None:
+            continue
+        values = []
+        for name in columns:
+            if name == "old_verdict_id":
+                values.append(old_id)
+            elif name == "new_verdict_id":
+                values.append(new_id)
+            else:
+                values.append(row[name])
+        conn.execute(
+            f"INSERT INTO main.llm_verdict_supersession ({named}) "
+            f"VALUES ({marks})", values)
+        copied += 1
+    return copied
+
+
 def seed(fresh: Path, prior: Path, *, corpus: Path) -> Seeded:
     """Create `fresh`, scan the corpus into it, and translate the prior's answers.
 
@@ -560,6 +711,16 @@ def seed(fresh: Path, prior: Path, *, corpus: Path) -> Seeded:
     # overwrite one. `104` R-127: the answers about to be seeded are addressed
     # under the prior's key, and a run that minted its own could not read them.
     carry_the_wire_handle_key(prior.parent, fresh.parent)
+    # `104` R-137 re-addresses every A_fact dossier it seeds, and the address is
+    # taken over the MODEL-VISIBLE bytes: the key the handles in them are digests
+    # under, and the prompt whose response schema the address also covers. Both
+    # are this checkout's. A prior row built under a different prompt carries a
+    # different `prompt_fingerprint` and `schema_id` in its identity, so it is
+    # never looked up and the mismatch is inert rather than wrong.
+    from cli import a_fact_prompt
+
+    key = wire_handle_key_file(fresh.parent).read_bytes()
+    prompt = a_fact_prompt()
     conn = open_database(fresh)
     try:
         _scan_the_corpus(conn, corpus)
@@ -588,6 +749,7 @@ def seed(fresh: Path, prior: Path, *, corpus: Path) -> Seeded:
             # is the rerun-with-a-different-model case this flag exists for, so
             # counting dossiers as answers would under-report exactly it.
             translated: dict[str, str] = {}
+            pending_identities: list[tuple] = []
             digests: set[str] = set()
             written: set[tuple[str, str]] = set()
             skipped = 0
@@ -621,10 +783,11 @@ def seed(fresh: Path, prior: Path, *, corpus: Path) -> Seeded:
                 if (digest, row["dossier_id"]) in written:
                     skipped += 1
                     continue
-                conn.execute(
-                    "INSERT INTO main.llm_call_identity (identity_id, dossier_id, "
-                    "call_site, subject_ref, dimensions, observed_at) "
-                    "VALUES (?, ?, ?, ?, ?, ?)",
+                # HELD, not written, until the dossier's new address is known.
+                # `104` R-137 moves that address, and `(identity_id, dossier_id)`
+                # is the primary key: a row written here would name the prior
+                # run's dossier and no reuse would ever find the one this run has.
+                pending_identities.append(
                     (digest, row["dossier_id"], row["call_site"], mine,
                      _canonical(dimensions), row["observed_at"]))
                 written.add((digest, row["dossier_id"]))
@@ -638,31 +801,53 @@ def seed(fresh: Path, prior: Path, *, corpus: Path) -> Seeded:
             # reached no model, so a seeded dossier still naming the prior run's
             # file id would report every reused file as never built.
             rows["llm_dossier"] = 0
+            addresses: dict[str, str] = {}
+            untranslated = 0
             for row in conn.execute(
                     "SELECT dossier_id, call_site, eligibility_reason, "
                     "plan_version, policy_version, reduction_rung, payload, "
                     "observed_at FROM prior.llm_dossier").fetchall():
                 if row["dossier_id"] not in translated:
                     continue
+                mine = translated[row["dossier_id"]]
+                release = conn.execute(
+                    "SELECT release_id FROM prior.llm_response WHERE "
+                    "dossier_id = ? LIMIT 1", (row["dossier_id"],)).fetchone()
+                address, payload = _re_address(
+                    row, mine, release_id=None if release is None
+                    else release["release_id"], key=key, prompt=prompt)
+                if address == row["dossier_id"]:
+                    untranslated += 1
+                addresses[row["dossier_id"]] = address
                 conn.execute(
                     "INSERT INTO main.llm_dossier (dossier_id, call_site, "
                     "subject_ref, eligibility_reason, plan_version, "
                     "policy_version, reduction_rung, payload, observed_at) "
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (row["dossier_id"], row["call_site"],
-                     translated[row["dossier_id"]], row["eligibility_reason"],
+                    (address, row["call_site"], mine, row["eligibility_reason"],
                      row["plan_version"], row["policy_version"],
-                     row["reduction_rung"], row["payload"], row["observed_at"]))
+                     row["reduction_rung"], payload, row["observed_at"]))
                 rows["llm_dossier"] += 1
 
-            for table, where in SEED_PLAN:
-                columns = [column["name"] for column in
-                           conn.execute(f"PRAGMA main.table_info({table})")]
-                named = ", ".join(columns)
-                cursor = conn.execute(
-                    f"INSERT INTO main.{table} ({named}) "
-                    f"SELECT {named} FROM prior.{table} {where}")
-                rows[table] = cursor.rowcount
+            for identity in pending_identities:
+                digest, old_dossier, call_site, mine, dimensions, observed = identity
+                if old_dossier not in addresses:
+                    continue
+                conn.execute(
+                    "INSERT INTO main.llm_call_identity (identity_id, dossier_id, "
+                    "call_site, subject_ref, dimensions, observed_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (digest, addresses[old_dossier], call_site, mine,
+                     dimensions, observed))
+            rows["llm_call_identity"] = min(
+                rows["llm_call_identity"],
+                conn.execute("SELECT count(*) FROM main.llm_call_identity"
+                             ).fetchone()[0])
+
+            rows["llm_response"] = _copy_responses(conn, addresses)
+            rows["llm_verdict"], verdict_ids = _copy_verdicts(conn, addresses)
+            rows["llm_verdict_supersession"] = _copy_supersessions(
+                conn, verdict_ids)
             conn.execute("COMMIT")
         except Exception:
             conn.execute("ROLLBACK")
@@ -670,7 +855,8 @@ def seed(fresh: Path, prior: Path, *, corpus: Path) -> Seeded:
         finally:
             conn.execute("DETACH DATABASE prior")
         return Seeded(answers=len(digests), rows=rows, skipped=skipped,
-                      responses=rows.get("llm_response", 0))
+                      responses=rows.get("llm_response", 0),
+                      addresses=addresses, untranslated=untranslated)
     finally:
         conn.close()
 

@@ -59,9 +59,12 @@ from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME  # noqa: E402
 from llm_harness import fact_validation  # noqa: E402
 from tools.groundtruth.reuse import (  # noqa: E402
     ReuseRefused,
+    prior_database,
     refuse_unless_seedable,
     seed,
+    seeded_note,
     wire_handle_key_file,
+    write_seeded,
 )
 
 SITUATION = "academic.coursework"
@@ -172,24 +175,25 @@ def _paths(database) -> dict[str, str]:
             for row in _rows(database, "SELECT file_id, current_path FROM files")}
 
 
-def _asked_again(first, second) -> set[str]:
-    """The NAMES of the files the second run built a dossier for that the first did.
+def _asked_again(database, seeded) -> set[str]:
+    """The NAMES of the files this run built a dossier for rather than reusing one.
 
-    Read from the databases and not from the socket, because what the socket sees
+    Read from the database and not from the socket, because what the socket sees
     is a WIRE HANDLE: `privacy.gate` rotates the identifier before the dossier
     leaves, so `subject_ref` in the payload is `handle:<digest>` and names nothing
-    a person can look up. `llm_dossier.subject_ref` is the local id, and a dossier
-    the second run built is one whose address the first run's database does not
-    hold -- a seeded dossier keeps the id it was given.
-    """
-    def dossiers(database):
-        return {row["dossier_id"]: row["subject_ref"] for row in
-                _rows(database, "SELECT dossier_id, subject_ref FROM llm_dossier")}
+    a person can look up. `llm_dossier.subject_ref` is the local id.
 
-    before, after = dossiers(first), dossiers(second)
-    names = _paths(second)
-    return {names.get(subject, subject) for address, subject in after.items()
-            if address not in before}
+    A dossier this run BUILT is one whose address is not among the addresses it
+    was handed. It used to be one the prior database did not hold, and `104` R-137
+    ended that: a seeded dossier is re-addressed for the file id THIS database
+    gives it, so its address is new by design and comparing the two databases
+    would report every reused file as freshly asked.
+    """
+    names = _paths(database)
+    handed = set(seeded.addresses.values())
+    return {names.get(row["subject_ref"], row["subject_ref"]) for row in
+            _rows(database, "SELECT dossier_id, subject_ref FROM llm_dossier")
+            if row["dossier_id"] not in handed}
 
 
 # --- the copier, against rows a real run wrote ------------------------------------
@@ -262,12 +266,12 @@ def test_a_seeded_fresh_database_asks_nothing_the_prior_run_answered(
     paid_for = len(socket)
     assert paid_for == 2, socket.subjects()
 
-    seed(second, first, corpus=corpus)
+    given = seed(second, first, corpus=corpus)
     _run(corpus, second)
 
     assert len(socket) == paid_for, (
         f"the seeded run re-asked {len(socket) - paid_for} questions whose answers "
-        f"it had been handed: {sorted(_asked_again(first, second))}")
+        f"it had been handed: {sorted(_asked_again(second, given))}")
     assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == paid_for
 
 
@@ -285,11 +289,11 @@ def test_only_the_file_whose_bytes_changed_is_asked_again(corpus, socket, tmp_pa
     (corpus / "week two notes.txt").write_text(
         "Rewritten between the runs. Notes from the seminar on elasticity, with "
         "the essay the instructor set for the vacation.\n")
-    seed(second, first, corpus=corpus)
+    given = seed(second, first, corpus=corpus)
     _run(corpus, second)
 
     assert len(socket) - paid_for == 1, socket.subjects()[paid_for:]
-    assert _asked_again(first, second) == {"week two notes.txt"}
+    assert _asked_again(second, given) == {"week two notes.txt"}
     # And the one that did not change was answered from the record.
     assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == 1
 
@@ -323,55 +327,109 @@ def test_a_seeded_run_in_its_own_directory_is_given_the_prior_runs_key(
     paid_for = len(socket)
     assert paid_for == 2, socket.subjects()
 
-    seed(second, first, corpus=corpus)
+    given = seed(second, first, corpus=corpus)
 
     assert wire_handle_key_file(fresh_dir).read_bytes() == (
         wire_handle_key_file(prior_dir).read_bytes())
     _run(corpus, second)
     assert len(socket) == paid_for, (
         f"the seeded run re-asked {len(socket) - paid_for} questions whose "
-        f"answers it had been handed: {sorted(_asked_again(first, second))}")
+        f"answers it had been handed: {sorted(_asked_again(second, given))}")
     assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == paid_for
 
 
-def test_a_seeded_answer_is_asked_again_when_the_validator_moves(
+def test_a_seeded_answer_is_re_judged_when_the_validator_moves(
         corpus, socket, tmp_path, monkeypatch):
-    """THE MEASURED LIMIT of seeding under `104` R-127, pinned rather than assumed.
+    """`104` R-137, and it is the measure-fix-rerun loop that could not run.
 
-    R-127 re-judges a stored response instead of re-asking it, and it cannot do
-    that for a SEEDED one. The seeder translates `llm_dossier.subject_ref` -- the
-    column -- to this database's file id, and leaves the payload alone because the
-    payload is the bytes the address was taken over and rewriting it would move the
-    address. So the rebuilt dossier still names the prior run's file id, and
-    `validate_fact_proposal` refuses a dossier and a request that name different
-    files: "a dossier describing one file wrote a fact onto another, cited to
-    observations that file never had". That refusal is right, and the honest answer
-    to it is the question.
+    R-127 re-judges a stored response instead of buying the same answer again, and
+    it could not do that for a SEEDED one: the seeder translated
+    `llm_dossier.subject_ref`, the column, and left the payload, so the rebuilt
+    dossier named the prior run's file and `validate_fact_proposal` refused to
+    judge a dossier and a request that name different files. Measured on the
+    owner's r5: `llm_call_reuse` 0, `llm_verdict_supersession` 0, every one of 199
+    files bought again at about 100 seconds each -- and validators change every
+    wave, so every rerun paid it.
 
-    **What it costs, so that whoever reads this can price it:** a scoreboard rerun
-    across a validator change pays for every seeded answer again. R-123's flag
-    still saves everything on a rerun that changes nothing else, which is the case
-    it was built for. Closing this one means translating the dossier payload and
-    recomputing its content address the way the seeder already recomputes the
-    identity digest, and rewriting the four foreign keys that name it -- R-123's
-    change, not R-127's.
+    The payload's file id is translated now and the address recomputed with it, so
+    the seeded dossier names THIS run's file, the stored response is re-judged
+    under the new validator, and the number below is zero fresh calls.
+
+    This test replaces one that pinned the old cost. It is the same setup with the
+    conclusion the product now reaches.
     """
     prior_dir, fresh_dir = tmp_path / "prior", tmp_path / "fresh"
     prior_dir.mkdir()
     first, second = prior_dir / "one.sqlite", fresh_dir / "two.sqlite"
     _run(corpus, first)
     paid_for = len(socket)
+    seeded_verdicts = len(_rows(first, "SELECT 1 FROM llm_verdict"))
+    assert seeded_verdicts
 
     monkeypatch.setattr(
         fact_validation, "VALIDATOR_VERSION",
-        f"{fact_validation.VALIDATOR_VERSION}+r127")
-    seed(second, first, corpus=corpus)
+        f"{fact_validation.VALIDATOR_VERSION}+r137")
+    given = seed(second, first, corpus=corpus)
     _run(corpus, second)
 
-    assert len(socket) == paid_for * 2, socket.subjects()[paid_for:]
-    # Asked, not re-judged: no conclusion was drawn from bytes this run could not
-    # attribute to the file it is about.
-    assert not _supersessions(second)
+    assert len(socket) == paid_for, (
+        f"the seeded run under a changed validator bought "
+        f"{len(socket) - paid_for} answers it had been handed: "
+        f"{sorted(_asked_again(second, given))}")
+    assert given.untranslated == 0, "an A_fact dossier was seeded unre-addressed"
+    # Re-judged, not merely reused: every seeded conclusion was read again under
+    # the new validator and superseded where it stood.
+    assert len(_supersessions(second)) == seeded_verdicts
+    standing = _rows(
+        second, "SELECT validator_version FROM llm_verdict "
+        "WHERE superseded_by IS NULL")
+    assert standing and all(
+        row["validator_version"] == fact_validation.judgement_version(_deps())
+        for row in standing), {row["validator_version"] for row in standing}
+    assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == paid_for
+
+
+def _deps():
+    """The three callbacks `cli` hands Site A, as `model_facts` bundles them."""
+    return fact_validation.FactValidationDependencies(
+        normalize=cli.normalize_for_model,
+        contradicts=cli.contradicts_stronger,
+        normalize_for_review=cli.normalize_for_review)
+
+
+def test_the_seed_note_names_the_address_every_dossier_had_before(
+        corpus, socket, tmp_path):
+    """`104` R-137: an address that moved is written down, never moved in silence.
+
+    A seeded dossier is filed under an address this run recomputed, and the one it
+    had in the run it came from is how anybody checks the two against each other.
+    The note beside the database carries the map.
+    """
+    prior_dir, fresh_dir = tmp_path / "prior", tmp_path / "fresh"
+    prior_dir.mkdir()
+    fresh_dir.mkdir()
+    first = prior_dir / f"{SITUATION.replace('.', '_')}.sqlite"
+    second = prior_database(fresh_dir, SITUATION)
+    _run(corpus, first)
+
+    given = seed(second, first, corpus=corpus)
+    write_seeded(fresh_dir, SITUATION, given, source=prior_dir)
+
+    note = json.loads(
+        seeded_note(fresh_dir, SITUATION).read_text(encoding="utf-8"))
+    assert note["untranslated"] == 0
+    addresses = note["addresses"]
+    assert addresses
+    # Every address the prior run used is a key, and every address this database
+    # holds is the value it maps to.
+    assert set(addresses) == {
+        row["dossier_id"] for row in _rows(first, "SELECT dossier_id FROM llm_dossier")}
+    assert set(addresses.values()) == {
+        row["dossier_id"] for row in
+        _rows(second, "SELECT dossier_id FROM llm_dossier")}
+    assert all(old != new for old, new in addresses.items()), (
+        "an A_fact dossier kept the prior run's address, so its bytes still name "
+        "the prior run's file")
 
 
 def test_a_prior_without_a_wire_handle_key_is_refused_before_anything_runs(
