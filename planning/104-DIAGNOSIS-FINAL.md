@@ -683,7 +683,10 @@ refusals **40 → 0** after the D1 lift. `f571d36` makes the documented pytest f
 | R-56 | **The local model does not abstain.** `qwen3:8b` (thinking off) produced zero abstentions on the six should-abstain cases at C and D under every wording tried, and the validator accepted two of its wrong placements (a generic hub on `columbia.edu`, OCR noise `2O26`). The cloud model abstained 4 of 4 at C and 1 of 2 at D. D1's local half is fit for A_fact and unfit as a placement decider until an abstention mechanism exists that does not depend on the model volunteering one (a structural "none of these" option scored by the validator, or the deterministic shortlist refusing an ungrounded choice). This is the §12.2 parity evidence the owner asked to have measured. | M | High | run (packet §10) | 3 |
 | R-57 | **Site E is unratifiable as shaped.** 15 of 24 E responses were unparseable because the payload ends on a populated array (G13); a v2 with the payload reordered is in progress on the prompts branch. | M | Medium | run | D2 |
 
-### 14.5 The first model-on row after Wave 1 (one run; §12.7 wants three)
+### 14.5 The first model-on row after Wave 1 (three runs; §12.7 satisfied)
+
+Runs 2 and 3 (head `aaeb666`, code identical for placement) agree with run 1 on every sorting number: exact 0, right parent wrong leaf 6, top folder only 0, wrong 0, not placed 35, abstained 29 of 29, spillover 10. Only the verdict counts vary (257 / 272 / 253), which is the model's non-determinism at the fact level not reaching placement. The median row is therefore the row below.
+
 
 Cloud, `academic.coursework`, HEAD `17d05fa` (SF-1 closed, D1 lift, engine fixes, drafts unwired), semantic
 channel off, prompt `a_fact.unratified.folder-levels.2026-09-04`, corpus manifest `a3a8f4ef4a04e5d4`.
