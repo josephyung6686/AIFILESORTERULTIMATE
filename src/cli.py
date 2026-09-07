@@ -736,6 +736,41 @@ EXTRACTION_LOOKAHEAD_PER_WORKER: int = 2
 #: is entirely cached submits nothing and stays inline, which is the right answer.
 EXTRACTION_POOL_FLOOR: int = 32
 
+#: R-50. HOW LONG ONE EXTRACTION MAY TAKE BEFORE ITS WORKER IS KILLED.
+#:
+#: The pool already survives a worker that DIES. It could not survive one that never
+#: returns, and that is not hypothetical: measured on the owner's corpus, three of
+#: seventeen scoreboard situations hung for ever at 0% CPU --
+#: `applications.undergraduate-packet`, `business_operations.project-delivery` and
+#: `code.notebooks-experiments`. Sampled, one worker's main thread was inside
+#: `-[VNRecognizeTextRequest ...]` -> `-[CIContext render:toCVPixelBuffer:...]` ->
+#: CoreImage -> `_dispatch_sync_f_slow` -> `__DISPATCH_WAIT_FOR_QUEUE__`, a dispatch
+#: deadlock inside Apple's frameworks reached through PyObjC by the OCR reader; the
+#: other six workers sat in `sem_wait`. `00`:257 says a single file may not consume
+#: the run, and nothing could enforce it against a file that consumes the run by
+#: doing nothing at all.
+#:
+#: WHAT IT MEASURES, because the first draft measured the wrong thing and the suite
+#: said so within the hour. It is the time this file has been THE ONE HOLDING UP THE
+#: RUN -- the clock starts when the consuming loop begins waiting for it, not when it
+#: was submitted. Measured from submit, a hung file burns the ceiling while the files
+#: behind it sit in the queue, so when their turn comes they are already over it: one
+#: deadlock marked `01-alpha.pdf` and `02-bravo.pdf` timed out having done nothing
+#: wrong, which is one deadlock failing the whole look-ahead window.
+#:
+#: So this is a DEADLOCK DETECTOR and not a performance budget. It is not competing
+#: with queueing depth, and it does not need to exceed `lookahead` extractions; it
+#: needs to exceed the slowest single honest extraction this deployment permits. That
+#: is OCR over a scanned page, measured at up to about twenty seconds on the owner's
+#: files, against a 50-page PDF ceiling and a 2,000-cell spreadsheet ceiling that are
+#: both faster.
+#:
+#: Six hundred seconds is ten minutes, thirty times the slowest honest read. A run
+#: that spends ten minutes waiting on one file has something wrong with it in every
+#: case this product can name, and the file is recorded `unexamined` with the ceiling
+#: and the reader in the row, which is a sentence an operator can act on.
+EXTRACTION_SECONDS_PER_FILE: float = 600.0
+
 #: The wire handle key. `llm_harness.wire_handles` digests every identifier that
 #: leaves this device under it -- `subject_ref`, every `conflict_id`, every released
 #: `observation_key`, every `evidence_ref` that is a P4 key -- because an un-keyed
@@ -2680,7 +2715,8 @@ def extraction_pool(*, workers: int):
     return ProcessPool(
         workers=workers, context_factory=extraction_context,
         lookahead_per_worker=EXTRACTION_LOOKAHEAD_PER_WORKER,
-        floor=EXTRACTION_POOL_FLOOR)
+        floor=EXTRACTION_POOL_FLOOR,
+        seconds_per_extraction=EXTRACTION_SECONDS_PER_FILE)
 
 
 def p1_p7_authorities(*, now, detector,
