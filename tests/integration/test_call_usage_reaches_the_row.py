@@ -245,6 +245,11 @@ def test_a_deployment_that_records_no_usage_is_a_real_deployment(conn):
     for function, name in ((cli.model_route, "on_usage"),
                            (cli.run, "usage_recorder"),
                            (cli.fact_call_authorities, "usage_recorder"),
+                           # `104` R-71's half of the same contract. Site B reaches
+                           # `run_call` through this function rather than through
+                           # `fact_call_authorities`, and a deployment that records
+                           # no usage still asks B.
+                           (cli.observed_run_call, "usage_recorder"),
                            (model_routing.deepseek_routing, "on_usage")):
         parameter = inspect.signature(function).parameters[name]
         assert parameter.default is None, (function, name)

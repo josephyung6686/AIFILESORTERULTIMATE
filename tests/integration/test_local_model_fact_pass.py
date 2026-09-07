@@ -603,15 +603,16 @@ def test_a_gate_refusal_is_named_by_the_gates_own_word_and_is_not_counted_as_sen
 
 # --- `104` R-14: what the local call consumed, beside what was reserved ---------
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="104 R-71: site B's local call goes through P9's authority bundle, which "
-           "deliberately carries no usage sink (NOT_P9_AUTHORITIES), so a B response "
-           "has no llm_call_usage row; A's rows match A's responses. Goes green when the "
-           "group seam passes the recorder to run_call (Wave 3).")
 def test_a_local_fact_call_records_the_tokens_it_actually_used(
         tmp_path, stub, monkeypatch):
     """The deployment D1 steers toward, recording what it spent.
+
+    **`104` R-71 closed, and the count is why it was a strict xfail.** `len(rows)
+    == responses` is the whole assertion: four A responses carried four usage rows
+    and B's fifth carried none, because P9's authority bundle deliberately holds no
+    usage sink. The sink now reaches `run_call` from the composition root, past the
+    bundle, so every response this run wrote has the tokens it actually spent
+    beside it.
 
     The cloud half of R-14 landed first and left this one blind: `cli.model_route`
     gives the LOCAL model site A_fact whenever one is configured, so on the ordinary
@@ -718,6 +719,38 @@ def test_site_b_writes_no_accepted_group_and_no_membership_a_model_chose(
         "WHERE validation_verdict_ref IS NOT NULL")[0][0]
 
     assert from_model == 0, "a membership a model chose was written"
+
+
+def test_site_bs_response_carries_the_tokens_it_spent(
+        tmp_path, stub, monkeypatch):
+    """`104` R-71, asserted at the site rather than in the total.
+
+    The count above says every response has a row; this says WHICH response gained
+    one, because a total can be made to balance by two errors. B is the site whose
+    row was missing, so B is the site the join is asked about -- and it is asked
+    through `llm_dossier.call_site`, which the product wrote down, rather than off
+    the stub's prompts.
+
+    The tokens are the stub's own `prompt_eval_count` and `eval_count`, read and
+    not invented, and they are the same numbers A's rows carry: one mailbox, one
+    transport, one reading per call. What a B row must NOT be is a row with the
+    reservation and no tokens, which is what a sink wired only to A would leave.
+    """
+    database, report = _local_run(tmp_path, stub, monkeypatch)
+
+    rows = _query(
+        database,
+        "SELECT u.prompt_tokens, u.completion_tokens, u.model_id, u.reserved_cost "
+        "FROM llm_call_usage u JOIN llm_dossier d ON d.dossier_id = u.dossier_id "
+        "WHERE d.call_site = 'B_group'")
+
+    assert _calls_at(database, "B_group") >= 1, "B did not run, so this proves nothing"
+    assert len(rows) == _calls_at(database, "B_group"), report
+    for prompt, completion, model_id, reserved in rows:
+        assert prompt == 16, "the stub's `prompt_eval_count`, read not invented"
+        assert completion == 7, "the stub's `eval_count`"
+        assert model_id == MODEL_ID
+        assert reserved == format(cli.FACT_CALL_COST, "f")
 
 
 def test_site_b_is_asked_under_a_draft_that_says_unratified(

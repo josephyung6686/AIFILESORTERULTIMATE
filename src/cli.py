@@ -48,7 +48,7 @@ import unicodedata
 from decimal import Decimal
 from itertools import count
 from pathlib import Path, PurePosixPath
-from functools import lru_cache
+from functools import lru_cache, partial
 from types import MappingProxyType
 from typing import Mapping, Sequence
 
@@ -814,7 +814,19 @@ def observe_group_authorities(fact_authorities, *, routing: TierRouting,
         policy_version=fact_authorities.policy_version,
         wire_handle_key=fact_authorities.wire_handle_key)
 
-    return observed_run_call, ModelCallAuthorities(
+    return partial(
+        # `104` R-71. THE SINK IS BOUND HERE AND NOT PASSED THROUGH P9. A's
+        # authorities already hold the mailbox `run` built beside the transport that
+        # fills it, and it is taken from A for the same reason the gate and the
+        # budget are: it is a fact about this deployment and this run, not about
+        # which site is asking. Bound rather than added to the bundle because
+        # `ModelCallAuthorities` is exactly `run_call`'s keywords as P9 forwards
+        # them, and a seventh field P9 cannot construct would be the required-slot-
+        # nothing-fills defect `104` R-09 removed. `NOT_P9_AUTHORITIES` stays the
+        # name of the one keyword P9 does not carry, and it stays true.
+        observed_run_call,
+        usage_recorder=fact_authorities.usage_recorder,
+    ), ModelCallAuthorities(
         gate=fact_authorities.gate,
         model_client=client,
         prompt=prompt_for(B_GROUP),
@@ -826,7 +838,8 @@ def observe_group_authorities(fact_authorities, *, routing: TierRouting,
 
 
 def observed_run_call(conn, request, *, gate, model_client, prompt,
-                      validation_dependencies, observed_at):
+                      validation_dependencies, observed_at,
+                      usage_recorder=None):
     """`run_call`, with the per-group half of the learning key filled in, and
     with B's answer withheld while B's text is a draft.
 
@@ -854,6 +867,25 @@ def observed_run_call(conn, request, *, gate, model_client, prompt,
     an argument -- `grouping.pipeline` passes `p8_authorities.prompt` through -- so
     closing over one was a second copy of a value already in the signature, and one
     a test could not reach.
+
+    **`usage_recorder` ARRIVES HERE AND NOT IN THE BUNDLE, which is `104` R-71's
+    whole shape.** A B response had no `llm_call_usage` row while A's rows matched
+    A's responses one for one, because P9 forwards `ModelCallAuthorities` under
+    `run_call`'s own keywords and that bundle deliberately carries no sink
+    (`NOT_P9_AUTHORITIES`). Putting one on the bundle would put a required slot on
+    P9 that P9 cannot fill -- the mailbox is built beside the transport by the
+    composition root, and `src/grouping/` may not import either -- which is the
+    defect `104` R-09 took OFF `GroupingKnowledge`.
+
+    So the sink is bound HERE, where both sides are known, and `observe_group_
+    authorities` binds it before P9 ever sees the callable. P9's forwarding is
+    unchanged, `NOT_P9_AUTHORITIES` still names the one keyword the bundle does not
+    carry, and B's call reads the same one-slot mailbox A's does: one transport,
+    one reading per call, taken by whoever made it.
+
+    Defaulted for `run_call`'s own reason -- a deployment that records no usage is a
+    real deployment, and the local transport's own `Usage` has no cache count to
+    give.
     """
     subject = getattr(request, "subject_ref", "") or ""
     deps = dataclasses.replace(
@@ -863,7 +895,8 @@ def observed_run_call(conn, request, *, gate, model_client, prompt,
                              or validation_dependencies.learning_subject_id))
     result = run_call(
         conn, request, gate=gate, model_client=model_client, prompt=prompt,
-        validation_dependencies=deps, observed_at=observed_at)
+        validation_dependencies=deps, observed_at=observed_at,
+        usage_recorder=usage_recorder)
     if not getattr(prompt, "ratified", False):
         return ObservedOnly(result)
     answer = group_answer_of(conn, result)

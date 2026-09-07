@@ -422,6 +422,33 @@ def test_a_residual_call_with_no_residual_prompt_refuses_rather_than_borrowing_c
 # --- `ratified` read from the definition, at the group site too -------------------
 
 
+class _LocalClient:
+    """A model on this device, as `observe_group_authorities` reads one."""
+
+    model_target = SimpleNamespace(locality=LOCAL)
+
+
+class _LocalRouting:
+    """`TierRouting`, reduced to the two questions the B seam asks it."""
+
+    def locality_for(self, _call_site: str) -> str:
+        return LOCAL
+
+    def client_for(self, _call_site: str):
+        return _LocalClient()
+
+
+def _fact_authorities_with(**overrides):
+    """Site A's authorities, reduced to the fields B borrows from them."""
+    borrowed = dict(
+        gate=object(), evidence_resolver=lambda key: None,
+        scan_budget=object(), estimated_cost=1, actual_cost=1,
+        policy_version="pv", wire_handle_key=b"k", observed_at=lambda: "T",
+        usage_recorder=None)
+    borrowed.update(overrides)
+    return SimpleNamespace(**borrowed)
+
+
 @dataclasses.dataclass(frozen=True)
 class _BDeps:
     """The two `CallDependencies` fields B's wrapper fills in per group."""
@@ -441,6 +468,46 @@ def _b_result(monkeypatch, *, ratified: bool):
         None, SimpleNamespace(subject_ref="group:g-1"),
         gate=None, model_client=None, prompt=prompt,
         validation_dependencies=_BDeps(), observed_at=None)
+
+
+def test_the_group_seam_hands_run_call_the_same_mailbox_site_a_reads(monkeypatch):
+    """`104` R-71. B's response had no `llm_call_usage` row and A's had one each.
+
+    The sink is A's own -- one mailbox, filled by the transport `model_route` built
+    -- and it is bound at the seam rather than added to `ModelCallAuthorities`,
+    because that bundle is exactly `run_call`'s keywords as P9 forwards them and P9
+    can construct no mailbox. Both halves are asserted: the value reaches `run_call`
+    under its own keyword, and the BUNDLE still does not carry it, which is what
+    `NOT_P9_AUTHORITIES` says about P9 and must go on being true.
+    """
+    import dataclasses as _dc
+
+    import cli as _cli
+    from grouping.pipeline import ModelCallAuthorities
+
+    mailbox = _cli.UsageMailbox()
+    seen = {}
+
+    def spy(_conn, _request, **keywords):
+        seen.update(keywords)
+        return "the verdict run_call produced"
+
+    monkeypatch.setattr(_cli, "run_call", spy)
+    p8_run_call, authorities = _cli.observe_group_authorities(
+        _fact_authorities_with(usage_recorder=mailbox),
+        routing=_LocalRouting(), situation="academic.coursework")
+
+    # P9's own forwarding, spelled the way `grouping.pipeline` spells it.
+    p8_run_call(
+        None, SimpleNamespace(subject_ref="group:g-1"),
+        gate=authorities.gate, model_client=authorities.model_client,
+        prompt=authorities.prompt,
+        validation_dependencies=authorities.validation_dependencies,
+        observed_at=authorities.observed_at)
+
+    assert seen["usage_recorder"] is mailbox
+    assert "usage_recorder" not in {
+        field.name for field in _dc.fields(ModelCallAuthorities)}
 
 
 def test_the_group_site_records_and_applies_nothing_while_its_text_is_a_draft(
