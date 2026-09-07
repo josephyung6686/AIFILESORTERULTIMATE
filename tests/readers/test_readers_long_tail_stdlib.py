@@ -1117,3 +1117,32 @@ def test_a_camera_raw_is_still_not_a_spreadsheet(tmp_path):
     path = tmp_path / "IMG_0001.raw"
     path.write_bytes(b"\xff\xd8\xff\xe0" + bytes(range(256)) * 4)
     assert read(path) is None
+
+
+@pytest.mark.parametrize("extension", [".rlt", ".raw"])
+def test_control_bytes_that_decode_are_still_not_a_spreadsheet(tmp_path, extension):
+    """R-33. STRICT DECODING WAS NOT THE WHOLE CHECK, and the test above says it was.
+
+    "Text decodes, a photograph does not" is true of the byte string that test
+    uses, which is invalid UTF-8 four bytes in. It is not true of binary in
+    general: NUL and the rest of the C0 control block are perfectly valid UTF-8,
+    so a sensor file made of them decodes strictly, reaches `_delimited_sheet` and
+    is recorded `complete` with its raw bytes stored as a cell value.
+
+    Measured 2026-09-06 through the whole command: a four-file corpus with one
+    `capture.raw` of these bytes produced a `spreadsheet` observation whose
+    `raw_value` was `\\x00\\x01\\x02rawsensor\\x03`, an `extraction_runs` row
+    reading `text.structured / complete`, and a run that therefore counted the file
+    as one it had READ. §2.4's "never silently treat an unsupported format as an
+    empty document" broken in the other direction -- treated as a document.
+
+    THE TEST IS `file(1)`'s AND THIS PRODUCT ALREADY OWNS IT. `readers/signatures`
+    holds it as the whole of its weak identification: "Control characters that do
+    not occur in a text document. A byte stream holding one is not text, whatever
+    it decodes to." Reused rather than restated, so there is one answer to "are
+    these bytes text" in the reader layer.
+    """
+    path = tmp_path / f"capture{extension}"
+    path.write_bytes(b"\x00\x01\x02rawsensor\x03")
+
+    assert read(path) is None
