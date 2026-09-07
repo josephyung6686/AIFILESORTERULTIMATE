@@ -125,6 +125,7 @@ from model_facts import (
 )
 from privacy.classification import UNREADABLE_UNCLASSIFIED, resolve_class
 from privacy.classification_store import ClassificationStore
+from privacy.denial import unclassified_denies
 from privacy.gate import Gate
 from privacy.defaults import LOCAL_FIRST_MODES
 from privacy.display import display_policy
@@ -328,6 +329,17 @@ GROUPING_LIMITS = GroupingLimits(
 #: `offline`, so a file that needed a judgement reported "§8.4 did not clear this
 #: file for a model call" -- a sentence a person reads as a fact about their own
 #: file when it is a fact about this line. `model_route` below says which it is.
+#: §8.4's Open question 5, answered once for this deployment and read by BOTH the
+#: gate and the route. It was a literal at the `Gate(...)` call and a `True` the
+#: route did not consult at all, which is `104` R-02 in one line: two places
+#: deciding whether an unclassified file may reach a model, and only one of them
+#: was asked. One name, so they cannot answer differently.
+#:
+#: ANSWERED `True` ON 2026-09-05 against the premise the run disproved -- "an
+#: unclassified file is one nothing has read successfully". 95 of the owner's 199
+#: files were unclassified and every one had evidence.
+UNCLASSIFIED_PERMITS_LOCAL: bool = True
+
 OPERATION_MODE: str = "offline"
 
 #: The mode a person selects by enabling cloud sending, and the choice between
@@ -2308,7 +2320,9 @@ def a_fact_prompt() -> PromptDefinition:
         shaping_policy_bytes=a_fact_shaping_policy_bytes())
 
 
-def model_route_permitted(conn: sqlite3.Connection):
+def model_route_permitted(conn: sqlite3.Connection, *, locality: str,
+                          operation_mode: str,
+                          unclassified_permits_local: bool):
     """§8.4 as `FactResolver` asks it: may THIS file's route reach a model at all?
 
     Two files never may, and the resolver's own docstring says why the answer
@@ -2370,7 +2384,32 @@ def model_route_permitted(conn: sqlite3.Connection):
         # below, and the widening above must never reach it -- which is why a file
         # WITH a record still answers `not record.protected`.
         if record is None:
-            return True
+            # `104` R-02, AND THE PREDICATE IS THE GATE'S OWN. This answered `True`
+            # for every locality, so on a cloud target the route counted a file as
+            # routed that `Gate.release` then refused -- 19 withheld at the route
+            # against 149 stopped at the gate on the owner's 199 files, and the
+            # scoreboard read the route's number as files that reached a model.
+            #
+            # `unclassified_denies` is CALLED rather than reproduced. A second
+            # spelling of the gate's rule beside the gate's rule is exactly how the
+            # two came to disagree, and a copy would drift again the first time P7
+            # changed its mind -- which it has done twice this month.
+            return not unclassified_denies(
+                locality=locality,
+                local_calls_on_unclassified=unclassified_permits_local)
+        # PROTECTED IS BARRED ON EVERY LOCALITY, AND THAT IS NOT THIS FIX'S
+        # BUSINESS TO WIDEN. `protected_cloud_denies` permits a protected file a
+        # LOCAL target, and this route refuses it one anyway: the standing rule is
+        # marked and counted, NEVER OPENED, and `tests/integration/
+        # test_local_model_fact_pass.py::test_a_protected_file_is_never_sent_to_
+        # the_local_model_either` holds it there.
+        #
+        # That is the route being STRICTER than the gate, which is the safe
+        # direction and not the defect R-02 names. R-02 is the route permitting
+        # what the gate denies -- a file counted as routed that never had a route.
+        # A route that withholds something the gate would have allowed sends
+        # nothing it should not; it is a coverage question, and the owner has
+        # already answered this one.
         return not record.protected
 
     return permitted
@@ -2448,7 +2487,7 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
             # Nothing leaves the device on this branch: `unclassified_denies`
             # refuses every CLOUD release of an unclassified file unconditionally
             # and this flag cannot reach that decision.
-            unclassified_permits_local=True,
+            unclassified_permits_local=UNCLASSIFIED_PERMITS_LOCAL,
             # Open question 3 -- what a "corpus area" is -- is unanswered, so the
             # scope is the SCAN. It is internal, it never leaves the device, and it
             # is the one boundary this run can name truthfully.
@@ -2555,7 +2594,12 @@ def model_fact_resolver(conn: sqlite3.Connection, *,
         # bar it writes -- `budget_deferred` -- would then describe a deferral P8
         # never made.
         budget_exhausted=lambda ceiling: False,
-        model_route_permitted=model_route_permitted(conn),
+        # R-02: the route is asked the same question the gate will answer, with
+        # the same locality and the same one answer to Open question 5.
+        model_route_permitted=model_route_permitted(
+            conn, locality=authorities.model_target.locality,
+            operation_mode=OPERATION_MODE,
+            unclassified_permits_local=UNCLASSIFIED_PERMITS_LOCAL),
         # NOTHING IS RECORDED, and `"llm"` being a member of P4's `ANALYSIS_TIERS`
         # is exactly why the temptation had to be refused. `facts.usable` publishes
         # one reader of that table and it asks two questions: `no_usable_facts`

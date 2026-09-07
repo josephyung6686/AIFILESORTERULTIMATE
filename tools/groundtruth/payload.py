@@ -294,7 +294,14 @@ def inspect_database(database: Path, corpus: Path, *,
             wire_handle_key=bytes(32), schema=schema, folder_levels=levels,
             user_id="payload-inspection",
             now=lambda: "2026-01-01T00:00:00+00:00")
-        permitted = cli.model_route_permitted(conn)
+        # R-02: the route now answers per LOCALITY, because that is the question
+        # `Gate.release` answers and the two disagreeing is what this instrument
+        # was built to measure. The target is the one the routing above built, so
+        # the route is asked about the same destination the gate is asked about.
+        permitted = cli.model_route_permitted(
+            conn, locality=authorities.model_target.locality,
+            operation_mode=cli.OPERATION_MODE,
+            unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL)
 
         ceiling = get_ceiling(conn, "model.max_dossier_tokens_per_call")
         if ceiling is None:

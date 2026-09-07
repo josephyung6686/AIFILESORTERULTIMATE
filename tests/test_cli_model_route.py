@@ -14,7 +14,7 @@ import pytest
 
 import cli
 from llm_harness.vocabulary import A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE
-from readers.model_deepseek import CREDENTIAL_NAME, PROVIDER
+from readers.model_deepseek import CLOUD, CREDENTIAL_NAME, PROVIDER
 from readers.model_ollama import (
     BASE_URL_NAME as LOCAL_BASE_URL_NAME,
     LOCAL,
@@ -254,20 +254,12 @@ def test_the_key_is_never_printed(monkeypatch):
     assert "sk-secret" not in refused
 
 
-def test_a_file_that_was_read_reaches_the_model_even_with_no_classification(
-        conn, tmp_path):
-    """CONSTITUTION 2: a detector abstaining is not proof a file is unreadable.
+def _two_files(conn, tmp_path) -> tuple[str, str]:
+    """One file the product read and the detector abstained on, one protected.
 
-    **Measured, 199 real files, 2026-09-05.** 95 of them carried no classification
-    and were refused the model with `privacy_withheld` -- and every one of the 95 had
-    evidence: ordinary lecture PDFs, `.py` files, a club logo. The written premise
-    for refusing them, in `model_route_permitted`'s own docstring, was "an
-    unclassified file is one nothing has read successfully". The run disproves it.
-    Unclassified means the DETECTOR abstained, which is a different sentence.
-
-    Protected files are unaffected and the standing rule is why: marked and counted,
-    never opened. That half is asserted here beside this one so the widening cannot
-    quietly take it with it.
+    Shared by the two tests below because they assert about the SAME pair from two
+    directions -- what the route does with each, and what it does with each per
+    locality -- and two corpora would let one drift into testing a different file.
     """
     from database_agent.files_table import get_file, record_file
     from privacy.classification import ClassificationRecord
@@ -296,13 +288,66 @@ def test_a_file_that_was_read_reaches_the_model_even_with_no_classification(
         handling_class="sensitive_personal", protected=True, basis=DETECTOR,
         evidence_refs=("sha256:" + "b" * 64,), reliability_state="validated",
         observed_at="2026-09-05T00:00:00Z"))
+    return read_but_unclassified, protected
 
-    permitted = cli.model_route_permitted(conn)
 
-    assert permitted(read_but_unclassified) is True, (
+def test_a_file_that_was_read_reaches_the_model_even_with_no_classification(
+        conn, tmp_path):
+    """CONSTITUTION 2: a detector abstaining is not proof a file is unreadable.
+
+    **Measured, 199 real files, 2026-09-05.** 95 of them carried no classification
+    and were refused the model with `privacy_withheld` -- and every one of the 95 had
+    evidence: ordinary lecture PDFs, `.py` files, a club logo. The written premise
+    for refusing them, in `model_route_permitted`'s own docstring, was "an
+    unclassified file is one nothing has read successfully". The run disproves it.
+    Unclassified means the DETECTOR abstained, which is a different sentence.
+
+    Protected files are unaffected and the standing rule is why: marked and counted,
+    never opened. That half is asserted here beside this one so the widening cannot
+    quietly take it with it.
+    """
+    read_but_unclassified, protected = _two_files(conn, tmp_path)
+
+    on_device = cli.model_route_permitted(
+        conn, locality=LOCAL, operation_mode=cli.OPERATION_MODE,
+        unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL)
+
+    assert on_device(read_but_unclassified) is True, (
         "a file the product read and the detector merely abstained on is not "
         "'unreadable'; refusing it keeps 95 of 199 files away from the engine")
-    assert permitted(protected) is False, "protected material never reaches a model"
+    assert on_device(protected) is False, "protected material never reaches a model"
+
+
+def test_the_route_refuses_on_a_cloud_target_what_the_gate_would_have_refused(
+        conn, tmp_path):
+    """`104` R-02. The route answered `True` for an unclassified file whatever the
+    destination, and `Gate.release` then refused every cloud release of one -- so
+    the file was counted as routed, the refusal landed in `llm_refusal` instead of
+    `unresolved`, and a number meaning "the route let N through" was read as "N
+    reached a model". Measured at 19 withheld against 149 stopped.
+
+    ONE ANSWER, NOT TWO THAT AGREE. `unclassified_denies` is the gate's own
+    predicate, called here with the same locality and the same answer to Open
+    question 5, which `UNCLASSIFIED_PERMITS_LOCAL` now names for both. A second
+    spelling beside the first is how they came to disagree."""
+    read_but_unclassified, protected = _two_files(conn, tmp_path)
+
+    on_device = cli.model_route_permitted(
+        conn, locality=LOCAL, operation_mode=cli.OPERATION_MODE,
+        unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL)
+    over_the_internet = cli.model_route_permitted(
+        conn, locality=CLOUD, operation_mode=cli.OPERATION_MODE,
+        unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL)
+
+    assert on_device(read_but_unclassified) is True
+    assert over_the_internet(read_but_unclassified) is False, (
+        "the gate refuses every cloud release of an unclassified file, so a route "
+        "that permits one is counting a file as routed that has no route")
+    # AND THE ROUTE STAYS STRICTER THAN THE GATE ON PROTECTED MATERIAL, on every
+    # locality. `protected_cloud_denies` would allow a protected file a LOCAL
+    # target; this route does not, and marked-and-counted-never-opened is why.
+    assert on_device(protected) is False
+    assert over_the_internet(protected) is False
 
 
 # --- `00`:189-193's second mode: a model on the person's own machine ----------

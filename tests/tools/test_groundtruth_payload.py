@@ -101,17 +101,34 @@ def test_the_blocked_line_counts_the_gate_and_not_only_the_route(plan_database):
     """R-46, in one assertion.
 
     A scoreboard that asked `cli.model_route_permitted` and stopped reported "19
-    blocked" while 130 more were refused at the door. On this fixture corpus the
-    same shape appears: the route withholds fewer files than the gate refuses, so
-    a count taken at the route alone is an undercount, and the block names both.
+    blocked" while 130 more were refused at the door. A count taken at the route
+    alone was an undercount, and the block names both.
+
+    **THE ASSERTION CHANGED SHAPE WHEN R-02 LANDED, exactly as its own note said
+    it would.** This read `at_the_gate > at_the_route`, and R-02 is what stops
+    that being true: the route now asks `unclassified_denies` with the target's
+    locality, so the unclassified files a cloud gate was refusing are withheld one
+    step earlier and move from the second column to the first. The block getting
+    LOPSIDED is the fix working, and pinning which side is bigger would have
+    pinned the defect.
+
+    What R-46 was about survives unchanged and is what is asserted instead: both
+    columns are reported, they account for every blocked file between them, and
+    every gate reason is named. A number that means "the route let N through" must
+    never again be read as "N reached a model".
     """
     report = inspect_database(plan_database, CORPUS, situation=SITUATION)
     at_the_route = sum(1 for one in report.files if not one.route_permitted)
     at_the_gate = sum(report.gate_refusals_by_reason().values())
-    assert at_the_gate > at_the_route, (
-        "if the gate ever stops refusing more than the route withholds, this "
-        "assertion is the wrong shape -- but the reasons below must still be "
-        "reported, which is what R-46 was about")
+    # BOTH COLUMNS CARRY FILES, which is the whole of what R-46 needed and the
+    # only shape that survives R-02 moving files between them. They are not
+    # disjoint and must not be summed: the route flag is recorded for every file
+    # and the outcome is measured for every file, so one file can appear in both.
+    # `test_every_file_is_accounted_for` owns the arithmetic, over the outcomes.
+    assert at_the_route > 0, "the route withholds nothing, so column one is untested"
+    assert at_the_gate > 0, (
+        "the gate refuses nothing, so a count taken at the route alone would look "
+        "complete -- which is the reading R-46 was about")
     block = render(report)
     assert "withheld at the route" in block
     assert "stopped at the gate" in block
