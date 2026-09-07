@@ -5318,6 +5318,105 @@ def _semantic_classifier(rules, detector, semantic_model, now):
         min_chars=SEMANTIC_MIN_CHARS, is_protected=is_protected_container)
 
 
+#: `104` R-115. §7.5's review sets, DIVIDED BY THE REASON THE SCREEN ALREADY PRINTS.
+#:
+#: `00` §residual asks for "understandable review sets using reliable
+#: characteristics, rather than presenting a single intimidating pile", and names
+#: them by what their files SHARE -- "screenshots with no accepted project",
+#: "encrypted, unreadable, or unsupported", "multiple plausible destinations", "no
+#: extractable text". What shipped was one pile called "Not yet placed" plus one
+#: protected set, which §8.6's ceiling then cut into eight-file batches: a person
+#: read "Not yet placed (1 of 4)" through "(4 of 4)" and a group of six files was
+#: told "3 review sets of it have files under this heading" with nothing on the
+#: screen saying which set held which file. A batch index is a ceiling, not a
+#: characteristic, and dividing by it divides files that belong together.
+#:
+#: **The characteristic was already on the screen.** "Same reason for each" is
+#: `PlacementDecision.explanation`, and `pipeline._abstention_explanation` writes
+#: that off exactly three things: P7's protected flag, whether anything has
+#: classified the file, and `abstention_reason` -- a CLOSED vocabulary
+#: (`placement.vocabulary.ABSTENTION_REASONS`). So the division below is that same
+#: switch, read off the decision the run recorded.
+#:
+#: **The sentences are the SET's and not `REASON_IN_WORDS`'.** Those are written
+#: about one file -- "matched it well enough to be worth proposing" -- and a set is
+#: many, so reusing them verbatim would put a pronoun with no antecedent under a
+#: heading that has just counted twelve files. What must not be said twice is the
+#: DIVISION, and that is the vocabulary rather than the prose;
+#: `test_every_abstention_reason_has_a_review_set_of_its_own` pins the two together
+#: so a code added to P11 cannot silently fall into the last row here.
+#:
+#: The last row keeps the name and the sentence the one pile had. It is the set for
+#: a reason this deployment has no row for, and it exists because
+#: `surface_residual_sets` refuses a partition that misses a file: a file in no set
+#: is a file the residual screen never shows.
+NOT_YET_CLASSIFIED: str = "not-yet-classified"
+NO_MODEL_ALLOWED: str = "no-model-allowed"
+WAITING_ON_AN_ANSWER: str = "waiting-on-an-answer"
+NOT_YET_PLACED: str = "not-yet-placed"
+PROTECTED_REVIEW_SET: str = "protected"
+
+REVIEW_SET_REASONS: tuple[tuple[str, str, str], ...] = (
+    (NOT_YET_CLASSIFIED, "Not yet said what kind of material",
+     "nothing has yet said what kind of material these are, so they were not "
+     "shown to a model and nothing moved. They are waiting for you to say what "
+     "they are: they are not marked sensitive and were not judged on thin "
+     "evidence."),
+    (NO_MODEL_ALLOWED, "A model was not allowed to look",
+     "deciding these needed a model, and the privacy settings on the folder "
+     "they are in do not let one be asked about them. Nothing about them left "
+     "this device and nothing moved; the evidence is retained."),
+    (pv.NO_SUPPORTED_DESTINATION, "No folder matched",
+     "no folder in this plan matched them well enough to be worth proposing."),
+    (pv.MULTIPLE_SUPPORTED_HOMES, "More than one folder fits",
+     "more than one folder in this plan matches each of these well enough on "
+     "its own, and nothing in the evidence separates them. Which one is home is "
+     "a choice about your material, not a gap in the evidence."),
+    (pv.LOW_MARGIN, "Two folders fit about equally well",
+     "two folders in this plan fit each of these about equally well, so picking "
+     "one would have been a guess rather than a decision."),
+    (pv.CONFLICTING_FACTS, "The readings disagree",
+     "what this run read about these points at more than one folder, and the "
+     "readings disagree with each other."),
+    (pv.SEMANTIC_ONLY, "They only read like a folder",
+     "the only thing linking these to a folder was that they read alike, which "
+     "is not enough on its own to move a file."),
+    (pv.GENERIC_HUB_ONLY, "They share only a word many files share",
+     "the only thing these share with a folder is a word many of your files "
+     "share, which says nothing about where any of them belongs."),
+    (pv.NO_SHARED_BRANCH, "The files these belong with are spread out",
+     "the files each of these belongs with are not all under one branch, so "
+     "there is no single home to propose for them."),
+    (pv.BUDGET_DEFERRED, "This run stopped before reaching them",
+     "this run reached its ceiling before deciding these, so nothing was "
+     "concluded about them. That is not the same as looking and being unable to "
+     "tell (§8.6); the next run picks them up where this one stopped."),
+    (WAITING_ON_AN_ANSWER, "Waiting on a question you have been asked",
+     "nothing this run could read says what these are, so this report asks you "
+     "about them rather than deciding on thin evidence. Answering the question "
+     "printed beside them is what moves them."),
+    (NOT_YET_PLACED, "Not yet placed",
+     "no destination in this tree matched them well enough to decide without "
+     "asking you."),
+)
+
+#: Protection is not one of the rows above and never merges into one. Its label and
+#: its sentence are exactly what they were before R-115: the set carries the flag
+#: `require_set_actionable` raises on, and it is named and counted like every other
+#: set and never opened.
+PROTECTED_REVIEW_SET_WORDS: tuple[str, str] = (
+    "Protected, and not filed in bulk",
+    "these are protected material, so they are counted and named here and "
+    "nothing was assembled about them. They are not filed in one gesture with "
+    "everything else; each one is yours to decide.",
+)
+
+REVIEW_SET_WORDS: Mapping[str, tuple[str, str]] = MappingProxyType({
+    **{key: (label, reason) for key, label, reason in REVIEW_SET_REASONS},
+    PROTECTED_REVIEW_SET: PROTECTED_REVIEW_SET_WORDS,
+})
+
+
 def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str,
         user_id: str, now, out=None,
         also_read: Sequence[Path] = (),
@@ -5868,32 +5967,132 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             f"WHERE file_id IN ({marks}) AND protected = 1 "
             "  AND superseded_by IS NULL", tuple(file_ids)))
 
-    def residual_partition(unplaced: Sequence[str]) -> tuple[dict, ...]:
-        """§7.5's review sets. SPEC Open question 10 leaves the taxonomy open, so
-        this deployment surfaces the smallest partition that still shows every
-        file with a reason -- and protection is the one line it may not cross.
+    def _file_records(file_ids: Sequence[str]) -> dict:
+        """The scan's own row for each of these files, for §7.5's description.
 
-        This used to be ONE set declaring `protected: False` as a literal,
-        whatever it actually held. P11 builds a real refusal on that flag:
-        `require_set_actionable` reads `residual_set.protected` and raises
-        BEFORE any decision, so protection is decided independently of what the
-        person chose. Declaring every set unprotected made that refusal
-        unreachable -- complete, tested, and never able to fire -- and
-        `--send-set` would have filed a passport in one gesture with no
-        per-file look.
+        `00` §residual asks each set to display "representative examples,
+        file-type distribution, age range" beside the reason. All three are
+        facts P3 already recorded about the file, so they are READ here rather
+        than re-observed: a second look at the disk would be a second answer to
+        "what is this file", and a residual screen is the last place a file is
+        mentioned at all.
+        """
+        if not file_ids:
+            return {}
+        marks = ",".join("?" * len(file_ids))
+        return {row["file_id"]: row for row in conn.execute(
+            "SELECT file_id, filename, extension, observed_timestamps "
+            f"FROM files WHERE file_id IN ({marks})", tuple(file_ids))}
 
-        So the split is by protection and by nothing else. It is not a taxonomy
-        and does not pre-empt Open question 10; it is the one distinction the
-        machinery downstream already acts on.
+    def residual_partition(unplaced: Sequence[str], *,
+                           plan_version: str) -> tuple[dict, ...]:
+        """§7.5's review sets, divided by the reason the screen already prints.
+
+        `104` R-115. This used to be ONE set of every ordinary unplaced file plus
+        one protected set, and §8.6's ceiling then cut the first into eight-file
+        batches -- so a person read "Not yet placed (1 of 4)" through "(4 of 4)",
+        and a group of six files was told "3 review sets of it have files under
+        this heading" with nothing on the screen saying which set held which
+        file. `00` §residual asks for sets divided "using reliable
+        characteristics", and a batch index is a ceiling rather than a
+        characteristic: it divides files that belong together and it names the
+        division after a number nobody chose.
+
+        **The characteristic is the one the screen already prints.** "Same reason
+        for each" is `PlacementDecision.explanation`, which
+        `pipeline._abstention_explanation` writes off exactly three things: P7's
+        protected flag, whether anything has classified the file, and
+        `abstention_reason`, a closed vocabulary. So the recorded decision is READ
+        here rather than the reason being derived a second time out of the same
+        evidence -- two derivations of one fact are two answers waiting to
+        disagree, and the person would be reading the one that lost.
+
+        **The split by PROTECTION is unchanged, and still comes from
+        `classifications`.** P11 builds a real refusal on `residual_set.protected`
+        -- `require_set_actionable` raises before it reads any decision -- so the
+        flag has to be true of what the set holds. `_protected_among` is the
+        source it was before R-115; reading `privacy.protected` off the decision
+        instead would move files between protected and ordinary as a side effect
+        of renaming the ordinary ones, which is the one line this function may
+        not cross.
+
+        **Every unplaced file is still in exactly one set.** A file whose reason
+        this deployment has no row for keeps the name the one pile had rather
+        than being dropped: `surface_residual_sets` refuses a partition that
+        misses a file, and a set nobody can name is a file nobody is shown.
+        R-113's blocked-with-destination case is untouched -- those files are
+        `place` decisions, never reach `unplaced`, and are in no set before this
+        change or after it.
+
+        **The order is the table's, protected last.** Dict insertion order would
+        follow the order files were decided in, so the same corpus would name its
+        sets differently between runs and the `--send-set` lines beneath them
+        would move -- which is a person's typed command changing under them.
         """
         if not unplaced:
             return ()
-        protected = _protected_among(unplaced)
-        ordinary = tuple(f for f in unplaced if f not in protected)
-        shielded = tuple(f for f in unplaced if f in protected)
+        from datetime import datetime, timezone
 
-        def _set(label: str, members: tuple[str, ...], *, is_protected: bool,
-                 reason: str) -> dict:
+        from placement.privacy import is_unclassified
+        from placement.store import decisions_for_plan
+
+        protected = _protected_among(unplaced)
+        records = _file_records(unplaced)
+        decided = {decision.subject.file_id: decision
+                   for decision in decisions_for_plan(conn,
+                                                      plan_version=plan_version)
+                   if decision.subject.file_id}
+
+        def _by_name(file_id: str) -> tuple[str, str]:
+            row = records.get(file_id)
+            return (row["filename"] if row is not None else "", file_id)
+
+        def _why(file_id: str) -> str:
+            """Which set this file is in, off its own recorded decision."""
+            decision = decided.get(file_id)
+            if decision is None:
+                return NOT_YET_PLACED
+            reason = decision.abstention_reason
+            if reason == pv.PRIVACY_BLOCKED:
+                # The two halves `_abstention_explanation` already tells apart,
+                # and it is the same question asked of the same record: one is
+                # "nothing has said what this is yet", the other is "a model was
+                # not allowed to look". `66` §4 forbids them sharing a message,
+                # so they may not share a set either.
+                return (NOT_YET_CLASSIFIED if is_unclassified(decision.privacy)
+                        else NO_MODEL_ALLOWED)
+            if reason in REVIEW_SET_WORDS:
+                return reason
+            if decision.outcome == pv.ASK_USER:
+                # Not an abstention: the run turned it into a question the report
+                # prints. Folding it into "no folder matched" would tell somebody
+                # their file has no home when what it has is a question.
+                return WAITING_ON_AN_ANSWER
+            return NOT_YET_PLACED
+
+        held: dict[str, list[str]] = {}
+        for file_id in sorted(unplaced, key=_by_name):
+            held.setdefault(PROTECTED_REVIEW_SET if file_id in protected
+                            else _why(file_id), []).append(file_id)
+
+        def _day(stamp: float) -> str:
+            return datetime.fromtimestamp(stamp, timezone.utc).date().isoformat()
+
+        def _set(key: str, members: tuple[str, ...]) -> dict:
+            label, reason = REVIEW_SET_WORDS[key]
+            is_protected = key == PROTECTED_REVIEW_SET
+            extensions: dict[str, int] = {}
+            stamps: list[float] = []
+            for file_id in members:
+                row = records.get(file_id)
+                if row is None:
+                    continue
+                extensions[row["extension"] or "(no extension)"] = 1 + extensions.get(
+                    row["extension"] or "(no extension)", 0)
+                mtime = json.loads(
+                    row["observed_timestamps"] or "{}").get("mtime")
+                if mtime is not None:
+                    stamps.append(float(mtime))
             return {"label": label, "member_file_ids": members,
                     # Named files, so a person can see WHICH of theirs is here.
                     # Protected files are named and counted like any other: the
@@ -5901,26 +6100,29 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                     # never mentioned, and a set that hid them would be the
                     # silent omission the same rule forbids.
                     "representative_examples": members[:3],
-                    "file_type_distribution": (), "age_range": (),
+                    # Commonest first, then alphabetical, so the reading is
+                    # "mostly screenshots" rather than a list in scan order.
+                    "file_type_distribution": tuple(sorted(
+                        extensions.items(), key=lambda pair: (-pair[1], pair[0]))),
+                    # THE STAMP P3 RECORDED, rendered as a UTC day and nothing
+                    # more. SPEC Q2 is open on timestamp representation and P3
+                    # deliberately stores the `stat` value rather than choosing a
+                    # format; `age_range` is two strings and a float is not one,
+                    # so a day is the narrowest reading of that value this field
+                    # can carry. A set whose files carry no mtime leaves it EMPTY
+                    # rather than dating them from anything else on the row.
+                    "age_range": ((_day(min(stamps)), _day(max(stamps)))
+                                  if stamps else ()),
                     "evidence_availability": "partial",
                     "sensitivity_status": "protected" if is_protected else "none",
                     "protected": is_protected, "weak_graph_neighbours": (),
                     "reason_not_placed": reason}
 
-        sets: list[dict] = []
-        if ordinary:
-            sets.append(_set(
-                "Not yet placed", ordinary, is_protected=False,
-                reason="no destination in this tree matched them well enough "
-                       "to decide without asking you."))
-        if shielded:
-            sets.append(_set(
-                "Protected, and not filed in bulk", shielded, is_protected=True,
-                reason="these are protected material, so they are counted and "
-                       "named here and nothing was assembled about them. They "
-                       "are not filed in one gesture with everything else; each "
-                       "one is yours to decide."))
-        return tuple(sets)
+        return tuple(
+            _set(key, tuple(held[key]))
+            for key in (*(row[0] for row in REVIEW_SET_REASONS),
+                        PROTECTED_REVIEW_SET)
+            if held.get(key))
 
     def _every_destination(frozen) -> tuple[DestinationChoice, ...]:
         """Every place a file can go in this plan, with the path a person reads.
@@ -6189,7 +6391,16 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         return PipelineInputs(
             plan_version=tree.tree.plan_version_id, tree=tree.tree,
             policy=SUPPORT_POLICY, limits=placement_limits(conn),
-            partition=residual_partition,
+            # `104` R-115. The partition divides by the reason each file's own
+            # decision recorded, and a decision is addressed by
+            # `(plan_version, subject_ref)` -- every run mints a new plan
+            # version, so a lookup without one would read the answer some
+            # earlier run gave about the same bytes. It is bound HERE because
+            # this is the first place the frozen tree exists; `residual_partition`
+            # is defined before the tree is built and P11 calls it with the
+            # unplaced ids and nothing else.
+            partition=lambda unplaced: residual_partition(
+                unplaced, plan_version=tree.tree.plan_version_id),
             # §6.9, when a file has two homes. This deployment abstains rather than
             # asking, because there is no screen here to ask on and choosing one
             # institution is the failure §6.9 exists to prevent.
