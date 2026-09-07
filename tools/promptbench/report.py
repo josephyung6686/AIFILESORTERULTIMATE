@@ -85,6 +85,10 @@ def aggregate(calls: list[dict]) -> dict:
                 statistics.median(loads), 1), "max": max(loads)} if loads else None),
             "worst_outcomes": dict(sorted(
                 _count(x["worst_outcome"] for x in j).items())),
+            # `105` §14.7's five classes, counted per arm (absent on records
+            # judged before the classes existed).
+            "classes": dict(sorted(_count(
+                x["outcome_class"] for x in j if x.get("outcome_class")).items())),
             "reasons": dict(sorted(_count(
                 r for x in j for v in x["verdicts"] for r in v["reasons"]).items())),
         })
@@ -109,6 +113,7 @@ def per_case_table(calls: list[dict]) -> list[dict]:
             "should_abstain": j.get("should_abstain"),
             "abstained": j.get("abstained"), "correct": j.get("correct"),
             "accepted": j.get("accepted"), "worst": j.get("worst_outcome"),
+            "class": j.get("outcome_class"), "expected_class": j.get("expected_class"),
             "reasons": sorted({r for v in j.get("verdicts", []) for r in v["reasons"]}),
             "schema": j.get("json_schema_valid"),
             "grounding": f"{j.get('citations_span_matched')}/{j.get('citations_total')}",

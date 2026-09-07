@@ -1,0 +1,24 @@
+{
+  "policy_id": "c_placement.shaping.unratified.v2.2026-09-07",
+  "call_site": "C_placement",
+  "what_this_is": "How the dossier beside it was shaped, so the reader knows what it is looking at and what it is not. It describes the SHAPING, never the file: every sentence here is the same on every file in every corpus, and nothing in it is evidence.",
+  "closed_world": "The dossier is the whole of what was sent. There is no document behind it, no page, no filename, no path, no surrounding sentence, and no part of the tree beyond the candidates listed. A destination can only be an identifier present in allowed_vocabulary, and a citation can only be anchored in a value present in released_evidence.",
+  "selection": {
+    "unit": "one file version and the short list of approved folders retrieved for it",
+    "what_is_offered": "observations the local extractors already produced for that version, each addressed by an observation_key and bounded by a span; the retrieved candidate folders of one frozen plan, each described from the top of the tree down with the values it expects; the accepted groups the file belongs to or was retrieved as a candidate member of; and every conflict the engine recorded between the file's stated values and a folder it was pulled towards",
+    "what_is_never_offered": "the whole tree, complete extracted text, whole documents, paths, filenames, OCR output of protected material, file hashes, image EXIF, GPS, the person's own typed words, and raw sensitive values",
+    "ordering": "candidates in the engine's retrieval order, which carries no meaning for the answer; evidence with the most placed first -- title, heading and metadata before body -- then a bounded number of the rest",
+    "bounded": "the count and the length are both capped before the request is built; what did not fit was not sent and is not described"
+  },
+  "reduction_ladder": [
+    "none: the dossier fits and is sent unreduced",
+    "summarized_facts: facts stand in for their evidence",
+    "preserved_anchors: only the anchoring evidence is kept",
+    "split: the subject is sent as several dossiers, each judged on its own",
+    "deferred: nothing is sent"
+  ],
+  "reduction_rung_in_force": "the dossier's own reduction_rung key says which rung this one was built at",
+  "redaction": "identifiers the local policy recognises are transformed before the value is written into the dossier. A redacted value is the value that was sent, and it is the only text a citation can quote.",
+  "what_is_done_with_the_answer": "the destination is checked against allowed_vocabulary and against the frozen plan; every citation is checked against the released value it names; every level in per_dimension_support must carry direct or context support; every conflict_id in conflicts must appear in conflicts_considered; every level marked context is checked against the accepted groups the dossier carries, and a placement whose every level is context may cite nothing; support and next_support are recorded as they were written and compared to nothing; a placement that lists a candidate still standing in alternatives is recorded as unresolved rather than as a placement; an answer that fails a check is recorded as having failed it. Nothing here is a hint about which answer passes.",
+  "declining": "a destination of none is recorded as a correct abstention and the file goes to a person. It is not a failure and it is not counted as one."
+}

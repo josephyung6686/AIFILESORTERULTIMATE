@@ -1,8 +1,13 @@
 """Sites C/D placement and residual validation.
 
 Tree/policy oracles are required injections with no defaults. The residual
-controlled-action set is P8's Task 1 `RESIDUAL_ACTIONS`. Q3's two-condition
-rule is Site C only.
+controlled-action set is P8's Task 1 `RESIDUAL_ACTIONS`.
+
+Site C's decision rule is the owner's of 7 Sep 2026 (`105` §14.1): the unique
+fully supported destination after resolving ancestors and shared branches.
+`support` and `next_support` are recorded diagnostics and never a veto; a level
+marked `context` is verified against the dossier's accepted groups; a placement
+every level of which is `context` may carry no citation at all.
 """
 from __future__ import annotations
 
@@ -80,6 +85,15 @@ CREATE TABLE IF NOT EXISTS llm_cd_plan_identity (
 
 @dataclass(frozen=True, slots=True)
 class PlacementDependencies:
+    """Site C's authorities.
+
+    `support_threshold` and `margin_predicate` are still required injections --
+    the composition root supplies them and the seam tests name them -- but since
+    `105` §14.1 neither is consulted: the two counts the model writes are
+    recorded, not compared. The two codes they used to raise now mean something
+    the validator can observe (`_placement_site`).
+    """
+
     node_exists: Callable[[str, str], bool]
     support_threshold: object
     margin_predicate: Callable[[object, object], bool]
@@ -256,6 +270,69 @@ def _invented_dimension(payload: Mapping[str, object], dossier: Dossier) -> str 
     return None
 
 
+#: An `accepted_group` evidence item in this reliability state is a group the
+#: person accepted the file into. Any other state (`possible` is the bench's) is
+#: a group the file was merely retrieved as a candidate member of, which `00`:109
+#: and `105` §14.1 say is a resemblance and not support.
+ACCEPTED_MEMBERSHIP_STATE: str = "user_confirmed"
+ACCEPTED_GROUP_KIND: str = "accepted_group"
+#: The per-level key a `context` level names its group in (schema v2).
+CONTEXT_GROUP_KEY: str = "context_group"
+
+
+def _accepted_groups(dossier: Dossier) -> frozenset[str]:
+    return frozenset(
+        item.evidence_ref for item in dossier.evidence_items
+        if item.kind == ACCEPTED_GROUP_KIND
+        and item.reliability_state == ACCEPTED_MEMBERSHIP_STATE
+    )
+
+
+def _unverified_context_level(payload: Mapping[str, object], dossier: Dossier) -> bool:
+    """A `context` level whose group support the validator cannot verify.
+
+    `105` §14.1 allows accepted-group support without a file citation ONLY when
+    it is verifiable: the level names the group (`context_group`), and that group
+    is one the dossier says the person accepted the file into. A level that names
+    no group, a group the dossier does not carry, or a group the file was merely
+    retrieved for is a slot filled on evidence the validator cannot see.
+    """
+    accepted = _accepted_groups(dossier)
+    for item in _dimensions(payload):
+        if item.get("support") != "context":
+            continue
+        group = item.get(CONTEXT_GROUP_KEY)
+        if not isinstance(group, str) or group not in accepted:
+            return True
+    return False
+
+
+def _context_only_claim(dossier: Dossier, raw: object) -> str | None:
+    """`validation.validate_response`'s `uncited_claim` hook for site C.
+
+    A placement whose every listed level is `context` has nothing in the file's
+    text to cite and is admitted with no citations, as `accept_context_supported`
+    (review required, `00`:111). Whether the groups it leans on are ones the
+    person accepted is `_placement_site`'s check, not this one's: this only says
+    the SHAPE may proceed. Anything else without a citation stays uncited.
+    """
+    payload = _payload_of(raw)
+    destination = payload.get("destination")
+    if destination in (None, "none"):
+        return None
+    levels = _dimensions(payload)
+    if not levels or any(item.get("support") != "context" for item in levels):
+        return None
+    return ACCEPT_CONTEXT_SUPPORTED
+
+
+def _alternatives(payload: Mapping[str, object]) -> tuple[object, ...]:
+    raw = payload.get("alternatives")
+    if not isinstance(raw, Sequence) or isinstance(raw, (str, bytes)):
+        return ()
+    return tuple(raw)
+
+
 def _placement_site(
     dossier: Dossier,
     raw: object,
@@ -286,6 +363,11 @@ def _placement_site(
     # Everything else goes to the grounding check below.
     if any(item.get("support") == "unsupported" for item in _dimensions(payload)):
         return _reject(verdict, SLOT_FILLED_WITHOUT_EVIDENCE, NO_DESTINATION)
+    # A `context` level is verified, not trusted: the group it names must be one
+    # the person accepted the file into. The nearest code in the closed set is
+    # the one for a slot filled on evidence the validator cannot see.
+    if _unverified_context_level(payload, dossier):
+        return _reject(verdict, SLOT_FILLED_WITHOUT_EVIDENCE, NO_DESTINATION)
     invented = _invented_dimension(payload, dossier)
     if invented is not None:
         return _reject(verdict, invented, NO_DESTINATION)
@@ -301,19 +383,26 @@ def _placement_site(
         return _reject(verdict, SENSITIVITY_POLICY_VIOLATION, NO_DESTINATION)
     if payload.get("generic_hub") is True or destination == "node-hub":
         return _weak(verdict, GENERIC_HUB_ONLY)
-    if "support" not in payload:
+    # THE TWO COUNTS ARE DIAGNOSTICS (`105` §14.1). They must be present and be
+    # numbers -- that is the shape, and a shape violation destroys the answer --
+    # but they are never compared to a threshold or to each other: one passage
+    # can support a parent and its child, and several citations can repeat one
+    # nondiscriminating fact, so a count establishes nothing about uniqueness.
+    # They stay in the recorded response; nothing here reads their values.
+    for key in ("support", "next_support"):
+        if key not in payload or not _real_number(payload[key]):
+            return _reject(verdict, SCHEMA_INVALID, NO_DESTINATION)
+    # BELOW_SUPPORT_THRESHOLD now means: no level of the chosen candidate is
+    # supported -- the model placed the file and listed nothing that holds it.
+    if not _dimensions(payload):
         return _weak(verdict, BELOW_SUPPORT_THRESHOLD)
-    support = payload["support"]
-    if not _real_number(support):
-        return _reject(verdict, SCHEMA_INVALID, NO_DESTINATION)
-    if float(support) < float(dependencies.support_threshold):
-        return _weak(verdict, BELOW_SUPPORT_THRESHOLD)
-    if "next_support" not in payload:
-        return _weak(verdict, INSUFFICIENT_MARGIN)
-    next_support = payload["next_support"]
-    if not _real_number(next_support):
-        return _reject(verdict, SCHEMA_INVALID, NO_DESTINATION)
-    if not dependencies.margin_predicate(support, next_support):
+    # INSUFFICIENT_MARGIN now means: the model itself reports a second fully
+    # supported candidate still standing beside its destination. The text
+    # defines `alternatives` as exactly that -- what stood after ancestors and
+    # shared branches were resolved -- and tells the model that a non-empty list
+    # is a `none`. A placement that lists one anyway is recorded unresolved and
+    # goes to a person, not into a folder.
+    if _alternatives(payload):
         return _weak(verdict, INSUFFICIENT_MARGIN)
     if payload.get("weak_retrieval") is True:
         return _rewrite(
@@ -538,6 +627,7 @@ def validate_placement_response(
         dossier_builder=dossier_builder,
         release_audit_id=release_audit_id,
         handle_key=handle_key,
+        uncited_claim=_context_only_claim,
     )
     return _finish(result, adjust=_placement_disposition)
 

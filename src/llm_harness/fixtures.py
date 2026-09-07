@@ -386,8 +386,14 @@ def _c_payload(destination: str | None = "node-legal", **extra: object) -> dict:
         "per_dimension_support": [
             {"dimension": "date", "value": SPAN, "support": "direct"},
         ],
-        "alternatives": ["node-alt"],
+        # EMPTY, because `105` §14.1 made `alternatives` the model's report of a
+        # second fully supported candidate still standing: a placement that
+        # lists one is `INSUFFICIENT_MARGIN`, and that pair below is the only
+        # fixture that lists one.
+        "alternatives": [],
         "conflicts_considered": [],
+        # RECORDED, NOT COMPARED (`105` §14.1): present because the shape
+        # requires them; their values decide nothing.
         "support": 0.9,
         "next_support": 0.1,
     }
@@ -451,14 +457,18 @@ SITE_C_REASON_PAIRS: tuple[RecordedPair, ...] = (
         outcome=REJECT, reasons=(SENSITIVITY_POLICY_VIOLATION,),
         disposition=NO_DESTINATION, sensitivity_ok=False,
     ),
+    # THE TWO-CONDITION CODES UNDER `105` §14.1. Neither fires on the counts
+    # any more. Threshold: the model placed the file and listed no supported
+    # level. Margin: the model placed the file and reported another fully
+    # supported candidate still standing in `alternatives`.
     _pair(
         **_C_BASE, name=BELOW_SUPPORT_THRESHOLD, dossier=_c_dossier("c-below"),
-        payload=_c_payload(support=0.3, next_support=0.0),
+        payload=_c_payload(per_dimension_support=[]),
         outcome=WEAK, reasons=(BELOW_SUPPORT_THRESHOLD,), disposition=UNRESOLVED,
     ),
     _pair(
         **_C_BASE, name=INSUFFICIENT_MARGIN, dossier=_c_dossier("c-margin"),
-        payload=_c_payload(support=0.8, next_support=0.75),
+        payload=_c_payload(alternatives=["node-alt"]),
         outcome=WEAK, reasons=(INSUFFICIENT_MARGIN,), disposition=UNRESOLVED,
     ),
     _pair(
