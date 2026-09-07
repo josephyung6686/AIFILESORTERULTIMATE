@@ -48,6 +48,15 @@ until it answers; a file that kills a pool it is alone in becomes a `failed` run
 the run continues. `tests/integration/test_extraction_pool_recovery.py` calls
 `os._exit(1)` inside a real worker to prove it.
 
+**And a worker that never returns gets the same second chance.** R-50's ceiling kills
+one, and until R-112 the kill was final: one attempt, one `failed` run. Measured over
+eleven runs of one pinned 263-file corpus, the same PNG was read completely in ten of
+them and wedged its worker in the eleventh -- inside the first Vision call that worker
+made, on `flock()` in the Metal shader compiler's machine-wide on-disk cache. A wedge
+that turns on the state of a lock is not a property of the file, so the ceiling now
+rebuilds and retries exactly as the death path does, and only a file that wedges twice
+is written off.
+
 **And a worker must not outlive the run that started it.** The paragraph above is
 about a worker dying; this one is about one that refuses to. `close()` used to call
 `shutdown(wait=False)`, which returns before any worker has been told to stop, and a
@@ -393,50 +402,95 @@ class ProcessPool:
                 outcome = current.result(
                     timeout=max(0.0, deadline - self._now()))
             except FuturesTimeout:
-                # R-50. NOBODY DIED AND NOBODY ANSWERED. There is no retry here and
-                # that is deliberate: the death path retries because a segfault can
-                # be the pool's fault rather than the file's, and a deadlock reached
+                # R-50/R-112. NOBODY DIED AND NOBODY ANSWERED, and the file gets a
+                # second attempt for the same reason a segfault does: the wedge is
+                # not a property of the bytes.
+                #
+                # THE FIRST RULING HERE SAID THE OPPOSITE -- "a deadlock reached
                 # through the same bytes and the same framework will be reached
-                # again. Retrying would cost the ceiling a second time and end in
-                # the same row.
+                # again" -- and R-112 measured it false. Eleven runs of the product
+                # over one pinned 263-file corpus: the same PNG, content hash
+                # `782ff3d1...`, read completely in ten of them and wedged its worker
+                # in the eleventh, which cost that run 626.4 seconds against 20 to 26
+                # for the others. Sampled at the wedge, the worker's main thread was
+                # in `-[VNImageRequestHandler performRequests:]` ->
+                # `-[CIContext render:toCVPixelBuffer:]` ->
+                # `CI::ProgramNode::mainProgram` -> `__DISPATCH_WAIT_FOR_QUEUE__`,
+                # waiting on `CI::KernelCompileQueue`; that queue was blocked in
+                # `flock()` inside `MTLCompilerFSCache::openSync` -- the Metal shader
+                # compiler's on-disk cache lock, which every process on the machine
+                # shares. Six of the seven workers took that lock and released it in
+                # about three seconds. The seventh never came back.
+                #
+                # So what wedged was the state of a machine-wide lock at the instant
+                # one worker made its first Vision call, and the file was read a
+                # second later by the next run over identical bytes. Writing it off
+                # after one attempt sent a person away with a file that was never
+                # unreadable, to get it back only by running the scan again.
+                #
+                # The retry is ONE, and `attempts` is the same counter the death path
+                # keeps: a file may cost this run two ceilings and no more, which is
+                # `00`:257's rule surviving the recovery written to keep it.
                 if request is None:                  # pragma: no cover -- not ours
                     raise
-                self._outstanding.pop(current, None)
-                # THE WINDOW IS HELD BACK FIRST, which is `_rebuild`'s rule reached
-                # by a different road. Killing the pool takes down every worker,
-                # including the ones reading innocent files, so anything still in
-                # flight has to be resubmitted rather than failed -- surviving
-                # somebody else's deadlock is not an attempt, and `_release`
-                # restores the count. A future that has already FINISHED keeps its
-                # result and its bookkeeping: it is not in flight, nothing was lost,
-                # and resubmitting it would write a second run row for a file the
-                # caller has not consumed yet.
-                lost = [(stale, held) for stale, held in self._outstanding.items()
-                        if not stale.done()]
-                # KILL BEFORE SHUTDOWN, and the order is the whole of it. A worker
-                # deadlocked inside a framework will not answer a stop sentinel, so
-                # `_shutdown`'s `wait=True` would wait on it for ever -- the hang
-                # this fix exists to end, moved into the recovery for it.
+                if attempts > 1:
+                    self._outstanding.pop(current, None)
+                    # THE WINDOW IS HELD BACK FIRST, which is `_rebuild`'s rule
+                    # reached by a different road. Killing the pool takes down every
+                    # worker, including the ones reading innocent files, so anything
+                    # still in flight has to be resubmitted rather than failed --
+                    # surviving somebody else's deadlock is not an attempt, and
+                    # `_release` restores the count. A future that has already
+                    # FINISHED keeps its result and its bookkeeping: it is not in
+                    # flight, nothing was lost, and resubmitting it would write a
+                    # second run row for a file the caller has not consumed yet.
+                    lost = [(stale, held)
+                            for stale, held in self._outstanding.items()
+                            if not stale.done()]
+                    # KILL BEFORE SHUTDOWN, and the order is the whole of it. A
+                    # worker deadlocked inside a framework will not answer a stop
+                    # sentinel, so `_shutdown`'s `wait=True` would wait on it for
+                    # ever -- the hang this fix exists to end, moved into the
+                    # recovery for it.
+                    self._kill_workers()
+                    self._shutdown()
+                    for stale, _held in lost:
+                        self._outstanding.pop(stale, None)
+                    # EXTENDED, NEVER ASSIGNED, and the difference is a lost window.
+                    # This branch is reachable while a REBUILD's window is already
+                    # deferred: a pool death isolates the suspect, `_outstanding`
+                    # holds only that suspect, and the suspect then hangs. `lost` is
+                    # empty there, and assigning would wipe the held-back window --
+                    # whose callers are holding handles whose futures were cancelled,
+                    # so the run stops on the next file with nothing to say.
+                    # `_release` below drains both.
+                    self._deferred.extend((stale, held, count)
+                                          for stale, (held, count) in lost)
+                    self._release()
+                    return _failure_outcome(request, TimeoutError(
+                        f"no result within the {self._ceiling}s ceiling for one "
+                        f"extraction, twice; the worker running "
+                        f"{request.decision.extractor_name} for this file was "
+                        "killed both times and the pool rebuilt, so the rest of "
+                        "the run continues"))
+                # KILLED BEFORE THE REBUILD, and for the reason the branch above
+                # gives: `_rebuild` shuts the executor down with `wait=True`, and a
+                # worker wedged inside a framework answers no stop sentinel. Without
+                # the kill the recovery inherits the hang it was written to end.
                 self._kill_workers()
-                self._shutdown()
-                for stale, _held in lost:
-                    self._outstanding.pop(stale, None)
-                # EXTENDED, NEVER ASSIGNED, and the difference is a lost window.
-                # This branch is reachable while a REBUILD's window is already
-                # deferred: a pool death isolates the suspect, `_outstanding` holds
-                # only that suspect, and the suspect then hangs. `lost` is empty
-                # there, and assigning would wipe the held-back window -- whose
-                # callers are holding handles whose futures were cancelled, so the
-                # run stops on the next file with nothing to say. `_release` below
-                # drains both.
-                self._deferred.extend((stale, held, count)
-                                      for stale, (held, count) in lost)
-                self._release()
-                return _failure_outcome(request, TimeoutError(
-                    f"no result within the {self._ceiling}s ceiling for one "
-                    f"extraction; the worker running "
-                    f"{request.decision.extractor_name} for this file was killed "
-                    "and the pool rebuilt, so the rest of the run continues"))
+                # `_rebuild` READS `current` OUT OF `_outstanding`, so it is not
+                # popped first. The suspect goes into a pool holding nothing but
+                # itself and the rest of the window is held back until it answers --
+                # the death path's shape exactly, and it is what makes the second
+                # attempt's first framework call uncontended by anything this run is
+                # doing.
+                self._rebuild(suspect=current)
+                # A NEW CLOCK, for the reason the death path's retry gives one line
+                # further down: the file is being read again from the start, and
+                # charging the second attempt the time the first one's wedge cost
+                # would kill it for having survived.
+                deadline = self._now() + self._ceiling
+                continue
             except BrokenProcessPool as death:
                 if request is None:                  # pragma: no cover -- not ours
                     raise

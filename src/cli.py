@@ -1567,8 +1567,17 @@ EXTRACTION_POOL_FLOOR: int = 32
 #:
 #: Six hundred seconds is ten minutes, thirty times the slowest honest read. A run
 #: that spends ten minutes waiting on one file has something wrong with it in every
-#: case this product can name, and the file is recorded `unexamined` with the ceiling
-#: and the reader in the row, which is a sentence an operator can act on.
+#: case this product can name.
+#:
+#: WHAT THE FILE GETS FOR IT, since R-112: a second attempt, in the same run, in a
+#: pool holding nothing but itself. The wedge this ceiling catches is a race on a
+#: machine-wide lock inside Apple's frameworks and not a property of the bytes --
+#: measured, the same PNG read in ten runs of eleven and wedged in one -- so a single
+#: attempt sent a person away with a file that was never unreadable. Only a file that
+#: wedges twice is recorded `unexamined`, with the ceiling, the reader and the fact
+#: that it was tried twice in the row, which is a sentence an operator can act on.
+#: The bound a file may cost this run is therefore two of these ceilings, which is
+#: the same bound the death path has always allowed a file that segfaults.
 EXTRACTION_SECONDS_PER_FILE: float = 600.0
 
 #: The wire handle key. `llm_harness.wire_handles` digests every identifier that
