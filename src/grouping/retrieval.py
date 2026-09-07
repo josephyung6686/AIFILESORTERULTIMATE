@@ -24,11 +24,17 @@ and a missing one omits its channel and says so rather than assuming a permissiv
 default — treating every document type as compatible would quietly widen every
 group in the corpus.
 
-A note on cost, so the next reader does not mistake it for an oversight: P6
-publishes only per-file reads, so matching a shared fact means reading each
-candidate's facts rather than consulting an index. The neighbourhood cap bounds
-the RESULT, not the scan. An index read is P6's to publish if this becomes the
-bottleneck; P9 inventing one would be P9 querying P6's tables.
+**The cost note that used to end here has come due, and P6 answered it.** It read:
+"P6 publishes only per-file reads, so matching a shared fact means reading each
+candidate's facts rather than consulting an index ... An index read is P6's to
+publish if this becomes the bottleneck; P9 inventing one would be P9 querying P6's
+tables." It became the bottleneck, and it was measured: over a 1,000-file synthetic
+corpus, three of these channels issued 1,905,098 of the run's 2,273,532
+`facts_for_file` calls -- N statements per seed and N-squared per run -- and
+`retrieve_neighbors` held 46.7 of 106.9 profiled seconds. So P6 published
+`versions_proposing` and `versions_in_fields`, beside the per-file reads they are
+the corpus-wide form of, and the channels below ask each of them ONCE. P9 still
+queries no table of P6's.
 """
 from __future__ import annotations
 
@@ -37,7 +43,9 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 
 from database_agent.vector_versions import current_embedding
-from facts.read_surface import family_facts, proposal_eligible, session_facts
+from facts.read_surface import (
+    family_facts, session_facts, versions_in_fields, versions_proposing,
+)
 
 from grouping.config import ConfigurationRequired, GroupingLimits
 from grouping.seeds import ANCHOR_STATES, Seed
@@ -188,12 +196,14 @@ def _shared_fact_neighbors(
     """Channel 1. The only channel that may anchor, and only above the bar."""
     if seed.field_key is None or seed.value is None:
         return []
+    # One statement for the corpus, then a dictionary lookup per candidate. The
+    # ITERATION stays over `candidates`, in `_corpus`'s order, because
+    # `retrieve_neighbors` sorts the channels' output with a stable sort and two
+    # neighbours of equal rank keep the order they were appended in.
+    stating = versions_proposing(conn, field_key=seed.field_key, value=seed.value)
     found: list[Neighbor] = []
     for candidate in candidates:
-        rows = proposal_eligible(
-            conn, file_id=candidate.file_id, content_hash=candidate.content_hash,
-        )
-        match = _values(rows).get((seed.field_key, seed.value))
+        match = stating.get((candidate.file_id, candidate.content_hash))
         if match is None:
             continue
         found.append(Neighbor(
@@ -235,12 +245,16 @@ def _family_or_session_neighbors(
     )
     if not seed_values:
         return []
+    # The candidates' side of the intersection, in one statement rather than one per
+    # candidate. The field keys come from the SEED's own rows, which is both the
+    # cheapest correct set and the reason this function still needs no vocabulary:
+    # a key the seed does not state can never survive `set(seed_values) & set(rows)`.
+    by_version = versions_in_fields(
+        conn, field_keys=sorted({key for key, _ in seed_values}))
     found: list[Neighbor] = []
     for candidate in candidates:
         rows = _values(
-            read(conn, file_id=candidate.file_id,
-                 content_hash=candidate.content_hash),
-        )
+            by_version.get((candidate.file_id, candidate.content_hash), ()))
         shared = sorted(set(seed_values) & set(rows))
         if not shared:
             continue

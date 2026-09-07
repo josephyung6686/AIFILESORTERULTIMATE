@@ -30,7 +30,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Callable, Mapping, NamedTuple, Sequence
 
@@ -58,6 +58,7 @@ from extractors.long_tail import record_sensitivity_signals
 from extractors.router import record_routing_decision, route
 from extractors.runs import extraction_status_by_tier
 from extractors.safety import DatalessRefused, ProtectedContainerRefused
+from extractors.sink import ExtractionResult
 
 from scan_agent.dataless import dataless_detections
 from scan_agent.scan import scan
@@ -215,6 +216,44 @@ def _write(sink, result, written: list[str]) -> str:
     run_id = sink.write(result)
     written.append(run_id)
     return run_id
+
+
+def _landed(result: ExtractionResult, when: str) -> ExtractionResult:
+    """The same run, with `finished_at` taken when its result reached this thread.
+
+    **Every extraction run in this product recorded a duration of exactly zero.**
+    The loop below takes ONE stamp per file, on the calling thread, BEFORE the file
+    is read, and hands that one string to the extractor as `now`; all eleven
+    extractors then write `started_at=now, finished_at=now`. `database_agent/db.py`
+    says of that pair, in a comment on the column, "(mechanics) so elapsed_time is
+    computable" -- and it was not computable, for any file, in any run ever made.
+    `00`:245-259 wants elapsed time observable, and the consequence of it not being
+    is concrete: a 5,000-file scale run could say the run was slow and could not say
+    which files made it so, because the only per-file timing anywhere was whatever a
+    profiler attached to the whole process happened to attribute.
+
+    **Here, and not in the worker.** `extraction_pool.perform` is where extraction
+    genuinely ends, and stamping there would measure the read alone rather than the
+    read plus its queueing -- but a spawned worker cannot be handed the caller's
+    `now`, so the parallel path would take its stamp from a wall clock while the
+    serial path took a test's frozen one, and the two would stop writing the same
+    rows. `test_p1_p7_parallel.py` compares those two databases row for row, and
+    that comparison is worth more than the queueing time it costs to keep.
+
+    **Here, and not in each extractor.** Eleven extractors would then each hold a
+    clock; the pair of stamps would be eleven decisions instead of one.
+
+    So `started_at` keeps exactly the meaning it had -- the moment this loop decided
+    to extract this file -- and `finished_at` is the moment its result was in hand.
+    The difference is submission-to-landing, which is what a person waiting for a
+    scan actually experiences, and it is honest about including queue time because
+    the file really was outstanding for all of it.
+
+    Only results that CROSSED the pool are re-stamped. `extract_filesystem` and
+    `dataless_result` are built on this thread within microseconds of `stamp`; their
+    equal pair is already true.
+    """
+    return replace(result, run={**result.run, "finished_at": when})
 
 
 def _failed_version(decision, versions: Mapping[str, str]) -> str:
@@ -657,7 +696,16 @@ def run_p1_p7(
             elif outcome.kind == CONTRACT:
                 raise ContractViolation(outcome.message)
             else:
-                routed = list(outcome.dispatched.results)
+                # THE SECOND STAMP, and the only one this loop takes after the work.
+                # `stamp` was read before the file was submitted; this is read now
+                # that its result is in hand, so `finished_at - started_at` is a real
+                # number rather than zero. See `_landed`. Taken ONCE for the whole
+                # batch a file produced, because a PDF's native run and its OCR run
+                # landed together and pretending otherwise would invent an ordering
+                # between them that nothing measured.
+                landed = now()
+                routed = [_landed(result, landed)
+                          for result in outcome.dispatched.results]
                 signals = outcome.dispatched.sensitivity
                 signal_target = (routed[outcome.dispatched.sensitivity_target]
                                  if routed else None)
