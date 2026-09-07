@@ -477,11 +477,12 @@ def test_a_policy_that_explicitly_permits_the_move_is_read_from_p7(skeleton,
 
 
 def _verdict(outcome=ACCEPT_CONTEXT_SUPPORTED,
-             disposition=VALID_REVIEW_REQUIRED, reasons=()) -> P8Verdict:
+             disposition=VALID_REVIEW_REQUIRED, reasons=(),
+             requires_review=True) -> P8Verdict:
     return P8Verdict(
         verdict_id="vd-1", dossier_id="ds-1", claim_ref="claim-1",
         outcome=outcome, disposition=disposition, reasons=tuple(reasons),
-        may_propose=True, requires_review=True, citations_checked=(),
+        may_propose=True, requires_review=requires_review, citations_checked=(),
         scope="file", validator_version="1", policy_version="policy-1",
         plan_version="plan-1")
 
@@ -1487,7 +1488,14 @@ def _asking(monkeypatch, verdict=None, seen=None):
 
 
 def _accepts_directly():
-    return _verdict(outcome=P8_ACCEPT_DIRECT, disposition=P8_MOVE_PLAN_ELIGIBLE)
+    # `requires_review=False` WITH THE OUTCOME, and the pairing is the record's own.
+    # `_verdict`'s default is `accept_context_supported`, where `P8Verdict` REQUIRES
+    # review; an `accept_direct` that still asked for one is a different answer, and
+    # a fixture that overrode the outcome and not the flag was describing that other
+    # answer while its callers read it as "the model confirmed, cleanly". `104` R-75
+    # makes the flag load-bearing at P11, so the fixture has to mean what it says.
+    return _verdict(outcome=P8_ACCEPT_DIRECT, disposition=P8_MOVE_PLAN_ELIGIBLE,
+                    requires_review=False)
 
 
 def test_r19_a_unique_direct_match_is_asked_when_a_model_decides(skeleton,
@@ -1612,6 +1620,168 @@ def test_r19_deciding_is_the_path_and_the_ratification_together(skeleton):
     offline = _inputs(skeleton)
     assert offline.model_path_available() is False
     assert offline.model_decides() is False
+
+
+# --- R-74: a gate refusal returns the file to the deterministic path --------------
+#
+# R-19 sends every placeable file to site C, so a PROTECTED file with a unique
+# direct match reaches §8.4's gate for the first time -- and the gate refuses,
+# correctly, and the file abstained `privacy_blocked` where an offline run placed
+# it. `104` §13.5's own clause is the answer: "with no model configured the
+# deterministic path remains the fallback". A refusal is that condition arriving one
+# step later, so the file takes the placement the rules can defend rather than
+# losing its home to a question nobody was able to ask.
+
+
+def _protected_subject(conn, tmp_path, *, name="passport.pdf"):
+    file_id, content_hash = _real_file(conn, tmp_path / "corpus",
+                                       name=name, body=b"%PDF-1.4 s")
+    _classify(conn, file_id=file_id, content_hash=content_hash,
+              protected=True, handling_class="sensitive_personal")
+    return Subject(kind=v.FILE, file_id=file_id, content_hash=content_hash,
+                   group_id=None, member_file_ids=())
+
+
+def test_r74_a_protected_file_the_rules_could_place_keeps_its_home(
+        skeleton, monkeypatch, tmp_path):
+    """The file the model was going to be asked about, and could not be.
+
+    Nothing is sent and nothing is assembled -- `call_placement` raising is the
+    assertion that the gate still comes first. What changes is only what the run
+    does with the refusal it already had: it places the file on the unique direct
+    match, exactly as the same run without a model configured would.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement", lambda *_a, **_k: pytest.fail(
+        "§8.4 gates before any dossier, and R-74 does not move that"))
+    subject = _protected_subject(skeleton, tmp_path)
+    decision = _place(skeleton, subject=subject,
+                      inputs=_model_inputs(skeleton))
+
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-course"
+    assert decision.confidence_class == v.EXACT_FACT_MATCH
+
+
+def test_r74_the_record_says_the_rules_placed_it_and_names_neither_model_nor_person(
+        skeleton, monkeypatch, tmp_path):
+    """`104` R-28's actor rule. No model saw this file and nobody was asked, so a
+    record that credited either would be claiming an act that never happened."""
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    subject = _protected_subject(skeleton, tmp_path, name="passport-2.pdf")
+    decision = _place(skeleton, subject=subject,
+                      inputs=_model_inputs(skeleton))
+
+    assert "placed by the rules" in decision.explanation
+    assert "may be assembled for a model" in decision.explanation
+    assert "hierarchical destination judge" not in decision.explanation
+    assert " you " not in decision.explanation
+
+
+def test_r74_a_protected_file_the_rules_could_not_place_still_abstains(
+        skeleton, monkeypatch, tmp_path):
+    """The twin, and the half that keeps this from being a widening. A bounded
+    ambiguity has no deterministic answer to fall back TO: an offline run abstains
+    on it too, so `privacy_blocked` is still what the record says."""
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    subject = _protected_subject(skeleton, tmp_path, name="passport-3.pdf")
+    decision = _place(skeleton, subject=subject,
+                      inputs=_model_inputs(skeleton),
+                      evidence=_evidence(**AMBIGUOUS))
+
+    assert decision.outcome == v.ABSTAIN
+    assert decision.abstention_reason == v.PRIVACY_BLOCKED
+    assert "protected material" in decision.explanation
+
+
+def test_r74_a_release_the_gate_denies_lands_in_the_same_place(
+        skeleton, monkeypatch, tmp_path):
+    """The refusal arriving from inside `run_call` rather than before it. P7 can
+    deny at either point and the file's evidence is the same either way, so the
+    two answers have to be the same answer."""
+    import placement.pipeline as pipeline
+    from llm_harness.records import Refusal
+    from privacy.denial import RemedyOption, deny
+
+    denied = deny("protected_cloud_target",
+                  explanation="this file is protected and the target is cloud",
+                  remedy_options=(RemedyOption(action="use_local_model",
+                                               detail="ask a model on this device"),),
+                  evidence_refs=())
+    monkeypatch.setattr(pipeline, "call_placement", lambda *_a, **_k: Refusal(
+        denied=denied, validator_version="vv", policy_version="pv"))
+    decision = _place(skeleton, inputs=_model_inputs(skeleton))
+
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-course"
+    assert "placed by the rules" in decision.explanation
+
+
+# --- R-75: the rules validate the model's answer, they do not reclassify it -------
+
+
+def test_r75_a_model_that_asks_for_review_gets_one_on_a_unique_direct_match(
+        skeleton, monkeypatch):
+    """`104` R-75. P11 never read `verdict.requires_review`.
+
+    `p8_seam.transcribe` is explicit that `accept_direct` and
+    `accept_context_supported` are both placements and "the difference between them
+    is `requires_review`, which gates `review_policy` and not the outcome". P11
+    computed the review class from its OWN two-condition and dropped the model's,
+    so a model that confirmed the top node and said its support was context came
+    out `auto_eligible`: it asked for a look and the record said none was needed.
+
+    The evidence half is untouched, and deliberately: the facts that made this a
+    unique direct match are still the facts, so `evidence_type` and
+    `confidence_class` stay what R-19 established. One record, one review class,
+    and the model's.
+    """
+    _asking(monkeypatch, verdict=_verdict())  # accept_context_supported
+    decision = _place(skeleton,
+                      inputs=_model_inputs(skeleton,
+                                           chosen_node_of=lambda _v: "n-course"))
+
+    assert decision.destination.node_id == "n-course"
+    assert decision.confidence_class == v.EXACT_FACT_MATCH
+    assert decision.evidence_type == v.DIRECT
+    assert decision.two_condition.requires_review is True
+    assert decision.review_policy == v.REVIEW_REQUIRED
+
+
+def test_r75_a_clean_confirmation_still_needs_no_review(skeleton, monkeypatch):
+    """The other direction, and it is what makes the read a READ. A model that
+    accepts directly and asks for no review leaves the deterministic answer where
+    it was; `104` §13.5's "rules validate" does not become "rules add a review"."""
+    _asking(monkeypatch, verdict=_accepts_directly())
+    decision = _place(skeleton,
+                      inputs=_model_inputs(skeleton,
+                                           chosen_node_of=lambda _v: "n-course"))
+
+    assert decision.two_condition.requires_review is False
+    assert decision.review_policy == v.AUTO_ELIGIBLE
+
+
+def test_r75_the_rules_own_reasons_for_review_are_not_cleared_by_the_model(
+        skeleton, monkeypatch):
+    """OR, never assignment. A model answering `accept_direct` with no review
+    request must not clear the review a DIFFERENT node already required -- rules
+    that could take a review away would be validating in the wrong direction."""
+    _asking(monkeypatch, verdict=_accepts_directly())
+    decision = _place(
+        skeleton,
+        inputs=_model_inputs(skeleton,
+                             chosen_node_of=lambda _v: "n-course-shared"))
+
+    assert decision.destination.node_id == "n-course-shared"
+    assert decision.two_condition.requires_review is True
+    assert decision.review_policy == v.REVIEW_REQUIRED
 
 
 # --- R-17 and packet G3: a ranked shortlist, each entry with its profile ----------

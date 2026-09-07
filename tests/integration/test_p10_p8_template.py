@@ -20,6 +20,8 @@ from __future__ import annotations
 import dataclasses
 import json
 
+import pytest
+
 from llm_harness.fixtures import FIXTURE_HANDLE_KEY, SITE_E_OUTCOME_PAIRS
 from llm_harness.template_validation import validate_template_response
 from llm_harness.vocabulary import ACCEPT_DIRECT, E_TEMPLATE, REJECT, SCOPE_TEMPLATE
@@ -214,6 +216,204 @@ def test_t6_site_as_allow_list_is_unmoved_by_an_accepted_template_local_name():
     # P6's catalogue is untouched: `matter_number` is not a field, so Site A's
     # allow-list cannot contain it and a fact proposal for it has nowhere to go.
     assert "matter_number" not in {row.field_key for row in FIELD_ROWS}
+
+
+# --- packet G12: the C3 refusal that never became a request ----------------------
+#
+# "E: No live caller: `routing.py`'s C3 refusal never becomes an E request. E can
+# be ratified and stay inert; the bakeoff is the only exercise it gets." Every
+# other half existed -- the request builder, the two authorities, the validator,
+# the drafted text. What nothing did was ask.
+
+
+def _report(*gates):
+    from tree_design.routing import RoutingReport
+    from tree_design.templates import CompositionConflict
+
+    return RoutingReport(
+        candidates=(),
+        conflicts=tuple(
+            CompositionConflict(gate, ["ap.academic.coursework"],
+                                "no recipe recognises this situation")
+            for gate in gates),
+        deferred=0)
+
+
+def _authorities(**over):
+    from types import SimpleNamespace
+
+    values = dict(template_call_for=None)
+    values.update(over)
+    return SimpleNamespace(**values)
+
+
+def test_a_c3_refusal_becomes_a_template_request():
+    """The gate that says "no recipe recognises the situation these files are in"
+    is exactly the sentence `00`:97's site E answers."""
+    from tree_design.pipeline import _ask_for_a_template
+
+    asked = []
+    _ask_for_a_template(
+        _authorities(template_call_for=lambda groups, version: asked.append(
+            (tuple(groups), version))),
+        _report("C3"), groups=("g-1", "g-2"), plan_version="plan-1")
+
+    assert asked == [(("g-1", "g-2"), "plan-1")]
+
+
+def test_a_branch_a_recipe_covers_asks_for_no_template():
+    """A branch the library already has a recipe for does not need one designed,
+    and a call made anyway would spend a release on a question nobody asked."""
+    from tree_design.pipeline import _ask_for_a_template
+
+    asked = []
+    _ask_for_a_template(
+        _authorities(template_call_for=lambda groups, version: asked.append(1)),
+        _report(), groups=("g-1",), plan_version="plan-1")
+    # A different refusal is a different question. C6 names material no recipe
+    # covers and is answered by naming the files, not by designing a template.
+    _ask_for_a_template(
+        _authorities(template_call_for=lambda groups, version: asked.append(1)),
+        _report("C6"), groups=("g-1",), plan_version="plan-1")
+
+    assert asked == []
+
+
+@pytest.fixture()
+def academics(conn, tmp_path):
+    """§5.5's three files as real P1/P4/P6 rows, plus P5's and P7's tables.
+
+    The same corpus P10's materialiser is tested against, because a site-E request
+    is built out of exactly what that corpus holds: the group's anchors, the facts
+    they settled and the observations those facts cite.
+    """
+    from database_agent.db import create_schema
+    from evidence_shape.schema import create_evidence_schema
+    from extractors.schema import create_extraction_schema
+    from facts.fields import create_fields
+
+    from p10.p6_fixtures import seed_academics
+
+    create_schema(conn)
+    create_evidence_schema(conn)
+    create_extraction_schema(conn)
+    create_fields(conn)
+    return seed_academics(conn, tmp_path)
+
+
+def _accepted(seeded, *names):
+    from grouping.vocabulary import CONTEXT_SUPPORTED, DIRECT_ANCHOR
+    from tree_design.upstream import AcceptedGroup, GroupMember
+
+    return AcceptedGroup(
+        group_id="g_busib", label="BUSIB 4300", domain="academic",
+        members=tuple(
+            GroupMember(file_id=seeded.subjects[name][0],
+                        content_hash=seeded.subjects[name][1],
+                        basis=DIRECT_ANCHOR if index == 0 else CONTEXT_SUPPORTED)
+            for index, name in enumerate(names)),
+        anchor_facts=(), excluded_members=())
+
+
+def test_the_request_is_addressed_to_site_e_under_its_own_eligibility_reason(
+        academics):
+    """The record P8 refuses to build wrongly. `E_template` is in P8's
+    `SITES_REQUIRING_PLAN_VERSION` and `ACCEPTED_GROUP_FITS_NO_EXISTING_TEMPLATE`
+    is its one controlled reason, so a request that reached P8 with either wrong
+    would be refused rather than answered."""
+    from types import SimpleNamespace
+
+    from llm_harness.vocabulary import ACCEPTED_GROUP_FITS_NO_EXISTING_TEMPLATE
+    from model_template import TEMPLATE_STAGE, template_request_for
+
+    prompt = SimpleNamespace(template_id="e.draft", template_bytes=b"t",
+                             response_schema_bytes=b"{}", call_site=E_TEMPLATE,
+                             call_site_version="1", ratified=False,
+                             shaping_policy_bytes=b"{}")
+    request = template_request_for(
+        academics.conn, group=_accepted(academics, "syllabus", "hw3"),
+        plan_version="plan-1",
+        model_target=SimpleNamespace(locality="local", model_id="m",
+                                     provider="on-device"),
+        prompt=prompt, max_dossier_tokens=4000)
+
+    assert request is not None
+    assert request.call_site == E_TEMPLATE
+    assert request.eligibility_reason == ACCEPTED_GROUP_FITS_NO_EXISTING_TEMPLATE
+    assert request.plan_version == "plan-1"
+    assert request.model_call_request.stage == TEMPLATE_STAGE
+    assert request.model_call_request.target.group_id == "g_busib"
+
+
+def test_the_request_carries_the_group_and_cites_only_its_anchors(academics):
+    """`00`:97's input is "the group dossier, representative files, validated
+    facts". Every member is named as a REFERENCE, because a template designed
+    without knowing what it is designing for is guessing; only the ANCHORS' facts
+    are cited, because a context-supported member is in the group by retrieval and
+    a dimension justified by what it happens to say is a level built on a guess.
+    """
+    from types import SimpleNamespace
+
+    from model_template import EXCERPT_KIND, MEMBER_KIND, template_request_for
+
+    prompt = SimpleNamespace(template_id="e.draft", template_bytes=b"t",
+                             response_schema_bytes=b"{}", call_site=E_TEMPLATE,
+                             call_site_version="1", ratified=False,
+                             shaping_policy_bytes=b"{}")
+    request = template_request_for(
+        academics.conn, group=_accepted(academics, "syllabus", "hw3"),
+        plan_version="plan-1",
+        model_target=SimpleNamespace(locality="local", model_id="m",
+                                     provider="on-device"),
+        prompt=prompt, max_dossier_tokens=4000)
+
+    members = {item.evidence_ref for item in request.evidence_items
+               if item.kind == MEMBER_KIND}
+    cited = {item.location for item in request.evidence_items
+             if item.kind == EXCERPT_KIND}
+
+    assert members == {academics.file_id("syllabus"), academics.file_id("hw3")}
+    # The anchor settled three fields and the context-supported member's are not
+    # offered, so the fields named are the anchor's own.
+    assert cited and cited <= {"school", "subject", "work_type"}
+    # Nothing about where the file IS. `releasable_excerpts` refuses the path and
+    # the filename at this site for the reason it refuses them at C: how a
+    # person's folders should be shaped is exactly what those look like evidence
+    # for, and they are the one thing that may never leave the device.
+    assert "path" not in cited and "filename" not in cited
+
+
+def test_a_group_whose_anchors_cite_nothing_releasable_is_not_asked(academics):
+    """`00`:97 forbids inventing an unsupported fact, and a template designed from
+    no evidence is that at the one site whose whole output is structure. `None` is
+    a real state and is not an error."""
+    from types import SimpleNamespace
+
+    from model_template import template_request_for
+
+    prompt = SimpleNamespace(template_id="e.draft", template_bytes=b"t",
+                             response_schema_bytes=b"{}", call_site=E_TEMPLATE,
+                             call_site_version="1", ratified=False,
+                             shaping_policy_bytes=b"{}")
+    # A group with no DIRECT anchor: every member is context-supported, so there
+    # is no anchor's reading to cite.
+    group = _accepted(academics, "syllabus", "hw3")
+    context_only = dataclasses.replace(group, members=group.members[1:])
+
+    assert template_request_for(
+        academics.conn, group=context_only, plan_version="plan-1",
+        model_target=SimpleNamespace(locality="local", model_id="m",
+                                     provider="on-device"),
+        prompt=prompt, max_dossier_tokens=4000) is None
+
+
+def test_a_deployment_with_no_model_designs_the_branch_exactly_as_before():
+    """`None` is the ordinary run and is not a refusal: the C3 conflict is still
+    in the report and still reaches the person."""
+    from tree_design.pipeline import _ask_for_a_template
+
+    _ask_for_a_template(_authorities(), _report("C3"), groups=("g-1",),
+                        plan_version="plan-1")
 
 
 def test_p10_supplies_no_transport_gate_or_verdict():

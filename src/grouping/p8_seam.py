@@ -68,7 +68,8 @@ from grouping.records import (
     Support,
 )
 from grouping.store import (
-    record_failure_point, record_group, record_membership, standing_group,
+    propose_group_category, record_failure_point, record_group,
+    record_membership, standing_group,
 )
 from grouping.vocabulary import (
     COHERENT,
@@ -424,6 +425,13 @@ def _named_by_the_model(group: Group, answer, result, dossier) -> Group:
     would file the material under a schema that speaks for somebody else's life --
     `Group.__post_init__` refuses it for that reason. The label is kept either way,
     because a label is words and a category is a routing decision.
+
+    **And the unrecognised value is now PROPOSED rather than only dropped**, which
+    is the other half of the same ruling and was missing. `None` here is still what
+    the row carries -- nothing is filed under a category nobody confirmed -- but
+    `_propose_group_category` beside this writes the question down, so the person
+    has something to confirm and the model's answer leaves a trace. Dropping it
+    silently satisfied the first clause of §13.7 and none of the second.
     """
     if answer is None or answer.coherent != COHERENT or not answer.label:
         return group
@@ -441,6 +449,39 @@ def _named_by_the_model(group: Group, answer, result, dossier) -> Group:
         dossier_id=dossier.dossier_id,
         validation_verdict_ref=result.verdict_id,
     )
+
+
+def _propose_group_category(conn: sqlite3.Connection, *, group: Group, answer,
+                            result, dossier, created_at: str) -> None:
+    """`00`'s Q-C, second clause: the value the library has not seen, written down.
+
+    Only for a value the model actually named and the library does not recognise.
+    A recognised one is filed on the row above and is nobody's question; no value
+    at all is the model declining, and a question about nothing is not one.
+
+    Guarded by the same conditions as the naming itself, because a category is
+    task 4 of §4.5 and task 4 runs "only if coherence is supported": a category
+    proposed inside a group the model did not call coherent would be asking the
+    person to confirm a word about material the model said was not one thing.
+    """
+    if answer is None or answer.coherent != COHERENT or not answer.label:
+        return
+    if not answer.category or answer.category in SCHEMA_IDS:
+        return
+    propose_group_category(
+        conn,
+        proposed_value=answer.category,
+        group_id=group.group_id,
+        # The model's own display label, so the question a person is shown reads
+        # "this group, which the model called X, is a kind of material it calls Y"
+        # rather than naming an opaque id.
+        display_label=answer.label,
+        # §4.5's three-author field, at its middle rung. `104` R-28: a record says
+        # who decided, and nobody has confirmed this yet.
+        proposed_by=LLM_PROPOSED,
+        verdict_ref=result.verdict_id,
+        dossier_id=dossier.dossier_id,
+        created_at=created_at)
 
 
 def _members_of(dossier, answer, *, context: bool):
@@ -602,6 +643,12 @@ def apply_p8_verdict(
             "the failure this rule exists to prevent."
         )
 
+    # BEFORE the group is recorded, and in its own transaction: the question and
+    # the row are two records about two different things, and a proposal that
+    # failed to write while the group succeeded would leave a category the model
+    # named with nothing anywhere saying it had.
+    _propose_group_category(conn, group=group, answer=answer, result=result,
+                            dossier=dossier, created_at=created_at)
     _record_group_once(conn, _named_by_the_model(group, answer, result, dossier))
 
     written: list[str] = []

@@ -391,6 +391,68 @@ def test_the_launch_library_either_designs_a_tree_or_refuses_by_name(corpus):
         "nothing and every file would abstain with no reason the user can see")
 
 
+def test_a_branch_no_recipe_recognises_asks_for_a_template(corpus):
+    """Packet G12, through the whole chain rather than at the seam.
+
+    The chain reached a C3 refusal and nothing happened next: `00`:97's site E
+    is the answer to "no recipe recognises the situation these files are in" and
+    E "can be ratified and stay inert". It is asked now, with the branch's own
+    accepted groups and its plan version, and it is asked ONCE -- the refusal is
+    about the branch, not about each candidate that did not exist.
+
+    Nothing is read back. A template design that reached this chain would be
+    structure nobody approved, and `00`:97's own last sentence is that a valid
+    shape is not an activation.
+    """
+    from tree_design.store import ReviewActionRefused
+    from tree_design.materialise import MaterialisationRefused
+    from tree_design.freeze import FreezeRefused
+    from tree_design.pipeline import NothingToDesign
+    from tree_design.templates import CompositionConflict
+
+    asked: list = []
+    try:
+        design(corpus, auth=authorities(
+            corpus, catalogue=launch_catalogue(),
+            # The branch's evidence recognises no shipped situation, which is
+            # C3's own condition and a real state: an `academic` group in a
+            # situation the research never wrote a recipe for.
+            detection_signals_for=lambda group: frozenset(),
+            template_call_for=lambda groups, version: asked.append(
+                (tuple(g.group_id for g in groups), version))))
+    except (ReviewActionRefused, MaterialisationRefused, FreezeRefused,
+            NothingToDesign, CompositionConflict):
+        pass
+
+    assert len(asked) == 1, asked
+    group_ids, version = asked[0]
+    assert group_ids, "a template is designed FOR the groups that have no recipe"
+    assert version, "§8.8 attributes a template call to a plan version"
+
+
+def test_a_branch_a_recipe_covers_asks_for_no_template_end_to_end(corpus):
+    """The discriminating twin. A run whose evidence DOES select a row never
+    reaches the refusal, so it never spends a release on a design it does not
+    need."""
+    from tree_design.store import ReviewActionRefused
+    from tree_design.materialise import MaterialisationRefused
+    from tree_design.freeze import FreezeRefused
+    from tree_design.pipeline import NothingToDesign
+    from tree_design.templates import CompositionConflict
+
+    asked: list = []
+    try:
+        design(corpus, auth=authorities(
+            corpus, catalogue=launch_catalogue(),
+            detection_signals_for=lambda group: COURSEWORK_SIGNALS,
+            template_call_for=lambda groups, version: asked.append(1)))
+    except (ReviewActionRefused, MaterialisationRefused, FreezeRefused,
+            NothingToDesign, CompositionConflict):
+        pass
+
+    assert asked == []
+
+
 #: What this corpus's one life recognises, in the shipped library's own
 #: vocabulary. `seam_corpus` is a Columbia coursework group — three files, a
 #: `school` anchor, a `term` and a `subject` — so the situation it is in is the

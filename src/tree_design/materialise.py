@@ -37,6 +37,7 @@ from tree_design.config import ConfigurationRequired
 from tree_design.records import ExpectedValue, Node, derive_accepts_placement
 from tree_design.routing import CompositionCandidate
 from tree_design.upstream import (
+    FieldValue,
     GroupMember,
     anchors_a_level,
     preferred_value_for,
@@ -144,6 +145,9 @@ def materialise_branch(
     protected_handling_classes: frozenset[str] | None,
     metadata_only_roles: frozenset[str] = frozenset(),
     group_label_for_member: Callable[[GroupMember], tuple[str, str]] | None = None,
+    group_level_roles: frozenset[str] = frozenset(),
+    group_value_for_member: Callable[
+        [GroupMember, str], FieldValue | None] | None = None,
 ) -> tuple[MaterialisedCandidate, BranchEvidence]:
     """Populate one composition from the branch's own files.
 
@@ -180,6 +184,19 @@ def materialise_branch(
     (§2.3, E4) rather than from fact values. It is injected for the same reason
     as the handling class: the accepted group is P9's record, and inventing a
     label here would be P10 authoring the user's vocabulary.
+
+    `group_level_roles` and `group_value_for_member` are the same shape one level
+    over, and they are `104` §11.2 step 2. A group-level role -- coursework's
+    `holder_institution` and `cycle_period` -- IS a P6 field and does resolve
+    through C2, but its VALUE is the group's rather than each member's, because
+    `00`:57 puts the course's school and term on the syllabus anchor and has the
+    group carry the sparse members. So the loop below asks the group for it, once
+    per member, through a reader `upstream` supplies; a member in no group gets no
+    value and is unresolved at that level, which is exactly what "an essay outside
+    any group gets no school level" means.
+
+    Both default to "no level is the group's", which is true of 22 of the 23
+    schemas and of every caller that predates the split.
     """
     if protected_handling_classes is None:
         raise ConfigurationRequired(
@@ -202,11 +219,25 @@ def materialise_branch(
     ordered = sorted(candidate.resolved_dimensions, key=lambda d: d.order_index)
     for dimension in ordered:
         local = dimension.scope == SCOPE_TEMPLATE_LOCAL
+        # `104` §11.2 step 2. NOT `local`: this level has a P6 field and passes C2
+        # like any other, and only the SOURCE of its value moves from the file to
+        # the group. Written as its own predicate rather than folded into `local`
+        # because a template-local level has no field at all, and conflating the
+        # two would skip C2 on a level that needs it.
+        from_group = (not local) and dimension.role_ref in group_level_roles
         if local and group_label_for_member is None:
             raise ConfigurationRequired(
                 f"level {dimension.role_ref!r} is template-local, so its children "
                 "come from the branch's accepted groups; no reader for them was "
                 "supplied and P10 invents no label"
+            )
+        if from_group and group_value_for_member is None:
+            raise ConfigurationRequired(
+                f"level {dimension.role_ref!r} takes its value from the accepted "
+                "group this file belongs to (`00`:57), and no reader for one was "
+                "supplied. Falling back to the file's own value is the collector "
+                "`104` §11.1 measured -- five essays from a university course "
+                "filed under a high school -- so it is refused instead"
             )
         if not local:
             # C2 again, at the point of USE. Task 7 resolves roles when it routes,
@@ -242,8 +273,16 @@ def materialise_branch(
                 labels.setdefault(key, label)
                 classes_by_value.setdefault(key, set()).add(classes[member.file_id])
                 continue
-            settled = preferred_value_for(
-                conn, file_id=member.file_id, field_ref=dimension.field_ref)
+            # THE GROUP'S VALUE, OR THE FILE'S, and never one standing in for the
+            # other. `00`:57: the course's school and term are on the syllabus
+            # anchor and the group carries the sparse members, so an essay in the
+            # course group takes the course's school and an essay in no group
+            # takes none -- it joins `missing` and is unresolved at this level,
+            # which §5.11 permits.
+            settled = (
+                group_value_for_member(member, dimension.field_ref) if from_group
+                else preferred_value_for(
+                    conn, file_id=member.file_id, field_ref=dimension.field_ref))
             if settled is None:
                 missing.add(member.file_id)
                 continue

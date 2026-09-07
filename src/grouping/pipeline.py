@@ -158,6 +158,19 @@ class GroupingKnowledge:
     classification_store: Callable[[str, str], object]
     conflicts_for: Callable[[Sequence[str]], Sequence[object]]
     duplicate_or_version: Callable[[str, str], str] | None
+    #: `104` §11.2 step 2. The P6 field keys whose value belongs to the GROUP
+    #: rather than to each file -- coursework's school and term, which `00`:57 puts
+    #: on the syllabus anchor. P9 authors none of them and derives none: which
+    #: roles are group-level is the template library's answer, resolved to field
+    #: keys by `production.group_level_fields_for` for the situation the person
+    #: named, and handed here the way every other library answer reaches P9.
+    #:
+    #: `frozenset()` is the DEFAULT and is the truthful one rather than a
+    #: convenience: 22 of the 23 schemas name no group-level role, so "no level is
+    #: the group's" is what almost every deployment means, and a deployment that
+    #: says it explicitly and one that has not been told apart would be
+    #: indistinguishable anyway -- the dossier is identical.
+    group_level_fields: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -672,6 +685,7 @@ def group_subject(
         conn, group=group, graph=graph, limits=limits,
         signal_evaluator_for=knowledge.signal_evaluator_for,
         classification_store=knowledge.classification_store,
+        group_level_fields=knowledge.group_level_fields,
         # Empty in every path reachable today for the same reason as the
         # self-membership above: SR4 has already returned. Wired rather than
         # hardcoded so the dossier does not need a second edit if it narrows.

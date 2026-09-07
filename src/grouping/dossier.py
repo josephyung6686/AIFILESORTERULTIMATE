@@ -26,6 +26,7 @@ decision. M9's summarize -> preserve anchors -> split/defer ladder is P8's
 """
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import sqlite3
 from collections.abc import Callable, Sequence
@@ -33,6 +34,7 @@ from dataclasses import dataclass
 
 from evidence_shape.canonical import canonical_json
 from evidence_shape.store import observations_by_key
+from facts.read_surface import proposal_eligible
 from privacy.classification import UNREADABLE_UNCLASSIFIED, resolve_class
 
 from grouping.config import ConfigurationRequired, GroupingLimits
@@ -48,6 +50,7 @@ from grouping.records import (
     Omissions,
     PrivacySummary,
 )
+from grouping.seeds import first_evidence_ref
 from grouping.vocabulary import CONTEXT_SUPPORTED, DIRECT_ANCHOR
 
 #: What P3 records when it cannot name a format. P9 asserts nothing about a file
@@ -141,6 +144,80 @@ def _facts_for(group: Group, file_id: str) -> tuple[AnchorFact, ...]:
     return tuple(fact for fact in group.anchor_facts if file_id in fact.file_ids)
 
 
+def _group_level_facts(conn: sqlite3.Connection, *, file_id: str,
+                       content_hash: str,
+                       fields: frozenset[str]) -> tuple[AnchorFact, ...]:
+    """What one ANCHOR file states at the fields the group carries. `104` §11.2 (2).
+
+    `00`:57 is the whole argument: the syllabus states `PHYS1401`, `Columbia` and
+    `Spring 2026`, and the sparse homework beside it states none of them. The
+    course's school and term are facts about the COURSE, so they belong in the
+    dossier as the group's own anchors rather than as a question asked of every
+    file -- which is what produced twenty `school` values and five essays under a
+    high school (`104` §11.1).
+
+    **Proposal-eligible only, which is `00`:42's bar and not a new one.** A weak
+    reading "may remain a possible clue for review; it must not quietly become a
+    folder proposal", and a group-level anchor IS a folder proposal for every
+    member of the group -- so the same read P10 uses for a per-file level
+    (`read_surface.proposal_eligible`) is the read used here. A `possible` school
+    on the syllabus stays a clue on the syllabus.
+
+    **The anchor file, and only the anchor file.** A candidate is in the
+    neighbourhood because something retrieved it; what it says about a school is
+    not what the course's school is. `assemble_group_dossier` calls this for the
+    files that state the group's basis directly and for no others.
+    """
+    if not fields:
+        return ()
+    found = []
+    for row in proposal_eligible(conn, file_id=file_id, content_hash=content_hash):
+        if row["field_key"] not in fields:
+            continue
+        # THE CITATION, taken the way `seeds.first_evidence_ref` takes it: a fact
+        # row carries `evidence_refs` as P4 keys and no `observation_key` column,
+        # and `AnchorFact` requires one because "a fact that cites nothing cannot
+        # be checked or replayed". A `user_confirmed` value legitimately cites no
+        # observation and is skipped rather than given an invented handle -- the
+        # person's own answer reaches the tree through P6 either way.
+        cited = first_evidence_ref(row)
+        if not cited:
+            continue
+        found.append(AnchorFact(
+            field=row["field_key"],
+            # THE CANONICAL VALUE, which is what `preferred_value_for` reads at
+            # P10 and what a level is keyed on. A display label is words for a
+            # person and would make the dossier and the tree disagree about which
+            # value two anchors share.
+            value=row["canonical_value"],
+            file_ids=(file_id,),
+            reliability_state=row["reliability_state"],
+            observation_key=cited))
+    return tuple(found)
+
+
+def _merged(facts: Sequence[AnchorFact]) -> tuple[AnchorFact, ...]:
+    """One entry per (field, value), naming every file that states it.
+
+    Two syllabi stating the same term are one fact with two files behind it, which
+    is `AnchorFact`'s own meaning of `file_ids` -- "the number of files that
+    INDEPENDENTLY state the basis value" -- and two entries would understate that
+    support to the model exactly the way `_group_for`'s one-tuple understated it
+    to P10. Two anchors stating DIFFERENT schools stay two facts, because that
+    disagreement is what the model is being shown.
+    """
+    merged: dict[tuple[str, str], AnchorFact] = {}
+    for fact in facts:
+        key = (fact.field, fact.value)
+        held = merged.get(key)
+        if held is None:
+            merged[key] = fact
+            continue
+        merged[key] = dataclasses.replace(held, file_ids=tuple(sorted(
+            dict.fromkeys((*held.file_ids, *fact.file_ids)))))
+    return tuple(merged.values())
+
+
 def _why_retrieved(graph: LocalEvidenceGraph, file_id: str) -> str:
     """The channel that brought this file, named.
 
@@ -186,6 +263,7 @@ def assemble_group_dossier(
     limits: GroupingLimits,
     signal_evaluator_for: SignalEvaluatorFor | None,
     classification_store: ClassificationStore | None,
+    group_level_fields: frozenset[str] = frozenset(),
     conflicts: Sequence[Conflict] = (),
     created_at: str,
 ) -> CandidateGroupDossier | DossierRefused:
@@ -194,12 +272,26 @@ def assemble_group_dossier(
     Returns `DossierRefused` when withholding leaves no direct evidence: a group
     with no anchor file has nothing for the model to judge, and building the record
     anyway would put an empty question in front of a paid model call.
+
+    `group_level_fields` are the fields `104` §11.2 step 2 routes HERE instead of
+    to site A: the course's school and term, which `00`:57 puts on the syllabus
+    anchor. They join the anchors' `key_facts` and the dossier's, so the model
+    judging this group's coherence can see what the group is a course AT and IN.
+    They do NOT decide who is an anchor -- `stating` below is still the group's
+    basis and nothing else, because a file that names a school and not the course
+    is not an independent statement of the course.
+
+    Empty is the ordinary answer: 22 of the 23 schemas name no group-level role.
     """
     _require_knowledge(signal_evaluator_for, classification_store)
 
     stating = {
         file_id for fact in group.anchor_facts for file_id in fact.file_ids
     }
+    #: `104` §11.2 step 2, collected as the anchors are walked and merged once at
+    #: the end so two syllabi stating one term are one fact with two files behind
+    #: it rather than two facts each claiming one.
+    carried: list[AnchorFact] = []
     anchors: list[DossierFile] = []
     candidates: list[DossierFile] = []
     withheld: list[str] = []
@@ -219,6 +311,16 @@ def assemble_group_dossier(
             continue
         is_anchor = file_id in stating
         facts = _facts_for(group, file_id)
+        if is_anchor:
+            # THE ANCHOR'S OWN GROUP-LEVEL FACTS, added to what it already states
+            # about the basis. Carried on the file as well as on the group so the
+            # model can see WHICH anchor said the school, which is the difference
+            # between one syllabus's answer and a neighbourhood's consensus.
+            level_facts = _group_level_facts(
+                conn, file_id=file_id, content_hash=content_hash,
+                fields=group_level_fields)
+            carried.extend(level_facts)
+            facts = facts + level_facts
         item = DossierFile(
             file_id=file_id,
             content_hash=content_hash,
@@ -278,7 +380,13 @@ def assemble_group_dossier(
         anchor_files=tuple(anchors),
         candidate_files=tuple(candidates),
         typed_edges=graph.edges,
-        key_facts=group.anchor_facts,
+        # THE BASIS FIRST, THEN WHAT THE GROUP CARRIES. `group.anchor_facts` is
+        # untouched on the row -- the group's identity, its label, its learning key
+        # and its category are all read off that tuple, and widening it would
+        # rename the group after a school. What widens is the DOSSIER, which is
+        # what `104` §11.2 step 2 asks for: route them "to site B's dossier as
+        # anchor facts".
+        key_facts=group.anchor_facts + _merged(carried),
         excerpts=tuple(
             excerpt
             for item in (*anchors, *candidates)

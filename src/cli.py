@@ -48,7 +48,7 @@ import unicodedata
 from decimal import Decimal
 from itertools import count
 from pathlib import Path, PurePosixPath
-from functools import lru_cache
+from functools import lru_cache, partial
 from types import MappingProxyType
 from typing import Mapping, Sequence
 
@@ -127,6 +127,7 @@ from llm_harness.schema import create_llm_schema
 from llm_harness.vocabulary import (
     A_FACT, B_GROUP, C_PLACEMENT, CONTEXT_SUPPORTED, D_RESIDUAL, DIRECT_ANCHOR,
     E_TEMPLATE, PRE_CALL_NAMESPACE,
+    SCOPE_TEMPLATE as TEMPLATE_SCOPE,
 )
 from placement import vocabulary as pv
 from placement.config import CEILINGS, SupportPolicy, placement_limits
@@ -197,7 +198,8 @@ from questions.vocabulary import (
 )
 from production import (
     CorpusAuthorities, CorpusDecisions, P1P7Authorities, ProductionRun,
-    bootstrap_p1_p7, corpus_roster, folder_levels_for, load_shipped_catalogue,
+    bootstrap_p1_p7, corpus_roster, folder_levels_for, group_level_fields_for,
+    GROUP_LEVEL_ROLES, load_shipped_catalogue,
     nearest_situations, read_packaged_library_file, schema_for_situation,
     shipped_situations,
     run_production_corpus,
@@ -255,6 +257,10 @@ from tree_design.pipeline import (
     TreeDesignDecisions,
 )
 from tree_design.store import ReviewActionRefused
+from tree_design.template_schema import (
+    allowed_vocabulary_for, template_dependencies,
+)
+from model_template import template_request_for
 from tree_design.templates import CompositionConflict
 from scan_agent.selection import selection_candidate_roots
 from tree_design.upstream import (
@@ -698,6 +704,10 @@ assert set(OBSERVE_TEMPLATE_ID) == OBSERVE_CALL_SITES
 #: the model was asked to do.
 GROUP_PROPOSAL_CLASS: str = "group.llm_coherence"
 
+#: And site E's, on the same terms and for the same reason. The subject kind is a
+#: template, and what the model was asked to do is design one.
+TEMPLATE_PROPOSAL_CLASS: str = "template.llm_design"
+
 
 def observe_allowed_vocabulary(call_site: str) -> tuple[str, ...]:
     """The closed set the answer must come from, READ OUT OF THE SCHEMA.
@@ -814,7 +824,19 @@ def observe_group_authorities(fact_authorities, *, routing: TierRouting,
         policy_version=fact_authorities.policy_version,
         wire_handle_key=fact_authorities.wire_handle_key)
 
-    return observed_run_call, ModelCallAuthorities(
+    return partial(
+        # `104` R-71. THE SINK IS BOUND HERE AND NOT PASSED THROUGH P9. A's
+        # authorities already hold the mailbox `run` built beside the transport that
+        # fills it, and it is taken from A for the same reason the gate and the
+        # budget are: it is a fact about this deployment and this run, not about
+        # which site is asking. Bound rather than added to the bundle because
+        # `ModelCallAuthorities` is exactly `run_call`'s keywords as P9 forwards
+        # them, and a seventh field P9 cannot construct would be the required-slot-
+        # nothing-fills defect `104` R-09 removed. `NOT_P9_AUTHORITIES` stays the
+        # name of the one keyword P9 does not carry, and it stays true.
+        observed_run_call,
+        usage_recorder=fact_authorities.usage_recorder,
+    ), ModelCallAuthorities(
         gate=fact_authorities.gate,
         model_client=client,
         prompt=prompt_for(B_GROUP),
@@ -825,8 +847,103 @@ def observe_group_authorities(fact_authorities, *, routing: TierRouting,
         model_target=client.model_target)
 
 
+def observe_template_call(conn: sqlite3.Connection, fact_authorities, *,
+                          routing: TierRouting, catalogue):
+    """Site E, wired to run and to change nothing. Packet G12's missing caller.
+
+    `None` on the same three terms site B's builder uses: no routing, or E's tier
+    does not resolve to a model on this device. A deployment with a cloud key and
+    no local model is correctly configured and simply does not run the observe
+    sites, because their text is unratified and `observe_locality_permits` is what
+    keeps that from being a promise nobody enforces.
+
+    **Everything shared with site A is TAKEN from A's authorities**, for the reason
+    `observe_group_authorities` gives at length: the gate, the budget, the costs,
+    the policy version, the handle key and `104` R-14's mailbox are facts about
+    this deployment and this run, not about which site is asking. A second `Gate`
+    beside the first would be a second answer to "what may leave this device".
+
+    **The answer is wrapped whatever `prompt.ratified` says, and site E is the one
+    site where that is not a lever waiting to be moved.** B, C and D withhold while
+    their text is a draft and begin applying the day the owner ratifies it. `00`:97
+    ends with "valid shape is not activation -- the person reviews, edits and
+    accepts or discards", and that canvas is Release 2 (`104` §13.3). So the
+    condition here is not the ratification; there is no condition.
+    """
+    if routing is None:
+        return None
+    locality = routing.locality_for(E_TEMPLATE)
+    if not observe_locality_permits(E_TEMPLATE, locality):
+        return None
+    require_observe_locality(E_TEMPLATE, locality)
+    client = routing.client_for(E_TEMPLATE)
+    prompt = prompt_for(E_TEMPLATE)
+
+    def ask(groups, plan_version: str) -> None:
+        for group in groups:
+            request = template_request_for(
+                conn, group=group, plan_version=plan_version,
+                model_target=client.model_target, prompt=prompt,
+                max_dossier_tokens=GROUPING_LIMITS.max_dossier_tokens)
+            if request is None:
+                # A group whose anchors cite nothing P7 may release has nothing to
+                # design a template FROM, and `00`:97 forbids inventing one. Not
+                # asked rather than asked emptily.
+                continue
+            run_call(
+                conn, request, gate=fact_authorities.gate, model_client=client,
+                prompt=prompt,
+                validation_dependencies=dataclasses.replace(
+                    _template_dependencies(fact_authorities, catalogue, group),
+                    basis_key=group.group_id,
+                    learning_subject_id=group.group_id),
+                observed_at=fact_authorities.observed_at,
+                usage_recorder=fact_authorities.usage_recorder)
+
+    return ask
+
+
+def _template_dependencies(fact_authorities, catalogue, group) -> CallDependencies:
+    """One site-E call's `CallDependencies`. P10's two authorities, and A's rest.
+
+    `allowed_vocabulary` is `allowed_vocabulary_for`, which is P10's own closure
+    over ONE schema's allowed fields and is deliberately not extendable -- it
+    reaches the dossier as the set a proposed dimension name is classified
+    against, and a name outside it is a template-local label rather than a
+    rejection (Contract W2). The schema is the group's own `group_category`; a
+    group with none gets the empty closure, which is the honest answer and still
+    produces a reviewable design.
+    """
+    return CallDependencies(
+        proposal_class=TEMPLATE_PROPOSAL_CLASS,
+        learning_scope=TEMPLATE_SCOPE,
+        basis_key=TEMPLATE_SCOPE,
+        learning_subject_id=TEMPLATE_SCOPE,
+        evidence_resolver=fact_authorities.evidence_resolver,
+        site_dependencies=SiteDependencies(
+            fact=None, placement=None, residual=None,
+            template=template_dependencies(catalogue)),
+        # A template proposal names no per-file field value, so there is no
+        # stronger fact for one to contradict. Site B's answer, at a site whose
+        # subject is a group for the same reason.
+        contradicts=_no_group_contradiction,
+        unreduced_fits=True, summarized_fits=False, anchors_fit=False,
+        split_shard_fits=(), split_shards=(),
+        scan_budget=fact_authorities.scan_budget,
+        estimated_cost=fact_authorities.estimated_cost,
+        actual_cost=fact_authorities.actual_cost,
+        allowed_vocabulary=allowed_vocabulary_for(
+            catalogue, uses_schema=group.domain or ""),
+        # E DESIGNS the levels rather than filling them, so the situation's own
+        # folder levels are not what it is shown. Empty is the truthful list.
+        folder_levels=(),
+        policy_version=fact_authorities.policy_version,
+        wire_handle_key=fact_authorities.wire_handle_key)
+
+
 def observed_run_call(conn, request, *, gate, model_client, prompt,
-                      validation_dependencies, observed_at):
+                      validation_dependencies, observed_at,
+                      usage_recorder=None):
     """`run_call`, with the per-group half of the learning key filled in, and
     with B's answer withheld while B's text is a draft.
 
@@ -854,6 +971,25 @@ def observed_run_call(conn, request, *, gate, model_client, prompt,
     an argument -- `grouping.pipeline` passes `p8_authorities.prompt` through -- so
     closing over one was a second copy of a value already in the signature, and one
     a test could not reach.
+
+    **`usage_recorder` ARRIVES HERE AND NOT IN THE BUNDLE, which is `104` R-71's
+    whole shape.** A B response had no `llm_call_usage` row while A's rows matched
+    A's responses one for one, because P9 forwards `ModelCallAuthorities` under
+    `run_call`'s own keywords and that bundle deliberately carries no sink
+    (`NOT_P9_AUTHORITIES`). Putting one on the bundle would put a required slot on
+    P9 that P9 cannot fill -- the mailbox is built beside the transport by the
+    composition root, and `src/grouping/` may not import either -- which is the
+    defect `104` R-09 took OFF `GroupingKnowledge`.
+
+    So the sink is bound HERE, where both sides are known, and `observe_group_
+    authorities` binds it before P9 ever sees the callable. P9's forwarding is
+    unchanged, `NOT_P9_AUTHORITIES` still names the one keyword the bundle does not
+    carry, and B's call reads the same one-slot mailbox A's does: one transport,
+    one reading per call, taken by whoever made it.
+
+    Defaulted for `run_call`'s own reason -- a deployment that records no usage is a
+    real deployment, and the local transport's own `Usage` has no cache count to
+    give.
     """
     subject = getattr(request, "subject_ref", "") or ""
     deps = dataclasses.replace(
@@ -863,7 +999,8 @@ def observed_run_call(conn, request, *, gate, model_client, prompt,
                              or validation_dependencies.learning_subject_id))
     result = run_call(
         conn, request, gate=gate, model_client=model_client, prompt=prompt,
-        validation_dependencies=deps, observed_at=observed_at)
+        validation_dependencies=deps, observed_at=observed_at,
+        usage_recorder=usage_recorder)
     if not getattr(prompt, "ratified", False):
         return ObservedOnly(result)
     answer = group_answer_of(conn, result)
@@ -4974,6 +5111,22 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     # one place a policy may be chosen -- is visibly the one that decides what the
     # model is asked.
     folder_levels = folder_levels_for(catalogue, situation)
+    # `104` §11.2 STEP 2. The levels whose value the GROUP carries, split off here
+    # and used twice below: they are withheld from site A, and P10 is told to read
+    # them off the accepted group instead. Read from the same row as the levels
+    # themselves, so a release that binds a role differently moves both halves at
+    # once and neither can be true of the other's data.
+    group_level_fields = group_level_fields_for(catalogue, situation)
+    # WHAT SITE A IS ASKED, which is no longer every level. `model_facts.
+    # pending_fields_for` offers `pending & {level.field}` and that set becomes the
+    # dossier's `allowed_vocabulary`, so a level withheld here is a question not
+    # asked -- which is exactly `00`:57's rule that the course's school and term
+    # belong to the syllabus anchor and reach a sparse file through its GROUP. Asked
+    # per file, `school` was answered by twenty files with the school each of them
+    # happened to mention, and five essays from a university course were filed under
+    # a high school (`104` §11.1).
+    file_level_fields = tuple(level for level in folder_levels
+                              if level.field not in group_level_fields)
     clock = now()
     _bootstrap(conn)
     # `00`:20's THREE choices, as the person answered them. These were three
@@ -5031,6 +5184,19 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         ids = count()
         return TreeDesignAuthorities(
             catalogue=release, group_reader=AcceptedGroupEnumeration(conn),
+            # `104` §11.2 step 2, and it is the SAME constant the fact pass split
+            # its levels on, handed to P10 as roles rather than as field keys
+            # because a role is what a dimension carries and the applicability row
+            # is what turns one into the other.
+            group_level_roles=GROUP_LEVEL_ROLES,
+            # PACKET G12. A C3 refusal -- "no recipe recognises the situation
+            # these files are in" -- becomes a site-E request, observe-only.
+            # `None` when the fact pass did not run, when there is no model, or
+            # when E's tier is not on this device, which is the ordinary run and
+            # designs the branch exactly as it always has.
+            template_call_for=(observe_template_call(
+                conn, fact_authorities[0], routing=routing, catalogue=release)
+                if fact_authorities else None),
             limits=TREE_LIMITS, root_anchor=ROOT_ANCHOR,
             selection_id=selection_id, scan_run_id=scan_run_id[0],
             active_domains=(schema,),
@@ -5866,7 +6032,11 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             conn, routing=routing, scan_run_id=run_id,
             corpus_file_count=len(roster), policy_version=policy_version,
             wire_handle_key=wire_handle_key, schema=schema,
-            folder_levels=folder_levels, user_id=user_id,
+            # THE FILE'S OWN LEVELS, not the situation's whole set. `104` §11.2
+            # step 2: a level the group carries is not a question to ask each file,
+            # and the fields split off above are the ones `00`:57 puts on the
+            # syllabus anchor.
+            folder_levels=file_level_fields, user_id=user_id,
             now=now,
             # `104` R-08, off the release `rules` above already loaded rather than a
             # second read of the library. Direct indexing and not `.get`: every one
@@ -6111,7 +6281,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 signal_evaluator_for=lambda domain: True,
                 classification_store=ClassificationStore(conn).current,
                 conflicts_for=lambda file_ids: (),
-                duplicate_or_version=_duplicate_or_version),
+                duplicate_or_version=_duplicate_or_version,
+                # `104` §11.2 step 2, the other end of the split made at the top
+                # of `run`. Site A is no longer asked these; the group's anchors
+                # carry them into B's dossier, and P10 reads a level's value off
+                # the group. THE SAME SET at both ends, computed once from the
+                # person's own situation, so "not asked per file" and "carried by
+                # the group" cannot come to mean two different field sets.
+                group_level_fields=group_level_fields),
             user_seed_for=lambda file_id, content_hash: None,
             # `104` §7 Phase 1 step 6: site B runs and applies nothing. Both are
             # `None` when no model was configured, when B's tier is not on this
