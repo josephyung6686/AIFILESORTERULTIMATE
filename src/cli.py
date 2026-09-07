@@ -169,6 +169,7 @@ from privacy.moves import may_move_automatically
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.resolve import (
     AmbiguousObservationKey, UnresolvableSpan, current_location,
+    current_observation,
 )
 from privacy.vocabulary import MODE_SEMANTICS
 from questions.explanation import explain_question, render_explanation
@@ -5265,6 +5266,61 @@ def located_citations(conn: sqlite3.Connection, file_id: str,
     return tuple(located)
 
 
+def anchor_line_citations(conn: sqlite3.Connection, *, scan_run_id: str,
+                          file_id: str) -> tuple:
+    """`104` R-135: the whole LINE each of this file's course codes was printed on.
+
+    `(observation_key, location, reliability)` per line, or an empty tuple. The caller
+    turns them into `EvidenceItem`s; nothing is decided here.
+
+    **The defect this exists for, measured.** `extractors/pdf.py:181` emits two readings
+    over a syllabus heading: the heading, whose words are `COMS W3134: Data Structures`,
+    and the identifier inside it, whose words are `W3134`. Only the identifier is ever
+    CITED -- §3.5's `subject` rule matches a code and a fact carries the citation that
+    matched -- so `evidence_for` offered site C five characters, and site C's own
+    instruction, *"two spellings can be one thing ... yours to judge from the
+    evidence"*, had nothing beside the code to judge against. 19 of the owner's 43
+    labelled course codes came back missing and 19 more were a title recorded where the
+    code belonged.
+
+    **It offers; it does not pair, rank or choose.** `facts.anchor_statements` already
+    found the containing reading STRUCTURALLY -- the shortest reading whose span covers
+    the identifier's inside one container path -- and stores it as a citation with no
+    title column and no value column. This reads that citation back and hands the
+    address to the release. Two anchors naming one course come back as two, in
+    `anchor_statements_for`'s order, and neither is preferred: choosing between them is
+    the model's, and a caller taking the first would be the sorting rule the product
+    constitution forbids.
+
+    **The gate still decides.** These are addresses, not text. `releasable_excerpts`
+    applies P7's own refusals to them like any other ref -- an always-local zone, a
+    value P5 signalled, a dead key -- and the door materialises and redacts. What
+    changed in `104` R-135 is only that a span covering a whole HEADING unit is no
+    longer refused, which is what makes an address like this releasable at all.
+
+    A statement whose `line_evidence_ref` is `None` -- P4 emitted no containing reading
+    -- yields nothing, and so does one whose key no longer resolves in this file.
+    `located_citations` states the reason: "a citation that does not resolve is not
+    evidence and is dropped rather than carried with a made-up address."
+    """
+    lines = []
+    for statement in anchor_statements_for(conn, scan_run_id,
+                                           stating_file_ids=(file_id,)):
+        ref = statement.line_evidence_ref
+        if ref is None:
+            continue
+        try:
+            observation = current_observation(conn, ref, within_file_ids=(file_id,))
+        except (UnresolvableSpan, AmbiguousObservationKey):
+            continue
+        if observation.file_id != file_id:
+            continue
+        # P4's OWN reliability for that reading, never a constant typed here.
+        # `model_facts.filename_citation` states the rule for the same field.
+        lines.append((ref, observation.location, observation.reliability))
+    return tuple(lines)
+
+
 def files_stating_each_fact(conn: sqlite3.Connection) -> dict[str, int]:
     """§6.5's generic-entity count, MEASURED and spelled the way P9 names a bridge.
 
@@ -6164,6 +6220,39 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                     evidence_ref=ref, kind="fact", location=location.zone,
                     excerpt_span=item[2],
                     reliability_state=row["reliability_state"], basis=basis))
+        # `104` R-135: THE LINE THE CODE WAS PRINTED ON, beside the code itself.
+        #
+        # A fact cites the reading that MATCHED it, which for `subject` is the five
+        # characters `W3134`; the words `: Data Structures` sit in a second reading of
+        # the same heading that no fact has any reason to cite. So the judge was shown
+        # a code and never a name, while its own prompt asked it to decide whether two
+        # spellings are one thing.
+        #
+        # `kind="excerpt"`, which is the word the ratified `c_placement` text uses for
+        # this: "a reference to text of the file. It carries no text; the text is in
+        # released_evidence". `basis` is `direct-anchor` because this is the subject
+        # file's OWN reading of its own words -- the same file, the same heading, one
+        # reading wider -- and not a neighbour's inference about it.
+        #
+        # Offered, never paired. Two anchors in one document come back as two items and
+        # the model decides; `anchor_line_citations` says why nothing here may choose.
+        from llm_harness.records import EvidenceItem
+
+        for ref, location, reliability in anchor_line_citations(
+                conn, scan_run_id=scan_run_id[0], file_id=file_id):
+            span = location.text_span
+            item = (ref, location.zone,
+                    None if span is None else (span.start, span.end),
+                    reliability, DIRECT_ANCHOR)
+            if item in seen_items:
+                # Already offered as a fact's own citation. The line is one reading
+                # however many ways it was reached.
+                continue
+            seen_items.add(item)
+            items.append(EvidenceItem(
+                evidence_ref=ref, kind="excerpt", location=location.zone,
+                excerpt_span=item[2], reliability_state=reliability,
+                basis=DIRECT_ANCHOR))
         return dict(
             facts=tuple(facts), evidence_items=tuple(items),
             group_ids=accepted_memberships_of(

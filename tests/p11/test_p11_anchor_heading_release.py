@@ -309,3 +309,165 @@ def test_a_dossier_with_no_whole_heading_reports_zero():
 
     assert report.heading_units_released == 0
     assert report.longest_heading_unit_length == 0
+
+
+# --------------------------------------------------------------------------
+# Site C: the line reaches the judge, and two lines reach it as two
+# --------------------------------------------------------------------------
+
+#: A second syllabus heading in the same document, naming the same course a second
+#: way. Two anchors for one course is the case the constitution's "no sorting rules"
+#: is about, so the fixture has to be able to produce it.
+SECOND_LINE = "COMS W3134 Data Structures in Java, Section 002"
+
+
+def _anchor_corpus(conn, tmp_path, *, lines=(HEADING,)):
+    """A syllabus whose headings each print a course code, with anchor rows recorded.
+
+    Built the way `extractors/pdf.py` builds one: each heading is its own text unit,
+    and P4 emits the heading AND the identifier inside it over the same container path.
+    The deployment's own four arguments come from `cli`, never restated here -- a test
+    holding its own pattern would be testing a rule `facts` does not have.
+    """
+    import cli
+    from facts.anchor_statements import record_anchor_statements
+    from facts.fields import create_fields
+
+    create_schema(conn)
+    create_evidence_schema(conn)
+    create_fields(conn)
+    conn.executescript(SENSITIVITY_DDL)
+
+    body = b"syllabus"
+    path = tmp_path / "syllabus.pdf"
+    path.write_bytes(body)
+    file_id = record_file(
+        conn, path, filename="syllabus.pdf", normalized_filename="syllabus.pdf",
+        extension=".pdf", observed_size=len(body),
+        observed_timestamps=json.dumps({"mtime": 1_700_000_000.0}),
+        parent_folder_context="Courses", mime_type="application/pdf",
+        detected_format="pdf", scan_state="included", materialized=True)
+    content_hash = get_file(conn, file_id)["content_hash"]
+    run_id = "run-anchor"
+    record_run(conn, ExtractionRun(
+        run_id=run_id, file_id=file_id, content_hash=content_hash,
+        extractor_name="pdf.text", extractor_version="1.0.0",
+        source_type="text_document", analysis_tier="native", config={},
+        completeness="complete", started_at=CLOCK, finished_at=CLOCK))
+
+    emitted = []
+    for ordinal, line in enumerate(lines, start=1):
+        container = (Segment("page", 1), Segment("heading", ordinal))
+        record_text_unit(conn, TextUnit(
+            run_id=run_id, container_path=container, text=line))
+        start = line.index("W3134")
+        end = start + len("W3134")
+
+        def observe(raw, span, before, after):
+            observation = Observation(
+                file_id=file_id, content_hash=content_hash,
+                extractor_name="pdf.text", extractor_version="1.0.0",
+                source_type="text_document", raw_value=raw,
+                location=Location("heading", container, text_span=span),
+                occurrence_count=1, observed_at=CLOCK, reliability="possible",
+                run_id=run_id, context_before=before, context_after=after)
+            record_observation(conn, observation)
+            return observation
+
+        whole = observe(line, TextSpan(0, len(line)),
+                        "Syllabus\n", "\nInstructor: Dr Lacker")
+        code = observe("W3134", TextSpan(start, end),
+                       f"Syllabus\n{line[:start]}", line[end:])
+        emitted.append((whole, code))
+
+    record_anchor_statements(
+        conn, scan_run_id="scan-r135", file_versions=[(file_id, content_hash)],
+        is_code=lambda text: cli.SUBJECT_RULE.pattern.search(text) is not None,
+        canonical=cli.SUBJECT_RULE.canonical,
+        anchor_terms=cli.COURSE_ANCHOR_TERMS,
+        reads_in_document=cli.reads_a_structured_string)
+    return file_id, tuple(emitted)
+
+
+def test_the_candidate_excerpt_carries_the_whole_line_and_not_the_code_alone(
+        conn, tmp_path):
+    """`104` R-135 at site C: the judge is shown the words beside the code.
+
+    A fact cites the reading that MATCHED it, and §3.5's `subject` rule matches a code,
+    so `evidence_for` offered `W3134` and nothing else. `: Data Structures` sat in a
+    second reading of the same heading that no fact had any reason to cite -- and site
+    C's own prompt asks the model whether two spellings are one thing, which is not a
+    question five characters can answer.
+
+    The assertion is on the RELEASED text and not on the offer: the excerpt the model
+    sees is materialised here, and its value is the whole line.
+    """
+    import cli
+    from privacy.resolve import materialise
+
+    file_id, emitted = _anchor_corpus(conn, tmp_path)
+    (whole, code), = emitted
+
+    lines = cli.anchor_line_citations(
+        conn, scan_run_id="scan-r135", file_id=file_id)
+    assert [ref for ref, _location, _reliability in lines] == [
+        whole.observation_key]
+
+    offered = releasable_excerpts(
+        conn, evidence_refs=[ref for ref, _l, _r in lines])
+    assert [one.observation_key for one in offered] == [whole.observation_key]
+
+    released = materialise(conn, offered[0], within_file_ids=(file_id,))
+    assert released.value == HEADING
+    assert "Data Structures" in released.value
+    assert "W3134" in released.value
+    # P4's own word for that reading, not a constant the builder typed.
+    assert [reliability for _ref, _l, reliability in lines] == [whole.reliability]
+
+
+def test_two_anchor_lines_for_one_course_both_appear_and_neither_is_chosen(
+        conn, tmp_path):
+    """Constitution 1: *"no sorting rules ... reconciliation is a model decision."*
+
+    One document naming one course on two lines is the case where a tie-breaker would
+    be invented. The first attempt at this row broke exactly this tie by sort order.
+    Both lines are offered, in `anchor_statements_for`'s recorded order, and the two
+    released values differ -- so the model has two readings to reconcile and the code
+    has expressed no preference between them.
+    """
+    import cli
+    from privacy.resolve import materialise
+
+    file_id, emitted = _anchor_corpus(
+        conn, tmp_path, lines=(HEADING, SECOND_LINE))
+
+    lines = cli.anchor_line_citations(
+        conn, scan_run_id="scan-r135", file_id=file_id)
+    offered_refs = [ref for ref, _location, _reliability in lines]
+
+    assert len(offered_refs) == 2
+    assert set(offered_refs) == {emitted[0][0].observation_key,
+                                 emitted[1][0].observation_key}
+
+    offered = releasable_excerpts(conn, evidence_refs=offered_refs)
+    values = [materialise(conn, one, within_file_ids=(file_id,)).value
+              for one in offered]
+    assert sorted(values) == sorted([HEADING, SECOND_LINE])
+
+
+def test_a_document_that_states_no_course_offers_no_anchor_line(conn, tmp_path):
+    """The empty case, and it is the one that says this is not a widening.
+
+    `_corpus` builds the same heading with no anchor row recorded against it -- no
+    syllabus context, so `facts.rules.context_check` refused it. Nothing is offered,
+    which is the proof that this reads the anchor table rather than offering every
+    heading in the corpus to every judge.
+    """
+    import cli
+    from facts.fields import create_fields
+
+    _file_id, _whole, code = _corpus(conn, tmp_path)
+    create_fields(conn)
+
+    assert cli.anchor_line_citations(
+        conn, scan_run_id="scan-r135", file_id=code.file_id) == ()
