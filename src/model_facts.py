@@ -817,6 +817,7 @@ def call_identity_dimensions(
     content_hash: str,
     observations: Sequence,
     authorities: FactCallAuthorities,
+    context: Sequence = (),
 ) -> dict[str, object]:
     """`00`:44's cache key for one A_fact call, term by term.
 
@@ -845,10 +846,31 @@ def call_identity_dimensions(
       * `policy` is the policy's content -- see `_policy_content`.
       * `plan_version` is `None` here and is carried anyway, for the reason
         `store.CALL_IDENTITY_DIMENSIONS` gives.
+      * `context_refs` is `104` R-135's, and it is the KEYS and not a count.
+
+    **Why the context needs a term of its own, measured against the terms that were
+    already here.** `extractor_versions` is the only term read off the readings, and it
+    is a SET of `(name, version)` pairs: a syllabus read by `pdf.text 1.0.0` beside
+    coursework read by `pdf.text 1.0.0` adds nothing to it. So folding the context
+    observations into `observations` leaves the digest byte-identical to the digest of
+    the call that never saw them -- and `answered_fields` counts an abstention as an
+    answer (R-109), so a file whose prior verdict was `unknown` about `subject` would
+    be reused forever and never shown the heading. That is the 19 missing course codes
+    this row is about, kept missing by the cache built to save money on them.
+
+    THE KEYS, because an observation key is content-addressed: a different heading, a
+    re-extracted one, or one that a later reading retracted all produce a different
+    term. A count would say "one anchor" about two different anchors.
+
+    A file with no anchor near it carries `[]` here, which is what every call in a
+    deployment that offers no context carries -- so those identities are the same
+    shape they were, and only their digest moved, once, when the term was added.
     """
     return {
         "call_site": A_FACT,
         "content_hash": content_hash,
+        "context_refs": sorted(
+            observation.observation_key for observation in context),
         "extractor_versions": sorted(
             {(observation.extractor_name, observation.extractor_version)
              for observation in observations}),
@@ -935,12 +957,13 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # on the row so a reuse names the answer it is reusing.
         identity = call_identity_dimensions(
             conn, file_id=file_id, content_hash=content_hash,
-            # `104` R-135: the context READINGS are part of the question. A prior
-            # answered without a syllabus beside it and one answered with it are two
-            # different calls, and an identity blind to the difference would reuse the
-            # first forever -- the file would keep the `unknown` it gave before the
-            # anchor existed, on every run after it appeared.
-            observations=tuple(observations) + context, authorities=authorities)
+            observations=observations, authorities=authorities,
+            # `104` R-135: the context READINGS are part of the question, and they
+            # need a TERM of their own. Folded into `observations` they would change
+            # nothing -- the only term read off the readings is the set of
+            # `(extractor, version)` pairs, and a syllabus is read by the same
+            # extractor as the file beside it. `context_refs` says why in full.
+            context=context)
         identity_id = call_identity(identity)
         prior = prior_call(conn, identity_id)
         if prior is not None and vocabulary:

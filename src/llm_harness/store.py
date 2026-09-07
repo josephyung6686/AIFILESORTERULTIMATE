@@ -483,8 +483,8 @@ def record_call_failure(conn: sqlite3.Connection, *, dossier_id: str,
 #: because it is a real dimension at C and D and a key whose shape changes per site
 #: is a key nobody can reason about.
 CALL_IDENTITY_DIMENSIONS: tuple[str, ...] = (
-    "call_site", "content_hash", "extractor_versions", "model_id", "plan_version",
-    "policy", "prompt_fingerprint", "schema_id", "subject_ref",
+    "call_site", "content_hash", "context_refs", "extractor_versions", "model_id",
+    "plan_version", "policy", "prompt_fingerprint", "schema_id", "subject_ref",
 )
 
 

@@ -818,3 +818,64 @@ def test_no_filename_and_no_path_ever_becomes_an_anchor(conn, tmp_path):
     assert cli.anchor_context_observations(
         conn, scan_run_id="scan-r135", file_id=file_id,
         fields=("subject",), limit=10) == ()
+
+
+# --------------------------------------------------------------------------
+# The reuse cache has to see the anchor, or the fix above never runs twice
+# --------------------------------------------------------------------------
+
+def test_the_call_identity_moves_when_an_anchor_appears_beside_a_file(
+        conn, tmp_path, monkeypatch):
+    """`104` R-135's cache term, and without it this row's fix is inert on rerun.
+
+    `call_identity_dimensions` reads exactly one term off the readings a call carries:
+    `extractor_versions`, a SET of `(name, version)` pairs. A syllabus read by
+    `pdf.text 1.0.0` beside coursework read by `pdf.text 1.0.0` adds nothing to that
+    set -- so an identity computed over the union of the two observation lists is
+    BYTE-IDENTICAL to the identity of the call that never saw the syllabus.
+
+    `answered_fields` counts an abstention as an answer (`104` R-109), so the file whose
+    prior verdict was `unknown` about `subject` -- which is the 19 missing course codes
+    this row exists for -- would be reused on every later run and never shown the
+    heading at all. `context_refs` is the term that makes the two calls two questions.
+
+    `_policy_content` is monkeypatched: it reads a stored policy row and is a different
+    term of the same digest. What is under test is that the context CHANGES the digest,
+    and a policy fixture would not make that truer.
+    """
+    from types import SimpleNamespace
+
+    import model_facts
+    from llm_harness.store import CALL_IDENTITY_DIMENSIONS, call_identity
+
+    world = _folder_corpus(conn, tmp_path)
+    context = _context_for(conn, world)
+    assert context, "the fixture must produce an anchor for this to mean anything"
+
+    monkeypatch.setattr(model_facts, "_policy_content",
+                        lambda _conn, _version: "{}")
+    authorities = SimpleNamespace(
+        model_target=_target(), policy_version="policy-1", prompt=_prompt(),
+        activation_signals=SimpleNamespace(
+            signals=(SimpleNamespace(schema_id="academic"),)))
+
+    def dimensions(context_readings):
+        return model_facts.call_identity_dimensions(
+            conn, file_id=world["homework"],
+            content_hash=world["homework_hash"], observations=(world["own"],),
+            authorities=authorities, context=context_readings)
+
+    without, with_anchor = dimensions(()), dimensions(context)
+
+    assert "context_refs" in CALL_IDENTITY_DIMENSIONS
+    assert without["context_refs"] == []
+    assert with_anchor["context_refs"] == [world["line"].observation_key]
+    # The KEYS and not a count: an observation key is content-addressed, so a different
+    # heading, a re-extracted one, or one a later reading retracted is a different term.
+    assert call_identity(without) != call_identity(with_anchor)
+    # And the union that would NOT have worked, spelled out so the trap stays recorded.
+    folded = model_facts.call_identity_dimensions(
+        conn, file_id=world["homework"], content_hash=world["homework_hash"],
+        observations=(world["own"],) + context, authorities=authorities)
+    assert folded["extractor_versions"] == without["extractor_versions"]
+    assert call_identity(folded) == call_identity(without)
