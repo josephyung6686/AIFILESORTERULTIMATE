@@ -61,6 +61,7 @@ from database_agent.files_table import (
     PATH_NO_LONGER_EXISTS, SUPERSEDED_CONTENT, get_file,
 )
 from extractors.image import PERCEPTUAL_HASH_FIELD
+from extractors.router import SOURCE_TYPE_BY_FORMAT
 from extractors.reading import StructuredString
 from extractors.structured_text import EXTRACTOR_NAME as STRUCTURED_EXTRACTOR
 from extractors.filesystem import SOURCE_TYPE as FILESYSTEM_SOURCE_TYPE
@@ -174,6 +175,7 @@ from production import (
 )
 from readers.deployment import macos_readers
 from readers.pdf_pdfium import pdfium_reader
+from readers.signatures import signature_detector
 from extraction_pool import ExtractionContext, InlinePool, ProcessPool
 from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME
 from readers.model_routing import (
@@ -233,6 +235,7 @@ from apply_run.report import apply_lines, freeze_lines, undo_lines
 from apply_run.run import (
     already_applied, applied_entries, apply_selected, plans_under, take_back,
 )
+from review_run.progress import progress_lines
 from review_surface.schema import create_review_schema
 from review_surface.vocabulary import ACTION_REJECT
 from tree_design.residuals import (
@@ -1200,6 +1203,15 @@ _EXPIRATION_STATE: str = "no expiry configured"
 
 #: The review this run's groups and acceptances belong to.
 PLAN_VERSION: str = "plan_0"
+
+#: P13's Open question 4, answered by the caller because the seam supplies no
+#: default: a file with several extraction runs is reported by its WORST one, so
+#: a file that failed once and succeeded once is not counted as read.
+#: `tests/p13/test_p13_progress_lines.py` spells the same order and says in a
+#: comment that it is "exactly as it will be spelled in `src/cli.py`".
+WORST_FIRST: tuple[str, ...] = (
+    "failed", "unreadable", "unsupported", "dataless", "metadata_only",
+    "deferred", "capped", "partial", "complete")
 
 #: §3.8's collector roles, which V4 uses and refuses to receive empty. P6 owns
 #: which fields collect and its vocabulary is still widening, so this names the two
@@ -2472,33 +2484,75 @@ _FORMAT_BY_EXTENSIONLESS_NAME: dict[str, str] = {
 }
 
 
+#: `router` maps "zip" to the `archive` family, which yields the manifest without
+#: extracting anything (§2.5).
+_FORMAT_BY_EXTENSION: dict[str, str] = {
+    ".pdf": "pdf", ".txt": "txt", ".md": "md", ".docx": "docx", ".zip": "zip"}
+
+#: §2.9's other half, wired here and nowhere else. Built once: `signature_detector`
+#: compiles nothing per call, and building it per file would put the protected-
+#: container predicate behind a fresh closure on every path this command touches.
+_FORMAT_BY_SIGNATURE = signature_detector(
+    is_protected_container=is_protected_container)
+
+
 def _detect_format(path: Path) -> str | None:
-    """Which extractor family the bytes belong to, by extension or by filename.
+    """Which extractor family the bytes belong to: extension, then name, then bytes.
 
-    Extension rather than content sniffing, and that is a choice: sniffing means
-    opening the file, and the one class of file this command must never open is
-    decided by PATH (`is_protected_container`) before any format question is asked.
+    THREE ANSWERS IN THAT ORDER, AND THE ORDER IS MEASURED. §2.9 reads, on its own,
+    as "the detected format wins over the declared extension", and asking the
+    signature FIRST is what that sentence says. It was tried against the owner's
+    21-file sample on 2026-09-06 and seven files changed their operative format,
+    every one of them a file nobody had misnamed:
 
-    A file with no extension is answered from its NAME, which is still not opening
-    it. Only the extensionless case reaches that table: an extension is what §2.9
-    calls the routing signal, and a stem that could overrule one would make
-    `license.py` a text document. Two of the corpus's nine -- a Google-Fonts
-    stylesheet saved as `css2`, and Premiere's `LocateDialog Column Settings` -- are
-    named by no convention and stay `unsupported`, which is what they are.
+        five `.ipynb` and one `.code-workspace`  ->  `json`   (they ARE JSON)
+        one `.jpeg`                              ->  `jpg`    (one format, two spellings)
+
+    `router.route` records `disagree` when a detected format contradicts a declared
+    one, and its own comment keeps that column honest precisely so the disagreement
+    "is not manufactured". Seven manufactured rows on twenty-one files is the price
+    of reading §2.9 that way, and the extension is the better answer in all seven:
+    `ipynb` and `code-workspace` are what those files ARE and `json` is merely what
+    they are written in.
+
+    So the extension answers whenever the ROUTER already knows it -- which is a
+    wider set than the five formats this deployment maps, and deliberately: a
+    `.jpeg` the router understands is not a file the bytes need to rescue.
+
+    THE NAME COMES BEFORE THE BYTES for the same kind of reason. A real `Dockerfile`
+    decodes as text, so the signature's weak answer for it is `txt`, and taking that
+    would move every Dockerfile on a disk out of `code_structured`. A file named by
+    a convention a tool requires has already said what it is.
+
+    THE BYTES ARE THE LAST ANSWER AND THE ONLY NEW ONE. `94` F22: a plain text file
+    called `noextension` was named in neither list of the freeze block, and the
+    omission half of that is fixed while the routing half was not -- the reason it
+    now gives is "nothing has looked inside this one yet", and nothing ever would.
+    An extensionless file declares nothing, so there is no routing signal to
+    overrule and no disagreement to manufacture. R-30, and the 1,057 extensionless
+    files `readers/signatures.py` counted on this disk.
+
+    OPENING A FILE IS NOW POSSIBLE HERE AND THE ONE RULE THAT FORBIDS IT IS OBEYED.
+    The older form of this function opened nothing at all and gave that as its
+    reason for answering from the path alone: the class of file that must never be
+    opened is decided by PATH, before any format question. `signature_detector`
+    takes that predicate as a REQUIRED argument and answers `None` for a protected
+    path without reading a byte, which is why the reason survives the change and the
+    behaviour does not.
     """
-    by_extension = {".pdf": "pdf", ".txt": "txt", ".md": "md",
-                    ".docx": "docx",
-                    # `router` maps "zip" to the `archive` family, which yields the
-                    # manifest without extracting anything (§2.5).
-                    ".zip": "zip"}.get(path.suffix.lower())
-    if by_extension is not None or path.suffix:
-        return by_extension
-    name = path.name.lower()
-    # `LICENSE-CC-BY-NC-SA` is on this disk, and `LICENSE-APACHE` and
-    # `COPYING-LESSER` are the same convention: the licence body's name follows the
-    # word, after a hyphen. The word before the first hyphen is what carries it.
-    return (_FORMAT_BY_EXTENSIONLESS_NAME.get(name)
-            or _FORMAT_BY_EXTENSIONLESS_NAME.get(name.split("-")[0]))
+    declared = path.suffix.lower().lstrip(".")
+    if declared in SOURCE_TYPE_BY_FORMAT:
+        return _FORMAT_BY_EXTENSION.get(path.suffix.lower())
+    if not path.suffix:
+        name = path.name.lower()
+        # `LICENSE-CC-BY-NC-SA` is on this disk, and `LICENSE-APACHE` and
+        # `COPYING-LESSER` are the same convention: the licence body's name follows
+        # the word, after a hyphen. The word before the first hyphen carries it.
+        by_name = (_FORMAT_BY_EXTENSIONLESS_NAME.get(name)
+                   or _FORMAT_BY_EXTENSIONLESS_NAME.get(name.split("-")[0]))
+        if by_name is not None:
+            return by_name
+    return _FORMAT_BY_SIGNATURE(path)
 
 
 def classifier(detector, *, now):
@@ -4586,6 +4640,152 @@ def _raise_blocked_questions(conn: sqlite3.Connection, *, detector,
         record_question(conn, question, asked_at=asked_at)
 
 
+def _files_something_was_read_out_of(conn: sqlite3.Connection) -> set[str]:
+    """Every file with an observation that did not come from the filesystem.
+
+    ONE DEFINITION OF "READ", used by the two callers that both need it: the
+    question this run asks a person about a folder, and R-24's report about a
+    folder where the answer is every file. Written once because it is one rule --
+    a second copy is a second rule the day either changes.
+    """
+    return {row[0] for row in conn.execute(
+        "SELECT DISTINCT file_id FROM evidence "
+        "WHERE superseded_by IS NULL AND source_type <> ?",
+        (FILESYSTEM_SOURCE_TYPE,))}
+
+
+def _nothing_could_be_read_report(
+        conn: sqlite3.Connection, *, directory: Path,
+        also_read: Sequence[Path], now) -> tuple[str, ...] | None:
+    """R-24: the screen for a folder every extractor finished and none could read.
+
+    Returns the lines, or `None` when this is not that case -- and the caller then
+    prints the refusal it always printed. THE TEST IS THE EVIDENCE AND NOT THE
+    EXCEPTION. `NothingToDesign` says a tree had no branch candidate, which is true
+    of several corpora; what makes this one an answer rather than a failure is that
+    there is nothing for the product to be wrong ABOUT. Every file was reached,
+    every extractor ran, and the only observations anything holds are the ones the
+    filesystem recorded -- the same rule `folders_nothing_could_be_read_from`
+    applies one folder at a time, asked here of the whole scan.
+
+    A PROTECTED FILE COUNTS AS UNREAD AND IS NAMED BY ITS COUNT, NOT BY ITS NAME.
+    §8.4 marks them so nothing about them is assembled and `00`:201 keeps a list of
+    protected specifics off a screen somebody else can see. So a folder of protected
+    material reaches this path -- nothing was read out of it either -- and the
+    person is told how many rather than which, which is the standing order: marked,
+    counted, never opened, never silently omitted.
+
+    §8.6'S LINE IS P13'S AND IS ASKED FOR RATHER THAN IMITATED. `progress_lines`
+    was written, tested and never called from `src/`; its `assert_every_file_
+    accounted` is the rule that "no indexed file may be absent from every entry",
+    and a paragraph this file assembled itself would be that rule restated by the
+    part it is meant to check. `WORST_FIRST` is the caller's choice under P13's own
+    Open question 4, spelled here because the seam supplies none -- and
+    `tests/p13/test_p13_progress_lines.py` says in a comment that it will be
+    spelled "exactly as it will be spelled in `src/cli.py`".
+    """
+    scan = conn.execute(
+        "SELECT scan_run_id FROM scan_runs ORDER BY started_at DESC, "
+        "scan_run_id DESC LIMIT 1").fetchone()
+    if scan is None:
+        return None
+    roster = corpus_roster(conn, scan[0])
+    if not roster:
+        return None
+    readable = _files_something_was_read_out_of(conn)
+    if any(file_id in readable for file_id, _hash in roster):
+        return None
+
+    #: NAMED FROM THE ROSTER AND NOT FROM THE FOLDER WALK, so the list cannot be
+    #: shorter than the count above it. `folders_nothing_could_be_read_from`
+    #: answers per folder, relative to ONE root, and drops a file outside it --
+    #: correct where it is used, and here it would leave a `--also-read` folder's
+    #: files counted and unnamed, which is the omission this whole screen is about.
+    withheld = {row[0] for row in conn.execute(
+        "SELECT DISTINCT file_id FROM classifications "
+        "WHERE protected = 1 AND superseded_by IS NULL")}
+    paths = dict(conn.execute("SELECT file_id, current_path FROM files"))
+    named = sorted(
+        _relative_to_any(paths[file_id], (directory, *also_read))
+        for file_id, _hash in roster
+        if file_id not in withheld and file_id in paths)
+    held = sum(1 for file_id, _hash in roster if file_id in withheld)
+
+    lines = [
+        "",
+        _wrapped(
+            f"Nothing could be read out of anything in {directory}, so there is "
+            "no folder to propose and nothing has moved.", indent=""),
+        "",
+        f"Every file is accounted for -- {len(roster)} "
+        f"file{'' if len(roster) == 1 else 's'}:",
+        *(f"    {name}" for name in named),
+    ]
+    if held:
+        lines.append(
+            f"    and {held} protected file(s), marked and counted, never opened "
+            "and never named on a screen")
+    lines += [
+        "",
+        _wrapped(
+            "This is not a failure and nothing was skipped. Every extractor ran "
+            "and finished; what they found was the name, the size and the dates "
+            "the filesystem keeps, and no words inside the files. A scan with no "
+            "text layer and a filename that is a counter is the ordinary case, "
+            "and only you know what these are.", indent="  "),
+    ]
+    lines.extend(progress_lines(
+        conn, scan_ref=scan[0], plan_version=PLAN_VERSION, rendered_at=now(),
+        indexed_files=dict(roster), precedence=WORST_FIRST,
+        awaiting_model_review=tuple, flagged_by_model_review=tuple,
+        cause_for=_no_extractor_cause(conn)))
+    return tuple(lines)
+
+
+def _no_extractor_cause(conn: sqlite3.Connection):
+    """P13's `cause_for`, answered where this run actually knows the answer.
+
+    Its default sentence for a bucket with no recorded cause is "no ceiling is
+    recorded as the cause, so this build cannot say which limit stopped it" -- true
+    of a budget deferral and wrong here, where no limit stopped anything. These
+    files stopped at the router: `extraction_routing` holds the reason and nothing
+    was printing it.
+
+    `None` for every other bucket, which returns P13's own sentence. A cause this
+    function cannot support is not one it invents.
+    """
+    unrouted = conn.execute(
+        "SELECT count(*) FROM extraction_routing WHERE extractor_name IS NULL"
+    ).fetchone()[0]
+    routed = conn.execute(
+        "SELECT count(*) FROM extraction_routing WHERE extractor_name IS NOT NULL"
+    ).fetchone()[0]
+
+    def cause_for(label: str) -> str | None:
+        if routed or not unrouted:
+            return None
+        return ("no reader in this deployment handles these files' format, so "
+                "what the filesystem records about them is all there is")
+
+    return cause_for
+
+
+def _relative_to_any(path: str, roots: Sequence[Path]) -> str:
+    """The shortest name that still says which of the scanned folders it is in.
+
+    A path relative to the root the person typed, because `privacy.vocabulary.
+    ALWAYS_LOCAL`'s first member is `paths` and an absolute one puts a home
+    directory on a screen. A file under none of the roots cannot happen through a
+    live scan and is named by its own filename rather than dropped.
+    """
+    for root in roots:
+        try:
+            return Path(path).relative_to(root).as_posix()
+        except ValueError:
+            continue
+    return Path(path).name
+
+
 def folders_nothing_could_be_read_from(
         conn: sqlite3.Connection, *,
         root: Path) -> tuple[tuple[str, tuple[str, ...], int], ...]:
@@ -4636,12 +4836,7 @@ def folders_nothing_could_be_read_from(
     the run. A file outside the scan root has no relative name and is skipped
     rather than named absolutely.
     """
-    readable: set[str] = set()
-    for row in conn.execute(
-            "SELECT DISTINCT file_id FROM evidence "
-            "WHERE superseded_by IS NULL AND source_type <> ?",
-            (FILESYSTEM_SOURCE_TYPE,)):
-        readable.add(row[0])
+    readable = _files_something_was_read_out_of(conn)
     protected = {row[0] for row in conn.execute(
         "SELECT DISTINCT file_id FROM classifications "
         "WHERE protected = 1 AND superseded_by IS NULL")}
@@ -6628,6 +6823,19 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
               file=out)
         return 2
     except REFUSALS as refusal:
+        # R-24 FIRST, because it is not one of these. A folder nothing could be
+        # read from produces no accepted group, so `design_tree` refuses -- and the
+        # refusal is true about the tree and false about the run, which read
+        # everything there was and found nothing in it. The block below is that
+        # case and only that case; every other refusal keeps the sentence and the
+        # exit code it has always had.
+        if isinstance(refusal, NothingToDesign):
+            said = _nothing_could_be_read_report(
+                conn, directory=directory, also_read=also_read, now=now)
+            if said is not None:
+                for line in said:
+                    print(line, file=out)
+                return 0
         # A NAMED refusal, printed rather than raised. §5's chain refuses by name
         # -- C1-C8, V1-V6, §5.4's empty branch -- and each refusal says which
         # judgement failed and why. A traceback here would turn an answer the
