@@ -5467,7 +5467,10 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 continue
             question = question_for_unreadable_folder(
                 folder=folder, choices=offered, file_count=len(file_ids),
-                protected_count=held)
+                protected_count=held,
+                # The scan root's relative name is `.`; the person typed a
+                # folder with a name, and that is the one the question uses.
+                shown_as=directory.name if folder == "." else None)
             record_question(conn, question, asked_at=clock)
             # The WORDS and the DESTINATIONS, not a `placement.records.Ask`. P11
             # owns that record and `test_ambiguity_cases` asserts `pipeline.py` is
