@@ -7475,6 +7475,36 @@ def _crossing_moves(conn: sqlite3.Connection, result: ProductionRun, *,
     return crossing
 
 
+def duplicate_families(conn: sqlite3.Connection,
+                       scan_run_id: str) -> dict[str, tuple[str, ...]]:
+    """§3.11's `duplicate_family`, as families rather than as per-file facts.
+
+    `104` R-K. Four `(1)` twins on a 52-file corpus each got an independent,
+    identical decision and no line said "same file as", while the fact had been
+    on both members all along -- resolution G5 makes duplicate family a universal
+    fact and P9's `duplicate_or_version` already reads it to type an edge. What
+    was missing was the sentence.
+
+    Families of ONE are dropped: a `duplicate_family` value a single file carries
+    is a family with nothing to compare it to, and telling a person their file is
+    a duplicate of nothing is worse than saying nothing.
+
+    Over THIS scan's roster, for the reason `_protected_file_count` gives.
+    """
+    roster = {file_id for file_id, _hash in corpus_roster(conn, scan_run_id)}
+    families: dict[str, list[str]] = {}
+    for row in conn.execute(
+            'SELECT ff.file_id AS file_id, v.canonical_value AS family '
+            'FROM file_facts ff JOIN "values" v ON ff.value_id = v.value_id '
+            'WHERE ff.field_key = ? AND ff.active = 1 '
+            'AND ff.superseded_by IS NULL',
+            (DUPLICATE_FAMILY_FIELD,)):
+        if row["file_id"] in roster:
+            families.setdefault(row["family"], []).append(row["file_id"])
+    return {family: tuple(sorted(members))
+            for family, members in families.items() if len(members) > 1}
+
+
 def report(result: ProductionRun, names: dict[str, str], *, out=None,
            questions: Sequence = (), set_aside: Sequence = (),
            role_moment: Sequence[str] = (),
@@ -7484,6 +7514,7 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
            show_protected: bool = False,
            locked: Mapping[str, str] = MappingProxyType({}),
            crossing: Mapping[str, str] = MappingProxyType({}),
+           duplicates: Mapping[str, tuple[str, ...]] = MappingProxyType({}),
            not_carried: Sequence = ()) -> tuple[str, ...]:
     """The run, in the order a person would ask about it.
 
@@ -7769,6 +7800,8 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             # printed under this clause may ever be approved by a freeze, which
             # is the same conclusion the `not shielded[key]` guard below reaches
             # by the other road.
+            # NOTHING WAS NAMED, so nothing may be named about it below either.
+            shown_here = ()
             for line in PROTECTED_SUMMARY:
                 said = line.format(count=len(files), plural=plural)
                 print(said if said.startswith(" ")
@@ -7789,6 +7822,7 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
                 # is here as well as in `freeze` because two independent refusals
                 # are what "never" means.
                 named.extend(listed)
+            shown_here = listed
             for file_id in listed:
                 print(f"    {names.get(file_id, file_id)}", file=out)
             rest = len(files) - len(listed)
@@ -7806,6 +7840,28 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # `104` R-D, said where the file is listed and not only at the top. The
         # member NAMES are not printed: a locked archive's members can be
         # `passport.pdf`, which is the list `00`:201 is about.
+        # `104` R-K. SAID OVER THE NAMES THIS GROUP PRINTED, and over no others.
+        # A duplicate line naming a file the screen is withholding would hand
+        # back exactly what `PROTECTED_SUMMARY` holds, and one naming a file
+        # inside the "...and N more" fold would name what the fold exists not to
+        # name. So `listed` is the whole world here, and a family with fewer
+        # than two of its members on this screen says nothing -- which is
+        # honest: what the person can act on is what they can see.
+        for family in sorted({
+                family for family, members in duplicates.items()
+                if len(set(members) & set(shown_here)) > 1}):
+            together = sorted(
+                names.get(file_id, file_id)
+                for file_id in duplicates[family] if file_id in shown_here)
+            elsewhere = len(duplicates[family]) - len(together)
+            also = (f" {elsewhere} more file(s) in this plan have the same "
+                    f"bytes and are listed elsewhere in this report."
+                    if elsewhere else "")
+            print(_wrapped(
+                f"{' and '.join(together)} are the same bytes, not two "
+                f"documents. Keeping one is probably what you want; nothing "
+                f"here deletes either, and both are filed the same way until "
+                f"you say otherwise.{also}", indent="    "), file=out)
         if crossing_here:
             where_from = ", ".join(crossing_here)
             print(_wrapped(
@@ -8874,6 +8930,9 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                    crossing=({} if args.may_cross_folders
                              else _crossing_moves(conn, result,
                                                   landscape=_landscape)),
+                   # `104` R-K, read here and passed IN like the rest.
+                   duplicates=duplicate_families(
+                       conn, result.p1_p7.scan_run_id),
                    # A §7.6 set answer belongs to the plan version it was given
                    # in, and every run mints a new one, so an answer given
                    # yesterday is not applied today. That is
