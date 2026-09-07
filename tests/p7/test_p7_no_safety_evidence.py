@@ -26,9 +26,37 @@ negative worth acting on.
 
 **This is not the over-protection collapse and does not go near it.** Nothing here
 marks a file protected, changes a handling class, or removes a file from placement.
-The 41 stay `personal_non_sensitive, protected=0` and stay locally placeable. What
-changes is that a CLOUD model call on one is refused, because the product has not
-established the thing that call would depend on.
+The 41 stay `personal_non_sensitive, protected=0` and stay locally placeable.
+
+---
+
+**AMENDED 2026-09-07, on the owner's ruling of 2026-09-05 (`104` §13.2), and the
+amendment is a NARROWING rather than a reversal.**
+
+`96` §20's rule shipped inside `fd68cb6` with its own escape hatch written into the
+docstring -- *"LOCAL IS PERMITTED"* -- and no local model existed. So a rule meant to
+REDIRECT ordinary files to an on-device model was, in the product as built, a total
+cloud block: 44 of the owner's 199 files could reach the only wired model site and
+155 could not (`103` C1, `104` R-01). The commit's own measurement table is headed
+"no model", so the cloud effect was never measured by the commit that caused it. Read
+against the constitution's second rule -- a gate that excludes readable files from
+the engine is a defect -- that is a coverage regression wearing a safety fix's name.
+
+What `96` §19 actually objected to survives, and this file's tests are now written
+around it. A silence became a confident negative because the file had a CLASS and
+nothing else. So the refusal now needs BOTH halves: the weak basis, AND a request
+that carries no releasable reading of the file itself. A file with an excerpt of its
+own words is not a silence and may reach a cloud model; a file with nothing but a
+label and a field name is, and may not.
+
+The cloud lift was gated on SF-1 (`104` R-07) being closed first, and it was: the
+instrument measured 20 of the owner's Word documents releasing their entire text
+before that fix, and 0 after. Widening the door before closing that one would have
+sent whole documents to a provider.
+
+Protected material is untouched by all of this. `protected_cloud_denies` is a
+separate rung with no carve-out outside `cloud_assisted` plus an explicit grant, and
+two tests below assert the lift cannot reach it.
 """
 from __future__ import annotations
 
@@ -58,7 +86,7 @@ from privacy.denial import (
     DECIDABLE_FROM_REQUEST, DENIAL_ORDER, no_safety_evidence_denies,
 )
 from privacy.gate import Gate
-from privacy.items import Excerpt
+from privacy.items import CandidateLabel, Excerpt, MetadataField
 from privacy.policy import Policy, UNSET_POLICY_VERSION, set_policy
 from privacy.release import Denied, ModelCallRequest, ModelTarget, Released, Target
 from privacy.schema import create_privacy_schema
@@ -264,32 +292,49 @@ def test_the_new_reason_is_decidable_from_the_request():
         min(DENIAL_ORDER.index(r) for r in late)
 
 
-def test_the_predicate_refuses_a_cloud_target_and_permits_a_local_one():
-    """The rule, stated once, with no knob.
+def test_the_predicate_needs_both_halves_and_local_needs_neither():
+    """The rule, stated once, with no knob. NARROWED on the owner's `104` §13.2
+    ruling: the weak basis alone no longer refuses a cloud call.
 
-    CLOUD is refused because the product has not established the thing that call
-    would depend on. LOCAL is permitted because §8.4's whole distinction is that a
-    local model call moves nothing off the device -- `hybrid` is "Sensitive files
-    remain LOCAL", not "sensitive files are never read". Denying local calls as
-    well would withhold from the on-device model exactly the files it exists to
-    look at, and would be a second, larger `unclassified_permits_local` invented
-    here rather than asked of the owner.
+    CLOUD with releasable evidence is PERMITTED. That is the lift, and it is what
+    `96` §20's own escape hatch assumed would exist -- its docstring says "LOCAL IS
+    PERMITTED", and no local model did exist, so a rule meant to redirect ordinary
+    files to an on-device model became a total cloud block over 155 of the owner's
+    199 files.
+
+    CLOUD with nothing releasable is still REFUSED, and for the reason `96` §19
+    measured: a file whose whole contribution is that it acquired a class is a
+    silence, and sending it turns that silence into a confident negative.
+
+    LOCAL is permitted either way, because §8.4's whole distinction is about what
+    leaves the device -- `hybrid` is "Sensitive files remain LOCAL", not "sensitive
+    files are never read".
     """
-    assert no_safety_evidence_denies(locality="cloud") is True
-    assert no_safety_evidence_denies(locality="local") is False
+    assert no_safety_evidence_denies(
+        locality="cloud", releasable_evidence=True) is False
+    assert no_safety_evidence_denies(
+        locality="cloud", releasable_evidence=False) is True
+    assert no_safety_evidence_denies(
+        locality="local", releasable_evidence=False) is False
+    assert no_safety_evidence_denies(
+        locality="local", releasable_evidence=True) is False
 
 
 # --------------------------------------------------------------------------
 # the gate: the property `96` §20 asks for
 # --------------------------------------------------------------------------
 
-def test_a_class_reached_without_safety_evidence_does_not_clear_a_cloud_call(
+def test_an_ordinary_file_with_a_releasable_reading_may_reach_a_cloud_model(
         gate_conn):
-    """THE HOLE, closed. This is the HKID's own shape.
+    """THE LIFT (`104` §13.2, owner, 2026-09-05), and it is the case that matters.
 
-    `personal_non_sensitive, protected=0` -- a positive statement that the file is
-    not sensitive -- reached without a single safety term having matched. The gate
-    refuses to treat it as a cleared file.
+    `personal_non_sensitive, protected=0` on the weak basis -- the shape 41 of the
+    owner's classified files and 155 of his 199 total were refused under -- with one
+    bounded excerpt of the file's own words in the request. This is an ordinary piece
+    of coursework, and the constitution's second rule is that a gate excluding
+    readable files from the engine is a defect.
+
+    Its twin below is the file with nothing releasable, which is still refused.
     """
     file_id, digest, key = _ordinary_file(gate_conn)
     _policy(gate_conn, "hybrid")
@@ -299,8 +344,109 @@ def test_a_class_reached_without_safety_evidence_does_not_clear_a_cloud_call(
         items=(Excerpt(observation_key=key, span=SPAN, reason="body"),),
         file_ids=(file_id,)))
 
+    assert isinstance(decision, Released), decision
+    # The reading the model is shown is this file's own, at the span asked for. Its
+    # VALUE reads `[redacted]` and not `Homework 3`, because `_gate`'s injected
+    # classifier answers for every span -- which is this file's fixture and not the
+    # deployment's -- and that is the redaction path working, not the lift failing.
+    assert [item.observation_key for item in decision.materialised_items] == [key]
+
+
+def test_the_same_file_with_nothing_of_itself_in_the_request_is_still_refused(
+        gate_conn):
+    """THE NEGATIVE TWIN, and it is what keeps `96` §19's finding alive.
+
+    Identical file, identical class, identical basis. The only difference is that
+    the request carries no reading OF THE FILE: a `CandidateLabel` is a destination
+    name and a `MetadataField` is a field NAME, and §4 says an evidence reference is
+    "an id only -- no content". A call built from those asks a model to confirm that
+    a file is not sensitive while showing it nothing of the file, which is exactly
+    the silence-into-confident-negative `96` §19 counted 41 times.
+
+    If this test and the one above ever agree, the condition is doing nothing.
+    """
+    file_id, digest, _key = _ordinary_file(gate_conn, "empty.pdf", "hash-empty")
+    _policy(gate_conn, "hybrid")
+    _classify(gate_conn, file_id, digest, basis=DETECTOR_NO_SAFETY_EVIDENCE)
+
+    decision = _gate(gate_conn).release(_request(
+        items=(CandidateLabel(label="Coursework"),
+               MetadataField(name="page_count")),
+        file_ids=(file_id,)))
+
     assert isinstance(decision, Denied), decision
     assert decision.reason == "no_safety_evidence"
+
+
+def test_an_evidence_key_that_does_not_resolve_is_not_evidence(gate_conn):
+    """The safe direction on an unresolvable key.
+
+    A request naming a key the evidence does not carry has not shown the model
+    anything, and `materialise` would raise on it later anyway. Counting it as
+    evidence would let a caller lift its own denial by naming keys that do not
+    exist -- which is the one way this condition could be turned into a bypass.
+    """
+    file_id, digest, _key = _ordinary_file(gate_conn, "ghost.pdf", "hash-ghost")
+    _policy(gate_conn, "hybrid")
+    _classify(gate_conn, file_id, digest, basis=DETECTOR_NO_SAFETY_EVIDENCE)
+
+    decision = _gate(gate_conn).release(_request(
+        items=(Excerpt(observation_key="no-such-observation-key", span=SPAN,
+                       reason="body"),),
+        file_ids=(file_id,)))
+
+    assert isinstance(decision, Denied), decision
+    assert decision.reason == "no_safety_evidence"
+
+
+def test_a_protected_file_on_this_basis_still_never_reaches_the_cloud(gate_conn):
+    """WHAT THE LIFT MUST NOT REACH, asserted rather than reasoned about.
+
+    §8.4: protected material is "not included in cloud-model prompts by default",
+    and the standing rule is stricter -- marked and counted, never opened.
+    `protected_cloud_denies` is a separate rung of the same ladder with no carve-out
+    outside `cloud_assisted` plus an explicit grant, and widening
+    `no_safety_evidence_denies` must not have reached it. The file below carries the
+    weak basis AND a perfectly good releasable excerpt, so it satisfies the lifted
+    condition completely, and it is refused anyway.
+    """
+    file_id, digest, key = _ordinary_file(gate_conn, "hkid.pdf", "hash-hkid")
+    _policy(gate_conn, "hybrid")
+    _classify(gate_conn, file_id, digest, basis=DETECTOR_NO_SAFETY_EVIDENCE,
+              handling_class="sensitive_personal", protected=True)
+
+    decision = _gate(gate_conn).release(_request(
+        items=(Excerpt(observation_key=key, span=SPAN, reason="body"),),
+        file_ids=(file_id,)))
+
+    assert isinstance(decision, Denied), decision
+    assert decision.reason == "protected_cloud_target"
+
+
+def test_a_protected_file_reaches_no_cloud_model_under_any_of_the_four_modes(
+        gate_conn):
+    """The same rule, over §8.4's whole mode vocabulary rather than over one mode.
+
+    `cloud_assisted` is the one mode with a carve-out and it needs an explicit grant
+    for the file's own area; this policy holds none, so all four refuse. The reason
+    differs -- `offline` and `local_model` forbid a cloud target outright, before
+    anything about the file is read -- and every one of them is a refusal.
+    """
+    for index, mode in enumerate(
+            ("offline", "local_model", "hybrid", "cloud_assisted")):
+        file_id, digest, key = _ordinary_file(
+            gate_conn, f"protected{index}.pdf", f"hash-protected-{index}")
+        _policy(gate_conn, mode)
+        _classify(gate_conn, file_id, digest, basis=DETECTOR_NO_SAFETY_EVIDENCE,
+                  handling_class="sensitive_personal", protected=True)
+
+        decision = _gate(gate_conn).release(_request(
+            items=(Excerpt(observation_key=key, span=SPAN, reason="body"),),
+            file_ids=(file_id,)))
+
+        assert isinstance(decision, Denied), (mode, decision)
+        assert decision.reason in ("mode_forbids_target",
+                                   "protected_cloud_target"), (mode, decision)
 
 
 def test_the_same_file_on_the_strong_basis_is_released(gate_conn):
@@ -345,19 +491,22 @@ def test_the_denial_says_what_was_and_was_not_established(gate_conn):
     """SPEC §6: the explanation is user-facing. §8.6: it shows what was deferred and why.
 
     The sentence has to survive being read by the owner, so it says the true thing:
-    a class exists, no safety evidence was found, and finding none is not the same
-    as establishing that there is none.
+    a class exists, no safety evidence was found, finding none is not the same as
+    establishing that there is none -- and, since `104` §13.2 narrowed the rule, that
+    the basis alone is no longer what stopped this call. A sentence that still blamed
+    the basis alone would name the half that is now insufficient on its own and leave
+    out the half that decided.
     """
-    file_id, digest, key = _ordinary_file(gate_conn, "scan.pdf", "hash-scan")
+    file_id, digest, _key = _ordinary_file(gate_conn, "scan.pdf", "hash-scan")
     _policy(gate_conn, "hybrid")
     _classify(gate_conn, file_id, digest, basis=DETECTOR_NO_SAFETY_EVIDENCE)
 
     decision = _gate(gate_conn).release(_request(
-        items=(Excerpt(observation_key=key, span=SPAN, reason="body"),),
-        file_ids=(file_id,)))
+        items=(CandidateLabel(label="Coursework"),), file_ids=(file_id,)))
 
     assert "personal_non_sensitive" in decision.explanation
     assert "safety" in decision.explanation
+    assert "no releasable reading" in decision.explanation
     assert decision.remedy_options, "a denial with no remedy is a dead end (§8.6)"
 
 

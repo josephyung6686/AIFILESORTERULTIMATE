@@ -126,13 +126,16 @@ def test_a_residual_send_is_recorded_as_a_review_action(tmp_path):
 
 
 # --- 103 §18 C7: the dossier token cap is asserted, never measured ------------------
+#
+# CLOSED 2026-09-07 (`104` §7 Phase 1 step 1, SF-5). Both markers removed in the
+# commit that fixed them. `cli._bootstrap` now seeds
+# `model.max_dossier_tokens_per_call` at `GROUPING_LIMITS.max_dossier_tokens`, and
+# `cli.fact_call_authorities` supplies `measure_tokens`, so `over_dossier_ceiling`
+# can fire and `model_facts._call_dependencies` measures `unreduced_fits` instead
+# of asserting it. `tests/integration/test_cli_dossier_ceiling_is_measured.py`
+# carries the rest of the property, including the deferral rung.
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="103 C7: `_bootstrap` seeds every placement ceiling with CEILING_VALUE "
-           "(8), including `model.max_dossier_tokens_per_call`, while every request "
-           "carries GROUPING_LIMITS.max_dossier_tokens (4000). Two answers to one "
-           "ceiling.")
+
 def test_the_stored_dossier_ceiling_matches_the_one_requests_carry(conn):
     from database_agent.budget import get_ceiling
 
@@ -141,11 +144,6 @@ def test_the_stored_dossier_ceiling_matches_the_one_requests_carry(conn):
     assert stored == cli.GROUPING_LIMITS.max_dossier_tokens
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="103 C7: `cli.fact_call_authorities` builds the gate with no "
-           "`measure_tokens`, so `over_dossier_ceiling` never runs and "
-           "`model_facts._call_dependencies` asserts `unreduced_fits=True` unmeasured.")
 def test_the_a_fact_gate_measures_dossier_tokens(conn):
     from production import (
         folder_levels_for, load_shipped_catalogue, read_packaged_library_file,
@@ -170,21 +168,41 @@ def test_the_a_fact_gate_measures_dossier_tokens(conn):
 
 # --- 103 §9 D1: the gate denies every ordinary file a cloud call -------------------
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="103 C1 / D1: since fd68cb6 a file classified on basis "
-           "`detector_no_safety_evidence` is denied a cloud release, and the detector "
-           "writes that basis for every ordinary file. 155 of the owner's 199 files "
-           "and 5 of 5 synthetic files cannot reach the only wired model site. Owner "
-           "decision D1 (rule the basis in, wire a local model, or a user-set class) "
-           "RULED 2026-09-05 by the owner: BOTH -- a local model first, and the cloud denial "
-           "lifted for files with releasable evidence. Goes green when "
-           "`no_safety_evidence_denies` admits cloud for such a file; keep a negative "
-           "twin for a file with no evidence.")
+# CLOSED 2026-09-07 (`104` §13.2). The owner ruled D1 = BOTH, and ruled again on
+# 2026-09-05 evening that the cloud half "is lifted the moment SF-1 (R-07,
+# whole-document release) is closed" and does not wait for the bakeoff. SF-1 closed
+# first, in this same branch, and the instrument measured what it was protecting: 20
+# of the owner's Word documents would have released their entire text before it, 0
+# after. The marker comes off here; the meaning lives in
+# `tests/p7/test_p7_no_safety_evidence.py`, rewritten around both halves.
+
+
 def test_an_ordinary_file_with_no_safety_vocabulary_may_reach_a_cloud_model():
+    """An ordinary file with a releasable reading of its own words may be sent.
+
+    The predicate's signature gained the condition the ruling names, so this passes
+    it: `releasable_evidence=True` is what `Gate.release` computes for a file the
+    request carries a text-bearing item for, which on the production path is every
+    file `fact_call_stage` builds a call about -- it returns `()` rather than build
+    one otherwise.
+    """
     from privacy.denial import no_safety_evidence_denies
 
-    assert not no_safety_evidence_denies(locality="cloud")
+    assert not no_safety_evidence_denies(
+        locality="cloud", releasable_evidence=True)
+
+
+def test_a_file_with_nothing_releasable_still_cannot_reach_a_cloud_model():
+    """The negative twin the ruling asked for, beside its positive.
+
+    `96` §19's finding is what this keeps: a file whose entire contribution is that
+    it acquired a class is a silence, and a cloud call on one turns that silence
+    into a confident negative.
+    """
+    from privacy.denial import no_safety_evidence_denies
+
+    assert no_safety_evidence_denies(
+        locality="cloud", releasable_evidence=False)
 
 
 # --- 103 §18 C17: keep-as-it-is silently un-files the branch -----------------------

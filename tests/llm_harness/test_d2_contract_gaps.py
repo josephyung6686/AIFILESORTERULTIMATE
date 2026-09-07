@@ -1,0 +1,349 @@
+"""The contract gaps the D2 packet reports, each pinned before it is written down.
+
+`planning/105-D2-PROMPT-PACKET.md` §7 says what the four unwired sites' contracts
+cannot express or do wrongly. A sentence there is a claim; a test here is the
+evidence. The repo's convention for an open defect is a strict xfail asserting
+the CORRECT behaviour, so the day a fix lands the test turns green and fails as
+an unexpected pass until its marker is removed.
+
+Every world here is built the way `tools/promptbench` builds one: the frozen
+`Dossier`, the model-visible bytes under a wire-handle key, and the response the
+model could honestly have written from those bytes.
+"""
+from __future__ import annotations
+
+import ast
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO))
+
+from llm_harness.dossier import field_glossary  # noqa: E402
+from llm_harness.records import Dossier  # noqa: E402
+from llm_harness.vocabulary import (  # noqa: E402
+    ACCEPT_DIRECT, BELOW_SUPPORT_THRESHOLD, C_PLACEMENT, CHOOSE_BROAD_PARENT,
+    CONFLICT_IGNORED, D_RESIDUAL, EVIDENCE_NOT_IN_FILE_RECORD, INVENTED_PROJECT,
+    REJECT, RETURN_ACCEPTED_PACKET, STRONGER_RELATIONSHIP_OVERLOOKED, WEAK,
+)
+from llm_harness.wire_handles import wire_handle  # noqa: E402
+
+from tools.promptbench.cases import Case, Item, evidence  # noqa: E402
+from tools.promptbench.dossiers import (  # noqa: E402
+    BENCH_HANDLE_KEY, dossier_of, model_visible_bytes,
+)
+from tools.promptbench.judge import judge, site_dependencies_for  # noqa: E402
+
+SUBJECT = "file:gap-1"
+PLAN = "plan-gap"
+
+
+def _c_case(*, conflicts=(), items=()) -> Case:
+    heading = evidence(subject_ref=SUBJECT, address="heading:1",
+                       value="PHYS 1401 Problem Set 4", zone="heading")
+    return Case(
+        case_id="G-C", site=C_PLACEMENT, title="gap world", persona="Priya",
+        traces=("104:R-15", "00:114"), subject_ref=SUBJECT,
+        allowed_vocabulary=("node-hw", "node-course"), evidence=(heading,),
+        items=tuple(items) or (
+            Item(evidence_ref="node-hw", kind="candidate",
+                 location="Coursework > PHYS1401 > homework"),
+            Item(evidence_ref="node-course", kind="candidate",
+                 location="Coursework > PHYS1401")),
+        conflicts=tuple(conflicts), plan_version=PLAN,
+        expect={"destination": "node-hw"}, should_abstain=False)
+
+
+def _d_case(*, conflicts=(), location=SUBJECT) -> Case:
+    ocr = evidence(subject_ref=SUBJECT, address="ocr:1",
+                   value="Your Columbia University application has been submitted",
+                   zone="ocr", location=location)
+    return Case(
+        case_id="G-D", site=D_RESIDUAL, title="gap world", persona="multi-life",
+        traces=("00:125",), subject_ref=SUBJECT,
+        allowed_vocabulary=("r-temp", "group-columbia"), evidence=(ocr,),
+        items=(Item(evidence_ref="r-temp", kind="residual_area",
+                    location="Photos > Temporary Screenshots"),
+               Item(evidence_ref="group-columbia", kind="accepted_group",
+                    location="accepted group: Columbia application packet")),
+        conflicts=tuple(conflicts), plan_version=PLAN,
+        authorities={"approved_target_ids": ("r-temp",),
+                     "frozen_nodes": ("r-temp", "group-columbia")},
+        expect={"action": RETURN_ACCEPTED_PACKET, "target": "group-columbia"},
+        should_abstain=False)
+
+
+def _handles_in(case: Case, dossier) -> dict:
+    """What the model was shown: the keyed forms of every identifier."""
+    text = model_visible_bytes(dossier, _prompt(case.site)).decode("utf-8")
+    body = json.loads(text.split("The dossier follows.\n", 1)[1])
+    return body
+
+
+def _prompt(site):
+    from llm_harness.records import PromptDefinition
+    return PromptDefinition(
+        template_id=f"{site.lower()}.unratified.gap-test.2026-09-06",
+        template_bytes=b"T\nThe dossier follows.\n",
+        response_schema_bytes=b'{"type":"object"}', call_site=site,
+        call_site_version="1", shaping_policy_bytes=b'{"policy":"gap"}')
+
+
+def _cite(case: Case, span: str) -> list[dict]:
+    return [{"evidence_ref": wire_handle(case.evidence[0].key, key=BENCH_HANDLE_KEY),
+             "cited_span": span, "why_it_supports": "states it"}]
+
+
+def _c_response(case: Case, **payload) -> bytes:
+    body = {"destination": "node-hw", "per_dimension_support": [],
+            "alternatives": ["node-course"], "conflicts_considered": [],
+            "support": 1, "next_support": 0}
+    body.update(payload)
+    return json.dumps({"claims": [{"payload": body,
+                                   "citations": _cite(case, "PHYS 1401")}]}).encode()
+
+
+# --- G1: conflict ids are keyed on the wire and compared raw by the validator ------
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "G1 (packet §7): dossier._body keys every conflict_id with wire_handle, but "
+    "placement_validation._placement_site compares conflicts_considered against "
+    "the RAW ids. A model that echoes every conflict it was shown is rejected "
+    "CONFLICT_IGNORED, so a C dossier with any conflict is unanswerable."))
+def test_g1_site_c_a_model_that_echoes_every_shown_conflict_is_not_ignoring_it():
+    case = _c_case(conflicts=(("conflict-abc123", "target_university"),))
+    dossier = dossier_of(case)
+    shown = [c["conflict_id"] for c in _handles_in(case, dossier)["conflicts"]]
+    assert shown and shown != ["conflict-abc123"], "the id IS keyed on the wire"
+    verdict = judge(case, dossier, _c_response(case, conflicts_considered=shown),
+                    schema={"type": "object"},
+                    site_dependencies=site_dependencies_for(case))
+    assert verdict.worst_outcome == ACCEPT_DIRECT, verdict.verdicts
+
+
+def test_g1_measured_the_raw_id_would_be_accepted_but_the_model_never_sees_it():
+    """The control: the raw id passes, which is why the defect is the keying."""
+    case = _c_case(conflicts=(("conflict-abc123", "target_university"),))
+    dossier = dossier_of(case)
+    body = _handles_in(case, dossier)
+    assert "conflict-abc123" not in json.dumps(body)
+    verdict = judge(case, dossier,
+                    _c_response(case, conflicts_considered=["conflict-abc123"]),
+                    schema={"type": "object"},
+                    site_dependencies=site_dependencies_for(case))
+    assert verdict.worst_outcome == ACCEPT_DIRECT
+    echoed = judge(case, dossier, _c_response(
+        case, conflicts_considered=[c["conflict_id"] for c in body["conflicts"]]),
+        schema={"type": "object"}, site_dependencies=site_dependencies_for(case))
+    assert echoed.worst_outcome == REJECT
+    assert [CONFLICT_IGNORED] in [v["reasons"] for v in echoed.verdicts]
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "G1 at site D: relationships_considered is compared against raw "
+    "stronger_relationship conflict ids the model was never shown."))
+def test_g1_site_d_a_model_that_echoes_the_shown_relationship_did_consider_it():
+    case = _d_case(conflicts=(("conflict-rel-1", "stronger_relationship"),))
+    dossier = dossier_of(case)
+    shown = [c["conflict_id"] for c in _handles_in(case, dossier)["conflicts"]]
+    response = json.dumps({"claims": [{
+        "payload": {"action": RETURN_ACCEPTED_PACKET, "target": "group-columbia",
+                    "stop_reason": "the confirmation names the application",
+                    "relationships_considered": shown},
+        "citations": _cite(case, "Columbia University application")}]}).encode()
+    verdict = judge(case, dossier, response, schema={"type": "object"},
+                    site_dependencies=site_dependencies_for(case))
+    assert verdict.worst_outcome == ACCEPT_DIRECT, verdict.verdicts
+    assert STRONGER_RELATIONSHIP_OVERLOOKED not in [
+        r for v in verdict.verdicts for r in v["reasons"]]
+
+
+# --- G2: R-15, a real per-level value is "invented" at site C ---------------------
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "G2 (104 R-15): _invented_dimension checks per_dimension_support VALUES for "
+    "date, institution and project against allowed_vocabulary, which at site C "
+    "is the node-id list, so any real project value is INVENTED_PROJECT."))
+def test_g2_a_real_project_value_in_per_dimension_support_is_not_invented():
+    case = _c_case()
+    verdict = judge(case, dossier_of(case), _c_response(case, per_dimension_support=[
+        {"dimension": "project", "value": "PVA-RDP", "support": "direct"}]),
+        schema={"type": "object"}, site_dependencies=site_dependencies_for(case))
+    assert verdict.worst_outcome == ACCEPT_DIRECT, verdict.verdicts
+
+
+def test_g2_measured_the_reason_is_invented_project():
+    case = _c_case()
+    verdict = judge(case, dossier_of(case), _c_response(case, per_dimension_support=[
+        {"dimension": "project", "value": "PVA-RDP", "support": "direct"}]),
+        schema={"type": "object"}, site_dependencies=site_dependencies_for(case))
+    assert [INVENTED_PROJECT] in [v["reasons"] for v in verdict.verdicts]
+
+
+# --- G3: the live C/D dossier carries opaque node ids and no profile -------------
+
+
+def test_g3_a_node_id_in_allowed_vocabulary_gets_no_meaning_and_no_profile_field():
+    """`field_glossary` is keyed by P6 field key; a minted node id maps to nothing,
+    and `Dossier` has no field a builder could put a node profile in. What the
+    bench does instead -- a `candidate` evidence item whose `location` carries the
+    label chain -- is a builder change the packet asks the owner to approve."""
+    assert field_glossary(("node-7f3a", "node-0c11")) == {}
+    assert "candidate_profiles" not in Dossier.__dataclass_fields__
+    assert "node_profiles" not in Dossier.__dataclass_fields__
+    # pipeline._judge_with_model hands P8 the legal node ids as the vocabulary
+    # and nothing else about them.
+    source = (REPO / "src" / "placement" / "pipeline.py").read_text("utf-8")
+    assert "allowed_vocabulary=legal" in source
+    assert "legal = sorted(legal_node_ids(" in source
+
+
+# --- G4: nothing in src constructs site B's authorities ----------------------------
+
+
+def test_g4_no_module_in_src_constructs_p8_authorities_for_site_b():
+    """`grouping.pipeline` calls `p8_run_call` with a `P8Authorities` bundle that
+    no module under `src/` builds, so B's `allowed_vocabulary` is undefined in the
+    live product. The bench defines one (the category ids) and the packet says so."""
+    constructors = []
+    for path in (REPO / "src").rglob("*.py"):
+        tree = ast.parse(path.read_text("utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                func = node.func
+                name = getattr(func, "id", None) or getattr(func, "attr", None)
+                if name == "P8Authorities":
+                    constructors.append(str(path.relative_to(REPO)))
+    assert constructors == [], constructors
+
+
+# --- G5: a D citation must name the subject file in `location` ----------------------
+
+
+def _d_response() -> bytes:
+    return json.dumps({"claims": [{
+        "payload": {"action": RETURN_ACCEPTED_PACKET, "target": "group-columbia",
+                    "stop_reason": "names the application",
+                    "relationships_considered": []},
+        "citations": None}]}).encode()
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "G5 (packet §7): `_same_file_evidence` looks the citation's evidence_ref up "
+    "by RAW key, and the model cites the keyed handle, so the lookup misses and "
+    "the check passes every citation -- fail-open. The correct behaviour is to "
+    "translate the handle and then refuse an item whose location is not the "
+    "subject ref."))
+def test_g5_site_d_refuses_a_keyed_citation_whose_item_is_not_the_subject_file():
+    case = _d_case(location="ocr")            # the item names a zone, not the file
+    response = json.loads(_d_response())
+    response["claims"][0]["citations"] = _cite(case, "Columbia University application")
+    verdict = judge(case, dossier_of(case), json.dumps(response).encode(),
+                    schema={"type": "object"},
+                    site_dependencies=site_dependencies_for(case))
+    assert [EVIDENCE_NOT_IN_FILE_RECORD] in [v["reasons"] for v in verdict.verdicts]
+
+
+def test_g5_measured_the_check_fires_only_on_a_raw_key_the_model_never_sees():
+    case = _d_case(location="ocr")
+    response = json.loads(_d_response())
+    response["claims"][0]["citations"] = [{
+        "evidence_ref": case.evidence[0].key,      # raw P4 key: not on the wire
+        "cited_span": "Columbia University application",
+        "why_it_supports": "states it"}]
+    verdict = judge(case, dossier_of(case), json.dumps(response).encode(),
+                    schema={"type": "object"},
+                    site_dependencies=site_dependencies_for(case))
+    assert [EVIDENCE_NOT_IN_FILE_RECORD] in [v["reasons"] for v in verdict.verdicts]
+    # And the keyed citation, which is all a model can write, sails through.
+    response["claims"][0]["citations"] = _cite(case, "Columbia University application")
+    open_verdict = judge(case, dossier_of(case), json.dumps(response).encode(),
+                         schema={"type": "object"},
+                         site_dependencies=site_dependencies_for(case))
+    assert open_verdict.worst_outcome == ACCEPT_DIRECT
+
+
+# --- G8: a D return must name a frozen NODE, not the group it returns to ------------
+
+
+def test_g8_site_d_return_target_must_be_a_frozen_node_so_a_group_id_is_refused():
+    """§7.7's two returns name 'a confirmed domain group' or 'an accepted graph or
+    purpose packet', but `_residual_site` validates their `target` with
+    `node_exists` and `approved_target_ids` like a destination. A group id is
+    DESTINATION_NOT_IN_FROZEN_TREE; the only target that validates is the branch
+    node built from the group (`00`:107). The draft says so; the packet asks
+    whether that is the intended reading."""
+    import dataclasses
+    case = dataclasses.replace(_d_case(), authorities={
+        "approved_target_ids": ("r-temp",), "frozen_nodes": ("r-temp",)})
+    response = json.loads(_d_response())
+    response["claims"][0]["citations"] = _cite(case, "Columbia University application")
+    verdict = judge(case, dossier_of(case), json.dumps(response).encode(),
+                    schema={"type": "object"},
+                    site_dependencies=site_dependencies_for(case))
+    assert verdict.worst_outcome == REJECT
+    assert ["DESTINATION_NOT_IN_FROZEN_TREE"] in [v["reasons"] for v in verdict.verdicts]
+
+
+# --- G6: site C demands numeric support and next_support from the model -----------
+
+
+def test_g6_site_c_without_the_two_numbers_is_weak_not_a_placement():
+    """`00`:114's two-condition rule is applied to numbers the MODEL writes into
+    the payload; 13.5 makes scores rank and shortlist, not veto. Pinned as a fact
+    so the packet's ratification question about these two keys rests on it."""
+    case = _c_case()
+    response = json.loads(_c_response(case))
+    del response["claims"][0]["payload"]["support"]
+    del response["claims"][0]["payload"]["next_support"]
+    verdict = judge(case, dossier_of(case), json.dumps(response).encode(),
+                    schema={"type": "object"},
+                    site_dependencies=site_dependencies_for(case))
+    assert verdict.worst_outcome == WEAK
+    assert [BELOW_SUPPORT_THRESHOLD] in [v["reasons"] for v in verdict.verdicts]
+    assert verdict.accepted is False and verdict.correct is True
+
+
+def test_g6_the_deployment_threshold_makes_integer_counts_pass_or_tie():
+    """With `cli.SUPPORT_POLICY` (0.5 threshold, 0.2 margin on a 1.0 scale), an
+    integer count of citing items passes whenever the runner-up has fewer and
+    ties whenever it has as many -- which is the tie the draft tells the model
+    to answer `none` on itself."""
+    case = _c_case()
+    tie = judge(case, dossier_of(case), _c_response(case, support=1, next_support=1),
+                schema={"type": "object"},
+                site_dependencies=site_dependencies_for(case))
+    assert tie.worst_outcome == WEAK
+    win = judge(case, dossier_of(case), _c_response(case, support=2, next_support=1),
+                schema={"type": "object"},
+                site_dependencies=site_dependencies_for(case))
+    assert win.worst_outcome == ACCEPT_DIRECT
+
+
+# --- G7: D's controlled set has a broad-parent action with no channel for depth ----
+
+
+def test_g7_site_d_broad_parent_and_residual_destination_are_one_disposition():
+    """§7.7's 'choose an approved broad parent branch' and 'choose one approved
+    residual destination' both validate as a `target` in `approved_target_ids`
+    and both land as RESIDUAL_DESTINATION; only the injected `residual_action_of`
+    can tell them apart. Pinned so the draft's `action` key is known to carry the
+    distinction the verdict drops."""
+    case = _d_case()
+    import dataclasses
+    case = dataclasses.replace(case, authorities={
+        "approved_target_ids": ("r-temp", "group-columbia"),
+        "frozen_nodes": ("r-temp", "group-columbia")})
+    response = json.dumps({"claims": [{
+        "payload": {"action": CHOOSE_BROAD_PARENT, "target": "r-temp",
+                    "stop_reason": "no trip group", "relationships_considered": []},
+        "citations": _cite(case, "Columbia University application")}]}).encode()
+    verdict = judge(case, dossier_of(case), response, schema={"type": "object"},
+                    site_dependencies=site_dependencies_for(case))
+    assert verdict.worst_outcome == ACCEPT_DIRECT
+    assert verdict.verdicts[0]["disposition"] == "residual_destination"

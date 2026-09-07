@@ -26,6 +26,9 @@ TASK3_TABLES: tuple[str, ...] = (
     "llm_refusal",
     "llm_pre_call_abstention",
     "llm_call_failure",
+    "llm_call_identity",
+    "llm_call_reuse",
+    "llm_call_usage",
 )
 
 LLM_DOSSIER_DDL = """
@@ -202,6 +205,127 @@ BEGIN SELECT RAISE(ABORT, 'a call failure is append-only, never overwritten'); E
 """
 
 
+#: `104` R-13 and `00`:44's cache. "Each extraction result is tied to the content
+#: hash and the exact process that produced it. The cache key includes content hash,
+#: extractor version, analysis tier, model identifier when relevant, and prompt
+#: fingerprint for model-derived results" -- and the sentence after it says what the
+#: key is FOR: it "makes model or prompt changes auditable".
+#:
+#: `dimensions` is the canonical JSON the digest was taken over, stored beside it.
+#: A digest nobody can read back is a cache nobody can audit: a person asking why a
+#: file was asked again gets an answer from this column and from no other row in the
+#: database.
+#:
+#: KEYED ON THE PAIR, so the table stays append-only like its siblings. One identity
+#: may reach a second dossier -- the schema widened, so a field the prior did not
+#: cover was asked -- and an UPDATE would be the overwrite every other table here
+#: refuses. The lookup takes the most recent row for an identity.
+LLM_CALL_IDENTITY_DDL = """
+CREATE TABLE IF NOT EXISTS llm_call_identity (
+    identity_id TEXT NOT NULL,
+    dossier_id  TEXT NOT NULL,
+    call_site   TEXT NOT NULL,
+    subject_ref TEXT NOT NULL,
+    dimensions  TEXT NOT NULL,
+    observed_at TEXT NOT NULL,
+    PRIMARY KEY (identity_id, dossier_id)
+);
+CREATE INDEX IF NOT EXISTS llm_call_identity_lookup
+    ON llm_call_identity (identity_id);
+CREATE INDEX IF NOT EXISTS llm_call_identity_subject
+    ON llm_call_identity (subject_ref);
+CREATE TRIGGER IF NOT EXISTS llm_call_identity_no_delete
+BEFORE DELETE ON llm_call_identity
+BEGIN SELECT RAISE(ABORT, 'a call identity is append-only, never removed'); END;
+CREATE TRIGGER IF NOT EXISTS llm_call_identity_never_overwritten
+BEFORE UPDATE ON llm_call_identity
+BEGIN SELECT RAISE(ABORT, 'a call identity is append-only, never overwritten'); END;
+"""
+
+#: One row per question NOT asked because it already had an answer. `00`:257's
+#: "mark the deferred stage" applied to spend rather than to budget: a run that
+#: quietly makes fewer calls than the last one is indistinguishable from a run that
+#: silently dropped files, and this is the difference written down.
+#:
+#: NOT an event, and that is a constraint rather than a choice. `database_agent.
+#: events` says registration "is a spec-level act (rule 4) ... There is no run-time
+#: registration call", and the one addition to that closed set on record was
+#: approved by the owner. So `model_call_reused` is a name the owner ratifies, and
+#: until then the provenance lives in this row.
+LLM_CALL_REUSE_DDL = """
+CREATE TABLE IF NOT EXISTS llm_call_reuse (
+    reuse_id         TEXT PRIMARY KEY,
+    identity_id      TEXT NOT NULL,
+    prior_dossier_id TEXT NOT NULL,
+    call_site        TEXT NOT NULL,
+    subject_ref      TEXT NOT NULL,
+    reused_fields    TEXT NOT NULL,
+    observed_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS llm_call_reuse_identity ON llm_call_reuse (identity_id);
+CREATE INDEX IF NOT EXISTS llm_call_reuse_prior
+    ON llm_call_reuse (prior_dossier_id);
+CREATE TRIGGER IF NOT EXISTS llm_call_reuse_no_delete
+BEFORE DELETE ON llm_call_reuse
+BEGIN SELECT RAISE(ABORT, 'a reuse record is append-only, never removed'); END;
+CREATE TRIGGER IF NOT EXISTS llm_call_reuse_never_overwritten
+BEFORE UPDATE ON llm_call_reuse
+BEGIN SELECT RAISE(ABORT, 'a reuse record is append-only, never overwritten'); END;
+"""
+
+
+#: `104` R-14. What the provider said one call cost, in the provider's own numbers.
+#: `00`:251 budgets "maximum model cost per scan" and `harness.run_call` settles
+#: every call against a constant, so the ledger has never held an observed number.
+#:
+#: `prompt_cache_hit_tokens` is why this table has the two columns nothing else in
+#: the product has: it is the number `104` R-58's frame-first prefix moves, and
+#: without it the effect is visible in a bench and nowhere a person or a later run
+#: can read it.
+#:
+#: `response_format` is here because `prompt_fingerprint` does not cover transport
+#: parameters, so this row is the only place that can say whether a call was made
+#: with JSON mode on. It comes out the day the fingerprint covers it.
+#:
+#: `reserved_cost` is the OTHER half of the pair and is the only NOT NULL column
+#: among the numbers: what the budget put aside before the call is always known,
+#: while what the provider reported may not be. The budget is unchanged -- its unit
+#: is calls, `cli.FACT_CALL_COST` is 1 against a 200-per-scan ceiling, and
+#: `settle_call` still settles one call as one -- and the pair is what makes the
+#: distance between the estimate and the truth readable per call and per scan
+#: without changing what the budget enforces. Re-denominating the ceiling in tokens
+#: is an owner question: `00`:259 names coverage throttling as the failure a wrong
+#: number causes.
+#:
+#: Every observed column is NULLABLE, and that is the audit's answer rather than a
+#: gap: a provider that reports no usage still made a call, and a row of nulls says
+#: "asked, and it told us nothing" where no row at all is indistinguishable from a
+#: call that never happened.
+LLM_CALL_USAGE_DDL = """
+CREATE TABLE IF NOT EXISTS llm_call_usage (
+    usage_id                 TEXT PRIMARY KEY,
+    dossier_id               TEXT NOT NULL,
+    release_id               TEXT NOT NULL,
+    model_id                 TEXT,
+    prompt_tokens            INTEGER,
+    completion_tokens        INTEGER,
+    prompt_cache_hit_tokens  INTEGER,
+    prompt_cache_miss_tokens INTEGER,
+    response_format          TEXT,
+    reserved_cost            TEXT NOT NULL,
+    observed_at              TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS llm_call_usage_dossier ON llm_call_usage (dossier_id);
+CREATE INDEX IF NOT EXISTS llm_call_usage_release ON llm_call_usage (release_id);
+CREATE TRIGGER IF NOT EXISTS llm_call_usage_no_delete
+BEFORE DELETE ON llm_call_usage
+BEGIN SELECT RAISE(ABORT, 'a usage record is append-only, never removed'); END;
+CREATE TRIGGER IF NOT EXISTS llm_call_usage_never_overwritten
+BEFORE UPDATE ON llm_call_usage
+BEGIN SELECT RAISE(ABORT, 'a usage record is append-only, never overwritten'); END;
+"""
+
+
 def create_llm_schema(conn: sqlite3.Connection) -> None:
     """Create P8's Task 3 tables. Idempotent. P1's `create_schema` runs first."""
     conn.executescript(LLM_DOSSIER_DDL)
@@ -212,3 +336,6 @@ def create_llm_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(LLM_REFUSAL_DDL)
     conn.executescript(LLM_PRE_CALL_ABSTENTION_DDL)
     conn.executescript(LLM_CALL_FAILURE_DDL)
+    conn.executescript(LLM_CALL_IDENTITY_DDL)
+    conn.executescript(LLM_CALL_REUSE_DDL)
+    conn.executescript(LLM_CALL_USAGE_DDL)

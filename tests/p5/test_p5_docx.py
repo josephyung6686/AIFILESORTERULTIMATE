@@ -107,14 +107,34 @@ def test_heading_level_is_the_container_paths_depth(sink):
 
 
 def test_every_cell_and_paragraph_has_its_own_addressable_unit(sink):
-    # P4 conformance rule 10.
+    """P4 conformance rule 10: a cell and a paragraph are each addressable.
+
+    The empty path used to be asserted EMPTY here, and that assertion was `104`
+    SF-1 written down as a requirement. §2.4 gives `container_path: ()` one
+    meaning -- "the whole file" -- and the whole body of a Word document is exactly
+    that; refusing to store it there did not keep the body local, it kept P7 from
+    being able to tell that the body WAS the whole of anything, which is what
+    `items.is_whole_document` measures and what let the entire prose of every
+    `.docx` leave the device as an "excerpt". The unit at `()` is now asserted
+    PRESENT and asserted to be the whole body, and `tests/p7/test_p7_whole_
+    document.py` is where the consequence is checked.
+
+    The per-cell and per-paragraph units below are unchanged: the whole-file unit
+    stands beside them, it does not replace them.
+    """
     run_id = sink.write(run_it())
     paths = {locator_for({"zone": "x", "container_path": u["container_path"],
                           "text_span": None, "time_span": None})
              for u in sink.units_for(run_id)}
     assert "x:table=3/row=2/column=1" in paths
     assert "x:heading=1/heading=1/paragraph=3" in paths
-    assert not [u for u in sink.units_for(run_id) if u["container_path"] == ()]
+
+    whole_file = [u for u in sink.units_for(run_id) if u["container_path"] == ()]
+    body = [o for o in sink.observations
+            if o["location"]["zone"] == "body"
+            and o["location"]["container_path"] == ()]
+    assert len(whole_file) == 1, sink.units_for(run_id)
+    assert whole_file[0]["text"] == body[0]["raw_value"]
 
 
 def test_a_body_paragraph_is_not_a_located_value(sink):

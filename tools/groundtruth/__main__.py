@@ -27,6 +27,9 @@ from tools.groundtruth.discrimination import (                      # noqa: E402
     report as discrimination_report,
 )
 from tools.groundtruth.measure import observe_run                   # noqa: E402
+from tools.groundtruth.payload import (                             # noqa: E402
+    inspect_database as payload_inspect, render as payload_render,
+)
 from tools.groundtruth.report import (                              # noqa: E402
     breach_detail, per_file_table, scorecard,
 )
@@ -79,6 +82,14 @@ def main(argv: list[str] | None = None) -> int:
                         help="score only this situation; repeatable")
     parser.add_argument("--score-only", action="store_true",
                         help="re-score the databases already in --out")
+    parser.add_argument(
+        "--payload", action="store_true",
+        help="also report what the model would be SENT: the largest dossier in "
+             "bytes and measured tokens, how many are over the stored ceiling, a "
+             "whole-document canary scan, and a `blocked` line counting gate "
+             "refusals BY REASON beside route withholding (`104` §7, R-46). It "
+             "invokes no model and opens no socket; it works on a copy of each "
+             "database, because releasing writes.")
     parser.add_argument(
         "--enable-cloud", action="store_true",
         help="let the runs send files to the cloud model, and SPEND THE "
@@ -150,6 +161,22 @@ def main(argv: list[str] | None = None) -> int:
     card = "\n\n".join((card,
                          protected_evidence_report(runs, labels),
                          discrimination_report(runs, labels)))
+    # `104` §7 "Instruments": the scoreboard stays the scoreboard, and payload
+    # inspection is appended to it. OFF by default and asked for by name, for the
+    # reason `--enable-cloud` is: it rebuilds every file's dossier through the real
+    # gate, which is a second pass over the corpus's evidence, and it writes -- to a
+    # COPY of each database, never to the run's own, because `Gate.release` appends
+    # an audit record and mints a release before it returns.
+    if args.payload:
+        blocks = []
+        for situation in situations:
+            database = args.out / f"{situation.replace('.', '_')}.sqlite"
+            if not database.exists():
+                continue
+            blocks.append(f"[{situation}]\n" + payload_render(payload_inspect(
+                database, args.corpus, situation=situation)))
+        if blocks:
+            card = "\n\n".join((card, *blocks))
     print()
     print(card)
 
