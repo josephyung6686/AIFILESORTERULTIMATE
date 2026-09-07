@@ -2304,3 +2304,114 @@ def test_a_programming_error_at_site_c_still_surfaces(skeleton, monkeypatch):
     monkeypatch.setattr(pipeline, "call_placement", _bug)
     with pytest.raises(AttributeError):
         _place(skeleton, inputs=_model_inputs(skeleton))
+
+
+# --- `104` R-136: a file with nothing to send does not end the run --------------
+
+def test_a_file_with_no_settled_fact_abstains_instead_of_ending_the_run(
+        skeleton, monkeypatch):
+    """The r4 crash, as one file.
+
+    Site C's evidence is `cli.evidence_for` -- the file's settled `file_facts` --
+    so a file with none has no `evidence_items`. That state raised
+    `ModelJudgementUnavailable`, which is not in `REFUSAL_EXCEPTIONS`, so
+    `_judged_or_refused` did not catch it and the corpus run died at that file:
+    measured on the C-live run r4, 67.5 minutes, 50 placements, 0 site-C
+    dossiers, on a corpus whose `subject` was right on 2 files and missing on 19.
+    Most coursework files are that file.
+
+    The model is not asked, the decision comes back, and the run goes on.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail(
+                            "a file with nothing to send is not asked"))
+    decision = _place(skeleton, inputs=_model_inputs(skeleton),
+                      evidence=_evidence(**AMBIGUOUS, facts=(), evidence_items=()))
+
+    assert decision is not None
+
+
+def test_the_file_that_is_not_asked_records_why_in_p8s_own_row(skeleton,
+                                                               monkeypatch):
+    """A pre-call abstention, in the table site A's exhausted budget writes to.
+
+    The reason is P8's own word and no new one is minted:
+    `NOT_ELIGIBLE_FOR_MODEL` is what `eligibility.not_reserved_for_llm` returns
+    for a subject the model is not reserved for, and a file with nothing to send
+    is exactly that. §6.10's abstention reasons are untouched -- none of them
+    means "the call did not happen", which is what `_require_verdict` says in its
+    own words.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail("not asked"))
+    _place(skeleton, inputs=_model_inputs(skeleton),
+           evidence=_evidence(**AMBIGUOUS, facts=(), evidence_items=()))
+
+    # P8's vocabulary, from P8. `placement.vocabulary` is §6.10's closed set and
+    # this word is deliberately not a member of it.
+    from llm_harness.vocabulary import C_PLACEMENT, NOT_ELIGIBLE_FOR_MODEL
+
+    rows = [dict(row) for row in skeleton.execute(
+        "SELECT reason, call_site, subject_ref, dossier_id "
+        "FROM llm_pre_call_abstention")]
+    assert len(rows) == 1
+    assert rows[0]["reason"] == NOT_ELIGIBLE_FOR_MODEL
+    assert rows[0]["call_site"] == C_PLACEMENT
+    # Addressed the way every pre-call row is, so one query finds it beside site
+    # A's. `pre_call_address` is P8's, not spelled again here.
+    assert rows[0]["dossier_id"].startswith("pre-call:")
+
+
+def test_the_file_that_is_not_asked_reserves_no_budget(skeleton, monkeypatch):
+    """The abstention is decided BEFORE `reserve_call`, so the slot stays.
+
+    `104` R-131's merge gave the observe and placement sites a ledger of their
+    own; this is the other half of not wasting it. A call that cannot be built
+    must not charge the run for the attempt, or a corpus of files with no settled
+    fact would spend the placement budget on questions nobody could ask.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail("not asked"))
+    _place(skeleton, inputs=_model_inputs(skeleton),
+           evidence=_evidence(**AMBIGUOUS, facts=(), evidence_items=()))
+
+    reserved = list(skeleton.execute("SELECT * FROM llm_budget_reservation"))
+    assert reserved == []
+
+
+def test_the_next_file_is_still_judged_after_one_is_not_asked(skeleton,
+                                                              monkeypatch):
+    """The corpus loop's own property, which is what r4 lost.
+
+    Three files in the order the run reads them: the first is judged, the middle
+    one has no settled fact, and the third is judged. Before this, the middle one
+    ended the run and the third was never reached at all -- the run died after 50
+    placements rather than reporting on them.
+    """
+    import placement.pipeline as pipeline
+
+    asked: list[str] = []
+
+    def judge(*_args, **kwargs):
+        asked.append("call")
+        return _verdict()
+
+    monkeypatch.setattr(pipeline, "call_placement", judge)
+    inputs = _model_inputs(skeleton)
+
+    first = _place(skeleton, inputs=inputs, evidence=_evidence(**AMBIGUOUS))
+    middle = _place(skeleton, inputs=inputs,
+                    evidence=_evidence(**AMBIGUOUS, facts=(),
+                                       evidence_items=()))
+    third = _place(skeleton, inputs=inputs, evidence=_evidence(**AMBIGUOUS))
+
+    assert first is not None and middle is not None and third is not None
+    # Two calls, not three: the middle file was not asked, and not asking it did
+    # not stop the third being asked.
+    assert len(asked) == 2

@@ -466,6 +466,50 @@ def record_pre_call_abstention(conn: sqlite3.Connection, abstention: PreCallAbst
     return abstention_id
 
 
+def record_unbuilt_call_abstention(conn: sqlite3.Connection,
+                                   abstention: PreCallAbstention, *,
+                                   observed_at: str) -> str:
+    """The same row, for a call whose REQUEST could never be built (`104` R-136).
+
+    **Why the sibling above cannot serve.** It takes a `GroundingReport`, and
+    every report is derived from a `DossierRequest`
+    (`validation.report_for_pre_call_terminal`). A `DossierRequest` refuses an
+    empty `evidence_items` in its own `__post_init__`, so for the one subject this
+    function exists for there is no request to derive a report from -- and
+    building a stand-in would put a zero-count report on disk describing a dossier
+    that never existed.
+
+    **What it records is what there is.** The address is `pre_call_address`, the
+    same shape every pre-call row carries, so one query over
+    `llm_pre_call_abstention` finds this beside site A's exhausted-budget rows.
+    What it does NOT write is the grounding report and the `call_refused` event:
+    nothing was ever grounded, and nothing refused a call that was never built.
+    The row and its reason are the whole record.
+
+    `104` R-136 is what this is for. Site C's evidence is the file's settled
+    facts, and a file with none had no `evidence_items`, so P11 raised
+    `ModelJudgementUnavailable` -- which is outside `REFUSAL_EXCEPTIONS`, so
+    nothing caught it and the corpus run died at that file. Measured on the C-live
+    run r4: 67.5 minutes, 50 placements, 0 site-C dossiers, on a corpus where
+    `subject` was right on 2 files and missing on 19.
+    """
+    abstention_id = _new_id()
+    with transaction(conn):
+        conn.execute(
+            "INSERT INTO llm_pre_call_abstention ("
+            "abstention_id, dossier_id, reason, call_site, subject_ref, payload, "
+            "observed_at"
+            ") VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                abstention_id,
+                pre_call_address(abstention.call_site, abstention.subject_ref),
+                abstention.reason, abstention.call_site, abstention.subject_ref,
+                _payload(abstention), observed_at,
+            ),
+        )
+    return abstention_id
+
+
 def record_call_refusal(conn: sqlite3.Connection, refused: CallRefused, *,
                         observed_at: str) -> int:
     """`104` R-O's durable half: one `call_refused` event, and no table of its own.
