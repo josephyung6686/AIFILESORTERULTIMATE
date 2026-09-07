@@ -35,6 +35,7 @@ from facts.values import VALUE_ORIGINS, ensure_value
 from llm_harness.authorship import COMPONENT_VERSION
 from llm_harness.fact_validation import (
     FactValidationDependencies,
+    judgement_version,
     p6_verdict_from_p8,
     proposal_state_from_p8,
     validate_fact_proposal,
@@ -521,7 +522,11 @@ def test_passing_proposal_writes_llm_supported_via_apply_verdict(
     assert result.requires_review is False
     assert result.reasons == ()
     assert result.scope == "file"
-    assert result.validator_version == COMPONENT_VERSION
+    # `104` R-127: the harness's own component version is still the head of the
+    # string, and what follows it is the digest of the code and the normalisers
+    # that reached this conclusion -- which is what the reuse decision compares.
+    assert result.validator_version.startswith(COMPONENT_VERSION)
+    assert result.validator_version == judgement_version(_deps())
     assert result.plan_version is None
     assert result is not llm_seam.Verdict
     assert type(result) is P8Verdict

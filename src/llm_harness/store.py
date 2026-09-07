@@ -7,6 +7,7 @@ The writer→event matrix is closed. `model_call_issued` is Task 5 transport.
 from __future__ import annotations
 
 import hashlib
+import json
 import sqlite3
 import uuid
 from collections.abc import Mapping
@@ -24,6 +25,7 @@ from llm_harness.authorship import (
     VERDICT_SUPERSEDED,
     event_defaults,
 )
+from llm_harness.dossier import dossier_from_stored_body
 from llm_harness.records import (
     CallRefused,
     GroundingReport,
@@ -209,6 +211,81 @@ def last_response_bytes(conn: sqlite3.Connection, dossier_id: str) -> bytes | No
     return None if row is None else bytes(row["response_bytes"])
 
 
+def last_response(conn: sqlite3.Connection, dossier_id: str) -> sqlite3.Row | None:
+    """The most recent stored response for one dossier, with its provenance.
+
+    `104` R-127's re-validation reads this and not `last_response_bytes`, because
+    re-judging stored bytes has to say WHOSE answer it re-judged: `model_id` and
+    `prompt_fingerprint` address the events the new verdict appends, `release_id`
+    is the capability the dossier row does not carry (`record_dossier` says why),
+    and `release_audit_id` is the join back to P7's ledger. Inventing any of the
+    four for a replay would put provenance on a record that nobody supplied.
+
+    Latest by `observed_at` then `rowid`, the same order `stage_output` replays in
+    and for its reason: `response_id` is a uuid4, so under the fixed clock every
+    test and every replay runs on, "the latest response" was decided by random hex.
+    """
+    return conn.execute(
+        "SELECT response_id, response_bytes, model_id, prompt_fingerprint, "
+        "release_audit_id, release_id FROM llm_response WHERE dossier_id = ? "
+        "ORDER BY observed_at DESC, rowid DESC LIMIT 1",
+        (dossier_id,),
+    ).fetchone()
+
+
+def standing_verdicts(conn: sqlite3.Connection, dossier_id: str) -> list[sqlite3.Row]:
+    """Every verdict on this dossier that has not been superseded, oldest first.
+
+    `answered_fields` reduces the same rows to the set of fields it needs; this is
+    the rows themselves, because `104` R-127's caller has to read the
+    `validator_version` each one was written under and then name each one it
+    supersedes. Two readers over one table rather than one reader plus a copy of
+    the answer somewhere else -- `answered_fields` gives that rule its own
+    paragraph.
+    """
+    return list(conn.execute(
+        "SELECT verdict_id, claim_ref, outcome, validator_version FROM llm_verdict "
+        "WHERE dossier_id = ? AND superseded_by IS NULL ORDER BY rowid",
+        (dossier_id,),
+    ))
+
+
+def load_dossier(conn: sqlite3.Connection, dossier_id: str, *,
+                 release_id: str) -> object | None:
+    """The stored `Dossier` for one id, rebuilt and checked. `None` when absent.
+
+    The rebuild itself belongs to `dossier.dossier_from_stored_body`, because
+    `test_p8_dossier` allows one dossier writer and is right to: a record put back
+    together differently would re-derive different model-visible bytes and so a
+    different content address. This reads the row, hands over the body, and checks
+    what comes back against what was stored.
+
+    **The round trip is checked and not assumed**, key by key over what the ROW
+    holds. A field the row carries and the rebuilt record does not match is a
+    rebuild that dropped or mistyped something, and refusing is right: a dossier
+    short of a field would be judged against evidence the model was not shown. A
+    field the RECORD has and the row does not is the defaulted case -- an old
+    `folder_levels`-less row -- and comparing whole encodings would turn that into
+    the same refusal, which would make an old database unreadable to say that a
+    new field is absent from it.
+    """
+    row = conn.execute(
+        "SELECT payload FROM llm_dossier WHERE dossier_id = ?", (dossier_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    body = json.loads(row["payload"])
+    dossier = dossier_from_stored_body(body, release_id=release_id)
+    rebuilt = _jsonable(dossier)
+    if any(rebuilt.get(name) != value for name, value in body.items()):
+        raise MalformedRecord(
+            f"dossier {dossier_id} does not survive the round trip out of its own "
+            "row; a record rebuilt with a field dropped would be judged against "
+            "evidence the model was not shown"
+        )
+    return dossier
+
+
 def record_verdict(conn: sqlite3.Connection, verdict: P8Verdict, *,
                    model_id: str, prompt_fingerprint: str, release_audit_id: int,
                    observed_at: str) -> str:
@@ -242,12 +319,16 @@ def record_verdict(conn: sqlite3.Connection, verdict: P8Verdict, *,
         elif stored["payload"] != payload:
             # Same dossier, same response, same claim, a different conclusion --
             # only reachable if the validator or an injected authority changed.
-            # That is a supersession (SS 8.2), and `supersede_verdict` has no
-            # production caller yet; it is not an overwrite, and never silently.
+            # That is a supersession (SS 8.2), which `model_facts` now performs
+            # under `104` R-127: it records the re-judgement at its OWN address
+            # and links the two, so the second conclusion never arrives here
+            # wearing the first one's id. Reaching this branch means a caller
+            # tried to change a conclusion in place, which is an overwrite
+            # whatever it is called.
             raise MalformedRecord(
                 f"verdict {verdict.verdict_id} is already recorded with a "
-                "different conclusion; a re-judgement supersedes, and P8 has no "
-                "caller for that yet"
+                "different conclusion; a re-judgement is recorded at its own "
+                "address and superseded, never written over this one"
             )
         _append(
             conn,

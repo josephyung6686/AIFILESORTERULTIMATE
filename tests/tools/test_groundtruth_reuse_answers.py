@@ -34,6 +34,7 @@ import pytest
 from tools.groundtruth import reuse as reuse_module
 from tools.groundtruth.reuse import (
     ReuseRefused, prior_database, refuse_unless_seedable, seed, spend,
+    wire_handle_key_file,
 )
 from tools.groundtruth.run import run_situations
 
@@ -165,6 +166,12 @@ def prior(tmp_path) -> Path:
     """
     directory = tmp_path / "prior"
     directory.mkdir()
+    # Every real out directory has one: `cli.wire_handle_key_for` mints it the
+    # first time anything opens a database beside it, and `104` R-127 makes the
+    # seeder carry it forward, because the answers here name their evidence
+    # through handles keyed by it. These fixtures build their databases by hand
+    # and so would leave the directory in a state no run can produce.
+    wire_handle_key_file(directory).write_bytes(bytes(range(32)))
     conn = _scanned(prior_database(directory, SITUATION))
     try:
         ids = {pathlib.Path(row["current_path"]).relative_to(CORPUS).as_posix():
