@@ -45,7 +45,9 @@ from evidence_shape.canonical import canonical_json
 from privacy.authorship import SUBSYSTEM
 from privacy.classification import UNREADABLE_UNCLASSIFIED, ClassificationRecord
 from privacy.schema import CLASSIFICATIONS_TABLE
-from privacy.vocabulary import REJECTED, RELIABILITY_STATES
+from privacy.vocabulary import (
+    PRIVACY_CLASS_ORDINARY, PRIVACY_CLASS_PENDING, REJECTED, RELIABILITY_STATES,
+)
 
 #: §3.13, in the design's own listed order, strongest first: Task 2's re-exported
 #: tuple with the unranked state removed, IN PLACE. Derived rather than retyped --
@@ -59,7 +61,7 @@ RELIABILITY_ORDER: tuple[str, ...] = tuple(
 
 _COLUMNS = (
     "fact_id", "file_id", "content_hash", "handling_class", "protected", "basis",
-    "evidence_refs", "reliability_state", "observed_at",
+    "evidence_refs", "reliability_state", "observed_at", "privacy_class",
 )
 
 
@@ -111,6 +113,15 @@ def _row_to_record(row: sqlite3.Row) -> ClassificationRecord:
         evidence_refs=tuple(json.loads(row["evidence_refs"])),
         reliability_state=row["reliability_state"],
         observed_at=row["observed_at"],
+        # A row written before the column existed reads `ordinary` and never
+        # `pending`. `105` §14.3 defines `pending` against the ROW's existence --
+        # "one the detector failed to recognise" -- and this row exists, so
+        # something did assess these bytes. Answering `pending` would say nothing
+        # had looked at a file that had been looked at, which is `96` §19's untruth
+        # in a third column. `ordinary` is also what the field defaults to, so a
+        # migrated row and a freshly written one agree.
+        privacy_class=(row["privacy_class"] if row["privacy_class"] is not None
+                       else PRIVACY_CLASS_ORDINARY),
     )
 
 
@@ -131,6 +142,17 @@ class ClassificationStore:
                 f"{UNREADABLE_UNCLASSIFIED!r} is a gate outcome, not a file fact "
                 "(D2): the absence of a record already says nothing has looked"
             )
+        # The same refusal one column along. `ClassificationRecord` already refuses
+        # to be CONSTRUCTED with it, so this is unreachable through the published
+        # type; it is kept for the reason the line above it is kept -- the store is
+        # where this project's one rule about these two values is enforced, and a
+        # second door into this table would otherwise pass no check at all.
+        if record.privacy_class == PRIVACY_CLASS_PENDING:
+            raise GateOutcomeNotAFileFact(
+                f"{PRIVACY_CLASS_PENDING!r} is the reading of NO RECORD (`105` "
+                "§14.3), not a value a record carries: a stored row saying it would "
+                "claim as a fact what the absence of a row already says"
+            )
         fact_id = str(uuid.uuid4())
         self._conn.execute(
             f"INSERT INTO {CLASSIFICATIONS_TABLE} ({','.join(_COLUMNS)}) "
@@ -138,7 +160,7 @@ class ClassificationStore:
             (fact_id, record.file_id, record.content_hash, record.handling_class,
              int(record.protected), record.basis,
              canonical_json(list(record.evidence_refs)), record.reliability_state,
-             record.observed_at),
+             record.observed_at, record.privacy_class),
         )
         return fact_id
 
@@ -194,6 +216,12 @@ def mirror_state(record: ClassificationRecord) -> dict:
     absent because it is not one of SPEC §2's eight fields -- a reader needing the
     classification's provenance reads the record, not the column.
     """
+    if record.privacy_class == PRIVACY_CLASS_PENDING:
+        raise GateOutcomeNotAFileFact(
+            f"{PRIVACY_CLASS_PENDING!r} never reaches files.sensitivity_state "
+            "(`105` §14.3): it is the reading of no record, and the projection of a "
+            "record cannot say that no record exists"
+        )
     if record.handling_class == UNREADABLE_UNCLASSIFIED:
         raise GateOutcomeNotAFileFact(
             f"{UNREADABLE_UNCLASSIFIED!r} never reaches files.sensitivity_state "
@@ -208,6 +236,7 @@ def mirror_state(record: ClassificationRecord) -> dict:
         "content_hash": record.content_hash,
         "evidence_refs": list(record.evidence_refs),
         "observed_at": record.observed_at,
+        "privacy_class": record.privacy_class,
     }
 
 

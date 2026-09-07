@@ -45,6 +45,13 @@ CREATE TABLE IF NOT EXISTS {CLASSIFICATIONS_TABLE} (
     evidence_refs     TEXT NOT NULL,
     reliability_state TEXT NOT NULL,
     observed_at       TEXT NOT NULL,
+    -- `105` §14.3's privacy class. NULLABLE, and the NULL is not a compromise:
+    -- SQLite cannot add a NOT NULL column to an existing table without a default,
+    -- and a row written before this column exists reads `ordinary` -- see
+    -- `classification_store._row_to_record`. That is the accurate answer rather
+    -- than the convenient one: `pending` is the reading of NO ROW (§14.3), and
+    -- this row exists.
+    privacy_class     TEXT,
     supersedes        TEXT,
     superseded_by     TEXT,
     supersede_reason  TEXT
@@ -58,11 +65,13 @@ CREATE INDEX IF NOT EXISTS classifications_file
 CREATE TRIGGER IF NOT EXISTS classifications_no_delete
 BEFORE DELETE ON {CLASSIFICATIONS_TABLE}
 BEGIN SELECT RAISE(ABORT, 'a classification is superseded, never removed (§8.2, §8.7)'); END;
--- Over the eight SPEC §2 fields. The three supersede columns are outside it:
--- supersession is the one legal write to an existing row.
+-- Over the eight SPEC §2 fields and §14.3's ninth. The three supersede columns are
+-- outside it: supersession is the one legal write to an existing row. `privacy_class`
+-- is INSIDE it, because a class that could be edited in place would let a protected
+-- file become ordinary with no superseding row to show for it.
 CREATE TRIGGER IF NOT EXISTS classifications_never_overwritten
 BEFORE UPDATE OF fact_id, file_id, content_hash, handling_class, protected, basis,
-                 evidence_refs, reliability_state, observed_at
+                 evidence_refs, reliability_state, observed_at, privacy_class
     ON {CLASSIFICATIONS_TABLE}
 BEGIN SELECT RAISE(ABORT, 'a classification is superseded, never overwritten (§8.2)'); END;
 """
@@ -125,9 +134,18 @@ BEGIN SELECT RAISE(ABORT, 'a policy is superseded, never overwritten (§8.2, §8
 #: before the term existed is refused with `BindingMismatch` rather than spent
 #: unbound. A default would have been the hole -- every old release would then match
 #: whatever produced that default.
+#: `privacy_class` arrives nullable for the reason the DDL comment gives, and unlike
+#: `content_digest` the NULL here is READ rather than left to fail closed:
+#: `_row_to_record` resolves it to `ordinary`. The difference is what the absence
+#: MEANS. A release minted before `content_digest` existed was never bound to
+#: content, so nothing can vouch for it; a classification written before
+#: `privacy_class` existed was still an assessment of the file, and §14.3 defines
+#: `pending` against the row's EXISTENCE rather than against the column's. Calling
+#: an old row pending would say nothing had looked at bytes that had been looked at.
 PRIVACY_ADDED_COLUMNS: tuple[tuple[str, str, str], ...] = (
     (POLICIES_TABLE, "suspended_item_kinds", "TEXT"),
     ("release_ledger", "content_digest", "TEXT"),
+    (CLASSIFICATIONS_TABLE, "privacy_class", "TEXT"),
 )
 
 

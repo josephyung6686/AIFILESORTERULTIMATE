@@ -37,6 +37,7 @@ the hole by running the suite rather than by trusting a docstring.
 from __future__ import annotations
 
 import hashlib
+import json
 import tempfile
 from dataclasses import replace
 from pathlib import Path
@@ -55,7 +56,7 @@ from evidence_shape.store import new_id, record_observation, record_run
 from extractors.schema import create_extraction_schema
 
 from privacy.classification import (
-    CLASSIFICATION_FIELDS, ClassificationRecord, UNREADABLE_UNCLASSIFIED,
+    ClassificationRecord, UnbackedClassification, UNREADABLE_UNCLASSIFIED,
     derivative_privacy_class, privacy_class_for, privacy_class_of, resolve_class,
 )
 from privacy.classification_store import ClassificationStore
@@ -65,7 +66,9 @@ from privacy.gate import Gate
 from privacy.items import Excerpt
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.release import Denied, ModelCallRequest, ModelTarget, Released, Target
-from privacy.schema import create_privacy_schema
+from privacy.schema import (
+    CLASSIFICATIONS_TABLE, PRIVACY_ADDED_COLUMNS, create_privacy_schema,
+)
 from privacy.vocabulary import (
     ALWAYS_LOCAL_KINDS, ALWAYS_LOCAL_ZONES, OutOfVocabulary,
     PRIVACY_CLASS_ALWAYS_LOCAL, PRIVACY_CLASS_ORDINARY, PRIVACY_CLASS_PENDING,
@@ -181,7 +184,7 @@ def test_the_guard_against_a_misspelling_is_at_the_writer_and_not_here():
 # Clause 2: precedence, applied to the content and not to the format
 # ================================================================================
 
-def test_a_screenshot_of_a_bank_statement_is_protected(): 
+def test_a_screenshot_of_a_bank_statement_is_protected():
     """The owner's own first example, verbatim from §14.3: "A screenshot of a bank
     statement is protected although account screenshots are always-local."
 
@@ -276,23 +279,152 @@ def test_pending_and_ordinary_are_distinguished_on_the_record(p7_conn):
     assert resolve_class(record) != UNREADABLE_UNCLASSIFIED
 
 
-def test_the_class_is_read_off_the_flag_and_never_off_the_handling_class():
-    """SPEC §2: "Neighbouring parts should consume the `protected` flag, not infer it
-    from the class", and Open question 1 -- whether `protected` is exactly the top two
-    handling classes -- is unsettled and is NOT settled by §14.3.
+def test_the_privacy_class_and_the_protected_flag_are_different_sets():
+    """The owner's ruling of 7 Sep 2026, and it is the half a later reader will get
+    wrong: `ClassificationRecord.protected` and the `protected` privacy CLASS are two
+    questions, not one asked twice.
 
-    Two records with the same handling class and different flags must land in
-    different privacy classes, which is only true if the flag is what is read.
+    The flag is §8.4's. It keeps §8.4's consent path exactly as it is -- a granted
+    local scope still releases a flagged file -- because that sentence is the
+    design's and the owner did not amend it. The class is §13.3's and is about the
+    document's recognised KIND, and a protected kind is shown to no model at all.
+
+    Both directions are run, because a test of one would be satisfied by the class
+    simply being the flag under another name.
     """
     fields = dict(
         file_id="f1", content_hash="h1",
         handling_class="highly_sensitive_credential_bearing", basis="detector",
         evidence_refs=(_A_KEY,), reliability_state="direct",
         observed_at=OBSERVED_AT)
-    assert privacy_class_of(ClassificationRecord(protected=True, **fields)) == (
-        PRIVACY_CLASS_PROTECTED)
-    assert privacy_class_of(ClassificationRecord(protected=False, **fields)) == (
-        PRIVACY_CLASS_ORDINARY)
+
+    # On the list, without the flag: a receipt-shaped file the detector recognised
+    # as a password vault but that nothing entered into §8.4's protected state.
+    on_list = ClassificationRecord(
+        protected=False, privacy_class=PRIVACY_CLASS_PROTECTED, **fields)
+    assert privacy_class_of(on_list) == PRIVACY_CLASS_PROTECTED
+    assert on_list.protected is False
+
+    # Flagged, and on neither list: §8.4's own protected state, which the ruling
+    # leaves untouched.
+    flagged = ClassificationRecord(
+        protected=True, privacy_class=PRIVACY_CLASS_ORDINARY, **fields)
+    assert privacy_class_of(flagged) == PRIVACY_CLASS_ORDINARY
+    assert flagged.protected is True
+
+
+def test_the_class_is_read_off_its_own_field_and_never_off_the_handling_class():
+    """SPEC §2: "Neighbouring parts should consume the `protected` flag, not infer it
+    from the class", and Open question 1 -- whether `protected` is exactly the top two
+    handling classes -- is unsettled and is NOT settled by §14.3.
+
+    Two records with the same handling class and different privacy classes must land
+    in different places, which is only true if the field is what is read.
+    """
+    fields = dict(
+        file_id="f1", content_hash="h1", handling_class="public_low",
+        protected=False, basis="detector", evidence_refs=(_A_KEY,),
+        reliability_state="direct", observed_at=OBSERVED_AT)
+    for privacy_class in (PRIVACY_CLASS_PROTECTED, PRIVACY_CLASS_ALWAYS_LOCAL,
+                          PRIVACY_CLASS_ORDINARY):
+        assert privacy_class_of(
+            ClassificationRecord(privacy_class=privacy_class, **fields)
+        ) == privacy_class
+
+
+def test_the_default_is_ordinary_and_this_is_the_condition_that_retires_it():
+    """The ninth field has a default and the other eight do not. This pins it and
+    names the day it becomes wrong.
+
+    A silent downgrade is a class the file HAD being replaced by a weaker one.
+    Nothing in this product recognises a §13.3 document kind: `facts.domains.
+    SCHEMA_IDS` is twenty-three DOMAINS -- academic, finance, medical -- and holds no
+    kind like `receipt` or `boarding_pass_or_ticket`. So a record written today has
+    no restricted kind to be downgraded from, and `ordinary` is §13.3's own reading:
+    "A kind on neither list is ordinary."
+
+    THE DAY A KIND RECOGNIZER SHIPS, THE DEFAULT MUST GO -- it would then be a real
+    class replaced by a weaker one. The second assertion is what will go red: it
+    fails the moment any of the ten restricted kinds becomes something the product
+    recognises, which is the signal to make the field required.
+    """
+    from facts.domains import SCHEMA_IDS
+
+    record = ClassificationRecord(
+        file_id="f1", content_hash="h1", handling_class="public_low",
+        protected=False, basis="detector", evidence_refs=(_A_KEY,),
+        reliability_state="direct", observed_at=OBSERVED_AT)
+    assert record.privacy_class == PRIVACY_CLASS_ORDINARY
+
+    assert not set(RESTRICTED_KINDS) & set(SCHEMA_IDS), (
+        "a §13.3 restricted kind is now something the product recognises, so the "
+        "`ordinary` default on ClassificationRecord.privacy_class is a real class "
+        "being replaced by a weaker one. Make the field required and delete this "
+        "test rather than editing it")
+
+
+def test_pending_is_never_stored_on_either_side_of_the_projection(p7_conn):
+    """`pending` is the reading of NO RECORD (§14.3), so a record cannot carry it.
+
+    Refused three times over, which is deliberate rather than redundant: the type
+    refuses construction, and the store refuses both the row and the projection,
+    because a second door into that table would otherwise pass no check at all. It
+    is D2's argument for `unreadable_unclassified`, one column along -- a stored row
+    saying it would claim as a fact exactly what the absence of a row already says,
+    and the two could then disagree.
+    """
+    with pytest.raises(UnbackedClassification) as raised:
+        ClassificationRecord(
+            file_id="f1", content_hash="h1", handling_class="public_low",
+            protected=False, basis="detector", evidence_refs=(_A_KEY,),
+            reliability_state="direct", observed_at=OBSERVED_AT,
+            privacy_class=PRIVACY_CLASS_PENDING)
+    assert PRIVACY_CLASS_PENDING in str(raised.value)
+
+
+def test_a_row_written_before_the_column_reads_ordinary_and_never_pending(p7_conn):
+    """The migration, and the direction is the one the ruling forces.
+
+    A row that predates the column has `privacy_class IS NULL`. It reads `ordinary`,
+    because §14.3 defines `pending` against the ROW's existence -- "one the detector
+    failed to recognise" -- and this row exists, so something did assess these bytes.
+    Answering `pending` would tell the owner nothing had looked at a file that had
+    been looked at, which is `96` §19's untruth in a third column.
+
+    It also keeps the gate's `pending == unclassified` assertion true: a migrated row
+    that read `pending` would be a classified file the gate called unclassified.
+    """
+    # The row an OLD WRITER left: the eight SPEC §2 columns and no ninth, which is
+    # byte-identical to what `ALTER TABLE ADD COLUMN` leaves behind. Inserted
+    # directly rather than written and then edited, because `classifications_never_
+    # overwritten` refuses the edit -- correctly, and that refusal is itself the
+    # reason a migrated row has to be READ rather than repaired in place.
+    p7_conn.execute(
+        f"INSERT INTO {CLASSIFICATIONS_TABLE} (fact_id, file_id, content_hash, "
+        "handling_class, protected, basis, evidence_refs, reliability_state, "
+        "observed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ("fact-old", "f-old", "h-old", "public_low", 0, "detector",
+         json.dumps([_A_KEY]), "direct", OBSERVED_AT))
+    assert p7_conn.execute(
+        f"SELECT privacy_class FROM {CLASSIFICATIONS_TABLE} WHERE fact_id = ?",
+        ("fact-old",)).fetchone()[0] is None
+
+    record = ClassificationStore(p7_conn).current("f-old", "h-old")
+    assert record is not None
+    assert record.privacy_class == PRIVACY_CLASS_ORDINARY
+    assert privacy_class_of(record) == PRIVACY_CLASS_ORDINARY
+    assert privacy_class_of(record) != PRIVACY_CLASS_PENDING
+
+
+def test_the_migration_adds_the_column_to_a_database_that_predates_it(p7_conn):
+    """`create_privacy_schema` is idempotent and the column arrives through
+    `PRIVACY_ADDED_COLUMNS`, so an existing database gains it without a rebuild.
+    """
+    assert (CLASSIFICATIONS_TABLE, "privacy_class", "TEXT") in PRIVACY_ADDED_COLUMNS
+    create_privacy_schema(p7_conn)
+    present = {row[1] for row in p7_conn.execute(
+        f"PRAGMA table_info({CLASSIFICATIONS_TABLE})")}
+    assert "privacy_class" in present
 
 
 def test_the_screen_sentence_says_pending_rather_than_ordinary():
@@ -370,29 +502,6 @@ def test_the_format_never_weakens_the_restriction_and_ocr_is_the_proof():
     assert "ocr" in ALWAYS_LOCAL_ZONES
     assert derivative_privacy_class(PRIVACY_CLASS_PROTECTED) == (
         PRIVACY_CLASS_PROTECTED)
-
-
-def test_the_gate_cannot_yet_read_a_kind_and_this_file_says_so_rather_than_implying_it():
-    """WHAT IS OWED, asserted so it is found by running the suite.
-
-    SPEC §2's classification record has eight fields and none of them carries a
-    document KIND, so a file whose recognised kind is `receipt` is indistinguishable
-    at the gate from an ordinary one. `privacy_class_for` decides that case correctly
-    from the kinds; `privacy_class_of` cannot reach them and answers `ordinary`.
-
-    So clause 1's always-local consequence is enforced by the caller that holds the
-    kinds and by NOTHING at the gate. The seam is one field on this record and one
-    column in `privacy.schema`. This test passes today and must be deleted -- not
-    edited -- on the day the class is recorded, because on that day its claim is
-    false.
-    """
-    assert "privacy_class" not in CLASSIFICATION_FIELDS
-    a_receipt = ClassificationRecord(
-        file_id="f1", content_hash="h1", handling_class="personal_non_sensitive",
-        protected=False, basis="detector", evidence_refs=(_A_KEY,),
-        reliability_state="direct", observed_at=OBSERVED_AT)
-    assert privacy_class_of(a_receipt) == PRIVACY_CLASS_ORDINARY
-    assert privacy_class_for(["receipt"]) == PRIVACY_CLASS_ALWAYS_LOCAL
 
 
 # ================================================================================
@@ -587,3 +696,132 @@ def test_a_protected_files_excerpt_is_not_released_to_a_cloud_model(gate_conn):
         "an excerpt of a protected file reached a cloud model")
     assert isinstance(decision, Denied)
     assert decision.reason == "protected_cloud_target"
+
+
+# ================================================================================
+# The two lists at the door: what each one refuses, and for which targets
+# ================================================================================
+
+def _classified_file(conn, *, name: str, privacy_class: str, protected: bool,
+                     grants: tuple = ()) -> tuple[str, str]:
+    """A file with an observation and a classification carrying a privacy class."""
+    content_hash = f"hash-{name}"
+    file_id = _file(conn, f"{name}.pdf", content_hash)
+    key = _observation(conn, file_id, content_hash, raw_value=A_TITLE)
+    ClassificationStore(conn).write(ClassificationRecord(
+        file_id=file_id, content_hash=content_hash,
+        handling_class="personal_non_sensitive", protected=protected,
+        basis="detector", evidence_refs=(key,), reliability_state="direct",
+        observed_at=OBSERVED_AT, privacy_class=privacy_class))
+    _store_policy(conn, grants=grants)
+    return file_id, key
+
+
+@pytest.mark.parametrize("target", (CLOUD, LOCAL), ids=("cloud", "local"))
+def test_a_protected_kind_file_is_refused_for_every_target(gate_conn, target):
+    """§13.3's protected list: "shown to no model and filed one at a time by the
+    person", and the owner ruled that this holds for every target.
+
+    The scope IS granted, for both a cloud and a local model, so what refuses this is
+    the privacy class and not the absence of consent. That is the case the check has
+    to get right: a grant is §8.4's instrument for the FLAG, and reading it here
+    would let a protected kind in a granted area sail out on the cloud side.
+
+    The `protected` flag is False on this record on purpose. The refusal is the
+    list's, so it must fire on a file §8.4 never entered into a protected state.
+    """
+    file_id, key = _classified_file(
+        gate_conn, name="passport", privacy_class=PRIVACY_CLASS_PROTECTED,
+        protected=False,
+        grants=(("area-1", "cloud_model"), ("area-1", "local_model")))
+    decision = _gate(gate_conn, permits_local=True).release(
+        _request(key=key, file_id=file_id, target=target))
+
+    assert not isinstance(decision, Released), (
+        f"a protected-kind file reached a {target.locality} model")
+    assert isinstance(decision, Denied), (
+        f"a protected-kind file was {type(decision).__name__}; the ruling says it "
+        f"is shown to no model, which is a denial and not a consent question")
+
+
+def test_a_flagged_file_that_is_on_neither_list_still_releases_under_a_grant(
+        gate_conn):
+    """§8.4's consent path, UNCHANGED, and pinned on purpose rather than by accident.
+
+    "If a model needs text containing sensitive content, the user should see that
+    requirement and choose whether to allow a local model, a cloud model, a redacted
+    prompt, or no model use." The owner did not amend that sentence, so a file
+    carrying §8.4's `protected` flag, in a scope the person granted, still releases.
+
+    This is the second direction of the two-sets claim, run at the door: the flag is
+    True and the privacy class is `ordinary`, and the answer is the opposite of the
+    test above. If the kind refusal were reading the flag, this would go red.
+    """
+    file_id, key = _classified_file(
+        gate_conn, name="sensitive-note", privacy_class=PRIVACY_CLASS_ORDINARY,
+        protected=True, grants=(("area-1", "local_model"),))
+    decision = _gate(gate_conn, permits_local=True).release(
+        _request(key=key, file_id=file_id, target=LOCAL))
+
+    assert isinstance(decision, Released), (
+        f"a flagged file in a granted scope was {type(decision).__name__} for a "
+        f"local model; §8.4 offers 'allow a local model' as one of its four consent "
+        f"options and the owner did not amend that sentence")
+
+
+def test_an_always_local_kind_file_is_refused_for_a_cloud_model(gate_conn):
+    """§13.3's first list: "shown to no cloud model", with the scope granted so the
+    refusal is the list's and not the absence of consent.
+
+    R-89 IS WHY THIS IS A SEPARATE TEST FROM THE ONE ABOVE. A receipt was being
+    called protected material on a corpus that names Receipts and Confirmations as
+    its destination, because the two lists were read as one. The difference is
+    exactly the next test.
+    """
+    file_id, key = _classified_file(
+        gate_conn, name="receipt", privacy_class=PRIVACY_CLASS_ALWAYS_LOCAL,
+        protected=False, grants=(("area-1", "cloud_model"),))
+    decision = _gate(gate_conn, permits_local=True).release(
+        _request(key=key, file_id=file_id, target=CLOUD))
+
+    assert not isinstance(decision, Released)
+    assert isinstance(decision, Denied)
+    assert decision.reason == "always_local_item", (
+        "an excerpt of an always-local file is an always-local item by inheritance "
+        "(§14.3), so the refusal is the one §8.4's list already has a name for")
+
+
+def test_an_always_local_kind_file_still_reaches_a_local_model(gate_conn):
+    """The other half of R-89, and the half the single list destroyed.
+
+    §13.3: always-local kinds are "filed by rules and local models". A receipt that
+    no local model may read is a receipt nobody files, which is what the owner's
+    corpus was measuring when a receipt was held back as though it were a passport.
+    """
+    file_id, key = _classified_file(
+        gate_conn, name="receipt-local", privacy_class=PRIVACY_CLASS_ALWAYS_LOCAL,
+        protected=False, grants=(("area-1", "local_model"),))
+    decision = _gate(gate_conn, permits_local=True).release(
+        _request(key=key, file_id=file_id, target=LOCAL))
+
+    assert isinstance(decision, Released), (
+        f"an always-local file was {type(decision).__name__} for a LOCAL model; "
+        f"§13.3 files these kinds by rules and local models, and refusing one here "
+        f"is R-89 read as a single list again")
+
+
+def test_an_ordinary_file_is_released_so_the_refusals_above_are_the_lists(gate_conn):
+    """The control. Same file, same item, same policy, class `ordinary`.
+
+    Without it, every assertion above is satisfied by a gate that refuses this
+    fixture for some unrelated reason.
+    """
+    file_id, key = _classified_file(
+        gate_conn, name="ordinary", privacy_class=PRIVACY_CLASS_ORDINARY,
+        protected=False, grants=(("area-1", "cloud_model"),))
+    decision = _gate(gate_conn, permits_local=True).release(
+        _request(key=key, file_id=file_id, target=CLOUD))
+
+    assert isinstance(decision, Released), (
+        f"the control file was {type(decision).__name__}: the refusals above may "
+        f"not be about the privacy class at all")
