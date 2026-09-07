@@ -3139,11 +3139,18 @@ def sensitivity_policy_for(conn: sqlite3.Connection):
     about, and whether the response proposes a move at all. Any further judgement
     belongs in P7, which owns the classification.
 
-    **The cost, stated rather than hidden.** P7 refuses a file it has never
-    classified -- `unreadable_unclassified`, and its own docstring explains why the
-    branch order may not be reversed. On a corpus with no detector that is most of
-    the corpus. This is the correct answer to "may this be moved automatically" and
-    it is expensive, and the expense is P7's to change, not P11's to route around.
+    **A proposal is not a move, and that is the one judgement this adapter makes.**
+    §8.4's predicate answers "may this be moved automatically" and refuses a file
+    P7 has never classified. That refusal is right for a move and wrong for a
+    proposal: P8 is validating something a person then reviews, automatic filing is
+    Release 2, and on the owner's corpus 95 of 199 readable files carry no
+    classification record. Refusing those would spend coverage protecting them from
+    a move this release does not make. So absence of a record permits the proposal
+    and P7 owns every other branch unchanged -- not protected is permitted,
+    protected is refused unless a user policy names the file. The handling class is
+    not read at all: `privacy/classification.py` says neighbouring parts consume
+    the `protected` flag rather than inferring it from the class, and leaves open
+    whether the two coincide.
 
     Injected alongside seven `None`s. `model_path_available` reads this field, so
     supplying it alone does not switch the model path on -- there is still no
@@ -3154,11 +3161,35 @@ def sensitivity_policy_for(conn: sqlite3.Connection):
         if not _proposes_a_move(payload):
             return True
         file_id = _file_id_of_subject(getattr(dossier, "subject_ref", "") or "")
-        if file_id is None or get_file(conn, file_id) is None:
+        if file_id is None:
             return False
-        # `or ""` is both validator sites' own convention for a dossier that names
-        # no plan version: `current_policy` finds no row, so a protected file is
-        # refused and an unprotected one is not held hostage to the version.
+        row = get_file(conn, file_id)
+        if row is None:
+            return False
+        # AN UNCLASSIFIED FILE MAY BE PROPOSED, AND THIS IS THE ONE PLACE THE TWO
+        # QUESTIONS COME APART. §8.4's predicate answers "may this be moved
+        # automatically", and for a file P7 has never classified its answer is
+        # `unreadable_unclassified` and its refusal is right: it will not read
+        # absence as permission. P8 is judging a PROPOSAL that a person reviews,
+        # and automatic filing is Release 2. Refusing the proposal would take 95
+        # of the owner's 199 readable files out of the engine to protect them from
+        # a move nothing is going to make -- coverage spent on a risk that does not
+        # exist in this release. The file still reaches the person through the
+        # review-required path the offline run already gives it.
+        #
+        # THE CLASS IS NOT CONSULTED, deliberately. `privacy/classification.py`
+        # states the rule: "Neighbouring parts should consume the `protected` flag,
+        # not infer it from the class", and its Open question 1 -- whether
+        # `protected` is exactly the top two classes -- is unsettled. So P7's flag
+        # is the whole of the answer here and a handling class read as a second
+        # opinion would be P11 deciding a question P7 has left open.
+        if ClassificationStore(conn).current(file_id, row["content_hash"]) is None:
+            return True
+        # Classified. P7 owns every remaining branch: not protected is permitted,
+        # protected is refused unless a user policy names this file. `or ""` is both
+        # validator sites' own convention for a dossier with no plan version --
+        # `current_policy` finds no row, so a protected file is refused and an
+        # unprotected one is not held hostage to the version.
         return may_move_automatically(
             conn, file_id, getattr(dossier, "plan_version", None) or "").allowed
 

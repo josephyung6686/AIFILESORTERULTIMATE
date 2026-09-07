@@ -25,10 +25,11 @@ file ever needs a new branch of judgement, the branch belongs in P7.
     `leave_in_current_location` and `mark_review_later` carry no target and are
     permitted for a protected file -- refusing them would push a protected file
     OUT of the one disposition that leaves it alone.
-  * An unclassified file is refused, not permitted. That is P7's branch order and
-    its docstring says why. On a corpus nothing has classified it means every
-    file, which is a real coverage cost and is asserted here by name rather than
-    left for someone to discover.
+  * An unclassified file may be PROPOSED and may still not be MOVED. §8.4's
+    predicate refuses it and is right to; P8 is judging a proposal a person then
+    reviews, and refusing those would take 95 of the owner's 199 readable files
+    out of the engine to protect them from automatic filing this release does not
+    do. Two tests hold both halves, so softening P7 to match cannot pass quietly.
 """
 from __future__ import annotations
 
@@ -59,6 +60,7 @@ from placement.store import subject_ref_of
 from placement.vocabulary import FILE, GROUP
 
 from privacy.classification import ClassificationRecord
+from privacy.moves import UNREADABLE_UNCLASSIFIED, may_move_automatically
 from privacy.classification_store import ClassificationStore
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.schema import create_privacy_schema
@@ -240,21 +242,34 @@ def test_a_user_policy_permitting_this_files_move_lifts_the_refusal(
         db, pair, dossier).reasons
 
 
-def test_an_unclassified_file_is_refused_and_that_is_the_coverage_cost(
-        db, file_id, subject_ref):
-    """No classification record at all -- the state of most of a real corpus.
+def test_an_unclassified_file_may_still_be_PROPOSED(db, file_id, subject_ref):
+    """The one place the adapter departs from §8.4's predicate, and why.
 
-    P7 answers `unreadable_unclassified` and refuses, and its own docstring says
-    why the branch order is not interchangeable: answering `not_protected` for a
-    corpus nothing has classified is §8.6's forbidden move reached sideways. So
-    this is the honest answer and it is also expensive. The number is already
-    measured and written down -- `src/cli.py`'s `model_route_permitted` records it
-    from the 2026-09-05 run over the owner's ground-truth corpus: 95 of 199 files
-    carry no classification record. Every one of them is refused here.
+    `may_move_automatically` answers `unreadable_unclassified` for a file P7 has
+    never classified, and refuses. That is right for a MOVE -- P7 will not read
+    absence as permission -- and wrong for a proposal, which is what P8 validates
+    and which a person then reviews. Automatic filing is Release 2. On the owner's
+    corpus 95 of 199 readable files carry no classification record, so refusing
+    them here would take half the corpus out of the engine to protect it from a
+    move this release does not make.
     """
     pair, dossier = _residual_case(subject_ref)
-    assert SENSITIVITY_RESTRICTION_IGNORED in _residual_reasons(
+    assert SENSITIVITY_RESTRICTION_IGNORED not in _residual_reasons(
         db, pair, dossier).reasons
+
+
+def test_the_automatic_move_of_that_same_unclassified_file_is_still_refused(
+        db, file_id):
+    """P7 is untouched, and this is the assertion that proves it.
+
+    The adapter permits the PROPOSAL. §8.4's predicate still refuses the MOVE, by
+    name, and nothing in this work changed `privacy/moves.py`. If these two ever
+    agree again it means somebody softened P7 to make P8 easier, which is the one
+    way this change could turn into a real permission.
+    """
+    verdict = may_move_automatically(db, file_id, PLAN)
+    assert verdict.allowed is False
+    assert verdict.reason == UNREADABLE_UNCLASSIFIED
 
 
 # --- what the adapter refuses to answer about ------------------------------------
