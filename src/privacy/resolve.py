@@ -48,6 +48,7 @@ from evidence_shape.observation import Observation
 from evidence_shape.text_units import SpanAnchorError, check_span_anchor, raw_value_at
 
 from privacy.redaction import span_address
+from privacy.release import released_whole_heading_unit
 
 #: The one zone a `items.Filename` may resolve through, and the zone
 #: `extractors/filesystem.py` writes the person's own name for the file into. Named
@@ -195,6 +196,14 @@ class Materialised:
     context_after: str | None
     context_truncated: bool
     unit_length: int | None
+    #: `104` R-135. Whether this resolution IS that row's exemption: a span covering
+    #: the whole of a unit that is a heading. Decided HERE because this is the last
+    #: place P4's `Location` exists -- `span` is its serialisation and `ReleasedItem`
+    #: keeps only that -- and a consumer that parsed the string back would be
+    #: re-deriving a structural fact from its own printing. Defaulted so a caller
+    #: building a `Materialised` by hand states what it means rather than being
+    #: required to compute it.
+    whole_heading_unit: bool = False
 
 
 def _live_observation_ids(conn: sqlite3.Connection,
@@ -406,4 +415,10 @@ def materialise(conn: sqlite3.Connection, item, *,
         observation_key=item.observation_key, span=address, value=value,
         zone=location.zone, context_before=observation.context_before,
         context_after=observation.context_after,
-        context_truncated=observation.context_truncated, unit_length=unit_length)
+        context_truncated=observation.context_truncated, unit_length=unit_length,
+        # `104` R-135, asked of the LOCATION and not of its printing. This is the same
+        # predicate `model_facts.releasable_observations` and
+        # `model_placement.releasable_excerpts` admit by, so what the gate releases
+        # under the exemption and what `GroundingReport` reports as exposure are one
+        # condition evaluated on one object.
+        whole_heading_unit=released_whole_heading_unit(location, unit_length))

@@ -97,8 +97,15 @@ DECLARED_MODULES = frozenset({
     "authorship", "budgets", "cache", "date_facts", "dates", "direct", "discount",
     "domains", "evidence", "facets", "families", "fields", "file_facts", "learning", "llm_seam",
     "photo_event", "plan_versions", "read_surface", "resolver", "rules", "schema",
+    # `anchor_statements` is a third module beyond the plan's list, added 2026-09-07
+    # for `104` R-135 and named here for the reason the other two are. What a syllabus
+    # STATES is about every other file of that course, so no `FactResolver` stage --
+    # each asked about one file version -- can hold it; `facts.families` is the existing
+    # corpus producer and this is the second. It holds no text, no vocabulary and no
+    # mapping: a row is a citation, and the words it points at reach a model from the
+    # document through P7's gate.
     "session", "states", "stage_output", "supersede", "unresolved", "usable", "values",
-    "vocabulary", "kind",
+    "vocabulary", "kind", "anchor_statements",
 })
 
 #: Every module-level COLLECTION P6 publishes, with the task that owns it. A plain string

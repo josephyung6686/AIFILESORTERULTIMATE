@@ -105,13 +105,18 @@ def _stuff(conn, table: str) -> None:
 
 
 def _dimensions(subject: str) -> dict:
-    """All nine terms `store.CALL_IDENTITY_DIMENSIONS` names, none extra.
+    """All TEN terms `store.CALL_IDENTITY_DIMENSIONS` names, none extra.
 
     Spelled in full rather than stubbed, because `call_identity` refuses a mapping
     over a different set of terms and the seeder recomputes the digest through it:
     a fixture with a short mapping would be testing a path the product forbids.
+
+    `context_refs` is the tenth, added for `104` R-135: the observation keys of the
+    readings of OTHER files a call was shown. `[]` is the value for a file with no
+    anchor near it, which is every file in this fixture.
     """
     return {"call_site": "A_fact", "content_hash": "a-hash",
+            "context_refs": [],
             "extractor_versions": [["text.structured", "1"]],
             "model_id": "a-model", "plan_version": None, "policy": "{}",
             "prompt_fingerprint": "a-fingerprint", "schema_id": ["academic"],

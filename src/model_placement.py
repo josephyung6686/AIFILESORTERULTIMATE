@@ -50,7 +50,9 @@ from llm_harness.budgets import ScanBudget
 from llm_harness.harness import CallDependencies
 from llm_harness.records import EvidenceItem, PromptDefinition
 from privacy.items import Excerpt, sensitive_observation_keys
-from privacy.release import ModelCallRequest, ModelTarget, Target
+from privacy.release import (
+    ModelCallRequest, ModelTarget, Target, released_whole_heading_unit,
+)
 from placement.vocabulary import FILE
 from privacy.vocabulary import ALWAYS_LOCAL_ZONES
 
@@ -214,8 +216,12 @@ def releasable_excerpts(conn: sqlite3.Connection, *,
         else:
             if unit_length is None:
                 continue
+            # `104` R-135, the same ruling site A takes, through the same predicate
+            # `GroundingReport` counts by. A heading unit is not a document; §8.4
+            # names a heading as what to send INSTEAD of one.
             if (where.text_span.start <= 0
-                    and where.text_span.end >= unit_length):
+                    and where.text_span.end >= unit_length
+                    and not released_whole_heading_unit(where, unit_length)):
                 continue
         offered.append(Excerpt(
             observation_key=observation.observation_key,

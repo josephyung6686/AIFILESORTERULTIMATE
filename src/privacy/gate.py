@@ -972,7 +972,10 @@ class Gate:
                 classifier=self._classifier, transform=self._transform)
             resolved.append(ReleasedItem(
                 observation_key=found.observation_key, span=found.span, value=value,
-                zone=found.zone, unit_length=found.unit_length))
+                zone=found.zone, unit_length=found.unit_length,
+                # `104` R-135, carried and not recomputed: `materialise` asked P4's
+                # `Location` and this is that answer.
+                whole_heading_unit=found.whole_heading_unit))
             entries.append(entry)
         return tuple(resolved), RedactionManifest(entries=tuple(entries))
 

@@ -322,6 +322,26 @@ class ReleasedEvidence:
     address: str
     value: str
     zone: str
+    #: `104` R-135. P7's `ReleasedItem.unit_length` -- the length of the text unit the
+    #: address points into -- carried across so `report_from_verdicts` can say how much
+    #: of a unit this call released. It is the ONE field here the model never sees:
+    #: `dossier._released_body` writes `RELEASED_EVIDENCE_FIELDS` and this is not among
+    #: them, which is `ReleasedItem.content_mapping`'s own reason -- "it is the
+    #: measurement the whole-document refusal is taken against, not a value".
+    #:
+    #: Defaulted because a fixture or a test that predates the count still constructs;
+    #: `None` reads as "no unit at this address", which is what it means on
+    #: `ReleasedItem` too (§2.3's cell, §2.8's EXIF field), and never as "not measured".
+    unit_length: int | None = None
+    #: `104` R-135. P7's own answer about this item -- a span covering the whole of a
+    #: unit that is a heading -- decided in `resolve.materialise` where P4's `Location`
+    #: still exists, and carried here so `report_from_verdicts` can COUNT rather than
+    #: re-derive. The first spelling parsed `address` back into a location at report
+    #: time; `tests/p8/test_p8_harness.py` ends fourteen already-answered calls when a
+    #: fixture address is not a locator, and a counter is never the thing that decides
+    #: a call's fate. Like `unit_length`, it is not among `RELEASED_EVIDENCE_FIELDS`
+    #: and never reaches the model.
+    whole_heading_unit: bool = False
 
     def __post_init__(self) -> None:
         if not self.observation_key or not self.address:
@@ -329,6 +349,15 @@ class ReleasedEvidence:
                 "ReleasedEvidence requires observation_key and address; an item with "
                 "no address cannot bind a citation to what P7 released"
             )
+        if self.unit_length is not None and (
+                type(self.unit_length) is not int or self.unit_length < 0):
+            raise MalformedRecord(
+                "unit_length is a measured length of stored text, so it is a "
+                "non-negative int or the absence of a unit")
+        if not isinstance(self.whole_heading_unit, bool):
+            raise MalformedRecord(
+                "whole_heading_unit is P7's answer about this item and is a boolean; "
+                "a truthy stand-in would be counted as an exposure nobody measured")
 
 
 @dataclass(frozen=True, slots=True)
@@ -603,6 +632,25 @@ class GroundingReport:
     reduction_rung: str
     release_audit_id: int | None
     dossier_builder: str
+    #: `104` R-135'S EXPOSURE COUNT, AND IT STANDS IN FOR A NUMBER NOBODY AUTHORED.
+    #: The ruling releases a span covering a whole HEADING unit, because §8.4 names a
+    #: heading as what to send instead of a full document, and it sets no length bound:
+    #: a bound would be an invented threshold and this deployment invents none. So the
+    #: exposure is reported rather than capped. `heading_units_released` is how many
+    #: released items were a whole heading unit; `longest_heading_unit_length` is the
+    #: longest of them in characters.
+    #:
+    #: They are here rather than in a log because §8.5 replays a run and compares it,
+    #: and because the first live scorecard has to show this number rather than an
+    #: estimate of it. `recognition/detector.py` records body prose set in large type
+    #: being tagged `heading` by a typographic guess; if that is releasing paragraphs,
+    #: `longest_heading_unit_length` is where it becomes visible.
+    #:
+    #: Defaulted, unlike every field above, and that is deliberate: a caller that has
+    #: not been taught to count reports zero rather than failing to construct, so this
+    #: row cannot break a call site that has nothing to do with R-135.
+    heading_units_released: int = 0
+    longest_heading_unit_length: int = 0
 
     def __post_init__(self) -> None:
         _require(self.call_site, CALL_SITES, name="call_site")
@@ -614,6 +662,10 @@ class GroundingReport:
             raise MalformedRecord("GroundingReport requires dossier, model, and fingerprint")
         if not self.validator_version or not self.dossier_builder:
             raise MalformedRecord("validator_version and dossier_builder are required")
+        for name in ("heading_units_released", "longest_heading_unit_length"):
+            value = getattr(self, name)
+            if type(value) is not int or value < 0:
+                raise MalformedRecord(f"{name} is a count, and a count is never negative")
 
 
 @dataclass(frozen=True, slots=True)

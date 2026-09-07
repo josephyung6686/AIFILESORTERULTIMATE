@@ -241,16 +241,25 @@ def test_the_reuse_is_recorded_and_names_the_prior_dossier(corpus, socket):
 
 def test_the_identity_row_says_what_it_was_keyed_on(corpus, socket):
     """A digest nobody can read back is a cache nobody can audit. The row carries
-    the dimension mapping the digest was taken over, so a miss can be explained."""
+    the dimension mapping the digest was taken over, so a miss can be explained.
+
+    `context_refs` is the tenth term, added for `104` R-135: the observation keys of
+    readings of OTHER files the call was shown. It is `[]` for a file with no anchor
+    near it, which is every file in this corpus, and the term exists because the nine
+    above cannot tell a call that was shown a syllabus from one that was not --
+    `extractor_versions` is a set of `(name, version)` pairs and a syllabus is read by
+    the same extractor as the coursework beside it.
+    """
     _run(corpus, "--enable-cloud")
     rows = _rows(corpus, "SELECT * FROM llm_call_identity")
 
     for row in rows:
         dimensions = json.loads(row["dimensions"])
         assert set(dimensions) == {
-            "call_site", "content_hash", "extractor_versions", "model_id",
-            "plan_version", "policy", "prompt_fingerprint", "schema_id",
-            "subject_ref"}
+            "call_site", "content_hash", "context_refs", "extractor_versions",
+            "model_id", "plan_version", "policy", "prompt_fingerprint",
+            "schema_id", "subject_ref"}
+        assert dimensions["context_refs"] == []
         assert dimensions["call_site"] == cli.A_FACT
         assert dimensions["model_id"] == "a-logician"
         assert len(dimensions["content_hash"]) == 64

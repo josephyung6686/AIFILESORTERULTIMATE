@@ -268,8 +268,22 @@ def test_the_identity_is_the_same_on_an_unchanged_second_run(corpus, socket):
     dimensions = [json.loads(row["dimensions"]) for row in _rows(
         corpus, "SELECT dimensions FROM llm_call_identity")]
     assert {name for row in dimensions for name in row} == {
-        "call_site", "content_hash", "extractor_versions", "model_id",
-        "plan_version", "policy", "prompt_fingerprint", "schema_id", "subject_ref"}
+        "call_site", "content_hash", "context_refs", "extractor_versions",
+        "model_id", "plan_version", "policy", "prompt_fingerprint", "schema_id",
+        "subject_ref"}
+    # `context_refs` is `104` R-135's tenth term: the observation keys of readings of
+    # OTHER files a call was shown. It is exactly the shape this test's docstring warns
+    # about, so it is checked rather than trusted. An `observation_key` is
+    # `sha256(content_hash, extractor_name, locator, raw_value)` -- content, and no run
+    # id, no file id, no timestamp and no path -- so it is stable across runs and
+    # across databases over the same bytes, which is what `104` R-123's
+    # `--reuse-answers-from` needs. `is_observation_key` is P4's own shape test, asked
+    # here rather than restated.
+    from evidence_shape.observation import is_observation_key
+
+    for row in dimensions:
+        assert isinstance(row["context_refs"], list)
+        assert all(is_observation_key(ref) for ref in row["context_refs"])
 
 
 # --- what a reuse must NOT swallow ------------------------------------------------

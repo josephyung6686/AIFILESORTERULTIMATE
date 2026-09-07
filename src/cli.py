@@ -92,6 +92,9 @@ from branch_situation import (
 from facts.photo_event import media_type
 from facts.budgets import LLM_ROUTE
 from facts.resolver import PRIVACY_BAR, FactResolver
+from facts.anchor_statements import (
+    anchor_statements_for, record_anchor_statements,
+)
 from facts.rules import ACADEMIC_CONTEXT_TERMS, Rule, apply_rules
 from facts.unresolved import NO_CANDIDATE_EVIDENCE
 from facts.usable import record_pass
@@ -162,7 +165,7 @@ from placement.residual import ProtectedSetNotReadable, prior_set_decisions
 from placement.schema import create_placement_schema
 from model_facts import (
     AnchorOnlyLevels, FactCallAuthorities, fact_call_stage,
-    measure_released_tokens, pending_fields_for,
+    measure_released_tokens, pending_fields_for, releasable_observations,
 )
 from privacy.classification import UNREADABLE_UNCLASSIFIED, resolve_class
 from privacy.classification_store import ClassificationStore
@@ -174,7 +177,7 @@ from privacy.moves import may_move_automatically
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.resolve import (
     AmbiguousObservationKey, UnresolvableSpan, current_location,
-    filename_address,
+    current_observation, filename_address,
 )
 from privacy.vocabulary import MODE_SEMANTICS
 from questions.explanation import explain_question, render_explanation
@@ -3045,6 +3048,27 @@ SUBJECT_RULE = Rule(pattern=_SUBJECT_IDENTIFIER,
                     field_key=SUBJECT_FIELD,
                     canonical=lambda raw: _SEPARATOR.sub("", " ".join(raw.split())))
 
+#: `104` R-135'S ANCHOR VOCABULARY: the documents that STATE what a course is called.
+#: A strict subset of `SUBJECT_CONTEXT_TERMS` above, and the narrowing is the whole
+#: reason for a second list rather than a reuse of the first.
+#:
+#: `SUBJECT_CONTEXT_TERMS` asks "is this reading about teaching?" -- twenty-six words
+#: wide, because a course code has to be recognisable in a problem set, an exam header
+#: and a citation. This asks a narrower question: "is this document the one that says
+#: what the course is called?" A homework sheet prints `W3134` beside `Problem Set 4`;
+#: the syllabus, the schedule and the enrolment record print it beside the course's own
+#: name. Widening this to the other list would let a document that merely MENTIONS a
+#: course become the evidence a model reads about that course's name.
+#:
+#: `registrar` and `transcript` earn places here that they do not have one field over.
+#: `SUBJECT_CONTEXT_TERMS` excludes `transcript` because "seven schemas author it" and
+#: it is no evidence that a nearby token is a course CODE. It is, however, exactly a
+#: document that prints codes beside course names, which is what this list is for.
+COURSE_ANCHOR_TERMS: tuple[str, ...] = (
+    "syllabus", "course outline", "course schedule", "class schedule",
+    "course description", "enrollment", "enrolment", "registration", "registrar",
+    "transcript", "enrolled in", "course catalog", "course catalogue")
+
 #: §3.5's direct slot set, and §2.2/§2.3's suppression catalogue. `DirectSlots` has
 #: no default because the slot is the caller's, and THIS DEPLOYMENT NOW SHIPS NONE.
 #: That is a decision and not an omission: the one slot it had read a shape out of
@@ -4062,6 +4086,16 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
         # than reaching the dossier, and the composition root's only job is to read
         # them off the release it already loaded.
         deferred_readings=deferred_readings,
+        # `104` R-135. WHICH NEIGHBOURS SPEAK FOR A FILE IS THIS DEPLOYMENT'S ANSWER,
+        # which is why it is bound here and not defaulted in `model_facts`: it rests
+        # on `SUBJECT_FIELD`, on the corpus's own folders, and on this run's
+        # classification records, and P6 and P8 own none of the three. The cap is the
+        # same `max_released_observations` the file's own readings are drawn under,
+        # because a neighbour's readings are released through the same door.
+        anchor_context_for=lambda db, *, file_id, content_hash, fields: (
+            anchor_context_observations(
+                db, scan_run_id=scan_run_id, file_id=file_id, fields=fields,
+                limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS)),
         # `105` §14.4. Built here because every part of it is this file's: which
         # levels only an anchor is asked, which field says what a file IS, which
         # kinds the shipped release spells as anchors, and the route's own
@@ -5798,6 +5832,159 @@ def located_citations(conn: sqlite3.Connection, file_id: str,
     return tuple(located)
 
 
+def anchor_line_citations(conn: sqlite3.Connection, *, scan_run_id: str,
+                          file_id: str) -> tuple:
+    """`104` R-135: the whole LINE each of this file's course codes was printed on.
+
+    `(observation_key, location, reliability)` per line, or an empty tuple. The caller
+    turns them into `EvidenceItem`s; nothing is decided here.
+
+    **The defect this exists for, measured.** `extractors/pdf.py:181` emits two readings
+    over a syllabus heading: the heading, whose words are `COMS W3134: Data Structures`,
+    and the identifier inside it, whose words are `W3134`. Only the identifier is ever
+    CITED -- §3.5's `subject` rule matches a code and a fact carries the citation that
+    matched -- so `evidence_for` offered site C five characters, and site C's own
+    instruction, *"two spellings can be one thing ... yours to judge from the
+    evidence"*, had nothing beside the code to judge against. 19 of the owner's 43
+    labelled course codes came back missing and 19 more were a title recorded where the
+    code belonged.
+
+    **It offers; it does not pair, rank or choose.** `facts.anchor_statements` already
+    found the containing reading STRUCTURALLY -- the shortest reading whose span covers
+    the identifier's inside one container path -- and stores it as a citation with no
+    title column and no value column. This reads that citation back and hands the
+    address to the release. Two anchors naming one course come back as two, in
+    `anchor_statements_for`'s order, and neither is preferred: choosing between them is
+    the model's, and a caller taking the first would be the sorting rule the product
+    constitution forbids.
+
+    **The gate still decides.** These are addresses, not text. `releasable_excerpts`
+    applies P7's own refusals to them like any other ref -- an always-local zone, a
+    value P5 signalled, a dead key -- and the door materialises and redacts. What
+    changed in `104` R-135 is only that a span covering a whole HEADING unit is no
+    longer refused, which is what makes an address like this releasable at all.
+
+    A statement whose `line_evidence_ref` is `None` -- P4 emitted no containing reading
+    -- yields nothing, and so does one whose key no longer resolves in this file.
+    `located_citations` states the reason: "a citation that does not resolve is not
+    evidence and is dropped rather than carried with a made-up address."
+    """
+    lines = []
+    for statement in anchor_statements_for(conn, scan_run_id,
+                                           stating_file_ids=(file_id,)):
+        ref = statement.line_evidence_ref
+        if ref is None:
+            continue
+        try:
+            observation = current_observation(conn, ref, within_file_ids=(file_id,))
+        except (UnresolvableSpan, AmbiguousObservationKey):
+            continue
+        if observation.file_id != file_id:
+            continue
+        # P4's OWN reliability for that reading, never a constant typed here.
+        # `model_facts.filename_citation` states the rule for the same field.
+        lines.append((ref, observation.location, observation.reliability))
+    return tuple(lines)
+
+
+def _folder_family(subject_path: str, stating_path: str) -> bool:
+    """Whether a document at `stating_path` speaks for a file at `subject_path`.
+
+    THE FOLDER, AND ITS ANCESTORS, AND NOTHING ELSE. A syllabus in `Courses/Data
+    Structures/` speaks for the coursework beside it and for whatever sits in the
+    sub-folders under it; a syllabus in a sibling folder speaks for nothing here. That
+    is a containment test over the two paths and it is the whole rule -- no shared
+    word, no similar name, no distance score. `00`:56's own example is the file
+    `HW 3.pdf` that "lacks the course code but resembles lecture notes"; the folder the
+    person filed it in is a fact about it that the product already has.
+
+    **The paths never leave the device and this is where that is enforced.** §8.4 puts
+    paths in the always-local set as member 1, `releasable_observations` drops every
+    `path`-zone observation, and nothing here returns one: the answer is a boolean, and
+    what travels afterwards is an OBSERVATION KEY that the gate resolves for itself.
+    A neighbour is FOUND by the path and is never described by it.
+    """
+    subject = Path(subject_path).parent
+    stating = Path(stating_path).parent
+    return subject == stating or stating in subject.parents
+
+
+def anchor_context_observations(conn: sqlite3.Connection, *, scan_run_id: str,
+                                file_id: str, fields: Sequence[str],
+                                limit: int) -> tuple:
+    """`104` R-135: the anchor headings near this file that a `subject` call may show.
+
+    **The defect, measured.** 19 of the owner's 43 labelled course codes came back
+    MISSING, and 35 of the 43 files whose label carries a course name carry no course
+    code anywhere in their own bytes. The code is printed once, on the syllabus, and a
+    stage asked about one file version at a time can never see it -- so the model
+    answered `unknown` about those files, correctly, from evidence that was never
+    there. `facts.anchor_statements` recorded WHERE the corpus states a course; this
+    is what carries that reading to the file the sentence is about.
+
+    **Four narrowings, each structural.**
+
+      * *Only the field the deployment ties this to.* `SUBJECT_FIELD` is cli's, beside
+        `SUBJECT_RULE` and `COURSE_ANCHOR_TERMS`, because which field a course code
+        answers is a deployment's question and `model_facts` may not spell it. A call
+        that is not asking it gets nothing.
+      * *Only a document in this file's folder or above it.* `_folder_family`, over
+        paths that stay here.
+      * *Never the file itself.* Its own readings are already offered as direct
+        evidence; the same reading twice, once as context, would tell the model a file
+        corroborates itself.
+      * *Only a classified, unprotected neighbour, and only its releasable readings.*
+        The gate would refuse the rest, and it would refuse the WHOLE call: the target
+        gains this file's id, so `Gate._decisive` classifies it and an unclassified or
+        protected syllabus denies the fact call of an unrelated file beside it. That
+        is `releasable_observations`' own rule applied once more -- "each is one of the
+        gate's own refusals applied a step early, so the call is never BUILT rather
+        than built and denied" -- and it is why this asks
+        `model_facts.releasable_observations` for the stating file rather than
+        assembling an address itself: the zone rules, P5's per-value signal and the
+        whole-unit rule all come with it, including `104` R-135's own exemption, which
+        is what makes a heading releasable at all.
+
+    Nothing is chosen. Every anchor near the file is offered and the model decides;
+    two syllabuses naming two courses both arrive, which is the case the constitution's
+    "no sorting rules" exists for.
+    """
+    if SUBJECT_FIELD not in tuple(fields):
+        return ()
+    row = get_file(conn, file_id)
+    if row is None:
+        return ()
+    subject_path = row["current_path"]
+    store = ClassificationStore(conn)
+    wanted: dict[str, set[str]] = {}
+    for statement in anchor_statements_for(conn, scan_run_id):
+        if statement.line_evidence_ref is None:
+            continue
+        if statement.stating_file_id == file_id:
+            continue
+        stating = get_file(conn, statement.stating_file_id)
+        if stating is None or not _folder_family(subject_path,
+                                                 stating["current_path"]):
+            continue
+        record = store.current(statement.stating_file_id, stating["content_hash"])
+        if record is None or record.protected:
+            # The gate's own two refusals, a step early. An unclassified neighbour is
+            # `Denied(unclassified)` for a cloud target and a protected one is
+            # `ProtectedItemRequested`; either would cost this file its whole call.
+            continue
+        wanted.setdefault(statement.stating_file_id, set()).add(
+            statement.line_evidence_ref)
+    offered = []
+    for stating_file_id, keys in wanted.items():
+        stating = get_file(conn, stating_file_id)
+        for observation in releasable_observations(
+                conn, file_id=stating_file_id,
+                content_hash=stating["content_hash"], limit=limit):
+            if observation.observation_key in keys:
+                offered.append(observation)
+    return tuple(offered)
+
+
 def files_stating_each_fact(conn: sqlite3.Connection) -> dict[str, int]:
     """§6.5's generic-entity count, MEASURED and spelled the way P9 names a bridge.
 
@@ -6766,6 +6953,39 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                     evidence_ref=ref, kind="fact", location=location.zone,
                     excerpt_span=item[2],
                     reliability_state=row["reliability_state"], basis=basis))
+        # `104` R-135: THE LINE THE CODE WAS PRINTED ON, beside the code itself.
+        #
+        # A fact cites the reading that MATCHED it, which for `subject` is the five
+        # characters `W3134`; the words `: Data Structures` sit in a second reading of
+        # the same heading that no fact has any reason to cite. So the judge was shown
+        # a code and never a name, while its own prompt asked it to decide whether two
+        # spellings are one thing.
+        #
+        # `kind="excerpt"`, which is the word the ratified `c_placement` text uses for
+        # this: "a reference to text of the file. It carries no text; the text is in
+        # released_evidence". `basis` is `direct-anchor` because this is the subject
+        # file's OWN reading of its own words -- the same file, the same heading, one
+        # reading wider -- and not a neighbour's inference about it.
+        #
+        # Offered, never paired. Two anchors in one document come back as two items and
+        # the model decides; `anchor_line_citations` says why nothing here may choose.
+        from llm_harness.records import EvidenceItem
+
+        for ref, location, reliability in anchor_line_citations(
+                conn, scan_run_id=scan_run_id[0], file_id=file_id):
+            span = location.text_span
+            item = (ref, location.zone,
+                    None if span is None else (span.start, span.end),
+                    reliability, DIRECT_ANCHOR)
+            if item in seen_items:
+                # Already offered as a fact's own citation. The line is one reading
+                # however many ways it was reached.
+                continue
+            seen_items.add(item)
+            items.append(EvidenceItem(
+                evidence_ref=ref, kind="excerpt", location=location.zone,
+                excerpt_span=item[2], reliability_state=reliability,
+                basis=DIRECT_ANCHOR))
         return dict(
             facts=tuple(facts), evidence_items=tuple(items),
             group_ids=accepted_memberships_of(
@@ -7625,6 +7845,45 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             model_id=routing.model_id_for(A_FACT), out=out,
             not_asked=not_asked)
 
+    def _anchor_statement_pass(run_id: str) -> None:
+        """`104` R-135: where in this corpus does a document STATE a course's name?
+
+        **A corpus producer, for `_family_pass`'s reason in a different field.** The
+        sentence "this is what W3134 is called" is printed on ONE document -- the
+        syllabus -- and is about every other file of that course. A `FactResolver` stage
+        is asked about one file version at a time and can never see it, which is why 19
+        of the owner's 43 labelled course codes were missing outright and 19 more were
+        the title recorded where the code belonged.
+
+        **It decides nothing.** It records WHERE a line printed a course code, as a
+        citation. Whether the words on that line and the words on some other file mean
+        one course is site C's own question -- "two spellings can be one thing ... yours
+        to judge from the evidence" -- and the constitution puts that judgement with the
+        model. What was missing was the evidence, not the ruling.
+
+        HERE, before `_model_fact_pass`, because a statement that arrives after the
+        model has been asked is a statement nothing could be judged against.
+        """
+        roster = corpus_roster(conn, run_id)
+        if not roster:
+            return
+        record_anchor_statements(
+            conn, scan_run_id=run_id, file_versions=roster,
+            # TWO KNOBS AND ONLY THE ASSERTING ONE DECIDES. `_SUBJECT_IDENTIFIER`'s own
+            # comment fixes the separation: "what the product SEES and what it ASSERTS
+            # are two knobs". `_STRUCTURED` is what it sees; the rule's pattern is what
+            # it asserts, and only that may say a reading is a course. Without the
+            # split, `General Chemistry I 1403` and `Spring 2026` both become courses --
+            # the two readings the rule's own lookaheads exist to refuse.
+            is_code=lambda text: SUBJECT_RULE.pattern.search(text) is not None,
+            canonical=SUBJECT_RULE.canonical,
+            anchor_terms=COURSE_ANCHOR_TERMS,
+            # A SPAN INSIDE THE DOCUMENT'S OWN WORDS. `filename`, `path`, `title` and
+            # every `metadata:*` zone sit outside this predicate by construction, so a
+            # folder named after a course can never become the evidence for what that
+            # course is called.
+            reads_in_document=reads_a_structured_string)
+
     def _family_pass(run_id: str) -> None:
         """§3.11's two family fields, over the whole corpus at once.
 
@@ -7745,6 +8004,9 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # §3.11's universal families, BEFORE the model pass and before P9 groups.
         # See `_family_pass` for why a corpus producer cannot be a resolver stage.
         _family_pass(p1_p7.scan_run_id)
+        # `104` R-135. BEFORE the model pass: a statement that arrives after the model
+        # has been asked is a statement nothing could be judged against.
+        _anchor_statement_pass(p1_p7.scan_run_id)
         # `104` R-37. The branches, once every deterministic fact exists and
         # before a model is asked anything: the fact pass asks per branch.
         partition_cell[:] = [_partition_branches(p1_p7.scan_run_id)]

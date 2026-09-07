@@ -232,8 +232,38 @@ CREATE TABLE IF NOT EXISTS {VALUE_RENDERINGS_TABLE} (
 )
 """
 
+#: `104` R-135's anchor statements. NOT a fifth record table, for the reason
+#: `value_renderings` is not: it holds no claim about a file, no reliability state and
+#: no field key. It records that ONE LINE of one anchor document printed a course code,
+#: as a CITATION -- P4's observation key -- and never as a copy of the words. What the
+#: line says reaches a model from the document, through P7's gate; this table only says
+#: where to look.
+#:
+#: It carries no title column and no value column ON PURPOSE. The product constitution
+#: forbids an alias table, and a column pairing a name to a code would be one whatever
+#: it was called. The pairing is in the document, and judging it is the model's.
+#:
+#: `scan_run_id` scopes it: §8.4's Open question 3 -- what a "corpus area" is -- is
+#: unanswered, and the scan is the one boundary a run can name truthfully.
+ANCHOR_STATEMENTS_TABLE: str = "anchor_statements"
+
+ANCHOR_STATEMENTS_DDL: str = f"""
+CREATE TABLE IF NOT EXISTS {ANCHOR_STATEMENTS_TABLE} (
+    statement_id        TEXT PRIMARY KEY,
+    scan_run_id         TEXT NOT NULL,
+    stating_file_id      TEXT NOT NULL,
+    stating_content_hash TEXT NOT NULL,
+    canonical_code      TEXT NOT NULL,
+    code_evidence_ref   TEXT NOT NULL,
+    line_evidence_ref   TEXT
+);
+CREATE INDEX IF NOT EXISTS anchor_statements_scan
+    ON {ANCHOR_STATEMENTS_TABLE} (scan_run_id);
+"""
+
 _TABLE_DDL: tuple[str, ...] = (_FIELDS_DDL, VALUES_DDL, FILE_FACTS_DDL, UNRESOLVED_DDL,
-                               FACT_PASSES_DDL, VALUE_RENDERINGS_DDL)
+                               FACT_PASSES_DDL, VALUE_RENDERINGS_DDL,
+                               ANCHOR_STATEMENTS_DDL)
 
 
 def create_facts_schema(conn: sqlite3.Connection) -> None:

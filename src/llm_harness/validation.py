@@ -333,6 +333,42 @@ def decode_response(response_bytes: object) -> tuple[object, str | None]:
     return repaired, None
 
 
+def _heading_exposure(released: Sequence) -> tuple[int, int]:
+    """`104` R-135's two counters: how many whole heading units this call released,
+    and the longest one's length in characters.
+
+    **The ruling releases a whole heading unit and invents no length bound, so the
+    exposure is reported rather than capped.** Each released item already SAYS whether
+    it is that exemption: `resolve.materialise` asks
+    `privacy.release.released_whole_heading_unit` of P4's own `Location`, which is the
+    same predicate the two release builders admit by, and the answer travels as
+    `whole_heading_unit` through `ReleasedItem` and `ReleasedEvidence`. So this
+    function adds up what the items carry and derives nothing.
+
+    **It re-parsed the address, and that was wrong twice over.** `ReleasedItem.span` is
+    a serialisation of a `Location`, so parsing it back was re-deriving a structural
+    fact from its own printing -- and `parse_locator` refuses in three ways, all
+    `ValueError`, so a fixture address of `0:18` raised `NotInVocabulary` out of a
+    report and ended fourteen `tests/p8/test_p8_harness.py` calls that had already been
+    answered. A counter runs after the model has spoken and a release has been spent;
+    it is never the thing that decides a call's fate. An item that could not be
+    classified carries `False` and counts as nothing.
+
+    The identifier inside a heading is not counted, and that is the predicate's doing
+    rather than this function's: it shares the heading's container path but its span is
+    a fraction of the unit, so no exemption was taken to release it.
+
+    `report_for_budget_exhausted` and `_zero_report` do not call this and report zero:
+    both are built from a `DossierRequest` with no `Dossier` behind them, so no dossier
+    reached a model and no heading unit left the device. Zero there is the measurement.
+    """
+    units = [item for item in released
+             if getattr(item, "whole_heading_unit", False)]
+    lengths = [item.unit_length for item in units
+               if isinstance(item.unit_length, int)]
+    return len(units), max(lengths, default=0)
+
+
 def report_from_verdicts(
     dossier: Dossier,
     verdicts: Sequence[P8Verdict],
@@ -343,6 +379,7 @@ def report_from_verdicts(
     release_audit_id: int | None,
 ) -> GroundingReport:
     checked = [item for verdict in verdicts for item in verdict.citations_checked]
+    heading_units, longest_heading = _heading_exposure(dossier.released_evidence)
     histogram: dict[str, int] = {}
     for verdict in verdicts:
         for reason in verdict.reasons:
@@ -370,6 +407,8 @@ def report_from_verdicts(
         reduction_rung=dossier.reduction_rung,
         release_audit_id=release_audit_id,
         dossier_builder=dossier_builder,
+        heading_units_released=heading_units,
+        longest_heading_unit_length=longest_heading,
     )
 
 
@@ -396,7 +435,19 @@ def _zero_report(
     )
 
 
-def _acceptance_outcome(dossier: Dossier, citations: Sequence[Citation]) -> str:
+def acceptance_outcome(dossier: Dossier, citations: Sequence[Citation]) -> str:
+    """`accept_context_supported` when every cited item is context, else `accept_direct`.
+
+    **One rule with two callers since `104` R-135, which is why it is public.** This
+    file's `_validate_claim` uses it for sites B, C, D and E; `fact_validation`'s
+    `_run_checks` uses it at site A, where a `subject` read off a neighbouring syllabus
+    must not be recorded as if the file had said it itself. A second spelling of "was
+    this answer grounded only in context" would be two answers to one question, and the
+    review obligation would then depend on which site asked.
+
+    A MIXED answer is direct. A claim that cites the file's own text as well as a
+    neighbour's rests on the file, and `requires_review` is for the claim that does not.
+    """
     cited_refs = {item.evidence_ref for item in citations}
     bases = [
         item.basis for item in dossier.evidence_items if item.evidence_ref in cited_refs
@@ -556,7 +607,7 @@ def _validate_claim(
             citations_checked=checked,
         )
 
-    outcome = _acceptance_outcome(dossier, citations)
+    outcome = acceptance_outcome(dossier, citations)
     verdict = _make_verdict(
         dossier=dossier,
         claim_ref=claim_ref,

@@ -77,6 +77,12 @@ PRODUCERS = (
     # takes no model parameter and reaches no network, which is what the guards
     # below check of every name in this list.
     ("facts.kind", "kind_facts"),
+    # `104` R-135's, added 2026-09-07. Deterministic in the same sense every entry
+    # above is: a predicate, a canonicaliser and a context vocabulary, all supplied by
+    # the CALLER, over observations already in the database. It takes no model
+    # parameter and reaches no network, and it decides nothing about what a course is
+    # -- it records where an anchor document stated one, for a model to read.
+    ("facts.anchor_statements", "record_anchor_statements"),
 )
 
 #: Modules in `facts` that are not producers: the tables, the vocabularies, the
