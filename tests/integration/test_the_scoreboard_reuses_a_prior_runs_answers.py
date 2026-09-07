@@ -451,3 +451,34 @@ def test_a_prior_without_a_wire_handle_key_is_refused_before_anything_runs(
 
     assert "wire-handle-key" in str(refusal.value)
     assert "Nothing has been run" in str(refusal.value)
+
+
+def test_a_changed_file_is_asked_fresh_even_when_the_validator_moved(
+        corpus, socket, tmp_path, monkeypatch):
+    """The safety half of `104` R-137, with re-judgement switched on.
+
+    R-137 makes a seeded answer readable again, and the thing that must not follow
+    is a seeded answer surviving a change to the file it is an answer ABOUT. It
+    cannot: `content_hash` is a dimension of the identity, so a rewritten file is
+    a different question and the prior is never looked up -- there is nothing to
+    re-judge, and the file is asked. The neighbour, untouched, is re-judged from
+    its stored response and costs nothing.
+    """
+    prior_dir, fresh_dir = tmp_path / "prior", tmp_path / "fresh"
+    prior_dir.mkdir()
+    first, second = prior_dir / "one.sqlite", fresh_dir / "two.sqlite"
+    _run(corpus, first)
+    paid_for = len(socket)
+
+    (corpus / "week two notes.txt").write_text(
+        "Rewritten between the runs. Notes from the seminar on elasticity, with "
+        "the essay the instructor set for the vacation.\n")
+    monkeypatch.setattr(
+        fact_validation, "VALIDATOR_VERSION",
+        f"{fact_validation.VALIDATOR_VERSION}+r137")
+    given = seed(second, first, corpus=corpus)
+    _run(corpus, second)
+
+    assert len(socket) - paid_for == 1, socket.subjects()[paid_for:]
+    assert _asked_again(second, given) == {"week two notes.txt"}
+    assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == 1
