@@ -3295,7 +3295,12 @@ def _sent_and_abstained(
             # None of them is a response and none of them is counted as one.
             continue
         if claim_ref == PRE_CALL_NAMESPACE:
-            for reason in getattr(result, "reasons", ()) or ("unstated",):
+            # No fallback for an unstated reason, because there is no such verdict:
+            # `P8Verdict.__post_init__` checks every member of `reasons` against
+            # `ALL_REASON_CODES`, so one cannot be built without at least one. A
+            # default here would be a case that cannot happen, written as though it
+            # could, and the next reader would keep it alive for that reason.
+            for reason in result.reasons:
                 abstained[reason] = abstained.get(reason, 0) + 1
             continue
         sent += 1
