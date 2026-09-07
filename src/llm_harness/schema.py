@@ -28,6 +28,7 @@ TASK3_TABLES: tuple[str, ...] = (
     "llm_call_failure",
     "llm_call_identity",
     "llm_call_reuse",
+    "llm_call_usage",
 )
 
 LLM_DOSSIER_DDL = """
@@ -273,6 +274,42 @@ BEGIN SELECT RAISE(ABORT, 'a reuse record is append-only, never overwritten'); E
 """
 
 
+#: `104` R-14. What the provider said one call cost, in the provider's own numbers.
+#: `00`:251 budgets "maximum model cost per scan" and `harness.run_call` settles
+#: every call against a constant, so the ledger has never held an observed number.
+#:
+#: `prompt_cache_hit_tokens` is why this table has the two columns nothing else in
+#: the product has: it is the number `104` R-58's frame-first prefix moves, and
+#: without it the effect is visible in a bench and nowhere a person or a later run
+#: can read it.
+#:
+#: `response_format` is here because `prompt_fingerprint` does not cover transport
+#: parameters, so this row is the only place that can say whether a call was made
+#: with JSON mode on. It comes out the day the fingerprint covers it.
+LLM_CALL_USAGE_DDL = """
+CREATE TABLE IF NOT EXISTS llm_call_usage (
+    usage_id                 TEXT PRIMARY KEY,
+    dossier_id               TEXT NOT NULL,
+    release_id               TEXT NOT NULL,
+    model_id                 TEXT NOT NULL,
+    prompt_tokens            INTEGER NOT NULL,
+    completion_tokens        INTEGER NOT NULL,
+    prompt_cache_hit_tokens  INTEGER,
+    prompt_cache_miss_tokens INTEGER,
+    response_format          TEXT NOT NULL,
+    observed_at              TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS llm_call_usage_dossier ON llm_call_usage (dossier_id);
+CREATE INDEX IF NOT EXISTS llm_call_usage_release ON llm_call_usage (release_id);
+CREATE TRIGGER IF NOT EXISTS llm_call_usage_no_delete
+BEFORE DELETE ON llm_call_usage
+BEGIN SELECT RAISE(ABORT, 'a usage record is append-only, never removed'); END;
+CREATE TRIGGER IF NOT EXISTS llm_call_usage_never_overwritten
+BEFORE UPDATE ON llm_call_usage
+BEGIN SELECT RAISE(ABORT, 'a usage record is append-only, never overwritten'); END;
+"""
+
+
 def create_llm_schema(conn: sqlite3.Connection) -> None:
     """Create P8's Task 3 tables. Idempotent. P1's `create_schema` runs first."""
     conn.executescript(LLM_DOSSIER_DDL)
@@ -285,3 +322,4 @@ def create_llm_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(LLM_CALL_FAILURE_DDL)
     conn.executescript(LLM_CALL_IDENTITY_DDL)
     conn.executescript(LLM_CALL_REUSE_DDL)
+    conn.executescript(LLM_CALL_USAGE_DDL)

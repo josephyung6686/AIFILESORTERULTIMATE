@@ -521,3 +521,38 @@ def record_call_reuse(conn: sqlite3.Connection, *, identity_id: str,
              canonical_json(sorted(reused_fields)), observed_at),
         )
     return reuse_id
+
+
+def record_call_usage(conn: sqlite3.Connection, *, dossier_id: str, release_id: str,
+                      model_id: str, prompt_tokens: int, completion_tokens: int,
+                      prompt_cache_hit_tokens: int | None,
+                      prompt_cache_miss_tokens: int | None,
+                      response_format: str, observed_at: str) -> str:
+    """`104` R-14: what the provider says one call cost, kept where a run can read it.
+
+    `00`:251 budgets "maximum model cost per scan" and `harness.run_call` settles
+    every call against `CallDependencies.actual_cost`, a constant the composition root
+    picks before the call is made. Nothing has ever recorded what a call actually
+    consumed. This is that record, and it is deliberately NOT a price: turning tokens
+    into money needs a rate card, a rate card is a deployment fact, and this module
+    invents no numbers.
+
+    The two cache columns are optional because only some providers publish them, and
+    `None` is not zero: a zero would read as "no tokens were served from cache",
+    which is a claim, where absence is what is known.
+
+    Appends no event. `database_agent.events` closes `EVENT_TYPES` and calls
+    registration "a spec-level act"; a `model_call_usage` name is the owner's.
+    """
+    usage_id = _new_id()
+    with transaction(conn):
+        conn.execute(
+            "INSERT INTO llm_call_usage ("
+            "usage_id, dossier_id, release_id, model_id, prompt_tokens, "
+            "completion_tokens, prompt_cache_hit_tokens, prompt_cache_miss_tokens, "
+            "response_format, observed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (usage_id, dossier_id, release_id, model_id, prompt_tokens,
+             completion_tokens, prompt_cache_hit_tokens, prompt_cache_miss_tokens,
+             response_format, observed_at),
+        )
+    return usage_id
