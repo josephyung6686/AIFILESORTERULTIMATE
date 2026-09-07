@@ -33,8 +33,13 @@ def main(argv: list[str]) -> int:
 
     import cli
 
+    # The user is imported and not spelled here: `reuse.seed` records a corpus
+    # selection under the same name before the run starts, and a selection whose
+    # `selected_by` differed from the run's would say two people chose this corpus.
+    from tools.groundtruth.reuse import SCOREBOARD_USER
+
     argv_for_cli = [corpus, "--situation", situation, "--label", label,
-                    "--user", "groundtruth", "--database", database]
+                    "--user", SCOREBOARD_USER, "--database", database]
     # The weights are machine state, not project state, so the harness is told
     # where they are rather than knowing. Absent means the semantic channel is off
     # and the run is the deterministic one, which is the same posture `--enable-

@@ -300,9 +300,22 @@ def scorecard(runs: Sequence[RunObservation],
     origins = collections.Counter()
     for observation in merged.values():
         origins.update(observation.field_origins.values())
+    # `104` R-123. What THIS run bought, and what it was handed, on two lines and
+    # never added together. `--reuse-answers-from` copies a prior run's answers
+    # into the fresh database before the run starts, so `llm_dossier` and
+    # `llm_verdict` hold rows nobody paid for today -- and a single total would
+    # report a rerun that spent nothing as one that spent everything again.
+    seeded = collections.Counter()
+    for run in runs:
+        seeded.update(run.seeded)
+    own = {k: tally[k] - seeded.get(k, 0) for k in tally}
     w("MODEL       " + (
-        ", ".join(f"{k.removeprefix('llm_')}={tally[k]}" for k in sorted(tally))
+        ", ".join(f"{k.removeprefix('llm_')}={own[k]}" for k in sorted(own))
         or "no model tables in these databases"))
+    if seeded:
+        w("            seeded from a prior run, not bought here: " + ", ".join(
+            f"{k.removeprefix('llm_')}={seeded[k]}" for k in sorted(seeded)
+            if seeded[k]))
     w("            field values by origin: " + (
         ", ".join(f"{k}={n}" for k, n in origins.most_common())
         or "none filled at all"))
@@ -324,7 +337,11 @@ def scorecard(runs: Sequence[RunObservation],
     # them is a fact about the files. `tools.groundtruth.payload` is the
     # instrument that answers the same question offline, and it is named here
     # because that is what a person who wanted these numbers should run.
-    if not tally.get("llm_dossier") and not tally.get("llm_refusal"):
+    # `own`, not `tally`: a seeded dossier is a record of a call some EARLIER run
+    # made, and reading one as proof that a model was configured for this one
+    # would put three misleading numbers under a heading that exists to say the
+    # opposite.
+    if not own.get("llm_dossier") and not own.get("llm_refusal"):
         w("BLOCKED     no model was configured for these runs, so nothing was "
           "offered to the route or the door")
         w("            -- run `python3 -m tools.groundtruth.payload` for what the "

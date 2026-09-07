@@ -36,6 +36,9 @@ from tools.groundtruth.report import (                              # noqa: E402
 from tools.groundtruth.protected_evidence import (                  # noqa: E402
     report as protected_evidence_report,
 )
+from tools.groundtruth.reuse import (                               # noqa: E402
+    ReuseRefused, read_seeded, refuse_unless_seedable,
+)
 from tools.groundtruth.run import label_for, run_situations         # noqa: E402
 from tools.groundtruth.score import (                               # noqa: E402
     over_marked, protected_verdict, score_situation,
@@ -50,6 +53,24 @@ def _promised_levels() -> dict[str, tuple[str, ...]]:
 
     catalogue = load_shipped_catalogue(read_packaged_library_file)
     return {row.name: tuple(row.folder_levels) for row in shipped_situations(catalogue)}
+
+
+def _seeding(result, asked_for) -> str:
+    """What the seeding did to one run, or nothing at all if it was not asked for.
+
+    Three numbers rather than one, because "reused 172" alone cannot be told from a
+    run that silently dropped every file. Seeded is what it was handed, reused is
+    what it therefore did not ask, and called is what it paid for anyway.
+
+    Printed on the strength of the FLAG and never of the numbers: `seeded 0, reused
+    0` is the most important line this can print -- a directory that answered
+    nothing -- and a version that fell silent on three zeros would hide it.
+    """
+    if asked_for is None:
+        return ""
+    left = f", {result.skipped} not in this corpus" if result.skipped else ""
+    return (f"  seeded {result.seeded}{left}, reused {result.reused}, "
+            f"called {result.calls}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -84,6 +105,29 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--score-only", action="store_true",
                         help="re-score the databases already in --out")
     parser.add_argument(
+        "--reuse-answers-from", type=Path, default=None, metavar="DIR",
+        help="seed each fresh run with the MODEL ANSWERS of the run of the same "
+             "situation in DIR, so a rerun after a code change does not buy "
+             "again what it already paid for (`104` R-123). Five tables are "
+             "copied and no others: the four a reuse is decided from -- the call "
+             "identity, the dossier it reached, the response and the verdicts -- "
+             "and the supersession rows that explain a superseded verdict, when "
+             "both of its verdicts travel. It SCANS the corpus into the fresh "
+             "database first, with the product's own scan, because R-109's key "
+             "carries the file id and that id is minted per database: the scan is "
+             "what tells this run's name for a file from the last one's. The run "
+             "then scans again and finds those rows unchanged. Keyed by R-109's "
+             "identity, whose dimensions include the file's content hash, the "
+             "prompt fingerprint, the model and the policy: a file, prompt, model "
+             "or policy that moved is a different key and is asked again, and so "
+             "is a file that was renamed or is no longer here. Nothing "
+             "about placement, structural answers, consent or plan versions is "
+             "copied, because keeping those out is why the database is fresh. "
+             "The three-run median is a measurement of the MODEL's variance and "
+             "must not use this. Refused, before anything runs, if DIR is "
+             "missing, if a situation has no database there, or if that "
+             "database's llm_* schema is not this checkout's.")
+    parser.add_argument(
         "--payload", action="store_true",
         help="also report what the model would be SENT: the largest dossier in "
              "bytes and measured tokens, how many are over the stored ceiling, a "
@@ -113,6 +157,16 @@ def main(argv: list[str] | None = None) -> int:
 
     labels = load_labels(args.labels)
     situations = tuple(args.situation) or labels.situations()
+    # BEFORE `--out` is made and long before the first `unlink`. Every refusal
+    # this can raise is about the PRIOR directory, and a run that discovered one
+    # halfway would already have deleted the database it was refusing to replace.
+    if args.reuse_answers_from is not None:
+        try:
+            refuse_unless_seedable(args.reuse_answers_from, situations,
+                                   out_dir=args.out, score_only=args.score_only)
+        except ReuseRefused as refused:
+            print(refused, file=sys.stderr)
+            return 2
     promised = _promised_levels()
     args.out.mkdir(parents=True, exist_ok=True)
     corpus_files = sum(1 for p in args.corpus.rglob("*") if p.is_file())
@@ -123,6 +177,16 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(f"running {len(situations)} situations over {corpus_files} files, "
               f"{args.workers} at a time. Each run reads the whole corpus.")
+        if args.reuse_answers_from is not None:
+            # What the seeding DOES, never what it will save. A run that promised
+            # a saving on the line above and printed `reused 0` on the line below
+            # would be telling a person their key matched when it did not, and
+            # which questions were found is the only honest form of the claim.
+            print(f"seeding each run's answers from {args.reuse_answers_from}. "
+                  f"Every question is looked up under R-109's call identity "
+                  f"before it is asked, and `reused` on each line below is how "
+                  f"many were found there; `called` is this run's own spend. The "
+                  f"MODEL line in the scorecard counts the seeded rows as well.")
         if args.enable_cloud:
             print(f"!! SENDING TO THE CLOUD MODEL: {len(situations)} runs over "
                   f"{corpus_files} files each. This spends money.", flush=True)
@@ -130,8 +194,11 @@ def main(argv: list[str] | None = None) -> int:
             args.corpus, situations, args.out, workers=args.workers,
             load_ceiling=args.load_ceiling, force=args.force,
             cloud=args.enable_cloud,
+            reuse_answers_from=args.reuse_answers_from,
             on_done=lambda r: print(f"  {r.seconds / 60:5.1f} min  exit {r.exit_code}  "
-                                    f"{r.situation}", flush=True))
+                                    f"{r.situation}"
+                                    f"{_seeding(r, args.reuse_answers_from)}",
+                                    flush=True))
         for result in results:
             if result.exit_code != 0:
                 print(f"\n!! {result.situation} exited {result.exit_code}\n"
@@ -148,6 +215,10 @@ def main(argv: list[str] | None = None) -> int:
         runs.append(observe_run(
             database, args.corpus, situation=situation, label=label_for(situation),
             promised_levels=promised.get(situation, ()),
+            # Read from the out directory rather than carried from `results`, so
+            # `--score-only` over a seeded run months later still knows which rows
+            # nobody paid for. `104` R-123.
+            seeded=read_seeded(args.out, situation),
             report=report.read_text(encoding="utf-8") if report.exists() else ""))
     if missing:
         print(f"no database for: {', '.join(missing)}", file=sys.stderr)
