@@ -471,3 +471,350 @@ def test_a_document_that_states_no_course_offers_no_anchor_line(conn, tmp_path):
 
     assert cli.anchor_line_citations(
         conn, scan_run_id="scan-r135", file_id=code.file_id) == ()
+
+
+# --------------------------------------------------------------------------
+# Site A: the syllabus beside the file reaches the fact model, as CONTEXT
+# --------------------------------------------------------------------------
+
+#: The coursework file's own words. It names the course the way the person does and
+#: never the way the label expects -- which is `104` R-135's whole finding: 35 of the
+#: 43 files whose label carries a course name carry no code anywhere in their bytes.
+COURSEWORK = "Data Structures, Homework 3: heaps and priority queues"
+
+
+def _classified(conn, file_id, content_hash, *, refs, protected=False):
+    from privacy.classification import ClassificationRecord
+    from privacy.classification_store import ClassificationStore
+
+    ClassificationStore(conn).write(ClassificationRecord(
+        file_id=file_id, content_hash=content_hash,
+        handling_class="public_low", protected=protected, basis="detector",
+        evidence_refs=tuple(refs), reliability_state="direct",
+        observed_at=CLOCK))
+
+
+def _folder_corpus(conn, tmp_path, *, coursework_folder="Courses/Data Structures",
+                   syllabus_folder="Courses/Data Structures"):
+    """A syllabus and a piece of coursework, in folders the caller chooses.
+
+    The two folders are parameters because the containment rule is the thing under
+    test: the same two files in sibling folders must produce nothing.
+    """
+    import cli
+    from facts.anchor_statements import record_anchor_statements
+    from facts.fields import create_fields
+    from privacy.schema import create_privacy_schema
+
+    create_schema(conn)
+    create_evidence_schema(conn)
+    create_fields(conn)
+    create_privacy_schema(conn)
+    conn.executescript(SENSITIVITY_DDL)
+
+    def store(folder, name, text, *, zone, span, before, after, ordinal):
+        path = tmp_path / folder / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(text.encode())
+        file_id = record_file(
+            conn, path, filename=name, normalized_filename=name.lower(),
+            extension=".pdf", observed_size=len(text.encode()),
+            observed_timestamps=json.dumps({"mtime": 1_700_000_000.0}),
+            parent_folder_context=folder, mime_type="application/pdf",
+            detected_format="pdf", scan_state="included", materialized=True)
+        content_hash = get_file(conn, file_id)["content_hash"]
+        run_id = f"run-{name}"
+        record_run(conn, ExtractionRun(
+            run_id=run_id, file_id=file_id, content_hash=content_hash,
+            extractor_name="pdf.text", extractor_version="1.0.0",
+            source_type="text_document", analysis_tier="native", config={},
+            completeness="complete", started_at=CLOCK, finished_at=CLOCK))
+        container = (Segment("page", 1), Segment("heading", ordinal))
+        record_text_unit(conn, TextUnit(
+            run_id=run_id, container_path=container, text=text))
+        observation = Observation(
+            file_id=file_id, content_hash=content_hash, extractor_name="pdf.text",
+            extractor_version="1.0.0", source_type="text_document", raw_value=text,
+            location=Location(zone, container, text_span=span),
+            occurrence_count=1, observed_at=CLOCK, reliability="possible",
+            run_id=run_id, context_before=before, context_after=after)
+        record_observation(conn, observation)
+        _classified(conn, file_id, content_hash,
+                    refs=(observation.observation_key,))
+        return file_id, content_hash, observation
+
+    syllabus, syllabus_hash, line = store(
+        syllabus_folder, "syllabus.pdf", HEADING, zone="heading",
+        span=TextSpan(0, len(HEADING)), before="Syllabus\n",
+        after="\nInstructor: Dr Lacker", ordinal=1)
+    # The identifier P4 finds inside the heading, over the same container path.
+    code_start = HEADING.index("W3134")
+    code = Observation(
+        file_id=syllabus, content_hash=syllabus_hash, extractor_name="pdf.text",
+        extractor_version="1.0.0", source_type="text_document", raw_value="W3134",
+        location=Location("heading", (Segment("page", 1), Segment("heading", 1)),
+                          text_span=TextSpan(code_start, code_start + 5)),
+        occurrence_count=1, observed_at=CLOCK, reliability="possible",
+        run_id="run-syllabus.pdf",
+        context_before=f"Syllabus\n{HEADING[:code_start]}",
+        context_after=HEADING[code_start + 5:])
+    record_observation(conn, code)
+
+    homework, homework_hash, own = store(
+        coursework_folder, "homework3.pdf", COURSEWORK, zone="body",
+        span=TextSpan(0, 14), before="", after="", ordinal=1)
+
+    record_anchor_statements(
+        conn, scan_run_id="scan-r135",
+        file_versions=[(syllabus, syllabus_hash), (homework, homework_hash)],
+        is_code=lambda text: cli.SUBJECT_RULE.pattern.search(text) is not None,
+        canonical=cli.SUBJECT_RULE.canonical,
+        anchor_terms=cli.COURSE_ANCHOR_TERMS,
+        reads_in_document=cli.reads_a_structured_string)
+    return dict(syllabus=syllabus, syllabus_hash=syllabus_hash, line=line,
+                homework=homework, homework_hash=homework_hash, own=own)
+
+
+def _prompt():
+    from llm_harness.records import PromptDefinition
+    from llm_harness.vocabulary import A_FACT
+
+    return PromptDefinition(
+        template_id="template.a_fact.r135", template_bytes=b"TEMPLATE",
+        response_schema_bytes=b'{"type":"object"}', call_site=A_FACT,
+        call_site_version="1", shaping_policy_bytes=b'{"policy":"authored"}')
+
+
+def _target():
+    from privacy.release import ModelTarget
+
+    return ModelTarget(locality="local", model_id="local-model",
+                       provider="fixture")
+
+
+def _fact_request(conn, world, context):
+    """P6's request for the coursework file, carrying the context it was shown."""
+    from facts.domains import ActivationSignal, ActivationSignals
+    from facts.llm_seam import build_request
+
+    return build_request(
+        conn, file_id=world["homework"], content_hash=world["homework_hash"],
+        activation_signals=ActivationSignals(signals=(
+            ActivationSignal(schema_id="academic", activates=lambda rows: True),)),
+        normalizers={}, context_observations=context)
+
+
+def _site_a_dossier_with_context(request, world):
+    """What P7 released for that call: the file's own reading, and the neighbour's.
+
+    The neighbour's item carries `context-supported`, which is the single field
+    `_acceptance_outcome` reads to decide the verdict under test.
+    """
+    from llm_harness.records import Dossier, EvidenceItem, ReleasedEvidence
+    from llm_harness.vocabulary import (
+        A_FACT, CONTEXT_SUPPORTED, DIRECT_ANCHOR, REDUCTION_NONE,
+        REMAINS_AMBIGUOUS,
+    )
+
+    own, line = world["own"], world["line"]
+    return Dossier(
+        dossier_id="dossier-r135-site-a", call_site=A_FACT,
+        subject_ref=request.file_id, eligibility_reason=REMAINS_AMBIGUOUS,
+        plan_version=None, policy_version="policy-1",
+        allowed_vocabulary=tuple(request.allowlist),
+        evidence_items=(
+            EvidenceItem(evidence_ref=own.observation_key, kind="excerpt",
+                         location="body", excerpt_span=(0, 14),
+                         reliability_state="possible", basis=DIRECT_ANCHOR),
+            EvidenceItem(evidence_ref=line.observation_key, kind="excerpt",
+                         location="heading", excerpt_span=(0, len(HEADING)),
+                         reliability_state="possible", basis=CONTEXT_SUPPORTED)),
+        conflicts=(),
+        released_evidence=(
+            ReleasedEvidence(observation_key=own.observation_key,
+                             address="body:page=1/heading=1#0-14",
+                             value=COURSEWORK[:14], zone="body",
+                             unit_length=len(COURSEWORK)),
+            ReleasedEvidence(observation_key=line.observation_key,
+                             address=f"heading:page=1/heading=1#0-{len(HEADING)}",
+                             value=HEADING, zone="heading",
+                             unit_length=len(HEADING))),
+        max_dossier_tokens=4000, reduction_rung=REDUCTION_NONE,
+        release_id="rel-1")
+
+
+def _context_for(conn, world, *, fields=("subject",)):
+    import cli
+
+    return cli.anchor_context_observations(
+        conn, scan_run_id="scan-r135", file_id=world["homework"], fields=fields,
+        limit=10)
+
+
+def test_the_syllabus_beside_a_file_reaches_its_subject_call_as_context(
+        conn, tmp_path):
+    """`104` R-135 at site A, and it is the half no site-C fix can reach.
+
+    The coursework file says `Data Structures` and no code; the code is printed once,
+    on the syllabus in the same folder, and a `FactResolver` stage asked about one file
+    version at a time can never see it. 19 of the owner's 43 labelled course codes came
+    back missing for exactly that reason.
+
+    The reading arrives as CONTEXT and is marked as one. `basis` is
+    `context-supported`, the target names the syllabus so the gate will resolve its
+    span, and the subject file is FIRST in that target because `Gate._decisive` reads
+    `file_ids[0]` as the class the release is judged under.
+    """
+    from llm_harness.vocabulary import CONTEXT_SUPPORTED
+    from model_facts import build_fact_request
+
+    world = _folder_corpus(conn, tmp_path)
+    context = _context_for(conn, world)
+    assert [one.observation_key for one in context] == [
+        world["line"].observation_key]
+
+    request = _fact_request(conn, world, context)
+    built = build_fact_request(
+        request, (world["own"],), context=context,
+        model_target=_target(), prompt=_prompt(), max_dossier_tokens=4000)
+
+    carried = {item.evidence_ref: item for item in built.evidence_items}
+    line_key = world["line"].observation_key
+    assert carried[line_key].basis == CONTEXT_SUPPORTED
+    assert carried[world["own"].observation_key].basis != CONTEXT_SUPPORTED
+    assert line_key in {getattr(item, "observation_key", None)
+                        for item in built.model_call_request.requested_items}
+    # The subject file first, the stating file after it, and no third.
+    assert built.model_call_request.target.file_ids == (
+        world["homework"], world["syllabus"])
+
+
+def test_a_code_cited_from_the_syllabus_validates_as_context_supported(
+        conn, tmp_path):
+    """The verdict, which is the assertion that says this is not a widening.
+
+    A `subject` the model read off a NEIGHBOUR is accepted and it is accepted as
+    `accept_context_supported`, so `_make_verdict` sets `requires_review` and the fact
+    reaches a person rather than standing as if the file had said it itself. Check 2
+    admits the citation because `FactRequest.context_observations` carries the reading;
+    without that the claim is `CITATION_NOT_FOUND` and the model is shown evidence it
+    is forbidden to cite, which is worse than showing it nothing.
+    """
+    from facts.llm_seam import Proposal
+    from llm_harness.fact_validation import (
+        FactValidationDependencies, validate_fact_proposal,
+    )
+    from llm_harness.records import Citation
+    from llm_harness.vocabulary import ACCEPT_CONTEXT_SUPPORTED
+
+    world = _folder_corpus(conn, tmp_path)
+    context = _context_for(conn, world)
+    request = _fact_request(conn, world, context)
+    line_key = world["line"].observation_key
+
+    dossier = _site_a_dossier_with_context(request, world)
+    proposal = Proposal(field_key="subject", value="W3134",
+                        citations=(line_key,), unknown=False)
+    verdict = validate_fact_proposal(
+        conn, request, proposal,
+        dependencies=FactValidationDependencies(
+            normalize=lambda field, raw: raw,
+            contradicts=lambda proposal, row: False,
+            normalize_for_review=None),
+        model_identifier="local-model", prompt_fingerprint="fp-1",
+        policy_version="policy-1", dossier=dossier,
+        citations=(Citation(evidence_ref=line_key, cited_span="W3134",
+                            metadata_field_name=None,
+                            why_it_supports="the syllabus states the code"),),
+        evidence_resolver=lambda key: HEADING,
+        apply_consequence=False)
+
+    assert verdict.outcome == ACCEPT_CONTEXT_SUPPORTED, verdict.reasons
+    assert verdict.requires_review is True
+
+
+def test_a_file_whose_folder_has_no_anchor_gets_no_context(conn, tmp_path):
+    """Containment, and nothing looser. A syllabus in a SIBLING folder speaks for
+    nothing here: `_folder_family` is the file's own folder and its ancestors, which is
+    a fact the person created by filing the two apart. A resemblance rule would have
+    matched these two on the words in their names, which is the second thing site C's
+    prompt tells a model not to do.
+    """
+    world = _folder_corpus(
+        conn, tmp_path,
+        coursework_folder="Courses/Data Structures",
+        syllabus_folder="Courses/Advanced Programming")
+
+    assert _context_for(conn, world) == ()
+
+
+def test_a_call_not_asking_the_field_gets_no_context(conn, tmp_path):
+    """The narrowing that keeps this off every other call in the product.
+
+    Which field a course code answers is `cli`'s, beside `SUBJECT_RULE` -- a call about
+    `language` or `file_type` is handed nothing, so no other file's text joins a
+    dossier that had no use for it and no target grows an id for nothing.
+    """
+    world = _folder_corpus(conn, tmp_path)
+
+    assert _context_for(conn, world, fields=("language", "file_type")) == ()
+
+
+def test_no_filename_and_no_path_ever_becomes_an_anchor(conn, tmp_path):
+    """§8.4's members 1 and 6, and the reason this row could not have been built on
+    them. The corpus below puts the course code in the FOLDER NAME and in the FILE
+    NAME and nowhere in any document, which is the shape a resemblance rule would have
+    loved. `reads_a_structured_string` admits a span inside `body` or `heading` only,
+    so `filename`, `path`, `title` and every `metadata:*` zone are outside the anchor
+    rule by construction and no statement is recorded at all.
+    """
+    import cli
+    from facts.anchor_statements import anchor_statements_for
+    from facts.fields import create_fields
+    from evidence_shape.location import Segment as Seg
+
+    create_schema(conn)
+    create_evidence_schema(conn)
+    create_fields(conn)
+    conn.executescript(SENSITIVITY_DDL)
+
+    folder = tmp_path / "Courses" / "COMS W3134 Data Structures"
+    folder.mkdir(parents=True)
+    name = "COMS W3134 syllabus.pdf"
+    path = folder / name
+    path.write_bytes(b"nothing in the bytes names a course")
+    file_id = record_file(
+        conn, path, filename=name, normalized_filename=name.lower(),
+        extension=".pdf", observed_size=34,
+        observed_timestamps=json.dumps({"mtime": 1_700_000_000.0}),
+        parent_folder_context="Courses", mime_type="application/pdf",
+        detected_format="pdf", scan_state="included", materialized=True)
+    content_hash = get_file(conn, file_id)["content_hash"]
+    record_run(conn, ExtractionRun(
+        run_id="run-named", file_id=file_id, content_hash=content_hash,
+        extractor_name="filesystem", extractor_version="1.0.0",
+        source_type="filesystem", analysis_tier="native", config={},
+        completeness="complete", started_at=CLOCK, finished_at=CLOCK))
+    for zone, value in (("filename", name), ("path", str(folder)),
+                        ("title", "COMS W3134 Data Structures")):
+        record_observation(conn, Observation(
+            file_id=file_id, content_hash=content_hash,
+            extractor_name="filesystem", extractor_version="1.0.0",
+            source_type="filesystem", raw_value=value,
+            location=Location(zone, (Seg("field", label=zone),)),
+            occurrence_count=1, observed_at=CLOCK, reliability="direct",
+            run_id="run-named", context_before="Syllabus ", context_after=" 2026"))
+
+    from facts.anchor_statements import record_anchor_statements
+
+    record_anchor_statements(
+        conn, scan_run_id="scan-r135", file_versions=[(file_id, content_hash)],
+        is_code=lambda text: cli.SUBJECT_RULE.pattern.search(text) is not None,
+        canonical=cli.SUBJECT_RULE.canonical,
+        anchor_terms=cli.COURSE_ANCHOR_TERMS,
+        reads_in_document=cli.reads_a_structured_string)
+
+    assert anchor_statements_for(conn, "scan-r135") == ()
+    assert cli.anchor_context_observations(
+        conn, scan_run_id="scan-r135", file_id=file_id,
+        fields=("subject",), limit=10) == ()

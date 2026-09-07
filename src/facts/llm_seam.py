@@ -61,7 +61,7 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass, field
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, Sequence
 
 from evidence_shape.canonical import canonical_json
 from evidence_shape.observation import Observation, is_observation_key
@@ -142,6 +142,20 @@ class FactRequest:
     citable_observations: tuple[Observation, ...]
     existing_facts: tuple[sqlite3.Row, ...]
     normalizers: Mapping[str, Callable[[str], Any]]
+    #: `104` R-135: readings of ANOTHER file that this call was allowed to show as
+    #: CONTEXT, and which a citation may therefore name. Separate from
+    #: `citable_observations` and not folded into it, because that field is this file
+    #: version's own readings and check 2's coarse half is written against exactly
+    #: that: a fact is about a file, and an answer resting only on a neighbour's words
+    #: is a different kind of answer. P8 records the difference rather than losing it
+    #: -- `EvidenceItem.basis` is `context-supported` for these, so
+    #: `validation._acceptance_outcome` returns `ACCEPT_CONTEXT_SUPPORTED` and the
+    #: fact carries a review obligation.
+    #:
+    #: EMPTY BY DEFAULT AND EMPTY IS THE COMMON CASE. A deployment that offers no
+    #: context, and a file with no anchor near it, both produce `()`, and check 2 then
+    #: admits exactly what it admitted before this field existed.
+    context_observations: tuple[Observation, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -197,7 +211,8 @@ class Verdict:
 
 def build_request(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
                   activation_signals: Any,
-                  normalizers: Mapping[str, Callable[[str], Any]]) -> FactRequest:
+                  normalizers: Mapping[str, Callable[[str], Any]],
+                  context_observations: Sequence[Observation] = ()) -> FactRequest:
     """The four inputs, for one file version.
 
     The allowlist is Task 13's answer, not a second reading of the catalogue: §3.5's
@@ -227,7 +242,11 @@ def build_request(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
         citable_observations=tuple(
             observations_for_version(conn, file_id, content_hash)),
         existing_facts=stronger,
-        normalizers=normalizers)
+        normalizers=normalizers,
+        # `104` R-135. The CALLER's, never read from the database here: which
+        # neighbouring readings a call may show is a composition decision about
+        # folders, privacy and the field being asked, and P6 owns none of the three.
+        context_observations=tuple(context_observations))
 
 
 def apply_verdict(conn: sqlite3.Connection, *, request: FactRequest,

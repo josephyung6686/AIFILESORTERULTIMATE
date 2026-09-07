@@ -161,7 +161,13 @@ def test_the_request_carries_the_four_inputs_and_nothing_else(subject_file, p6_c
     request = _request(p6_conn, subject_file)
     assert [f.name for f in dataclasses.fields(FactRequest)] == [
         "file_id", "content_hash", "allowlist", "citable_observations",
-        "existing_facts", "normalizers"]
+        "existing_facts", "normalizers", "context_observations"]
+    # `104` R-135's field is a SEVENTH NAME AND NOT A FIFTH INPUT. §3.6's four checks
+    # are computed from the four above exactly as before; this one carries readings of
+    # ANOTHER file that the caller chose to show, so a citation naming one passes check
+    # 2's coarse half instead of being rejected as an observation that does not exist.
+    # It is empty unless a deployment offers context, which is every request here.
+    assert request.context_observations == ()
     assert request.file_id == file_id and request.content_hash == content_hash
     assert "subject" in request.allowlist
     assert [one.observation_key for one in request.citable_observations] == [key]

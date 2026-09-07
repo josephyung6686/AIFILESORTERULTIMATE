@@ -31,6 +31,7 @@ from llm_harness.records import (
     ValidationUnavailable,
 )
 from llm_harness.validation import check_citations
+from llm_harness.validation import acceptance_outcome
 from llm_harness.value_grounding import value_is_grounded
 from llm_harness.vocabulary import (
     ABSTAIN,
@@ -292,7 +293,18 @@ def _run_checks(
     if isinstance(existing, ValidationUnavailable):
         return existing
 
-    citable_keys = {item.observation_key for item in observations}
+    # `104` R-135: this file version's own readings, AND the neighbouring readings
+    # this call was allowed to show as context. Check 2's coarse half asks whether the
+    # cited key is a P6 observation at all -- "asking whether it was released would be
+    # asking about something that does not exist" -- and a context reading exists. What
+    # tells the two apart is not this set but `EvidenceItem.basis`, which is
+    # `context-supported` for a context item, so `_acceptance_outcome` returns
+    # `ACCEPT_CONTEXT_SUPPORTED` and the fact carries a review obligation instead of
+    # standing as if the file had said it itself. `context_observations` is empty for
+    # every deployment and every file that offers none, so this set is unchanged there.
+    citable_keys = ({item.observation_key for item in observations}
+                    | {item.observation_key
+                       for item in request.context_observations})
     grounded = check_citations(rich, dossier, evidence_resolver)
     if isinstance(grounded, ValidationUnavailable):
         return grounded
@@ -365,6 +377,16 @@ def _run_checks(
                 citations_checked=checked, policy_version=policy_version,
                 dossier_id=dossier_id,
             )
+    if outcome == ACCEPT_DIRECT:
+        # `104` R-135. Check 3 has already had its say -- its own
+        # `accept_context_supported` is R-98's review normaliser and stands -- and this
+        # asks the other question: was the answer grounded ONLY in a reading of another
+        # file? `EvidenceItem.basis` is `context-supported` for those and
+        # `acceptance_outcome` is the same rule the other four sites take, so a
+        # `subject` read off a neighbouring syllabus is accepted, marked
+        # `requires_review`, and written `possible` rather than standing as if the file
+        # had said it itself. A claim citing the file's own text as well is direct.
+        outcome = acceptance_outcome(dossier, rich)
     return _verdict(
         request, proposal, outcome=outcome,
         reasons=(), citations_checked=checked, policy_version=policy_version,

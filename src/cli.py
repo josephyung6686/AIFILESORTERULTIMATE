@@ -157,7 +157,7 @@ from placement.residual import ProtectedSetNotReadable, prior_set_decisions
 from placement.schema import create_placement_schema
 from model_facts import (
     FactCallAuthorities, fact_call_stage, measure_released_tokens,
-    pending_fields_for,
+    pending_fields_for, releasable_observations,
 )
 from privacy.classification import UNREADABLE_UNCLASSIFIED, resolve_class
 from privacy.classification_store import ClassificationStore
@@ -3657,7 +3657,17 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
         # `model_facts` carries the whole of why they stop at this record rather
         # than reaching the dossier, and the composition root's only job is to read
         # them off the release it already loaded.
-        deferred_readings=deferred_readings)
+        deferred_readings=deferred_readings,
+        # `104` R-135. WHICH NEIGHBOURS SPEAK FOR A FILE IS THIS DEPLOYMENT'S ANSWER,
+        # which is why it is bound here and not defaulted in `model_facts`: it rests
+        # on `SUBJECT_FIELD`, on the corpus's own folders, and on this run's
+        # classification records, and P6 and P8 own none of the three. The cap is the
+        # same `max_released_observations` the file's own readings are drawn under,
+        # because a neighbour's readings are released through the same door.
+        anchor_context_for=lambda db, *, file_id, content_hash, fields: (
+            anchor_context_observations(
+                db, scan_run_id=scan_run_id, file_id=file_id, fields=fields,
+                limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS)))
 
 
 def _stored_value_of(conn: sqlite3.Connection):
@@ -5319,6 +5329,104 @@ def anchor_line_citations(conn: sqlite3.Connection, *, scan_run_id: str,
         # `model_facts.filename_citation` states the rule for the same field.
         lines.append((ref, observation.location, observation.reliability))
     return tuple(lines)
+
+
+def _folder_family(subject_path: str, stating_path: str) -> bool:
+    """Whether a document at `stating_path` speaks for a file at `subject_path`.
+
+    THE FOLDER, AND ITS ANCESTORS, AND NOTHING ELSE. A syllabus in `Courses/Data
+    Structures/` speaks for the coursework beside it and for whatever sits in the
+    sub-folders under it; a syllabus in a sibling folder speaks for nothing here. That
+    is a containment test over the two paths and it is the whole rule -- no shared
+    word, no similar name, no distance score. `00`:56's own example is the file
+    `HW 3.pdf` that "lacks the course code but resembles lecture notes"; the folder the
+    person filed it in is a fact about it that the product already has.
+
+    **The paths never leave the device and this is where that is enforced.** §8.4 puts
+    paths in the always-local set as member 1, `releasable_observations` drops every
+    `path`-zone observation, and nothing here returns one: the answer is a boolean, and
+    what travels afterwards is an OBSERVATION KEY that the gate resolves for itself.
+    A neighbour is FOUND by the path and is never described by it.
+    """
+    subject = Path(subject_path).parent
+    stating = Path(stating_path).parent
+    return subject == stating or stating in subject.parents
+
+
+def anchor_context_observations(conn: sqlite3.Connection, *, scan_run_id: str,
+                                file_id: str, fields: Sequence[str],
+                                limit: int) -> tuple:
+    """`104` R-135: the anchor headings near this file that a `subject` call may show.
+
+    **The defect, measured.** 19 of the owner's 43 labelled course codes came back
+    MISSING, and 35 of the 43 files whose label carries a course name carry no course
+    code anywhere in their own bytes. The code is printed once, on the syllabus, and a
+    stage asked about one file version at a time can never see it -- so the model
+    answered `unknown` about those files, correctly, from evidence that was never
+    there. `facts.anchor_statements` recorded WHERE the corpus states a course; this
+    is what carries that reading to the file the sentence is about.
+
+    **Four narrowings, each structural.**
+
+      * *Only the field the deployment ties this to.* `SUBJECT_FIELD` is cli's, beside
+        `SUBJECT_RULE` and `COURSE_ANCHOR_TERMS`, because which field a course code
+        answers is a deployment's question and `model_facts` may not spell it. A call
+        that is not asking it gets nothing.
+      * *Only a document in this file's folder or above it.* `_folder_family`, over
+        paths that stay here.
+      * *Never the file itself.* Its own readings are already offered as direct
+        evidence; the same reading twice, once as context, would tell the model a file
+        corroborates itself.
+      * *Only a classified, unprotected neighbour, and only its releasable readings.*
+        The gate would refuse the rest, and it would refuse the WHOLE call: the target
+        gains this file's id, so `Gate._decisive` classifies it and an unclassified or
+        protected syllabus denies the fact call of an unrelated file beside it. That
+        is `releasable_observations`' own rule applied once more -- "each is one of the
+        gate's own refusals applied a step early, so the call is never BUILT rather
+        than built and denied" -- and it is why this asks
+        `model_facts.releasable_observations` for the stating file rather than
+        assembling an address itself: the zone rules, P5's per-value signal and the
+        whole-unit rule all come with it, including `104` R-135's own exemption, which
+        is what makes a heading releasable at all.
+
+    Nothing is chosen. Every anchor near the file is offered and the model decides;
+    two syllabuses naming two courses both arrive, which is the case the constitution's
+    "no sorting rules" exists for.
+    """
+    if SUBJECT_FIELD not in tuple(fields):
+        return ()
+    row = get_file(conn, file_id)
+    if row is None:
+        return ()
+    subject_path = row["current_path"]
+    store = ClassificationStore(conn)
+    wanted: dict[str, set[str]] = {}
+    for statement in anchor_statements_for(conn, scan_run_id):
+        if statement.line_evidence_ref is None:
+            continue
+        if statement.stating_file_id == file_id:
+            continue
+        stating = get_file(conn, statement.stating_file_id)
+        if stating is None or not _folder_family(subject_path,
+                                                 stating["current_path"]):
+            continue
+        record = store.current(statement.stating_file_id, stating["content_hash"])
+        if record is None or record.protected:
+            # The gate's own two refusals, a step early. An unclassified neighbour is
+            # `Denied(unclassified)` for a cloud target and a protected one is
+            # `ProtectedItemRequested`; either would cost this file its whole call.
+            continue
+        wanted.setdefault(statement.stating_file_id, set()).add(
+            statement.line_evidence_ref)
+    offered = []
+    for stating_file_id, keys in wanted.items():
+        stating = get_file(conn, stating_file_id)
+        for observation in releasable_observations(
+                conn, file_id=stating_file_id,
+                content_hash=stating["content_hash"], limit=limit):
+            if observation.observation_key in keys:
+                offered.append(observation)
+    return tuple(offered)
 
 
 def files_stating_each_fact(conn: sqlite3.Connection) -> dict[str, int]:

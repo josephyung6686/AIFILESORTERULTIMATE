@@ -72,7 +72,9 @@ from llm_harness.store import (
     refusal_outcome,
 )
 from llm_harness.transport import ModelClient
-from llm_harness.vocabulary import A_FACT, DIRECT_ANCHOR, REMAINS_AMBIGUOUS
+from llm_harness.vocabulary import (
+    A_FACT, CONTEXT_SUPPORTED, DIRECT_ANCHOR, REMAINS_AMBIGUOUS,
+)
 from privacy.gate import Gate
 from privacy.policy import policy_at
 from privacy.items import Excerpt, Filename, sensitive_observation_keys
@@ -307,6 +309,20 @@ class FactCallAuthorities:
     #: did before this field existed, so the default is the old behaviour rather than
     #: a fallback that guesses.
     normalize_for_review: Callable[[str, str], object] | None = None
+    #: `104` R-135. `(conn, file_id, content_hash, fields) -> Sequence[Observation]`:
+    #: readings of OTHER files this call may show as context, or `()`. The composition
+    #: root's, entirely -- which neighbours speak for a file, which field their words
+    #: answer, and which of them privacy allows are three deployment questions and this
+    #: module answers none of them. `cli.anchor_context_observations` is this
+    #: deployment's answer and it says why each of its narrowings is structural.
+    #:
+    #: `None` is not a stub: a deployment that offers no context is a real deployment,
+    #: and every site-A call it makes is exactly the call it made before this field
+    #: existed. The consequence of supplying one is visible rather than silent -- the
+    #: target gains the stating file's id, the gate classifies it, and a fact resting
+    #: only on a neighbour's words is `ACCEPT_CONTEXT_SUPPORTED` and carries a review
+    #: obligation.
+    anchor_context_for: Callable[..., Sequence] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "folder_levels",
@@ -548,10 +564,43 @@ def _filename_reliability(conn, observation_key: str) -> str:
     return row["reliability"]
 
 
+def _context_items(observations: Sequence) -> tuple[EvidenceItem, ...]:
+    """`104` R-135's context metadata: a NEIGHBOUR's reading, marked as one.
+
+    Identical to `_evidence_items` in every field but `basis`, and that field is the
+    whole point. `direct-anchor` says the file itself carries this; `context-supported`
+    says something near it does. `validation._acceptance_outcome` reads the bases of
+    the items a claim cited and returns `ACCEPT_CONTEXT_SUPPORTED` when every one of
+    them is context, which `_make_verdict` turns into `requires_review=True` -- so a
+    `subject` the model read off a neighbouring syllabus is recorded, and recorded as
+    a fact a person still has to confirm. A file that also cites its own text gets the
+    ordinary direct outcome, because the mixed case is not a context-only answer.
+
+    §8.4's gate decides what of this is releasable, and P7 refuses an item whose
+    observation resolves outside `Target.file_ids` -- which is why the site-A target
+    gains the stating file's id below. Withholding the id and offering the item would
+    be an `UnresolvableSpan` at the door, after the release had been minted.
+    """
+    return tuple(
+        EvidenceItem(
+            evidence_ref=observation.observation_key,
+            kind="excerpt",
+            location=serialize_locator(observation.location),
+            excerpt_span=(None if observation.location.text_span is None else
+                          (observation.location.text_span.start,
+                           observation.location.text_span.end)),
+            reliability_state=observation.reliability,
+            basis=CONTEXT_SUPPORTED,
+        )
+        for observation in observations
+    )
+
+
 def build_fact_request(
     request: FactRequest,
     observations: Sequence, *,
     filename: EvidenceItem | None = None,
+    context: Sequence = (),
     model_target: ModelTarget,
     prompt: PromptDefinition,
     max_dossier_tokens: int,
@@ -582,14 +631,37 @@ def build_fact_request(
         # files of one situation. A per-file name in it would end the prefix at
         # the first file.
         evidence_items=((filename,) if filename is not None else ())
-        + _evidence_items(observations),
+        + _evidence_items(observations)
+        # `104` R-135, LAST rather than first, and for `filename`'s reason read the
+        # other way: R-58's shared prefix is the frame, and these vary per file.
+        + _context_items(context),
         # P6 holds no conflict record of its own; §3.7's competing-value case is
         # settled by the ranking before a model is asked, so a file that reaches
         # here has none to declare.
         conflicts=(),
         model_call_request=ModelCallRequest(
             stage=FACT_STAGE,
-            target=Target(file_ids=(request.file_id,), group_id=None),
+            # `104` R-135: THE SUBJECT FILE FIRST, and every file a context reading
+            # was taken from after it. `gate._resolve` refuses an item whose
+            # observation lives outside `target.file_ids` (`UnresolvableSpan`,
+            # "outside request.target.file_ids"), so a context excerpt offered
+            # without its file's id here is refused at the door after the release has
+            # been minted. FIRST is load-bearing too: `gate._decisive` reads
+            # `records[file_ids[0]]` as the handling class this release is judged
+            # under, and that must be the file the call is about.
+            #
+            # The gate now classifies every id in this tuple, which is the widening
+            # this row accepts on purpose: a protected or unclassified neighbour
+            # denies the whole call. `fact_call_stage`'s context authority applies
+            # that refusal a step early -- `releasable_observations`' own rule, "each
+            # is one of the gate's own refusals applied a step early so the call is
+            # never BUILT rather than built and denied" -- so an ordinary file does
+            # not lose its own fact call to a syllabus nobody classified.
+            target=Target(
+                file_ids=(request.file_id,) + tuple(dict.fromkeys(
+                    observation.file_id for observation in context
+                    if observation.file_id != request.file_id)),
+                group_id=None),
             model_target=model_target,
             # THE FILENAME LEADS, and it is the sixth kind going through the door
             # built for it. `releasable_observations` drops every `filename`-zone
@@ -619,6 +691,17 @@ def build_fact_request(
                     reason="a reading of this file the fields may rest on",
                 )
                 for observation in observations
+            ) + tuple(
+                # `104` R-135. The same kind of item and the same door; what marks it
+                # context is `EvidenceItem.basis` above, not a second channel. P7 has
+                # no notion of context and must not be given one: it decides what may
+                # leave, and this is text of a file exactly as the rest is.
+                Excerpt(
+                    observation_key=observation.observation_key,
+                    span=observation.location.text_span,
+                    reason="a reading near this file the fields may rest on",
+                )
+                for observation in context
             ),
             prompt_template_id=prompt.template_id,
             prompt_fingerprint=prompt_fingerprint(prompt),
@@ -809,11 +892,29 @@ def fact_call_stage(authorities: FactCallAuthorities):
             conn, file_id=file_id, content_hash=content_hash,
             limit=authorities.max_released_observations)
         if not observations:
+            # A file with no readings of its own is not asked, and context does not
+            # change that. `104` R-135 carries a NEIGHBOUR's words to a file that has
+            # something to say and cannot say this; a file with nothing at all would be
+            # answered entirely out of another document, which is a fact about that
+            # document. Constitution 2's "any successfully-read file must reach the
+            # model" is about files that were read.
             return ()
+        # `104` R-135: the anchor headings near this file, if the deployment offers
+        # any and this call is asking a field they answer. BEFORE the request, because
+        # they are part of what it is built from -- the identity below, the budget
+        # measurement, the citable set and the release target all have to see them.
+        context = ()
+        if authorities.anchor_context_for is not None:
+            context = tuple(authorities.anchor_context_for(
+                conn, file_id=file_id, content_hash=content_hash, fields=pending))
         request = build_request(
             conn, file_id=file_id, content_hash=content_hash,
             activation_signals=authorities.activation_signals,
-            normalizers=authorities.normalizers)
+            normalizers=authorities.normalizers,
+            # So a citation naming one of them passes §3.6's check 2. Without this the
+            # model would be shown a reading it is forbidden to cite, which is worse
+            # than not showing it: `CITATION_NOT_FOUND` rejects the whole claim.
+            context_observations=context)
         if not request.allowlist:
             return ()
 
@@ -834,7 +935,12 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # on the row so a reuse names the answer it is reusing.
         identity = call_identity_dimensions(
             conn, file_id=file_id, content_hash=content_hash,
-            observations=observations, authorities=authorities)
+            # `104` R-135: the context READINGS are part of the question. A prior
+            # answered without a syllabus beside it and one answered with it are two
+            # different calls, and an identity blind to the difference would reuse the
+            # first forever -- the file would keep the `unknown` it gave before the
+            # anchor existed, on every run after it appeared.
+            observations=tuple(observations) + context, authorities=authorities)
         identity_id = call_identity(identity)
         prior = prior_call(conn, identity_id)
         if prior is not None and vocabulary:
@@ -885,6 +991,7 @@ def fact_call_stage(authorities: FactCallAuthorities):
                 build_fact_request(
                     request, observations,
                     filename=filename_citation(conn, file_id),
+                    context=context,
                     model_target=authorities.model_target,
                     prompt=authorities.prompt,
                     max_dossier_tokens=authorities.max_dossier_tokens),
@@ -893,7 +1000,12 @@ def fact_call_stage(authorities: FactCallAuthorities):
                 prompt=authorities.prompt,
                 validation_dependencies=_call_dependencies(
                     request, vocabulary, folder_levels=visible_levels,
-                    authorities=authorities, observations=observations),
+                    authorities=authorities,
+                    # `104` R-135: the ladder measures what the DOSSIER will carry,
+                    # and it will carry the context readings too. Measuring the file's
+                    # own alone would tell §8.6's first rung a dossier fits that does
+                    # not.
+                    observations=tuple(observations) + context),
                 observed_at=authorities.observed_at,
                 # `104` R-14. Handed to `run_call` and not to `CallDependencies`:
                 # it is optional, and that bundle's every field is required by

@@ -28,7 +28,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
 from typing import Any
 
-from evidence_shape.locator import MalformedLocator, parse_locator
+from evidence_shape.locator import parse_locator
 from privacy.release import released_whole_heading_unit
 
 from llm_harness.authorship import COMPONENT_VERSION
@@ -355,6 +355,14 @@ def _heading_exposure(released: Sequence) -> tuple[int, int]:
     counter that could raise here would destroy a verdict that already exists in order
     to report a statistic about it. The count is the floor, and it is the honest one.
 
+    `ValueError` and not one named exception, because `parse_locator` refuses in three
+    ways -- `MalformedLocator` for a shape it cannot read, `NotInVocabulary` for a zone
+    or segment kind outside P4's closed sets, `MalformedLocation` for a location the
+    parts of which do not agree -- and all three are `ValueError`. Catching only the
+    first is what `tests/p8/test_p8_harness.py` caught: a fixture address of `0:18`
+    reaches the zone check, raises `NotInVocabulary`, and ended fourteen calls that had
+    already been answered. A counter is never the thing that decides a call's fate.
+
     `report_for_budget_exhausted` and `_zero_report` do not call this and report zero:
     both are built from a `DossierRequest` with no `Dossier` behind them, so no dossier
     reached a model and no heading unit left the device. Zero there is the measurement.
@@ -367,7 +375,7 @@ def _heading_exposure(released: Sequence) -> tuple[int, int]:
             continue
         try:
             location = parse_locator(item.address)
-        except MalformedLocator:
+        except ValueError:
             continue
         if released_whole_heading_unit(location, unit_length):
             count += 1
@@ -441,7 +449,19 @@ def _zero_report(
     )
 
 
-def _acceptance_outcome(dossier: Dossier, citations: Sequence[Citation]) -> str:
+def acceptance_outcome(dossier: Dossier, citations: Sequence[Citation]) -> str:
+    """`accept_context_supported` when every cited item is context, else `accept_direct`.
+
+    **One rule with two callers since `104` R-135, which is why it is public.** This
+    file's `_validate_claim` uses it for sites B, C, D and E; `fact_validation`'s
+    `_run_checks` uses it at site A, where a `subject` read off a neighbouring syllabus
+    must not be recorded as if the file had said it itself. A second spelling of "was
+    this answer grounded only in context" would be two answers to one question, and the
+    review obligation would then depend on which site asked.
+
+    A MIXED answer is direct. A claim that cites the file's own text as well as a
+    neighbour's rests on the file, and `requires_review` is for the claim that does not.
+    """
     cited_refs = {item.evidence_ref for item in citations}
     bases = [
         item.basis for item in dossier.evidence_items if item.evidence_ref in cited_refs
@@ -565,7 +585,7 @@ def _validate_claim(
             citations_checked=checked,
         )
 
-    outcome = _acceptance_outcome(dossier, citations)
+    outcome = acceptance_outcome(dossier, citations)
     verdict = _make_verdict(
         dossier=dossier,
         claim_ref=claim_ref,
