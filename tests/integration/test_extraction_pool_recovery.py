@@ -50,6 +50,13 @@ from scan_agent.corpus_source import FilesystemCorpusSource
 from scan_agent.schema import create_scan_schema
 from scan_agent.selection import record_selection
 
+#: R-50's per-extraction ceiling, required and with no default. Generous
+#: here on purpose: nothing in this file is about the ceiling, and a value
+#: close to the sleeps above would make these tests fail for the one reason
+#: they are not about. `tests/integration/test_extraction_pool_time_ceiling.py`
+#: is where it is small.
+_POOL_CEILING_SECONDS: float = 300.0
+
 CLOCK = "2026-09-04T00:00:00+00:00"
 
 #: The file that kills whichever worker opens it. Named, not chosen by content,
@@ -169,7 +176,8 @@ def pool():
     #: this corpus is -- with the shipped floor nothing here would ever cross a
     #: process boundary and the crash this file is about could not happen.
     built = ProcessPool(workers=2, context_factory=_poisoned_context,
-                        lookahead_per_worker=2, floor=0)
+                        lookahead_per_worker=2, floor=0,
+        seconds_per_extraction=_POOL_CEILING_SECONDS)
     yield built
     built.close()
 

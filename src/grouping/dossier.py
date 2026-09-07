@@ -54,7 +54,13 @@ from grouping.vocabulary import CONTEXT_SUPPORTED, DIRECT_ANCHOR
 #: it cannot describe.
 UNCLASSIFIED_DOCUMENT_TYPE: str = "unclassified"
 
-ActiveSchemaFor = Callable[[sqlite3.Connection, str, str], Sequence[str]]
+#: `ActiveSchemaFor` STOOD HERE AND IS GONE (`104` R-09). It was demanded of every
+#: caller, checked callable below, and invoked by no line in `src/`: assembly reads
+#: the group's own anchor facts and never asked which fields the situation's schema
+#: carries. Measured before removing it -- the three P9 suites that supplied it
+#: patched to hand in a callable that raises on any call, 57 of 57 passing. What
+#: actually decides whether a fact may anchor a group is `seeds.ANCHOR_STATES`, and
+#: that bar is field-independent, so no schema derivation could have moved it.
 SignalEvaluatorFor = Callable[[str], object]
 ClassificationStore = Callable[[str, str], object]
 
@@ -68,11 +74,9 @@ class DossierRefused:
     withheld: tuple[str, ...]
 
 
-def _require_knowledge(active_schema_for, signal_evaluator_for,
-                       classification_store) -> None:
+def _require_knowledge(signal_evaluator_for, classification_store) -> None:
     missing = [
         name for name, value in (
-            ("active_schema_for", active_schema_for),
             ("signal_evaluator_for", signal_evaluator_for),
             ("classification_store", classification_store),
         )
@@ -80,10 +84,9 @@ def _require_knowledge(active_schema_for, signal_evaluator_for,
     ]
     if missing:
         raise ConfigurationRequired(
-            f"{missing} were not supplied. P9 authors no domain schema, no signal "
-            "evaluator and no handling class; without them there is no category to "
-            "propose, and inventing one is how a group acquires a name nobody can "
-            "trace."
+            f"{missing} were not supplied. P9 authors no signal evaluator and no "
+            "handling class; without them there is no category to propose, and "
+            "inventing one is how a group acquires a name nobody can trace."
         )
 
 
@@ -169,7 +172,6 @@ def assemble_group_dossier(
     group: Group,
     graph: LocalEvidenceGraph,
     limits: GroupingLimits,
-    active_schema_for: ActiveSchemaFor | None,
     signal_evaluator_for: SignalEvaluatorFor | None,
     classification_store: ClassificationStore | None,
     conflicts: Sequence[Conflict] = (),
@@ -181,7 +183,7 @@ def assemble_group_dossier(
     with no anchor file has nothing for the model to judge, and building the record
     anyway would put an empty question in front of a paid model call.
     """
-    _require_knowledge(active_schema_for, signal_evaluator_for, classification_store)
+    _require_knowledge(signal_evaluator_for, classification_store)
 
     stating = {
         file_id for fact in group.anchor_facts for file_id in fact.file_ids

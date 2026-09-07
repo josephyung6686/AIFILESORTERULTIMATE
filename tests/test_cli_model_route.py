@@ -14,7 +14,13 @@ import pytest
 
 import cli
 from llm_harness.vocabulary import A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE
-from readers.model_deepseek import CREDENTIAL_NAME, PROVIDER
+from readers.model_deepseek import CLOUD, CREDENTIAL_NAME, PROVIDER
+from readers.model_ollama import (
+    BASE_URL_NAME as LOCAL_BASE_URL_NAME,
+    LOCAL,
+    MODEL_NAME as LOCAL_MODEL_NAME,
+    PROVIDER as LOCAL_PROVIDER,
+)
 from readers.model_routing import FAST, LOGIC, MODEL_NAME_OF_TIER, REASONING
 
 ENV = {CREDENTIAL_NAME: "a-key", "DEEPSEEK_BASE_URL": "https://api.example",
@@ -31,7 +37,8 @@ def _no_ambient_key(monkeypatch, tmp_path):
     machine that does not, which is the failure mode `84` §4 records for corpora
     and is the same one here.
     """
-    for name in (CREDENTIAL_NAME, "DEEPSEEK_BASE_URL", *MODEL_NAME_OF_TIER.values()):
+    for name in (CREDENTIAL_NAME, "DEEPSEEK_BASE_URL", LOCAL_MODEL_NAME,
+                 LOCAL_BASE_URL_NAME, *MODEL_NAME_OF_TIER.values()):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(cli, "ENV_FILE", tmp_path / "absent.env")
 
@@ -247,20 +254,12 @@ def test_the_key_is_never_printed(monkeypatch):
     assert "sk-secret" not in refused
 
 
-def test_a_file_that_was_read_reaches_the_model_even_with_no_classification(
-        conn, tmp_path):
-    """CONSTITUTION 2: a detector abstaining is not proof a file is unreadable.
+def _two_files(conn, tmp_path) -> tuple[str, str]:
+    """One file the product read and the detector abstained on, one protected.
 
-    **Measured, 199 real files, 2026-09-05.** 95 of them carried no classification
-    and were refused the model with `privacy_withheld` -- and every one of the 95 had
-    evidence: ordinary lecture PDFs, `.py` files, a club logo. The written premise
-    for refusing them, in `model_route_permitted`'s own docstring, was "an
-    unclassified file is one nothing has read successfully". The run disproves it.
-    Unclassified means the DETECTOR abstained, which is a different sentence.
-
-    Protected files are unaffected and the standing rule is why: marked and counted,
-    never opened. That half is asserted here beside this one so the widening cannot
-    quietly take it with it.
+    Shared by the two tests below because they assert about the SAME pair from two
+    directions -- what the route does with each, and what it does with each per
+    locality -- and two corpora would let one drift into testing a different file.
     """
     from database_agent.files_table import get_file, record_file
     from privacy.classification import ClassificationRecord
@@ -289,10 +288,243 @@ def test_a_file_that_was_read_reaches_the_model_even_with_no_classification(
         handling_class="sensitive_personal", protected=True, basis=DETECTOR,
         evidence_refs=("sha256:" + "b" * 64,), reliability_state="validated",
         observed_at="2026-09-05T00:00:00Z"))
+    return read_but_unclassified, protected
 
-    permitted = cli.model_route_permitted(conn)
 
-    assert permitted(read_but_unclassified) is True, (
+def test_a_file_that_was_read_reaches_the_model_even_with_no_classification(
+        conn, tmp_path):
+    """CONSTITUTION 2: a detector abstaining is not proof a file is unreadable.
+
+    **Measured, 199 real files, 2026-09-05.** 95 of them carried no classification
+    and were refused the model with `privacy_withheld` -- and every one of the 95 had
+    evidence: ordinary lecture PDFs, `.py` files, a club logo. The written premise
+    for refusing them, in `model_route_permitted`'s own docstring, was "an
+    unclassified file is one nothing has read successfully". The run disproves it.
+    Unclassified means the DETECTOR abstained, which is a different sentence.
+
+    Protected files are unaffected and the standing rule is why: marked and counted,
+    never opened. That half is asserted here beside this one so the widening cannot
+    quietly take it with it.
+    """
+    read_but_unclassified, protected = _two_files(conn, tmp_path)
+
+    on_device = cli.model_route_permitted(
+        conn, locality=LOCAL,
+        unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL)
+
+    assert on_device(read_but_unclassified) is True, (
         "a file the product read and the detector merely abstained on is not "
         "'unreadable'; refusing it keeps 95 of 199 files away from the engine")
-    assert permitted(protected) is False, "protected material never reaches a model"
+    assert on_device(protected) is False, "protected material never reaches a model"
+
+
+def test_the_route_refuses_on_a_cloud_target_what_the_gate_would_have_refused(
+        conn, tmp_path):
+    """`104` R-02. The route answered `True` for an unclassified file whatever the
+    destination, and `Gate.release` then refused every cloud release of one -- so
+    the file was counted as routed, the refusal landed in `llm_refusal` instead of
+    `unresolved`, and a number meaning "the route let N through" was read as "N
+    reached a model". Measured at 19 withheld against 149 stopped.
+
+    ONE ANSWER, NOT TWO THAT AGREE. `unclassified_denies` is the gate's own
+    predicate, called here with the same locality and the same answer to Open
+    question 5, which `UNCLASSIFIED_PERMITS_LOCAL` now names for both. A second
+    spelling beside the first is how they came to disagree."""
+    read_but_unclassified, protected = _two_files(conn, tmp_path)
+
+    on_device = cli.model_route_permitted(
+        conn, locality=LOCAL,
+        unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL)
+    over_the_internet = cli.model_route_permitted(
+        conn, locality=CLOUD,
+        unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL)
+
+    assert on_device(read_but_unclassified) is True
+    assert over_the_internet(read_but_unclassified) is False, (
+        "the gate refuses every cloud release of an unclassified file, so a route "
+        "that permits one is counting a file as routed that has no route")
+    # AND THE ROUTE STAYS STRICTER THAN THE GATE ON PROTECTED MATERIAL, on every
+    # locality. `protected_cloud_denies` would allow a protected file a LOCAL
+    # target; this route does not, and marked-and-counted-never-opened is why.
+    assert on_device(protected) is False
+    assert over_the_internet(protected) is False
+
+
+# --- `00`:189-193's second mode: a model on the person's own machine ----------
+#
+# D1's local half. `104` §7 Phase 0a. No ollama runs in any of these: `model_route`
+# BUILDS clients, and every refusal it can make fires at build time, before a
+# socket exists.
+
+LOCAL_ENV = {LOCAL_MODEL_NAME: "qwen3:8b"}
+
+
+def test_a_local_model_alone_is_a_model_and_the_run_has_one(monkeypatch):
+    """The whole of Phase 0a in one assertion: a person who typed
+    `ollama pull qwen3:8b` and set one name has a model, with no account, no key
+    and nothing leaving their machine."""
+    routing, printed = _route(monkeypatch, LOCAL_ENV)
+
+    assert routing is not None
+    assert routing.model_id_for(A_FACT) == "qwen3:8b"
+    target = routing.client_for(A_FACT).model_target
+    assert target.locality == LOCAL
+    assert target.provider == LOCAL_PROVIDER
+    # Nothing about a missing key: they are not missing anything.
+    assert CREDENTIAL_NAME not in printed
+
+
+def test_the_local_model_goes_first_when_a_key_is_there_too(monkeypatch):
+    """D1: "Local model first". Beside a cloud key the local model answers the
+    fact question and the cloud models keep the questions it is not asked -- which
+    is what makes this a widening rather than a swap."""
+    routing, _ = _route(monkeypatch, dict(ENV, **LOCAL_ENV))
+
+    assert routing.model_id_for(A_FACT) == "qwen3:8b"
+    assert routing.client_for(A_FACT).model_target.locality == LOCAL
+    assert routing.model_id_for(D_RESIDUAL) == "a-sprinter"
+    assert routing.client_for(D_RESIDUAL).model_target.locality == "cloud"
+
+
+def test_with_neither_name_the_sentence_offers_both_ways_to_have_a_model(monkeypatch):
+    """The old sentence named only the key, which told a person the product needs
+    a paid account to think at all. One of the two ways costs nothing and sends
+    nothing, and a person who is not told about it cannot choose it."""
+    routing, printed = _route(monkeypatch)
+
+    assert routing is None
+    assert CREDENTIAL_NAME in printed
+    assert LOCAL_MODEL_NAME in printed
+    assert "ollama pull" in printed
+
+
+def test_a_broken_local_setup_does_not_quietly_send_the_files_to_the_cloud(
+        monkeypatch):
+    """THE ONE DIRECTION THAT COSTS MONEY AND LEAVES THE DEVICE. A person who set
+    `GRAPH_AGENT_LOCAL_MODEL` asked for the model on their own machine. Falling
+    back to the provider because their endpoint is wrong would be the surprise
+    `_dotenv` refuses in its own docstring, arrived at from the other side.
+
+    So there is NO model for this run, and the sentence says which one failed."""
+    routing, printed = _route(monkeypatch, dict(
+        ENV, **{LOCAL_MODEL_NAME: "qwen3:8b",
+                LOCAL_BASE_URL_NAME: "http://ollama.example.com:11434"}))
+
+    assert routing is None
+    assert "loopback" in printed
+
+
+def test_an_endpoint_on_another_loopback_port_is_ordinary(monkeypatch):
+    """Which is what a person running ollama on a second port needs, and what
+    makes a stub server testable at all."""
+    routing, _ = _route(monkeypatch, dict(
+        LOCAL_ENV, **{LOCAL_BASE_URL_NAME: "http://127.0.0.1:54321"}))
+
+    assert routing is not None
+
+
+def test_a_broken_cloud_key_beside_a_working_local_model_still_leaves_a_model(
+        monkeypatch):
+    """The two halves are independent. A misspelled tier name is `83` §1's
+    intended failure and it takes the cloud route with it; it does not take the
+    model the person installed on their own machine."""
+    routing, printed = _route(monkeypatch, dict(
+        ENV, **LOCAL_ENV, **{MODEL_NAME_OF_TIER[FAST]: ""}))
+
+    assert routing is not None
+    assert routing.client_for(A_FACT).model_target.locality == LOCAL
+    assert MODEL_NAME_OF_TIER[FAST] in printed
+
+
+def test_the_local_model_is_read_from_the_env_file_like_every_other_name(
+        monkeypatch, tmp_path):
+    """It is documented in `.env.example` beside the key, so it has to be readable
+    from where `.env.example` says to put it."""
+    routing, _ = _route(monkeypatch, {},
+                        f"{LOCAL_MODEL_NAME}=qwen3:8b\n", tmp_path)
+
+    assert routing is not None
+    assert routing.model_id_for(A_FACT) == "qwen3:8b"
+
+
+# --- what the person is told before the scan ---------------------------------
+
+def _posture(routing, tmp_path):
+    out = io.StringIO()
+    cli.announce_cloud_posture(routing, None, corpus_root=tmp_path, out=out)
+    return out.getvalue()
+
+
+def test_the_posture_names_the_local_model_and_says_nothing_leaves(
+        monkeypatch, tmp_path):
+    """The owner's condition on the guard change: a local call under `offline`
+    must still be truthful. Every other sentence in this branch says nothing will
+    be asked, and with a model on this machine something IS asked -- so a person
+    reading "cloud sending is off" would otherwise conclude nothing was.
+
+    Both halves have to be there. The MODEL, because "a person told that their
+    sentence is going to 'an external provider' has been told less than a person
+    told it is going to a named one", and that is no less true of a named local
+    one. And that NOTHING LEAVES, because that is the difference that makes the
+    first half acceptable."""
+    routing, _ = _route(monkeypatch, LOCAL_ENV)
+
+    printed = _posture(routing, tmp_path)
+
+    assert "qwen3:8b" in printed
+    assert "on this device" in printed
+    assert "NOTHING LEAVES YOUR DEVICE" in printed
+    # And it does NOT tell them nothing will be asked, which is the sentence the
+    # cloud-only branch prints and which would now be false.
+    assert "None of them will be asked on this run" not in printed
+
+
+def test_the_posture_still_names_a_cloud_model_that_is_configured_beside_it(
+        monkeypatch, tmp_path):
+    """A person deciding about `--enable-cloud` tomorrow needs to know a cloud
+    model is configured today, even while the fact question never reaches it."""
+    routing, _ = _route(monkeypatch, dict(ENV, **LOCAL_ENV))
+
+    printed = _posture(routing, tmp_path)
+
+    assert "qwen3:8b" in printed
+    assert "a-sprinter" in printed
+    assert "--enable-cloud" in printed
+
+
+def test_the_cloud_only_posture_is_word_for_word_what_it_was(monkeypatch, tmp_path):
+    """THE UNCHANGED HALF, pinned. The local route widened this function and must
+    not have moved it: with no local model the sentence a person sees is the one
+    they saw before."""
+    routing, _ = _route(monkeypatch, ENV)
+
+    printed = _posture(routing, tmp_path)
+
+    assert "Model: a-logician for facts, a-logician for checks, a-sprinter for" \
+        in printed
+    assert "None of them will be asked on this run" in printed
+    assert "NOTHING LEAVES YOUR DEVICE" not in printed
+
+
+def test_with_sending_on_the_facts_are_still_said_to_stay_on_the_device(
+        monkeypatch, tmp_path):
+    """The consent-ON branch, which the end-to-end tests cannot reach: driving
+    `cli.main --enable-cloud` is exactly what must not happen in a suite. Called
+    directly instead, because this is a sentence and not a send -- no client is
+    invoked and no socket is opened by printing it.
+
+    Without the clause, a person who turned cloud sending on would read "files ...
+    may be sent to qwen3:8b" and be told a model on their own hard disk is a
+    recipient of their files. Consent is about what LEAVES; the fact question no
+    longer does."""
+    from database_agent.cloud_consent import CloudConsent
+
+    routing, _ = _route(monkeypatch, LOCAL_ENV)
+    consent = CloudConsent(corpus_root=str(tmp_path), decision="enabled",
+                           user_id="jy", decided_at="2026-09-05T00:00:00Z")
+    out = io.StringIO()
+    cli.announce_cloud_posture(routing, consent, corpus_root=tmp_path, out=out)
+    printed = out.getvalue()
+
+    assert "on this device and do not leave it" in printed
+    assert "qwen3:8b" in printed

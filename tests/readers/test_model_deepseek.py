@@ -316,21 +316,46 @@ def test_the_sdk_is_imported_in_exactly_one_function_and_not_at_module_level():
 def test_no_prompt_text_and_no_model_behaviour_is_chosen_here():
     """`84` §1: an agent may not author or adopt prompt text, and every knob that
     changes what the model does is a prompt nobody approved and no record names.
-    The keywords are checked on the ONE outbound call, by AST, because the failure
-    this prevents is a convenience somebody adds later."""
+    The failure this prevents is a convenience somebody adds later.
+
+    **The guard moved one function out with `104` R-14 and did not weaken.** The
+    outbound `create` used to carry three literal keywords and now carries exactly
+    one `**request_body(...)`, so the AST half asserts that -- a knob added beside
+    it fails here -- and the term list is asserted against `request_body`'s actual
+    output, which is stronger than reading it off the call site.
+
+    `response_format` is the fourth term and the module docstring carries the whole
+    argument for it: the ratified template already demands one JSON object in the
+    owner's own words, so the flag makes the transport enforce ratified text rather
+    than add to it. `system`, `temperature` and `n` remain absent and are what this
+    test is really about.
+    """
+    from readers.model_deepseek import request_body
+
     create = next(
         node for node in ast.walk(ast.parse(_module_source()))
         if isinstance(node, ast.Call)
         and isinstance(node.func, ast.Attribute)
         and node.func.attr == "create"
     )
-    assert {keyword.arg for keyword in create.keywords} == {
-        "model", "max_tokens", "messages"}
+    assert [keyword.arg for keyword in create.keywords] == [None], (
+        "the outbound call takes its terms from `request_body` and nothing else; "
+        "a keyword beside it would be a term no pure function checks")
+    assert isinstance(create.keywords[0].value, ast.Call)
+    assert create.keywords[0].value.func.id == "request_body"
+
+    body = request_body(model_id="a-model", max_tokens=1,
+                        prompt="answer with one JSON object")
+    assert set(body) == {"model", "max_tokens", "messages", "response_format"}
+    assert body["response_format"] == {"type": "json_object"}
+    assert [item["role"] for item in body["messages"]] == ["user"]
+
     roles = {
-        node.value for node in ast.walk(create)
+        node.value for node in ast.walk(ast.parse(_module_source()))
         if isinstance(node, ast.Constant) and isinstance(node.value, str)
     }
     assert "system" not in roles, roles
+    assert "temperature" not in roles, roles
 
 
 def test_the_module_does_not_declare_itself_the_transport():

@@ -38,6 +38,7 @@ from tree_design.records import ExpectedValue, Node, derive_accepts_placement
 from tree_design.routing import CompositionCandidate
 from tree_design.upstream import (
     GroupMember,
+    anchors_a_level,
     preferred_value_for,
     resolve_role_to_field,
 )
@@ -224,6 +225,10 @@ def materialise_branch(
         labels: dict[str, str] = {}
         classes_by_value: dict[str, set[str]] = {}
         missing: set[str] = set()
+        #: Whether ANY member stated each value strongly enough to anchor a level
+        #: on its own, which is what `_unanchored_single_values` needs and
+        #: `by_value` cannot say.
+        anchored: dict[str, bool] = {}
         for member in members:
             if local:
                 # A group id is the child's identity and the group's own label is
@@ -244,8 +249,31 @@ def materialise_branch(
                 continue
             by_value.setdefault(settled.canonical_value, set()).add(member.file_id)
             labels.setdefault(settled.canonical_value, settled.display_label)
+            anchored[settled.canonical_value] = (
+                anchored.get(settled.canonical_value, False)
+                or anchors_a_level(settled.reliability))
             classes_by_value.setdefault(settled.canonical_value, set()).add(
                 classes[member.file_id])
+        # NOT ON A TEMPLATE-LOCAL LEVEL, and the exemption is the rule's own
+        # premise rather than a special case. That level's children ARE accepted
+        # groups (Contract W4.2-4.3): the loop above `continue`s past
+        # `preferred_value_for` for it, so no value there has a reliability to
+        # weigh, and there is no fact for `00`:42's sentence to be about. Reading
+        # the absent reliability as "unanchored" deleted a one-group level
+        # outright, which `test_a_template_local_level_reaches_materialisation_
+        # without_calling_c2` caught: a novel domain whose whole tree is one
+        # accepted group is exactly the case that has one member and no fact.
+        stopped = () if local else _unanchored_single_values(by_value, anchored)
+        for value in stopped:
+            # NOT A LEVEL, AND NOT A LOSS EITHER. The value stays on the file as
+            # P6 wrote it and the file becomes unresolved AT THIS LEVEL, which is
+            # §5.11's own state ("a tree can be accepted even if some files remain
+            # unresolved") and reaches the person as "waiting for you to say what
+            # this is". `00`:42's sentence is honoured exactly: the clue is kept
+            # for review, and it does not quietly become a folder.
+            missing.update(by_value.pop(value))
+            labels.pop(value, None)
+            classes_by_value.pop(value, None)
         unresolved[dimension.field_ref or dimension.role_ref] = frozenset(missing)
         levels.append(LevelEvidence(
             dimension_role=dimension.role_ref,
@@ -265,6 +293,57 @@ def materialise_branch(
         member_file_ids=member_ids, unresolved_by_field=dict(unresolved),
         protected_file_ids=protected)
     return _for_validation(evidence, ancestor_field_refs, ancestor_depth), evidence
+
+
+def _unanchored_single_values(by_value: Mapping[str, set[str]],
+                              anchored: Mapping[str, bool]) -> tuple[str, ...]:
+    """Values ONE file offered, on a model's word, with nothing behind them.
+
+    `00`:42: a model output "that is useful but too weak to establish a fact may
+    remain a possible clue for review; it must NOT quietly become a folder
+    proposal or an asserted file property". `PROPOSAL_ELIGIBLE_STATES` admits
+    everything above `possible`, which is the right bar for a value several files
+    carry and far too low for one file saying something once -- and a LEVEL is the
+    strongest assertion this product makes about a value, because it becomes a
+    folder the person is shown and offered.
+
+    Two ways out, and a value needs only one: **an anchor** -- some file states it
+    at a state stronger than the weakest admissible one, which is `00`:63's
+    "direct or validated anchor" -- or **a group** -- more than one file states it,
+    which is the same evidence shape §5.4 relies on when it says names "emerge
+    from validated facts". A value with neither is one model answer about one
+    file.
+
+    MEASURED ON THE OWNER'S 199 FILES (the `gt-cloud` run behind `104` §11).
+    EVERY `school` value in that run is `llm_supported` and eight of the twelve
+    were stated by exactly one file: the tree grew a `Cliffs Notes` level (a
+    study-guide publisher), a `Dr. Beer` and a `Robert Beer` (an instructor), a
+    `Hong Kong` (a place), a `DF 205` and a `University Writing`. Each became a
+    folder a person was offered, and `Coursework/Cliffs Notes/notes` is where two
+    PDFs that should have stayed "ask the person" were sent. Against that,
+    `subject` carried `E1006` on five files and `ELTU3017` on three, both
+    `validated` -- anchored, and untouched by this.
+
+    WHAT IT DELIBERATELY DOES NOT TOUCH. `Georgetown Preparatory School` is
+    `llm_supported` on SEVEN files, so it has a group and survives -- and it is
+    the wrong level for five university essays. That is a different defect with a
+    different fix (`104` §11.2 step 1: the `school` glossary entry means the
+    institution offering the course, not any school the person attended), and
+    silently taking it here would have made this rule look like it worked while
+    hiding the one that matters.
+
+    NO THRESHOLD IS INTRODUCED AND NO STATE IS SPELLED. "More than one" is not a
+    tuned band -- it is the difference between a value and a single utterance --
+    and the anchor bar is `upstream.anchors_a_level`, read off P6's own ladder at
+    P10's declared seam onto it. Nothing here names a field, a word or a value.
+
+    NOT CALLED FOR A TEMPLATE-LOCAL LEVEL. Its children are accepted groups and
+    carry no reliability at all, so there is no fact for `00`:42's sentence to be
+    about; the caller holds that guard and states why.
+    """
+    return tuple(
+        value for value, files in by_value.items()
+        if len(files) == 1 and not anchored.get(value, False))
 
 
 def _label_of(level: LevelEvidence) -> str:

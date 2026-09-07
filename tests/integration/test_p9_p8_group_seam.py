@@ -278,6 +278,20 @@ def test_a_grounded_group_verdict_becomes_a_p9_membership(seam_conn):
 #: seventh field cannot join the bundle without appearing here first.
 NOT_RUN_CALL_KEYWORDS = {"model_target"}
 
+#: The mirror image, and enumerated for the same reason: `run_call` keywords P9's
+#: bundle deliberately does not carry. `usage_recorder` is `104` R-14's one-slot
+#: mailbox -- optional, site-specific, and defaulted, so P9's `**authorities`
+#: forwarding is unaffected. P9 supplies none because P9 has none: the sink is built
+#: by the composition root beside the transport that fills it, and B_group's caller
+#: has no such reading to give.
+#:
+#: Adding it to `ModelCallAuthorities` instead would put a required slot on P9 that
+#: nothing fills, which is exactly the defect `104` R-09 removed from
+#: `GroupingKnowledge`. So the exception is named here and both directions below
+#: stay checked: an eighth `run_call` keyword still cannot appear silently, and a
+#: bundle field that stops being a keyword still fails.
+NOT_P9_AUTHORITIES = {"usage_recorder"}
+
 
 def test_the_authorities_bundle_matches_run_calls_real_signature():
     """`pipeline.py` called `p8_run_call(conn, request)`. Live `run_call` has five
@@ -293,10 +307,14 @@ def test_the_authorities_bundle_matches_run_calls_real_signature():
     }
     fields = {f.name for f in dataclasses.fields(ModelCallAuthorities)}
     forwarded = fields - NOT_RUN_CALL_KEYWORDS
-    assert forwarded == keyword_only, forwarded ^ keyword_only
-    # Both directions: a named exception that stops being a field is as much a
-    # drift as a field that stops being named.
+    supplied = keyword_only - NOT_P9_AUTHORITIES
+    assert forwarded == supplied, forwarded ^ supplied
+    # Both directions, on both exceptions: a named exception that stops being a
+    # field -- or a named non-keyword that becomes one -- is as much a drift as a
+    # field that stops being named.
     assert NOT_RUN_CALL_KEYWORDS <= fields, NOT_RUN_CALL_KEYWORDS - fields
+    assert NOT_P9_AUTHORITIES <= keyword_only, NOT_P9_AUTHORITIES - keyword_only
+    assert not NOT_P9_AUTHORITIES & fields, NOT_P9_AUTHORITIES & fields
 
     sentinel = object()
     inspect.signature(llm_harness.run_call).bind(
@@ -448,7 +466,6 @@ def _live_knowledge():
         retrieval=RetrievalKnowledge(
             document_compatible=None, channel_weights={}, similarity=None,
             similarity_threshold=None, embedding_identity=None, domain=None),
-        active_schema_for=lambda c, f, h: ("subject",),
         signal_evaluator_for=lambda domain: True,
         classification_store=_classification,
         conflicts_for=lambda files: (),

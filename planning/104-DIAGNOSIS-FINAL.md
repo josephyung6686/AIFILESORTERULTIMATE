@@ -253,7 +253,7 @@ lacked: **observe-only mode** for any newly wired site whose output application 
    `tests/p7/test_p7_no_safety_evidence.py` rewritten; `96` §20 amended; D1's xfail marker off.
 2. **R-02, R-03:** one answer to "may this file reach a model" shared by route and gate; the
    fact-pass sentence counts responses only.
-3. **R-25, R-30, R-26, R-38, R-39:** `scan_state='included'` filter in roster, names, rejections
+3. **R-25, R-30, R-26, R-38, R-39:** retire the two absent states (`NOT IN (superseded_content, path_no_longer_exists)`; a positive `='included'` filter would retire live `pending` and `unscanned` files, see §14.2) in roster, names, rejections
    and freeze; `signatures.py` into `_detect_format`; `review_gestures` called from the send
    path; `draft_for_answer_change` from `apply_answers`; role moment narrowed. The three strict
    xfails go green and lose their markers.
@@ -605,11 +605,122 @@ bakeoff, with the numbers attached (D2 protocol, `103` §28.1); labelling the he
 the end of Phase 3; accepting a stated gap in the bakeoff row if one appears. Nothing else blocks
 Phase 0.
 
+**13.9 The finish line (ruled 2026-09-06, after Wave 1 was dispatched).** Release 1 (§13.3) is sequencing, not the finish line. The work is finished only when every register entry in §4 (R-01 to R-49, Release 2 included) is closed with its test, and the product runs end to end and behaves as `00` describes. Whether it does is assessed the original two ways, both required: **user-based** (what a real person in each of the personas would want at every step, the north-star instruction) and **product-based** (line-by-line conformance to `00` and its amendments). The lead may adapt the remaining plan to what each wave actually delivered, but may not narrow this finish line.
+
 **Build authorisation, same evening.** The owner authorised the build to start once ready, with
 dynamic workflows and multiple agents, on the condition that every dispatched agent, and every
 agent those agents dispatch, runs on Opus 5. The standing constraints do not move: protected
 containers are marked and counted, never opened; the corpus never enters git; no cloud
 ground-truth pass until SF-1 is closed; prompt text and vocabulary members are ratified by the
 owner, never by an agent.
+
+*Section added by Claude Fable 5.1.*
+
+
+---
+
+## 14. Wave 1 outcomes, corrections and new register entries (2026-09-06)
+
+Written by the lead as the branches merged. Every number here came from a run; every correction names
+the agent's measurement that forced it.
+
+### 14.1 What merged, with its row
+
+| Merge | Branch | Suite (passed / skipped / xfailed) | Offline coursework row (exact / rpwl / wrong / not placed; abstained; spillover) |
+|---|---|---|---|
+| baseline `995c94f` | — | 8022 / 19 / 28 | 0 / 6 / 0 / 32; 29 of 29; 11 |
+| `178a951` sf1-gate | SF-1 closed, one measured ceiling, payload instrument, D1 lift narrowed | 8053 / 19 / 24 | 0 / 6 / 0 / 32; 29 of 29; 11 (identical, as an offline run must be for a gate-only change) |
+| engine-fixes, local-a-fact | in verification at the time of writing; rows appended below as they land | | |
+
+Instrument on the owner's 199 files, offline (`tools.groundtruth.payload`): whole documents released
+**20 → 0**, largest dossier built **41,247 → 1,073 bytes**, built over the 4,000 ceiling **29 → 0** once
+measured, gate admits **82** files (was 42), protected **19 of 19** still refused, `no_safety_evidence`
+refusals **40 → 0** after the D1 lift. `f571d36` makes the documented pytest flag the default.
+
+### 14.2 Corrections to this document, from measurement
+
+- **§7 Phase 1 step 3 (R-25).** The fix is a negative filter, `NOT IN (superseded_content,
+  path_no_longer_exists)`, not `scan_state='included'`: `pending` and `unscanned` are present files.
+  Sites: `placement.groups.accepted_group_as_of`, `production.corpus_roster`, `cli.file_names`,
+  `cli.apply_rejections`; `_move_frozen_files` reads through `file_names` and needed no change.
+- **§11.1 row 6 (the six `Python 1006` files).** Does not reproduce offline. At `995c94f` and after the
+  step 5 fix alike, the five lecture notebooks leave `Python 1006` for the `Coursework` root on a direct
+  fact match (`auto_eligible`, margin 0.43); they do not stay put. Step 5 (refinement is not removal) is
+  correct in code and inert on this corpus for a structural reason: every `tree_nodes` row has
+  `parent_node_id = None`, so there is no child to refine into; no level divides because every placed
+  file names the same term, subject and work type. The acceptance case needs a tree with a child, which
+  needs the model (R-48 stays open; step 5 is pinned by 13 unit tests instead).
+- **Labels.** Five files want `PYTHON1006/lecture`; the sixth, `Lecture three exercise .py`, wants
+  `PYTHON1006/exercise`.
+- **§11.2 step 4, eliminated by measurement.** `signal_evaluator_for` is checked callable and never
+  called (P9); the live per-file gate is `ActivationSignal.activates` inside `cli.fact_call_authorities`.
+  The lead's route (persist the detector's recognition as a file fact and key the gate on it) was measured
+  before it was built: the detector answers *what a file is made of*, not *which situation it is part
+  of*. Over the owner's `sample/Desktop`: a résumé is an `Abstention`, `ambiguous`, tied
+  `career`/`college_applications`, so the guard never fires on the file it was written for; four of the
+  five lecture notebooks are `Recognition(code)`, the only files that corpus places correctly, and the
+  guard would strip `school`, `term`, `subject`, `instructor`, `work_type` from them and add
+  `repository`. The guard fires six times on that corpus and helps nobody. Pinned as five strict tests in
+  `tests/integration/test_step4_recognition_as_a_gate.py` over the real `Detector` and the real
+  `active_field_allowlist`. **R-37 (per-branch situation, the model deciding from valid options) carries
+  step 4**; no interim guard. The 57th field the fact route needed is the withheld `sensitivity_status`
+  twin (NEEDS-JOSEPH C5) and is not added.
+- **An inherited commit was red.** `72e3acf` committed a test that raised inside its own helper and never
+  reached its assertion; its message claimed "tests: one added". Caught by the finisher's full-suite run.
+  Rule restated: an agent's test claims are verified by the merge suite, never carried on trust.
+
+### 14.3 New register entries
+
+| # | Finding | Kind | Severity | Basis | Phase |
+|---|---|---|---|---|---|
+| R-50 | **No per-extraction time ceiling.** The extraction pool recovers from a worker that dies, not from one that never returns. Measured: three of seventeen scoreboard situations hung at 0% CPU; the sampled worker's main thread is in `-[VNRecognizeTextRequest …]` (Vision, via PyObjC, the OCR reader) → `-[CIContext render:toCVPixelBuffer:…]` → `_dispatch_sync_f_slow` / `__DISPATCH_WAIT_FOR_QUEUE__`, a deadlock inside Apple's frameworks; six workers idle in `sem_wait`; the parent waits in `result()`. `00`:257 says one file may not consume the run. | W | **Blocker** for measurement | run, sampled | 1 (assigned) |
+| R-51 | **Token measure is a character upper bound.** `model_facts.dossier_tokens` counts characters as tokens (safe direction, about 4× tighter than the design's intent for English, honest for CJK). Replace with a provider-calibrated count (the cloud transport's usage field; Ollama's `prompt_eval_count`) before Phase 2 widens excerpts, or the ceiling throttles coverage. | W | Medium | code | 2 |
+| R-52 | **Local latency levers.** Ollama reloads the model when `num_ctx` changes (283 s measured), so one window per run; a concurrent client with a different window forces reloads (62–87 s per call measured while the bench ran). A stable prompt PREFIX (template, folder levels, vocabulary first; the file's dossier last) is what lets the KV cache carry across files. Real smoke: 4 calls, 4,181–4,503 prompt tokens, `think: false`, `format: json`, no truncation, num_ctx 32,768. | P | Medium | run | 0a / D2 packet |
+| R-53 | **Site C asserts its dossier fits.** `model_placement.py:283` hardcodes `unreduced_fits=True`, the twin of R-07 at the placement site; must be measured the way `2981c79` measures A. | W | High (latent until C is wired) | code | 1 (W2-D) |
+| R-54 | **The local model repeats the `school` collector.** qwen3:8b answered `school = "PHYS 1401"` on the lecture and the syllabus: grounded, validated, and a course code. Same defect as §11.1's first row, different model; the D2 glossary revision is the fix and the packet's A-site bakeoff measures it. | M | High | run | D2 |
+
+| R-55 | **The residual sensitivity check has no implementation.** `SENSITIVITY_RESTRICTION_IGNORED` rests on a `sensitivity_policy` dependency nothing supplies (`cli.py:4126` passes `None`; the bench stubs it true), so a protected record filed into an approved area is caught by nobody. Measured in the D2 bakeoff: both local D texts filed the redacted statement (D13) into Receipts and it was accepted. Packet G17. | S | **High** (safety flag SF-9) | run | 1 (wiring) |
+| R-56 | **The local model does not abstain.** `qwen3:8b` (thinking off) produced zero abstentions on the six should-abstain cases at C and D under every wording tried, and the validator accepted two of its wrong placements (a generic hub on `columbia.edu`, OCR noise `2O26`). The cloud model abstained 4 of 4 at C and 1 of 2 at D. D1's local half is fit for A_fact and unfit as a placement decider until an abstention mechanism exists that does not depend on the model volunteering one (a structural "none of these" option scored by the validator, or the deterministic shortlist refusing an ungrounded choice). This is the §12.2 parity evidence the owner asked to have measured. | M | High | run (packet §10) | 3 |
+| R-57 | **Site E is unratifiable as shaped.** 15 of 24 E responses were unparseable because the payload ends on a populated array (G13); a v2 with the payload reordered is in progress on the prompts branch. | M | Medium | run | D2 |
+
+### 14.5 The first model-on row after Wave 1 (three runs; §12.7 satisfied)
+
+Runs 2 and 3 (head `aaeb666`, code identical for placement) agree with run 1 on every sorting number: exact 0, right parent wrong leaf 6, top folder only 0, wrong 0, not placed 35, abstained 29 of 29, spillover 10. Only the verdict counts vary (257 / 272 / 253), which is the model's non-determinism at the fact level not reaching placement. The median row is therefore the row below.
+
+
+Cloud, `academic.coursework`, HEAD `17d05fa` (SF-1 closed, D1 lift, engine fixes, drafts unwired), semantic
+channel off, prompt `a_fact.unratified.folder-levels.2026-09-04`, corpus manifest `a3a8f4ef4a04e5d4`.
+
+| Measurement | HEAD cloud 5 Sep (the regression row) | `17d05fa` offline | `17d05fa` cloud |
+|---|---|---|---|
+| Reached a model | 42 of 199 | 0 | **83** |
+| Refused at the gate | 130 (40 no safety evidence, 90 unclassified) | — | 90 (unclassified only) |
+| Sorting exact / right parent / top folder only / wrong / not placed (41) | 0 / 6 / — / **5** / 30 | 0 / 6 / 3 / 0 / 32 | 0 / 6 / 0 / **0** / 35 |
+| "Ask the person" abstained (29) | 27 (2 placed wrong) | 29 | **29** |
+| Spillover (coursework run) | 17 | 10 | **10** |
+
+Read plainly: the regression is gone (wrong 5 → 0, spillover 17 → 10, abstention restored) with twice
+the coverage, and the model is not yet helping either: exact stays 0, and three files placed at their top
+folder offline are not placed with the model on: the three `Essay 2 Final Draft` PDFs, §11.1's first row. Offline they sat at the Coursework root ("top folder only"); with the model on, its `school` fact now produces an abstention instead of a `Georgetown Prep` level, because §11.2 step 3 (no level from an unanchored single value) is merged. Honest, and the expected state before site C is wired and the A glossary is ratified; it is the row Phase 3 starts from.
+
+| R-58 (merged) | **Dossier emitted frame first.** Sorted keys interleaved situation-constant material with per-file material: the shared byte run ended 205 into an 8,999-byte body. Frame first: 48.3% → 88.9–93.0% of the model-visible prompt shared; provider `prompt_cache_hit_tokens` 39% → 90%. One consequence outside the prefix: anything locating the dossier by its first key breaks (three tests did; fixed by splitting on the template's own last sentence). | W | closed | run | 1 |
+| R-59 | **The P9 semantic channel never ran.** `cli._embedding_runtime.text_for` measured `len()` of the `(text, keys)` tuple `recognition.semantic.evidence_text` returns, so every file read as 2 characters and no vector was ever stored; dead on arrival (`d75dcb5` made the tuple before `3ac0c0b`). Every semantic-on row ever recorded measured recognition only. Corrects R-12's mechanism. | W | High | run (199 of 199) | 1 (w2b) |
+| R-60 | **The eligible set was cut before ranking.** `versions_for` ignored its `seed` and cut the first ten files by hash order; `_bounded_versions` cut by sort order before any similarity was computed, so every seed was compared against the same nine files. Inverts `00`:257. Fixed on w2b: rank, then cap. | W | High | run | 1 (w2b) |
+| R-61 | **`bridge_entity_ref` is NULL on every `shared-validated-fact` edge** (204 of 204), so §6.5's hub test had nothing to act on. Ruled: record the bridge on that channel, exempt the seed's own field=value (a group's own basis is never its hub), and measure the ceiling (9 is unmeasured; `photograph` appears in 11 files). | W | Medium | run | 1 (w2b) |
+| R-62 | **The budget's unit is calls, not tokens.** `FACT_CALL_COST = 1`, `FACT_CALLS_PER_SCAN_CEILING = 200`; observed tokens are now recorded beside `reserved_cost` per call. A token-denominated ceiling is an owner question (Q-L): measured proposal about 5,000 prompt tokens per A_fact call, about 1,000,000 per 200-call scan; a wrong number throttles coverage (`00`:259). | P | owner | run | Q-L |
+| R-63 | **R-13's own wording was wrong three ways** (measured): the reuse key cannot be `dossier_id` (it exists only after the gate mints a capability and the budget slot is spent), `policy_version` cannot be a dimension (`_persist` mints `policy-{uuid4}` every run), and the asked field set cannot be a dimension (run two's open set is run one's declined set). Built: identity computed before the gate from the inputs that determine the dossier; policy content hashed; the open set compared against the prior's abstentions. | W | closed | run | 2 |
+| R-64 | **Local usage has no cache count.** Ollama's `/api/chat` reports `prompt_eval_count` and `eval_count` but no cache-hit count; the two cache columns are null on the local path by design, and the effect shows as a lower prompt count. Two structurally identical `Usage` records exist because `model_ollama` may import nothing from `src/`; a test binds both to `store.USAGE_COLUMNS`. | P | note | code | 2 |
+
+**Owner questions added tonight.** Q-K: the two event names `model_call_reused` and `model_call_usage` (registration is a spec-level act); rows `llm_call_reuse` and `llm_call_usage` carry the provenance until ruled. Q-L: the token-denominated budget ceiling (R-62).
+
+### 14.4 Process facts worth keeping
+
+- The session scratchpad is shared with the wave's agents; the lead's baseline scorecards there were
+  deleted mid-wave. Lead artefacts now live outside it (`~/.graph-agent/lead/`); the baseline survives in
+  §9 and §14.1.
+- The scoreboard's load ceiling (8.0) refuses to start while agents run suites; the runs read placement
+  outcomes only, so `--force` is used with the note that no timing is read from such a run.
+- A machine reboot killed one wave of agents; every branch survived because agents commit per
+  deliverable. That rule stays.
 
 *Section added by Claude Fable 5.1.*

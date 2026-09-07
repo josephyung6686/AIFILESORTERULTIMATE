@@ -213,6 +213,25 @@ def _decoded(head: bytes) -> str | None:
     return None
 
 
+def looks_like_text(head: bytes) -> bool:
+    """Are these bytes text at all? `file(1)`'s test, published for one other caller.
+
+    THE WEAK IDENTIFICATION ABOVE IS THE WHOLE OF IT: a byte stream holding a
+    control character is not text whatever it decodes to, and a byte-order mark is
+    read first so a UTF-16 document full of NULs is not mistaken for binary.
+
+    Published because `readers/long_tail_stdlib` needs the same answer and had a
+    weaker one. Its `.raw` and `.rlt` guard decoded strictly and let anything that
+    decoded through, on the stated ground that "text decodes, a photograph does
+    not" -- true of the invalid-UTF-8 byte string it was tested with and false of
+    the C0 control block, which is valid UTF-8. A camera raw or a sensor export
+    made of those decoded, became a spreadsheet cell holding its own raw bytes, and
+    was recorded `complete`. One question, one answer, in the module that already
+    had it.
+    """
+    return _decoded(head) is not None
+
+
 def _text_format(text: str, path: Path, size: int) -> str | None:
     """A POSITIVE identification of a text format, or None for "text of some kind"."""
     for pattern, token in _TEXT_OPENERS:

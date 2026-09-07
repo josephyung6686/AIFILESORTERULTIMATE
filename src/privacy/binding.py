@@ -31,7 +31,6 @@ and a second spelling of them here would be the drift the term exists to prevent
 """
 from __future__ import annotations
 
-import dataclasses
 import secrets
 import sqlite3
 from collections.abc import Mapping, Sequence
@@ -128,12 +127,20 @@ class BindingMismatch(Exception):
 def _target_form(model_target: ModelTarget) -> str:
     """One stored form per model target.
 
-    `canonical_json` over `dataclasses.asdict` rather than `str()`: §8.4's audit
-    field is "which model received the data", and a hosted model is identified by
-    provider AND id. A form that dropped either would let two different targets
-    compare equal.
+    `canonical_json` over the target's OWN stored form rather than `str()`: §8.4's
+    audit field is "which model received the data", and a hosted model is
+    identified by provider AND id. A form that dropped either would let two
+    different targets compare equal.
+
+    `to_mapping` AND NOT `dataclasses.asdict`, which is the one place this
+    mattered. `asdict` serialises every field whether or not it holds anything, so
+    an optional field arriving on `ModelTarget` would have added a null key to
+    every cloud row in this ledger without a line of this file changing. The
+    target says how it is stored, in one place, and `AuditRecord.model` already
+    read it there -- two spellings of the stored form would let the ledger and the
+    audit record describe one release two ways.
     """
-    return canonical_json(dataclasses.asdict(model_target))
+    return canonical_json(model_target.to_mapping())
 
 
 def content_digest(entries: Sequence[Mapping[str, object]]) -> str:

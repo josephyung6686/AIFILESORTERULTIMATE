@@ -15,14 +15,24 @@ mapping from a real-world signal onto the router's token space in the DEPLOYMENT
 "A real deployment maps libmagic's MIME type or macOS's UTType onto that token space,
 and THAT mapping belongs to the reader."
 
-THE OTHER TWO STAY UNSUPPORTED and they are asserted here so that stays visible: a
-Google-Fonts stylesheet saved as `css2` and Premiere's `LocateDialog Column Settings`
-are named by nothing and sniffing them is not available -- reading bytes to decide a
-format would open a file before `is_protected_container` has had its say, and that
-guard is by PATH and runs after routing. An honest `unsupported` is the answer.
+THE OTHER TWO ARE NAMED BY NOTHING: a Google-Fonts stylesheet saved as `css2` and
+Premiere's `LocateDialog Column Settings`. When this file was written, sniffing them
+was not available -- reading bytes to decide a format would have opened a file before
+`is_protected_container` had its say, and that guard is by PATH and runs after
+routing -- so an honest `unsupported` was the answer for both.
+
+**THAT CHANGED ON 2026-09-06 AND THE SECOND HALF OF THIS FILE IS THE CHANGE.** R-30:
+`readers/signatures.py` was written for exactly these files and `94` F22 recorded
+that it "is not wired into `cli._detect_format`". It is now, asked LAST -- after the
+extension and after the name, both of which still answer without opening anything --
+and it carries the protected-container predicate as an argument it cannot be built
+without, so the reason above is obeyed rather than overturned. The stylesheet is
+text and is now read as text; the Premiere file is nothing the reader knows and is
+still `unsupported`, which is still the truth.
 """
 from __future__ import annotations
 
+import io
 import sys
 from pathlib import Path
 
@@ -118,12 +128,51 @@ def test_every_name_in_the_table_has_a_file_behind_it_or_a_reason():
 # --------------------------------------------------------------------------- #
 
 @pytest.mark.parametrize("name", ["css2", "LocateDialog Column Settings"])
-def test_the_two_that_no_convention_names_stay_honestly_unsupported(name):
-    """Both are real corpus files and neither is guessable from its name. §2.4:
-    "The system should never silently treat an unsupported format as an empty
-    document" -- and it does not; it says `unsupported`, which is the truth."""
+def test_the_two_that_no_convention_names_are_unsupported_on_their_name_alone(name):
+    """Both are real corpus files and neither is guessable from its NAME.
+
+    THIS TEST USED TO SAY MORE THAN IT MEASURED. It asserted that these two "stay
+    honestly unsupported" and gave the reason: reading bytes to decide a format
+    "would open a file before `is_protected_container` has had its say". That
+    reason was retired on 2026-09-06 -- `readers.signatures` takes the predicate as
+    a required argument and answers `None` for a protected path without reading a
+    byte -- and the assertion below survived the change only because `/corpus` does
+    not exist, so there were no bytes to read either way. What it measures is the
+    name, which is what its title now says. What the bytes add is the two tests
+    below it.
+    """
     assert cli._detect_format(Path("/corpus") / name) is None
     assert routed(name).unrouted_completeness == "unsupported"
+
+
+def test_bytes_that_are_text_under_an_extension_nothing_knows_are_read(tmp_path):
+    """`css2` is a Google-Fonts stylesheet and it is text, so now it is read.
+
+    An extension the router has never heard of is not a routing signal, so there is
+    nothing here for the bytes to overrule -- the same argument as an extensionless
+    file, one step further out. §2.4's rule is unbroken in the direction that
+    matters: nothing is treated as an empty document, and a file that IS text stops
+    being called unsupported.
+    """
+    stylesheet = tmp_path / "css2"
+    stylesheet.write_text("@font-face { font-family: 'Inter'; src: url(x.woff2); }")
+
+    assert cli._detect_format(stylesheet) == "txt"
+
+
+def test_bytes_that_are_nothing_the_reader_knows_stay_honestly_unsupported(tmp_path):
+    """§2.4: "The system should never silently treat an unsupported format as an
+    empty document" -- and it does not; it says `unsupported`, which is the truth.
+
+    Premiere's `LocateDialog Column Settings` is the corpus file this stands for: no
+    magic number, no text, no convention. Nothing here guesses.
+    """
+    opaque = tmp_path / "LocateDialog Column Settings"
+    opaque.write_bytes(bytes(range(1, 32)) * 8)
+
+    assert cli._detect_format(opaque) is None
+    assert routed("LocateDialog Column Settings").unrouted_completeness == \
+        "unsupported"
 
 
 def test_a_file_that_HAS_an_extension_is_never_renamed_by_this_table():
@@ -142,11 +191,208 @@ def test_a_file_that_HAS_an_extension_is_never_renamed_by_this_table():
     assert cli._detect_format(Path("/x/makefile-helper.js")) is None
 
 
-def test_the_detector_still_opens_nothing():
-    """The reason `css2` cannot be rescued, pinned. `is_protected_container` is a
-    PATH judgement made by `admit()`, which runs inside the extractor -- after
-    routing. A detector that read bytes to name a format would open a protected
-    file before the one guard that exists to stop it, so this one answers from the
-    path alone and is handed a path that does not exist to prove it."""
+def test_a_file_that_cannot_be_opened_at_all_is_still_routed_by_its_path():
+    """The detector opens files now, and neither of these two needs it to.
+
+    THE OLD TITLE WAS "the detector still opens nothing" and that is no longer
+    true; what stayed true is the property it was protecting. An extension the
+    router knows and a name a convention claims are both answered before any byte
+    is read, so a file that is missing, unreadable or on a volume that has gone
+    away still reaches its extractor. Handed paths that do not exist to prove it.
+
+    The rule that made the old form necessary is enforced where it belongs now:
+    `signature_detector` takes `is_protected_container` as an argument it cannot be
+    built without, and `test_a_protected_container_is_not_opened_to_name_its_format`
+    below is that guard.
+    """
     assert cli._detect_format(Path("/nowhere/at/all/LICENSE")) == "txt"
+    assert cli._detect_format(Path("/nowhere/at/all/thing.pdf")) == "pdf"
+
+
+# --------------------------------------------------------------------------- #
+# R-30: the ones no name answers for, which is what the signature is for
+# --------------------------------------------------------------------------- #
+#
+# `94` F22, measured 2026-09-03: a plain text file called `noextension` appeared in
+# NEITHER list of the freeze block. The omission half of that is fixed -- it is named
+# under "Not frozen" with a reason -- and the routing half was not: the reason it
+# gives is "nothing has looked inside this one yet", and nothing ever would.
+# `readers/signatures.py` was written for exactly this and F22 records that it "is
+# not wired into `cli._detect_format`".
+#
+# THE SIGNATURE IS ASKED LAST AND ONLY WHERE THE OTHER TWO ANSWER NOTHING, and that
+# order is measured rather than aesthetic. Asking it FIRST, as §2.9's "the detected
+# format wins over the declared extension" reads on its own, was tried against the
+# owner's 21-file sample: seven files changed their operative format and every one of
+# the seven was a false disagreement. Five `.ipynb` and one `.code-workspace` are
+# JSON, so the sniffer answers `json` -- true, coarser than the extension, and
+# recorded as "this file is misnamed" in a column `router.py` keeps precisely so the
+# disagreement is not manufactured. A `.jpeg` answers `jpg`, which is one format
+# spelled two ways. None of the seven is a file anybody misnamed.
+#
+# The name table is asked before the signature for the same kind of reason: a real
+# `Dockerfile` is text, so the sniffer's weak answer is `txt`, and taking it would
+# move every Dockerfile on a disk from `code_structured` to `text_document`. A file
+# named by a convention has said what it is.
+
+_SYLLABUS = (
+    "PHYS 1401 Syllabus",
+    "Spring 2026. Instructor: Dr. Lee. Credits: 3.",
+    "Assessment: midterm 30 percent, final examination 50 percent.",
+)
+#: Both lectures carry the course, the semester and the instructor, and both say
+#: `lecture` more than once. That is not decoration: a thinner draft of these two --
+#: the title, the term and one sentence of physics -- reached the same three
+#: validated facts and was never CLASSIFIED, so both lectures came back "nothing has
+#: looked inside this one yet" and the comparison was between two blanks. A fixture
+#: has to clear every gate that stands between the bytes and the freeze block or it
+#: is not measuring the one this file is about.
+_LECTURE_08 = (
+    "PHYS 1401 Lecture 08 - Rotational Dynamics",
+    "Course: PHYS 1401. Semester: Spring 2026. Instructor: Dr. Lee.",
+    "Lecture notes. Torque and angular momentum.",
+    "Reading for this lecture is in the course syllabus; homework 3 follows.",
+)
+_LECTURE_09 = (
+    "PHYS 1401 Lecture 09 - Simple Harmonic Motion",
+    "Course: PHYS 1401. Semester: Spring 2026. Instructor: Dr. Lee.",
+    "Lecture notes. Springs, pendulums and the small-angle approximation.",
+    "Reading for this lecture is in the course syllabus; homework 4 follows.",
+)
+
+
+def _one_page_pdf(lines) -> bytes:
+    """A real single-page PDF carrying `lines` as text, built with the stdlib.
+
+    The same construction `tests/test_cli.py` uses and for the same reason: what a
+    magic-number test needs is a file the shipped reader will actually READ, not
+    bytes that merely start with `%PDF`. Spelled out here rather than imported
+    across test modules.
+    """
+    def esc(text: str) -> str:
+        return text.replace("\\", r"\\").replace("(", r"\(").replace(")", r"\)")
+
+    body = ["BT", "/F1 12 Tf", "72 720 Td", "14 TL"]
+    for line in lines:
+        body += [f"({esc(line)}) Tj", "T*"]
+    body.append("ET")
+    stream = "\n".join(body).encode("latin-1")
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+        b"/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+        b"<< /Length " + str(len(stream)).encode() + b" >>\nstream\n" + stream
+        + b"\nendstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for number, payload in enumerate(objects, start=1):
+        offsets.append(len(out))
+        out += str(number).encode() + b" 0 obj\n" + payload + b"\nendobj\n"
+    xref_at = len(out)
+    out += b"xref\n0 " + str(len(objects) + 1).encode() + b"\n0000000000 65535 f \n"
+    for offset in offsets:
+        out += f"{offset:010d} 00000 n \n".encode()
+    out += (b"trailer\n<< /Size " + str(len(objects) + 1).encode()
+            + b" /Root 1 0 R >>\nstartxref\n" + str(xref_at).encode() + b"\n%%EOF\n")
+    return bytes(out)
+
+
+def test_an_extensionless_pdf_is_detected_by_its_signature(tmp_path):
+    """The bytes say PDF and no name does. Today nothing asks the bytes."""
+    report = tmp_path / "PHYS 1401 lecture 09"
+    report.write_bytes(_one_page_pdf(_LECTURE_09))
+
+    assert cli._detect_format(report) == "pdf"
+
+
+def test_an_extensionless_text_file_is_detected_as_text(tmp_path):
+    """`94` F22's own file, by name. The weak answer is right when nothing else
+    answered: `noextension` decodes as text and no extension is being overruled."""
+    noextension = tmp_path / "noextension"
+    noextension.write_text("Lecture 08 - Rotational Dynamics\nPHYS 1401\n")
+
+    assert cli._detect_format(noextension) == "txt"
+
+
+def test_an_extensionless_pdf_is_frozen_and_placed_like_its_named_twin(tmp_path):
+    """R-30 end to end: the same document, one named `.pdf` and one named nothing.
+
+    Both are lectures of the same course, so both belong in the same branch, and a
+    syllabus is there to give the branch a second leaf to be distinguished from.
+    Before the wiring the extensionless one is named under "Not frozen" as a file
+    nothing has looked inside -- which is `84` §1's rule honoured and §2.9's routing
+    signal still missing.
+    """
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "PHYS 1401 syllabus.pdf").write_bytes(_one_page_pdf(_SYLLABUS))
+    (corpus / "PHYS 1401 lecture 08.pdf").write_bytes(_one_page_pdf(_LECTURE_08))
+    (corpus / "PHYS 1401 lecture 09").write_bytes(_one_page_pdf(_LECTURE_09))
+
+    out = io.StringIO()
+    assert cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Coursework", "--user", "t",
+                     "--database", str(tmp_path / "plan.sqlite"),
+                     "--freeze"], out=out) == 0
+    printed = out.getvalue()
+
+    frozen = printed.split("Frozen:", 1)[-1].split("Not frozen", 1)[0]
+    lectures = frozen.split("Coursework/lecture", 1)[-1].split("Move these:", 1)[0]
+
+    assert "PHYS 1401 lecture 08.pdf" in lectures, printed
+    assert "PHYS 1401 lecture 09" in lectures, (
+        "the extensionless twin of a file that WAS frozen is still unread, so it "
+        "is named under 'Not frozen' as a file nothing has looked inside:\n"
+        + printed)
+    assert "PHYS 1401 syllabus.pdf" in frozen, (
+        "the branch the two lectures had to be told apart from is gone, so they "
+        "could have landed together for a reason that is not this one:\n" + printed)
+
+
+def test_a_protected_container_is_not_opened_to_name_its_format(tmp_path):
+    """The one rule with no override, and the reason the old detector read nothing.
+
+    These bytes are a PDF and saying so would require opening them. §4b: the
+    contents of an application bundle are never examined, and the judgement is made
+    by PATH before any format question is asked.
+    """
+    bundle = tmp_path / "Notes.app" / "Contents"
+    bundle.mkdir(parents=True)
+    inside = bundle / "manual"
+    inside.write_bytes(_one_page_pdf(_SYLLABUS))
+
+    assert cli._detect_format(inside) is None
+
+
+def test_a_conventional_name_still_beats_the_bytes(tmp_path):
+    """A real `Dockerfile` and a real `LICENSE`, on disk, with content to sniff.
+
+    Both decode as text, so the signature's weak answer for both is `txt`. Taking
+    it would move every Dockerfile on a disk out of `code_structured`, which is the
+    measurement that fixed this order.
+    """
+    (tmp_path / "Dockerfile").write_text("FROM python:3.12\nRUN pip install .\n")
+    (tmp_path / "LICENSE").write_text("MIT License\n\nPermission is hereby granted")
+
+    assert cli._detect_format(tmp_path / "Dockerfile") == "dockerfile"
+    assert cli._detect_format(tmp_path / "LICENSE") == "txt"
+
+
+def test_a_known_extension_is_still_answered_without_reading_the_file(tmp_path):
+    """The seven false disagreements, refused at the top of the function.
+
+    A notebook is JSON and a `.jpeg` is a `jpg`, and neither file is misnamed. The
+    extension the router knows is the answer, and the bytes are not consulted at
+    all -- which is also why this can be asserted about a path that does not exist.
+    """
+    notebook = tmp_path / "lecture01_introduction.ipynb"
+    notebook.write_text('{"cells": [], "nbformat": 4}')
+    photo = tmp_path / "booster.jpeg"
+    photo.write_bytes(b"\xff\xd8\xff\xe0\x00\x10JFIF\x00")
+
+    assert cli._detect_format(notebook) is None
+    assert cli._detect_format(photo) is None
     assert cli._detect_format(Path("/nowhere/at/all/thing.pdf")) == "pdf"

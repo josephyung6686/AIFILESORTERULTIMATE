@@ -504,16 +504,22 @@ def test_a_placement_names_the_folder_rather_than_printing_a_dash():
 
 def test_file_names_are_read_from_the_database_and_shown_from_the_folder_read():
     """`files.current_path` is the source, and the name is shown relative to the
-    folder the person typed -- which is what tells two `notes.txt` apart."""
+    folder the person typed -- which is what tells two `notes.txt` apart.
+
+    `scan_state` joined the stand-in table when R-25 landed: the real `files`
+    table has carried it `NOT NULL` since the first schema, and `file_names` now
+    reads it to leave out a version the corpus no longer has.
+    """
     import sqlite3
 
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
-    conn.execute("CREATE TABLE files (file_id TEXT, current_path TEXT)")
-    conn.executemany("INSERT INTO files VALUES (?, ?)", [
-        ("id-0", "/tmp/demo/Syllabus.txt"),
-        ("id-1", "/tmp/demo/term one/notes.txt"),
-        ("id-2", "/elsewhere/stray.txt")])
+    conn.execute(
+        "CREATE TABLE files (file_id TEXT, current_path TEXT, scan_state TEXT)")
+    conn.executemany("INSERT INTO files VALUES (?, ?, ?)", [
+        ("id-0", "/tmp/demo/Syllabus.txt", "included"),
+        ("id-1", "/tmp/demo/term one/notes.txt", "included"),
+        ("id-2", "/elsewhere/stray.txt", "included")])
 
     names = cli.file_names(conn, Path("/tmp/demo"))
 
@@ -521,6 +527,37 @@ def test_file_names_are_read_from_the_database_and_shown_from_the_folder_read():
     assert names["id-1"] == "term one/notes.txt"
     # Outside the folder read: the full path, never a guess and never dropped.
     assert names["id-2"] == "/elsewhere/stray.txt"
+
+
+def test_a_version_the_corpus_no_longer_has_is_not_one_of_the_persons_files():
+    """R-25 at this seam. Two versions of one file are not two files.
+
+    A file edited between runs leaves the old row `superseded_content` AT THE SAME
+    PATH, so this map held two ids for one name and every screen built on it
+    counted the person's files one too many. A path the person deleted leaves
+    `path_no_longer_exists` and is the same answer for the same reason.
+
+    Every other value of P3's column means the file is present, and the twin
+    below is what stops the filter reading one of those as retirement.
+    """
+    import sqlite3
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.execute(
+        "CREATE TABLE files (file_id TEXT, current_path TEXT, scan_state TEXT)")
+    conn.executemany("INSERT INTO files VALUES (?, ?, ?)", [
+        ("live", "/tmp/demo/notes.txt", "included"),
+        ("ghost", "/tmp/demo/notes.txt", "superseded_content"),
+        ("deleted", "/tmp/demo/gone.txt", "path_no_longer_exists"),
+        ("mid-scan", "/tmp/demo/other.txt", "pending")])
+
+    names = cli.file_names(conn, Path("/tmp/demo"))
+
+    assert set(names) == {"live", "mid-scan"}, (
+        "either a retired version was still shown as one of the person's files, "
+        "or a live one was dropped on a word P3 uses to mean the opposite")
+    assert names["live"] == "notes.txt"
 
 
 # ======================================================================================
@@ -3451,14 +3488,17 @@ def test_a_second_run_after_the_person_deletes_a_file_still_produces_a_plan(tmp_
     assert "PHYS 1401 syllabus.txt" in printed, printed
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "A file the person deleted is still named in the next run's plan. The scan "
-    "does not find it; the report reads it back out of the database, which "
-    "remembers it from the run before. So the product offers to file something "
-    "that is not there. Found while fixing the crash that used to hide it -- "
-    "until the second run stopped raising, nobody could see this. Strict, so "
-    "the suite turns red the day it is fixed."))
 def test_a_file_the_person_deleted_is_not_in_the_next_plan(tmp_path):
+    """Closed by R-25's filter, which was written for the other sentinel.
+
+    The defect was that the scan does not find the file and the REPORT reads it
+    back out of the database, which remembers it from the run before -- so the
+    product offered to file something that is not there. P1 had been marking the
+    row `path_no_longer_exists` the whole time and nothing downstream honoured it.
+    `cli.file_names` and `production.corpus_roster` now leave both of P1's
+    retired states out, and a deleted file stops being one of the person's files
+    at the same moment it stops being on the disk.
+    """
     corpus = _course_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     argv = [str(corpus), "--situation", "academic.coursework",

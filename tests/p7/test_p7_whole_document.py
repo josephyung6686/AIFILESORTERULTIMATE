@@ -464,3 +464,141 @@ def test_a_bounded_span_inside_the_document_is_still_released(whole_conn):
     assert isinstance(decision, Released)
     assert decision.materialised_items[0].value == DOCUMENT[0:18]
     assert decision.materialised_items[0].unit_length == len(DOCUMENT)
+
+
+# ================================================================================
+# SF-1 (`104` R-07): the same defect, one extractor later
+# ================================================================================
+#
+# `extractors/docx.py` gained the whole-prose `body` observation in `fd68cb6` --
+# `emit(zone="body", raw="\n".join(prose), container_path=(), span=None,
+# unit_text=None)` -- and did NOT gain the `text_units` row at the same empty path
+# that `structured_text.py` has carried since E3. The comment above it even cites
+# this file's reasoning ("both halves are load-bearing"), and the half that makes
+# the refusal reachable is the one that was left out.
+#
+# So `unit_for_observation` found nothing at `()`, `resolve.materialise` reported
+# `unit_length=None`, `is_whole_document` read a missing length as "not a whole
+# document", and every word of a Word document was releasable as an excerpt.
+# `104` §5 SF-1 measured it live on the owner's files: 7 of 42 dossiers over 16,000
+# bytes, largest 45,843.
+#
+# The canary below is a sentence that exists ONLY in the body. It is not a heading,
+# not a cell, not a core property, and no `find_structured_strings` match covers
+# it -- so if it appears in released bytes, it got there as the whole body.
+
+#: Planted in the body of the synthetic Word document and nowhere else in it.
+DOCX_CANARY = "My mother's diagnosis was confirmed on the fourteenth of March."
+
+DOCX_BODY = (
+    "I want to study economics at Wash U. " + DOCX_CANARY
+    + " That is the reason this application matters to me."
+)
+
+
+def _a_word_document():
+    from extractors.docx import DocxCell, DocxDocument, DocxParagraph
+
+    return DocxDocument(
+        core_properties={"creator": "python-docx"},
+        paragraphs=(
+            DocxParagraph(index=1, text="Application Essay", zone="heading",
+                          heading_path=((1, "Application Essay"),)),
+            DocxParagraph(index=2, text=DOCX_BODY, zone="body",
+                          heading_path=((1, "Application Essay"),)),
+        ),
+        cells=(DocxCell(table=1, row=1, column=1, text="Institution",
+                        column_header="Field"),),
+    )
+
+
+def _extract_the_word_document(file_id: str, content_hash: str):
+    from extractors.docx import extract_docx
+
+    return extract_docx(
+        file_row={"file_id": file_id, "content_hash": content_hash},
+        path=Path(tempfile.mkdtemp()) / "Wash U.docx",
+        policy=SafetyPolicy(is_protected_container=lambda path: False,
+                            is_dataless=lambda path: False),
+        read_docx=lambda path: _a_word_document(),
+        find_structured_strings=lambda text: (),
+        now=OBSERVED_AT, context_window=20)
+
+
+def test_the_docx_extractor_stands_its_body_observation_where_its_unit_stands():
+    """E2's twin of the E3 premise above, and it is the whole of SF-1.
+
+    Everything the gate does about a whole document rests on a unit standing at the
+    observation's own container path. E3 writes one; E2 wrote none, and its own
+    comment claims the property E3's code delivers.
+
+    SABOTAGE: drop the whole-body `text_unit` from `extractors/docx.py` and this
+    goes red, exactly as the E3 test above does for `structured_text.py`.
+    """
+    result = _extract_the_word_document("f-docx-premise", "d" * 64)
+
+    body = [observation for observation in result.observations
+            if observation["location"]["zone"] == "body"
+            and observation["location"]["text_span"] is None]
+    assert len(body) == 1, "the prose is emitted whole, span-less, exactly once"
+    at = body[0]["location"]["container_path"]
+    units = [unit for unit in result.text_units if unit["container_path"] == at]
+    assert units and units[0]["text"] == body[0]["raw_value"], (
+        "the unit the refusal measures against must stand at the observation's own "
+        f"container path; the observation is at {at!r} and the run's units are at "
+        f"{[unit['container_path'] for unit in result.text_units]!r}")
+
+
+def _write_the_word_document(conn, name: str, tag: bytes):
+    """The real extractor through the real writer, returning the body's key."""
+    from evidence_shape.store import RunWriter
+
+    file_id = _file(conn, name, f"hash-{tag.decode()}")
+    digest = hashlib.sha256(tag).hexdigest()
+    run_id = RunWriter(conn, author="P5").write(
+        _extract_the_word_document(file_id, digest))
+    key = conn.execute(
+        "SELECT observation_key FROM evidence WHERE run_id = ? AND raw_value = ?",
+        (run_id, DOCX_BODY)).fetchone()[0]
+    return file_id, digest, key
+
+
+def test_the_whole_body_of_a_word_document_is_denied_and_releases_nothing(
+        whole_conn):
+    """The live path, through the real extractor, the real writer and the real gate.
+
+    `104` SF-1's own words: "keep dossier payloads local". The canary is the
+    assertion that says so -- a sentence that exists only in the body, so its
+    presence in released bytes has exactly one explanation.
+    """
+    file_id, _digest, key = _write_the_word_document(
+        whole_conn, "Wash U.docx", b"docx")
+    _classify(whole_conn, file_id, "hash-docx", key=key)
+    _store_policy(whole_conn)
+
+    decision = _gate(whole_conn).release(_request(
+        items=(Excerpt(observation_key=key, span=None, reason="the body"),),
+        file_id=file_id))
+
+    assert isinstance(decision, Denied), decision
+    assert decision.reason == "whole_document_requested", decision.reason
+    assert not getattr(decision, "materialised_items", ())
+
+
+def test_the_word_documents_body_is_never_offered_to_a_model_call(whole_conn):
+    """The other half: the call is not BUILT, so nothing pays to materialise a
+    document in order to refuse it (`model_facts.releasable_observations`).
+
+    The canary check runs over every value the builder WOULD offer, which is the
+    shape the instrument (`104` §7 "Instruments") repeats over the owner's corpus.
+    """
+    from model_facts import releasable_observations
+
+    file_id, digest, _key = _write_the_word_document(
+        whole_conn, "Wash U 2.docx", b"docx-2")
+
+    offered = releasable_observations(
+        whole_conn, file_id=file_id, content_hash=digest, limit=12)
+    values = [observation.raw_value for observation in offered]
+    assert offered, "the headings and cells beside the body are still offered"
+    assert not [value for value in values if DOCX_CANARY in value], values

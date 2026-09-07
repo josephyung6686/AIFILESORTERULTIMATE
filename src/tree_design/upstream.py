@@ -27,6 +27,7 @@ from facts.fields import get_field
 from facts.read_surface import (
     PROPOSAL_ELIGIBLE_STATES, facts_for, is_destination_eligible,
 )
+from facts.states import strength
 from facts.supersede import preferred_fact
 from grouping.vocabulary import (
     ACCEPTED,
@@ -362,6 +363,36 @@ class FieldValue:
     field_ref: str
     canonical_value: str
     display_label: str
+    #: P6's own reliability state for the fact this value came from. Carried
+    #: rather than dropped because `00`:42 turns on it: a model output "too weak
+    #: to establish a fact may remain a possible clue for review; it must not
+    #: quietly become a folder proposal". `PROPOSAL_ELIGIBLE_STATES` admits the
+    #: whole ladder above `possible`, which is the right bar for a value SEVERAL
+    #: files carry and too low for one file saying something once --
+    #: `materialise._project` is where that difference is applied and carries the
+    #: measurement. Defaulted to the weakest admissible state so a caller that
+    #: builds a `FieldValue` without one gets the cautious answer rather than a
+    #: silent promotion.
+    reliability: str = PROPOSAL_ELIGIBLE_STATES[0]
+
+
+def anchors_a_level(reliability: str) -> bool:
+    """Is a fact at this state strong enough to stand behind a level on its own?
+
+    P6's ladder, asked here because THIS is P10's declared seam onto it.
+    `materialise.py` is not one -- `tests/p10/test_p10_no_invention.py::
+    test_only_the_declared_seams_name_another_parts_records` refuses any module
+    outside the allow-list naming another part's records, and the first draft of
+    `_unanchored_single_values` imported `facts.read_surface` and `facts.states`
+    straight into the materialiser and was caught by it.
+
+    `PROPOSAL_ELIGIBLE_STATES[0]` is the weakest state a folder proposal may rest
+    on at all, and this asks for STRONGER than that: `00`:63's "direct or
+    validated anchor", read off the ladder rather than spelled. No state name is
+    written down here, for the reason `facts/read_surface.py` gives where it
+    derives the same set.
+    """
+    return strength(reliability) > strength(PROPOSAL_ELIGIBLE_STATES[0])
 
 
 def preferred_value_for(conn: sqlite3.Connection, *, file_id: str,
@@ -399,6 +430,7 @@ def preferred_value_for(conn: sqlite3.Connection, *, file_id: str,
         field_ref=field_ref,
         canonical_value=row["canonical_value"],
         display_label=row["display_label"] or row["canonical_value"],
+        reliability=row["reliability_state"],
     )
 
 

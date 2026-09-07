@@ -535,6 +535,7 @@ def run_corpus_through(conn, tmp_path, *, fields=FIELDS, names=CORPUS,
             chosen_by_user=lambda subject: None,
             fields_that_cannot_anchor_a_move=frozenset({"work_type", "term"}),
             their_own_folder_made_for_what_it_holds={},
+            the_folder_each_file_is_in={},
             p2=None)
 
     def downstream(p1_p7):
@@ -553,7 +554,6 @@ def run_corpus_through(conn, tmp_path, *, fields=FIELDS, names=CORPUS,
                     document_compatible=None, channel_weights={},
                     similarity=None, similarity_threshold=None,
                     embedding_identity=None, domain=None),
-                active_schema_for=lambda db, f, h: fields,
                 signal_evaluator_for=lambda domain: True,
                 classification_store=ClassificationStore(conn).current,
                 conflicts_for=lambda file_ids: (),
@@ -851,7 +851,6 @@ def test_p9_writes_a_category_and_a_label_a_live_run_can_route(conn, tmp_path):
             retrieval=RetrievalKnowledge(
                 document_compatible=None, channel_weights={}, similarity=None,
                 similarity_threshold=None, embedding_identity=None, domain=None),
-            active_schema_for=lambda db, f, h: FIELDS,
             signal_evaluator_for=lambda domain: True,
             classification_store=ClassificationStore(conn).current,
             conflicts_for=lambda file_ids: (), duplicate_or_version=None),

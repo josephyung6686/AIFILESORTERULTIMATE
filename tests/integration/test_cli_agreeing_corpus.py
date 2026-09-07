@@ -315,6 +315,7 @@ def test_the_required_level_of_the_chosen_situation_can_actually_be_built(tmp_pa
     **This test passed the moment it was written, and that is the finding.** It was
     written to prove a regression: `fd68cb6` emptied `DIRECT_SLOTS`, `subject` reached
     P9's `active_schema_for` only by being a slot, and the diff did not put it back --
+    a slot since retired outright (`104` R-09), because nothing ever read it --
     so `subject` looked unbuildable, and `planning/102` said so before running anything.
     Running it says otherwise. Levels come from `folder_levels_for`, which reads the
     applicability row and carries `subject`; `active_schema_for` is the GROUPING schema
