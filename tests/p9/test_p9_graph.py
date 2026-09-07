@@ -21,7 +21,10 @@ from __future__ import annotations
 import pytest
 
 from grouping.config import ConfigurationRequired, GroupingLimits
-from grouping.graph import EDGE_TYPE_BY_CHANNEL, LocalEvidenceGraph, build_graph
+from grouping.graph import (
+    EDGE_TYPE_BY_CHANNEL, LocalEvidenceGraph, anchor_observation_keys,
+    anchoring_files, build_graph,
+)
 from grouping.retrieval import Neighbor, Neighborhood
 from grouping.seeds import Seed
 from grouping.vocabulary import (
@@ -405,3 +408,103 @@ def test_the_graph_is_a_frozen_record_with_no_setter():
     assert graph.__dataclass_params__.frozen
     with pytest.raises(dataclasses.FrozenInstanceError):
         graph.capped = True  # type: ignore[misc]
+
+
+# --- `104` R-97: which file cites what, and it was never asked ---------------------
+#
+# `AnchorFact` carried ONE observation key for a group of four, so three of the
+# four were recorded as citing the first file's observation. The per-file key was
+# never missing: `retrieval._shared_fact_neighbors` reads the CANDIDATE's own
+# `evidence_refs[0]` and `build_graph` carries it onto the edge. What was missing
+# was the read.
+
+
+def _key(tag: str) -> str:
+    """A well-shaped P4 key. `is_observation_key` checks the digest WIDTH, so
+    `sha256:edge-evidence` -- the helper's default above -- is not one, and a test
+    that used it would be asserting the fallback branch by accident."""
+    return "sha256:" + (tag * 64)[:64]
+
+
+def test_each_anchoring_file_is_paired_with_its_own_observation():
+    seed_key, a_key, b_key = _key("a"), _key("b"), _key("c")
+    graph = _build(_hood(
+        _neighbor("file-a", SHARED_VALIDATED_FACT, anchors=True,
+                  evidence_ref=a_key),
+        _neighbor("file-b", SHARED_VALIDATED_FACT, anchors=True,
+                  evidence_ref=b_key),
+        seed=_seed(observation_key=seed_key),
+    ))
+    files = anchoring_files(graph, seed_anchors=True)
+    keys = anchor_observation_keys(graph, seed_anchors=True,
+                                   seed_observation_key=seed_key)
+
+    assert len(keys) == len(files)
+    assert dict(zip(files, keys)) == {
+        SEED_FILE: seed_key, "file-a": a_key, "file-b": b_key}
+    # Three anchors, three DIFFERENT citations. One key repeated three times is
+    # the record R-97 is about.
+    assert len(set(keys)) == 3
+
+
+def test_the_seed_is_answered_from_its_own_seed_and_never_from_an_edge():
+    """`build_graph` writes edges FROM the seed, so no edge carries the seed's
+    citation and the seed's key has to arrive with the question."""
+    graph = _build(_hood(
+        _neighbor("file-a", SHARED_VALIDATED_FACT, anchors=True,
+                  evidence_ref=_key("b")),
+        seed=_seed(observation_key=_key("a")),
+    ))
+    paired = dict(zip(anchoring_files(graph, seed_anchors=True),
+                      anchor_observation_keys(graph, seed_anchors=True,
+                                              seed_observation_key=_key("a"))))
+    assert paired[SEED_FILE] == _key("a")
+    assert SEED_FILE not in {edge.to_file_id for edge in graph.edges}
+
+
+def test_a_seed_that_does_not_anchor_is_not_given_a_citation():
+    graph = _build(_hood(
+        _neighbor("file-a", SHARED_VALIDATED_FACT, anchors=True,
+                  evidence_ref=_key("b")),
+        seed=_seed(observation_key=_key("a")),
+    ))
+    assert anchoring_files(graph, seed_anchors=False) == ("file-a",)
+    assert anchor_observation_keys(
+        graph, seed_anchors=False, seed_observation_key=_key("a")) == (_key("b"),)
+
+
+def test_an_edge_that_cites_no_observation_answers_none_rather_than_its_own_id():
+    """`build_graph` falls back to the edge's own id when a channel cites nothing
+    -- "a channel that cites no observation is still addressable" -- and a
+    `user_confirmed` anchor genuinely cites nothing. The fallback is an edge
+    address, not a P4 handle, and offering it as a citation would send the model
+    to an observation that does not exist."""
+    graph = _build(_hood(
+        _neighbor("file-a", SHARED_VALIDATED_FACT, anchors=True,
+                  evidence_ref=None),
+        seed=_seed(observation_key=_key("a")),
+    ))
+    paired = dict(zip(anchoring_files(graph, seed_anchors=True),
+                      anchor_observation_keys(graph, seed_anchors=True,
+                                              seed_observation_key=_key("a"))))
+    assert paired["file-a"] is None
+    edge = next(e for e in graph.edges if e.to_file_id == "file-a")
+    assert edge.evidence_ref == edge.edge_id
+
+
+def test_the_two_reads_select_the_same_edges_and_stay_the_same_length():
+    """One filter, read twice. A suppressed hub edge does not anchor, so it may
+    not contribute a key either -- and the two functions share
+    `_anchoring_edges` so they cannot disagree about which edges those are."""
+    graph = _build(_hood(
+        _neighbor("file-a", SHARED_VALIDATED_FACT, anchors=True,
+                  evidence_ref=_key("b")),
+        _neighbor("file-b", MUTUAL_SEMANTIC_RETRIEVAL, evidence_ref=_key("c")),
+        seed=_seed(observation_key=_key("a")),
+    ))
+    for seed_anchors in (True, False):
+        files = anchoring_files(graph, seed_anchors=seed_anchors)
+        keys = anchor_observation_keys(graph, seed_anchors=seed_anchors,
+                                       seed_observation_key=_key("a"))
+        assert len(files) == len(keys), seed_anchors
+        assert "file-b" not in files, seed_anchors
