@@ -249,6 +249,33 @@ class FactCallAuthorities:
     max_dossier_tokens: int
     observed_at: Callable[[], str]
     on_result: Callable[[str, object], None] | None
+    #: THE AUTHORED READINGS, AND THE WALL THEY STOP AT (`104` R-08). The shipped
+    #: recognition release carries 314 `needs_llm` rows -- prose saying, per
+    #: situation, what a model must decide here and when it must abstain -- which
+    #: `recognition.rules` loads into `SchemaRules.deferred_readings` and which
+    #: reached nothing (`102` §3: they appear "nowhere outside `src/recognition/`").
+    #: The composition root now hands them in, because this is the record one A_fact
+    #: call is built from and there is nowhere further for them to go.
+    #:
+    #: **They are collected and counted here and they are not sent.** The A_fact
+    #: template tells the model the dossier "has these keys and no others" and lists
+    #: fifteen; `llm_harness.dossier._body` writes exactly those fifteen. A
+    #: sixteenth makes the model's own instructions false about the bytes beside
+    #: them, and prompt text is the owner's to ratify. The key is the D2 packet's to
+    #: add, and `tests/integration/test_deferred_readings_reach_the_boundary.py`
+    #: fails the day it appears.
+    #:
+    #: Defaulted, unlike `folder_levels` above: an absent level list is a wiring
+    #: failure and refuses, while a deployment whose release compiled no reading for
+    #: a schema truthfully has none.
+    #:
+    #: Measured: `academic` holds 69 readings, 14,491 characters, against a 4,000
+    #: dossier ceiling -- so a SCHEMA's readings can never be sent per call. The
+    #: situation's own share (`academic.coursework` plus the schema-wide row) is 11
+    #: readings and 2,015, which is affordable in a stable prompt prefix (`104`
+    #: R-52). Narrowing this to the situation needs `recognition.rules._schema` to
+    #: keep the `row` each reading came from; today it flattens them and drops it.
+    deferred_readings: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "folder_levels",

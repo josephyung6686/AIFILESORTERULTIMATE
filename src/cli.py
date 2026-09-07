@@ -2260,6 +2260,7 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
                           policy_version: str, wire_handle_key: bytes,
                           schema: str, folder_levels: tuple[FolderLevel, ...],
                           user_id: str, now,
+                          deferred_readings: tuple[str, ...] = (),
                           on_result=None) -> FactCallAuthorities:
     """Everything one A_fact call needs, chosen here and nowhere else.
 
@@ -2373,7 +2374,12 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
         max_released_observations=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
         max_dossier_tokens=GROUPING_LIMITS.max_dossier_tokens,
         observed_at=now,
-        on_result=on_result)
+        on_result=on_result,
+        # `104` R-08. The situation's authored readings, forwarded and no more:
+        # `model_facts` carries the whole of why they stop at this record rather
+        # than reaching the dossier, and the composition root's only job is to read
+        # them off the release it already loaded.
+        deferred_readings=deferred_readings)
 
 
 def _stored_value_of(conn: sqlite3.Connection):
@@ -4310,6 +4316,12 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             wire_handle_key=wire_handle_key, schema=schema,
             folder_levels=folder_levels, user_id=user_id,
             now=now,
+            # `104` R-08, off the release `rules` above already loaded rather than a
+            # second read of the library. Direct indexing and not `.get`: every one
+            # of the nineteen schemas a `--situation` can resolve to is in the
+            # compiled manifest, so a miss is a release that does not match this
+            # build and is worth the crash.
+            deferred_readings=rules.schemas[schema].deferred_readings,
             on_result=lambda file_id, result: outcomes.append((file_id, result)))
         resolver = model_fact_resolver(conn, authorities=authorities)
 
