@@ -3787,8 +3787,15 @@ def _nesting_choices(options) -> tuple[NestingChoice, ...]:
         # else -- a repr on that line was the defect
         # `test_the_screen_never_prints_a_python_repr_or_an_internal_node_id`
         # pinned.
-        warnings = [getattr(warning, "reason", warning)
-                    for warning in option.warnings]
+        #
+        # QUOTED, because the reason is English and English has apostrophes:
+        # "2 of this level's children hold 1 file(s) or fewer". The line it
+        # lands on is one a person may paste whole, and a bare apostrophe
+        # opens a shell quote that never closes -- the shell waits, and the
+        # command the line exists to carry never runs. Inside double quotes
+        # the words are the same words and the line still lexes as a line.
+        warnings = [f'"{warning.reason}"' if hasattr(warning, "reason")
+                    else warning for warning in option.warnings]
         report = option.validation
         if report is not None and report.failures:
             warnings.extend(f"{failure.check}: {failure.reason}"
