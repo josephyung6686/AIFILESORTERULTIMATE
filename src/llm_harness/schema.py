@@ -26,6 +26,8 @@ TASK3_TABLES: tuple[str, ...] = (
     "llm_refusal",
     "llm_pre_call_abstention",
     "llm_call_failure",
+    "llm_call_identity",
+    "llm_call_reuse",
 )
 
 LLM_DOSSIER_DDL = """
@@ -202,6 +204,75 @@ BEGIN SELECT RAISE(ABORT, 'a call failure is append-only, never overwritten'); E
 """
 
 
+#: `104` R-13 and `00`:44's cache. "Each extraction result is tied to the content
+#: hash and the exact process that produced it. The cache key includes content hash,
+#: extractor version, analysis tier, model identifier when relevant, and prompt
+#: fingerprint for model-derived results" -- and the sentence after it says what the
+#: key is FOR: it "makes model or prompt changes auditable".
+#:
+#: `dimensions` is the canonical JSON the digest was taken over, stored beside it.
+#: A digest nobody can read back is a cache nobody can audit: a person asking why a
+#: file was asked again gets an answer from this column and from no other row in the
+#: database.
+#:
+#: KEYED ON THE PAIR, so the table stays append-only like its siblings. One identity
+#: may reach a second dossier -- the schema widened, so a field the prior did not
+#: cover was asked -- and an UPDATE would be the overwrite every other table here
+#: refuses. The lookup takes the most recent row for an identity.
+LLM_CALL_IDENTITY_DDL = """
+CREATE TABLE IF NOT EXISTS llm_call_identity (
+    identity_id TEXT NOT NULL,
+    dossier_id  TEXT NOT NULL,
+    call_site   TEXT NOT NULL,
+    subject_ref TEXT NOT NULL,
+    dimensions  TEXT NOT NULL,
+    observed_at TEXT NOT NULL,
+    PRIMARY KEY (identity_id, dossier_id)
+);
+CREATE INDEX IF NOT EXISTS llm_call_identity_lookup
+    ON llm_call_identity (identity_id);
+CREATE INDEX IF NOT EXISTS llm_call_identity_subject
+    ON llm_call_identity (subject_ref);
+CREATE TRIGGER IF NOT EXISTS llm_call_identity_no_delete
+BEFORE DELETE ON llm_call_identity
+BEGIN SELECT RAISE(ABORT, 'a call identity is append-only, never removed'); END;
+CREATE TRIGGER IF NOT EXISTS llm_call_identity_never_overwritten
+BEFORE UPDATE ON llm_call_identity
+BEGIN SELECT RAISE(ABORT, 'a call identity is append-only, never overwritten'); END;
+"""
+
+#: One row per question NOT asked because it already had an answer. `00`:257's
+#: "mark the deferred stage" applied to spend rather than to budget: a run that
+#: quietly makes fewer calls than the last one is indistinguishable from a run that
+#: silently dropped files, and this is the difference written down.
+#:
+#: NOT an event, and that is a constraint rather than a choice. `database_agent.
+#: events` says registration "is a spec-level act (rule 4) ... There is no run-time
+#: registration call", and the one addition to that closed set on record was
+#: approved by the owner. So `model_call_reused` is a name the owner ratifies, and
+#: until then the provenance lives in this row.
+LLM_CALL_REUSE_DDL = """
+CREATE TABLE IF NOT EXISTS llm_call_reuse (
+    reuse_id         TEXT PRIMARY KEY,
+    identity_id      TEXT NOT NULL,
+    prior_dossier_id TEXT NOT NULL,
+    call_site        TEXT NOT NULL,
+    subject_ref      TEXT NOT NULL,
+    reused_fields    TEXT NOT NULL,
+    observed_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS llm_call_reuse_identity ON llm_call_reuse (identity_id);
+CREATE INDEX IF NOT EXISTS llm_call_reuse_prior
+    ON llm_call_reuse (prior_dossier_id);
+CREATE TRIGGER IF NOT EXISTS llm_call_reuse_no_delete
+BEFORE DELETE ON llm_call_reuse
+BEGIN SELECT RAISE(ABORT, 'a reuse record is append-only, never removed'); END;
+CREATE TRIGGER IF NOT EXISTS llm_call_reuse_never_overwritten
+BEFORE UPDATE ON llm_call_reuse
+BEGIN SELECT RAISE(ABORT, 'a reuse record is append-only, never overwritten'); END;
+"""
+
+
 def create_llm_schema(conn: sqlite3.Connection) -> None:
     """Create P8's Task 3 tables. Idempotent. P1's `create_schema` runs first."""
     conn.executescript(LLM_DOSSIER_DDL)
@@ -212,3 +283,5 @@ def create_llm_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(LLM_REFUSAL_DDL)
     conn.executescript(LLM_PRE_CALL_ABSTENTION_DDL)
     conn.executescript(LLM_CALL_FAILURE_DDL)
+    conn.executescript(LLM_CALL_IDENTITY_DDL)
+    conn.executescript(LLM_CALL_REUSE_DDL)
