@@ -19,6 +19,7 @@ carry a password to one.
 from __future__ import annotations
 
 import io
+import re
 import zipfile
 from pathlib import Path
 
@@ -100,6 +101,26 @@ def test_the_locked_archive_says_what_it_is_where_the_file_is_listed(tmp_path):
     # somebody's passport scan.
     assert "essay.docx" not in report, report
     assert "figures.png" not in report, report
+
+
+def test_the_locked_archive_sentence_cites_no_section(tmp_path):
+    """R-M's rule, applied where R-M's own corpus could not reach.
+
+    The first draft of this sentence read "section 2.5 marks an archive like
+    this rather than forcing it open" -- true, in the record's language, on a
+    person's screen. `104` R-M is the standing answer: say what happened; the
+    section reference stays in the record. R-M's corpus has no archive in it,
+    so the sentence has to be held here.
+    """
+    corpus = _corpus(tmp_path)
+    _, report = _run(corpus, tmp_path / "holder" / "plan.sqlite")
+
+    cited = [line.strip() for line in report.splitlines()
+             if "\u00a7" in line or re.search(r"\bsections?\s+\d", line)]
+    assert cited == [], cited
+    # And the reason survives the removal: what happened is still on the screen.
+    flat = " ".join(report.split())
+    assert "marked rather than forced open" in flat, report
 
 
 def test_show_protected_counts_the_locked_archive_too(tmp_path):

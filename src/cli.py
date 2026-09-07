@@ -7876,9 +7876,9 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             print(_wrapped(
                 f"{names.get(file_id, file_id)} is password-protected: "
                 f"{locked[file_id]}. It is counted with the protected material "
-                f"at the top of this report; section 2.5 marks an archive like "
-                f"this rather than forcing it open, so nothing in it was read "
-                f"and nothing about it was assembled for a model.",
+                f"at the top of this report: a locked archive is marked rather "
+                f"than forced open, so nothing inside it was read and nothing "
+                f"about it was assembled for a model.",
                 indent="    "), file=out)
         # `_role_lines`' convention: a line that begins with a space is a line
         # the person is meant to paste, and it is printed exactly as it is.

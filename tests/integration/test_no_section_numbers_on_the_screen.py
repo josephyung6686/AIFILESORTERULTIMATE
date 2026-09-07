@@ -20,6 +20,7 @@ nobody adds a section number on purpose.
 from __future__ import annotations
 
 import io
+import re
 from pathlib import Path
 
 import cli
@@ -60,7 +61,14 @@ def _run(corpus: Path, database: Path, *extra: str) -> tuple[int, str]:
 
 
 def _sections(text: str) -> list[str]:
-    return [line.strip() for line in text.splitlines() if "§" in line]
+    """`§6.10` and "section 2.5" are the same mistake spelled two ways.
+
+    The first draft of this predicate looked for `§` alone, and a sentence
+    added the same day said "section 2.5 marks an archive like this" and went
+    straight past it. A person does not know what section 2.5 is either.
+    """
+    return [line.strip() for line in text.splitlines()
+            if "§" in line or re.search(r"\bsections?\s+\d", line)]
 
 
 def test_a_plain_run_cites_no_section_of_the_design(tmp_path):
