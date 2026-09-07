@@ -373,16 +373,31 @@ def test_the_place_decisions_a_real_run_writes_are_ones_p12_can_plan(tmp_path):
     database = tmp_path / "plan.sqlite"
     first = io.StringIO()
     assert cli.main(_argv(corpus, database), out=first) == 0, first.getvalue()
-    # THE NAME THE SCREEN PRINTED, read off the first run rather than written
-    # here. Since `104` R-115 a review set is named for the reason its files
-    # stopped -- one set per reason, not one pile cut into batches -- so a
-    # literal on this side would be this test asserting against its own guess at
-    # which reason this corpus produces. `act_on_residual_sets` addresses a set
-    # by the label the report printed, and this is that label.
+    # THE SET THIS TEST MEANS, NAMED -- not "the only one on the screen".
+    #
+    # Since `104` R-115 a review set is named for the reason its files stopped,
+    # and since `104` R-113 a PLACEMENT a policy is holding is in one too. This
+    # corpus produces two, and they are two different facts about two different
+    # files: `notes about nothing.txt` has a destination and
+    # `blocked_pending_user`, because nothing has said what it is; the four PHYS
+    # files abstained under `privacy_blocked` because this run may ask no model
+    # and their two homes tie. Both belong on the screen.
+    #
+    # Only the second can carry this test. Sending the unclassified file writes
+    # another `blocked_pending_user` placement -- which is what `_corpus` above
+    # says at length has no §8.4 refusal for the P11->P12 assertions below to
+    # read, and it is why that file was deliberately not the subject. So the set
+    # is chosen by WHAT IT IS.
+    #
+    # Named through `cli`'s own table rather than as a literal, for the reason
+    # the label used to be read off the screen: a rename in the product is a red
+    # test here rather than a string that quietly stops matching anything.
+    label = cli.REVIEW_SET_WORDS[cli.NO_MODEL_ALLOWED][0]
     held = [line for line in first.getvalue().splitlines()
-            if "Held for review as " in line]
-    assert len(held) == 1, first.getvalue()
-    label = held[0].split('Held for review as "', 1)[1].split('"', 1)[0]
+            if f'Held for review as "{label}"' in line]
+    assert len(held) == 1, (
+        f"the run printed {len(held)} sets named {label!r}; "
+        f"`--send-set` addresses one:\n{first.getvalue()}")
     second = io.StringIO()
     assert cli.main(_argv(corpus, database)
                     + ["--residual", RESIDUAL_AREA,
