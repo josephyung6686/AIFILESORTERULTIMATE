@@ -1,0 +1,163 @@
+{
+ "_": "The D2 drafts of 2026-09-06: every prompt text, response schema, shaping policy and glossary proposal put to the owner in planning/105-D2-PROMPT-PACKET.md. NONE IS RATIFIED AND NONE IS WIRED. Each template_id carries `unratified` and the date so that any record written under it says so. `digests` is derived from the bytes on disk (scratch script record_manifest.py) and tools.promptbench.candidates refuses a file whose bytes no longer match. A revision is a new file and a new row, never an edit to a row whose digest a run already recorded. Rows added 2026-09-06 (evening): the v2 texts of 105 §9 item 2 and the third subject wording, each a stated delta from a v1 row that stays in place.",
+ "status": "unratified",
+ "date": "2026-09-06",
+ "drafts": [
+  {
+   "site": "A_fact",
+   "candidate": "ratified-glossary",
+   "template_id": "a_fact.unratified.folder-levels.2026-09-04",
+   "template_file": "a_fact_template_folder_levels.txt",
+   "response_schema_file": "a_fact_response_schema.json",
+   "shaping_policy_file": "a_fact_shaping_policy.json",
+   "glossary_file": "field_glossary.json",
+   "note": "The incumbent: the folder-levels revision of the ratified A_fact text with the ratified glossary. The control arm of the glossary bakeoff."
+  },
+  {
+   "site": "A_fact",
+   "candidate": "proposed-glossary",
+   "template_id": "a_fact.unratified.folder-levels.2026-09-04",
+   "template_file": "a_fact_template_folder_levels.txt",
+   "response_schema_file": "a_fact_response_schema.json",
+   "shaping_policy_file": "a_fact_shaping_policy.json",
+   "glossary_file": "field_glossary_proposal_2026-09-06.json",
+   "note": "The same text with the school and subject meanings of 104 §11.2 step 1. Only the glossary differs."
+  },
+  {
+   "site": "C_placement",
+   "candidate": "walk",
+   "template_id": "c_placement.unratified.walk.2026-09-06",
+   "template_file": "c_placement_template.walk.txt",
+   "response_schema_file": "c_placement_response_schema.json",
+   "shaping_policy_file": "c_placement_shaping_policy.json",
+   "note": "Hierarchical walk: top of the tree down, stop at the deepest supported level."
+  },
+  {
+   "site": "C_placement",
+   "candidate": "eliminate",
+   "template_id": "c_placement.unratified.eliminate.2026-09-06",
+   "template_file": "c_placement_template.eliminate.txt",
+   "response_schema_file": "c_placement_response_schema.json",
+   "shaping_policy_file": "c_placement_shaping_policy.json",
+   "note": "Elimination first: strike contradicted and resemblance-only candidates, then the deepest fully supported survivor, then count survivors."
+  },
+  {
+   "site": "D_residual",
+   "candidate": "ladder",
+   "template_id": "d_residual.unratified.ladder.2026-09-06",
+   "template_file": "d_residual_template.ladder.txt",
+   "response_schema_file": "d_residual_response_schema.json",
+   "shaping_policy_file": "d_residual_shaping_policy.json",
+   "note": "A ladder from the strongest association to the weakest: return, mark, area, broad parent, then the person decides."
+  },
+  {
+   "site": "D_residual",
+   "candidate": "shelves",
+   "template_id": "d_residual.unratified.shelves.2026-09-06",
+   "template_file": "d_residual_template.shelves.txt",
+   "response_schema_file": "d_residual_response_schema.json",
+   "shaping_policy_file": "d_residual_shaping_policy.json",
+   "note": "Shelf matching: two questions before the shelves (return, protected), one shelf whose description the text satisfies, counter-examples for what a description never says."
+  },
+  {
+   "site": "B_group",
+   "candidate": "four-questions",
+   "template_id": "b_group.unratified.four-questions.2026-09-06",
+   "template_file": "b_group_template.four-questions.txt",
+   "response_schema_file": "b_group_response_schema.json",
+   "shaping_policy_file": "b_group_shaping_policy.json",
+   "note": "00:59's four tasks in order: coherence, membership, outliers, label; each with its stop rule."
+  },
+  {
+   "site": "B_group",
+   "candidate": "anchors-first",
+   "template_id": "b_group.unratified.anchors-first.2026-09-06",
+   "template_file": "b_group_template.anchors-first.txt",
+   "response_schema_file": "b_group_response_schema.json",
+   "shaping_policy_file": "b_group_shaping_policy.json",
+   "note": "What the anchors state in common is the basis or there is none; candidates admitted one at a time against it; counter-examples for hubs, sessions, terms and names."
+  },
+  {
+   "site": "E_template",
+   "candidate": "from-facts",
+   "template_id": "e_template.unratified.from-facts.2026-09-06",
+   "template_file": "e_template_template.from-facts.txt",
+   "response_schema_file": "e_template_response_schema.json",
+   "shaping_policy_file": "e_template_shaping_policy.json",
+   "note": "Bottom-up: the distinctions the evidence actually draws, each passed through the five tests of 00:97, ordered parent-gives-context-to-child."
+  },
+  {
+   "site": "E_template",
+   "candidate": "what-a-person-opens",
+   "template_id": "e_template.unratified.what-a-person-opens.2026-09-06",
+   "template_file": "e_template_template.what-a-person-opens.txt",
+   "response_schema_file": "e_template_response_schema.json",
+   "shaping_policy_file": "e_template_shaping_policy.json",
+   "note": "Top-down: what a person opens first to find one of these files, each level tested against the same five tests as counter-examples."
+  },
+  {
+   "site": "A_fact",
+   "candidate": "subject-v3-glossary",
+   "template_id": "a_fact.unratified.folder-levels.2026-09-04",
+   "template_file": "a_fact_template_folder_levels.txt",
+   "response_schema_file": "a_fact_response_schema.json",
+   "shaping_policy_file": "a_fact_shaping_policy.json",
+   "glossary_file": "field_glossary_proposal_subject_2026-09-06.json",
+   "note": "The same text with the proposal's school entry and the third subject wording of 105 §1.6. Differs from proposed-glossary in subject alone."
+  },
+  {
+   "site": "C_placement",
+   "candidate": "eliminate-v2",
+   "template_id": "c_placement.unratified.eliminate-v2.2026-09-06",
+   "template_file": "c_placement_template.eliminate-v2.txt",
+   "response_schema_file": "c_placement_response_schema.json",
+   "shaping_policy_file": "c_placement_shaping_policy.json",
+   "note": "eliminate plus three sentences, each a stated delta: a group is support and never a citation; a shared branch serving two accepted groups stands alone; refinement is not_applicable unless a candidate is described as the file's current folder."
+  },
+  {
+   "site": "B_group",
+   "candidate": "anchors-first-v2",
+   "template_id": "b_group.unratified.anchors-first-v2.2026-09-06",
+   "template_file": "b_group_template.anchors-first-v2.txt",
+   "response_schema_file": "b_group_response_schema.json",
+   "shaping_policy_file": "b_group_shaping_policy.json",
+   "note": "anchors-first plus two sentences: a contradicting member is an outlier of a coherent group, not a coherence failure; excluding a file here says nothing about other groups (B-R10)."
+  },
+  {
+   "site": "E_template",
+   "candidate": "what-a-person-opens-v2",
+   "template_id": "e_template.unratified.what-a-person-opens-v2.2026-09-06",
+   "template_file": "e_template_template.what-a-person-opens-v2.txt",
+   "response_schema_file": "e_template_response_schema.json",
+   "shaping_policy_file": "e_template_shaping_policy.json",
+   "note": "what-a-person-opens with the payload reordered so sensitivity_policy_ref, a string, is its last key (G13: the provider closed on a populated array one bracket short in 15 of 24 responses)."
+  }
+ ],
+ "digests": {
+  "a_fact_response_schema.json": "3412b6f728374643c8d12453035f9ed00aa0a9e93fb9badb2c2bbea630fa72b4",
+  "a_fact_shaping_policy.json": "d0076055bacaac330935f405b089b9fdac4a431239f7a017503fa443ecc15bdb",
+  "a_fact_template_folder_levels.txt": "102acdaf53a656433548b3b6c3c9c4af3200ba3eca268435f744a5148b32aa41",
+  "b_group_response_schema.json": "b288b16b8356c0950f8fee266172138773c764607d8e722fcb751ebbc67a8fef",
+  "b_group_shaping_policy.json": "bfb97d7ce3db5803d06177b1852ab041a0544785452f7b8d619d9de9b9ddb7ae",
+  "b_group_template.anchors-first.txt": "aa58d26dc516a9290f63d4db12096877f436975d931a4bb60637be2980e0e92e",
+  "b_group_template.four-questions.txt": "2feb1a6ded767bec39b109371576b619487bd045bfa4f0a6a1ed3aa7c77f28c8",
+  "c_placement_response_schema.json": "e212b3e34c1585b5837d900f3638ea633c93af7a88a82f2eee6776ce85452fd4",
+  "c_placement_shaping_policy.json": "d539d8a89f464d5ab96521b95794fc211cd97321a39c5b708a55bdcc8942b7fb",
+  "c_placement_template.eliminate.txt": "5d7dc4f78387469c7202e59152de0d56fc3d9ccc875541447f71b14437029893",
+  "c_placement_template.walk.txt": "5932f27168c0431d71d5c47c833abf022b13dedfcd06085781f70411b9a265c6",
+  "d_residual_response_schema.json": "3f4a08fabdcf47d2e409d9fa452d0df91713a02b561960f14b3577fa75359b74",
+  "d_residual_shaping_policy.json": "f247e3ebbd924da72e056550a80de7fd5163e07a5e153491d64e4f3cc8c9d8a7",
+  "d_residual_template.ladder.txt": "5e273fffc3bc62822a57b6a39170e4e35b1f6b820d0a57c377c3209e50899fd0",
+  "d_residual_template.shelves.txt": "f2b462df57752a78da638cb0ec01e8e741f26efb4d258f58ba9fee752e20e9b4",
+  "e_template_response_schema.json": "e00e8f4f04542d2720ab0ea3e54477caa5764735ecb6fddf174cd52355481695",
+  "e_template_shaping_policy.json": "52a59049c6c0b7e6fbf3087b5c3d14e3aa3d2f369f676b15d429532ae89d4337",
+  "e_template_template.from-facts.txt": "9bed0a9be3c640d1f943354f58116112bc1f81a6ce64ea29ac47589cfa0e2ac9",
+  "e_template_template.what-a-person-opens.txt": "041aadf30db8bf55d7bdfb6c4d257b874eb23486c0e5678c52d81a1ac287fd9c",
+  "field_glossary.json": "02e852772c1f9a72b4e8f01993914824c876b9aa4b18a43fa91aa940762c1248",
+  "field_glossary_proposal_2026-09-06.json": "e08f4c3753775cd9affb3f4d4dbcffc1426c7f8b51f027ba79d24e6068b1bac7",
+  "e_template_template.what-a-person-opens-v2.txt": "54be24318b0fa488ae8f94a96e3568b7c2d1b882812cf6a0aaff7b929e93e1d6",
+  "c_placement_template.eliminate-v2.txt": "9fd0c4940f6839c6fc591a6d1df74859186e72dcdc7307c2d4bc60f9151ff9ff",
+  "b_group_template.anchors-first-v2.txt": "6590cc82dfab9e8322c61b4607519a5301fed7d7620aee2557110d698d242558",
+  "field_glossary_proposal_subject_2026-09-06.json": "5e6233eac17e5f263634b5d60facb9a7dc4412af3016b6fb3d0b9b9c4828ea10"
+ }
+}

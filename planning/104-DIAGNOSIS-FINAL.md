@@ -679,6 +679,27 @@ refusals **40 → 0** after the D1 lift. `f571d36` makes the documented pytest f
 | R-53 | **Site C asserts its dossier fits.** `model_placement.py:283` hardcodes `unreduced_fits=True`, the twin of R-07 at the placement site; must be measured the way `2981c79` measures A. | W | High (latent until C is wired) | code | 1 (W2-D) |
 | R-54 | **The local model repeats the `school` collector.** qwen3:8b answered `school = "PHYS 1401"` on the lecture and the syllabus: grounded, validated, and a course code. Same defect as §11.1's first row, different model; the D2 glossary revision is the fix and the packet's A-site bakeoff measures it. | M | High | run | D2 |
 
+| R-55 | **The residual sensitivity check has no implementation.** `SENSITIVITY_RESTRICTION_IGNORED` rests on a `sensitivity_policy` dependency nothing supplies (`cli.py:4126` passes `None`; the bench stubs it true), so a protected record filed into an approved area is caught by nobody. Measured in the D2 bakeoff: both local D texts filed the redacted statement (D13) into Receipts and it was accepted. Packet G17. | S | **High** (safety flag SF-9) | run | 1 (wiring) |
+| R-56 | **The local model does not abstain.** `qwen3:8b` (thinking off) produced zero abstentions on the six should-abstain cases at C and D under every wording tried, and the validator accepted two of its wrong placements (a generic hub on `columbia.edu`, OCR noise `2O26`). The cloud model abstained 4 of 4 at C and 1 of 2 at D. D1's local half is fit for A_fact and unfit as a placement decider until an abstention mechanism exists that does not depend on the model volunteering one (a structural "none of these" option scored by the validator, or the deterministic shortlist refusing an ungrounded choice). This is the §12.2 parity evidence the owner asked to have measured. | M | High | run (packet §10) | 3 |
+| R-57 | **Site E is unratifiable as shaped.** 15 of 24 E responses were unparseable because the payload ends on a populated array (G13); a v2 with the payload reordered is in progress on the prompts branch. | M | Medium | run | D2 |
+
+### 14.5 The first model-on row after Wave 1 (one run; §12.7 wants three)
+
+Cloud, `academic.coursework`, HEAD `17d05fa` (SF-1 closed, D1 lift, engine fixes, drafts unwired), semantic
+channel off, prompt `a_fact.unratified.folder-levels.2026-09-04`, corpus manifest `a3a8f4ef4a04e5d4`.
+
+| Measurement | HEAD cloud 5 Sep (the regression row) | `17d05fa` offline | `17d05fa` cloud |
+|---|---|---|---|
+| Reached a model | 42 of 199 | 0 | **83** |
+| Refused at the gate | 130 (40 no safety evidence, 90 unclassified) | — | 90 (unclassified only) |
+| Sorting exact / right parent / top folder only / wrong / not placed (41) | 0 / 6 / — / **5** / 30 | 0 / 6 / 3 / 0 / 32 | 0 / 6 / 0 / **0** / 35 |
+| "Ask the person" abstained (29) | 27 (2 placed wrong) | 29 | **29** |
+| Spillover (coursework run) | 17 | 10 | **10** |
+
+Read plainly: the regression is gone (wrong 5 → 0, spillover 17 → 10, abstention restored) with twice
+the coverage, and the model is not yet helping either: exact stays 0, and three files placed at their top
+folder offline are not placed with the model on: the three `Essay 2 Final Draft` PDFs, §11.1's first row. Offline they sat at the Coursework root ("top folder only"); with the model on, its `school` fact now produces an abstention instead of a `Georgetown Prep` level, because §11.2 step 3 (no level from an unanchored single value) is merged. Honest, and the expected state before site C is wired and the A glossary is ratified; it is the row Phase 3 starts from.
+
 ### 14.4 Process facts worth keeping
 
 - The session scratchpad is shared with the wave's agents; the lead's baseline scorecards there were

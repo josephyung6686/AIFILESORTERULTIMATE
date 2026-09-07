@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "B_group response (unratified draft, 2026-09-06)",
+  "description": "The one JSON object a model may return at call site B_group: 00:59's four answers in one claim. The validator that enforces most of it is llm_harness.group_validation; where the two could differ the template is what the model was told. There is deliberately no key for a hierarchy, a folder path, a date, a project or a purpose.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["claims"],
+  "properties": {
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {"$ref": "#/$defs/claim"}
+    }
+  },
+  "$defs": {
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["payload"],
+      "properties": {
+        "claim_ref": {"type": "string"},
+        "payload": {"$ref": "#/$defs/payload"},
+        "citations": {"$ref": "#/$defs/citations"},
+        "unknown": {"$ref": "#/$defs/unknown"}
+      },
+      "oneOf": [
+        {
+          "title": "coherent",
+          "required": ["citations"],
+          "not": {"required": ["unknown"]},
+          "properties": {
+            "payload": {
+              "required": ["coherent", "basis", "category", "label", "members",
+                           "outliers", "merge_terms"],
+              "properties": {
+                "coherent": {"const": "yes"},
+                "basis": {"enum": ["direct-anchor", "context-supported"]}
+              }
+            }
+          }
+        },
+        {
+          "title": "not a group",
+          "required": ["unknown"],
+          "not": {"required": ["citations"]},
+          "properties": {
+            "payload": {
+              "required": ["coherent", "basis", "members", "outliers"],
+              "not": {"anyOf": [{"required": ["label"]}, {"required": ["category"]}]},
+              "properties": {"coherent": {"enum": ["no", "insufficient"]}}
+            }
+          }
+        }
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coherent", "basis", "members"],
+      "properties": {
+        "coherent": {"type": "string", "enum": ["yes", "no", "insufficient"]},
+        "basis": {"type": "string",
+                  "enum": ["direct-anchor", "context-supported", "generic-similarity"]},
+        "category": {"type": "string", "minLength": 1},
+        "label": {"type": "string", "minLength": 1},
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["file_id", "decision", "why", "evidence_refs"],
+            "properties": {
+              "file_id": {"type": "string", "minLength": 1},
+              "decision": {"type": "string", "enum": ["include", "exclude", "uncertain"]},
+              "why": {"type": "string", "minLength": 1},
+              "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}}
+            }
+          }
+        },
+        "outliers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["file_id", "conflict_kind"],
+            "properties": {
+              "file_id": {"type": "string", "minLength": 1},
+              "conflict_kind": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "merge_terms": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "citations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/citation"}
+    },
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_ref", "why_it_supports"],
+      "properties": {
+        "evidence_ref": {"type": "string", "minLength": 1},
+        "cited_span": {"type": "string", "minLength": 1},
+        "metadata_field_name": {"type": "string", "minLength": 1},
+        "why_it_supports": {"type": "string", "minLength": 1}
+      },
+      "oneOf": [
+        {"required": ["cited_span"], "not": {"required": ["metadata_field_name"]}},
+        {"required": ["metadata_field_name"], "not": {"required": ["cited_span"]}}
+      ]
+    },
+    "unknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["insufficiency_statement"],
+      "properties": {
+        "insufficiency_statement": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

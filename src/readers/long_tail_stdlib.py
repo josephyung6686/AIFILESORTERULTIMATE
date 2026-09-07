@@ -62,6 +62,7 @@ from typing import Any, Callable, Iterator
 from xml.etree import ElementTree
 
 from extractors.long_tail import LongTailEntry, LongTailFile, LongTailText, LongTailValue
+from readers.signatures import HEAD_BYTES, looks_like_text
 
 #: OOXML namespaces, by the prefix this module uses for them. Written out rather
 #: than read from the document, because a part that declares a DIFFERENT namespace
@@ -643,12 +644,20 @@ def _read_delimited_if_text(path: Path, delimiter: str,
     tell those apart without opening the file -- so the tiebreak is here, at the
     bytes, where it can be answered instead of guessed.
 
-    Strict decoding is the whole check and it needs no threshold: text decodes,
-    a photograph does not. §2.4's two outcomes stay apart -- None is `unsupported`,
-    "no reader exists for this format in this deployment", which is exactly true of
-    a camera raw. With `errors="replace"` the same photograph would have become a
-    sheet of replacement characters recorded `complete`, and nothing downstream
-    could have told that from a file the product had genuinely read.
+    TWO CHECKS, AND STRICT DECODING IS ONLY THE SECOND. This used to say decoding
+    was the whole of it -- "text decodes, a photograph does not" -- which is true of
+    an invalid-UTF-8 header and false of the C0 control block, every byte of which
+    is valid UTF-8. R-33, measured 2026-09-06: a `capture.raw` of
+    `\x00\x01\x02rawsensor\x03` decoded, became a one-cell sheet holding its own
+    raw bytes, and was recorded `complete`. So the head is asked `looks_like_text`
+    first -- `readers.signatures`' own rule, which is `file(1)`'s and is published
+    for this caller rather than restated here.
+
+    §2.4's two outcomes stay apart -- None is `unsupported`, "no reader exists for
+    this format in this deployment", which is exactly true of a camera raw. With
+    `errors="replace"` the same photograph would have become a sheet of replacement
+    characters recorded `complete`, and nothing downstream could have told that from
+    a file the product had genuinely read.
 
     Streaming rather than `read_bytes().decode(...)`: a raw frame is tens of
     megabytes and there is no reason to hold one in memory to find out it is not a
@@ -660,7 +669,10 @@ def _read_delimited_if_text(path: Path, delimiter: str,
             # of which is a byte-order mark -- so this reads the mark of a real
             # UTF-16 export and leaves the strict decode below to answer for
             # everything else, exactly as before.
-            encoding = declared_encoding(probe.read(4)) or "utf-8-sig"
+            head = probe.read(HEAD_BYTES)
+            if not looks_like_text(head):
+                return None
+            encoding = declared_encoding(head[:4]) or "utf-8-sig"
         with open(path, newline="", encoding=encoding) as handle:
             return _delimited_sheet(handle, delimiter, max_cells)
     except UnicodeDecodeError:

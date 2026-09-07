@@ -62,12 +62,13 @@ def _query(database: Path, sql: str, *params):
 
 # --- 103 §18 C15: a file edited between runs leaves a ghost version ---------------
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="103 C15: P3 marks the old version `superseded_content` and "
-           "`cli.apply_rejections` still matches it, so `--reject` by filename is "
-           "refused with 'names 2 files' and lists the same path twice.")
 def test_a_file_edited_between_runs_can_still_be_rejected_by_its_name(tmp_path):
+    """103 C15, closed: `apply_rejections` matches only versions the corpus has.
+
+    Before the filter this refused with "names 2 files" and printed the identical
+    path twice as the way to say which one was meant -- a disambiguation nobody
+    could type (`84` §6).
+    """
     corpus = _corpus(tmp_path)
     database = tmp_path / "holder" / "plan.sqlite"
     _run(corpus, database)
@@ -79,11 +80,14 @@ def test_a_file_edited_between_runs_can_still_be_rejected_by_its_name(tmp_path):
     assert code == 0
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="103 C15: the `superseded_content` version is placed and frozen; "
-           "`move_plans` holds a plan for a file version that no longer exists.")
 def test_a_superseded_file_version_gets_no_move_plan(tmp_path):
+    """103 C15, closed: the ghost is never placed, so it is never frozen.
+
+    The old version reached `place_group` through a `memberships` row an earlier
+    run wrote, not through the roster -- measured as five placement decisions for
+    four files. `accepted_group_as_of` now drops a member the corpus no longer
+    has, and `freeze` never sees a decision to write a plan for.
+    """
     corpus = _corpus(tmp_path)
     database = tmp_path / "holder" / "plan.sqlite"
     _run(corpus, database)

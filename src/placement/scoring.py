@@ -132,6 +132,7 @@ def _reason(best: Scored | None, retrieval, meets_threshold: bool,
 def _staying_put_wins_a_tie(
         scored: tuple[Scored, ...],
         their_own_folder_node_ids: frozenset[str] | None,
+        refinements: frozenset[str] = frozenset(),
 ) -> tuple[tuple[Scored, ...], Scored | None, Scored | None, bool]:
     """THE FOLDER A FILE IS ALREADY IN IS NOT A RIVAL HOME; IT IS THE STATUS QUO.
 
@@ -189,6 +190,24 @@ def _staying_put_wins_a_tie(
     Exact float equality is the right comparison and not a hazard: two tied
     candidates reach `support_score` through the identical expression on the
     identical weight, so they are the same float or they are not tied at all.
+
+    **A TIED CHILD OF WHERE THE FILE ALREADY IS IS NOT A RIVAL TO STAYING; IT IS
+    WHERE STAYING LEADS.** `refinements` names the candidates that lie INSIDE the
+    folder this file is in. Everything above is about telling a proposal from a
+    home, and a folder inside the person's own folder is neither: it is the same
+    home, one level down. `00`'s amendment of line 22 makes going deeper inside
+    the branch a file already sits in the model's call rather than a move to be
+    refused, and this rule was refusing it -- a `Python 1006/lecture` that ties
+    with `Python 1006` lost the tie to the parent and the file stopped one level
+    short (`104` §11.1's sixth row, R-48).
+
+    So a tied refinement wins the tie instead, and the margin is measured the way
+    it is for any other winner. EXACTLY ONE, and two is not a near miss: the
+    exemption says a deeper level is reachable and says nothing about WHICH, so
+    two tied children fall through and staying put wins as it did before. That is
+    `00`:111 -- "if the system cannot distinguish Spring 2025 from Spring 2026 but
+    a parent path exists, the model should choose the approved shallower path" --
+    and picking either child would be §6.9's arbitrary choice made one level down.
     """
     if not scored:
         return scored, None, None, False
@@ -198,6 +217,18 @@ def _staying_put_wins_a_tie(
         return scored, best, runner_up, False
     tied = tuple(item for item in scored
                  if item.support_score == best.support_score)
+    refined = tuple(item for item in tied if item.node_id in refinements)
+    if len(refined) == 1:
+        # Refinement, not removal. The file goes deeper inside the folder it is
+        # already in, so there is no status quo left to protect -- and recording
+        # `stays_put` here would tell `needs_model_call` the opposite of what
+        # happened.
+        chosen = refined[0]
+        lower = tuple(item for item in scored
+                      if item.support_score < chosen.support_score)
+        others = tuple(item for item in tied if item.node_id != chosen.node_id)
+        return ((chosen,) + others + lower, chosen,
+                (lower[0] if lower else None), False)
     staying = next((item for item in tied if item.already_there), None)
     rival_home = staying is not None and any(
         item.node_id in their_own_folder_node_ids
@@ -215,14 +246,15 @@ def _staying_put_wins_a_tie(
 
 
 def assess(retrieval, graphs, *, policy: SupportPolicy,
-           their_own_folder_node_ids: frozenset[str] | None = None) -> Assessment:
+           their_own_folder_node_ids: frozenset[str] | None = None,
+           refinements: frozenset[str] = frozenset()) -> Assessment:
     # `score_candidates` is the one place the policy is required, and `assess`
     # calls it before reading a single threshold. A second `require_policy` here
     # would be a guard that cannot fail -- the first line already refused -- and
     # would read as a rule this function enforces when it enforces nothing.
     scored = score_candidates(retrieval, graphs, policy=policy)
     scored, best, runner_up, stays_put = _staying_put_wins_a_tie(
-        scored, their_own_folder_node_ids)
+        scored, their_own_folder_node_ids, refinements)
 
     meets_threshold = bool(best and best.support_score >= policy.minimum_support_threshold)
     if runner_up is None:
