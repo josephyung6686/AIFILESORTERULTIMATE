@@ -63,6 +63,7 @@ old one would be a lie about what this run spent. The two columns dangle on purp
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import subprocess
 import sys
@@ -150,6 +151,86 @@ def _src_on_path() -> None:
 def prior_database(directory: Path, situation: str) -> Path:
     """Where a prior run of `situation` left its database. `run.py`'s own naming."""
     return directory / f"{situation.replace('.', '_')}.sqlite"
+
+
+def _wire_handle_key_name() -> str:
+    """`cli`'s own name for the key file. Spelled there, read here, never re-typed.
+
+    Lazily, like every other `src` import in this module: naming it at import time
+    would put the whole CLI behind `import reuse`.
+    """
+    _src_on_path()
+    from cli import WIRE_HANDLE_KEY_FILENAME
+    return WIRE_HANDLE_KEY_FILENAME
+
+
+def wire_handle_key_file(directory: Path) -> Path:
+    """The local-only key beside a directory of run databases.
+
+    `cli.wire_handle_key_for` puts it next to the database and mints it "once per
+    database", so a directory holding one run's situations holds one key.
+    """
+    return directory / _wire_handle_key_name()
+
+
+def carry_the_wire_handle_key(prior_dir: Path, fresh_dir: Path) -> None:
+    """Give the fresh run the key the seeded answers were written under. `104` R-127.
+
+    **Without this the seeding stops working the day a validator changes**, and it
+    fails by spending rather than by saying anything. The seeded `llm_dossier` and
+    `llm_response` rows carry wire HANDLES, and a handle is a digest under a key
+    `cli.wire_handle_key_for` mints per database directory. `Dossier.dossier_id` is
+    the content address of the bytes those handles sit in, so a fresh directory
+    with a fresh key cannot reach the address its own seeded rows are filed under.
+    `model_facts._reuse_is_current` checks exactly that before it re-judges a
+    stored response, and refuses -- correctly, because judging bytes whose handles
+    resolve to nothing would reject every citation in them and then reuse THAT. The
+    honest consequence of the refusal is a question, and a question is a model
+    call: R-123's measured 0 calls would quietly become every call, billed.
+
+    **Copied and not regenerated.** The key is the one thing about a prior run that
+    is not in its database and is derivable from nothing that is -- it is
+    `secrets.token_bytes`. `cli` says what rotation costs, "exactly that
+    recognition and nothing else", and seeding is the case that would pay it.
+
+    Nothing is overwritten. A key already beside the fresh databases and equal to
+    the prior's is this function having run for an earlier situation of the same
+    run; one that DIFFERS is a directory that has already minted or inherited some
+    other run's key, and the rows about to be seeded would be unreadable under it.
+    That is a refusal, not something to settle by choosing one of the two.
+    """
+    source = wire_handle_key_file(prior_dir)
+    if not source.exists():
+        raise ReuseRefused(
+            f"--reuse-answers-from {prior_dir}: no {_wire_handle_key_name()} "
+            f"beside its databases. The seeded answers name their evidence "
+            f"through handles keyed by that file, so without it this run cannot "
+            f"read the bytes it was handed and would ask every question again. "
+            f"Nothing has been run."
+        )
+    key = source.read_bytes()
+    destination = wire_handle_key_file(fresh_dir)
+    if destination.exists():
+        if destination.read_bytes() == key:
+            return
+        raise ReuseRefused(
+            f"--out {fresh_dir} already holds a different "
+            f"{_wire_handle_key_name()}. The answers about to be seeded were "
+            f"written under {prior_dir}'s key and cannot be read under this one, "
+            f"and choosing between two keys is not this tool's to do. Write this "
+            f"run to an empty --out. Nothing has been run."
+        )
+    _src_on_path()
+    from cli import WIRE_HANDLE_KEY_MODE
+
+    fresh_dir.mkdir(parents=True, exist_ok=True)
+    # `O_EXCL` and the mode `cli` mints under. A credential copied into a
+    # world-readable file is a credential this tool leaked, and two situations
+    # racing to copy the first one cannot each write it.
+    handle = os.open(
+        destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, WIRE_HANDLE_KEY_MODE)
+    with os.fdopen(handle, "wb") as sink:
+        sink.write(key)
 
 
 #: What a run of the scoreboard records about the checkout that produced it. The
@@ -330,6 +411,18 @@ def refuse_unless_seedable(directory: Path, situations, *, out_dir: Path,
             f"--reuse-answers-from {directory}: no such directory. Nothing has "
             f"been run."
         )
+    # `104` R-127, and it belongs in this function rather than in `seed` for this
+    # function's own stated reason: a key discovered missing inside a run arrives
+    # after the databases it was protecting have been deleted. `seed` copies it;
+    # this says, before anything is destroyed, whether there is one to copy.
+    if not wire_handle_key_file(directory).exists():
+        raise ReuseRefused(
+            f"--reuse-answers-from {directory}: no {_wire_handle_key_name()} "
+            f"beside its databases. The answers there name their evidence through "
+            f"handles keyed by that file, so this run could not read the bytes it "
+            f"was handed and would ask every question again -- which is the whole "
+            f"cost this flag exists to avoid. Nothing has been run."
+        )
     expected = _expected_llm_schema()
     for situation in situations:
         path = prior_database(directory, situation)
@@ -462,6 +555,11 @@ def seed(fresh: Path, prior: Path, *, corpus: Path) -> Seeded:
     from llm_harness.schema import create_llm_schema
     from llm_harness.store import call_identity
 
+    # BEFORE the fresh database exists, because `cli.wire_handle_key_for` mints a
+    # key the first time anything opens a database in that directory and refuses to
+    # overwrite one. `104` R-127: the answers about to be seeded are addressed
+    # under the prior's key, and a run that minted its own could not read them.
+    carry_the_wire_handle_key(prior.parent, fresh.parent)
     conn = open_database(fresh)
     try:
         _scan_the_corpus(conn, corpus)

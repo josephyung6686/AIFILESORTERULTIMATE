@@ -56,7 +56,13 @@ import cli  # noqa: E402
 from readers import model_routing  # noqa: E402
 from readers.model_routing import MODEL_NAME_OF_TIER  # noqa: E402
 from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME  # noqa: E402
-from tools.groundtruth.reuse import seed  # noqa: E402
+from llm_harness import fact_validation  # noqa: E402
+from tools.groundtruth.reuse import (  # noqa: E402
+    ReuseRefused,
+    refuse_unless_seedable,
+    seed,
+    wire_handle_key_file,
+)
 
 SITUATION = "academic.coursework"
 
@@ -286,3 +292,104 @@ def test_only_the_file_whose_bytes_changed_is_asked_again(corpus, socket, tmp_pa
     assert _asked_again(first, second) == {"week two notes.txt"}
     # And the one that did not change was answered from the record.
     assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == 1
+
+
+# --- R-127: the key travels with the answers --------------------------------------
+
+
+def _supersessions(database) -> list[dict]:
+    return _rows(database, "SELECT * FROM llm_verdict_supersession")
+
+
+def test_a_seeded_run_in_its_own_directory_is_given_the_prior_runs_key(
+        corpus, socket, tmp_path):
+    """`104` R-127. Every other test here writes both databases into one directory.
+
+    A real rerun cannot: `--out` and `--reuse-answers-from` are refused if they are
+    the same directory, so the fresh run would mint its own `.wire-handle-key`. A
+    wire handle is a digest under that key and `dossier_id` is the content address
+    of the bytes the handles sit in, so a seeded dossier under a fresh key is filed
+    at an address this run cannot compute -- and anything that reads those bytes
+    back, R-127's re-judgement first among them, would resolve every handle to
+    nothing, reject every citation, and reuse that instead.
+
+    The key is copied with the answers, and this is the number that says so. The
+    reuse itself is unchanged: nothing was re-asked.
+    """
+    prior_dir, fresh_dir = tmp_path / "prior", tmp_path / "fresh"
+    prior_dir.mkdir()
+    first, second = prior_dir / "one.sqlite", fresh_dir / "two.sqlite"
+    _run(corpus, first)
+    paid_for = len(socket)
+    assert paid_for == 2, socket.subjects()
+
+    seed(second, first, corpus=corpus)
+
+    assert wire_handle_key_file(fresh_dir).read_bytes() == (
+        wire_handle_key_file(prior_dir).read_bytes())
+    _run(corpus, second)
+    assert len(socket) == paid_for, (
+        f"the seeded run re-asked {len(socket) - paid_for} questions whose "
+        f"answers it had been handed: {sorted(_asked_again(first, second))}")
+    assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == paid_for
+
+
+def test_a_seeded_answer_is_asked_again_when_the_validator_moves(
+        corpus, socket, tmp_path, monkeypatch):
+    """THE MEASURED LIMIT of seeding under `104` R-127, pinned rather than assumed.
+
+    R-127 re-judges a stored response instead of re-asking it, and it cannot do
+    that for a SEEDED one. The seeder translates `llm_dossier.subject_ref` -- the
+    column -- to this database's file id, and leaves the payload alone because the
+    payload is the bytes the address was taken over and rewriting it would move the
+    address. So the rebuilt dossier still names the prior run's file id, and
+    `validate_fact_proposal` refuses a dossier and a request that name different
+    files: "a dossier describing one file wrote a fact onto another, cited to
+    observations that file never had". That refusal is right, and the honest answer
+    to it is the question.
+
+    **What it costs, so that whoever reads this can price it:** a scoreboard rerun
+    across a validator change pays for every seeded answer again. R-123's flag
+    still saves everything on a rerun that changes nothing else, which is the case
+    it was built for. Closing this one means translating the dossier payload and
+    recomputing its content address the way the seeder already recomputes the
+    identity digest, and rewriting the four foreign keys that name it -- R-123's
+    change, not R-127's.
+    """
+    prior_dir, fresh_dir = tmp_path / "prior", tmp_path / "fresh"
+    prior_dir.mkdir()
+    first, second = prior_dir / "one.sqlite", fresh_dir / "two.sqlite"
+    _run(corpus, first)
+    paid_for = len(socket)
+
+    monkeypatch.setattr(
+        fact_validation, "VALIDATOR_VERSION",
+        f"{fact_validation.VALIDATOR_VERSION}+r127")
+    seed(second, first, corpus=corpus)
+    _run(corpus, second)
+
+    assert len(socket) == paid_for * 2, socket.subjects()[paid_for:]
+    # Asked, not re-judged: no conclusion was drawn from bytes this run could not
+    # attribute to the file it is about.
+    assert not _supersessions(second)
+
+
+def test_a_prior_without_a_wire_handle_key_is_refused_before_anything_runs(
+        corpus, socket, tmp_path):
+    """The refusal is a sentence, and it arrives before a database is deleted.
+
+    A directory whose key has been removed still READS -- every row is there -- and
+    every answer in it is unusable. Saying so is the difference between a rerun
+    that costs nothing and one that silently costs everything.
+    """
+    prior_dir, fresh_dir = tmp_path / "prior", tmp_path / "fresh"
+    prior_dir.mkdir()
+    _run(corpus, prior_dir / f"{SITUATION.replace('.', '_')}.sqlite")
+    wire_handle_key_file(prior_dir).unlink()
+
+    with pytest.raises(ReuseRefused) as refusal:
+        refuse_unless_seedable(
+            prior_dir, [SITUATION], out_dir=fresh_dir, score_only=False)
+
+    assert "wire-handle-key" in str(refusal.value)
+    assert "Nothing has been run" in str(refusal.value)
