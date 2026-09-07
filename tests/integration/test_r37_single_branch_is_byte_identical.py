@@ -16,6 +16,16 @@ the code agrees with itself; when the base moves, recapture it there, never here
 `test_two_runs_of_one_folder_agree` replaces them, so what is compared is what the
 run concluded and not which uuid it drew.
 
+**From `2c1eb87` on this is a drift pin, not a before/after proof.** R-37's
+byte-identity on a single-branch corpus was proven against fixtures captured
+WITHOUT its code at `ec6e46f`, `dcf5367`, `ac712bb` and `f0ff759`; R-135's gap 4
+(`d5d0e18`) then renamed the minted line's extractor and kept derived readings
+out of the rule pass, which changed this corpus's evidence table for a reason
+that is not R-37's. R-37 is merged, so a checkout without it no longer exists
+to capture from; the fixture is now captured at the merged head and pins the
+single-branch screen and records against drift, to be recaptured deliberately
+whenever a merge changes them on purpose.
+
 The corpus is `test_local_model_fact_pass._corpus`'s six files: a syllabus, a
 lecture, a homework, a problem set, an application essay and a passport scan. The
 anchors the work-type rule finds on it are all academic's, so it is one branch.
