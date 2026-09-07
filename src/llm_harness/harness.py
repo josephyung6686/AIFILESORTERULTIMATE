@@ -37,6 +37,7 @@ from llm_harness.records import (
     build_call_payload,
 )
 from llm_harness.store import (
+    record_call_usage,
     record_dossier,
     record_grounding_report,
     record_pre_call_abstention,
@@ -400,11 +401,26 @@ def run_call(
     prompt: PromptDefinition | None,
     validation_dependencies,
     observed_at: Callable[[], str],
+    usage_recorder: object | None = None,
 ) -> (
     P8Verdict | Refusal | NeedsConsent |
     ValidationUnavailable | CallFailed
 ):
-    """Evaluate one reference-only request. NeedsConsent is returned unchanged."""
+    """Evaluate one reference-only request. NeedsConsent is returned unchanged.
+
+    `usage_recorder` is `104` R-14's one-slot mailbox and is OPTIONAL, unlike every
+    field of `CallDependencies`: that bundle is for authorities a caller must
+    supply, and a deployment that records no usage is a real deployment -- the local
+    transport has no such reading to give and neither does a test's byte recorder.
+    Absent, nothing is written and nothing else changes.
+
+    Its whole protocol is `take()`, answering the composition root's translation of
+    what the provider reported for the call just made, `{}` when the provider
+    reported nothing, and `None` when no call was made. It is read HERE because this
+    is the only place that holds the reservation, the release and the dossier at one
+    moment; `llm_harness` may not import `readers`, so what crosses this line is a
+    mapping whose keys `store.record_call_usage` checks, never a provider's type.
+    """
     missing = _missing_configuration(
         conn, gate=gate, model_client=model_client, prompt=prompt,
         validation_dependencies=validation_dependencies,
@@ -514,6 +530,27 @@ def run_call(
             release_reservation(conn, reservation)
             raise
         settle_call(conn, reservation, actual_cost=deps.actual_cost)
+        # `104` R-14, AFTER the settlement and never instead of it. The budget's
+        # unit is calls -- `cli.FACT_CALL_COST` is 1 against a 200-per-scan ceiling
+        # -- and this changes nothing it enforces: it records what was RESERVED
+        # beside what the provider says was CONSUMED, so the distance between the
+        # estimate and the truth is readable per call and per scan. Re-denominating
+        # the ceiling in tokens is the owner's question.
+        #
+        # Written whichever way the call went, because the release was spent and the
+        # budget settled either way: an `issued` that is a `CallFailed` still cost a
+        # call. `dossier_id` comes off whichever of the two carries it -- both name
+        # the dossier, `CallFailed` under `request_identity`.
+        if usage_recorder is not None:
+            observed = usage_recorder.take()
+            if observed is not None:
+                record_call_usage(
+                    conn,
+                    dossier_id=getattr(issued, "dossier_id", None)
+                    or getattr(issued, "request_identity", ""),
+                    release_id=decision.release_id,
+                    reserved_cost=format(deps.estimated_cost, "f"),
+                    observed=observed, observed_at=observed_at())
         if isinstance(issued, CallFailed):
             return issued
         if isinstance(issued, ValidationUnavailable):

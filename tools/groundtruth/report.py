@@ -254,6 +254,37 @@ def scorecard(runs: Sequence[RunObservation],
     w("            field values by origin: " + (
         ", ".join(f"{k}={n}" for k, n in origins.most_common())
         or "none filled at all"))
+
+    # ---- R-46: a file that reached no model is counted somewhere ------------
+    # THE TWO-SIDED COUNT. A scoreboard that asked `cli.model_route_permitted`
+    # and stopped reported "19 blocked" while 130 more were refused at the door,
+    # so a number meaning "the route let N through" was read as "N reached a
+    # model". They are different questions and both are printed.
+    at_route = sum(run.blocked_at_route for run in runs)
+    gate = collections.Counter()
+    for run in runs:
+        gate.update(run.gate_refusals)
+    never = sum(run.never_built for run in runs)
+    # A RUN WITH NO MODEL BLOCKED NOTHING, and three zeros beside a count of
+    # never-built files would read as a corpus the product had nothing to say
+    # about. The route is only consulted when a model is configured, so on such a
+    # run every one of these numbers is a fact about the configuration and none of
+    # them is a fact about the files. `tools.groundtruth.payload` is the
+    # instrument that answers the same question offline, and it is named here
+    # because that is what a person who wanted these numbers should run.
+    if not tally.get("llm_dossier") and not tally.get("llm_refusal"):
+        w("BLOCKED     no model was configured for these runs, so nothing was "
+          "offered to the route or the door")
+        w("            -- run `python3 -m tools.groundtruth.payload` for what the "
+          "gate WOULD refuse; these tables record only what it did refuse.")
+    else:
+        w(f"BLOCKED     {at_route} withheld at the route, {sum(gate.values())} "
+          f"stopped at the gate, {never} never built")
+        w("            -- the route is `cli.model_route_permitted`; the gate is "
+          "`Gate.release`; never built is nothing releasable to ask about.")
+        if gate:
+            w("            gate reasons: " + ", ".join(
+                f"{reason}={n}" for reason, n in gate.most_common()))
     w("")
 
     # ---- fields ------------------------------------------------------------

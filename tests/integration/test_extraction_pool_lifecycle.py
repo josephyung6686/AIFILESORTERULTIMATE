@@ -242,8 +242,12 @@ def _pool() -> _RemembersItsWorkers:
     #: shipped floor this corpus would stay on the calling thread and no worker would
     #: exist to leak. Two workers and a look-ahead of two, so the window is genuinely
     #: in flight when the violating run leaves through its `finally`.
+    #: R-50's ceiling, required and with no default. Generous, because nothing in
+    #: this file is about the ceiling: what it counts is operating-system processes
+    #: after a run ends, and a ceiling that fired would be a different test.
     return _RemembersItsWorkers(workers=2, context_factory=_context,
-                                lookahead_per_worker=2, floor=0)
+                                lookahead_per_worker=2, floor=0,
+                                seconds_per_extraction=300.0)
 
 
 def test_a_finished_run_leaves_no_worker_process_alive(live_db, tmp_path):

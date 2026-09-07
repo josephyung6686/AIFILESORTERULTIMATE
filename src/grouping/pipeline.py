@@ -129,7 +129,12 @@ class GroupingKnowledge:
     """Everything P9 does not author, in one bundle. Absent means refuse."""
 
     retrieval: RetrievalKnowledge
-    active_schema_for: Callable[..., Sequence[str]]
+    #: `active_schema_for` was the second field here and is gone (`104` R-09). It
+    #: was required of every deployment and read by nothing: `dossier.
+    #: assemble_group_dossier` checked it callable and never called it. A slot a
+    #: composition root must fill and no code reads is a hand-kept field list with
+    #: no consumer, which is worse than either half on its own -- it drifts (it had
+    #: lost `school` and `subject` to `fd68cb6`) and the drift is invisible.
     signal_evaluator_for: Callable[[str | None], object]
     classification_store: Callable[[str, str], object]
     conflicts_for: Callable[[Sequence[str]], Sequence[object]]
@@ -619,7 +624,6 @@ def group_subject(
 
     dossier = assemble_group_dossier(
         conn, group=group, graph=graph, limits=limits,
-        active_schema_for=knowledge.active_schema_for,
         signal_evaluator_for=knowledge.signal_evaluator_for,
         classification_store=knowledge.classification_store,
         # Empty in every path reachable today for the same reason as the

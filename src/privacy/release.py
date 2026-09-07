@@ -75,6 +75,26 @@ class ModelTarget:
     locality: str
     model_id: str
     provider: str
+    #: THE CONTEXT WINDOW THE MODEL IS GIVEN, where the destination has one.
+    #:
+    #: §8.4 audits what the model was given, and for a local model the window is
+    #: part of that: the same dossier under two windows is not the same question,
+    #: because a window that does not hold the prompt is answered from what fits.
+    #: `readers.model_ollama` refuses rather than truncating, and this is the row
+    #: that says which window it refused against.
+    #:
+    #: A DEPLOYMENT FACT AND NOT A PER-CALL ONE, which is why it belongs beside
+    #: the model id rather than in a record of one call. ollama holds ONE context
+    #: length per loaded model, so the window is fixed for the life of a run and
+    #: every call in that run is given it; `readers.model_ollama` is built from
+    #: one number and `_Invoke.context_tokens` reports the same one back.
+    #:
+    #: `None` where the destination has no such number of ours to state. A cloud
+    #: provider's window is the provider's, not this deployment's, and a target
+    #: that named one would be recording a number nobody here chose. It is
+    #: omitted from the stored form entirely in that case, so a cloud row is the
+    #: same bytes it has always been.
+    context_tokens: int | None = None
 
     def __post_init__(self) -> None:
         if self.locality not in LOCALITIES:
@@ -85,11 +105,33 @@ class ModelTarget:
             raise MalformedRequest(
                 "§8.4 requires the audit record show WHICH MODEL received the data; "
                 "an unnamed model or provider cannot satisfy that")
+        if self.context_tokens is not None and (
+                not isinstance(self.context_tokens, int)
+                or isinstance(self.context_tokens, bool)
+                or self.context_tokens < 1):
+            raise MalformedRequest(
+                f"context_tokens is {self.context_tokens!r}, which is not a window "
+                f"a model could have been given. The audit record is read as a "
+                f"statement of fact about what the model was shown, so a number "
+                f"that could not have been sent makes it false where it is written. "
+                f"Absent is how a target says it has no window of ours to state.")
 
-    def to_mapping(self) -> dict[str, str]:
-        """The stored form. `AuditRecord.model` and the ledger both use it."""
-        return {"locality": self.locality, "model_id": self.model_id,
-                "provider": self.provider}
+    def to_mapping(self) -> dict[str, object]:
+        """The stored form. `AuditRecord.model` and the ledger both use it.
+
+        THE WINDOW IS OMITTED WHEN THERE IS NONE rather than stored as null. A
+        cloud target has always been three keys and still is, so no existing row
+        changes shape; the key appears exactly where there is a number to put in
+        it. `binding._target_form` serialises through here for the same reason it
+        matters at all -- two spellings of the stored form would let the ledger
+        and the audit record drift into describing one release two ways.
+        """
+        mapping: dict[str, object] = {
+            "locality": self.locality, "model_id": self.model_id,
+            "provider": self.provider}
+        if self.context_tokens is not None:
+            mapping["context_tokens"] = self.context_tokens
+        return mapping
 
 
 @dataclass(frozen=True, slots=True)

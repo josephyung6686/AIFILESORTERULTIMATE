@@ -1,0 +1,24 @@
+{
+  "policy_id": "b_group.shaping.unratified.2026-09-06",
+  "call_site": "B_group",
+  "what_this_is": "How the dossier beside it was shaped, so the reader knows what it is looking at and what it is not. It describes the SHAPING, never the group: every sentence here is the same on every group in every corpus, and nothing in it is evidence.",
+  "closed_world": "The dossier is the whole of what was sent. There is no document behind any excerpt, no page, no filename, no path, no surrounding sentence, and no file beyond the members listed. A member can only be a file identifier present in the member items, a category can only be an identifier present in allowed_vocabulary, and a citation can only be anchored in a value present in released_evidence.",
+  "selection": {
+    "unit": "one candidate group: its proposed basis, its direct anchors, its retrieved candidates and their short excerpts",
+    "what_is_offered": "the engine's proposed basis; every file in the bounded neighbourhood as a member item that says whether it is a direct anchor or a candidate and, for a candidate, which channel retrieved it; one short excerpt per cited observation, addressed by an observation_key and bounded by a span, each excerpt item naming the member it was read from; and every conflict the engine recorded among the members",
+    "what_is_never_offered": "files withheld for privacy or cut by the neighbourhood cap, which are counted in the engine's own record and not described here; complete extracted text, whole documents, paths, filenames, OCR output of protected material, file hashes, image EXIF, GPS, the person's own typed words, and raw sensitive values",
+    "ordering": "anchors and candidates in the engine's order, which carries no meaning for the answer; within a member, the excerpt with the most placed first",
+    "bounded": "the count of members, the count of excerpts and their length are all capped before the request is built; what did not fit was not sent and is not described"
+  },
+  "reduction_ladder": [
+    "none: the dossier fits and is sent unreduced",
+    "summarized_facts: facts stand in for their evidence",
+    "preserved_anchors: only the anchoring evidence is kept",
+    "split: the subject is sent as several dossiers, each judged on its own",
+    "deferred: nothing is sent"
+  ],
+  "reduction_rung_in_force": "the dossier's own reduction_rung key says which rung this one was built at",
+  "redaction": "identifiers the local policy recognises are transformed before the value is written into the dossier. A redacted value is the value that was sent, and it is the only text a citation can quote.",
+  "what_is_done_with_the_answer": "every member named is checked against the member items; every citation is checked against the released value it names; a label or category on a group that is not coherent is refused; a folder, a path or a hierarchy anywhere in the answer is refused; two distinct terms among the included members is refused; an included member the dossier flagged as conflicting on target institution is refused; a group whose basis is generic similarity is recorded as unresolved and not shown; a context-supported membership is recorded with a review obligation. An answer that fails a check is recorded as having failed it. Nothing here is a hint about which answer passes.",
+  "declining": "a group answered no or insufficient is recorded as a correct outcome and is not surfaced. It is not a failure and it is not counted as one."
+}
