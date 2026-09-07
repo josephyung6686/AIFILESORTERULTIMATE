@@ -19,7 +19,7 @@ Three of P10's SPEC field names do not exist upstream, and the live name wins:
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -493,13 +493,58 @@ def group_level_value(conn: sqlite3.Connection, *, group: AcceptedGroup,
     The strongest reliability among the agreeing anchors is what comes back, so
     `materialise_branch`'s `anchors_a_level` test asks the same question of a
     group-level value that it asks of a per-file one.
+
+    **One group at a time is the expensive way to ask it.** The answer is the
+    GROUP's and not the member's, so a caller with a branch of groups wants
+    `group_level_values` below, and a caller materialising a level wants
+    `group_level_reader`, which asks once per group and hands the same answer to
+    every member. This form remains for a caller holding one group.
+    """
+    return group_level_values(conn, groups=(group,),
+                              field_ref=field_ref)[group.group_id]
+
+
+def group_level_values(conn: sqlite3.Connection, *,
+                       groups: Sequence[AcceptedGroup],
+                       field_ref: str) -> dict[str, FieldValue | None]:
+    """`group_level_value` for SEVERAL groups at one dimension, in one read.
+
+    **The rule is unchanged and the reads are not**, which is
+    `settled_values_by_directory`'s sentence one dimension over. Each group is
+    still decided on its own anchors alone -- direct anchors only, disagreement is
+    `None`, the strongest agreeing reliability wins -- and no group looks at
+    another. What the list buys is the field read: the anchors' settled values are
+    a property of the CORPUS at that field, so P6 answers it once
+    (`facts.read_surface.preferred_in_field`) instead of once per anchor per
+    asking.
+
+    Nothing is cached between calls and nothing is keyed by connection, for the
+    reason `settled_values_by_directory` gives: a group's value is a function of
+    what the facts say NOW. The reading lives exactly as long as the question.
+
+    An empty list returns an empty mapping rather than reading anything.
+    """
+    if not groups:
+        return {}
+    reading = _preferred_values_in_field(conn, field_ref=field_ref)
+    return {group.group_id: _group_level_from(group, reading)
+            for group in groups}
+
+
+def _group_level_from(group: AcceptedGroup,
+                      reading: dict[str, FieldValue]) -> FieldValue | None:
+    """`group_level_value`'s rule, over a reading already in hand.
+
+    Written once and reached both ways, so the one-group form and the many-group
+    form cannot come to differ about what a group's value IS. `group.members` is
+    walked in its own order because `max` returns the FIRST maximal element and
+    that order is therefore part of the answer.
     """
     found: list[FieldValue] = []
     for member in group.members:
         if member.basis != DIRECT_ANCHOR:
             continue
-        value = preferred_value_for(conn, file_id=member.file_id,
-                                    field_ref=field_ref)
+        value = reading.get(member.file_id)
         if value is not None:
             found.append(value)
     if not found:
@@ -507,6 +552,54 @@ def group_level_value(conn: sqlite3.Connection, *, group: AcceptedGroup,
     if len({item.canonical_value for item in found}) != 1:
         return None
     return max(found, key=lambda item: strength(item.reliability))
+
+
+def group_level_reader(conn: sqlite3.Connection, *,
+                       groups: Sequence[AcceptedGroup],
+                       ) -> Callable[[GroupMember, str], FieldValue | None]:
+    """`materialise_branch`'s `group_value_for_member`, for one branch's groups.
+
+    **The answer is the group's, so it is computed per group and not per member.**
+    `materialise_branch` asks this once per member per group-level dimension,
+    because that is the shape of the loop it is in; the answer it gets back does
+    not vary between the members of a group, and computing it again for each of
+    them is the corpus squared. Measured (`104` R-110, 1,000-file synthetic
+    corpus, P8--P11 under cProfile): 1,000 asks made 1,003,000
+    `preferred_value_for` calls -- one per anchor per member -- and cost 47.9 of
+    77.8 profiled seconds; at 5,000 files it is essentially the whole of the
+    2,365.6 s the same span took.
+
+    So each dimension is answered once for every group of the branch, out of one
+    corpus read, and each member reads its group's answer off that. A member in
+    no group of this branch has no such value and is `None` at that level, which
+    is `00`:57's "an essay outside any group gets no school level".
+
+    **Which group a shared member is under is the caller's rule, kept here:**
+    first group wins, in the order the branch lists them, which is `_members`'
+    own rule for the same shared file -- two groups in one branch may both claim
+    it and it is counted once.
+
+    The reading lives as long as the reader, which is one branch's pass over its
+    own candidates. Nothing survives it: a new pass asks P6 again, for the reason
+    `settled_values_by_directory` gives.
+    """
+    group_of: dict[str, AcceptedGroup] = {}
+    for group in groups:
+        for member in group.members:
+            group_of.setdefault(member.file_id, group)
+    answered: dict[str, dict[str, FieldValue | None]] = {}
+
+    def value_for(member: GroupMember, field_ref: str) -> FieldValue | None:
+        group = group_of.get(member.file_id)
+        if group is None:
+            return None
+        by_group = answered.get(field_ref)
+        if by_group is None:
+            by_group = answered[field_ref] = group_level_values(
+                conn, groups=groups, field_ref=field_ref)
+        return by_group[group.group_id]
+
+    return value_for
 
 
 def settled_values_in_directory(conn: sqlite3.Connection, *,
