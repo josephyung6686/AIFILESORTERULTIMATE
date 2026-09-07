@@ -7276,11 +7276,19 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # ordinary one; two holds with different reasons still key apart.
         review = tuple(dict.fromkeys(
             (item.protected, item.reason_not_placed) for item in held))
+        # THE DECISION'S OWN PROTECTION IS PART OF THE KEY. `shielded` below
+        # is OR-ed over a group, so a group that held one protected file and
+        # nine ordinary ones printed as "10 protected files, marked and
+        # counted" with no names -- measured after `--answer home:.=...`, which
+        # gives a folder's files one destination and one policy and so one
+        # key. A protected file is marked and counted as ITSELF; it does not
+        # take the syllabus beside it behind the summary with it.
+        protected_here = _protected(decision, sets)
         key = (decision.outcome, where, reason, review,
                decision.review_policy if decision.outcome == pv.PLACE else None,
-               settled, same_folder)
+               settled, same_folder, protected_here)
         members.setdefault(key, []).extend(_files_of(decision))
-        shielded[key] = shielded.get(key, False) or _protected(decision, sets)
+        shielded[key] = shielded.get(key, False) or protected_here
         marks = held_seen.setdefault(key, set())
         for item in held:
             if id(item) not in marks:
@@ -7311,7 +7319,7 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
           + (f", {awaiting} waiting for you to approve" if awaiting else ""),
           file=out)
     for key in ordered:
-        outcome, where, reason, review, policy, settled, same_folder = key
+        outcome, where, reason, review, policy, settled, same_folder, _ = key
         files = sorted(members[key], key=lambda f: names.get(f, f))
         # A placement's headline comes from its REVIEW POLICY, because that is
         # what says whether anything may happen to the file. An unknown policy
