@@ -102,7 +102,15 @@ class Seed:
             )
 
 
-def _first_evidence_ref(row: sqlite3.Row) -> str | None:
+def first_evidence_ref(row: sqlite3.Row) -> str | None:
+    """The P4 key a fact row cites first, or `None`.
+
+    PUBLIC because `dossier._group_level_facts` reads it for the same purpose one
+    module over: a `file_facts` row carries `evidence_refs` as JSON and no
+    `observation_key` column, and every P9 record that names a citation needs the
+    one key. A second copy of this in `dossier.py` would be two answers to "which
+    observation states this fact" the day a row carries more than one.
+    """
     import json
 
     raw = row["evidence_refs"]
@@ -187,7 +195,7 @@ def seeds_for_file(
             field_key=row["field_key"],
             value=row["canonical_value"],
             reliability_state=row["reliability_state"],
-            observation_key=_first_evidence_ref(row),
+            observation_key=first_evidence_ref(row),
             basis=None,
         )
         for row in _anchor_rows(conn, file_id=file_id, content_hash=content_hash)

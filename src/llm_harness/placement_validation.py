@@ -407,6 +407,34 @@ def _residual_site(
             may_propose=False,
             requires_review=False,
         )
+    if action == ABSTAIN:
+        # `104` R-56'S STRUCTURAL "NONE OF THESE" AT THIS SITE, AND IT WAS NOT
+        # SCORED. `abstain` is one of the response schema's three
+        # `no_target_actions`, so the model may take it without volunteering a
+        # word of prose -- which is the whole point of a structural option, since
+        # `qwen3:8b` produced zero abstentions at C and D under every wording
+        # tried. The validator walked past it: not a member of `_TARGET_ACTIONS`,
+        # so no target was checked, and no rewrite, so the claim kept the
+        # acceptance its citations earned. A model that said it could not tell was
+        # recorded as having chosen a residual destination, with `target` null
+        # underneath it.
+        #
+        # Site C has had this since it was written -- `destination in (None,
+        # "none")` is the first line of `_placement_site` -- and this is its twin,
+        # written the way `mark_review_later` above is written.
+        #
+        # `leave_in_place` because that is what an abstention at the residual site
+        # LEAVES, and `00`:114's correct abstention is a successful outcome rather
+        # than a rejection or a move. NOT `WEAK`: `mark_review_later` is the model
+        # asking for the file to come back, and "I cannot tell" is not a request.
+        return _rewrite(
+            verdict,
+            outcome=ABSTAIN,
+            disposition=LEAVE_IN_PLACE,
+            reasons=(),
+            may_propose=False,
+            requires_review=False,
+        )
     return None
 
 

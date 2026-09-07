@@ -880,6 +880,92 @@ def test_r56_the_other_mechanism_is_none_and_it_costs_the_model_nothing():
     assert verdict.reasons == ()
 
 
+# --- R-56: a structural "none of these" at BOTH sites, scored by the validator ----
+#
+# "`qwen3:8b` (thinking off) produced zero abstentions on the six should-abstain
+# cases at C and D under every wording tried". The answer `104` R-56 names is an
+# abstention mechanism "that does not depend on the model volunteering one": a
+# structural option in the SCHEMA that the validator scores. C has two -- the word
+# `none` as a destination and the `unknown` claim shape -- and both are scored
+# above. D has the same two, and one of them was not scored.
+
+
+def _d_direct_pair():
+    return next(p for p in SITE_D_OUTCOME_PAIRS if p.name == "direct_accept")
+
+
+def _d_with_action(action, **fields):
+    return _with_payload_fields(_d_direct_pair(), action=action, **fields)
+
+
+def test_r56_site_d_scores_the_action_that_says_it_cannot_tell(monkeypatch):
+    """The gap, and it was a placement.
+
+    `abstain` is one of the response schema's three `no_target_actions`, so the
+    model may take it without volunteering a word of prose -- and the validator
+    walked past it: not in `_TARGET_ACTIONS`, so no target was checked, and no
+    rewrite, so the claim kept the acceptance its citations earned. A model that
+    said it could not tell was recorded as having chosen a residual destination,
+    with `target` null underneath.
+
+    Scored the way `mark_review_later` beside it is scored, and the disposition is
+    `leave_in_place` because that is what an abstention at the residual site
+    LEAVES: `00`:114's correct abstention is a successful outcome, not a rejection
+    and not a move.
+    """
+    verdict = _validate_d(_d_with_action(ABSTAIN, target=None))[0][0]
+
+    assert verdict.outcome == ABSTAIN
+    assert verdict.disposition == LEAVE_IN_PLACE
+    assert verdict.reasons == ()
+    assert verdict.may_propose is False
+    assert verdict.requires_review is False
+
+
+def test_r56_the_unknown_claim_shape_abstains_at_both_sites():
+    """The other structural option, and it is one shape for five sites: a claim
+    carrying `unknown` and no citations is `ABSTAIN` in `validation.py` before any
+    site validator runs, so no site can accidentally not have it."""
+    for pairs, site in ((SITE_C_OUTCOME_PAIRS, C_PLACEMENT),
+                        (SITE_D_OUTCOME_PAIRS, D_RESIDUAL)):
+        pair = next(p for p in pairs if p.name == "unknown")
+        assert pair.dossier.call_site == site
+        verdict = (_validate_c(pair) if site == C_PLACEMENT
+                   else _validate_d(pair))[0][0]
+        assert verdict.outcome == ABSTAIN, site
+        assert verdict.reasons == (), site
+        assert verdict.may_propose is False, site
+
+
+def test_r56_neither_sites_none_option_needs_the_model_to_volunteer_prose():
+    """What "structural" means, asserted on the response schemas the model is
+    actually shown rather than on the templates.
+
+    At C the destination key's own description names the word; at D the abstention
+    is a member of the action enum. Neither asks the model to say something in a
+    free-text field that a validator then has to interpret -- which is the
+    mechanism R-56 says does not work.
+    """
+    import json as _json
+
+    import cli
+    from llm_harness.prompt_library import draft_bytes
+    from llm_harness.vocabulary import RESIDUAL_ACTIONS
+
+    # The ids are READ from the one table that points a site at its text. A
+    # literal here would be a second home for a value that moves -- B is on v2 in
+    # this manifest and the wave named v3 -- and a test pinned to a stale id
+    # asserts nothing about the schema the model is actually shown.
+    _t, c_schema, _p = draft_bytes(cli.OBSERVE_TEMPLATE_ID[C_PLACEMENT])
+    c_payload = _json.loads(c_schema)["$defs"]["payload"]["properties"]
+    assert "none" in c_payload["destination"]["description"]
+
+    _t, d_schema, _p = draft_bytes(cli.OBSERVE_TEMPLATE_ID[D_RESIDUAL])
+    d_payload = _json.loads(d_schema)["$defs"]["payload"]["properties"]
+    assert ABSTAIN in d_payload["action"]["enum"]
+    assert ABSTAIN in RESIDUAL_ACTIONS
+
+
 def test_r15_no_site_c_fixture_puts_a_value_in_the_node_id_vocabulary():
     """The workaround R-15 forced, gone. `allowed_vocabulary` at C is node ids;
     a fixture that had to add `date-2026` to it to make a date pass was

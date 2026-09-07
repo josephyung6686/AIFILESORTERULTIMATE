@@ -65,10 +65,14 @@ def _field_names(cls) -> tuple[str, ...]:
 # --- the tables -----------------------------------------------------------------
 
 
-def test_the_seven_p9_tables_exist(p9_conn):
+def test_the_eight_p9_tables_exist(p9_conn):
     assert P9_TABLES == (
         "groups", "memberships", "group_dossiers", "group_edges",
         "stop_rule_outcomes", "group_failure_points", "group_acceptance",
+        # `00`'s Q-C ruling (`104` §13.7): a category the library has not seen is
+        # proposed once and the person confirms or renames it. Neither a group nor
+        # an acceptance -- it is a question waiting for an answer.
+        "group_category_proposals",
     )
     present = {
         row["name"]

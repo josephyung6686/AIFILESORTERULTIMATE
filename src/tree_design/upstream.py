@@ -434,6 +434,48 @@ def preferred_value_for(conn: sqlite3.Connection, *, file_id: str,
     )
 
 
+def group_level_value(conn: sqlite3.Connection, *, group: AcceptedGroup,
+                      field_ref: str) -> FieldValue | None:
+    """The one value this GROUP contributes at this dimension, or `None`.
+
+    `104` §11.2 step 2, and `00`:57 is what it implements: "the syllabus and
+    lecture may each state PHYS1401 directly ... the homework may have a
+    homework-like name" — the course's school and term are stated by the anchors
+    and the sparse members are carried by the group. So the level's value for
+    EVERY member of a course group is the course's, read once from the files that
+    state the group's basis directly.
+
+    **The direct anchors and nobody else.** A context-supported member is in the
+    group because something retrieved it; what it happens to say about a school is
+    the collector `00`:44 names by name and `104` §11.1 measured — twenty `school`
+    facts, five essays from a university course filed under a high school. Its own
+    reading is not the group's.
+
+    **Disagreement is `None`, which is `preferred_value_for`'s own posture one
+    level up.** Two anchors naming two schools is a real state and picking between
+    them here would close P6's OQ6 by accident at the group grain; the members
+    become unresolved AT THIS LEVEL, which §5.11 permits and which reaches the
+    person as "waiting for you to say what this is".
+
+    The strongest reliability among the agreeing anchors is what comes back, so
+    `materialise_branch`'s `anchors_a_level` test asks the same question of a
+    group-level value that it asks of a per-file one.
+    """
+    found: list[FieldValue] = []
+    for member in group.members:
+        if member.basis != DIRECT_ANCHOR:
+            continue
+        value = preferred_value_for(conn, file_id=member.file_id,
+                                    field_ref=field_ref)
+        if value is not None:
+            found.append(value)
+    if not found:
+        return None
+    if len({item.canonical_value for item in found}) != 1:
+        return None
+    return max(found, key=lambda item: strength(item.reliability))
+
+
 def settled_values_in_directory(conn: sqlite3.Connection, *,
                                 directory_path: str,
                                 stated_by_every_file: bool = False,
