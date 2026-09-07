@@ -1,0 +1,210 @@
+# src/facts/anchor_statements.py
+"""`104` R-135: which readings are an anchor document STATING what a course is called.
+
+**This module decides nothing about what a course is.** It records that one line of one
+document, in a document that is teaching the course, printed a course code. It stores a
+CITATION and never text: the stating file, its content hash, and P4's observation key.
+What that line says is delivered to the model by the release path, from the document,
+under P7's gate -- so the words the model reads are the document's own and this module
+never holds a copy of them.
+
+**Why it holds no text and no mapping.** The product constitution's first rule: *"LLM
+decides, code delivers. Never hardcode domain knowledge: no alias tables, no equivalence
+maps, no sorting rules. Reconciliation, naming, and tree structure are model decisions.
+Code extracts, stores, packages, and presents inputs."* An earlier draft of this row
+built the forbidden thing -- a per-corpus table mapping `Data Structures` to `W3134`,
+consulted by the normalisers, with ties broken by sort order. It is gone. Deciding that
+two spellings are one course is site C's own sentence -- *"two spellings can be one
+thing ... yours to judge from the evidence"* -- and the defect this module addresses is
+that the evidence never arrived.
+
+**Three refusals, and each is structural rather than a judgement.**
+
+* *A statement is read from the document, never from its name.* Only readings the
+  caller's `reads_in_document` predicate admits, which in this deployment is a SPAN
+  inside `body` or `heading`. `filename`, `path`, `title` and every `metadata:*` zone
+  are outside it by construction, so a folder called `Data Structures` can never make
+  itself the evidence for what `Data Structures` means.
+* *An anchor is a document teaching the course, not one mentioning it.*
+  `facts.rules.context_check` over the caller's anchor terms -- the same predicate §3.5
+  uses, so "this was a syllabus" is established the one way this codebase establishes
+  anything about context.
+* *A reading is a course code only if the deployment's own rule says so.* `is_code` is
+  the caller's, and it is the rule's asserting pattern rather than the wider shape the
+  product reads everywhere.
+
+**Two citations per statement, and the second is the point.** The identifier reading is
+cited because it is what made the line findable. The reading that CONTAINS it -- the
+heading, when P4 emitted one over the same container path -- is cited beside it, because
+that is the reading whose words are `COMS W3134: Data Structures` rather than `W3134`.
+Which of the two the gate will actually release is P7's decision and not this module's;
+both are offered so the decision has something to make.
+"""
+from __future__ import annotations
+
+import sqlite3
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import Callable
+
+from evidence_shape.canonical import sha256_of
+from evidence_shape.locator import serialize_container_path
+
+from facts.evidence import cite, context_pair, observations_for_version
+from facts.rules import context_check
+from facts.schema import ANCHOR_STATEMENTS_TABLE
+
+__all__ = [
+    "AnchorStatement",
+    "anchor_statements_for",
+    "record_anchor_statements",
+]
+
+
+@dataclass(frozen=True, slots=True)
+class AnchorStatement:
+    """One anchor document's line, as a citation and never as a copy of its words.
+
+    **The file is the STATING file and never the "anchor file".** `anchor_file_id` is a
+    group handle in this codebase -- P9's anchor is the file a GROUP is built around --
+    and `tests/p6/test_p6_no_invention.py`'s OQ9 guard refuses any callable in `facts`
+    that accepts one, because §4.1 forbids copying a group's facts onto its sparse
+    members. This record is not group-derived: it comes from one file's own readings of
+    its own words, and nothing here knows what a group is. The name says so.
+
+    `code_evidence_ref` is the identifier reading; `line_evidence_ref` is the reading
+    that contains it, or `None` when P4 emitted no such reading. A consumer offers both
+    to the release and lets the gate choose; a consumer that reads `canonical_code` and
+    decides something about a course's identity from it has stepped outside this
+    module's promise.
+    """
+
+    stating_file_id: str
+    stating_content_hash: str
+    canonical_code: str
+    code_evidence_ref: str
+    line_evidence_ref: str | None
+
+
+def _statement_identity(*, scan_run_id: str, stating_content_hash: str,
+                        code_evidence_ref: str) -> str:
+    """Content-addressed, so a re-scan rewrites a row rather than adding a second and
+    two databases that saw the same corpus hold the same ids (§8.5's replay)."""
+    return sha256_of("facts.anchor_statements", scan_run_id, stating_content_hash,
+                     code_evidence_ref)
+
+
+def _containing_line(observation, siblings) -> str | None:
+    """The reading that CONTAINS this one, by container path and span. Structural.
+
+    `extractors/pdf.py` emits a heading twice over: once as the whole heading, whose
+    `raw_value` is the line, and once per identifier inside it. Both carry the same
+    `container_path`, so "the reading this one sits inside" is a comparison of spans
+    within one container and needs no text and no parsing.
+
+    The SHORTEST containing reading wins, so a heading is preferred over a page when a
+    document offers both. Ties cannot happen: two readings with the same span and the
+    same container are the same reading.
+    """
+    own = observation.location.text_span
+    if own is None:
+        return None
+    path = serialize_container_path(observation.location.container_path)
+    best = None
+    for other in siblings:
+        if other.observation_key == observation.observation_key:
+            continue
+        span = other.location.text_span
+        if span is None:
+            continue
+        if serialize_container_path(other.location.container_path) != path:
+            continue
+        if span.start <= own.start and span.end >= own.end:
+            width = span.end - span.start
+            if best is None or width < best[0]:
+                best = (width, cite(other))
+    return None if best is None else best[1]
+
+
+def record_anchor_statements(conn: sqlite3.Connection, *, scan_run_id: str,
+                             file_versions: Sequence[tuple[str, str]],
+                             is_code: Callable[[str], bool],
+                             canonical: Callable[[str], str],
+                             anchor_terms: Sequence[str],
+                             reads_in_document: Callable[[str], bool],
+                             ) -> tuple[str, ...]:
+    """Record every anchor line the corpus states. Returns the statement ids.
+
+    A CORPUS producer, which is why it is not a `FactResolver` stage: what a syllabus
+    states is about every other file of that course, and a stage asked about one file
+    version at a time cannot see it. `facts.families` runs at the same place for the
+    same reason.
+
+    Nothing is authored here. The predicate that says a reading is a course, its
+    canonicaliser, the anchor vocabulary and the predicate that says which readings are
+    the document's own words are all the caller's, exactly as `Rule` takes its three.
+    `facts.rules` states the rule this follows: "Every other domain's terms arrive on the
+    `Rule`, because the SPEC defers them."
+
+    No `unresolved` row is ever written. A statement is not a FIELD anybody attempted,
+    and B7's abstention is a record about a field.
+    """
+    written: list[str] = []
+    for file_id, content_hash in sorted(set(file_versions)):
+        observations = observations_for_version(conn, file_id, content_hash)
+        for observation in observations:
+            if not reads_in_document(observation.locator):
+                continue
+            reading = " ".join(observation.raw_value.split())
+            if not is_code(reading):
+                continue
+            before, after, _truncated = context_pair(observation)
+            if not context_check(before, after, anchor_terms):
+                continue
+            code = canonical(reading)
+            if not code:
+                continue
+            statement_id = _statement_identity(
+                scan_run_id=scan_run_id, stating_content_hash=content_hash,
+                code_evidence_ref=cite(observation))
+            conn.execute(
+                f"INSERT OR REPLACE INTO {ANCHOR_STATEMENTS_TABLE} "
+                "(statement_id, scan_run_id, stating_file_id, stating_content_hash, "
+                " canonical_code, code_evidence_ref, line_evidence_ref) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (statement_id, scan_run_id, file_id, content_hash, code,
+                 cite(observation), _containing_line(observation, observations)))
+            written.append(statement_id)
+    return tuple(written)
+
+
+def anchor_statements_for(conn: sqlite3.Connection, scan_run_id: str, *,
+                          stating_file_ids: Sequence[str] = (),
+                          ) -> tuple[AnchorStatement, ...]:
+    """Every statement of one scan, or of the named anchor files within it.
+
+    Ordering is imposed and never inherited: P4's reads are in insertion order, which is
+    a property of one database rather than of the corpus, and §8.5 replays a run and
+    compares it.
+
+    EVERY statement is returned, including two that name different codes. Choosing
+    between them is the model's, and a reader that took the first would be the sorting
+    rule the constitution forbids.
+    """
+    query = (f"SELECT stating_file_id, stating_content_hash, canonical_code, "
+             f"code_evidence_ref, line_evidence_ref FROM {ANCHOR_STATEMENTS_TABLE} "
+             "WHERE scan_run_id = ?")
+    parameters: list[object] = [scan_run_id]
+    if stating_file_ids:
+        names = sorted(set(stating_file_ids))
+        query += f" AND stating_file_id IN ({', '.join('?' * len(names))})"
+        parameters.extend(names)
+    query += " ORDER BY canonical_code, stating_file_id, code_evidence_ref"
+    return tuple(
+        AnchorStatement(
+            stating_file_id=row["stating_file_id"],
+            stating_content_hash=row["stating_content_hash"],
+            canonical_code=row["canonical_code"],
+            code_evidence_ref=row["code_evidence_ref"],
+            line_evidence_ref=row["line_evidence_ref"])
+        for row in conn.execute(query, tuple(parameters)).fetchall())

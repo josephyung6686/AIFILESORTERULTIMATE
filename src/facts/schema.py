@@ -232,46 +232,38 @@ CREATE TABLE IF NOT EXISTS {VALUE_RENDERINGS_TABLE} (
 )
 """
 
-#: `104` R-135's per-corpus course alias table. NOT a fifth record table, for the same
-#: reason `value_renderings` is not: it holds no claim about a file, no reliability
-#: state and no field key, and nothing reads it to decide a fact on its own. It records
-#: what an ANCHOR DOCUMENT said -- that one line printed a course code and that course's
-#: name together -- so that `facts.course_alias` can answer "which code is this title"
-#: without inventing the answer. Every row carries the observation key it was read from,
-#: so an alias is as citable as the fact it later supports.
+#: `104` R-135's anchor statements. NOT a fifth record table, for the reason
+#: `value_renderings` is not: it holds no claim about a file, no reliability state and
+#: no field key. It records that ONE LINE of one anchor document printed a course code,
+#: as a CITATION -- P4's observation key -- and never as a copy of the words. What the
+#: line says reaches a model from the document, through P7's gate; this table only says
+#: where to look.
 #:
-#: It lives HERE rather than in `facts.course_alias` for the reason `fact_passes` and
-#: `value_renderings` do: the DDL has to reach `_TABLE_DDL`, and a table created only
-#: where a test creates it raises `OperationalError` in production.
+#: It carries no title column and no value column ON PURPOSE. The product constitution
+#: forbids an alias table, and a column pairing a name to a code would be one whatever
+#: it was called. The pairing is in the document, and judging it is the model's.
 #:
-#: `scan_run_id` scopes it, because §8.4's Open question 3 -- what a "corpus area" is --
-#: is unanswered and the scan is the one boundary a run can name truthfully. It is the
-#: same scope `cli.fact_call_authorities` gives the gate.
-#:
-#: The UNIQUE constraint is the whole identity, so re-running a scan over an unchanged
-#: corpus rewrites the same rows rather than accumulating them, and `alias_id` is
-#: content-addressed over exactly those columns.
-COURSE_ALIASES_TABLE: str = "course_aliases"
+#: `scan_run_id` scopes it: §8.4's Open question 3 -- what a "corpus area" is -- is
+#: unanswered, and the scan is the one boundary a run can name truthfully.
+ANCHOR_STATEMENTS_TABLE: str = "anchor_statements"
 
-COURSE_ALIASES_DDL: str = f"""
-CREATE TABLE IF NOT EXISTS {COURSE_ALIASES_TABLE} (
-    alias_id            TEXT PRIMARY KEY,
+ANCHOR_STATEMENTS_DDL: str = f"""
+CREATE TABLE IF NOT EXISTS {ANCHOR_STATEMENTS_TABLE} (
+    statement_id        TEXT PRIMARY KEY,
     scan_run_id         TEXT NOT NULL,
-    anchor_file_id      TEXT NOT NULL,
-    anchor_content_hash TEXT NOT NULL,
+    stating_file_id      TEXT NOT NULL,
+    stating_content_hash TEXT NOT NULL,
     canonical_code      TEXT NOT NULL,
-    alias_text          TEXT NOT NULL,
-    alias_kind          TEXT NOT NULL,
-    evidence_ref        TEXT NOT NULL,
-    UNIQUE (scan_run_id, anchor_content_hash, canonical_code, alias_text, alias_kind)
+    code_evidence_ref   TEXT NOT NULL,
+    line_evidence_ref   TEXT
 );
-CREATE INDEX IF NOT EXISTS course_aliases_scan
-    ON {COURSE_ALIASES_TABLE} (scan_run_id);
+CREATE INDEX IF NOT EXISTS anchor_statements_scan
+    ON {ANCHOR_STATEMENTS_TABLE} (scan_run_id);
 """
 
 _TABLE_DDL: tuple[str, ...] = (_FIELDS_DDL, VALUES_DDL, FILE_FACTS_DDL, UNRESOLVED_DDL,
                                FACT_PASSES_DDL, VALUE_RENDERINGS_DDL,
-                               COURSE_ALIASES_DDL)
+                               ANCHOR_STATEMENTS_DDL)
 
 
 def create_facts_schema(conn: sqlite3.Connection) -> None:

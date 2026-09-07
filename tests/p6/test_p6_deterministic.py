@@ -77,16 +77,12 @@ PRODUCERS = (
     # takes no model parameter and reaches no network, which is what the guards
     # below check of every name in this list.
     ("facts.kind", "kind_facts"),
-    # `104` R-135's two, added 2026-09-07. Deterministic in the same sense every entry
-    # above is: a pattern, a canonicaliser, a context vocabulary and a title shape, all
-    # supplied by the CALLER, over observations already in the database. Neither takes a
-    # model parameter and neither reaches the network -- which is what the guards below
-    # check of every name in this list -- and neither may import `facts.llm_seam`, which
-    # matters here because the model's own normaliser closes over the table the first of
-    # them builds. The dependency runs the other way: the deployment reads the table and
-    # hands it to P8, and P6 never learns that a model exists.
-    ("facts.course_alias", "build_course_aliases"),
-    ("facts.course_alias", "resolve_subject_facts"),
+    # `104` R-135's, added 2026-09-07. Deterministic in the same sense every entry
+    # above is: a predicate, a canonicaliser and a context vocabulary, all supplied by
+    # the CALLER, over observations already in the database. It takes no model
+    # parameter and reaches no network, and it decides nothing about what a course is
+    # -- it records where an anchor document stated one, for a model to read.
+    ("facts.anchor_statements", "record_anchor_statements"),
 )
 
 #: Modules in `facts` that are not producers: the tables, the vocabularies, the
