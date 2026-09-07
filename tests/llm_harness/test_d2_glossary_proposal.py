@@ -75,3 +75,34 @@ def test_a_meaning_is_a_definition_of_a_field_and_never_a_hint_about_a_file():
     for key in CHANGED:
         assert not forbidden.search(proposal[key]["meaning"]), key
         assert len(proposal[key]["meaning"].split()) <= 40, key
+
+
+# --- the third `subject` wording: a second proposal differing from the first in one entry
+
+THIRD = LIBRARY / "field_glossary_proposal_subject_2026-09-06.json"
+
+
+def test_the_third_subject_wording_differs_from_the_proposal_in_subject_alone():
+    proposal, third = _load(PROPOSAL), _load(THIRD)
+    assert set(proposal["fields"]) == set(third["fields"])
+    for key in proposal["fields"]:
+        if key == "subject":
+            assert proposal["fields"][key] != third["fields"][key]
+        else:
+            assert proposal["fields"][key] == third["fields"][key], key
+    assert third["owed"] == proposal["owed"]
+    assert third["_status"]["status"] == "unratified"
+    assert third["_"].startswith("PROPOSAL, NOT RATIFIED")
+    assert _load(RATIFIED)["_"] in third["_"]
+
+
+def test_the_third_subject_wording_is_the_one_105_put_to_the_owner():
+    packet = (REPO / "planning" / "105-D2-PROMPT-PACKET.md").read_text(encoding="utf-8")
+    meaning = _load(THIRD)["fields"]["subject"]["meaning"]
+    assert "105-D2-PROMPT-PACKET.md §1.6" in _load(THIRD)["fields"]["subject"]["source"]
+    for phrase in ("a course code, or the name a syllabus would give the course",
+                   "never the title of this document, its chapter, its book, its study guide or its publisher"):
+        assert phrase in meaning and phrase in packet, phrase
+    forbidden = re.compile(r"Georgetown|Columbia|CliffsNotes|PHYS|Python 1006|Priya|Mara|Tom\b")
+    assert not forbidden.search(meaning)
+    assert len(meaning.split()) <= 40
