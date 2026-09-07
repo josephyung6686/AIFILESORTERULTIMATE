@@ -109,7 +109,8 @@ def _fixture_contradicts(proposal, row):
 
 
 def _deps(*, normalize=_fixture_normalize, contradicts=_fixture_contradicts):
-    return FactValidationDependencies(normalize=normalize, contradicts=contradicts)
+    return FactValidationDependencies(
+        normalize=normalize, contradicts=contradicts, normalize_for_review=None)
 
 
 def _released_dossier(request):
@@ -223,7 +224,8 @@ def test_missing_normalize_writes_no_fact_and_no_unresolved(subject_file, seam_c
     result = _validate(
         seam_conn, request, proposal,
         dependencies=FactValidationDependencies(
-            normalize=None, contradicts=_fixture_contradicts),
+            normalize=None, contradicts=_fixture_contradicts,
+            normalize_for_review=None),
     )
     assert isinstance(result, ValidationUnavailable)
     assert result.missing == ("normalize",)

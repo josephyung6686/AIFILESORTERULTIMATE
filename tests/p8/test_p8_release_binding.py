@@ -300,8 +300,15 @@ def test_a_false_unknown_is_not_an_abstention():
     already required the Mapping shape and called anything else schema-invalid;
     Site A now agrees with it, so the response is rejected rather than
     reinterpreted.
+
+    **The refusal now NAMES ITSELF (`104` R-99).** `_proposal` returned a bare `None`
+    for every malformed shape and the record said only `SCHEMA_INVALID`, so sixteen
+    such responses on a cloud run could not be told apart. It returns the template
+    rule it broke instead -- here rule 10, `"Never write 'unknown': false"` -- and
+    that word reaches the verdict's `claim_ref`. Refusing is unchanged; only the
+    record got a sentence.
     """
-    from llm_harness.sites import _proposal
+    from llm_harness.sites import _UNKNOWN_NOT_AN_OBJECT, _proposal
 
     for falsey in (False, 0, "", []):
         assert _proposal(handles={}, claim={
@@ -312,7 +319,7 @@ def test_a_false_unknown_is_not_an_abstention():
                 "cited_span": REDACTED,
                 "why_it_supports": "names it",
             }],
-        }) is None, falsey
+        }) == _UNKNOWN_NOT_AN_OBJECT, falsey
 
 
 def test_a_real_unknown_is_still_an_abstention():

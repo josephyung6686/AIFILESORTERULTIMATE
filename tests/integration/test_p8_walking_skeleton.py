@@ -213,6 +213,7 @@ def walk(skeleton_conn, monkeypatch):
                 fact_dependencies=FactValidationDependencies(
                     normalize=seam._fixture_normalize,
                     contradicts=seam._fixture_contradicts,
+                    normalize_for_review=None,
                 ),
             ),
             placement=None, residual=None, template=None,

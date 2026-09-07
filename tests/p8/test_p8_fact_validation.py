@@ -146,7 +146,8 @@ def _never_contradicts(proposal, row):
 
 
 def _deps(*, normalize=_pass_normalize, contradicts=_never_contradicts):
-    return FactValidationDependencies(normalize=normalize, contradicts=contradicts)
+    return FactValidationDependencies(
+        normalize=normalize, contradicts=contradicts, normalize_for_review=None)
 
 
 def _proposal(subject_file, *, field_key="subject", value="BUSIB 4300",
@@ -252,8 +253,16 @@ def test_live_facts_publishes_neither_normalize_nor_contradicts():
 
 
 def test_dependency_type_is_frozen_and_names_both_callbacks():
+    """THREE NOW, and the third is check 3's other half (`104` R-98).
+
+    `normalize` answers whether a value is storable as a fact this deployment can
+    canonicalise; `normalize_for_review` answers whether it is a value a PERSON could
+    confirm. It is undefaulted like the other two -- `test_p8_no_invention` forbids a
+    default on any P8 dependency field -- so a deployment with no review normaliser
+    passes `None` and says so.
+    """
     fields = [item.name for item in dataclasses.fields(FactValidationDependencies)]
-    assert fields == ["normalize", "contradicts"]
+    assert fields == ["normalize", "contradicts", "normalize_for_review"]
     deps = _deps()
     assert dataclasses.is_dataclass(deps) and deps.__dataclass_params__.frozen
     with pytest.raises(dataclasses.FrozenInstanceError):
@@ -296,6 +305,7 @@ def test_omitted_normalize_is_unavailable_and_writes_nothing(subject_file, p6_co
         p6_conn, request, proposal,
         dependencies=FactValidationDependencies(
             normalize=None, contradicts=_never_contradicts,
+            normalize_for_review=None,
         ),
     )
     assert isinstance(result, ValidationUnavailable)
@@ -312,6 +322,7 @@ def test_omitted_contradicts_is_unavailable_and_writes_nothing(subject_file, p6_
         p6_conn, request, proposal,
         dependencies=FactValidationDependencies(
             normalize=_pass_normalize, contradicts=None,
+            normalize_for_review=None,
         ),
     )
     assert isinstance(result, ValidationUnavailable)
@@ -325,7 +336,8 @@ def test_omitted_both_callbacks_names_both_and_makes_no_callback(subject_file, p
     proposal = _proposal(subject_file)
     result = _validate(
         p6_conn, request, proposal,
-        dependencies=FactValidationDependencies(normalize=None, contradicts=None),
+        dependencies=FactValidationDependencies(
+            normalize=None, contradicts=None, normalize_for_review=None),
     )
     assert isinstance(result, ValidationUnavailable)
     assert result.missing == ("normalize", "contradicts")
@@ -365,6 +377,7 @@ def test_missing_deps_does_not_call_injected_oracles(subject_file, p6_conn):
         p6_conn, request, proposal,
         dependencies=FactValidationDependencies(
             normalize=normalize, contradicts=None,
+            normalize_for_review=None,
         ),
     )
     assert isinstance(result, ValidationUnavailable)
@@ -621,6 +634,17 @@ def test_p6_verdict_mapping_covers_each_failed_check():
 
 
 def test_proposal_state_mapping_uses_p6_states():
+    """**`accept_context_supported` moved to `possible` on 2026-09-07 (`104` R-98).**
+
+    It mapped to `llm_supported`, which is inside
+    `facts.read_surface.PROPOSAL_ELIGIBLE_STATES` -- the floor a folder proposal
+    rests on. Nothing anywhere reads `requires_review` (`104` R-75 is that finding
+    from the placement side), so an outcome whose whole meaning is "a person has to
+    look at this" wrote a fact P10 could turn into a folder before anybody looked.
+    `00`:42 fixes the state for that case in its own words: a model output "useful
+    but too weak to establish a fact may remain a possible clue for review; it must
+    not quietly become a folder proposal or an asserted file property".
+    """
     def verdict(outcome, *, disposition, may_propose, requires_review, reasons=()):
         return P8Verdict(
             verdict_id="v1", dossier_id="d1", claim_ref="subject",
@@ -638,7 +662,7 @@ def test_proposal_state_mapping_uses_p6_states():
     assert proposal_state_from_p8(verdict(
         ACCEPT_CONTEXT_SUPPORTED, disposition="llm_supported_review",
         may_propose=True, requires_review=True,
-    )) is LLM_SUPPORTED
+    )) is POSSIBLE
     assert proposal_state_from_p8(verdict(
         WEAK, disposition=POSSIBLE, may_propose=False, requires_review=False,
         reasons=(SEARCH_HINT_ONLY,),

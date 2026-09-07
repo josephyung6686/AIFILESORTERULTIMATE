@@ -65,7 +65,7 @@ def _zone_location(item: Evidence, index: int) -> Location:
 
 def build_world(case: Case, workdir: Path, *, catalogue) -> SiteAWorld:
     """One synthetic file, its observations, and P6's authorities over them."""
-    from cli import contradicts_stronger, normalize_for_model
+    from cli import contradicts_stronger, normalize_for_model, normalize_for_review
     from production import folder_levels_for
 
     workdir.mkdir(parents=True, exist_ok=True)
@@ -120,7 +120,11 @@ def build_world(case: Case, workdir: Path, *, catalogue) -> SiteAWorld:
         fact=FactSiteDependencies(
             fact_request=request,
             fact_dependencies=FactValidationDependencies(
-                normalize=normalize_for_model, contradicts=contradicts_stronger)),
+                normalize=normalize_for_model, contradicts=contradicts_stronger,
+                # The bench emulates the product's own composition, so it carries
+                # check 3's review half too (`104` R-98): a title-named course is
+                # accepted into review here exactly as it is in the product.
+                normalize_for_review=normalize_for_review)),
         placement=None, residual=None, template=None)
     values = {item.key: item.value for item in rekeyed if item.released}
     rekeyed_case = dataclasses.replace(

@@ -18,7 +18,6 @@ Live evaluation and replay both route through `dispatch`.
 from __future__ import annotations
 
 import hashlib
-import json
 import sqlite3
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
@@ -48,6 +47,7 @@ from llm_harness.template_validation import (
 )
 from llm_harness.wire_handles import issued_handles, local_ref
 from llm_harness.validation import (
+    decode_response,
     parse_citation,
     report_from_verdicts,
     schema_invalid_verdict,
@@ -106,8 +106,43 @@ class SiteDependencies:
             )
 
 
-def _claims(response_bytes: bytes) -> tuple[Mapping[str, object], ...] | None:
-    """Every claim in the response, in input order.
+#: WHY EVERY REFUSAL BELOW NAMES ITSELF (`104` R-99).
+#:
+#: A cloud run over the owner's corpus produced sixteen `SCHEMA_INVALID` responses at
+#: this site and the record could not say what was wrong with any of them: every one
+#: was one verdict, `claim_ref="schema"`, reason `SCHEMA_INVALID`. Seven turned out to
+#: be JSON that did not decode and nine were JSON that decoded and did not fit the
+#: shape, and separating them took the bytes, by hand, off a run that costs money.
+#:
+#: The reason code is unchanged -- it is a closed vocabulary the owner approves member
+#: by member -- and the ADDRESS now says which claim and which rule. Each token below
+#: is a rule of the ratified A_fact template, in the template's own terms.
+_NOT_AN_OBJECT: str = "not_an_object"
+_CLAIMS_NOT_A_LIST: str = "claims_not_a_list"
+#: Template rule 9: *"claims must never be empty. If you can support nothing at all,
+#: send one declining claim for each field you considered."*
+_CLAIMS_EMPTY: str = "claims_empty"
+#: Template rule 1: the claim names the field it is about, in `payload`.
+_FIELD_MISSING: str = "payload_field_missing"
+#: Template rule 10: *"Never write `unknown: false` and never write `unknown: null`."*
+_UNKNOWN_NOT_AN_OBJECT: str = "unknown_not_an_object"
+#: Template rule 10 again, from the other side: a claim carries either citations or
+#: `unknown`, never neither -- so a supporting claim with no `value` is neither.
+_VALUE_MISSING: str = "payload_value_missing"
+_CITATIONS_NOT_A_LIST: str = "citations_not_a_list"
+#: Template rule 6: *"A citation carries `evidence_ref` and exactly one of
+#: `cited_span` or `metadata_field_name`. Supplying both, or neither, destroys your
+#: whole answer."*
+_CITATION_MALFORMED: str = "citation_malformed"
+#: Template rule 8: *"Never send two claims about the same field: that destroys your
+#: whole answer."*
+_DUPLICATE_FIELD: str = "duplicate_field"
+
+
+def _claims(
+    response_bytes: bytes,
+) -> tuple[tuple[Mapping[str, object], ...] | None, str | None]:
+    """Every claim in the response, in input order, or the address of the refusal.
 
     SPEC: *"One verdict record per claim."* Site A used to require exactly one and
     call anything else schema-invalid, so a well-formed two-field response became
@@ -117,27 +152,34 @@ def _claims(response_bytes: bytes) -> tuple[Mapping[str, object], ...] | None:
 
     A response with no claims at all is still schema-invalid: there is nothing to
     judge, and silence is what `unknown` is for.
+
+    The JSON parse is `validation.decode_response`, which is the one parser every
+    site runs: it reports the byte the decoder stopped on and repairs exactly one
+    shape, a complete document followed by a single stray closing bracket.
     """
-    try:
-        parsed = json.loads(response_bytes)
-    except (ValueError, TypeError, UnicodeDecodeError):
-        return None
+    parsed, decode_ref = decode_response(response_bytes)
+    if decode_ref is not None:
+        return None, decode_ref
     if not isinstance(parsed, Mapping):
-        return None
+        return None, f"schema:{_NOT_AN_OBJECT}"
     claims = parsed.get("claims")
-    if not isinstance(claims, list) or not claims:
-        return None
-    if any(not isinstance(claim, Mapping) for claim in claims):
-        return None
-    return tuple(claims)
+    if not isinstance(claims, list):
+        return None, f"schema:{_CLAIMS_NOT_A_LIST}"
+    if not claims:
+        return None, f"schema:{_CLAIMS_EMPTY}"
+    for index, claim in enumerate(claims):
+        if not isinstance(claim, Mapping):
+            return None, f"claim-{index}:{_NOT_AN_OBJECT}"
+    return tuple(claims), None
 
 
 def _proposal(
     claim: Mapping[str, object],
     *,
     handles: Mapping[str, str],
-) -> tuple[Proposal, tuple[Citation, ...]] | None:
-    """One claim as P6 sees it, plus the citations with their spans intact.
+) -> tuple[Proposal, tuple[Citation, ...]] | str:
+    """One claim as P6 sees it, plus the citations with their spans intact, or the
+    name of the template rule it broke.
 
     P6's `Proposal` carries bare observation keys. A key alone cannot say whether
     the model quoted what P7 released or invented the quotation, so Site A keeps
@@ -153,7 +195,7 @@ def _proposal(
     if not isinstance(field_key, str) or not field_key:
         # An abstention still names the field it could not fill; a claim with no
         # field is schema-invalid, not an anonymous unknown.
-        return None
+        return _FIELD_MISSING
     unknown = claim.get("unknown")
     if unknown is not None:
         # `"unknown": false` is a claim the model made, not one it declined. The
@@ -161,7 +203,7 @@ def _proposal(
         # the payload and every citation away with it. `validation` already
         # requires the Mapping shape; Site A now agrees with it.
         if not isinstance(unknown, Mapping):
-            return None
+            return _UNKNOWN_NOT_AN_OBJECT
         return Proposal(
             field_key=field_key, value=None, citations=(), unknown=True,
         ), ()
@@ -194,15 +236,15 @@ def _proposal(
         # `schema_invalid` verdict for the whole response, which is the refusal
         # this seam already has for a model that did not answer in the shape it was
         # given.
-        return None
+        return _VALUE_MISSING
     raw = claim.get("citations")
     if not isinstance(raw, list):
-        return None
+        return _CITATIONS_NOT_A_LIST
     citations: list[Citation] = []
     for item in raw:
         parsed = parse_citation(item)
         if parsed is None or not parsed.evidence_ref:
-            return None
+            return _CITATION_MALFORMED
         citations.append(replace(
             parsed,
             evidence_ref=local_ref(parsed.evidence_ref, handles=handles)))
@@ -239,20 +281,25 @@ def _fact_site(
             release_audit_id=release_audit_id,
         )
 
-    claims = _claims(response_bytes)
+    claims, refusal = _claims(response_bytes)
     if claims is None:
-        return finished((schema_invalid_verdict(dossier),))
+        return finished((schema_invalid_verdict(dossier, refusal),))
     handles = issued_handles(
         (item.evidence_ref for item in dossier.evidence_items), key=handle_key)
     parsed = [_proposal(claim, handles=handles) for claim in claims]
-    if any(item is None for item in parsed):
-        return finished((schema_invalid_verdict(dossier),))
+    for index, item in enumerate(parsed):
+        if isinstance(item, str):
+            return finished((
+                schema_invalid_verdict(dossier, f"claim-{index}:{item}"),))
     fields = [proposal.field_key for proposal, _citations in parsed]
     if len(set(fields)) != len(fields):
         # `claim_ref` is what tells two verdicts apart and Site A's is the field
         # key, so two claims about one field are indistinguishable. P8 does not
         # choose which of the model's two answers it meant.
-        return finished((schema_invalid_verdict(dossier),))
+        repeated = next(
+            name for index, name in enumerate(fields) if name in fields[:index])
+        return finished((schema_invalid_verdict(
+            dossier, f"claims:{_DUPLICATE_FIELD}:{repeated[:40]}"),))
     verdicts = []
     for proposal, citations in parsed:
         verdict = validate_fact_proposal(
