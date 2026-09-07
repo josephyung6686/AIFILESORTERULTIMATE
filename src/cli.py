@@ -208,7 +208,7 @@ from production import (
     bootstrap_p1_p7, corpus_roster, folder_levels_for, group_level_fields_for,
     GROUP_LEVEL_ROLES, load_shipped_catalogue,
     nearest_situations, read_packaged_library_file, schema_for_situation,
-    shipped_situations,
+    shipped_situations, situation_schema_family,
     run_production_corpus,
 )
 from readers.deployment import macos_readers
@@ -7597,6 +7597,79 @@ def _typable(question, option_id: str) -> str:
     return shlex.quote(f"{question.question_id}={option_id}")
 
 
+def _option_lines(question, family: Sequence[str], *,
+                  only_the_ones_that_classify: bool = False,
+                  ) -> tuple[str, ...]:
+    """One `--answer` line per option, with the person's own situation first.
+
+    `104` R-90. A person who typed `--situation academic.coursework` was asked
+    "What kind of material is ECON2010?" and offered `clinical_practice`,
+    `construction_property` and `retail_hospitality` among seven equal readings.
+    The tie is real -- the file's own words do support all seven -- and the
+    QUESTION is load-bearing: answering the three of them `academic` moved this
+    corpus from 7 ready to file to 10. What was wrong is the presentation. The
+    person had already said which life these files belong to, on the command
+    line, and the screen asked them to find that answer again in a list of
+    domains they never named.
+
+    So the readings the typed situation's own family carries are printed first,
+    and the rest are FOLDED behind `--explain`, which prints every option this
+    question has ever offered. `situation_schema_family` is where the family
+    comes from and it is the library's own hierarchy, not a rule invented here.
+
+    NOTHING IS REMOVED. The closed vocabulary is the evidence's answer and stays
+    exactly as the record holds it: `--explain <question>` lists all of them, an
+    `--answer` naming a folded reading is accepted as it always was, and a run
+    with no family (every caller that passes none) prints what it printed before.
+    Folding is presentation and it is reversible by one command that is printed
+    beside it.
+
+    `not_mine` and the trailing `skip` are never folded. §14 makes both
+    first-class answers, and an answer a person has to run a second command to
+    find is not first-class.
+
+    `only_the_ones_that_classify` is the file-group caller's (`104` R-92): under
+    "Would go into X, once you say what these are" the point of the line is that
+    it REACHES those files, and neither "it is not about me" nor "skip for now"
+    says what the material is. The question block below prints both, so nothing
+    is hidden by leaving them out of a sentence about reaching.
+    """
+    inside, outside, plain = [], [], []
+    for option in question.options:
+        schema = option.activates_schema
+        if schema is None:
+            plain.append(option)
+        elif schema in family:
+            inside.append(option)
+        else:
+            outside.append(option)
+    # Folding needs somewhere to fold TO and something worth folding. With no
+    # option inside the family the situation says nothing about this question,
+    # and hiding readings behind a command would be the screen keeping evidence
+    # back for no gain; with one option outside it, the fold line costs a line
+    # and saves a line and loses an option.
+    folding = bool(inside) and len(outside) > 1
+    shown = inside + ([] if folding else outside)
+    lines = [f"      --answer {_typable(question, option.option_id)}"
+             f"   {option.label}" for option in shown]
+    if folding:
+        # NEITHER "this file's" NOR "these files'". The question above it says
+        # "4 files mention ECON2010, and their own words support 7 readings" and
+        # the same sentence is printed under a group of one; a possessive here
+        # contradicts one of the two every time it is printed.
+        lines.append(_wrapped(
+            f"...and {len(outside)} other readings this run also found support "
+            f"for, which are not the kind of material you named. They are still "
+            f"offered and this lists every one of them:", indent="    "))
+        lines.append(f"      --explain {shlex.quote(question.question_id)}")
+    if only_the_ones_that_classify:
+        return tuple(lines)
+    lines.extend(f"      --answer {_typable(question, option.option_id)}"
+                 f"   {option.label}" for option in plain)
+    lines.append(f"      --answer {_typable(question, 'skip')}   Skip for now")
+    return tuple(lines)
+
+
 def _review_note(items: Sequence, areas: Sequence[str]) -> tuple[str, ...]:
     """Why these sets are being held, and what a person can type about each one.
 
@@ -7780,6 +7853,7 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
            locked: Mapping[str, str] = MappingProxyType({}),
            crossing: Mapping[str, str] = MappingProxyType({}),
            duplicates: Mapping[str, tuple[str, ...]] = MappingProxyType({}),
+           reading_family: Sequence[str] = (),
            not_carried: Sequence = ()) -> tuple[str, ...]:
     """The run, in the order a person would ask about it.
 
@@ -7811,6 +7885,12 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
     here, because this function takes a finished run and a naming table and holds
     no connection -- and giving it one so it could ask a second part a question
     would make the report a place where new facts are discovered.
+
+    `reading_family` is `104` R-90's, and arrives the same way: the domains the
+    situation the person TYPED belongs among, read from the template library by
+    the caller. It orders and folds what a reading question shows and removes
+    nothing -- `_option_lines` says how, and an empty one prints what this
+    function printed before it existed.
     """
     out = out if out is not None else sys.stdout
     tree = result.tree.tree
@@ -8189,11 +8269,8 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         def ask(question) -> None:
             print(f"\n  {question.prompt}", file=out)
             print(_wrapped(question.evidence_context, indent="    "), file=out)
-            for option in question.options:
-                print(f"      --answer {_typable(question, option.option_id)}"
-                      f"   {option.label}", file=out)
-            print(f"      --answer {_typable(question, 'skip')}"
-                  f"   Skip for now", file=out)
+            for line in _option_lines(question, reading_family):
+                print(line, file=out)
             print(_wrapped(question.unlocks, indent="    "), file=out)
             print(_wrapped(question.will_not_do, indent="    "), file=out)
 
@@ -9198,6 +9275,15 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                    # `104` R-K, read here and passed IN like the rest.
                    duplicates=duplicate_families(
                        conn, result.p1_p7.scan_run_id),
+                   # `104` R-90. WHAT THE PERSON TYPED, asked of the library that
+                   # owns the answer -- and read HERE, from `args.situation`,
+                   # rather than off the run, because it is a fact about the
+                   # command and not about the corpus. The run has already
+                   # validated the situation against this same catalogue, so
+                   # nothing here can refuse for the first time.
+                   reading_family=situation_schema_family(
+                       load_shipped_catalogue(read_packaged_library_file),
+                       args.situation),
                    # A §7.6 set answer belongs to the plan version it was given
                    # in, and every run mints a new one, so an answer given
                    # yesterday is not applied today. That is
