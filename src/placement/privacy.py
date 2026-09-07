@@ -30,9 +30,12 @@ a deterministic rule honestly cannot decide -- and raising here meant ONE such f
 refused an entire corpus. A person with ten thousand files and one ambiguous scan
 got a traceback where a plan with one file marked for review was the correct
 answer. So the file is carried through as what it is: `unreadable_unclassified`,
-never eligible for a model, and `blocked_pending_user` rather than `review_required`
--- a reviewer can confirm a decision that merely needs confirming and cannot confirm
-one whose subject nothing has classified.
+never eligible for a CLOUD model, and `blocked_pending_user` rather than
+`review_required` -- a reviewer can confirm a decision that merely needs confirming
+and cannot confirm one whose subject nothing has classified. Since `104` R-121 a
+LOCAL model MAY be asked about it, which is the owner's answer to Open question 5
+and changes nothing about the sentence above: what the model says is still not a
+classification, and the review policy still reads `blocked_pending_user`.
 
 **Unclassified is not protected, and the two never collapse.** `protected` is P7's
 FLAG and an absent record carries none, so it stays False. A passport is material
@@ -73,7 +76,9 @@ import sqlite3
 
 from privacy.classification import UNREADABLE_UNCLASSIFIED, resolve_class
 from privacy.classification_store import ClassificationStore
-from privacy.denial import mode_forbids, unclassified_denies
+from privacy.denial import (
+    UNCLASSIFIED_PERMITS_LOCAL, mode_forbids, unclassified_denies,
+)
 from privacy.moves import may_move_automatically
 from privacy.policy import current_policy
 from privacy.release import LOCALITIES
@@ -97,15 +102,17 @@ CLOUD: str = "cloud"
 LOCAL: str = "local"
 assert CLOUD in LOCALITIES and LOCAL in LOCALITIES
 
-#: P7 SPEC Open question 5 -- may an unclassified file reach a LOCAL model? --
-#: as P11 answers it. `unclassified_denies` has no default for this on purpose
-#: ("Unanswered, so the caller answers it and P7 names no winner"), and P11's
-#: answer is the strict reading: no. It is pinned here as ONE name so the
-#: answer cannot drift between the state and the predicate, and it is not the
-#: deployment's: `cli.UNCLASSIFIED_PERMITS_LOCAL` answers the same question
-#: `True` for the gate and the fact route, which is `104` R-02's shape again
-#: and is the owner's to reconcile, not this module's to flip.
-LOCAL_CALLS_ON_UNCLASSIFIED: bool = False
+# P7 SPEC Open question 5 -- may an unclassified file reach a LOCAL model? -- IS
+# NOT ANSWERED IN THIS MODULE. P11 used to pin its own `False` here while
+# `cli.py` pinned `True`, so the 86 unclassified files of the owner's local run
+# were blocked at `may_assemble_dossier` before `Gate.release` was ever asked and
+# the two names disagreed about one question (`104` R-121, R-02's shape again).
+# The owner ruled it one answer under one name (`104` §15.3): an unclassified
+# file MAY reach a LOCAL model and never a cloud one. That name is
+# `privacy.denial.UNCLASSIFIED_PERMITS_LOCAL`, imported above, and P11 reads it
+# through P7's own predicate exactly as it read its own pin -- so P11 still
+# derives nothing here, it just asks the one authority instead of two.
+
 
 class PolicyRequired(RuntimeError):
     """No P7 policy in force for this plan version. Never assumed."""
@@ -140,10 +147,12 @@ def privacy_state_for(conn: sqlite3.Connection, *, file_id: str,
     # given a dossier is `may_assemble_dossier`'s question, asked with the
     # target in hand, and it needs to know WHICH of the three fired: the mode
     # forbids only the cloud, the flag binds every model, and the unclassified
-    # case is Open question 5 (`LOCAL_CALLS_ON_UNCLASSIFIED` above).
+    # case is Open question 5, whose one answer is P7's own
+    # `UNCLASSIFIED_PERMITS_LOCAL` (`104` R-121).
     reasons: list[str] = []
     if handling_class == UNREADABLE_UNCLASSIFIED and unclassified_denies(
-            locality=CLOUD, local_calls_on_unclassified=LOCAL_CALLS_ON_UNCLASSIFIED):
+            locality=CLOUD,
+            local_calls_on_unclassified=UNCLASSIFIED_PERMITS_LOCAL):
         reasons.append(UNCLASSIFIED_REASON)
     if mode_forbids(policy.operation_mode, CLOUD):
         reasons.append(MODE_FORBIDS_CLOUD)
@@ -183,8 +192,9 @@ def may_assemble_dossier(privacy_state: PrivacyState, *,
     * a cloud target -- no. Every reason for `local_only` forbids the cloud;
     * a LOCAL target -- yes only when every reason permits it. The protected
       flag never does: the standing rule is "read on this device and shown to no
-      model". An unclassified file is Open question 5, answered by
-      `LOCAL_CALLS_ON_UNCLASSIFIED` through P7's own predicate. The mode alone
+      model". An unclassified file is Open question 5, and since `104` R-121 its
+      one answer is P7's `UNCLASSIFIED_PERMITS_LOCAL`, read through P7's own
+      predicate: a local model may be asked. The mode alone
       always does: `mode_forbids` refuses "the target's locality, never the
       call", and §8.4 says a local model "may run" under both local-only modes.
     * a `local_only` state carrying NO reason -- no, for every target. That is
@@ -208,7 +218,8 @@ def may_assemble_dossier(privacy_state: PrivacyState, *,
     if PROTECTED_REASON in reasons:
         return False
     if UNCLASSIFIED_REASON in reasons and unclassified_denies(
-            locality=LOCAL, local_calls_on_unclassified=LOCAL_CALLS_ON_UNCLASSIFIED):
+            locality=LOCAL,
+            local_calls_on_unclassified=UNCLASSIFIED_PERMITS_LOCAL):
         return False
     return True
 

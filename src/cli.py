@@ -157,7 +157,7 @@ from model_facts import (
 )
 from privacy.classification import UNREADABLE_UNCLASSIFIED, resolve_class
 from privacy.classification_store import ClassificationStore
-from privacy.denial import unclassified_denies
+from privacy.denial import UNCLASSIFIED_PERMITS_LOCAL, unclassified_denies
 from privacy.gate import Gate
 from privacy.defaults import LOCAL_FIRST_MODES
 from privacy.display import display_policy
@@ -381,18 +381,18 @@ GROUPING_LIMITS = GroupingLimits(
 #: `offline`, so a file that needed a judgement reported "§8.4 did not clear this
 #: file for a model call" -- a sentence a person reads as a fact about their own
 #: file when it is a fact about this line. `model_route` below says which it is.
-#: §8.4's Open question 5, answered once for this deployment and read by BOTH the
-#: gate and the route. It was a literal at the `Gate(...)` call and a `True` the
-#: route did not consult at all, which is `104` R-02 in one line: two places
-#: deciding whether an unclassified file may reach a model, and only one of them
-#: was asked. One name, so they cannot answer differently.
-#:
-#: ANSWERED `True` ON 2026-09-05 against the premise the run disproved -- "an
-#: unclassified file is one nothing has read successfully". 95 of the owner's 199
-#: files were unclassified and every one had evidence.
-UNCLASSIFIED_PERMITS_LOCAL: bool = True
-
 OPERATION_MODE: str = "offline"
+
+# §8.4's Open question 5 -- may an unclassified file reach a LOCAL model? -- IS NO
+# LONGER ANSWERED HERE. It was a `True` pinned on this line while
+# `placement/privacy.py` pinned `False` on another, which is `104` R-121: one
+# question, two places deciding it, and the second one blocking the 86 unclassified
+# files of the owner's local run before the gate was ever asked. The owner ruled it
+# one answer under one name (`104` §15.3), and that name is
+# `privacy.denial.UNCLASSIFIED_PERMITS_LOCAL`, imported at the top of this module
+# and read as `cli.UNCLASSIFIED_PERMITS_LOCAL` at both call sites below, by
+# `tools/groundtruth/payload.py`, and by the tests that pin the route and the gate
+# to one answer. Importing it rather than restating it is the whole fix.
 
 #: The mode a person selects by enabling cloud sending, and the choice between
 #: §8.4's two non-local modes is not a detail.
@@ -3389,21 +3389,18 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
             conn, store=ClassificationStore(conn), plan_version=PLAN_VERSION,
             classifier=lambda value, *, context_before=None, context_after=None: None,
             transform=lambda value, *, identifier_class: "[redacted]",
-            # §8.4's Open question 5. ANSWERED `True` ON 2026-09-05, and the
-            # answer it replaces was reasoned from a premise the run disproved:
-            # "an unclassified file is one nothing has read successfully". 95 of
-            # the owner's 199 files were unclassified and every one had evidence.
-            # P7 leaves this to the caller precisely because the design does not
-            # settle it -- `unclassified_denies`' own docstring warns that denying
-            # local calls here "may block exactly the OCR-opaque screenshots §2.7
-            # and §7.8 want a model to interpret" -- and `no_safety_evidence_denies`
-            # answers the sibling question the same way, permitting local
-            # unconditionally. That sibling's own escape hatch read "LOCAL IS
-            # PERMITTED, and that is the half that keeps this from being a coverage
-            # regression wearing a safety fix's name", and no local model existed,
-            # so it became one; the owner narrowed it on 2026-09-07 (`104` §13.2,
-            # `96` §20.1). The answer here is untouched by that: local was permitted
-            # before and is permitted after.
+            # §8.4's Open question 5, and the ONE answer to it (`104` §15.3,
+            # R-121). The value is not restated here: it is
+            # `privacy.denial.UNCLASSIFIED_PERMITS_LOCAL`, the same name P11's
+            # `may_assemble_dossier` reads and the same name the route below is
+            # given, so the gate and the two callers ahead of it cannot answer
+            # differently. It used to be a literal at this call.
+            #
+            # The answer it replaces was reasoned from a premise the run
+            # disproved: "an unclassified file is one nothing has read
+            # successfully". 95 of the owner's 199 files were unclassified and
+            # every one had evidence. `no_safety_evidence_denies` answers the
+            # sibling question the same way, permitting local unconditionally.
             #
             # Nothing leaves the device on this branch: `unclassified_denies`
             # refuses every CLOUD release of an unclassified file unconditionally

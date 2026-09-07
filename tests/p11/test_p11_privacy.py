@@ -226,17 +226,64 @@ def test_protected_material_is_shown_to_no_model_local_included(p11_conn):
     assert may_assemble_dossier(state, target_locality="local") is False
 
 
-def test_an_unclassified_file_stays_off_a_local_model_while_question_5_is_open(
-        p11_conn):
-    from placement import privacy as p11_privacy
+def test_r121_an_unclassified_file_may_be_asked_about_on_this_device(p11_conn):
+    """`104` R-121, and this test used to assert the opposite.
 
-    # The pinned answer, read here so a flip is a red test and not a quiet one.
-    assert p11_privacy.LOCAL_CALLS_ON_UNCLASSIFIED is False
+    It was `test_an_unclassified_file_stays_off_a_local_model_while_question_5_is_
+    open`, which read P11's own `LOCAL_CALLS_ON_UNCLASSIFIED = False` while
+    `cli.py` pinned `True` for the gate and the route -- one question with two
+    answers, which is R-121 (`104` R-02's shape again). The owner ruled it one
+    answer under one name in `104` §15.3: an unclassified file MAY reach a LOCAL
+    model and never a cloud one.
+
+    THE STATE IS UNCHANGED and only the dossier gate moves. `privacy_state_for`
+    asks about the CLOUD, which is forbidden for an unclassified file whatever the
+    answer to question 5, so `UNCLASSIFIED_REASON` is still recorded -- and it has
+    to be, because the record is what `may_assemble_dossier` reads to tell a cloud
+    target from a local one.
+    """
+    from privacy.denial import UNCLASSIFIED_PERMITS_LOCAL
+
+    # The one answer, read here so a flip is a red test and not a quiet one.
+    assert UNCLASSIFIED_PERMITS_LOCAL is True
     _policy(p11_conn, mode="local_model")
     state = _state(p11_conn)
     assert set(state.local_only_reasons) == {v.UNCLASSIFIED_REASON,
                                              v.MODE_FORBIDS_CLOUD}
+    assert may_assemble_dossier(state, target_locality="local") is True
+
+
+def test_r121_the_same_unclassified_file_is_still_refused_a_cloud_target(p11_conn):
+    """The other half of the ruling, and it is not a knob.
+
+    `unclassified_denies` returns True for `locality="cloud"` BEFORE it reads the
+    answer to question 5, so no value of `UNCLASSIFIED_PERMITS_LOCAL` can send an
+    unclassified file over the internet. Asserted under `hybrid`, where the mode
+    itself permits the cloud, so the refusal is the unclassified reason's alone.
+    """
+    _policy(p11_conn, mode="hybrid")
+    state = _state(p11_conn)
+    assert state.local_only_reasons == (v.UNCLASSIFIED_REASON,)
+    assert may_assemble_dossier(state, target_locality="cloud") is False
+    assert may_assemble_dossier(state, target_locality="local") is True
+
+
+def test_r121_protected_material_is_still_shown_to_no_model_after_the_ruling(
+        p11_conn):
+    """The ruling widens ONE reason and the protected flag is not it.
+
+    Asserted beside the widening on purpose: `104` R-121 answers Open question 5,
+    and a protected file is refused by `PROTECTED_REASON`, which
+    `may_assemble_dossier` checks before it ever reaches the unclassified branch.
+    Marked and counted, never opened.
+    """
+    _classify(p11_conn, handling_class="sensitive_personal", protected=True)
+    _policy(p11_conn, mode="local_model")
+    state = _state(p11_conn)
+    assert v.PROTECTED_REASON in state.local_only_reasons
+    assert v.UNCLASSIFIED_REASON not in state.local_only_reasons
     assert may_assemble_dossier(state, target_locality="local") is False
+    assert may_assemble_dossier(state, target_locality="cloud") is False
 
 
 def test_no_target_means_no_dossier_whatever_the_reason(p11_conn):

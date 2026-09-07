@@ -182,14 +182,57 @@ def policy_revoked_for(conn: sqlite3.Connection, policy: Policy, scope: str) -> 
     return False
 
 
+#: P7 SPEC **Open question 5** -- "Does `unreadable_unclassified` permit a LOCAL
+#: model call?" -- ANSWERED BY THE OWNER IN `104` §15.3 (R-121): **an unclassified
+#: file MAY reach a LOCAL model and never a cloud one.** §8.4's own sentence for the
+#: two local-only modes is that only local rules and local models may run, and a
+#: local model sees nothing that leaves the device, so the answer costs the promise
+#: nothing. `unclassified_denies` below still refuses every CLOUD release of an
+#: unclassified file unconditionally, and this name cannot reach that branch.
+#:
+#: **THE POINT OF THE NAME IS THAT THERE IS ONE.** `104` R-121: the tree answered
+#: this question twice. `cli.UNCLASSIFIED_PERMITS_LOCAL` said `True`, documented as
+#: read by both the gate and the fact route "so they cannot answer differently";
+#: `placement.privacy.LOCAL_CALLS_ON_UNCLASSIFIED` said `False`, so P11 blocked the
+#: 86 unclassified files in the owner's local run before the gate was ever asked.
+#: That is `104` R-02's shape a second time -- one question, two places deciding it,
+#: and only one of them asked. The answer now lives here, beside the predicate it
+#: feeds, and every reader imports it: `cli.py` (which hands it to `Gate` and to
+#: `model_route_permitted`) and `placement/privacy.py`. The gate reads it through
+#: its own `unclassified_permits_local` keyword, filled from this name.
+#:
+#: MEASURED, and the premise it replaces was measured false. The refusal reasoned
+#: from "an unclassified file is one nothing has read successfully"; on the owner's
+#: corpus on 2026-09-05, 95 of 199 files carried no classification and EVERY ONE of
+#: them had evidence -- ordinary lecture PDFs, `.py` files, a club logo. The
+#: detector abstaining is a sentence about the detector.
+#:
+#: **`vocabulary.OPEN_QUESTIONS[5]` still carries the SPEC's own text, and that is
+#: not a contradiction.** That mapping is keyed by the SPEC's numbering and quotes
+#: the SPEC's words; P7's SPEC does still ask this. What closed it is a ruling in
+#: `104` §15.3, which is a document and not an implementation, and this constant is
+#: that ruling carried into code -- the same shape `no_safety_evidence_denies` below
+#: already has, where the owner's 2026-09-07 narrowing is written into P7 rather
+#: than into a knob.
+#:
+#: The PARAMETER below keeps no default all the same. A predicate that defaulted to
+#: this answer could be called without naming it, and P7's refusals are written so
+#: that nothing clears them by omission.
+UNCLASSIFIED_PERMITS_LOCAL: bool = True
+
+
 def unclassified_denies(*, locality: str, local_calls_on_unclassified: bool) -> bool:
     """§8.4 makes classification a precondition of escalation.
 
-    `local_calls_on_unclassified` has NO default. Open question 5: "Does
-    `unreadable_unclassified` permit a LOCAL model call? ... Reading escalation
-    strictly denies local calls on unclassified files, which may block exactly the
-    OCR-opaque screenshots §2.7 and §7.8 want a model to interpret." Unanswered, so
-    the caller answers it and P7 names no winner.
+    `local_calls_on_unclassified` has NO default, and the owner's answer to Open
+    question 5 is `UNCLASSIFIED_PERMITS_LOCAL` above (`104` §15.3, R-121): a LOCAL
+    model may be asked about an unclassified file, a cloud one may not. The
+    parameter stays required so a caller must name the answer it is using and this
+    function remains callable with either -- which is what keeps the two halves of
+    the question, cloud and local, separately testable.
+
+    The cloud half is not a knob and never was: `locality == "cloud"` denies before
+    the parameter is read.
     """
     if locality == "cloud":
         return True
