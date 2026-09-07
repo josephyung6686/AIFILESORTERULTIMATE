@@ -321,7 +321,12 @@ def cloud_client(ledger: CallLedger, *, send=None,
                     prompt_bytes=len(kw["prompt"].encode("utf-8")),
                     finish_reason=getattr(
                         (getattr(response, "choices", None) or [None])[0],
-                        "finish_reason", None))
+                        "finish_reason", None),
+                    # The provider's own account of how much of the prompt it
+                    # served from its prefix cache: the stable-prefix lever,
+                    # measured rather than argued. Absent on other providers.
+                    cache_hit_tokens=_usage_extra(usage, "prompt_cache_hit_tokens"),
+                    cache_miss_tokens=_usage_extra(usage, "prompt_cache_miss_tokens"))
         return response
 
     invoke = deepseek_invoke(
@@ -340,10 +345,23 @@ def cloud_client(ledger: CallLedger, *, send=None,
             settings={"temperature": temperature,
                       "max_tokens": MAX_RESPONSE_TOKENS,
                       "response_format": None,
-                      "finish_reason": last["finish_reason"]})
+                      "finish_reason": last["finish_reason"],
+                      "prompt_cache_hit_tokens": last["cache_hit_tokens"],
+                      "prompt_cache_miss_tokens": last["cache_miss_tokens"]})
         return answer, meta
 
     return call
+
+
+def _usage_extra(usage, name: str):
+    """A provider-specific usage field, or None where the SDK did not carry it."""
+    if usage is None:
+        return None
+    value = getattr(usage, name, None)
+    if value is None:
+        extra = getattr(usage, "model_extra", None) or {}
+        value = extra.get(name) if isinstance(extra, dict) else None
+    return int(value) if isinstance(value, (int, float)) else None
 
 
 def target_for(locality: str) -> ModelTarget:

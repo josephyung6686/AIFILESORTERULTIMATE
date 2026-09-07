@@ -15,10 +15,28 @@ _MODULES = {
 }
 
 
-def cases_for(site: str):
+#: Suites a manifest row may name instead of the site's own.
+_NAMED = {
+    "a_readings": "tools.promptbench.suites.suite_a_readings",
+}
+
+
+def cases_for(site: str, suite: str | None = None):
+    if suite is not None:
+        if suite not in _NAMED:
+            raise KeyError(f"no suite named {suite!r}; the names are {sorted(_NAMED)}")
+        return tuple(importlib.import_module(_NAMED[suite]).CASES)
     if site not in _MODULES:
         raise KeyError(f"no suite for {site!r}; the sites are {sorted(_MODULES)}")
     return tuple(importlib.import_module(_MODULES[site]).CASES)
 
 
-__all__ = ["cases_for"]
+def all_cases_for(site: str):
+    """Every case a candidate of this site could have been measured on."""
+    cases = list(cases_for(site))
+    for name in _NAMED:
+        cases.extend(c for c in cases_for(site, name) if c.site == site)
+    return tuple(cases)
+
+
+__all__ = ["all_cases_for", "cases_for"]

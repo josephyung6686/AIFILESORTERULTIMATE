@@ -9,6 +9,8 @@ would from the product, and `dispatch` is given the same key to read them back.
 """
 from __future__ import annotations
 
+import json
+
 import sys
 from pathlib import Path
 
@@ -17,6 +19,7 @@ if str(_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(_ROOT / "src"))
 
 from llm_harness.dossier import canonical_dossier_bytes  # noqa: E402
+from evidence_shape.canonical import canonical_json  # noqa: E402
 from llm_harness.records import (  # noqa: E402
     Conflict, Dossier, EvidenceItem, FolderLevel, PromptDefinition,
     ReleasedEvidence, assemble,
@@ -99,10 +102,71 @@ def dossier_of(case: Case, *, allowed_vocabulary=None,
     )
 
 
-def model_visible_bytes(dossier: Dossier, prompt: PromptDefinition) -> bytes:
-    """Exactly what `transport.issue` would send: template bytes + dossier bytes."""
-    return assemble(prompt, canonical_dossier_bytes(
-        dossier, prompt, handle_key=BENCH_HANDLE_KEY))
+def model_visible_bytes(dossier: Dossier, prompt: PromptDefinition, *,
+                        readings: list | None = None,
+                        layout: str = "canonical") -> bytes:
+    """Exactly what `transport.issue` would send: template bytes + dossier bytes.
+
+    With `readings`, the bench emulates the dossier key R-08 asks for: the
+    product's canonical bytes are parsed, `readings` is added, and the object is
+    re-emitted either in the product's form (`canonical`: `canonical_json`,
+    sorted keys, so `readings` lands between `policy_version` and
+    `reduction_rung`, after the file's own keys) or `frame-first` (the situation
+    frame -- vocabulary, glossary, levels, readings, versions, schema, policy --
+    before the file part). The product writes neither the key nor the second
+    layout today (G18); the `Dossier` the judge validates against is untouched.
+    """
+    raw = canonical_dossier_bytes(dossier, prompt, handle_key=BENCH_HANDLE_KEY)
+    if readings is None and layout == "canonical":
+        return assemble(prompt, raw)
+    body = json.loads(raw.decode("utf-8"))
+    if readings is not None:
+        body["readings"] = list(readings)
+    return assemble(prompt, serialise_dossier(body, layout).encode("utf-8"))
+
+
+#: The keys that are the same on every file of one situation, in the order the
+#: stable-prefix lever wants them, and the keys that belong to the file.
+FRAME_KEYS = ("allowed_vocabulary", "call_site", "field_glossary", "folder_levels",
+              "readings", "max_dossier_tokens", "plan_version", "policy_version",
+              "reduction_rung", "response_schema", "shaping_policy")
+FILE_KEYS = ("subject_ref", "eligibility_reason", "evidence_items",
+             "released_evidence", "conflicts")
+
+
+def serialise_dossier(body: dict, layout: str) -> str:
+    if layout == "canonical":
+        return canonical_json(body)
+    if layout != "frame-first":
+        raise ValueError(f"unknown layout {layout!r}; canonical or frame-first")
+    unknown = set(body) - set(FRAME_KEYS) - set(FILE_KEYS)
+    if unknown:
+        raise ValueError(f"dossier keys with no place in the frame-first layout: {sorted(unknown)}")
+    ordered = {k: body[k] for k in FRAME_KEYS if k in body}
+    ordered.update({k: body[k] for k in FILE_KEYS if k in body})
+    return json.dumps(ordered, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+
+
+RECOGNITION_FILE = _ROOT / "src" / "recognition" / "library" / "recognition.json"
+
+
+def readings_for(rows) -> list[dict]:
+    """The `needs_llm` readings of the named recognition rows, verbatim.
+
+    Transcribed, never authored: every `text` is byte-equal to a string in
+    `recognition.json`, and the row it came from travels with it.
+    """
+    library = json.loads(RECOGNITION_FILE.read_text(encoding="utf-8"))["schemas"]
+    wanted = tuple(rows)
+    out = []
+    for row in wanted:
+        schema = library[row.split(".")[0]]
+        entries = [e for e in schema["needs_llm"] if e["row"] == row]
+        if not entries:
+            raise KeyError(f"no needs_llm entry for row {row!r}")
+        for entry in entries:
+            out.extend({"row": row, "text": text} for text in entry["readings"])
+    return out
 
 
 def resolver_for(case: Case):
@@ -111,6 +175,6 @@ def resolver_for(case: Case):
     return lambda key: values.get(key)
 
 
-__all__ = ["BENCH_HANDLE_KEY", "MAX_DOSSIER_TOKENS", "POLICY_VERSION",
-           "dossier_of", "evidence_items_of", "model_visible_bytes",
-           "released_of", "resolver_for"]
+__all__ = ["BENCH_HANDLE_KEY", "FILE_KEYS", "FRAME_KEYS", "MAX_DOSSIER_TOKENS",
+           "POLICY_VERSION", "dossier_of", "evidence_items_of", "model_visible_bytes",
+           "readings_for", "released_of", "resolver_for", "serialise_dossier"]

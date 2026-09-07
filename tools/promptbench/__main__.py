@@ -36,10 +36,12 @@ from tools.promptbench.cases import check_cases                        # noqa: E
 from tools.promptbench.clients import (                                # noqa: E402
     CallLedger, CloudCapReached, cloud_client, local_client, num_ctx_for,
 )
-from tools.promptbench.dossiers import dossier_of, model_visible_bytes   # noqa: E402
+from tools.promptbench.dossiers import (                                 # noqa: E402
+    dossier_of, model_visible_bytes, readings_for,
+)
 from tools.promptbench.judge import judge, site_dependencies_for         # noqa: E402
 from tools.promptbench.report import write_summary                       # noqa: E402
-from tools.promptbench.suites import cases_for                            # noqa: E402
+from tools.promptbench.suites import all_cases_for, cases_for             # noqa: E402
 
 DEFAULT_LEDGER = _ROOT / "tools" / "promptbench" / "out" / "cloud_ledger.json"
 DEFAULT_CAP = 400
@@ -78,11 +80,6 @@ def run_site(*, site: str, candidate_names: list[str], model_names: list[str],
              out: Path, case_ids: list[str] | None = None, cap: int = DEFAULT_CAP,
              ledger_path: Path = DEFAULT_LEDGER, clients: dict | None = None,
              dry_run: bool = False, redo: bool = False, log=print) -> Path:
-    cases = cases_for(site)
-    check_cases(cases)
-    if case_ids:
-        wanted = set(case_ids)
-        cases = tuple(case for case in cases if case.case_id in wanted)
     catalogue = _catalogue()
     out.mkdir(parents=True, exist_ok=True)
     built_clients = dict(clients or {})
@@ -103,12 +100,22 @@ def run_site(*, site: str, candidate_names: list[str], model_names: list[str],
         prompt = candidate.prompt()
         schema = candidate.response_schema()
         fingerprint = prompt_fingerprint(prompt)
+        cases = cases_for(site, candidate.suite)
+        check_cases(cases)
+        if case_ids:
+            wanted = set(case_ids)
+            cases = tuple(case for case in cases if case.case_id in wanted)
+        readings = (readings_for(candidate.readings_rows)
+                    if candidate.readings_rows else None)
         log(f"[{site}] candidate {name} ({candidate.template_id}) "
-            f"fingerprint {fingerprint[:16]}")
+            f"fingerprint {fingerprint[:16]}"
+            + (f" suite {candidate.suite}" if candidate.suite else "")
+            + (f" readings {len(readings)} layout {candidate.layout}" if readings else ""))
         for case in cases:
             prepared = _prepare(case, candidate, site=site, out=out,
                                 catalogue=catalogue)
-            payload = model_visible_bytes(prepared["dossier"], prompt)
+            payload = model_visible_bytes(prepared["dossier"], prompt,
+                                          readings=readings, layout=candidate.layout)
             if dry_run:
                 log(f"  {case.case_id}: {len(payload)} bytes, local num_ctx "
                     f"{num_ctx_for(len(payload))}, should_abstain={case.should_abstain}"
@@ -127,6 +134,10 @@ def run_site(*, site: str, candidate_names: list[str], model_names: list[str],
                     "glossary_in_force": prepared["glossary"],
                     "request_sha256": hashlib.sha256(payload).hexdigest(),
                     "request_bytes": len(payload),
+                    "readings_count": len(readings) if readings else 0,
+                    "readings_bytes": (len(json.dumps(readings, ensure_ascii=False)
+                                           .encode("utf-8")) if readings else 0),
+                    "layout": candidate.layout,
                     "request": payload.decode("utf-8"),
                     "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 }
@@ -172,7 +183,7 @@ def rejudge_site(*, site: str, out: Path, log=print) -> int:
     a corrected reader or an extended expectation reaches numbers already paid
     for; the request and response bytes are never touched.
     """
-    cases = {case.case_id: case for case in cases_for(site)}
+    cases = {case.case_id: case for case in all_cases_for(site)}
     catalogue = _catalogue()
     prepared_by_candidate: dict[str, dict] = {}
     count = 0
@@ -236,6 +247,7 @@ def main(argv: list[str] | None = None) -> int:
     tables = sub.add_parser("tables", help="the packet's stress-case table for one site")
     tables.add_argument("--site", required=True)
     tables.add_argument("--out", type=Path, required=True)
+    tables.add_argument("--suite", default=None, help="a named suite instead of the site's own")
 
     rejudge = sub.add_parser("rejudge", help="re-run the judge over recorded responses")
     rejudge.add_argument("--site", required=True)
@@ -251,11 +263,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "tables":
         from tools.promptbench.report import stress_tables
-        sys.stdout.write(stress_tables(args.out, cases_for(args.site)))
+        sys.stdout.write(stress_tables(args.out, cases_for(args.site, args.suite)))
         return 0
     if args.command == "dossier":
         candidate = load_candidate(args.site, args.candidate)
-        case = next(c for c in cases_for(args.site) if c.case_id == args.case)
+        case = next(c for c in all_cases_for(args.site) if c.case_id == args.case)
         prepared = _prepare(case, candidate, site=args.site,
                             out=Path("/tmp/promptbench-dossier"),
                             catalogue=_catalogue())
