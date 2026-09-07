@@ -210,10 +210,26 @@ def test_the_wired_set_agrees_with_the_injections_rather_than_with_itself():
             "ratified for it too, or the announcement becomes untrue one step "
             "later.")
     assert cli.C_PLACEMENT not in cli.WIRED_CALL_SITES
+    # B -- INJECTED, AND STILL NOT WIRED, which is the distinction this test now
+    # has to carry. `104` §7 Phase 1 step 6 runs B in observe mode: it builds a
+    # dossier through the real gate, calls the model and records the verdict, and
+    # applies nothing. So its injections are real expressions -- asserting them
+    # `None` would now fail for the right reason and stop the wiring -- while
+    # `WIRED_CALL_SITES` must NOT gain it, because that set is what the screen
+    # promises about where a person's files may be SENT, and B's text is a D2
+    # draft that goes nowhere but this device.
     for name in ("p8_run_call", "p8_authorities"):
-        assert _is_none(grouping.get(name)), f"P9's {name} is no longer None"
-    assert cli.B_GROUP not in cli.WIRED_CALL_SITES
+        assert not _is_none(grouping.get(name)), (
+            f"P9's {name} is None again, so site B records nothing and `104` "
+            f"R-04 is open at that site")
+    assert cli.B_GROUP in cli.OBSERVE_CALL_SITES
+    assert cli.B_GROUP not in cli.WIRED_CALL_SITES, (
+        "observe-only is not wired: adding B here would tell a person their "
+        "files may be sent for grouping, under text nobody ratified")
     assert cli.D_RESIDUAL not in cli.WIRED_CALL_SITES
+
+    # And the two sets stay disjoint at the one place that reads both.
+    assert not (cli.WIRED_CALL_SITES & cli.OBSERVE_CALL_SITES)
 
     # And the derived flag is derived, not written beside the set.
     assert cli.MODEL_CALL_SITES_WIRED is bool(cli.WIRED_CALL_SITES)
