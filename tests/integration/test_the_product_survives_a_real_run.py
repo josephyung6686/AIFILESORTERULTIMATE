@@ -58,15 +58,17 @@ has been reaped names exactly the processes this run left behind and nothing els
 The same reading taken WHILE it runs is what proves the pool was really used: measured
 here, the group peaks at nine -- the run, seven workers and the resource tracker.
 
-**The fixture is sized off `EXTRACTION_POOL_FLOOR`, because below it there is no bug
-to find.** `ProcessPool` performs the first `floor` submissions on the calling thread
-and starts no interpreter at all, so a corpus of a couple of dozen files would exercise
-none of the worker lifecycle these failures live in, exit 0 every time, and prove
-nothing. The corpus is therefore built as `EXTRACTION_POOL_FLOOR` plus
-`FILES_ABOVE_THE_FLOOR` files, and it tracks the constant rather than restating
-it. Nothing is cached in a fresh directory with a fresh database, so every file is
-one submission and crossing the floor is a property of the corpus rather than a
-hope about it.
+**The fixture is sized at `CORPUS_FILES`, and the number has a history.** It used to
+be `cli.EXTRACTION_POOL_FLOOR` plus a margin, because `ProcessPool` performed the
+first `floor` submissions on the calling thread and started no interpreter at all --
+so a corpus of a couple of dozen files exercised none of the worker lifecycle these
+failures live in, exited 0 every time and proved nothing. R-138 removed that floor:
+a reader on the calling thread cannot be given a deadline, so every run now starts
+workers whatever the corpus size. The number is KEPT at the size the crash was
+reproduced at, because what this file needs is the pool running beside a pdfium read
+for long enough for the cyclic collector to trip, and that is a property of how much
+reading happens rather than of how the first submissions are dispatched. Nothing is
+cached in a fresh directory with a fresh database, so every file is one submission.
 
 **The formats are the ones with a native library under them**, because that is where a
 segfault comes from: PDFs through pdfium, images through Apple's Vision, a spreadsheet
@@ -90,7 +92,7 @@ the same document. THE POOL IS THE TRIGGER AND THE CORPUS IS NOT. Verified from 
 other side: all 91 PDFs in the owner's real corpus read clean through the same reader
 in ONE single-threaded process -- no pool, no second thread, no crash. So what a
 fixture has to reproduce is the pool running beside PDFs, which is exactly what
-`EXTRACTION_POOL_FLOOR + FILES_ABOVE_THE_FLOOR` files and four PDFs are for.
+`CORPUS_FILES` files and four PDFs are for.
 
 **And it does not skip.** The deployment is macOS with the `readers` extras; if they
 are missing, `cli.py` fails to import, the run exits non-zero and the first question
@@ -115,7 +117,6 @@ from pathlib import Path
 
 import pytest
 
-from cli import EXTRACTION_POOL_FLOOR
 from extractors.filesystem import EXTRACTOR_NAME as FILESYSTEM_ONLY
 
 _HERE = Path(__file__).resolve()
@@ -132,12 +133,23 @@ LEAKED_SEMAPHORES = "resource_tracker: There appear to be"
 SITUATION = "academic.coursework"
 LABEL = "Coursework"
 
-#: How many files this corpus has ABOVE the floor. Ten, not one: one would make the
-#: guard sit exactly on the boundary, where a single file the scan declines to read
-#: -- a format a machine lacks a library for -- drops the run back below it and the
-#: pool silently never starts. Ten is enough that the run stays over the floor while
-#: a handful of formats fail, and small enough to keep the run at a few seconds.
-FILES_ABOVE_THE_FLOOR = 10
+#: HOW MANY FILES THIS CORPUS HOLDS. Forty-two, which is the thirty-two of the pool
+#: floor R-138 removed plus the ten-file margin that floor was given, and it is kept
+#: rather than recomputed for the reason the module docstring gives: this is the size
+#: the pdfium crash was reproduced at, and shrinking it to the smallest corpus that
+#: now starts a worker -- which is one file -- would leave the pool running beside a
+#: single read, where the cyclic collector never trips.
+CORPUS_FILES = 42
+
+#: HOW MANY FILES MUST HAVE HAD THEIR CONTENT READ for the run not to have been
+#: truncated. It was `EXTRACTION_POOL_FLOOR`, borrowed because "the pool started" and
+#: "the run was not truncated" happened to be the same number under the floor. They
+#: are two different questions -- the first is `SMALLEST_GROUP_THAT_USED_THE_POOL`,
+#: counted in operating-system processes -- so the number is kept at the value it had
+#: and named for the job it actually does. Below `CORPUS_FILES` by the same margin
+#: the floor was given, so a handful of formats a machine lacks a library for do not
+#: turn a healthy run red.
+NOT_TRUNCATED = 32
 
 #: Long enough that a loaded machine is not called a hang, short enough that the
 #: forty-minute stall this file exists to catch is reported the same day. Measured
@@ -259,11 +271,11 @@ def _corpus(root: Path) -> int:
         shaped += 1
 
     # `max`, and not a plain subtraction: the shaped files alone are eighteen, so a
-    # floor lowered below that would ask for a negative number of notes, write none,
-    # and leave this function reporting a count it did not write -- which the run
-    # would then fail on as a truncated scan. The corpus is never smaller than the
-    # formats it exists to exercise.
-    wanted = max(EXTRACTION_POOL_FLOOR + FILES_ABOVE_THE_FLOOR, shaped)
+    # `CORPUS_FILES` lowered below that would ask for a negative number of notes,
+    # write none, and leave this function reporting a count it did not write -- which
+    # the run would then fail on as a truncated scan. The corpus is never smaller
+    # than the formats it exists to exercise.
+    wanted = max(CORPUS_FILES, shaped)
     for i in range(1, wanted - shaped + 1):
         (root / f"PHYS 1401 homework {i}.txt").write_text(
             f"PHYS 1401 homework {i}\nColumbia University, Fall 2024.\n"
@@ -471,17 +483,18 @@ def test_the_run_leaves_no_worker_process_behind(the_run: TheRun) -> None:
     """Forty-seven of them had accumulated on the machine, and the cost is a deadlock.
 
     The precondition is half of this test and is asserted first: no orphans is a
-    trivially true statement about a run that never started a worker, and the
-    corpus is sized to cross `EXTRACTION_POOL_FLOOR` precisely so that it is not.
-    If the group never held more than the run itself, the rest of this file is
-    measuring a serial run and every question in it is decorative.
+    trivially true statement about a run that never started a worker. Since R-138
+    every run starts one -- there is no floor left to fall below -- so what this
+    reading now catches is a scan that read nothing at all. If the group never held
+    more than the run itself, the rest of this file is measuring a serial run and
+    every question in it is decorative.
     """
     assert the_run.peak_group >= SMALLEST_GROUP_THAT_USED_THE_POOL, (
         f"the run's process group never held more than {the_run.peak_group} "
         f"process(es), so no extraction worker was ever started and this file is "
-        f"guarding nothing. The corpus is {the_run.files} files against "
-        f"`EXTRACTION_POOL_FLOOR` = {EXTRACTION_POOL_FLOOR}; if the floor has been "
-        f"raised, or the scan is declining to read these formats, raise the corpus.")
+        f"guarding nothing. The corpus is {the_run.files} files; every one of them "
+        "is a submission and every submission goes to a worker, so either the scan "
+        "declined to read these formats or the pool is no longer being built.")
     assert not the_run.survivors, (
         f"{len(the_run.survivors)} process(es) of this run outlived it: "
         f"{', '.join(the_run.survivors)}. A worker nobody stopped blocks in "
@@ -501,10 +514,10 @@ def test_the_run_actually_read_the_corpus(the_run: TheRun) -> None:
 
     Two readings, because they fail differently. `files` is P3's scan and says the
     corpus was WALKED; `extraction_runs` under a content extractor says it was READ,
-    and `text_units` says something came back. The content count is also the second
-    proof that the pool engaged: nothing is cached in a fresh directory, so each
-    content extraction is one submission, and more of them than the floor means
-    submissions crossed it.
+    and `text_units` says something came back. The content count used to be the
+    second proof that the pool engaged -- more submissions than the floor meant
+    submissions crossed it -- and R-138 took the floor away, so it is now only what
+    it always mainly was: the guard against a truncated run.
     """
     assert the_run.database.exists(), (
         "the run wrote no database at all, having exited "
@@ -517,12 +530,11 @@ def test_the_run_actually_read_the_corpus(the_run: TheRun) -> None:
     read = _counted(the_run.database,
                     "select count(distinct file_id) from extraction_runs "
                     f"where extractor_name != '{FILESYSTEM_ONLY}'")
-    assert read > EXTRACTION_POOL_FLOOR, (
+    assert read > NOT_TRUNCATED, (
         f"only {read} of {the_run.files} files had their content read, which is at "
-        f"or below `EXTRACTION_POOL_FLOOR` ({EXTRACTION_POOL_FLOOR}). Either the run "
-        "was truncated -- 19 of 199 is what the crash looked like -- or so few "
-        "submissions were made that the extraction pool never started, and the rest "
-        "of this file is guarding a serial run.")
+        f"or below `NOT_TRUNCATED` ({NOT_TRUNCATED}). The run was truncated -- 19 of "
+        "199 is what the crash looked like -- or the scan is declining to read most "
+        "of these formats on this machine.")
 
     recovered = _counted(the_run.database, "select count(*) from text_units")
     assert recovered >= the_run.files, (

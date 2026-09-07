@@ -92,11 +92,14 @@ class P1P7Authorities:
     policy_settings: Mapping[str, Any]
     file_entry_body: Callable[[Mapping[str, Any]], Mapping[str, str]]
     p7_component_version: str
-    #: WHERE `extract_initial` runs. `extraction_pool.InlinePool` is this thread and
-    #: is what every run did before the module existed; `ProcessPool` is worker
-    #: processes. It has no default for the reason `classify` has none: a pool
-    #: carries a worker count and a look-ahead, both numbers, and the composition
-    #: root is the only place in this product that picks one. Absent means refuse.
+    #: WHERE `extract_initial` runs. `extraction_pool.ProcessPool` is worker
+    #: processes and is what every deployment builds since R-138, at every worker
+    #: count, because the deadline that stops a wedged reader stops it by killing a
+    #: process; `InlinePool` is this thread and is what every run did before the
+    #: module existed. It has no default for the reason `classify` has none: a pool
+    #: carries a worker count, a look-ahead and a ceiling, all numbers, and the
+    #: composition root is the only place in this product that picks one. Absent
+    #: means refuse.
     pool: Any
     #: §8.5's hand-labelled expected side, carried to `_assemble_bundle` and applied
     #: before the seal. Empty by default: an unlabelled scan captures a bundle with

@@ -151,8 +151,8 @@ def perform(request: ExtractionRequest,
     The two blocks this mirrors live in `orchestrator.run_p1_p7` and this function is
     a transcription of them, deliberately: a second, differently-shaped copy of §2.4's
     failure contract is how the parallel path and the serial path would come to
-    disagree about one corrupt PDF. The inline pool below runs this same function, so
-    the serial default and every worker execute one body.
+    disagree about one corrupt PDF. `InlinePool` below runs this same function, so
+    a pool that reads on the calling thread and every worker execute one body.
     """
     try:
         dispatched = extract_initial(
@@ -203,6 +203,14 @@ class InlinePool:
     exactly the same order. That is why the parallel path and the serial path are one
     loop: the 7,491 tests that already pass drive this class, so the loop's shape is
     verified by all of them rather than by the handful written for a second one.
+
+    **NO DEPLOYMENT REACHES IT SINCE R-138, and that is the point of this note.**
+    `cli.extraction_pool` returned this for `workers == 1`, and a reader that runs on
+    the calling thread cannot be given a deadline -- a Python timeout does not
+    interrupt a C dispatch wait on the thread doing the waiting. So the composition
+    root now builds a `ProcessPool` at every worker count and this class survives as
+    what the suite drives: a pool double with no processes, which is why a test that
+    wants to assert about extraction rather than about concurrency can use it.
     """
     lookahead = 1
 
@@ -219,12 +227,6 @@ class InlinePool:
         return None
 
 
-@dataclass(frozen=True)
-class _Here:
-    """A request the pool decided to run on the calling thread. See `ProcessPool`."""
-    request: ExtractionRequest
-
-
 class ProcessPool:
     """`extract_initial` in worker processes, results taken back in submission order.
 
@@ -235,31 +237,53 @@ class ProcessPool:
     rather than a version's behaviour, and it is what makes the reader closures
     tractable at all -- a fresh interpreter runs `context_factory` and builds its own.
 
-    **Started on the `floor`-th submit, and not on the first.** A spawned worker
-    re-imports the composition root and Apple's Vision framework, which costs about
-    five seconds of CPU EACH, so seven workers cost thirty-five CPU-seconds before one
-    file is read. Measured on the owner's real files, quiet machine, wall seconds:
+    **EVERY REQUEST GOES TO A WORKER, and that is R-138's ruling rather than an
+    oversight.** There was a floor: below the `floor`-th submission a request was
+    performed on the calling thread, exactly as `InlinePool` does, because a spawned
+    worker re-imports the composition root and Apple's Vision framework and small
+    folders are the owner's ORDINARY case. The ceiling below could not reach a
+    request performed there. A Python timeout cannot interrupt a C dispatch wait on
+    its own thread -- that is the whole reason the ceiling kills a PROCESS -- so a
+    file read below the floor ran with no deadline at all, and this module's own
+    history says what that costs: `_watch_the_parent` records a segfault taken on a
+    file read below the floor, and R-138 records a run that hung at 0 % CPU for ten
+    minutes with `EXTRACTION_WORKERS` at seven and a floor of thirty-two, which is to
+    say entirely on the calling thread.
 
-        files    workers=1   workers=7
-            4       1.0         3.4
-           12       2.7         8.2
-           24       5.5         6.7
+    **The alternative was a list, and a list is the thing that silently omits.**
+    Keeping the floor means naming which requests may run here, and on this
+    deployment's wiring that name cannot be written: `.doc` and `.txt` share the
+    source type `text_document`, and `readers/deployment.py` wires the first to
+    AppKit and the second to the standard library. A predicate over the family
+    either leaves the Cocoa reader unbounded or excludes plain text, notes and
+    Markdown -- the light files the floor was measured to win on -- so the floor's
+    own case does not survive its own safety condition. A bound that holds for every
+    reader by construction is worth more than one that holds for the readers
+    somebody remembered.
 
-    Small folders are the owner's ORDINARY case -- one course's material, the loose
-    files at the top of Documents -- so a pool that pays for seven interpreters to
-    read four files is wrong for the product and not merely wasteful. Below the floor
-    every request is performed on the calling thread, exactly as `InlinePool` does;
-    above it the pool is built and everything after goes to a worker.
+    **What it costs, re-measured on 2026-09-07.** The floor's old table timed whole
+    runs; this times the pool alone over synthetic text files, which is the part the
+    floor actually changed. Wall seconds, warm machine, three repeats:
 
-    **The floor counts SUBMISSIONS, not files in the folder.** A ten-thousand-file
-    corpus that is entirely cached submits nothing and stays inline; four fresh PDFs
-    in a folder of ten thousand cached ones also stay inline. What costs money is
-    reading, so what is counted is reads.
+        files    inline    workers=1    workers=7
+            4      0.00      1.2-1.7      1.2-2.2
+           12      0.01      1.4-5.4      2.0-3.6
+           24      0.02      1.2-1.7      1.9-4.1
+
+    It is a per-RUN cost and not a per-file one -- what is bought is the
+    interpreters, and they are started once -- so it does not grow with the corpus,
+    and the folder it is largest against is the smallest. One to four seconds, for a
+    run that cannot hang.
+
+    **A run that reads nothing still starts nothing.** The executor is built on the
+    first submission and `started` says whether it ever was, so a ten-thousand-file
+    corpus that is entirely cached submits nothing and pays none of the above. What
+    costs money is reading, so what starts interpreters is reads.
     """
 
     def __init__(self, *, workers: int,
                  context_factory: Callable[[], ExtractionContext],
-                 lookahead_per_worker: int, floor: int,
+                 lookahead_per_worker: int,
                  seconds_per_extraction: float,
                  now: Callable[[], float] = time.monotonic) -> None:
         if workers < 1:
@@ -281,8 +305,8 @@ class ProcessPool:
         #: and until now nothing could enforce it against a file that consumes the run
         #: by doing nothing at all.
         #:
-        #: NO DEFAULT, for the reason `workers`, `lookahead_per_worker` and `floor`
-        #: each give: it is a number, `cli.py` is the only file that picks one, and a
+        #: NO DEFAULT, for the reason `workers` and `lookahead_per_worker` each
+        #: give: it is a number, `cli.py` is the only file that picks one, and a
         #: pool that defaulted the ceiling at which it kills a worker would be a part
         #: choosing a policy with teeth.
         if seconds_per_extraction <= 0:
@@ -334,20 +358,15 @@ class ProcessPool:
         #: tried alone. See `_rebuild`.
         self._deferred: list[
             tuple[Any, ExtractionRequest, int, tuple[str, ...]]] = []
-        #: How many reads a run must want before seven interpreters are worth
-        #: starting. No default, for `lookahead_per_worker`'s reason: it is a number.
-        if floor < 0:
-            raise ValueError(f"a floor is a count of submissions, not {floor}")
-        self._floor = floor
-        self._submitted = 0
-        #: The caller's own context, built from the same factory the workers use, and
-        #: only when a request is actually going to run here. A run that crosses the
-        #: floor immediately never builds one.
-        self._local: ExtractionContext | None = None
         #: Whether an executor was ever built. NOT `self._pool is not None`, which
         #: `close()` resets: the caller closes the pool on its way out, so after a run
         #: the two are indistinguishable and a test asking the wrong one passes
         #: whether or not seven interpreters were started.
+        #:
+        #: It is still worth asking after R-138 removed the floor, and for the reason
+        #: the floor's last paragraph gave: an executor is built on the first SUBMIT,
+        #: so a corpus that is entirely cached starts no interpreter at all. What
+        #: costs money is reading, and a run that reads nothing pays nothing.
         self.started = False
 
     # -- the pool itself -------------------------------------------------------
@@ -364,13 +383,10 @@ class ProcessPool:
         return self._pool
 
     def submit(self, request: ExtractionRequest) -> Any:
-        self._submitted += 1
-        if self._submitted <= self._floor:
-            # Below the floor. `_Here` is a handle like any other and `result()`
-            # honours it in submission order, so the caller's loop cannot tell which
-            # side of the floor a file fell on -- which is what keeps the serial and
-            # the parallel path one loop rather than two.
-            return _Here(request)
+        # EVERY request, and R-138 is why. A handle this method returned without a
+        # worker behind it was a wait the ceiling in `result()` could not bound, and
+        # a reader wedged inside Apple's frameworks on the calling thread is a run
+        # that never ends. The class docstring holds the measurement.
         return self._submit(request, attempts=0)
 
     def _submit(self, request: ExtractionRequest, *, attempts: int,
@@ -382,10 +398,6 @@ class ProcessPool:
     def result(self, handle: Any) -> ExtractionOutcome:
         from concurrent.futures import TimeoutError as FuturesTimeout
         from concurrent.futures.process import BrokenProcessPool
-        if isinstance(handle, _Here):
-            if self._local is None:
-                self._local = self._factory()
-            return perform(handle.request, self._local)
         #: THE CLOCK STARTS WHEN THE CALLER STARTS WAITING FOR THIS FILE, not when
         #: the request was submitted, and that is a correction with a measurement
         #: behind it. Submitted-at was the first draft and the full suite failed it
@@ -729,9 +741,12 @@ def _watch_the_parent() -> None:
     the pool down properly now, but `close()` is only reached by a run that gets to
     the end of a `try`. A run killed by a signal does not, and neither does one whose
     interpreter is gone: `pdfium` segfaulted the product on a real 199-file corpus
-    (`FPDF_LoadPage` -> `CPDF_ColorSpace::CreateBufAndSetDefaultColor`, on a file read
-    below the floor and therefore on the calling thread), and the workers already
-    spawned for the requests above the floor were left with nobody to stop them.
+    (`FPDF_LoadPage` -> `CPDF_ColorSpace::CreateBufAndSetDefaultColor`, on a file
+    read below the floor there was then and therefore on the calling thread), and
+    the workers already spawned were left with nobody to stop them. R-138 has since
+    removed that floor and every read is a worker's, which takes the crash off the
+    calling thread and changes nothing about this: a worker still outlives a parent
+    that dies, and a parent can still die.
 
     What they then do is the part that turns a leak into a deadlock. A worker waiting
     for work blocks in `sem_wait` on the call queue for ever -- every sibling holds
@@ -759,8 +774,8 @@ def _watch_the_parent() -> None:
 
     parent = multiprocessing.parent_process()
     if parent is None:                               # pragma: no cover -- not spawned
-        # Not a spawned child, so there is no parent to outlive. `perform` runs on
-        # the calling thread below the floor and must not install anything.
+        # Not a spawned child, so there is no parent to outlive. `InlinePool` runs
+        # `perform` on the calling thread and must not install anything.
         return
 
     def until_the_parent_is_gone() -> None:

@@ -61,6 +61,8 @@ from facts.schema import create_facts_schema
 from orchestrator import run_p1_p7
 from privacy.classification_store import ClassificationStore
 from privacy.schema import create_privacy_schema
+from review_run.progress import progress_lines
+from review_surface.progress import progress_line
 from scan_agent.corpus_source import FilesystemCorpusSource
 from scan_agent.schema import create_scan_schema
 from scan_agent.selection import record_selection
@@ -309,6 +311,279 @@ def _hanging_then_dying_context() -> ExtractionContext:
         transcription_authorized=lambda: False)
 
 
+# --------------------------------------------------------------------------
+# R-138: the corpus that is far too small for the pool the floor used to allow.
+# --------------------------------------------------------------------------
+
+#: The file whose reader never comes back, IN THE MIDDLE this time. `HANG` above is
+#: first, because the tests it serves are about the window in flight BEHIND a wedge
+#: and results are consumed in submission order. R-138 asks the other question --
+#: does the run go on to the file AFTER the one it gave up on -- and a wedge at the
+#: head cannot answer it, because there is nothing after it that was not already
+#: submitted before it failed.
+MIDDLE_HANG = "02-hang.pdf"
+
+#: Three files and a fourth this deployment's policy will not open. Four is a
+#: EIGHTH of the floor that used to keep a corpus this size on the calling thread,
+#: which is the whole point: this is the size of folder R-138 was measured on.
+VAULT = "04-vault.pdf"
+MIDDLE_CORPUS = ("01-alpha.pdf", MIDDLE_HANG, "03-charlie.pdf")
+
+
+def _read_pdf_hanging_in_the_middle(path: Path) -> PdfDocument:
+    """Wedged for ever on the middle file of three. Module level, for `spawn`."""
+    if Path(path).name == MIDDLE_HANG:
+        # `_read_pdf`'s reason, unchanged: not an exception and not `os._exit`. The
+        # worker stays alive, healthy and useless, which is what a dispatch deadlock
+        # inside Vision looks like from Python.
+        time.sleep(_HANG_SECONDS)
+    else:
+        time.sleep(_READ_SECONDS)
+    return _readable(path)
+
+
+def _vault_policy() -> SafetyPolicy:
+    """This deployment's policy: `04-vault.pdf` is inside a protected container."""
+    return SafetyPolicy(is_protected_container=lambda path: Path(path).name == VAULT,
+                        is_dataless=lambda path: False)
+
+
+def _middle_hang_context() -> ExtractionContext:
+    """What a worker builds for itself. Module level, so `spawn` can import it.
+
+    It carries the VAULT policy and not the open one, so the caller's half of the
+    run and the worker's half are wired by one rule. Nothing here relies on the
+    worker refusing the protected file -- the assertion below is that no request for
+    it is ever made -- but a worker whose policy disagreed with its caller's would be
+    a second answer to the standing rule living in a test fixture.
+    """
+    return ExtractionContext(
+        policy=_vault_policy(), readers=_readers(_read_pdf_hanging_in_the_middle),
+        transcription_authorized=lambda: False)
+
+
+class _RecordsWhatItSubmitted(ProcessPool):
+    """A real pool that also writes down every path it was handed.
+
+    A REAL one, subclassed rather than replaced, because the property under test is
+    about the pool the product actually builds: a double would prove the orchestrator
+    calls `submit` in the right order and prove nothing about the ceiling, the kill
+    or the rebuild that this file's other tests drive.
+    """
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.submitted: list[str] = []
+
+    def submit(self, request):
+        self.submitted.append(str(request.path))
+        return super().submit(request)
+
+
+@pytest.fixture(scope="module")
+def middle_hang_run(tmp_path_factory):
+    """One run of the R-138 corpus, at ONE worker, kept for the questions below.
+
+    Module-scoped, and the cost is the reason: the wedged file spends both of its
+    attempts, so the run pays two ceilings and two worker spawns. Five tests ask
+    different questions of the same run -- did it finish, was the third file read,
+    is the order still the roster's, was the protected file submitted, does the
+    report count the loss -- and running it five times would add two minutes to the
+    suite to produce five identical databases.
+
+    ONE WORKER, which is the count `cli.extraction_pool` used to answer with
+    `InlinePool`: the same thread, no spawn, and therefore no ceiling, because a
+    Python timeout does not interrupt a C dispatch wait on the thread that is doing
+    the waiting. This fixture is that deployment, and every assertion below is what
+    it could not have made.
+    """
+    root = tmp_path_factory.mktemp("r138") / "corpus"
+    root.mkdir()
+    for index, name in enumerate((*MIDDLE_CORPUS, VAULT)):
+        (root / name).write_bytes(b"%PDF-1.4 " + str(index).encode() * 8)
+
+    conn = open_database(tmp_path_factory.mktemp("r138db") / "middle.sqlite")
+    for schema in (create_schema, create_scan_schema, create_evidence_schema,
+                   create_extraction_schema, create_facts_schema,
+                   create_privacy_schema, create_eval_schema):
+        schema(conn)
+
+    pool = _RecordsWhatItSubmitted(
+        workers=1, context_factory=_middle_hang_context, lookahead_per_worker=2,
+        seconds_per_extraction=_CEILING_SECONDS)
+    started = time.monotonic()
+    try:
+        _run(conn, root, pool, policy=_vault_policy())
+    finally:
+        pool.close()
+    yield conn, pool, time.monotonic() - started
+    conn.close()
+
+
+def test_the_run_finishes_at_one_worker_instead_of_waiting_for_the_reader(
+        middle_hang_run):
+    """R-138. The measured defect, at the worker count that had no answer for it.
+
+    r6 of the owner's scoreboard hung one minute into the scan: both run processes
+    at 0 % CPU for ten minutes, no socket open, no database write. Sampled, the
+    thread was inside CoreImage's `CI::Context::recursive_render` waiting on a
+    dispatch group -- Apple's image pipeline under the Vision OCR reader, deadlocked
+    -- and nothing in the product could end that wait, because the file was being
+    read on the calling thread. The person saw a run that never ended and no reason.
+
+    `_HANG_SECONDS` is the reader that never comes back. A run that waits for it has
+    the defect; a run that finishes in two ceilings does not.
+    """
+    _conn, _pool, elapsed = middle_hang_run
+
+    assert elapsed < _HANG_SECONDS, (
+        "the run waited for the wedged reader rather than for the ceiling, which "
+        f"took {elapsed:.1f}s against a hang of {_HANG_SECONDS}s")
+
+
+def test_the_middle_file_is_recorded_unread_and_the_row_says_why(middle_hang_run):
+    """§2.4's rule, at the point R-138 makes it reachable: unexamined, never omitted.
+
+    Coverage is sacred. A file the product could not read is marked and counted,
+    and the vocabulary for it already exists -- P4's `failed` completeness, whose
+    `failure_reason` carries the exception's type and message and nothing else. The
+    reason has to name the CEILING and the READER, because a person reading a row
+    that says only "this failed" has been told nothing they can act on, and an
+    operator has nothing to tune.
+    """
+    conn, _pool, _elapsed = middle_hang_run
+    rows = _runs(conn)
+
+    assert MIDDLE_HANG in rows, "the wedged file got no run row at all"
+    extractor, reason = rows[MIDDLE_HANG]
+    assert reason is not None, f"the wedged file was recorded as a success: {rows}"
+    assert str(_CEILING_SECONDS) in reason, reason
+    assert extractor in reason, reason
+    assert _both_ends(_ceiling_end(_CEILING_SECONDS),
+                      _ceiling_end(_CEILING_SECONDS)) in reason, reason
+
+    completeness = {row[0]: row[1] for row in conn.execute(
+        "SELECT f.filename, r.completeness FROM extraction_runs r "
+        "JOIN files f ON f.file_id = r.file_id "
+        "WHERE r.extractor_name != 'filesystem.record'")}
+    assert completeness[MIDDLE_HANG] == "failed", completeness
+
+
+def test_the_file_after_the_wedged_one_is_still_read(middle_hang_run):
+    """The half a wedge at the HEAD of a corpus cannot prove: the run goes ON.
+
+    `00`:257 is that a single file may not consume the run. The two neighbours
+    bracket the wedge -- one submitted before it, one after it was given up on --
+    and both have to come back with a reading and no failure of their own. A
+    recovery that failed the file behind the wedge would satisfy every assertion
+    about the wedge itself and still lose a file for standing next to it.
+    """
+    conn, _pool, _elapsed = middle_hang_run
+    rows = _runs(conn)
+
+    for name in MIDDLE_CORPUS:
+        if name == MIDDLE_HANG:
+            continue
+        assert name in rows, f"{name} was never read: {rows}"
+        assert rows[name][1] is None, (
+            f"{name} was failed by its neighbour's wedge: {rows[name][1]}")
+
+
+def test_the_rows_are_still_in_submission_order_around_the_timed_out_file(
+        middle_hang_run):
+    """§3.4's caching and §8.5's replay both need a stable order, and a recovery is
+    where it is most at risk.
+
+    The wedged file is killed, its pool is rebuilt, and the window behind it is held
+    back and resubmitted -- so its row is written LAST in real time and must still
+    be written SECOND. `evidence_shape/store.py`'s `_ordered` exists because P4's
+    `rowid` order is a property of the database and reverses when the same runs are
+    written in the opposite sequence, so a recovery that appended by completion
+    would change every cache key in the product.
+    """
+    conn, _pool, _elapsed = middle_hang_run
+
+    written = [row[0] for row in conn.execute(
+        "SELECT f.filename FROM extraction_runs r "
+        "JOIN files f ON f.file_id = r.file_id "
+        "WHERE r.extractor_name != 'filesystem.record' ORDER BY r.rowid")]
+    assert written == list(MIDDLE_CORPUS), (
+        f"the rows are in completion order rather than roster order: {written}")
+
+
+def test_the_protected_path_is_still_never_submitted(middle_hang_run):
+    """THE standing rule, re-asserted where R-138 could have broken it.
+
+    Marked and counted, never opened. It is kept by the CALL ORDER and not by a
+    check: `extract_filesystem`, whose first statement is `admit()`, runs on the
+    calling thread, and a path that refuses there is never submitted to anything.
+    R-138 moved every OTHER path off that thread, so this is the assertion that the
+    gate is still upstream of the move rather than something a worker now performs.
+
+    The list is the pool's own record of what it was handed, so this is a claim
+    about a list and not a claim in a docstring.
+    """
+    conn, pool, _elapsed = middle_hang_run
+
+    assert pool.submitted, "nothing was submitted at all; this proves nothing"
+    assert not [path for path in pool.submitted if Path(path).name == VAULT], (
+        f"a protected path was submitted to a worker: {pool.submitted}")
+    assert sorted(Path(path).name for path in pool.submitted) == \
+        sorted(MIDDLE_CORPUS), (
+            f"the unprotected files were not all read: {pool.submitted}")
+
+    names = {row[0] for row in conn.execute("SELECT filename FROM files")}
+    assert VAULT in names, "the protected file was omitted from the corpus entirely"
+    assert VAULT not in _runs(conn), "a protected file was extracted"
+
+
+def test_the_report_line_counts_the_file_that_timed_out(middle_hang_run):
+    """§8.6's line, which is where the person actually meets the loss.
+
+    A run row nobody prints is a row nobody reads. §8.6 requires the difference
+    between completed work and deferred work on screen so that an unprocessed file
+    is not taken for one that was understood and found unimportant, and P13 refuses
+    to render a line that leaves an indexed file out of every entry.
+
+    IT PRINTS AS `unreadable` AND NOT AS `failed`, and that is P5's published
+    mapping rather than a loss of detail: `review_surface.progress.UNREADABLE_STATES`
+    folds `unreadable` and `failed` into one entry because both mean the product
+    could not obtain usable content, and the PAIR is taken rather than `unreadable`
+    alone precisely so that a `failed` run appears in no entry at all. So the count
+    is asserted alongside the FILE BEHIND IT: a line saying "1 unreadable" is worth
+    nothing here if the one it counts is a neighbour.
+
+    `WORST_FIRST` is imported from `cli` rather than respelled, because the
+    arbitration is the composition root's stated choice under P13's Open question 4
+    and a copy here could agree with a broken one. It is imported INSIDE the test:
+    a spawned worker imports this module to reach `_middle_hang_context`, and a
+    module-level `import cli` would make every worker pay for the composition root
+    and Apple's Vision framework.
+    """
+    from cli import WORST_FIRST
+
+    conn, _pool, _elapsed = middle_hang_run
+    indexed = {row[0]: row[1] for row in conn.execute(
+        "SELECT file_id, content_hash FROM files")}
+    wedged = conn.execute("SELECT file_id FROM files WHERE filename = ?",
+                          (MIDDLE_HANG,)).fetchone()[0]
+
+    asked = dict(scan_ref="scan-1", plan_version="plan_0", rendered_at=CLOCK,
+                 indexed_files=indexed, precedence=WORST_FIRST,
+                 awaiting_model_review=tuple, flagged_by_model_review=tuple,
+                 cause_for=lambda label: None)
+    lines = progress_lines(conn, **asked)
+    entries = {entry.label: entry for entry in progress_line(conn, **asked).entries}
+
+    assert any(line.startswith("  1 unreadable  (blocked)") for line in lines), (
+        f"the file the ceiling stopped is in no line of the report: {lines}")
+    assert entries["unreadable"].file_ids == (wedged,), (
+        "the report's blocked count is not the file the ceiling stopped: "
+        f"{entries['unreadable'].file_ids} against {wedged}")
+    assert any("2 fully extracted" in line for line in lines), (
+        f"the two files that were read are not counted as read: {lines}")
+
+
 @pytest.fixture()
 def live_db(tmp_path: Path):
     conn = open_database(tmp_path / "ceiling.sqlite")
@@ -335,21 +610,26 @@ def corpus(tmp_path: Path) -> Path:
 @pytest.fixture()
 def pool():
     built = ProcessPool(workers=2, context_factory=_hanging_context,
-                        lookahead_per_worker=2, floor=0,
+                        lookahead_per_worker=2,
                         seconds_per_extraction=_CEILING_SECONDS)
     yield built
     built.close()
 
 
-def _run(conn: sqlite3.Connection, root: Path, pool):
+def _open_policy() -> SafetyPolicy:
+    """Nothing on this corpus is protected. What every test here used implicitly."""
+    return SafetyPolicy(is_protected_container=lambda path: False,
+                        is_dataless=lambda path: False)
+
+
+def _run(conn: sqlite3.Connection, root: Path, pool, *, policy=None):
     selection = record_selection(conn, sources=[root], candidate_roots=[],
                                  cross_folder_moves=False, selected_by=None)
     return run_p1_p7(
         conn, selection, source=FilesystemCorpusSource(),
         mime_type_for=lambda path: "application/pdf", scan_state="scanned",
         budget_exhausted=lambda: False, detect_format=lambda path: "pdf",
-        policy=SafetyPolicy(is_protected_container=lambda path: False,
-                            is_dataless=lambda path: False),
+        policy=policy if policy is not None else _open_policy(),
         readers=_readers(), sink=RunWriter(conn, author="P5"),
         now=lambda: CLOCK, context_window=40,
         transcription_authorized=lambda: False, corpus_form="snapshot",
@@ -428,7 +708,7 @@ def test_a_ceiling_measured_from_submit_would_fail_the_queued_neighbours(
     # row this test reads to exist at all.
     clock = _ScriptedClock(jump_after=1, jumps=3)
     pool = ProcessPool(workers=2, context_factory=_hanging_context,
-                       lookahead_per_worker=2, floor=0,
+                       lookahead_per_worker=2,
                        seconds_per_extraction=_FAKE_CEILING_SECONDS, now=clock)
     try:
         handles = [pool.submit(_request(corpus, name)) for name in CORPUS]
@@ -502,7 +782,7 @@ def test_the_pool_is_whole_afterwards_and_reads_the_next_file(tmp_path, corpus):
     # row this test reads to exist at all.
     clock = _ScriptedClock(jump_after=1, jumps=3)
     pool = ProcessPool(workers=2, context_factory=_hanging_context,
-                       lookahead_per_worker=2, floor=0,
+                       lookahead_per_worker=2,
                        seconds_per_extraction=_FAKE_CEILING_SECONDS, now=clock)
     try:
         handles = [pool.submit(_request(corpus, name))
@@ -597,7 +877,7 @@ def test_a_file_the_ceiling_killed_is_read_on_the_retry_in_the_same_run(
     # enough to miss it would fail this test for a true sentence about the load and
     # a false one about the code.
     pool = ProcessPool(workers=2, context_factory=_hanging_once_context,
-                       lookahead_per_worker=2, floor=0,
+                       lookahead_per_worker=2,
                        seconds_per_extraction=_REACHED_CEILING_SECONDS)
     try:
         handles = [pool.submit(_request(corpus, name)) for name in CORPUS]
@@ -631,7 +911,7 @@ def test_the_retry_is_one_and_a_file_that_wedges_twice_is_failed(
     """
     clock = _ScriptedClock(jump_after=1, jumps=3)
     pool = ProcessPool(workers=2, context_factory=_hanging_context,
-                       lookahead_per_worker=2, floor=0,
+                       lookahead_per_worker=2,
                        seconds_per_extraction=_FAKE_CEILING_SECONDS, now=clock)
     try:
         handles = [pool.submit(_request(corpus, name)) for name in CORPUS]
@@ -680,7 +960,7 @@ def test_a_file_that_dies_and_then_wedges_names_both_ends_in_order(
     monkeypatch.setenv(_FIRST_ATTEMPT_MARKER, str(marker))
     clock = _ScriptedClock(jump_after=3, jumps=1)
     pool = ProcessPool(workers=2, context_factory=_dying_then_hanging_context,
-                       lookahead_per_worker=2, floor=0,
+                       lookahead_per_worker=2,
                        seconds_per_extraction=_FAKE_CEILING_SECONDS, now=clock)
     try:
         handles = [pool.submit(_request(corpus, name)) for name in CORPUS]
@@ -724,7 +1004,7 @@ def test_a_file_that_wedges_and_then_dies_names_both_ends_in_order(
     marker = tmp_path / "one-attempt-was-made"
     monkeypatch.setenv(_FIRST_ATTEMPT_MARKER, str(marker))
     pool = ProcessPool(workers=2, context_factory=_hanging_then_dying_context,
-                       lookahead_per_worker=2, floor=0,
+                       lookahead_per_worker=2,
                        seconds_per_extraction=_REACHED_CEILING_SECONDS)
     try:
         handles = [pool.submit(_request(corpus, name)) for name in CORPUS]
@@ -770,14 +1050,14 @@ def test_no_worker_outlives_the_pool(live_db, corpus, pool):
 def test_the_ceiling_has_no_default(live_db):
     """A number, so `cli.py` picks it. The rule this pool already states twice.
 
-    `workers`, `lookahead_per_worker` and `floor` all have no default and the
+    `workers` and `lookahead_per_worker` both have no default and the
     reason is written beside each: a part that defaults its own policy is a part
     choosing one, and a number nobody reviewed is a number nobody owns. A ceiling
     that kills a worker is the last number that should acquire a quiet default.
     """
     with pytest.raises(TypeError):
         ProcessPool(workers=2, context_factory=_hanging_context,
-                    lookahead_per_worker=2, floor=0)
+                    lookahead_per_worker=2)
 
 
 def test_a_ceiling_that_could_not_stop_anything_is_refused():
@@ -785,7 +1065,7 @@ def test_a_ceiling_that_could_not_stop_anything_is_refused():
     for refused in (0, -1.0):
         with pytest.raises(ValueError):
             ProcessPool(workers=2, context_factory=_hanging_context,
-                        lookahead_per_worker=2, floor=0,
+                        lookahead_per_worker=2,
                         seconds_per_extraction=refused)
 
 

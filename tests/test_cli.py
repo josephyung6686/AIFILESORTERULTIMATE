@@ -3867,3 +3867,30 @@ def test_a_locked_container_and_a_protected_folder_are_one_total():
     assert "Application and system folders: 1, never opened" in block
     assert "Password-protected containers: 1, never opened" in block
     assert "Protected material: 3 files" in block
+
+
+def test_the_composition_root_builds_a_process_pool_at_every_worker_count():
+    """`104` R-138. One worker is a PROCESS, and this asks the root directly.
+
+    `extraction_pool` returned `InlinePool` for `workers == 1` -- the same thread,
+    no spawn, and therefore no deadline, because the ceiling that ends a reader
+    wedged inside Apple's frameworks ends it by KILLING A PROCESS and a Python
+    timeout does not interrupt a C dispatch wait on the thread doing the waiting.
+    So a deployment that asked for one worker was a deployment whose runs could
+    hang, and r6 hung for ten minutes with nothing on screen to say why.
+
+    `tests/integration/test_two_runs_of_one_folder_agree.py` proves the same thing
+    behaviourally, through `cli.main` at one worker and at seven; this pins the
+    decision where it is made, so a root that quietly reintroduced a thread-bound
+    pool would fail here rather than in a run somebody was waiting on.
+    """
+    from extraction_pool import ProcessPool
+
+    for workers in (1, cli.EXTRACTION_WORKERS):
+        pool = cli.extraction_pool(workers=workers)
+        try:
+            assert isinstance(pool, ProcessPool), (
+                f"{workers} worker(s) got {type(pool).__name__}, which reads on "
+                "the calling thread where no ceiling can reach a wedged reader")
+        finally:
+            pool.close()

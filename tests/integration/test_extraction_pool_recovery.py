@@ -171,12 +171,13 @@ def pool():
     #: flight ALONGSIDE its neighbours when it kills its worker. One worker with a
     #: look-ahead of one would never put an innocent file at risk, and the innocent
     #: files are the point.
-    #: `floor=0`, so every request really does go to a worker. The floor exists to
-    #: keep small folders off the pool entirely, and a small folder is exactly what
-    #: this corpus is -- with the shipped floor nothing here would ever cross a
-    #: process boundary and the crash this file is about could not happen.
+    #: Every request really does go to a worker, which is R-138's doing: there was
+    #: a floor that kept small folders off the pool entirely, and a small folder is
+    #: exactly what this corpus is, so the crash this file is about could not have
+    #: happened on a shipped run. The pool below needed `floor=0` to reach it;
+    #: now it needs nothing, because there is no other path a request can take.
     built = ProcessPool(workers=2, context_factory=_poisoned_context,
-                        lookahead_per_worker=2, floor=0,
+                        lookahead_per_worker=2,
         seconds_per_extraction=_POOL_CEILING_SECONDS)
     yield built
     built.close()
