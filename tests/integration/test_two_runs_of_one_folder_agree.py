@@ -78,6 +78,20 @@ COURSES = (("PHYS1401", "Columbia", "Dr. Ramirez"),
            ("BUSIB4300", "NYU", "Prof. Lindqvist"))
 PER_COURSE = 14
 
+#: `104` R-105. Two files that share ONE labelled line and nothing else: two
+#: content hashes, one stated value, and a group whose anchor is stated by both.
+#: The homework files above share lines too, but they share five of them and sit
+#: in a folder named after the course, so nothing there separates "the anchor
+#: names each file's own observation" from "the anchor names the folder's". These
+#: two do.
+SHARED_COURSE = "CHEM2200"
+SHARED_LINE_FILES = (
+    ("safety sheet.txt",
+     "Rinse the burette twice before the titration begins."),
+    ("reading list.txt",
+     "Bring the green notebook and read chapter nine first."),
+)
+
 
 def _body(course: str, school: str, instructor: str, index: int) -> str:
     return (
@@ -111,6 +125,16 @@ def corpus(tmp_path_factory) -> Path:
         for index in (1, 2, 3):
             source = root / school / course / f"{course} homework {index:02d}.txt"
             (downloads / f"copy of {source.name}").write_bytes(source.read_bytes())
+
+    # THE SHARED LINE, in its own folder so the path says nothing about the
+    # course. Before `104` R-97 the group these two form carried one observation
+    # key for both of them -- whichever file the corpus loop reached first -- and
+    # the other was recorded as citing a reading of bytes it does not contain.
+    shared = root / "Shared"
+    shared.mkdir()
+    for name, sentence in SHARED_LINE_FILES:
+        (shared / name).write_text(
+            f"Course: {SHARED_COURSE}\n\n{sentence}\n", encoding="utf-8")
 
     written = sum(1 for path in root.rglob("*") if path.is_file())
     assert written > cli.EXTRACTION_POOL_FLOOR, (
@@ -178,6 +202,20 @@ def _normalised(database: Path) -> dict[str, list[str]]:
                 f"<edge:{names.get(row['from_file_id'], row['from_file_id'])}|"
                 f"{names.get(row['to_file_id'], row['to_file_id'])}|"
                 f"{row['edge_type']}|{row['bridge_entity_ref']}>")
+        # And the third: `unresolved_id` is a `uuid4().hex`, so it carries no
+        # dashes and the regex below cannot see it either, and `record_id`
+        # projects it. Every file in the original corpus stated all five fields,
+        # so this table was empty and the hole was invisible; the two files that
+        # share ONE line state one field and attempt four, which is what a real
+        # folder looks like. Replaced by what the row is ABOUT rather than
+        # dropped, so two runs that record a different SET of unresolved fields
+        # still differ here.
+        for row in conn.execute(
+                "SELECT unresolved_id, file_id, field_key, reason, cache_key "
+                "FROM unresolved"):
+            names[row["unresolved_id"]] = (
+                f"<unresolved:{names.get(row['file_id'], row['file_id'])}|"
+                f"{row['field_key']}|{row['reason']}|{row['cache_key']}>")
 
         # One alternation rather than a pass per name: a run of this size mints
         # some hundreds of addresses and every string cell would otherwise be
@@ -215,12 +253,23 @@ def _shared_prefix(left: str, right: str) -> str:
 
 
 @pytest.fixture(scope="module")
-def two_runs(corpus, tmp_path_factory) -> tuple[dict, dict]:
-    """The same command twice, each into a database that did not exist before."""
+def databases(corpus, tmp_path_factory) -> tuple[Path, Path]:
+    """The same command twice, each into a database that did not exist before.
+
+    Separate from `two_runs` so that the property below can read the rows AS
+    WRITTEN -- normalisation replaces every minted id with what it names, which is
+    what makes two runs comparable and what would erase the join a citation is.
+    """
     workspace = tmp_path_factory.mktemp("r78-runs")
     first, second = workspace / "one.sqlite", workspace / "two.sqlite"
     _run(corpus, first)
     _run(corpus, second)
+    return first, second
+
+
+@pytest.fixture(scope="module")
+def two_runs(databases) -> tuple[dict, dict]:
+    first, second = databases
     return _normalised(first), _normalised(second)
 
 
@@ -297,3 +346,88 @@ def test_a_serial_run_reaches_the_same_answer_as_a_parallel_one(
         assert serial[table] == two_runs[0][table], (
             f"the run that read its files on one thread and the run that read "
             f"them in {parallel} processes disagree in `{table}`")
+
+
+# --- `104` R-105 / R-97: a shared line is not a shared citation -------------------
+
+
+def _anchor_facts(database: Path):
+    """Every anchor fact every group recorded, with the run's own file paths."""
+    conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        names = {row["file_id"]: row["current_path"].rsplit("/", 1)[-1]
+                 for row in conn.execute(
+                     "SELECT file_id, current_path FROM files")}
+        owners: dict[str, set[str]] = {}
+        for row in conn.execute(
+                "SELECT observation_key, file_id FROM evidence"):
+            owners.setdefault(row["observation_key"], set()).add(row["file_id"])
+        facts = []
+        for row in conn.execute("SELECT group_id, anchor_facts FROM groups"):
+            for fact in json.loads(row["anchor_facts"] or "[]"):
+                facts.append((row["group_id"], fact))
+        return facts, names, owners
+    finally:
+        conn.close()
+
+
+def test_every_anchor_fact_pairs_each_stating_file_with_its_own_observation(
+        databases):
+    """The cause R-105 named, asserted over every group a real run produced.
+
+    An `AnchorFact` carried ONE observation key and a list of the files that state
+    the value, so every file after the first was recorded as citing the first
+    file's reading. P7 resolves each requested item to the file it belongs to and
+    refuses with `UnresolvableSpan` when that file is outside the request's
+    targets -- which is how a 52-file run died at its first B dossier.
+
+    `file_id in owners` and not `owners == {file_id}`: two byte-identical files
+    genuinely share a key, because `observation_key` is content-addressed and
+    `facts.families` depends on exactly that. The Downloads copies in this corpus
+    are that case, and it stays legal.
+    """
+    facts, names, owners = _anchor_facts(databases[0])
+    assert facts, "no group recorded an anchor fact; this guard would be vacuous"
+
+    for group_id, fact in facts:
+        file_ids = fact["file_ids"]
+        keys = fact["observation_keys"]
+        assert len(keys) == len(file_ids), (group_id, fact["field"])
+        for file_id, key in zip(file_ids, keys):
+            if key is None:
+                continue
+            assert file_id in owners.get(key, set()), (
+                f"{group_id}: {names.get(file_id, file_id)} is recorded as "
+                f"citing an observation of "
+                f"{sorted(names.get(one, one) for one in owners.get(key, set()))}")
+
+
+def test_the_two_files_that_share_a_line_cite_two_different_observations(
+        databases):
+    """And the guard above is not vacuous: this corpus really does produce a
+    multi-file anchor with more than one citation under it."""
+    facts, names, _owners = _anchor_facts(databases[0])
+    wanted = {name for name, _ in SHARED_LINE_FILES}
+
+    shared = [
+        fact for _group_id, fact in facts
+        if fact["value"] == SHARED_COURSE
+        and {names.get(one) for one in fact["file_ids"]} == wanted
+    ]
+    assert shared, (
+        f"the two files sharing `Course: {SHARED_COURSE}` did not form an anchor "
+        "stated by both, so nothing here tests a shared line")
+    for fact in shared:
+        assert len(fact["file_ids"]) == 2
+        assert len(set(fact["observation_keys"])) == 2, (
+            "both files were recorded as citing one observation, which is the "
+            "borrowed citation `104` R-97 is about")
+
+
+def test_the_shared_line_does_not_cost_the_two_runs_their_agreement(two_runs):
+    """R-78's property with R-105's shape present. The per-file keys are content
+    addresses and the order they are written in is `anchoring_files`' order, which
+    is the graph's -- ranked by content, never by a per-run `uuid4`."""
+    first, second = two_runs
+    assert first["groups"] == second["groups"]

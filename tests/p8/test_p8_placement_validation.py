@@ -43,7 +43,9 @@ from llm_harness.vocabulary import (
     INVENTED_INSTITUTION,
     INVENTED_NODE,
     INVENTED_PROJECT,
+    LEAVE_IN_CURRENT_LOCATION,
     LEAVE_IN_PLACE,
+    MARK_REVIEW_LATER,
     MOVE_PLAN_ELIGIBLE,
     NODE_NOT_IN_FROZEN_TREE,
     NO_DESTINATION,
@@ -51,6 +53,7 @@ from llm_harness.vocabulary import (
     REJECT,
     REJECTED,
     RESIDUAL_DESTINATION,
+    RESIDUAL_DESTINATION_REVIEW,
     RETURN_TO_PLACEMENT,
     REVIEW_LATER,
     SCHEMA_INVALID,
@@ -964,6 +967,105 @@ def test_r56_neither_sites_none_option_needs_the_model_to_volunteer_prose():
     d_payload = _json.loads(d_schema)["$defs"]["payload"]["properties"]
     assert ABSTAIN in d_payload["action"]["enum"]
     assert ABSTAIN in RESIDUAL_ACTIONS
+
+
+# --- R-104: "leave it here" is a decision, and it was recorded as a destination ---
+#
+# The twin of the gap above, one action along at the same site. `104` R-104:
+# "`leave_in_current_location` at site D has the unscored fall-through `abstain`
+# had: `_residual_site` returns `None` for it, so a model asking for the file to
+# stay is recorded `accept_direct / residual_destination`."
+#
+# And it is NOT the abstention above. `abstain` is the model saying it cannot
+# tell; `leave_in_current_location` is the model reading the evidence and
+# concluding that where the file already sits is where it belongs. So this is
+# scored as its own ACCEPTED outcome -- the citations still earn it -- and the
+# disposition is the one the offline residual ladder has always used for the same
+# choice (`placement/residual.py`: `LEAVE_IN_CURRENT_LOCATION: LEAVE_IN_PLACE`).
+# Never `residual_destination`, which says the model named a home it did not
+# name, and never `abstain`, which says it declined to answer.
+
+
+def test_r104_leaving_the_file_where_it_is_is_not_a_residual_destination():
+    """The gap itself, and it was a `target` of `None` under a destination.
+
+    `leave_in_current_location` is not a member of `_TARGET_ACTIONS`, so no
+    target was checked, and `_residual_site` returned `None`, so nothing rewrote
+    the acceptance the citations earned. `_residual_disposition` then read
+    `accept_direct` with an action that is not one of the two returns and reached
+    for the only remaining branch it had: `residual_destination`.
+    """
+    verdict = _validate_d(_d_with_action(LEAVE_IN_CURRENT_LOCATION,
+                                         target=None))[0][0]
+
+    assert verdict.disposition == LEAVE_IN_PLACE
+    assert verdict.disposition != RESIDUAL_DESTINATION
+    assert verdict.outcome == ACCEPT_DIRECT
+    assert verdict.outcome != ABSTAIN
+    assert verdict.reasons == ()
+    # Nothing follows a leave: `outcome_for_action` returns `(leave_in_place,
+    # None)` and P12 builds a plan from `place` alone. `True` here would be P8
+    # saying a move plan may follow a decision that moves nothing, which is what
+    # `mark_review_later` and `abstain` beside it already answer `False`.
+    assert verdict.may_propose is False
+
+
+def test_r104_a_leave_that_rests_on_context_still_leaves_and_still_reviews():
+    """The other accepted flavour, which had the other wrong disposition.
+
+    A leave whose citations are `context_supported` was recorded
+    `residual_destination_review` -- a destination again, and this time one
+    queued for a person to confirm. The review is right and stays; the
+    destination is the part that was never named.
+    """
+    pair = next(p for p in SITE_D_OUTCOME_PAIRS if p.name == "context_accept")
+    verdict = _validate_d(_with_payload_fields(
+        pair, action=LEAVE_IN_CURRENT_LOCATION, target=None))[0][0]
+
+    assert verdict.outcome == ACCEPT_CONTEXT_SUPPORTED
+    assert verdict.disposition == LEAVE_IN_PLACE
+    assert verdict.disposition != RESIDUAL_DESTINATION_REVIEW
+    assert verdict.requires_review is True
+
+
+def test_r104_a_leave_is_scored_after_its_citations_like_any_accepted_claim():
+    """Accepted does not mean unchecked, and this is why the fix is a disposition
+    rather than an early return.
+
+    `_residual_site`'s fall-through is what lets the four checks in front of it
+    run: grounding at `check_citations`, the file-record check, the sensitivity
+    policy and the stronger-relationship one. A leave that fails any of them is
+    the rejection that check names, not a leave.
+    """
+    by_name = {pair.name: pair for pair in SITE_D_REASON_PAIRS}
+    for name, expected in (
+        (EVIDENCE_NOT_IN_FILE_RECORD, EVIDENCE_NOT_IN_FILE_RECORD),
+        (SENSITIVITY_RESTRICTION_IGNORED, SENSITIVITY_RESTRICTION_IGNORED),
+        (STRONGER_RELATIONSHIP_OVERLOOKED, STRONGER_RELATIONSHIP_OVERLOOKED),
+    ):
+        leaving = _with_payload_fields(
+            by_name[name], action=LEAVE_IN_CURRENT_LOCATION, target=None)
+        verdict = _validate_d(leaving)[0][0]
+        assert verdict.outcome == REJECT, name
+        assert verdict.reasons == (expected,), name
+        assert verdict.disposition != LEAVE_IN_PLACE, name
+
+
+def test_r104_the_three_answers_that_name_no_home_are_three_answers():
+    """`leave_in_current_location`, `mark_review_later` and `abstain` are the
+    schema's three `no_target_actions`, and after this fix each is recorded as
+    itself. They were one record and two before: a destination, a review and a
+    leave.
+    """
+    scored = {}
+    for action in (LEAVE_IN_CURRENT_LOCATION, MARK_REVIEW_LATER, ABSTAIN):
+        verdict = _validate_d(_d_with_action(action, target=None))[0][0]
+        scored[action] = (verdict.outcome, verdict.disposition)
+
+    assert scored[LEAVE_IN_CURRENT_LOCATION] == (ACCEPT_DIRECT, LEAVE_IN_PLACE)
+    assert scored[MARK_REVIEW_LATER] == (WEAK, REVIEW_LATER)
+    assert scored[ABSTAIN] == (ABSTAIN, LEAVE_IN_PLACE)
+    assert len(set(scored.values())) == 3
 
 
 def test_r15_no_site_c_fixture_puts_a_value_in_the_node_id_vocabulary():

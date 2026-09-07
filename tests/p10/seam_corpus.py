@@ -163,7 +163,12 @@ def _accept_a_group_over(conn, corpus) -> None:
         anchor_facts=(AnchorFact(
             field="school", value="Columbia", file_ids=file_ids,
             reliability_state=VALIDATED,
-            observation_key=corpus.subjects["syllabus"][2]),),
+            observation_key=corpus.subjects["syllabus"][2],
+            # Each stating file's own key (`104` R-97). Three files stating
+            # Columbia and one key made the other two cite the syllabus's
+            # observation.
+            observation_keys=tuple(
+                corpus.subjects[name][2] for name in names)),),
         pre_model_signals={"anchor_count": 1}, anchor_count=1,
         coherence_verdict=COHERENT,
         coherence_citations=(corpus.subjects["syllabus"][2],),

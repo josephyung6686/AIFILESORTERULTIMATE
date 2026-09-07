@@ -182,11 +182,14 @@ def accepted_groups(reader: AcceptedGroupReader, *,
             label=_label(acceptance, group),
             domain=group.group_category,
             members=tuple(members),
-            # `AnchorFact` has no id. Its five fields are (field, value,
-            # file_ids, reliability_state, observation_key) —
-            # `src/grouping/records.py:85-89` — and `observation_key` is P4's
-            # durable citation handle, which is what §6.1's anchor excerpts are
-            # cited by as well. Reading `.fact_id` raises AttributeError.
+            # `AnchorFact` has no id. Its fields are (field, value, file_ids,
+            # reliability_state, observation_key, observation_keys) —
+            # `src/grouping/records.py` — and `observation_key` is P4's durable
+            # citation handle for the fact itself, which is what §6.1's anchor
+            # excerpts are cited by as well. Reading `.fact_id` raises
+            # AttributeError. `observation_keys` is the per-stating-file answer
+            # (`104` R-97) and is a dossier's question, not an accepted group's:
+            # what travels here is one handle per fact.
             anchor_facts=tuple(f.observation_key for f in group.anchor_facts),
             excluded_members=tuple(excluded),
         ))

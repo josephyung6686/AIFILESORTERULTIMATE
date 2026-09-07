@@ -197,7 +197,9 @@ def _accept(conn, files, group_id: str) -> None:
         proposed_basis=f"{field} = {value}",
         anchor_facts=(AnchorFact(
             field=field, value=value, file_ids=file_ids,
-            reliability_state=VALIDATED, observation_key=anchor_key),),
+            reliability_state=VALIDATED, observation_key=anchor_key,
+            # One key per stating file (`104` R-97), each file's own.
+            observation_keys=tuple(files[name][2] for name in names)),),
         pre_model_signals={"anchor_count": 1}, anchor_count=1,
         coherence_verdict=COHERENT, coherence_citations=(anchor_key,),
         group_category=_SCHEMAS[group_id], display_label=_LABELS[group_id],

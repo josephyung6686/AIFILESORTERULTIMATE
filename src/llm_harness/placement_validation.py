@@ -36,6 +36,7 @@ from llm_harness.vocabulary import (
     INVENTED_INSTITUTION,
     INVENTED_NODE,
     INVENTED_PROJECT,
+    LEAVE_IN_CURRENT_LOCATION,
     LEAVE_IN_PLACE,
     MARK_REVIEW_LATER,
     MOVE_PLAN_ELIGIBLE,
@@ -439,17 +440,55 @@ def _residual_site(
 
 
 def _residual_disposition(verdict: P8Verdict, raw: object | None = None) -> P8Verdict:
+    """§7.7's action, in P8's coarser disposition vocabulary.
+
+    `104` R-104. `leave_in_current_location` had `abstain`'s unscored
+    fall-through: it is not a member of `_TARGET_ACTIONS`, so `_residual_site`
+    checked no target and rewrote nothing, and this function -- reading
+    `accept_direct` with an action that is neither of the two returns -- reached
+    for the only branch left and recorded `residual_destination`. A model asking
+    for the file to STAY was recorded as having named a home, with `target` null
+    underneath it.
+
+    **"Leave it here" is a decision, not an abstention, and not a destination.**
+    `abstain` is the model saying it cannot tell; this is the model reading the
+    evidence and concluding that where the file already sits is where it belongs.
+    So the outcome stays the one the citations earned -- `accept_direct`, or
+    `accept_context_supported` with its review -- and only the disposition
+    changes, to the one the offline residual ladder has always used for this same
+    choice (`placement/residual.py`'s `ACTION_OUTCOME`:
+    `LEAVE_IN_CURRENT_LOCATION: LEAVE_IN_PLACE`). The two halves of one answer now
+    read the same in `llm_verdict` and in `placement_decisions`.
+
+    **Scored HERE and not in `_residual_site`**, unlike `abstain` and
+    `mark_review_later`. Those two replace the verdict; this one keeps it, and
+    keeping it means the fall-through has to run so that grounding, the
+    file-record check, the sensitivity policy and the stronger-relationship check
+    all still hold -- a leave is checked like any accepted claim, because it is
+    one.
+
+    `may_propose=False` with it: `outcome_for_action` returns `(leave_in_place,
+    None)` and P12 builds a plan from `place` alone, so `True` would be P8 saying
+    a move plan may follow a decision that moves nothing. It is the answer
+    `mark_review_later` and `abstain` beside it already give.
+    """
     if STRONGER_RELATIONSHIP_OVERLOOKED in verdict.reasons:
         return _rewrite(verdict, disposition=RETURN_TO_PLACEMENT)
     payload = _payload_of(raw) if raw is not None else {}
     action = payload.get("action")
+    leaving = action == LEAVE_IN_CURRENT_LOCATION
+    may_propose = False if leaving else None
     if verdict.outcome == ACCEPT_DIRECT:
         if action in {RETURN_CONFIRMED_GROUP, RETURN_ACCEPTED_PACKET}:
             disposition = RETURN_TO_PLACEMENT
+        elif leaving:
+            disposition = LEAVE_IN_PLACE
         else:
             disposition = RESIDUAL_DESTINATION
     elif verdict.outcome == ACCEPT_CONTEXT_SUPPORTED:
-        disposition = RESIDUAL_DESTINATION_REVIEW
+        # The review survives -- `_rewrite` keeps `requires_review` True for this
+        # outcome by construction -- and only the word "destination" goes.
+        disposition = LEAVE_IN_PLACE if leaving else RESIDUAL_DESTINATION_REVIEW
     elif verdict.outcome == WEAK:
         disposition = REVIEW_LATER if action == MARK_REVIEW_LATER else LEAVE_IN_PLACE
     elif verdict.outcome == REJECT:
@@ -458,7 +497,7 @@ def _residual_disposition(verdict: P8Verdict, raw: object | None = None) -> P8Ve
         disposition = LEAVE_IN_PLACE
     else:
         disposition = verdict.disposition
-    return _rewrite(verdict, disposition=disposition)
+    return _rewrite(verdict, disposition=disposition, may_propose=may_propose)
 
 
 def _finish(result, *, adjust):

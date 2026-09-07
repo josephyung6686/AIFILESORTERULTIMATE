@@ -82,6 +82,28 @@ class AnchorFact:
 
     P10 asks for this under the name `anchor_facts[]`; it was `basis_facts[]` and
     is renamed here, not duplicated.
+
+    **`observation_keys` is one P4 key per stating file, in `file_ids`' order
+    (`104` R-97, R-105).** The record carried ONE key for the whole group -- the
+    first stating file's -- and `file_ids` said the other files stated the value
+    too. Every consumer asking "what does THIS file cite for this fact" got the
+    first file's observation: a quotation from somewhere else. P7's gate resolves
+    each requested item to the file it belongs to and refuses with
+    `UnresolvableSpan` when that file is outside the request's targets, so a
+    dossier built from the borrowed key ended the run -- measured on a 52-file
+    Downloads, at the first B dossier, because two cover letters cited a job
+    posting's `term = Summer2026`.
+
+    An entry is `None` where a stating file genuinely cites no observation of its
+    own: a `user_confirmed` value is the person's answer and has no extractor
+    reading behind it, and P9 does not invent a handle for one. `key_for` returns
+    `None` there, and a caller that needs a citation offers none rather than
+    borrowing.
+
+    `observation_key` stays, and stays the FIRST stating file's: it is the fact's
+    own citation, which is what `naming.coherence_citations` records on the group
+    and what `tree_design.upstream` carries onto an accepted group. It is not a
+    per-file answer and no longer has to serve as one.
     """
 
     field: str
@@ -89,6 +111,7 @@ class AnchorFact:
     file_ids: tuple[str, ...]
     reliability_state: str
     observation_key: str
+    observation_keys: tuple[str | None, ...] = ()
 
     def __post_init__(self) -> None:
         _require(self.field, name="field")
@@ -99,6 +122,45 @@ class AnchorFact:
             raise MalformedGroupRecord(
                 "an anchor fact no file states is not an anchor"
             )
+        keys = _freeze(self, "observation_keys")
+        if not keys:
+            # ONE file needs no second spelling: its own key is the fact's. More
+            # than one and the caller has to say which key belongs to which file
+            # -- NOT filled in from `observation_key`, because that would be the
+            # borrowed citation R-97 is about, written by the record itself.
+            if len(self.file_ids) > 1:
+                raise MalformedGroupRecord(
+                    f"{len(self.file_ids)} files state this anchor and it names "
+                    "one observation; `observation_keys` says which key each "
+                    "file cites, because a file offered another file's "
+                    "observation is offered a quotation it cannot resolve"
+                )
+            object.__setattr__(self, "observation_keys", (self.observation_key,))
+            return
+        if len(keys) != len(self.file_ids):
+            raise MalformedGroupRecord(
+                f"{len(keys)} observation keys for {len(self.file_ids)} stating "
+                "files; the two are read in lockstep and a mismatch would pair a "
+                "file with another file's citation"
+            )
+        for key in keys:
+            if key is not None and not (isinstance(key, str) and key):
+                raise MalformedGroupRecord(
+                    "an observation key is P4's handle or None; an empty string "
+                    "is neither a citation nor an honest absence"
+                )
+
+    def key_for(self, file_id: str) -> str | None:
+        """The key of the observation THIS file made, or None.
+
+        None for a file that states the value and cites nothing of its own, and
+        None for a file that does not state it at all. Both answers mean the same
+        thing to a caller building evidence: this file has nothing to offer here.
+        """
+        for stating, key in zip(self.file_ids, self.observation_keys):
+            if stating == file_id:
+                return key
+        return None
 
 
 @dataclass(frozen=True)

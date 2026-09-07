@@ -48,6 +48,7 @@ from grouping.embeddings import (
 )
 from grouping.graph import (
     LocalEvidenceGraph,
+    anchor_observation_keys,
     anchoring_files,
     build_graph,
     evaluate_stop_rules,
@@ -332,12 +333,22 @@ def group_address(seed: Seed) -> str:
 def _group_for(seed: Seed, *, group_id: str, state: str,
                conflicts: Sequence[object],
                anchor_file_ids: Sequence[str],
+               anchor_keys: Sequence[str | None],
                created_at: str) -> Group:
     # Every file the graph says states this value DIRECTLY, not just the seed.
     # The SPEC's own definition of `anchor_count` is "number of files that
     # INDEPENDENTLY state the basis value", and a one-tuple of the seed's own file
     # made that number 1 for a group of four -- understating to P10 and P11 the
     # very support the group was formed on.
+    #
+    # AND WHAT EACH OF THEM CITES FOR IT (`104` R-97). The file list said four
+    # files state this value and the record named one observation, so the other
+    # three were carried as citing the seed's -- a quotation from another file's
+    # bytes, which P7 refuses to resolve into a request that does not name that
+    # file. `anchor_keys` is `anchoring_files`' own answer read one field along.
+    file_ids = tuple(anchor_file_ids) or (seed.file_id,)
+    keys = (tuple(anchor_keys) if anchor_file_ids
+            else (seed.observation_key,))
     facts = (
         (AnchorFact(
             field=seed.field_key, value=seed.value,
@@ -345,9 +356,10 @@ def _group_for(seed: Seed, *, group_id: str, state: str,
             # which retrieval ranked by content. `sorted()` here sorted the
             # per-run `uuid4` file ids and made this stored list a different
             # permutation every run (`104` R-78).
-            file_ids=tuple(anchor_file_ids) or (seed.file_id,),
+            file_ids=file_ids,
             reliability_state=seed.reliability_state,
-            observation_key=seed.observation_key),)
+            observation_key=seed.observation_key,
+            observation_keys=keys),)
         if seed.field_key and seed.value and seed.observation_key
         and seed.reliability_state
         else ()
@@ -598,6 +610,9 @@ def group_subject(
     group = _group_for(
         seed, group_id=group_id, created_at=created_at, conflicts=conflicts,
         anchor_file_ids=anchoring_files(graph, seed_anchors=seed_anchors),
+        anchor_keys=anchor_observation_keys(
+            graph, seed_anchors=seed_anchors,
+            seed_observation_key=seed.observation_key),
         state=SUPPORTED if meets_support_bar(
             graph, limits=limits, seed_anchors=seed_anchors) else CANDIDATE)
 

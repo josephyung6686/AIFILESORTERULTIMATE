@@ -66,7 +66,12 @@ COLUMBIA_GROUP = Group(
     anchor_facts=(AnchorFact(field="target_school", value="Columbia",
                              file_ids=("f-essay", "f-transcript"),
                              reliability_state=VALIDATED,
-                             observation_key="obs-f-essay"),),
+                             observation_key="obs-f-essay",
+                             # One key per stating file (`104` R-97). The
+                             # transcript states Columbia from its own reading;
+                             # before this it was recorded as citing the essay's.
+                             observation_keys=("obs-f-essay",
+                                              "obs-f-transcript")),),
     pre_model_signals={}, anchor_count=2, coherence_verdict=COHERENT,
     # `college_applications` and not `application`: P9 now refuses a category
     # outside `facts.domains.SCHEMA_IDS`, and P11 reads this fixture as a P9
