@@ -41,7 +41,7 @@ from facts.states import (
     DIRECT, LLM_SUPPORTED, POSSIBLE, REJECTED, STATES, STRENGTH_ORDER,
     USER_CONFIRMED, VALIDATED,
 )
-from facts.supersede import supersede_fact
+from facts.supersede import preferred_fact, supersede_fact
 from facts.unresolved import ATTEMPTED_PRODUCERS, UNRESOLVED_REASONS, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
@@ -719,3 +719,160 @@ def test_the_two_reads_in_this_module_agree(syllabus, p6_conn):
     counted = {value for value, _count in values_with_counts(p6_conn,
                                                              field_key="subject")}
     assert proposable == counted
+
+
+# ------------------------------------------- `104` R-79: one read for the corpus
+
+
+@pytest.fixture()
+def slots(p6_conn, tmp_path):
+    """One field, and every slot shape `preferred_fact` tells apart.
+
+    Eight files, each built through the published writers, so what the corpus-wide
+    read is compared against is a slot the product could actually produce: a plain
+    single row, a supersession chain, a `user_confirmed` row over a `validated`
+    one, two live values with no pointer, two live values with exactly one
+    pointer, a `rejected` row beside a `validated` one, two rows agreeing on one
+    value at different states, and one file carrying facts under TWO content
+    hashes.
+
+    A ninth file states a different field only, so the field's reading has to leave
+    somebody out rather than answering for every file it saw.
+    """
+    made: dict[str, str] = {}
+    counter = [0]
+
+    def fact(file_id, content_hash, value, state, *, field_key="subject"):
+        counter[0] += 1
+        ref = _observe(p6_conn, run_id=f"r-{counter[0]}", file_id=file_id,
+                       content_hash=content_hash, raw=value, label="title")
+        return _fact(p6_conn, file_id=file_id, content_hash=content_hash,
+                     field_key=field_key, value=value, ref=ref, state=state)
+
+    plain, plain_hash = _record(p6_conn, tmp_path, name="plain.pdf",
+                                body=b"PHYS1401 plain")
+    fact(plain, plain_hash, "PHYS1401", VALIDATED)
+    made["plain"] = plain
+
+    chained, chained_hash = _record(p6_conn, tmp_path, name="chained.pdf",
+                                    body=b"a chain of two")
+    old = fact(chained, chained_hash, "CHEM2110", POSSIBLE)
+    new = fact(chained, chained_hash, "CHEM2110 corrected", VALIDATED)
+    supersede_fact(p6_conn, old_fact_id=old, new_fact_id=new,
+                   reason="a later pass read the heading")
+    made["chained"] = chained
+
+    confirmed, confirmed_hash = _record(p6_conn, tmp_path, name="confirmed.pdf",
+                                        body=b"the user answered")
+    fact(confirmed, confirmed_hash, "HIST1102", VALIDATED)
+    fact(confirmed, confirmed_hash, "HIST1102 evening", USER_CONFIRMED)
+    made["confirmed"] = confirmed
+
+    split, split_hash = _record(p6_conn, tmp_path, name="split.pdf",
+                                body=b"two values and no pointer")
+    fact(split, split_hash, "MATH2030", VALIDATED)
+    fact(split, split_hash, "MATH2031", VALIDATED)
+    made["split"] = split
+
+    pointed, pointed_hash = _record(p6_conn, tmp_path, name="pointed.pdf",
+                                    body=b"a pointer among several")
+    retired = fact(pointed, pointed_hash, "BUSIB4300", POSSIBLE)
+    kept = fact(pointed, pointed_hash, "BUSIB4301", VALIDATED)
+    supersede_fact(p6_conn, old_fact_id=retired, new_fact_id=kept,
+                   reason="the second pass read the cover page")
+    fact(pointed, pointed_hash, "BUSIB4302", DIRECT)
+    made["pointed"] = pointed
+
+    refused, refused_hash = _record(p6_conn, tmp_path, name="refused.pdf",
+                                    body=b"one rejected, one validated")
+    fact(refused, refused_hash, "PHYS1402", REJECTED)
+    fact(refused, refused_hash, "PHYS1403", VALIDATED)
+    made["refused"] = refused
+
+    agreeing, agreeing_hash = _record(p6_conn, tmp_path, name="agreeing.pdf",
+                                      body=b"two rows, one value")
+    fact(agreeing, agreeing_hash, "CHEM2111", POSSIBLE)
+    fact(agreeing, agreeing_hash, "CHEM2111", VALIDATED)
+    made["agreeing"] = agreeing
+
+    # The same file rescanned after its bytes changed. `_slot` spans every hash a
+    # file has had, which is what §8.2's "does not know which version produced it"
+    # asks of a reader, and a corpus-wide read that grouped by version instead of
+    # by file would answer this slot from half of it.
+    rescanned, first_hash = _record(p6_conn, tmp_path, name="rescanned.pdf",
+                                    body=b"before the edit")
+    _, second_hash = _record(p6_conn, tmp_path, name="rescanned.pdf",
+                             body=b"after the edit")
+    fact(rescanned, first_hash, "HIST1103", DIRECT)
+    fact(rescanned, second_hash, "HIST1103", VALIDATED)
+    made["rescanned"] = rescanned
+
+    silent, silent_hash = _record(p6_conn, tmp_path, name="silent.pdf",
+                                  body=b"about another field entirely")
+    fact(silent, silent_hash, "Jane Chen", DIRECT, field_key="authored_by")
+    made["silent"] = silent
+    return made
+
+
+def test_the_corpus_wide_preferred_read_answers_what_the_per_file_read_answers(
+        slots, p6_conn):
+    """The fork, pinned, over every slot shape the per-file read distinguishes.
+
+    `preferred_in_field` is a second way of asking what `facts.supersede` already
+    answers, and a second way of asking is how the two come to disagree — this
+    module's own `values_with_counts` records what happened the last time two reads
+    here disagreed about one file. So this compares them file by file rather than
+    trusting that the statement was transcribed correctly, and it compares the ROW,
+    because a caller reads `reliability_state`, `canonical_value` and
+    `display_label` off it.
+    """
+    reading = read_surface.preferred_in_field(p6_conn, field_key="subject")
+    checked = 0
+    for name, file_id in slots.items():
+        expected = preferred_fact(p6_conn, file_id=file_id, field_key="subject")
+        found = reading.get(file_id)
+        assert (found is None) == (expected is None), name
+        if expected is not None:
+            assert found["fact_id"] == expected["fact_id"], name
+            assert found["value_id"] == expected["value_id"], name
+            assert found["canonical_value"] == expected["canonical_value"], name
+            assert found["reliability_state"] == expected["reliability_state"], name
+            assert found["display_label"] == expected["display_label"], name
+        checked += 1
+    assert checked == len(slots)
+
+
+def test_the_shapes_the_comparison_rests_on_are_all_present(slots, p6_conn):
+    """The teeth of the test above. If every fixture file resolved the same way, or
+    resolved to nothing, the comparison would pass for the wrong reason."""
+    answers = {name: preferred_fact(p6_conn, file_id=file_id, field_key="subject")
+               for name, file_id in slots.items()}
+    resolved = {name: row["canonical_value"]
+                for name, row in answers.items() if row is not None}
+    unresolved = {name for name, row in answers.items() if row is None}
+    assert unresolved == {"split", "refused", "silent"}, unresolved
+    assert resolved["chained"] == "CHEM2110 corrected"
+    assert resolved["confirmed"] == "HIST1102 evening"
+    assert resolved["pointed"] == "BUSIB4301"
+    assert resolved["plain"] == "PHYS1401"
+    assert resolved["agreeing"] == "CHEM2111"
+    assert resolved["rescanned"] == "HIST1103"
+
+
+def test_a_field_nobody_states_reads_as_an_empty_mapping(slots, p6_conn):
+    """The empty answer stays empty, which a bulk read can get wrong by returning
+    every row it fetched when its filter matched nothing."""
+    assert read_surface.preferred_in_field(p6_conn, field_key="term") == {}
+
+
+def test_the_corpus_wide_preferred_read_writes_nothing(slots, p6_conn):
+    """A read that could change what it reports is not a read."""
+    def snapshot():
+        return {table: p6_conn.execute(
+            f"SELECT count(*) FROM {table}").fetchone()[0]
+            for table in COUNTED_TABLES}
+
+    before = snapshot()
+    read_surface.preferred_in_field(p6_conn, field_key="subject")
+    read_surface.preferred_in_field(p6_conn, field_key="authored_by")
+    assert snapshot() == before

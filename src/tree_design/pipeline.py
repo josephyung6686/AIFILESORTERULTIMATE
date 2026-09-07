@@ -67,7 +67,7 @@ from tree_design.upstream import (
     AcceptedGroup, GroupMember, ProtectedArea, UpstreamUnavailable,
     accepted_groups, cross_folder_moves, existing_folders,
     file_ids_in_directory, group_level_value, protected_areas,
-    settled_values_in_directory,
+    settled_values_by_directory,
 )
 from tree_design.validation import ValidationReport, run_checks
 from tree_design.vocabulary import (
@@ -693,20 +693,31 @@ def _adopt_parents_first(chosen: tuple[BranchCandidate, ...],
 
 
 def _adopted_expectations(conn: sqlite3.Connection,
-                          candidate: BranchCandidate,
-                          ) -> tuple[ExpectedValue, ...]:
-    """§6.2's expectations for an adopted folder, read off its own contents.
+                          chosen: Sequence[BranchCandidate],
+                          ) -> dict[str, tuple[ExpectedValue, ...]]:
+    """§6.2's expectations for every adopted folder, read off their own contents.
 
     A proposal gets none here on purpose: its expectations are COMPOSED by
     `_project` out of the branch's evidence, and a folder that does not exist yet
     has no contents to be asked about.
+
+    **Every folder at once, before the loop that consumes them.** Asked one branch
+    at a time, this was P10's largest read: each call walked the whole corpus once
+    per destination-eligible field to find out whether the folder's agreement
+    divided anything (`104` R-79). The answers do not depend on each other, and
+    nothing in the branch loop writes a fact, so asking together is the same
+    question with the reads shared. `settled_values_by_directory` carries the
+    reasoning.
     """
-    if candidate.source not in EXISTING_FOLDER_SOURCES:
-        return ()
-    return tuple(
-        ExpectedValue(field=value.field_ref, value=value.canonical_value)
-        for value in settled_values_in_directory(
-            conn, directory_path=candidate.subject_id))
+    folders = [candidate.subject_id for candidate in chosen
+               if candidate.source in EXISTING_FOLDER_SOURCES]
+    return {
+        path: tuple(ExpectedValue(field=value.field_ref,
+                                  value=value.canonical_value)
+                    for value in settled)
+        for path, settled in settled_values_by_directory(
+            conn, directory_paths=folders).items()
+    }
 
 
 def _groups_already_held(conn: sqlite3.Connection, candidate: BranchCandidate, *,
@@ -810,6 +821,9 @@ def design_tree(conn: sqlite3.Connection, *,
                  for folder in folders}
     groups_all = tuple(groups)
     chosen = _adopt_parents_first(chosen)
+    # Read before the loop, because the loop asks it once per branch and the
+    # answer is a property of the corpus rather than of the branch (`104` R-79).
+    expectations = _adopted_expectations(conn, chosen)
 
     version = _open_first_draft(conn, authorities, decisions, moves)
     versions = [version]
@@ -827,7 +841,7 @@ def design_tree(conn: sqlite3.Connection, *,
             version=version, user_edits=edits,
             parent_node_id=_adopted_parent_id(
                 conn, candidate, parent_of=parent_of, version=version),
-            expected_values=_adopted_expectations(conn, candidate),
+            expected_values=expectations.get(candidate.subject_id, ()),
             associated_groups=_groups_already_held(
                 conn, candidate, groups=groups_all))
         versions.append(version)

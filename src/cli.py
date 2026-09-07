@@ -272,7 +272,7 @@ from tree_design.templates import CompositionConflict
 from scan_agent.selection import selection_candidate_roots
 from tree_design.upstream import (
     UpstreamUnavailable, existing_folders, file_ids_in_directory,
-    handling_class_for, protected_areas, settled_values_stated_by_every_file,
+    handling_class_for, protected_areas, settled_values_by_directory,
 )
 from tree_design.schema import create_tree_schema
 #: The one word this command may put in a record's subject position. P10 already
@@ -6068,8 +6068,10 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         THE BAND IS `TREE_LIMITS.tiny_folder_max_files`, ALREADY THIS FILE'S
         ANSWER to how few files is too few to be worth a folder -- §5.9's
         tiny-folder warning and `_depth_disposition` both read the same number,
-        and P10's own floor inside `settled_values_stated_by_every_file` refuses
-        a folder of one for the same reason ("a set of one is always unanimous").
+        and P10's own floor inside `settled_values_by_directory` refuses a folder
+        of one for the same reason ("a set of one is always unanimous"); the
+        coverage half of the question is `stated_by_every_file`, which
+        `settled_values_stated_by_every_file` names and explains in P10.
         One reading of one band, in one place. A number tuned until this corpus
         came out right would be a rule nobody authored.
 
@@ -6088,15 +6090,25 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         about are exactly the ones the tree shows the person as theirs, and no
         separator rule is invented here to find a file's parent.
         """
-        made_for: dict[str, str] = {}
+        # The band first, then ONE read for every folder that clears it. P10's
+        # coverage read walks the corpus once per destination-eligible field, so
+        # asking it per node made the walk once per node as well (`104` R-79);
+        # asked together it is the same question with the corpus read once.
+        # Folders that fail the band are never asked, exactly as before.
+        holding: list[tuple[object, frozenset[str]]] = []
         for node in frozen.nodes:
             if node.existing_path is None:
                 continue
             here = file_ids_in_directory(conn, directory_path=node.existing_path)
             if len(here) <= TREE_LIMITS.tiny_folder_max_files:
                 continue
-            if not settled_values_stated_by_every_file(
-                    conn, directory_path=node.existing_path):
+            holding.append((node, here))
+        made_of = settled_values_by_directory(
+            conn, directory_paths=[node.existing_path for node, _ in holding],
+            stated_by_every_file=True)
+        made_for: dict[str, str] = {}
+        for node, here in holding:
+            if not made_of[node.existing_path]:
                 continue
             for file_id in here:
                 made_for[file_id] = node.node_id
