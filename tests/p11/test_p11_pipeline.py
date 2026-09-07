@@ -156,6 +156,7 @@ def _inputs(conn, **overrides):
         limits=placement_limits(conn),
         partition=None, ask_or_abstain=lambda ids: v.ABSTAIN,
         max_return_cycles=1, gate=None, model_client=None, prompt=None,
+        residual_prompt=None,
         call_dependencies=None, model_call_request=None, chosen_node_of=None,
         residual_action_of=None, sensitivity_policy=None,
         # Nothing to ask about and nothing already answered. Both are
@@ -530,8 +531,13 @@ def _model_inputs(conn, **overrides):
     # `ratified=True`: these tests mean the model path to APPLY. A bare stand-in
     # answers `False` to `prompt.ratified`, which is the observe abstention and
     # the safe default -- a prompt that says nothing is not acted on.
+    # TWO PROMPTS, one per placement site. `_judge_with_model` serves C and D and
+    # reads `prompt_for(call_site)`, so a fixture that supplied only C's would send
+    # every residual call under C's text -- which is the defect the field exists to
+    # remove, re-created in the fixture.
     values = dict(gate=object(), model_client=object(),
                   prompt=SimpleNamespace(ratified=True),
+                  residual_prompt=SimpleNamespace(ratified=True),
                   call_dependencies=_call_dependencies(),
                   model_call_request=_model_call_request,
                   chosen_node_of=lambda _verdict: "n-course-shared",

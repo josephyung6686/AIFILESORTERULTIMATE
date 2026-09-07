@@ -65,8 +65,9 @@ PLACEMENT_STAGE: str = "placement_interpretation"
 #: `model_path_available` exists to catch, and it would be caught after a dossier
 #: had been built.
 MODEL_PATH_FIELDS: tuple[str, ...] = (
-    "gate", "model_client", "prompt", "call_dependencies", "model_call_request",
-    "chosen_node_of", "residual_action_of", "sensitivity_policy",
+    "gate", "model_client", "prompt", "residual_prompt", "call_dependencies",
+    "model_call_request", "chosen_node_of", "residual_action_of",
+    "sensitivity_policy",
 )
 
 
@@ -93,6 +94,19 @@ class PlacementCallAuthorities:
     gate: object
     model_client: object
     prompt: PromptDefinition | None
+    #: SITE D'S OWN TEXT, and `None` is legal on exactly the terms
+    #: `residual_action_of`'s is: a deployment may wire C and not D, and
+    #: `PipelineInputs.prompt_for` refuses at the moment a residual set actually
+    #: asks for a model rather than at composition.
+    #:
+    #: It exists because `_judge_with_model` serves BOTH placement sites and read
+    #: one field, so the composition root had to pick one prompt for two sites and
+    #: picked C's. A residual answer names one of §7.7's eight actions; C's
+    #: response schema has no `action` key, and C's shaping policy describes a
+    #: different question. `llm_harness.run_call` now refuses a request whose call
+    #: site is not the prompt's, so the borrow is a refusal before the gate rather
+    #: than a verdict nobody can account for.
+    residual_prompt: PromptDefinition | None
     model_target: ModelTarget
     evidence_resolver: Callable[[str], object]
     contradicts: Callable[..., bool]
@@ -353,6 +367,7 @@ def model_path_injections(conn: sqlite3.Connection,
         "gate": authorities.gate,
         "model_client": authorities.model_client,
         "prompt": authorities.prompt,
+        "residual_prompt": authorities.residual_prompt,
         "call_dependencies": _call_dependencies(authorities),
         "model_call_request": _model_call_request_builder(
             conn, authorities=authorities, file_id_of=_file_id_of),

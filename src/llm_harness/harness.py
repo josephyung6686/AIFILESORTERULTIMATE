@@ -161,7 +161,7 @@ def _missing_from_deps(deps: object) -> tuple[str, ...]:
 
 
 def _missing_configuration(
-    conn, *, gate, model_client, prompt, validation_dependencies,
+    conn, *, request, gate, model_client, prompt, validation_dependencies,
 ) -> tuple[str, ...]:
     missing: list[str] = []
     if conn is None:
@@ -170,6 +170,24 @@ def _missing_configuration(
         missing.append("gate")
     if not isinstance(prompt, PromptDefinition):
         missing.append("prompt")
+    elif prompt.call_site != request.call_site:
+        # THE PROMPT'S OWN SITE, read for the first time. `PromptDefinition`
+        # carries `call_site` and nothing checked it against the request's.
+        #
+        # The dossier the model is shown carries THIS prompt's `response_schema`
+        # and `shaping_policy` (`dossier._body`), while `validate_response`
+        # dispatches on the REQUEST's site. A prompt built for one site and sent
+        # at another therefore shows the model one contract and measures it
+        # against a different one -- `model_facts.pending_fields_for` names that
+        # exact failure: "a model measured against one list and validated against
+        # another can be rejected for obeying its instructions".
+        #
+        # It was live, not hypothetical: `cli.observe_placement_injections` handed
+        # site D site C's prompt, because `_judge_with_model` served both from one
+        # `PipelineInputs` field. This is the wall at the one place that holds the
+        # request and the prompt together, so any other wiring of the same mistake
+        # is caught here rather than in a verdict nobody can account for.
+        missing.append("prompt_call_site")
     if not isinstance(model_client, ModelClient):
         missing.append("model_client")
     if validation_dependencies is None:
@@ -422,7 +440,7 @@ def run_call(
     mapping whose keys `store.record_call_usage` checks, never a provider's type.
     """
     missing = _missing_configuration(
-        conn, gate=gate, model_client=model_client, prompt=prompt,
+        conn, request=request, gate=gate, model_client=model_client, prompt=prompt,
         validation_dependencies=validation_dependencies,
     )
     if missing:

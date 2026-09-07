@@ -76,7 +76,8 @@ def db(conn):
 
 def _authorities(**overrides) -> PlacementCallAuthorities:
     values = dict(
-        gate=object(), model_client=object(), prompt=None, model_target=TARGET,
+        gate=object(), model_client=object(), prompt=None, residual_prompt=None,
+        model_target=TARGET,
         evidence_resolver=lambda key: "text", contradicts=lambda *a, **k: False,
         scan_budget=ScanBudget(scan_id="scan-1", corpus_file_count=1,
                                max_calls_per_1000_files=1,
@@ -95,17 +96,22 @@ def _authorities(**overrides) -> PlacementCallAuthorities:
 
 
 def test_with_no_ratified_prompt_every_injection_is_absent_together(db):
-    """`model_path_available()` reads all seven as a SET, and this respects that.
+    """`model_path_available()` reads seven of the nine as a SET, and this respects it.
 
     Its own docstring says what a half-injection costs: the missing piece is
     discovered "after a dossier has been assembled". So a deployment with no
     prompt supplies no gate, no client and no dependencies either -- the file
     abstains with a reason, which is what it does today, and nothing is built.
+
+    `residual_prompt` is the ninth and joins the same all-or-nothing set: it is
+    site D's OWN text, and until it existed `_judge_with_model` sent site C's for
+    both -- a residual answer naming one of §7.7's eight actions, judged against a
+    schema with no `action` key in it.
     """
     injections = model_path_injections(db, _authorities(), plan_version=PLAN)
 
     assert set(injections) == {
-        "gate", "model_client", "prompt", "call_dependencies",
+        "gate", "model_client", "prompt", "residual_prompt", "call_dependencies",
         "model_call_request", "chosen_node_of", "residual_action_of",
         "sensitivity_policy",
     }

@@ -502,6 +502,15 @@ class ResidualActionUnavailable(RuntimeError):
     """A Site D verdict arrived with no way to recover §7.7's action."""
 
 
+class ResidualPromptRequired(RuntimeError):
+    """A residual set asked for a model and this deployment wired D no text.
+
+    NEVER site C's. C's response schema has no `action` key and its shaping policy
+    describes a different question, so a residual answer sent under it is rejected
+    for obeying an instruction that was not its own.
+    """
+
+
 class ScanBudgetRequired(RuntimeError):
     """A model call was about to be made with no scan to charge it to.
 
@@ -552,7 +561,14 @@ class PipelineInputs:
     max_return_cycles: int | None
     gate: object
     model_client: object
+    #: SITE C's prompt. `prompt_for` is what reads it, and `residual_prompt` below
+    #: is site D's -- two sites, two texts, two response schemas, two shaping
+    #: policies, and `_judge_with_model` picks by call site.
     prompt: object
+    #: SITE D's prompt, or `None` for a deployment that wired C and not D. Required
+    #: with no default, exactly as `residual_action_of` is: a field gaining one here
+    #: would be P11 answering a question the composition root owns.
+    residual_prompt: object
     call_dependencies: object
     model_call_request: object
     chosen_node_of: object
@@ -707,6 +723,35 @@ class PipelineInputs:
         return None not in (self.gate, self.model_client, self.prompt,
                             self.call_dependencies, self.model_call_request,
                             self.chosen_node_of, self.sensitivity_policy)
+
+    def prompt_for(self, call_site: str) -> object:
+        """The text THIS site is asked under. One field per site, never a shared one.
+
+        `_judge_with_model` assembles the request for both placement sites, and it
+        read `self.prompt` for both -- so a residual call went out under site C's
+        template, C's response schema and C's shaping policy. A D answer names one
+        of §7.7's eight actions and C's schema has no `action` key, so every
+        residual answer was heading for `SCHEMA_INVALID`, rejected for obeying an
+        instruction that was not its own either.
+
+        REFUSES rather than falling back to C's, which is the whole point: a
+        fallback here is the defect with a friendlier face. `run_call` refuses the
+        same mistake from the other side (`_missing_configuration`'s
+        `prompt_call_site`), and two walls around one error is what the model path
+        is owed -- this one names the deployment that has not wired D, that one
+        names any other route to the same request.
+        """
+        if call_site != D_RESIDUAL:
+            return self.prompt
+        if self.residual_prompt is None:
+            raise ResidualPromptRequired(
+                "§7.7's residual call has its own text, its own response schema "
+                "and its own shaping policy, and this deployment supplied none. "
+                "A deployment may wire C and not D -- that is what `None` says -- "
+                "and then a residual set that asks for a model is refused here "
+                "rather than asked under site C's prompt, which is what site C's "
+                "schema would then reject it for.")
+        return self.residual_prompt
 
     def model_decides(self) -> bool:
         """Whether this run's model DECIDES placements, which is R-19's condition.
@@ -1742,11 +1787,15 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
             max_dossier_tokens=inputs.limits.max_dossier_tokens),
         plan_version=inputs.plan_version, evidence_snapshot_id=snapshot,
     )
+    # THIS SITE'S OWN TEXT, and the observe lever reads the same one. Asking under
+    # C's prompt and then checking C's `ratified` for a D call would have been two
+    # wrong answers agreeing with each other.
+    prompt = inputs.prompt_for(call_site)
     return _observed_only(call_placement(
         conn, request, gate=inputs.gate, model_client=inputs.model_client,
-        prompt=inputs.prompt, call_dependencies=dependencies,
+        prompt=prompt, call_dependencies=dependencies,
         observed_at=lambda: observed_at,
-    ), prompt=inputs.prompt)
+    ), prompt=prompt)
 
 
 # --- §6.8 and §6.9: the group plan -------------------------------------------------
