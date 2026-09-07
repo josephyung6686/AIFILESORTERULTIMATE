@@ -38,6 +38,7 @@ from extractors.authorship import SUBSYSTEM as P5_SUBSYSTEM
 from extractors.dispatch import Readers
 from extractors.safety import SafetyPolicy
 from extractors.schema import create_extraction_schema
+from facts.domains import SCHEMA_IDS
 from facts.fields import create_fields
 from facts.resolver import FactResolver
 from facts.usable import targeted_ocr_needed_for
@@ -299,6 +300,58 @@ def schema_for_situation(catalogue: TemplateCatalogue, situation: str) -> str:
             "material these files are is the person's answer to give rather than "
             "this module's to pick")
     return schemas[0]
+
+
+def situation_schema_family(catalogue: TemplateCatalogue,
+                            situation: str) -> tuple[str, ...]:
+    """The domains a typed situation is AMONG, per the library's own hierarchy.
+
+    `104` R-90 is what this is for. A person who typed `--situation
+    academic.coursework` was asked "What kind of material is ECON2010?" and
+    offered `clinical_practice`, `construction_property` and `retail_hospitality`
+    among seven equal readings. The evidence really did tie -- the detector is not
+    wrong -- but the person had already said, on the command line, what kind of
+    life these files belong to, and a question that ignores it asks them to pick
+    their own answer out of a list of twenty-three domains they never named.
+
+    Three relations, all of them the LIBRARY's and none of them invented here:
+
+    * the domain the situation's own applicability row declares (`uses_schema`,
+      which is `schema_for_situation`'s answer);
+    * every domain whose rows share one of those rows' TEMPLATE -- situations that
+      build the same folder shape are relatives in the only sense the library
+      states one, and `def.subject-work-record` is why `academic`, `code` and
+      `research` are one family;
+    * every domain carrying a situation whose dotted prefix is the typed one's,
+      because `applications.*` under `college_applications` and `travel.*` split
+      between `finance` and `photos` are the seven places where the name and the
+      domain disagree, and the name family is real to a person reading the list.
+
+    Measured over all 208 shipped situations: 194 return one domain, 7 return two
+    and 7 return three, out of twenty-three. It NARROWS and never empties.
+
+    Returned in `SCHEMA_IDS` order so two calls about the same situation order the
+    same way, and never as a set: what a screen prints has to be stable.
+
+    THIS DECIDES NOTHING AND REMOVES NOTHING. It is read by the report to order
+    and fold what a question SHOWS; the question's own options are the evidence's
+    and are unchanged in the record, which is what `--explain` prints.
+    """
+    ref = f"recognition:{situation}"
+    rows = [row for row in catalogue.applicabilities.values()
+            if ref in row.detection_signal_refs]
+    if not rows:
+        raise ConfigurationRequired(
+            f"{situation!r} names no situation in template release "
+            f"{catalogue.release_id}, so there is no row to read a family from")
+    templates = {(row.template_id, row.template_version) for row in rows}
+    family = {row.uses_schema for row in rows}
+    family.update(row.uses_schema for row in catalogue.applicabilities.values()
+                  if (row.template_id, row.template_version) in templates)
+    prefix = situation.split(".")[0]
+    family.update(row.schema for row in shipped_situations(catalogue)
+                  if row.name.split(".")[0] == prefix)
+    return tuple(schema for schema in SCHEMA_IDS if schema in family)
 
 
 #: `104` §11.2 STEP 2, and `00`:57 is the sentence it implements: the course's

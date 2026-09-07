@@ -134,7 +134,36 @@ def tied_readings(conn: sqlite3.Connection, *, explain,
     ambiguity, asked once. A person answering the same question four times would
     rightly conclude the product was not listening.
     """
-    by_subject: dict[str, tuple[set[str], set[str], int]] = {}
+    return tuple(question for question, _files
+                 in tied_readings_and_the_files_they_reach(
+                     conn, explain=explain, files=files, subject_of=subject_of))
+
+
+def tied_readings_and_the_files_they_reach(
+        conn: sqlite3.Connection, *, explain,
+        files: Iterable[tuple[str, str]],
+        subject_of: Mapping[str, str],
+) -> tuple[tuple[StructuralQuestion, tuple[str, ...]], ...]:
+    """The same questions, each with the files whose tie it would settle.
+
+    `104` R-92. The report said "Would go into lecture, once you say what these
+    are" over five files and offered no `--answer` that reached any of them: the
+    two whose own words tied were reachable, and three whose words matched nothing
+    were not, and one sentence covered all five. The screen cannot tell them apart
+    without knowing which files each question is FOR, and that is the fact this
+    loop already holds and used to throw away.
+
+    WHICH FILES A READING QUESTION REACHES IS EXACTLY THE FILES IT WAS RAISED
+    FROM, and it must be read here rather than re-derived from the subject alone.
+    A file can carry a subject the question names and still be untouched by any
+    answer to it -- `hw2_starter.py` sat under `CS3134` with no reading of its own
+    -- so "the subject matches" would put the same broken promise back on the
+    screen with a citation.
+
+    The questions are the ones `tied_readings` returns, in the same order, so no
+    caller can be shown a question this does not account for.
+    """
+    by_subject: dict[str, tuple[set[str], set[str], list[str]]] = {}
     for file_id, content_hash in files:
         subject = subject_of.get(file_id)
         if not subject:
@@ -143,24 +172,28 @@ def tied_readings(conn: sqlite3.Connection, *, explain,
         tied = tuple(getattr(outcome, "tied_schema_ids", ()) or ())
         if len(tied) < 2:
             continue
-        schemas, refs, count = by_subject.setdefault(subject, (set(), set(), 0))
+        schemas, refs, reached = by_subject.setdefault(subject,
+                                                       (set(), set(), []))
         schemas.update(tied)
         refs.update(getattr(outcome, "evidence_refs", ()) or ())
-        by_subject[subject] = (schemas, refs, count + 1)
+        if file_id not in reached:
+            reached.append(file_id)
+        by_subject[subject] = (schemas, refs, reached)
 
-    out: list[StructuralQuestion] = []
+    out: list[tuple[StructuralQuestion, tuple[str, ...]]] = []
     for subject in sorted(by_subject):
-        schemas, refs, count = by_subject[subject]
+        schemas, refs, reached = by_subject[subject]
         if len(schemas) < 2:
             continue
-        out.append(question_for_tied_reading(
+        out.append((question_for_tied_reading(
             subject_value=subject, tied_schema_ids=sorted(schemas),
-            file_count=count,
+            file_count=len(reached),
             # An abstention carries no evidence refs of its own, so the subject
             # value stands in as the citation: it IS the observed thing the
             # question is about, and §14 only requires the person be able to see
             # why the question arose.
-            evidence_refs=tuple(refs) or (f"subject:{subject}",)))
+            evidence_refs=tuple(refs) or (f"subject:{subject}",)),
+            tuple(reached)))
     return tuple(out)
 
 
