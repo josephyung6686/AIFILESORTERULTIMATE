@@ -497,7 +497,8 @@ def test_the_template_site_asks_nobody_when_there_is_no_model_on_this_device():
     import cli as _cli
 
     assert _cli.observe_template_call(
-        None, _fact_authorities_with(), routing=None, catalogue=object()) is None
+        None, _fact_authorities_with(), routing=None, catalogue=object(),
+        placeable_file_count=PLACEABLE) is None
 
 
 def test_the_template_site_asks_under_its_own_text_and_applies_nothing(monkeypatch):
@@ -535,7 +536,8 @@ def test_the_template_site_asks_under_its_own_text_and_applies_nothing(monkeypat
     mailbox = _cli.UsageMailbox()
     ask = _cli.observe_template_call(
         None, _fact_authorities_with(usage_recorder=mailbox),
-        routing=_LocalRouting(), catalogue=object())
+        routing=_LocalRouting(), catalogue=object(),
+        placeable_file_count=PLACEABLE)
     assert ask is not None
     assert ask([SimpleNamespace(group_id="g-1", members=(), domain="academic")],
                "plan-1") is None
@@ -571,7 +573,8 @@ def test_the_group_seam_hands_run_call_the_same_mailbox_site_a_reads(monkeypatch
     monkeypatch.setattr(_cli, "run_call", spy)
     p8_run_call, authorities = _cli.observe_group_authorities(
         _fact_authorities_with(usage_recorder=mailbox),
-        routing=_LocalRouting(), situation="academic.coursework")
+        routing=_LocalRouting(), situation="academic.coursework",
+        placeable_file_count=PLACEABLE)
 
     # P9's own forwarding, spelled the way `grouping.pipeline` spells it.
     p8_run_call(
@@ -1113,7 +1116,8 @@ def _placement_injections(monkeypatch, conn, *, ratified):
         _cli.observe_prompt(site), ratified=ratified))
     return _cli.observe_placement_injections(
         conn, _fact_authorities_with(contradicts=lambda *_a, **_k: False),
-        routing=_LocalRouting(), plan_version="plan-1")
+        routing=_LocalRouting(), plan_version="plan-1",
+        placeable_file_count=PLACEABLE)
 
 
 def test_p2_an_unratified_site_is_wired_to_the_stub_that_raises(harness_db,
@@ -1165,7 +1169,8 @@ def test_p2_each_site_is_turned_on_by_its_own_prompt_and_not_by_its_neighbours(
 
     built = _cli.observe_placement_injections(
         harness_db, _fact_authorities_with(contradicts=lambda *_a, **_k: False),
-        routing=_LocalRouting(), plan_version="plan-1")
+        routing=_LocalRouting(), plan_version="plan-1",
+        placeable_file_count=PLACEABLE)
 
     assert built["chosen_node_of"](_cd_verdict("ds-c4")) == "n-general"
     with pytest.raises(cli.ObservedSiteMustNotApply, match=D_RESIDUAL):
@@ -1289,6 +1294,11 @@ def test_a_ratified_local_row_is_refused_the_cloud_while_a_sibling_crosses(
 
 # --- `104` R-131's merge: the observe sites' own ledger -----------------------
 
+#: `104` R-139. The corpus the run may PLACE, which on a seeded run is far
+#: larger than the roster site A still has to ask about.
+PLACEABLE = 10
+
+
 def _fact_budget(scan_id: str = "scan-1", *, files: int = 6):
     """The fact pass's budget as `cli.fact_call_authorities` builds one."""
     from llm_harness.budgets import ScanBudget
@@ -1324,7 +1334,7 @@ def test_a_run_that_spends_every_fact_call_can_still_place_what_it_learned(
     conn.row_factory = sqlite3.Row
     create_budget_schema(conn)
     facts = _fact_budget()
-    observe = cli.observe_scan_budget(facts)
+    observe = cli.observe_scan_budget(facts, corpus_file_count=PLACEABLE)
 
     for _ in range(allowed_calls(facts)):
         reserve_call(conn, facts, estimated_cost=cli.FACT_CALL_COST)
@@ -1349,7 +1359,7 @@ def test_the_two_ledgers_are_two_rows_and_not_one(tmp_path):
     conn.row_factory = sqlite3.Row
     create_budget_schema(conn)
     facts = _fact_budget()
-    observe = cli.observe_scan_budget(facts)
+    observe = cli.observe_scan_budget(facts, corpus_file_count=PLACEABLE)
 
     reserve_call(conn, facts, estimated_cost=cli.FACT_CALL_COST)
     reserve_call(conn, observe, estimated_cost=cli.FACT_CALL_COST)
@@ -1372,10 +1382,58 @@ def test_the_observe_ledger_is_the_runs_own_and_the_rest_is_still_site_as(
     this device.
     """
     facts = _fact_budget(files=199)
-    observe = cli.observe_scan_budget(facts)
+    observe = cli.observe_scan_budget(facts, corpus_file_count=PLACEABLE)
 
-    assert observe.corpus_file_count == facts.corpus_file_count
+    # `104` R-139 changed this line and the reason is in its own test above: the
+    # count is the corpus this run may PLACE, not the roster site A still has to
+    # ask about, and the two are far apart on a seeded run.
+    assert observe.corpus_file_count == PLACEABLE
+    assert facts.corpus_file_count == 199
     assert observe.scan_id != facts.scan_id
     assert observe.max_calls_per_1000_files == cli.OBSERVE_CALLS_PER_1000_FILES
     assert observe.min_calls_per_scan == cli.OBSERVE_MIN_CALLS_PER_SCAN
     assert observe.max_estimated_cost == cli.OBSERVE_CALLS_PER_SCAN_CEILING
+
+
+def test_the_observe_purse_is_sized_by_the_corpus_and_not_by_site_as_roster(
+        tmp_path):
+    """`104` R-139, as the arithmetic that produced 52 exhausted abstentions.
+
+    Measured on the seeded C-live run r6: site A had bought most of its answers
+    already, so its roster was a handful, `observe_scan_budget` copied that count,
+    and `allowed_calls` floored the observe purse to its minimum of one. The
+    ledgers read `calls_reserved=7` for the fact scan and `calls_reserved=1` for
+    the observe one with ten reservations released, and site C recorded 52
+    `BUDGET_EXHAUSTED` abstentions in the same second.
+
+    Ten files to place and two left to ask about: the placement sites get ten.
+    """
+    import sqlite3
+
+    from llm_harness.budgets import allowed_calls, create_budget_schema, reserve_call
+
+    conn = sqlite3.connect(tmp_path / "budgets.sqlite")
+    conn.row_factory = sqlite3.Row
+    create_budget_schema(conn)
+    asks_about_two = _fact_budget(files=2)
+    observe = cli.observe_scan_budget(asks_about_two, corpus_file_count=10)
+
+    assert allowed_calls(asks_about_two) == 2
+    assert allowed_calls(observe) == 10
+    for _ in range(10):
+        reserve_call(conn, observe, estimated_cost=cli.FACT_CALL_COST)
+    row = conn.execute("SELECT calls_reserved FROM llm_scan_budget "
+                       "WHERE scan_id = ?", (observe.scan_id,)).fetchone()
+    assert row["calls_reserved"] == 10
+
+
+def test_the_ledger_records_the_count_it_was_sized_by(tmp_path):
+    """The count is a property of the budget and the row is charged against it,
+    so a run that spends its observe purse can be read back against the corpus it
+    was sized for rather than against site A's roster."""
+    facts = _fact_budget(files=2)
+    observe = cli.observe_scan_budget(facts, corpus_file_count=10)
+
+    assert observe.corpus_file_count == 10
+    assert facts.corpus_file_count == 2
+    assert observe.scan_id.startswith(facts.scan_id)

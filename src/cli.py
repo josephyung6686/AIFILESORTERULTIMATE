@@ -832,7 +832,27 @@ def _no_placement_contradiction(*_args: object, **_kwargs: object) -> bool:
     return False
 
 
-def observe_scan_budget(fact_budget: ScanBudget) -> ScanBudget:
+def placeable_file_count(conn: sqlite3.Connection, scan_run_id: str) -> int:
+    """How many files this run may PLACE, which is not how many site A asks about.
+
+    `104` R-139. `observe_scan_budget` copied `corpus_file_count` from the fact
+    pass's budget, and that number is `len(roster)` at the fact pass -- the files A
+    still had to ask. On the seeded C-live run r6 that was a handful, so
+    `allowed_calls` floored the observe purse to its minimum of ONE: the ledgers
+    read `calls_reserved=7` for the fact scan and `calls_reserved=1` for
+    `<scan>:observe`, with ten reservations released, and site C recorded 52
+    `BUDGET_EXHAUSTED` abstentions in one second.
+
+    Site A's purse sized by A's roster is right -- a fact call is about a file A
+    asks about. The placement sites ask about the whole corpus, including every
+    file whose facts were already settled and every file A was seeded past, so
+    their purse is sized by the scan's own roster and never by A's.
+    """
+    return len(corpus_roster(conn, scan_run_id))
+
+
+def observe_scan_budget(fact_budget: ScanBudget, *,
+                        corpus_file_count: int) -> ScanBudget:
     """The ledger the observe and placement sites spend from, which is not A's.
 
     Built from the fact pass's budget rather than beside it, because two of the
@@ -862,14 +882,14 @@ def observe_scan_budget(fact_budget: ScanBudget) -> ScanBudget:
     """
     return ScanBudget(
         scan_id=fact_budget.scan_id + OBSERVE_BUDGET_SUFFIX,
-        corpus_file_count=fact_budget.corpus_file_count,
+        corpus_file_count=corpus_file_count,
         max_calls_per_1000_files=OBSERVE_CALLS_PER_1000_FILES,
         max_estimated_cost=OBSERVE_CALLS_PER_SCAN_CEILING,
         min_calls_per_scan=OBSERVE_MIN_CALLS_PER_SCAN)
 
 
 def observe_group_authorities(fact_authorities, *, routing: TierRouting,
-                              situation: str):
+                              situation: str, placeable_file_count: int):
     """Site B, wired to run and to change nothing. `(p8_run_call, authorities)`.
 
     **Everything shared with site A is TAKEN from A's authorities rather than
@@ -934,7 +954,9 @@ def observe_group_authorities(fact_authorities, *, routing: TierRouting,
         # carries why: one call per file spends every slot before an
         # observe question is put, so this site drew from a purse the fact
         # pass had already emptied.
-        scan_budget=observe_scan_budget(fact_authorities.scan_budget),
+        scan_budget=observe_scan_budget(
+            fact_authorities.scan_budget,
+            corpus_file_count=placeable_file_count),
         estimated_cost=fact_authorities.estimated_cost,
         actual_cost=fact_authorities.actual_cost,
         allowed_vocabulary=observe_allowed_vocabulary(B_GROUP),
@@ -968,6 +990,7 @@ def observe_group_authorities(fact_authorities, *, routing: TierRouting,
 
 
 def observe_template_call(conn: sqlite3.Connection, fact_authorities, *,
+                          placeable_file_count: int,
                           routing: TierRouting, catalogue):
     """Site E, wired to run and to change nothing. Packet G12's missing caller.
 
@@ -1014,7 +1037,9 @@ def observe_template_call(conn: sqlite3.Connection, fact_authorities, *,
                 conn, request, gate=fact_authorities.gate, model_client=client,
                 prompt=prompt,
                 validation_dependencies=dataclasses.replace(
-                    _template_dependencies(fact_authorities, catalogue, group),
+                    _template_dependencies(
+                        fact_authorities, catalogue, group,
+                        placeable_file_count=placeable_file_count),
                     basis_key=group.group_id,
                     learning_subject_id=group.group_id),
                 observed_at=fact_authorities.observed_at,
@@ -1023,7 +1048,8 @@ def observe_template_call(conn: sqlite3.Connection, fact_authorities, *,
     return ask
 
 
-def _template_dependencies(fact_authorities, catalogue, group) -> CallDependencies:
+def _template_dependencies(fact_authorities, catalogue, group, *,
+                           placeable_file_count: int) -> CallDependencies:
     """One site-E call's `CallDependencies`. P10's two authorities, and A's rest.
 
     `allowed_vocabulary` is `allowed_vocabulary_for`, which is P10's own closure
@@ -1053,7 +1079,9 @@ def _template_dependencies(fact_authorities, catalogue, group) -> CallDependenci
         # carries why: one call per file spends every slot before an
         # observe question is put, so this site drew from a purse the fact
         # pass had already emptied.
-        scan_budget=observe_scan_budget(fact_authorities.scan_budget),
+        scan_budget=observe_scan_budget(
+            fact_authorities.scan_budget,
+            corpus_file_count=placeable_file_count),
         estimated_cost=fact_authorities.estimated_cost,
         actual_cost=fact_authorities.actual_cost,
         allowed_vocabulary=allowed_vocabulary_for(
@@ -1385,6 +1413,7 @@ def _must_not_apply(call_site: str):
 
 
 def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
+                                 placeable_file_count: int,
                                  routing: TierRouting, plan_version: str) -> dict:
     """Sites C and D, wired to run and to change nothing. Eight of the nine.
 
@@ -1441,7 +1470,9 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
         # carries why: one call per file spends every slot before an
         # observe question is put, so this site drew from a purse the fact
         # pass had already emptied.
-        scan_budget=observe_scan_budget(fact_authorities.scan_budget),
+        scan_budget=observe_scan_budget(
+            fact_authorities.scan_budget,
+            corpus_file_count=placeable_file_count),
         estimated_cost=fact_authorities.estimated_cost,
         actual_cost=fact_authorities.actual_cost,
         policy_version=fact_authorities.policy_version,
@@ -6538,7 +6569,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # when E's tier is not on this device, which is the ordinary run and
             # designs the branch exactly as it always has.
             template_call_for=(observe_template_call(
-                conn, fact_authorities[0], routing=routing, catalogue=release)
+                conn, fact_authorities[0], routing=routing, catalogue=release,
+                placeable_file_count=placeable_file_count(conn, scan_run_id[0]))
                 if fact_authorities else None),
             limits=TREE_LIMITS, root_anchor=ROOT_ANCHOR,
             selection_id=selection_id, scan_run_id=scan_run_id[0],
@@ -7493,7 +7525,9 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     def placement_inputs(tree) -> PipelineInputs:
         observe_cd = (observe_placement_injections(
             conn, fact_authorities[0], routing=routing,
-            plan_version=tree.tree.plan_version_id) if fact_authorities else {})
+            plan_version=tree.tree.plan_version_id,
+            placeable_file_count=placeable_file_count(conn, scan_run_id[0]))
+            if fact_authorities else {})
         unreadable = folders_nothing_could_be_read_from(conn, root=directory)
         asks = _home_questions(tree.tree, unreadable)
         node_of = _node_for(tree.tree)
@@ -8019,7 +8053,9 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # AFTER the fact pass, because that is what builds the authorities these
         # borrow, and BEFORE P9 groups, because that is what asks site B.
         observe_b = (observe_group_authorities(
-            fact_authorities[0], routing=routing, situation=situation)
+            fact_authorities[0], routing=routing, situation=situation,
+            placeable_file_count=placeable_file_count(
+                conn, p1_p7.scan_run_id))
             if fact_authorities else (None, None))
         # HERE, and not in `report`. The scan has finished and every design stage
         # after this point can refuse by name -- and `main` reaches `report` only
