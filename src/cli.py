@@ -108,7 +108,7 @@ from grouping.vocabulary import (
 from llm_harness.budgets import ScanBudget, create_budget_schema
 from llm_harness.prompt_library import (
     a_fact_response_schema_bytes, a_fact_shaping_policy_bytes,
-    a_fact_template_folder_levels_bytes,
+    a_fact_template_folder_levels_bytes, draft_bytes, drafts_status,
 )
 from llm_harness.records import FolderLevel, PromptDefinition
 from llm_harness.schema import create_llm_schema
@@ -613,6 +613,70 @@ WIRED_CALL_SITES: frozenset[str] = frozenset({A_FACT})
 #: Whether ANY site can reach a model. Derived, never written: two spellings of one
 #: fact is how the announcement got out of step with the code the first time.
 MODEL_CALL_SITES_WIRED: bool = bool(WIRED_CALL_SITES)
+
+
+#: THE FOUR SITES THAT RUN AND APPLY NOTHING. `104` §7 Phase 1 step 6: *"R-04 for
+#: B, C, D, E in observe-only mode: inject the built authorities; record dossiers,
+#: responses and verdicts; apply nothing until Phase 3 fixes R-15 and R-16."*
+#:
+#: SEPARATE FROM `WIRED_CALL_SITES` AND NOT AN EXTENSION OF IT, because the two
+#: sets answer different questions and one set answering both is how the
+#: announcement lied the first time. `WIRED_CALL_SITES` is "a person's files may be
+#: SENT here", which is what the screen promises and what consent is about. This is
+#: "the product asks and then throws the answer away". A member here sends nothing
+#: over the internet and changes nothing about the plan, so folding it into the
+#: other set would put four false sentences on the screen.
+OBSERVE_CALL_SITES: frozenset[str] = frozenset(
+    {B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE})
+
+#: The two sets are disjoint BY CONSTRUCTION and the assertion is here rather than
+#: in a test, because a site in both would be a site that both applies its answer
+#: and discards it, and there is no run that could be correct.
+assert not (WIRED_CALL_SITES & OBSERVE_CALL_SITES)
+
+
+class UnratifiedPromptOnACloudTarget(RuntimeError):
+    """An observe-only site was pointed at a model off this device."""
+
+
+def observe_locality_permits(call_site: str, locality: str) -> bool:
+    """Whether this site may be asked at this destination. LOCAL ONLY, in code.
+
+    **`104` §13's standing count is "0 cloud calls with unratified prompts", and a
+    count nobody enforces is a hope.** Every prompt these four sites would send is
+    a D2 DRAFT: `drafts_2026-09-06.json` carries `"status": "unratified"` and every
+    `template_id` in it says `unratified` in the id itself, so a record written
+    under one says so. `planning/82` §0 records the owner ratifying `A_fact`'s text
+    and nothing else.
+
+    Unratified text is text nobody has agreed to send. On this machine that is a
+    question of taste; over the internet it is a person's dossier reaching a
+    provider under a prompt their owner never approved, and it cannot be taken
+    back. So the difference is enforced where it is a fact rather than promised in
+    a comment: a cloud target for an observe site RAISES, and the raise happens at
+    the composition root before a corpus has been read.
+
+    `A_fact` is unaffected and stays cloud-eligible: it is not in this set, its
+    text is ratified, and `WIRED_CALL_SITES` is what governs it.
+    """
+    if call_site not in OBSERVE_CALL_SITES:
+        return True
+    return locality == LOCAL
+
+
+def require_observe_locality(call_site: str, locality: str) -> None:
+    """`observe_locality_permits`, as a refusal that names what was wrong."""
+    if observe_locality_permits(call_site, locality):
+        return
+    raise UnratifiedPromptOnACloudTarget(
+        f"call site {call_site!r} is observe-only and its prompt is a D2 DRAFT "
+        f"({drafts_status()!r}), but the routing sends it to a {locality!r} model. "
+        f"`104` §13 counts 0 cloud calls with unratified prompts and this is where "
+        f"that count is kept. Unratified text is text nobody has agreed to send: "
+        f"on this device that is a question of taste, and over the internet it is "
+        f"a person's dossier reaching a provider under a prompt their owner never "
+        f"approved. Configure {LOCAL_MODEL_NAME} and the observe sites run here; "
+        f"ratify the text and the site joins WIRED_CALL_SITES instead.")
 
 #: How many of a file's observations may be offered to the A_fact call, and the only
 #: place the NUMBER is chosen. §8.4 asks for "a compact dossier ... selected
