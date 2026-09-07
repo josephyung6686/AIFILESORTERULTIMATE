@@ -439,6 +439,21 @@ def dossier_from_stored_body(body: Mapping[str, object], *,
                 address=item["address"],
                 value=item["value"],
                 zone=item["zone"],
+                # `104` R-135's two, read the way `folder_levels` is read below and
+                # for the same reason: they are defaulted on the record, so a row
+                # written before they existed carries no such key and refusing one
+                # would make an old database unreadable to say a new field is absent.
+                #
+                # DROPPING THEM WAS NOT A LOST STATISTIC. `store.load_dossier` compares
+                # the rebuilt record against the row key by key, so a rebuild short of
+                # a field the row holds is `MalformedRecord` -- and R-127's
+                # re-judgement of a stored response goes through that check. Every
+                # dossier recorded since R-135 carries these, so every one of them
+                # would have been refused, and `_reuse_is_current` would have answered
+                # `False` and BOUGHT the model answer again. The guard was right; the
+                # rebuild was short.
+                unit_length=item.get("unit_length"),
+                whole_heading_unit=item.get("whole_heading_unit", False),
             ) for item in body["released_evidence"]),
         max_dossier_tokens=body["max_dossier_tokens"],
         reduction_rung=body["reduction_rung"],

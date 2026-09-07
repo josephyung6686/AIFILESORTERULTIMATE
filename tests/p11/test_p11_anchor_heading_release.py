@@ -939,3 +939,95 @@ def test_the_release_path_itself_sets_the_flag_the_counters_add_up(conn, tmp_pat
     assert by_key[whole.observation_key].value == HEADING
     assert by_key[code.observation_key].whole_heading_unit is False
     assert by_key[code.observation_key].value == "W3134"
+
+
+def test_a_dossier_that_carried_context_survives_the_round_trip_out_of_its_row(conn):
+    """`104` R-127's re-judgement, over a dossier `104` R-135 gave context to.
+
+    `store.load_dossier` rebuilds a stored dossier and compares it against the row key
+    by key, because "a record put back together with a field dropped would be judged
+    against evidence the model was not shown". `record_dossier` stores every field of
+    the record, so the two fields R-135 added to `ReleasedEvidence` were written and
+    not read back, and the comparison refused.
+
+    THE COST WAS NOT A LOST STATISTIC. `_reuse_is_current` answers `False` when the
+    dossier will not rebuild, and `False` means the caller asks a model again. Every
+    dossier recorded since R-135 carries those fields, so every validator change would
+    have re-BOUGHT an answer this deployment already had -- which is R-127's whole
+    point inverted. The guard was right and the rebuild was short.
+
+    Both halves are asserted: the context item keeps `context-supported`, which is what
+    makes the re-judgement reach `ACCEPT_CONTEXT_SUPPORTED` a second time, and the
+    released item keeps the measurement and the classification the counters add up.
+    """
+    from database_agent.db import create_schema
+    from llm_harness.records import Dossier, EvidenceItem, ReleasedEvidence
+    from llm_harness.schema import create_llm_schema
+    from llm_harness.store import load_dossier, record_dossier
+    from llm_harness.vocabulary import (
+        A_FACT, CONTEXT_SUPPORTED, DIRECT_ANCHOR, REDUCTION_NONE,
+        REMAINS_AMBIGUOUS,
+    )
+
+    create_schema(conn)
+    create_llm_schema(conn)
+    dossier = Dossier(
+        dossier_id="dossier-r135-round-trip", call_site=A_FACT,
+        subject_ref="file-1", eligibility_reason=REMAINS_AMBIGUOUS,
+        plan_version=None, policy_version="policy-1",
+        allowed_vocabulary=("subject",),
+        evidence_items=(
+            EvidenceItem(evidence_ref="own", kind="excerpt", location="body",
+                         excerpt_span=(0, 14), reliability_state="possible",
+                         basis=DIRECT_ANCHOR),
+            EvidenceItem(evidence_ref="line", kind="excerpt", location="heading",
+                         excerpt_span=(0, len(HEADING)),
+                         reliability_state="possible", basis=CONTEXT_SUPPORTED)),
+        conflicts=(),
+        released_evidence=(
+            ReleasedEvidence(
+                observation_key="line",
+                address=f"heading:page=1/heading=1#0-{len(HEADING)}",
+                value=HEADING, zone="heading", unit_length=len(HEADING),
+                whole_heading_unit=True),),
+        max_dossier_tokens=4000, reduction_rung=REDUCTION_NONE,
+        release_id="rel-1")
+
+    record_dossier(conn, dossier, observed_at=CLOCK)
+    rebuilt = load_dossier(conn, dossier.dossier_id, release_id="rel-1")
+
+    assert rebuilt.released_evidence == dossier.released_evidence
+    assert rebuilt.evidence_items == dossier.evidence_items
+    assert [item.basis for item in rebuilt.evidence_items] == [
+        DIRECT_ANCHOR, CONTEXT_SUPPORTED]
+
+
+def test_a_row_written_before_r135_still_rebuilds(conn):
+    """The other half of reading them with a default, and it is the reason for it.
+
+    A dossier recorded before these fields existed carries neither key. Refusing such a
+    row would make an old database unreadable in order to say that a new field is
+    absent from it -- which is the sentence `load_dossier` already writes about
+    `folder_levels`. The absent case rebuilds as "no unit measured, not a heading
+    unit", which is what those defaults mean everywhere else.
+    """
+    from llm_harness.dossier import dossier_from_stored_body
+
+    body = {
+        "dossier_id": "old", "call_site": "A_fact", "subject_ref": "file-1",
+        "eligibility_reason": "remains_ambiguous", "plan_version": None,
+        "policy_version": "policy-1", "allowed_vocabulary": ["subject"],
+        "evidence_items": [{"evidence_ref": "own", "kind": "excerpt",
+                            "location": "body", "excerpt_span": [0, 14],
+                            "reliability_state": "possible",
+                            "basis": "direct-anchor"}],
+        "conflicts": [],
+        "released_evidence": [{"observation_key": "own", "address": "0:14",
+                               "value": "Data Structures", "zone": "body"}],
+        "max_dossier_tokens": 4000, "reduction_rung": "none",
+    }
+
+    rebuilt = dossier_from_stored_body(body, release_id="rel-1")
+
+    assert rebuilt.released_evidence[0].unit_length is None
+    assert rebuilt.released_evidence[0].whole_heading_unit is False
