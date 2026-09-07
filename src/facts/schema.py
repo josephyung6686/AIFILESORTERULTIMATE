@@ -139,6 +139,18 @@ CREATE TABLE IF NOT EXISTS file_facts (
 CREATE INDEX IF NOT EXISTS file_facts_version ON file_facts (file_id, content_hash);
 CREATE INDEX IF NOT EXISTS file_facts_field ON file_facts (field_key);
 CREATE INDEX IF NOT EXISTS file_facts_value ON file_facts (value_id);
+-- THE VIRTUAL COLUMN ABOVE NEEDS ITS OWN INDEX, and that it is a projection of the
+-- primary key is exactly why it was missed. `fact_id` is indexed; `record_id` is a
+-- different column as far as the query planner is concerned, so every
+-- `... WHERE record_id = ?` -- which is every link `chain()` walks and both writes
+-- `mark_superseded` makes -- scanned the whole table for a row the key addresses.
+--
+-- Measured, P8--P11 over a 1,000-file synthetic corpus under cProfile: 78,384
+-- `chain` calls and 240,385 `fetchone` calls costing 23.5 of 106.9 profiled
+-- seconds. Not a constant factor: the scan lengthens with the corpus while the
+-- number of walks grows with it too, so this was one of the two things that made a
+-- 5,000-file plan stop finishing.
+CREATE INDEX IF NOT EXISTS file_facts_record ON file_facts (record_id);
 CREATE TRIGGER IF NOT EXISTS file_facts_no_delete
 BEFORE DELETE ON file_facts
 BEGIN SELECT RAISE(ABORT, 'a fact is superseded by a later fact, never removed (§8.2)'); END;
