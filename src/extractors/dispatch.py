@@ -246,20 +246,28 @@ def extract_initial(*, file_row: Mapping[str, Any], decision, path: Path, policy
     )
 
 
-def extract_targeted_ocr(
-        *, file_row: Mapping[str, Any], decision, path: Path, policy,
-        readers: Readers, now: str, context_window: int,
+def targeted_ocr_wanted(
+        *, file_row: Mapping[str, Any], decision,
         native_result: ExtractionResult,
-        no_usable_facts: Callable[[str, str], bool]) -> Dispatched:
-    """Run at most one post-P6 OCR pass for a prior native PDF result.
+        no_usable_facts: Callable[[str, str], bool]) -> bool:
+    """Whether this file has earned a post-P6 OCR pass. Decides; reads nothing.
 
-    Other routed families have no targeted-document route and are a no-op. For a
-    PDF, the supplied prior result is contract input: guessing when it belongs to a
-    different file, family, or analysis tier would let unrelated evidence authorize
-    OCR for this file version.
+    **THE HALF THAT NEEDS THE DATABASE, SEPARATED FROM THE HALF THAT NEEDS THE
+    FILE, and R-138 is why.** `no_usable_facts` is P6's persisted pass and holds a
+    connection, so it cannot cross a process boundary; `_ocr` reaches Apple's Vision
+    framework through PyObjC, where a dispatch deadlock is measured, so it must not
+    run on a thread nothing can interrupt. Those two facts pull in opposite
+    directions and the only way to satisfy both is to ask the question here, on the
+    caller's thread, and do the work somewhere killable.
+
+    It is a SPLIT and not a change: `extract_targeted_ocr` below is these two
+    functions composed, with the signature it has always had, so every existing
+    caller is untouched. P5 still decides -- the orchestrator asks and does not
+    reason -- which is the rule this module's docstring states about routing and
+    which a caller that inlined `document_ocr_decision` would break.
     """
     if decision.extractor_name != pdf.EXTRACTOR_NAME:
-        return Dispatched(())
+        return False
 
     run = native_result.run
     expected = {
@@ -275,17 +283,52 @@ def extract_targeted_ocr(
             "targeted PDF OCR requires this file version's native pdf.text result; "
             f"mismatched fields: {mismatches}")
 
-    decision_ocr = document_ocr_decision(
+    return document_ocr_decision(
         result=native_result, file_id=file_row["file_id"],
         content_hash=file_row["content_hash"],
-        no_usable_facts=no_usable_facts)
-    if not decision_ocr.targeted:
-        return Dispatched(())
+        no_usable_facts=no_usable_facts).targeted
 
+
+def perform_targeted_ocr(*, file_row: Mapping[str, Any], path: Path, policy,
+                         readers: Readers, now: str,
+                         context_window: int) -> Dispatched:
+    """The OCR pass `targeted_ocr_wanted` authorized. Reads; decides nothing.
+
+    Every reason not to run is already spent by the time this is called, which is
+    what lets it run in a worker process: it takes a path and the wiring, no
+    connection and no prior result. `_ocr` keeps its own contract -- no engine is a
+    deployment state and produces no run at all, and an engine that RAISES becomes
+    the `failed` OCR run rather than the end of the file.
+    """
     produced = _ocr(
         file_row=file_row, path=path, policy=policy, readers=readers, now=now,
         context_window=context_window)
     return Dispatched((produced,)) if produced is not None else Dispatched(())
+
+
+def extract_targeted_ocr(
+        *, file_row: Mapping[str, Any], decision, path: Path, policy,
+        readers: Readers, now: str, context_window: int,
+        native_result: ExtractionResult,
+        no_usable_facts: Callable[[str, str], bool]) -> Dispatched:
+    """Run at most one post-P6 OCR pass for a prior native PDF result.
+
+    Other routed families have no targeted-document route and are a no-op. For a
+    PDF, the supplied prior result is contract input: guessing when it belongs to a
+    different file, family, or analysis tier would let unrelated evidence authorize
+    OCR for this file version.
+
+    The decision and the reading are separately callable above, because R-138 needs
+    them on different threads. This composition is what `extract()` uses and what a
+    caller with no pool still gets.
+    """
+    if not targeted_ocr_wanted(
+            file_row=file_row, decision=decision, native_result=native_result,
+            no_usable_facts=no_usable_facts):
+        return Dispatched(())
+    return perform_targeted_ocr(
+        file_row=file_row, path=path, policy=policy, readers=readers, now=now,
+        context_window=context_window)
 
 
 def extract(*, file_row: Mapping[str, Any], decision, path: Path, policy,

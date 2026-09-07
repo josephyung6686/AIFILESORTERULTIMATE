@@ -35,6 +35,7 @@ import multiprocessing
 import os
 import sqlite3
 import time
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -51,6 +52,7 @@ from extractors.dispatch import Readers
 from extractors.docx import DocxDocument
 from extractors.image import ImageRecord
 from extractors.long_tail import LongTailFile
+from extractors.ocr import OcrOutput, OcrRegion
 from extractors.pdf import PdfDocument, PdfPage
 from extractors.reading import Region
 from extractors.router import route
@@ -622,7 +624,8 @@ def _open_policy() -> SafetyPolicy:
                         is_dataless=lambda path: False)
 
 
-def _run(conn: sqlite3.Connection, root: Path, pool, *, policy=None):
+def _run(conn: sqlite3.Connection, root: Path, pool, *, policy=None,
+         readers=None, targeted_ocr_needed=lambda file_id, content_hash: False):
     selection = record_selection(conn, sources=[root], candidate_roots=[],
                                  cross_folder_moves=False, selected_by=None)
     return run_p1_p7(
@@ -630,12 +633,13 @@ def _run(conn: sqlite3.Connection, root: Path, pool, *, policy=None):
         mime_type_for=lambda path: "application/pdf", scan_state="scanned",
         budget_exhausted=lambda: False, detect_format=lambda path: "pdf",
         policy=policy if policy is not None else _open_policy(),
-        readers=_readers(), sink=RunWriter(conn, author="P5"),
+        readers=readers if readers is not None else _readers(),
+        sink=RunWriter(conn, author="P5"),
         now=lambda: CLOCK, context_window=40,
         transcription_authorized=lambda: False, corpus_form="snapshot",
         policy_settings={}, file_entry_body=lambda row: {"payload_ref": "blob"},
         resolve_native=lambda db, file_id, content_hash: None,
-        targeted_ocr_needed=lambda file_id, content_hash: False,
+        targeted_ocr_needed=targeted_ocr_needed,
         resolve_with_ocr=lambda db, file_id, content_hash: None,
         classify=lambda db, file_id, content_hash: None,
         classification_store=ClassificationStore(conn),
@@ -1080,3 +1084,200 @@ def test_the_parent_watcher_is_still_what_reaps_an_orphan():
 
     assert callable(extraction_pool._watch_the_parent)
     assert os.getpid() > 0
+
+
+# --------------------------------------------------------------------------
+# R-138: §2.7's post-P6 pass, which is where r6 actually hung.
+# --------------------------------------------------------------------------
+
+#: The file whose OCR ENGINE never comes back, in the middle of three. Its PDF text
+#: layer reads normally: what wedges is the second, optional pass over the same file,
+#: which is the pass `extract_targeted_ocr` performs and which ran on the calling
+#: thread until R-138.
+OCR_HANG = "02-ocr.pdf"
+OCR_CORPUS = ("01-alpha.pdf", OCR_HANG, "03-charlie.pdf")
+
+
+def _read_pdf_quickly(path: Path) -> PdfDocument:
+    """A text layer, immediately. Nothing in this section is about the native read."""
+    return _readable(path)
+
+
+def _hanging_ocr_engine(path, config=None):
+    """Apple Vision, as r6 met it. Module level, for `spawn`.
+
+    The sample is the specification for this function: the run process's main thread
+    inside `-[VNImageRequestHandler performRequests:gatheredForensics:error:]` ->
+    `VNRecognizeTextRequest` -> `VNDetector`, 726 samples of 770, at 0 % CPU. No
+    exception, no exit, no progress -- so this sleeps rather than raising, exactly as
+    `_read_pdf` does one section above and for the same reason.
+    """
+    if Path(path).name == OCR_HANG:
+        time.sleep(_HANG_SECONDS)
+    text = f"{Path(path).stem} was recognised"
+    # `region=1` and not 0: P4 D3 makes container-path indices 1-based and refuses
+    # a zero, which is a `failed` OCR run for a page that was recognised perfectly.
+    return OcrOutput(provider="Test Vision", provider_version="1",
+                     regions=(OcrRegion(page=1, region=1, text=text),),
+                     pages_processed=1, pages_total=1)
+
+
+def _readers_whose_ocr_hangs() -> Readers:
+    """The wiring above, with an OCR engine. `ocr_engine=None` everywhere else in
+    this file is what keeps its other runs off §2.7 entirely."""
+    return replace(_readers(_read_pdf_quickly),
+                   ocr_engine=_hanging_ocr_engine, ocr_config={})
+
+
+def _hanging_ocr_context() -> ExtractionContext:
+    """What a worker builds for itself. Module level, so `spawn` can import it."""
+    return ExtractionContext(
+        policy=_open_policy(), readers=_readers_whose_ocr_hangs(),
+        transcription_authorized=lambda: False)
+
+
+#: P6's verdict, forced. `document_ocr_decision` calls a text layer BROKEN -- and
+#: therefore eligible for the targeted pass -- when the native run produced text and
+#: P6 reports no usable facts from it. Every file here has text, so this one answer
+#: puts all three on §2.2's targeted route.
+def _no_usable_facts(file_id: str, content_hash: str) -> bool:
+    return True
+
+
+@pytest.fixture(scope="module")
+def targeted_ocr_run(tmp_path_factory):
+    """One run whose MIDDLE file's OCR engine never returns, at ONE worker.
+
+    Module-scoped for the reason the sibling fixture gives: the wedged pass spends
+    both of its attempts, so the run pays two ceilings and two spawns, and five
+    tests ask different questions of one database.
+    """
+    root = tmp_path_factory.mktemp("r138-ocr") / "corpus"
+    root.mkdir()
+    for index, name in enumerate(OCR_CORPUS):
+        (root / name).write_bytes(b"%PDF-1.4 " + str(index).encode() * 8)
+
+    conn = open_database(tmp_path_factory.mktemp("r138-ocr-db") / "ocr.sqlite")
+    for schema in (create_schema, create_scan_schema, create_evidence_schema,
+                   create_extraction_schema, create_facts_schema,
+                   create_privacy_schema, create_eval_schema):
+        schema(conn)
+
+    pool = ProcessPool(workers=1, context_factory=_hanging_ocr_context,
+                       lookahead_per_worker=2,
+                       seconds_per_extraction=_CEILING_SECONDS)
+    started = time.monotonic()
+    try:
+        _run(conn, root, pool, readers=_readers_whose_ocr_hangs(),
+             targeted_ocr_needed=_no_usable_facts)
+    finally:
+        pool.close()
+    yield conn, time.monotonic() - started
+    conn.close()
+
+
+def _tiered(conn):
+    """Every run, keyed by file and analysis tier."""
+    return {(row[0], row[1]): (row[2], row[3]) for row in conn.execute(
+        "SELECT f.filename, r.analysis_tier, r.completeness, r.failure_reason "
+        "FROM extraction_runs r JOIN files f ON f.file_id = r.file_id "
+        "WHERE r.extractor_name != 'filesystem.record'")}
+
+
+def test_a_targeted_ocr_pass_that_never_returns_does_not_hang_the_run(
+        targeted_ocr_run):
+    """R-138's measured defect, at the call the samples actually caught.
+
+    `extract_targeted_ocr` ran on the calling thread after `pool.close()`, so no
+    ceiling could reach it. Sampled at the hang, the run process held NO
+    Python-created thread -- no executor manager, no queue feeder -- while its main
+    thread sat inside Vision through PyObjC: the pool had been built and closed, and
+    this was the only framework call left here. A run that waits for the engine has
+    the defect; a run that finishes in two ceilings does not.
+    """
+    _conn, elapsed = targeted_ocr_run
+
+    assert elapsed < _HANG_SECONDS, (
+        "the run waited for the wedged OCR engine rather than for the ceiling, "
+        f"which took {elapsed:.1f}s against a hang of {_HANG_SECONDS}s")
+
+
+def test_the_lost_pass_is_recorded_on_the_ocr_tier_and_not_the_native_one(
+        targeted_ocr_run):
+    """The row this file gets, and the three things a native row would break.
+
+    The native pass SUCCEEDED -- the text layer was read -- and it is the optional
+    second pass that was lost, so the `failed` run belongs to the OCR tier. Written
+    natively instead it would be a second `pdf.text` run beside a complete one, and
+    then `WORST_FIRST` reports a file as failed whose text was recovered,
+    `set_extraction_status` marks a tier failed that finished, and
+    `authoritative_result` meets two native runs for one content hash and raises
+    `AmbiguousAuthoritativeRun` on the NEXT run over the same corpus.
+    """
+    conn, _elapsed = targeted_ocr_run
+    runs = _tiered(conn)
+
+    completeness, reason = runs[(OCR_HANG, "ocr")]
+    assert completeness == "failed", runs
+    assert reason is not None, f"the wedged pass was recorded as a success: {runs}"
+    assert str(_CEILING_SECONDS) in reason, reason
+    assert _both_ends(_ceiling_end(_CEILING_SECONDS),
+                      _ceiling_end(_CEILING_SECONDS)) in reason, reason
+
+    native_completeness, native_reason = runs[(OCR_HANG, "native")]
+    assert native_completeness == "complete", (
+        f"the native read was marked by its OCR pass's failure: {runs}")
+    assert native_reason is None, native_reason
+
+
+def test_the_file_keeps_exactly_one_native_run(targeted_ocr_run):
+    """The half the assertion above cannot make from a dictionary.
+
+    `_tiered` keys on file and tier, so a SECOND native row for the same file would
+    overwrite the first and the test above would still pass. This counts them, which
+    is what `authoritative_result` does before it raises.
+    """
+    conn, _elapsed = targeted_ocr_run
+
+    natives = conn.execute(
+        "SELECT COUNT(*) FROM extraction_runs r JOIN files f "
+        "ON f.file_id = r.file_id "
+        "WHERE f.filename = ? AND r.analysis_tier = 'native'", (OCR_HANG,)
+    ).fetchone()[0]
+    assert natives == 1, (
+        f"{natives} native runs for one file version; the ceiling wrote its failure "
+        "on the native tier and the next run over this corpus will not be able to "
+        "choose an authoritative one")
+
+
+def test_the_files_either_side_are_still_recognised(targeted_ocr_run):
+    """The run goes ON, through the pass that wedged and out the other side.
+
+    One neighbour was submitted before the wedge and one after it was given up on.
+    Both have to come back with a reading of their own, on both tiers.
+    """
+    conn, _elapsed = targeted_ocr_run
+    runs = _tiered(conn)
+
+    for name in OCR_CORPUS:
+        if name == OCR_HANG:
+            continue
+        assert runs[(name, "native")][1] is None, runs[(name, "native")]
+        assert runs[(name, "ocr")] == ("complete", None), (
+            f"{name} lost its OCR pass to its neighbour's wedge: {runs}")
+
+
+def test_no_worker_outlives_the_run(targeted_ocr_run):
+    """The pool now spans the fact loop, so it is closed later -- but still closed.
+
+    `pool.close()` moved below the fact loop so the targeted pass has something to
+    run in. A close that moved and stopped working would leave workers in `sem_wait`
+    holding this process's descriptors, which is the forty-minute hang
+    `_watch_the_parent` records. Counted in operating-system processes, not in
+    method calls.
+    """
+    targeted_ocr_run  # the run has finished by the time this fixture yields
+
+    assert multiprocessing.active_children() == [], (
+        "a worker process outlived the run: "
+        f"{[(child.name, child.pid) for child in multiprocessing.active_children()]}")
