@@ -46,6 +46,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
+from database_agent.db import transaction
 from evidence_shape.canonical import canonical_json
 from evidence_shape.locator import serialize_locator
 from evidence_shape.store import unit_length_for_observation
@@ -55,23 +56,31 @@ from facts.evidence import observations_for_version
 from facts.llm_seam import FactRequest, build_request
 from facts.states import EXCLUDED_STATE
 from llm_harness.budgets import ScanBudget
-from llm_harness.fact_validation import FactValidationDependencies
+from llm_harness.dossier import dossier_address
+from llm_harness.fact_validation import FactValidationDependencies, judgement_version
 from llm_harness.fingerprint import prompt_fingerprint
 from llm_harness.harness import CallDependencies, run_call
 from llm_harness.records import (
     REFUSAL_EXCEPTIONS,
-    DossierRequest, EvidenceItem, FolderLevel, P8Verdict, PromptDefinition,
+    DossierRequest, EvidenceItem, FolderLevel, MalformedRecord, P8Verdict,
+    PromptDefinition, ValidationUnavailable,
 )
-from llm_harness.sites import FactSiteDependencies, SiteDependencies
+from llm_harness.sites import FactSiteDependencies, SiteDependencies, dispatch
 from llm_harness.store import (
     answered_fields,
     call_identity,
+    last_response,
+    load_dossier,
     prior_call,
     record_call_identity,
     record_call_reuse,
+    record_verdict,
     refusal_outcome,
+    standing_verdicts,
+    supersede_verdict,
 )
 from llm_harness.transport import ModelClient
+from llm_harness.validation import DOSSIER_BUILDER
 from llm_harness.vocabulary import A_FACT, DIRECT_ANCHOR, REMAINS_AMBIGUOUS
 from privacy.gate import Gate
 from privacy.policy import policy_at
@@ -622,6 +631,23 @@ def build_fact_request(
     )
 
 
+def fact_dependencies(
+        authorities: FactCallAuthorities) -> FactValidationDependencies:
+    """The C-5 trio this deployment answers, in ONE spelling.
+
+    A live call and `104` R-127's re-judgement of a stored one must be judged by
+    the same three callbacks, and `judgement_version` digests exactly this bundle.
+    Built twice from the same authorities it would still be the same functions --
+    but the day a fourth callback is added, one of the two spellings would get it
+    and the other would not, and the version would then describe a validator that
+    is not the one that ran.
+    """
+    return FactValidationDependencies(
+        normalize=authorities.normalize,
+        contradicts=authorities.contradicts,
+        normalize_for_review=authorities.normalize_for_review)
+
+
 def _call_dependencies(
     request: FactRequest,
     allowed_vocabulary: Sequence[str], *,
@@ -648,10 +674,7 @@ def _call_dependencies(
         site_dependencies=SiteDependencies(
             fact=FactSiteDependencies(
                 fact_request=request,
-                fact_dependencies=FactValidationDependencies(
-                    normalize=authorities.normalize,
-                    contradicts=authorities.contradicts,
-                    normalize_for_review=authorities.normalize_for_review)),
+                fact_dependencies=fact_dependencies(authorities)),
             placement=None, residual=None, template=None),
         contradicts=authorities.contradicts,
         # MEASURED, not asserted. This was the literal `True`, which told §8.6's
@@ -774,6 +797,168 @@ def call_identity_dimensions(
     }
 
 
+#: What one supersession says it was, in `llm_verdict_supersession.reason`.
+#: `104` R-127, `105` §14.7's words: the response is unchanged and the judgement
+#: of it is not, so the reason names the judgement and not the answer.
+REVALIDATED: str = "re-validated under {version}"
+
+
+def _reuse_is_current(conn: sqlite3.Connection, prior, *, request: FactRequest,
+                      vocabulary: Sequence[str],
+                      authorities: FactCallAuthorities) -> bool:
+    """Are the prior's verdicts a judgement THIS validator would still make?
+
+    `104` R-127 / `105` §14.7: *"validator or normalisation changes must
+    re-evaluate cached responses rather than retain obsolete verdicts"*. The reuse
+    identity carries the prompt and the schema fingerprints and says nothing about
+    the code that judged the answer, so a verdict written before R-119 taught the
+    validator that an empty value is an abstention, or before R-98 taught it that a
+    course title is a candidate rather than a refusal, went on suppressing the
+    question under a conclusion the validator no longer reaches.
+
+    **Re-judged, not re-asked, and the identity is untouched.** Adding the version
+    to `CALL_IDENTITY_DIMENSIONS` would have been the shorter change and it would
+    have bought the same model answer a second time for every validator edit --
+    the dimension comment says what the key is for, and the answer is not what
+    changed. The stored response is the model's; only the reading of it moved. So
+    nothing here calls a model, and `True` from this function means the prior's
+    conclusions are the current validator's own.
+
+    **When it answers `False` the caller asks again**, and every one of those is a
+    case where this deployment cannot honestly re-read the bytes:
+
+    * no stored response -- the identity was recorded for a dossier whose answer is
+      not in this database (a seeded run that copied verdicts and not responses, a
+      row from before responses were kept). Nothing to re-judge.
+    * the dossier row will not rebuild, or rebuilds to different bytes than the
+      ones it is addressed by. `dossier_id` is the content address of the
+      MODEL-VISIBLE bytes and those carry handles keyed by a per-database secret
+      (`cli.wire_handle_key_for`, "minted once per database"), so a database that
+      inherited another's responses -- which is exactly what `104` R-123's
+      `--reuse-answers-from` builds -- holds bytes this run cannot resolve. Judged
+      anyway, every citation in them would fail to resolve and the run would record
+      a fresh rejection for each and reuse THAT. Asking again costs a call and
+      tells the truth; the alternative is a wrong answer for free.
+    * the re-judgement is `ValidationUnavailable` -- an authority is missing, so
+      there is no verdict, so there is nothing to stand on.
+    """
+    version = judgement_version(fact_dependencies(authorities))
+    standing = standing_verdicts(conn, prior["dossier_id"])
+    open_fields = set(vocabulary)
+    if not any(row["claim_ref"] in open_fields
+               and row["validator_version"] != version for row in standing):
+        # Either everything standing was written by this exact validator and these
+        # exact normalisers, or what was not is about a claim this call is not
+        # asking about. A stale verdict on a field nobody has open changes no
+        # decision, and re-judging it every run to find that out again would
+        # append a supersession per run for nothing.
+        return True
+
+    response = last_response(conn, prior["dossier_id"])
+    if response is None:
+        return False
+    dossier = load_dossier(
+        conn, prior["dossier_id"], release_id=response["release_id"])
+    if dossier is None:
+        return False
+    if dossier_address(dossier, authorities.prompt,
+                       handle_key=authorities.wire_handle_key) != dossier.dossier_id:
+        return False
+
+    checked = dispatch(
+        conn, dossier, bytes(response["response_bytes"]),
+        site_dependencies=SiteDependencies(
+            fact=FactSiteDependencies(
+                fact_request=request,
+                fact_dependencies=fact_dependencies(authorities)),
+            placement=None, residual=None, template=None),
+        evidence_resolver=authorities.evidence_resolver,
+        contradicts=authorities.contradicts,
+        model_id=response["model_id"],
+        prompt_fingerprint=response["prompt_fingerprint"],
+        dossier_builder=DOSSIER_BUILDER,
+        release_audit_id=response["release_audit_id"],
+        policy_version=dossier.policy_version,
+        # A REPLAY WRITES NO SECOND CONSEQUENCE, and `dispatch` says why in its
+        # own words: `apply_verdict` writes P6's fact or its `unresolved` row and
+        # `write_unresolved` is always an INSERT, so a re-judgement that applied
+        # its consequence would record that the model declined twice for one
+        # thing it declined once. `pending_fields_for` has already run for this
+        # file too, so a consequence written here would move the ground the
+        # `vocabulary` below is measured against.
+        apply_consequence=False,
+        handle_key=authorities.wire_handle_key,
+    )
+    if isinstance(checked, ValidationUnavailable):
+        return False
+    verdicts, _report = checked
+    if not verdicts:
+        return False
+
+    # ONE TRANSACTION, AND A REFUSAL RATHER THAN A CRASH IF IT CANNOT CLOSE.
+    #
+    # `record_verdict` raises `MalformedRecord` when this address already holds a
+    # DIFFERENT conclusion, and there is one way to reach that: the version covers
+    # the validator and the deployment's three callbacks, and it does not cover the
+    # live authorities they are handed -- `evidence_resolver` answers "does this
+    # observation key still resolve in the store", and an observation that has since
+    # gone takes check 2's coarse half with it. One version, two conclusions, and
+    # the second is not something to write over the first.
+    #
+    # A run must not end on it. `transaction` rolls back to its savepoint, so
+    # nothing is half-recorded, and a re-judgement that cannot be written is a
+    # re-judgement this deployment does not have -- which is the same answer as a
+    # response it cannot read: ask the question again.
+    try:
+        with transaction(conn):
+            recorded = {}
+            for verdict in verdicts:
+                # No id is minted here. `validate_fact_proposal` already put the
+                # judgement version in the address of every Site A verdict, so a
+                # re-judgement arrives at a row of its own and a repeat of one
+                # arrives back at the row it wrote -- where `record_verdict`
+                # compares the payload and does nothing, which is what makes a
+                # run that died between the record and the supersession finish
+                # the job on the next pass instead of duplicating half of it.
+                record_verdict(
+                    conn, verdict,
+                    model_id=response["model_id"],
+                    prompt_fingerprint=response["prompt_fingerprint"],
+                    release_audit_id=response["release_audit_id"],
+                    observed_at=authorities.observed_at())
+                recorded[verdict.claim_ref] = verdict.verdict_id
+            # EVERY standing verdict on the dossier, not only the stale ones and
+            # not only the open fields. The response was re-read whole, so every
+            # conclusion drawn from it is replaced by the conclusion this
+            # validator draws; a row left standing under the old version would
+            # put the comparison above back into `False` on the next run and
+            # re-judge for ever. A claim the re-judgement no longer names at all
+            # -- a stricter parser answering one `schema_invalid` verdict for the
+            # whole response -- is superseded by that verdict, which is the
+            # truthful link: the response as a whole is now judged differently.
+            #
+            # A row this validator has ALREADY written is skipped rather than
+            # linked to itself, and that is what closes the loop after an
+            # ask-again: a run that could not re-judge asked instead and left the
+            # old conclusion standing beside the new one, so this pass supersedes
+            # the old and leaves the new alone. One run, not a chain.
+            fallback = recorded.get(verdicts[0].claim_ref)
+            for row in standing:
+                new_id = recorded.get(row["claim_ref"], fallback)
+                if new_id is None or new_id == row["verdict_id"]:
+                    continue
+                supersede_verdict(
+                    conn, row["verdict_id"], new_id,
+                    reason=REVALIDATED.format(version=version),
+                    model_id=response["model_id"],
+                    prompt_fingerprint=response["prompt_fingerprint"],
+                    release_audit_id=response["release_audit_id"],
+                    observed_at=authorities.observed_at())
+    except MalformedRecord:
+        return False
+    return True
+
+
 def fact_call_stage(authorities: FactCallAuthorities):
     """One `facts.resolver.Stage`: the §8.6 `llm` producer, wired to a real model.
 
@@ -828,7 +1013,15 @@ def fact_call_stage(authorities: FactCallAuthorities):
             observations=observations, authorities=authorities)
         identity_id = call_identity(identity)
         prior = prior_call(conn, identity_id)
-        if prior is not None and vocabulary:
+        if prior is not None and vocabulary and _reuse_is_current(
+                conn, prior, request=request, vocabulary=vocabulary,
+                authorities=authorities):
+            # `104` R-127 STANDS BEFORE `answered_fields` AND NOT AFTER IT, because
+            # what it changes is which verdicts are standing. A re-judgement
+            # supersedes the conclusions it replaces, and `answered_fields` reads
+            # only the non-superseded rows -- so asking "is every open field
+            # answered" first would answer it against the judgement this validator
+            # has just stopped making.
             answered = answered_fields(conn, prior["dossier_id"])
             if set(vocabulary) <= answered:
                 # EVERY field still open was already ANSWERED under this exact
