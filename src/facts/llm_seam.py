@@ -41,6 +41,13 @@ failed check rather than supplied, because P6 owns the `unresolved` vocabulary a
 must not spell a member of it. The fifth outcome is not a check at all: an explicit
 `unknown` is the model declining before anything could be validated.
 
+**And a refusal never raises.** The one thing `refuse` does not take on trust is that
+the model's reference is a citation at all: what the model is shown is a wire handle,
+what M14 admits into `evidence_refs` is an `observation_key`, and a handle the release
+never issued translates to neither. Such a reference is dropped from the row and moves
+the row's reason to check 2's, which is still one of the five. See `refuse` for the run
+this cost.
+
 **The ceiling is a function, not a call site.** `require_llm_state` is the only gate to
 an LLM-origin fact and admits exactly `llm_supported` and `possible`, so a test can
 attempt the promotion and require the raise. Which of the two a proposal earns is
@@ -57,7 +64,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping
 
 from evidence_shape.canonical import canonical_json
-from evidence_shape.observation import Observation
+from evidence_shape.observation import Observation, is_observation_key
 from evidence_shape.vocabulary import ANALYSIS_TIERS, check
 
 from facts.cache import llm_pass_cache_key
@@ -276,11 +283,43 @@ def apply_verdict(conn: sqlite3.Connection, *, request: FactRequest,
         prompt_fingerprint=prompt_fingerprint)
 
     def refuse(reason: str) -> None:
+        """Record one refusal, and NEVER raise while doing it.
+
+        `proposal.citations` is the MODEL'S reference, and it is not always a
+        citation. The model is shown wire handles rather than observation keys
+        (`llm_harness.wire_handles` -- an un-keyed P4 key printed beside its own
+        locator was a dictionary attack on the value), so what comes back is a
+        `handle:` reference that P8 translates through the handles the release
+        actually issued. A handle it never issued -- a hallucination, a truncation,
+        a plain invention -- translates to nothing and arrives here unchanged.
+
+        This forwarded it into `evidence_refs`, which M14 reserves for `sha256:`
+        observation keys, and `write_unresolved` raised. Measured on a live
+        `qwen3:8b` run over 199 files: 112 facts written, two hours in, and the
+        120th fact call died on its own abstention. `ValueError` is not in
+        `llm_harness.records.REFUSAL_EXCEPTIONS` -- correctly, it names a
+        programming error -- so it left `harness.run_call` and ended the pass. B7
+        exists so that P2 can tell a considered refusal from a crash; a refusal
+        that crashes is the one outcome this row must never have.
+
+        So a reference this seam cannot recognise as a citation is not written as
+        one, and the fact that it could not be recognised is itself the refusal's
+        subject: the reason becomes the one word P6's vocabulary has for a citation
+        that does not hold, whichever check the verdict named. No reason code is
+        added -- `CHECK_REASONS` already derives it from check 2 -- and
+        `evidence_refs` keeps the keys that DID translate, possibly none. The
+        `P8Verdict` is untouched and still carries the reference itself in
+        `citations_checked`, unresolved and unmatched, which is where a reader
+        finds out what the model actually said.
+        """
+        cited = tuple(ref for ref in proposal.citations if is_observation_key(ref))
+        if len(cited) != len(proposal.citations):
+            reason = CHECK_REASONS[FOUR_CHECKS[1]]
         write_unresolved(
             conn, file_id=request.file_id, content_hash=request.content_hash,
             field_key=proposal.field_key, reason=reason,
             attempted_producers=(LLM_ROUTE,),
-            evidence_refs=tuple(proposal.citations), cache_key=cache_key)
+            evidence_refs=cited, cache_key=cache_key)
 
     if proposal.unknown:
         refuse(UNKNOWN_REASON)

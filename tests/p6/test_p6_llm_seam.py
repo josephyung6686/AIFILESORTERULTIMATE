@@ -243,6 +243,81 @@ def test_a_field_outside_the_active_schema_produces_no_fact(subject_file, p6_con
     assert _reasons(p6_conn, request) == ["field_not_in_active_schema"]
 
 
+def _rows(conn, request, field_key=None):
+    return [(row["reason"], json.loads(row["evidence_refs"]))
+            for row in unresolved_for_file(
+                conn, request.file_id, request.content_hash,
+                field_key=field_key)]
+
+
+def test_a_citation_that_is_not_an_observation_key_is_the_refusals_own_reason(
+        subject_file, p6_conn):
+    """A REFUSAL MUST NEVER RAISE, and until 2026-09-07 one class of them did.
+
+    The caller is P8, and what P8 hands over is the MODEL'S citation. The model is
+    shown wire handles (`llm_harness.wire_handles`) and cites them back;
+    `sites._proposal` translates the ones the release issued, and a handle it never
+    issued -- a hallucination, a truncation, an invented string -- has nothing to
+    translate to and arrives here unchanged. This function forwarded it into
+    `evidence_refs`, where M14 admits `sha256:` observation keys and nothing else,
+    and `write_unresolved` raised.
+
+    Measured: a live `qwen3:8b` run over 199 files, two hours in, 112 facts written,
+    died at its 120th fact call. `ValueError` is not in
+    `llm_harness.records.REFUSAL_EXCEPTIONS` -- correctly, it is a programming error
+    -- so it left `harness.run_call` and ended the whole pass. A refusal is P6's own
+    answer about a file; recording one cannot be the thing that stops the run.
+
+    So a citation this seam cannot recognise is not a key, and is therefore the
+    refusal's own subject: the reason becomes the one word P6's vocabulary has for a
+    citation that does not hold, whatever check the verdict named. No reason code is
+    added -- `CHECK_REASONS` already derives it -- and `evidence_refs` carries what
+    did translate, here nothing.
+    """
+    request = _request(p6_conn, subject_file)
+    proposal = Proposal(field_key="event", value="Graduation",
+                        citations=("handle:" + "9" * 64,), unknown=False)
+    verdict = Verdict(passed=False, failed_check=FOUR_CHECKS[0])
+
+    assert _apply(p6_conn, request, proposal, verdict) is None
+    assert facts_for_file(p6_conn, request.file_id, request.content_hash) == []
+    assert _rows(p6_conn, request) == [
+        (CHECK_REASONS[FOUR_CHECKS[1]], [])]
+
+
+def test_a_refusal_keeps_the_citations_that_are_observation_keys(
+        subject_file, p6_conn):
+    """"Only the keys that did translate, possibly none" -- so here, one of two.
+
+    The row still records what the model looked at, which is §8.5's question under
+    Fact quality; it simply cannot record a reference that is not a citation. And
+    because one of them was not, the reason is the citation's rather than check 3's:
+    a refusal that cannot name half of what it read has not established that the
+    value was the problem.
+    """
+    file_id, content_hash, key = subject_file
+    request = _request(p6_conn, subject_file)
+    proposal = Proposal(field_key="subject", value="BUSIB 4300",
+                        citations=(key, "handle:" + "9" * 64), unknown=False)
+    verdict = Verdict(passed=False, failed_check=FOUR_CHECKS[2])
+
+    assert _apply(p6_conn, request, proposal, verdict) is None
+    assert _rows(p6_conn, request) == [(CHECK_REASONS[FOUR_CHECKS[1]], [key])]
+
+
+def test_a_refusal_over_well_formed_keys_keeps_the_check_that_failed(
+        subject_file, p6_conn):
+    """The override is for untranslatable citations only, and nothing else moves."""
+    file_id, content_hash, key = subject_file
+    request = _request(p6_conn, subject_file)
+    proposal = Proposal(field_key="subject", value="BUSIB 4300",
+                        citations=(key,), unknown=False)
+    verdict = Verdict(passed=False, failed_check=FOUR_CHECKS[2])
+
+    assert _apply(p6_conn, request, proposal, verdict) is None
+    assert _rows(p6_conn, request) == [(CHECK_REASONS[FOUR_CHECKS[2]], [key])]
+
+
 def test_a_proposal_contradicted_by_a_stronger_fact_produces_no_fact(
         subject_file, p6_conn):
     # Done-means 11, and §3.6 check 4. The stronger fact is real and is in the

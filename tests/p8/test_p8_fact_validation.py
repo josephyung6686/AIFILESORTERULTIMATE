@@ -946,14 +946,16 @@ def two_observations(p6_conn, tmp_path):
     return file_id, content_hash, released, withheld
 
 
-def _dispatch_site_a(conn, dossier, response_bytes, request):
+def _dispatch_site_a(conn, dossier, response_bytes, request, *, dependencies=None):
     from llm_harness.sites import FactSiteDependencies, SiteDependencies, dispatch
 
     return dispatch(
         conn, dossier, response_bytes,
         site_dependencies=SiteDependencies(
             fact=FactSiteDependencies(
-                fact_request=request, fact_dependencies=_deps()),
+                fact_request=request,
+                fact_dependencies=(
+                    dependencies if dependencies is not None else _deps())),
             placement=None, residual=None, template=None,
         ),
         evidence_resolver=lambda key: "BUSIB 4300",
@@ -1471,3 +1473,164 @@ def test_the_model_agreeing_in_another_spelling_adds_no_second_course(
     spellings = {row["canonical_value"] for row in facts_for_file(
         p6_conn, file_id, content_hash) if row["field_key"] == "subject"}
     assert spellings == {"BUSIB4300"}
+
+
+# --- A reference the release never issued is a refusal, not a crash --------------
+#
+# A live run of the product with `qwen3:8b` over 199 files died at its 120th fact
+# call, two hours in, with `ValueError: evidence_refs entry 'handle:93ca66...' is
+# not a P4 observation key`. The model cited its evidence by the WIRE HANDLE it was
+# shown -- which is the only reference it ever sees -- and `sites._proposal`
+# translates an issued handle back through `local_ref` before P6 sees it. A handle
+# the release never issued has nothing to translate to, so it travelled on
+# unchanged, failed check 2, and `llm_seam.apply_verdict.refuse` forwarded it raw
+# into a column M14 reserves for `sha256:` observation keys.
+#
+# The refusal was correct. The RECORDING of it raised, and a `ValueError` is not in
+# `records.REFUSAL_EXCEPTIONS` -- deliberately, because it is a programming error --
+# so it left `harness.run_call` and ended the pass. 112 accepted facts had been
+# written; the 113th refusal ended the run.
+
+
+def _handle(ref):
+    from llm_harness.wire_handles import wire_handle
+
+    return wire_handle(ref, key=FIXTURE_HANDLE_KEY)
+
+
+def _two_observation_dossier(request, released, withheld):
+    return _site_a_dossier(
+        evidence_items=(_item(released), _item(withheld)),
+        released_evidence=(
+            _release(released, "BUSIB 4300"),
+            _release(withheld, "Prof. Jane Roe"),
+        ),
+        allowed=tuple(request.allowlist),
+        subject_ref=request.file_id,
+    )
+
+
+def _unresolved(conn, request, field_key):
+    rows = unresolved_for_file(
+        conn, request.file_id, request.content_hash, field_key=field_key)
+    return [(row["reason"], json.loads(row["evidence_refs"])) for row in rows]
+
+
+def _handle_cited_request(conn, two_observations):
+    file_id, content_hash, released, withheld = two_observations
+    request = build_request(
+        conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=_signals("academic"),
+        normalizers={"subject": _boom_normalizer})
+    return request, _two_observation_dossier(request, released, withheld)
+
+
+def test_a_refused_claim_citing_an_issued_handle_records_the_translated_key(
+    p6_conn, two_observations,
+):
+    """The handle the model was shown; the observation key the row must carry.
+
+    This is what `wire_handles.local_ref` is for: what the model says comes back as
+    what P4 stores, on the path that writes a fact and on the path that refuses.
+    Refused here on check 3 -- the normalizer declines the value -- so the citation
+    itself is beyond reproach and only the translation is under test.
+    """
+    file_id, content_hash, released, _withheld = two_observations
+    request, dossier = _handle_cited_request(p6_conn, two_observations)
+
+    verdict = _only_verdict(_dispatch_site_a(
+        p6_conn, dossier,
+        _claim_bytes(_handle(released), "BUSIB 4300"), request,
+        dependencies=_deps(normalize=lambda field, raw: None)))
+
+    assert verdict.outcome == REJECT
+    assert VALUE_NOT_NORMALIZABLE in verdict.reasons
+    assert _unresolved(p6_conn, request, "subject") == [
+        ("normalization_failed", [released])]
+    assert facts_for_file(p6_conn, file_id, content_hash) == []
+
+
+def test_a_handle_the_release_never_issued_is_recorded_and_does_not_raise(
+    p6_conn, two_observations,
+):
+    """The 120th call. Nothing translates it, so nothing may be written as a key.
+
+    Two records, and they carry different halves of one thing. The `unresolved` row
+    carries the REASON -- P6's one word for a citation that does not hold -- and no
+    `evidence_refs` at all, because none of what the model cited is an observation
+    key and M14 admits nothing else into that column. The `P8Verdict` carries the
+    citation ITSELF, unresolved and unmatched, which is where a reader finds out
+    what the model actually said.
+    """
+    from llm_harness.vocabulary import CITATION_NOT_FOUND as _NOT_FOUND
+
+    file_id, content_hash, _released, _withheld = two_observations
+    request, dossier = _handle_cited_request(p6_conn, two_observations)
+    stranger = _handle("sha256:" + "0" * 64)
+
+    verdict = _only_verdict(_dispatch_site_a(
+        p6_conn, dossier, _claim_bytes(stranger, "BUSIB 4300"), request))
+
+    assert verdict.outcome == REJECT
+    assert _NOT_FOUND in verdict.reasons
+    assert [(c.citation_ref, c.resolved, c.span_matched)
+            for c in verdict.citations_checked] == [(stranger, False, False)]
+    assert _unresolved(p6_conn, request, "subject") == [
+        ("citation_absent_from_evidence", [])]
+    assert facts_for_file(p6_conn, file_id, content_hash) == []
+
+
+def test_a_claim_the_seam_cannot_translate_does_not_end_the_pass(
+    p6_conn, two_observations,
+):
+    """The consequence the owner saw: one bad citation ended a two-hour run.
+
+    Two claims, the untranslatable one FIRST. Both must be judged, the second must
+    still write its fact, and the response must be read to its end.
+    """
+    file_id, content_hash, _released, withheld = two_observations
+    request, dossier = _handle_cited_request(p6_conn, two_observations)
+
+    result = _dispatch_site_a(
+        p6_conn, dossier,
+        _claims_bytes(
+            _claim("subject", "BUSIB 4300",
+                   _handle("sha256:" + "0" * 64), "BUSIB 4300"),
+            _claim("instructor", "Prof. Jane Roe",
+                   _handle(withheld), "Prof. Jane Roe"),
+        ),
+        request,
+    )
+
+    assert not isinstance(result, ValidationUnavailable), result
+    verdicts, report = result
+    assert [v.claim_ref for v in verdicts] == ["subject", "instructor"]
+    assert [v.outcome for v in verdicts] == [REJECT, ACCEPT_DIRECT]
+    assert report.claims_total == 2
+    assert [row["field_key"] for row in facts_for_file(
+        p6_conn, file_id, content_hash)] == ["instructor"]
+    assert _unresolved(p6_conn, request, "subject") == [
+        ("citation_absent_from_evidence", [])]
+
+
+def test_the_accept_path_still_writes_the_translated_key(
+    p6_conn, two_observations,
+):
+    """Check 2 is what keeps a handle off the accept path, and it still does.
+
+    `file_facts._checked_refs` and `values.ensure_value` are `sha256:`-only too, so
+    an untranslated handle would have raised there as well. It never reached them
+    because a citation that does not translate is not in `citable_observations` --
+    the same fact the refusal path now records instead of forwarding.
+    """
+    file_id, content_hash, released, _withheld = two_observations
+    request, dossier = _handle_cited_request(p6_conn, two_observations)
+
+    verdict = _only_verdict(_dispatch_site_a(
+        p6_conn, dossier, _claim_bytes(_handle(released), "BUSIB 4300"), request))
+
+    assert verdict.outcome == ACCEPT_DIRECT
+    rows = facts_for_file(p6_conn, file_id, content_hash)
+    assert [row["field_key"] for row in rows] == ["subject"]
+    assert json.loads(rows[0]["evidence_refs"]) == [released]
+    assert _unresolved(p6_conn, request, "subject") == []
