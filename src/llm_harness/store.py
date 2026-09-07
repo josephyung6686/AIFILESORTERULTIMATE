@@ -613,6 +613,62 @@ CALL_IDENTITY_DIMENSIONS: tuple[str, ...] = (
 )
 
 
+#: THE VALUE A CALL WITH NOTHING TO PUT THERE CARRIES, per dimension. `104` R-141.
+#:
+#: A dimension is added to the set above when something new can change the answer,
+#: and every identity recorded before that day is missing it. Refusing those was
+#: measured: the owner's r9 left all 238 prior answers behind as undigestable,
+#: including the files the new dimension would have been EMPTY for, whose digest
+#: under the new set is byte-identical to what they would compute today.
+#:
+#: So a missing dimension is filled with the value a call that has nothing to say
+#: about it carries, and the effect is the addition's own intent: a file the new
+#: term is non-empty for gets a different digest and is asked again, a file it is
+#: empty for reuses its answer. Only the dimensions NAMED here have such a value.
+#: `call_site`, `content_hash`, `model_id`, `policy`, `prompt_fingerprint` and
+#: `subject_ref` are absent on purpose: every call has all six, so a mapping
+#: missing one is not an older shape of the key but a record nobody can read, and
+#: guessing an empty string for it would pair two calls that were never the same.
+EMPTY_DIMENSION_VALUES: Mapping[str, object] = {
+    "extractor_versions": [],
+    "schema_id": [],
+    "plan_version": None,
+}
+
+
+class DimensionWithoutAnEmptyValue(MalformedRecord):
+    """A dimension this checkout digests, absent from a prior mapping, with no
+    empty value defined for it. Named so a caller can say WHICH."""
+
+    def __init__(self, name: str) -> None:
+        super().__init__(
+            f"{name!r} is a call identity dimension with no defined empty value, "
+            f"so a mapping that does not carry it cannot be re-digested: a value "
+            f"invented for it would pair two calls that were never the same"
+        )
+        self.name = name
+
+
+def under_these_dimensions(
+        mapping: Mapping[str, object]) -> tuple[dict, tuple[str, ...], tuple[str, ...]]:
+    """One prior mapping, read under THIS checkout's dimension set. `104` R-141.
+
+    Returns the mapping `call_identity` will accept, the dimensions filled with
+    their empty value, and the dimensions dropped because this checkout no longer
+    digests them. Both lists are for the caller to report: a key that quietly
+    changed shape is a cache that quietly stopped matching.
+    """
+    wanted = tuple(CALL_IDENTITY_DIMENSIONS)
+    filled = {name: mapping[name] for name in wanted if name in mapping}
+    added = tuple(name for name in wanted if name not in mapping)
+    for name in added:
+        if name not in EMPTY_DIMENSION_VALUES:
+            raise DimensionWithoutAnEmptyValue(name)
+        filled[name] = EMPTY_DIMENSION_VALUES[name]
+    dropped = tuple(sorted(set(mapping) - set(wanted)))
+    return filled, added, dropped
+
+
 def call_identity(dimensions: Mapping[str, object]) -> str:
     """SHA-256 over the canonical dimension mapping. Every key required, none extra.
 
