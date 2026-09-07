@@ -53,7 +53,16 @@ GESTURE = re.compile(r"--answer (\S+=\S*|'[^']*=[^']*')")
 #: carry for `blocked_pending_user`, and the three `cli.NOTHING_SAYS_WHAT_THESE_
 #: ARE` carries instead. A heading holding any of them is a group whose files are
 #: waiting on somebody saying what they are, which is what this file is about.
-BLOCKED = ("once you say what these are", "to say what these are",
+#:
+#: SPELLED IN FULL, and `"to say what these are"` is deliberately not one of them:
+#: it is a substring of `OUTCOME_WORDS[ABSTAIN]`, "Waiting for you to say what
+#: these are", which is a different outcome with its own review set and its own
+#: `--send-set`. This fixture happens to raise no abstention, so the short form
+#: passes today and would fail the first person who adds a file that abstains --
+#: demanding an `--answer` under a heading this file has no claim on.
+BLOCKED = ("once you say what these are",
+           "waiting on you to say what these are",
+           "waiting on something to say what these are",
            "once something can say what these are")
 
 
