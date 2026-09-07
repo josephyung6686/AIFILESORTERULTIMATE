@@ -42,11 +42,11 @@ from evidence_shape.schema import create_evidence_schema
 from evidence_shape.store import record_observation, record_run
 from facts.domains import ActivationSignal, ActivationSignals
 from facts.fields import create_fields
-from facts.file_facts import facts_for_file
+from facts.file_facts import DETERMINISTIC_EXTRACTOR, facts_for_file, write_fact
 from facts.llm_seam import build_request
 from facts.read_surface import PROPOSAL_ELIGIBLE_STATES
-from facts.states import LLM_SUPPORTED, POSSIBLE
-from facts.values import values_in_field
+from facts.states import LLM_SUPPORTED, POSSIBLE, VALIDATED
+from facts.values import VALUE_ORIGINS, ensure_value, values_in_field
 from llm_harness.fact_validation import FactValidationDependencies
 from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 from llm_harness.records import Dossier, EvidenceItem, ReleasedEvidence
@@ -195,7 +195,8 @@ def site_a_conn(conn):
     return conn
 
 
-def _world(conn, tmp_path, *, released: str, review: bool = True) -> World:
+def _world(conn, tmp_path, *, released: str, review: bool = True,
+           stronger: tuple[str, str] | None = None) -> World:
     path = tmp_path / "Essay 2 Final Draft.pdf"
     path.write_bytes(b"a university writing essay")
     file_id = record_file(
@@ -217,6 +218,17 @@ def _world(conn, tmp_path, *, released: str, review: bool = True) -> World:
         occurrence_count=1, observed_at=CLOCK, reliability="possible", run_id="r-1")
     record_observation(conn, observation)
     released_key = observation.observation_key
+
+    if stronger is not None:
+        field_key, canonical = stronger
+        value_id = ensure_value(
+            conn, field_key=field_key, canonical_value=canonical,
+            first_evidence_ref=released_key, origin=VALUE_ORIGINS[0])
+        write_fact(
+            conn, file_id=file_id, content_hash=content_hash, field_key=field_key,
+            value_id=value_id, reliability_state=VALIDATED,
+            origin=DETERMINISTIC_EXTRACTOR, evidence_refs=(released_key,),
+            cache_key="cache-stronger", active=True)
 
     request = build_request(
         conn, file_id=file_id, content_hash=content_hash,
@@ -389,6 +401,35 @@ def test_without_a_review_normaliser_the_seam_is_exactly_what_it_was(
 
     assert (verdict.outcome, verdict.reasons) == (REJECT, (VALUE_NOT_NORMALIZABLE,))
     assert _subject_rows(world) == []
+
+
+def test_a_title_beside_a_stronger_code_is_a_candidate_and_not_a_contradiction(
+        site_a_conn, tmp_path):
+    """CHECK 4 DOES NOT RUN ON A TITLE, AND THIS IS THE PIN FOR IT.
+
+    `cli.contradicts_stronger` normalises before it compares and answers `False`
+    when the normaliser declines, on a reason its own docstring gives: *"check 3
+    runs first and has already rejected it"*. That sentence is no longer true of a
+    title, so a file carrying a `validated` `subject = PHYS1401` and a model saying
+    `subject = "University Writing"` gets both, and no `CONTRADICTED_BY_STRONGER`.
+
+    That is `104` §13.6's direction and not an accident -- *"a hard veto only when a
+    model fact is not grounded ... every other check, including rule-fact precedence
+    over model facts, is shown to the model as a flag"* -- and it costs nothing here
+    because the second row is `possible`: it cannot outrank the code and cannot
+    become a folder. It is recorded rather than left to be discovered, because the
+    day the review path writes anything stronger, this test is where it breaks.
+    """
+    world = _world(site_a_conn, tmp_path,
+                   released="PHYS 1401 University Writing",
+                   stronger=("subject", "PHYS1401"))
+    verdict = _verdicts(
+        world, _response("subject", "University Writing", key=world.released_key,
+                         span="University Writing"), apply=True)
+
+    assert (verdict.outcome, verdict.reasons) == (ACCEPT_CONTEXT_SUPPORTED, ())
+    assert sorted(_subject_rows(world)) == [
+        (POSSIBLE, "University Writing"), (VALIDATED, "PHYS1401")]
 
 
 def test_the_deterministic_pass_still_refuses_every_title_it_ever_refused(

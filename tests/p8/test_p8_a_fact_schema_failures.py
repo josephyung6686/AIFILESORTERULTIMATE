@@ -335,7 +335,7 @@ def test_the_ratified_schema_cannot_express_template_rule_8(world):
         SCHEMA_INVALID,)
 
 
-#: The four places the ratified schema closes the object and the template never
+#: The five places the ratified schema closes the object and the template never
 #: mentions a limit. `additionalProperties: false` says "no other keys"; the template
 #: prints a shape and says nothing about extra ones, and the paragraph that DOES close
 #: a key set closes the DOSSIER's ("has these keys and no others"), not the response's.
@@ -349,14 +349,20 @@ CLOSED_IN_THE_SCHEMA: tuple[tuple[str, ...], ...] = (
 
 
 @pytest.mark.parametrize("path", CLOSED_IN_THE_SCHEMA, ids=lambda p: "/".join(p) or "root")
-def test_the_schema_closes_four_objects_the_template_never_closes(path):
+def test_the_schema_closes_five_objects_the_template_never_closes(path):
     """CONTRACT GAP, and it is the one the task names: the schema demands something
-    the template does not ask the model for."""
+    the template does not ask the model for.
+
+    The template DOES close one key set -- *"The dossier has these keys and no
+    others"* -- and that sentence is about the dossier it was handed, not about the
+    response it sends. Nothing in it limits the keys of a claim, a payload, a
+    citation or the object around them.
+    """
     node = RESPONSE_SCHEMA
     for step in path:
         node = node[step]
     assert node["additionalProperties"] is False
-    assert "no other keys" not in TEMPLATE_TEXT
+    assert "The dossier has these keys and no others" in TEMPLATE_TEXT
     assert "additional" not in TEMPLATE_TEXT.lower()
 
 
