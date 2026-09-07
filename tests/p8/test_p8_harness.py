@@ -162,6 +162,7 @@ def _fact_bundle(conn, subject):
             fact_dependencies=FactValidationDependencies(
                 normalize=lambda field, raw: raw,
                 contradicts=lambda proposal, row: False,
+                normalize_for_review=None,
             ),
         ),
         placement=None, residual=None, template=None,

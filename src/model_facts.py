@@ -297,6 +297,12 @@ class FactCallAuthorities:
     #: usage sink is optional by design: the local transport reports no usage, and
     #: a deployment recording none is a real deployment.
     usage_recorder: object | None = None
+    #: CHECK 3'S REVIEW HALF (`104` R-98), the third member of the C-5 pair's family
+    #: and the deployment's like the other two. `cli.normalize_for_review` answers it
+    #: here; a deployment that authors none has no review path, which is what check 3
+    #: did before this field existed, so the default is the old behaviour rather than
+    #: a fallback that guesses.
+    normalize_for_review: Callable[[str, str], object] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "folder_levels",
@@ -642,7 +648,8 @@ def _call_dependencies(
                 fact_request=request,
                 fact_dependencies=FactValidationDependencies(
                     normalize=authorities.normalize,
-                    contradicts=authorities.contradicts)),
+                    contradicts=authorities.contradicts,
+                    normalize_for_review=authorities.normalize_for_review)),
             placement=None, residual=None, template=None),
         contradicts=authorities.contradicts,
         # MEASURED, not asserted. This was the literal `True`, which told §8.6's

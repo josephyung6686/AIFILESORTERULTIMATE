@@ -144,6 +144,9 @@ def _world_for_schema(conn, tmp_path, *, schema_id: str,
             fact_dependencies=FactValidationDependencies(
                 normalize=normalize_for_model,
                 contradicts=contradicts_stronger,
+                # This suite measures the glossary as a value source, which is a
+                # question about check 3's FIRST half only.
+                normalize_for_review=None,
             ),
         ),
         placement=None, residual=None, template=None,

@@ -214,6 +214,11 @@ def _world(
             fact_dependencies=FactValidationDependencies(
                 normalize=normalize_for_model,
                 contradicts=contradicts_stronger,
+                # `76` §7's fifteen are recorded against check 3's identifier half,
+                # which is what S1 and S6's control measure. The review half
+                # (`104` R-98) has its own file and its own cases, and turning it on
+                # here would move two ratified rows without measuring anything.
+                normalize_for_review=None,
             ),
         ),
         placement=None, residual=None, template=None,
