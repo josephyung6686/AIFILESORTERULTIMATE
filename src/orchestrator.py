@@ -50,8 +50,11 @@ from extractors.authorship import COMPONENT_VERSION, SUBSYSTEM
 from extractors import ocr, pdf
 from extractors.dispatch import (
     current_versions, extract, extract_initial, extract_targeted_ocr,
+    targeted_ocr_wanted,
 )
-from extraction_pool import CONTRACT, DATALESS, PROTECTED, ExtractionRequest
+from extraction_pool import (
+    CONTRACT, DATALESS, PROTECTED, ExtractionRequest, TargetedOcrRequest,
+)
 from extractors.failure import ContractViolation, failed_result
 from extractors.filesystem import dataless_result, extract_filesystem
 from extractors.long_tail import record_sensitivity_signals
@@ -216,6 +219,31 @@ def _write(sink, result, written: list[str]) -> str:
     run_id = sink.write(result)
     written.append(run_id)
     return run_id
+
+
+def _targeted(outcome) -> tuple:
+    """The targeted OCR pass's results, with its three refusals raised again.
+
+    **THE OLD BEHAVIOUR, PRESERVED EXACTLY.** Before R-138 this pass ran on the
+    calling thread with nothing catching it, so a `ProtectedContainerRefused`, a
+    `DatalessRefused` or a `ContractViolation` from inside it propagated out of
+    `run_p1_p7` and ended the run. A pool cannot raise across a process boundary and
+    names the outcome instead, so the raise has to be put back here -- and putting
+    back something weaker would be a silent change to what a run does about a
+    protected path, decided by where the work happens rather than by anybody.
+
+    `_consume` above answers the same three kinds differently, and the difference is
+    not an inconsistency: that loop is P5's FIRST pass, where §2.4 gives a refused
+    file a `dataless` run or no run at all. This is the optional second pass over a
+    file that already has its native run, and it had no such contract.
+    """
+    if outcome.kind == PROTECTED:
+        raise ProtectedContainerRefused(outcome.message)
+    if outcome.kind == DATALESS:
+        raise DatalessRefused(outcome.message)
+    if outcome.kind == CONTRACT:
+        raise ContractViolation(outcome.message)
+    return tuple(outcome.dispatched.results) if outcome.dispatched else ()
 
 
 def _landed(result: ExtractionResult, when: str) -> ExtractionResult:
@@ -649,10 +677,15 @@ def run_p1_p7(
     drives. Neither changes WHEN a row is written -- every database write stays here,
     on this thread, in roster order.
 
-    **`extract_targeted_ocr` BELOW IS NOT UNDER THAT DEADLINE.** It runs on this
-    thread, after `pool.close()`, and it reaches the same Vision engine the pool
-    exists to bound. R-138 bounded the extraction loop and left this one, and it is
-    named here rather than left to be discovered.
+    **THE TARGETED OCR PASS IS UNDER IT TOO, and it is where r6 actually hung.**
+    That pass used to run on this thread, after `pool.close()`, reaching the same
+    Vision engine the pool exists to bound. Sampled at the hang, the run process's
+    MAIN thread was inside `-[VNImageRequestHandler performRequests:]` through
+    PyObjC, and the process held no Python-created thread at all -- no executor
+    manager, no queue feeder -- so the pool had been built and closed and this was
+    the only Vision call left here. `dispatch.targeted_ocr_wanted` now decides on
+    this thread, where P6's persisted pass lives, and the reading is submitted;
+    `pool.close()` therefore moved below the fact loop.
     """
     scan_run_id = scan(
         conn, selection_id, source=source, mime_type_for=mime_type_for,
@@ -806,117 +839,150 @@ def run_p1_p7(
                 _consume(window.popleft())
         while window:
             _consume(window.popleft())
-    finally:
-        # INCLUDING the way out through a `ContractViolation`: without this the raise
-        # would wait on every in-flight extraction before surfacing.
-        pool.close()
-
-    # Preserve the dataless state transition even when P3's stat cache says REUSE.
-    for detection in dataless_detections(conn, scan_run_id):
-        row = conn.execute(
-            "SELECT file_id FROM files WHERE current_path = ?", (detection["path"],)
-        ).fetchone()
-        if row is None:
-            continue
-        file_row = get_file(conn, row["file_id"])
-        decision = route(
-            file_id=file_row["file_id"], content_hash=file_row["content_hash"],
-            path=Path(file_row["current_path"]), extension=file_row["extension"],
-            detect_format=detect_format)
-        result = dataless_result(
-            file_row=file_row,
-            error=DatalessRefused(f"{detection['path']} is a dataless item"),
-            source_type=decision.source_type, now=now())
-        _write(sink, result, written)
-        set_extraction_status(
-            conn, file_row["file_id"],
-            status_by_tier={**json.loads(
-                get_file(conn, file_row["file_id"])["extraction_status_by_tier"]
-                or "{}"), **extraction_status_by_tier([result.run])},
-            author=SUBSYSTEM, component_version=COMPONENT_VERSION)
-
-    fact_results: list[tuple[Any, ...]] = []
-    fact_results_by_file: list[FileFactResults] = []
-    for file_id in roster:
-        if file_id in protected_refused:
-            continue
-        file_row = get_file(conn, file_id)
-        content_hash = file_row["content_hash"]
-        if (file_id in reused and _has_successful_ocr_coverage(
-                conn, file_id=file_id, content_hash=content_hash)):
-            initial_ocr_completed.add(file_id)
-        if file_id in initial_ocr_completed:
-            per_file = [resolve_with_ocr(conn, file_id, content_hash)]
-        else:
-            per_file = [resolve_native(conn, file_id, content_hash)]
-
-        native = native_results.get(file_id)
-        if (native is None and file_id in reused
-                and file_id not in initial_ocr_completed):
+        # Preserve the dataless state transition even when P3's stat cache says REUSE.
+        for detection in dataless_detections(conn, scan_run_id):
+            row = conn.execute(
+                "SELECT file_id FROM files WHERE current_path = ?", (detection["path"],)
+            ).fetchone()
+            if row is None:
+                continue
+            file_row = get_file(conn, row["file_id"])
             decision = route(
+                file_id=file_row["file_id"], content_hash=file_row["content_hash"],
+                path=Path(file_row["current_path"]), extension=file_row["extension"],
+                detect_format=detect_format)
+            result = dataless_result(
+                file_row=file_row,
+                error=DatalessRefused(f"{detection['path']} is a dataless item"),
+                source_type=decision.source_type, now=now())
+            _write(sink, result, written)
+            set_extraction_status(
+                conn, file_row["file_id"],
+                status_by_tier={**json.loads(
+                    get_file(conn, file_row["file_id"])["extraction_status_by_tier"]
+                    or "{}"), **extraction_status_by_tier([result.run])},
+                author=SUBSYSTEM, component_version=COMPONENT_VERSION)
+
+        fact_results: list[tuple[Any, ...]] = []
+        fact_results_by_file: list[FileFactResults] = []
+        for file_id in roster:
+            if file_id in protected_refused:
+                continue
+            file_row = get_file(conn, file_id)
+            content_hash = file_row["content_hash"]
+            if (file_id in reused and _has_successful_ocr_coverage(
+                    conn, file_id=file_id, content_hash=content_hash)):
+                initial_ocr_completed.add(file_id)
+            if file_id in initial_ocr_completed:
+                per_file = [resolve_with_ocr(conn, file_id, content_hash)]
+            else:
+                per_file = [resolve_native(conn, file_id, content_hash)]
+
+            native = native_results.get(file_id)
+            if (native is None and file_id in reused
+                    and file_id not in initial_ocr_completed):
+                decision = route(
+                    file_id=file_id, content_hash=content_hash,
+                    path=Path(file_row["current_path"]),
+                    extension=file_row["extension"], detect_format=detect_format)
+                if decision.extractor_name == pdf.EXTRACTOR_NAME:
+                    try:
+                        persisted = authoritative_result(
+                            conn, file_id=file_id, content_hash=content_hash,
+                            extractor_name=pdf.EXTRACTOR_NAME,
+                            extractor_version=versions[pdf.EXTRACTOR_NAME],
+                            analysis_tier=pdf.ANALYSIS_TIER)
+                    except AmbiguousAuthoritativeRun as error:
+                        raise ContractViolation(
+                            "targeted OCR cannot choose an authoritative persisted "
+                            f"native run: {error}") from error
+                    if persisted is not None:
+                        native = (decision, persisted)
+            targeted_completed = False
+            targeted_results: tuple = ()
+            if native is not None and file_id not in initial_ocr_completed:
+                decision, native_result = native
+                # THE DECISION HERE AND THE READING SOMEWHERE KILLABLE, which is
+                # R-138 and the reason `extract_targeted_ocr` was split. This half
+                # asks P6's persisted pass -- `targeted_ocr_needed` holds the
+                # connection and cannot leave this thread -- and it is asked exactly
+                # when it was asked before, so a deployment with no engine still
+                # reaches the raise that `no_usable_facts` makes when §2.2's verdict
+                # is consulted too early.
+                #
+                # `ocr_engine is not None` is tested AFTER the decision and not
+                # before it, and the order is deliberate: `_ocr` returns None for a
+                # deployment with no engine, so the pass produced no results either
+                # way, and moving the test earlier would skip a question this loop
+                # has always asked.
+                if (targeted_ocr_wanted(
+                        file_row=file_row, decision=decision,
+                        native_result=native_result,
+                        no_usable_facts=targeted_ocr_needed)
+                        and readers.ocr_engine is not None):
+                    # BOUNDED, and this is the call r6 hung inside. Sampled at the
+                    # hang, the run process's MAIN thread was in
+                    # `-[VNImageRequestHandler performRequests:]` through PyObjC with
+                    # no Python thread alive anywhere in the process -- the executor
+                    # had been built and closed, so this was the only Vision call
+                    # left on the calling thread. One request, consumed immediately:
+                    # the pass is per file and there is nothing to read ahead of.
+                    targeted_results = _targeted(pool.result(pool.submit(
+                        TargetedOcrRequest(
+                            file_id=file_id, file_row=dict(file_row),
+                            path=Path(file_row["current_path"]), now=now(),
+                            context_window=context_window))))
+                for result in targeted_results:
+                    _write(sink, result, written)
+                    # A successful OCR run completes the second P6 pass even when its
+                    # finder emits zero structured observations: the persisted OCR-tier
+                    # pass is also the termination record. A failed OCR run is persisted
+                    # but must not pretend that OCR evidence was successfully covered.
+                    targeted_completed = (
+                        targeted_completed
+                        or (result.run.get("finished_at") is not None
+                            and result.run.get("failure_reason") is None))
+                if targeted_results:
+                    prior = json.loads(
+                        get_file(conn, file_id)["extraction_status_by_tier"] or "{}")
+                    set_extraction_status(
+                        conn, file_id,
+                        status_by_tier={**prior, **extraction_status_by_tier(
+                            [result.run for result in targeted_results])},
+                        author=SUBSYSTEM, component_version=COMPONENT_VERSION)
+            if targeted_completed:
+                per_file.append(resolve_with_ocr(conn, file_id, content_hash))
+            per_file_results = tuple(per_file)
+            fact_results.append(per_file_results)
+            fact_results_by_file.append(FileFactResults(
                 file_id=file_id, content_hash=content_hash,
-                path=Path(file_row["current_path"]),
-                extension=file_row["extension"], detect_format=detect_format)
-            if decision.extractor_name == pdf.EXTRACTOR_NAME:
-                try:
-                    persisted = authoritative_result(
-                        conn, file_id=file_id, content_hash=content_hash,
-                        extractor_name=pdf.EXTRACTOR_NAME,
-                        extractor_version=versions[pdf.EXTRACTOR_NAME],
-                        analysis_tier=pdf.ANALYSIS_TIER)
-                except AmbiguousAuthoritativeRun as error:
+                results=per_file_results))
+
+            candidate = classify(conn, file_id, content_hash)
+            if candidate is not None:
+                if (candidate.file_id != file_id
+                        or candidate.content_hash != content_hash):
                     raise ContractViolation(
-                        "targeted OCR cannot choose an authoritative persisted "
-                        f"native run: {error}") from error
-                if persisted is not None:
-                    native = (decision, persisted)
-        targeted_completed = False
-        if native is not None and file_id not in initial_ocr_completed:
-            decision, native_result = native
-            targeted = extract_targeted_ocr(
-                file_row=file_row, decision=decision,
-                path=Path(file_row["current_path"]), policy=policy,
-                readers=readers, now=now(), context_window=context_window,
-                native_result=native_result,
-                no_usable_facts=targeted_ocr_needed)
-            for result in targeted.results:
-                _write(sink, result, written)
-                # A successful OCR run completes the second P6 pass even when its
-                # finder emits zero structured observations: the persisted OCR-tier
-                # pass is also the termination record. A failed OCR run is persisted
-                # but must not pretend that OCR evidence was successfully covered.
-                targeted_completed = (
-                    targeted_completed
-                    or (result.run.get("finished_at") is not None
-                        and result.run.get("failure_reason") is None))
-            if targeted.results:
-                prior = json.loads(
-                    get_file(conn, file_id)["extraction_status_by_tier"] or "{}")
-                set_extraction_status(
-                    conn, file_id,
-                    status_by_tier={**prior, **extraction_status_by_tier(
-                        [result.run for result in targeted.results])},
-                    author=SUBSYSTEM, component_version=COMPONENT_VERSION)
-        if targeted_completed:
-            per_file.append(resolve_with_ocr(conn, file_id, content_hash))
-        per_file_results = tuple(per_file)
-        fact_results.append(per_file_results)
-        fact_results_by_file.append(FileFactResults(
-            file_id=file_id, content_hash=content_hash,
-            results=per_file_results))
+                        "classifier candidate does not match the requested file version: "
+                        f"requested {(file_id, content_hash)!r}, got "
+                        f"{(candidate.file_id, candidate.content_hash)!r}")
+                assign(
+                    conn, candidate, store=classification_store,
+                    component_version=p7_component_version)
 
-        candidate = classify(conn, file_id, content_hash)
-        if candidate is not None:
-            if (candidate.file_id != file_id
-                    or candidate.content_hash != content_hash):
-                raise ContractViolation(
-                    "classifier candidate does not match the requested file version: "
-                    f"requested {(file_id, content_hash)!r}, got "
-                    f"{(candidate.file_id, candidate.content_hash)!r}")
-            assign(
-                conn, candidate, store=classification_store,
-                component_version=p7_component_version)
-
+    finally:
+        # AFTER THE FACT LOOP AND NOT AFTER THE EXTRACTION LOOP, which is R-138.
+        # `extract_targeted_ocr` is submitted above, so a pool closed at the end of
+        # the extraction loop would be closed before the pass that needs it -- and
+        # that pass reaches Vision, which is where r6 hung. The cost is that seven
+        # workers stay alive, idle, through P4's resolution and P7's classification;
+        # the alternative is a second pool built for one loop, which pays a second
+        # round of interpreter starts to save memory this machine has.
+        #
+        # It still covers the way out through a `ContractViolation`: without
+        # `cancel_futures` the raise would wait on every in-flight extraction
+        # before surfacing.
+        pool.close()
     # THE ENVELOPE ALWAYS; ITS BULK ONLY WHEN SOMETHING WILL READ IT.
     #
     # `bundle_manifest` is an AUDIT RECORD, not an optimisation: it carries

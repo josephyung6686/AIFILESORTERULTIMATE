@@ -500,10 +500,11 @@ def test_a_corpus_far_too_small_for_a_pool_still_gets_one(second_db, tmp_path):
     composition root and Apple's Vision framework, and small folders are the owner's
     ORDINARY case. The measurement was real and the trade was wrong: nothing bounds
     a reader running on the calling thread, and `readers/ocr_vision.py` reaches a
-    framework whose dispatch queues deadlock. r6 hung ten minutes at 0 % CPU inside
-    CoreImage with `EXTRACTION_WORKERS` at seven and a floor of thirty-two, which is
-    to say on the calling thread, below the floor, exactly where the assertion this
-    replaces said a worker must not be.
+    framework whose dispatch queues deadlock. r6 hung ten minutes at 0 % CPU with
+    its main thread inside `-[VNImageRequestHandler performRequests:]` -- on the
+    calling thread, exactly where the assertion this replaces said a worker must not
+    be. (That call was the targeted OCR pass rather than a below-floor read; the
+    floor was the same defect in the extraction loop, and both are bounded now.)
 
     Eight files is a quarter of the old floor. Every one of them is read in a
     worker, and the assertion reads `started` rather than `_pool is not None` for

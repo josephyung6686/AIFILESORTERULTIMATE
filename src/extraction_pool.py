@@ -88,7 +88,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
-from extractors.dispatch import Dispatched, extract_initial
+from extractors import ocr
+from extractors.dispatch import (
+    Dispatched, extract_initial, perform_targeted_ocr,
+)
 from extractors.failure import ContractViolation, failed_result
 from extractors.safety import DatalessRefused, ProtectedContainerRefused
 from extractors.sink import ExtractionResult
@@ -137,6 +140,30 @@ class ExtractionRequest:
 
 
 @dataclass(frozen=True)
+class TargetedOcrRequest:
+    """§2.7's post-P6 OCR pass for one PDF, as data. R-138.
+
+    **IT CARRIES NO PRIOR RESULT AND NO VERSION TABLE, and both absences are the
+    point.** `extract_targeted_ocr` takes a `native_result` and a database-backed
+    predicate, and neither can cross a process boundary usefully: the predicate
+    holds a connection, and the prior result is the file's whole native reading,
+    which would be pickled in full to be looked at once. `dispatch.targeted_ocr_wanted`
+    spends both on the calling thread and what is left is this -- a path, a stamp
+    and the row -- which is everything `perform_targeted_ocr` needs.
+
+    No `versions` either, because the run this can fail into is an OCR run and
+    `ocr.VERSION` is a constant this deployment does not vary. `ExtractionRequest`
+    needs the table because the extractor it fails into is whichever one the router
+    named.
+    """
+    file_id: str
+    file_row: Mapping[str, Any]
+    path: Path
+    now: str
+    context_window: int
+
+
+@dataclass(frozen=True)
 class ExtractionOutcome:
     """What `perform` decided, in a form that survives a process boundary."""
     kind: str
@@ -144,7 +171,7 @@ class ExtractionOutcome:
     message: str = ""
 
 
-def perform(request: ExtractionRequest,
+def perform(request: ExtractionRequest | TargetedOcrRequest,
             context: ExtractionContext) -> ExtractionOutcome:
     """`extract_initial` plus the caller's inner `except`, named rather than raised.
 
@@ -153,7 +180,16 @@ def perform(request: ExtractionRequest,
     failure contract is how the parallel path and the serial path would come to
     disagree about one corrupt PDF. `InlinePool` below runs this same function, so
     a pool that reads on the calling thread and every worker execute one body.
+
+    **BOTH REQUEST KINDS ARRIVE HERE, and that is why the dispatch is one line at
+    the top rather than a second entry point.** `InlinePool.result` and
+    `_perform_in_worker` are the only two callers, so a second `perform_*` would
+    have to be reached by both, through a pool that had learned to tell them apart
+    -- and the pool's whole shape is that a handle is a handle. The request knows
+    what it is; nothing else has to.
     """
+    if isinstance(request, TargetedOcrRequest):
+        return _perform_targeted(request, context)
     try:
         dispatched = extract_initial(
             file_row=request.file_row, decision=request.decision, path=request.path,
@@ -180,6 +216,64 @@ def perform(request: ExtractionRequest,
             extractor_version=version,
             source_type=request.decision.source_type, now=request.now),)))
     return ExtractionOutcome(DISPATCHED, dispatched)
+
+
+def _perform_targeted(request: TargetedOcrRequest,
+                      context: ExtractionContext) -> ExtractionOutcome:
+    """`perform`, for the pass `targeted_ocr_wanted` already authorized.
+
+    The three refusals come back as the kinds the caller re-raises, exactly as they
+    do above, because `orchestrator.run_p1_p7` let them propagate out of
+    `extract_targeted_ocr` before this pass moved off its thread and a pool that
+    swallowed them would change what a run does about a protected path.
+
+    The catch-all is reached only by something outside `_ocr`, which has its own:
+    "an engine that RAISES is a runtime event", turned into a `failed` OCR run
+    there rather than allowed to discard the native result the caller is holding.
+    Kept anyway, because a worker cannot raise into its caller and an outcome is
+    the only way anything gets back.
+    """
+    try:
+        dispatched = perform_targeted_ocr(
+            file_row=request.file_row, path=request.path, policy=context.policy,
+            readers=context.readers, now=request.now,
+            context_window=request.context_window)
+    except ProtectedContainerRefused as refusal:
+        return ExtractionOutcome(PROTECTED, message=str(refusal))
+    except DatalessRefused as refusal:
+        return ExtractionOutcome(DATALESS, message=str(refusal))
+    except ContractViolation as violation:
+        return ExtractionOutcome(CONTRACT, message=str(violation))
+    except Exception as error:                       # noqa: BLE001 -- §2.4's rule
+        return ExtractionOutcome(
+            DISPATCHED, Dispatched((_targeted_failure(request, error),)))
+    return ExtractionOutcome(DISPATCHED, dispatched)
+
+
+def _targeted_failure(request: TargetedOcrRequest,
+                      error: BaseException) -> ExtractionResult:
+    """The `failed` run a lost targeted OCR pass gets, ON THE OCR TIER.
+
+    **THE TIER IS THE WHOLE OF THIS FUNCTION.** The obvious thing -- reuse
+    `_failure_outcome`, which names `request.decision.extractor_name` -- would write
+    a second `pdf.text native failed` run beside the `pdf.text native complete` run
+    this file already has, because the native pass SUCCEEDED and it is the optional
+    second pass that was lost. Three things then read that row and all three read it
+    wrongly: `WORST_FIRST` reports the file as failed when its text was recovered,
+    `set_extraction_status` marks the native tier failed for a tier that finished,
+    and `authoritative_result` meets two native runs for one content hash and raises
+    `AmbiguousAuthoritativeRun` on the NEXT run over the same corpus.
+
+    So the attribution is `_ocr`'s own, unchanged: the unreported provider name, the
+    OCR version, the OCR source type and the OCR tier. That is the row a person can
+    act on -- the text was read, the picture of it was not.
+    """
+    return failed_result(
+        file_row=request.file_row, error=error,
+        extractor_name=ocr.UNREPORTED_PROVIDER_NAME,
+        extractor_version=ocr.VERSION,
+        source_type=ocr.SOURCE_TYPE, now=request.now,
+        analysis_tier=ocr.ANALYSIS_TIER)
 
 
 def _failed_version(decision, versions: Mapping[str, str]) -> str:
@@ -217,7 +311,7 @@ class InlinePool:
     def __init__(self, context: ExtractionContext) -> None:
         self._context = context
 
-    def submit(self, request: ExtractionRequest) -> Any:
+    def submit(self, request: ExtractionRequest | TargetedOcrRequest) -> Any:
         return request
 
     def result(self, handle: Any) -> ExtractionOutcome:
@@ -246,9 +340,15 @@ class ProcessPool:
     its own thread -- that is the whole reason the ceiling kills a PROCESS -- so a
     file read below the floor ran with no deadline at all, and this module's own
     history says what that costs: `_watch_the_parent` records a segfault taken on a
-    file read below the floor, and R-138 records a run that hung at 0 % CPU for ten
-    minutes with `EXTRACTION_WORKERS` at seven and a floor of thirty-two, which is to
-    say entirely on the calling thread.
+    file read below the floor.
+
+    R-138's own hang was NOT this path, and the correction is kept because the row
+    reads otherwise. Sampled, r6's main thread was inside
+    `-[VNImageRequestHandler performRequests:]` with no Python thread alive in the
+    process, which places it after `pool.close()` in `orchestrator`'s fact loop --
+    the targeted OCR pass, now submitted here like any other reading. The floor was
+    the second unbounded path of the same class, found while looking for the first,
+    and a bound that holds for one and not the other is not a bound.
 
     **The alternative was a list, and a list is the thing that silently omits.**
     Keeping the floor means naming which requests may run here, and on this
@@ -382,14 +482,15 @@ class ProcessPool:
                 initializer=_install_context, initargs=(self._factory,))
         return self._pool
 
-    def submit(self, request: ExtractionRequest) -> Any:
+    def submit(self, request: ExtractionRequest | TargetedOcrRequest) -> Any:
         # EVERY request, and R-138 is why. A handle this method returned without a
         # worker behind it was a wait the ceiling in `result()` could not bound, and
         # a reader wedged inside Apple's frameworks on the calling thread is a run
         # that never ends. The class docstring holds the measurement.
         return self._submit(request, attempts=0)
 
-    def _submit(self, request: ExtractionRequest, *, attempts: int,
+    def _submit(self, request: ExtractionRequest | TargetedOcrRequest, *,
+                attempts: int,
                 ends: tuple[str, ...] = ()) -> Any:
         future = self._executor().submit(_perform_in_worker, request)
         self._outstanding[future] = (request, attempts + 1, ends)
@@ -676,7 +777,7 @@ class ProcessPool:
         self._deferred = []
 
 
-def _both_attempts_failed(request: ExtractionRequest,
+def _both_attempts_failed(request: ExtractionRequest | TargetedOcrRequest,
                           ends: tuple[str, ...]) -> str:
     """The reason for a file that has spent both of its attempts without a reading.
 
@@ -701,13 +802,37 @@ def _both_attempts_failed(request: ExtractionRequest,
     """
     named = "; ".join(f"attempt {number}: {end}"
                       for number, end in enumerate(ends, start=1))
-    return (f"two attempts at {request.decision.extractor_name} for this file, "
+    return (f"two attempts at {_reader_named(request)} for this file, "
             f"neither of which returned a reading -- {named}; the pool was rebuilt "
             "after each, so the rest of the run continues")
 
 
-def _failure_outcome(request: ExtractionRequest,
+def _reader_named(request: ExtractionRequest | TargetedOcrRequest) -> str:
+    """Which reader spent the two attempts, for the sentence a person reads.
+
+    A targeted pass has no routing decision -- `targeted_ocr_wanted` spent it on the
+    calling thread -- so it names the engine `_ocr` names. Reading
+    `request.decision` here would be an `AttributeError` inside the recovery path,
+    which is the one place in this module that must not raise.
+    """
+    if isinstance(request, TargetedOcrRequest):
+        return ocr.UNREPORTED_PROVIDER_NAME
+    return request.decision.extractor_name
+
+
+def _failure_outcome(request: ExtractionRequest | TargetedOcrRequest,
                      error: BaseException) -> ExtractionOutcome:
+    """The `failed` run for a request the pool gave up on, attributed to its tier.
+
+    A targeted pass fails on the OCR tier and never on the native one, and
+    `_targeted_failure` says at length what writing it natively would break: this
+    file's native run SUCCEEDED, and a second native row for the same content hash
+    is a file reported unread, a tier marked failed, and `AmbiguousAuthoritativeRun`
+    on the next run over the same corpus.
+    """
+    if isinstance(request, TargetedOcrRequest):
+        return ExtractionOutcome(
+            DISPATCHED, Dispatched((_targeted_failure(request, error),)))
     try:
         version = _failed_version(request.decision, request.versions)
     except ContractViolation as violation:
@@ -785,7 +910,8 @@ def _watch_the_parent() -> None:
     threading.Thread(target=until_the_parent_is_gone, daemon=True).start()
 
 
-def _perform_in_worker(request: ExtractionRequest) -> ExtractionOutcome:
+def _perform_in_worker(
+        request: ExtractionRequest | TargetedOcrRequest) -> ExtractionOutcome:
     if _CONTEXT is None:                             # pragma: no cover -- initializer
         raise ContractViolation(
             "a worker ran an extraction before its context was installed")
