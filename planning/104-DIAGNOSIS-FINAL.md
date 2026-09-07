@@ -253,7 +253,7 @@ lacked: **observe-only mode** for any newly wired site whose output application 
    `tests/p7/test_p7_no_safety_evidence.py` rewritten; `96` §20 amended; D1's xfail marker off.
 2. **R-02, R-03:** one answer to "may this file reach a model" shared by route and gate; the
    fact-pass sentence counts responses only.
-3. **R-25, R-30, R-26, R-38, R-39:** `scan_state='included'` filter in roster, names, rejections
+3. **R-25, R-30, R-26, R-38, R-39:** retire the two absent states (`NOT IN (superseded_content, path_no_longer_exists)`; a positive `='included'` filter would retire live `pending` and `unscanned` files, see §14.2) in roster, names, rejections
    and freeze; `signatures.py` into `_detect_format`; `review_gestures` called from the send
    path; `draft_for_answer_change` from `apply_answers`; role moment narrowed. The three strict
    xfails go green and lose their markers.
@@ -613,5 +613,80 @@ agent those agents dispatch, runs on Opus 5. The standing constraints do not mov
 containers are marked and counted, never opened; the corpus never enters git; no cloud
 ground-truth pass until SF-1 is closed; prompt text and vocabulary members are ratified by the
 owner, never by an agent.
+
+*Section added by Claude Fable 5.1.*
+
+
+---
+
+## 14. Wave 1 outcomes, corrections and new register entries (2026-09-06)
+
+Written by the lead as the branches merged. Every number here came from a run; every correction names
+the agent's measurement that forced it.
+
+### 14.1 What merged, with its row
+
+| Merge | Branch | Suite (passed / skipped / xfailed) | Offline coursework row (exact / rpwl / wrong / not placed; abstained; spillover) |
+|---|---|---|---|
+| baseline `995c94f` | — | 8022 / 19 / 28 | 0 / 6 / 0 / 32; 29 of 29; 11 |
+| `178a951` sf1-gate | SF-1 closed, one measured ceiling, payload instrument, D1 lift narrowed | 8053 / 19 / 24 | 0 / 6 / 0 / 32; 29 of 29; 11 (identical, as an offline run must be for a gate-only change) |
+| engine-fixes, local-a-fact | in verification at the time of writing; rows appended below as they land | | |
+
+Instrument on the owner's 199 files, offline (`tools.groundtruth.payload`): whole documents released
+**20 → 0**, largest dossier built **41,247 → 1,073 bytes**, built over the 4,000 ceiling **29 → 0** once
+measured, gate admits **82** files (was 42), protected **19 of 19** still refused, `no_safety_evidence`
+refusals **40 → 0** after the D1 lift. `f571d36` makes the documented pytest flag the default.
+
+### 14.2 Corrections to this document, from measurement
+
+- **§7 Phase 1 step 3 (R-25).** The fix is a negative filter, `NOT IN (superseded_content,
+  path_no_longer_exists)`, not `scan_state='included'`: `pending` and `unscanned` are present files.
+  Sites: `placement.groups.accepted_group_as_of`, `production.corpus_roster`, `cli.file_names`,
+  `cli.apply_rejections`; `_move_frozen_files` reads through `file_names` and needed no change.
+- **§11.1 row 6 (the six `Python 1006` files).** Does not reproduce offline. At `995c94f` and after the
+  step 5 fix alike, the five lecture notebooks leave `Python 1006` for the `Coursework` root on a direct
+  fact match (`auto_eligible`, margin 0.43); they do not stay put. Step 5 (refinement is not removal) is
+  correct in code and inert on this corpus for a structural reason: every `tree_nodes` row has
+  `parent_node_id = None`, so there is no child to refine into; no level divides because every placed
+  file names the same term, subject and work type. The acceptance case needs a tree with a child, which
+  needs the model (R-48 stays open; step 5 is pinned by 13 unit tests instead).
+- **Labels.** Five files want `PYTHON1006/lecture`; the sixth, `Lecture three exercise .py`, wants
+  `PYTHON1006/exercise`.
+- **§11.2 step 4, eliminated by measurement.** `signal_evaluator_for` is checked callable and never
+  called (P9); the live per-file gate is `ActivationSignal.activates` inside `cli.fact_call_authorities`.
+  The lead's route (persist the detector's recognition as a file fact and key the gate on it) was measured
+  before it was built: the detector answers *what a file is made of*, not *which situation it is part
+  of*. Over the owner's `sample/Desktop`: a résumé is an `Abstention`, `ambiguous`, tied
+  `career`/`college_applications`, so the guard never fires on the file it was written for; four of the
+  five lecture notebooks are `Recognition(code)`, the only files that corpus places correctly, and the
+  guard would strip `school`, `term`, `subject`, `instructor`, `work_type` from them and add
+  `repository`. The guard fires six times on that corpus and helps nobody. Pinned as five strict tests in
+  `tests/integration/test_step4_recognition_as_a_gate.py` over the real `Detector` and the real
+  `active_field_allowlist`. **R-37 (per-branch situation, the model deciding from valid options) carries
+  step 4**; no interim guard. The 57th field the fact route needed is the withheld `sensitivity_status`
+  twin (NEEDS-JOSEPH C5) and is not added.
+- **An inherited commit was red.** `72e3acf` committed a test that raised inside its own helper and never
+  reached its assertion; its message claimed "tests: one added". Caught by the finisher's full-suite run.
+  Rule restated: an agent's test claims are verified by the merge suite, never carried on trust.
+
+### 14.3 New register entries
+
+| # | Finding | Kind | Severity | Basis | Phase |
+|---|---|---|---|---|---|
+| R-50 | **No per-extraction time ceiling.** The extraction pool recovers from a worker that dies, not from one that never returns. Measured: three of seventeen scoreboard situations hung at 0% CPU; the sampled worker's main thread is in `-[VNRecognizeTextRequest …]` (Vision, via PyObjC, the OCR reader) → `-[CIContext render:toCVPixelBuffer:…]` → `_dispatch_sync_f_slow` / `__DISPATCH_WAIT_FOR_QUEUE__`, a deadlock inside Apple's frameworks; six workers idle in `sem_wait`; the parent waits in `result()`. `00`:257 says one file may not consume the run. | W | **Blocker** for measurement | run, sampled | 1 (assigned) |
+| R-51 | **Token measure is a character upper bound.** `model_facts.dossier_tokens` counts characters as tokens (safe direction, about 4× tighter than the design's intent for English, honest for CJK). Replace with a provider-calibrated count (the cloud transport's usage field; Ollama's `prompt_eval_count`) before Phase 2 widens excerpts, or the ceiling throttles coverage. | W | Medium | code | 2 |
+| R-52 | **Local latency levers.** Ollama reloads the model when `num_ctx` changes (283 s measured), so one window per run; a concurrent client with a different window forces reloads (62–87 s per call measured while the bench ran). A stable prompt PREFIX (template, folder levels, vocabulary first; the file's dossier last) is what lets the KV cache carry across files. Real smoke: 4 calls, 4,181–4,503 prompt tokens, `think: false`, `format: json`, no truncation, num_ctx 32,768. | P | Medium | run | 0a / D2 packet |
+| R-53 | **Site C asserts its dossier fits.** `model_placement.py:283` hardcodes `unreduced_fits=True`, the twin of R-07 at the placement site; must be measured the way `2981c79` measures A. | W | High (latent until C is wired) | code | 1 (W2-D) |
+| R-54 | **The local model repeats the `school` collector.** qwen3:8b answered `school = "PHYS 1401"` on the lecture and the syllabus: grounded, validated, and a course code. Same defect as §11.1's first row, different model; the D2 glossary revision is the fix and the packet's A-site bakeoff measures it. | M | High | run | D2 |
+
+### 14.4 Process facts worth keeping
+
+- The session scratchpad is shared with the wave's agents; the lead's baseline scorecards there were
+  deleted mid-wave. Lead artefacts now live outside it (`~/.graph-agent/lead/`); the baseline survives in
+  §9 and §14.1.
+- The scoreboard's load ceiling (8.0) refuses to start while agents run suites; the runs read placement
+  outcomes only, so `--force` is used with the note that no timing is read from such a run.
+- A machine reboot killed one wave of agents; every branch survived because agents commit per
+  deliverable. That rule stays.
 
 *Section added by Claude Fable 5.1.*
