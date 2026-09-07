@@ -46,6 +46,7 @@ from decimal import Decimal
 
 from database_agent.supersede import mark_superseded
 from llm_harness import P8Verdict, Refusal
+from llm_harness.vocabulary import ABSTAIN as P8_ABSTAIN
 from llm_harness.records import DossierRequest
 from llm_harness.vocabulary import (
     C_PLACEMENT, CHOOSE_RESIDUAL_DESTINATION, D_RESIDUAL, REJECT as P8_REJECT,
@@ -1380,6 +1381,52 @@ def _require_verdict(result, *, call_site: str) -> P8Verdict:
     )
 
 
+#: THE WORD EVERY UNRATIFIED TEMPLATE ID CARRIES. `104` §7 Phase 1 step 6 runs C
+#: and D in observe mode -- the call happens, the dossier, response and verdict are
+#: recorded, and nothing is applied -- until Phase 3 fixes R-15 and R-16.
+#:
+#: READ OFF THE PROMPT, because the prompt is the thing that makes it true. Every
+#: D2 draft id says `unratified` in the id itself, the packet manifest enforces it,
+#: and a record written under one already says so on its face. The alternative was
+#: a set of site names imported from the composition root, which points the
+#: dependency the wrong way -- P11 would learn which sites are provisional from the
+#: file that assembles it.
+#:
+#: A site running under text nobody ratified must not act on the answer. That is
+#: the whole rule, and it needs no second list to stay true: ratify the text, the
+#: id changes, and the site starts applying on the same run.
+UNRATIFIED_MARKER: str = "unratified"
+
+
+def _observed_only(result, *, prompt):
+    """The model's answer, recorded and then set aside. §6.12's abstention path.
+
+    R-15 IS WHY, and it is not hypothetical: `_invented_dimension` compares a
+    dimension's VALUE against the legal node ids, so every grounded answer site C
+    gives is rejected as invented. R-16 is the same shape at B. Applying a verdict
+    under a validator known to be wrong writes the wrong thing confidently.
+
+    The verdict is REWRITTEN rather than dropped, and the difference matters: the
+    real one is already on disk, written by `run_call` before this returns, so what
+    changes is only what P11 does next. An `ABSTAIN` outcome takes both callers
+    down the abstention path they already have -- `chosen_node_of` and
+    `residual_action_of` are never consulted, and no move plan, placement decision
+    or residual action is written.
+
+    Not a `Refusal`: the gate permitted this and P7 refused nothing, and a refusal
+    row would say the door stopped a call the door allowed.
+    """
+    template_id = getattr(prompt, "template_id", "") or ""
+    if UNRATIFIED_MARKER not in template_id:
+        return result
+    if not isinstance(result, P8Verdict):
+        # A refusal, a failed call or a missing capability is already an outcome
+        # P11 applies nothing to. Rewriting one would hide why it happened.
+        return result
+    return dataclasses.replace(
+        result, outcome=P8_ABSTAIN, disposition=P8_ABSTAIN, may_propose=False)
+
+
 def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
                       evidence, call_site: str, observed_at: str):
     """§6.12 step 7, and step 8 with it. P11 assembles the REQUEST, never a check.
@@ -1498,11 +1545,11 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
             max_dossier_tokens=inputs.limits.max_dossier_tokens),
         plan_version=inputs.plan_version, evidence_snapshot_id=snapshot,
     )
-    return call_placement(
+    return _observed_only(call_placement(
         conn, request, gate=inputs.gate, model_client=inputs.model_client,
         prompt=inputs.prompt, call_dependencies=dependencies,
         observed_at=lambda: observed_at,
-    )
+    ), prompt=inputs.prompt)
 
 
 # --- §6.8 and §6.9: the group plan -------------------------------------------------

@@ -190,6 +190,9 @@ from readers.deployment import macos_readers
 from readers.pdf_pdfium import pdfium_reader
 from readers.signatures import signature_detector
 from extraction_pool import ExtractionContext, InlinePool, ProcessPool
+from model_placement import (
+    PlacementCallAuthorities, model_path_injections,
+)
 from readers.model_deepseek import BASE_URL_NAME, CLOUD, CREDENTIAL_NAME
 from readers.model_ollama import (
     BASE_URL_NAME as LOCAL_BASE_URL_NAME,
@@ -828,6 +831,84 @@ def observe_group_authorities(fact_authorities, *, routing: TierRouting,
         # The SAME target the client is pointed at, read off the client rather
         # than built beside it.
         model_target=client.model_target)
+
+
+class ObservedSiteMustNotApply(RuntimeError):
+    """An observe-only site reached the code that would act on its answer."""
+
+
+def _must_not_apply(call_site: str):
+    """`chosen_node_of` and `residual_action_of` for a site that applies nothing.
+
+    `model_path_available()` reads all eight injections as a set, so these must be
+    present for C and D to run at all. They must also never be REACHED: the
+    observe lever in `_judge_with_model` rewrites the verdict to an abstention, and
+    both callers take their existing abstention path without consulting a resolver.
+
+    So they raise. A resolver that returned a plausible node would place a file on
+    the strength of a validator `104` R-15 says is wrong about every real value,
+    and it would do it silently the first time the lever was moved or removed. This
+    fails loudly instead, which is what an unreachable branch owes the next person
+    to make it reachable.
+    """
+    def resolve(_verdict: object):
+        raise ObservedSiteMustNotApply(
+            f"{call_site} is observe-only and something asked it to apply an "
+            f"answer. `104` §7 Phase 1 step 6 records the verdict and applies "
+            f"nothing until Phase 3 fixes R-15 and R-16, and the abstention that "
+            f"keeps this unreachable is in `_judge_with_model`. Writing a real "
+            f"resolver is the LAST step of turning this site on, not the first.")
+    return resolve
+
+
+def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
+                                 routing: TierRouting, plan_version: str) -> dict:
+    """Sites C and D, wired to run and to change nothing. Seven of the eight.
+
+    `sensitivity_policy` is NOT here: R-55 supplies it at `placement_inputs`
+    already, and P8's two sensitivity checks refuse with it whether or not a model
+    is configured. Overwriting it from here would take a refusal away.
+
+    `{}` when there is no routing or when C's tier is not on this device, which
+    leaves every field as `placement_inputs` had it and the model path off.
+    """
+    if routing is None:
+        return {}
+    locality = routing.locality_for(C_PLACEMENT)
+    if not observe_locality_permits(C_PLACEMENT, locality):
+        return {}
+    require_observe_locality(C_PLACEMENT, locality)
+    require_observe_locality(D_RESIDUAL, routing.locality_for(D_RESIDUAL))
+    authorities = PlacementCallAuthorities(
+        gate=fact_authorities.gate,
+        model_client=routing.client_for(C_PLACEMENT),
+        # C's text. D's is a different draft and `_judge_with_model` is shared, so
+        # the prompt it sends is C's for both -- which is a REAL limitation of
+        # wiring two sites through one function and is reported rather than hidden.
+        prompt=observe_prompt(C_PLACEMENT),
+        model_target=routing.client_for(C_PLACEMENT).model_target,
+        evidence_resolver=fact_authorities.evidence_resolver,
+        contradicts=fact_authorities.contradicts,
+        scan_budget=fact_authorities.scan_budget,
+        estimated_cost=fact_authorities.estimated_cost,
+        actual_cost=fact_authorities.actual_cost,
+        policy_version=fact_authorities.policy_version,
+        wire_handle_key=fact_authorities.wire_handle_key,
+        sensitivity_policy=sensitivity_policy_for(conn),
+        chosen_node_of=_must_not_apply(C_PLACEMENT),
+        residual_action_of=_must_not_apply(D_RESIDUAL))
+    built = model_path_injections(conn, authorities, plan_version=plan_version)
+    built.pop("sensitivity_policy", None)
+    return built
+
+
+#: The seven `model_path_injections` fills for C and D. `sensitivity_policy` is
+#: the eighth and is supplied at `placement_inputs` by R-55 whether or not a model
+#: is configured, so it is not in this set and is never overwritten from here.
+OBSERVE_PLACEMENT_FIELDS: tuple[str, ...] = (
+    "gate", "model_client", "prompt", "call_dependencies", "model_call_request",
+    "chosen_node_of", "residual_action_of",
+)
 
 
 def observe_prompt(call_site: str) -> PromptDefinition:
@@ -5021,6 +5102,9 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         return here
 
     def placement_inputs(tree) -> PipelineInputs:
+        observe_cd = (observe_placement_injections(
+            conn, fact_authorities[0], routing=routing,
+            plan_version=tree.tree.plan_version_id) if fact_authorities else {})
         asks = _home_questions(tree.tree)
         node_of = _node_for(tree.tree)
 
@@ -5070,8 +5154,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # §6.12 step 7's model path, absent in every part. `model_path_available`
             # reads these as a set: with them `None`, a file that needs a judgement
             # abstains with a reason instead of being decided by nothing.
-            gate=None, model_client=None, prompt=None, call_dependencies=None,
-            model_call_request=None, chosen_node_of=None, residual_action_of=None,
+            # `104` §7 Phase 1 step 6: C and D run and apply nothing. Seven of
+            # the eight arrive together or not at all -- `model_path_injections`
+            # is all-or-nothing, and a half set is the failure
+            # `model_path_available` exists to catch. Empty when no model is
+            # configured or when C's tier is not on this device, which leaves
+            # every one of them `None` and the model path off, exactly as before.
+            **{**dict.fromkeys(OBSERVE_PLACEMENT_FIELDS), **observe_cd},
             # SEVEN of the eight, not eight. This one is the exception and R-55 is
             # why: P8's two sensitivity checks REFUSE with it, and a refusal that
             # needs no ratified prompt should not wait for one. `None` here meant

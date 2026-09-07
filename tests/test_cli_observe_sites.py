@@ -178,3 +178,71 @@ def test_the_prompt_table_names_every_observe_site_and_no_other():
     """A site with no text would refuse at the first call rather than at the
     composition root, which is the half-injection the product refuses elsewhere."""
     assert set(cli.OBSERVE_TEMPLATE_ID) == cli.OBSERVE_CALL_SITES
+
+
+# --- C and D: the seven injections, and the resolvers that must not be reached -
+
+def test_the_seven_placement_fields_are_the_ones_r55_does_not_supply():
+    """`sensitivity_policy` is the eighth and is supplied at `placement_inputs`
+    whether or not a model is configured -- P8's two sensitivity checks refuse
+    with it, and a refusal that needs no ratified prompt must not wait for one.
+    Overwriting it from the observe builder would take a refusal away."""
+    from model_placement import MODEL_PATH_FIELDS
+
+    assert set(cli.OBSERVE_PLACEMENT_FIELDS) | {"sensitivity_policy"} == set(
+        MODEL_PATH_FIELDS)
+    assert "sensitivity_policy" not in cli.OBSERVE_PLACEMENT_FIELDS
+
+
+@pytest.mark.parametrize("site", [C_PLACEMENT, D_RESIDUAL])
+def test_an_observe_resolver_raises_rather_than_placing_a_file(site):
+    """`model_path_available()` reads all eight as a set, so C and D need a
+    `chosen_node_of` and a `residual_action_of` to run at all -- and the observe
+    lever in `_judge_with_model` means neither is ever reached.
+
+    They raise. A resolver that returned a plausible node would place a file on
+    the strength of a validator `104` R-15 says is wrong about every real value,
+    and it would do it silently the first time the lever moved. An unreachable
+    branch owes the next person to make it reachable a loud failure."""
+    resolve = cli._must_not_apply(site)
+
+    with pytest.raises(cli.ObservedSiteMustNotApply, match=site):
+        resolve(object())
+
+
+def test_the_observe_lever_turns_a_verdict_into_an_abstention():
+    """C and D apply nothing through the abstention path they already have.
+
+    The real verdict is on disk before this runs -- `run_call` wrote it -- so what
+    changes is only what P11 does next: an `ABSTAIN` outcome takes both callers
+    down their existing abstention branch and neither resolver is consulted."""
+    import dataclasses
+
+    from llm_harness.vocabulary import ABSTAIN, SCHEMA_INVALID, SCOPE_NODE
+    from llm_harness.records import P8Verdict, PromptDefinition
+    from placement.pipeline import _observed_only
+
+    placed = P8Verdict(
+        verdict_id="v", dossier_id="d", claim_ref="c", outcome="accept_direct",
+        disposition="llm_supported", reasons=(), may_propose=True,
+        requires_review=False, citations_checked=(), scope=SCOPE_NODE,
+        validator_version="vv", policy_version="pv", plan_version=None)
+    unratified = cli.observe_prompt(C_PLACEMENT)
+    ratified = dataclasses.replace(unratified, template_id="c_placement.ratified.1")
+
+    assert _observed_only(placed, prompt=unratified).outcome == ABSTAIN
+    assert _observed_only(placed, prompt=unratified).may_propose is False
+    # And a ratified site is untouched, which is what makes this reversible: the
+    # id changes and the site starts applying on the same run.
+    assert _observed_only(placed, prompt=ratified) is placed
+
+
+def test_a_refusal_is_not_rewritten_into_an_abstention():
+    """A refusal, a failed call or a missing capability is already an outcome P11
+    applies nothing to. Rewriting one would hide why it happened."""
+    from llm_harness.records import ValidationUnavailable
+    from placement.pipeline import _observed_only
+
+    missing = ValidationUnavailable(missing=("prompt",))
+
+    assert _observed_only(missing, prompt=cli.observe_prompt(C_PLACEMENT)) is missing
