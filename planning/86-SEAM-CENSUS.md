@@ -109,9 +109,18 @@ RECOGNITION  -> P1 P3 P7  ROOT
 ```
 
 `ROOT -> P8` is `create_llm_schema` and `create_budget_schema`. `ROOT -> P12` is
-`create_mutation_schema`. `ROOT -> P13` is `create_review_schema`. **Three whole parts
-whose only contact with a person's run is `CREATE TABLE`**, and their `-> P1` traffic
-above is that schema creation, not use.
+`create_mutation_schema` **and, since `104` R-N, `source_high_level_folder`**.
+`ROOT -> P13` is `create_review_schema`.
+
+**P12 is no longer `CREATE TABLE`-only on a plain run, and the reason is a defect
+this census helped find.** The proposal screen offered a Desktop file a home under
+the person's Downloads with `--may-cross-folders` off -- a move `resolution.py`
+refuses when the freeze reaches it. The screen now asks P12 the same question the
+freeze asks, `source_high_level_folder`, so the proposal and the plan cannot
+disagree about which high-level folder a file is in. It reads P12's predicate and
+nothing else: no plan is composed, no path is resolved, and P12 still writes
+nothing on a run without `--freeze`. P13 is unchanged and is still `CREATE
+TABLE`-only, and their `-> P1` traffic above is schema creation, not use.
 
 ---
 

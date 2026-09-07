@@ -320,7 +320,14 @@ def test_the_only_thing_a_live_run_asks_of_p8_p12_and_p13_is_a_table(_census):
         "defect from the one this guards.")
     for part, expected in ((("P8"), {"create_llm_schema", "create_budget_schema",
                                      "__post_init__"}),
-                           (("P12"), {"create_mutation_schema"}),
+                           # `source_high_level_folder` since `104` R-N: the
+                           # proposal screen asks P12 the same question the
+                           # freeze asks, so it cannot offer a move the plan
+                           # refuses. A PREDICATE and nothing more -- no plan is
+                           # composed, no path resolved, and P12 still writes
+                           # nothing on a run without `--freeze`.
+                           (("P12"), {"create_mutation_schema",
+                                      "source_high_level_folder"}),
                            (("P13"), {"create_review_schema"})):
         reached = symbols.get((ROOT, part), set())
         assert reached <= expected, (

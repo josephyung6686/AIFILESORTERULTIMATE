@@ -277,6 +277,7 @@ from tree_design.provenance import actor_phrase
 from mutation.schema import create_mutation_schema
 from mutation import vocabulary as mv
 from mutation.constraints import FilesystemConstraints
+from mutation.resolution import source_high_level_folder
 from tree_design.store import nodes_for_version
 from apply_run.approval import approval_reader, approval_writer
 from apply_run.branches import BranchRefused, branches_named
@@ -7421,6 +7422,59 @@ def _review_note(items: Sequence, areas: Sequence[str]) -> tuple[str, ...]:
     return tuple(lines)
 
 
+def high_level_folders(directory: Path, also_read: Sequence[Path],
+                       candidate_roots: Sequence[Path]) -> dict[str, Path]:
+    """§1.1's folder landscape, built once for the screen and for the freeze.
+
+    It was built inline where the freeze is composed, and `104` R-N is what that
+    cost: the report had no landscape, so it could not say which of its own
+    proposals crossed one of these folders, and it offered a Desktop file a home
+    under Downloads that the freeze then refused. One landscape, two readers.
+
+    The candidate roots are in it because they are part of the landscape, and
+    being in it makes nothing a destination: a destination needs a NODE whose
+    `root_anchor` names it.
+    """
+    return {ROOT_ANCHOR: directory,
+            **{str(folder): folder
+               for folder in (*also_read, *candidate_roots)}}
+
+
+def _crossing_moves(conn: sqlite3.Connection, result: ProductionRun, *,
+                    landscape: Mapping[str, Path]) -> dict[str, str]:
+    """Every proposed placement that would cross a high-level folder. `104` R-N.
+
+    `file_id -> the folder the file is in now`, named the way a person names it.
+    Empty when the person has already said such moves are allowed, because then
+    there is nothing to mark: the proposal is one the plan will carry out.
+
+    P12's own predicate, imported. `00`:20 makes crossing the person's third
+    choice, and a screen that answered it a second way would eventually tell
+    somebody a move is fine that the freeze refuses -- which is R-N exactly,
+    arrived at from the other side.
+    """
+    paths = dict(conn.execute("SELECT file_id, current_path FROM files"))
+    anchors = {node.node_id: node.root_anchor for node in result.tree.tree.nodes}
+    crossing: dict[str, str] = {}
+    for decision in result.placement.decisions:
+        if decision.destination is None:
+            continue
+        anchor = anchors.get(decision.destination.node_id)
+        if anchor is None:
+            continue
+        for file_id in _files_of(decision):
+            here = paths.get(file_id)
+            if here is None:
+                continue
+            source = source_high_level_folder(Path(here), landscape)
+            if source is None or source == anchor:
+                continue
+            # The folder's own name, not its path and not P10's anchor id.
+            crossing[file_id] = (
+                Path(landscape[source]).name if source in landscape else source)
+    return crossing
+
+
 def report(result: ProductionRun, names: dict[str, str], *, out=None,
            questions: Sequence = (), set_aside: Sequence = (),
            role_moment: Sequence[str] = (),
@@ -7429,6 +7483,7 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
            list_every_name: bool = False,
            show_protected: bool = False,
            locked: Mapping[str, str] = MappingProxyType({}),
+           crossing: Mapping[str, str] = MappingProxyType({}),
            not_carried: Sequence = ()) -> tuple[str, ...]:
     """The run, in the order a person would ask about it.
 
@@ -7610,9 +7665,20 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # cannot find the file behind is half a count.
         locked_here = tuple(sorted(
             file_id for file_id in _files_of(decision) if file_id in locked))
+        # `104` R-N. A MOVE THAT CROSSES A HIGH-LEVEL FOLDER KEYS APART, because
+        # it is not the same offer: `00`:20 makes crossing the person's own
+        # choice, they have not made it, and `mutation/resolution.py` refuses
+        # this one when the freeze reaches it. Printed beside moves that WILL
+        # happen, with nothing telling the two apart, it is a proposal a person
+        # cannot act on -- measured on a real Desktop file offered a home under
+        # Downloads. The folder names are in the key so two sources do not merge
+        # into one sentence naming one of them.
+        crossing_here = tuple(sorted({
+            crossing[file_id] for file_id in _files_of(decision)
+            if file_id in crossing}))
         key = (decision.outcome, where, reason, review,
                decision.review_policy if decision.outcome == pv.PLACE else None,
-               settled, same_folder, protected_here, locked_here)
+               settled, same_folder, protected_here, locked_here, crossing_here)
         members.setdefault(key, []).extend(_files_of(decision))
         shielded[key] = shielded.get(key, False) or protected_here
         marks = held_seen.setdefault(key, set())
@@ -7646,7 +7712,7 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
           file=out)
     for key in ordered:
         outcome, where, reason, review, policy, settled, same_folder, _, \
-            locked_here = key
+            locked_here, crossing_here = key
         files = sorted(members[key], key=lambda f: names.get(f, f))
         # A placement's headline comes from its REVIEW POLICY, because that is
         # what says whether anything may happen to the file. An unknown policy
@@ -7663,6 +7729,17 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             if where:
                 heading = f"{heading} into {where}"
         plural = "" if len(files) == 1 else "s"
+        if crossing_here:
+            # ON THE HEADING, not in a footnote: the heading is what a person
+            # reads to decide whether to freeze, and this branch will not move
+            # until they answer `00`:20's third question.
+            #
+            # Joined with "and" when the heading already carries a clause, so a
+            # file waiting on two answers reads as one sentence rather than as
+            # two headings run together.
+            heading = (f"{heading} and once you allow moves across folders"
+                       if ", once you " in heading
+                       else f"{heading}, once you allow moves across folders")
         print(f"\n  {heading} -- {len(files)} file{plural}", file=out)
         # `list_every_name` is set by the freeze run and by nothing else. The
         # owner ruled that a freeze IS the person's approval, and an approval
@@ -7729,6 +7806,16 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # `104` R-D, said where the file is listed and not only at the top. The
         # member NAMES are not printed: a locked archive's members can be
         # `passport.pdf`, which is the list `00`:201 is about.
+        if crossing_here:
+            where_from = ", ".join(crossing_here)
+            print(_wrapped(
+                f"These are in {where_from} and this folder is not, so filing "
+                f"them here would move them out of the folder they are in. "
+                f"`--may-cross-folders` is the permission for that and it was "
+                f"not given, so a freeze refuses this branch and nothing moves. "
+                f"Run the same command with `--may-cross-folders` to allow it, "
+                f"or leave it off and these stay where they are.",
+                indent="    "), file=out)
         for file_id in locked_here:
             print(_wrapped(
                 f"{names.get(file_id, file_id)} is password-protected: "
@@ -8767,6 +8854,7 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
     # it one so it could ask a second part a question would make the report a
     # place where new facts are discovered.
     held = live_roles(conn)
+    _landscape = high_level_folders(directory, also_read, candidate_roots)
     shown = report(result, file_names(conn, directory, *also_read), out=out,
                    questions=open_now,
                    set_aside=set_aside_questions(conn),
@@ -8780,6 +8868,12 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                    # docstring gives about `questions`: it takes a finished run
                    # and a naming table and holds no connection.
                    locked=locked_reasons(conn, result.p1_p7.scan_run_id),
+                   # `104` R-N, and the landscape below is the same object the
+                   # freeze resolves against, so the screen and the plan cannot
+                   # disagree about which folder a file is in.
+                   crossing=({} if args.may_cross_folders
+                             else _crossing_moves(conn, result,
+                                                  landscape=_landscape)),
                    # A §7.6 set answer belongs to the plan version it was given
                    # in, and every run mints a new one, so an answer given
                    # yesterday is not applied today. That is
@@ -8844,9 +8938,7 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         # same reason -- they are part of the landscape -- and being in it makes
         # nothing a destination: a destination needs a NODE whose `root_anchor`
         # names it, and `adopted_folders` refuses to build one over a root.
-        high_level_folders={ROOT_ANCHOR: directory,
-                            **{str(folder): folder
-                               for folder in (*also_read, *candidate_roots)}},
+        high_level_folders=_landscape,
         volume_of=_volume_of,
         protected_handling_classes=PROTECTED_CLASSES,
         # `74` §8 Q3 is open, so the only behaviour that can be frozen is the
