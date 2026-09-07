@@ -3923,7 +3923,22 @@ def _nesting_choices(options) -> tuple[NestingChoice, ...]:
     """
     choices = []
     for option in options:
-        warnings = list(option.warnings)
+        # P10's `Warning_` is a record: a `reason` written for the person, wrapped
+        # in three internal node ids they cannot act on. `NestingChoice.warnings`
+        # is declared `tuple[str, ...]` and lands on the `--answer` line the
+        # person is told to TYPE, so what goes there is the reason and nothing
+        # else -- a repr on that line was the defect
+        # `test_the_screen_never_prints_a_python_repr_or_an_internal_node_id`
+        # pinned.
+        #
+        # QUOTED, because the reason is English and English has apostrophes:
+        # "2 of this level's children hold 1 file(s) or fewer". The line it
+        # lands on is one a person may paste whole, and a bare apostrophe
+        # opens a shell quote that never closes -- the shell waits, and the
+        # command the line exists to carry never runs. Inside double quotes
+        # the words are the same words and the line still lexes as a line.
+        warnings = [f'"{warning.reason}"' if hasattr(warning, "reason")
+                    else warning for warning in option.warnings]
         report = option.validation
         if report is not None and report.failures:
             warnings.extend(f"{failure.check}: {failure.reason}"
@@ -5602,7 +5617,10 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 continue
             question = question_for_unreadable_folder(
                 folder=folder, choices=offered, file_count=len(file_ids),
-                protected_count=held)
+                protected_count=held,
+                # The scan root's relative name is `.`; the person typed a
+                # folder with a name, and that is the one the question uses.
+                shown_as=directory.name if folder == "." else None)
             record_question(conn, question, asked_at=clock)
             # The WORDS and the DESTINATIONS, not a `placement.records.Ask`. P11
             # owns that record and `test_ambiguity_cases` asserts `pipeline.py` is
@@ -7408,11 +7426,19 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # ordinary one; two holds with different reasons still key apart.
         review = tuple(dict.fromkeys(
             (item.protected, item.reason_not_placed) for item in held))
+        # THE DECISION'S OWN PROTECTION IS PART OF THE KEY. `shielded` below
+        # is OR-ed over a group, so a group that held one protected file and
+        # nine ordinary ones printed as "10 protected files, marked and
+        # counted" with no names -- measured after `--answer home:.=...`, which
+        # gives a folder's files one destination and one policy and so one
+        # key. A protected file is marked and counted as ITSELF; it does not
+        # take the syllabus beside it behind the summary with it.
+        protected_here = _protected(decision, sets)
         key = (decision.outcome, where, reason, review,
                decision.review_policy if decision.outcome == pv.PLACE else None,
-               settled, same_folder)
+               settled, same_folder, protected_here)
         members.setdefault(key, []).extend(_files_of(decision))
-        shielded[key] = shielded.get(key, False) or _protected(decision, sets)
+        shielded[key] = shielded.get(key, False) or protected_here
         marks = held_seen.setdefault(key, set())
         for item in held:
             if id(item) not in marks:
@@ -7443,7 +7469,7 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
           + (f", {awaiting} waiting for you to approve" if awaiting else ""),
           file=out)
     for key in ordered:
-        outcome, where, reason, review, policy, settled, same_folder = key
+        outcome, where, reason, review, policy, settled, same_folder, _ = key
         files = sorted(members[key], key=lambda f: names.get(f, f))
         # A placement's headline comes from its REVIEW POLICY, because that is
         # what says whether anything may happen to the file. An unknown policy

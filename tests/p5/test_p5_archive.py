@@ -194,6 +194,30 @@ def test_a_password_protected_archive_is_unreadable_and_still_indexed(sink):
     sink.conforms()
 
 
+def test_a_locked_archive_lists_its_members_and_is_still_unreadable(sink):
+    """The reader's real manifest for a password-protected zip: the member names
+    are in clear and are listed, the contents are not readable, and the run says
+    both. Marked and counted, never opened -- and the names are evidence the
+    person can see (`submission_backup.zip` holding `resume.pdf` says what the
+    archive is for without one byte of it decrypted)."""
+    manifest = ArchiveManifest(
+        archive_type="ZIP",
+        members=(ArchiveMember(path="resume.pdf", uncompressed_size=10),
+                 ArchiveMember(path="personal_statement.txt", uncompressed_size=5)),
+        uncompressed_size=15, inspected=2, total=2,
+        unreadable_reason="password-protected: 2 of 2 member(s) are encrypted; "
+                          "names listed, contents not read")
+    result, _ = run_it(manifest=manifest)
+    run_id = sink.write(result)
+    row = sink.run_for(run_id)
+    assert row["completeness"] == "unreadable"
+    assert "password-protected" in row["failure_reason"]
+    names = {o["raw_value"] for o in sink.observations_for(run_id)
+             if o["location"]["zone"] == "manifest"}
+    assert {"resume.pdf", "personal_statement.txt"} <= names
+    sink.conforms()
+
+
 def test_a_malformed_archive_is_unreadable_with_its_reason(sink):
     manifest = ArchiveManifest(archive_type="ZIP", members=(), inspected=0, total=0,
                                unreadable_reason="malformed central directory")

@@ -14,8 +14,6 @@ import re
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 import cli  # noqa: E402
@@ -54,13 +52,6 @@ def _run(tmp_path: Path, corpus: Path, **overrides) -> str:
     return out.getvalue()
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "§5.9's warnings reach the person as a Python repr with three internal node "
-    "ids in it, on the `--answer` line the screen tells them to type. The fix is "
-    "one line in `src/cli.py`, which belongs to the lead: at `_nesting_choices`, "
-    "P10's `Warning_` records must be rendered to their own `reason` before they "
-    "are put in a field declared `tuple[str, ...]`. Sent as a patch. Strict, so "
-    "the suite turns red the day it lands and this marker is removed."))
 def test_the_screen_never_prints_a_python_repr_or_an_internal_node_id(tmp_path):
     """§5.9's warnings reach the person as `Warning_(kind=..., node_id=...)`.
 

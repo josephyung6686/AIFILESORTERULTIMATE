@@ -110,6 +110,31 @@ def test_a_file_the_product_could_not_read_becomes_a_question(tmp_path):
     assert "will not move, rename or delete anything" in joined, printed
 
 
+def test_a_question_about_the_folder_that_was_scanned_names_that_folder(tmp_path):
+    """Unreadable files at the TOP of the scanned folder are scoped to `.`, and
+    `.` is what a real screen printed: "Where should the files in . go?" The
+    scope stays `.` -- the answer is stored against it -- and the words a person
+    reads name the folder they typed."""
+    corpus = tmp_path / "Downloads"
+    corpus.mkdir()
+    for name in ("IMG_0001.png", "IMG_0002.png"):
+        (corpus / name).write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 64)
+    # Two readable files of two kinds, so the plan has two folders to offer:
+    # one destination is not a choice and raises no question at all.
+    (corpus / "Notes.txt").write_text("Lecture Notes\n\nLecture notes for PHYS1401.\n")
+    (corpus / "PHYS1401 syllabus.txt").write_text(
+        "PHYS1401 Syllabus\n\nSpring 2026. Course syllabus for PHYS1401.\n")
+
+    _, printed = _run(_argv(corpus, tmp_path / "plan.sqlite"))
+
+    joined = " ".join(printed.split())
+    assert "Where should the files in Downloads go?" in joined, printed
+    assert "2 files in Downloads were opened" in joined, printed
+    assert "files in . " not in joined, printed
+    # The answer still records against the scope the product scans by.
+    assert "--answer home:.=" in joined, printed
+
+
 def test_one_question_covers_the_whole_folder(tmp_path):
     """§14's "repeated ambiguity", asked once.
 
