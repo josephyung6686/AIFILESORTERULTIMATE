@@ -356,6 +356,32 @@ def is_derived(observation: Observation) -> bool:
     releasable. Site A may release it as the file's own text -- it IS the file's own
     text -- and `104` R-135's context path is untouched, which is the whole reason it
     exists.
+
+    **WHY THE NAMESPACE AND NOT THE RUN, on evidence rather than on taste.** There is a
+    second marker for the same idea and it is arguably the better one: an extraction
+    records a RUN and then the readings it found, so a reading whose extractor wrote no
+    run for this file version did not come from reading the bytes, and no producer has
+    to name itself anything in particular. It was measured on the owner's own corpora
+    and it is TRUE THERE. On r6 every one of 9283 readings had its own
+    `extraction_runs` row for its file and content hash -- text.structured 4823,
+    pdf.text 1997, docx.structure 1477, filesystem.record 762, archive.manifest 105,
+    image.metadata 63, ocr.apple_vision 56 -- and on r10 the only readings without one
+    were the 92 `facts.anchor_statements.line` rows this row mints.
+
+    It was not taken because the test corpus does not hold that shape. Thirty
+    recognition fixtures seed `filesystem.record`, `pdf.text` and `text.structured`
+    readings under ONE shared run, so under the run marker every reading but the first
+    extractor's is a copy. Rewriting the harness to write one run per extractor -- the
+    shape production actually produces -- turned those 30 failures into 92, because a
+    second seeder writes evidence rows through raw SQL and the split reaches further
+    than the detector. Narrowing what a safety-relevant detector reads, on an invariant
+    the test corpus does not honour, in exchange for a fixture refactor of unmeasured
+    depth, was not a trade worth making for a marker that answers the same question.
+
+    So the run marker is correct and unused, and this one is a convention a producer
+    opts into by naming itself. If the fixtures are ever brought to the production
+    shape, the run marker is the better rule and this paragraph is how to find it
+    again.
     """
     return is_derived_extractor(observation.extractor_name)
 
