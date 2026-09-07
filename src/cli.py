@@ -198,7 +198,7 @@ from questions.store import (
 )
 from questions.triggers import (
     DestinationChoice, NestingChoice, question_for_nesting,
-    question_for_unreadable_folder, tied_readings,
+    question_for_unreadable_folder, tied_readings_and_the_files_they_reach,
 )
 from questions.vocabulary import (
     CONFIRMED, REVOKED, SCOPE_BRANCH, SCOPE_FOLDER, SKIPPED,
@@ -5334,6 +5334,12 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # usage is a real deployment, and every caller that predates this still
         # composes a run.
         usage_recorder: object | None = None,
+        # `104` R-92's mailbox, built beside `usage_recorder` by `main` and read
+        # by the report: which files each question this run raised would settle.
+        # A dict rather than a return value because this function's answer is the
+        # RUN, and a second thing bolted onto that record would be a fact about
+        # the screen living inside the plan.
+        questions_reach: dict[str, tuple[str, ...]] | None = None,
         wire_handle_key: bytes | None = None) -> ProductionRun:
     """One corpus, end to end. Assembles the authorities and calls the composition.
 
@@ -6668,13 +6674,25 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                   f"\n  {refusal}{advice}\n  Nothing was filed in bulk, and "
                   "the plan below is the run that was already computed.",
                   file=out)
-    _raise_blocked_questions(conn, detector=detector, asked_at=clock)
+    reaches = _raise_blocked_questions(conn, detector=detector, asked_at=clock)
+    if questions_reach is not None:
+        # `104` R-92's mailbox, filled the way `usage_recorder` is: the tie a
+        # question was raised from is a fact about a file that no table holds
+        # afterwards, and the report is in `main`. A caller that wants none
+        # passes none and this run is exactly what it was.
+        questions_reach.update(reaches)
     return result
 
 
 def _raise_blocked_questions(conn: sqlite3.Connection, *, detector,
-                             asked_at: str) -> None:
+                             asked_at: str) -> dict[str, tuple[str, ...]]:
     """Record every question THIS corpus's own ambiguities raise (P15).
+
+    Returns which files each question would settle, keyed by question id, because
+    `104` R-92 needs it on the screen and this is the one place that knows: the
+    tie a question is raised from is a fact about a file that no table holds
+    afterwards. Read here and handed to `report` by `main`, the way every other
+    fact the report prints arrives.
 
     Run AFTER the corpus, not before, because `66` §12 permits a question only
     when "a specific decision is blocked" -- and which decisions are blocked is
@@ -6709,10 +6727,13 @@ def _raise_blocked_questions(conn: sqlite3.Connection, *, detector,
             "                WHERE c.file_id = f.file_id AND c.protected = 1 "
             "                  AND c.superseded_by IS NULL)"):
         subject_of.setdefault(row[0], row[1])
-    for question in tied_readings(conn, explain=detector.explain,
-                                  files=files_with_observations(conn),
-                                  subject_of=subject_of):
+    reaches: dict[str, tuple[str, ...]] = {}
+    for question, files in tied_readings_and_the_files_they_reach(
+            conn, explain=detector.explain,
+            files=files_with_observations(conn), subject_of=subject_of):
         record_question(conn, question, asked_at=asked_at)
+        reaches[question.question_id] = files
+    return reaches
 
 
 def _files_something_was_read_out_of(conn: sqlite3.Connection) -> set[str]:
@@ -7290,6 +7311,43 @@ ALREADY_THERE: dict[str, str] = {
         "these are"),
 }
 
+#: `104` R-92 / R-H. WHAT TO SAY WHEN NOTHING ON THE SCREEN LETS THEM SAY IT.
+#:
+#: Measured on a 52-file folder: after every question the report printed had been
+#: answered, five files still read "Would go into lecture, once you say what
+#: these are" and no `--answer`, `--send-set` or `--describe-role` anywhere in
+#: the report reached one of them. They are `unreadable_unclassified` -- nothing
+#: has said what kind of material they are -- and offline nothing in this build
+#: can say it for them.
+#:
+#: `84` §6's standing ruling is that what the screen tells a person to type has
+#: to be true, and a sentence that says "once you say" when there is no way to
+#: say it fails that in the worst direction: the person goes looking for the
+#: gesture, does not find it, and concludes the fault is theirs.
+#:
+#: THE DESTINATION IS STILL IN THE SENTENCE, exactly as it is in the three tables
+#: above. Not being able to act on it is not a reason to withhold where the file
+#: would go, and the standing rule is that nothing is silently omitted. What
+#: changes is the promise, and the note printed under the group says what these
+#: files are actually waiting on.
+#:
+#: Keyed the way the three tables above are selected between -- the same folder,
+#: a folder of the same name, or a move -- because there is one of these
+#: sentences for each and a policy key would say nothing: this table is reached
+#: only for `blocked_pending_user`.
+#: "SOMETHING" AND NOT "YOU", which is the whole edit. The three tables above say
+#: "once you say what these are" and mean it; these say the file is waiting on a
+#: classification that nothing here made, which is `104` R-H's own wording of what
+#: the sentence should name -- "the missing thing (a classification) rather than
+#: imply an answer exists".
+NOTHING_SAYS_WHAT_THESE_ARE: dict[str, str] = {
+    "same_folder": ("Already in {where}, and waiting on something to say what "
+                    "these are"),
+    "already_there": ("Already in a folder called {where}, and waiting on "
+                      "something to say what these are"),
+    "moving": "Would go into {where}, once something can say what these are",
+}
+
 
 def _already_in(name: str, where: str | None) -> bool:
     """Whether this file's own parent folder is already named `where`.
@@ -7670,6 +7728,81 @@ def _option_lines(question, family: Sequence[str], *,
     return tuple(lines)
 
 
+def _questions_by_file(
+        reaches: Mapping[str, Sequence[str]]) -> dict[str, tuple[str, ...]]:
+    """`104` R-92, turned round: which questions settle each file.
+
+    The run produces the other direction -- one question, the files whose tie it
+    would settle -- because that is the shape the trigger has. The report groups
+    FILES, so it asks the opposite question, and inverting once here keeps the
+    grouping loop from doing it once per decision.
+    """
+    by_file: dict[str, list[str]] = {}
+    for question_id, file_ids in reaches.items():
+        for file_id in file_ids:
+            by_file.setdefault(file_id, []).append(question_id)
+    return {file_id: tuple(sorted(set(ids))) for file_id, ids in by_file.items()}
+
+
+def _how_to_say_what_these_are(questions: Sequence,
+                               family: Sequence[str]) -> tuple[str, ...]:
+    """`104` R-92: the gesture that reaches a file the run is waiting on.
+
+    "Would go into lecture, once you say what these are -- 5 files", and no
+    `--answer` the report offered reached one of the five. Measured on a 52-file
+    folder after every printed question had been answered: two of those files
+    were reachable and three were not, and the same sentence covered both. `84`
+    §6's standing ruling is that what the screen tells a person to type has to be
+    true, and this is the sentence that was not.
+
+    So a group that a printed question WOULD settle names it, and names the
+    answers themselves, on their own lines, in the words the question block below
+    prints them in -- `_option_lines` is the same function that prints them
+    there, so the two cannot disagree about what exists.
+
+    NOT `not_mine`, NOT `skip`. Both are first-class answers and both are printed
+    with the question; neither says what the material is, so neither belongs in a
+    sentence whose whole claim is that these lines REACH these files.
+
+    A group nothing reaches gets the truth instead of a command. There is no
+    `--answer` for a file whose own words matched nothing, no review set holds a
+    file that already has a destination, and inventing a gesture here would be
+    the defect again with a citation. What is said instead is what the file is
+    actually waiting on -- a classification, which this run did not make -- and
+    the two things a person can actually do about it: give the run a model, which
+    the report's own first lines explain, or look at what this plan can hold with
+    `--list-residuals`.
+
+    `00`'s standing rule is that nothing is silently omitted, and this is the
+    other half of it: a file counted on the screen with nothing said about how to
+    move it forward is counted and abandoned.
+    """
+    if not questions:
+        # SAYS NOTHING ABOUT THE REST OF THE SCREEN. An earlier draft pointed at
+        # "the lines at the top of this report", which are printed only when no
+        # model is configured -- so on a run that has one, this sentence would
+        # have cited a paragraph that is not there, which is the same defect
+        # wearing the fix's clothes.
+        return (
+            "Nothing on this screen says what these are: no question this run "
+            "raised is about them, and no answer, no `--send-set` and no "
+            "`--describe-role` here reaches them. What they "
+            "are waiting on is something saying what kind of material they are, "
+            "and this run produced nothing that did. They stay exactly where "
+            "they are meanwhile, and the folder above is where they would go "
+            "once something can say what they are. The areas this plan can hold "
+            "material in are printed by",
+            "      --list-residuals")
+    lines: list[str] = []
+    for question in questions:
+        lines.append(
+            f'Saying what these are is "{question.prompt}" below, and each of '
+            f"these answers reaches these files:")
+        lines.extend(_option_lines(question, family,
+                                   only_the_ones_that_classify=True))
+    return tuple(lines)
+
+
 def _review_note(items: Sequence, areas: Sequence[str]) -> tuple[str, ...]:
     """Why these sets are being held, and what a person can type about each one.
 
@@ -7854,6 +7987,7 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
            crossing: Mapping[str, str] = MappingProxyType({}),
            duplicates: Mapping[str, tuple[str, ...]] = MappingProxyType({}),
            reading_family: Sequence[str] = (),
+           reaching: Mapping[str, tuple[str, ...]] = MappingProxyType({}),
            not_carried: Sequence = ()) -> tuple[str, ...]:
     """The run, in the order a person would ask about it.
 
@@ -7891,6 +8025,12 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
     the caller. It orders and folds what a reading question shows and removes
     nothing -- `_option_lines` says how, and an empty one prints what this
     function printed before it existed.
+
+    `reaching` is `104` R-92's, and arrives the same way again: which files each
+    question this run raised would actually settle, keyed by file id. It decides
+    whether a blocked group's heading may promise "once you say what these are"
+    and what is printed under it, and an empty one means no group can claim a
+    gesture -- the safe direction, because the defect was claiming one.
     """
     out = out if out is not None else sys.stdout
     tree = result.tree.tree
@@ -7968,6 +8108,12 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
     awaiting = sum(1 for d in decisions
                    if d.outcome == pv.PLACE
                    and d.review_policy == pv.REVIEW_REQUIRED and _is_move(d))
+    # `104` R-92. The questions THIS REPORT PRINTS, by id. A question sitting in
+    # the database that the screen does not show is not a gesture a person
+    # reading the screen can find, so it may not be named as one -- and naming
+    # the question object rather than the id is what lets the group print the
+    # same answer lines the question block below prints.
+    asked_here = {question.question_id: question for question in questions}
     sets_by_file: dict[str, list] = {}
     for item in result.placement.residual_sets:
         for file_id in item.member_file_ids:
@@ -8052,9 +8198,24 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         crossing_here = tuple(sorted({
             crossing[file_id] for file_id in _files_of(decision)
             if file_id in crossing}))
+        # `104` R-92. WHICH QUESTIONS ON THIS SCREEN REACH THESE FILES, in the
+        # key, because two files waiting on different things are two facts. The
+        # five files under "Would go into lecture, once you say what these are"
+        # were two that a printed question would settle and three that nothing
+        # would, and one heading covering both is what made the sentence a
+        # promise the report could not keep for three of them.
+        #
+        # Restricted to the questions this report is PRINTING. A question that
+        # exists in the database and is not on the screen reaches nothing a
+        # person reading the screen can type.
+        reaching_here = tuple(sorted({
+            question_id for file_id in _files_of(decision)
+            for question_id in reaching.get(file_id, ())
+            if question_id in asked_here}))
         key = (decision.outcome, where, reason, review,
                decision.review_policy if decision.outcome == pv.PLACE else None,
-               settled, same_folder, protected_here, locked_here, crossing_here)
+               settled, same_folder, protected_here, locked_here, crossing_here,
+               reaching_here)
         members.setdefault(key, []).extend(_files_of(decision))
         shielded[key] = shielded.get(key, False) or protected_here
         marks = held_seen.setdefault(key, set())
@@ -8088,7 +8249,7 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
           file=out)
     for key in ordered:
         outcome, where, reason, review, policy, settled, same_folder, _, \
-            locked_here, crossing_here = key
+            locked_here, crossing_here, reaching_here = key
         files = sorted(members[key], key=lambda f: names.get(f, f))
         # A placement's headline comes from its REVIEW POLICY, because that is
         # what says whether anything may happen to the file. An unknown policy
@@ -8098,6 +8259,15 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         words = (SAME_FOLDER if same_folder
                  else ALREADY_THERE if settled else PLACEMENT_WORDS)
         sentence = words.get(policy) if outcome == pv.PLACE else None
+        # `104` R-92, on the heading rather than under it. "Once you say what
+        # these are" is a promise, and it is kept only where the screen carries
+        # a gesture that reaches these files. Where it does not, the sentence
+        # says so and the note below says what they are waiting on instead.
+        if (outcome == pv.PLACE and policy == pv.BLOCKED_PENDING_USER
+                and not reaching_here):
+            sentence = NOTHING_SAYS_WHAT_THESE_ARE[
+                "same_folder" if same_folder
+                else "already_there" if settled else "moving"]
         if sentence is not None and where:
             heading = sentence.format(where=where)
         else:
@@ -8112,9 +8282,12 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             #
             # Joined with "and" when the heading already carries a clause, so a
             # file waiting on two answers reads as one sentence rather than as
-            # two headings run together.
+            # two headings run together. `, once ` and not `, once you `:
+            # `104` R-92's heading for a file nothing on the screen reaches says
+            # "once something can say what these are", and testing for the
+            # narrower phrase appended a second comma clause to it.
             heading = (f"{heading} and once you allow moves across folders"
-                       if ", once you " in heading
+                       if ", once " in heading
                        else f"{heading}, once you allow moves across folders")
         print(f"\n  {heading} -- {len(files)} file{plural}", file=out)
         # `list_every_name` is set by the freeze run and by nothing else. The
@@ -8225,6 +8398,13 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
                 f"than forced open, so nothing inside it was read and nothing "
                 f"about it was assembled for a model.",
                 indent="    "), file=out)
+        if outcome == pv.PLACE and policy == pv.BLOCKED_PENDING_USER:
+            for note in _how_to_say_what_these_are(
+                    tuple(asked_here[question_id]
+                          for question_id in reaching_here),
+                    reading_family):
+                print(note if note.startswith(" ")
+                      else _wrapped(note, indent="    "), file=out)
         # `_role_lines`' convention: a line that begins with a space is a line
         # the person is meant to paste, and it is printed exactly as it is.
         for note in _review_note(held_sets.get(key, ()), areas):
@@ -9094,6 +9274,10 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
     # `on_usage`, and `run` hands it to `run_call` as `usage_recorder`. One object,
     # two faces, and neither side learns about the other.
     usage_recorder = UsageMailbox()
+    # `104` R-92, built beside it for the same reason: which files each question
+    # this run raises would settle is known only while the run is deriving them,
+    # and the report that has to print it runs here.
+    questions_reach: dict[str, tuple[str, ...]] = {}
     # BEFORE the run, and printed whichever way it goes. If this deployment cannot
     # call a model the person is told once, at the top, in a sentence about the
     # deployment -- rather than left to infer it from thirty file-level sentences
@@ -9205,6 +9389,7 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                      # `announce_cloud_posture` has just told the person about.
                      routing=routing,
                      usage_recorder=usage_recorder,
+                     questions_reach=questions_reach,
                      semantic_model=args.semantic_model,
                      wire_handle_key=wire_handle_key_for(database))
     except RecordingNameTaken as refusal:
@@ -9284,6 +9469,11 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                    reading_family=situation_schema_family(
                        load_shipped_catalogue(read_packaged_library_file),
                        args.situation),
+                   # `104` R-92, turned the way the report reads it: the run
+                   # answers "which files does this question settle" and a group
+                   # of files asks "which question settles me". Inverted here,
+                   # once, rather than in the loop that groups the decisions.
+                   reaching=_questions_by_file(questions_reach),
                    # A §7.6 set answer belongs to the plan version it was given
                    # in, and every run mints a new one, so an answer given
                    # yesterday is not applied today. That is
