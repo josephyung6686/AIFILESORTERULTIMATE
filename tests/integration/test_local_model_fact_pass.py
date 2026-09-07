@@ -420,3 +420,85 @@ def test_a_cloud_model_without_consent_still_sends_nothing(tmp_path, monkeypatch
     assert code == 0
     assert _query(database, "SELECT COUNT(*) FROM llm_response")[0][0] == 0, report
     assert _query(database, "SELECT COUNT(*) FROM llm_dossier")[0][0] == 0, report
+
+
+# --- `104` R-03: the sent count is responses, and nothing else ----------------
+
+def _verdict(**over):
+    """A real `P8Verdict`, because the thing under test reads one of its fields.
+
+    A stand-in with a `claim_ref` attribute would pass whatever `_sent_and_abstained`
+    does today and keep passing if the harness stopped setting that field.
+    """
+    from llm_harness.records import P8Verdict
+    from llm_harness.vocabulary import ABSTAIN, SCHEMA_INVALID, SCOPE_FILE
+    fields = dict(verdict_id="v1", dossier_id="d1", claim_ref="claim-1",
+                  outcome=ABSTAIN, disposition=ABSTAIN, reasons=(SCHEMA_INVALID,),
+                  may_propose=False, requires_review=False, citations_checked=(),
+                  scope=SCOPE_FILE, validator_version="vv", policy_version="pv",
+                  plan_version=None)
+    fields.update(over)
+    return P8Verdict(**fields)
+
+
+def test_the_sent_count_is_what_a_model_answered_and_not_what_the_pass_produced():
+    """`104` R-03 in one assertion. A gate refusal sends nothing -- P7 denies
+    before `transport.issue` opens a socket -- and the line counted it as a file
+    sent, on the one sentence a person reads to learn what happened to a folder.
+
+    THE PRE-CALL ABSTENTION IS THE HALF A TYPE CHECK MISSES. `_persist_abstention`
+    mints a `P8Verdict` and hands it back, so counting verdicts would report a run
+    that deferred every file for budget as a run that sent every file, with no
+    model asked at all. `claim_ref` is what the harness sets to tell them apart."""
+    from llm_harness.records import CallFailed, ValidationUnavailable
+    from llm_harness.vocabulary import BUDGET_EXHAUSTED, PRE_CALL_NAMESPACE
+
+    answered = _verdict(claim_ref="claim-1")
+    not_asked = _verdict(claim_ref=PRE_CALL_NAMESPACE, reasons=(BUDGET_EXHAUSTED,))
+    failed = CallFailed(request_identity="f3", release_id="r3", audit_id=None,
+                        explanation="{}", validator_version="vv",
+                        policy_version="pv")
+    unavailable = ValidationUnavailable(missing=("prompt",))
+
+    sent, abstained = cli._sent_and_abstained(
+        [("f1", answered), ("f2", not_asked), ("f3", failed),
+         ("f4", unavailable)])
+
+    assert sent == 1
+    assert abstained == {BUDGET_EXHAUSTED: 1}
+
+
+def test_a_file_that_was_never_asked_about_gets_its_own_line_and_its_own_reason():
+    """sf1-gate recorded the abstention and left the screen line. A file the run
+    decided not to ask about then read exactly like a file a model shrugged at,
+    and "the dossier would not fit" and "this scan has spent its budget" are
+    different sentences to a person -- only one of them is about their file."""
+    from llm_harness.vocabulary import BUDGET_EXHAUSTED, PRE_CALL_NAMESPACE
+    out = io.StringIO()
+
+    cli._print_fact_pass(
+        written=0, withheld=0, files=1, model_id=MODEL_ID, out=out,
+        outcomes=[("f1", _verdict(claim_ref=PRE_CALL_NAMESPACE,
+                                  reasons=(BUDGET_EXHAUSTED,)))])
+    printed = out.getvalue()
+
+    assert "from 0 files sent" in printed
+    assert BUDGET_EXHAUSTED in printed
+    assert "before any call was made" in printed
+
+
+def test_the_printed_sent_count_is_the_number_of_responses_on_disk(
+        tmp_path, stub, monkeypatch):
+    """The invariant, end to end and over a real corpus rather than over four
+    hand-made outcomes: what the screen says was sent is what the database says
+    came back. It holds for any corpus, so it keeps holding when the mix of
+    refusals, abstentions and answers changes."""
+    database, report = _local_run(tmp_path, stub, monkeypatch)
+
+    line = re.search(r"Facts from a model: \d+ written, from (\d+) files? sent",
+                     report)
+    responses = _query(database, "SELECT COUNT(*) FROM llm_response")[0][0]
+
+    assert line, report
+    assert int(line.group(1)) == responses, report
+    assert responses == len(stub.requests), report

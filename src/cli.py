@@ -110,7 +110,7 @@ from llm_harness.prompt_library import (
 from llm_harness.records import FolderLevel, PromptDefinition
 from llm_harness.schema import create_llm_schema
 from llm_harness.vocabulary import (
-    A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE,
+    A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE, PRE_CALL_NAMESPACE,
 )
 from placement import vocabulary as pv
 from placement.config import CEILINGS, SupportPolicy, placement_limits
@@ -3264,7 +3264,45 @@ def _identifier_observations(conn: sqlite3.Connection, file_id: str,
         if json.loads(row[1]).get("text_span") is not None)
 
 
-def _print_fact_pass(*, asked: int, written: int, withheld: int, files: int,
+def _sent_and_abstained(
+        outcomes: Sequence[tuple[str, object]]) -> tuple[int, dict[str, int]]:
+    """How many files a model ANSWERED about, and what stopped the rest short.
+
+    `104` R-03: the screen said "from M files sent" and M was every outcome the
+    pass produced, refusals included. A gate refusal sends nothing -- P7 denies
+    before `transport.issue` opens a socket -- so the sentence counted files that
+    never left the machine as files that did, on the one line a person reads to
+    find out what happened to their folder.
+
+    **A response is the test, and `P8Verdict` alone is not it.** A pre-call
+    abstention comes back as a `P8Verdict` too: `_persist_abstention` mints one
+    with `outcome=ABSTAIN` and hands it back, so a run that deferred every file
+    for budget would report every file as sent while no model was asked at all.
+    What separates them is `claim_ref`, which the harness sets to
+    `PRE_CALL_NAMESPACE` for exactly this class of verdict, and that is what is
+    read here rather than a type name.
+
+    The second value is those abstentions by their own reason, so the caller can
+    name them instead of leaving a file that was never asked looking like a file a
+    model had nothing to say about.
+    """
+    sent = 0
+    abstained: dict[str, int] = {}
+    for _file_id, result in outcomes:
+        claim_ref = getattr(result, "claim_ref", None)
+        if claim_ref is None:
+            # A refusal, a failed call, a consent question, a missing capability.
+            # None of them is a response and none of them is counted as one.
+            continue
+        if claim_ref == PRE_CALL_NAMESPACE:
+            for reason in getattr(result, "reasons", ()) or ("unstated",):
+                abstained[reason] = abstained.get(reason, 0) + 1
+            continue
+        sent += 1
+    return sent, abstained
+
+
+def _print_fact_pass(*, written: int, withheld: int, files: int,
                      outcomes: Sequence[tuple[str, object]], model_id: str,
                      out) -> None:
     """What the model pass actually did, in counts a person can check.
@@ -3287,8 +3325,22 @@ def _print_fact_pass(*, asked: int, written: int, withheld: int, files: int,
     kinds: dict[str, int] = {}
     for _file_id, result in outcomes:
         kinds[type(result).__name__] = kinds.get(type(result).__name__, 0) + 1
+    # RESPONSES, NOT OUTCOMES. `104` R-03: a gate refusal sends nothing, and this
+    # line used to count one as a file sent.
+    asked, abstained = _sent_and_abstained(outcomes)
     print(f"\nFacts from a model: {written} written, from {asked} "
           f"{'file' if asked == 1 else 'files'} sent to {model_id}.", file=out)
+    if abstained:
+        # THE STAGE THAT RECORDED ITSELF AND SAID NOTHING. `_persist_abstention`
+        # writes an `llm_pre_call_abstention` row and mints an abstaining verdict,
+        # and the screen had no line for either -- so a file the run decided not
+        # to ask about read exactly like a file a model shrugged at. One line,
+        # named by the reason the harness recorded, because "the dossier would not
+        # fit" and "this scan has spent its budget" are different sentences to a
+        # person and only one of them is about their file.
+        for reason, count_ in sorted(abstained.items()):
+            print(f"  {count_} not asked: {reason.replace('_', ' ')} "
+                  f"({reason}), decided before any call was made.", file=out)
     if withheld:
         print(_wrapped(
             f"{withheld} of {files} files were not sent, and were not skipped "
@@ -4350,7 +4402,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             if result.stages_barred.get(LLM_ROUTE) == PRIVACY_BAR:
                 withheld.append(file_id)
         _print_fact_pass(
-            asked=len(outcomes), written=len(written), withheld=len(withheld),
+            written=len(written), withheld=len(withheld),
             files=len(roster), outcomes=outcomes,
             model_id=routing.model_id_for(A_FACT), out=out)
 
