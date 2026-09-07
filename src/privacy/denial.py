@@ -371,6 +371,19 @@ def deny_unclassified(*, file_ids: Sequence[str], locality: str,
     "Absence of a classification resolves to `unreadable_unclassified`, never to
     `public_low`", which is §8.6's "Cost exhaustion must never turn into
     lower-quality automatic classification" applied to the one case that matters.
+
+    **THE SENTENCE NAMES `pending` FROM 2026-09-07 (`105` §14.3), and the two words
+    it now holds apart are the whole of the amendment.** The ruling: "'On neither
+    list' distinguishes an assessed ordinary document from one the detector failed to
+    recognise, which is pending." A person reading this denial was being told the
+    file was unclassified without being told which of the two had happened -- nothing
+    looked at it, or something looked and found nothing -- and those want different
+    things done about them. The first is answered by running the detector; the second
+    is answered by nothing, because there is nothing to answer.
+
+    The reason stays `unclassified`. §14.3 says pending is "treated like unclassified
+    for every gate", so a tenth denial reason would be a second name for one refusal
+    and would make `DENIAL_ORDER` decide between two spellings of the same thing.
     """
     seen = ("no extraction run has completed for it"
             if completeness is None else f"its extraction completeness is {completeness!r}")
@@ -379,7 +392,10 @@ def deny_unclassified(*, file_ids: Sequence[str], locality: str,
         explanation=(
             f"{len(tuple(file_ids))} file(s) resolve to handling class "
             "'unreadable_unclassified': no classification record exists and "
-            f"{seen}. §8.4 requires the system to 'classify data into handling "
+            f"{seen}. Their privacy class is 'pending' and not 'ordinary' -- nothing "
+            "has assessed these bytes, which is a different answer from a document "
+            "that was assessed and found to be on neither restricted list. §8.4 "
+            "requires the system to 'classify data into handling "
             "classes before LLM escalation', so an unclassified file has not met the "
             f"precondition for a {locality} model call. Absence of a classification "
             "is not evidence that the file carries nothing, and it never resolves to "

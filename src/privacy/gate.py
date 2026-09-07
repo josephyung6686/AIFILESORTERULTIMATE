@@ -81,7 +81,7 @@ from privacy.audit import AuditRecord, append_audit
 from privacy.authorship import SUBSYSTEM
 from privacy.binding import content_digest_of, mint_release
 from privacy.classification import (
-    UNREADABLE_UNCLASSIFIED, ClassificationRecord, resolve_class,
+    UNREADABLE_UNCLASSIFIED, ClassificationRecord, privacy_class_of, resolve_class,
 )
 from privacy.consent import (ConsentRequirement, grant_authorizes,
                              open_consent_request)
@@ -117,6 +117,7 @@ from privacy.resolve import (
 # -- the gate CONSUMES a basis another part wrote and produces none.
 from privacy.vocabulary import (
     DETECTOR_NO_SAFETY_EVIDENCE as _DETECTOR_NO_SAFETY_EVIDENCE,
+    PRIVACY_CLASS_PENDING,
 )
 # Imported as a MODULE, not by name: `Gate.revoke` and `Gate.delete_derived` are the
 # same two words as the functions they delegate to, and an aliased import would give
@@ -288,9 +289,26 @@ class Gate:
                 lambda: deny_protected_records_template(
                     file_ids=file_ids, model_target=request.model_target)
 
+        # `105` §14.3, clause 3: a file the detector did not assess is `pending`,
+        # and `pending` is treated like unclassified for every gate. The two sets
+        # are computed SEPARATELY and then asserted equal rather than one being
+        # derived from the other, because "they agree" is the claim clause 3 makes
+        # and a derivation would make it true by construction instead of checking
+        # it. `privacy_class_of` reads the RECORD and `resolve_class` reads the
+        # class; a future field on the record that made a classified file pending,
+        # or a stored `unreadable_unclassified` that D2 forbids, breaks the
+        # agreement here rather than three modules downstream.
+        pending = tuple(sorted(
+            file_id for file_id, record in records.items()
+            if privacy_class_of(record) == PRIVACY_CLASS_PENDING))
         unclassified = tuple(sorted(
             file_id for file_id, name in classes.items()
             if name == UNREADABLE_UNCLASSIFIED))
+        assert pending == unclassified, (
+            f"{sorted(set(pending) ^ set(unclassified))} are {PRIVACY_CLASS_PENDING!r} "
+            f"on one reading and not the other. `105` §14.3 rules an unassessed file "
+            f"pending rather than ordinary and treats pending like unclassified for "
+            f"every gate, which holds only while the two agree")
         if unclassified and unclassified_denies(
                 locality=locality,
                 local_calls_on_unclassified=self._unclassified_permits_local):
@@ -465,6 +483,31 @@ class Gate:
         if chosen is not None:
             return self._denied(late[chosen](), request, policy, decisive, hashes,
                                 observed_at)
+
+        # 4b -- `105` §14.3, clause 5: "Classification precedes the model call it
+        # governs: a protected document is never sent to a model to discover that it
+        # is protected." Nothing below this line can still refuse, so a file whose
+        # bytes nothing has assessed reaching here has met §8.4's precondition by
+        # accident rather than by rule.
+        #
+        # AN ASSERTION AND NOT A DENIAL, on the precedent of the `DECISION_ORDER`
+        # assert at the top of this method. A `Denied` is §8.4's answer to "may this
+        # be sent", drawn from a closed vocabulary of reasons the owner approved and
+        # written for a person to read; a pending file arriving here is the ladder
+        # above having failed to fire, which is a defect in this file and not an
+        # outcome anyone needs shown. The reason the person WOULD see already exists
+        # and is `unclassified`.
+        #
+        # It asks `unclassified_denies` rather than restating its condition, so
+        # "unless the local-unclassified rule admits it" is the rule itself and not a
+        # second copy of it -- Open question 5 is still unanswered and the answer is
+        # still the caller's `unclassified_permits_local`.
+        assert not pending or not unclassified_denies(
+            locality=locality,
+            local_calls_on_unclassified=self._unclassified_permits_local), (
+            f"{list(pending)} reach a dossier with no assessed classification, and "
+            f"the local-unclassified rule does not admit them for a {locality} "
+            f"target. `105` §14.3: classification precedes the model call it governs")
 
         # 5 -- the one write, before the value exists.
         audit_id = append_audit(
