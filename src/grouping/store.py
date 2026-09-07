@@ -520,6 +520,56 @@ def stop_rule_outcome_for(
     )
 
 
+def propose_group_category(
+    conn: sqlite3.Connection, *, proposed_value: str, group_id: str,
+    display_label: str, proposed_by: str, verdict_ref: str,
+    dossier_id: str | None, created_at: str,
+) -> bool:
+    """`00`'s Q-C: a category the library has not seen, written down ONCE.
+
+    §13.7 is "model names, user confirms": a value the library has not seen "is
+    proposed once; the user confirms or renames it; it then belongs to that user's
+    vocabulary in the database". Until this existed the value was dropped to NULL
+    and nothing said it had been said, so the person had nothing to confirm and
+    the model's answer left no trace at all.
+
+    **The proposal is not a filing.** `groups.group_category` stays NULL for the
+    same group: `Group.__post_init__` refuses an unrecognised value and P10 selects
+    an applicability row BY that field, so writing one would put the material under
+    a schema that speaks for somebody else's life. What this records is that a
+    question exists.
+
+    `True` when the row was written, `False` when this value had already been
+    proposed -- which is the "once" and is not an error: the third group the model
+    calls `hobby_projects` is more evidence for the same question, not a second
+    question, and the group that first said it is the one a person is shown.
+    """
+    if not proposed_value:
+        raise MalformedGroupRecord(
+            "a proposal with no value is not a proposal; the caller checks that "
+            "the model said something before recording that it did")
+    with transaction(conn):
+        cursor = conn.execute(
+            "INSERT OR IGNORE INTO group_category_proposals ("
+            "proposed_value, group_id, display_label, proposed_by, verdict_ref, "
+            "dossier_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (proposed_value, group_id, display_label, proposed_by, verdict_ref,
+             dossier_id, created_at))
+        return cursor.rowcount == 1
+
+
+def group_category_proposals(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """Every category still waiting on a person, oldest first.
+
+    Published as rows rather than as a record because P9 owns no answer shape for
+    one: confirming, renaming and leaving a proposal are Release 2 gestures on a
+    surface this part does not own, and a record with no reader would be the
+    hand-kept field list `104` R-09 removed.
+    """
+    return list(conn.execute(
+        "SELECT * FROM group_category_proposals ORDER BY rowid"))
+
+
 def record_failure_point(
     conn: sqlite3.Connection, point: FailurePoint, *, created_at: str,
 ) -> str:

@@ -551,6 +551,100 @@ def test_r16_the_engine_keeps_the_row_when_the_model_proposes_no_label(seam_conn
     assert stored.label_source == ENGINE
 
 
+# --- `00`'s Q-C (`104` §13.7): the model names, the user confirms ----------------
+#
+# "A value the library has not seen is proposed once; the user confirms or renames
+# it; it then belongs to that user's vocabulary in the database." Half of that was
+# built: an unrecognised `group_category` was dropped to NULL, which is the "never
+# file under it" clause. The other half was missing entirely -- nothing recorded
+# that the value had been said, so the person had nothing to confirm and the
+# model's answer left no trace at all.
+
+UNSEEN = "hobby_projects"
+
+
+def test_qc_an_unrecognised_category_is_written_down_as_a_question(seam_conn):
+    """The proposal the ruling asks for, with everything a person needs to answer
+    it: the value the model chose, the group it chose it for, the label it gave
+    that group, and the verdict and dossier the answer came from."""
+    from grouping.store import group_category_proposals
+
+    _apply(seam_conn, _answered(category=UNSEEN))
+
+    rows = group_category_proposals(seam_conn)
+    assert [row["proposed_value"] for row in rows] == [UNSEEN]
+    assert rows[0]["group_id"] == GROUP
+    assert rows[0]["display_label"] == "PHYS1401 course materials"
+    assert rows[0]["proposed_by"] == LLM_PROPOSED
+    assert rows[0]["verdict_ref"] == "verdict-1"
+    assert rows[0]["dossier_id"] == "fixture-course-dossier"
+
+
+def test_qc_nothing_is_filed_under_a_category_nobody_confirmed(seam_conn):
+    """The clause that was already true, and it stays true. P10 selects an
+    applicability row BY `group_category`, so writing an unrecognised one files the
+    material under a schema that speaks for somebody else's life. The LABEL is kept
+    either way, because a label is words and a category is a routing decision."""
+    from grouping.store import current_group
+
+    _apply(seam_conn, _answered(category=UNSEEN))
+
+    stored = current_group(seam_conn, GROUP)
+    assert stored.group_category is None
+    assert stored.display_label == "PHYS1401 course materials"
+
+
+def test_qc_a_value_is_proposed_once_however_many_groups_say_it(seam_conn):
+    """"Proposed ONCE" is the ruling's own word. The third group the model calls
+    `hobby_projects` is more evidence for the same question, not a second question,
+    and a person asked twice about one word learns that the product is not
+    listening."""
+    from grouping.store import group_category_proposals
+
+    _apply(seam_conn, _answered(category=UNSEEN))
+    _apply(seam_conn, _answered(category=UNSEEN),
+           group=_group(group_id="group-2"))
+
+    rows = group_category_proposals(seam_conn)
+    assert len(rows) == 1
+    assert rows[0]["group_id"] == GROUP, "the first group to say it is the one shown"
+
+
+def test_qc_a_category_the_library_recognises_is_no_ones_question(seam_conn):
+    """The negative half. `academic` is filed on the row and asks nobody
+    anything; a proposal for it would be a question with an answer already."""
+    from grouping.store import current_group, group_category_proposals
+
+    _apply(seam_conn, _answered())
+
+    assert current_group(seam_conn, GROUP).group_category == "academic"
+    assert group_category_proposals(seam_conn) == []
+
+
+def test_qc_no_category_at_all_is_the_model_declining_and_asks_nothing(seam_conn):
+    """A question about nothing is not a question. The model that named no
+    category proposed no vocabulary, and a row here would invent one to confirm."""
+    from grouping.store import group_category_proposals
+
+    _apply(seam_conn, _answered(category=None))
+    _apply(seam_conn, _answered(category=""), group=_group(group_id="group-3"))
+
+    assert group_category_proposals(seam_conn) == []
+
+
+def test_qc_a_group_the_model_did_not_call_coherent_proposes_no_vocabulary(
+        seam_conn):
+    """§4.5 runs task 4 -- the label and the category -- "only if coherence is
+    supported". A category proposed inside a group the model said was not one
+    thing would ask a person to confirm a word about material that has none."""
+    from grouping.store import group_category_proposals
+    from grouping.vocabulary import ABSTAINED
+
+    _apply(seam_conn, _answered(coherent=ABSTAINED, category=UNSEEN))
+
+    assert group_category_proposals(seam_conn) == []
+
+
 def test_r16_a_group_already_on_disk_is_left_exactly_as_it_stands(seam_conn):
     """The conservative half, and it is the owner question this leaves open.
 

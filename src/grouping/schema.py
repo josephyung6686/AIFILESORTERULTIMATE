@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import sqlite3
 
-#: Every table P9 owns. Only the last carries `plan_version_id`.
+#: Every table P9 owns. Only `group_acceptance` carries `plan_version_id`.
 P9_TABLES: tuple[str, ...] = (
     "groups",
     "memberships",
@@ -27,6 +27,11 @@ P9_TABLES: tuple[str, ...] = (
     "stop_rule_outcomes",
     "group_failure_points",
     "group_acceptance",
+    # `00`'s Q-C ruling: a category the library has not seen is proposed once and
+    # the person confirms it. Not a group, not a membership and not an acceptance:
+    # it is a question waiting for an answer, and it holds no plan version because
+    # the vocabulary a person confirms outlives the version that raised it.
+    "group_category_proposals",
 )
 
 _SUPERSEDE = "supersedes TEXT, superseded_by TEXT, supersede_reason TEXT"
@@ -221,6 +226,40 @@ CREATE UNIQUE INDEX IF NOT EXISTS one_current_group_acceptance
     ON group_acceptance (
         plan_version_id, group_id, COALESCE(membership_id, '')
     ) WHERE superseded_by IS NULL;
+
+-- `00`'s Q-C ruling (`104` §13.7): "Model names, user confirms. A value the
+-- library has not seen is proposed ONCE; the user confirms or renames it; it
+-- joins that user's vocabulary in the database."
+--
+-- The value a model gives for `group_category` and the library does not recognise
+-- was DROPPED to NULL and nothing recorded that it had been said, so the person
+-- was never asked and the model's answer left no trace. `groups.group_category`
+-- stays NULL -- `Group.__post_init__` refuses an unrecognised one and P10 selects
+-- an applicability row BY it, so filing under it would put the material under a
+-- schema that speaks for somebody else's life -- and the proposal is written here
+-- instead, where a person can be shown it.
+--
+-- `proposed_value` is the PRIMARY KEY, which is what "once" means: the third group
+-- the model calls `hobby_projects` adds no second row, and the first group to say
+-- it is the one the person is shown. No supersession columns, because a proposal
+-- is not superseded -- it is confirmed, renamed or left, and every one of those is
+-- a Release 2 gesture on a table this one does not own.
+CREATE TABLE IF NOT EXISTS group_category_proposals (
+    proposed_value  TEXT PRIMARY KEY,
+    group_id        TEXT NOT NULL,
+    display_label   TEXT NOT NULL,
+    proposed_by     TEXT NOT NULL,
+    verdict_ref     TEXT NOT NULL,
+    dossier_id      TEXT,
+    created_at      TEXT NOT NULL
+);
+
+CREATE TRIGGER IF NOT EXISTS group_category_proposals_no_delete
+BEFORE DELETE ON group_category_proposals
+BEGIN SELECT RAISE(ABORT, 'a proposal is answered, never removed'); END;
+CREATE TRIGGER IF NOT EXISTS group_category_proposals_never_overwritten
+BEFORE UPDATE ON group_category_proposals
+BEGIN SELECT RAISE(ABORT, 'a proposal is proposed once and is not rewritten'); END;
 """
 
 
