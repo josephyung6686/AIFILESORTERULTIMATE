@@ -777,25 +777,73 @@ def test_r118_protected_material_is_shown_to_no_model_local_included(
     assert v.PROTECTED_REASON in decision.privacy.local_only_reasons
 
 
-def test_r118_an_unclassified_file_stays_off_a_local_model_with_the_flag_as_it_is(
+def test_r121_a_local_model_is_asked_about_an_unclassified_file(
         skeleton, monkeypatch, tmp_path):
-    """(d) Open question 5 is the owner's, and P11's pinned answer is still no."""
-    import placement.pipeline as pipeline
-    from placement import privacy as p11_privacy
+    """(d) Open question 5, answered by the owner in `104` §15.3 (R-121).
 
-    assert p11_privacy.LOCAL_CALLS_ON_UNCLASSIFIED is False
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    THIS TEST USED TO ASSERT THE OPPOSITE. As
+    `test_r118_an_unclassified_file_stays_off_a_local_model_with_the_flag_as_it_is`
+    it read P11's own `LOCAL_CALLS_ON_UNCLASSIFIED = False` while `cli.py` pinned
+    `True` for the gate and the fact route -- one question answered twice, which
+    is R-121 and `104` R-02's shape again. The ruling: an unclassified file MAY
+    reach a LOCAL model and never a cloud one, so the 86 unclassified files of the
+    owner's local run stop being refused before the gate is asked.
+
+    The dossier gate is what moved. `review_policy_for` still answers
+    `blocked_pending_user` for an unclassified subject -- a model naming a folder
+    is not a classification -- so the file is placed and held for a person, which
+    is the outcome the ruling intends and not a widening of what may be moved.
+    """
+    import placement.pipeline as pipeline
+    from privacy.denial import UNCLASSIFIED_PERMITS_LOCAL
+
+    assert UNCLASSIFIED_PERMITS_LOCAL is True
+    seen = {}
+
+    def _fake_call(conn, request, **kwargs):
+        seen["site"] = request.call_site
+        seen["target"] = request.model_call_request.model_target.locality
+        return _verdict()
+
+    monkeypatch.setattr(pipeline, "call_placement", _fake_call)
     _policy(skeleton, mode="local_model")
-    subject = _ordinary_subject(skeleton, tmp_path, name="scan-r118.pdf",
+    subject = _ordinary_subject(skeleton, tmp_path, name="scan-r121.pdf",
                                 classify=False)
     decision = _place(skeleton, subject=subject, inputs=_model_inputs(skeleton),
                       evidence=_evidence(**AMBIGUOUS))
 
+    assert seen == {"site": "C_placement", "target": "local"}
+    assert decision.outcome == v.PLACE
+    assert v.UNCLASSIFIED_REASON in decision.privacy.local_only_reasons
+    # The review policy is untouched by the ruling: nothing has said what kind of
+    # material this is, and a model's answer about WHERE it goes does not say.
+    assert decision.review_policy == v.BLOCKED_PENDING_USER
+
+
+def test_r121_the_same_unclassified_file_is_still_refused_a_cloud_target(
+        skeleton, monkeypatch, tmp_path):
+    """The other half of the ruling: never a cloud one, and not by a knob.
+
+    `unclassified_denies` answers True for `locality="cloud"` before it reads the
+    answer to question 5 at all, so nothing about an unclassified file can leave
+    the device however that question is answered.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    _policy(skeleton, mode="hybrid")
+    subject = _ordinary_subject(skeleton, tmp_path, name="scan-r121-cloud.pdf",
+                                classify=False)
+    decision = _place(skeleton, subject=subject,
+                      inputs=_model_inputs(skeleton, model_target=CLOUD_TARGET),
+                      evidence=_evidence(**AMBIGUOUS))
+
     assert decision.outcome == v.ABSTAIN
     assert decision.abstention_reason == v.PRIVACY_BLOCKED
-    assert "has not been classified" in decision.explanation
     assert v.UNCLASSIFIED_REASON in decision.privacy.local_only_reasons
+    assert skeleton.execute(
+        "SELECT count(*) AS c FROM llm_verdict").fetchone()["c"] == 0
 
 
 def test_r118_with_no_model_configured_nothing_changes_and_the_sentence_is_honest(
@@ -850,6 +898,14 @@ def test_an_unclassified_file_does_not_read_as_a_passport_or_as_thin_evidence(
     this person their file is "protected material" claims a finding P7 never made;
     telling them "no legal destination cleared §6.10" blames the evidence for a
     gate that never opened. The record says which of the three happened.
+
+    THE TARGET IS A CLOUD ONE SINCE `104` R-121, and the sentence under test is
+    unchanged. The owner's ruling in `104` §15.3 lets an unclassified file reach a
+    LOCAL model, so a local target no longer reaches this abstention at all; a
+    cloud target still does, because `unclassified_denies` refuses every cloud
+    release of an unclassified file before it reads that answer. The explanation
+    branch is keyed on `is_unclassified` and not on the target, so this is the
+    same sentence for the same reason.
     """
     import placement.pipeline as pipeline
 
@@ -861,7 +917,7 @@ def test_an_unclassified_file_does_not_read_as_a_passport_or_as_thin_evidence(
     subject = Subject(kind=v.FILE, file_id=file_id, content_hash=content_hash,
                       group_id=None, member_file_ids=())
     decision = _place(skeleton, subject=subject,
-                      inputs=_model_inputs(skeleton),
+                      inputs=_model_inputs(skeleton, model_target=CLOUD_TARGET),
                       evidence=_evidence(**AMBIGUOUS))
     assert decision.abstention_reason == v.PRIVACY_BLOCKED
     assert "has not been classified" in decision.explanation
@@ -1676,6 +1732,11 @@ def test_an_unclassified_file_is_not_told_that_nothing_could_read_it(
     P11 knows that nothing classified this file. It does NOT know whether the
     file was readable -- P4's `extraction_runs` is that record (B1) and P11 never
     reads it. So the sentence claims the first and stops claiming the second.
+
+    A CLOUD target since `104` R-121, for the reason the test above records: the
+    owner's answer to Open question 5 lets a LOCAL model be asked about an
+    unclassified file, and the cloud refusal that still produces this sentence is
+    not a knob. The wording under test did not change.
     """
     import placement.pipeline as pipeline
 
@@ -1686,7 +1747,7 @@ def test_an_unclassified_file_is_not_told_that_nothing_could_read_it(
     subject = Subject(kind=v.FILE, file_id=file_id, content_hash=content_hash,
                       group_id=None, member_file_ids=())
     decision = _place(skeleton, subject=subject,
-                      inputs=_model_inputs(skeleton),
+                      inputs=_model_inputs(skeleton, model_target=CLOUD_TARGET),
                       evidence=_evidence(**AMBIGUOUS))
 
     assert decision.abstention_reason == v.PRIVACY_BLOCKED
