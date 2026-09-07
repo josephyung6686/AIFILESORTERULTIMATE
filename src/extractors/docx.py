@@ -199,7 +199,7 @@ def extract_docx(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolic
         #
         # No container, because P4 rule 10 anchors a span-carrying observation to a
         # text unit at exactly its path; this is the whole body, which is a unit at
-        # no path.
+        # the empty path.
         #
         # No span, because a span-carrying excerpt is model-RELEASABLE -- P7 releases
         # what it can locate -- and 67 separately located paragraphs of a market
@@ -207,7 +207,31 @@ def extract_docx(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolic
         # READ BY THE RECOGNISER ON THIS DEVICE, which scans raw values and needs no
         # span. The heading, table and annotation rows keep their spans and stay
         # releasable exactly as before; nothing below this line changed.
-        emit(zone="body", raw="\n".join(prose), container_path=(), span=None,
+        #
+        # AND THE UNIT AT THAT SAME EMPTY PATH, which is `104` SF-1 / R-07. "A
+        # span-less observation is not model-releasable" is not a property of being
+        # span-less; it is a property of a TEXT UNIT standing where the observation
+        # stands, because that unit is the only thing a missing span can be measured
+        # against. `resolve.materialise` asks P4 for the unit at the observation's
+        # own container path and reports its length; `items.is_whole_document` reads
+        # a length of `None` as "no document for this value to be the whole of" --
+        # §2.3's spreadsheet cell and §2.8's EXIF field, which are releasable and
+        # must stay so. E3 has written this unit since its ratification
+        # (`structured_text.py`: `units = [text_unit(text=document.text)]`) and E2
+        # was given the observation without it in `fd68cb6`, so for every `.docx`
+        # the lookup found nothing, the length stayed `None`, and the entire body of
+        # a Word document was releasable to a cloud model as an "excerpt". Measured
+        # live on the owner's 199 files: 7 dossiers over 16,000 bytes, largest
+        # 45,843.
+        #
+        # It COSTS a second copy of the body text in `text_units`, because every
+        # paragraph is already stored above at its own path. That is the cost E3
+        # already pays for the same guarantee, and the alternative -- a zone rule in
+        # P7 saying "a span-less `body` item is whole" -- would put a sorting rule
+        # where the design put a measurement.
+        whole_body = "\n".join(prose)
+        units.append(text_unit(text=whole_body))
+        emit(zone="body", raw=whole_body, container_path=(), span=None,
              unit_text=None, reliability="possible")
 
     for cell in document.cells:

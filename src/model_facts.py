@@ -41,7 +41,7 @@ and to `Gate`, which records its own.
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
@@ -287,6 +287,55 @@ def pending_fields_for(conn: sqlite3.Connection, *, file_id: str,
     return tuple(field for field in allowed if field not in settled)
 
 
+def dossier_tokens(values: Iterable[str]) -> int:
+    """`00`:251's "Maximum dossier tokens per model call", measured in CHARACTERS
+    and used as an UPPER BOUND on tokens. `104` SF-5.
+
+    **Why a bound and not a tokenizer.** P7 says it in its own words -- "P7 owns no
+    tokenizer and inventing one would invent a number" -- and hands the measurement
+    to the caller. This deployment is the caller and it has no tokenizer for the
+    models it talks to either: the one file in `src/readers/` that carries a
+    tokenizer is `embedding_minilm.py`, whose WordPiece vocabulary belongs to a
+    sentence-embedding model, needs 90 MB of downloaded weights to load at all, and
+    would answer a question about a different model's arithmetic.
+
+    **Why characters are an honest answer rather than a placeholder.** Every BPE and
+    WordPiece token consumes at least one character of its input, so a payload of N
+    characters is at most N tokens under any of them. The count therefore errs in
+    exactly one direction -- it can refuse a call the true count would have allowed,
+    and can never allow one the true count would have refused -- which is the
+    direction a safety ceiling has to err in. The familiar `characters / 4` rule is
+    the other direction and is an English-prose average: it under-counts CJK by
+    roughly four times, and this owner's corpus is Hong Kong coursework.
+
+    **What it does NOT count.** The prompt template, the folder levels, the
+    vocabulary and the evidence metadata all travel with the dossier and are not
+    here. They are bounded by the library and the schema -- the same on every file
+    in a situation -- and the ceiling exists for the part that is not: the released
+    content, which grows with the document. `privacy.fixtures._measure_tokens`, P7's
+    own published example of what a caller supplies, counts exactly this and nothing
+    else, and P8's own name for the request's copy of the number is "the caller's
+    echo of it".
+    """
+    return sum(len(value) for value in values)
+
+
+def measure_released_tokens(request, resolved: Sequence) -> int:
+    """`Gate.measure_tokens`'s binding for site A: `(request, resolved) -> int`.
+
+    `resolved` is what is about to leave, AFTER redaction -- so the number the door
+    compares against P1's ceiling is the number of characters the provider would
+    receive. The four reference-only kinds carry no value and are absent from
+    `resolved` by design (`gate.REFERENCE_ONLY`), so they add nothing here, which is
+    correct: an evidence reference is "an id only -- no content".
+
+    `request` is unread, and is taken because P7's signature offers it. A caller
+    that measured `request.max_dossier_tokens` instead of the payload would be
+    reading its own echo of the ceiling back to the gate.
+    """
+    return dossier_tokens(item.value for item in resolved)
+
+
 def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
                             content_hash: str, limit: int) -> tuple:
     """The observations this file may offer a model, most placed first, capped.
@@ -456,7 +505,18 @@ def _call_dependencies(
     allowed_vocabulary: Sequence[str], *,
     folder_levels: Sequence[FolderLevel],
     authorities: FactCallAuthorities,
+    observations: Sequence,
 ) -> CallDependencies:
+    """`observations` is the list the request was BUILT from, and it is here so that
+    §8.6's first ladder rung is measured rather than asserted (`103` C7).
+
+    Measured on the raw values rather than on the released ones, because the ladder
+    runs before `gate.release` -- `run_call` plans the reduction, then reserves, then
+    releases -- so the redacted text does not exist yet. Redaction only ever
+    shortens (`apply_redaction` refuses a transform that returns its input), so the
+    pre-call number is at or above what the door will measure, and the two therefore
+    agree about every dossier either would refuse.
+    """
     return CallDependencies(
         proposal_class=PROPOSAL_CLASS,
         basis_key=request.content_hash,
@@ -471,12 +531,28 @@ def _call_dependencies(
                     contradicts=authorities.contradicts)),
             placement=None, residual=None, template=None),
         contradicts=authorities.contradicts,
-        # The dossier is built at the cap already; there is no second, smaller shape
-        # of it to fall back to, so the ladder's first rung is the only one this
-        # deployment can stand on and the rest are honestly absent. M9's summarize ->
-        # preserve anchors -> split is `run_call`'s and needs a caller that can
-        # produce those shapes; nothing here pretends to.
-        unreduced_fits=True, summarized_fits=False, anchors_fit=False,
+        # MEASURED, not asserted. This was the literal `True`, which told §8.6's
+        # ladder that every dossier ever built fits -- including the 45,843-byte one
+        # `104` §5 measured on the owner's own files. A ceiling nothing compares
+        # against is not a ceiling, and `00`:257 asks for the opposite of a silent
+        # pass: "A model prompt that exceeds its token budget should not truncate
+        # silently in a way that removes the decisive evidence."
+        #
+        # The other three rungs stay honestly absent. `00`:257 offers four remedies
+        # -- summarize deterministic facts, preserve anchor excerpts, split the task,
+        # or defer -- and this deployment can build none of the first three: the
+        # dossier is already the capped observation set, and there is no second,
+        # smaller shape of it. Claiming a rung nothing can produce would make
+        # `plan_reduction` choose a shape `_units` cannot return. So when the first
+        # rung fails, the fourth is what is left, and `plan_reduction` takes it:
+        # `DEFERRED`, with a `PreCallAbstention` carrying `BUDGET_EXHAUSTED`, before
+        # `reserve_call` and before `gate.release`, so a deferred call spends no
+        # budget and mints no release. That is `00`:259's "mark the deferred stage,
+        # and leave the file in review rather than guessing".
+        unreduced_fits=dossier_tokens(
+            observation.raw_value for observation in observations
+        ) <= authorities.max_dossier_tokens,
+        summarized_fits=False, anchors_fit=False,
         split_shard_fits=(), split_shards=(),
         scan_budget=authorities.scan_budget,
         estimated_cost=authorities.estimated_cost,
@@ -545,7 +621,7 @@ def fact_call_stage(authorities: FactCallAuthorities):
             prompt=authorities.prompt,
             validation_dependencies=_call_dependencies(
                 request, vocabulary, folder_levels=visible_levels,
-                authorities=authorities),
+                authorities=authorities, observations=observations),
             observed_at=authorities.observed_at,
         )
         if authorities.on_result is not None:

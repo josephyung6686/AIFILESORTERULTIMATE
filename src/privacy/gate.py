@@ -264,11 +264,28 @@ class Gate:
         # and were only reachable by a model because they had acquired a class.
         # Read on the RECORD's basis and never on the class, because the class is
         # the same on both sides of this line -- that is the whole finding.
+        #
+        # NARROWED 2026-09-07 on the owner's ruling (`104` §13.2): the refusal now
+        # needs BOTH halves. A class reached without safety evidence still does not
+        # clear a cloud call on its own -- that is `96` §20 and it stands -- but a
+        # file that also carries a releasable reading of its own bytes is not a
+        # silence being turned into a confident negative. It is a file with
+        # something for the model to read, and refusing it excluded 155 of the
+        # owner's 199 files from the only wired model site.
+        #
+        # PER FILE, not per request. `no_safety_evidence_denies` is asked once for
+        # each targeted file on this basis, because a request naming two files can
+        # carry evidence for one and none for the other, and the file with none is
+        # the one the denial is about.
+        with_evidence = self._files_with_releasable_evidence(request)
         unexamined = tuple(sorted(
             file_id for file_id, record in records.items()
             if record is not None
-            and record.basis == _DETECTOR_NO_SAFETY_EVIDENCE))
-        if unexamined and no_safety_evidence_denies(locality=locality):
+            and record.basis == _DETECTOR_NO_SAFETY_EVIDENCE
+            and no_safety_evidence_denies(
+                locality=locality,
+                releasable_evidence=file_id in with_evidence)))
+        if unexamined:
             builders["no_safety_evidence"] = lambda: deny_no_safety_evidence(
                 file_ids=unexamined, locality=locality,
                 handling_class=classes[unexamined[0]])
@@ -607,6 +624,51 @@ class Gate:
                 within_file_ids=file_ids or None).location.zone
         except (UnresolvableSpan, AmbiguousObservationKey):
             return None
+
+    def _files_with_releasable_evidence(
+            self, request: ModelCallRequest) -> frozenset[str]:
+        """Which targeted files this request carries a text-bearing item FOR.
+
+        `104` §13.2's condition, and it is a fact about the REQUEST, not about the
+        corpus: the question the gate is answering is whether THIS call has anything
+        of this file's for the model to read, not whether the file has evidence
+        somewhere. A caller holding evidence it did not ask about has not asked
+        about it.
+
+        READS NO CONTENT, which is why the reason stays in
+        `DECIDABLE_FROM_REQUEST`. `current_location` selects `observation_id,
+        observation_key, file_id, location, superseded_by` and no content column --
+        its own docstring is explicit that adding one "would move content access in
+        front of the consent decision" -- so this is the same lookup `_located_zone`
+        already takes at this point in the ladder.
+
+        UNRESOLVABLE IS NOT EVIDENCE, and the direction is the safe one. A key that
+        does not resolve contributes nothing here, so a request built from keys the
+        evidence does not carry stays refused rather than being admitted on the
+        strength of items that would raise at `materialise` anyway.
+
+        The four `REFERENCE_ONLY` kinds do not count. A `CandidateLabel` is a
+        destination name, a `MetadataField` is a field NAME, an `EvidenceReference`
+        is "an id only -- no content", and a `Filename` is a `file_id`: a request
+        carrying nothing but those has nothing OF THE FILE in it, and admitting one
+        would be admitting exactly the silence `96` §19 measured.
+        """
+        owners: set[str] = set()
+        scope = tuple(request.target.file_ids)
+        for item in request.requested_items:
+            if not isinstance(item, TEXT_BEARING):
+                continue
+            key = getattr(item, "observation_key", None)
+            if key is None:
+                continue
+            try:
+                current = current_location(self._conn, key,
+                                           within_file_ids=scope or None)
+            except (UnresolvableSpan, AmbiguousObservationKey):
+                continue
+            if current.file_id in scope:
+                owners.add(current.file_id)
+        return frozenset(owners)
 
     def _precheck_items(self, request: ModelCallRequest, *, protected: bool,
                         sensitive_keys, policy) -> Exception | None:

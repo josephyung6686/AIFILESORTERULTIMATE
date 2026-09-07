@@ -979,12 +979,21 @@ FIXTURES: tuple[GateFixture, ...] = (
         # The class is the ORDINARY one and the flag is `False`, deliberately. This
         # fixture is not a protection and states none; what it pins is that the
         # weakness lives in `basis` and that the gate reads it there.
+        #
+        # NARROWED 2026-09-07 (`104` §13.2). The request carried an `Excerpt` of the
+        # file's own words until then, and that request now RELEASES: the owner ruled
+        # that the weak basis alone stops nothing, because the rule as shipped kept
+        # 155 of his 199 files away from the only wired model site. What still
+        # refuses is the weak basis joined by a request carrying nothing OF THE FILE
+        # -- §4 says a candidate label is a destination name and carries no
+        # observation -- which is `96` §19's silence-into-confident-negative exactly.
+        # So this fixture keeps its reason by carrying the request that still earns
+        # it, and `tests/p7/test_p7_no_safety_evidence.py` holds both halves.
         classification=_classified(3, "personal_non_sensitive", protected=False,
                                    basis=DETECTOR_NO_SAFETY_EVIDENCE),
         area=FIXTURE_AREA,
         request=_request(stage="fact_resolution", model_target=CLOUD_MODEL,
-                         items=(Excerpt(observation_key=_key(3), span=_span(3),
-                                        reason="resolve the institution"),),
+                         items=(CandidateLabel(label="Coursework"),),
                          fingerprint="fp-19", max_dossier_tokens=2000),
         decision=_denied(
             "no_safety_evidence",
@@ -992,7 +1001,9 @@ FIXTURES: tuple[GateFixture, ...] = (
             "term for finance, identity, medical or legal material anywhere in it, "
             "so the ordinary class it carries rests on nothing about safety. §8.4 "
             "makes classification a precondition of escalation, and finding no "
-            "safety evidence is not the same as establishing that there is none.",
+            "safety evidence is not the same as establishing that there is none. On "
+            "its own that no longer stops a cloud call; what stops this one is that "
+            "the request also carries no releasable reading of the file itself.",
             _LOCAL_INSTEAD, _CLASSIFY, _REVIEW),
         audit_record=_cloud_audit(stage="fact_resolution",
                                   file_sensitivity="personal_non_sensitive",
