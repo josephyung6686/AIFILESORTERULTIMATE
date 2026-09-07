@@ -50,10 +50,11 @@ from llm_harness import P8Verdict, Refusal
 from llm_harness.vocabulary import ABSTAIN as P8_ABSTAIN
 from llm_harness.records import (
     REFUSAL_EXCEPTIONS, CallRefused, DossierRequest, EvidenceItem,
+    PreCallAbstention,
 )
-from llm_harness.store import refusal_outcome
+from llm_harness.store import record_unbuilt_call_abstention, refusal_outcome
 from llm_harness.vocabulary import (
-    C_PLACEMENT, CHOOSE_RESIDUAL_DESTINATION,
+    C_PLACEMENT, CHOOSE_RESIDUAL_DESTINATION, NOT_ELIGIBLE_FOR_MODEL,
     CONTEXT_SUPPORTED as P8_CONTEXT_SUPPORTED, D_RESIDUAL,
     DIRECT_ANCHOR as P8_DIRECT_ANCHOR, REJECT as P8_REJECT,
     SEVERAL_LEGAL_NODES_PLAUSIBLE, USER_OPTED_RESIDUAL_SET_INTO_AI_REVIEW,
@@ -1152,7 +1153,23 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
             # a `ModelJudgementUnavailable` that ends the run on every file after
             # it too. NOT `gate_refused`: §8.4 decided nothing here, and saying it
             # did would name the wrong actor in the record.
-            elif not isinstance(result, CallRefused):
+            # `104` R-136 joins R-O here. A call that was never BUILT is not an
+            # answer about this file either, and it reaches step 9 by the same
+            # door: `chosen_node_id` stays `None` and the file is placed the way a
+            # run with no model configured would place it.
+            #
+            # THE OTHER THREE RETURN TYPES ARE NOT ADDED HERE, and the reason is a
+            # standing test rather than an oversight. `tests/integration/
+            # test_p11_pipeline_live.py::test_a_refusal_is_the_privacy_answer_and_
+            # a_non_verdict_is_refused_loudly` pins `NeedsConsent`,
+            # `ValidationUnavailable` and `CallFailed` to raising, on the argument
+            # `_require_verdict` states: §6.10's reasons are a closed set with no
+            # member meaning "the call did not happen", and naming one would
+            # record a conclusion nothing reached. Those three are a call that
+            # HAPPENED and came back wrong; R-136's two are a call that could
+            # never be built. Whether a failed call should also fall through is a
+            # ruling with a test standing on it, and it is not taken here.
+            elif not isinstance(result, (CallRefused, PreCallAbstention)):
                 verdict = _require_verdict(result, call_site=C_PLACEMENT)
                 outcome, reason, deferred = transcribe(
                     verdict, assessment=assessment)
@@ -1651,6 +1668,33 @@ def _asking(conn: sqlite3.Connection, context: _Context, *,
 # --- step 7: the hierarchical destination judge -----------------------------------
 
 
+def _not_asked(conn, *, call_site: str, subject, observed_at: str,
+               because: str) -> PreCallAbstention:
+    """One file the model is not asked about, recorded and handed back (R-136).
+
+    `PreCallAbstention` is P8's own record of a call that does not happen, and
+    `NOT_ELIGIBLE_FOR_MODEL` is P8's own word for it: `eligibility.
+    not_reserved_for_llm` returns exactly this pair for a subject the model is not
+    reserved for. §6.10's abstention reasons stay untouched -- this is not one of
+    them and does not pretend to be, which is what `_require_verdict` says in its
+    own words about naming a reason nothing reached.
+
+    `because` is the sentence each raise carried, kept at the call sites and NOT
+    put on the record: `PreCallAbstention` is P8's closed three-field shape --
+    reason, call site, subject -- and widening it here would be P11 authoring a
+    record another part owns. Which of the two states a file was in is readable
+    from the file itself, since one has no settled fact and the other has no
+    retrievable destination.
+    """
+    del because
+    subject_ref = subject_ref_of(subject)
+    abstention = PreCallAbstention(
+        reason=NOT_ELIGIBLE_FOR_MODEL, call_site=call_site,
+        subject_ref=subject_ref)
+    record_unbuilt_call_abstention(conn, abstention, observed_at=observed_at)
+    return abstention
+
+
 def _require_verdict(result, *, call_site: str) -> P8Verdict:
     if isinstance(result, P8Verdict):
         return result
@@ -1845,18 +1889,34 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
     `evidence_snapshot_id` is minted here because nothing else mints one and
     `run_call` refuses a C or D request without it BEFORE the spend.
     """
+    # `104` R-136. NEITHER OF THESE IS A JUDGEMENT AND NEITHER ENDS THE RUN. Both
+    # are answers about ONE file, reached before a call is built: there is nothing
+    # to send, or nothing to choose between. They used to raise
+    # `ModelJudgementUnavailable`, which is not in `REFUSAL_EXCEPTIONS`, so
+    # `_judged_or_refused` did not catch it and the corpus run died at the first
+    # file that hit either -- measured on the C-live run r4, 50 placements in with
+    # 0 site-C dossiers, on a corpus whose `subject` was missing on 19 files. Most
+    # coursework files ARE that file, so the exception was the common case.
+    #
+    # A pre-call abstention is what P8 already calls this, and the reason word is
+    # its own: `NOT_ELIGIBLE_FOR_MODEL` says the model is not reserved for this
+    # subject, which is true of a file with nothing to send and of one with
+    # nowhere to send it. No reason is invented, no budget is reserved -- the
+    # abstention is decided before `reserve_call` -- and the file falls to step 9,
+    # which places it the way a run with no model configured would.
     if not evidence.get("evidence_items"):
-        raise ModelJudgementUnavailable(
-            "a model call needs the reference-only evidence metadata the dossier "
-            "builder supplies; P8 refuses a request with none and P11 synthesises "
-            "no kind, location, span or basis of its own"
-        )
+        return _not_asked(
+            conn, call_site=call_site, subject=subject, observed_at=observed_at,
+            because="a model call needs the reference-only evidence metadata the "
+                    "dossier builder supplies, and this file version has no "
+                    "settled fact to build one from; P11 synthesises no kind, "
+                    "location, span or basis of its own")
     if not retrieval.candidates:
-        raise ModelJudgementUnavailable(
-            "no legal destination was retrievable for this subject, so there is "
-            "nothing for the judge to choose between and asking one would be "
-            "inviting it to invent (§6.6)"
-        )
+        return _not_asked(
+            conn, call_site=call_site, subject=subject, observed_at=observed_at,
+            because="no legal destination was retrievable for this subject, so "
+                    "there is nothing for the judge to choose between and asking "
+                    "one would be inviting it to invent (§6.6)")
     # The keys the DOSSIER cites, which is `evidence_items` below and not the
     # subset that happened to match a node. `evidence_snapshot_id_for` addresses
     # what the dossier carries, so drawing from the matched facts alone would
