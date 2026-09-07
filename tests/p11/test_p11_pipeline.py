@@ -165,6 +165,7 @@ def _inputs(conn, **overrides):
         # `_without_kind_only_moves` refuses to move a file on.
         fields_that_cannot_anchor_a_move=frozenset({"work_type", "term"}),
         their_own_folder_made_for_what_it_holds={},
+        the_folder_each_file_is_in={},
         p2=None,
     )
     values.update(overrides)

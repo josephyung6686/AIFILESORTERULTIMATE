@@ -229,9 +229,45 @@ def _without_duplicated_proposals(conn: sqlite3.Connection, retrieval: Retrieval
     )
 
 
+def _refinements_of(their_own_folder: str | None,
+                    parent_of: Mapping[str, str | None],
+                    node_ids) -> frozenset[str]:
+    """Which of these nodes lie INSIDE the folder the file is already in.
+
+    A move into one of them is refinement -- the file goes deeper inside the
+    branch it already sits in -- and `00`'s amendment of line 22 makes that the
+    model's call. A move to anything else is removal from the person's existing
+    arrangement, which stays a constraint surfaced to them (`104` §13.8).
+
+    STRICT descendants. The folder itself is not a refinement of itself: staying
+    put is the status quo, which is what `_staying_put_wins_a_tie` is about, and
+    counting it here would make that rule's tie unreachable.
+
+    Empty when the caller named no folder for this file, which is every file that
+    is not in one of the person's own folders and every caller that does not
+    supply the mapping. The walk is bounded by the chain it is walking and cannot
+    loop: `seen` stops a parent cycle, which P10 does not build but which this
+    function must not hang on if it ever did.
+    """
+    if their_own_folder is None:
+        return frozenset()
+    inside: set[str] = set()
+    for node_id in node_ids:
+        seen: set[str] = set()
+        walker = parent_of.get(node_id)
+        while walker is not None and walker not in seen:
+            if walker == their_own_folder:
+                inside.add(node_id)
+                break
+            seen.add(walker)
+            walker = parent_of.get(walker)
+    return frozenset(inside)
+
+
 def _without_kind_only_moves(
         retrieval: Retrieval, *, dimension_of: Mapping[str, str | None],
-        fields_that_cannot_anchor_a_move: frozenset[str]) -> Retrieval:
+        fields_that_cannot_anchor_a_move: frozenset[str],
+        refinements: frozenset[str] = frozenset()) -> Retrieval:
     """Step 6's third half: AN ARTIFACT KIND IS NOT AN IDENTITY.
 
     "This is an exam" says WHAT a file is. It never says whose it is, or which
@@ -295,10 +331,28 @@ def _without_kind_only_moves(
     Read from P10's own `Node.dimension` through the caller's tree, the same
     object `their_own_folder_node_ids` is read from, so the two halves of this
     step see one tree and not two.
+
+    **AND A MOVE INSIDE THE FILE'S OWN FOLDER IS NOT A MOVE OUT OF IT.** This
+    rule is named for what it refuses -- carrying a file OUT of where it is on an
+    artifact kind alone -- and until `refinements` existed it could not tell that
+    from putting the file one level DEEPER in the same folder. `00`'s amendment of
+    line 22 splits them: refinement, moving a file deeper inside the branch it
+    already sits in, is allowed and is the model's call; removal, moving it out of
+    the person's existing arrangement, stays the constraint this rule is
+    (`104` §13.8, ruled by the owner 2026-09-05).
+
+    The exemption is narrow on purpose, and `Desktop/AP world` is why. Its six
+    physics papers are the measurement above, and `AP world` IS one of the
+    person's own folders -- so "a descendant of any folder they have" would
+    readmit every one of them through the child the exemption opens. What is
+    exempt is a descendant of the folder THIS FILE IS IN, which `AP world` is not
+    for a paper sitting on the Desktop. `_refinements_of` is the whole of that
+    test and the caller supplies the folder.
     """
     carried = {
         candidate.node_id for candidate in retrieval.candidates
         if CURATED_FOLDER not in candidate.channels
+        and candidate.node_id not in refinements
         and candidate.matching_facts
         and all(fact.field in fields_that_cannot_anchor_a_move
                 for fact in candidate.matching_facts)
@@ -566,6 +620,42 @@ class PipelineInputs:
     #: position it has taken rather than one this dataclass took for it.
     their_own_folder_made_for_what_it_holds: Mapping[str, str]
     p2: P2Run | None
+    #: The node for the folder each file IS IN, for every file sitting in one of
+    #: the person's own folders -- not only the ones that folder was made for.
+    #: This is what tells REFINEMENT from REMOVAL (`00`'s amendment of line 22,
+    #: `104` §13.8): a file going deeper inside the branch it already sits in is
+    #: refinement and is allowed; a file going somewhere else is removal and stays
+    #: constrained. `_without_kind_only_moves` and `_staying_put_wins_a_tie` are
+    #: the two rules that read it.
+    #:
+    #: NOT `their_own_folder_made_for_what_it_holds`, and the six `Python 1006`
+    #: files are why: that mapping is gated on coverage -- every file in the folder
+    #: agreeing about a field -- and `Python 1006` holds twenty-one files that
+    #: agree about nothing, so it is absent from that mapping and present in this
+    #: one. Two questions, two mappings: "was this folder built for this kind of
+    #: thing" and "is this where the file lives".
+    #:
+    #: NOR the `CURATED_FOLDER` channel, which is the instrument both rules reach
+    #: for and neither should: it is a LABEL match, so it fires for a folder whose
+    #: NAME agrees with the file and is silent for one whose name does not.
+    #: `_a_folder_made_for_this_keeps_it` records the measurement -- a first draft
+    #: reading the channel abstained on all five files of a corpus small enough to
+    #: read, because `Kid` is called "Kid" and a report card says nothing about a
+    #: kid.
+    #:
+    #: Required, with no default, exactly as the two authorities above it are.
+    #: `test_no_unfinished_knowledge_source_gained_an_implementation_default` is
+    #: categorical about it -- "a field gaining a default here is P11 answering a
+    #: question the design says is the user's or the deployment's" -- and which of
+    #: P10's nodes is a folder the person already has, and which files are inside
+    #: it, are reads of P1's paths that P11 does not make.
+    #:
+    #: An EMPTY MAPPING is the answer for a deployment with no folders of the
+    #: person's own, and then neither rule changes: no candidate is inside
+    #: anything, nothing is exempt, and both behave exactly as they did before
+    #: this field existed. That is a position the caller has taken rather than one
+    #: this dataclass took for it.
+    the_folder_each_file_is_in: Mapping[str, str]
 
     def __post_init__(self) -> None:
         require_policy(self.policy)
@@ -584,6 +674,14 @@ class PipelineInputs:
                 "agreeing means it was built for that is a band P11 does not "
                 "own, and a run that did not state it would carry a file out of "
                 "the folder its owner keeps it in on an artifact kind alone")
+        if not isinstance(self.the_folder_each_file_is_in, Mapping):
+            raise ValueError(
+                "`the_folder_each_file_is_in` maps a file id to the node for "
+                "the folder that file is in, given by the composition root: "
+                "which of P10's nodes is a folder the person already has, and "
+                "which files are in it, are reads of P1's paths that P11 does "
+                "not make. A deployment with none passes an empty mapping, and "
+                "then no move is treated as a refinement")
         if not isinstance(self.limits, PlacementLimits):
             raise ValueError(
                 "the pipeline runs under P1's seven ceilings and reads them "
@@ -807,18 +905,34 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
     # Read by name, because `PipelineInputs.tree` is typed `object` on purpose --
     # P11 does not own P10's record -- and this is how `cli.py` reads the same
     # two attributes off the same nodes.
+    # `parent_of` joins them, in the same walk and for the same reason: telling
+    # refinement from removal is a question about the CHAIN, and a third
+    # comprehension over the tree per file is the O(files x nodes) shape again.
     dimension_of: dict[str, str | None] = {}
+    parent_of: dict[str, str | None] = {}
     their_own_folders: set[str] = set()
     for node in getattr(inputs.tree, "nodes"):
         dimension_of[node.node_id] = getattr(node, "dimension", None)
+        parent_of[node.node_id] = getattr(node, "parent_node_id", None)
         if getattr(node, "existing_path", None) is not None:
             their_own_folders.add(node.node_id)
+
+    # WHICH CANDIDATES ARE INSIDE THE FOLDER THIS FILE IS ALREADY IN. `00`'s
+    # amendment of line 22: a move deeper inside the branch the file already sits
+    # in is REFINEMENT and is allowed; a move out of the person's arrangement is
+    # REMOVAL and stays constrained. Both rules below were refusing the first as
+    # if it were the second, which is R-48 -- the file stops one level short of
+    # the child built for it.
+    refinements = _refinements_of(
+        (inputs.the_folder_each_file_is_in or {}).get(subject.file_id),
+        parent_of, tuple(c.node_id for c in retrieval.candidates))
 
     # And the last: a folder reached only because it holds the same KIND of
     # thing is not a home this file's evidence chose.
     retrieval = _without_kind_only_moves(
         retrieval, dimension_of=dimension_of,
-        fields_that_cannot_anchor_a_move=inputs.fields_that_cannot_anchor_a_move)
+        fields_that_cannot_anchor_a_move=inputs.fields_that_cannot_anchor_a_move,
+        refinements=refinements)
     graphs = {node_id: graph for node_id, graph in graphs.items()
               if node_id in {c.node_id for c in retrieval.candidates}}
     # WHICH CANDIDATES ARE FOLDERS THE PERSON ALREADY HAS. `existing_path` is set
@@ -829,7 +943,8 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
     # and a folder this run would like to create, which is not a question at all.
     assessment = assess(
         retrieval, graphs, policy=inputs.policy,
-        their_own_folder_node_ids=frozenset(their_own_folders))
+        their_own_folder_node_ids=frozenset(their_own_folders),
+        refinements=refinements)
 
     context = _Context(subject=subject, subject_ref=subject_ref, inputs=inputs,
                        privacy=privacy, retrieval=retrieval,
@@ -925,7 +1040,8 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
             destination_disposition=entry.disposition,
             automatic_move_permitted=automatic_move_permitted),
         explanation=_explain(entry, assessment, retrieval,
-                             model_decided=chosen_node_id is not None),
+                             model_decided=chosen_node_id is not None,
+                             refinements=refinements),
         residual=None,
     )
     return _write(conn, decision, inputs=inputs,
@@ -959,12 +1075,20 @@ def _facts_of(retrieval, node_id: str) -> tuple:
     return ()
 
 
-def _explain(entry, assessment, retrieval, *, model_decided: bool = False) -> str:
+def _explain(entry, assessment, retrieval, *, model_decided: bool = False,
+             refinements: frozenset[str] = frozenset()) -> str:
     """§6.4 and §6.11: state the actual basis, claim no evidence the file lacks."""
     parts = [f"{entry.display_label} expects "
              + (", ".join(f"{field} = {value}"
                           for field, value in entry.expected_values)
                 or "no stated value")]
+    if entry.node_id in refinements:
+        # `00`'s amendment of line 22 separates refinement from removal, and a
+        # person reading the plan is owed the same distinction: nothing is being
+        # taken out of the arrangement they built, the file is going one level
+        # deeper inside it. Said in their words, not "refinement" -- `84` §6.
+        parts.append("inside the folder this file is already in, so nothing "
+                     "leaves the arrangement you have")
     if model_decided:
         # The user is entitled to know a model was involved: §6.11 says a direct
         # and a context-supported placement "should not demand the same level of

@@ -33,6 +33,9 @@ from __future__ import annotations
 import sqlite3
 from dataclasses import dataclass
 
+from database_agent.files_table import (
+    PATH_NO_LONGER_EXISTS, SUPERSEDED_CONTENT, get_file,
+)
 from grouping.acceptance import group_state_as_of
 from grouping.store import memberships_for_group
 from grouping.vocabulary import ACCEPTED, EXCLUDED, NOT_FLAGGED
@@ -141,9 +144,69 @@ def accepted_group_as_of(conn: sqlite3.Connection, *, group_id: str,
         # confidence class P11 is meant to place and show. Dropping it here would
         # answer a question §4.8 deliberately leaves open, under cover of a fix
         # about something else.
+        # AND NOT A VERSION THE CORPUS HAS RETIRED (R-25). `memberships` outlive
+        # the run that wrote them -- that is the point of them -- so a member row
+        # from an earlier run still names the file version that run saw. When the
+        # bytes at a path change, P1 marks the old row `superseded_content` and
+        # records the new content as a NEW `files` row; the old membership keeps
+        # pointing at the old row, and `place_group` gives every membership it is
+        # handed a destination.
+        #
+        # MEASURED, on the four-file corpus of `test_103_diagnosis_backlog.py`:
+        # edit one file between two runs and the second run's plan version holds
+        # FIVE placement decisions for FOUR files, both versions of the edited
+        # file placed. `freeze` then wrote a `move_plans` row for the version that
+        # no longer exists -- a plan to move bytes that are not on the disk.
+        #
+        # A ROW THAT SAYS SO, NOT A ROW THAT IS ABSENT, and the difference is
+        # measured. The first draft asked `grouping.retrieval._corpus`'s positive
+        # question -- is this file id among the `included` rows? -- which is right
+        # when ENUMERATING the corpus and wrong when filtering a list somebody
+        # else assembled: every P11 fixture seeds `memberships` without seeding
+        # `files`, so it dropped all four members of every group and took 18 tests
+        # and 5 errors with it. Absence is not retirement. What P1 wrote is a
+        # SENTENCE about this version -- superseded, or its path is gone -- and
+        # only a version P1 has spoken about that way is dropped here.
         memberships=tuple(m for m in memberships_for_group(conn, group_id)
-                          if m.decision != EXCLUDED),
+                          if m.decision != EXCLUDED
+                          and not _p1_has_retired(conn, m.file_id)),
     )
+
+
+def _p1_has_retired(conn: sqlite3.Connection, file_id: str) -> bool:
+    """Has P1 said this file version is no longer part of the corpus?
+
+    Through `get_file`, which is P1's own reader. That table is P1's, and
+    `tests/p11/test_p11_connections.py` refuses a query written in this package
+    that names it -- "every one of them is asked through its owner's function
+    instead" -- so the first draft, which wrote the query here, was a boundary
+    breached in order to keep a boundary, and the guard that exists for exactly
+    that caught it. Its own prose is written without query keywords for the same
+    reason: the scan reads string constants, and a docstring quoting the query it
+    replaced would trip the guard describing why it does not.
+
+    P1'S OWN TWO SENTINELS, AND NOTHING ELSE IS READ AS RETIREMENT. Two weaker
+    drafts were written and measured first, and each is a rule somebody will
+    propose again:
+
+    * "Keep the members whose file id is among the corpus rows." Right when
+      ENUMERATING a corpus, wrong when filtering a list somebody else assembled:
+      every P11 fixture seeds `memberships` without seeding P1's table at all, so
+      it dropped all four members of every group -- 18 tests and 5 errors.
+      Absence is not retirement.
+    * "Drop any member whose row does not carry the scanned corpus value." The
+      column is P3's vocabulary and `scanned`, `unscanned` and `pending` are all
+      in it; `tests/test_identity.py` seeds `scanned` as the ordinary case. That
+      draft retired every one of them on a word P3 uses to mean the opposite.
+
+    What retires a version is P1 having written a SENTENCE about it, and P1 has
+    exactly two to write: the bytes at its path changed, or its path went away.
+    Both are P1's own published names, taken from P1's own module, so a third one
+    arrives here as an import that does not exist rather than as silence.
+    """
+    row = get_file(conn, file_id)
+    return row is not None and row["scan_state"] in (SUPERSEDED_CONTENT,
+                                                     PATH_NO_LONGER_EXISTS)
 
 
 @dataclass(frozen=True)

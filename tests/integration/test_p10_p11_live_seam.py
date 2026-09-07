@@ -211,6 +211,7 @@ def _inputs(corpus, result, **over):
         # reason as the two above it.
         fields_that_cannot_anchor_a_move=frozenset({"work_type", "term"}),
         their_own_folder_made_for_what_it_holds={},
+        the_folder_each_file_is_in={},
         p2=None)
     values.update(over)
     return PipelineInputs(**values)
