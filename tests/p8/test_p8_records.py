@@ -14,6 +14,7 @@ from llm_harness.records import (
     CheckedCitation,
     Citation,
     Claim,
+    CompatibilityConversion,
     Conflict,
     Dossier,
     DossierRequest,
@@ -494,10 +495,20 @@ def test_p8_verdict_constructs_with_spec_fields():
         "validator_version",
         "policy_version",
         "plan_version",
+        # `104` R-132 (`105` §14.5), and the ONLY field here the SPEC did not name.
+        # The owner's ruling is that a tolerated response shape is converted into the
+        # canonical one and the conversion is recorded on the verdict payload; this
+        # is where. It is LAST and defaults to `None`, so every verdict already
+        # stored still reads as exactly what it is -- an answer taken as given.
+        "compatibility",
     )
     assert _field_names(CheckedCitation) == (
         "citation_ref", "resolved", "span_matched",
     )
+    assert _field_names(CompatibilityConversion) == (
+        "rule_id", "version", "field", "dropped_value", "dropped_citations",
+    )
+    assert verdict.compatibility is None
 
 
 def test_context_acceptance_always_requires_review():

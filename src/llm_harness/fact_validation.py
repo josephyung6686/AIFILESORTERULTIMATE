@@ -30,6 +30,7 @@ from llm_harness.authorship import COMPONENT_VERSION
 from llm_harness.records import (
     CheckedCitation,
     Citation,
+    CompatibilityConversion,
     Dossier,
     P8Verdict,
     ValidationUnavailable,
@@ -318,6 +319,7 @@ def _verdict(
     citations_checked: Sequence[CheckedCitation],
     policy_version: str,
     dossier_id: str,
+    compatibility: CompatibilityConversion | None = None,
 ) -> P8Verdict:
     return P8Verdict(
         verdict_id=f"{dossier_id}:{proposal.field_key}",
@@ -333,7 +335,26 @@ def _verdict(
         validator_version=COMPONENT_VERSION,
         policy_version=policy_version,
         plan_version=None,
+        compatibility=compatibility,
     )
+
+
+#: THE COMPATIBILITY RULE THIS MODULE APPLIES, AND ITS VERSION (`104` R-132).
+#:
+#: `105` §14.5: the canonical decline stays `unknown` with an `insufficiency_statement`
+#: and no value, a supported value stays non-empty, and the ratified schema keeps
+#: `minLength: 1` -- so `""` is a shape the schema forbids and the CODE tolerates. A
+#: tolerance nobody can name is indistinguishable from a bug, so it is named here and
+#: numbered: every verdict it produces carries `empty_value_to_unknown/1`.
+#:
+#: **The version moves when the RULE moves, not when this file does.** `104` §14.7
+#: says a validator or normalisation change must re-evaluate cached responses rather
+#: than retain obsolete verdicts; a stored verdict that names version 1 is a verdict
+#: some later reader can decide to re-judge, and it can only decide that if the
+#: version is on the record. Widening what counts as empty, or changing what the
+#: conversion drops, is version 2.
+EMPTY_VALUE_TO_UNKNOWN_RULE: str = "empty_value_to_unknown"
+EMPTY_VALUE_TO_UNKNOWN_VERSION: str = "1"
 
 
 def _declined_the_field(raw_value: object) -> bool:
@@ -468,10 +489,33 @@ def _run_checks(
         # BEFORE check 3, and after checks 1 and 2 on purpose. An empty answer about
         # a field nobody asked for is still a field nobody asked for, and putting it
         # in `abstained_fields` would suppress a question that was never valid.
+        #
+        # AND IT IS A CONVERSION, WHICH IS A THING THE RECORD SAYS (`104` R-132).
+        # The outcome is the canonical `abstain` an explicit `unknown` earns and
+        # nothing about it is new; what is new is that the verdict now names the
+        # rule that produced it, its version, the field, and what the conversion
+        # dropped -- the value as the model wrote it and the keys it cited -- so a
+        # reader can tell a decline the model GAVE from one the validator MADE.
+        # Reaching here at all means checks 1 and 2 passed; the closed-object and
+        # duplicate-field refusals are earlier still, in `sites`, and this cannot
+        # route around either of them.
+        dropped = _freeze_str_sequence(proposal.citations, name="citations")
+        if isinstance(dropped, ValidationUnavailable):
+            # The record refuses a citation key that is not a string, and a record
+            # that refuses must not refuse by raising out of a function whose whole
+            # contract is `P8Verdict | ValidationUnavailable`.
+            return dropped
         return _verdict(
             request, proposal, outcome=ABSTAIN, reasons=(),
             citations_checked=checked, policy_version=policy_version,
             dossier_id=dossier_id,
+            compatibility=CompatibilityConversion(
+                rule_id=EMPTY_VALUE_TO_UNKNOWN_RULE,
+                version=EMPTY_VALUE_TO_UNKNOWN_VERSION,
+                field=proposal.field_key,
+                dropped_value=raw_value,
+                dropped_citations=dropped,
+            ),
         )
     normalized, outcome = _check_three(
         dependencies, proposal.field_key, raw_value)
