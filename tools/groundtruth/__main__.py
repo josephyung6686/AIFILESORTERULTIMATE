@@ -187,8 +187,8 @@ def main(argv: list[str] | None = None) -> int:
                   f"a file is known before a question is looked up under R-109's "
                   f"call identity; `reused` on each line below is how many were "
                   f"found there and `called` is this run's own spend. The "
-                  f"scorecard's MODEL line counts only what this run bought, and "
-                  f"names the seeded rows beneath it.")
+                  f"scorecard's MODEL line splits every count into fresh and "
+                  f"reused, and names the seeded rows beneath it.")
         if args.enable_cloud:
             print(f"!! SENDING TO THE CLOUD MODEL: {len(situations)} runs over "
                   f"{corpus_files} files each. This spends money.", flush=True)

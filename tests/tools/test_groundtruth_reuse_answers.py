@@ -471,11 +471,13 @@ def test_the_flag_seeds_the_run_and_the_scoreboard_says_how_many(prior, tmp_path
 
     assert completed.returncode in (0, 1), completed.stderr
     assert f"seeding each run's answers from {prior}" in completed.stdout
-    # The whole sentence, not its opening. It has twice said something the code
-    # then stopped doing -- once promising a saving the key could not deliver, once
-    # saying the MODEL line counted seeded rows after it had been changed not to.
-    assert ("scorecard's MODEL line counts only what this run bought, and names "
-            "the seeded rows beneath it") in completed.stdout
+    # The whole sentence, not its opening. It has three times said something the
+    # code then stopped doing -- once promising a saving the key could not deliver,
+    # once saying the MODEL line counted seeded rows after it had been changed not
+    # to, and once saying it counted only what the run bought after R-128 made it
+    # print both halves.
+    assert ("scorecard's MODEL line splits every count into fresh and reused, and "
+            "names the seeded rows beneath it") in completed.stdout
     # Seeded is what it was handed, reused is what it therefore did not ask, and
     # called is what it paid for anyway. Three numbers rather than one, because
     # "reused 2" alone cannot be told from a run that dropped every file. The
@@ -495,6 +497,25 @@ def test_the_flag_seeds_the_run_and_the_scoreboard_says_how_many(prior, tmp_path
         assert not any(MARKER in str(value)
                        for cell in found for value in cell.values()), (
             f"a sentinel row from the prior run reached {row['name']}")
+
+
+def _model_block(card: str) -> str:
+    """The whole MODEL block on one string, continuation lines included.
+
+    R-128 puts `fresh N / reused M` on every one of the eight tables, which no
+    longer fits a single 78-column line, so `report._packed` carries the rest onto
+    indented continuations. A test that read only the line beginning `MODEL` would
+    silently stop asserting anything about the tables that moved onto line two --
+    which on this card are `response` and `verdict`, the two the money is in.
+    """
+    lines = card.splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith("MODEL"))
+    block = [lines[start]]
+    for line in lines[start + 1:]:
+        if "=fresh " not in line:
+            break
+        block.append(line)
+    return " ".join(part.strip() for part in block)
 
 
 def _score(out: Path, labels: Path, *extra: str):
@@ -530,8 +551,13 @@ def test_the_scorecard_never_counts_a_seeded_row_as_a_call_somebody_paid_for(
     card = (out / "scorecard.txt").read_text(encoding="utf-8")
     assert "seeded from a prior run, not bought here: " in card
     assert "dossier=2" in card and "verdict=5" in card and "response=2" in card
-    model = next(line for line in card.splitlines() if line.startswith("MODEL"))
-    assert "dossier=0" in model and "verdict=0" in model, model
+    # R-128: the same two numbers, now on the MODEL line itself. `fresh 0` is this
+    # offline run's own spend and `reused` is what it was handed, and the assertion
+    # is on BOTH halves of one part: a line that said `fresh 0` while dropping the
+    # reused count would pass a test written on the fresh half alone, and that is
+    # the reading -- "nothing happened here" -- R-123 exists to make impossible.
+    assert "dossier=fresh 0 / reused 2" in _model_block(card)
+    assert "verdict=fresh 0 / reused 5" in _model_block(card)
     assert "no model was configured for these runs" in card
 
 
