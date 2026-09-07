@@ -2321,7 +2321,6 @@ def a_fact_prompt() -> PromptDefinition:
 
 
 def model_route_permitted(conn: sqlite3.Connection, *, locality: str,
-                          operation_mode: str,
                           unclassified_permits_local: bool):
     """§8.4 as `FactResolver` asks it: may THIS file's route reach a model at all?
 
@@ -2598,7 +2597,6 @@ def model_fact_resolver(conn: sqlite3.Connection, *,
         # the same locality and the same one answer to Open question 5.
         model_route_permitted=model_route_permitted(
             conn, locality=authorities.model_target.locality,
-            operation_mode=OPERATION_MODE,
             unclassified_permits_local=UNCLASSIFIED_PERMITS_LOCAL),
         # NOTHING IS RECORDED, and `"llm"` being a member of P4's `ANALYSIS_TIERS`
         # is exactly why the temptation had to be refused. `facts.usable` publishes
@@ -3452,13 +3450,27 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
             f"quietly: {WITHHELD_SENTENCE[cause]} Each one has an `unresolved` "
             f"row per open field saying `privacy_withheld`, so none of them is "
             f"recorded as a file with nothing to say.", indent="  "), file=out)
-    named = {"Refusal": "the gate refused the release",
-             "CallFailed": "the call did not come back",
+    named = {"CallFailed": "the call did not come back",
              "ValidationUnavailable": "something the check needed was missing",
              "NeedsConsent": "it needs an answer from you first"}
     for kind, count_ in sorted(kinds.items()):
         if kind in named:
             print(f"  {count_} refused: {named[kind]} ({kind}).", file=out)
+    # THE GATE'S OWN WORD, NOT THE CLASS NAME. "the gate refused the release
+    # (Refusal)" names the Python type that carried the answer and says nothing
+    # about the answer: protected material and a dossier over the ceiling are
+    # different things to do something about, and P7 already decided which it was.
+    # `Denied.reason` is that decision, and it is a closed vocabulary the gate
+    # checks on construction, so it is safe to print as-is.
+    refused: dict[str, int] = {}
+    for _file_id, result in outcomes:
+        denied = getattr(result, "denied", None)
+        reason = getattr(denied, "reason", None)
+        if isinstance(reason, str):
+            refused[reason] = refused.get(reason, 0) + 1
+    for reason, count_ in sorted(refused.items()):
+        print(f"  {count_} refused by the gate before anything was sent: "
+              f"{reason.replace('_', ' ')} ({reason}).", file=out)
 
 
 def _print_protected_areas(areas, out) -> None:

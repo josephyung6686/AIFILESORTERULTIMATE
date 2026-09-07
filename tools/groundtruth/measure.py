@@ -179,16 +179,35 @@ def _blocked_tally(connection) -> tuple[int, dict[str, int], int]:
             gate[reason] = gate.get(reason, 0) + 1
     except sqlite3.Error:
         gate = {}
+    # THE REMAINDER, SO THE THREE PARTITION AND CANNOT DOUBLE-COUNT. A file
+    # withheld at the route has no dossier row, and so does a file the gate
+    # refused: `record_dossier` fires inside `_issue_and_validate`, which
+    # `run_call` reaches only after `gate.release` has returned `Released`. So
+    # "included files with no dossier" is all three groups at once, and printing
+    # it as the third beside the other two would report 19 + 149 + 176 blocked
+    # files out of 176 -- R-46's own failure, counting one file twice, on the
+    # line built to stop it.
+    #
+    # Never-built is therefore what is LEFT: no dossier, not withheld at the
+    # route, and not one of the door's refusals. One refusal is one file here
+    # because A_fact asks once per file, which is what makes the subtraction
+    # sound; a negative would mean that stopped being true, so it is reported
+    # rather than clamped away.
     try:
-        never = _rows(connection, """
+        without = _rows(connection, """
             select count(*) as n from files f
              where f.scan_state = 'included'
                and not exists (select 1 from llm_dossier d
                                 where d.subject_ref = f.file_id)
+               and not exists (select 1 from unresolved u
+                                where u.file_id = f.file_id
+                                  and u.reason = 'privacy_withheld')
         """)[0]["n"]
     except sqlite3.Error:
-        never = 0
-    return at_route, dict(sorted(gate.items(), key=lambda kv: (-kv[1], kv[0]))), never
+        without = 0
+    never = without - sum(gate.values())
+    return (at_route, dict(sorted(gate.items(), key=lambda kv: (-kv[1], kv[0]))),
+            never)
 
 
 def _model_tally(connection) -> dict[str, int]:

@@ -309,7 +309,7 @@ def test_a_file_that_was_read_reaches_the_model_even_with_no_classification(
     read_but_unclassified, protected = _two_files(conn, tmp_path)
 
     on_device = cli.model_route_permitted(
-        conn, locality=LOCAL, operation_mode=cli.OPERATION_MODE,
+        conn, locality=LOCAL,
         unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL)
 
     assert on_device(read_but_unclassified) is True, (
@@ -333,10 +333,10 @@ def test_the_route_refuses_on_a_cloud_target_what_the_gate_would_have_refused(
     read_but_unclassified, protected = _two_files(conn, tmp_path)
 
     on_device = cli.model_route_permitted(
-        conn, locality=LOCAL, operation_mode=cli.OPERATION_MODE,
+        conn, locality=LOCAL,
         unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL)
     over_the_internet = cli.model_route_permitted(
-        conn, locality=CLOUD, operation_mode=cli.OPERATION_MODE,
+        conn, locality=CLOUD,
         unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL)
 
     assert on_device(read_but_unclassified) is True

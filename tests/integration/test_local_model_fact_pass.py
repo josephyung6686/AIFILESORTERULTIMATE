@@ -540,3 +540,40 @@ def test_the_two_reasons_the_route_withholds_for_get_a_line_each():
     assert "2 of 3 files were not sent" in printed
     assert "protected material" in printed
     assert "nothing has classified them" in printed
+
+
+def test_a_gate_refusal_is_named_by_the_gates_own_word_and_is_not_counted_as_sent():
+    """`104` R-02 and R-03 meeting on one line, with a REAL `Denied` behind it.
+
+    The screen said "1 refused: the gate refused the release (Refusal)". `Refusal`
+    is the Python class that carried the answer and says nothing about the answer:
+    protected material and a dossier over the ceiling are different things to do
+    something about, and P7 had already decided which it was. `Denied.reason` is
+    that decision, checked against a closed vocabulary when the gate builds it.
+
+    And the same file must not appear in the sent count, which is R-03: the gate
+    denies before `transport.issue` opens a socket, so nothing was sent about it.
+    """
+    from llm_harness.records import Refusal
+    from privacy.denial import RemedyOption, deny
+
+    denied = deny(
+        "protected_cloud_target",
+        explanation="this file is protected and the target is a cloud model",
+        remedy_options=(RemedyOption(
+            action="use_local_model",
+            detail="ask a model on this device instead"),),
+        evidence_refs=())
+    refusal = Refusal(denied=denied, validator_version="vv", policy_version="pv")
+    out = io.StringIO()
+
+    cli._print_fact_pass(
+        written=0, withheld={}, files=2, model_id=MODEL_ID, out=out,
+        outcomes=[("f1", refusal), ("f2", _verdict(claim_ref="claim-1"))])
+    printed = " ".join(out.getvalue().split())
+
+    assert "from 1 file sent" in printed, "a refusal sends nothing"
+    assert "protected_cloud_target" in printed
+    assert "(Refusal)" not in printed, (
+        "the class name is not the reason; it names the envelope the answer "
+        "arrived in and tells a person nothing about what to do")
