@@ -260,9 +260,25 @@ def _cases(world: World):
           "citations": [{"evidence_ref": world.handle, "cited_span": "PHYS 1401"}]},
          ((REJECT, (SCHEMA_INVALID,), "claim-0:citation_malformed"),)),
         # --- one claim rejected, the response alive -------------------------------
+        # `104` R-119, and this row moved with it: an EMPTY value is the model
+        # declining the field, not a value the normaliser could not read. It was
+        # `reject VALUE_NOT_NORMALIZABLE` here and on the owner's corpus, where 19
+        # declines (`term` 10, `work_type` 9) were scored as wrong answers and
+        # re-asked on the next run because reuse reads abstentions. The number below
+        # stays a rejection: a JSON number is a shape the template forbids (rule 3),
+        # not a decline, and `sites` files it deliberately as one rejected claim.
+        #
+        # AND THE DISAGREEMENT THIS FILE EXISTS TO PIN, PINNED. The ratified schema
+        # puts `minLength: 1` on `payload.value`, so `""` is a shape it forbids, and
+        # the shapes it forbids are strict xfails above (`DECLINE_AND_ASSERT`) rather
+        # than changed rows -- because whether the honest `SCHEMA_INVALID` is worth
+        # rule 11 destroying the whole response was the OWNER'S ruling to make. Here
+        # the owner has made it: `104` R-119 says an empty value is the `abstain`
+        # outcome for that field. So this row moves and no xfail is filed beside it;
+        # the code and the schema still disagree, and the ruling is the reason.
         ("an empty value",
          {"payload": {"field": "subject", "value": ""}, "citations": [cite]},
-         ((REJECT, (VALUE_NOT_NORMALIZABLE,), "subject"),)),
+         ((ABSTAIN, (), "subject"),)),
         ("a value emitted as a number",
          {"payload": {"field": "subject", "value": 1401}, "citations": [cite]},
          ((REJECT, (VALUE_NOT_NORMALIZABLE,), "subject"),)),

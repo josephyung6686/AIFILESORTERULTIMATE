@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from facts.llm_seam import (
     FOUR_CHECKS,
@@ -198,6 +198,35 @@ def _verdict(
     )
 
 
+def _declined_the_field(raw_value: object) -> bool:
+    """An EMPTY answer is the model declining the field, not a bad value (`104` R-119).
+
+    Check 3 asks whether a value can be canonicalised, and it answered `None` for the
+    empty string as readily as for nonsense -- so a decline was recorded `reject
+    VALUE_NOT_NORMALIZABLE`. Measured on the owner's corpus: 19 claims (`term` 10,
+    `work_type` 9) came back as `""` and every one was scored a wrong answer in
+    VERDICTS BY SITE. Worse, `model_facts` reuses ABSTENTIONS and not rejections
+    (`store.abstained_fields`), so the next run asked the same model the same question
+    it had already declined.
+
+    The product already has the outcome for "I cannot say": `abstain`. This is a rule
+    about the SHAPE of the answer, not about the prompt or the vocabulary -- the model
+    is not told anything new, and a non-empty value that fails to normalise is
+    `VALUE_NOT_NORMALIZABLE` exactly as before.
+
+    Whitespace counts as empty, and so does an empty string the model QUOTED: a local
+    run returned the two characters `""` in a JSON string, which is the same decline
+    spelled with the quotes left in. A lone `"` is not: it is one character the
+    normaliser has an opinion about.
+    """
+    if not isinstance(raw_value, str):
+        return False
+    stripped = raw_value.strip()
+    if len(stripped) >= 2 and stripped[0] == '"' and stripped[-1] == '"':
+        stripped = stripped[1:-1].strip()
+    return not stripped
+
+
 def _check_three(
     dependencies: FactValidationDependencies,
     field_key: str,
@@ -297,6 +326,15 @@ def _run_checks(
             dossier_id=dossier_id,
         )
     raw_value = proposal.value
+    if _declined_the_field(raw_value):
+        # BEFORE check 3, and after checks 1 and 2 on purpose. An empty answer about
+        # a field nobody asked for is still a field nobody asked for, and putting it
+        # in `abstained_fields` would suppress a question that was never valid.
+        return _verdict(
+            request, proposal, outcome=ABSTAIN, reasons=(),
+            citations_checked=checked, policy_version=policy_version,
+            dossier_id=dossier_id,
+        )
     normalized, outcome = _check_three(
         dependencies, proposal.field_key, raw_value)
     if normalized is None:
@@ -406,6 +444,18 @@ def validate_fact_proposal(
         # path that writes, because a rejected proposal has no canonical form (a
         # `None` from check 3 IS the rejection).
         p6 = p6_verdict_from_p8(p8)
+        # AN ABSTENTION IS AN ABSTENTION ON BOTH SIDES OF THE SEAM (`104` R-119).
+        # `apply_verdict` reads `proposal.unknown` to decide between "the model
+        # declined" and "the model answered", and an empty answer is `unknown=False`
+        # -- `Proposal` will not hold a value AND a decline, so the empty string
+        # arrives here as a claim. Left alone, `p6.passed` is True for every
+        # non-REJECT outcome and the write reached `ensure_value` with the canonical
+        # form of nothing, ending the pass on a value the model never asserted. The
+        # consequence P6 records is the one an explicit abstention records:
+        # `model_returned_unknown`, no fact, no value row.
+        consequence = proposal
+        if p8.outcome == ABSTAIN and not proposal.unknown:
+            consequence = replace(proposal, value=None, citations=(), unknown=True)
         # ONLY ON THE PATH THAT WRITES. A rejected proposal has no canonical form,
         # and normalising one here would call the deployment's normalizer for a
         # value no check asked about -- including after checks 1 and 2, which are
@@ -413,15 +463,15 @@ def validate_fact_proposal(
         # refused without the value ever being canonicalised. Three tests in
         # `tests/p8/test_p8_fact_validation.py` count those calls and caught it.
         canonical = None
-        if p6.passed and not proposal.unknown and isinstance(proposal.value, str):
+        if p6.passed and not consequence.unknown and isinstance(consequence.value, str):
             # `_check_three`, not `normalize`: a title accepted into review has no
             # answer from the first normaliser, and reading only that one here wrote
             # `canonical_value=None` onto a PASSING verdict -- which `ensure_value`
             # raises on, ending the pass rather than storing the candidate.
             canonical, _outcome = _check_three(
-                dependencies, proposal.field_key, proposal.value)
+                dependencies, consequence.field_key, consequence.value)
         apply_verdict(
-            conn, request=request, proposal=proposal,
+            conn, request=request, proposal=consequence,
             verdict=p6,
             proposal_state=proposal_state_from_p8(p8),
             model_identifier=model_identifier,
