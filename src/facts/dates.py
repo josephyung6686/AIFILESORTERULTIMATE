@@ -17,7 +17,10 @@ Three consequences, and all three are structural rather than advisory:
   pattern that claimed the span.
 * **The three named academic terms get three dedicated patterns**, identified by id.
   `Spring 2025` is not `AY 2024-25` parsed loosely, and the result carries which
-  pattern claimed it so a test can assert dedication rather than coincidence.
+  pattern claimed it so a test can assert dedication rather than coincidence. `105`
+  §14.2 adds two more ids on the same terms -- `<YYYY>-<YYYY> Term <n>` and
+  `<YYYY>-<YYYY> Semester <n>` -- and they are the owner's, not §3.10's; see
+  `YEAR_RANGE_TERM_NUMBER` below for why they are not required.
 * **The pattern bodies are injected.** Which seasons, which term names, which
   numeric formats -- that is the SPEC's *"Date and academic-term regex catalogue
   beyond the three named patterns"*, which is Deferred. This module authors the three
@@ -56,6 +59,31 @@ ACADEMIC_YEAR_RANGE = "academic_year_range"
 NAMED_TERM_YEAR = "named_term_year"
 REQUIRED_PATTERN_IDS: tuple[str, str, str] = (
     SEASON_YEAR, ACADEMIC_YEAR_RANGE, NAMED_TERM_YEAR)
+
+#: TWO MORE IDS, AND THEY ARE THE OWNER'S RULING RATHER THAN §3.10'S. `105` §13.2
+#: proposed `<YYYY>-<YYYY> Term <n>` and `<YYYY>-<YYYY> Semester <n>` -- the
+#: two-term academic year's own spelling -- and `105` §14.2 ruled: "Keep the
+#: proposed accepted forms and refusals". They are ADDITIONS to this deployment's
+#: term vocabulary, so they are named here for the same reason the three above are:
+#: `facts.dates` authors the ids and the caller authors the expressions, and a
+#: deployment that spelled its own id would be `65` §4.2's several-spellings failure
+#: moved into the pattern catalogue.
+#:
+#: NOT IN `REQUIRED_PATTERN_IDS`, and that is not an oversight. That tuple is the
+#: SPEC's demand -- "Academic terms such as Spring 2025, AY 2024-25, and Michaelmas
+#: Term 2024 require dedicated patterns" -- and a `DatePatterns` missing one of those
+#: three is refused because §3.10 named them. These two are a deployment's ruled
+#: vocabulary; a test fixture that omits them is testing something else, not
+#: violating the design. What holds this deployment to them is its own assertion over
+#: `cli.DATE_PATTERNS.pattern_ids`.
+#:
+#: GRANULARITY IS PART OF IDENTITY (§14.2): `AY 2024-25` does not identify a
+#: semester, `2023-2024 Semester 1` does not establish `Fall 2023`, and `Term 1` and
+#: `Semester 1` are not automatically one value -- so the two forms get TWO ids and
+#: not one `year_range_numbered_term`, and each canonical form keeps the word that
+#: says which calendar it came from.
+YEAR_RANGE_TERM_NUMBER = "year_range_term_number"
+YEAR_RANGE_SEMESTER_NUMBER = "year_range_semester_number"
 
 
 class MissingRequiredPattern(ValueError):
@@ -194,16 +222,27 @@ def date_matches(observation: Observation, *,
     return tuple(sorted(found, key=lambda one: (one.pattern_id, one.value)))
 
 
-def date_candidates(observation: Observation, *,
-                    patterns: DatePatterns) -> tuple[Candidate, ...]:
-    """§3.7 candidates for §3.10 spans, so a date is ranked like any other facet.
+def candidate_of(match: DateMatch) -> Candidate:
+    """One claimed span as §3.7's shape -- THE ONLY PLACE THIS PROJECTION IS WRITTEN.
 
     The score is P4's `occurrence_count` and nothing else: §3.7's weights are applied
     by `facts.facets.rank` from an injected map, and a producer that pre-weighted its
     own candidates would be a second place those numbers live.
+
+    IT IS A FUNCTION BECAUSE IT HAS TWO CALLERS AND THEY MUST NOT DRIFT.
+    `date_candidates` below is the whole-observation form, which the tests ask; the
+    PRODUCER takes `date_matches` instead, because `105` §14.2 makes it responsible
+    for the raw spelling too and `Candidate` has no room for one. Written twice,
+    `test_p6_dates` would be asserting a projection nothing ships -- `84` §5.5's
+    defect exactly, a part tested on both sides of a seam the run never crosses.
     """
-    return tuple(
-        Candidate(value=one.value, score=float(one.occurrence_count),
-                  evidence_refs=(one.evidence_ref,), zone=one.zone,
-                  signal_tier=one.signal_tier)
-        for one in date_matches(observation, patterns=patterns))
+    return Candidate(value=match.value, score=float(match.occurrence_count),
+                     evidence_refs=(match.evidence_ref,), zone=match.zone,
+                     signal_tier=match.signal_tier)
+
+
+def date_candidates(observation: Observation, *,
+                    patterns: DatePatterns) -> tuple[Candidate, ...]:
+    """§3.7 candidates for §3.10 spans, so a date is ranked like any other facet."""
+    return tuple(candidate_of(one)
+                 for one in date_matches(observation, patterns=patterns))

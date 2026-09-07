@@ -41,6 +41,7 @@ from facts.dates import (
 )
 from facts.file_facts import facts_for_file
 from facts.unresolved import unresolved_for_file
+from facts.values import ValueRow, values_in_field
 
 CLOCK = "2026-08-22T00:00:00Z"
 
@@ -411,3 +412,97 @@ def test_the_documents_own_term_in_its_own_body_still_fills_the_field(p6_conn,
                minimum_score=MINIMUM_SCORE, minimum_margin=MINIMUM_MARGIN)
 
     assert _values(p6_conn, file_id, content_hash) == ["Fall2025"]
+
+
+# --- `105` §14.2: the original spelling is preserved beside the identity -----
+
+def _variants(conn, canonical, field_key="term"):
+    """The `raw_variants` column of one value, decoded once, through `ValueRow`."""
+    row = next(one for one in values_in_field(conn, field_key)
+               if one["canonical_value"] == canonical)
+    return ValueRow.from_row(row).raw_variants
+
+
+def _value_rows(conn, field_key="term"):
+    """Every canonical value this field has a row for, in the column's own order."""
+    return [one["canonical_value"] for one in values_in_field(conn, field_key)]
+
+
+def test_the_wording_the_document_used_survives_the_canonicaliser(p6_conn, tmp_path):
+    """§2.8's first rendering, which this producer dropped: "the raw observation
+    remains exactly that wording".
+
+    `105` §14.2 asks for it of a term by name -- "The original spelling is preserved
+    alongside the normalized identity" -- and the canonicaliser is exactly what makes
+    that a loss rather than a redundancy. `DatePattern.canonical` collapses
+    `Spring 2026`, `Spring2026` and `2026-Spring` into ONE semester on purpose, and
+    until this call existed the collapsed form was the only surviving evidence that
+    any document had printed a space. A person asked to confirm `Spring2026` was
+    being asked about a word their syllabus never used.
+
+    EVERY spelling that supported the winning value, not just the first sighting:
+    the variants are per-VALUE and the third reading is the one a first-sighting-only
+    writer would drop.
+    """
+    file_id, content_hash, written = _run(
+        p6_conn, tmp_path, name="spelt.txt",
+        texts=["Spring 2026 syllabus", "Spring2026 homework", "2026-Spring lab"])
+
+    assert len(written) == 1
+    assert _values(p6_conn, file_id, content_hash) == ["Spring2026"]
+    assert _variants(p6_conn, "Spring2026") == (
+        "2026-Spring", "Spring 2026", "Spring2026")
+
+
+def test_the_span_is_kept_and_not_the_sentence_it_was_found_in(p6_conn, tmp_path):
+    """The MATCH, not the reading, which is `facts.rules`' rule for the same column.
+
+    "The wording this column promises is the wording of the value, not of the
+    paragraph it was found in." A whole body paragraph in `raw_variants` would put a
+    sentence in front of a person who asked what their folder is called.
+    """
+    _run(p6_conn, tmp_path, name="span.txt",
+         texts=["The seminar meets weekly through Michaelmas Term 2024 in Hall."])
+
+    assert _variants(p6_conn, "Michaelmas2024") == ("Michaelmas Term 2024",)
+
+
+def test_a_losers_spelling_is_not_recorded_against_the_value_that_won(
+        p6_conn, tmp_path):
+    """Only the filled value's own wording. `AY 2024-25` stated three times and
+    `Michaelmas 2024` once is one fact and one value; recording the loser's spelling
+    against the winner would say the document wrote the winning term a way it never
+    did, and `raw_variants` is what a person is shown when they ask where a folder
+    name came from.
+    """
+    file_id, content_hash, written = _run(
+        p6_conn, tmp_path, name="loser.txt",
+        texts=["AY 2024-25 handbook", "AY2024/25 timetable", "ay 2024 - 25 fees",
+               "Michaelmas 2024 reading list"])
+
+    assert len(written) == 1
+    assert _values(p6_conn, file_id, content_hash) == ["AY2024-25"]
+    assert _variants(p6_conn, "AY2024-25") == (
+        "AY 2024-25", "AY2024/25", "ay 2024 - 25")
+    # And the loser has no row to carry a spelling on: `ensure_value` runs only for
+    # the value `fill_or_abstain` filled, so `Michaelmas 2024` reached §3.7's ranking
+    # and stopped there. The wording that survives is the wording of a fact.
+    assert _value_rows(p6_conn) == ["AY2024-25"]
+
+
+def test_an_abstention_records_no_spelling_at_all(p6_conn, tmp_path):
+    """Two terms inside §3.7's margin fill nothing, and nothing is what the value
+    rows must say.
+
+    The spelling is written AFTER `fill_or_abstain` answers, so a refusal writes no
+    value row and therefore no wording. Written before, the margin's own refusal
+    would still leave two spellings on two values no fact points at, and a person
+    asking where a folder name came from would be shown a folder that was never
+    proposed."""
+    file_id, content_hash, written = _run(
+        p6_conn, tmp_path, name="margin.txt",
+        texts=["Spring 2026 midterm", "Fall 2026 final"])
+
+    assert written == ()
+    assert _values(p6_conn, file_id, content_hash) == []
+    assert _value_rows(p6_conn) == []

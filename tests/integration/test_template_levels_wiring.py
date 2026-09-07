@@ -118,6 +118,21 @@ def test_the_term_is_not_routed_to_the_group_yet_and_the_reason_is_measured(
 
     This test is the record of that decision, so enabling the role means deleting
     it and saying why in the same commit.
+
+    **AND SINCE 7 SEP 2026 THERE IS A SECOND REASON, WHICH IS A RULING RATHER THAN A
+    MEASUREMENT.** `105` §14.2: a term "is bound to the relevant course", and no
+    equivalence is inferred "between numbered terms, semesters, or seasons without
+    evidence for that course's calendar". A one-group-per-`--label` group is not a
+    course -- it is every coursework anchor in the corpus -- so reading a term off it
+    is reading it off something the ruling does not permit it to be bound to. The
+    term stays the FILE's own value, and a file belongs to one course.
+
+    Enabling the role therefore now needs both things: a course-grain group, AND the
+    ruling's binding satisfied by that group.
+    `tests/integration/test_two_courses_keep_two_terms.py` is the evidence that the
+    per-file route already keeps two calendars apart -- two courses, `Fall2024` and
+    `2023-2024Semester1`, two `Semester` folders, each course under its own -- so
+    what is deferred here is the group grain and nothing about the ruling.
     """
     assert "term" not in group_level_fields_for(catalogue, "academic.coursework")
     assert "cycle_period" not in GROUP_LEVEL_ROLES["academic"]
