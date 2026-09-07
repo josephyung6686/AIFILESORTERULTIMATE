@@ -13,6 +13,13 @@ from typing import Iterable, Mapping, Sequence
 from tools.groundtruth.labels import Label
 from tools.groundtruth.measure import COMPLETENESS_ORDER, Observation, RunObservation
 from tools.groundtruth.score import (
+    APPROPRIATE_ABSTENTION,
+    CORRECT_PLACEMENT,
+    INCORRECT_PLACEMENT,
+    INVALID_OUTPUT,
+    MISPLACED_BUCKETS,
+    NO_OUTCOME,
+    OUTCOME_CLASSES,
     PLACED_EXACT,
     PLACED_FLAT,
     PLACED_PARENT,
@@ -20,11 +27,13 @@ from tools.groundtruth.score import (
     NOT_PLACED,
     NO_DECISION,
     SORTING_BUCKETS,
+    UNNECESSARY_ABSTENTION,
     ProtectedBreach,
     SituationScore,
     family_cohesion,
     over_marked,
     score_fields,
+    score_outcome,
     score_sorting,
 )
 
@@ -33,6 +42,28 @@ _RULE = "=" * 78
 
 def _pct(n: int, of: int) -> str:
     return f"{100 * n / of:5.1f}%" if of else "    --"
+
+
+def _packed(parts: Sequence[str], *, head: str, indent: str,
+            width: int = 78) -> list[str]:
+    """`parts` over as few lines as they fit on, never breaking one in half.
+
+    `textwrap.wrap` splits on spaces, and every part here reads `dossier=fresh 0 /
+    reused 2` -- so wrapping it would leave half a count on one line and half on
+    the next, which is the one thing a reader of a money line must not see, and the
+    one thing a grep for it cannot survive.
+    """
+    lines: list[str] = []
+    current, held = head, 0
+    for index, part in enumerate(parts):
+        piece = part + ("," if index < len(parts) - 1 else "")
+        if held and len(current) + len(piece) + 1 > width:
+            lines.append(current.rstrip())
+            current, held = indent, 0
+        current = current + piece if not held else f"{current} {piece}"
+        held += 1
+    lines.append(current.rstrip())
+    return lines
 
 
 def _merged_view(runs, labels):
@@ -71,6 +102,83 @@ def _split_buckets(runs, labels):
     return confident, uncertain
 
 
+def outcome_counts(runs: Sequence[RunObservation],
+                   labels: Mapping[str, Label]) -> collections.Counter:
+    """`105` §14.7's five classes over the labelled files, plus the remainder.
+
+    THE SAME DENOMINATOR AS `_split_buckets`, and by the same rule: one observation
+    per file, from the run whose situation that file's label names, protected files
+    left out. So the five classes and the two blocks above them are counted over
+    exactly the same files, and a reader may add the five and compare the total
+    with the two blocks' totals.
+    """
+    counted: collections.Counter = collections.Counter()
+    for run in runs:
+        for path, label in labels.items():
+            if label.situation != run.situation or label.protected:
+                continue
+            counted[score_outcome(label, run.files.get(path),
+                                  node_paths=run.node_paths)] += 1
+    return counted
+
+
+def outcome_lines(runs: Sequence[RunObservation],
+                  labels: Mapping[str, Label]) -> list[str]:
+    """The five-class table, printed beneath a sorting block.
+
+    Beneath both blocks and from THIS function, for the reason `sorting_lines`
+    itself is shared: the shadow row's promise is that it is scored with exactly
+    the same rules as the applied one, and a second renderer would drift the first
+    time a class's wording moved.
+    """
+    counted = outcome_counts(runs, labels)
+    total = sum(counted.values())
+    buckets = collections.Counter()
+    for pair in _split_buckets(runs, labels):
+        buckets.update(pair)
+
+    lines = [f"            {total} labelled files in the owner's five outcome "
+             f"classes (`105` §14.7)"]
+    for name in OUTCOME_CLASSES:
+        n = counted.get(name, 0)
+        lines.append(f"              {n:4d}  {_pct(n, total)}  {name}")
+        if name != INCORRECT_PLACEMENT:
+            continue
+        # The roll-up, taken apart. `incorrect placement` is the owner's class and
+        # these three are what a person fixing the product needs -- right parent
+        # wrong leaf is a leaf that was never built, top folder only is no
+        # structure at all, and wrong is a different branch entirely. They are the
+        # same numbers as the block above, counted over the same files.
+        for bucket in MISPLACED_BUCKETS:
+            lines.append(f"                    {buckets.get(bucket, 0):4d}  "
+                         f"of which {bucket}")
+    remainder = counted.get(NO_OUTCOME, 0)
+    if remainder:
+        # Shown rather than folded into an abstention, because nobody decided
+        # anything about these and calling that caution would be crediting the
+        # product with a judgement it never made.
+        lines.append(f"              {remainder:4d}  {_pct(remainder, total)}  "
+                     f"{NO_OUTCOME}")
+    return lines
+
+
+def row_128(runs: Sequence[RunObservation],
+            labels: Mapping[str, Label]) -> str:
+    """`105` §14.7's five counts on one line, in the owner's own order.
+
+    One line and one grep -- `grep 'ROW (128)'` -- for the same reason `row_104`
+    exists: a reader who has to paste these into the diagnosis should not have to
+    re-add the table above by hand, and a chain that reads them should not have to
+    parse a table whose spacing may move.
+    """
+    counted = outcome_counts(runs, labels)
+    return (f"correct placement {counted.get(CORRECT_PLACEMENT, 0)}"
+            f" / incorrect placement {counted.get(INCORRECT_PLACEMENT, 0)}"
+            f" / appropriate abstention {counted.get(APPROPRIATE_ABSTENTION, 0)}"
+            f" / unnecessary abstention {counted.get(UNNECESSARY_ABSTENTION, 0)}"
+            f" / invalid output {counted.get(INVALID_OUTPUT, 0)}")
+
+
 def sorting_lines(runs: Sequence[RunObservation],
                   labels: Mapping[str, Label],
                   *, heading: str, confident_on_uncertain: int) -> list[str]:
@@ -101,6 +209,12 @@ def sorting_lines(runs: Sequence[RunObservation],
             lines.append(f"              {n:4d}  {_pct(n, n_uncertain)}  {bucket}")
     lines.append(f"            {confident_on_uncertain} of them were answered "
                  f"confidently anyway")
+    # `105` §14.7, beneath the two blocks and never instead of them. The blocks say
+    # WHERE each file went; these five say whether that was the right thing to do,
+    # which the blocks cannot: `not placed` is the pass in one and the miss in the
+    # other, and neither knows whether the run had built anywhere to put the file.
+    lines.append("")
+    lines.extend(outcome_lines(runs, labels))
     return lines
 
 
@@ -309,9 +423,17 @@ def scorecard(runs: Sequence[RunObservation],
     for run in runs:
         seeded.update(run.seeded)
     own = {k: tally[k] - seeded.get(k, 0) for k in tally}
-    w("MODEL       " + (
-        ", ".join(f"{k.removeprefix('llm_')}={own[k]}" for k in sorted(own))
-        or "no model tables in these databases"))
+    # `104` R-128 / `105` §14.7: EVERY count says fresh versus reused, and not only
+    # the tables a seeding happened to touch. A run that was handed nothing prints
+    # `reused 0` on every line, which is the measurement -- the version that fell
+    # silent when there was nothing to report is the version in which a reader
+    # could not tell "bought today" from "not seeded" without knowing the flag.
+    parts = [f"{k.removeprefix('llm_')}=fresh {own[k]} / reused {seeded.get(k, 0)}"
+             for k in sorted(own)]
+    if not parts:
+        parts = ["no model tables in these databases"]
+    for line in _packed(parts, head="MODEL       ", indent="            "):
+        w(line)
     if any(seeded.values()):
         w("            seeded from a prior run, not bought here: " + ", ".join(
             f"{k.removeprefix('llm_')}={seeded[k]}" for k in sorted(seeded)
@@ -407,6 +529,11 @@ def scorecard(runs: Sequence[RunObservation],
     # `104` §14.5's own order, so the row a reader has to paste into the diagnosis
     # is printed rather than re-derived from the buckets above by hand.
     w(f"ROW (104)   {row_104(runs, labels, scores)}")
+    # `105` §14.7's own order, beside `104` §14.5's. Two rows and not one merged
+    # line, because they are counted over the same files and answer different
+    # questions, and a reader comparing this run with an earlier one needs the
+    # older row to still be the older row.
+    w(f"ROW (128)   {row_128(runs, labels)}")
     w("")
     # Printed on the card itself, not left in a handover message. Two numbers
     # on this scorecard were wrong in exactly this way before anyone noticed --

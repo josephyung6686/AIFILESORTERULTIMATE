@@ -31,6 +31,36 @@ NO_DECISION = "no decision"
 SORTING_BUCKETS = (PLACED_EXACT, PLACED_PARENT, PLACED_FLAT, PLACED_WRONG,
                    NOT_PLACED, NO_DECISION)
 
+# ---------------------------------------------------------------------------
+# `105` §14.7's five outcome classes
+# ---------------------------------------------------------------------------
+# The six buckets above answer "where did it go". These five answer "was that the
+# right thing to do", which is a different question and the one the owner asks. A
+# file left alone is a pass or a miss depending on whether anywhere existed to put
+# it, and no bucket can tell those apart.
+CORRECT_PLACEMENT = "correct placement"
+INCORRECT_PLACEMENT = "incorrect placement"
+APPROPRIATE_ABSTENTION = "appropriate abstention"
+UNNECESSARY_ABSTENTION = "unnecessary abstention"
+INVALID_OUTPUT = "invalid output"
+
+OUTCOME_CLASSES = (CORRECT_PLACEMENT, INCORRECT_PLACEMENT, APPROPRIATE_ABSTENTION,
+                   UNNECESSARY_ABSTENTION, INVALID_OUTPUT)
+
+#: NOT one of the five, and named so it cannot be mistaken for one. A labelled file
+#: the run holds no decision about at all is not an abstention -- nobody decided
+#: anything -- and folding it into one would credit the product with a caution it
+#: did not show. Printed beneath the five and only when there is one, because
+#: "never silently omitted" applies to the scorecard's own arithmetic: the five
+#: plus this must come to the labelled files.
+NO_OUTCOME = "no decision at all (outside the five)"
+
+#: The buckets that mean the run filed the file SOMEWHERE ELSE than its label's
+#: folder. Rolled up into `INCORRECT_PLACEMENT` and still counted separately, which
+#: is why both spellings survive: the roll-up is the owner's class, and the three
+#: underneath it are what a person fixing the product needs.
+MISPLACED_BUCKETS = (PLACED_PARENT, PLACED_FLAT, PLACED_WRONG)
+
 _NOT_ALNUM = re.compile(r"[^0-9a-z]+")
 
 
@@ -94,6 +124,67 @@ def score_sorting(label: Label, observation: Observation) -> str:
             if _ends_with(actual, wanted[:cut]):
                 return PLACED_PARENT
     return PLACED_WRONG
+
+
+def has_legal_candidate(label: Label,
+                        node_paths: Sequence[Sequence[str]]) -> bool:
+    """The run built a folder this file could legally have been filed into.
+
+    Compared with `_ends_with`, the same suffix rule `score_sorting` uses, so a
+    label that would have scored `exact` against a chain is exactly a label this
+    says had a candidate. Any other comparison here would let a file be scored as
+    an unnecessary abstention for not reaching a folder that would not have
+    counted as reaching it.
+
+    A label with no destination -- protected, or a genuinely unknown home -- has no
+    candidate by definition. That is why `is_uncertain` is checked FIRST in
+    `score_outcome` and never here: "the person has to be asked" is a reason of its
+    own and must not be reported as "the tree was missing a folder".
+    """
+    if not label.destinations:
+        return False
+    return any(_ends_with(tuple(chain), wanted)
+               for chain in node_paths for wanted in label.destinations)
+
+
+def score_outcome(label: Label, observation: Observation | None, *,
+                  node_paths: Sequence[Sequence[str]] = ()) -> str:
+    """Which of `105` §14.7's five classes this file's outcome falls in.
+
+    THE ORDER IS THE POINT, and it is: placed, then invalid, then abstained.
+
+      * A file the run FILED is scored on where it landed, whatever the model's
+        answer did, so `correct placement` and `incorrect placement` come to the
+        same numbers as the `exact` and the three placed-elsewhere buckets printed
+        directly above them in the same block. A reader can check the table against
+        the card, which they could not if an invalid response quietly moved a file
+        out of `exact`.
+      * A file that was NOT filed and whose model answer failed schema or
+        validation is `invalid output`: the answer is why there is no placement,
+        and it is the honest thing to call it.
+      * Only then is an abstention judged, and it is appropriate when the person
+        genuinely had to be asked, or when the run built nowhere legal to put the
+        file. Everything else it abstained on was a file it could have filed and
+        did not.
+
+    Consequence, stated because it will be read in the shadow block: a file whose
+    site-C verdict named a node the plan does not hold CARRIES its applied outcome,
+    so if that applied outcome was a top-folder placement the file reads here as
+    `incorrect placement` and not as `invalid output`. The shadow block's own
+    provenance lines name it; this table scores what happened to the file.
+    """
+    bucket = NO_DECISION if observation is None else score_sorting(label, observation)
+    if bucket == PLACED_EXACT:
+        return CORRECT_PLACEMENT
+    if bucket in MISPLACED_BUCKETS:
+        return INCORRECT_PLACEMENT
+    if observation is not None and observation.invalid_model_output:
+        return INVALID_OUTPUT
+    if bucket == NOT_PLACED:
+        if label.is_uncertain or not has_legal_candidate(label, node_paths):
+            return APPROPRIATE_ABSTENTION
+        return UNNECESSARY_ABSTENTION
+    return NO_OUTCOME
 
 
 def score_fields(label: Label, observation: Observation) -> tuple[int, int, int, int]:

@@ -63,7 +63,7 @@ from tools.groundtruth.measure import (
     _rows,
 )
 from tools.groundtruth.report import (
-    row_104, sorting_lines, spillover_lines,
+    row_104, row_128, sorting_lines, spillover_lines,
 )
 from tools.groundtruth.score import SituationScore, score_situation
 
@@ -541,6 +541,16 @@ def render(runs: Sequence[RunObservation],
                  "that is better than the")
     lines.append("               applied one is an argument for ratifying the text; "
                  "it is not a result.")
+    lines.append("")
+    # `105` §14.7's five, the same pair and the same rule.
+    #
+    # `invalid output` will usually read the SAME on both lines, and that is
+    # correct rather than a bug: whether the validator refused a file's answer is a
+    # fact about what the run recorded, not about which placement was afterwards
+    # applied, so both readings see it. The two lines part company on the other
+    # four, which is the comparison this block exists to make.
+    lines.append(f"            applied:  {row_128(runs, labels)}")
+    lines.append(f"            shadow:   {row_128(shadow_runs, labels)}")
     lines.append("")
     lines.extend(_render_sites(tallies))
     return "\n".join(lines)
