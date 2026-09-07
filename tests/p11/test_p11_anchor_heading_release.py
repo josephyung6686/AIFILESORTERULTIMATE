@@ -1031,3 +1031,89 @@ def test_a_row_written_before_r135_still_rebuilds(conn):
 
     assert rebuilt.released_evidence[0].unit_length is None
     assert rebuilt.released_evidence[0].whole_heading_unit is False
+
+
+def test_a_maximal_dossier_round_trips_and_survives_the_seeder_re_addressing(conn):
+    """Every shape one site-A dossier can carry, through the row and back, and then
+    through `104` R-137's own move on top of it.
+
+    The two tests above pin the fields `104` R-135 added. This one pins the WHOLE
+    record, because the failure they came from was not "a field is wrong" but "a
+    rebuild named fewer fields than the row holds", and that mistake is invisible until
+    some record grows. A filename item with no span, a span-less release, a conflict,
+    a folder level, a measured heading unit and two items that are not one are all here
+    so a future field lands on an assertion rather than on a run.
+
+    THE SECOND HALF IS R-137's SEEDER. `tools/groundtruth/reuse.py` rewrites
+    `subject_ref` in the stored body, rebuilds through this same
+    `dossier_from_stored_body`, and re-addresses the result -- so a rebuild that drops
+    a field costs a seeded corpus every answer it was seeded with. The rebuild after
+    the swap is asserted to keep the classification and the measurement.
+    """
+    import json
+
+    from database_agent.db import create_schema
+    from llm_harness.dossier import dossier_from_stored_body
+    from llm_harness.records import (
+        Conflict, Dossier, EvidenceItem, FolderLevel, ReleasedEvidence,
+    )
+    from llm_harness.schema import create_llm_schema
+    from llm_harness.store import _jsonable, load_dossier, record_dossier
+    from llm_harness.vocabulary import (
+        A_FACT, CONTEXT_SUPPORTED, DIRECT_ANCHOR, REDUCTION_NONE,
+        REMAINS_AMBIGUOUS,
+    )
+
+    create_schema(conn)
+    create_llm_schema(conn)
+    dossier = Dossier(
+        dossier_id="dossier-r135-maximal", call_site=A_FACT,
+        subject_ref="file-1", eligibility_reason=REMAINS_AMBIGUOUS,
+        plan_version=None, policy_version="policy-1",
+        allowed_vocabulary=("subject", "work_type"),
+        evidence_items=(
+            EvidenceItem(evidence_ref="name", kind="filename",
+                         location="filename", excerpt_span=None,
+                         reliability_state="direct", basis=DIRECT_ANCHOR),
+            EvidenceItem(evidence_ref="own", kind="excerpt", location="body",
+                         excerpt_span=(0, 14), reliability_state="possible",
+                         basis=DIRECT_ANCHOR),
+            EvidenceItem(evidence_ref="line", kind="excerpt", location="heading",
+                         excerpt_span=(0, len(HEADING)),
+                         reliability_state="possible", basis=CONTEXT_SUPPORTED)),
+        conflicts=(Conflict(conflict_id="c1", kind="different_term"),),
+        released_evidence=(
+            ReleasedEvidence(observation_key="name",
+                             address="filename:field=name", value="hw3.pdf",
+                             zone="filename"),
+            ReleasedEvidence(observation_key="own", address="body:page=1#0-14",
+                             value=COURSEWORK[:14], zone="body",
+                             unit_length=len(COURSEWORK)),
+            ReleasedEvidence(observation_key="line",
+                             address=f"heading:page=1/heading=1#0-{len(HEADING)}",
+                             value=HEADING, zone="heading",
+                             unit_length=len(HEADING), whole_heading_unit=True)),
+        max_dossier_tokens=4000, reduction_rung=REDUCTION_NONE,
+        release_id="rel-1",
+        folder_levels=(FolderLevel(field="subject", label="Course",
+                                   requirement="required"),))
+
+    record_dossier(conn, dossier, observed_at=CLOCK)
+    stored = json.loads(conn.execute(
+        "SELECT payload FROM llm_dossier WHERE dossier_id = ?",
+        (dossier.dossier_id,)).fetchone()["payload"])
+    rebuilt = _jsonable(dossier_from_stored_body(stored, release_id="rel-1"))
+
+    # Key by key, which is the comparison `load_dossier` makes and the one a short
+    # rebuild fails. Named rather than counted, so a failure says WHICH field.
+    assert [name for name, value in stored.items()
+            if rebuilt.get(name) != value] == []
+    assert load_dossier(conn, dossier.dossier_id, release_id="rel-1") is not None
+
+    # R-137's move: the seeder swaps the subject and rebuilds through this function.
+    swapped = dict(stored, subject_ref="file-translated")
+    seeded = dossier_from_stored_body(swapped, release_id="rel-1")
+
+    assert seeded.subject_ref == "file-translated"
+    assert seeded.released_evidence == dossier.released_evidence
+    assert seeded.evidence_items == dossier.evidence_items
