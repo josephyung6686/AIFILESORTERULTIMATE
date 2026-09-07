@@ -502,3 +502,171 @@ def test_showing_a_protected_name_does_not_let_a_freeze_approve_it():
     assert set(hidden) == set(shown), (
         "--show-protected changed which ORDINARY files a freeze may approve")
     assert len(hidden) >= cli.NAMES_LISTED_PER_GROUP, hidden
+
+
+# ======================================================================================
+# `104` R-114: a paragraph that is one fact about six groups
+# ======================================================================================
+
+#: Fresh offline walkthrough of a 52-file folder: 430 lines, of which the
+#: eight-line "Nothing on this screen says what these are" explanation was
+#: printed once per group in that state -- six times -- and the "Held for review
+#: as ... this plan has nowhere to put them yet" block eight times, each followed
+#: by the same list of review sets. Every printing was honest, and a person stops
+#: reading at the third.
+#:
+#: Three destinations is what makes three groups here. A placement's headline
+#: comes from its destination and its review policy, and its own explanation is
+#: not printed at all -- `report` prints "Same reason for each" only where the
+#: outcome is not a placement -- so the folder is the whole difference between
+#: these three headings, which is exactly the case the measurement found.
+BLOCKED = "blocked_pending_user"
+COURSES = ("CS3134", "ECON2010", "PHYS1401")
+
+
+def _blocked(*, file_id, node_id):
+    """A placement with a destination, waiting on somebody to say what it is."""
+    return SimpleNamespace(
+        outcome="place", explanation="", marked_state=None,
+        review_policy=BLOCKED,
+        subject=SimpleNamespace(file_id=file_id, member_file_ids=()),
+        destination=SimpleNamespace(node_id=node_id),
+        privacy=SimpleNamespace(protected=False))
+
+
+def _three_groups_in_one_state():
+    """Three headings, one hold, and one review set covering all nine files."""
+    nodes = [_node("node_0", "Coursework")]
+    nodes += [_node(f"n_{label}", label, parent="node_0") for label in COURSES]
+    decisions, names, members = [], {}, []
+    for label in COURSES:
+        for number in range(3):
+            file_id = f"id-{label}-{number}"
+            names[file_id] = f"{label.lower()}-note-{number}.txt"
+            members.append(file_id)
+            decisions.append(_blocked(file_id=file_id, node_id=f"n_{label}"))
+    return (_run(nodes=nodes, decisions=decisions,
+                 sets=[_set("Not yet placed", members, REASON)]), names)
+
+
+def test_a_paragraph_that_is_one_fact_about_three_groups_is_printed_once():
+    """`104` R-114. Said in full where it first applies, pointed at after that.
+
+    Both shared paragraphs are asserted at once because both were measured on
+    the same screen: the explanation for files nothing on the report reaches,
+    and the hold offering the same set and the same command under every heading.
+    Neither is a fact about the group it happens to sit under.
+    """
+    run, names = _three_groups_in_one_state()
+    flat = " ".join(_printed(run, names).split())
+
+    said = flat.count("Nothing on this screen says what these are")
+    assert said == 1, (
+        f"the explanation for files nothing here reaches is printed {said} "
+        "times; it is one fact about all three groups")
+    held = flat.count("This plan has nowhere to put them yet")
+    assert held == 1, f"the hold's 'enable an area' block is printed {held} times"
+    assert flat.count(REASON) == 1, flat
+
+    # And the two groups that did not carry them say where they are, in one line
+    # each rather than in silence.
+    assert flat.count("Waiting on the same thing as the") == 2, flat
+    assert flat.count("the set and the command are under the") == 2, flat
+    # Pointed at by the name a person reads on the heading above it, which is
+    # the folder when the group has one.
+    assert flat.count("as the CS3134 group above") == 2, flat
+    assert "ECON2010 group above" not in flat, (
+        "a group was told to look at itself")
+
+
+def test_folding_the_repeat_drops_no_file_no_heading_and_no_command():
+    """The other half of R-114, and the half that matters more.
+
+    Shortening may only ever remove a REPEAT. Every file this screen named
+    before is still named, every heading is still there saying where its own
+    files would go, and the one thing a person can type is still on the screen --
+    once is enough, and none of it is the silent omission the standing rule
+    forbids.
+    """
+    run, names = _three_groups_in_one_state()
+    printed = _printed(run, names)
+    flat = " ".join(printed.split())
+
+    for name in names.values():
+        assert name in printed, f"{name} is no longer on the screen"
+    for label in COURSES:
+        assert (f"Would go into {label}, once something can say what these are "
+                "-- 3 files") in flat, (
+            f"the heading for {label} lost its own destination or its count")
+    assert "--list-residuals" in printed, (
+        "the command the shared paragraph carries went with the repeat")
+
+
+def test_the_count_of_sets_under_a_heading_survives_the_fold():
+    """A hold split over the batch ceiling, straddling two headings.
+
+    "N review sets of it have files under this heading" is the sentence that
+    stopped the screen claiming a total it could not see, and it is about the
+    heading it sits under. A block folds only when it is identical, so the N is
+    the same N -- and being the same is not a reason to stop saying it under the
+    second heading.
+    """
+    nodes = [_node("node_0", "Coursework"),
+             _node("n_a", "CS3134", parent="node_0"),
+             _node("n_b", "ECON2010", parent="node_0"),
+             _node("res_0", "Review Later", role="residual")]
+    decisions, names, sets = [], {}, []
+    for index in range(1, 4):
+        members = []
+        for offset, node_id in enumerate(("n_a", "n_b") * 4):
+            file_id = f"id-{index}-{offset}"
+            names[file_id] = f"note-{index}-{offset}.txt"
+            members.append(file_id)
+            decisions.append(_blocked(file_id=file_id, node_id=node_id))
+        sets.append(_set(f"Not yet placed ({index} of 3)", members, REASON))
+    flat = " ".join(_printed(
+        _run(nodes=nodes, decisions=decisions, sets=sets), names).split())
+
+    assert flat.count("3 review sets of it have files under this heading") == 2, (
+        "the second heading lost the count of the sets holding ITS files")
+    # And the roll-call and its command are said once, which is the fold.
+    assert flat.count("--send-set 'Not yet placed (1 of 3)=Review Later'") == 1, (
+        flat)
+
+
+def test_the_answers_that_reach_a_group_are_never_folded_into_another_group():
+    """The negative twin, and `104` R-92 is why it exists.
+
+    A group a printed question WOULD settle names the question and the answers,
+    and the whole claim of those lines is that they reach THESE files. Two
+    groups whose answer lines render alike are still two claims about two sets
+    of files, so this is the one paragraph under a heading that is never
+    replaced by a pointer at another heading.
+    """
+    question = SimpleNamespace(
+        question_id="reading.organization:CV1", prompt="What are these?",
+        evidence_context="4 files mention it.", unlocks="", will_not_do="",
+        scope="reading:CV1",
+        options=(SimpleNamespace(option_id="law_practice", label="Law practice",
+                                 activates_schema="law"),
+                 SimpleNamespace(option_id="teaching", label="Teaching",
+                                 activates_schema="teaching")))
+    nodes = [_node("node_0", "Coursework"),
+             _node("n_a", "CS3134", parent="node_0"),
+             _node("n_b", "ECON2010", parent="node_0")]
+    decisions, names, reaching = [], {}, {}
+    for index, node_id in enumerate(("n_a", "n_b")):
+        file_id = f"id-{index}"
+        names[file_id] = f"note-{index}.txt"
+        reaching[file_id] = (question.question_id,)
+        decisions.append(_blocked(file_id=file_id, node_id=node_id))
+    out = io.StringIO()
+    cli.report(_run(nodes=nodes, decisions=decisions, sets=()), names,
+               out=out, questions=(question,), reaching=reaching)
+    flat = " ".join(out.getvalue().split())
+
+    assert flat.count("and each of these answers reaches these files") == 2, (
+        "one group was told to read another group's answer lines; which files "
+        "an --answer reaches is a fact about that group and about no other")
+    assert flat.count(
+        "--answer reading.organization:CV1=law_practice") == 3, flat

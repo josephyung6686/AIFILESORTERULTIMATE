@@ -5933,6 +5933,22 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         A node that accepts no placement is not here: an answer naming one would be
         refused by `legal_node_ids` after the person had already given it, which is
         a question whose answer is rejected on the way in.
+
+        **IN THE TREE'S OWN ORDER, and `104` R-116 is why.** "Where should the
+        files in Downloads go?" offered sixteen folders as `frozen.nodes` happened
+        to hold them -- Coursework, Spring2026, CS3134, ECON2010/lecture,
+        PHYS1401/lecture, W3134/lecture, cover letter, ECON2010 -- which is a
+        list with no order a person can follow, printed nine lines under a
+        picture of the same folders in the order they nest. The list IS the tree,
+        so it is walked the way `report` draws it: children under their parent,
+        siblings in the order the tree holds them. NOT sorted by string, which
+        would put `Coursework/W3134` above `Coursework/W3134/exam` by accident
+        and break the moment a label starts with a digit.
+
+        A node the walk never reaches -- one whose parent id names nothing in
+        this tree -- is APPENDED rather than dropped. Ordering a list is not a
+        licence to shorten it, and a destination missing from a question is one
+        an answer can never name.
         """
         labels = {node.node_id: node.display_label for node in frozen.nodes}
         parents = {node.node_id: node.parent_node_id for node in frozen.nodes}
@@ -5945,10 +5961,30 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 walk = parents[walk]
             return "/".join(reversed(parts))
 
+        by_parent: dict[str | None, list] = {}
+        for node in frozen.nodes:
+            by_parent.setdefault(node.parent_node_id, []).append(node)
+        walked: list = []
+        seen: set[str] = set()
+
+        def descend(parent: str | None) -> None:
+            for node in by_parent.get(parent, ()):
+                # Marked BEFORE the recursion, so a tree that somehow names
+                # itself as its own ancestor is a short list rather than a
+                # recursion error on somebody's folder.
+                if node.node_id in seen:
+                    continue
+                seen.add(node.node_id)
+                walked.append(node)
+                descend(node.node_id)
+
+        descend(None)
+        walked.extend(node for node in frozen.nodes if node.node_id not in seen)
+
         return tuple(
             DestinationChoice(node_id=node.node_id,
                               display_path=path_of(node.node_id))
-            for node in frozen.nodes if node.accepts_placement)
+            for node in walked if node.accepts_placement)
 
     def _destinations_to_offer(frozen):
         """The folders a person is offered when asked where something goes.
@@ -5993,7 +6029,16 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
 
         def for_folder(folder: str) -> tuple[DestinationChoice, ...]:
             here = theirs.get(folder)
-            return proposed + ((here,) if here is not None else ())
+            # `104` R-116. FILTERED OUT OF THE WALK, not concatenated onto the
+            # end of it. `proposed + (here,)` puts the folder the files are in
+            # last wherever the tree puts it, which is the tree's order broken
+            # by the last line -- and the whole point of the row is that a
+            # person can follow the list against the picture above it.
+            offered = {choice.node_id for choice in proposed}
+            if here is not None:
+                offered.add(here.node_id)
+            return tuple(choice for choice in every
+                         if choice.node_id in offered)
 
         return for_folder
 
@@ -8256,6 +8301,45 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # summarised away are different things, and only the first is changed here.
         shielded[key], rank.get(key[0], len(rank)), key[1] or "", key[2]))
 
+    # `104` R-114. WHAT THIS SCREEN HAS ALREADY SAID IN FULL, and where.
+    #
+    # Fresh run on a 52-file folder: 430 lines, of which the eight-line "Nothing
+    # on this screen says what these are" explanation was printed once per group
+    # in that state -- six times -- and the "Held for review as ... this plan has
+    # nowhere to put them yet" block eight times, each followed by the same list
+    # of review sets. Every printing was honest and a person stops reading at the
+    # third. This is the rule the grouping loop above already follows for a
+    # file-level explanation ("one line per KIND of outcome, not one per file"),
+    # applied to the paragraphs under the groups instead of the ones inside them.
+    #
+    # KEYED ON THE RENDERED BLOCK, so a block is folded only when every line of
+    # it has already been printed word for word. Two groups held for different
+    # reasons, or naming different review sets, or offered different commands,
+    # are two facts and both are printed in full: what collapses is a repeat and
+    # nothing else. The value is the handle of the group that carried it, so the
+    # one line left behind says where the paragraph is.
+    already_said: dict[tuple[str, ...], str] = {}
+
+    def say(block: Sequence[str], *, handle: str, again: str) -> None:
+        """A shared paragraph, in full the first time and pointed at after.
+
+        `_role_lines`' convention holds inside the block: a line that begins with
+        a space is a line the person is meant to paste and is printed exactly as
+        it is. The line that REPLACES a repeat is prose and carries no command --
+        the command is up where the block is, which is what it says.
+        """
+        if not block:
+            return
+        printed = tuple(block)
+        first = already_said.get(printed)
+        if first is None:
+            already_said[printed] = handle
+            for line in printed:
+                print(line if line.startswith(" ")
+                      else _wrapped(line, indent="    "), file=out)
+            return
+        print(_wrapped(again.format(first=first), indent="    "), file=out)
+
     print(f"\nFiles: {len(decisions)} decided, {placed} ready to file"
           + (f", {awaiting} waiting for you to approve" if awaiting else ""),
           file=out)
@@ -8302,6 +8386,14 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
                        if ", once " in heading
                        else f"{heading}, once you allow moves across folders")
         print(f"\n  {heading} -- {len(files)} file{plural}", file=out)
+        # `104` R-114's handle for this group: what a person calls it when they
+        # look back up the screen for a paragraph that was printed once. The
+        # DESTINATION when there is one, because "the CS3134 group" is how
+        # somebody says it out loud, and the heading itself when there is not --
+        # a group of files going nowhere has no folder name to be called by, and
+        # "the None group above" would send them looking for nothing.
+        handle = (f"{where} group above" if where
+                  else f'group above headed "{heading}"')
         # `list_every_name` is set by the freeze run and by nothing else. The
         # owner ruled that a freeze IS the person's approval, and an approval
         # covers what they were shown -- so under the ordinary ten-name cap the
@@ -8411,17 +8503,43 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
                 f"about it was assembled for a model.",
                 indent="    "), file=out)
         if outcome == pv.PLACE and policy == pv.BLOCKED_PENDING_USER:
-            for note in _how_to_say_what_these_are(
-                    tuple(asked_here[question_id]
-                          for question_id in reaching_here),
-                    reading_family):
-                print(note if note.startswith(" ")
-                      else _wrapped(note, indent="    "), file=out)
+            asked = tuple(asked_here[question_id]
+                          for question_id in reaching_here)
+            note = _how_to_say_what_these_are(asked, reading_family)
+            if asked:
+                # THIS GROUP'S OWN FACTS AND NEVER FOLDED. The claim these lines
+                # make is that these answers reach THESE files, which is `104`
+                # R-92's whole subject: two groups whose answer lines happen to
+                # render alike are still two claims about two sets of files, and
+                # replacing one with a pointer at the other would put a sentence
+                # on the screen that is true of a group other than the one it
+                # sits under. That is the defect R-92 fixed, arriving by way of
+                # a shortening.
+                for line in note:
+                    print(line if line.startswith(" ")
+                          else _wrapped(line, indent="    "), file=out)
+            else:
+                # And the other branch is one paragraph, word for word, however
+                # many groups nothing on the screen reaches. `104` R-114.
+                say(note, handle=handle,
+                    again="Waiting on the same thing as the {first}, and what "
+                          "to do about it is printed there.")
         # `_role_lines`' convention: a line that begins with a space is a line
         # the person is meant to paste, and it is printed exactly as it is.
-        for note in _review_note(held_sets.get(key, ()), areas):
-            print(note if note.startswith(" ")
-                  else _wrapped(note, indent="    "), file=out)
+        # THE COUNT TRAVELS WITH THE POINTER. "N review sets of it have files
+        # under this heading" is a fact about THIS heading -- it is the sentence
+        # that stopped the screen claiming a total it could not see -- so it is
+        # said again rather than folded away with the paragraph that carries it.
+        # A block only folds when it is identical, so the number is the same
+        # number; being the same is not a reason to stop saying it under the
+        # heading it is about.
+        under_here = len(held_sets.get(key, ()))
+        say(_review_note(held_sets.get(key, ()), areas), handle=handle,
+            again=("Held for review; the set and the command are under the "
+                   "{first}." if under_here < 2 else
+                   f"Held for review, and {under_here} review sets of it have "
+                   "files under this heading; they are named there with the "
+                   "command, under the {first}."))
 
     # §7.5's sets are printed where the files they cover are printed, so the same
     # four files are never counted twice in two vocabularies. A set covering no
@@ -8770,8 +8888,14 @@ def _move_frozen_files(args, *, moving: bool, branches: Sequence[str],
             conn.commit()
             for line in apply_lines(
                     outcome, names=names,
-                    already_filed=sorted(plan.file_id for plan in chosen
-                                         if plan.plan_id in filed),
+                    # `104` R-117. IN `chosen`'S ORDER, which `plans_under` now
+                    # makes destination-then-name -- the same order as the two
+                    # lists printed above this one. Sorting the FILE IDS put
+                    # this block in the order of a uuid, which is stable and
+                    # says nothing: a person reading three listings on one
+                    # screen reads them in one order or in none.
+                    already_filed=tuple(plan.file_id for plan in chosen
+                                        if plan.plan_id in filed),
                     undo_command=_typed(
                         directory, args.database,
                         " ".join(f"--undo {shlex.quote(name)}"
