@@ -865,3 +865,4 @@ Proposals, not enactments. Nothing below is in force until the owner says so; vo
 5. **B ratification** after the first honest C-live number (r6 or r7).
 6. **R-82** before any cloud key; C's row stays `ratified_local` until then.
 7. **R-136's sibling**: a `CallFailed` on one file still ends the run; ruled when a measured run produces it (signature: a run ending at one file with an `llm_call_failure` row).
+8. **A `work_type` vocabulary member for a tuition or housing statement** (105 §14.4's fourth anchor kind): the library ships none, so that kind cannot be admitted to `SCHOOL_ANCHOR_KINDS` today; a closed-vocabulary addition is the owner's.
