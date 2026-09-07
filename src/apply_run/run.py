@@ -134,9 +134,29 @@ def sentence_for(result: str, *, cross_volume: str) -> str | None:
 
 def plans_under(plans: Sequence[MovePlan],
                 node_ids: frozenset[str]) -> tuple[MovePlan, ...]:
-    """The plans whose destination is one of these nodes, in their frozen order."""
-    return tuple(plan for plan in plans
-                 if plan.requested_destination_node in node_ids)
+    """The plans whose destination is one of these nodes, destination first.
+
+    `104` R-117. This said "in their frozen order", and the frozen order is
+    whatever order P11 happened to hand its decisions to the freeze -- which
+    comes out of a group pass whose membership order nothing pins. Two runs over
+    the same folder froze the same twenty-four files, resolved them to the same
+    twenty-four destinations, and listed them in two unrelated orders. A person
+    comparing two runs, or reading the undo list against the apply list, had no
+    order to read either one in.
+
+    ORDERED HERE AND NOT WHERE THE LIST IS PRINTED. This is the order the moves
+    are made in and the order the journal records them in, so a listing sorted
+    at the last moment would leave `halt_on` stopping after a different file
+    each run and `not_attempted` naming a different set -- the same instability,
+    one layer down, where nobody would look for it.
+
+    `resolved_destination_path` is the destination folder and the file's name in
+    one string, so sorting on it IS "destination, then name" -- and it is the
+    path P12 resolved rather than a second opinion here about where a file goes.
+    """
+    return tuple(sorted(
+        (plan for plan in plans if plan.requested_destination_node in node_ids),
+        key=lambda plan: plan.resolved_destination_path))
 
 
 def already_applied(conn: sqlite3.Connection,

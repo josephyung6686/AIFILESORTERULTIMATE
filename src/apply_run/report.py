@@ -373,7 +373,21 @@ def undo_lines(outcome: TakeBackOutcome, *,
 
     lines.append(f"Put back: {len(put_back)} file(s). Could not be put back: "
                  f"{len(outcome.outcomes) - len(put_back)}.")
-    for item in outcome.outcomes:
+
+    def _where_it_was(item) -> tuple[str, str]:
+        entry_id = item.verdict.entry_id
+        return (item.verdict.destination_path,
+                _name(names, file_of.get(entry_id, entry_id)))
+
+    # `104` R-117. THE ORDER THIS IS READ IN, WHICH IS NOT THE ORDER THE WORK
+    # WAS DONE IN. `undo_order` puts entries back newest first, because a folder
+    # made for a later move can sit inside one made for an earlier move and
+    # `mutation.directories` will only remove the inner one first. That order is
+    # a safety property and nothing here touches it. What a person does with
+    # this list is read it against the apply list, which `plans_under` orders by
+    # destination path, so this one is ordered the same way and the two can be
+    # laid side by side. The counts above are over every outcome either way.
+    for item in sorted(outcome.outcomes, key=_where_it_was):
         entry_id = item.verdict.entry_id
         name = _name(names, file_of.get(entry_id, entry_id))
         if item.verdict.reversed_successfully:
