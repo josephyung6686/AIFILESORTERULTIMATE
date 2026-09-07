@@ -156,7 +156,14 @@ def test_local_client_sets_think_off_and_num_ctx_and_records_them():
 
     def fake_post(url, body, *, timeout):
         seen["body"] = json.loads(body)
-        return json.dumps({"response": '{"claims": []}', "done_reason": "stop",
+        # `/api/chat`'s shape, which is what the product's transport reads. The
+        # bench used to call a 95-line local copy of `ollama_invoke` that spoke
+        # `/api/generate`; the Phase 0a transport replaced it, and a fake server
+        # answering the old shape would let the bench pass while the real one
+        # could not read a word of the reply.
+        return json.dumps({"message": {"role": "assistant",
+                                       "content": '{"claims": []}'},
+                           "done_reason": "stop",
                            "prompt_eval_count": 1200, "eval_count": 9}).encode()
 
     call = local_client(post=fake_post)
@@ -175,7 +182,8 @@ def test_local_client_sets_think_off_and_num_ctx_and_records_them():
 def test_local_client_refuses_a_prompt_that_filled_the_context():
     def fake_post(url, body, *, timeout):
         num_ctx = json.loads(body)["options"]["num_ctx"]
-        return json.dumps({"response": "{}", "done_reason": "stop",
+        return json.dumps({"message": {"role": "assistant", "content": "{}"},
+                           "done_reason": "stop",
                            "prompt_eval_count": num_ctx}).encode()
 
     with pytest.raises(RuntimeError, match="truncated"):

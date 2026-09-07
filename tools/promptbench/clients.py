@@ -41,7 +41,9 @@ from privacy.release import ModelTarget  # noqa: E402
 from readers.model_deepseek import (  # noqa: E402
     BASE_URL_NAME, CREDENTIAL_NAME, deepseek_invoke,
 )
-from readers.model_ollama import ollama_invoke  # noqa: E402
+from readers.model_ollama import (  # noqa: E402
+    DEFAULT_BASE_URL as LOCAL_BASE_URL, ollama_invoke,
+)
 
 #: Where the deployment keeps its key. NOT `cli.ENV_FILE`: that resolves beside
 #: whichever checkout imports `cli`, and a worktree has no `.env`.
@@ -125,11 +127,19 @@ def local_client(*, post=None) -> Callable[[bytes], tuple[bytes, CallMeta]]:
 
     def bench_post(url: str, body: bytes, *, timeout: float) -> bytes:
         payload = json.loads(body)
-        prompt_bytes = len(payload["prompt"].encode("utf-8"))
+        # `/api/chat`, WHICH IS THE TRANSPORT THE PRODUCT SHIPS. This read
+        # `payload["prompt"]`, the `/api/generate` field, against a 95-line
+        # bench-local copy of `ollama_invoke` that the Phase 0a transport
+        # replaced. The product's transport sends one user message, and the
+        # bench measures the product or it measures nothing.
+        prompt_bytes = len(payload["messages"][0]["content"].encode("utf-8"))
         num_ctx = num_ctx_for(prompt_bytes)
-        # The transport's own options are kept (temperature 0, seed 1, format
-        # json); the bench adds the two it cannot do without and nothing else.
-        payload["think"] = False
+        # `think` and `format` are the transport's own and are already set; the
+        # bench sizes the WINDOW per prompt, which the product deliberately does
+        # not do (`104` R-52: one window per run, because changing it reloads the
+        # model). That difference is the bench's to make -- it is comparing
+        # prompt texts, not measuring a scan -- and it is why the window is
+        # overridden here and nowhere else.
         payload["options"] = dict(payload.get("options", {}),
                                   num_ctx=num_ctx,
                                   num_predict=LOCAL_RESPONSE_CEILING)
@@ -164,8 +174,16 @@ def local_client(*, post=None) -> Callable[[bytes], tuple[bytes, CallMeta]]:
                 "prompt and is refused as a bench defect")
         return raw
 
-    invoke = ollama_invoke(model_id=LOCAL_MODEL_ID, post=bench_post,
-                           timeout=LOCAL_TIMEOUT_SECONDS)
+    # The ceiling given to the transport is the bench's MAXIMUM, so its
+    # pre-socket `_fits` refusal never fires below the window `bench_post` is
+    # about to choose; `num_ctx_for` raises on its own for a prompt that cannot
+    # fit, which is the bench's version of the same guarantee.
+    invoke = ollama_invoke(model_target=LOCAL_TARGET,
+                           base_url=LOCAL_BASE_URL,
+                           max_response_tokens=LOCAL_RESPONSE_CEILING,
+                           context_ceiling=NUM_CTX_MAXIMUM,
+                           timeout_seconds=LOCAL_TIMEOUT_SECONDS,
+                           post=bench_post)
 
     def call(payload: bytes) -> tuple[bytes, CallMeta]:
         answer = invoke(payload)
