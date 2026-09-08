@@ -409,3 +409,30 @@ def test_a_paragraph_reading_does_not_become_a_folder_name(sink):
         locator = locator_for(reading["location"])
         assert not locator.startswith("body#"), locator
         assert not any(slot.names(locator) for slot in cli.DIRECT_SLOTS.slots), locator
+
+
+def test_a_paragraph_repeated_in_the_file_collapses_under_p4s_own_rule(sink):
+    """Plain text repeats itself -- a rule, a prompt, a `Question:` before every
+    answer -- so the split meets P4 D10 constantly, and D10 is what decides.
+
+    D10 is one observation per (run, exact raw value, zone), applied for every
+    extractor at `sink.ExtractionResult`. Two identical paragraphs are therefore ONE
+    `body` reading, addressed at the FIRST of them in document order and carrying
+    `occurrence_count: 2` -- not two rows, and not one row that silently lost a
+    sibling. Nothing here is R-164's to decide; this test is what says the split
+    does not quietly opt out of the rule the way six extractors once did.
+
+    Every paragraph still gets its UNIT. Units are not collapsed, the text of the
+    repeat is stored at its own address, and a reading of it can still be minted.
+    """
+    repeated = "Question:\n"
+    document = TextDocument(
+        text=repeated + "\n" + PARAGRAPHS[1] + "\n" + repeated)
+    run_id = sink.write(run_it(document=document, finder=lambda text: ()))
+
+    readings = body_readings(sink, run_id)
+    assert [o["raw_value"] for o in readings] == [repeated, PARAGRAPHS[1]]
+    assert [o["occurrence_count"] for o in readings] == [2, 1]
+    assert locator_for(readings[0]["location"]) == "body:paragraph=1"
+    assert [u["container_path"][0]["index"] for u in paragraph_units(sink, run_id)] \
+        == [1, 2, 3]
