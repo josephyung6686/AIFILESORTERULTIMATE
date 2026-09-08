@@ -7212,6 +7212,20 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         the set site A was shown. A file none of the three can speak for has no
         `evidence_items`, and `pipeline._judge_with_model` records that as a
         pre-call abstention rather than sending a dossier that cites nothing.
+
+        **Every item offered is one the gate could release** (`104` R-154). All
+        three loops now ask §8.4's always-local exclusion a step early, which is
+        the pattern `model_placement.releasable_excerpts` states for its own five
+        refusals: an item the door will drop is never BUILT rather than built and
+        denied. R-148's readings came that way already -- `releasable_
+        observations` excludes the zone first -- R-150 did it for the anchor
+        lines, and this is the fact loop.
+
+        The FACTS are not narrowed with the items. `facts` is P11's own tuple,
+        read by retrieval and by §6.10's scoring, and a fact whose only citation
+        sits in an always-local zone still reaches both; only its citable item is
+        withheld. A file therefore keeps every candidate its facts reached, and
+        arrives at site C with R-148's readings to be judged on.
         """
         facts, items = [], []
         seen_items: set[tuple] = set()
@@ -7253,12 +7267,51 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 # this one forward would put an unresolvable address in front of it.
                 continue
             basis = citation_basis_for(row["reliability_state"])
+            # `evidence_ref` IS THE FACT'S FIRST RESOLVING CITATION, WHATEVER ITS
+            # ZONE, and `104` R-154 deliberately leaves it that way. It is P11's
+            # own address for the fact and never a citation the model is offered:
+            # its two readers are `retrieval.ConflictConsidered.evidence_ref` --
+            # which reaches the dossier as a `conflict_id` and a `kind`, and as
+            # nothing else (`dossier._body`) -- and `versions._revalidates`,
+            # which hashes it into an evidence snapshot id. Neither resolves it
+            # to text and neither sends it. Filtering it here would move P11's
+            # record as a side effect of a RELEASE rule, and for a fact whose
+            # every citation is always-local there is no other address to move it
+            # to: `MatchingFact` requires a non-empty ref, so the choice would be
+            # between the true address and dropping a fact P6 settled. The design
+            # calls such a fact "supporting evidence" rather than a span; it is
+            # offered by its VALUE, on the `facts` tuple, with no citable item.
             facts.append(MatchingFact(
                 file_fact_id=row["fact_id"], field=row["field_key"],
                 value=row["canonical_value"],
                 reliability=row["reliability_state"],
                 evidence_ref=located[0][0]))
             for ref, location in located:
+                # `104` R-154: §8.4's own always-local exclusion, asked a step
+                # early -- R-150's ruling for the anchor loop, taken here for the
+                # citation that MADE the fact. `releasable_excerpts` drops every
+                # reading whose zone is in this set on the way out, and
+                # `validation._check_citation` resolves a citation against what
+                # was RELEASED; so an item built over one of them was shown to
+                # the model, cited by it, and rejected `CITATION_NOT_IN_DOSSIER`
+                # -- and a rejected citation destroys the WHOLE answer, not the
+                # item. Measured on r13: 10 of 44 site-C dossiers rejected that
+                # way, and every cited handle was an exact handle the dossier had
+                # issued. The model cites what it is shown.
+                #
+                # The SET is imported and never a list of zone names typed here.
+                # `ocr` joined it on 2026-09-04 as member 3 and two of r13's
+                # twelve rejected handles were `ocr`; a hand-written pair would
+                # have gone on passing while this path offered the newest member.
+                #
+                # THE FACT ITSELF IS UNTOUCHED, and that is the difference between
+                # this and dropping the row. `MatchingFact` is appended above,
+                # before this loop, so retrieval and §6.10's scoring -- which read
+                # `facts` and never `evidence_items` -- still see everything P6
+                # settled, and the file keeps every candidate its facts reached.
+                # What changes is only what may be OFFERED as a citable item.
+                if location.zone in ALWAYS_LOCAL_ZONES:
+                    continue
                 span = location.text_span
                 item = (ref, location.zone,
                         None if span is None else (span.start, span.end),
