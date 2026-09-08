@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-08T22:00:00Z",
+  "timestamp": "2026-09-08T23:30:00Z",
   "phase": "104-diagnosis-repair",
   "phase_name": "llm-as-decision-engine repair chain",
   "working_branch": "build/p6-p7-first-packages",
-  "head": "0537f02",
+  "head": "7469404",
   "status": "paused-out-of-usage",
   "read_first": "planning/104-DIAGNOSIS-FINAL.md sections 17 through 17.8",
   "ruling_in_force": "The LLM is the decision engine (owner, 8 Sep 2026). Code either feeds the model better inputs or applies its outputs. Documents in this repo that read as rules-first predate this and do not overrule it.",
@@ -27,32 +27,43 @@
     {
       "branch": "r166-tie-is-a-question",
       "head": "511dcd3",
+      "targeted_tests": "20 passed",
       "goal": "recogniser tie reaches site G",
+      "committed_by": "agent",
       "merged": false
     },
     {
       "branch": "r164-paragraph-units",
-      "head": "f33e727",
-      "goal": "local dossier measured, then cloud excerpt producer",
+      "head": "3e8388b",
+      "targeted_tests": "35 passed",
+      "goal": "opening_reading_for minted; local measurements still owed",
+      "committed_by": "lead (agent died)",
       "merged": false
     },
     {
       "branch": "r162-answer-shape",
-      "head": "aa06c1d",
-      "goal": "read the 234 nested responses; glossary out of dossier",
+      "head": "58efbf6",
+      "targeted_tests": "127 passed",
+      "goal": "nested claims read; glossary is a list not a value table",
+      "committed_by": "lead (agent died)",
       "merged": false
     },
     {
       "branch": "r165-decided-by",
-      "head": "181b080",
+      "head": "c1d7090",
+      "targeted_tests": "41 passed",
       "goal": "decided-by on every sorting line; R-147 aliases",
+      "committed_by": "lead (agent died)",
       "merged": false
     },
     {
       "branch": "r161-field-signals",
       "head": null,
+      "targeted_tests": null,
       "goal": "item 15 field-signalled sensitivity, in two halves",
-      "merged": false
+      "committed_by": null,
+      "merged": false,
+      "note": "never started; worktree at base"
     }
   ],
   "blockers": [
@@ -63,6 +74,12 @@
     "Item 13: response schema. r162's report is the input.",
     "Item 16: glossary sentences. Item 17: the model-decided bar. Item 18: site A asked every field."
   ],
-  "next_action": "Read the agent handover reports in 104 s17.8. Get the fourth-wall answer. Then rebase and merge the five branches ONE AT A TIME, chaining after each -- never merge a group and chain once. Then the local run.",
-  "context_notes": "Chain w1bn's 5-placement 'regression' was not one: the code schema's terms include kernel/source/cell/notebook and a raw .ipynb carries those as DICTIONARY KEYS, so the term counter placed four notebooks on JSON punctuation. Honest offline baseline is 0 of 41. Site A and site C are already ratified_local; ratification was never the blocker. Machine rule: never signal a pytest you did not start."
+  "next_action": "Settle the fourth wall FIRST: does a site G verdict open privacy.denial.unclassified_denies, or is there another refusal behind it? Nothing about the 95 unclassified files is knowable until it is answered and the shape of r166 may be wrong. Then rebase and merge the four live branches ONE AT A TIME with a chain after each -- never merge a group and chain once. Then the local run. r161 needs re-dispatching from scratch.",
+  "context_notes": "Chain w1bn's 5-placement 'regression' was not one: the code schema's terms include kernel/source/cell/notebook and a raw .ipynb carries those as DICTIONARY KEYS, so the term counter placed four notebooks on JSON punctuation. Honest offline baseline is 0 of 41. Site A and site C are already ratified_local; ratification was never the blocker. Machine rule: never signal a pytest you did not start.",
+  "all_agents_died": "All five hit the session limit mid-task on 8 Sep and none delivered a handover report. The lead ran targeted tests and committed the three uncommitted worktrees. NO BRANCH HAS SEEN THE FULL SUITE.",
+  "measurements_owed": [
+    "r164: what the local dossier actually contains as the model receives it, and the 12 local files that still get nothing releasable",
+    "r165: how many of the 43 labelled coursework files change status under the R-147 alias, and the document-vs-label spellings",
+    "r162: the D3 brief on owner item 13 -- of the 234 nested responses, how many are shape and how many are content"
+  ]
 }
