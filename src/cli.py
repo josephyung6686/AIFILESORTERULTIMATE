@@ -166,7 +166,8 @@ from placement.residual import ProtectedSetNotReadable, prior_set_decisions
 from placement.schema import create_placement_schema
 from model_facts import (
     AnchorOnlyLevels, FactCallAuthorities, fact_call_stage,
-    measure_released_tokens, pending_fields_for, releasable_readings, zone_rank,
+    measure_released_tokens, pending_fields_for, releasable_observations,
+    releasable_readings, zone_rank,
 )
 from privacy.classification import UNREADABLE_UNCLASSIFIED, resolve_class
 from privacy.classification_store import ClassificationStore
@@ -1660,10 +1661,17 @@ def require_observe_locality(call_site: str, locality: str) -> None:
         f"approved. Configure {LOCAL_MODEL_NAME} and the observe sites run here; "
         f"ratify the text and the site joins WIRED_CALL_SITES instead.")
 
-#: How many of a file's observations may be offered to the A_fact call, and the only
-#: place the NUMBER is chosen. §8.4 asks for "a compact dossier ... selected
+#: How many of a file's observations may be offered to a call about that file, and
+#: the only place the NUMBER is chosen. §8.4 asks for "a compact dossier ... selected
 #: excerpts", states no count, and `model_facts.releasable_observations` takes the
 #: cap with no default.
+#:
+#: SITE C TAKES THE SAME NUMBER (`104` R-148), because it is the same question about
+#: the same file: `cli.reading_citations` offers a placement call the readings the
+#: fact call was offered, so the judge that decides where a file goes sees what the
+#: judge that read its fields saw. A second cap would be a second answer to "how much
+#: of this document may leave the device", and the ceiling both calls are measured
+#: against (`model.max_dossier_tokens_per_call`) is one ceiling.
 #:
 #: TWELVE, and the cost of each direction is real. Too few and the model is shown a
 #: title and three metadata fields and honestly declines every field -- which is a
@@ -5995,6 +6003,49 @@ def anchor_line_citations(conn: sqlite3.Connection, *, scan_run_id: str,
     return tuple(lines)
 
 
+def reading_citations(conn: sqlite3.Connection, file_id: str, *,
+                      limit: int) -> tuple:
+    """`104` R-148: the file's OWN releasable readings, as citable addresses.
+
+    `(observation_key, location, reliability)` per reading, in
+    `releasable_observations`' own order, or an empty tuple. The caller turns them
+    into `EvidenceItem`s and nothing is decided here -- the shape
+    `anchor_line_citations` above returns, for the same reason.
+
+    **The defect this exists for, measured.** `evidence_for` built a placement
+    call's evidence out of FACTS -- `file_facts` rows whose citations still resolve
+    -- plus the anchor lines above. A file P6 settled nothing about therefore
+    arrived at `pipeline._judge_with_model` with no `evidence_items`, and was
+    recorded `NOT_ELIGIBLE_FOR_MODEL` before any dossier existed. On the owner's
+    corpus that was 103 of 199 files on r12: 64 unclassified, 39 classified, 52% of
+    their coursework. `00` §5 builds site C for "files or groups that remain
+    ambiguous", and the most ambiguous file in the corpus was the one it refused.
+
+    **It is site A's own question, asked of the same file.**
+    `model_facts.releasable_observations` is that file's capped, gate-checked
+    reading set and this is a read of it -- not a second spelling of "what may this
+    file offer", which would be two answers to one question. The five exclusions
+    live there, `model_placement.releasable_excerpts` applies them again on the way
+    out, and the door materialises and redacts: nothing here widens what P7
+    releases.
+
+    **The cap is the caller's**, because `FACT_CALL_MAX_RELEASED_OBSERVATIONS` is
+    where this deployment chooses the number and a second default here would be a
+    second choice.
+
+    A file version this run has no row for yields nothing, on
+    `located_citations`' own rule: an address nothing carries is not evidence.
+    """
+    content_hash = content_hash_of(conn, file_id)
+    if content_hash is None:
+        return ()
+    return tuple(
+        (observation.observation_key, observation.location,
+         observation.reliability)
+        for observation in releasable_observations(
+            conn, file_id=file_id, content_hash=content_hash, limit=limit))
+
+
 def _folder_family(subject_path: str, stating_path: str) -> bool:
     """Whether a document at `stating_path` speaks for a file at `subject_path`.
 
@@ -7048,7 +7099,15 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         return _nodes_listing.get(file_id, ())
 
     def evidence_for(file_id: str) -> dict:
-        """§6.3's evidence for one file: the facts P6 actually settled about it."""
+        """§6.3's evidence for one file: what this run can address about it.
+
+        Three sources, offered together and never ranked against each other: the
+        facts P6 settled and the citations they resolve to, R-135's whole anchor
+        lines, and R-148's releasable readings -- the file's own words, which is
+        the set site A was shown. A file none of the three can speak for has no
+        `evidence_items`, and `pipeline._judge_with_model` records that as a
+        pre-call abstention rather than sending a dossier that cites nothing.
+        """
         facts, items = [], []
         seen_items: set[tuple] = set()
         # §3.13's `rejected` is P11's DROPPED state, and this is the third of the
@@ -7142,6 +7201,64 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 evidence_ref=ref, kind="excerpt", location=location.zone,
                 excerpt_span=item[2], reliability_state=reliability,
                 basis=DIRECT_ANCHOR))
+        # `104` R-148: THE FILE'S OWN READINGS, which is the set site A was shown.
+        #
+        # **The defect, measured.** Everything above is built out of FACTS -- rows in
+        # `file_facts` with a citation that still resolves -- so a file P6 settled
+        # nothing about arrived at `pipeline._judge_with_model` with `evidence_items`
+        # empty and was recorded `NOT_ELIGIBLE_FOR_MODEL` before any dossier existed.
+        # On the owner's corpus that was 103 of 199 files on r12: 64 unclassified, 39
+        # classified, and 52% of their coursework. The most ambiguous file in the
+        # corpus was refused the one stage `00` §5 built for ambiguity -- "an LLM
+        # receives only compact evidence packets for files or groups that remain
+        # ambiguous".
+        #
+        # **It is the SAME question site A already answers about the SAME file.**
+        # `releasable_observations` is that file's capped, gate-checked reading set,
+        # and `fact_call_stage` asks for it with this same cap. Reaching for a second
+        # spelling of "what may this file offer" would be two answers to one question;
+        # `model_placement.releasable_excerpts` applies the five exclusions again on
+        # the way out, so nothing here widens what P7 will release.
+        #
+        # **ALWAYS, and not only when the file has no fact.** A fact's citation is ONE
+        # SPAN -- the five characters a rule matched -- and the person placing a file
+        # reads the whole excerpt set before deciding where it goes. R-135 is that
+        # argument already won for one reading (`W3134` without `: Data Structures`);
+        # this is it for the rest of the document. The narrower rule would also make
+        # the dossier's contents depend on whether some earlier pass happened to
+        # settle a field, which is a fact about P6's luck rather than about the file.
+        # The ceiling is what would argue the other way -- `model.max_dossier_tokens_
+        # per_call` is 4000 characters, measured by `model_facts.dossier_tokens`, and
+        # the gate refuses a request over it with `dossier_over_budget` -- and it does
+        # not: the cap is `FACT_CALL_MAX_RELEASED_OBSERVATIONS`, the same twelve
+        # readings site A sends under the same ceiling, and the fact items and anchor
+        # lines de-duplicate INTO this set rather than adding to it.
+        #
+        # De-duplicated on `(ref, zone, span)` alone, which is NARROWER than the
+        # five-tuple the two loops above use. Their key keeps two reliabilities of one
+        # address because two facts reading one observation differently are two
+        # readings; here there is no second reading to keep -- one released span shown
+        # twice is one span shown twice, and the model would be counting the same
+        # words as two pieces of evidence.
+        placed = {(offered.evidence_ref, offered.location, offered.excerpt_span)
+                  for offered in items}
+        for ref, location, reliability in reading_citations(
+                conn, file_id, limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS):
+            span = location.text_span
+            address = (ref, location.zone,
+                       None if span is None else (span.start, span.end))
+            if address in placed:
+                continue
+            placed.add(address)
+            items.append(EvidenceItem(
+                evidence_ref=ref, kind="excerpt", location=location.zone,
+                excerpt_span=address[2],
+                # The reading's OWN state and the direct-anchor basis, exactly as
+                # `model_facts._evidence_items` spells the same observation at site
+                # A: this is P4's reading of the file's own words, not a neighbour's
+                # inference about it. Nothing here is invented at the seam -- `104`
+                # R-11 records what that cost the last time it was.
+                reliability_state=reliability, basis=DIRECT_ANCHOR))
         return dict(
             facts=tuple(facts), evidence_items=tuple(items),
             group_ids=accepted_memberships_of(
