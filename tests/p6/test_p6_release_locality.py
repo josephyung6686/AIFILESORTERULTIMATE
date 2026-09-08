@@ -276,14 +276,20 @@ def test_the_readings_come_back_in_the_documents_own_order(conn, tmp_path):
         "tell the two orderings apart; change a page's text")
 
 
-def test_a_segment_with_no_index_contributes_zero_and_orders_before_page_one(
+def test_a_segment_with_no_index_contributes_zero_and_is_still_comparable(
         conn, tmp_path):
     """§2.3's sheet and §2.8's field are addressed by a LABEL and carry no index.
 
     `Segment.__post_init__` refuses an index on those kinds, so "missing index" is a
     real state of the vocabulary and not a defensive branch. Zero is the honest
     answer -- an address with no position is at the start -- and it is spelled rather
-    than left to `None`, which would raise on comparison.
+    than left to `None`, which would raise the moment the sort compared two of them.
+
+    THE COMPARISON BELOW IS THE POINT AND THE ORDERING IS NOT. `zone_rank` runs
+    first, so the sort never actually weighs a `metadata` field against a `body`
+    page; what it does need is that every address yields a tuple of ints, which is
+    what a label-only segment would break. The two zones here are named only because
+    that is where the two segment kinds occur.
     """
     labelled = Location("metadata", (Segment(kind="field", label="Author"),))
     numbered = Location("body", (Segment(kind="page", index=1),))

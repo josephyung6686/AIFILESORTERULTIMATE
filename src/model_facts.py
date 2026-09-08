@@ -1494,8 +1494,17 @@ def _within_ceiling(observations: Sequence, context: Sequence,
     `measure_released_tokens` counted every resolved value INCLUDING the filename --
     so the ladder could pass a dossier at rung NONE that the door then denied
     `over_dossier_ceiling`. With whole pages releasable that stopped being a rounding
-    difference. `filename_characters` supplies the number, and it is `0` when the
-    call offers no name, which is `name_may_be_cited`'s answer and not a second one.
+    difference.
+
+    `filename_characters` supplies the number, and it is measured off the ITEM the
+    request will carry rather than off any condition: `fact_call_stage` builds
+    `filename` once and hands that same variable to this measurement and to
+    `build_fact_request`, so "no item is offered" and "no characters are counted"
+    cannot come apart. There are two ways the item is `None` and neither needs a
+    branch here -- the vocabulary does not admit the name (`name_may_be_cited` is
+    False), or `filename_citation` could not address one because the filesystem
+    extractor never ran over this file -- and in both the request carries no
+    `Filename`, so the door releases no name either.
     """
     return dossier_tokens(
         observation.raw_value for observation in tuple(observations) + tuple(context)

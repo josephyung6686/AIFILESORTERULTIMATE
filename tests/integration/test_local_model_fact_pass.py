@@ -1401,6 +1401,11 @@ def test_no_dossier_in_a_local_run_exceeds_the_stored_ceiling(
     of P1's own budget table, never a literal repeated here.
     """
     from database_agent.budget import get_ceiling
+    # The PRODUCT's measurement, not `len` spelled again here. This is the test whose
+    # whole point is that the builder and the door count one number, and a second
+    # spelling of that number inside it would be the defect wearing the test's own
+    # clothes.
+    from model_facts import dossier_tokens
 
     database, report = _local_run(tmp_path, stub, monkeypatch)
     conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
@@ -1418,7 +1423,7 @@ def test_no_dossier_in_a_local_run_exceeds_the_stored_ceiling(
                     for item in json.loads(payload).get("released_evidence", ())
                     if isinstance(item, dict)
                     and isinstance(item.get("value"), str)]
-        total = sum(len(value) for value in released)
+        total = dossier_tokens(released)
         assert total <= ceiling, (
             f"a {call_site} dossier released {total} characters against a stored "
             f"ceiling of {ceiling}; the builder and the door disagree about what "
