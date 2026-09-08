@@ -3833,22 +3833,21 @@ class AFactRowNotRatified(RuntimeError):
     """`A_FACT_ROW` names a row whose status does not let site A apply answers."""
 
 
-class AFactGlossaryNotTheShippedOne(RuntimeError):
-    """`A_FACT_ROW` names a glossary the dossier does not read."""
-
-
 def a_fact_row() -> dict:
     """The manifest row `A_FACT_ROW` names, checked for what site A needs of it.
 
     `104` R-144. Refused at composition, before a corpus is read, when the row's
     word is `unratified`: A is a site that APPLIES its answers, and applying under
-    text nobody approved is the thing `ratified` exists to say yes to. Refused
-    too when the row names a glossary other than the one `llm_harness.dossier`
-    ships into the bytes: the glossary is model-visible and part of what the
-    owner ratified, and a row naming another would describe a prompt this
-    deployment does not build.
+    text nobody approved is the thing `ratified` exists to say yes to.
+
+    **The row's `glossary_file` is read by nobody here, deliberately.** The
+    glossary the dossier ships is `llm_harness.dossier.GLOSSARY_FILE`, and the
+    promptbench swaps that global to run another glossary arm under this same
+    text; a check here that the row named the swapped-in file made
+    `a_fact_prompt` refuse in whichever test ran after such a swap (the R-144
+    merge turned about thirty tests red under `pytest-randomly` for exactly this).
+    Which glossary is in the bytes is the dossier's fact, not the row's.
     """
-    from llm_harness.dossier import GLOSSARY_FILE
     template_id, candidate = A_FACT_ROW
     row = prompt_library_a_fact_row(template_id, candidate)
     status = draft_status(template_id)
@@ -3858,12 +3857,6 @@ def a_fact_row() -> dict:
             f"{status!r}. Site A applies its answers, so its row must carry "
             f"{sorted(STATUS_APPLIES)}; a v2 of A's text runs under "
             f"`ratified_local` on this device, never under `unratified`.")
-    if row.get("glossary_file") != GLOSSARY_FILE.name:
-        raise AFactGlossaryNotTheShippedOne(
-            f"the A_fact row {candidate!r} names glossary "
-            f"{row.get('glossary_file')!r}; the dossier ships {GLOSSARY_FILE.name} "
-            f"and reads no other, so a row naming another describes a prompt "
-            f"this deployment does not build.")
     return row
 
 
