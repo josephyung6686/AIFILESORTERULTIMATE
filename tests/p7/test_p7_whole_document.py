@@ -61,7 +61,9 @@ from privacy.items import (
     is_whole_document,
 )
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
-from privacy.release import Denied, ModelCallRequest, ModelTarget, Released, Target
+from privacy.release import (
+    CLOUD_LOCALITY, Denied, ModelCallRequest, ModelTarget, Released, Target,
+)
 from privacy.resolve import materialise
 from privacy.schema import create_privacy_schema
 from privacy.vocabulary import ALWAYS_LOCAL
@@ -70,6 +72,9 @@ OBSERVED_AT = "2026-09-03T09:00:00Z"
 PLAN_VERSION = "plan-whole-1"
 COMPONENT = "0.1.0"
 CLOUD = ModelTarget(locality="cloud", model_id="a-model", provider="Acme")
+#: `104` R-159's other destination. Every test above the ruling's own section
+#: sends here; the pair at the bottom is what the ruling changed.
+LOCAL = ModelTarget(locality="local", model_id="a-model", provider="ollama")
 #: P7's own ceiling echo. A number only a test may choose.
 MAX_DOSSIER_TOKENS = 4000
 
@@ -189,10 +194,11 @@ def _gate(conn) -> Gate:
     )
 
 
-def _request(*, items, file_id: str) -> ModelCallRequest:
+def _request(*, items, file_id: str,
+             model_target: ModelTarget = CLOUD) -> ModelCallRequest:
     return ModelCallRequest(
         stage="fact_resolution", target=Target(file_ids=(file_id,)),
-        model_target=CLOUD, requested_items=tuple(items),
+        model_target=model_target, requested_items=tuple(items),
         prompt_template_id="template.under-ratification",
         prompt_fingerprint="fingerprint-whole-1",
         max_dossier_tokens=MAX_DOSSIER_TOKENS,
@@ -274,7 +280,8 @@ def test_check_item_refuses_it_and_the_message_survives_the_missing_span(
     with pytest.raises(WholeDocumentRequested) as caught:
         check_item(item, unit_length=len(DOCUMENT), zone="body", protected=False,
                    sensitive_keys=frozenset(), allow_unratified=True,
-                   suspension_permits_self_description=False)
+                   suspension_permits_self_description=False,
+                   locality=CLOUD_LOCALITY)
     assert str(len(DOCUMENT)) in str(caught.value)
     assert "full documents" in str(caught.value)
 
@@ -799,3 +806,77 @@ def test_an_always_local_zone_still_refuses_a_whole_single_line_unit(whole_conn)
 
     assert isinstance(decision, Denied), decision
     assert decision.reason == "always_local_item", decision.reason
+
+
+# ================================================================================
+# `104` R-159: whose target the whole-DOCUMENT rule was ever about
+# ================================================================================
+
+def test_a_whole_unit_is_released_to_a_local_target_and_refused_to_a_cloud_one(
+        whole_conn, a_document):
+    """THE PAIR. Same document, same span-less excerpt, one field different.
+
+    §8.4's sentence -- the engine "should not send full documents where a short
+    heading or OCR excerpt is enough to resolve the question" -- sits under
+    `00`:186's *"when a cloud model is used"*, and until 8 Sep 2026 the code applied
+    it to every destination. This is the measurement that made the owner rule: every
+    extractor emits page- and paragraph-sized units with one span-less observation
+    over each, so on r15 fifty-four of 199 files had body readings and NOT ONE was
+    releasable, and the median file was shown 109 characters of its own text under a
+    4,000-character ceiling.
+
+    What bounds the local branch instead is the DOSSIER CEILING, which is the bound
+    §8.4's own sentence hands to `max_dossier_tokens_per_call`; the fill that spends
+    it lives in `model_facts.releasable_observations` and is measured there, not
+    here. This test is about the door alone: the unit is releasable, and how much of
+    a call's budget it costs is the builder's question.
+
+    SABOTAGE: drop the `locality == CLOUD_LOCALITY` guard from `check_item`'s
+    whole-document arm and the local half goes red;
+    `test_the_gate_denies_a_span_less_whole_document_and_releases_nothing` above is
+    the cloud half of the same pair and stays green either way, which is why both
+    halves are asserted here.
+    """
+    file_id, key = a_document
+    item = Excerpt(observation_key=key, span=None, reason="the whole thing")
+
+    denied = _gate(whole_conn).release(_request(
+        items=(item,), file_id=file_id, model_target=CLOUD))
+    assert isinstance(denied, Denied), (
+        f"a whole unit bound for a CLOUD model was {type(denied).__name__}; "
+        f"{ALWAYS_LOCAL[1]!r} is the second of the nine and the ruling left the "
+        f"cloud restrictions standing")
+    assert denied.reason == "whole_document_requested"
+
+    released = _gate(whole_conn).release(_request(
+        items=(item,), file_id=file_id, model_target=LOCAL))
+    assert isinstance(released, Released), (
+        f"a whole unit bound for a LOCAL model was {type(released).__name__}; "
+        f"`104` R-159's ruling shows it the unit")
+    assert [one.value for one in released.materialised_items] == [DOCUMENT], (
+        "the local model is shown the page it is being asked about, which is the "
+        "whole of what the ruling changes at this door")
+
+
+def test_a_bounded_span_is_released_to_either_target_and_the_pair_proves_the_arm(
+        whole_conn, a_document):
+    """The control on the pair above: nothing about a SHORT excerpt changed.
+
+    A test that only showed the whole unit arriving locally could not tell "the
+    whole-document arm is now cloud-only" from "the door stopped checking spans".
+    """
+    file_id = _file(whole_conn, "Syllabus.txt", "hash-bounded")
+    span = TextSpan(0, 12)
+    key = _observation(
+        whole_conn, file_id, tag="bounded", zone="body", container_path=(),
+        raw_value=DOCUMENT[:12], unit_text=DOCUMENT, span=span)
+    _classify(whole_conn, file_id, "hash-bounded", key=key)
+    _store_policy(whole_conn)
+    short = Excerpt(observation_key=key, span=span, reason="the opening")
+    for target in (CLOUD, LOCAL):
+        decision = _gate(whole_conn).release(_request(
+            items=(short,), file_id=file_id, model_target=target))
+        assert isinstance(decision, Released), (
+            f"a bounded excerpt bound for a {target.locality} model was "
+            f"{type(decision).__name__}")
+        assert [one.value for one in decision.materialised_items] == [DOCUMENT[:12]]

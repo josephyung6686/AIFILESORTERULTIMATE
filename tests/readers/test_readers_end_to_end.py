@@ -553,6 +553,7 @@ def test_a_contact_value_cannot_leave_as_an_excerpt(db, tmp_path):
     from privacy.items import (
         AlwaysLocalRequested, Excerpt, check_item, sensitive_observation_keys,
     )
+    from privacy.release import LOCALITIES
 
     root = tmp_path / "Documents"
     root.mkdir()
@@ -566,13 +567,21 @@ def test_a_contact_value_cannot_leave_as_an_excerpt(db, tmp_path):
     assert row is not None, "the telephone number did not reach the evidence table"
 
     sensitive = sensitive_observation_keys(db, row["file_id"])
-    with pytest.raises(AlwaysLocalRequested):
-        check_item(
-            Excerpt(observation_key=row["observation_key"], span=None,
-                    reason="a folder proposal"),
-            unit_length=None, zone="metadata", protected=False,
-            sensitive_keys=sensitive, allow_unratified=False,
-            suspension_permits_self_description=False)
+    # BOTH TARGETS, and the loop is the assertion. `104` R-159 divided two of
+    # `check_item`'s arms by the destination -- the always-local ZONE and the whole
+    # unit -- and left this one alone: P5's per-value signal says a human identifier
+    # was recognised in that value, which is not a fact about where it is going.
+    # Walking `LOCALITIES` rather than naming the cloud half is what makes the
+    # ruling's boundary visible from inside this test.
+    for locality in LOCALITIES:
+        with pytest.raises(AlwaysLocalRequested):
+            check_item(
+                Excerpt(observation_key=row["observation_key"], span=None,
+                        reason="a folder proposal"),
+                unit_length=None, zone="metadata", protected=False,
+                sensitive_keys=sensitive, allow_unratified=False,
+                suspension_permits_self_description=False,
+                locality=locality)
 
 
 def test_an_html_pages_script_body_never_reaches_the_evidence_table(db, tmp_path):

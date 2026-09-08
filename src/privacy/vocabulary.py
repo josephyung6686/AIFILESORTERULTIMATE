@@ -65,6 +65,32 @@ class OutOfVocabulary(ValueError):
     """A value outside a closed set. SPEC §1: a load error, not a fallback."""
 
 
+#: SPEC §6: `model_target { locality: local | cloud, model_id, provider }`.
+#:
+#: **MOVED HERE FROM `privacy.release` ON 2026-09-08 (`104` R-159), and the reason is
+#: an import cycle rather than a change of mind about whose vocabulary this is.**
+#: R-159 made `items.check_item` decide two of its arms by the destination, and
+#: `items` cannot import `release`: `release` imports `consent`, `consent` imports
+#: `policy`, and `policy` imports `items` for `SUSPENDED_ITEM_KINDS`. This module is
+#: the leaf every one of them already imports and the one whose whole subject is P7's
+#: closed sets, so the vocabulary lives here and `release` re-exports it. Every
+#: existing `from privacy.release import CLOUD_LOCALITY` keeps working and
+#: `release.__all__` still publishes both names.
+LOCALITIES: tuple[str, str] = ("local", "cloud")
+
+#: The member of `LOCALITIES` that means the bytes leave the device. Named because
+#: modules were comparing against the literal `"cloud"`, and brief §11 bans a bare
+#: string. SPELLED, not indexed: `LOCALITIES[1]` is the other half of that same rule
+#: -- an index couples every consumer to the tuple's ORDER, and a reorder would then
+#: change what this means with no test failing. The guard below is what ties the two
+#: together, so a rename in `LOCALITIES` is an ImportError rather than a comparison
+#: that silently stops matching.
+CLOUD_LOCALITY: str = "cloud"
+if CLOUD_LOCALITY not in LOCALITIES:
+    raise ImportError(
+        f"{CLOUD_LOCALITY!r} is not one of SPEC §6's localities {LOCALITIES}")
+
+
 def _check(value: object, closed: tuple[str, ...], what: str) -> str:
     """Refuse an outsider by naming the closed set, never any of its members.
 
@@ -221,7 +247,55 @@ ALWAYS_LOCAL: tuple[str, ...] = (
 #: AUDITED, and whoever does that audit should treat this comment as the reason to.
 #:
 #: Still a mapping and still no tenth member: `ALWAYS_LOCAL` stays at nine.
+#:
+#: **WHOSE TARGET, ADDED 2026-09-08 BY THE OWNER'S RULING ON `104` R-159, §15.4 item
+#: 14.** Everything above reads §8.4 with no locality in it, and that is the sentence
+#: the ruling re-read. `00`:186 says paths, complete extracted text and OCR output
+#: "should remain local", and it says that *"when a cloud model is used"* the engine
+#: sends "selected excerpts" rather than full documents -- one sentence about a CLOUD
+#: destination, applied here to every destination there is. The owner ruled the first
+#: of §15.4 item 14's two ways: a LOCAL model may be shown a whole text unit, the
+#: person's own folder path and OCR text, within the dossier ceiling; the cloud
+#: restrictions stand unchanged for a cloud target. `RELEASED_TO_A_LOCAL_TARGET`
+#: below is that ruling transcribed, and `gate.py`'s privacy-CLASS refusal -- already
+#: `if locality == CLOUD_LOCALITY else ()` since `104` R-89 -- is the shape it copies.
+#:
+#: Measured on r15, which is what the ruling was made on: 54 of 199 files had body
+#: readings and not one was releasable, 20 of 43 labelled coursework files carried
+#: their course code only in the `path` zone, and 29 OCR runs were shown to nobody.
 ALWAYS_LOCAL_ZONES: frozenset[str] = frozenset({"path", "filename", "ocr"})
+
+#: The members of `ALWAYS_LOCAL_ZONES` the R-159 ruling releases to a LOCAL target,
+#: in the ruling's own two words: "the person's folder path and OCR text".
+#:
+#: `filename` is NOT here and is refused for every target, which is the one place this
+#: split departs from a flat reading of "the zone arm is cloud-only". Its membership
+#: above was never §8.4's paths sentence: it is §7.7's flagged SIXTH releasable kind
+#: wearing a zone, put here (CR-01) so that an `Excerpt` cannot address a filename and
+#: bypass `allow_unratified` and §7.3's protected-records ban -- "refused HERE and
+#: released THERE". Three docstrings state that invariant with no locality in them
+#: (`gate`'s module text on `_located_zone`, `release.NAME_BEARING`,
+#: `model_facts.build_fact_request`), and a local target that admitted a
+#: `filename`-zone excerpt would falsify all three while releasing nothing new: the
+#: name already arrives through `items.Filename`, the door built for it, and a second
+#: copy of it is noise the ceiling pays for.
+RELEASED_TO_A_LOCAL_TARGET: frozenset[str] = frozenset({"path", "ocr"})
+
+#: The remainder, spelled rather than derived, so that the guard below has two
+#: independently authored sets to compare instead of one and its own complement.
+ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET: frozenset[str] = frozenset({"filename"})
+
+if (RELEASED_TO_A_LOCAL_TARGET | ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET
+        != ALWAYS_LOCAL_ZONES) or (RELEASED_TO_A_LOCAL_TARGET
+                                   & ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET):
+    raise ImportError(
+        f"every member of {sorted(ALWAYS_LOCAL_ZONES)} belongs to exactly one side "
+        f"of the `104` R-159 ruling, and "
+        f"{sorted(RELEASED_TO_A_LOCAL_TARGET)} + "
+        f"{sorted(ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET)} does not partition it. A "
+        f"FOURTH always-local zone added without a locality decision would default "
+        f"to reaching the local model, which is the direction the mapping above says "
+        f"has been got wrong once already ('THE OTHER SIX HAVE NOT BEEN AUDITED')")
 
 # --- §8.4: the compact dossier -----------------------------------------------
 

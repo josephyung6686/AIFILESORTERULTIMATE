@@ -41,6 +41,7 @@ from privacy.items import (
     ROLE_QUESTION_PREFIX, SelfDescription, SelfDescriptionNotAdmitted,
     UnratifiedItemKind, _KIND_BY_TYPE, check_item, kind_of,
 )
+from privacy.release import CLOUD_LOCALITY
 from privacy.vocabulary import ALWAYS_LOCAL, ITEM_KINDS
 from questions.registry import ROLE_KIND
 
@@ -50,7 +51,11 @@ A_ROLE = "role:me"
 def _check(item, **overrides):
     kwargs = dict(unit_length=None, zone=None, protected=False,
                   sensitive_keys=frozenset(),
-                  allow_unratified=False, suspension_permits_self_description=False)
+                  allow_unratified=False, suspension_permits_self_description=False,
+                  # `104` R-159's seventh keyword. This file is about `80` §8's
+                  # suspension, which carries no locality of its own, so the strict
+                  # half is the default here as it is in `test_p7_items.admit`.
+                  locality=CLOUD_LOCALITY)
     kwargs.update(overrides)
     return check_item(item, **kwargs)
 

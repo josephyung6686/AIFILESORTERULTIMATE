@@ -871,6 +871,12 @@ class Gate:
         `allow_unratified=True` because SPEC §4's flagged reading permits `filename`
         for non-protected files and denies it for protected ones; the denial is §7.3's
         and it arrives as `ProtectedItemRequested`, not as an unratified kind.
+
+        `locality` is the request's own target (`104` R-159). The zone arm it divides
+        is the one decided here, and it is read off `request.model_target` rather than
+        taken as an argument for the reason `Gate.release` reads it once at the top: a
+        second source for "where is this going" would let the door refuse about one
+        destination while the bytes went to another.
         """
         for item in request.requested_items:
             try:
@@ -879,7 +885,8 @@ class Gate:
                                item, request.target.file_ids),
                            protected=protected,
                            sensitive_keys=sensitive_keys, allow_unratified=True,
-                           suspension_permits_self_description=self._suspends(policy))
+                           suspension_permits_self_description=self._suspends(policy),
+                           locality=request.model_target.locality)
             except (AlwaysLocalRequested, ProtectedItemRequested) as caught:
                 return caught
         return None
@@ -891,12 +898,19 @@ class Gate:
 
         `zone` here is the RESOLVED zone -- the one `ReleasedItem` carries and
         `dossier._released_body` puts on the wire -- where the precheck used the
-        locator's. They read the same evidence row, so an always-local zone has
-        already been refused by the time this runs and the check below cannot fire
-        from `zone`. It is passed anyway rather than as `None`, because `None` there
-        would be this method telling `check_item` the zone is unknown when it is
-        holding it; if the two readings ever disagreed, `AlwaysLocalRequested` would
-        propagate out of `release` uncaught, which is the fail-closed direction.
+        locator's. They read the same evidence row, so a zone this TARGET treats as
+        always-local has already been refused by the time this runs and the check
+        below cannot fire from `zone`. It is passed anyway rather than as `None`,
+        because `None` there would be this method telling `check_item` the zone is
+        unknown when it is holding it; if the two readings ever disagreed,
+        `AlwaysLocalRequested` would propagate out of `release` uncaught, which is the
+        fail-closed direction.
+
+        **"Always-local" is now a question about the destination** (`104` R-159), and
+        the sentence above is true for either answer because BOTH passes are given the
+        same `request.model_target.locality`. On a local target a `path`- or
+        `ocr`-zone item reaches here unrefused, by the ruling; the precheck and this
+        pass agree about that the same way they agree about a `body` zone.
         """
         lengths = {item.observation_key: item.unit_length for item in resolved}
         zones = {item.observation_key: item.zone for item in resolved}
@@ -916,7 +930,8 @@ class Gate:
                            zone=zones.get(item.observation_key),
                            protected=protected, sensitive_keys=sensitive_keys,
                            allow_unratified=True,
-                           suspension_permits_self_description=self._suspends(policy))
+                           suspension_permits_self_description=self._suspends(policy),
+                           locality=request.model_target.locality)
             except WholeDocumentRequested as caught:
                 if excerpts.get(item.observation_key, False):
                     # THE EXEMPTION IS TAKEN HERE AND NOT INSIDE `check_item`, because
@@ -934,7 +949,11 @@ class Gate:
                     # BEFORE anything was materialised. The whole-document arm is the
                     # only one that needed the resolved length, which is why this pass
                     # exists at all, so it is the only refusal this line can waive. A
-                    # one-line unit in a `path` zone never reaches here.
+                    # one-line unit in a `path` zone never reaches here ON A CLOUD
+                    # TARGET; since `104` R-159 it does reach here on a local one, and
+                    # the arm this line waives does not fire there either -- the
+                    # exemption is still excepting nothing, because for a local target
+                    # there is nothing left in this pass to except.
                     #
                     # Measured at `e5cce44`: the gate denied a whole HEADING unit
                     # `whole_document_requested`, so R-135's exemption reached the two

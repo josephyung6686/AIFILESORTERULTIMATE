@@ -63,12 +63,21 @@ from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.release import Denied, ModelCallRequest, ModelTarget, Released, Target
 from privacy.resolve import UnresolvableSpan
 from privacy.schema import create_privacy_schema
-from privacy.vocabulary import ALWAYS_LOCAL, ALWAYS_LOCAL_ZONES
+from privacy.vocabulary import (
+    ALWAYS_LOCAL, ALWAYS_LOCAL_ZONES, ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET,
+    RELEASED_TO_A_LOCAL_TARGET,
+)
 
 OBSERVED_AT = "2026-09-02T09:00:00Z"
 PLAN_VERSION = "plan-zone-1"
 COMPONENT = "0.1.0"
 CLOUD = ModelTarget(locality="cloud", model_id="a-model", provider="Acme")
+#: `104` R-159's other destination. Every test in this file predates the ruling and
+#: is about `CLOUD`; the pairs at the bottom are what the ruling changed, and they
+#: are written as PAIRS -- the same fixture, the same request, one field different --
+#: because "the rule now depends on the target" is a claim about a difference and a
+#: test of the local half alone would not make it.
+LOCAL = ModelTarget(locality="local", model_id="a-model", provider="ollama")
 #: P7's own ceiling echo. A number only a test may choose.
 MAX_DOSSIER_TOKENS = 4000
 
@@ -175,10 +184,11 @@ def _gate(conn) -> Gate:
     )
 
 
-def _request(*, items, file_id: str) -> ModelCallRequest:
+def _request(*, items, file_id: str,
+             model_target: ModelTarget = CLOUD) -> ModelCallRequest:
     return ModelCallRequest(
         stage="fact_resolution", target=Target(file_ids=(file_id,)),
-        model_target=CLOUD, requested_items=tuple(items),
+        model_target=model_target, requested_items=tuple(items),
         prompt_template_id="template.under-ratification",
         prompt_fingerprint="fingerprint-zone-1",
         max_dossier_tokens=MAX_DOSSIER_TOKENS,
@@ -612,3 +622,118 @@ def test_the_real_ocr_extractors_whole_passage_is_denied_by_the_gate(zone_conn):
     assert decision.reason == "always_local_item"
     assert CARD_NUMBER not in decision.explanation
     assert "CHAN TAI MAN" not in decision.explanation
+
+
+# ================================================================================
+# `104` R-159: whose target the always-local ZONE rule was ever about
+# ================================================================================
+#
+# Every test above sends to `CLOUD` and every one of them still passes, which is
+# half of what the ruling says. The other half is below. `00`:186 puts paths,
+# complete extracted text and OCR output under "should remain local" and says the
+# engine sends selected excerpts "when a cloud model is used"; until 8 Sep 2026 the
+# code applied that sentence to every destination, and the gate's OTHER always-local
+# rule -- `105` §13.3's privacy CLASS, `gate.py` ~347 -- was already cloud-only, so
+# one door answered "always local" two ways about one request. The owner ruled §15.4
+# item 14 the first way: a local model may be shown the person's folder path and OCR
+# text within the dossier ceiling.
+
+def test_a_path_zone_excerpt_is_released_to_a_local_target_and_refused_to_a_cloud_one(
+        zone_conn):
+    """THE PAIR, and the pair is the test. Same fixture, same item, one field.
+
+    20 of r15's 43 labelled coursework files carried their course code ONLY here --
+    in the folder the person filed the file in -- and the refusal above is why the
+    model was never shown it. Nothing leaves the device on the local branch, which is
+    the whole of the owner's reasoning.
+
+    SABOTAGE: drop the `locality == CLOUD_LOCALITY` guard from `check_item`'s zone
+    arm and the local half goes red; drop the `zone not in
+    RELEASED_TO_A_LOCAL_TARGET` half of the same condition and the CLOUD half of
+    `test_a_span_less_filename_zone_excerpt_is_denied_too` survives while the
+    filename pair below goes red.
+    """
+    file_id, key = _seed(zone_conn, zone="path", raw_value=PRIVATE_DIRECTORY)
+    item = Excerpt(observation_key=key, span=None, reason="path")
+
+    denied = _gate(zone_conn).release(_request(
+        items=(item,), file_id=file_id, model_target=CLOUD))
+    assert isinstance(denied, Denied) and denied.reason == "always_local_item"
+
+    released = _gate(zone_conn).release(_request(
+        items=(item,), file_id=file_id, model_target=LOCAL))
+    assert isinstance(released, Released), (
+        f"a path-zone excerpt bound for a LOCAL model was "
+        f"{type(released).__name__}; `104` R-159's ruling releases it")
+    assert [one.value for one in released.materialised_items] == [PRIVATE_DIRECTORY], (
+        "the local model is shown the folder itself, which is what the ruling is")
+
+
+def test_an_ocr_zone_excerpt_is_released_to_a_local_target_and_refused_to_a_cloud_one(
+        zone_conn):
+    """The same pair on member three, and the residual is named in the ruling.
+
+    29 OCR runs on r15 were shown to nobody. With `104` R-161 open -- P5 emits no
+    signal over a text document, so `sensitive_keys` is empty for a scanned page --
+    the recognised text of an unclassified scanned document now reaches the local
+    model, and the card number in this very fixture is what that looks like. The
+    owner ruled it that way knowing it: `105` §13.3's always-local CLASS still
+    refuses the cloud target, and nothing here leaves the device.
+    """
+    file_id, key = _seed(zone_conn, zone="ocr", raw_value=CARD_NUMBER)
+    item = Excerpt(observation_key=key, span=None, reason="ocr")
+
+    denied = _gate(zone_conn).release(_request(
+        items=(item,), file_id=file_id, model_target=CLOUD))
+    assert isinstance(denied, Denied) and denied.reason == "always_local_item"
+
+    released = _gate(zone_conn).release(_request(
+        items=(item,), file_id=file_id, model_target=LOCAL))
+    assert isinstance(released, Released), (
+        f"an ocr-zone excerpt bound for a LOCAL model was "
+        f"{type(released).__name__}; `104` R-159's ruling releases it")
+    assert [one.value for one in released.materialised_items] == [CARD_NUMBER]
+
+
+def test_a_filename_zone_excerpt_is_refused_to_a_local_target_too(zone_conn):
+    """The member the ruling does NOT release, and the one place this build reads
+    `104` R-159's brief against its letter.
+
+    `filename`'s membership in `ALWAYS_LOCAL_ZONES` was never §8.4's paths sentence.
+    It is §7.7's flagged SIXTH releasable kind wearing a zone, put there by CR-01 so
+    that an `Excerpt` cannot address a filename and bypass `allow_unratified` and
+    §7.3's protected-records ban -- "refused HERE and released THERE". A local target
+    that admitted this excerpt would falsify three docstrings that carry no locality
+    (`gate`'s module text on `_located_zone`, `release.NAME_BEARING`,
+    `model_facts.build_fact_request`) and would release nothing new: the name already
+    arrives through `items.Filename`, the door built for it.
+
+    The ruling's own words name two zones, "the person's folder path and OCR text",
+    and `vocabulary.RELEASED_TO_A_LOCAL_TARGET` is that phrase transcribed.
+    """
+    file_id, key = _seed(zone_conn, zone="filename", raw_value="passport.pdf")
+    item = Excerpt(observation_key=key, span=None, reason="the name")
+
+    for target in (CLOUD, LOCAL):
+        decision = _gate(zone_conn).release(_request(
+            items=(item,), file_id=file_id, model_target=target))
+        assert isinstance(decision, Denied), (
+            f"a filename-zone excerpt bound for a {target.locality} model was "
+            f"{type(decision).__name__}; §7.7's kind has its own door")
+        assert decision.reason == "always_local_item"
+
+
+def test_the_ruling_partitions_the_three_zones_and_a_fourth_would_fail_at_import():
+    """The set guard, one turn stronger than the one above it.
+
+    `ALWAYS_LOCAL_ZONES` is a HAND-MADE mapping -- its own comment says "THE OTHER
+    SIX HAVE NOT BEEN AUDITED" -- so a fourth zone will be added one day by someone
+    reading §8.4 and not this ruling. `privacy.vocabulary` raises `ImportError` when
+    the two halves stop partitioning the whole, which puts that person in front of
+    the locality question instead of defaulting their zone to the local model.
+    """
+    assert RELEASED_TO_A_LOCAL_TARGET == frozenset({"path", "ocr"})
+    assert ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET == frozenset({"filename"})
+    assert (RELEASED_TO_A_LOCAL_TARGET | ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET
+            == ALWAYS_LOCAL_ZONES)
+    assert not (RELEASED_TO_A_LOCAL_TARGET & ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET)

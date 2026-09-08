@@ -49,6 +49,7 @@ from privacy.items import SUSPENDED_ITEM_KINDS, SelfDescription
 from privacy.policy import (
     UNSET_POLICY_VERSION, Policy, current_policy, policy_at, set_policy,
 )
+from privacy.release import CLOUD_LOCALITY
 from privacy.schema import POLICIES_TABLE
 from privacy.vocabulary import OutOfVocabulary
 
@@ -239,7 +240,8 @@ def test_the_gate_refuses_a_self_description_under_a_policy_that_permits_none(
                    zone=None, protected=False, sensitive_keys=frozenset(),
                    allow_unratified=True,
                    suspension_permits_self_description=(
-                       "self_description" in policy.suspended_item_kinds))
+                       "self_description" in policy.suspended_item_kinds),
+                   locality=CLOUD_LOCALITY)
 
 
 def test_the_gate_admits_one_under_a_policy_that_permits_it(p7_conn):
@@ -252,7 +254,8 @@ def test_the_gate_admits_one_under_a_policy_that_permits_it(p7_conn):
         SelfDescription(question_id="role:me"), unit_length=None, zone=None,
         protected=False, sensitive_keys=frozenset(), allow_unratified=False,
         suspension_permits_self_description=(
-            "self_description" in policy.suspended_item_kinds)) is None
+            "self_description" in policy.suspended_item_kinds),
+        locality=CLOUD_LOCALITY) is None
 
 
 # --- the seam with the OTHER record of one run --------------------------------------

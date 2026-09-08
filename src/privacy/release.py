@@ -25,7 +25,15 @@ from dataclasses import dataclass, fields
 from typing import TYPE_CHECKING
 
 from privacy.consent import NeedsConsent
-from privacy.vocabulary import check_denial_reason
+# SPEC §6's locality vocabulary, RE-EXPORTED and not retyped. The import IS the
+# publication, on the same rule `vocabulary.RELIABILITY_STATES` states for P4's
+# states: a second module-level binding would be a second answer to "what are the
+# two localities". It moved to `privacy.vocabulary` on 2026-09-08 for `104` R-159 --
+# `items.check_item` decides two arms by the destination and cannot import this
+# module, because this one reaches `items` through `consent` and `policy`. The
+# vocabulary's own docstrings travelled with it; `__all__` below still publishes both
+# names, so every `from privacy.release import CLOUD_LOCALITY` is unchanged.
+from privacy.vocabulary import CLOUD_LOCALITY, LOCALITIES, check_denial_reason
 
 if TYPE_CHECKING:  # pragma: no cover - annotations only; no run-time edge
     from privacy.denial import RemedyOption
@@ -65,22 +73,6 @@ class NoPolicyInForce(RuntimeError):
     resolved in `defaults.effective_policy`, which is where Done-means 12 is proven,
     and a second resolution here would be a second home for it.
     """
-
-
-#: SPEC §6: `model_target { locality: local | cloud, model_id, provider }`.
-LOCALITIES: tuple[str, str] = ("local", "cloud")
-
-#: The member of `LOCALITIES` that means the bytes leave the device. Named because
-#: modules were comparing against the literal `"cloud"`, and brief §11 bans a bare
-#: string. SPELLED, not indexed: `LOCALITIES[1]` is the other half of that same rule
-#: -- an index couples every consumer to the tuple's ORDER, and a reorder would then
-#: change what this means with no test failing. The guard below is what ties the two
-#: together, so a rename in `LOCALITIES` is an ImportError rather than a comparison
-#: that silently stops matching.
-CLOUD_LOCALITY: str = "cloud"
-if CLOUD_LOCALITY not in LOCALITIES:
-    raise ImportError(
-        f"{CLOUD_LOCALITY!r} is not one of SPEC §6's localities {LOCALITIES}")
 
 
 @dataclass(frozen=True, slots=True)
