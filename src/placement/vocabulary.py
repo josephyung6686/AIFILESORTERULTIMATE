@@ -308,6 +308,33 @@ REVIEW_POLICIES: tuple[str, ...] = (
     AUTO_ELIGIBLE, REVIEW_REQUIRED, BLOCKED_PENDING_USER,
 )
 
+#: WHO chose the destination on a `place`. `104` R-165.
+#:
+#: §13.5 is "model decides, rules validate", and until this existed the record had
+#: no way to say whether that had happened. `pipeline.place_file` already computes
+#: it -- `model_decided = chosen_node_id is not None` -- and spends the whole of it
+#: on one clause of the explanation SENTENCE, which is not a thing
+#: `tools.groundtruth` can count. So a rule that fired first and skipped the model
+#: was indistinguishable from a model verdict on every number the scoreboard
+#: printed, and §13.1's definition of done rests on those numbers.
+#:
+#: A FOURTH VALUE WOULD BE A FOURTH ACTOR, and there are three: the judge P8
+#: validated, the person who answered, and the deterministic path §6.6 makes a
+#: legal run on its own. An offline run is `rule` rather than a fourth word,
+#: because §13.5's own clause says what it is -- "with no model configured the
+#: deterministic path remains the fallback" -- and the rules really did decide
+#: those placements.
+#:
+#: `DECIDED_BY_MODEL` IS NOT BOUND TO ANY MODEL CONSTANT ABOVE, and the spellings
+#: agreeing is not a reason to bind them. `MODEL_ELIGIBILITY` says whether a file
+#: may be SHOWN to a model; this says whether one CHOSE the node. They are
+#: different questions about different subjects, and a record answering the first
+#: must not reach for this constant to spell it -- the rule this file opens with.
+DECIDED_BY_MODEL: str = "model"
+DECIDED_BY_RULE: str = "rule"
+DECIDED_BY_USER: str = "user"
+DECIDERS: tuple[str, ...] = (DECIDED_BY_MODEL, DECIDED_BY_RULE, DECIDED_BY_USER)
+
 # --- §8.7's correction polarity: P1's axis, one value spelled like P8's verdict ---
 
 #: §8.2's polarity, in P1's own words: "polarity ∈ accept | reject and is supplied

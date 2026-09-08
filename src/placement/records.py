@@ -28,7 +28,8 @@ from grouping.vocabulary import USER_ATTACHED
 
 from placement.vocabulary import (
     ABSTAIN, ABSTENTION_REASONS, ACCEPT_CONTEXT_SUPPORTED, ASK_USER,
-    AUTO_ELIGIBLE, BUDGET_DEFERRED, CLASSES, CONFIDENCE_CLASSES, EVIDENCE_TYPES,
+    AUTO_ELIGIBLE, BUDGET_DEFERRED, CLASSES, CONFIDENCE_CLASSES, DECIDERS,
+    EVIDENCE_TYPES,
     FILE, LOCAL_ONLY, LOCAL_ONLY_REASONS, MARGIN_TRUE_VACUOUS, MARKED_STATES,
     MARK_STATE, MEETS_MARGIN_VALUES,
     MODEL_ELIGIBILITY, NODE_ROLES, ORIGIN_STAGES, OUTCOMES, PLACE, PLACEMENT,
@@ -431,6 +432,26 @@ class PlacementDecision:
     review_policy: str
     explanation: str
     residual: ResidualContext | None
+    #: WHO chose this destination, on a `place` and on nothing else. `104` R-165.
+    #:
+    #: The pipeline has always known: `place_file` computes `model_decided` and
+    #: `_user_chose` is a function whose whole subject is the person. What it did
+    #: with that knowledge was write a clause into `explanation`, and a sentence is
+    #: not countable -- so `tools.groundtruth` could not say how many placements
+    #: §13.5's model actually made, and a rule that fired first read exactly like a
+    #: model verdict on every number.
+    #:
+    #: NOTHING ON A NON-`place`, enforced below. An abstention chose no
+    #: destination, so naming an actor for it would credit a decision nobody made
+    #: -- the same rule `abstention_reason` states from the other direction.
+    #:
+    #: LAST AND DEFAULTED, and never required on a `place`. A `place` may still
+    #: carry `None`, which reads "this run recorded no actor", and the scoreboard
+    #: prints that remainder rather than folding it into one of the three. The
+    #: alternative -- a presence contract like `destination`'s -- would make every
+    #: existing construction of this record illegal, and a record whose validity
+    #: depends on a field being backfilled is a migration, not a measurement.
+    decided_by: str | None = None
 
     def __post_init__(self) -> None:
         for name in ("decision_id", "plan_version", "created_at", "explanation"):
@@ -495,6 +516,15 @@ class PlacementDecision:
                 "budget deferral has one: §8.6 requires deferred work to render "
                 "differently from an evidential abstention"
             )
+
+        if self.decided_by is not None:
+            check(self.decided_by, DECIDERS, name="decided_by")
+            if self.outcome != PLACE:
+                raise MalformedPlacementRecord(
+                    "only a `place` names who chose the destination; an outcome "
+                    "that chose none has no decider, and crediting one would "
+                    "record a judgement nobody made (`104` R-165)"
+                )
 
         if self.review_policy == AUTO_ELIGIBLE:
             if self.two_condition.requires_review:

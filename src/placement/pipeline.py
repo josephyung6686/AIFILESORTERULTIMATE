@@ -106,11 +106,12 @@ from placement.store import current_decision, record_decision, subject_ref_of
 from placement.vocabulary import (
     ABSTAIN, ABSTAIN_NO_SUPPORTED_DESTINATION, ASK_USER,
     BLOCKED_PENDING_USER, BUDGET_DEFERRED,
-    CONFLICTING_FACTS, CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH, DIRECT,
+    CONFLICTING_FACTS, CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH,
+    DECIDED_BY_MODEL, DECIDED_BY_RULE, DECIDED_BY_USER, DIRECT,
     EXISTING, FILE, GENERIC_HUB_ONLY, LOW_MARGIN,
     MARGIN_TRUE_VACUOUS, MARK_STATE, NO_SHARED_BRANCH, SEMANTIC_ONLY,
     MULTIPLE_SUPPORTED_HOMES, NO_SUPPORTED_DESTINATION, PLACE, PLACEMENT,
-    POSSIBLE, PRIVACY_BLOCKED, RESIDUAL, RESIDUAL_ROLE,
+    POSSIBLE, PRIVACY_BLOCKED, RESIDUAL, RESIDUAL_ROLE, REVIEW_WITH_MODEL,
     RETURN_TO_PLACEMENT, SEND_TO_APPROVED_NODE, SHARED_MATERIAL,
     SHARED_MATERIAL_DECISION, USER_CHOSE_DESTINATION, USER_CONFIRMED, WEAK,
 )
@@ -1292,6 +1293,15 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
                              gate_refused=gate_refused,
                              refinements=refinements),
         residual=None,
+        # `104` R-165. THE SAME PREDICATE THE SENTENCE ABOVE IS BUILT FROM, on a
+        # field something can count. `chosen_node_id` is not None exactly when a
+        # site-C verdict P8 validated named this node; every other way of reaching
+        # this line placed the file on `assessment.scored[0]`, which is §6.10's
+        # arithmetic and nobody's judgement. That covers the deterministic path,
+        # the offline install, R-74's gate refusal and R-O's refused call alike --
+        # four routes to one fact, which is that the rules decided.
+        decided_by=DECIDED_BY_MODEL if chosen_node_id is not None
+        else DECIDED_BY_RULE,
     )
     return _write(conn, decision, inputs=inputs,
                   reason="a later placement of the same file version supersedes "
@@ -2395,6 +2405,11 @@ def _multi_home_decision(conn, *, subject, inputs: PipelineInputs, outcome,
             "permits a shared branch, a question, or an abstention, and never an "
             "arbitrary choice between the packets."),
         residual=None,
+        # `104` R-165. §6.9's shared branch is `resolve_multi_home`'s answer, and
+        # that function asks no model and no person -- it walks the two packets'
+        # parents and takes the branch they share. So the rules decided, and the
+        # other two outcomes here decided no destination at all.
+        decided_by=DECIDED_BY_RULE if outcome == PLACE else None,
     )
     return _write(conn, decision, inputs=inputs,
                   reason="§6.9 resolved this file's multiple homes (§8.2)",
@@ -2475,6 +2490,12 @@ def _user_chose(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
             "it is, so this destination is yours and not a judgement the engine "
             "made -- it can be changed by answering the question again."),
         residual=None,
+        # `104` R-165, and the sentence directly above is the argument: the
+        # destination is the person's answer, read from `chosen_by_user` before
+        # retrieval or scoring ran at all. `evidence_type` already says
+        # `user_confirmed`; this says the same thing about the CHOICE rather than
+        # about the evidence, which is what a count of the model's share needs.
+        decided_by=DECIDED_BY_USER,
     )
     return _write(conn, decision, inputs=inputs,
                   reason="a later answer about the same file version supersedes "
@@ -2514,7 +2535,7 @@ def run_residual_file(conn: sqlite3.Connection, *, subject, set_id: str,
 def _residual_decision(conn, *, subject, inputs: PipelineInputs, outcome,
                        qualifier, residual, evidence, component_version,
                        observed_at) -> PlacementDecision:
-    """One §7 decision on the SAME thirty-field shape §6 uses (Done-means 1).
+    """One §7 decision on the SAME thirty-one-field shape §6 uses (Done-means 1).
 
     Exactly one outcome-shaped field is filled, chosen by `outcome`, because the
     record refuses any other combination: `destination` on `place`,
@@ -2572,11 +2593,46 @@ def _residual_decision(conn, *, subject, inputs: PipelineInputs, outcome,
             automatic_move_permitted=automatic_move_permitted),
         explanation=_residual_explanation(residual, outcome, entry),
         residual=residual,
+        decided_by=_residual_decider(residual, outcome),
     )
     return _write(conn, decision, inputs=inputs,
                   reason="a later decision about the same file version "
                          "supersedes this residual one (§8.2)",
                   component_version=component_version, observed_at=observed_at)
+
+
+def _residual_decider(residual: ResidualContext, outcome: str) -> str | None:
+    """`104` R-165 on the §7 path: WHO chose a residual destination.
+
+    Read from the set decision, which is the same value `_residual_explanation`
+    below already branches on -- so this adds no judgement, it stops throwing one
+    away. §7.6's two acting choices are the two actors, and `review_residual_sets`
+    lets no other choice reach a decision at all: `send_to_approved_node` writes
+    the node the PERSON'S answer already named, with no dossier and no model, and
+    `review_with_model_against_approved_residual_folders` writes the action a site
+    D verdict carried, which P8 validated exactly as it validates site C's.
+
+    **This is where the register row's own enumeration is departed from**, and
+    deliberately. `104` R-165 names site C, `_user_chose` and "`rule` for every
+    other `place`", which was written with §6's three exits in view. Applied here
+    it would stamp `rule` on a placement whose explanation sentence reads *"Your
+    answer names the destination, so nothing was read and no model was asked"* --
+    one record with two answers, which is the defect R-165 exists to close, and
+    the model's share would be under-counted by every set a person sent to review.
+
+    `None` for any other set decision rather than a guess. `leave_in_place` and
+    `create_custom_branch` produce no decision here, so reaching this line with
+    one means a caller drove `run_residual_file` past `review_residual_sets`, and
+    the honest record of who decided is then "not on the record" -- which is what
+    `None` means everywhere else on this field.
+    """
+    if outcome != PLACE:
+        return None
+    if residual.set_decision == SEND_TO_APPROVED_NODE:
+        return DECIDED_BY_USER
+    if residual.set_decision == REVIEW_WITH_MODEL:
+        return DECIDED_BY_MODEL
+    return None
 
 
 def _residual_explanation(residual: ResidualContext, outcome: str, entry) -> str:
