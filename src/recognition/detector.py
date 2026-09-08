@@ -50,6 +50,12 @@ from database_agent.files_table import get_file
 
 from evidence_shape.store import is_derived_extractor
 
+#: §2.4's "language where relevant" slot, IMPORTED rather than spelled. `_matches`
+#: refuses term matches from it (see there), and a detector holding its own copy of
+#: an extractor's field label is a rule that stops applying the day the label is
+#: renamed, silently and in the permissive direction.
+from extractors.structured_text import LANGUAGE_FIELD
+
 from facts.domains import SCHEMA_IDS, UnknownSchema
 
 from privacy.classification import UNREADABLE_UNCLASSIFIED, ClassificationRecord
@@ -444,6 +450,43 @@ class Detector:
             source_types.add(row["source_type"])
             where = _json.loads(row["location"])
             if where.get("locator") == "path":
+                continue
+            # AND THE NAME OF THE FILE'S FORMAT IS NOT ONE OF ITS WORDS EITHER.
+            # `extractors.structured_text` emits the reader's `document.language`
+            # -- §2.4's "language where relevant" -- as an observation of its own,
+            # and for a notebook the reader fills it with `Jupyter notebook`. The
+            # `code` schema ships `notebook` as a WORK TYPE, so every `.ipynb` in
+            # existence carried a `code` term before one word of it was read.
+            #
+            # Measured on 2026-09-08 at `5ff35c0` and identically at `8eb41e0`: a
+            # notebook whose entire content is the line `PYTHON 1006 Spring 2026`,
+            # with an empty code cell and no prose, came back `Recognition(code)`.
+            # Its only authored term was this observation; its second signal was
+            # the corroboration gate seconding it with `PYTHON 1006` and
+            # `Spring 2026`, which are evidence of COURSEWORK. The four
+            # `Python 1006` notebooks of the owner's corpus -- the only files that
+            # run placed -- were placed on that arithmetic.
+            #
+            # IT IS THE SAME RULE AS THE LINE ABOVE, and the same rule as
+            # `_decide`'s. The path refusal is "every file on a disk sits under
+            # some words, and none of them are the file's own"; every file on a
+            # disk is also written in some FORMAT, and the format's name is the
+            # reader's word rather than the document's. `_decide` already holds
+            # that `file_kind_plausible` "is a constraint and never a signal", and
+            # a term match on this slot is precisely the kind arriving as a
+            # signal -- while the kind is still doing its constraining job, from
+            # `source_types` gathered two lines above and from the extension.
+            #
+            # NARROW ON PURPOSE. §2.4's four STRUCTURAL MARKERS -- repository
+            # markers, package manifests, notebook metadata, README files -- sit
+            # in the same zone and are left alone: `00` asks code to "rely heavily
+            # on local structural evidence, including repository roots and package
+            # files", so those are evidence the design wants. None of them matches
+            # an authored term today, and
+            # `tests/recognition/test_recognition_serialisation_is_not_evidence.py`
+            # fails the day one does, which is when this rule needs widening
+            # rather than now.
+            if where.get("locator") == f"metadata:field={LANGUAGE_FIELD}":
                 continue
             key = row["observation_key"]
             zone = where.get("zone")

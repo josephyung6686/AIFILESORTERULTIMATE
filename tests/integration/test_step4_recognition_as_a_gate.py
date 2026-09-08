@@ -11,35 +11,47 @@ the owner's `sample/Desktop` and over the three-file corpus below, and NEITHER I
   The guard's own third case keeps the run's situation for a file with no
   recognition -- coverage is sacred and an abstention is not evidence of anything --
   so the guard does not fire and the résumé is still offered `subject`.
-* AND IT ABSTAINS ON THE NOTEBOOKS TOO -- WHICH THIS FILE USED TO DENY. The
+* AND THE NOTEBOOKS WERE NEVER RECOGNISED AS `code` BY ANYTHING THEY SAID -- WHICH
+  THIS FILE USED TO DENY, AND WHICH THE FIRST R-166 COMMIT GOT WRONG TOO. The
   paragraph here read "the recogniser FIRES on the files the run gets right: four of
   the five `Python 1006` lecture notebooks come back `Recognition(code)` on the
-  authored term `notebook`." **That measurement was an artifact of how a notebook
-  was serialised, and R-166 measured it away.** Before `104` R-160 the extractor
-  stored a `.ipynb` as its raw JSON, and `code`'s authored terms include `cell`,
-  `source`, `kernel` and `notebook` -- which a notebook's JSON carries as DICTIONARY
-  KEYS (`"cells"`, `"source"`, `"kernelspec"`) whether or not one word of the
-  document says anything about code. Four keys is four matches, `code` cleared
-  `never_alone` on punctuation, and won. R-160 made a notebook's cells be read as
-  their own text; the keys went with the braces; and what is left is one real term
-  on each side -- `lecture` in the markdown cell, `import` in the code cell. The
-  verdict today is `Abstention(no_corroboration, tied=(academic, code))`.
+  authored term `notebook`." The term is real; where it came from is not the
+  document.
 
-  THAT ABSTENTION IS THE CORRECT ANSWER AND NOT A REGRESSION. A course notebook IS
-  a lecture and IS Python, its own words say both exactly once, and `00`:39 gives
-  a file that "remains ambiguous" or has "multiple plausible domains" to the model
-  rather than to a rule. What the four notebooks lost is not a recognition; it is
-  a win that was never about the document. `tests/recognition/
-  test_recognition_serialisation_is_not_evidence.py` is the guard that would have
-  caught it, and it is a guard rather than a repair: the fix is NOT to give `code`
-  more terms until it wins again.
+  MEASURED 2026-09-08, at `5ff35c0` and identically at `8eb41e0`.
+  `extractors.structured_text` emits the reader's `document.language` -- §2.4's
+  "language where relevant" -- as an observation of its own, and for a notebook the
+  reader fills it with the string `Jupyter notebook`. `code` ships `notebook` as a
+  WORK TYPE. So every `.ipynb` in existence carried a `code` term before one word of
+  it was read, an empty one included. The SECOND signal `never_alone` requires came
+  from the corroboration gate, which seconded that one term with `PYTHON 1006` and
+  `Spring 2026` -- a course code and an academic term, which are evidence of
+  coursework. A file was recognised as a code project by its file format plus its
+  course number, and the four notebooks the run placed were placed on that.
 
-THE DETECTOR IS NOT WRONG, AND IT IS WRONG ABOUT NOTHING NOW THAT THE FIRST BULLET
-IS HONEST. It answers "what is this file made of"; the guard needs "which situation
-is this file part of". A Jupyter notebook of a Python course is honestly both, and
-no reading of the file settles which one the person meant. That is R-37's question,
-and R-37 is the fix step 4 called itself the interim for. Step 4's guard is dead
-either way -- it now has no file in this corpus to fire on at all.
+  (The first R-166 commit reported the mechanism as four JSON dictionary keys read
+  as four terms before `104` R-160, and reported a surviving `academic`/`code` tie.
+  Both were wrong: the raw JSON matched `code` on the single word `code`, out of
+  `"cell_type": "code"`, and the tie was the format's name against the heading. The
+  measurement above replaces that account.)
+
+  `recognition.detector._matches` now refuses a term match on that slot, for the
+  reason it already refuses the `path` locator -- the name of the file's format is
+  no more one of its words than the name of its directory is -- and for `_decide`'s
+  own rule that `file_kind_plausible` "is a constraint and never a signal". With the
+  container's name no longer voting, the same notebook is `Recognition(academic)` on
+  `lecture` in its own first heading, corroborated by its own course code. That is
+  what the file is.
+  `tests/recognition/test_recognition_serialisation_is_not_evidence.py` holds it.
+
+THE DETECTOR IS NOT WRONG, AND STEP 4'S GUARD IS DEAD FOR A DIFFERENT REASON NOW.
+The finding above inverts the second bullet's argument: the guard would fire on the
+notebook and it would AGREE with the run, because the schema the recogniser settles
+on is `academic`, which is the run's own. It costs nothing here and it buys nothing
+here. What is left of step 4 is the first bullet -- the résumé, which still abstains
+tied between `career` and `college_applications`, is still the file the step was
+written for, and is still the file the guard cannot reach. That is R-37's question,
+and R-37 is the fix step 4 called itself the interim for.
 
 `00`:41 IS NOT A ROUTE PAST IT. Writing the recognition as a file fact so the gate
 can read it needs a field for it, and there is none: `fields.py` ships 56 rows,
@@ -208,62 +220,56 @@ def test_the_recogniser_abstains_on_a_resume_so_the_guard_never_fires_for_it(
     assert "college_applications" in outcome.tied_schema_ids, outcome.tied_schema_ids
 
 
-def test_a_course_notebook_reads_two_ways_and_that_is_the_models_question(
+def test_a_course_notebook_is_academic_once_the_containers_name_stops_voting(
         measured):
-    """THE FILE THAT WAS NEVER RECOGNISED, only serialised in `code`'s favour.
+    """THE FILE THAT WAS NEVER RECOGNISED AS `code` BY ANYTHING IT SAID.
 
     This test used to assert `Recognition(code)` and it passed for a reason that
-    was not about the document: the extractor stored the whole `.ipynb` as JSON,
-    and `code` ships `cell`, `source`, `kernel` and `notebook` as authored terms,
-    which the container's own dictionary keys supply. `104` R-160 made the cells
-    be read as their own text and the four free matches went away with the braces.
+    was not about the document: `extractors.structured_text` stores the reader's
+    `document.language` as an observation, for a notebook that value is the string
+    `Jupyter notebook`, and `code` ships `notebook` as a work type. Every `.ipynb`
+    carried that term, an empty one included, and the corroboration gate seconded
+    it with `PYTHON 1006` -- a course code -- to reach `never_alone`'s arity.
 
-    What the file itself says is one term each: `lecture` in the markdown cell and
-    `import` in the code cell. Two readings, one signal apiece, neither outranking
-    the other -- `never_alone` refuses to conclude, and `00`:39 hands exactly this
-    file to the model: one that "remains ambiguous" and has "multiple plausible
-    domains". The assertions below are that shape, not a schema.
-
-    DO NOT REPAIR THIS BY MAKING `code` WIN. Adding terms until the old verdict
-    comes back would re-author the artifact by hand, and the notebook would still
-    be a lecture. The repair is that the tie becomes a question -- R-166 -- and
-    `tests/recognition/test_recognition_serialisation_is_not_evidence.py` is what
-    stops a container's punctuation standing in for an answer again.
+    With the format's name refused (`_matches`, for the reason it already refuses
+    the `path` locator), what is left is what the file says: `lecture`, in its own
+    first heading, corroborated by its own course code. The verdict is `academic`,
+    which is the run's own schema and the situation these files are placed under.
+    `tests/recognition/test_recognition_serialisation_is_not_evidence.py` is the
+    guard that keeps the container out of it.
     """
     outcome = _verdict(measured, NOTEBOOK)
 
-    assert isinstance(outcome, Abstention), (
-        "a course notebook was settled by a rule. Check first that it was not "
-        "settled by the container's own keys, which is how this read `code` "
-        "until 2026-09-08: " + repr(outcome))
-    assert outcome.reason == "no_corroboration", outcome.reason
-    assert set(outcome.tied_schema_ids) == {"academic", "code"}, (
-        "the two readings a course notebook honestly has are the lecture in its "
-        "markdown cell and the Python in its code cell: " + repr(outcome))
-    assert outcome.deferred_readings, (
-        "the abstention arrived with no authored reading attached, so there is "
-        "nothing to put the question to a model in")
+    assert isinstance(outcome, Recognition), (
+        "a course notebook stopped being recognised at all. Check first that its "
+        "heading is still an observation: that is the only thing the document "
+        "itself contributes: " + repr(outcome))
+    assert outcome.schema_id == RUN_SCHEMA, (
+        "if this says `code`, the container's own name is voting again: "
+        + repr(outcome))
 
 
-def test_the_notebooks_two_readings_are_each_one_term_of_the_documents_own_text(
+def test_every_term_behind_the_notebooks_verdict_is_one_the_document_carries(
         measured):
-    """WHY IT IS A TIE, at the terms rather than at the verdict.
+    """PROVENANCE, at the matches rather than at the verdict.
 
-    The point of R-166's measurement is that the four matches `code` used to win on
-    were the container's, so the ones that remain have to be the document's. Each
-    side has exactly one, and each is a word a person wrote: `lecture` in the prose
-    cell, `import` in the code cell. A tie at one term each is `never_alone`
-    refusing on arity, which is why the reason is `no_corroboration` and not
-    `ambiguous`.
+    The point of R-166's measurement is that the term `code` won on was the
+    reader's word for the FORMAT, not the document's. So the terms that remain
+    have to be the document's own, and the zone is what says so: `heading` is SPEC
+    2.2's "page-one heading" and is in `NAMING_ZONES`; `metadata:field=language` is
+    where the format's name sat.
     """
     outcome = _verdict(measured, NOTEBOOK)
 
-    assert isinstance(outcome, Abstention), repr(outcome)
-    assert "2 readings matched one term each" in outcome.detail, outcome.detail
-    for structural in ("cells", "kernelspec", "nbformat", "cell_type"):
-        assert structural not in outcome.detail, (
-            f"{structural!r} is a notebook's JSON key, not something the document "
-            "says, and it is deciding a reading again: " + outcome.detail)
+    assert isinstance(outcome, Recognition), repr(outcome)
+    assert outcome.matches, repr(outcome)
+    for match in outcome.matches:
+        assert match.zone != "metadata", (
+            "a term behind this verdict came out of the metadata zone, which is "
+            "where the container describes itself: " + repr(match))
+    assert {match.term for match in outcome.matches} == {"lecture"}, (
+        "the only word of this notebook that any schema authored is `lecture`, in "
+        "its markdown heading: " + repr(outcome.matches))
 
 
 def test_a_lecture_in_prose_is_recognised_academic_and_the_guard_would_agree(
