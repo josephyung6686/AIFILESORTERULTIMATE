@@ -70,6 +70,8 @@ from tools.groundtruth.score import (
     NO_DECISION,
     NO_OUTCOME,
     PLACED_EXACT,
+    PLACED_FLAT,
+    PLACED_PARENT,
     PLACED_WRONG,
     protected_verdict,
     score_sorting,
@@ -335,8 +337,7 @@ def test_the_count_adds_up_against_the_buckets_printed_above_it(built):
     confident, uncertain = _split_buckets([built["run"]], built["labels"])
     placed = sum(
         confident.get(bucket, 0) + uncertain.get(bucket, 0)
-        for bucket in (PLACED_EXACT, PLACED_WRONG, "right parent, wrong leaf",
-                       "top folder only"))
+        for bucket in (PLACED_EXACT, PLACED_PARENT, PLACED_FLAT, PLACED_WRONG))
     assert sum(held_counts([built["run"]], built["labels"]).values()) == placed
 
 
