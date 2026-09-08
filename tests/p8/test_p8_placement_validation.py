@@ -69,6 +69,7 @@ from llm_harness.vocabulary import (
     WEAK,
 )
 from p8.conftest import FIXED_CLOCK
+from evidence_shape.observation import observation_key
 from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 from llm_harness.wire_handles import wire_handle
 
@@ -134,12 +135,13 @@ def _validate_c(pair, *, dependencies=None, contradicts=_never_contradicts):
     )
 
 
-def _validate_d(pair, *, dependencies=None, contradicts=_never_contradicts):
+def _validate_d(pair, *, dependencies=None, contradicts=_never_contradicts,
+                evidence_resolver=None):
     deps = _residual_deps(pair) if dependencies is None else dependencies
     return validate_residual_response(
         pair.dossier,
         pair.response_bytes,
-        evidence_resolver=_resolver,
+        evidence_resolver=_resolver if evidence_resolver is None else evidence_resolver,
         contradicts=contradicts,
         dependencies=deps,
         model_id="fixture-model",
@@ -365,6 +367,56 @@ def test_r157_site_d_a_stronger_relationship_named_by_handle_is_considered():
         pair, relationships_considered=_shown(pair.dossier))
     verdict = _validate_d(named)[0][0]
     assert STRONGER_RELATIONSHIP_OVERLOOKED not in verdict.reasons
+    assert verdict.outcome != REJECT
+
+
+# `104` R-158. A P4 KEY IS KEYED ON THE WIRE AND THE FIXTURE REFS ARE NOT.
+# `wire_ref` keys a reference only when it is an `observation_key`, so every
+# fixture above cites `obs-1` in the clear and the same-file check found it.
+# A real key comes back as the handle the model was shown, and the check used to
+# look that up in a table of local refs, miss, and skip the citation -- so the
+# one thing it exists to catch could not be caught on any real run. The two
+# tests below are the same D answer with a real key in place of `obs-1`.
+
+
+def _keyed_ref_pair(name: str, *, location: str):
+    pair = next(p for p in SITE_D_REASON_PAIRS if p.name == name)
+    ref = observation_key(
+        content_hash="content-1", extractor_name="fixture-extractor",
+        locator="body", raw_value=RELEASED)
+    item = dataclasses.replace(
+        pair.dossier.evidence_items[0], evidence_ref=ref, location=location)
+    released = dataclasses.replace(
+        pair.dossier.released_evidence[0], observation_key=ref)
+    dossier = dataclasses.replace(
+        pair.dossier, evidence_items=(item,), released_evidence=(released,))
+    parsed = json.loads(pair.response_bytes)
+    # WHAT THE MODEL WAS SHOWN, which for a P4 key is never the key.
+    parsed["claims"][0]["citations"][0]["evidence_ref"] = wire_handle(
+        ref, key=FIXTURE_HANDLE_KEY)
+    return dataclasses.replace(
+        pair, dossier=dossier, response_bytes=json.dumps(parsed).encode()), ref
+
+
+def _validate_keyed(pair, ref):
+    return _validate_d(
+        pair, evidence_resolver=lambda cited: RELEASED if cited == ref else None)
+
+
+def test_r158_site_d_a_keyed_citation_from_another_file_is_not_in_the_record():
+    pair, ref = _keyed_ref_pair(EVIDENCE_NOT_IN_FILE_RECORD, location="file-other")
+    assert pair.dossier.evidence_items[0].location != pair.dossier.subject_ref
+    verdict = _validate_keyed(pair, ref)[0][0]
+    assert verdict.reasons == (EVIDENCE_NOT_IN_FILE_RECORD,)
+    assert verdict.outcome == REJECT
+    assert verdict.disposition == REJECTED
+
+
+def test_r158_site_d_a_keyed_citation_from_the_subject_file_passes():
+    pair, ref = _keyed_ref_pair(EVIDENCE_NOT_IN_FILE_RECORD, location="file-1")
+    assert pair.dossier.evidence_items[0].location == pair.dossier.subject_ref
+    verdict = _validate_keyed(pair, ref)[0][0]
+    assert EVIDENCE_NOT_IN_FILE_RECORD not in verdict.reasons
     assert verdict.outcome != REJECT
 
 

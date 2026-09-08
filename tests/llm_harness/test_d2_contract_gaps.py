@@ -17,7 +17,6 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
@@ -290,7 +289,16 @@ def test_g4_no_module_in_src_constructs_p8_authorities_for_site_b():
     assert constructors == [], constructors
 
 
-# --- G5: a D citation must name the subject file in `location` ----------------------
+# --- G5: R-158, CLOSED. A D citation must name the subject file in `location` -------
+#
+# The xfail here was right: `_same_file_evidence` looked the citation's
+# `evidence_ref` up as the MODEL wrote it, and a P4 key is keyed before it leaves
+# the device, so the lookup missed on every real key and the check passed every
+# citation -- fail-open, and unmeasurable, since site D is not wired on the
+# owner's runs. It now reads `verdict.citations_checked`, which
+# `validation._validate_claim` has already un-digested, and the two tests below
+# hold the repaired check: the citation is refused under the handle the model
+# writes, and under the raw key it cannot see.
 
 
 def _d_response() -> bytes:
@@ -301,12 +309,6 @@ def _d_response() -> bytes:
         "citations": None}]}).encode()
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "G5 (packet §7): `_same_file_evidence` looks the citation's evidence_ref up "
-    "by RAW key, and the model cites the keyed handle, so the lookup misses and "
-    "the check passes every citation -- fail-open. The correct behaviour is to "
-    "translate the handle and then refuse an item whose location is not the "
-    "subject ref."))
 def test_g5_site_d_refuses_a_keyed_citation_whose_item_is_not_the_subject_file():
     case = _d_case(location="ocr")            # the item names a zone, not the file
     response = json.loads(_d_response())
@@ -317,7 +319,8 @@ def test_g5_site_d_refuses_a_keyed_citation_whose_item_is_not_the_subject_file()
     assert [EVIDENCE_NOT_IN_FILE_RECORD] in [v["reasons"] for v in verdict.verdicts]
 
 
-def test_g5_measured_the_check_fires_only_on_a_raw_key_the_model_never_sees():
+def test_g5_both_spellings_of_the_citation_reach_the_same_refusal():
+    """The raw key the model never sees, and the handle it does. R-158."""
     case = _d_case(location="ocr")
     response = json.loads(_d_response())
     response["claims"][0]["citations"] = [{
@@ -328,12 +331,13 @@ def test_g5_measured_the_check_fires_only_on_a_raw_key_the_model_never_sees():
                     schema={"type": "object"},
                     site_dependencies=site_dependencies_for(case))
     assert [EVIDENCE_NOT_IN_FILE_RECORD] in [v["reasons"] for v in verdict.verdicts]
-    # And the keyed citation, which is all a model can write, sails through.
+    # And the keyed citation, which is all a model can write, reaches it too.
     response["claims"][0]["citations"] = _cite(case, "Columbia University application")
-    open_verdict = judge(case, dossier_of(case), json.dumps(response).encode(),
-                         schema={"type": "object"},
-                         site_dependencies=site_dependencies_for(case))
-    assert open_verdict.worst_outcome == ACCEPT_DIRECT
+    keyed = judge(case, dossier_of(case), json.dumps(response).encode(),
+                  schema={"type": "object"},
+                  site_dependencies=site_dependencies_for(case))
+    assert keyed.worst_outcome == REJECT
+    assert [EVIDENCE_NOT_IN_FILE_RECORD] in [v["reasons"] for v in keyed.verdicts]
 
 
 # --- G8: a D return must name a frozen NODE, not the group it returns to ------------
