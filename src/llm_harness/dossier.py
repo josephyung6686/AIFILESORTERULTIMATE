@@ -67,8 +67,36 @@ def _meanings() -> Mapping[str, str]:
     return {key: entry["meaning"] for key, entry in fields.items()}
 
 
-def field_glossary(allowed_vocabulary: Sequence[str]) -> dict[str, str]:
+def field_glossary(allowed_vocabulary: Sequence[str]) -> list[dict[str, str]]:
     """What each field key of THIS call means -- and nothing about this file.
+
+    **A LIST OF `field`/`meaning` PAIRS, AND NOT A MAP FROM A FIELD KEY TO A STRING**
+    (`104` R-163). The answer this call asks for is `payload`: an answerable field
+    key beside one string. A JSON object mapping each answerable field key to one
+    string is that same table, sitting in the dossier already filled in -- while
+    `released_evidence`, the only place a value may be taken from, is a list of
+    objects keyed by observation and not by field at all. So the one structure in
+    the dossier shaped like the answer was the one place a value may never come
+    from, and the model filled the answer out of it: r15 proposed the literal
+    `work_type` as a value 16 times, the phrase out of its meaning 6 times, and
+    `term`'s own sentence 3 times. What it wears now is the dossier's OWN shape for
+    per-field material that is instruction and not evidence -- `_folder_levels_body`'s,
+    a list of objects whose first key is `field`.
+
+    **Every sentence is unchanged, and that is deliberate.** `104` §16.3 rules that
+    the normaliser is not at fault and that laundering the symptom out of the answer
+    is not the fix; the two sentences R-163 is actually about are §15.4 item 16's,
+    the owner's to write. Nothing here edits the library.
+
+    **In the vocabulary's order, which is one order rather than two.**
+    `model_facts.order_vocabulary_by_levels` puts the situation's own folder levels
+    at the head of `allowed_vocabulary` on measured grounds, and `canonical_json`
+    then re-sorted this object's keys behind it -- so the dossier printed the
+    vocabulary in the tree's nesting order and the glossary alphabetically. That
+    function names the failure in its own words: *"two orders of one list in one
+    document is a contradiction the model has to resolve."* A list keeps the order it
+    is given, and a repeated field is dropped rather than explained twice, which the
+    object shape did silently.
 
     `76` §10.1 records the glossary decision as owed and names three options; the
     owner chose the one where the dossier carries the meanings. The defence `82`
@@ -88,8 +116,8 @@ def field_glossary(allowed_vocabulary: Sequence[str]) -> dict[str, str]:
     fail-closed position still holds -- which is what it was for.
     """
     meanings = _meanings()
-    return {field: meanings[field] for field in allowed_vocabulary
-            if field in meanings}
+    return [{"field": field, "meaning": meanings[field]}
+            for field in dict.fromkeys(allowed_vocabulary) if field in meanings]
 
 
 def _requested_keys(request: DossierRequest) -> frozenset[str]:

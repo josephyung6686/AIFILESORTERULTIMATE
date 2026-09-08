@@ -235,13 +235,13 @@ def test_g2_a_node_id_no_longer_launders_a_value():
 def test_g3_a_node_id_still_gets_no_meaning_from_the_glossary_and_no_field():
     """The two halves of G3 that were never the fix, asserted unchanged.
 
-    `field_glossary` is keyed by P6 FIELD KEY, so a minted node id maps to nothing
+    `field_glossary` names a P6 FIELD KEY in each entry, so a minted node id gets none
     and always would have; and `Dossier` has no profile field, because the profile
     is not a sixteenth key. `dossier._BODY_ORDER` refuses one (`104` R-58), and the
     drafts describe the profile as an `evidence_item`, which is a key the dossier
     already has.
     """
-    assert field_glossary(("node-7f3a", "node-0c11")) == {}
+    assert field_glossary(("node-7f3a", "node-0c11")) == []
     assert "candidate_profiles" not in Dossier.__dataclass_fields__
     assert "node_profiles" not in Dossier.__dataclass_fields__
 

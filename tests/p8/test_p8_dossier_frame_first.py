@@ -179,8 +179,11 @@ def test_nested_objects_are_still_key_sorted(levels):
     raw = _raw(levels).decode("utf-8")
     item = json.loads(raw)["evidence_items"][0]
     assert list(item) == sorted(item)
-    glossary = json.loads(raw)["field_glossary"]
-    assert list(glossary) == sorted(glossary)
+    # `104` R-163: the glossary is a LIST of `field`/`meaning` objects now, and the
+    # list holds `allowed_vocabulary`'s order deliberately. What canonical_json still
+    # sorts is each entry's own keys, which is what this test is about.
+    for entry in json.loads(raw)["field_glossary"]:
+        assert list(entry) == sorted(entry)
 
 
 def test_a_sixteenth_key_is_refused_rather_than_appended(levels):
