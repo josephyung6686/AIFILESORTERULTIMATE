@@ -151,7 +151,13 @@ def template_request_for(
     members = tuple(group.members)
     facts = _fact_items(conn, members)
     requested = releasable_excerpts(
-        conn, evidence_refs=tuple(item.evidence_ref for item in facts))
+        conn, evidence_refs=tuple(item.evidence_ref for item in facts),
+        # `104` R-159: this call's own target, the one named on the request below.
+        # `model_target` arrives here as `object` because this builder takes P7's
+        # record without reading it; the locality is the one field the release
+        # question needs, and taking it from anywhere else would let the rules
+        # answer about a destination the bytes are not going to.
+        locality=model_target.locality)
     if not requested:
         return None
     releasable = {item.observation_key for item in requested}

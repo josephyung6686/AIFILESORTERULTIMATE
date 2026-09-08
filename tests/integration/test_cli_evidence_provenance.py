@@ -38,6 +38,14 @@ from evidence_shape.store import (  # noqa: E402
     TextUnit, record_observation, record_run, record_text_unit,
 )
 from extractors.long_tail import SENSITIVITY_DDL  # noqa: E402
+from privacy.vocabulary import CLOUD_LOCALITY  # noqa: E402
+
+#: `104` R-159's two new keywords, spelled once for this file. `CLOUD_LOCALITY`
+#: because every test here predates the ruling and is about the cloud half of it,
+#: which is the half that did not change; the ceiling because a cloud call is bound
+#: by the COUNT and never reads the ceiling, so any value states the same thing and
+#: this one is the product's own stored number.
+A_CEILING = 4000
 
 CONTENT_HASH = "b" * 64
 AT = "2026-09-06T00:00:00+00:00"
@@ -180,7 +188,8 @@ def test_a_file_with_body_text_and_no_fact_still_offers_its_own_readings(
     key = _observation(evidence, zone="body", span=TextSpan(10, 21),
                        value="problem set")
 
-    offered = cli.reading_citations(evidence, "file-1", limit=12)
+    offered = cli.reading_citations(evidence, "file-1", limit=12,
+                                  locality=CLOUD_LOCALITY, ceiling=A_CEILING)
 
     assert [ref for ref, _location, _reliability in offered] == [key]
     # And there is no fact to be had: P6's table is not even on this connection,
@@ -197,7 +206,8 @@ def test_a_reading_carries_its_own_zone_and_its_own_span(evidence):
     _observation(evidence, zone="table", span=TextSpan(0, 9), value="PHYS 1401")
 
     (_ref, location, reliability), = cli.reading_citations(
-        evidence, "file-1", limit=12)
+        evidence, "file-1", limit=12, locality=CLOUD_LOCALITY,
+        ceiling=A_CEILING)
 
     assert location.zone == "table"
     assert (location.text_span.start, location.text_span.end) == (0, 9)
@@ -210,7 +220,8 @@ def test_a_file_with_no_readings_offers_none(evidence):
     sentence: a file with nothing to send is not sent."""
     _indexed(evidence)
 
-    assert cli.reading_citations(evidence, "file-1", limit=12) == ()
+    assert cli.reading_citations(evidence, "file-1", limit=12,
+                                  locality=CLOUD_LOCALITY, ceiling=A_CEILING) == ()
 
 
 def test_an_always_local_reading_is_not_offered(evidence):
@@ -224,7 +235,8 @@ def test_an_always_local_reading_is_not_offered(evidence):
     _observation(evidence, zone="path", span=None, value="/holder/corpus",
                  container=(Segment(kind="field", label="directory"),))
 
-    offered = cli.reading_citations(evidence, "file-1", limit=12)
+    offered = cli.reading_citations(evidence, "file-1", limit=12,
+                                  locality=CLOUD_LOCALITY, ceiling=A_CEILING)
 
     assert [ref for ref, _location, _reliability in offered] == [body]
 
@@ -252,7 +264,8 @@ def test_a_whole_document_reading_is_not_offered(evidence):
     _observation(evidence, zone="body", span=TextSpan(0, len(document)),
                  value=document, container=page_three)
 
-    offered = cli.reading_citations(evidence, "file-1", limit=12)
+    offered = cli.reading_citations(evidence, "file-1", limit=12,
+                                  locality=CLOUD_LOCALITY, ceiling=A_CEILING)
 
     assert [ref for ref, _location, _reliability in offered] == [short]
 
@@ -266,8 +279,10 @@ def test_the_cap_is_the_callers_and_this_function_states_no_number(evidence):
         _observation(evidence, zone="body", span=TextSpan(start, start + 4),
                      value=BODY[start:start + 4])
 
-    assert len(cli.reading_citations(evidence, "file-1", limit=2)) == 2
-    assert len(cli.reading_citations(evidence, "file-1", limit=6)) == 6
+    assert len(cli.reading_citations(evidence, "file-1", limit=2,
+                                     locality=CLOUD_LOCALITY, ceiling=A_CEILING)) == 2
+    assert len(cli.reading_citations(evidence, "file-1", limit=6,
+                                     locality=CLOUD_LOCALITY, ceiling=A_CEILING)) == 6
 
 
 def test_a_file_this_run_has_no_version_for_offers_nothing(evidence):
@@ -277,7 +292,8 @@ def test_a_file_this_run_has_no_version_for_offers_nothing(evidence):
     _observation(evidence, zone="body", span=TextSpan(10, 21),
                  value="problem set")
 
-    assert cli.reading_citations(evidence, "file-1", limit=12) == ()
+    assert cli.reading_citations(evidence, "file-1", limit=12,
+                                  locality=CLOUD_LOCALITY, ceiling=A_CEILING) == ()
 
 
 # --- `104` R-156: the item set is the set the door releases --------------------
@@ -302,7 +318,8 @@ def _item(ref: str, *, zone: str = "body", span=(10, 21)):
 
 def _offered(conn, *refs) -> list:
     return [item.evidence_ref
-            for item in cli.releasable_items(conn, [_item(ref) for ref in refs])]
+            for item in cli.releasable_items(conn, [_item(ref) for ref in refs],
+                                     locality=CLOUD_LOCALITY)]
 
 
 def test_a_fact_cited_from_a_body_span_is_offered(evidence):
@@ -413,3 +430,49 @@ def test_an_empty_reading_cannot_exist_for_this_seam_to_offer(evidence):
 
     with pytest.raises(MalformedObservation, match="raw_value"):
         _observation(evidence, zone="body", span=TextSpan(0, 0), value="")
+
+
+# --- `104` R-159: site C has no ladder, so the remainder is computed --------
+
+def test_the_ceiling_is_a_remainder_and_a_reading_over_it_is_skipped(evidence):
+    """`104` R-159. Site A defers a call whose dossier will not fit; site C cannot.
+
+    `placement.pipeline._judge_with_model` builds its request and the gate answers,
+    so an over-ceiling site-C dossier is `Denied(over_dossier_ceiling)` and the file
+    loses the one stage `00` §5 built for ambiguity. `evidence_for` therefore hands
+    this function what `max_dossier_tokens` has LEFT after the facts' citations and
+    R-135's anchor lines, and the fill spends that rather than the whole ceiling.
+
+    A reading too long for the remainder is SKIPPED and the walk continues, so one
+    oversized unit does not cost the file the smaller readings behind it.
+    """
+    _indexed(evidence)
+    small = _observation(evidence, zone="body", span=TextSpan(0, 9),
+                         value=BODY[:9])
+    _observation(evidence, zone="body", span=TextSpan(0, len(BODY) - 1),
+                 value=BODY[:len(BODY) - 1])
+    later = _observation(evidence, zone="body", span=TextSpan(10, 21),
+                         value=BODY[10:21])
+
+    offered = cli.reading_citations(
+        evidence, "file-1", limit=12, locality="local", ceiling=20)
+
+    assert [ref for ref, _location, _reliability in offered] == [small, later]
+
+
+def test_a_cloud_placement_call_is_bound_by_the_count_and_not_the_remainder(
+        evidence):
+    """The other half, and it is what says this is a locality rule rather than a
+    new bound on everyone. §8.4's "selected excerpts" states no number and
+    `FACT_CALL_MAX_RELEASED_OBSERVATIONS` is where this deployment chooses one; a
+    cloud call spends that and never reads the ceiling."""
+    _indexed(evidence)
+    for start in range(0, 6):
+        _observation(evidence, zone="body", span=TextSpan(start, start + 4),
+                     value=BODY[start:start + 4])
+
+    # A remainder that would admit at most one reading, and the count is what binds.
+    offered = cli.reading_citations(
+        evidence, "file-1", limit=6, locality=CLOUD_LOCALITY, ceiling=1)
+
+    assert len(offered) == 6

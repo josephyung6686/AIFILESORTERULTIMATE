@@ -35,6 +35,13 @@ from evidence_shape.text_units import TextUnit
 from extractors.long_tail import SENSITIVITY_DDL
 
 from model_placement import releasable_excerpts
+from privacy.vocabulary import CLOUD_LOCALITY
+#: `104` R-159's two new keywords, spelled once for this file. `CLOUD_LOCALITY`
+#: because every test here predates the ruling and asserts the cloud half of it,
+#: which is the half that did not change; the ceiling because a cloud call is bound
+#: by the COUNT and never reads the ceiling, so any value states the same thing.
+A_CEILING = 4000
+
 
 CLOCK = "2026-09-08T00:00:00Z"
 
@@ -121,7 +128,7 @@ def test_site_c_offers_a_whole_single_line_unit(conn, tmp_path):
     """
     _file_id, _hash, line, _page, _inner = _corpus(conn, tmp_path)
 
-    offered = releasable_excerpts(conn, evidence_refs=[line.observation_key])
+    offered = releasable_excerpts(conn, evidence_refs=[line.observation_key], locality=CLOUD_LOCALITY)
 
     assert [one.observation_key for one in offered] == [line.observation_key]
 
@@ -134,7 +141,7 @@ def test_site_c_still_refuses_the_same_words_once_they_hold_line_breaks(
     would not swap the answers."""
     _file_id, _hash, _line, page, _inner = _corpus(conn, tmp_path)
 
-    assert releasable_excerpts(conn, evidence_refs=[page.observation_key]) == ()
+    assert releasable_excerpts(conn, evidence_refs=[page.observation_key], locality=CLOUD_LOCALITY) == ()
 
 
 def test_site_c_still_offers_a_bounded_span_inside_the_multi_line_unit(
@@ -144,7 +151,7 @@ def test_site_c_still_offers_a_bounded_span_inside_the_multi_line_unit(
     "a multi-line unit is unreachable"."""
     _file_id, _hash, _line, _page, inner = _corpus(conn, tmp_path)
 
-    offered = releasable_excerpts(conn, evidence_refs=[inner.observation_key])
+    offered = releasable_excerpts(conn, evidence_refs=[inner.observation_key], locality=CLOUD_LOCALITY)
 
     assert [one.observation_key for one in offered] == [inner.observation_key]
 
@@ -163,7 +170,7 @@ def test_site_a_takes_the_same_ruling_for_the_same_reason(conn, tmp_path):
     file_id, content_hash, line, page, inner = _corpus(conn, tmp_path)
 
     offered = releasable_observations(
-        conn, file_id=file_id, content_hash=content_hash, limit=10)
+        conn, file_id=file_id, content_hash=content_hash, limit=10, locality=CLOUD_LOCALITY, ceiling=A_CEILING)
     keys = [one.observation_key for one in offered]
 
     assert line.observation_key in keys
@@ -182,7 +189,7 @@ def test_the_named_readings_builder_takes_it_too(conn, tmp_path):
 
     offered = releasable_readings(
         conn, file_id=file_id, content_hash=content_hash,
-        keys=[page.observation_key, line.observation_key])
+        keys=[page.observation_key, line.observation_key], locality=CLOUD_LOCALITY)
 
     assert [one.observation_key for one in offered] == [line.observation_key]
 

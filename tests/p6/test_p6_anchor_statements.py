@@ -28,6 +28,7 @@ from facts.anchor_statements import (
 )
 
 from extractors.long_tail import SENSITIVITY_DDL
+from privacy.vocabulary import CLOUD_LOCALITY
 
 import cli
 
@@ -547,7 +548,7 @@ def test_a_derived_reading_is_still_citable_and_still_releasable(p6_conn, tmp_pa
 
     p6_conn.executescript(SENSITIVITY_DDL)
     offered = releasable_readings(
-        p6_conn, file_id=version[0], content_hash=version[1], keys=[ref])
+        p6_conn, file_id=version[0], content_hash=version[1], keys=[ref], locality=CLOUD_LOCALITY)
 
     assert [one.observation_key for one in offered] == [ref]
     assert offered[0].raw_value == BODY_LINE

@@ -57,7 +57,11 @@ from privacy.items import (
     kind_of,
     sensitive_observation_keys,
 )
-from privacy.vocabulary import ALWAYS_LOCAL, ITEM_KINDS, OPEN_QUESTIONS, OutOfVocabulary
+from privacy.release import CLOUD_LOCALITY
+from privacy.vocabulary import (
+    ALWAYS_LOCAL, ITEM_KINDS, OPEN_QUESTIONS, OutOfVocabulary,
+    RELEASED_TO_A_LOCAL_TARGET,
+)
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
 CONTENT_HASH = "a" * 64
@@ -83,14 +87,20 @@ ONE_OF_EACH: tuple[RequestedItem, ...] = (
 #: IS about one of them can override exactly that one and nothing else.
 def admit(item, *, unit_length=None, zone=None, protected=False,
           sensitive_keys=frozenset(),
-          allow_unratified=True, suspension_permits_self_description=False) -> None:
+          allow_unratified=True, suspension_permits_self_description=False,
+          locality=CLOUD_LOCALITY) -> None:
     # `suspension_permits_self_description=False` by default HERE, where the existing tests are
     # all about the other six kinds: the seventh is `80` §8's suspension and it has
     # its own file, `test_p7_self_description_item.py`. A helper that opened it for
     # every test in this one would be the scope creep `80` §8.1 forbids.
+    # `locality=CLOUD_LOCALITY` by default for the same reason: `104` R-159 divides
+    # two of the arms below by the destination, and the tests in this file that
+    # predate the ruling are all about the CLOUD half of it. A test about the local
+    # half overrides exactly this one keyword.
     check_item(item, unit_length=unit_length, zone=zone, protected=protected,
                sensitive_keys=sensitive_keys, allow_unratified=allow_unratified,
-               suspension_permits_self_description=suspension_permits_self_description)
+               suspension_permits_self_description=suspension_permits_self_description,
+               locality=locality)
 
 
 # --- the six kinds, and the five that §8.4 actually names ----------------------
@@ -357,21 +367,45 @@ def test_an_excerpt_over_an_unsignalled_key_is_permitted():
           unit_length=BODY_LENGTH, sensitive_keys=frozenset({KEY}))
 
 
-def test_check_item_requires_every_one_of_its_six_keywords():
-    # A11: none of the six has a default. A build that forgets one is a TypeError,
+def test_check_item_requires_every_one_of_its_seven_keywords():
+    # A11: none of the seven has a default. A build that forgets one is a TypeError,
     # never a release. `sensitive_keys` in particular: a default of `frozenset()`
     # would mean "nothing is sensitive" for a caller who never wired P5, and `zone`
     # for the same reason: a default of None would mean "no zone was checked" for a
     # caller who never wired the locator, which is the state CR-01 reproduced.
+    #
+    # `locality` is the seventh (`104` R-159) and is the strongest case of the rule:
+    # both arms it divides test `== CLOUD_LOCALITY`, so a default -- of either value
+    # -- would decide the always-local question for a caller who never wired the
+    # target, and the wrong half of that default releases a path.
     item = Excerpt(observation_key=KEY, span=TextSpan(16, 27), reason="it")
     for omit in ("unit_length", "zone", "protected", "sensitive_keys",
-                 "allow_unratified", "suspension_permits_self_description"):
+                 "allow_unratified", "suspension_permits_self_description",
+                 "locality"):
         kwargs = dict(unit_length=BODY_LENGTH, zone="body", protected=False,
                       sensitive_keys=frozenset(), allow_unratified=False,
-                      suspension_permits_self_description=False)
+                      suspension_permits_self_description=False,
+                      locality=CLOUD_LOCALITY)
         del kwargs[omit]
         with pytest.raises(TypeError):
             check_item(item, **kwargs)
+
+
+def test_a_locality_outside_the_closed_set_is_refused_and_never_read_as_local():
+    """`104` R-159: the fail-OPEN direction is the one that needs a guard.
+
+    Both arms `locality` divides ask `== CLOUD_LOCALITY`, so `"Cloud"`, `""` and
+    `None` would every one of them take the LOCAL branch and release the person's
+    folder path to a provider. SPEC §1's rule for a closed set -- a load error, not a
+    fallback -- is what stops that, and it is asserted rather than assumed.
+    """
+    item = Excerpt(observation_key=KEY, span=None, reason="it")
+    for outside in ("Cloud", "CLOUD", "remote", "", None):
+        with pytest.raises(OutOfVocabulary):
+            check_item(item, unit_length=None, zone="path", protected=False,
+                       sensitive_keys=frozenset(), allow_unratified=False,
+                       suspension_permits_self_description=False,
+                       locality=outside)
 
 
 def test_sensitive_observation_keys_walks_p4_runs_to_p5_signals(p7_conn):
@@ -436,7 +470,8 @@ def test_a_filename_cannot_be_admitted_without_the_explicit_opt_in():
         check_item(Filename(file_id="file-1", observation_key="sha256:" + "f" * 64), unit_length=None, zone=None,
                    protected=False,
                    sensitive_keys=frozenset(), allow_unratified=False,
-                   suspension_permits_self_description=False)
+                   suspension_permits_self_description=False,
+                   locality=CLOUD_LOCALITY)
     assert "filename" in str(caught.value)
     assert "B5d" in str(caught.value) and "C9a" in str(caught.value)
 
@@ -451,7 +486,8 @@ def test_the_five_ratified_kinds_need_no_opt_in():
             continue
         check_item(item, unit_length=None, zone=None, protected=False,
                    sensitive_keys=frozenset(), allow_unratified=False,
-                   suspension_permits_self_description=False)
+                   suspension_permits_self_description=False,
+                   locality=CLOUD_LOCALITY)
 
 
 def test_a_filename_is_permitted_for_a_non_protected_file():

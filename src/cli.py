@@ -165,7 +165,7 @@ from placement.pipeline import (
 from placement.residual import ProtectedSetNotReadable, prior_set_decisions
 from placement.schema import create_placement_schema
 from model_facts import (
-    AnchorOnlyLevels, FactCallAuthorities, fact_call_stage,
+    AnchorOnlyLevels, FactCallAuthorities, dossier_tokens, fact_call_stage,
     measure_released_tokens, pending_fields_for, releasable_observations,
     releasable_readings, zone_rank,
 )
@@ -181,7 +181,7 @@ from privacy.resolve import (
     AmbiguousObservationKey, UnresolvableSpan, current_location,
     current_observation, filename_address,
 )
-from privacy.vocabulary import ALWAYS_LOCAL_ZONES, MODE_SEMANTICS
+from privacy.vocabulary import ALWAYS_LOCAL_ZONES, CLOUD_LOCALITY, MODE_SEMANTICS
 from questions.explanation import explain_question, render_explanation
 from questions.effects import changed_answer, diff_for_answer_change
 from questions.explanation import explain_question, render_explanation
@@ -1681,6 +1681,18 @@ def require_observe_locality(call_site: str, locality: str) -> None:
 #: point the extra evidence only crowds out the answer. Twelve is the count at which
 #: a real coursework PDF's title, its page-one heading, its PDF metadata and a few
 #: body readings all fit, measured on the owner's own Downloads.
+#:
+#: **IT BINDS A CLOUD CALL. A LOCAL CALL IS BOUND BY THE CEILING** (`104` R-159, the
+#: owner's ruling of §15.4 item 14 on 8 Sep 2026). The number is unchanged and stays
+#: exactly what it was for a cloud target. What changed is that a local target may be
+#: shown a whole text unit, and once a page is releasable a COUNT stops being the
+#: honest bound on how much of a document leaves: twelve spreadsheet cells are a few
+#: hundred characters and twelve PDF pages are twenty thousand. So
+#: `model_facts.within_dossier_budget` spends this cap for a cloud call and
+#: `max_dossier_tokens` for a local one -- measured over the same corpus r15 ran,
+#: keeping the twelve under local rules left 47 files over the ceiling and 26
+#: PDF/docx files with no body reading at all, their slots taken by heading
+#: fragments. Neither number is invented here; both were already stored.
 FACT_CALL_MAX_RELEASED_OBSERVATIONS: int = 12
 
 #: §8.6's spend ceilings for the fact pass, as a `ScanBudget`. `00` names them and
@@ -4248,10 +4260,16 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
         # classification records, and P6 and P8 own none of the three. The cap is the
         # same `max_released_observations` the file's own readings are drawn under,
         # because a neighbour's readings are released through the same door.
+        #
+        # `104` R-159: the locality is the ROUTE'S, read off the same client the
+        # target above is read off. A neighbour's reading leaves by the door this
+        # file's own readings leave by, so the release question is asked with the
+        # same answer to "where is this going".
         anchor_context_for=lambda db, *, file_id, content_hash, fields: (
             anchor_context_observations(
                 db, scan_run_id=scan_run_id, file_id=file_id, fields=fields,
-                limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS)),
+                limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
+                locality=routing.client_for(A_FACT).model_target.locality)),
         # `104` R-145: the same offer in §8.6's preserved-anchors shape, asked only
         # when the lines above do not fit the dossier ceiling. `model_facts` says
         # when; this file says what the shape is.
@@ -4259,6 +4277,7 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
             anchor_context_observations(
                 db, scan_run_id=scan_run_id, file_id=file_id, fields=fields,
                 limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
+                locality=routing.client_for(A_FACT).model_target.locality,
                 preserved_anchors=True)),
         # `105` §14.4. Built here because every part of it is this file's: which
         # levels only an anchor is asked, which field says what a file IS, which
@@ -6109,7 +6128,7 @@ def anchor_line_citations(conn: sqlite3.Connection, *, scan_run_id: str,
 
 
 def reading_citations(conn: sqlite3.Connection, file_id: str, *,
-                      limit: int) -> tuple:
+                      limit: int, locality: str, ceiling: int) -> tuple:
     """`104` R-148: the file's OWN releasable readings, as citable addresses.
 
     `(observation_key, location, reliability)` per reading, in
@@ -6138,6 +6157,20 @@ def reading_citations(conn: sqlite3.Connection, file_id: str, *,
     where this deployment chooses the number and a second default here would be a
     second choice.
 
+    **AND SO IS THE CEILING, AND AT THIS SITE IT IS A REMAINDER (`104` R-159).**
+    Site A has §8.6's ladder: it measures the dossier it is about to build and
+    defers the call rather than sending one the door will refuse. Site C has no
+    ladder -- `_judge_with_model` builds its request and the gate answers -- so an
+    over-ceiling C dossier is denied `over_dossier_ceiling` outright and the file
+    loses the one stage `00` §5 built for ambiguity. With whole units releasable to
+    a local target that stopped being hypothetical, so `evidence_for` passes what
+    `max_dossier_tokens` has LEFT after the facts and the anchor lines it has
+    already built, and `model_facts.within_dossier_budget` fills that. For a cloud
+    target the count cap binds exactly as before and the remainder is slack.
+
+    Neither number is chosen here: the cap is `FACT_CALL_MAX_RELEASED_OBSERVATIONS`
+    and the ceiling is `GROUPING_LIMITS.max_dossier_tokens`, both already stored.
+
     A file version this run has no row for yields nothing, on
     `located_citations`' own rule: an address nothing carries is not evidence.
     """
@@ -6148,10 +6181,51 @@ def reading_citations(conn: sqlite3.Connection, file_id: str, *,
         (observation.observation_key, observation.location,
          observation.reliability)
         for observation in releasable_observations(
-            conn, file_id=file_id, content_hash=content_hash, limit=limit))
+            conn, file_id=file_id, content_hash=content_hash, limit=limit,
+            locality=locality, ceiling=ceiling))
 
 
-def releasable_items(conn: sqlite3.Connection, items) -> tuple:
+def released_characters(conn: sqlite3.Connection, items) -> int:
+    """How many characters the gate will release for these evidence items. `104` R-159.
+
+    Site C's half of the same arithmetic site A does in `model_facts.fact_call_stage`:
+    before the file's own readings are filled in, the items already built have to be
+    paid for, or the dossier the ceiling was supposed to bound is the one the door
+    refuses. `evidence_for` builds two sets before it asks for the readings -- the
+    citations of the facts P6 settled, and R-135's anchor lines -- and this is what
+    they cost.
+
+    **Measured PER ITEM and not per distinct ref**, because that is what the gate
+    measures. `model_placement._model_call_request_builder` turns every item with a
+    ref into a requested `Excerpt` without de-duplicating, so an address carried by
+    two items under two reliabilities is resolved twice and counted twice by
+    `measure_released_tokens`. Counting it once here would leave a remainder larger
+    than the room actually left. If the door ever did de-duplicate, this errs by
+    reserving space it did not need, which is the direction a ceiling has to err in.
+
+    **On the RAW value**, the same measurement `model_facts._call_dependencies` and
+    `_within_ceiling` take, and for the same reason: this runs before `gate.release`,
+    the redacted text does not exist yet, and redaction only ever shortens.
+
+    A ref with no live row costs nothing, which is exact rather than a fallback:
+    `releasable_excerpts` drops it and the door releases nothing for it.
+    """
+    lengths: dict[str, int] = {}
+    total = 0
+    for item in items:
+        ref = getattr(item, "evidence_ref", None)
+        if not ref:
+            continue
+        if ref not in lengths:
+            row = conn.execute(
+                "SELECT raw_value FROM evidence WHERE observation_key = ? "
+                "AND superseded_by IS NULL LIMIT 1", (ref,)).fetchone()
+            lengths[ref] = 0 if row is None else dossier_tokens((row["raw_value"],))
+        total += lengths[ref]
+    return total
+
+
+def releasable_items(conn: sqlite3.Connection, items, *, locality: str) -> tuple:
     """`104` R-156: the offered items, filtered by the door's OWN predicate.
 
     `evidence_for` builds three kinds of `EvidenceItem` from three producers, and
@@ -6189,7 +6263,12 @@ def releasable_items(conn: sqlite3.Connection, items) -> tuple:
     """
     releasable = {excerpt.observation_key for excerpt in releasable_excerpts(
         conn, evidence_refs=tuple(dict.fromkeys(
-            item.evidence_ref for item in items)))}
+            item.evidence_ref for item in items)),
+        # `104` R-159: the placement call's own target. Two of the five refusals now
+        # depend on it, and asking them about the wrong destination is how a whole
+        # page would be dropped from a dossier the door would have released -- or,
+        # the other way, offered to a cloud model the ruling did not open.
+        locality=locality)}
     return tuple(item for item in items if item.evidence_ref in releasable)
 
 
@@ -6217,8 +6296,15 @@ def _folder_family(subject_path: str, stating_path: str) -> bool:
 
 def anchor_context_observations(conn: sqlite3.Connection, *, scan_run_id: str,
                                 file_id: str, fields: Sequence[str],
-                                limit: int, preserved_anchors: bool = False) -> tuple:
+                                limit: int, locality: str,
+                                preserved_anchors: bool = False) -> tuple:
     """`104` R-135: the anchor headings near this file that a `subject` call may show.
+
+    **`locality` is the call's own target (`104` R-159), required and forwarded.**
+    It reaches `model_facts.releasable_readings` below and decides nothing here: a
+    neighbour's reading leaves the device by the same door this file's own readings
+    leave by, and the composition root reads the answer off the client the call is
+    pointed at.
 
     **`preserved_anchors` is §8.6's second shape of the same offer (`104` R-145).**
     `False` offers the LINE each anchor sits on, which is what a person would point at
@@ -6322,7 +6408,8 @@ def anchor_context_observations(conn: sqlite3.Connection, *, scan_run_id: str,
         stating = get_file(conn, stating_file_id)
         for observation in releasable_readings(
                 conn, file_id=stating_file_id,
-                content_hash=stating["content_hash"], keys=keys):
+                content_hash=stating["content_hash"], keys=keys,
+                locality=locality):
             offered[observation.observation_key] = observation
 
     # THE CAP IS ON THE CONTEXT ITEMS, not on any file's candidates: it bounds what
@@ -7438,8 +7525,27 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # words as two pieces of evidence.
         placed = {(offered.evidence_ref, offered.location, offered.excerpt_span)
                   for offered in items}
+        # `104` R-159: WHAT THE CEILING HAS LEFT, and site C is where it has to be
+        # computed rather than measured after the fact. Site A runs §8.6's ladder and
+        # defers a call whose dossier will not fit; this site has no ladder --
+        # `_judge_with_model` builds the request and the gate answers -- so an
+        # over-ceiling dossier here is `Denied(over_dossier_ceiling)` and the file
+        # loses the one stage `00` §5 built for ambiguity. The facts' citations and
+        # the anchor lines above are already committed, so the readings fill what
+        # they left. `GROUPING_LIMITS.max_dossier_tokens` is the same number the
+        # request below is built with and the same one the door measures against.
+        remainder = (GROUPING_LIMITS.max_dossier_tokens
+                     - released_characters(conn, items))
         for ref, location, reliability in reading_citations(
-                conn, file_id, limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS):
+                conn, file_id, limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
+                # The PLACEMENT client's locality, not site A's: `routing` points the
+                # two sites at their own tiers and a fact call's destination says
+                # nothing about where a placement dossier goes. `None` is a run with
+                # no model configured, where no dossier is ever sent and the strict
+                # half is the honest default.
+                locality=(CLOUD_LOCALITY if routing is None
+                          else routing.locality_for(C_PLACEMENT)),
+                ceiling=remainder):
             span = location.text_span
             address = (ref, location.zone,
                        None if span is None else (span.start, span.end))
@@ -7458,7 +7564,10 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         return dict(
             # `104` R-156: the door's own predicate over the whole candidate set,
             # asked once, so the item set the model sees is the set P7 releases.
-            facts=tuple(facts), evidence_items=releasable_items(conn, items),
+            facts=tuple(facts), evidence_items=releasable_items(
+                conn, items,
+                locality=(CLOUD_LOCALITY if routing is None
+                          else routing.locality_for(C_PLACEMENT))),
             group_ids=accepted_memberships_of(
                 conn, file_id, accepted=accepted_ids),
             curated_folder_labels=_folders_this_file_is_already_in(file_id),

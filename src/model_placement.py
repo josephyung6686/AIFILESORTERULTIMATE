@@ -45,18 +45,18 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 
-from evidence_shape.store import (
-    get_observation, unit_holds_a_line_break, unit_length_for_observation,
-)
+from evidence_shape.store import get_observation
 from llm_harness.budgets import ScanBudget
 from llm_harness.harness import CallDependencies
 from llm_harness.records import EvidenceItem, PromptDefinition
+# `104` R-159: site A's own release predicate, asked here rather than retyped. The
+# import direction is safe and stays that way -- `model_facts` reaches `privacy`,
+# `facts` and `llm_harness` and never this module -- and the alternative is two
+# spellings of a rule the owner has now divided by the destination.
+from model_facts import may_be_released
 from privacy.items import Excerpt, sensitive_observation_keys
-from privacy.release import (
-    ModelCallRequest, ModelTarget, Target, released_whole_excerpt_unit,
-)
+from privacy.release import ModelCallRequest, ModelTarget, Target
 from placement.vocabulary import FILE
-from privacy.vocabulary import ALWAYS_LOCAL_ZONES
 
 #: P8's stage name for a placement call, and the `ModelCallRequest.stage` §8.4's
 #: audit record carries. `model_facts` spells its own `fact_interpretation` and
@@ -135,8 +135,27 @@ class PlacementCallAuthorities:
 
 
 def releasable_excerpts(conn: sqlite3.Connection, *,
-                        evidence_refs: Sequence[str]) -> tuple[Excerpt, ...]:
+                        evidence_refs: Sequence[str],
+                        locality: str) -> tuple[Excerpt, ...]:
     """The observations a placement call may ask P7 to release. Five exclusions.
+
+    **`locality` is required with no default (`104` R-159), and this function is the
+    reason the ruling could not stop at site A.** The owner ruled §15.4 item 14 the
+    first way on 8 Sep 2026 -- a local model may be shown a whole text unit, the
+    person's folder path and OCR text, within the dossier ceiling -- and the brief
+    for that build named `model_facts.may_be_released`, `privacy.items.check_item`
+    and the gate. It did not name this, and without it the ruling would have been
+    half applied: `_model_call_request_builder` below builds the gate's
+    `requested_items` from what this returns, so a whole page refused HERE never
+    reaches the door at all and site C would have gone on seeing exactly what it saw
+    before. The five refusals are one question -- *may this reading leave the device*
+    -- and one question does not get two answers because two sites ask it.
+
+    The zone and whole-unit arms below now DELEGATE to
+    `model_facts.may_be_released`, which is the same predicate site A asks and the
+    same one `104` R-156 already made this seam's other half ask. What stays here is
+    the live-row selection, which is the one place this function deliberately does
+    not follow `model_facts` -- see the fifth bullet.
 
     Each is one of the gate's own refusals applied a step early, so the request is
     never BUILT rather than built and denied. The count is FIVE and not four
@@ -145,17 +164,25 @@ def releasable_excerpts(conn: sqlite3.Connection, *,
     can: a flagged card number sits in an ordinary zone and is a fraction of its
     unit, so the zone test and the whole-unit test both pass it through.
 
-      * `ALWAYS_LOCAL_ZONES` -- `path` and `filename`. This is the one that
+      * `ALWAYS_LOCAL_ZONES` -- `path`, `filename` and `ocr`. This is the one that
         matters most at this site and it is the reason this function exists:
         placement is about where a file belongs, so the observation naming where
         it already is looks like the most relevant evidence in the store and is
         the one thing that may never leave the device. `Denied(always_local_item)`
-        at the gate; not offered at all here.
+        at the gate; not offered at all here. **Since `104` R-159 the first and
+        third are offered to a LOCAL target** -- nothing leaves the device, and 20
+        of r15's 43 labelled coursework files named their course only in the folder
+        the person filed them in -- while `filename` is refused to both, because
+        §7.7's kind has its own door.
       * a span that covers the whole of its unit, which is §8.4's "should not send
         full documents where a short heading or OCR excerpt is enough".
         `Denied(whole_document_requested)` -- and that fires only after the text
         has been materialised, so leaving it to the door means paying to build a
-        document in order to refuse it.
+        document in order to refuse it. **Cloud only since `104` R-159**: §8.4's
+        sentence sits under `00`:186's "when a cloud model is used", and what
+        bounds a local call instead is the dossier ceiling, which at this site
+        `cli.evidence_for` spends by handing `reading_citations` the remainder the
+        facts and the anchor lines left.
       * a span whose unit is not there. `materialise` raises `UnresolvableSpan`
         for this rather than denying, because a span with nothing to take a
         substring of is a contract failure, and a placement call is not the place
@@ -207,34 +234,20 @@ def releasable_excerpts(conn: sqlite3.Connection, *,
             continue
         observation = get_observation(conn, row["observation_id"])
         where = observation.location
-        if where.zone in ALWAYS_LOCAL_ZONES:
-            continue
         if observation.file_id not in signalled:
             signalled[observation.file_id] = sensitive_observation_keys(
                 conn, observation.file_id)
-        if observation.observation_key in signalled[observation.file_id]:
+        # THE OTHER FOUR REFUSALS, ASKED THROUGH SITE A'S OWN PREDICATE (`104`
+        # R-159). The always-local zone, P5's signal, the empty value and the two
+        # whole-unit tests were retyped here when this module was written, and the
+        # ruling divided two of them by the destination -- so a second spelling would
+        # have been a second answer to the ruling as well as to the rules. The bullets
+        # above describe what `may_be_released` does; they are its reasoning, kept
+        # here because this is where a reader of site C looks for it.
+        if not may_be_released(conn, observation,
+                               sensitive=signalled[observation.file_id],
+                               locality=locality):
             continue
-        if not observation.raw_value:
-            continue
-        unit_length = unit_length_for_observation(conn, observation)
-        if where.text_span is None:
-            if (unit_length is not None
-                    and len(observation.raw_value) >= unit_length):
-                continue
-        else:
-            if unit_length is None:
-                continue
-            # `104` R-135 and `104` R-152, the same rulings site A takes, through the
-            # same predicate `GroundingReport` counts by and the gate excepts by. A
-            # heading unit is not a document and neither is a line; §8.4 names a
-            # heading and a short excerpt as what to send INSTEAD of one.
-            if (where.text_span.start <= 0
-                    and where.text_span.end >= unit_length
-                    and not released_whole_excerpt_unit(
-                        where, unit_length,
-                        unit_holds_line_break=unit_holds_a_line_break(
-                            conn, observation))):
-                continue
         offered.append(Excerpt(
             observation_key=observation.observation_key,
             span=where.text_span,
@@ -276,7 +289,12 @@ def _model_call_request_builder(conn: sqlite3.Connection, *,
                 conn,
                 evidence_refs=tuple(
                     item.evidence_ref for item in evidence_items
-                    if item.evidence_ref)),
+                    if item.evidence_ref),
+                # `104` R-159: the SAME target the request is addressed to, three
+                # lines above. Reading it off the authorities twice would let the
+                # release rules answer about one destination while `model_target`
+                # named another.
+                locality=authorities.model_target.locality),
             prompt_template_id=prompt.template_id,
             prompt_fingerprint=prompt_fingerprint(prompt),
             max_dossier_tokens=max_dossier_tokens)

@@ -44,6 +44,13 @@ from evidence_shape.text_units import TextUnit
 from extractors.long_tail import SENSITIVITY_DDL
 
 from model_placement import releasable_excerpts
+from privacy.vocabulary import CLOUD_LOCALITY
+#: `104` R-159's two new keywords, spelled once for this file. `CLOUD_LOCALITY`
+#: because every test here predates the ruling and asserts the cloud half of it,
+#: which is the half that did not change; the ceiling because a cloud call is bound
+#: by the COUNT and never reads the ceiling, so any value states the same thing.
+A_CEILING = 4000
+
 
 CLOCK = "2026-09-07T00:00:00Z"
 
@@ -107,7 +114,7 @@ def test_the_code_inside_the_heading_is_released(conn, tmp_path):
     _file_id, _whole, code = _corpus(conn, tmp_path)
 
     offered = releasable_excerpts(
-        conn, evidence_refs=[code.observation_key])
+        conn, evidence_refs=[code.observation_key], locality=CLOUD_LOCALITY)
 
     assert [one.observation_key for one in offered] == [code.observation_key]
 
@@ -128,7 +135,7 @@ def test_the_heading_that_states_both_spellings_is_released(conn, tmp_path):
     _file_id, whole, code = _corpus(conn, tmp_path)
 
     offered = releasable_excerpts(
-        conn, evidence_refs=[whole.observation_key, code.observation_key])
+        conn, evidence_refs=[whole.observation_key, code.observation_key], locality=CLOUD_LOCALITY)
 
     keys = [one.observation_key for one in offered]
     assert whole.observation_key in keys
@@ -150,7 +157,7 @@ def test_site_a_releases_the_same_heading_for_the_same_reason(conn, tmp_path):
 
     offered = releasable_observations(
         conn, file_id=_file_id, content_hash=get_file(conn, _file_id)["content_hash"],
-        limit=10)
+        limit=10, locality=CLOUD_LOCALITY, ceiling=A_CEILING)
     keys = [one.observation_key for one in offered]
 
     assert code.observation_key in keys
@@ -209,7 +216,7 @@ def test_a_whole_body_unit_is_still_refused(conn, tmp_path):
         run_id="run-syllabus")
     record_observation(conn, body)
 
-    offered = releasable_excerpts(conn, evidence_refs=[body.observation_key])
+    offered = releasable_excerpts(conn, evidence_refs=[body.observation_key], locality=CLOUD_LOCALITY)
 
     assert offered == ()
 
@@ -452,7 +459,7 @@ def test_the_candidate_excerpt_carries_the_whole_line_and_not_the_code_alone(
         whole.observation_key]
 
     offered = releasable_excerpts(
-        conn, evidence_refs=[ref for ref, _l, _r in lines])
+        conn, evidence_refs=[ref for ref, _l, _r in lines], locality=CLOUD_LOCALITY)
     assert [one.observation_key for one in offered] == [whole.observation_key]
 
     released = materialise(conn, offered[0], within_file_ids=(file_id,))
@@ -487,7 +494,7 @@ def test_two_anchor_lines_for_one_course_both_appear_and_neither_is_chosen(
     assert set(offered_refs) == {emitted[0][0].observation_key,
                                  emitted[1][0].observation_key}
 
-    offered = releasable_excerpts(conn, evidence_refs=offered_refs)
+    offered = releasable_excerpts(conn, evidence_refs=offered_refs, locality=CLOUD_LOCALITY)
     values = [materialise(conn, one, within_file_ids=(file_id,)).value
               for one in offered]
     assert sorted(values) == sorted([HEADING, SECOND_LINE])
@@ -856,7 +863,7 @@ def _context_for(conn, world, *, fields=("subject",)):
 
     return cli.anchor_context_observations(
         conn, scan_run_id="scan-r135", file_id=world["homework"], fields=fields,
-        limit=10)
+        limit=10, locality=CLOUD_LOCALITY)
 
 
 def test_the_syllabus_beside_a_file_reaches_its_subject_call_as_context(
@@ -1024,7 +1031,7 @@ def test_no_filename_and_no_path_ever_becomes_an_anchor(conn, tmp_path):
     assert anchor_statements_for(conn, "scan-r135") == ()
     assert cli.anchor_context_observations(
         conn, scan_run_id="scan-r135", file_id=file_id,
-        fields=("subject",), limit=10) == ()
+        fields=("subject",), limit=10, locality=CLOUD_LOCALITY) == ()
 
 
 # --------------------------------------------------------------------------
@@ -1108,7 +1115,7 @@ def test_the_release_path_itself_sets_the_flag_the_counters_add_up(conn, tmp_pat
     (whole, code), = emitted
 
     offered = releasable_excerpts(
-        conn, evidence_refs=[whole.observation_key, code.observation_key])
+        conn, evidence_refs=[whole.observation_key, code.observation_key], locality=CLOUD_LOCALITY)
     by_key = {one.observation_key: materialise(conn, one, within_file_ids=(file_id,))
               for one in offered}
 
@@ -1404,10 +1411,10 @@ def test_the_excerpt_shape_names_each_anchors_own_span(conn, tmp_path):
 
     lines = cli.anchor_context_observations(
         conn, scan_run_id="scan-r135", file_id=world["homework"],
-        fields=("subject",), limit=10)
+        fields=("subject",), limit=10, locality=CLOUD_LOCALITY)
     excerpts = cli.anchor_context_observations(
         conn, scan_run_id="scan-r135", file_id=world["homework"],
-        fields=("subject",), limit=10, preserved_anchors=True)
+        fields=("subject",), limit=10, preserved_anchors=True, locality=CLOUD_LOCALITY)
 
     assert len(lines) == 1 and lines[0].raw_value == paragraph
     assert len(excerpts) == 1
@@ -1493,7 +1500,7 @@ def test_a_minted_line_is_releasable_and_reaches_a_neighbours_subject_call(
     world = _body_neighbour(conn, tmp_path)
     context = cli.anchor_context_observations(
         conn, scan_run_id="scan-r135", file_id=world["homework"],
-        fields=("subject",), limit=10)
+        fields=("subject",), limit=10, locality=CLOUD_LOCALITY)
 
     assert len(context) == 1
     minted = context[0]
@@ -1504,7 +1511,7 @@ def test_a_minted_line_is_releasable_and_reaches_a_neighbours_subject_call(
     # because nothing ever produced the reading.
     offered = releasable_observations(
         conn, file_id=world["stating"],
-        content_hash=get_file(conn, world["stating"])["content_hash"], limit=20)
+        content_hash=get_file(conn, world["stating"])["content_hash"], limit=20, locality=CLOUD_LOCALITY, ceiling=A_CEILING)
     assert minted.observation_key in {one.observation_key for one in offered}
 
     request = _fact_request(conn, world, context)
@@ -1542,7 +1549,7 @@ def test_when_no_line_can_be_minted_the_code_span_is_offered_instead(
         conn, tmp_path, text="Autumn term\nW3134\nMeets Tuesdays at 10:10\n")
     context = cli.anchor_context_observations(
         conn, scan_run_id="scan-r135", file_id=world["homework"],
-        fields=("subject",), limit=10)
+        fields=("subject",), limit=10, locality=CLOUD_LOCALITY)
 
     assert [one.observation_key for one in context] == [
         world["code"].observation_key]
@@ -1594,7 +1601,7 @@ def test_a_course_printed_as_a_word_reaches_its_neighbour_as_context(conn, tmp_p
                             code="Physics 1401", coursework=WORD_COURSEWORK)
     context = cli.anchor_context_observations(
         conn, scan_run_id="scan-r135", file_id=world["homework"],
-        fields=("subject",), limit=10)
+        fields=("subject",), limit=10, locality=CLOUD_LOCALITY)
 
     assert len(context) == 1
     minted = context[0]
@@ -1645,7 +1652,7 @@ def test_a_minted_line_survives_a_stating_file_whose_own_ranking_is_full(
     """`104` R-135's third defect, and the code read as though it were doing right.
 
     The builder collected the line keys it wanted and then kept only those that also
-    appeared in `releasable_observations(file_id=<the stating file>, limit=12)` -- that
+    appeared in `releasable_observations(file_id=<the stating file>, limit=12, locality=CLOUD_LOCALITY, ceiling=A_CEILING)` -- that
     file's OWN ranked, capped dossier. A minted body line is `possible` reliability in
     the `body` zone and never reaches a syllabus's top twelve, so it was dropped for
     losing a competition it was never in. Measured over the first 9 files asked on r9:
@@ -1665,10 +1672,10 @@ def test_a_minted_line_survives_a_stating_file_whose_own_ranking_is_full(
 
     # The premise, measured rather than assumed: the line really is off the ranking.
     ranked = releasable_observations(
-        conn, file_id=world["stating"], content_hash=stating_hash, limit=12)
+        conn, file_id=world["stating"], content_hash=stating_hash, limit=12, locality=CLOUD_LOCALITY, ceiling=A_CEILING)
     context = cli.anchor_context_observations(
         conn, scan_run_id="scan-r135", file_id=world["homework"],
-        fields=("subject",), limit=10)
+        fields=("subject",), limit=10, locality=CLOUD_LOCALITY)
 
     assert len(context) == 1
     assert context[0].raw_value == "COMS W3134 Data Structures"
@@ -1690,7 +1697,7 @@ def test_a_line_in_a_protected_stating_file_is_still_refused(conn, tmp_path):
 
     assert cli.anchor_context_observations(
         conn, scan_run_id="scan-r135", file_id=world["homework"],
-        fields=("subject",), limit=10) == ()
+        fields=("subject",), limit=10, locality=CLOUD_LOCALITY) == ()
 
 
 def test_a_whole_body_line_is_refused_and_a_heading_is_released(conn, tmp_path):
@@ -1728,7 +1735,7 @@ def test_a_whole_body_line_is_refused_and_a_heading_is_released(conn, tmp_path):
     offered = releasable_readings(
         conn, file_id=file_id, content_hash=content_hash,
         keys=[body.observation_key, whole.observation_key,
-              code.observation_key])
+              code.observation_key], locality=CLOUD_LOCALITY)
 
     assert [one.observation_key for one in offered] == [
         whole.observation_key, code.observation_key]
@@ -1753,10 +1760,10 @@ def test_the_cap_bounds_the_context_items_and_not_the_candidates(conn, tmp_path)
 
     uncapped = cli.anchor_context_observations(
         conn, scan_run_id="scan-r135", file_id=world["homework"],
-        fields=("subject",), limit=10)
+        fields=("subject",), limit=10, locality=CLOUD_LOCALITY)
     capped = cli.anchor_context_observations(
         conn, scan_run_id="scan-r135", file_id=world["homework"],
-        fields=("subject",), limit=1)
+        fields=("subject",), limit=1, locality=CLOUD_LOCALITY)
 
     assert len(uncapped) == 2
     assert {one.file_id for one in uncapped} == {world["stating"], second}

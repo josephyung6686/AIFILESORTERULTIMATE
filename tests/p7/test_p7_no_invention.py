@@ -21,6 +21,7 @@ import privacy
 from database_agent.files_table import FILES_COLUMNS, get_file, record_file
 
 from privacy.classification import ClassificationRecord
+from privacy.release import CLOUD_LOCALITY
 from privacy.classification_store import ClassificationStore, mirror_state
 from privacy.learning_seam import assign, reclassify
 from privacy.vocabulary import HELD_OPEN, OPEN_QUESTIONS, USER, USER_CONFIRMED
@@ -465,7 +466,8 @@ def test_the_filename_sixth_kind_is_flagged_and_not_treated_as_settled():
         with pytest.raises(UnratifiedItemKind) as caught:
             check_item(item, unit_length=None, zone=None, protected=protected,
                        sensitive_keys=(), allow_unratified=False,
-                       suspension_permits_self_description=False)
+                       suspension_permits_self_description=False,
+                       locality=CLOUD_LOCALITY)
         assert "B5d" in str(caught.value) and "C9a" in str(caught.value)
 
     # With the opt-in, §7.3's narrow settled part holds: denied for a protected file,
@@ -476,11 +478,11 @@ def test_the_filename_sixth_kind_is_flagged_and_not_treated_as_settled():
         check_item(item, unit_length=None, zone=None, protected=True,
                    sensitive_keys=(),
                    suspension_permits_self_description=False,
-                   allow_unratified=True)
+                   allow_unratified=True, locality=CLOUD_LOCALITY)
     assert check_item(item, unit_length=None, zone=None, protected=False,
                       sensitive_keys=(),
                       suspension_permits_self_description=False,
-                      allow_unratified=True) is None
+                      allow_unratified=True, locality=CLOUD_LOCALITY) is None
 
 
 def test_a_normalized_bounding_box_is_measured_from_the_top_left_d10():

@@ -40,7 +40,9 @@ import pytest
 
 import cli
 from llm_harness.value_grounding import grounding_tokens
-from privacy.vocabulary import ALWAYS_LOCAL_ZONES
+from privacy.vocabulary import (
+    ALWAYS_LOCAL_ZONES, ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET,
+)
 from readers.model_ollama import (
     BASE_URL_NAME as LOCAL_BASE_URL_NAME,
     MODEL_NAME as LOCAL_MODEL_NAME,
@@ -1107,13 +1109,22 @@ def test_the_factless_files_dossier_carries_its_own_words(
                 if item.get("kind") == "excerpt"]
     assert excerpts, placement["evidence_items"]
     assert all(item["basis"] == "direct-anchor" for item in excerpts), excerpts
-    # A zone P4 recorded, never `filename` or `path`: §8.4's always-local list is
-    # what `releasable_observations` excludes first, and placement is the site
-    # where the folder a file already sits in looks like the best evidence there
-    # is. A span-less item is §2.3's cell and §2.8's field, where the address IS
-    # the whole citation -- never a `(0, len(value))` invented at the seam.
+    # A zone P4 recorded, and never `filename`: §8.4's always-local list is what
+    # `releasable_observations` excludes first. A span-less item is §2.3's cell and
+    # §2.8's field, where the address IS the whole citation -- never a
+    # `(0, len(value))` invented at the seam.
+    #
+    # **`path` USED TO BE ASSERTED HERE AND IS NOT ANY MORE (`104` R-159).** This is
+    # a LOCAL run, and the owner ruled §15.4 item 14 the first way on 8 Sep 2026: a
+    # local model may be shown the person's own folder path within the dossier
+    # ceiling. Placement is the site where that matters most and where the old rule
+    # cost the most -- 20 of r15's 43 labelled coursework files named their course
+    # only in the folder they were filed in. The set that is still refused to EVERY
+    # target is imported rather than typed, on the rule the test below states: `ocr`
+    # joined `ALWAYS_LOCAL_ZONES` after this file was written, and a hand-written
+    # pair goes on passing while the product moves.
     for item in excerpts:
-        assert item["location"] not in ("filename", "path"), item
+        assert item["location"] not in ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET, item
         assert item["excerpt_span"] is None or (
             len(item["excerpt_span"]) == 2
             and all(isinstance(n, int) for n in item["excerpt_span"])), item
@@ -1306,14 +1317,23 @@ def test_no_placement_dossier_in_the_run_carries_an_item_the_gate_would_drop(
     """The register's own claim, over every site-C call this corpus makes.
 
     Not `not in ("filename", "path")`: the SET is imported, because `ocr` joined
-    it on 2026-09-04 as member 3 and two of r13's twelve rejected handles were
-    `ocr`. A hand-written pair goes on passing while the path offers whatever the
-    newest member is -- `104` R-150 states the same rule for the anchor loop.
+    `ALWAYS_LOCAL_ZONES` on 2026-09-04 as member 3 and two of r13's twelve rejected
+    handles were `ocr`. A hand-written pair goes on passing while the path offers
+    whatever the newest member is -- `104` R-150 states the same rule for the anchor
+    loop.
 
     Every item kind, not just `fact`. R-148's readings arrive already excluded --
     `releasable_observations` drops the zone first -- and R-150 excluded the
     anchor lines, so this is the corpus-level statement that all three sources
     now agree.
+
+    **WHICH SET, AND `104` R-159 IS WHY THE QUESTION EXISTS.** "The item the gate
+    would drop" is now a question about the TARGET, and this run is local: the door
+    releases a `path`- or `ocr`-zone item to a local model by the owner's ruling and
+    refuses `filename` to either. So the claim asserted here is the one that is
+    still unconditional, imported by the name the vocabulary gives it. The cloud
+    half of the same claim is `test_p7_always_local_zone.py`'s pairs, which drive
+    the door directly rather than a corpus.
     """
     database, report = _local_run(tmp_path, stub, monkeypatch)
 
@@ -1322,4 +1342,89 @@ def test_no_placement_dossier_in_the_run_carries_an_item_the_gate_would_drop(
     assert bodies, f"no site-C call was made, so this proves nothing. {report}"
     for (payload,) in bodies:
         for item in json.loads(payload)["evidence_items"]:
-            assert item["location"] not in ALWAYS_LOCAL_ZONES, item
+            assert (item["location"]
+                    not in ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET), item
+
+
+# --- `104` R-159: what a LOCAL run now shows the model, and what still bounds it
+
+
+def test_a_local_fact_call_is_shown_whole_units_of_its_own_file(
+        tmp_path, stub, monkeypatch):
+    """The outcome the ruling exists for, asserted on a real local run.
+
+    Every file in this corpus is a `.txt`, so `structured_text.py` gives each one a
+    single text unit and one span-less body observation over it (`104` R-164 is that
+    shape's own row). Before 8 Sep 2026 `may_be_released`'s whole-unit arm refused
+    every one of them to every target, and the model was left with the extension,
+    the mime type and a heading fragment -- r15's median site-A dossier carried 109
+    characters of the file's own words under a 4,000-character ceiling.
+
+    **A NEWLINE IS THE CRITERION, and it is the product's own rather than a length.**
+    `privacy.release.unit_is_a_line` calls a unit a LINE when it holds no line break,
+    and R-152 already excepted a whole line from the whole-document rule. So a
+    released value containing a newline is precisely a whole unit that the exception
+    did NOT cover -- the case the ruling opened and nothing else does.
+
+    SABOTAGE: put the whole-unit arm back unconditionally in `may_be_released` and
+    this goes red while every cloud-side test in `tests/p7/` stays green.
+    """
+    database, report = _local_run(tmp_path, stub, monkeypatch)
+
+    bodies = _query(database, "SELECT payload FROM llm_dossier "
+                              "WHERE call_site = 'A_fact'")
+    assert bodies, f"no site-A call was made, so this proves nothing. {report}"
+    multiline = [item["value"]
+                 for (payload,) in bodies
+                 for item in json.loads(payload).get("released_evidence", ())
+                 if isinstance(item, dict) and isinstance(item.get("value"), str)
+                 and "\n" in item["value"]]
+    assert multiline, (
+        "no site-A dossier in a LOCAL run carried a multi-line unit, so the file's "
+        f"own body reached no model and `104` R-159 changed nothing here. {report}")
+
+
+def test_no_dossier_in_a_local_run_exceeds_the_stored_ceiling(
+        tmp_path, stub, monkeypatch):
+    """`104` R-159's other half: the ceiling is what bounds a local call INSTEAD.
+
+    The ruling reads "within the dossier ceiling", and the whole reason the three
+    measurements were made to agree is that they had not been: `_call_dependencies`
+    and `_within_ceiling` counted the file's own readings and the context while the
+    gate's `measure_released_tokens` counted every resolved value INCLUDING the
+    filename. While almost nothing was releasable that gap was invisible. With whole
+    units releasable it is the difference between a call and an
+    `over_dossier_ceiling` denial taken after the budget slot is reserved.
+
+    Measured on what the DOOR released, at every site this run reaches, against the
+    number the door itself compares with -- `model.max_dossier_tokens_per_call` out
+    of P1's own budget table, never a literal repeated here.
+    """
+    from database_agent.budget import get_ceiling
+    # The PRODUCT's measurement, not `len` spelled again here. This is the test whose
+    # whole point is that the builder and the door count one number, and a second
+    # spelling of that number inside it would be the defect wearing the test's own
+    # clothes.
+    from model_facts import dossier_tokens
+
+    database, report = _local_run(tmp_path, stub, monkeypatch)
+    conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        ceiling = get_ceiling(conn, "model.max_dossier_tokens_per_call")
+    finally:
+        conn.close()
+    assert ceiling, f"no ceiling is stored, so this asserts nothing. {report}"
+
+    rows = _query(database, "SELECT call_site, payload FROM llm_dossier")
+    assert rows, f"no dossier was built. {report}"
+    for call_site, payload in rows:
+        released = [item["value"]
+                    for item in json.loads(payload).get("released_evidence", ())
+                    if isinstance(item, dict)
+                    and isinstance(item.get("value"), str)]
+        total = dossier_tokens(released)
+        assert total <= ceiling, (
+            f"a {call_site} dossier released {total} characters against a stored "
+            f"ceiling of {ceiling}; the builder and the door disagree about what "
+            f"the ceiling bounds")

@@ -46,7 +46,8 @@ from evidence_shape.store import runs_for_file
 from extractors.long_tail import POTENTIALLY_SENSITIVE, sensitivity_signals_for
 
 from privacy.vocabulary import (
-    ALWAYS_LOCAL, ALWAYS_LOCAL_ZONES,
+    ALWAYS_LOCAL, ALWAYS_LOCAL_ZONES, CLOUD_LOCALITY, LOCALITIES,
+    RELEASED_TO_A_LOCAL_TARGET,
     ITEM_KINDS, OPEN_QUESTIONS, OutOfVocabulary, check_item_kind,
 )
 
@@ -410,15 +411,51 @@ def is_whole_document(item: object, *, unit_length: int | None) -> bool:
 def check_item(item: object, *, unit_length: int | None, zone: str | None,
                protected: bool, sensitive_keys: Container[str],
                allow_unratified: bool,
-               suspension_permits_self_description: bool) -> None:
+               suspension_permits_self_description: bool,
+               locality: str) -> None:
     """The release-time half of §8.4's item rules. Returns None or raises (A11).
 
-    SIX required keywords, no defaults. `sensitive_keys` in particular: a default of
+    SEVEN required keywords, no defaults. `sensitive_keys` in particular: a default of
     the empty set would mean "nothing is sensitive" for a caller who never wired P5,
     which is the same shape of failure as a column with no writer. And
     `suspension_permits_self_description` in particular: a default of False would be SAFE, and it
     would still be a caller who never made the choice -- `80` §8.3's C1 wants the
     developer who forgets this exception to be stopped, not defaulted.
+
+    **`locality` is the seventh, added 2026-09-08 for `104` R-159, and it has no
+    default for the reason the other six have none, one turn stronger.** Every arm
+    below that reads it compares against `CLOUD_LOCALITY`, so a defaulted or
+    misspelled value reads as "local" and opens the release rather than closing it --
+    the fail-OPEN direction, which is why the value is validated against `LOCALITIES`
+    here rather than trusted. `00`:186 is the sentence this keyword divides: paths,
+    complete extracted text and OCR output "should remain local", and *"when a cloud
+    model is used"* the engine sends "selected excerpts" rather than full documents.
+    That is one sentence about a CLOUD destination, and until R-159 this function
+    applied it to every destination. The owner ruled §15.4 item 14 the first way on
+    8 Sep 2026: a LOCAL model may be shown a whole text unit, the person's folder path
+    and OCR text, within the dossier ceiling.
+
+    THE PRECEDENT IS IN THE SAME DOOR. `Gate.release` (~line 347) already refuses
+    `105` §13.3's always-local privacy CLASS with `if locality == CLOUD_LOCALITY else
+    ()`, so before this change the gate answered "always local" two ways about one
+    request: the class rule let a receipt reach the local model that files it, and the
+    zone rule below refused that same file's folder path to the same model. This is
+    the second rule taking the first one's shape.
+
+    **THE OCR RESIDUAL, stated plainly because the ruling was made knowing it.** No
+    text detector exists in P5 (`104` R-161: `pdf.text`, `docx.structure` and
+    `text.structured` emit no `SensitivitySignal` and r15's signal table was empty
+    over 199 files), so `sensitive_keys` cannot be what holds back the recognised text
+    of a scanned document. With `ocr` released to a local target, an unclassified
+    scanned page -- an identity document, a vaccination record -- now has its
+    recognised text reach the local model. Nothing leaves the device on that path and
+    `105` §13.3's always-local CLASS still refuses the cloud one, but the sentence
+    "OCR output should remain local" now means local IN THE LITERAL SENSE rather than
+    "shown to nobody". The owner ruled it that way with R-161 open.
+
+    `filename` is the one member of `ALWAYS_LOCAL_ZONES` this keyword does NOT
+    release: `vocabulary.RELEASED_TO_A_LOCAL_TARGET` carries the reasoning, which is
+    that its membership was never §8.4's paths sentence but §7.7's own door.
 
     `zone` is the DOCUMENT ZONE the item's observation addresses, read off P4's
     locator -- `resolve.current_location`, which selects no content column. `None`
@@ -438,6 +475,12 @@ def check_item(item: object, *, unit_length: int | None, zone: str | None,
       * protected CONTENT and the cloud-prompt default -- Task 13's
         `protected_records_template` and `protected_cloud_target`.
     """
+    if locality not in LOCALITIES:
+        raise OutOfVocabulary(
+            f"locality {locality!r} is not one of SPEC §6's {LOCALITIES}. Refused "
+            f"rather than treated as unknown: the two arms below test "
+            f"`== {CLOUD_LOCALITY!r}`, so an unrecognised value would take the LOCAL "
+            f"branch and release a path")
     kind = kind_of(item)
 
     if kind in SUSPENDED_ITEM_KINDS and not suspension_permits_self_description:
@@ -484,10 +527,15 @@ def check_item(item: object, *, unit_length: int | None, zone: str | None,
             f"whose transform is injected with no default."
         )
 
-    if zone in ALWAYS_LOCAL_ZONES:
+    if zone in ALWAYS_LOCAL_ZONES and (
+            locality == CLOUD_LOCALITY
+            or zone not in RELEASED_TO_A_LOCAL_TARGET):
         raise AlwaysLocalRequested(
             f"the observation addresses zone {zone!r}, and no releasable item kind "
-            f"may address one of {sorted(ALWAYS_LOCAL_ZONES)}. §8.4's always-local "
+            f"may address one of {sorted(ALWAYS_LOCAL_ZONES)} on a {locality} "
+            f"target ({sorted(RELEASED_TO_A_LOCAL_TARGET)} are released to a local "
+            f"one under `104` R-159's ruling and this is not that). §8.4's "
+            f"always-local "
             f"list opens with the word 'Paths', and a `path`-zone observation "
             f"carries the parent directory of a scanned file -- span-less, so "
             f"`is_whole_document` cannot bound it, and unredacted, because a path "
@@ -512,7 +560,18 @@ def check_item(item: object, *, unit_length: int | None, zone: str | None,
     # carries no observation and is untouched, which is the same line §4 already
     # draws.
 
-    if is_whole_document(item, unit_length=unit_length):
+    if (locality == CLOUD_LOCALITY
+            and is_whole_document(item, unit_length=unit_length)):
+        # CLOUD ONLY SINCE `104` R-159, and the sentence this arm quotes is the one
+        # that says so: §8.4's "should not send full documents" sits under `00`:186's
+        # *"when a cloud model is used"*. Every extractor emits page- and
+        # paragraph-sized units with one span-less observation over each, so this arm
+        # refused every page of every PDF to every target -- r15's 54 files with body
+        # readings and not one releasable. A LOCAL target is now shown the whole unit
+        # and is bounded by the dossier CEILING instead, which is the bound §8.4's own
+        # sentence hands to `max_dossier_tokens_per_call`;
+        # `model_facts.releasable_observations` is where that fill lives.
+        #
         # The span-less arm has no `item.span.start` to name, and reading one would
         # raise `AttributeError` out of `Gate.release` -- an uncaught crash where
         # `_postcheck_items` is watching for `WholeDocumentRequested` and would

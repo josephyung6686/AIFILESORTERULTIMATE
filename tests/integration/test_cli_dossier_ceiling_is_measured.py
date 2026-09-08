@@ -179,7 +179,7 @@ def _reading(raw: str, index: int) -> Observation:
                           TextSpan(0, len(raw))))
 
 
-def _dependencies(conn, observations, anchors=None):
+def _dependencies(conn, observations, anchors=None, name_characters=0):
     from facts.llm_seam import FactRequest
     from model_facts import _call_dependencies
 
@@ -188,9 +188,13 @@ def _dependencies(conn, observations, anchors=None):
         file_id="file-1", content_hash=_HASH, allowlist=("work_type",),
         citable_observations=tuple(observations), existing_facts=(),
         normalizers={})
+    # `104` R-159: `name_characters` defaults to 0 HERE and nowhere in the product.
+    # A call that offers no `Filename` item releases no name, and every test above
+    # this line predates the third term and is about the other two.
     return _call_dependencies(
         request, ("work_type",), folder_levels=(),
         authorities=_authorities(conn), observations=tuple(observations),
+        name_characters=name_characters,
         anchor_observations=None if anchors is None else tuple(anchors))
 
 
@@ -315,13 +319,36 @@ def test_the_stage_hands_the_ladder_the_observations_it_is_about_to_send():
         assert isinstance(node, ast.Name), ast.dump(node)
         return node.id
 
+    # `104` R-159 renamed the left half. The stage now fills the file's own
+    # readings TWICE -- once into the room the anchor LINES leave and once into the
+    # room the preserved-anchor EXCERPTS leave -- because the two shapes leave
+    # different remainders, so the lines rung is measured over `lines_readings` and
+    # the anchors rung over `own_excerpts`. Passing the chosen shape's fill to both
+    # would report a total for a dossier that was never built, which is the same
+    # class of defect this pin exists for.
     measured = passed["observations"]
     if isinstance(measured, ast.BinOp):
         assert isinstance(measured.op, ast.Add)
         assert {named(measured.left), named(measured.right)} == {
-            "observations", "context"}
+            "lines_readings", "context"}
     else:
-        assert named(measured) == "observations"
+        assert named(measured) == "lines_readings"
+
+    # `104` R-159's third term, pinned at the same call site and for the same
+    # reason: the gate's `measure_released_tokens` counts the resolved filename
+    # like any other released value, so a ladder that omitted it would pass a
+    # dossier the door then denies `over_dossier_ceiling` -- after the budget slot
+    # is reserved, which costs the file its call.
+    assert "name_characters" in passed, (
+        "the ladder must be measured against every value the door will count, and "
+        "the filename is one of them since `104` R-06 put it in `NAME_BEARING`")
+    assert named(passed["name_characters"]) == "name_characters"
+
+    anchors = passed["anchor_observations"]
+    assert isinstance(anchors, ast.IfExp), ast.dump(anchors)
+    assert {named(anchors.orelse.left), named(anchors.orelse.right)} == {
+        "own_excerpts", "excerpts"}, (
+        "the preserved-anchors rung is measured over the fill THAT shape leaves")
 
 
 # --- the door's own backstop ------------------------------------------------
