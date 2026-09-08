@@ -13,6 +13,7 @@ Every heading asserted here comes from something the FORMAT says -- an ATX marke
 """
 from __future__ import annotations
 
+import json
 import zipfile
 from pathlib import Path
 
@@ -378,6 +379,94 @@ def test_an_epub_is_read_in_spine_order_with_its_headings_renumbered(tmp_path):
     assert "Force and mass." in document.text
     assert document.text.index("Force and mass.") < document.text.index(
         "Position and time.")
+
+
+# --------------------------------------------------------------------------- #
+# notebooks
+# --------------------------------------------------------------------------- #
+
+#: A notebook whose markdown cell is NOT the first one, so the heading's offset into
+#: the joined text is not zero and a miscounted cell separator moves it. Its code
+#: cell carries an output, which is the notebook's result and not its author's
+#: writing.
+NOTEBOOK = {
+    "nbformat": 4,
+    "metadata": {},
+    "cells": [
+        {"cell_type": "code",
+         "source": "import math\nmass = 0.51\n",
+         "outputs": [{"output_type": "stream",
+                      "text": ["cell ran in 0.4 seconds\n"]}]},
+        {"cell_type": "markdown",
+         "source": ["# Air track lab\n", "\n", "Cart mass was 0.51 kg.\n"]},
+        {"cell_type": "raw", "source": "\\begin{abstract}\n"},
+    ],
+}
+
+
+def test_a_notebooks_cells_arrive_as_their_own_text_and_not_as_json(tmp_path):
+    """`.ipynb` had no entry in the reader's table, so `_plain` decoded the file and
+    the whole notebook JSON became the document's prose. Measured over 199 of the
+    owner's files: eleven notebooks, each one unit of 50,000 to 118,000 characters,
+    and what the model was shown of a notebook was `    "# Heading\\n",` -- the
+    quotes and the escape included. A cell's source is what the person wrote."""
+    path = tmp_path / "lab4.ipynb"
+    path.write_text(json.dumps(NOTEBOOK))
+
+    document = read(path)
+
+    assert "import math" in document.text
+    assert "# Air track lab" in document.text
+    assert "Cart mass was 0.51 kg." in document.text
+    assert "\\begin{abstract}" in document.text
+    assert '"cell_type"' not in document.text
+    assert '"source"' not in document.text
+    assert "cell ran in 0.4 seconds" not in document.text
+
+
+def test_a_notebook_heading_addresses_the_joined_cell_text(tmp_path):
+    """A `Region` is a pair of offsets into the document's own text, and
+    `structured_text.py` slices `document.text` with them to store the heading's own
+    words. The heading is in the second cell, so its span is only right if the cell
+    before it was counted, its separator included."""
+    path = tmp_path / "lab4.ipynb"
+    path.write_text(json.dumps(NOTEBOOK))
+
+    document = read(path)
+
+    assert headings(document) == [(1, "Air track lab", "Air track lab")]
+    assert document.headings[0].start > 0
+
+
+def test_a_notebook_that_is_not_json_is_still_read_as_its_own_bytes(tmp_path):
+    """A truncated notebook is a file whose cells could not be read, not a file with
+    no text. It falls back to what an unregistered extension already gets -- the
+    bytes are the text -- and raises nothing on the way."""
+    path = tmp_path / "broken.ipynb"
+    path.write_text('{"nbformat": 4, "cells": [')
+
+    document = read(path)
+
+    assert document.text == '{"nbformat": 4, "cells": ['
+    assert document.headings == ()
+
+
+def test_a_notebooks_metadata_still_arrives_once_its_cells_are_read(tmp_path):
+    """§2.4's one in-file marker class is read out of the notebook's JSON, and the
+    cell reader replaced the document's text with the cells' prose. `nbformat` and
+    the kernel's name are facts about the FILE, so they are still read from it."""
+    path = tmp_path / "lab4.ipynb"
+    path.write_text(json.dumps(NOTEBOOK | {"metadata": {
+        "kernelspec": {"display_name": "Python 3.12"},
+        "language_info": {"name": "python"}}}))
+
+    document = read(path)
+
+    assert [(marker.kind, marker.value) for marker in document.markers] == [
+        ("notebook metadata", "nbformat: 4"),
+        ("notebook metadata", "kernelspec: Python 3.12"),
+        ("notebook metadata", "language_info: python"),
+    ]
 
 
 # --------------------------------------------------------------------------- #

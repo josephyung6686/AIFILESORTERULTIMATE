@@ -640,6 +640,24 @@ def _markers_for(path: Path, text: str) -> tuple[StructuralMarker, ...]:
     return tuple(markers)
 
 
+def _marker_source(path: Path, document: TextDocument) -> str:
+    """The text `_markers_for` reads its one in-file class out of.
+
+    For every format here that is the document's own text, because the two are the
+    same characters. A notebook is the exception, and became one the day `_notebook`
+    was registered: what that returns is the CELLS' prose, and `nbformat` and the
+    kernel's name live in the JSON around them, which is where `_markers_for` looks.
+
+    Reading them out of the extracted prose would also be a lie waiting to happen. A
+    raw cell holding a JSON snippet with an `nbformat` key would be parsed as the
+    notebook's own metadata, and a kernel nothing observed would be filed against
+    the file as an observation.
+    """
+    if path.suffix.lower() == ".ipynb":
+        return _decode(path.read_bytes())
+    return document.text
+
+
 # --------------------------------------------------------------------------- #
 # the reader
 # --------------------------------------------------------------------------- #
@@ -660,12 +678,76 @@ def _markdown(path: Path) -> TextDocument:
     return TextDocument(text=text, headings=_markdown_headings(text))
 
 
+#: What goes between two cells' text. A blank line, because that is what separates
+#: two blocks in the Markdown the cells are already written in, and because it is
+#: the same characters on every notebook -- a `Region`'s offsets are only an address
+#: if the gaps ahead of them are the same width every time.
+_CELL_SEPARATOR = "\n\n"
+
+
+def _notebook(path: Path) -> TextDocument:
+    """A notebook's cells, as the text their author typed into them.
+
+    `.ipynb` had no entry in the table below, so `_plain` decoded the file and the
+    notebook's JSON became the document's prose. Measured over 199 of the owner's
+    real files: eleven notebooks, each arriving as ONE unit of 50,000 to 118,000
+    characters. What the model was shown of a notebook was therefore JSON-escaped
+    source lines -- `    "# Heading\\n",` -- and what it answered back was those same
+    characters, the quotes and the markdown marker inside the value.
+
+    Cells are joined verbatim, so a `Region`'s offsets address the text a person
+    reading the notebook would see. A markdown cell's `#` lines are its headings, on
+    `_markdown`'s rule and no other; a `#` in a CODE cell is a comment, and filing
+    one as a document's structure is the same mistake `_markdown_headings` already
+    refuses when it skips a fenced block.
+
+    **Outputs are not read.** A stream, a traceback, a rendered frame are what the
+    notebook PRODUCED, not what the person wrote, and §2.9 asks a text document for
+    its own text. A cell that printed a list of names would otherwise put that list
+    into the evidence as if the author had written it out.
+
+    A file that does not parse, or that carries no `cells` list, is read the way an
+    unregistered extension is read: the bytes are the text. A truncated notebook
+    still has words in it, and this is not the layer that decides they are lost.
+    """
+    text = _decode(path.read_bytes())
+    try:
+        notebook = json.loads(text)
+    except (ValueError, TypeError):
+        return TextDocument(text=text)
+    if not isinstance(notebook, dict) or not isinstance(notebook.get("cells"), list):
+        return TextDocument(text=text)
+
+    parts: list[str] = []
+    regions: list[Region] = []
+    offset = 0
+    ordinal = 0
+    for cell in notebook["cells"]:
+        if not isinstance(cell, dict):
+            continue
+        source = cell.get("source")
+        if isinstance(source, list):
+            source = "".join(line for line in source if isinstance(line, str))
+        if not isinstance(source, str) or not source:
+            continue
+        if cell.get("cell_type") == "markdown":
+            for region in _markdown_headings(source):
+                ordinal += 1
+                regions.append(Region(zone="heading", start=offset + region.start,
+                                      end=offset + region.end, ordinal=ordinal,
+                                      label=region.label))
+        parts.append(source)
+        offset += len(source) + len(_CELL_SEPARATOR)
+    return TextDocument(text=_CELL_SEPARATOR.join(parts), headings=tuple(regions))
+
+
 _BY_EXTENSION.update({
     ".md": _markdown, ".markdown": _markdown, ".mdown": _markdown,
     ".html": _read_html, ".htm": _read_html, ".xhtml": _read_html,
     ".rtf": _read_rtf,
     ".odt": _read_odt,
     ".epub": _read_epub,
+    ".ipynb": _notebook,
 })
 
 
@@ -698,7 +780,7 @@ def stdlib_text_document_reader(
             # document's prose -- `complete`, and false.
             return None if read_doc is None else read_doc(path)
         document = _BY_EXTENSION.get(path.suffix.lower(), _plain)(path)
-        markers = _markers_for(path, document.text)
+        markers = _markers_for(path, _marker_source(path, document))
         language = _LANGUAGE_BY_EXTENSION.get(path.suffix.lower())
         if not markers and language is None:
             return document
