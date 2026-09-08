@@ -134,6 +134,7 @@ from llm_harness.budgets import ScanBudget, create_budget_schema
 from llm_harness.prompt_library import (
     a_fact_response_schema_bytes, a_fact_shaping_policy_bytes,
     DRAFT_STATUS_WORDS, RATIFIED, RATIFIED_LOCAL,
+    a_fact_row as prompt_library_a_fact_row,
     a_fact_template_folder_levels_bytes, draft_bytes, draft_status,
 )
 from llm_harness.harness import CallDependencies, run_call
@@ -728,6 +729,22 @@ OBSERVE_TEMPLATE_ID: Mapping[str, str] = MappingProxyType({
 })
 
 assert set(OBSERVE_TEMPLATE_ID) == OBSERVE_CALL_SITES
+
+#: `104` R-144: THE MANIFEST ROW SITE A RUNS UNDER, `(template_id, candidate)`.
+#: Site A's text, schema, policy and glossary used to be loaded straight from the
+#: library files, so a second version of A's text could not be run locally
+#: without editing the ratified file. Now A resolves through a manifest row as the
+#: observe sites do, and a v2 is a new row with its own id, `ratified_local`, and
+#: this constant pointed at it.
+#:
+#: THE ID IS THE ONE THE RECORDS ALREADY CARRY. `prompt_fingerprint` hashes the
+#: template id with the bytes, so a row that renamed the id for the same text
+#: would change the fingerprint of every A_fact record written since 2026-09-04;
+#: the library's own rule is that a row's status word is not its id
+#: (`prompt_library.draft_status`). The row's `status` is what says the text is
+#: ratified; its `candidate` tells it from the glossary arms sharing the id.
+A_FACT_ROW: tuple[str, str] = (
+    "a_fact.unratified.folder-levels.2026-09-04", "ratified-folder-levels")
 
 
 #: WHAT EACH STATUS WORD BUYS, and the two questions it answers are not one
@@ -1601,12 +1618,18 @@ def observe_locality_permits(call_site: str, locality: str) -> bool:
     `A_fact` is unaffected and stays cloud-eligible: it is not in this set, its
     text is ratified, and `WIRED_CALL_SITES` is what governs it.
     """
-    if call_site not in OBSERVE_CALL_SITES:
+    if call_site not in OBSERVE_CALL_SITES and call_site != A_FACT:
         return True
     if locality == LOCAL:
         return True
-    return (draft_status(OBSERVE_TEMPLATE_ID[call_site])
+    # `104` R-144: site A reads the same gate off its own row, so an A_fact v2
+    # under `ratified_local` runs here and is refused a cloud target, as C is.
+    return (draft_status(_template_id_for(call_site))
             in STATUS_MAY_CROSS_THE_INTERNET)
+
+
+def _template_id_for(call_site: str) -> str:
+    return A_FACT_ROW[0] if call_site == A_FACT else OBSERVE_TEMPLATE_ID[call_site]
 
 
 def require_observe_locality(call_site: str, locality: str) -> None:
@@ -1621,8 +1644,8 @@ def require_observe_locality(call_site: str, locality: str) -> None:
     if observe_locality_permits(call_site, locality):
         return
     raise UnratifiedPromptOnACloudTarget(
-        f"call site {call_site!r} is observe-only and its prompt is a D2 DRAFT "
-        f"({draft_status(OBSERVE_TEMPLATE_ID[call_site])!r}), but the routing "
+        f"call site {call_site!r} may not cross the internet under its prompt's "
+        f"word ({draft_status(_template_id_for(call_site))!r}), but the routing "
         f"sends it to a {locality!r} model. "
         f"`104` §13 counts 0 cloud calls with unratified prompts and this is where "
         f"that count is kept. Unratified text is text nobody has agreed to send: "
@@ -3803,8 +3826,52 @@ def _resolver(*, tiers: frozenset[str], cache_key: str) -> FactResolver:
         screen_metadata=lambda conn, file_id, content_hash: ())
 
 
+class AFactRowNotRatified(RuntimeError):
+    """`A_FACT_ROW` names a row whose status does not let site A apply answers."""
+
+
+class AFactGlossaryNotTheShippedOne(RuntimeError):
+    """`A_FACT_ROW` names a glossary the dossier does not read."""
+
+
+def a_fact_row() -> dict:
+    """The manifest row `A_FACT_ROW` names, checked for what site A needs of it.
+
+    `104` R-144. Refused at composition, before a corpus is read, when the row's
+    word is `unratified`: A is a site that APPLIES its answers, and applying under
+    text nobody approved is the thing `ratified` exists to say yes to. Refused
+    too when the row names a glossary other than the one `llm_harness.dossier`
+    ships into the bytes: the glossary is model-visible and part of what the
+    owner ratified, and a row naming another would describe a prompt this
+    deployment does not build.
+    """
+    from llm_harness.dossier import GLOSSARY_FILE
+    template_id, candidate = A_FACT_ROW
+    row = prompt_library_a_fact_row(template_id, candidate)
+    status = draft_status(template_id)
+    if status not in STATUS_APPLIES:
+        raise AFactRowNotRatified(
+            f"A_FACT_ROW names {template_id!r} / {candidate!r}, whose status is "
+            f"{status!r}. Site A applies its answers, so its row must carry "
+            f"{sorted(STATUS_APPLIES)}; a v2 of A's text runs under "
+            f"`ratified_local` on this device, never under `unratified`.")
+    if row.get("glossary_file") != GLOSSARY_FILE.name:
+        raise AFactGlossaryNotTheShippedOne(
+            f"the A_fact row {candidate!r} names glossary "
+            f"{row.get('glossary_file')!r}; the dossier ships {GLOSSARY_FILE.name} "
+            f"and reads no other, so a row naming another describes a prompt "
+            f"this deployment does not build.")
+    return row
+
+
 def a_fact_prompt() -> PromptDefinition:
     """The one prompt this deployment may send at site A. Composed HERE, not in P8.
+
+    **`104` R-144: the bytes come through `A_FACT_ROW`, a manifest row, exactly
+    as the observe sites' do.** Same id, same three files, same digests, so the
+    fingerprint is the one every A_fact record already carries; `ratified` is the
+    row's own word rather than a literal here, and `a_fact_row` refuses an
+    `unratified` row before anything is read.
 
     `llm_harness.prompt_library` holds the bytes and verifies them against their
     digests; it "picks no `template_id`, no `call_site_version`, no tier and no
@@ -3831,19 +3898,20 @@ def a_fact_prompt() -> PromptDefinition:
     recording the text and renaming the id, and both are the owner's. Choosing which
     of the two files is in force is a policy, which is why it is chosen here.
     """
+    a_fact_row()
+    template_id = A_FACT_ROW[0]
+    template, response_schema, shaping_policy = draft_bytes(template_id)
     return PromptDefinition(
-        template_id="a_fact.unratified.folder-levels.2026-09-04",
-        template_bytes=a_fact_template_folder_levels_bytes(),
-        response_schema_bytes=a_fact_response_schema_bytes(),
+        template_id=template_id,
+        template_bytes=template,
+        response_schema_bytes=response_schema,
         call_site=A_FACT,
         call_site_version="1",
-        # RATIFIED, and `planning/82-FACT-PROMPT-DRAFT.md` §0 is the record of it.
-        # The id says `unratified` because the folder-levels REVISION has not been
-        # put to the owner; what is ratified is the text this revision derives
-        # from, and site A has always applied its answers on that basis. Stated
-        # here rather than parsed out of the id, which is the whole of the ruling.
-        ratified=True,
-        shaping_policy_bytes=a_fact_shaping_policy_bytes())
+        # THE ROW'S WORD. `planning/82-FACT-PROMPT-DRAFT.md` §0 records the owner
+        # ratifying this text; the row is where that is written down now, and
+        # `a_fact_row` has already refused a row that does not carry it.
+        ratified=draft_status(template_id) in STATUS_APPLIES,
+        shaping_policy_bytes=shaping_policy)
 
 
 def model_route_permitted(conn: sqlite3.Connection, *, locality: str,
