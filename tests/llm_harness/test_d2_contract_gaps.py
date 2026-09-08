@@ -112,14 +112,17 @@ def _c_response(case: Case, **payload) -> bytes:
                                    "citations": _cite(case, "PHYS 1401")}]}).encode()
 
 
-# --- G1: conflict ids are keyed on the wire and compared raw by the validator ------
+# --- G1: R-157, CLOSED. The considered list is un-digested before it is read -----
+#
+# The two xfails here were right: `dossier._body` keys every `conflict_id` with
+# `wire_handle` and both sites compared the model's list against the RAW ids, so
+# a C dossier carrying any conflict was unanswerable and 15 of r14's site-C
+# rejections were this. `_considered_conflicts` now maps the list back through
+# `wire_handles.issued_conflict_handles` first, and the three tests below hold
+# the repaired contract instead: the handles pass, a subset does not, and a
+# handle naming no conflict does not.
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "G1 (packet §7): dossier._body keys every conflict_id with wire_handle, but "
-    "placement_validation._placement_site compares conflicts_considered against "
-    "the RAW ids. A model that echoes every conflict it was shown is rejected "
-    "CONFLICT_IGNORED, so a C dossier with any conflict is unanswerable."))
 def test_g1_site_c_a_model_that_echoes_every_shown_conflict_is_not_ignoring_it():
     case = _c_case(conflicts=(("conflict-abc123", "target_university"),))
     dossier = dossier_of(case)
@@ -131,27 +134,43 @@ def test_g1_site_c_a_model_that_echoes_every_shown_conflict_is_not_ignoring_it()
     assert verdict.worst_outcome == ACCEPT_DIRECT, verdict.verdicts
 
 
-def test_g1_measured_the_raw_id_would_be_accepted_but_the_model_never_sees_it():
-    """The control: the raw id passes, which is why the defect is the keying."""
+def test_g1_both_spellings_of_the_one_conflict_are_considered():
+    """The handle the model was shown, and the local id it was not.
+
+    The raw id is accepted on the citation path's own principle: `local_ref`
+    hands back a string this dossier never issued, and a string that then equals
+    a local id is taken at its word -- which is what `check_citations` does with
+    a raw `observation_key`. The model cannot reach either id: the assertion
+    below is that the wire body does not carry it.
+    """
     case = _c_case(conflicts=(("conflict-abc123", "target_university"),))
     dossier = dossier_of(case)
     body = _handles_in(case, dossier)
     assert "conflict-abc123" not in json.dumps(body)
+    for considered in (["conflict-abc123"],
+                       [c["conflict_id"] for c in body["conflicts"]]):
+        verdict = judge(case, dossier,
+                        _c_response(case, conflicts_considered=considered),
+                        schema={"type": "object"},
+                        site_dependencies=site_dependencies_for(case))
+        assert verdict.worst_outcome == ACCEPT_DIRECT, considered
+
+
+def test_g1_a_handle_that_names_no_conflict_leaves_it_unconsidered():
+    """An invented handle resolves to nothing, so the conflict is still ignored."""
+    case = _c_case(conflicts=(("conflict-abc123", "target_university"),))
+    dossier = dossier_of(case)
+    shown = [c["conflict_id"] for c in _handles_in(case, dossier)["conflicts"]]
+    invented = ["handle:" + "f" * (len(shown[0]) - len("handle:"))]
+    assert invented != shown
     verdict = judge(case, dossier,
-                    _c_response(case, conflicts_considered=["conflict-abc123"]),
+                    _c_response(case, conflicts_considered=invented),
                     schema={"type": "object"},
                     site_dependencies=site_dependencies_for(case))
-    assert verdict.worst_outcome == ACCEPT_DIRECT
-    echoed = judge(case, dossier, _c_response(
-        case, conflicts_considered=[c["conflict_id"] for c in body["conflicts"]]),
-        schema={"type": "object"}, site_dependencies=site_dependencies_for(case))
-    assert echoed.worst_outcome == REJECT
-    assert [CONFLICT_IGNORED] in [v["reasons"] for v in echoed.verdicts]
+    assert verdict.worst_outcome == REJECT
+    assert [CONFLICT_IGNORED] in [v["reasons"] for v in verdict.verdicts]
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "G1 at site D: relationships_considered is compared against raw "
-    "stronger_relationship conflict ids the model was never shown."))
 def test_g1_site_d_a_model_that_echoes_the_shown_relationship_did_consider_it():
     case = _d_case(conflicts=(("conflict-rel-1", "stronger_relationship"),))
     dossier = dossier_of(case)

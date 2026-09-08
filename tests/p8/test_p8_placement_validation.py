@@ -24,7 +24,7 @@ from llm_harness.placement_validation import (
     validate_placement_response,
     validate_residual_response,
 )
-from llm_harness.records import P8Verdict, ValidationUnavailable
+from llm_harness.records import Conflict, P8Verdict, ValidationUnavailable
 from llm_harness.vocabulary import (
     ABSTAIN,
     ACCEPT_CONTEXT_SUPPORTED,
@@ -32,6 +32,7 @@ from llm_harness.vocabulary import (
     ACTION_NOT_IN_CONTROLLED_SET,
     BELOW_SUPPORT_THRESHOLD,
     CHOOSE_RESIDUAL_DESTINATION,
+    CONFLICT_IGNORED,
     C_PLACEMENT,
     D_RESIDUAL,
     DESTINATION_NOT_IN_FROZEN_TREE,
@@ -69,6 +70,7 @@ from llm_harness.vocabulary import (
 )
 from p8.conftest import FIXED_CLOCK
 from llm_harness.fixtures import FIXTURE_HANDLE_KEY
+from llm_harness.wire_handles import wire_handle
 
 RELEASED = "span-1"
 SUPPORT_THRESHOLD = 0.5
@@ -310,6 +312,60 @@ def test_site_d_stronger_relationship_returns_to_placement():
     assert verdict.reasons == (STRONGER_RELATIONSHIP_OVERLOOKED,)
     assert verdict.outcome == REJECT
     assert verdict.disposition == RETURN_TO_PLACEMENT
+
+
+# `104` R-157. THE MODEL IS SHOWN A HANDLE AND NEVER THE ID. `dossier._body`
+# writes `wire_handle(conflict_id)`, so the list that comes back is a list of
+# handles; both checks below used to hold it against the local ids, which never
+# left the device, and every answer at a site with a conflict was rejected. The
+# handle is computed here from `wire_handle` and not from the validator's own
+# inverse, so these hold the wire contract rather than one function against
+# itself.
+
+
+def _shown(dossier) -> list[str]:
+    return [wire_handle(item.conflict_id, key=FIXTURE_HANDLE_KEY)
+            for item in dossier.conflicts]
+
+
+def _two_conflict_pair():
+    pair = next(
+        p for p in SITE_C_REASON_PAIRS if p.expected_reasons == (CONFLICT_IGNORED,)
+    )
+    dossier = dataclasses.replace(pair.dossier, conflicts=(
+        Conflict("c1", "stronger_fact"), Conflict("c2", "stronger_fact")))
+    return dataclasses.replace(pair, dossier=dossier)
+
+
+def test_r157_site_c_every_conflict_named_by_its_wire_handle_is_considered():
+    pair = _two_conflict_pair()
+    named = _with_payload_fields(pair, conflicts_considered=_shown(pair.dossier))
+    verdict = _validate_c(named)[0][0]
+    assert CONFLICT_IGNORED not in verdict.reasons
+    assert verdict.outcome == ACCEPT_DIRECT
+    assert verdict.disposition == MOVE_PLAN_ELIGIBLE
+
+
+def test_r157_site_c_a_subset_of_the_handles_is_still_conflict_ignored():
+    pair = _two_conflict_pair()
+    subset = _with_payload_fields(
+        pair, conflicts_considered=_shown(pair.dossier)[:1])
+    verdict = _validate_c(subset)[0][0]
+    assert verdict.reasons == (CONFLICT_IGNORED,)
+    assert verdict.outcome == REJECT
+    assert verdict.disposition == NO_DESTINATION
+
+
+def test_r157_site_d_a_stronger_relationship_named_by_handle_is_considered():
+    pair = next(
+        p for p in SITE_D_REASON_PAIRS
+        if p.expected_reasons == (STRONGER_RELATIONSHIP_OVERLOOKED,)
+    )
+    named = _with_payload_fields(
+        pair, relationships_considered=_shown(pair.dossier))
+    verdict = _validate_d(named)[0][0]
+    assert STRONGER_RELATIONSHIP_OVERLOOKED not in verdict.reasons
+    assert verdict.outcome != REJECT
 
 
 def test_site_d_same_file_evidence_and_controlled_set():
