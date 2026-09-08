@@ -72,6 +72,20 @@ def _from_row(row: sqlite3.Row) -> PlacementDecision:
     # the record was built, by `mark_superseded`, and the payload is never rewritten.
     for name in ("superseded_by", "supersede_reason"):
         body[name] = row[name]
+    # `104` R-165, and this is the READ HALF of the default the field carries rather
+    # than a fallback bolted on beside it. Every field above is required, so a
+    # payload missing one is a corrupt row and the `KeyError` below is the right
+    # answer. `decided_by` is the first field this record permits to be absent, and
+    # a payload written before R-165 is not corrupt -- it is a decision from a build
+    # that did not record who decided, which is exactly what `None` means here.
+    #
+    # NOT HYPOTHETICAL. `placement.versions` diffs a PRIOR plan version and the
+    # product keeps one database across runs, so without this line the first §8.8
+    # diff after an upgrade raises on a row the person's own earlier run wrote. It
+    # is the argument `tools.groundtruth.measure` already makes for reading the
+    # payload with `.get`: a run written before the field existed has to stay
+    # readable WHOLE rather than vanishing entirely.
+    body.setdefault("decided_by", None)
     return PlacementDecision(**{name: body[name] for name in DECISION_FIELDS})
 
 

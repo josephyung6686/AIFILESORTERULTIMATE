@@ -605,6 +605,82 @@ def test_the_model_path_is_reached_when_the_deterministic_one_is_ambiguous(
     assert decision.review_policy == v.REVIEW_REQUIRED
 
 
+# --- `104` R-165: the record says WHO chose the destination ----------------------
+#
+# READ OFF THE STORED BODY AND NOT THE RETURNED OBJECT, in every one of these. The
+# defect R-165 names is that the pipeline KNEW and the scoreboard could not read
+# it, so an assertion against the dataclass in hand would pass against a field that
+# never reached the table `tools.groundtruth` opens. `store._payload` is
+# `asdict(decision)`, and this is the shape the harness parses.
+
+
+def _stored_body(conn, decision):
+    row = conn.execute(
+        "SELECT payload FROM placement_decisions WHERE record_id = ?",
+        (decision.decision_id,)).fetchone()
+    return json.loads(row["payload"])
+
+
+def test_the_deterministic_path_records_that_the_rules_decided(skeleton):
+    """No model is configured here, so §13.5's fallback placed this file.
+
+    The same run as `test_a_unique_direct_match_is_placed_with_zero_model_calls`,
+    asked the question that test cannot: an empty `llm_verdict` says no call was
+    made, and this says the DECISION admits it -- which is the half a reader
+    holding one row can act on.
+    """
+    decision = _place(skeleton)
+    assert decision.outcome == v.PLACE
+    assert _stored_body(skeleton, decision)["decided_by"] == v.DECIDED_BY_RULE
+
+
+def test_a_model_chosen_destination_is_recorded_as_the_models(skeleton,
+                                                              monkeypatch):
+    """A site C verdict P8 validated named this node, and the row says so.
+
+    Sabotage twin for the test above: a `decided_by` hard-coded to either word
+    passes one of the two and fails this pair. That is the whole of R-165 -- until
+    the field existed these two runs were indistinguishable on every stored value
+    except the prose of `explanation`.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement", lambda *_a, **_k: _verdict())
+    decision = _place(skeleton, inputs=_model_inputs(skeleton),
+                      evidence=_evidence(**AMBIGUOUS))
+
+    assert decision.destination.node_id == "n-course-shared"
+    assert _stored_body(skeleton, decision)["decided_by"] == v.DECIDED_BY_MODEL
+
+
+def test_a_destination_the_person_named_is_recorded_as_theirs(skeleton):
+    """§13's fourth consequence: an answer is read before retrieval runs at all.
+
+    Neither of the other two words would be true here, and both would be worse
+    than silence: `model` credits a judge nobody consulted, and `rule` says the
+    engine decided what the person had just told it.
+    """
+    decision = _place(skeleton, inputs=_inputs(
+        skeleton, chosen_by_user=lambda subject: "n-course-shared"))
+
+    assert decision.outcome == v.PLACE
+    assert decision.evidence_type == v.USER_CONFIRMED
+    assert _stored_body(skeleton, decision)["decided_by"] == v.DECIDED_BY_USER
+
+
+def test_an_abstention_names_no_decider_at_all(skeleton):
+    """Nothing was placed, so there is no destination anybody could have chosen.
+
+    The record refuses the other shape outright, and that is what keeps the
+    scoreboard's arithmetic honest: a decider on an abstention would be counted
+    among placements that never happened.
+    """
+    decision = _place(skeleton, evidence=_evidence(
+        facts=(), evidence_items=(), entity_frequency={}))
+    assert decision.outcome == v.ABSTAIN
+    assert _stored_body(skeleton, decision)["decided_by"] is None
+
+
 def test_a_model_choice_outside_the_frozen_tree_places_nothing(skeleton,
                                                                monkeypatch):
     import placement.pipeline as pipeline
@@ -1128,6 +1204,10 @@ def test_a_residual_place_lands_on_the_review_only_node_the_model_chose(
                                        "n-review-later")))
     assert written[0].destination.node_id == "n-review-later"
     assert written[0].review_policy == v.REVIEW_REQUIRED
+    # `104` R-165 on the §7 path. A site D verdict chose this node and P8 validated
+    # it exactly as it validates site C's, so `rule` here would under-count the
+    # model's share by every set a person sent to review.
+    assert written[0].decided_by == v.DECIDED_BY_MODEL
 
 
 def test_a_residual_destination_outside_the_frozen_tree_places_nothing(skeleton,

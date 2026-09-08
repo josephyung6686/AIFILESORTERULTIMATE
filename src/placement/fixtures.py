@@ -9,8 +9,8 @@ Five, and each one is a case a consumer must be able to parse:
 
 * a placement, with the evidence that produced it;
 * a correct abstention, which §6.10 makes a SUCCESSFUL outcome and not a failure;
-* a §7-origin decision, on the same thirty-field shape, so a consumer parses it
-  with no residual branch (SPEC:610-612);
+* a §7-origin decision, on the same thirty-one-field shape, so a consumer parses
+  it with no residual branch (SPEC:610-612);
 * a budget deferral, which §8.6 requires to render differently from an evidential
   abstention -- it names the stage it was cut short at and nothing else does;
 * a decision about protected material, which is never `auto_eligible` and whose

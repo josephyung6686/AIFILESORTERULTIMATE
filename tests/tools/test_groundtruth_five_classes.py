@@ -396,9 +396,23 @@ def test_the_applied_block_prints_the_five_beneath_the_two_it_already_had(built)
 
 def test_the_row_names_the_five_counts_on_one_line(built):
     row = row_128([built["run"]], built["labels"])
-    assert row == ("correct placement 1 / incorrect placement 1 / "
-                   "appropriate abstention 2 / unnecessary abstention 1 / "
-                   "invalid output 1")
+    assert row.startswith("correct placement 1 / incorrect placement 1 / "
+                          "appropriate abstention 2 / unnecessary abstention 1 / "
+                          "invalid output 1")
+
+
+def test_the_row_carries_who_decided_it_when_that_was_never_a_model(built):
+    """`104` R-165's second half, and this fixture is an unforced example of the
+    shape it exists to catch: its decisions are written without a `decided_by`
+    at all, so nothing here went through a model, and three of the five counts
+    above are ABSTENTIONS that score well precisely when nobody was asked.
+
+    The five numbers do not move -- this row scores nothing and re-scores
+    nothing. It says who produced them, on the line they are printed on, because
+    this row's whole purpose is to be pasted into a diagnosis away from the block
+    that would otherwise have qualified it."""
+    row = row_128([built["run"]], built["labels"])
+    assert row.endswith("   -- the model decided none of this run's 2 placements")
 
 
 # --- the same five, in the shadow block -------------------------------------

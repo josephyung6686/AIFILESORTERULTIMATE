@@ -222,6 +222,11 @@ def test_the_record_says_the_person_decided_this_and_not_a_model(skeleton):
     assert "no model was asked" in placed.explanation
     assert REVIEW_LATER_LABEL in placed.explanation
     assert "returned" not in placed.explanation
+    # `104` R-165, and the sentence above is the argument for it: the field a
+    # scoreboard COUNTS has to agree with the sentence a person READS, or one
+    # record holds two answers about who decided. `rule` would be a third wrong
+    # answer -- the rules chose nothing here, the person named the node.
+    assert placed.decided_by == v.DECIDED_BY_USER
 
 
 # --- twin 1: an answer belongs to the version it was given in ---------------------

@@ -491,15 +491,17 @@ def test_the_per_file_table_puts_the_observed_node_beside_the_applied_one(built)
 def test_without_the_flag_the_table_keeps_exactly_the_columns_it_had(built):
     """No `--shadow` cell reaches a table nobody passed the flag to.
 
-    The last column is `review_policy` and not `family` since `104` R-151 appended
-    it: what this test guards against is the FLAG adding columns, and R-151's
-    column is there whether or not the flag is given. The three shadow names are
-    now refused BY NAME as well, so a column appended later cannot make this pass
-    by accident.
+    The last column is `decided_by` and not `family`: `104` R-151 appended
+    `review_policy` and R-165 appended this one after it. What this test guards
+    against is the FLAG adding columns, and both of those are there whether or not
+    the flag is given. The three shadow names are refused BY NAME as well, so a
+    column appended later cannot make this pass by accident -- which is why the
+    positional assertion is a spelling this test is expected to be edited for
+    rather than a promise the writer breaks.
     """
     columns = per_file_table(
         [built["run"]], built["labels"]).splitlines()[0].split("\t")
-    assert columns[-1] == "review_policy"
+    assert columns[-1] == "decided_by"
     assert not {"shadow_sorting", "shadow_got", "shadow_source"} & set(columns)
 
 

@@ -461,6 +461,13 @@ def shadow_run(run: RunObservation, observed: Mapping[str, ObservedVerdict],
     "not on the record", which is what None means everywhere else in `Observation`.
     A file whose applied outcome is CARRIED keeps its own policy, because that one
     was really written.
+
+    `104` R-165's field travels with it, by the identical argument. A substituted
+    row is the placement site C's verdict WOULD have made, and the applied
+    decision's decider is a fact about the placement P11 really made -- so keeping
+    it would credit `rule` or `user` with a node the rules and the person never
+    chose, and the shadow half of the model's share would be counted off the wrong
+    record. `None` is the truth: nobody decided this, because it did not happen.
     """
     files: dict[str, Observation] = dict(run.files)
     sources: dict[str, str] = {}
@@ -475,10 +482,11 @@ def shadow_run(run: RunObservation, observed: Mapping[str, ObservedVerdict],
         if answer.destination:
             files[path] = dataclasses.replace(
                 observation, outcome=PLACE, destination=answer.destination,
-                review_policy=None)
+                review_policy=None, decided_by=None)
         else:
             files[path] = dataclasses.replace(
-                observation, outcome=ABSTAIN, destination=(), review_policy=None)
+                observation, outcome=ABSTAIN, destination=(), review_policy=None,
+                decided_by=None)
     return dataclasses.replace(run, files=files), sources
 
 

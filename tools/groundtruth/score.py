@@ -61,6 +61,12 @@ NO_OUTCOME = "no decision at all (outside the five)"
 #: underneath it are what a person fixing the product needs.
 MISPLACED_BUCKETS = (PLACED_PARENT, PLACED_FLAT, PLACED_WRONG)
 
+#: The buckets that mean a folder was CHOSEN -- the four above plus the one that
+#: got it right. `104` R-165's second half names these and not the other two: a
+#: placement has a decider and `NOT_PLACED` and `NO_DECISION` do not, so they are
+#: the only lines on the block that can carry who decided them.
+PLACED_BUCKETS = (PLACED_EXACT, PLACED_PARENT, PLACED_FLAT, PLACED_WRONG)
+
 _NOT_ALNUM = re.compile(r"[^0-9a-z]+")
 
 
@@ -187,6 +193,38 @@ def score_outcome(label: Label, observation: Observation | None, *,
     return NO_OUTCOME
 
 
+def _named_the_same(got: str, aliases: Sequence[str]) -> bool:
+    """Whether the label's own file says this spelling names the labelled value.
+
+    `104` R-147. The scoreboard could not tell a right answer in the document's
+    spelling from a wrong one. §16.2: for 18 of the 43 labelled coursework files
+    the course code is nowhere in the file's bytes -- it is in the folder path
+    or on a neighbouring syllabus -- "under a spelling the label does not use",
+    and 23 dossiers held the code's digits and scored as misses anyway. The
+    documents of one course print `ENGI E1006`; its label spells it
+    `PYTHON1006`.
+
+    `_same` handles the spellings that differ only in punctuation and case, and
+    that was already enough for `AAAAAA9999` against a printed `Aaaaaa 9999`.
+    It cannot know a code and a course NAME are one course, because that is not
+    a property of the two strings -- it is something a person knows and writes
+    down. `Label.aliases` is where they wrote it.
+
+    THIS IS THE WHOLE READER. Nothing else in this module or in `src/` consults
+    `aliases`: `score_sorting`, `_ends_with` and `family_cohesion` compare folder
+    names and never see it, so an equivalence can move a fact from `wrong` to
+    `correct` and can never move a file, build a node, or rename one. `00`'s
+    2026-09-05 amendment -- "There are no alias tables or equivalence maps in
+    code" -- is why the table is in the labels file and why this is its only
+    door.
+
+    Compared with `_same` rather than by equality, so an alias inherits the
+    separator-blindness the labelled spelling already has and nobody has to
+    write out every punctuation of it.
+    """
+    return any(_same(got, spelling) for spelling in aliases)
+
+
 def score_fields(label: Label, observation: Observation) -> tuple[int, int, int, int]:
     """`(correct, wrong, missing, extra)` for one file.
 
@@ -200,7 +238,7 @@ def score_fields(label: Label, observation: Observation) -> tuple[int, int, int,
         got = observation.fields.get(key)
         if got is None:
             missing += 1
-        elif _same(got, wanted):
+        elif _same(got, wanted) or _named_the_same(got, label.aliases.get(key, ())):
             correct += 1
         else:
             wrong += 1
