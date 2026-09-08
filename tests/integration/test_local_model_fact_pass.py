@@ -900,3 +900,200 @@ def test_site_b_is_asked_under_a_draft_that_says_unratified(
 
     assert _calls_at(database, "B_group") >= 1
     assert cli.OBSERVE_TEMPLATE_ID["B_group"].startswith("b_group.unratified.")
+
+
+# --- `104` R-148: the file the fact pass settled nothing about ------------------
+
+#: The folder `HW 3.txt` is put under, and it is the tree's own root label rather
+#: than a name invented here: `_corpus` builds a plan whose nodes are `Coursework`
+#: and four beneath it, and `retrieval.CURATED_FOLDER` matches a candidate on the
+#: casefolded name of a folder the file is ALREADY IN.
+#:
+#: Why the file has to be moved at all. `needs_model_call`'s first clause is "an
+#: assessment with no candidate at all is asked of nobody", and retrieval reads
+#: facts, accepted groups, folder labels and semantic neighbours -- never evidence
+#: items. A factless file in a flat corpus therefore reaches site C through none
+#: of the six channels and its `NOT_ELIGIBLE_FOR_MODEL` was never even recorded;
+#: measured on this corpus, its decision carries `alternatives: []` and support
+#: 0.0. The folder is what gives it a candidate, and everything after that is the
+#: defect this test is about.
+COURSEWORK_FOLDER = "Coursework"
+
+
+def _corpus_with_the_homework_in_a_named_folder(root: Path) -> Path:
+    """`_corpus`, with the one file that settles no fact moved one level down.
+
+    Nothing else changes, and the folder name is deliberately not a course code, a
+    term or a kind of work: a name §3.5's rules could read would settle a fact off
+    the path and destroy the very state under test.
+    """
+    corpus = _corpus(root)
+    folder = corpus / COURSEWORK_FOLDER
+    folder.mkdir()
+    (corpus / "HW 3.txt").rename(folder / "HW 3.txt")
+    return corpus
+
+
+def _dossier_body(database, *, call_site: str, subject_ref: str) -> dict:
+    """The one dossier this run recorded at a site about one subject.
+
+    Read off `llm_dossier.payload`, which `canonical_dossier_bytes` re-derives the
+    model-visible bytes from, rather than off the stub's prompts: the body's own
+    `subject_ref` is a `handle:`-prefixed digest, so a prompt cannot be matched to
+    a file without re-deriving the handle -- and the table already holds the join
+    the product itself wrote down.
+    """
+    (payload,), = _query(
+        database,
+        "SELECT payload FROM llm_dossier WHERE call_site = ? "
+        "AND subject_ref = ?", call_site, subject_ref)
+    return json.loads(payload)
+
+
+def test_a_file_with_no_settled_fact_is_still_asked_at_site_c(
+        tmp_path, stub, monkeypatch):
+    """`104` R-148 end to end, and it is 103 of the owner's 199 files on r12.
+
+    `cli.evidence_for` built a placement call's evidence out of `file_facts`, so a
+    file P6 settled nothing about arrived at `pipeline._judge_with_model` with
+    nothing to send and `_not_asked` recorded `NOT_ELIGIBLE_FOR_MODEL` before a
+    dossier existed. `00` §5 builds this stage for "files or groups that remain
+    ambiguous" and it was refusing the most ambiguous file in the corpus -- 52% of
+    the owner's coursework.
+
+    `HW 3.txt` is that file here, and the test says so rather than assuming it:
+    `file_facts` is queried and is empty for it. Its READINGS are not empty, and
+    that is the whole difference -- it now carries `excerpt` items of its own and
+    site C is asked.
+
+    Run on this same corpus before the change: no C dossier for it and one
+    `NOT_ELIGIBLE_FOR_MODEL` row naming it.
+    """
+    monkeypatch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
+    monkeypatch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)
+    corpus = _corpus_with_the_homework_in_a_named_folder(tmp_path)
+    database = tmp_path / "holder" / "plan.sqlite"
+    code, report = _run(corpus, database)
+    assert code == 0, report
+
+    (homework,), = _query(
+        database, "SELECT file_id FROM files WHERE filename = ?", "HW 3.txt")
+    settled = _query(
+        database,
+        "SELECT field_key FROM file_facts WHERE file_id = ? AND active = 1 "
+        "AND superseded_by IS NULL", homework)
+    assert settled == [], (
+        f"this test is about a file with no settled fact and this one has "
+        f"{settled}; the corpus changed under it")
+
+    asked = _query(
+        database,
+        "SELECT subject_ref FROM llm_dossier WHERE call_site = 'C_placement' "
+        "AND subject_ref LIKE ?", f"file:{homework}:%")
+    assert len(asked) == 1, (
+        f"the file the fact pass could say nothing about is the one site C "
+        f"exists for, and it was not asked. {report}")
+
+    turned_away = _query(
+        database,
+        "SELECT reason FROM llm_pre_call_abstention WHERE subject_ref LIKE ?",
+        f"file:{homework}:%")
+    assert turned_away == [], turned_away
+
+
+def test_the_factless_files_dossier_carries_its_own_words(
+        tmp_path, stub, monkeypatch):
+    """What it was asked WITH, on the wire, not just that it was asked.
+
+    The items are `excerpt`s, they carry P4's own zone and the reading's own span,
+    and their basis is `direct-anchor` -- the file's own words rather than a
+    neighbour's inference about it. `104` R-11 records what inventing any of the
+    three cost at this same seam.
+    """
+    monkeypatch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
+    monkeypatch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)
+    corpus = _corpus_with_the_homework_in_a_named_folder(tmp_path)
+    database = tmp_path / "holder" / "plan.sqlite"
+    code, report = _run(corpus, database)
+    assert code == 0, report
+
+    (homework,), = _query(
+        database, "SELECT file_id FROM files WHERE filename = ?", "HW 3.txt")
+    (subject_ref,), = _query(
+        database,
+        "SELECT subject_ref FROM llm_dossier WHERE call_site = 'C_placement' "
+        "AND subject_ref LIKE ?", f"file:{homework}:%")
+
+    placement = _dossier_body(database, call_site="C_placement",
+                              subject_ref=subject_ref)
+    excerpts = [item for item in placement["evidence_items"]
+                if item.get("kind") == "excerpt"]
+    assert excerpts, placement["evidence_items"]
+    assert all(item["basis"] == "direct-anchor" for item in excerpts), excerpts
+    # A zone P4 recorded, never `filename` or `path`: §8.4's always-local list is
+    # what `releasable_observations` excludes first, and placement is the site
+    # where the folder a file already sits in looks like the best evidence there
+    # is. A span-less item is §2.3's cell and §2.8's field, where the address IS
+    # the whole citation -- never a `(0, len(value))` invented at the seam.
+    for item in excerpts:
+        assert item["location"] not in ("filename", "path"), item
+        assert item["excerpt_span"] is None or (
+            len(item["excerpt_span"]) == 2
+            and all(isinstance(n, int) for n in item["excerpt_span"])), item
+
+    # THE ROW'S OWN SENTENCE: site C sees what site A saw. The fact call for this
+    # same file version was offered the same reading set, so every excerpt here is
+    # one of its items -- not a wider selection minted for this site.
+    fact_call = _dossier_body(database, call_site="A_fact",
+                              subject_ref=homework)
+    seen_at_a = {item["evidence_ref"] for item in fact_call["evidence_items"]}
+    assert {item["evidence_ref"] for item in excerpts} <= seen_at_a, (
+        excerpts, sorted(seen_at_a))
+
+    # And the door actually opened: the model was handed text, not a list of
+    # addresses with nothing behind them.
+    assert placement["released_evidence"], placement
+
+    # No address is offered twice. The three sources meet in one list and a span
+    # shown twice is one reading counted as two pieces of evidence.
+    addresses = [(item["evidence_ref"], item["location"],
+                  None if item["excerpt_span"] is None
+                  else tuple(item["excerpt_span"]))
+                 for item in placement["evidence_items"]]
+    assert len(addresses) == len(set(addresses)), addresses
+
+
+def test_a_file_with_a_fact_is_shown_the_fact_and_the_readings_around_it(
+        tmp_path, stub, monkeypatch):
+    """R-148's ruling is ALWAYS, not only-when-factless, and this is the half that
+    says so.
+
+    A fact's citation is ONE SPAN -- the characters a rule matched -- and the
+    person placing a file reads the whole excerpt set before deciding where it
+    goes. So a file that has both is shown both: the `fact` items it always had,
+    and its own readings beside them.
+    """
+    monkeypatch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
+    monkeypatch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)
+    corpus = _corpus_with_the_homework_in_a_named_folder(tmp_path)
+    database = tmp_path / "holder" / "plan.sqlite"
+    code, report = _run(corpus, database)
+    assert code == 0, report
+
+    (syllabus,), = _query(
+        database, "SELECT file_id FROM files WHERE filename = ?",
+        "PHYS 1401 syllabus.txt")
+    assert _query(
+        database,
+        "SELECT field_key FROM file_facts WHERE file_id = ? AND active = 1 "
+        "AND superseded_by IS NULL", syllabus), "this file is meant to have facts"
+    (subject_ref,), = _query(
+        database,
+        "SELECT subject_ref FROM llm_dossier WHERE call_site = 'C_placement' "
+        "AND subject_ref LIKE ?", f"file:{syllabus}:%")
+
+    body = _dossier_body(database, call_site="C_placement",
+                         subject_ref=subject_ref)
+    kinds = {item["kind"] for item in body["evidence_items"]}
+    assert "fact" in kinds, body["evidence_items"]
+    assert "excerpt" in kinds, body["evidence_items"]
