@@ -987,3 +987,135 @@ So the answer to "why does every run place so little": not the prompt, not the n
 
 
 
+
+---
+
+## 17. The owner's ruling of 8 Sep 2026 (evening), and three corrections chain w1bn forced
+
+Written by the lead. Every number below came from a run on this machine today; every correction
+names the measurement that forced it.
+
+### 17.1 THE RULING: the LLM is the decision engine
+
+The owner ruled, in these terms: **an LLM is the decision engine that sorts files, with minimal
+human input and maximum customizability.** The extraction pipeline, the database and the schema
+packaging exist for exactly one reason -- to make each model call cheap and well-aimed. This is
+not a rule-based system.
+
+Code therefore does one of two things: it feeds the model better inputs, or it applies the model's
+outputs. A path that decides a placement, a category or a name WITHOUT the model is one of two
+things, and every such path in this repository is to be sorted into one of them:
+
+  (a) a legitimate deterministic pre-filter that narrows what the model must decide -- `00`:110
+      sanctions exactly this and no more: "The LLM should not be called for direct, unique
+      matches. If a file's validated facts uniquely match one frozen path, deterministic matching
+      is faster, cheaper, and more stable"; or
+  (b) a bug: a rule masquerading as a decision.
+
+**Documents in this repository that describe a rules-first architecture predate this framing and
+do not overrule it.** Where `104`'s own register or `103` reads as rules-first, this section
+governs.
+
+The ruling's authority for the largest single change it forces is `00`:39, which already said it:
+"In the third stage, an LLM receives only compact evidence packets for files or groups that
+**remain ambiguous, have multiple plausible domains**, or contain language that requires
+interpretation." A recogniser tie IS a file with multiple plausible domains. It has never reached
+a model.
+
+**Three closed vocabularies opened by the same ruling** (site G, `src/model_situation.py`, which
+was built to this wall and stopped there on purpose):
+
+1. `llm_harness.vocabulary.CALL_SITES` gains `G_situation_sensitivity`, six members to seven.
+   This is the Q-M the module names.
+2. `privacy.vocabulary.CLASSIFICATION_BASES` gains a truthful basis for a local-model verdict.
+   **The owner's stated intent is that a model verdict must never be recorded as `detector`**,
+   which is the untruth `96` §19 caught when `detector_no_safety_evidence` was read as "I checked
+   and it is fine".
+3. A situation prompt is ratified LOCAL-ONLY, by bakeoff of the two authored candidates
+   (`situation.unratified.shortlist.2026-09-06`, `situation.unratified.safety-first.2026-09-06`)
+   under `103` §28.1. Nothing leaves the device under this ruling.
+
+### 17.2 CORRECTION, and it is the largest in this document: w1bl's five placements were an artifact
+
+Chain w1bn ran on `d1a135e` (R-159 + R-160 merged) and came back with **13 failures** and a
+sorting row of **0 / 0 / 0 / 41 not placed**, against w1bl's `f4ba16f` row of **0 exact / 5 right
+parent, wrong leaf / 0 wrong / 36 not placed**. That reads as a regression of five placements. It
+is not one.
+
+Measured today at three commits, same fixture, `tests/integration/test_step4_recognition_as_a_gate.py`:
+
+| commit | notebook verdict | file |
+|---|---|---|
+| `8eb41e0` (pre-R-160) | `Recognition(schema_id='code')` | 5 passed |
+| `29a7d0f` (R-160 merged) | `Abstention(tied: academic, code)` | 1 failed |
+| `d1a135e` (HEAD at w1bn) | same abstention | 1 failed |
+
+Why `code` used to win: the `code` schema's authored terms include `kernel`, `source`, `cell`,
+`notebook` and `ipynb`. A raw `.ipynb` is JSON containing `"cells"`, `"source"` and `"kernelspec"`
+**as dictionary keys**. The term counter matched those keys. That gave `code` four-plus matches
+against `academic`'s one, so `code` led and the file was recognised. R-160 made a notebook's cells
+be read as their own text; the JSON punctuation went with it; what remains is `import` in the code
+cell against `lecture` in the markdown cell, one term each, a tie, which `never_alone` refuses.
+
+The test's own docstring already said what was at stake: "Four of the owner's five `Python 1006`
+lecture notebooks come back exactly this way... **They are the four the run places.**"
+
+**So the five placements were produced by a term-counter matching serialization structure, and
+R-160 did not lose them -- it deleted a false signal and the row fell to the number that was
+always true.** Corrections that follow from this:
+
+- **§14.1's table.** Every row's "rpwl" column that counted these notebooks is reporting an
+  artifact. The baseline `995c94f` row of `0 / 6 / 0 / 32` and the `178a951` row identical to it
+  are both affected; six, not five, at those commits.
+- **§11.1 row 6 and §14.2's note on the six `Python 1006` files.** The register treated "the file
+  stops one level short" as the defect (R-48). The prior question is why it was placed at all.
+- **§16.1's model row.** "234 nested (R-162)" and the rest stand; nothing here touches them.
+- **Any reading of the offline row as evidence that the deterministic path works.** It was never
+  evidence of that. The honest offline baseline for `academic.coursework` is **0 of 41**.
+
+This is also the register's own best example of the ruling in §17.1: a rule masquerading as a
+decision, scoring as a win, for weeks, invisible to every instrument the project had. R-165
+(decided-by, in rebase now) is what makes it visible next time -- a "5 right parent" line that
+also reads "0 decided by the model" is instantly suspicious.
+
+### 17.3 CORRECTION: the payload instrument was dead on w1bn, and is fixed
+
+`tools/groundtruth/payload.py:384` still called `releasable_observations` without R-159's now
+required `locality` and `ceiling`. Twelve of w1bn's thirteen failures are that one `TypeError`.
+`src/cli.py` had been updated at both its call sites; the instrument had not. Fixed at `5ff35c0`:
+the locality is `authorities.model_target.locality`, the same target the route is asked about
+eleven lines above, and the ceiling is `report.ceiling`. Twelve failed to twenty passed.
+
+**The scoring run itself exited 0 and was never affected** -- the 41-file row above is real, not
+an artefact of the crash.
+
+### 17.4 CORRECTION: four things the register lists as blocked are already built
+
+Read from the source today, not inferred:
+
+- **R-04 is stale for site C.** `cli.py:1471-1500` wires `C_PLACEMENT` with a client, a prompt and
+  a residual prompt, gated by `observe_locality_permits`.
+- **§15.1's P1 (per-draft status) is built.** `prompt_library.draft_status(template_id)` reads a
+  row's own `status` and falls back to the packet word, so one site can be ratified alone.
+- **§15.1's P2 (a real `chosen_node_of`) is built.** `cli.py:1334` and the note at `cli.py:1449`:
+  "A ratified site gets the real reader -- `_chosen_node_of` for C, `_residual_action_of` for D --
+  and an unratified one gets `_must_not_apply`, which raises."
+- **Site C is already ratified for the local model.** `c_placement.unratified.eliminate-v2.2026-09-06`
+  carries `status: "ratified_local"` in the manifest, as does `a_fact.unratified.folder-levels-v2.2026-09-07`.
+
+So the shortest path §15.1 described -- "P1, P2 and ratify C" -- has already landed. What stops the
+model deciding placements today is not ratification. It is that the file never reaches the call:
+the recogniser tie makes it unclassified, the gate refuses an unclassified file, and the dossier
+that does get built is a median 212 characters. That is what §17.5 is dispatched against.
+
+### 17.5 The four lanes in flight (dispatched 8 Sep, off `5ff35c0`)
+
+| Lane | Branch | What it must make true |
+|---|---|---|
+| recognition | `r166-tie-is-a-question` | a tie reaches site G and returns a cited answer or a visible `unknown`; the notebook test states the truth; no schema term may be satisfied by serialization structure |
+| evidence | `r164-paragraph-units` (rebased) | sub-unit excerpts minted so a page stops being refused as a whole document; `00`:186's "selected excerpts" actually exist |
+| answers | `r162-answer-shape` | the 234 nested responses are read rather than discarded; the glossary stops being positioned as citable evidence |
+| scoreboard | `r165-decided-by` (rebased) | every sorting line carries its decided-by split; R-147 aliases so a fact and a label naming one course score as agreeing |
+
+Open owner items unchanged by this section: 13 (response schema, and the answers lane reports on
+it before it is built), 15, 16, 17, 18.
