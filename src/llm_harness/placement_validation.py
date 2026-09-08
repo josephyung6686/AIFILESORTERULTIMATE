@@ -462,21 +462,26 @@ def _placement_disposition(verdict: P8Verdict) -> P8Verdict:
     return _rewrite(verdict, disposition=disposition)
 
 
-def _same_file_evidence(dossier: Dossier, raw: object) -> bool:
-    if not isinstance(raw, Mapping):
-        return True
-    citations = raw.get("citations")
-    if not isinstance(citations, Sequence) or isinstance(citations, (str, bytes)):
-        return True
+def _same_file_evidence(dossier: Dossier, verdict: P8Verdict) -> bool:
+    """Every reference this claim leans on names the file the dossier is about.
+
+    `104` R-158. This read the model's citations as it wrote them, and the model
+    writes what it was shown: `wire_ref` keys a P4 `observation_key` before it
+    leaves the device, so the lookup below missed on every real key and the
+    citation was skipped -- the check could not fire on any run, and passed only
+    because the fixtures cite a reference that is not a P4 key and so travels in
+    the clear.
+
+    `verdict.citations_checked` is the same list after `validation._validate_claim`
+    has un-digested it, which is the one place that translation happens. It also
+    arrives already resolved: a reference outside the dossier is
+    `CITATION_NOT_IN_DOSSIER` and the claim is rejected before any site validator
+    sees it, so a reference here always names an item and `by_ref` never misses.
+    """
     by_ref = {item.evidence_ref: item for item in dossier.evidence_items}
-    for citation in citations:
-        if not isinstance(citation, Mapping):
-            continue
-        ref = citation.get("evidence_ref")
-        item = by_ref.get(str(ref))
-        if item is None:
-            continue
-        if item.location != dossier.subject_ref:
+    for citation in verdict.citations_checked:
+        item = by_ref.get(citation.citation_ref)
+        if item is not None and item.location != dossier.subject_ref:
             return False
     return True
 
@@ -506,7 +511,7 @@ def _residual_site(
             return _reject(verdict, DESTINATION_NOT_IN_FROZEN_TREE, REJECTED)
         if target not in approved and target not in dossier.allowed_vocabulary:
             return _reject(verdict, DESTINATION_NOT_IN_FROZEN_TREE, REJECTED)
-    if not _same_file_evidence(dossier, raw):
+    if not _same_file_evidence(dossier, verdict):
         return _reject(verdict, EVIDENCE_NOT_IN_FILE_RECORD, REJECTED)
     if not dependencies.sensitivity_policy(dossier, payload):
         return _reject(verdict, SENSITIVITY_RESTRICTION_IGNORED, REJECTED)
