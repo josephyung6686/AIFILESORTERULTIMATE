@@ -300,7 +300,8 @@ BODY_CODE_START = BODY.index("W3134")
 BODY_LINE = "COMS W3134 Data Structures"
 
 
-def _text_document(conn, tmp_path, *, text=BODY, name="notes.txt", unit=True):
+def _text_document(conn, tmp_path, *, text=BODY, name="notes.txt", unit=True,
+                   code="W3134"):
     """A `.txt` as the product actually reads one: ONE body unit, and inside it a
     span-less whole-document reading beside the span the structured-string pass found.
 
@@ -308,6 +309,10 @@ def _text_document(conn, tmp_path, *, text=BODY, name="notes.txt", unit=True):
     gives a heading its own unit and its own reading, so a PDF heading has a containing
     reading to cite; a `.txt` body has one reading with no span, and a span-less sibling
     is exactly what `_containing_span_reading` skips.
+
+    `code` is the reading the structured-string pass found, stated by the caller for
+    the reason `BODY_CODE_START` is: this file measures the MINTING and must not hold
+    a second implementation of the recogniser. `104` R-146 added the second caller.
     """
     from evidence_shape.store import record_text_unit
     from evidence_shape.text_units import TextUnit
@@ -335,9 +340,9 @@ def _text_document(conn, tmp_path, *, text=BODY, name="notes.txt", unit=True):
         return observation
 
     whole = observe(text, None)
-    start = text.index("W3134")
-    code = observe("W3134", TextSpan(start, start + 5))
-    return (file_id, content_hash), whole, code
+    start = text.index(code)
+    reading = observe(code, TextSpan(start, start + len(code)))
+    return (file_id, content_hash), whole, reading
 
 
 def test_a_body_code_gets_its_line_minted_as_a_reading_of_its_own(p6_conn, tmp_path):
@@ -546,3 +551,96 @@ def test_a_derived_reading_is_still_citable_and_still_releasable(p6_conn, tmp_pa
 
     assert [one.observation_key for one in offered] == [ref]
     assert offered[0].raw_value == BODY_LINE
+
+
+# ----------------------------------------------------------------------------
+# `104` R-146: a course this pass could not see at all
+# ----------------------------------------------------------------------------
+
+#: A syllabus that prints its course as a capitalised word and four digits, beside
+#: `Instructor:` -- the shape `104` R-146 measured on the owner's disk, where the 18
+#: labelled files of one course have their code stated this way and NO anchor
+#: statement carried it. Read with the uppercase-only recogniser that shipped until
+#: 2026-09-08, `find_structured_strings` returned NOTHING for this text, so there was
+#: no code reading, so `record_anchor_statements` had nothing to record and the
+#: neighbours in the folder were offered no statement of what their course is called.
+WORD_BODY = ("Spring 2026\nPhysics 1401 Introductory Mechanics\n"
+             "Instructor: Dr. Lee. Credits: 3.\n")
+WORD_LINE = "Physics 1401 Introductory Mechanics"
+
+
+def test_the_recogniser_is_what_makes_this_document_statable_at_all():
+    """The premise of the test below, asserted rather than assumed.
+
+    This file's own rule is that it holds no second implementation of the reading;
+    the corollary is that when the reading changes, the fixture must be re-measured
+    against the shipped recogniser and not adjusted until it passes. Two readings
+    come out of this body: the term, which `_TERM` claims first, and the course.
+    """
+    found = [WORD_BODY[one.start:one.end]
+             for one in cli.find_structured_strings(WORD_BODY)]
+
+    assert found == ["Spring 2026", "Physics 1401"]
+    # And only the second of them is something the rule will call a course.
+    assert cli.SUBJECT_RULE.pattern.search("Physics 1401") is not None
+    assert cli.SUBJECT_RULE.pattern.search("Spring 2026") is None
+
+
+def test_a_course_printed_as_a_word_states_its_folder_like_any_other(p6_conn,
+                                                                    tmp_path):
+    """`104` R-146 at the anchor pass, which is where its cost was measured.
+
+    R-146's finding was not that a `subject` was wrong -- it was that of 43 labelled
+    files, the label's subject is stated by a recognised anchor in the file's own
+    folder family for NONE of them, and that the model then copied the only anchor
+    that shared the digits (a one-letter identifier naming something else) onto 9 of
+    its 19 `subject` answers. A document nothing can read states nothing.
+
+    Nothing in `facts.anchor_statements` changed for this to work. The row is the
+    same row: the stating file, its hash, the canonical code, and two citations --
+    no title, no name, no pairing. What the line SAYS stays in the document and the
+    model reads it from there.
+    """
+    version, whole, code = _text_document(
+        p6_conn, tmp_path, text=WORD_BODY, name="physics syllabus.txt",
+        code="Physics 1401")
+    record_anchor_statements(p6_conn, scan_run_id=SCAN, file_versions=[version],
+                             **RECORD)
+
+    statements = anchor_statements_for(p6_conn, SCAN)
+    assert len(statements) == 1
+    one = statements[0]
+    assert one.stating_file_id == version[0]
+    # `104` R-147 owns the spelling and it is not decided here: the canonical value
+    # is what `SUBJECT_RULE.canonical` does with what the document printed.
+    assert one.canonical_code == "Physics 1401"
+    assert one.code_evidence_ref == code.observation_key
+    assert one.line_evidence_ref not in (None, whole.observation_key)
+
+
+def test_the_minted_line_is_the_documents_own_sentence_about_the_course(p6_conn,
+                                                                       tmp_path):
+    """And the line a neighbour is offered is the one a person would point at.
+
+    The minting is `104` R-135's and is untouched: the code's own unit, from the
+    newline before to the newline after. What R-146 changed is that there is now a
+    code here to mint a line around.
+    """
+    from evidence_shape.store import get_observation
+    from facts.anchor_statements import LINE_EXTRACTOR
+
+    version, _whole, _code = _text_document(
+        p6_conn, tmp_path, text=WORD_BODY, name="physics syllabus.txt",
+        code="Physics 1401")
+    record_anchor_statements(p6_conn, scan_run_id=SCAN, file_versions=[version],
+                             **RECORD)
+
+    ref = anchor_statements_for(p6_conn, SCAN)[0].line_evidence_ref
+    row = p6_conn.execute(
+        "SELECT observation_id FROM evidence WHERE observation_key = ?",
+        (ref,)).fetchone()
+    minted = get_observation(p6_conn, row["observation_id"])
+
+    assert minted.raw_value == WORD_LINE
+    assert minted.extractor_name == LINE_EXTRACTOR
+    assert minted.location.zone == "body"

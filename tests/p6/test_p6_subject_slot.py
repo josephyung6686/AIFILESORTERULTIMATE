@@ -50,6 +50,7 @@ from evidence_shape.runs import ExtractionRun
 from evidence_shape.store import record_observation, record_run
 
 from facts.file_facts import facts_for_file
+from facts.unresolved import unresolved_for_file
 from facts.values import values_in_field
 
 CLOCK = "2026-08-19T12:00:00+00:00"
@@ -226,20 +227,31 @@ def test_the_identifiers_the_pass_located_are_not_subjects_by_being_identifiers(
 
 
 def test_refusing_them_is_not_refusing_everything(p6_conn, tmp_path):
-    """The negative twin, kept, with the half of it that was always true.
+    """The negative twin, kept, and its answer moved on 2026-09-08.
 
     The same three readings, in a document that describes a course instead of a
-    flight. They still become subjects, and `BOEING 777` still proves the
-    canonicaliser runs: `65` §4.2 is the recorded failure where one identity
-    arriving as several spellings split one course into four one-file groups.
+    flight. This asserted that all three become `subject` facts, and said so
+    honestly: "`BOEING777` under the word `syllabus` IS a subject here. The rule
+    has no vocabulary of plausible course codes ... so it cannot know an aircraft
+    from a course by looking at it."
 
-    **And this states the limit of the fix honestly.** `BOEING777` under the word
-    `syllabus` IS a subject here. The rule has no vocabulary of plausible course
-    codes -- a curated department list was rejected twice and could not answer for
-    a university nobody told it about -- so it cannot know an aircraft from a
-    course by looking at it. What it can do is refuse both when the neighbourhood
-    is an itinerary, which is the test above, and that is what moved the measured
-    number.
+    **`104` R-37's principle one layer down says it never had to.** Three DISTINCT
+    canonical values for one field on one file version is not a resolution --
+    §3.7 settles on none of them and the level disappears with no row saying why --
+    so `apply_rules` now declines and records one `unresolved` row per candidate,
+    each citing its own reading. The document then reaches the model with all three
+    of its readings, and the model, which can read the words around them, decides.
+    That is the constitution's answer to the question the shape cannot ask: a
+    curated department list was rejected twice and could not answer for a
+    university nobody told it about, and nothing here needs one.
+
+    **The half that was always true is still true and is why this test survives.**
+    Refusing everything would be the other way to be wrong, and the rule does not:
+    a document offering ONE course still gets it as a `validated` fact with no
+    model involved, which `tests/p6/test_p6_subject_rule.py` holds. What changed is
+    only what happens when a file offers several, and the difference between "no
+    fact" here and "no fact" in the flight-manifest test above is the ROW: this
+    file's refusal names three candidates and hands them on, that one's names none.
     """
     file_id, content_hash = _file(p6_conn, tmp_path, name="outline.pdf",
                                   body=b"a course outline")
@@ -250,8 +262,15 @@ def test_refusing_them_is_not_refusing_everything(p6_conn, tmp_path):
                 span=TextSpan(index * 40, index * 40 + len(raw)),
                 before="Syllabus - ", after=", 3 credits.")
 
-    assert _subjects(p6_conn, file_id, content_hash) == {
-        "UARF470911", "UA872", "BOEING777"}
+    assert _subjects(p6_conn, file_id, content_hash) == set()
+
+    rows = unresolved_for_file(p6_conn, file_id, content_hash, field_key="subject")
+    assert sorted(row["reason"] for row in rows) == [
+        "rule_found_several_values"] * 3
+    # Three candidates, three citations, so the handoff names what it could not
+    # choose between rather than reporting a bare silence.
+    cited = {ref for row in rows for ref in json.loads(row["evidence_refs"])}
+    assert len(cited) == 3
 
 
 def test_an_identifier_printed_inside_a_heading_survives_the_refusal(

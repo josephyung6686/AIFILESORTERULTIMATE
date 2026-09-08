@@ -345,8 +345,25 @@ def test_rules_do_not_read_another_versions_observations(p6_conn, tmp_path):
 
 
 def test_the_outcome_does_not_depend_on_p4s_insertion_order(p6_conn, tmp_path):
-    # `observations_for_file` orders by rowid. Two observations, written in either
-    # order, must produce the same two facts.
+    """`observations_for_file` orders by rowid, so P4's insertion order must not
+    change what P6 concludes.
+
+    **THE OUTCOME THIS ASSERTS CHANGED ON 2026-09-08 AND THE PROPERTY DID NOT.**
+    Two DIFFERENT courses beside one `Syllabus` on one file version used to produce
+    two `validated` facts, and this test pinned both. `104` R-37's principle one
+    layer down says that was never a resolution: a producer that finds two distinct
+    canonical values for one field on one file has not answered it, and §3.7 then
+    settles on neither, so the level disappears with no row saying why. The rule now
+    declines and records one row per candidate, and the model -- which can read the
+    words around them -- is the one asked.
+
+    The order-independence is what this test is FOR and it is asserted harder than
+    before: both orders reach the same empty fact set, the same reason, and the same
+    two citations. A first-wins or last-wins tie-break would satisfy the old
+    assertion in one order and fail it in the other; declining satisfies it in both,
+    which is the honest way to be order-independent about a question the rule cannot
+    answer.
+    """
     def resolve(order):
         file_id, content_hash = _record(
             p6_conn, tmp_path, name=f"order-{'-'.join(order)}.pdf", body=b"x")
@@ -356,11 +373,53 @@ def test_the_outcome_does_not_depend_on_p4s_insertion_order(p6_conn, tmp_path):
                      context_before="Syllabus — ")
         apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
                     rules=(_course_rule(),), screen=NO_CATALOGUE)
-        return sorted(r["canonical_value"]
-                      for r in facts_for_file(p6_conn, file_id, content_hash))
+        rows = unresolved_for_file(p6_conn, file_id, content_hash,
+                                   field_key="subject")
+        return (
+            sorted(r["canonical_value"]
+                   for r in facts_for_file(p6_conn, file_id, content_hash)),
+            sorted(r["reason"] for r in rows),
+            sorted(ref for r in rows for ref in json.loads(r["evidence_refs"])),
+        )
 
-    assert resolve(("BUSIB 4300", "ECON 1001")) == \
-        resolve(("ECON 1001", "BUSIB 4300")) == ["BUSIB 4300", "ECON 1001"]
+    forwards = resolve(("BUSIB 4300", "ECON 1001"))
+    backwards = resolve(("ECON 1001", "BUSIB 4300"))
+
+    assert forwards == backwards
+    facts, reasons, cited = forwards
+    assert facts == []
+    assert reasons == ["rule_found_several_values", "rule_found_several_values"]
+    # One citation per candidate, so a reader sees WHICH two readings disagreed.
+    assert len(cited) == 2 and len(set(cited)) == 2
+
+
+def test_one_course_printed_two_ways_on_one_file_is_still_one_fact(
+        p6_conn, tmp_path):
+    """The twin of the decline above, and the reason the count is CANONICAL.
+
+    `65` §4.2 is the recorded failure where one identity arriving as several
+    spellings split one course into four one-file groups and the folder was
+    proposed and left empty. `rule.canonical` exists to collapse exactly that, so
+    counting raw MATCHES rather than canonical values would read the collapse as a
+    disagreement and decline the commonest correct case on the owner's disk.
+    """
+    file_id, content_hash = _record(p6_conn, tmp_path, name="one.pdf", body=b"one")
+    for index, raw in enumerate(("BUSIB 4300", "BUSIB-4300")):
+        _observe(p6_conn, run_id=f"same-{index}", file_id=file_id,
+                 content_hash=content_hash, raw=raw, context_before="Syllabus — ")
+
+    apply_rules(p6_conn, file_id=file_id, content_hash=content_hash,
+                rules=(Rule(pattern=COURSE_CODE,
+                            required_context_terms=ACADEMIC_CONTEXT_TERMS,
+                            field_key="subject",
+                            canonical=lambda raw: raw.replace("-", " ")),),
+                screen=NO_CATALOGUE)
+
+    assert {r["canonical_value"]
+            for r in facts_for_file(p6_conn, file_id, content_hash)} == {
+        "BUSIB 4300"}
+    assert unresolved_for_file(p6_conn, file_id, content_hash,
+                               field_key="subject") == []
 
 
 def test_several_rules_over_one_observation_each_write_their_own_row(

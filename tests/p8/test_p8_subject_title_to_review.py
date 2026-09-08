@@ -107,6 +107,19 @@ STAYS_REFUSED: tuple[str, ...] = (
     "&", "-", "(i)", "* DIEI ==outcomes in E", "#corre 1 . 4 - 1 : 4 . 10 - 4",
     "AUDIENCES IN GA4", "ADVERTISING REPORTS", "Addition principle-",
     "Analytics with google analytics 4 (ga4)",
+    # `104` R-146 widened refusal 1 and these three are what that means on this
+    # path. `normalize_for_review` refuses "a code, or a line containing one" by
+    # asking `cli._STRUCTURED.search`, and until 2026-09-08 that shape saw only
+    # UPPERCASE letters -- so S1's rule caught `PHYS1401 Problem Set 4` above and
+    # let the same sentence through whenever the department was a word. All three
+    # below were ACCEPTED as `possible` titles before R-146 and are refused now,
+    # which is S1's own rule reaching the readings it always meant: A_fact rule 4
+    # takes "the smallest run of characters that identifies the thing, not the
+    # phrase that contains it". The third carries a term rather than a code and is
+    # refused for `Spring 2026`'s reason, one line up in the same function.
+    "Physics 1401 Introductory Mechanics",
+    "Linear Algebra Section 001",
+    "Modern Physics Spring 2026",
 )
 
 
@@ -127,6 +140,48 @@ def test_a_code_shaped_subject_still_normalises_to_the_canonical_code(raw, expec
     """
     assert normalize_for_model("subject", raw) == expected
     assert normalize_for_review("subject", raw) is None
+
+
+#: `104` R-146 widened the identifier shape and `normalize_for_model` is the other
+#: door it widened. Each row is (value, what the model path now makes of it); every
+#: one of them was `None` -- refused outright -- until 2026-09-08.
+WORD_SHAPED_ON_THE_MODEL_PATH: tuple[tuple[str, str | None], ...] = (
+    # What the widening is FOR: a model answering with the course its document
+    # prints, in the spelling the document prints it.
+    ("Physics 1401", "Physics 1401"),
+    ("COMS W3134", "COMS W3134"),
+    # And what comes with it, because no shape separates these from the two above.
+    ("Chapter 101", "Chapter 101"),
+    ("Section 001", "Section 001"),
+    ("March 2026", "March 2026"),
+    # Still refused, and by the lookahead R-146 made load-bearing rather than by
+    # luck: a term is not a course on either path.
+    ("Spring 2026", None),
+    # Still refused by the single-capital rule, which R-146 did not touch.
+    ("I 1403", None),
+    ("A 2150", None),
+)
+
+
+@pytest.mark.parametrize("raw,expected", WORD_SHAPED_ON_THE_MODEL_PATH,
+                         ids=[one[0] for one in WORD_SHAPED_ON_THE_MODEL_PATH])
+def test_the_model_path_takes_a_word_and_a_number_now(raw, expected):
+    """The second door `104` R-146 widened, stated rather than discovered later.
+
+    `normalize_for_model` asks `cli.SUBJECT_RULE.pattern`, so widening the shape so
+    that `Physics 1401` is a course at all necessarily lets a model's answer of
+    `Chapter 101` through the same check. That is the constitution's trade taken
+    deliberately: code delivers a shape, the model and then the person decide, and
+    a model value arrives as `llm_supported` -- weaker than the deterministic rule
+    and overrulable by the person, which is not true of what a shape asserts alone.
+
+    The two refusals matter as much as the admissions. `Spring 2026` is held off by
+    the term lookahead, which stopped being decoration when the widening made a
+    season match the identifier shape; `I 1403` and `A 2150` are held off by the
+    single-capital rule that `TRUNCATIONS` in `tests/p6/test_p6_subject_rule.py`
+    records, and R-146 did not touch it.
+    """
+    assert normalize_for_model("subject", raw) == expected
 
 
 @pytest.mark.parametrize("raw", TITLES)

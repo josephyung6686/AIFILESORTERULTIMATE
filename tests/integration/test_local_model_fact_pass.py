@@ -350,6 +350,82 @@ def test_a_paragraph_sized_context_line_is_offered_as_its_code_span_not_deferred
         "the excerpt shape must still carry the code to the model")
 
 
+# --- `104` R-146: a course printed as a word, on the wire ---------------------
+
+WORD_COURSE_NAME = "Physics 1401 syllabus.txt"
+
+
+def _corpus_with_a_word_course(root: Path) -> Path:
+    """`_corpus`, plus one syllabus that prints its course as a WORD and a number.
+
+    A SEVENTH file rather than a change to the six, and deliberately: every test in
+    this module runs the whole corpus, and `_corpus_with_a_paragraph_neighbour`
+    above set the precedent that a row-specific file is added in a corpus of its
+    own. The six keep their counts exactly.
+
+    `104` R-146 measured this shape on the owner's disk: the 18 labelled files of
+    one course have their code printed in the stating syllabus as a title-case word,
+    a space and four digits, and NO anchor statement carried it -- because the
+    recogniser that shipped until 2026-09-08 read nothing at all here. The text is
+    the shape of `PHYS 1401 syllabus.txt` above with only the case of the department
+    changed, which is the whole of the difference R-146 is about.
+    """
+    corpus = _corpus(root)
+    (corpus / WORD_COURSE_NAME).write_text(
+        "Physics 1401 Syllabus\n\nFall 2024. Instructor: Dr. Ng. Credits: 4.\n")
+    return corpus
+
+
+def test_a_course_printed_as_a_word_becomes_a_validated_subject_on_a_real_run(
+        tmp_path, stub, monkeypatch):
+    """`104` R-146 end to end: read, ruled, stated, and carried to a neighbour.
+
+    Before R-146 this file version produced NO identifier observation, so there was
+    no candidate for §3.5's rule, no `unresolved` row and no anchor statement. The
+    fact below is `validated` and its origin is the RULE, which is the point: the
+    deterministic pass reaches it without a model, exactly as it reaches `PHYS1401`
+    off the file beside it, and the model is left the questions only it can answer.
+
+    The value is `Physics 1401` and not `PHYS1401`. `SUBJECT_RULE.canonical` removes
+    a separator only after a CAPITAL, so what the document printed is what is
+    stored; `104` R-147 is the owner's ruling on spelling and is not made here.
+    """
+    monkeypatch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
+    monkeypatch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)
+    corpus = _corpus_with_a_word_course(tmp_path)
+    database = tmp_path / "holder" / "plan.sqlite"
+    code, report = _run(corpus, database)
+    assert code == 0, report
+
+    subjects = _query(
+        database,
+        "SELECT v.canonical_value, ff.reliability_state, ff.origin "
+        "FROM file_facts ff "
+        'JOIN "values" v USING (value_id) '
+        "JOIN files f ON f.file_id = ff.file_id "
+        "WHERE ff.field_key = 'subject' AND f.filename = ?", WORD_COURSE_NAME)
+    assert subjects == [("Physics 1401", "validated", "rule")], (subjects, report)
+
+    # And the document now STATES its course, which is what a neighbour is offered.
+    # R-146's finding was that of 43 labelled files, the label's subject was stated
+    # by a recognised anchor for none of them -- a document nothing can read states
+    # nothing, and the model copied the only anchor that shared the digits.
+    stated = _query(
+        database,
+        "SELECT DISTINCT a.canonical_code FROM anchor_statements a "
+        "JOIN files f ON f.file_id = a.stating_file_id WHERE f.filename = ?",
+        WORD_COURSE_NAME)
+    assert stated == [("Physics 1401",)], (stated, report)
+
+    # The six originals are untouched by the seventh: the uppercase syllabus still
+    # states the course it always stated, under the spelling it always had.
+    assert _query(
+        database,
+        "SELECT DISTINCT a.canonical_code FROM anchor_statements a "
+        "JOIN files f ON f.file_id = a.stating_file_id WHERE f.filename = ?",
+        "PHYS 1401 syllabus.txt") == [("PHYS1401",)], report
+
+
 # --- `103` §10's pass test, on a local model ----------------------------------
 
 def test_the_fact_pass_runs_and_writes_a_supported_fact(tmp_path, stub, monkeypatch):

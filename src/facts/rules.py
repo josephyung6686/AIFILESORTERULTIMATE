@@ -48,7 +48,9 @@ from facts.evidence import (
 from facts.facets import word_boundary_match
 from facts.file_facts import FACT_ORIGINS, write_fact, RULE
 from facts.states import VALIDATED
-from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
+from facts.unresolved import (
+    ATTEMPTED_PRODUCERS, RULE_FOUND_SEVERAL_VALUES, write_unresolved,
+)
 from facts.values import VALUE_ORIGINS, add_raw_variant, ensure_value
 
 #: §3.5's five academic context terms, quoted from the design and complete. This is
@@ -147,12 +149,50 @@ def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
       context check, because a suppressed value whose context also failed would
       otherwise be recorded as a considered refusal it never was;
     * the pattern matches and the context check passes -- one `validated` fact citing
-      that observation's key (M14);
+      that observation's key (M14), UNLESS the field is contested, below;
     * the pattern matches and the context check fails -- one `unresolved` row, whose
       reason is `context_truncated` when P4 flagged the context as cut and
       `context_check_failed` when it did not.
+
+    **A FIFTH, AND IT IS WHY THIS RUNS IN TWO PASSES.** `104` R-37's own principle one
+    layer down: a producer that finds TWO DISTINCT canonical values for one field on
+    one file version has not RESOLVED that field. Writing both is not a resolution, it
+    is a disagreement recorded as two conclusions -- and §3.7 then settles on neither,
+    so the level disappears silently. `104` R-146 measured it: a syllabus printing
+    `Physics 1401` and `Section 001` beside one `Instructor:` produced two `validated`
+    subjects, and the run built both `term` folders and NO course folder at all. Read
+    at `9cd52c6` with the same text in capitals, the older uppercase-only recogniser
+    did the same thing, so this is not a new defect and the repair is not R-146's
+    either -- it is the one R-37 already ruled.
+
+    So the matches are collected first and the writes decided per FIELD:
+
+    * one distinct canonical value -- every fact is written exactly as before, in
+      exactly the order it was written before. This is the whole corpus's normal case
+      and nothing about it moves, which `tests/p6` and the r37 byte-identity fixture
+      both assert rather than assume;
+    * two or more -- NO fact and no `values` row for that field, and one `unresolved`
+      row per candidate observation, each citing its own, with the reason
+      `rule_found_several_values`. The field stays absent from `file_facts`, so
+      `model_facts.pending_fields_for` keeps it PENDING and the candidates reach site A
+      as the file's own readings. The model decides which of them names the thing.
+
+    **Nothing here chooses, and that is the point.** No first-wins, no longest-match,
+    no sort order, no preference between an uppercase spelling and a title-case one --
+    every one of those would be this module answering "which word names the course",
+    which the constitution puts on the model ("LLM decides, code delivers"). The rule's
+    honest answer to two candidates is that it has none.
+
+    **The anchor pass is unaffected and deliberately so.** `record_anchor_statements`
+    carries its own `is_code` and runs before this, so a file printing two code-shaped
+    readings still STATES both, and a neighbour still receives both lines as context.
+    That is the same answer this function is giving: the model is shown both and
+    judges. A file that declines here has not gone quiet.
     """
     written: list[str] = []
+    # Every match that cleared both screens, in the order it cleared them, so the
+    # write pass below can reproduce that order exactly for the uncontested field.
+    candidates: list[tuple[Rule, object, str, str]] = []
     # `104` R-135: a DERIVED reading is an addressable copy of this file's own words
     # and never a second reading of them. `starter.py`'s docstring prints
     # `BUSIB 4300 Homework 2 starter`; the minted line's context carried `Homework`,
@@ -185,34 +225,60 @@ def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
                                               content_hash=content_hash))
                 continue
             matched = match.group(0)
-            value_id = ensure_value(conn, field_key=rule.field_key,
-                                    canonical_value=(matched if rule.canonical is None
-                                                     else rule.canonical(matched)),
-                                    first_evidence_ref=cite(observation),
-                                    origin=VALUE_ORIGINS[0])
-            # §2.8's FIRST rendering, the same one `facts.direct` keeps and for the
-            # same reason: "the raw observation remains exactly that wording".
-            #
-            # IT IS HERE BECAUSE A FIELD MOVED. `subject` was a DIRECT slot until
-            # 2026-09-04 and `direct_facts` has kept its raw variants since the
-            # column gained its first caller; moving the field to a rule moved it to
-            # the one producer that dropped them, and `PHYS 1401`, `PHYS-1401` and
-            # `PHYS1401` would have collapsed to one value with no surviving record
-            # that any document printed a space. `rule.canonical` is exactly what
-            # makes that a loss rather than a redundancy -- it exists to collapse
-            # spellings, and once it has, the canonical form is the only evidence
-            # left of what was on the page.
-            #
-            # The MATCH, not the whole reading: `pattern.search` may claim a
-            # substring, and the wording this column promises is the wording of the
-            # value, not of the paragraph it was found in.
-            add_raw_variant(conn, value_id, matched)
-            written.append(write_fact(
+            candidates.append((
+                rule, observation, matched,
+                matched if rule.canonical is None else rule.canonical(matched)))
+
+    # WHICH FIELDS THE RULES DISAGREED ABOUT. Distinct CANONICAL values, not distinct
+    # matches: `PHYS 1401` and `PHYS1401` on one page are one course and one value,
+    # which is the whole reason `rule.canonical` exists (`65` §4.2), and counting the
+    # raw matches would refuse the very collapse this producer was built to make.
+    values_by_field: dict[str, set[str]] = {}
+    for rule, _observation, _matched, canonical in candidates:
+        values_by_field.setdefault(rule.field_key, set()).add(canonical)
+    contested = {field for field, values in values_by_field.items() if len(values) > 1}
+
+    for rule, observation, matched, canonical in candidates:
+        if rule.field_key in contested:
+            write_unresolved(
                 conn, file_id=file_id, content_hash=content_hash,
-                field_key=rule.field_key, value_id=value_id,
-                reliability_state=_VALIDATED, origin=RULE,
+                field_key=rule.field_key, reason=RULE_FOUND_SEVERAL_VALUES,
+                attempted_producers=(ATTEMPTED_PRODUCERS[1],),
                 evidence_refs=(cite(observation),),
                 cache_key=pass_cache_key(conn, file_id=file_id,
-                                          content_hash=content_hash),
-                active=True))
+                                          content_hash=content_hash))
+            continue
+        # `canonical` is the one computed in the collect pass, not a second call to
+        # `rule.canonical`. The contested check above counted THOSE values, so reusing
+        # them is what makes "one distinct value" and "the value written" the same
+        # sentence; a canonicaliser asked twice could answer twice.
+        value_id = ensure_value(conn, field_key=rule.field_key,
+                                canonical_value=canonical,
+                                first_evidence_ref=cite(observation),
+                                origin=VALUE_ORIGINS[0])
+        # §2.8's FIRST rendering, the same one `facts.direct` keeps and for the
+        # same reason: "the raw observation remains exactly that wording".
+        #
+        # IT IS HERE BECAUSE A FIELD MOVED. `subject` was a DIRECT slot until
+        # 2026-09-04 and `direct_facts` has kept its raw variants since the
+        # column gained its first caller; moving the field to a rule moved it to
+        # the one producer that dropped them, and `PHYS 1401`, `PHYS-1401` and
+        # `PHYS1401` would have collapsed to one value with no surviving record
+        # that any document printed a space. `rule.canonical` is exactly what
+        # makes that a loss rather than a redundancy -- it exists to collapse
+        # spellings, and once it has, the canonical form is the only evidence
+        # left of what was on the page.
+        #
+        # The MATCH, not the whole reading: `pattern.search` may claim a
+        # substring, and the wording this column promises is the wording of the
+        # value, not of the paragraph it was found in.
+        add_raw_variant(conn, value_id, matched)
+        written.append(write_fact(
+            conn, file_id=file_id, content_hash=content_hash,
+            field_key=rule.field_key, value_id=value_id,
+            reliability_state=_VALIDATED, origin=RULE,
+            evidence_refs=(cite(observation),),
+            cache_key=pass_cache_key(conn, file_id=file_id,
+                                      content_hash=content_hash),
+            active=True))
     return tuple(written)

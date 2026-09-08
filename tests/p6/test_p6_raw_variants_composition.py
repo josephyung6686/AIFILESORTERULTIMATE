@@ -35,9 +35,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 import cli
 
 
+#: **THE SECTION NUMBER IS `Section 1` AND WAS `Section 001` FOR THREE DAYS.** Three
+#: digits after a capitalised word is a course-code SHAPE, so `104` R-146's widened
+#: recogniser reads `Section 001` as a candidate and §3.5's rule -- with `Syllabus` and
+#: `Instructor` beside it -- validated it, giving every file of this corpus two
+#: courses. R-146 then repaired the real defect at `facts.rules.apply_rules`: two
+#: distinct canonical values for one field on one file version is not a resolution, so
+#: the rule now declines the field and hands both candidates to the model. Under that
+#: repair this corpus would have produced NO subject at all offline and the collapse
+#: below would have been unobservable. One digit keeps the fixture asking its own
+#: question; `tests/integration/test_two_courses_keep_two_terms.py` asks the other one
+#: on a corpus built for it.
 BODY = """{code} Syllabus
 
-Section 001. Instructor: R. Feynman.
+Section 1. Instructor: R. Feynman.
 Meets Tuesday and Thursday.
 """
 
@@ -99,7 +110,19 @@ def _subject_values(conn):
 
 def test_the_spellings_collapse_to_one_value_per_code(run):
     """The premise. If this fails the corpus stopped exercising the collapse and the
-    tests below are measuring nothing -- the failure mode `84` §5.3 names."""
+    tests below are measuring nothing -- the failure mode `84` §5.3 names.
+
+    This assertion listed a third value, `Section 001`, between 2026-09-08 and the
+    repair later the same day, and the note it carried is superseded rather than
+    deleted: the extra value was real, it came from `104` R-146's widened
+    recogniser, and pinning it was the honest thing to do while the cost had no
+    owner. It has one now. `apply_rules` declines a field it found two distinct
+    canonical values for, so the corpus that produced three values produces none,
+    and the fixture above went to a one-digit section so that this test asks the
+    question it was written for. The refusal itself is asserted where it belongs,
+    in `tests/p6/test_p6_subject_rule.py` and on a real run in
+    `tests/integration/test_two_courses_keep_two_terms.py`.
+    """
     assert [row["canonical_value"] for row in _subject_values(run)] == [
         "CHEM2100", "PHYS1401"]
 

@@ -513,12 +513,232 @@ def test_the_deployment_still_reads_every_identifier_it_ever_read(p6_conn,
 
     `65` §2.2 records widening extraction as a privacy trade-off and `cli.py` states
     the posture: what the product SEES and what the product ASSERTS are two knobs.
-    Only the second one moved. `_STRUCTURED` is untouched, so P4 still stores the
-    same readings, `recognition`'s `_identifier_observations` still gets the same
-    identifiers, and a future producer with better evidence loses nothing.
+    Only the second one moved when the DIRECT slot was replaced by §3.5's rule, so
+    P4 still stores the same readings, `recognition`'s `_identifier_observations`
+    still gets the same identifiers, and a future producer with better evidence
+    loses nothing.
+
+    **THE SEEING KNOB HAS MOVED ONCE SINCE, AND IN THE OTHER DIRECTION.** `104`
+    R-146 widened `_STRUCTURED`'s letter run so that a course printed as a
+    capitalised word and a number is readable at all, and added one alternative so
+    that a department word in front of a section letter is part of the reading.
+    That is a READING failure fixed by reading better -- `63` §10's ruling -- and it
+    takes nothing away: every assertion below is the one that stood before it, and
+    `tests/test_cli.py` holds the readings it added. The ASSERTING knob did not move
+    with it, which is what the two tests after this one are for.
     """
     assert cli._STRUCTURED.fullmatch("PHYS1401") is not None
     assert cli._STRUCTURED.fullmatch("NY11794") is not None
     text = "Homework for PHYS 1401 at Stony Brook, NY 11794"
     assert [text[one.start:one.end] for one in cli.find_structured_strings(text)] == [
         "PHYS 1401", "NY 11794"]
+
+
+# ======================================================================================
+# `104` R-146: the widened reading at the ASSERTING knob
+# ======================================================================================
+
+#: What `_SUBJECT_IDENTIFIER` admits and refuses after R-146, as (reading, admitted).
+#: The lookahead was `[A-Z]{2}|[A-Z][0-9]` and is now `[A-Z][A-Za-z0-9]` -- the same
+#: sentence over the wider shape, and the refusal it exists for is untouched.
+IDENTIFIER_JUDGEMENTS: tuple[tuple[str, bool], ...] = (
+    # Admitted: two letters, or one letter glued to a digit.
+    ("PHYS 1401", True), ("PHYS1401", True), ("BUSIB 4300", True),
+    ("Physics 1401", True), ("French 1101", True), ("Botany 1001", True),
+    ("COMS W3134", True), ("ENGI E1006", True), ("W3134", True), ("E1006", True),
+    # Refused by the lookahead: ONE letter standing as a word before the number.
+    # These are `TRUNCATIONS` above, plus the second course shape `104` R-146
+    # measured on the owner's disk (`A 9999`), plus the hyphen spelling of one.
+    ("I 1403", False), ("A 2150", False), ("B 4100", False),
+    ("A 9999", False), ("A-2150", False),
+    # Refused by the term lookahead, which R-146 made load-bearing: `Spring 2026`
+    # did not match the uppercase-only shape at all and now does.
+    ("Spring 2026", False), ("Fall 2023", False), ("AY 2024-25", False),
+)
+
+
+@pytest.mark.parametrize("reading,admitted", IDENTIFIER_JUDGEMENTS,
+                         ids=[one[0] for one in IDENTIFIER_JUDGEMENTS])
+def test_the_rules_pattern_admits_a_word_and_still_refuses_a_single_letter(
+        reading, admitted):
+    """The asserting knob, one reading at a time.
+
+    Every one of these is a reading `find_structured_strings` now produces, so the
+    question this asks is the real one: of the things the product SEES, which may
+    the rule call a course? A one-letter word before a number may not, for the
+    reason `TRUNCATIONS` records -- `General Chemistry I 1403` is a course TITLE
+    ending in a roman numeral, and the product filed three of the owner's chemistry
+    exams under a course called `I1403`.
+    """
+    assert bool(cli.SUBJECT_RULE.pattern.search(reading)) is admitted
+
+
+def test_a_course_printed_as_a_word_is_a_subject_when_a_teaching_word_sits_beside_it(
+        p6_conn, tmp_path):
+    """`104` R-146's whole point, at the field it was invisible to.
+
+    Before R-146 this file version produced NO observation at all -- the recogniser
+    read nothing, so there was no candidate, no fact and not even an `unresolved`
+    row saying a reading had been declined. The rule is unchanged: the same
+    anchored pattern, the same context vocabulary, the same `validated` state that
+    a person or a model can still overrule.
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw="Physics 1401", before="Syllabus - ",
+             after="\nInstructor: Dr. Lee. Credits: 3.")
+
+    assert _subjects(p6_conn, file_id, content_hash) == {
+        ("Physics 1401", VALIDATED, RULE)}
+
+
+def test_the_same_reading_with_no_teaching_word_beside_it_is_refused_and_recorded(
+        p6_conn, tmp_path):
+    """The guard that makes the widening safe, asked of the widened reading.
+
+    `104` R-146 delivers `Chapter 101` and `Room 1234` as candidates too, and this
+    is what stops them: §3.5's context check, unchanged, over the same vocabulary.
+    The refusal is RECORDED against the file rather than being a silence, which is
+    the half of the rule that a shape could never have.
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw="Physics 1401", before="Attached please find ",
+             after=" and the parking permit for the visit.")
+
+    assert _subjects(p6_conn, file_id, content_hash) == set()
+    assert _refusals(p6_conn, file_id, content_hash) == ["context_check_failed"]
+
+
+def test_the_canonicaliser_was_not_taught_a_spelling_and_this_is_what_it_does():
+    """`104` R-147 is the owner's ruling on spelling and it is NOT made here.
+
+    R-146 moved the recogniser and nothing else, so whatever `SUBJECT_RULE.
+    canonical` did with `PHYS 1401` it does with `Physics 1401`. MEASURED, not
+    designed: `_SEPARATOR` is `(?<=[A-Z])[ -](?=[0-9])`, so it removes the space
+    only when the character in front of it is a CAPITAL. `Physics 1401` keeps its
+    space (an `s` in front) and `COMS W3134` keeps its space (a `W` after, not a
+    digit). Two spellings of one course therefore still arrive as two values, and
+    that is R-147's question to answer, not this one's.
+
+    Whitespace is still collapsed for both, which is the part `65` §4.2 needs:
+    `Physics  1401` off a two-column page is one value.
+    """
+    canonical = cli.SUBJECT_RULE.canonical
+
+    assert canonical("PHYS 1401") == "PHYS1401" == canonical("PHYS1401")
+    assert canonical("Physics 1401") == "Physics 1401"
+    assert canonical("COMS W3134") == "COMS W3134"
+    assert canonical("ENGI E1006") == "ENGI E1006"
+    assert canonical("Physics  1401") == "Physics 1401"
+    assert canonical("Physics\n1401") == "Physics 1401"
+
+
+# ======================================================================================
+# `104` R-37's principle one layer down: two values is not a resolution
+# ======================================================================================
+
+
+def test_two_courses_on_one_file_are_declined_and_recorded_rather_than_both_written(
+        p6_conn, tmp_path):
+    """The repair `104` R-146 measured the need for, at the grain it belongs.
+
+    A file that prints `PHYS 1401` beside `Syllabus` and `Section 001` beside
+    `Instructor:` gives §3.5's rule two candidates it cannot tell apart. Both clear
+    the context check -- the teaching words sit beside both -- so the vocabulary
+    cannot separate them and neither can the shape: nothing distinguishes
+    `Section 001` from `Physics 1401` but a list of words saying which are
+    departments, which is the question the model is asked.
+
+    Writing both is what the producer used to do, and it is not a resolution: §3.7
+    then settles on neither and the course level disappears with no row saying why.
+    So the rule declines, and the refusal is RECORDED -- one row per candidate,
+    each citing its own reading, so a reader can see exactly which two readings the
+    disagreement was between.
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw="PHYS 1401", before="Syllabus - ", after=" Introductory Physics",
+             start=0)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw="Section 001", before="Instructor: R. Feynman. ",
+             after=", Fall 2024.", run_id="run-2", start=40)
+
+    assert _subjects(p6_conn, file_id, content_hash) == set()
+    assert _refusals(p6_conn, file_id, content_hash) == [
+        "rule_found_several_values", "rule_found_several_values"]
+
+    # NO VALUE ROW EITHER. A `values` row with no fact citing it is a course this
+    # deployment invented and then never used, and `65` §4.2's collapse is about
+    # what reaches P6 -- so a declined field leaves the table exactly as it was.
+    assert [row["canonical_value"]
+            for row in values_in_field(p6_conn, "subject")] == []
+
+    # Each row cites ONE reading, and between them they cite BOTH. A single row
+    # citing both would say the rule refused once; it refused about two things.
+    cited = [json.loads(row["evidence_refs"])
+             for row in unresolved_for_file(p6_conn, file_id, content_hash)
+             if row["field_key"] == "subject"]
+    assert [len(one) for one in cited] == [1, 1]
+    assert len({ref for one in cited for ref in one}) == 2
+
+
+def test_one_course_printed_two_ways_is_still_one_value_and_still_written(
+        p6_conn, tmp_path):
+    """THE DISCRIMINATING TWIN, and the reason the count is of CANONICAL values.
+
+    `PHYS 1401` and `PHYS1401` on one page are one course. `rule.canonical` exists
+    to collapse exactly that (`65` §4.2: four files of one course became four
+    one-file groups and the folder was proposed empty), so counting raw MATCHES
+    instead of canonical values would make the collapse itself look like a
+    disagreement and refuse the commonest correct case in the corpus.
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw="PHYS 1401", before="Syllabus - ", after=" Introductory Physics",
+             start=0)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw="PHYS1401", before="Instructor: R. Feynman, ",
+             after=" problem sets.", run_id="run-2", start=40)
+
+    assert _subjects(p6_conn, file_id, content_hash) == {
+        ("PHYS1401", VALIDATED, RULE)}
+    assert _refusals(p6_conn, file_id, content_hash) == []
+    # §2.8's first rendering survives the collapse, as it did before.
+    assert [json.loads(row["raw_variants"])
+            for row in values_in_field(p6_conn, "subject")] == [
+        ["PHYS 1401", "PHYS1401"]]
+
+
+def test_a_declined_field_stays_pending_so_the_model_is_the_one_asked(
+        p6_conn, tmp_path):
+    """The half that makes the decline a HANDOFF rather than a silence.
+
+    `model_facts.pending_fields_for` computes what the model is offered by
+    SUBTRACTING the fields the file already carries a fact for, so a field the rule
+    declined is still pending and the question reaches site A. That is the whole
+    design: the rule delivers two candidates and says it cannot choose, and the
+    model -- which can read the words around them -- does.
+
+    Asserted against the shipped reader rather than by reasoning about it, because
+    "the field is absent from `file_facts`" and "the model will be asked" are two
+    statements and only the second one is the product.
+    """
+    from facts.domains import ActivationSignal, ActivationSignals
+    from model_facts import pending_fields_for
+
+    file_id, content_hash = _file(p6_conn, tmp_path)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw="PHYS 1401", before="Syllabus - ", after=" Introductory Physics",
+             start=0)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw="Section 001", before="Instructor: R. Feynman. ",
+             after=", Fall 2024.", run_id="run-2", start=40)
+    cli._rule_stage(p6_conn, file_id=file_id, content_hash=content_hash)
+
+    pending = pending_fields_for(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=ActivationSignals(signals=(
+            ActivationSignal(schema_id="academic", activates=lambda rows: True),)))
+
+    assert "subject" in pending
