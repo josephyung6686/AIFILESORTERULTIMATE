@@ -2405,10 +2405,12 @@ def _multi_home_decision(conn, *, subject, inputs: PipelineInputs, outcome,
             "permits a shared branch, a question, or an abstention, and never an "
             "arbitrary choice between the packets."),
         residual=None,
-        # `104` R-165. §6.9's shared branch is `resolve_multi_home`'s answer, and
-        # that function asks no model and no person -- it walks the two packets'
-        # parents and takes the branch they share. So the rules decided, and the
-        # other two outcomes here decided no destination at all.
+        # `104` R-165. §6.9's `place` is `resolve_multi_home` returning the shared
+        # branch, which it reaches from the shared-material POLICY and the branch
+        # node id it was handed -- no model call, no per-file answer from the
+        # person, and it refuses outright to return one of the competing homes. So
+        # the rules decided. The other two outcomes chose no destination at all:
+        # `ask_user` IS the question, and `abstain` is `no_shared_branch`.
         decided_by=DECIDED_BY_RULE if outcome == PLACE else None,
     )
     return _write(conn, decision, inputs=inputs,

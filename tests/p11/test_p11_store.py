@@ -91,6 +91,44 @@ def test_every_record_field_survives_the_round_trip(p11_conn):
     assert restored == original
 
 
+def test_a_decision_written_before_r165_still_reads_whole(p11_conn):
+    """`104` R-165 added the first field this record permits to be ABSENT.
+
+    The product keeps ONE database across runs and `placement.versions` diffs a
+    PRIOR plan version, so the payloads a person's earlier runs wrote are read by
+    every build after them. Without the read half of the default, the first §8.8
+    diff after this upgrade raises `KeyError` on a row that is not corrupt: it is a
+    decision from a build that did not record who decided, and `None` is already
+    this field's word for that.
+
+    Written by INSERT rather than by stripping the key from a stored row, because
+    the table is append-only by trigger and rewriting `payload` is refused -- which
+    is the same reason a real row from an older build cannot be repaired in place.
+    """
+    import dataclasses
+    import json
+
+    original = _decision(decision_id="d1", review_policy=v.REVIEW_REQUIRED)
+    body = dataclasses.asdict(original)
+    del body["decided_by"]
+    p11_conn.execute(
+        "INSERT INTO placement_decisions (record_id, subject_ref, plan_version, "
+        "origin_stage, outcome, review_policy, created_at, payload) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (original.decision_id, subject_ref_of(original.subject),
+         original.plan_version, original.origin_stage, original.outcome,
+         original.review_policy, original.created_at, json.dumps(body)))
+
+    restored = current_decision(p11_conn, plan_version=original.plan_version,
+                                subject_ref=subject_ref_of(original.subject))
+    assert restored is not None
+    assert restored.decided_by is None
+    # And the rest of the row arrived intact, so the absent key was read as an
+    # absent VALUE and not as a reason to give up on the decision.
+    assert restored.review_policy == v.REVIEW_REQUIRED
+    assert restored.explanation == original.explanation
+
+
 def test_no_named_column_is_a_second_home_for_a_value(p11_conn):
     # A column beside `payload` is either an address the reads need or a field of
     # the record. A third concept there would be a value with no home in the
