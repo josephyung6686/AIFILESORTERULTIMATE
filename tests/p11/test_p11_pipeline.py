@@ -2418,43 +2418,85 @@ def test_the_next_file_is_still_judged_after_one_is_not_asked(skeleton,
     assert len(asked) == 2
 
 
-def test_a_fact_that_cites_nothing_addressable_abstains_instead_of_raising(
+def test_a_subject_with_no_matching_fact_is_asked_on_the_items_it_does_carry(
         skeleton, monkeypatch):
-    """`104` R-143, through the door R-136 built.
+    """`104` R-148, on the state `104` R-143 built a door for.
 
-    R-136's check passes here: `evidence_items` is not empty. What is empty is
-    the citations those facts carry, and `evidence_snapshot_id_for` refuses to
-    mint a snapshot that addresses nothing -- "an evidence snapshot addresses the
-    evidence a dossier cites, and this one cites none". That raise is outside
-    `REFUSAL_EXCEPTIONS` too, so it ended the corpus run: measured on r11, 113
-    minutes in, 0 site-C dossiers.
+    R-143 read the snapshot's keys off `evidence["facts"]`, and `MatchingFact`
+    forbids an empty `evidence_ref` -- so that tuple was empty in exactly one
+    case, a subject with NO matching fact, and every one of those was turned away
+    as `NOT_ELIGIBLE_FOR_MODEL`. That is the second half of R-148 and 103 of the
+    owner's 199 files on r12: `cli.evidence_for` now offers a factless file its
+    own releasable readings, and this is the gate that would still have refused
+    to build the call.
 
-    The model is not asked, the file is not lost, and the run goes on.
+    The keys come off the ITEMS, which is what the paragraph above that line has
+    said since the function was written -- "the keys the DOSSIER cites" -- and is
+    what `model_call_request` is actually handed. So a dossier carrying a
+    neighbour's context line, or this file's own words, is addressable and is
+    sent.
+
+    R-143's own guarantee is untouched and is the reason its branch stays: an
+    `EvidenceSnapshotRequired` raised here is outside `REFUSAL_EXCEPTIONS` and
+    ends the corpus run, measured on r11 at 113 minutes in with 0 site-C
+    dossiers.
     """
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail(
-                            "a dossier that cites nothing is not sent"))
-    # NOT a fact carrying no ref: `MatchingFact` forbids an empty one
-    # ("evidence_ref is required and must be non-empty"), so the state r11 hit is
-    # a dossier with items and no matching fact behind them -- which is what a
-    # context line from a neighbour file leaves when nothing on THIS file matched.
+    seen: dict = {}
+
+    def judge(_conn, request, **_kwargs):
+        seen["snapshot"] = request.evidence_snapshot_id
+        seen["refs"] = tuple(item.evidence_ref
+                             for item in request.evidence_items)
+        return _verdict()
+
+    monkeypatch.setattr(pipeline, "call_placement", judge)
     decision = _place(skeleton, inputs=_model_inputs(skeleton),
                       evidence=_evidence(**AMBIGUOUS, facts=()))
 
     assert decision is not None
-    from llm_harness.vocabulary import C_PLACEMENT, NOT_ELIGIBLE_FOR_MODEL
+    assert seen["snapshot"], "a dossier whose items carry addresses is minted one"
+    assert OBS in seen["refs"]
+    # And nothing was recorded as a file the model is not reserved for.
+    assert not skeleton.execute(
+        "SELECT 1 FROM llm_pre_call_abstention").fetchall()
 
-    rows = [dict(row) for row in skeleton.execute(
-        "SELECT reason, call_site FROM llm_pre_call_abstention")]
-    assert rows == [{"reason": NOT_ELIGIBLE_FOR_MODEL,
-                     "call_site": C_PLACEMENT}]
+
+def test_the_snapshot_addresses_the_items_and_not_the_facts(skeleton,
+                                                            monkeypatch):
+    """Two subjects whose dossiers carry the same items and different facts are
+    one question asked twice, and the content address says so.
+
+    `evidence_snapshot_id_for` is what a replay is recognised by and what
+    `revalidate_for_plan` keys a re-validation on, so it has to address what was
+    SENT. Keyed on the matched facts it addressed a different set from the one in
+    the dossier -- and refused to mint at all for a call whose candidates were
+    reached by group evidence.
+    """
+    import placement.pipeline as pipeline
+
+    minted: list[str] = []
+    monkeypatch.setattr(
+        pipeline, "call_placement",
+        lambda _conn, request, **_kw: (
+            minted.append(request.evidence_snapshot_id), _verdict())[1])
+    inputs = _model_inputs(skeleton)
+
+    _place(skeleton, inputs=inputs, evidence=_evidence(**AMBIGUOUS))
+    _place(skeleton, inputs=inputs, evidence=_evidence(**AMBIGUOUS, facts=()))
+
+    assert len(minted) == 2
+    assert minted[0] == minted[1]
 
 
-def test_the_next_file_is_judged_after_one_cites_nothing_addressable(
+def test_the_next_file_is_judged_after_one_carries_no_matching_fact(
         skeleton, monkeypatch):
-    """The corpus property r11 lost, for R-143's state rather than R-136's."""
+    """The corpus property r11 lost, kept for R-148's state.
+
+    Under R-143 the middle file was not asked; it is now, and the run still
+    reaches the third. What r11 lost was the run, not the call.
+    """
     import placement.pipeline as pipeline
 
     asked: list[str] = []
@@ -2466,4 +2508,4 @@ def test_the_next_file_is_judged_after_one_cites_nothing_addressable(
     third = _place(skeleton, inputs=inputs, evidence=_evidence(**AMBIGUOUS))
 
     assert middle is not None and third is not None
-    assert len(asked) == 1
+    assert len(asked) == 2

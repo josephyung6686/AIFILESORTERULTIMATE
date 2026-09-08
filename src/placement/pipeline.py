@@ -1930,12 +1930,29 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
     # what the dossier carries, so drawing from the matched facts alone would
     # address a different set from the one that was sent -- and would refuse to
     # mint at all for a call whose candidates were reached by group evidence.
+    #
+    # **AND IT NOW READS THE ITEMS, WHICH IS WHAT THAT PARAGRAPH ALWAYS SAID.**
+    # `104` R-148. The expression under it was `evidence["facts"]` from the first
+    # commit of this function, and `MatchingFact` forbids an empty `evidence_ref`
+    # -- so the tuple was empty in exactly one case, a subject with NO settled
+    # fact, and R-143's guard below turned every one of those into
+    # `NOT_ELIGIBLE_FOR_MODEL`. That is 103 of the owner's 199 files on r12 and it
+    # is the second half of R-148: `cli.evidence_for` now offers a factless file
+    # its own releasable readings, and without this line the call would still not
+    # be built -- the same abstention row, from a gate one paragraph further down.
+    #
+    # `model_call_request` below is handed `evidence["evidence_items"]` and
+    # nothing else, so these ARE the keys the release request names and the ones
+    # the dossier will cite. The node profiles and accepted groups are not here
+    # for the same reason they are not there: a folder is not an observation, it
+    # carries no key P7 could resolve, and addressing one would put a plan id in a
+    # citation record.
     observation_keys = tuple(
-        fact.evidence_ref for fact in evidence["facts"] if fact.evidence_ref
+        item.evidence_ref for item in evidence["evidence_items"]
+        if item.evidence_ref
     )
-    # `104` R-143, and it is R-136's door for a third pre-call state. Every
-    # matching fact can carry NO `evidence_ref` while `evidence_items` is
-    # non-empty, and then `evidence_snapshot_id_for` raises
+    # `104` R-143, and it is R-136's door for a third pre-call state. A dossier
+    # whose items address nothing makes `evidence_snapshot_id_for` raise
     # `EvidenceSnapshotRequired` -- "an evidence snapshot addresses the evidence a
     # dossier cites, and this one cites none". That raise is not in
     # `REFUSAL_EXCEPTIONS` either, so it ended the corpus run exactly as R-136's
@@ -1945,12 +1962,18 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
     # reserved for a subject whose evidence nothing can address. A snapshot that
     # addressed an empty set would be a citation record citing nothing, which is
     # what the raise refuses and what this must not fake.
+    #
+    # KEPT THOUGH `EvidenceItem.evidence_ref` IS REQUIRED NON-EMPTY, so with the
+    # check above this cannot fire on any item shape that exists today. What it
+    # guards is the RAISE, not a state -- an unhandled `EvidenceSnapshotRequired`
+    # ends the run for every file after it, and that is too expensive an answer to
+    # "someone added an item kind with no address" to leave to the stack trace.
     if not observation_keys:
         return _not_asked(
             conn, call_site=call_site, subject=subject, observed_at=observed_at,
-            because="the facts that matched this subject carry no citation this "
-                    "run can address, so an evidence snapshot would address "
-                    "nothing and the dossier would cite nothing")
+            because="nothing this dossier would carry has an address this run can "
+                    "resolve, so an evidence snapshot would address nothing and "
+                    "the dossier would cite nothing")
     snapshot = evidence_snapshot_id_for(plan_version=inputs.plan_version,
                                         observation_keys=observation_keys)
     subject_ref = subject_ref_of(subject)
