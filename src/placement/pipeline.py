@@ -1925,6 +1925,24 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
     observation_keys = tuple(
         fact.evidence_ref for fact in evidence["facts"] if fact.evidence_ref
     )
+    # `104` R-143, and it is R-136's door for a third pre-call state. Every
+    # matching fact can carry NO `evidence_ref` while `evidence_items` is
+    # non-empty, and then `evidence_snapshot_id_for` raises
+    # `EvidenceSnapshotRequired` -- "an evidence snapshot addresses the evidence a
+    # dossier cites, and this one cites none". That raise is not in
+    # `REFUSAL_EXCEPTIONS` either, so it ended the corpus run exactly as R-136's
+    # did: measured on r11, 113 minutes in, 0 site-C dossiers.
+    #
+    # The same reason word is true here for the same reading: the model is not
+    # reserved for a subject whose evidence nothing can address. A snapshot that
+    # addressed an empty set would be a citation record citing nothing, which is
+    # what the raise refuses and what this must not fake.
+    if not observation_keys:
+        return _not_asked(
+            conn, call_site=call_site, subject=subject, observed_at=observed_at,
+            because="the facts that matched this subject carry no citation this "
+                    "run can address, so an evidence snapshot would address "
+                    "nothing and the dossier would cite nothing")
     snapshot = evidence_snapshot_id_for(plan_version=inputs.plan_version,
                                         observation_keys=observation_keys)
     subject_ref = subject_ref_of(subject)

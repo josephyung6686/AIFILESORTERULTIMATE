@@ -2415,3 +2415,54 @@ def test_the_next_file_is_still_judged_after_one_is_not_asked(skeleton,
     # Two calls, not three: the middle file was not asked, and not asking it did
     # not stop the third being asked.
     assert len(asked) == 2
+
+
+def test_a_fact_that_cites_nothing_addressable_abstains_instead_of_raising(
+        skeleton, monkeypatch):
+    """`104` R-143, through the door R-136 built.
+
+    R-136's check passes here: `evidence_items` is not empty. What is empty is
+    the citations those facts carry, and `evidence_snapshot_id_for` refuses to
+    mint a snapshot that addresses nothing -- "an evidence snapshot addresses the
+    evidence a dossier cites, and this one cites none". That raise is outside
+    `REFUSAL_EXCEPTIONS` too, so it ended the corpus run: measured on r11, 113
+    minutes in, 0 site-C dossiers.
+
+    The model is not asked, the file is not lost, and the run goes on.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail(
+                            "a dossier that cites nothing is not sent"))
+    # NOT a fact carrying no ref: `MatchingFact` forbids an empty one
+    # ("evidence_ref is required and must be non-empty"), so the state r11 hit is
+    # a dossier with items and no matching fact behind them -- which is what a
+    # context line from a neighbour file leaves when nothing on THIS file matched.
+    decision = _place(skeleton, inputs=_model_inputs(skeleton),
+                      evidence=_evidence(**AMBIGUOUS, facts=()))
+
+    assert decision is not None
+    from llm_harness.vocabulary import C_PLACEMENT, NOT_ELIGIBLE_FOR_MODEL
+
+    rows = [dict(row) for row in skeleton.execute(
+        "SELECT reason, call_site FROM llm_pre_call_abstention")]
+    assert rows == [{"reason": NOT_ELIGIBLE_FOR_MODEL,
+                     "call_site": C_PLACEMENT}]
+
+
+def test_the_next_file_is_judged_after_one_cites_nothing_addressable(
+        skeleton, monkeypatch):
+    """The corpus property r11 lost, for R-143's state rather than R-136's."""
+    import placement.pipeline as pipeline
+
+    asked: list[str] = []
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: (asked.append("call"), _verdict())[1])
+    inputs = _model_inputs(skeleton)
+    middle = _place(skeleton, inputs=inputs,
+                    evidence=_evidence(**AMBIGUOUS, facts=()))
+    third = _place(skeleton, inputs=inputs, evidence=_evidence(**AMBIGUOUS))
+
+    assert middle is not None and third is not None
+    assert len(asked) == 1
