@@ -443,6 +443,78 @@ def line_reading_for(conn: sqlite3.Connection, observation: Observation, *,
     )
 
 
+def opening_reading_for(conn: sqlite3.Connection, observation: Observation, *,
+                        extractor_name: str, extractor_version: str,
+                        bound: int) -> Observation | None:
+    """A reading over the OPENING of the unit a SPAN-LESS reading stands over.
+
+    **Here for `line_reading_for`'s reason, and it is the same reason.** `104` R-164
+    needs a reading of the first characters of a page, which needs `raw_value_at`
+    over the stored unit, and `tests/p7/test_p7_no_invention.py`'s L2 guard names the
+    three top-level packages that may bind a P4 text materialiser. `model_facts` is
+    not one of them, so the read happens where the text lives and the caller receives
+    a RECORD; whether that record may exist is the caller's rule and not P4's.
+
+    **What it is for.** Every text extractor writes one span-less `body` observation
+    over each page or paragraph, and P7 refuses a span-less reading whose value is at
+    least as long as the unit standing at its own path -- SF-1's rule, written after a
+    whole DOCX body travelled span-less at 45,843 bytes, and correct. A PDF page
+    arrives in exactly that shape, so `104` §16 measured a cloud dossier carrying the
+    file's extension, its MIME type and its `Producer` and not one sentence of the
+    document. `00`:186 names the way out: send "selected excerpts", and "not ... full
+    documents where a short heading or OCR excerpt is enough". This cuts one.
+
+    **`bound` is the caller's and is never chosen here.** It is a count of characters,
+    and P4 states no opinion about how many a dossier may carry -- `104` R-159 is an
+    owner ruling that nothing be built on an invented length, so the number arrives
+    from whatever the caller derived it from and a caller with none passes nothing
+    releasable.
+
+    **The bound says how much may travel; the DOCUMENT says where the text stops.**
+    The cut is the last line break at or before `bound`, so the reading is whole lines
+    of the person's document rather than a slice ending mid-word. Measured on the
+    owner's corpus at `gt-w1bn`, 671 of the 714 stored units longer than 333
+    characters hold no blank line at all, so a paragraph boundary is not available to
+    cut on and a line break is the only structure a page of extracted text reliably
+    has. When even that is absent -- `104` R-145's 27,510-character newline-free
+    paragraph -- the cut is the bound itself, because the alternative is that exactly
+    the files carrying the most text are the ones that show none.
+
+    `None` in four cases and none of them is a repair. A reading that already carries
+    a span is addressed inside its unit already and re-cutting it would move a
+    citation. No stored unit: §2.3's cell and §2.8's EXIF field, with nothing to take
+    a substring of. A unit no longer than the bound: the opening would BE the unit,
+    which is the shape the whole-unit rule refuses, and minting it would be walking
+    around that refusal rather than answering it. A bound of nothing: see above.
+
+    The result satisfies `check_span_anchor` against the same unit by construction --
+    same run, same container path, `raw_value` taken with `raw_value_at` -- and its
+    `observation_key` is content-addressed like any other, so a caller that checks
+    first records one row however many times it asks.
+    """
+    if bound <= 0 or observation.location.text_span is not None:
+        return None
+    unit = unit_for_observation(conn, observation)
+    if unit is None or unit.length <= bound:
+        return None
+    end = unit.text.rfind("\n", 0, bound) + 1
+    if end <= 0 or not unit.text[:end].strip():
+        end = bound
+    return replace(
+        observation,
+        extractor_name=extractor_name,
+        extractor_version=extractor_version,
+        raw_value=raw_value_at(unit, TextSpan(0, end)),
+        location=Location(observation.location.zone,
+                          observation.location.container_path,
+                          text_span=TextSpan(0, end)),
+        normalized_value=None,
+        context_before=None,
+        context_after=None,
+        context_truncated=False,
+    )
+
+
 def unit_length_for_observation(conn: sqlite3.Connection,
                                 observation: Observation) -> int | None:
     """Rule 10's lookup answering only HOW LONG, for a caller that must not hold the

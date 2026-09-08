@@ -46,10 +46,12 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
+from database_agent.budget import CEILING_KEYS, get_ceiling
 from database_agent.db import transaction
 from evidence_shape.canonical import canonical_json
-from evidence_shape.locator import serialize_locator
+from evidence_shape.locator import serialize_container_path, serialize_locator
 from evidence_shape.store import (
+    DERIVED_NAMESPACE, opening_reading_for, record_observation,
     unit_holds_a_line_break, unit_length_for_observation,
 )
 from facts.domains import ActivationSignals, active_field_allowlist
@@ -598,8 +600,140 @@ def _check_locality(locality: str) -> str:
     return locality
 
 
+#: §8.6's per-call dossier ceiling, in P1's spelling. Spelled here because P1 holds
+#: the §8.6 configuration object and publishes no constant for one key at a time --
+#: `privacy.gate` spells the same string for the same reason -- and checked against
+#: P1's published set at import, on `extractors/budgets.py`'s pattern, so a rename in
+#: P1 is an ImportError here rather than a ceiling that silently reads `None`.
+DOSSIER_CEILING_KEY: str = "model.max_dossier_tokens_per_call"
+
+if DOSSIER_CEILING_KEY not in CEILING_KEYS:
+    raise ImportError(
+        f"P8 names a ceiling key P1 does not publish: {DOSSIER_CEILING_KEY!r}. P1 "
+        f"owns the §8.6 configuration object (G4) and P8 defines no key of its own.")
+
+#: The extractor name a minted OPENING EXCERPT carries. Its own, and never the name of
+#: the extractor that read the document: `observation_key` hashes the extractor name,
+#: so an excerpt and the page it was cut from are two different handles.
+#:
+#: IN P4'S DERIVED NAMESPACE, which is what makes `evidence_shape.store.is_derived`
+#: true of it, on `facts.anchor_statements.LINE_EXTRACTOR`'s precedent and for `104`
+#: R-135's stated reason: this reading is an addressable copy of text an earlier pass
+#: already stored, so that it can be CITED. It says nothing new about what the file
+#: IS, and the rule pass and the recogniser skip it through that one predicate. The
+#: release path does not, because the words are the file's own.
+OPENING_EXCERPT_EXTRACTOR: str = DERIVED_NAMESPACE + "release.opening_excerpt"
+
+#: This producer's version, moved when what it cuts changes. `observation_key` does
+#: NOT hash it (MINOR 8), so a bump re-reads the same corpus into the same handles.
+OPENING_EXCERPT_EXTRACTOR_VERSION: str = "1.0.0"
+
+
+def opening_excerpt_bound(conn: sqlite3.Connection, *, limit: int) -> int | None:
+    """How many characters of a unit one minted excerpt may carry. `104` R-164.
+
+    **NOT A NUMBER CHOSEN HERE, and that is the whole of why this is a function.**
+    `104` R-159 is an owner ruling that nothing be built on an invented length: the
+    excerpt producer it describes has "only number ... `max_dossier_tokens_per_call`".
+    Both operands below are already stored. The ceiling is P1's, read out of
+    `budget_ceilings`, and the cap is the `limit` the caller was going to spend
+    anyway -- `cli.FACT_CALL_MAX_RELEASED_OBSERVATIONS`, the one place §8.4's
+    unnumbered "selected excerpts" becomes a count in this deployment.
+
+    **The quotient is one reading's share of a full call.** A call may carry `limit`
+    readings under `ceiling` characters, so `ceiling // limit` is the largest excerpt
+    at which a call carrying its full complement of them still fits. On this
+    deployment that is 4,000 // 12 = 333, and the arithmetic is the point rather than
+    the number: change either stored value and the excerpt follows it.
+
+    `None` when P1 holds no ceiling, and `None` means no excerpt is minted at all.
+    A deployment that has not been given a bound is not given one here.
+    """
+    ceiling = get_ceiling(conn, DOSSIER_CEILING_KEY)
+    if ceiling is None or limit <= 0:
+        return None
+    bound = int(ceiling) // limit
+    return bound if bound > 0 else None
+
+
+def mint_opening_excerpts(conn: sqlite3.Connection, observations: Sequence, *,
+                          sensitive: frozenset, locality: str,
+                          bound: int | None) -> tuple:
+    """An opening excerpt for each reading of this file that cannot travel as itself.
+
+    **The defect, stated once.** Every text extractor writes one span-less `body`
+    observation over each page or paragraph, and `may_be_released` refuses a span-less
+    reading whose value is at least as long as the unit standing at its own path. That
+    rule is SF-1 / `104` R-07 -- a whole DOCX body travelled span-less at 45,843
+    bytes -- and it is correct. A PDF page arrives in the SAME shape, so the rule
+    refuses every page of every document, and `104` §16 measured what the model was
+    left with: three metadata fields and a heading fragment, a median dossier body of
+    212 characters under a 4,000-character ceiling, and 23 labelled files whose course
+    code sat in the extracted text and never in the dossier. None of the 23 was
+    answered right; the two files that did carry it both were.
+
+    **So this does not release the page.** `00`:186: the engine sends "selected
+    excerpts" and "should not send full documents where a short heading or OCR excerpt
+    is enough to resolve the question". The excerpt is minted -- a reading over the
+    OPENING of the unit, with a span of its own inside it -- and the whole-unit
+    refusal goes on refusing the whole unit. `evidence_shape.store.opening_reading_for`
+    does the cutting, where the text lives; this function decides which readings may
+    have one, which is the division `104` R-135 already drew between P4 and the
+    producer that mints a line.
+
+    **Four conditions, and each is a refusal asked BEFORE anything is cut.**
+
+      * The reading is refused as it stands. A reading the call can already carry
+        needs no second copy of itself -- which is what keeps `104` R-159's ruling
+        whole: a LOCAL target may be shown the page, so a local call mints nothing and
+        spends the ceiling once.
+      * Its zone is not one of `ALWAYS_LOCAL_ZONES`. `path` and `ocr` are released to
+        a local target by the owner's ruling and to no cloud one, and `filename` to
+        neither as an excerpt. An excerpt cut from one of those would be that ruling
+        walked around by a producer.
+      * P5 signalled nothing on it. The per-value signal refuses the whole request and
+        is not divided by the target; cutting the opening off a signalled reading
+        would release the part P5 objected to.
+      * There is a bound. See `opening_excerpt_bound`: no stored ceiling, no excerpt.
+
+    With the first three settled, the reading was refused by the whole-unit arm or by
+    an empty value, and `opening_reading_for` answers the second by returning `None`
+    when there is no unit longer than the bound to cut.
+
+    **Recorded, because the gate resolves a request against the STORED reading.**
+    `privacy.resolve.materialise` reads the observation back by key and refuses a
+    requested span that disagrees with the recorded one, so an excerpt that existed
+    only in this process would be `UnresolvableSpan` at the door -- `p8_seam` records
+    what that cost at site B. The handle is content-addressed, so the row is written
+    once however many times this is asked; the check is against the readings already
+    in hand rather than a `SELECT` per candidate.
+    """
+    if bound is None:
+        return ()
+    known = {observation.observation_key for observation in observations}
+    minted: list = []
+    for observation in observations:
+        if observation.location.zone in ALWAYS_LOCAL_ZONES:
+            continue
+        if observation.observation_key in sensitive:
+            continue
+        if may_be_released(conn, observation, sensitive=sensitive,
+                           locality=locality):
+            continue
+        excerpt = opening_reading_for(
+            conn, observation, extractor_name=OPENING_EXCERPT_EXTRACTOR,
+            extractor_version=OPENING_EXCERPT_EXTRACTOR_VERSION, bound=bound)
+        if excerpt is None or excerpt.observation_key in known:
+            continue
+        record_observation(conn, excerpt)
+        known.add(excerpt.observation_key)
+        minted.append(excerpt)
+    return tuple(minted)
+
+
 def ordered_releasable_observations(conn: sqlite3.Connection, *, file_id: str,
-                                    content_hash: str, locality: str) -> tuple:
+                                    content_hash: str, locality: str,
+                                    limit: int) -> tuple:
     """Every reading of this file the gate would release, in the order it offers
     them. NO cap and no fill -- `within_dossier_budget` below spends the budget.
 
@@ -611,19 +745,63 @@ def ordered_releasable_observations(conn: sqlite3.Connection, *, file_id: str,
 
     The order is `(zone_rank, document order, span start, observation_key)`; the
     exclusions are `may_be_released`'s, asked of every reading.
+
+    **`limit` is here for the EXCERPT and for nothing else (`104` R-164).** This
+    function still caps nothing -- `within_dossier_budget` below spends the budget and
+    this one returns the whole offer -- but `mint_opening_excerpts` needs a bound, and
+    `opening_excerpt_bound` derives it from the stored ceiling and the cap the call
+    was going to spend anyway. Reading the cap here rather than inventing a length is
+    the whole of `104` R-159's ruling about invented numbers, and it is the same
+    number the caller passes on to the fill a moment later.
+
+    **The minting runs BEFORE the offer is taken, and adds no reading that would not
+    have been offered had the document arrived cut up in the first place.** A page
+    that this call cannot carry as itself is offered as its opening instead; a page it
+    can carry is offered as itself and nothing is minted beside it.
     """
     sensitive = sensitive_observation_keys(conn, file_id)
-    offered = [observation
-               for observation in observations_for_version(conn, file_id, content_hash)
-               if may_be_released(conn, observation, sensitive=sensitive,
-                                  locality=locality)]
+    stored = observations_for_version(conn, file_id, content_hash)
+    mint_opening_excerpts(conn, stored, sensitive=sensitive, locality=locality,
+                          bound=opening_excerpt_bound(conn, limit=limit))
 
     def placed(observation) -> tuple:
         return (zone_rank(observation.location.zone),
                 document_order(observation), _span_start(observation),
                 observation.observation_key)
 
-    return tuple(sorted(offered, key=placed))
+    offered = [observation
+               for observation in observations_for_version(conn, file_id,
+                                                           content_hash)
+               if may_be_released(conn, observation, sensitive=sensitive,
+                                  locality=locality)]
+    return tuple(sorted(_without_superseded_excerpts(offered), key=placed))
+
+
+def _without_superseded_excerpts(offered: Sequence) -> list:
+    """An excerpt is offered INSTEAD OF the reading it was cut from, never beside it.
+
+    `104` R-164. A minted excerpt is recorded, so it outlives the call that minted it
+    and a later call under different rules finds it standing in the evidence table.
+    The rules it would be found under are exactly the ones that did not need it: a
+    LOCAL target may be shown the whole unit (`104` R-159), so a corpus first read for
+    a cloud target and then read again for a local one would offer the page AND its
+    own opening -- the same characters twice, and the second copy spending a ceiling
+    the ruling meant for the first.
+
+    So the excerpt yields whenever the reading it was cut from is itself on offer.
+    They are matched by ADDRESS -- same zone, same container path, the excerpt
+    span-bearing and the reading it copies span-less -- because that is what
+    `opening_reading_for` preserved and it needs no second record of where the excerpt
+    came from.
+    """
+    covered = {(one.location.zone,
+                serialize_container_path(one.location.container_path))
+               for one in offered if one.location.text_span is None}
+    return [one for one in offered
+            if not (one.extractor_name == OPENING_EXCERPT_EXTRACTOR
+                    and (one.location.zone,
+                         serialize_container_path(
+                             one.location.container_path)) in covered)]
 
 
 def within_dossier_budget(observations: Sequence, *, limit: int, locality: str,
@@ -631,9 +809,19 @@ def within_dossier_budget(observations: Sequence, *, limit: int, locality: str,
     """What of an ordered offer a call may carry: `limit` readings, or `ceiling`
     characters. `104` R-159.
 
-    **A CLOUD call keeps the count cap exactly as it was.** §8.4 says "selected
-    excerpts" and states no number; `cli.FACT_CALL_MAX_RELEASED_OBSERVATIONS` is
-    where this deployment chooses one, and nothing about the ruling touches it.
+    **A CLOUD call keeps the count cap, AND is bounded by the ceiling (`104` R-164).**
+    §8.4 says "selected excerpts" and states no number; `cli.FACT_CALL_MAX_RELEASED_
+    OBSERVATIONS` is where this deployment chooses one, and `104` R-159 did not touch
+    it. What R-164 adds is the second bound, and it adds it for R-159's OWN reason,
+    now true of a cloud call as well: once each of the twelve readings may be a minted
+    excerpt rather than a heading fragment, a COUNT stops being an honest bound on how
+    many characters leave. R-159 could write "the ceiling is slack" for a cloud target
+    because no page could be released to one; R-164 mints an excerpt of every page
+    that cannot, so it is not slack any more. The gate already refuses an over-ceiling
+    dossier (`dossier_over_budget`, 2 files of 199 at `gt-w1bn`); asking the same
+    ceiling one step early turns a refused CALL into a shorter one, and `104` R-07 is
+    that one question has one answer. The cap is not replaced: both bounds apply, and
+    a cloud call still carries at most `limit` readings however slack the ceiling.
 
     **A LOCAL call is bound by the ceiling instead, and the ceiling alone.** Once a
     whole page is releasable the count stops being the honest bound: twelve readings
@@ -660,7 +848,7 @@ def within_dossier_budget(observations: Sequence, *, limit: int, locality: str,
     is what the anchor context and the filename left.
     """
     if _check_locality(locality) == CLOUD_LOCALITY:
-        return tuple(observations)[:limit]
+        observations = tuple(observations)[:limit]
     taken: list = []
     spent = 0
     for observation in observations:
@@ -715,7 +903,8 @@ def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
     """
     return within_dossier_budget(
         ordered_releasable_observations(
-            conn, file_id=file_id, content_hash=content_hash, locality=locality),
+            conn, file_id=file_id, content_hash=content_hash, locality=locality,
+            limit=limit),
         limit=limit, locality=locality, ceiling=ceiling)
 
 
@@ -1569,7 +1758,8 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # taken their share; this set is the answer to "does the file have anything
         # to say", which is a different question and is the one the guard asks.
         offered = ordered_releasable_observations(
-            conn, file_id=file_id, content_hash=content_hash, locality=locality)
+            conn, file_id=file_id, content_hash=content_hash, locality=locality,
+            limit=authorities.max_released_observations)
         if not offered:
             # A file with no readings of its own is not asked, and context does not
             # change that. `104` R-135 carries a NEIGHBOUR's words to a file that has

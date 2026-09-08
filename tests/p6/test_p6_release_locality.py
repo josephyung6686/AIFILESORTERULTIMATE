@@ -265,7 +265,11 @@ def test_the_readings_come_back_in_the_documents_own_order(conn, tmp_path):
     _file_id, content_hash, made = _paged_corpus(conn, tmp_path, pages)
 
     offered = ordered_releasable_observations(
-        conn, file_id=_file_id, content_hash=content_hash, locality=LOCAL)
+        # `104` R-164 gave this function the cap the caller was already going to
+        # spend, so that `opening_excerpt_bound` can derive an excerpt length from
+        # it rather than invent one. It still caps nothing here; these four short
+        # pages are longer than no bound and none of them is cut.
+        conn, file_id=_file_id, content_hash=content_hash, locality=LOCAL, limit=12)
 
     assert [document_order(one)[0] for one in offered] == [1, 3, 7, 12]
     # And the old term would have answered differently, which is what makes this a

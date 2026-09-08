@@ -234,3 +234,205 @@ def test_the_readable_text_does_not_become_a_folder_name(sink):
     # and a de-anchored pattern the second.
     assert not any(slot.names(locator) for slot in cli.DIRECT_SLOTS.slots), locator
     assert cli.SUBJECT_RULE.pattern.search(text) is None, text
+
+
+# --- `104` R-164: the document is read one paragraph at a time -------------------
+
+#: Three paragraphs of prose, each carrying the line terminator its last line ends
+#: with -- that is what "the paragraph verbatim" means, and it is what makes the
+#: paragraphs and the separators add back up to the file.
+PARAGRAPHS = (
+    "PHYS 1401 course outline, autumn term.\n",
+    "Office hours are Tuesday afternoons in room 214, and the teaching assistant\n"
+    "holds a second session on Thursday morning.\n",
+    "Grading is 40% exams, 30% labs and 30% homework, and late work is accepted\n"
+    "for one week with a penalty.\n",
+)
+#: The separators are the DOCUMENT's and deliberately not alike: one empty line, then
+#: a run of two lines that hold only whitespace. Neither is a shape this module
+#: recognises; both are blank lines, which is all the split is allowed to know.
+SEPARATORS = ("\n", "   \n\t\n")
+PROSE = (PARAGRAPHS[0] + SEPARATORS[0] + PARAGRAPHS[1] + SEPARATORS[1]
+         + PARAGRAPHS[2])
+
+
+def three_paragraphs() -> TextDocument:
+    return TextDocument(text=PROSE)
+
+
+def find_room(text: str):
+    at = text.find("room 214")
+    return ((StructuredString(kind="identifier", start=at, end=at + len("room 214")),)
+            if at != -1 else ())
+
+
+def body_readings(sink, run_id) -> list:
+    """Every SPAN-LESS `body` observation of a run, in emission order.
+
+    Span-less is the filter that matters and zone alone is not enough: a structured
+    string found outside a heading also lands in `body` at the empty path, WITH a
+    span (`ZONE_BY_STRUCTURED_KIND` has no entry for `identifier`), and it is a
+    reading of eight characters rather than of a paragraph.
+    """
+    return [o for o in sink.observations_for(run_id)
+            if o["location"]["zone"] == "body"
+            and o["location"]["text_span"] is None]
+
+
+def paragraph_units(sink, run_id) -> list:
+    return [u for u in sink.units_for(run_id)
+            if u["container_path"] and u["container_path"][0]["kind"] == "paragraph"]
+
+
+def test_a_prose_document_is_read_one_paragraph_at_a_time(sink):
+    """`104` R-164. E3 made ONE unit of a whole text file and one span-less `body`
+    reading over it, and `104` §16.1 measured what that cost: a reading the size of
+    a document is refused as the whole of its unit, so a 39,000-character `.txt`
+    reached the model as its headings and its file extension. The words were
+    extracted, stored, and shown to nobody.
+
+    A paragraph is a reading a dossier ceiling can admit. The split is the
+    document's own blank lines -- `docx.py` has located a Word file's paragraphs
+    since E2 and this is the same address for the same thing.
+    """
+    run_id = sink.write(run_it(document=three_paragraphs(), finder=lambda text: ()))
+    readings = body_readings(sink, run_id)
+
+    assert [o["raw_value"] for o in readings] == list(PARAGRAPHS)
+    assert [locator_for(o["location"]) for o in readings] == [
+        "body:paragraph=1", "body:paragraph=2", "body:paragraph=3"]
+    assert all(o["reliability"] == "possible" for o in readings)
+    sink.conforms()
+
+
+def test_the_paragraphs_are_the_documents_own_and_add_back_up_to_it(sink):
+    """The only thing the split may consult is the file's structure. So: the units
+    are in the document's order, each is the document's own characters, and what
+    lies between them is blank -- which together means nothing was dropped,
+    reordered, trimmed or invented."""
+    run_id = sink.write(run_it(document=three_paragraphs(), finder=lambda text: ()))
+    units = paragraph_units(sink, run_id)
+
+    assert [u["container_path"][0]["index"] for u in units] == [1, 2, 3]
+    assert [u["container_path"][0]["label"] for u in units] == [None, None, None]
+    texts = [u["text"] for u in units]
+    assert texts == list(PARAGRAPHS)
+
+    at, gaps = 0, []
+    for text in texts:
+        start = PROSE.index(text, at)
+        gaps.append(PROSE[at:start])
+        at = start + len(text)
+    gaps.append(PROSE[at:])
+    assert all(gap.strip() == "" for gap in gaps), gaps
+    assert "".join(gap + text for gap, text in zip(gaps, texts)) + gaps[-1] == PROSE
+
+
+def test_the_whole_document_reading_is_not_emitted_beside_the_paragraphs(sink):
+    """The reading no ceiling can ever admit is not sent twice.
+
+    Emitting it beside the paragraphs would duplicate every character of the file in
+    a reading that `items.is_whole_document` refuses by construction -- the shape
+    `104` R-164 exists to remove. The UNIT at the empty path stays, and is a
+    different thing: P4 rule 10 anchors the heading and structured-string spans to
+    it, and it is what a whole-document refusal is measured against.
+    """
+    run_id = sink.write(run_it(document=three_paragraphs(), finder=lambda text: ()))
+
+    assert [o for o in body_readings(sink, run_id) if o["raw_value"] == PROSE] == []
+    whole = [u for u in sink.units_for(run_id) if u["container_path"] == ()]
+    assert len(whole) == 1 and whole[0]["text"] == PROSE
+
+
+def test_a_one_paragraph_document_is_read_exactly_as_before(sink):
+    """The README has no blank line, so it is one paragraph and nothing about it
+    changes: one span-less `body` reading at the empty path, measured against the
+    unit that was always there. A `paragraph=1` unit beside it would be the same
+    characters stored twice under a second address."""
+    run_id = sink.write(run_it())
+    readings = body_readings(sink, run_id)
+
+    assert len(readings) == 1
+    assert readings[0]["raw_value"] == HEADING + "\n" + BODY
+    assert readings[0]["location"]["container_path"] == ()
+    assert paragraph_units(sink, run_id) == []
+
+
+def test_headings_and_structured_strings_are_read_against_the_whole_document(sink):
+    """Unchanged by the split, and both halves matter.
+
+    A heading is located by its own ordinal and its span indexes into its own unit.
+    A structured string found outside every heading is located at the empty path
+    with a span into the WHOLE text -- so it stays anchored to the whole-document
+    unit, at offsets counted from the start of the file, not from the start of a
+    paragraph.
+    """
+    heading = PARAGRAPHS[0].rstrip("\n")
+    document = TextDocument(
+        text=PROSE,
+        headings=(Region(zone="heading", start=0, end=len(heading), ordinal=1,
+                         label=heading),))
+    run_id = sink.write(run_it(document=document, finder=find_room))
+
+    found = [o for o in sink.observations_for(run_id)
+             if o["raw_value"] == "room 214"]
+    assert len(found) == 1
+    span = found[0]["location"]["text_span"]
+    assert found[0]["location"]["container_path"] == ()
+    assert PROSE[span["start"]:span["end"]] == "room 214"
+
+    head = [o for o in sink.observations_for(run_id)
+            if o["location"]["zone"] == "heading"]
+    assert len(head) == 1 and head[0]["raw_value"] == heading
+    assert locator_for(head[0]["location"]) == f"heading:heading=1#0-{len(heading)}"
+    sink.conforms()
+
+
+def test_a_paragraph_reading_does_not_become_a_folder_name(sink):
+    """`test_the_readable_text_does_not_become_a_folder_name`'s property, asked of
+    the new locator, because the new locator is the one that could break it.
+
+    A paragraph reading is addressed `body:paragraph=N`. It still carries no span,
+    so it still does not serialise into the `body#...` space a direct slot claims,
+    and the deployment still ships no direct slot at all. What the product may READ
+    widened; what it may ASSERT did not.
+    """
+    import sys
+    from pathlib import Path as _Path
+    sys.path.insert(0, str(_Path(__file__).resolve().parents[2] / "src"))
+    import cli
+
+    run_id = sink.write(run_it(document=three_paragraphs(), finder=lambda text: ()))
+    readings = body_readings(sink, run_id)
+    assert len(readings) > 1
+    for reading in readings:
+        locator = locator_for(reading["location"])
+        assert not locator.startswith("body#"), locator
+        assert not any(slot.names(locator) for slot in cli.DIRECT_SLOTS.slots), locator
+
+
+def test_a_paragraph_repeated_in_the_file_collapses_under_p4s_own_rule(sink):
+    """Plain text repeats itself -- a rule, a prompt, a `Question:` before every
+    answer -- so the split meets P4 D10 constantly, and D10 is what decides.
+
+    D10 is one observation per (run, exact raw value, zone), applied for every
+    extractor at `sink.ExtractionResult`. Two identical paragraphs are therefore ONE
+    `body` reading, addressed at the FIRST of them in document order and carrying
+    `occurrence_count: 2` -- not two rows, and not one row that silently lost a
+    sibling. Nothing here is R-164's to decide; this test is what says the split
+    does not quietly opt out of the rule the way six extractors once did.
+
+    Every paragraph still gets its UNIT. Units are not collapsed, the text of the
+    repeat is stored at its own address, and a reading of it can still be minted.
+    """
+    repeated = "Question:\n"
+    document = TextDocument(
+        text=repeated + "\n" + PARAGRAPHS[1] + "\n" + repeated)
+    run_id = sink.write(run_it(document=document, finder=lambda text: ()))
+
+    readings = body_readings(sink, run_id)
+    assert [o["raw_value"] for o in readings] == [repeated, PARAGRAPHS[1]]
+    assert [o["occurrence_count"] for o in readings] == [2, 1]
+    assert locator_for(readings[0]["location"]) == "body:paragraph=1"
+    assert [u["container_path"][0]["index"] for u in paragraph_units(sink, run_id)] \
+        == [1, 2, 3]
