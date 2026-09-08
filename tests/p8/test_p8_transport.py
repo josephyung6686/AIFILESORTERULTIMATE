@@ -142,7 +142,7 @@ def _body(released: Released, *, call_site: str = A_FACT,
         # `DossierRequest.__post_init__` would also have refused.
         "eligibility_reason": ELIGIBILITY_BY_SITE[call_site][0],
         "evidence_items": [],
-        "field_glossary": {},
+        "field_glossary": [],
         # This site designs no folder tree, so the truthful list is empty -- and it
         # is PRESENT, because the door reads the body's key set by equality.
         "folder_levels": [],

@@ -127,17 +127,16 @@ def test_the_glossary_reaches_the_model_keyed_by_field():
     """`76` §4: the model reads `allowed_vocabulary` as bare strings and nothing
     tells it what one means. This is the key that does."""
     glossary = _body()["field_glossary"]
-    assert set(glossary) == {"school", "subject"}
-    assert all(isinstance(meaning, str) and meaning for meaning in glossary.values())
+    assert {entry["field"] for entry in glossary} == {"school", "subject"}
+    assert all(isinstance(entry["meaning"], str) and entry["meaning"]
+               for entry in glossary)
 
 
 def test_only_allowed_vocabulary_gets_an_entry():
     """`76` R7 bounds the model to `allowed_vocabulary`. A meaning for a field it may
     not propose is wasted tokens and an invitation to propose it."""
     glossary = _body(allowed_vocabulary=("school",))["field_glossary"]
-    assert set(glossary) == {"school"}
-    assert "subject" not in glossary
-    assert "term" not in glossary
+    assert [entry["field"] for entry in glossary] == ["school"]
 
 
 def test_a_field_with_no_entry_is_simply_absent():
@@ -146,7 +145,7 @@ def test_a_field_with_no_entry_is_simply_absent():
     owed = sorted(_library()["owed"])
     assert owed, "the owed list is the honest half of the split; do not empty it"
     glossary = _body(allowed_vocabulary=tuple(owed))["field_glossary"]
-    assert glossary == {}
+    assert glossary == []
 
 
 # --- the bound: a definition of a FIELD, never a hint about the FILE -------------

@@ -190,7 +190,7 @@ def _payload_from(released: Released, prompt: PromptDefinition):
         "conflicts": [],
         "eligibility_reason": REMAINS_AMBIGUOUS,
         "evidence_items": [],
-        "field_glossary": {},
+        "field_glossary": [],
         # This site designs no folder tree, so the truthful list is empty -- and it
         # is PRESENT, because the door reads the body's key set by equality.
         "folder_levels": [],
@@ -416,8 +416,8 @@ def test_the_release_carries_no_text_outside_the_requested_span(egress_conn):
     meanings = field_glossary(("school",))
     assert meanings, "the glossary went empty; this subtraction is now hiding a leak"
     scanned = body
-    for meaning in meanings.values():
-        scanned = scanned.replace(meaning, " ")
+    for entry in meanings:
+        scanned = scanned.replace(entry["meaning"], " ")
 
     window = SPAN.end - SPAN.start + 2         # wider than the requested span
     leaked = [
