@@ -89,6 +89,17 @@ AUTO_ELIGIBLE = "auto_eligible"
 #: The policies that mean nothing moves until the person says so.
 HELD_POLICIES = (BLOCKED_PENDING_USER, REVIEW_REQUIRED)
 
+#: `104` R-165's three, spelled here for the reason the policies above are: this
+#: harness has to read a database an older build wrote, so it cannot import a
+#: vocabulary that may not have existed when the run happened.
+#: `test_groundtruth_held_proposals.py` pins the spellings against
+#: `placement.vocabulary` so a rename fails a test instead of silently counting
+#: nothing.
+DECIDED_BY_MODEL = "model"
+DECIDED_BY_RULE = "rule"
+DECIDED_BY_USER = "user"
+DECIDERS = (DECIDED_BY_MODEL, DECIDED_BY_RULE, DECIDED_BY_USER)
+
 
 @dataclass(frozen=True)
 class Observation:
@@ -146,6 +157,20 @@ class Observation:
     #: Last and defaulted, like `invalid_model_output` above, so every existing
     #: construction of this class keeps working unchanged.
     review_policy: str | None = None
+    #: WHO chose the folder this run proposed -- `model`, `rule`, `user`, or None
+    #: when the run recorded nobody. `104` R-165: §13.5 rules that every placement
+    #: goes through the model, and until this field existed the scorecard graded
+    #: the row on where files landed and could not say who decided, so a rule that
+    #: fired first was indistinguishable from a model verdict on every number.
+    #:
+    #: READ FROM THE PAYLOAD, and for the same reason `review_policy` is: `_rows`
+    #: raises rather than swallowing, so naming a column that a run written before
+    #: this build has not got would make every decision in it vanish.
+    #:
+    #: None IS NOT A FOURTH DECIDER. It is the absence of one, and the block that
+    #: prints these counts prints that remainder separately, exactly as
+    #: `POLICY_NOT_RECORDED` is printed beneath the review policies.
+    decided_by: str | None = None
 
     @property
     def held(self) -> bool:
@@ -542,6 +567,7 @@ def _observe(connection, root, situation, label, promised_levels, report,
         destination = _destination_of(decision["node_id"], nodes) if decision else ()
         asked = False
         review_policy = None
+        decided_by = None
         if decision:
             try:
                 body = json.loads(decision["payload"])
@@ -550,6 +576,8 @@ def _observe(connection, root, situation, label, promised_levels, report,
             asked = body.get("ask") is not None
             policy = body.get("review_policy")
             review_policy = policy if isinstance(policy, str) else None
+            decider = body.get("decided_by")
+            decided_by = decider if isinstance(decider, str) else None
 
         files[relative] = Observation(
             path=relative,
@@ -572,6 +600,7 @@ def _observe(connection, root, situation, label, promised_levels, report,
             asked=asked,
             invalid_model_output=file_id in invalid_outputs,
             review_policy=review_policy,
+            decided_by=decided_by,
         )
 
     # A file the scan set aside never becomes a `files` row, and "never silently

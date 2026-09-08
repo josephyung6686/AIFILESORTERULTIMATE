@@ -12,7 +12,8 @@ from typing import Iterable, Mapping, Sequence
 
 from tools.groundtruth.labels import Label
 from tools.groundtruth.measure import (
-    AUTO_ELIGIBLE, COMPLETENESS_ORDER, HELD_POLICIES, Observation, RunObservation,
+    AUTO_ELIGIBLE, COMPLETENESS_ORDER, DECIDERS, HELD_POLICIES, Observation,
+    RunObservation,
 )
 from tools.groundtruth.score import (
     APPROPRIATE_ABSTENTION,
@@ -144,6 +145,45 @@ def held_counts(runs: Sequence[RunObservation],
                 counted[FREE_TO_MOVE] += 1
             else:
                 counted[POLICY_NOT_RECORDED] += 1
+    return counted
+
+
+#: `104` R-165's fourth word, and it is not a fourth decider: it is the ABSENCE of
+#: one, on a placement written by a build that had no such field or by a caller the
+#: pipeline does not route. Printed only when it happens, by the same rule
+#: `POLICY_NOT_RECORDED` above is -- the arithmetic has to come to the number of
+#: placements, or the line is flattering somebody.
+DECIDER_NOT_RECORDED = "not recorded"
+
+
+def decided_by_counts(runs: Sequence[RunObservation]) -> collections.Counter:
+    """Of every placement these runs recorded, WHO chose the folder. `104` R-165.
+
+    §13.5 is "model decides, rules validate", and the scoreboard could not say
+    whether that had happened. `place_file` knew, and wrote it into the explanation
+    SENTENCE; a sentence is not countable, so a deterministic rule that fired first
+    and skipped the model was indistinguishable from a model verdict on every
+    number this report printed.
+
+    EVERY PLACEMENT THE RUNS RECORDED, and not the labelled subset. The block this
+    feeds says what the model path did, beside the tables it filled, and both are
+    facts about the runs rather than about the labels -- so this is counted the way
+    `run.model` is counted and not the way the six buckets are. A file outside the
+    label set was still placed by somebody.
+
+    NOT SPLIT FRESH VERSUS REUSED, unlike every other count in that block, and the
+    reason is `reuse.py`'s own list of what `--reuse-answers-from` copies:
+    "Nothing about placement". A seeded database is handed a prior run's model
+    ANSWERS and no decision at all, so every placement counted here was decided by
+    the run being reported, and a `reused` column beside it would print zero
+    forever and read as a measurement.
+    """
+    counted: collections.Counter = collections.Counter()
+    for run in runs:
+        for observation in run.files.values():
+            if observation.outcome != "place":
+                continue
+            counted[observation.decided_by or DECIDER_NOT_RECORDED] += 1
     return counted
 
 
@@ -518,6 +558,29 @@ def scorecard(runs: Sequence[RunObservation],
         # one is about money somebody either did or did not spend.
         for source in sorted({run.seeded_from for run in runs if run.seeded_from}):
             w(f"            from {source}")
+    # `104` R-165. WHO DECIDED, beside what the model path cost. Every line above
+    # counts CALLS, and a call is not a placement: §13.5 rules that every placement
+    # goes through the model, and until this line existed the report could not say
+    # whether one had. A rule that fired first and skipped the model was
+    # indistinguishable from a model verdict on every number on this card.
+    #
+    # PRINTED ON EVERY RUN, including one with no model configured. `model 0 / rule
+    # N` is the measurement on a deterministic-only run, not a line with nothing to
+    # say -- so it is written unconditionally and never folded into the `parts`
+    # above, which collapse to "no model tables in these databases".
+    #
+    # NO fresh/reused SPLIT, unlike every other count in this block, because there
+    # is nothing to split: `reuse.py` copies "nothing about placement", so every
+    # placement counted here was decided by the run being reported.
+    # `decided_by_counts` carries the argument at length.
+    deciders = decided_by_counts(runs)
+    counts = [f"{name} {deciders.get(name, 0)}" for name in DECIDERS]
+    # The remainder, printed only when it happened, so the three above plus this
+    # come to the number of placements the runs made -- `POLICY_NOT_RECORDED`'s
+    # rule, and for the same reason.
+    if deciders.get(DECIDER_NOT_RECORDED):
+        counts.append(f"{DECIDER_NOT_RECORDED} {deciders[DECIDER_NOT_RECORDED]}")
+    w(f"            placed by={' / '.join(counts)}")
     w("            field values by origin: " + (
         ", ".join(f"{k}={n}" for k, n in origins.most_common())
         or "none filled at all"))
@@ -657,13 +720,21 @@ def per_file_table(runs: Sequence[RunObservation],
     somebody should look -- is the first thing a person debugging the row asks. It
     is appended after `family` and before the shadow cells, so every column above
     keeps the position the paragraph above promises it.
+
+    `decided_by` (`104` R-165) is who chose the folder in the `got` cell -- `model`,
+    `rule`, `user`, or empty. It sits directly after `review_policy` because the two
+    answer the neighbouring halves of one question a person debugging a row asks:
+    who decided this, and does the product need permission to act on it. Empty by
+    the same rule as the policy beside it: only a placement names a decider, so an
+    abstention's cell is blank rather than reporting an actor for a folder nobody
+    proposed.
     """
     by_situation = {run.situation: run for run in runs}
     shadow_by_situation = {run.situation: run for run in shadow}
     header = ["path", "group", "situation", "sorting", "wanted", "got",
               "completeness", "recovered", "protected_label", "protected_marked",
               "opened", "fields_correct", "fields_wrong", "fields_missing",
-              "uncertain", "family", "review_policy"]
+              "uncertain", "family", "review_policy", "decided_by"]
     if shadow:
         header += ["shadow_sorting", "shadow_got", "shadow_source"]
     rows = ["\t".join(header)]
@@ -690,7 +761,7 @@ def per_file_table(runs: Sequence[RunObservation],
                 path, label.group, label.situation, NO_DECISION,
                 "/".join(label.destination or ()), "", "", "",
                 str(label.protected), "", "", "", "", "",
-                "yes" if label.is_uncertain else "", label.family or "", "",
+                "yes" if label.is_uncertain else "", label.family or "", "", "",
                 *tail(path, label)]))
             continue
         c, wr, m, _ = score_fields(label, observation)
@@ -710,6 +781,11 @@ def per_file_table(runs: Sequence[RunObservation],
             # one for every decision -- is left out rather than read as a hold on
             # a file nothing was proposed for. `Observation.held` is the same rule.
             ((observation.review_policy or "")
+             if observation.outcome == "place" else ""),
+            # Only a placement names a decider, exactly as only a placement can be
+            # held: an abstention chose no folder, so an actor beside it would
+            # credit a decision nobody made.
+            ((observation.decided_by or "")
              if observation.outcome == "place" else ""),
             *tail(path, label)]))
     return "\n".join(rows)
