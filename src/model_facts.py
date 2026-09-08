@@ -49,7 +49,9 @@ from typing import Any
 from database_agent.db import transaction
 from evidence_shape.canonical import canonical_json
 from evidence_shape.locator import serialize_locator
-from evidence_shape.store import unit_length_for_observation
+from evidence_shape.store import (
+    unit_holds_a_line_break, unit_length_for_observation,
+)
 from facts.domains import ActivationSignals, active_field_allowlist
 from facts.file_facts import facts_for_file
 from facts.evidence import observations_for_version
@@ -92,7 +94,7 @@ from privacy.resolve import (
     filename_address,
 )
 from privacy.release import (
-    ModelCallRequest, ModelTarget, Target, released_whole_heading_unit,
+    ModelCallRequest, ModelTarget, Target, released_whole_excerpt_unit,
 )
 from privacy.vocabulary import ALWAYS_LOCAL_ZONES
 
@@ -642,15 +644,19 @@ def may_be_released(conn: sqlite3.Connection, observation, *,
         # with nothing to take a substring of is a contract failure, and this call
         # is not the place to discover it.
         return False
-    # `104` R-135: a whole HEADING unit is released; a whole document is not.
-    # `privacy.release.released_whole_heading_unit` carries the reasoning and the
-    # count that stands in for the length bound this deployment refuses to invent.
-    # It is the SAME predicate `GroundingReport`'s two counters are computed from,
-    # so what this admits and what the report calls exposure cannot become two
-    # conditions.
+    # `104` R-135 and `104` R-152: a whole HEADING unit is released, and so is a
+    # whole LINE unit; a whole document is not.
+    # `privacy.release.released_whole_excerpt_unit` carries the reasoning and the
+    # counts that stand in for the length bound this deployment refuses to invent.
+    # It is the SAME predicate `GroundingReport`'s counters are computed from and the
+    # same one the gate excepts by, so what this admits, what the gate releases and
+    # what the report calls exposure cannot become three conditions.
     if (where.text_span.start <= 0
             and where.text_span.end >= unit_length
-            and not released_whole_heading_unit(where, unit_length)):
+            and not released_whole_excerpt_unit(
+                where, unit_length,
+                unit_holds_line_break=unit_holds_a_line_break(
+                    conn, observation))):
         return False
     return True
 

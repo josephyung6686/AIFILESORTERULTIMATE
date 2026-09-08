@@ -230,10 +230,18 @@ def test_an_observation_covering_its_whole_unit_is_refused_before_the_spend(db):
     refuses AFTER the text has been materialised and after the release was minted,
     so leaving it to the door means paying to build a document in order to say no
     to it.
+
+    THE UNIT GAINED ITS LINE BREAKS FOR `104` R-152. It was `"the whole thing"` --
+    fifteen characters on one line -- and that is now released, because a unit holding
+    no line break is a LINE and §8.4 names a short excerpt as what to send instead of a
+    document. A control built from one was pinning the refusal R-152 measured as a
+    coverage loss: 47 gate denials at r13, 36 of them the whole of a site-A call, on
+    units under 200 characters. What this test is about is the DOCUMENT, so it uses one.
     """
+    document = "the whole thing\nand a second line of it\nand a third"
     whole = _observation(
-        db, key="k-all", zone="body", value="the whole thing",
-        span=TextSpan(start=0, end=15), unit_text="the whole thing")
+        db, key="k-all", zone="body", value=document,
+        span=TextSpan(start=0, end=len(document)), unit_text=document)
 
     assert releasable_excerpts(db, evidence_refs=(whole,)) == ()
 

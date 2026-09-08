@@ -205,15 +205,30 @@ def _unit_length(number: int) -> int:
 # --- the one gap in P4's fixture set, closed with P4's own material ----------
 
 def _whole_unit_observation(number: int) -> Observation:
-    """P4 fixture `number`'s own text unit, addressed in full.
+    """P4 fixture `number`'s own text unit, addressed span-less and in full.
 
     `resolve.materialise` refuses a request span that disagrees with the record, and
     `items.is_whole_document` needs `span.end >= unit_length`. Every one of P4's
     published spans is a proper substring of its unit, so the two rules together make
     `Denied(whole_document_requested)` unreachable against the nineteen. This is the
     observation that closes it: P4's run, P4's content hash, P4's extractor, P4's text
-    unit -- addressed `0..length`, which is what "the whole document was requested"
-    means. The key is computed by P4's own `observation_key`.
+    unit. The key is computed by P4's own `observation_key`.
+
+    **SPAN-LESS SINCE `104` R-152, and the address is the whole of the change.** It was
+    `0..length` -- a span covering its unit -- and R-135 then R-152 exempted exactly
+    that shape when the unit is a heading or a single line: §8.4 names both as what to
+    send INSTEAD of a document, so a full-span address over P4 fixture 13's 66-character
+    one-line speaker note stopped being a whole document and this fixture released. No
+    published P4 unit holds a line break, so there is no fixture whose full-span address
+    still denies.
+
+    The span-less form is not a workaround for that; it is the shape the product
+    actually emits a document in. `extractors/structured_text.py` and
+    `extractors/docx.py` write the whole text of a file as ONE span-less observation at
+    the empty container path beside the unit holding the same characters, which is
+    CR-07 and `104` SF-1, and neither exemption touches it: both refuse a `None` span
+    on purpose. So the fixture now exercises `whole_document_requested` against the
+    thing §8.4 forbids rather than against the thing it recommends.
     """
     source = _p4(number)
     unit = source.text_units[0]
@@ -225,7 +240,7 @@ def _whole_unit_observation(number: int) -> Observation:
         source_type=source.run.source_type, raw_value=unit.text,
         location=Location(zone=published.location.zone,
                           container_path=unit.container_path,
-                          text_span=TextSpan(0, unit.length)),
+                          text_span=None),
         occurrence_count=1, observed_at=published.observed_at,
         reliability=published.reliability, run_id=source.run.run_id)
 
@@ -241,6 +256,11 @@ def _whole_unit_observation(number: int) -> Observation:
 #: releasable zone, a real document zone, and short enough that "the whole of it was
 #: requested" is the plain reading. The spec case is unchanged; what changed is that a
 #: filename is no longer available to stand in for a document, which is the point.
+#:
+#: THE FIXTURE STAYED AND ITS ADDRESS MOVED ON 2026-09-08, against `104` R-152. A
+#: 66-character note holds no line break, so a span covering it is a LINE and is now
+#: released -- see `_whole_unit_observation`, which addresses the unit span-less
+#: instead. The zone and the fixture number are unchanged.
 WHOLE_UNIT_P4_FIXTURE: int = 13
 WHOLE_UNIT_OBSERVATION: Observation = _whole_unit_observation(WHOLE_UNIT_P4_FIXTURE)
 
@@ -616,9 +636,9 @@ FIXTURES: tuple[GateFixture, ...] = (
                          fingerprint="fp-05", max_dossier_tokens=20000),
         decision=_denied(
             "whole_document_requested",
-            "the requested span covers the whole text unit. §8.4: the engine 'should "
-            "not send full documents where a short heading or OCR excerpt is enough "
-            "to resolve the question.'",
+            "the requested address resolves to the whole text unit. §8.4: the engine "
+            "'should not send full documents where a short heading or OCR excerpt is "
+            "enough to resolve the question.'",
             RemedyOption("narrow_span",
                          "§8.4's compact dossier is 'selected excerpts' -- a bounded "
                          "span, addressed by (observation_key, span)"),

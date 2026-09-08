@@ -475,6 +475,43 @@ def unit_length_for_observation(conn: sqlite3.Connection,
     return None if row is None else row[0]
 
 
+def unit_holds_a_line_break(conn: sqlite3.Connection,
+                            observation: Observation) -> bool | None:
+    """Rule 10's lookup answering only DOES THIS UNIT HAVE MORE THAN ONE LINE.
+
+    **`104` R-152, and it sits here for `unit_length_for_observation`'s reason above,
+    written out once for both.** A caller whose question is "is the whole of this unit
+    a line or a document?" does not need the document to answer it, and P7 asks that
+    question in order to REFUSE to send a document. The answer is read in SQL --
+    `instr` never brings the text across -- so the guarantee is in the query and not in
+    the caller's manners, and the text stays inside `evidence_shape` where §8.4's
+    "complete extracted text" belongs.
+
+    **A line break is the DOCUMENT'S OWN statement that it has more than one line**,
+    which is why this is a structural fact and not a length. `line_reading_for` above
+    already reads a line as "the previous newline to the next newline"; a unit with no
+    newline between its ends is that whole line and nothing more.
+
+    A break at the very END is a terminator and not a second line, so the trailing run
+    of CR and LF is dropped before the question is asked: `"Invoice total 42\n"` is one
+    line, exactly as `line_reading_for` would read it, and calling it two would refuse a
+    unit for its punctuation. `rtrim(text, ...)` removes trailing characters and never
+    interior ones, so `"a\nb\n"` still answers True.
+
+    `None` means no unit stands at that path -- §2.3's cell and §2.8's EXIF field --
+    and is the same absence `unit_length_for_observation` reports, never `False`: there
+    is no unit whose lines could be counted, which is a different fact from a unit that
+    has one.
+    """
+    row = conn.execute(
+        "SELECT instr(rtrim(text, char(10) || char(13)), char(10)) > 0 "
+        "FROM text_units WHERE run_id = ? AND unit_locator = ?",
+        (observation.run_id,
+         serialize_container_path(observation.location.container_path)),
+    ).fetchone()
+    return None if row is None else bool(row[0])
+
+
 def supersede_observation(conn: sqlite3.Connection, *, old_observation_id: str,
                           new_observation_id: str, reason: str) -> None:
     """§8.2: a newer result supersedes an earlier one, retaining the old observation

@@ -45,13 +45,15 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 
-from evidence_shape.store import get_observation, unit_length_for_observation
+from evidence_shape.store import (
+    get_observation, unit_holds_a_line_break, unit_length_for_observation,
+)
 from llm_harness.budgets import ScanBudget
 from llm_harness.harness import CallDependencies
 from llm_harness.records import EvidenceItem, PromptDefinition
 from privacy.items import Excerpt, sensitive_observation_keys
 from privacy.release import (
-    ModelCallRequest, ModelTarget, Target, released_whole_heading_unit,
+    ModelCallRequest, ModelTarget, Target, released_whole_excerpt_unit,
 )
 from placement.vocabulary import FILE
 from privacy.vocabulary import ALWAYS_LOCAL_ZONES
@@ -222,12 +224,16 @@ def releasable_excerpts(conn: sqlite3.Connection, *,
         else:
             if unit_length is None:
                 continue
-            # `104` R-135, the same ruling site A takes, through the same predicate
-            # `GroundingReport` counts by. A heading unit is not a document; §8.4
-            # names a heading as what to send INSTEAD of one.
+            # `104` R-135 and `104` R-152, the same rulings site A takes, through the
+            # same predicate `GroundingReport` counts by and the gate excepts by. A
+            # heading unit is not a document and neither is a line; §8.4 names a
+            # heading and a short excerpt as what to send INSTEAD of one.
             if (where.text_span.start <= 0
                     and where.text_span.end >= unit_length
-                    and not released_whole_heading_unit(where, unit_length)):
+                    and not released_whole_excerpt_unit(
+                        where, unit_length,
+                        unit_holds_line_break=unit_holds_a_line_break(
+                            conn, observation))):
                 continue
         offered.append(Excerpt(
             observation_key=observation.observation_key,

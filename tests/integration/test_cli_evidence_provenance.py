@@ -232,11 +232,25 @@ def test_an_always_local_reading_is_not_offered(evidence):
 def test_a_whole_document_reading_is_not_offered(evidence):
     """§8.4's "should not send full documents where a short heading or OCR
     excerpt is enough", applied a step before the door so the call is never built
-    rather than built and denied."""
+    rather than built and denied.
+
+    THE DOCUMENT GAINED ITS LINE BREAKS FOR `104` R-152, and it needed its own unit to
+    hold them. It was the whole of `BODY`, one 49-character line, which is now RELEASED:
+    a unit holding no line break is a line, and §8.4 names a short excerpt as what to
+    send instead of a document. A control built from a single line was pinning the
+    refusal that row measured as the loss -- 47 gate denials at r13, 36 of them a whole
+    site-A call. `BODY` stays as it is because half this file addresses spans into it.
+    """
     _indexed(evidence)
     short = _observation(evidence, zone="body", span=TextSpan(10, 21),
                          value="problem set")
-    _observation(evidence, zone="body", span=TextSpan(0, len(BODY)), value=BODY)
+    page_three = (Segment(kind="page", index=3),)
+    document = (BODY + "\nHand it in at the box outside the office.\n"
+                "Late work loses a letter grade.")
+    record_text_unit(evidence, TextUnit(run_id="run-1",
+                                        container_path=page_three, text=document))
+    _observation(evidence, zone="body", span=TextSpan(0, len(document)),
+                 value=document, container=page_three)
 
     offered = cli.reading_citations(evidence, "file-1", limit=12)
 

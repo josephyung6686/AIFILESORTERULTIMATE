@@ -606,6 +606,14 @@ def test_grounding_report_carries_the_spec_measurement_fields():
         # a caller that has not been taught to count still constructs.
         "heading_units_released",
         "longest_heading_unit_length",
+        # `104` R-152's exposure count, beside R-135's and never merged into it. The
+        # ruling releases a whole unit that holds no LINE BREAK, because a unit with no
+        # line break is one line and §8.4 asks for a short excerpt instead of a full
+        # document; it sets no length bound either, so this pair is what the scorecard
+        # shows in place of one. Counted apart because a heading that is really prose
+        # and a paragraph that is really one long line are different defects.
+        "line_units_released",
+        "longest_line_unit_length",
     )
     assert report.release_audit_id == 17
     with pytest.raises((MalformedRecord, ValueError)):

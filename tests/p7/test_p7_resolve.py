@@ -148,10 +148,15 @@ def test_materialised_holds_no_path_and_no_file_id(evidence, one_excerpt):
     # about whether this resolution is that row's exemption, decided here because this
     # is the last place P4's `Location` exists. It is a boolean about a SPAN, so it
     # carries nothing about where the file is, which is what this test is guarding.
+    #
+    # `whole_line_unit` is the tenth, added for `104` R-152, and it is the same kind of
+    # name for the same reason: whether the unit this span covers holds a line break.
+    # The newline is read in SQL by `evidence_shape.store`, so not even the unit's text
+    # reaches this type, let alone the file's path.
     names = {field.name for field in dataclasses.fields(Materialised)}
     assert names == {"observation_key", "span", "value", "zone", "context_before",
                      "context_after", "context_truncated", "unit_length",
-                     "whole_heading_unit"}
+                     "whole_heading_unit", "whole_line_unit"}
     assert not names & {"file_id", "path", "current_path", "filename", "content_hash"}
 
 

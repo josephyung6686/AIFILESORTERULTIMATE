@@ -602,3 +602,200 @@ def test_the_word_documents_body_is_never_offered_to_a_model_call(whole_conn):
     values = [observation.raw_value for observation in offered]
     assert offered, "the headings and cells beside the body are still offered"
     assert not [value for value in values if DOCX_CANARY in value], values
+
+
+# ================================================================================
+# `104` R-152: a unit that holds no line break is a LINE, and a line released whole
+# is an excerpt. Plus the half of `104` R-135 that never reached this file.
+# ================================================================================
+#
+# The two rulings met here and the gate was answering neither. R-135 exempted a whole
+# HEADING unit in `privacy.release` and taught both release builders to admit one --
+# and the gate, which asks the whole-document question a second time over the RESOLVED
+# items, went on refusing it. So the builders offered the heading that states a course
+# code and its name together, and the gate denied the call it arrived in. Measured on
+# the owner's corpus at r13: 47 `whole_document_requested` denials, 36 of them the
+# WHOLE of a site-A call, `PRIVACY_GATE_REFUSED` in the grounding report and every fact
+# of the file left `missing`; the units were under 200 characters, 24 of them under 50,
+# mostly pdf and docx -- which is what a heading and a running footer and a table cell
+# measure.
+#
+# R-152's ruling is structural and is not a length: a unit with no line break in it is
+# ONE LINE, because a line break is the document's own statement that it has a second
+# line, and §8.4's sentence asks for "a short heading or OCR excerpt" INSTEAD of a full
+# document. What it does not decide is size -- a very long single line is still one
+# line, is released, and is counted (`GroundingReport.longest_line_unit_length`); that
+# is `104` R-145's paragraph and §8.6's ceiling bounds it.
+
+#: Twenty characters, one line, the shape r13 refused 36 times at site A.
+A_LINE = "Invoice total 42.00"
+
+#: The same words with the line breaks a page of prose has. Not longer for the sake of
+#: it: the ONLY difference between this and the line above is the newlines, so a test
+#: that passes for one and fails for the other has isolated the criterion.
+A_PAGE = "Invoice total 42.00\nDue on receipt, net 30\nRemit to the address above"
+
+#: §8.4's own alternative to a document, and R-135's exemption.
+A_TITLE = "COMS W3134: Data Structures"
+
+
+def _whole_unit(conn, *, name, tag, zone, container_path, text):
+    """One file whose run holds `text` as the unit at `container_path`, and one
+    observation addressing the whole of it. The shape `extractors/pdf.py` emits a
+    heading in and `extractors/docx.py` a running footer and a table cell."""
+    file_id = _file(conn, name, f"hash-{tag}")
+    key = _observation(conn, file_id, tag=tag, zone=zone,
+                       container_path=container_path, raw_value=text,
+                       unit_text=text, span=TextSpan(0, len(text)),
+                       extractor="pdf.text", source_type="text_document")
+    _classify(conn, file_id, f"hash-{tag}", key=key)
+    _store_policy(conn)
+    return file_id, key
+
+
+def _release_whole(conn, file_id, key, text):
+    return _gate(conn).release(_request(
+        items=(Excerpt(observation_key=key, span=TextSpan(0, len(text)),
+                       reason="the whole of one unit"),),
+        file_id=file_id))
+
+
+def test_the_gate_releases_a_short_single_line_unit_whole(whole_conn):
+    """`104` R-152 on the path where the loss was measured.
+
+    Nineteen characters, no line break, and before the ruling this came back
+    `Denied(whole_document_requested)` -- which at site A is the file's whole call, so
+    the file's facts were recorded `missing` and the model was never asked. §8.4 wants
+    a short excerpt sent INSTEAD of a document, and this IS the short excerpt.
+
+    SABOTAGE: make `unit_holds_a_line_break` return `True` for a unit with no newline
+    and this goes red, which is the whole of the criterion.
+    """
+    file_id, key = _whole_unit(
+        whole_conn, name="Invoice.pdf", tag="line", zone="body",
+        container_path=(Segment("page", 1), Segment("paragraph", 1)), text=A_LINE)
+
+    decision = _release_whole(whole_conn, file_id, key, A_LINE)
+
+    assert isinstance(decision, Released), getattr(decision, "reason", decision)
+    assert decision.materialised_items[0].value == A_LINE
+    assert decision.materialised_items[0].whole_line_unit is True
+    assert decision.materialised_items[0].whole_heading_unit is False
+
+
+def test_the_gate_denies_the_same_words_once_they_hold_line_breaks(whole_conn):
+    """The control, and it differs from the test above by newlines and nothing else.
+
+    A unit that holds a line break has said it has more than one line, and the whole of
+    it is what §8.4 calls a full document. The exemption is structural, so it cannot
+    widen to a page by accident -- and a page is exactly what this is.
+    """
+    file_id, key = _whole_unit(
+        whole_conn, name="Statement.pdf", tag="page", zone="body",
+        container_path=(Segment("page", 1),), text=A_PAGE)
+
+    decision = _release_whole(whole_conn, file_id, key, A_PAGE)
+
+    assert isinstance(decision, Denied), decision
+    assert decision.reason == "whole_document_requested", decision.reason
+    assert not getattr(decision, "materialised_items", ())
+
+
+def test_a_bounded_span_inside_a_multi_line_unit_is_still_released(whole_conn):
+    """The ordinary excerpt out of a document, untouched by either ruling. Without
+    this, "a multi-line unit is refused" could be read as "a multi-line unit is
+    unreachable", which would be a coverage loss of its own."""
+    file_id, key = _whole_unit(
+        whole_conn, name="Statement 2.pdf", tag="page-2", zone="body",
+        container_path=(Segment("page", 1),), text=A_PAGE)
+    inner = _observation(
+        whole_conn, file_id, tag="page-2-inner", zone="body",
+        container_path=(Segment("page", 1),), raw_value="42.00",
+        unit_text=A_PAGE, span=TextSpan(14, 19),
+        extractor="pdf.text", source_type="text_document")
+    _classify(whole_conn, file_id, "hash-page-2-inner", key=inner)
+
+    decision = _gate(whole_conn).release(_request(
+        items=(Excerpt(observation_key=inner, span=TextSpan(14, 19),
+                       reason="the amount"),),
+        file_id=file_id))
+
+    assert isinstance(decision, Released), getattr(decision, "reason", decision)
+    assert decision.materialised_items[0].value == "42.00"
+    assert decision.materialised_items[0].whole_line_unit is False
+    assert key  # the whole-unit address exists beside it and was not requested
+
+
+def test_the_gate_releases_a_whole_heading_unit_which_is_r135s_missing_half(
+        whole_conn):
+    """`104` R-135 reached `privacy.release` and both builders and stopped at the gate.
+
+    Measured at `e5cce44`, before this test existed: the gate answered
+    `Denied(whole_document_requested)` for a span covering a whole `heading` unit. So
+    the ruling's own worked example -- the syllabus heading that states `COMS W3134`
+    and `Data Structures` together, which site C's prompt asks the model to judge two
+    spellings from -- was offered by `model_placement.releasable_excerpts` and then
+    refused, taking the call with it. `tests/p11/test_p11_anchor_heading_release.py`
+    measures the builders and could not see this, because a builder does not release.
+
+    It is fixed here rather than in a row of its own because it is one exemption asked
+    in three places, and the gate was the third.
+    """
+    file_id, key = _whole_unit(
+        whole_conn, name="Syllabus.pdf", tag="title", zone="heading",
+        container_path=(Segment("page", 1), Segment("heading", 1)), text=A_TITLE)
+
+    decision = _release_whole(whole_conn, file_id, key, A_TITLE)
+
+    assert isinstance(decision, Released), getattr(decision, "reason", decision)
+    assert decision.materialised_items[0].value == A_TITLE
+    assert decision.materialised_items[0].whole_heading_unit is True
+
+
+def test_a_unit_that_only_ENDS_in_a_line_break_is_one_line(whole_conn):
+    """A terminator is not a second line, and `rtrim` is why the distinction holds.
+
+    `evidence_shape.text_units` stores a unit's text "exactly as extracted", so a unit
+    can carry the newline that ended it. Reading that as two lines would refuse a unit
+    for its punctuation -- and `store.line_reading_for`, which is P4's own reading of
+    what a line is, would disagree: it takes the previous newline to the next one, and
+    there is no next one after the last character.
+    """
+    text = A_LINE + "\n"
+    file_id, key = _whole_unit(
+        whole_conn, name="Invoice 2.pdf", tag="terminated", zone="body",
+        container_path=(Segment("page", 1), Segment("paragraph", 1)), text=text)
+
+    decision = _release_whole(whole_conn, file_id, key, text)
+
+    assert isinstance(decision, Released), getattr(decision, "reason", decision)
+    assert decision.materialised_items[0].whole_line_unit is True
+
+
+def test_an_always_local_zone_still_refuses_a_whole_single_line_unit(whole_conn):
+    """The exemption excepts ONE refusal, and this is the assertion that says so.
+
+    `Gate._precheck_items` asks `check_item` everything it can answer with no unit
+    length -- the always-local names, the sensitive key, the always-local zone, the
+    protected file -- and returns that refusal BEFORE anything is materialised, which
+    is `DECISION_ORDER`'s rule that a gate must not hold an absolute directory in
+    memory in order to decide it was not allowed to. The whole-document arm is the only
+    refusal that needed the resolved length, so it is the only one the postcheck's
+    exception can waive.
+
+    There is no one-line sabotage of the postcheck that turns this red, and that is
+    the property rather than a gap in the test: `release` puts the precheck's refusal
+    into the early denial builders, so a `path`-zone item is answered before the
+    postcheck runs and cannot be released by anything the postcheck does. What this
+    catches is a FUTURE move -- an exemption hoisted above `_precheck_items`, or a
+    release short-circuited on one -- and it catches it with an absolute directory on
+    the wire, which is CR-01.
+    """
+    file_id, key = _whole_unit(
+        whole_conn, name="Where.pdf", tag="path-line", zone="path",
+        container_path=(Segment("page", 1), Segment("paragraph", 1)), text=A_LINE)
+
+    decision = _release_whole(whole_conn, file_id, key, A_LINE)
+
+    assert isinstance(decision, Denied), decision
+    assert decision.reason == "always_local_item", decision.reason

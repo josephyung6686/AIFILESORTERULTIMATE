@@ -177,18 +177,28 @@ def test_no_release_carries_the_context_beside_a_span(conn, tmp_path):
 def test_a_whole_body_unit_is_still_refused(conn, tmp_path):
     """The half of the ruling that did NOT move, and the reason it is safe.
 
-    `104` R-135 exempts a whole HEADING unit and nothing else. A span covering a whole
-    `body` unit is a full document, which is exactly what §8.4 forbids sending, and the
-    exemption is structural -- the innermost container segment -- so it cannot widen to
-    a page by accident. Without this assertion the ruling would read as "whole units are
-    releasable now", which is not what was ruled.
+    `104` R-135 exempts a whole HEADING unit and `104` R-152 a whole LINE unit, and
+    nothing else. A span covering a whole `body` unit of SEVERAL LINES is a full
+    document, which is exactly what §8.4 forbids sending, and both exemptions are
+    structural -- the innermost container segment, and whether the unit holds a line
+    break -- so neither can widen to a page by accident. Without this assertion the
+    ruling would read as "whole units are releasable now", which is not what was ruled.
+
+    THE PROSE GAINED ITS LINE BREAKS FOR R-152. It was one 61-character line, which
+    made this test a pin on the refusal that row measured as a coverage loss: 47 gate
+    refusals at r13, 36 of them the whole of a site-A call, on units under 200
+    characters. A one-line unit is now released, so a control that used one was
+    measuring the defect rather than the rule. A page of prose has line breaks in it,
+    which is the shape this test was always about.
     """
     from evidence_shape.location import Location, Segment, TextSpan
 
     _file_id, _whole, code = _corpus(conn, tmp_path)
     file_id = code.file_id
     page = (Segment("page", 1),)
-    prose = "The whole of a page of this document, which is not a heading."
+    prose = ("The whole of a page of this document, which is not a heading.\n"
+             "It runs to a second line, and to a third, the way a page does.\n"
+             "A unit that holds line breaks is what §8.4 calls a full document.")
     record_text_unit(conn, TextUnit(
         run_id="run-syllabus", container_path=page, text=prose))
     body = Observation(
@@ -1687,10 +1697,14 @@ def test_a_whole_body_line_is_refused_and_a_heading_is_released(conn, tmp_path):
     """The whole-unit rule and `104` R-135's exemption, both intact under the new call.
 
     `releasable_readings` runs the same four exclusions as `releasable_observations`,
-    so a span covering a whole `body` unit is still a full document and refused, and a
-    span covering a whole `heading` unit is still the thing §8.4 names as what to send
-    instead. Asked of named readings rather than of a ranking, which is the only thing
-    that changed.
+    so a span covering a whole MULTI-LINE `body` unit is still a full document and
+    refused, and a span covering a whole `heading` unit is still the thing §8.4 names
+    as what to send instead. Asked of named readings rather than of a ranking, which is
+    the only thing that changed.
+
+    THE PROSE GAINED ITS LINE BREAKS FOR `104` R-152, for the reason the whole-body
+    test above gives: a 54-character single line is a line, §8.4's short excerpt, and
+    is released now. This test is about the DOCUMENT, so it uses one.
     """
     from model_facts import releasable_readings
 
@@ -1699,7 +1713,8 @@ def test_a_whole_body_line_is_refused_and_a_heading_is_released(conn, tmp_path):
     content_hash = get_file(conn, file_id)["content_hash"]
 
     page = (Segment("page", 2),)
-    prose = "A whole page of this document, which is not a heading."
+    prose = ("A whole page of this document, which is not a heading.\n"
+             "It runs to a second line, the way a page of prose does.")
     record_text_unit(conn, TextUnit(
         run_id="run-anchor", container_path=page, text=prose))
     body = Observation(

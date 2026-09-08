@@ -625,7 +625,13 @@ def test_the_extra_observation_is_p4s_own_material_and_there_is_one():
     assert WHOLE_UNIT_OBSERVATION.content_hash == source.run.content_hash
     assert WHOLE_UNIT_OBSERVATION.extractor_name == source.run.extractor_name
     assert WHOLE_UNIT_OBSERVATION.raw_value == source.text_units[0].text
-    assert WHOLE_UNIT_OBSERVATION.location.text_span.end == source.text_units[0].length
+    # `104` R-152: SPAN-LESS, which is how `extractors/structured_text.py` and
+    # `extractors/docx.py` emit a whole document, and the only whole-unit address left
+    # that is not one of §8.4's two named alternatives to sending one. It was
+    # `TextSpan(0, length)` until a full-span address over this one-line note became a
+    # released LINE.
+    assert WHOLE_UNIT_OBSERVATION.location.text_span is None
+    assert len(WHOLE_UNIT_OBSERVATION.raw_value) == source.text_units[0].length
     assert WHOLE_UNIT_OBSERVATION.observation_key.startswith("sha256:")
 
 
