@@ -99,9 +99,36 @@ def _subject_values(conn):
 
 def test_the_spellings_collapse_to_one_value_per_code(run):
     """The premise. If this fails the corpus stopped exercising the collapse and the
-    tests below are measuring nothing -- the failure mode `84` §5.3 names."""
+    tests below are measuring nothing -- the failure mode `84` §5.3 names.
+
+    **`Section 001` IS A THIRD SUBJECT ON THIS RUN AND IT IS PINNED, NOT HIDDEN.**
+    `104` R-146 widened `cli._STRUCTURED` so a course printed as a capitalised word
+    and a number is readable at all (`Physics 1401`, which the uppercase-only shape
+    returned nothing for), and `BODY` above prints `Section 001` two lines under
+    `Syllabus` and on the same line as `Instructor:`. So the reading is a candidate,
+    §3.5's context check passes -- two teaching words sit beside it -- and the run
+    writes a `validated` `subject` this document is not about.
+
+    IT IS THE SAME CLASS THE OLD SHAPE ALREADY ADMITTED, AT A NEW FREQUENCY, and
+    both halves matter. Measured on the shape that shipped until 2026-09-08,
+    `\\b[A-Z][A-Z0-9]*[ -]?[0-9]{3,}\\b`: `'SECTION 001. Instructor: R. Feynman.'`
+    -> `['SECTION 001']`. A syllabus that SHOUTED its section already produced this
+    value, and this fixture would already have failed had it been written in
+    capitals. What R-146 changes is how often a real document hits it, because
+    people print `Section 001`, `Chapter 101` and `Room 1234` in title case far more
+    often than in capitals.
+
+    NOTHING OF SHAPE SEPARATES `Section 001` FROM `Physics 1401`, and the only thing
+    that could is a list of words saying which ones are departments -- the domain
+    knowledge the product constitution forbids ("LLM decides, code delivers. Never
+    hardcode domain knowledge"), because "which word names the course" is the
+    question the model is asked. So the fixture keeps saying what a real syllabus
+    says and the value is recorded here rather than tuned away. This is the one case
+    measured in this wave where §3.5's context guard does NOT hold the widening, and
+    `104` is where a narrowing would be ruled if the owner wants one.
+    """
     assert [row["canonical_value"] for row in _subject_values(run)] == [
-        "CHEM2100", "PHYS1401"]
+        "CHEM2100", "PHYS1401", "Section 001"]
 
 
 def test_the_run_keeps_the_wording_each_document_used(run):
