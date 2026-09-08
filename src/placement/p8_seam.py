@@ -145,6 +145,26 @@ def to_p8_conflicts(conflicts) -> tuple[P8Conflict, ...]:
     return tuple(converted)
 
 
+#: The `EvidenceItem` kinds whose `evidence_ref` is a PLAN identifier rather than an
+#: address of the file's own text: `00`:110's node profile for every destination the
+#: model may answer with -- `candidate` at C, `residual_area` and `branch` at D --
+#: and the groups the person accepted the file into. The ratified C text says what
+#: they are and what may not be done with them: a candidate's ref "is an identifier
+#: from allowed_vocabulary", and of a group, "A group is support for a level and
+#: never a citation ... A citation whose evidence_ref is a group's identifier
+#: destroys the whole answer."
+#:
+#: `pipeline._offered_items` and `pipeline._accepted_group_items` MINT from these
+#: names rather than spelling them, so the set cannot drift from the two producers
+#: that write them.
+CANDIDATE_ITEM: str = "candidate"
+RESIDUAL_AREA_ITEM: str = "residual_area"
+BRANCH_ITEM: str = "branch"
+ACCEPTED_GROUP_ITEM: str = "accepted_group"
+UNCITABLE_ITEM_KINDS: frozenset[str] = frozenset(
+    {CANDIDATE_ITEM, RESIDUAL_AREA_ITEM, BRANCH_ITEM, ACCEPTED_GROUP_ITEM})
+
+
 def snapshot_observation_keys(evidence_items) -> tuple[str, ...]:
     """The keys an evidence snapshot addresses: the ones the DOSSIER carries.
 
@@ -162,6 +182,25 @@ def snapshot_observation_keys(evidence_items) -> tuple[str, ...]:
     tuple, which `build_dossier` copies onto the `Dossier` verbatim and which a
     revalidation therefore has at hand on the dossier it is re-validating.
 
+    **THE FOLDERS AND THE GROUPS ARE NOT ADDRESSED**, and that is why this is a
+    function rather than an attribute read. `_judge_with_model` minted from the
+    builder's items before appending its own offers; the STORED dossier carries
+    all of them together (`pipeline` line 2133), so a revalidation reading
+    `dossier.evidence_items` raw would hash node ids the original never did and
+    the two paths would go on disagreeing for a new reason. An evidence snapshot
+    addresses "what the dossier actually cites", and `UNCITABLE_ITEM_KINDS` is
+    exactly what may not be cited -- the ratified C text's own ruling, and the
+    pipeline's own sentence for the same exclusion: "a folder is not an
+    observation, it carries no key P7 could resolve, and addressing one would put
+    a plan id in a citation record". A plan id in the snapshot would also make the
+    id move with the TREE, which `plan_version` already addresses on its own.
+
+    The exclusion is a REFUSAL LIST and not an allow-list, deliberately. A new
+    kind of reading of the file would be addressed by default, which is right --
+    the snapshot must not silently stop covering something the dossier cites --
+    while a new kind of OFFER is written in `pipeline` beside the constants above
+    and joins them there.
+
     A refless item is dropped rather than addressed as an empty string, which is
     `EvidenceItem`'s own rule read forward: the ref is required non-empty today,
     so this cannot fire on any item shape that exists, and it is here for the
@@ -171,7 +210,7 @@ def snapshot_observation_keys(evidence_items) -> tuple[str, ...]:
     what the model saw.
     """
     return tuple(item.evidence_ref for item in evidence_items
-                 if item.evidence_ref)
+                 if item.evidence_ref and item.kind not in UNCITABLE_ITEM_KINDS)
 
 
 def evidence_snapshot_id_for(*, plan_version: str, observation_keys) -> str:

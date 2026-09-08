@@ -43,8 +43,8 @@ from placement.store import record_decision
 from placement.versions import reproject
 from placement.index import build_destination_index, legal_node_ids
 from placement.p8_seam import (
-    evidence_snapshot_id_for, placement_authorities, site_dependencies,
-    snapshot_observation_keys,
+    CANDIDATE_ITEM, evidence_snapshot_id_for, placement_authorities,
+    site_dependencies, snapshot_observation_keys,
 )
 from placement.schema import create_placement_schema
 from placement.vocabulary import DIRECT
@@ -596,3 +596,40 @@ def test_a_dossier_whose_facts_changed_and_items_did_not_does_not_revalidate(ind
         "SELECT 1 FROM llm_verdict WHERE verdict_id = ?",
         (f"{verdict_id}::{plan}::" + evidence_snapshot_id_for(
             plan_version=plan, observation_keys=("obs-9",)),)).fetchone() is None
+
+
+def test_a_dossier_that_gained_a_folder_offer_does_not_revalidate(indexed):
+    """The offers are not evidence, and the two paths agree about that too.
+
+    `104` R-155's third direction, and the one that would have re-opened the row
+    from the other end. `_judge_with_model` mints the snapshot BEFORE it appends
+    `00`:110's node profiles, so a revalidation reading `dossier.evidence_items`
+    raw would hash node ids the original never hashed -- every file with
+    candidates re-validating on a set that was never addressed. Here the dossier
+    gains a `candidate` item, nothing the model may cite changes, and no second
+    verdict is written.
+    """
+    pair = SITE_C_OUTCOME_PAIRS[0]
+    plan = _index_the_dossiers_own_version(indexed, pair)
+    verdict_id = _stored_verdict(indexed, pair,
+                                 snapshot=_items_snapshot(pair, plan_version=plan))
+    _place_d1(indexed)
+    offered = replace(pair, dossier=replace(
+        pair.dossier,
+        evidence_items=pair.dossier.evidence_items + (
+            EvidenceItem(evidence_ref=pair.dossier.allowed_vocabulary[0],
+                         kind=CANDIDATE_ITEM,
+                         location="Academics > PHYS 1401 > Homework",
+                         excerpt_span=None, reliability_state=DIRECT,
+                         basis=DIRECT_ANCHOR),)))
+    before = _verdict_count(indexed)
+
+    diff = _reprojected_onto_the_dossiers_own_version(
+        indexed, pair, verdict_id=verdict_id, inputs_pair=offered)
+
+    assert diff.carried_unchanged == ("d1",)
+    assert _verdict_count(indexed) == before
+    # The folder's identifier is not in the address, and a snapshot that carried
+    # it would be a different id from the one the pipeline minted.
+    assert _items_snapshot(offered, plan_version=plan) == _items_snapshot(
+        pair, plan_version=plan)

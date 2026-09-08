@@ -27,9 +27,10 @@ from placement import vocabulary as v
 from placement.config import SupportPolicy
 from placement.index import build_destination_index
 from placement.p8_seam import (
-    EvidenceSnapshotRequired, ModelPathUnavailable, call_placement,
+    ACCEPTED_GROUP_ITEM, CANDIDATE_ITEM, EvidenceSnapshotRequired,
+    ModelPathUnavailable, UNCITABLE_ITEM_KINDS, call_placement,
     evidence_snapshot_id_for, placement_authorities, residual_authorities,
-    site_dependencies, to_p8_conflicts, transcribe,
+    site_dependencies, snapshot_observation_keys, to_p8_conflicts, transcribe,
 )
 from placement.records import ConflictConsidered
 from p11.conftest import FIXED_CLOCK
@@ -251,6 +252,57 @@ def test_the_evidence_snapshot_id_is_a_content_address():
     assert first == second
     assert len({first, third, fourth}) == 3
     assert first
+
+
+def _snapshot_item(ref: str, *, kind: str):
+    from llm_harness.records import EvidenceItem
+    from llm_harness.vocabulary import DIRECT_ANCHOR
+
+    return EvidenceItem(evidence_ref=ref, kind=kind, location="body",
+                        excerpt_span=None, reliability_state=v.DIRECT,
+                        basis=DIRECT_ANCHOR)
+
+
+def test_a_folder_offer_is_not_part_of_the_evidence_snapshot():
+    """`104` R-155. The snapshot addresses what the dossier CITES, and the offers
+    are the items the ratified C text forbids citing.
+
+    `_judge_with_model` mints before it appends its own node profiles and accepted
+    groups; the stored dossier carries them beside the readings, so the derivation
+    both paths ask has to state the exclusion by kind rather than rely on when it
+    is called. Left in, a re-validation would hash node ids the original never did
+    -- and the id would then move with the TREE, which `plan_version` already
+    addresses on its own.
+    """
+    reading = _snapshot_item("obs-1", kind="excerpt")
+    offers = (_snapshot_item("node-7", kind=CANDIDATE_ITEM),
+              _snapshot_item("group-2", kind=ACCEPTED_GROUP_ITEM))
+
+    assert snapshot_observation_keys((reading,) + offers) == ("obs-1",)
+    # And the id is the SAME id, which is the property the two paths need.
+    assert evidence_snapshot_id_for(
+        plan_version="plan-1",
+        observation_keys=snapshot_observation_keys((reading,) + offers)
+    ) == evidence_snapshot_id_for(
+        plan_version="plan-1",
+        observation_keys=snapshot_observation_keys((reading,)))
+
+
+def test_the_uncitable_kinds_are_the_ones_p11s_own_builders_mint():
+    """One set of names, read by the producer and by the exclusion.
+
+    `pipeline._offered_items` and `pipeline._accepted_group_items` write these
+    kinds; a hand-written list here would go on agreeing with itself after a
+    producer had moved. The AST read is the same shape this file uses for P8's
+    reason codes.
+    """
+    source = (PLACEMENT_SOURCES / "pipeline.py").read_text()
+    minted = {node.value for node in ast.walk(ast.parse(source))
+              if isinstance(node, ast.Constant) and isinstance(node.value, str)}
+
+    assert not (UNCITABLE_ITEM_KINDS & minted), (
+        "an item kind spelled as a literal in pipeline.py is a second spelling "
+        "of a name p8_seam publishes")
 
 
 def test_a_snapshot_of_no_evidence_is_refused_rather_than_addressed():
