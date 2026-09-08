@@ -940,6 +940,7 @@ Proposals, not enactments. Nothing below is in force until the owner says so; vo
 15. **A sensitivity detector for name-bearing metadata fields and address-shaped lines** (R-161): the identifier classes are Deferred in P7's SPEC and a detector's vocabulary is the owner's. Until one exists, `Author`, `last_modified_by` and `Creator` reach every model; the lead's recommendation is that a format's own person-valued fields (PDF `/Author`, OOXML `dc:creator`, `cp:lastModifiedBy`) are signalled by the field, which is structure and not a word list.
 16. **Glossary meanings for `work_type` and `term`** (R-163): one sentence each that describes the field and cannot be read as a value.
 17. **A bar for the model-decided share** (R-165): once the scoreboard reports what share of placements the model made, the owner says what share counts as done; the lead's recommendation is that it equals the placed count, since §13.5 already rules that every placement goes through the model, and a rule may only reject a structurally invalid answer.
+18. **Is site A asked every level field, with the rule's fact shown as a flag?** (R-20's other half, §13.6.) Today a field the rule settles once is a validated fact and is removed from the model's question (`pending_fields_for`); the model is told *"You cannot see this file's existing facts"*. §13.6 rules that rule-fact precedence is "shown to the model as a flag with its evidence", which has nothing to attach to while the model is never asked a settled field. Measured on r15's 43 labelled coursework files: 16 `subject` and 17 `work_type` facts were rule-written and never shown to any model; 3 of the 17 `work_type` rule facts disagree with the label; all 16 `subject` rule facts are in the document's spelling (R-147). The lead's recommendation: after R-159 lands and one run measures it, site A is asked every level field of every file, the rule's fact arrives in the dossier as a flagged item with its citation, and a model answer that agrees costs nothing while one that disagrees is a review item, never a silent overwrite. This changes what site A is asked and is the owner's; a new A_fact manifest row would carry the wording.
 
 
 ## 16. Root cause, traced stage by stage on r15 (8 Sep 2026): the evidence never reaches the model
@@ -983,5 +984,6 @@ So the answer to "why does every run place so little": not the prompt, not the n
 2. R-160 is code and is built now (`r160-notebook-cells`).
 3. R-161 and R-163 are the owner's; R-162 is §15.4 item 13 with a number behind it.
 4. r16 at 47afa5d re-measures R-157 and R-158 only; it sees the same release rules. The first run that measures data-in is the one after the R-159 ruling.
+
 
 
