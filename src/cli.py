@@ -141,13 +141,27 @@ from llm_harness.harness import CallDependencies, run_call
 from llm_harness.records import (
     CallRefused, FolderLevel, P8Verdict, PromptDefinition,
 )
+from llm_harness.situation_validation import is_decline
 from llm_harness.store import last_response_bytes
 from llm_harness.sites import SiteDependencies
 from llm_harness.schema import create_llm_schema
 from llm_harness.vocabulary import (
     A_FACT, B_GROUP, C_PLACEMENT, CONTEXT_SUPPORTED, D_RESIDUAL, DIRECT_ANCHOR,
-    E_TEMPLATE, G_SITUATION_SENSITIVITY, PRE_CALL_NAMESPACE,
-    SCOPE_TEMPLATE as TEMPLATE_SCOPE,
+    ACCEPT_CONTEXT_SUPPORTED, ACCEPT_DIRECT,
+    E_TEMPLATE, G_SITUATION_SENSITIVITY, LLM_SUPPORTED, PRE_CALL_NAMESPACE,
+    SCOPE_FILE, SCOPE_TEMPLATE as TEMPLATE_SCOPE,
+)
+
+#: The two outcomes that mean P8 accepted the answer. `OUTCOMES` also holds `weak`,
+#: `reject` and `abstain`, and none of those is an answer to apply -- `worst_outcome`
+#: is what makes one verdict speak for a whole call, and this is the pair that lets
+#: a caller act on it. Named because `104` §17.1's site tests membership and a
+#: literal pair at the call site would be the second spelling brief §11 bans.
+ACCEPTING_OUTCOMES: frozenset[str] = frozenset(
+    {ACCEPT_DIRECT, ACCEPT_CONTEXT_SUPPORTED})
+from model_situation import (
+    NONE_OF_THESE, SITUATION_SENSITIVITY, NothingToAsk, build_situation_request,
+    question_for,
 )
 from placement import vocabulary as pv
 from placement.config import CEILINGS, SupportPolicy, placement_limits
@@ -169,8 +183,11 @@ from model_facts import (
     measure_released_tokens, pending_fields_for, releasable_observations,
     releasable_readings, zone_rank,
 )
-from privacy.classification import UNREADABLE_UNCLASSIFIED, resolve_class
+from privacy.classification import (
+    ClassificationRecord, UNREADABLE_UNCLASSIFIED, resolve_class,
+)
 from privacy.classification_store import ClassificationStore
+from privacy.learning_seam import assign
 from privacy.denial import UNCLASSIFIED_PERMITS_LOCAL, unclassified_denies
 from privacy.gate import Gate
 from privacy.defaults import LOCAL_FIRST_MODES
@@ -181,7 +198,9 @@ from privacy.resolve import (
     AmbiguousObservationKey, UnresolvableSpan, current_location,
     current_observation, filename_address,
 )
-from privacy.vocabulary import ALWAYS_LOCAL_ZONES, CLOUD_LOCALITY, MODE_SEMANTICS
+from privacy.vocabulary import (
+    ALWAYS_LOCAL_ZONES, CLOUD_LOCALITY, LOCAL_MODEL_SITUATION, MODE_SEMANTICS,
+)
 from questions.explanation import explain_question, render_explanation
 from questions.effects import changed_answer, diff_for_answer_change
 from questions.explanation import explain_question, render_explanation
@@ -248,7 +267,7 @@ from readers.model_routing import (
 )
 from facts.domains import SCHEMA_IDS
 from recognition.detector import (
-    FIRST_PAGE, NAMING_ZONES, SAFETY_DOMAIN_HANDLING, Detector, Handling,
+    FIRST_PAGE, NAMING_ZONES, SAFETY_DOMAIN_HANDLING, Abstention, Detector, Handling,
 )
 from recognition.rules import load_rules
 from recognition.semantic import (
@@ -542,6 +561,18 @@ TIER_OF_CALL_SITE: Mapping[str, str] = MappingProxyType({
     # High volume by construction -- these are the files nothing else could place
     # -- and §7.6 makes the person authorise the spend per set beforehand.
     D_RESIDUAL: FAST,
+    # `104` §17.1's seventh site. LOGIC, on A_FACT's own argument and not on a new
+    # one: the answer is one identifier out of a list the recognisers raised, every
+    # citation behind it is re-checked against evidence already extracted, and the
+    # decline is always available -- which is `83`'s "bounded, checkable,
+    # verification-shaped" exactly. It is NOT FAST: this site is where a medical
+    # record either is or is not recognised as one before anything else happens to
+    # it, so being wrong here is not "low stakes, individually cheap to get wrong".
+    # It is not REASONING either, for the reason measured at A_FACT one row up: the
+    # ratified text says "Think for as long as you need to before you answer", and a
+    # reasoning model sharing one budget between thinking and writing never starts
+    # writing.
+    G_SITUATION_SENSITIVITY: LOGIC,
 })
 
 #: §8.6's response ceiling, in tokens. `00` names the ceiling and states no value,
@@ -1648,18 +1679,32 @@ def observe_locality_permits(call_site: str, locality: str) -> bool:
     `A_fact` is unaffected and stays cloud-eligible: it is not in this set, its
     text is ratified, and `WIRED_CALL_SITES` is what governs it.
     """
-    if call_site not in OBSERVE_CALL_SITES and call_site != A_FACT:
+    if call_site not in _SITES_WITH_A_ROW:
         return True
     if locality == LOCAL:
         return True
     # `104` R-144: site A reads the same gate off its own row, so an A_fact v2
     # under `ratified_local` runs here and is refused a cloud target, as C is.
+    # `104` §17.1: site G reads it off its own row too, and its row is
+    # `ratified_local` -- "Nothing leaves the device under this ruling."
     return (draft_status(_template_id_for(call_site))
             in STATUS_MAY_CROSS_THE_INTERNET)
 
 
+#: EVERY SITE WHOSE TEXT COMES THROUGH A MANIFEST ROW, which is the set this gate
+#: can answer about. A site with no row has no word to read and is left alone; a
+#: site with one is asked its own word before its bytes may cross the internet.
+#: The four observe sites, site A since `104` R-144, and site G since `104` §17.1.
+_SITES_WITH_A_ROW: frozenset[str] = (
+    OBSERVE_CALL_SITES | {A_FACT, G_SITUATION_SENSITIVITY})
+
+
 def _template_id_for(call_site: str) -> str:
-    return A_FACT_ROW[0] if call_site == A_FACT else OBSERVE_TEMPLATE_ID[call_site]
+    if call_site == A_FACT:
+        return A_FACT_ROW[0]
+    if call_site == G_SITUATION_SENSITIVITY:
+        return SITUATION_ROW[0]
+    return OBSERVE_TEMPLATE_ID[call_site]
 
 
 def require_observe_locality(call_site: str, locality: str) -> None:
@@ -4377,6 +4422,279 @@ def _stored_value_of(conn: sqlite3.Connection):
         return None if row is None else row["raw_value"]
 
     return resolve
+
+
+# --- `104` §17.1's SEVENTH SITE, wired ----------------------------------------
+
+
+#: §8.7's learning key for a situation answer. The convention `model_facts` sets is
+#: `<subject kind>.<what was asked>`; this site asks one question about one file and
+#: the shortlist is what makes the question answerable, so the class says both.
+SITUATION_PROPOSAL_CLASS: str = "situation.llm_shortlist"
+
+
+def situation_call_dependencies(fact_authorities, *, allowed_vocabulary,
+                                placeable_file_count: int) -> CallDependencies:
+    """Site G's authorities for one call. Built off site A's, never beside them.
+
+    **The gate, the key, the costs and the policy version are site A's OBJECTS**,
+    on `observe_placement_injections`' rule: a second `Gate` here would be a second
+    answer to what may leave this device, and the two would drift on the next
+    ruling.
+
+    **The budget is NOT site A's**, for `observe_scan_budget`'s measured reason:
+    site A asks one call per file, so on a corpus where every file has an open
+    question it spends every slot the run has, and a site drawing from the same
+    purse afterwards is starved by it -- which looks exactly like a site nobody
+    wired (`104` R-04).
+
+    **`allowed_vocabulary` is this file's shortlist and it is not a field list.**
+    At A, B, C and E the vocabulary is a set of field keys or node ids; here it is
+    the situations the recognisers raised, with the decline last. `dossier._body`
+    builds `field_glossary` from it and finds no meaning for a schema id, which is
+    why the ratified prompt tells the model that key is empty at this site.
+    """
+    return CallDependencies(
+        proposal_class=SITUATION_PROPOSAL_CLASS,
+        # §8.7's closed scope vocabulary. The subject of a situation verdict is one
+        # FILE -- not a group, not a node -- which is also `_SCOPE_BY_SITE`'s answer
+        # for this site and the scope the verdict itself carries.
+        learning_scope=SCOPE_FILE,
+        # Both replaced per call, from the request. Present because `run_call` reads
+        # the whole bundle before the first call and a `None` in either refuses
+        # every one of them.
+        basis_key=SCOPE_FILE,
+        learning_subject_id=SCOPE_FILE,
+        evidence_resolver=fact_authorities.evidence_resolver,
+        # NO BUNDLE, which is site B's answer and is the truthful one here: the
+        # validator checks the answer against the shortlist the dossier already
+        # carries, and needs no tree, no action set and no catalogue.
+        site_dependencies=SiteDependencies(
+            fact=None, placement=None, residual=None, template=None),
+        # NOT A's `contradicts_stronger`, and the reason is site B's: that function
+        # reads `field_key` and `canonical_value` off a P6 fact row, and a situation
+        # claim is not one. There is no per-field fact for "this file is coursework"
+        # to contradict -- the recogniser's own verdict is an ABSTENTION, which is
+        # why the question is being asked -- so the truthful answer is always no.
+        contradicts=_no_group_contradiction,
+        # One rung. `releasable_observations` fills the offer up to the ceiling
+        # before the request is built, so there is no smaller shape of this dossier
+        # to fall back to -- the same argument `model_facts` makes at site B.
+        unreduced_fits=True, summarized_fits=False, anchors_fit=False,
+        split_shard_fits=(), split_shards=(),
+        scan_budget=observe_scan_budget(
+            fact_authorities.scan_budget,
+            corpus_file_count=placeable_file_count),
+        estimated_cost=fact_authorities.estimated_cost,
+        actual_cost=fact_authorities.actual_cost,
+        allowed_vocabulary=tuple(allowed_vocabulary),
+        # THIS SITE DESIGNS NO FOLDER TREE. `()` is the truthful value and `None`
+        # would be a caller who never read the library -- `harness._NONE_OK` is
+        # where that distinction is enforced, and the ratified prompt tells the
+        # model the key is empty here.
+        folder_levels=(),
+        policy_version=fact_authorities.policy_version,
+        wire_handle_key=fact_authorities.wire_handle_key)
+
+
+def situation_named_by_verdict(conn: sqlite3.Connection, verdict,
+                               allowed_vocabulary) -> str | None:
+    """Site G's real resolver: the situation the VALIDATED verdict names.
+
+    `_chosen_node_of`'s restraint, at this site and for its reason. P8 has already
+    checked that the answer is on the list (`situation_validation._situation_site`),
+    that every citation resolves against what P7 released and that every quoted span
+    appears in the released value. A second opinion here would be a rule with no way
+    to be reconciled with the first.
+
+    `None` for every answer that is not one named situation -- a decline, an
+    unreadable payload, an outcome that did not accept. All of them mean the same
+    thing to the caller: leave the file where the rules left it, which is LOCAL.
+    The membership test is repeated once here and it is not a second opinion: it is
+    the same list, and it is what keeps a payload read out of a verdict this
+    deployment mis-addressed from becoming a placement.
+    """
+    if verdict is None or verdict.outcome not in ACCEPTING_OUTCOMES:
+        return None
+    payload = _validated_payload(conn, verdict)
+    situation = payload.get("situation") if payload else None
+    if not isinstance(situation, str) or not situation:
+        return None
+    if is_decline(situation, decline_word=NONE_OF_THESE):
+        return None
+    return situation if situation in set(allowed_vocabulary) else None
+
+
+def situation_classification(question, schema_id: str, *, observed_at: str,
+                             handling_for=HANDLING_POLICY) -> ClassificationRecord:
+    """`104` §17.1's second wall, spent: one model verdict, written down truthfully.
+
+    **THE BASIS IS THE MODEL'S AND THE CLASS IS THE DEPLOYMENT'S**, and keeping
+    those apart is the whole design of this record. `basis` says WHO concluded that
+    this file is part of this situation: a model on this device, answering the
+    situation question. `handling_class` and `protected` say what THIS DEPLOYMENT
+    does with a file of that situation, and they are read off `HANDLING_POLICY` --
+    the same table the detector's own records are written from -- so a model naming
+    `medical` produces exactly the handling a detector naming `medical` produces.
+    The model is not asked what handling class to apply and could not be trusted
+    with the question; it is asked which situation, and the deployment already has
+    an answer for each one.
+
+    **The citations are the recogniser's**, which is the honest set: they are the
+    observations the shortlist was raised from, they resolve against P4's live table
+    for this file version, and `test_a_tie_is_a_question_for_the_model` measures
+    that. The model's own citation is checked by P8 and recorded on the verdict;
+    what this record cites is what the CLASSIFICATION rests on.
+
+    `llm_supported` is P4's own word for a fact a model supported, and it ranks
+    below `user_confirmed`, `direct` and `validated` -- so a later record from the
+    person, or from an extractor reading the file's own words, supersedes this one
+    rather than being refused by it.
+    """
+    handling = handling_for[schema_id]
+    return ClassificationRecord(
+        file_id=question.file_id,
+        content_hash=question.content_hash,
+        handling_class=handling.handling_class,
+        protected=handling.protected,
+        basis=LOCAL_MODEL_SITUATION,
+        evidence_refs=tuple(question.evidence_refs),
+        reliability_state=LLM_SUPPORTED,
+        observed_at=observed_at)
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class SituationPass:
+    """What site G left behind, counted. Every field is a number a report can print.
+
+    `named` is the answer this pass exists to produce: the file's OWN situation,
+    where a model named one. Everything else says what happened to the files it did
+    not name, because `104` §17.2 is what a number with no provenance costs.
+    """
+
+    #: file_id -> the schema id a model named for it, validated and recorded.
+    named: dict
+    #: Files the recognisers settled without a model. Not asked, and rightly.
+    settled: int
+    #: Files with an abstention and no candidate at all -- `no_evidence` with no
+    #: semantic recogniser behind it. `NothingToAsk`, and 60 of the owner's 112
+    #: abstentions on the measured corpus.
+    nothing_to_ask: int
+    #: Files with a shortlist and no releasable reading. A question `00`:42 permits
+    #: no answer to.
+    nothing_to_read: int
+    #: Files a model was asked about and declined to name, or whose answer P8 did
+    #: not accept. `00`: correct abstention is a successful outcome, and either way
+    #: the file stays where the rules left it -- which is local.
+    declined: int
+
+
+#: THE PASS THAT DID NOT RUN, and it is a value rather than a `None` for the
+#: reason every count in `SituationPass` exists: a run where site G was not asked
+#: and a run where it was asked and named nothing must not read the same
+#: downstream. Both leave every file under the run's own `--situation`; only one
+#: of them means the model was consulted.
+_NOTHING_ASKED: "SituationPass"
+
+
+def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
+                      fact_authorities, routing: TierRouting, prompt,
+                      now, user_id: str,
+                      component_version: str = COMPONENT_VERSION,
+                      semantic_of=None) -> SituationPass:
+    """`104` §17.9's defect, addressed: each file asked about ITS OWN situation.
+
+    **WHAT THIS IS FOR, and the register got it wrong once.** The earlier account
+    was that a recogniser tie makes a file unclassified, the gate refuses an
+    unclassified file, and the file is never asked. On a LOCAL target that is false
+    at the third step: `privacy.denial.UNCLASSIFIED_PERMITS_LOCAL` is `True` and
+    `no_safety_evidence_denies` permits local unconditionally. Nothing was silent.
+    What actually happens is that `fact_call_authorities` builds site A's activation
+    as one signal for the run\'s single `--situation`, firing for every file -- so a
+    vaccination record is asked which course it belongs to. That is R-23, and this
+    pass is what puts each file\'s own question instead.
+
+    **IT RUNS BEFORE THE FACT PASS AND ITS ANSWER IS WHAT THE FACT PASS USES.** A
+    situation named after the fields were asked would be a situation nothing acts
+    on -- the schema decides the allowlist, the folder levels and the readings, and
+    all three are chosen when the resolver is built.
+
+    **A FILE THIS PASS DOES NOT NAME IS NOT MOVED.** It stays under the run\'s own
+    `--situation`, exactly as it was before this pass existed, and it stays LOCAL:
+    a wrong "ordinary" is what sends somebody\'s medical record away, and every
+    outcome here that is not one accepted, cited, on-the-list answer leads to the
+    same place.
+    """
+    named: dict = {}
+    settled = nothing_to_ask = nothing_to_read = declined = 0
+    dependencies_for = situation_call_dependencies
+    store = ClassificationStore(conn)
+    target = routing.client_for(G_SITUATION_SENSITIVITY).model_target
+    for file_id, content_hash in roster:
+        outcome = explain(conn, file_id, content_hash)
+        if not isinstance(outcome, Abstention):
+            # The rules settled it. `00`:110 sanctions exactly this: "The LLM should
+            # not be called for direct, unique matches."
+            settled += 1
+            continue
+        try:
+            question = question_for(
+                outcome, file_id=file_id, content_hash=content_hash,
+                matched_terms=getattr(outcome, "matched_terms", ()),
+                evidence_refs=getattr(outcome, "evidence_refs", ()),
+                semantic=None if semantic_of is None else semantic_of(file_id))
+        except NothingToAsk:
+            nothing_to_ask += 1
+            continue
+        observations = releasable_observations(
+            conn, file_id=file_id, content_hash=content_hash,
+            limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
+            locality=target.locality,
+            ceiling=GROUPING_LIMITS.max_dossier_tokens)
+        try:
+            request = build_situation_request(
+                question, observations, model_target=target, prompt=prompt,
+                max_dossier_tokens=GROUPING_LIMITS.max_dossier_tokens)
+        except NothingToAsk:
+            nothing_to_read += 1
+            continue
+        verdict = run_call(
+            conn, request,
+            gate=fact_authorities.gate,
+            model_client=routing.client_for(G_SITUATION_SENSITIVITY),
+            prompt=prompt,
+            validation_dependencies=dependencies_for(
+                fact_authorities,
+                allowed_vocabulary=question.allowed_situations,
+                placeable_file_count=len(roster)),
+            observed_at=now)
+        situation = None
+        if isinstance(verdict, P8Verdict):
+            situation = situation_named_by_verdict(
+                conn, verdict, question.allowed_situations)
+        if situation is None:
+            declined += 1
+            continue
+        if not prompt.ratified:
+            # OBSERVE-ONLY UNTIL THE ROW SAYS OTHERWISE. `104` §7 Phase 1 step 6:
+            # the verdict is recorded and nothing is applied while the text is a
+            # draft. The answer is counted so a run under an unratified text still
+            # reports what the site WOULD have decided, which is the whole value of
+            # an observe pass -- and no classification is written, because a record
+            # is an act on the answer.
+            declined += 1
+            continue
+        assign(conn,
+               situation_classification(question, situation, observed_at=now()),
+               store=store, component_version=component_version)
+        named[file_id] = situation
+    return SituationPass(
+        named=named, settled=settled, nothing_to_ask=nothing_to_ask,
+        nothing_to_read=nothing_to_read, declined=declined)
+
+
+_NOTHING_ASKED = SituationPass(
+    named={}, settled=0, nothing_to_ask=0, nothing_to_read=0, declined=0)
 
 
 def model_fact_resolver(conn: sqlite3.Connection, *,
@@ -8264,6 +8582,16 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     #: closure and this is the one value that has to cross out of it.
     fact_authorities: list = []
 
+    #: `104` §17.1 and §17.9: what site G answered, filled by `_model_fact_pass`
+    #: and read by the report. One slot for the same reason as `fact_authorities`:
+    #: the pass is a closure and this is the one value that has to cross out of it.
+    #:
+    #: THE NUMBER THAT SAYS WHETHER THIS WORKED is `len(named)` against the roster:
+    #: how many files were asked about their OWN situation instead of the run's.
+    #: `104` §17.2 is what a number with no provenance costs, so the counts beside
+    #: it say what happened to every file that is not in it.
+    situation_cell: list = [_NOTHING_ASKED]
+
     #: `104` R-37: the run's top-level branches and the situation each carries,
     #: filled by `_partition_branches` in `downstream` once the deterministic
     #: facts exist, and read by the fact pass, the acceptance and the design.
@@ -8446,7 +8774,83 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                             branch.schema].deferred_readings))
         not_asked: dict[str, int] = {}
 
+        # `104` §17.1 AND §17.9: EACH FILE'S OWN SITUATION, ASKED BEFORE THE
+        # FIELDS. This runs first because its answer is what decides the fact
+        # call's questions -- the schema chooses the allowlist, the folder levels
+        # and the readings, and all three are fixed when a resolver is built. A
+        # situation named afterwards would be a situation nothing acts on.
+        #
+        # A file this pass does not name keeps the run's own `--situation`,
+        # exactly as before it existed. That is the whole of the fallback and it
+        # is deliberate: `--situation` is the person's own answer for the corpus
+        # and the model's is a per-file refinement of it, never a replacement for
+        # the thing they typed.
+        situation_prompt_in_force = prompt_for(G_SITUATION_SENSITIVITY)
+        situation_pass = (
+            ask_the_situation(
+                conn, roster=roster,
+                # THE SEMANTIC-COMPOSED RECOGNISER, which is what the run
+                # classifies with. `_semantic_classifier` hands the term detector
+                # straight back when no weights are named, so this is the term
+                # detector on a run without `--semantic-model` and the composed one
+                # with it -- and the composed one is what raises a candidate for
+                # the 60 `no_evidence` files that have no lexical one.
+                explain=classify_producer.explain,
+                fact_authorities=authorities, routing=routing,
+                prompt=situation_prompt_in_force, now=now, user_id=user_id)
+            # LOCAL ONLY, and the check is `observe_locality_permits` rather than a
+            # word of this function's own: `104` §17.1's ruling is that nothing
+            # leaves the device under it, and the site's row is `ratified_local`.
+            # A cloud target would also be refused at the door for every
+            # unclassified file, which is the whole population this site asks
+            # about -- so a run that got past this line would pay for a call per
+            # file to be denied per file.
+            if observe_locality_permits(
+                G_SITUATION_SENSITIVITY,
+                routing.locality_for(G_SITUATION_SENSITIVITY))
+            else _NOTHING_ASKED)
+        situation_cell[:] = [situation_pass]
+        # ONE RESOLVER PER SCHEMA A MODEL NAMED, on `104` R-37's own pattern one
+        # row up. Built by `replace` over the default authorities so the gate, the
+        # budget, the key, the client and the counting sink are the SAME objects:
+        # a second gate would be a second answer to what may leave this device.
+        by_schema: dict[str, FactResolver] = {}
+        for answered in sorted(set(situation_pass.named.values())):
+            if answered == schema:
+                # The run's own situation, named again. Nothing to build: the
+                # default resolver already asks exactly these questions, and a
+                # second one would be a second object for one set of answers.
+                continue
+            situations = _situations_of(answered)
+            if not situations:
+                # A schema no shipped situation resolves to has no folder levels
+                # and no readings, so there is nothing for a fact call under it to
+                # be asked FROM. The file keeps the run's questions rather than
+                # being asked an empty set -- which is `require_folder_levels`'
+                # refusal reached from three modules away.
+                continue
+            levels = folder_levels_for(catalogue, situations[0])
+            group_levels = group_level_fields_for(catalogue, situations[0])
+            by_schema[answered] = model_fact_resolver(
+                conn, authorities=dataclasses.replace(
+                    authorities,
+                    activation_signals=ActivationSignals(signals=(
+                        ActivationSignal(schema_id=answered,
+                                         activates=lambda facts: True),)),
+                    folder_levels=tuple(
+                        level for level in levels
+                        if level.field not in group_levels),
+                    deferred_readings=rules.schemas[answered].deferred_readings))
+
         def resolver_for(file_id: str) -> FactResolver | None:
+            # THE FILE'S OWN SITUATION FIRST, and it outranks the branch. A branch
+            # is a folder of this corpus and its situation is the person's answer
+            # for a whole folder; a site G verdict is a model's answer about THIS
+            # FILE, cited and validated, and `104` §17.9's defect is precisely a
+            # folder-wide answer being applied to a file it is wrong about.
+            own = by_schema.get(situation_pass.named.get(file_id, ""))
+            if own is not None:
+                return own
             if partition is None or partition.single:
                 return resolver
             branch = partition.branch_of(file_id)
