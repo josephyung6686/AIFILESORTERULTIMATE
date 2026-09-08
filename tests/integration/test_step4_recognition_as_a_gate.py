@@ -11,19 +11,35 @@ the owner's `sample/Desktop` and over the three-file corpus below, and NEITHER I
   The guard's own third case keeps the run's situation for a file with no
   recognition -- coverage is sacred and an abstention is not evidence of anything --
   so the guard does not fire and the résumé is still offered `subject`.
-* THE RECOGNISER FIRES ON THE FILES THE RUN GETS RIGHT. Over the owner's sample,
-  four of the five `Python 1006` lecture notebooks come back `Recognition(code)` on
-  the authored term `notebook`. Those four are the only files in that corpus the run
-  places, on `subject = E1006` and `work_type = lecture`, and `code` declares
-  neither: its fields are `project`, `repository`, `programming_language` and
-  `artifact_type`, and no level the coursework template builds expects one. The
-  guard's first case fires six times on that corpus -- four notebooks and two
-  vaccine records that abstain anyway -- and not once to anybody's benefit.
+* AND IT ABSTAINS ON THE NOTEBOOKS TOO -- WHICH THIS FILE USED TO DENY. The
+  paragraph here read "the recogniser FIRES on the files the run gets right: four of
+  the five `Python 1006` lecture notebooks come back `Recognition(code)` on the
+  authored term `notebook`." **That measurement was an artifact of how a notebook
+  was serialised, and R-166 measured it away.** Before `104` R-160 the extractor
+  stored a `.ipynb` as its raw JSON, and `code`'s authored terms include `cell`,
+  `source`, `kernel` and `notebook` -- which a notebook's JSON carries as DICTIONARY
+  KEYS (`"cells"`, `"source"`, `"kernelspec"`) whether or not one word of the
+  document says anything about code. Four keys is four matches, `code` cleared
+  `never_alone` on punctuation, and won. R-160 made a notebook's cells be read as
+  their own text; the keys went with the braces; and what is left is one real term
+  on each side -- `lecture` in the markdown cell, `import` in the code cell. The
+  verdict today is `Abstention(no_corroboration, tied=(academic, code))`.
 
-THE DETECTOR IS NOT WRONG. It answers "what is this file made of"; the guard needs
-"which situation is this file part of". A Jupyter notebook of a Python course is
-honestly both, and no reading of the file settles which one the person meant. That
-is R-37's question, and R-37 is the fix step 4 called itself the interim for.
+  THAT ABSTENTION IS THE CORRECT ANSWER AND NOT A REGRESSION. A course notebook IS
+  a lecture and IS Python, its own words say both exactly once, and `00`:39 gives
+  a file that "remains ambiguous" or has "multiple plausible domains" to the model
+  rather than to a rule. What the four notebooks lost is not a recognition; it is
+  a win that was never about the document. `tests/recognition/
+  test_recognition_serialisation_is_not_evidence.py` is the guard that would have
+  caught it, and it is a guard rather than a repair: the fix is NOT to give `code`
+  more terms until it wins again.
+
+THE DETECTOR IS NOT WRONG, AND IT IS WRONG ABOUT NOTHING NOW THAT THE FIRST BULLET
+IS HONEST. It answers "what is this file made of"; the guard needs "which situation
+is this file part of". A Jupyter notebook of a Python course is honestly both, and
+no reading of the file settles which one the person meant. That is R-37's question,
+and R-37 is the fix step 4 called itself the interim for. Step 4's guard is dead
+either way -- it now has no file in this corpus to fire on at all.
 
 `00`:41 IS NOT A ROUTE PAST IT. Writing the recognition as a file fact so the gate
 can read it needs a field for it, and there is none: `fields.py` ships 56 rows,
@@ -192,19 +208,62 @@ def test_the_recogniser_abstains_on_a_resume_so_the_guard_never_fires_for_it(
     assert "college_applications" in outcome.tied_schema_ids, outcome.tied_schema_ids
 
 
-def test_a_course_notebook_is_recognised_as_code_and_the_guard_would_fire_on_it(
+def test_a_course_notebook_reads_two_ways_and_that_is_the_models_question(
         measured):
-    """THE FILES THE RUN GETS RIGHT, and the guard does reach them.
+    """THE FILE THAT WAS NEVER RECOGNISED, only serialised in `code`'s favour.
 
-    Four of the owner's five `Python 1006` lecture notebooks come back exactly this
-    way, on the authored term `notebook`. They are the four the run places.
+    This test used to assert `Recognition(code)` and it passed for a reason that
+    was not about the document: the extractor stored the whole `.ipynb` as JSON,
+    and `code` ships `cell`, `source`, `kernel` and `notebook` as authored terms,
+    which the container's own dictionary keys supply. `104` R-160 made the cells
+    be read as their own text and the four free matches went away with the braces.
+
+    What the file itself says is one term each: `lecture` in the markdown cell and
+    `import` in the code cell. Two readings, one signal apiece, neither outranking
+    the other -- `never_alone` refuses to conclude, and `00`:39 hands exactly this
+    file to the model: one that "remains ambiguous" and has "multiple plausible
+    domains". The assertions below are that shape, not a schema.
+
+    DO NOT REPAIR THIS BY MAKING `code` WIN. Adding terms until the old verdict
+    comes back would re-author the artifact by hand, and the notebook would still
+    be a lecture. The repair is that the tie becomes a question -- R-166 -- and
+    `tests/recognition/test_recognition_serialisation_is_not_evidence.py` is what
+    stops a container's punctuation standing in for an answer again.
     """
     outcome = _verdict(measured, NOTEBOOK)
 
-    assert isinstance(outcome, Recognition), repr(outcome)
-    assert outcome.schema_id == "code", (
-        "a course notebook stopped being recognised as `code`, which is the "
-        "measurement this whole file rests on")
+    assert isinstance(outcome, Abstention), (
+        "a course notebook was settled by a rule. Check first that it was not "
+        "settled by the container's own keys, which is how this read `code` "
+        "until 2026-09-08: " + repr(outcome))
+    assert outcome.reason == "no_corroboration", outcome.reason
+    assert set(outcome.tied_schema_ids) == {"academic", "code"}, (
+        "the two readings a course notebook honestly has are the lecture in its "
+        "markdown cell and the Python in its code cell: " + repr(outcome))
+    assert outcome.deferred_readings, (
+        "the abstention arrived with no authored reading attached, so there is "
+        "nothing to put the question to a model in")
+
+
+def test_the_notebooks_two_readings_are_each_one_term_of_the_documents_own_text(
+        measured):
+    """WHY IT IS A TIE, at the terms rather than at the verdict.
+
+    The point of R-166's measurement is that the four matches `code` used to win on
+    were the container's, so the ones that remain have to be the document's. Each
+    side has exactly one, and each is a word a person wrote: `lecture` in the prose
+    cell, `import` in the code cell. A tie at one term each is `never_alone`
+    refusing on arity, which is why the reason is `no_corroboration` and not
+    `ambiguous`.
+    """
+    outcome = _verdict(measured, NOTEBOOK)
+
+    assert isinstance(outcome, Abstention), repr(outcome)
+    assert "2 readings matched one term each" in outcome.detail, outcome.detail
+    for structural in ("cells", "kernelspec", "nbformat", "cell_type"):
+        assert structural not in outcome.detail, (
+            f"{structural!r} is a notebook's JSON key, not something the document "
+            "says, and it is deciding a reading again: " + outcome.detail)
 
 
 def test_a_lecture_in_prose_is_recognised_academic_and_the_guard_would_agree(
@@ -227,6 +286,12 @@ def test_a_lecture_in_prose_is_recognised_academic_and_the_guard_would_agree(
 def test_the_guard_would_take_subject_off_the_notebook_and_offer_it_a_repository(
         measured):
     """THE COST, at P6's own function rather than in prose.
+
+    COUNTERFACTUAL SINCE R-166, AND KEPT FOR IT. The notebook abstains, so step 4's
+    first case never reaches this file and the swap measured here never happens.
+    What the numbers still say is what the swap WOULD cost if a rule ever settled a
+    course notebook as `code` -- which is the outcome the old serialisation produced
+    and the outcome nobody may restore by adding terms.
 
     `104` §11.2 step 3 and this branch's P10 rule both turn on `subject`: a level is
     minted from a value some file states, and the notebook is one of the files that
