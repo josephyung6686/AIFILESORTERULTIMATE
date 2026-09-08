@@ -37,6 +37,7 @@ from evidence_shape.schema import create_evidence_schema  # noqa: E402
 from evidence_shape.store import (  # noqa: E402
     TextUnit, record_observation, record_run, record_text_unit,
 )
+from extractors.long_tail import SENSITIVITY_DDL  # noqa: E402
 
 CONTENT_HASH = "b" * 64
 AT = "2026-09-06T00:00:00+00:00"
@@ -144,3 +145,122 @@ def test_one_citation_named_twice_is_one_citation(evidence):
                        value="PHYS 1401")
 
     assert len(cli.located_citations(evidence, "file-1", [key, key, key])) == 1
+
+
+# --- `104` R-148: the readings a file offers about itself ----------------------
+
+#: The `files` row `reading_citations` reads the version off. `content_hash_of`
+#: keys the reading set to a file VERSION, so a fixture without this row is a file
+#: this run has never seen rather than a file with nothing to say.
+def _indexed(conn, *, file_id: str = "file-1",
+             content_hash: str = CONTENT_HASH) -> None:
+    # P5's table, empty. `releasable_observations` asks it for the per-value
+    # signal, and a fixture without it would be a corpus P5 never ran on rather
+    # than one it found nothing in.
+    conn.executescript(SENSITIVITY_DDL)
+    conn.execute(
+        "INSERT INTO files (file_id, current_path, filename, "
+        "normalized_filename, extension, directory_position, volume_id, "
+        "content_hash, hash_algorithm, observed_size, observed_timestamps, "
+        "scan_state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (file_id, "/holder/corpus/Problem Set 3.txt", "Problem Set 3.txt",
+         "problem set 3.txt", ".txt", 0, "volume-1", content_hash, "sha256",
+         len(BODY), "{}", "indexed"))
+
+
+def test_a_file_with_body_text_and_no_fact_still_offers_its_own_readings(
+        evidence):
+    """`104` R-148, and it is the whole row. Site C's evidence was built out of
+    `file_facts`, so a file P6 settled nothing about arrived at
+    `_judge_with_model` with nothing to send and was recorded
+    `NOT_ELIGIBLE_FOR_MODEL` before a dossier existed -- 103 of the owner's 199
+    files on r12, and 52% of their coursework. No fact is written here; the
+    readings come back anyway, because they are the file's own words."""
+    _indexed(evidence)
+    key = _observation(evidence, zone="body", span=TextSpan(10, 21),
+                       value="problem set")
+
+    offered = cli.reading_citations(evidence, "file-1", limit=12)
+
+    assert [ref for ref, _location, _reliability in offered] == [key]
+    # And there is no fact to be had: P6's table is not even on this connection,
+    # so nothing here could be reading one by accident.
+    assert not evidence.execute(
+        "SELECT name FROM sqlite_master WHERE name = 'file_facts'").fetchall()
+
+
+def test_a_reading_carries_its_own_zone_and_its_own_span(evidence):
+    """The address is P4's. `104` R-11 records what inventing one cost at this
+    same seam: `location="heading"` and `excerpt_span=(0, len(value))` printed
+    over every citation there had ever been."""
+    _indexed(evidence)
+    _observation(evidence, zone="table", span=TextSpan(0, 9), value="PHYS 1401")
+
+    (_ref, location, reliability), = cli.reading_citations(
+        evidence, "file-1", limit=12)
+
+    assert location.zone == "table"
+    assert (location.text_span.start, location.text_span.end) == (0, 9)
+    # P4's own word for the reading, not a constant typed at the seam.
+    assert reliability == "direct"
+
+
+def test_a_file_with_no_readings_offers_none(evidence):
+    """The state that stays `NOT_ELIGIBLE_FOR_MODEL`, and it is then a true
+    sentence: a file with nothing to send is not sent."""
+    _indexed(evidence)
+
+    assert cli.reading_citations(evidence, "file-1", limit=12) == ()
+
+
+def test_an_always_local_reading_is_not_offered(evidence):
+    """`releasable_observations`' first exclusion, reached through this seam
+    rather than restated: §8.4's `path` and `filename` zones may never leave the
+    device, and placement is the site where the folder a file already sits in
+    looks like the most relevant evidence in the store."""
+    _indexed(evidence)
+    body = _observation(evidence, zone="body", span=TextSpan(10, 21),
+                        value="problem set")
+    _observation(evidence, zone="path", span=None, value="/holder/corpus",
+                 container=(Segment(kind="field", label="directory"),))
+
+    offered = cli.reading_citations(evidence, "file-1", limit=12)
+
+    assert [ref for ref, _location, _reliability in offered] == [body]
+
+
+def test_a_whole_document_reading_is_not_offered(evidence):
+    """§8.4's "should not send full documents where a short heading or OCR
+    excerpt is enough", applied a step before the door so the call is never built
+    rather than built and denied."""
+    _indexed(evidence)
+    short = _observation(evidence, zone="body", span=TextSpan(10, 21),
+                         value="problem set")
+    _observation(evidence, zone="body", span=TextSpan(0, len(BODY)), value=BODY)
+
+    offered = cli.reading_citations(evidence, "file-1", limit=12)
+
+    assert [ref for ref, _location, _reliability in offered] == [short]
+
+
+def test_the_cap_is_the_callers_and_this_function_states_no_number(evidence):
+    """`FACT_CALL_MAX_RELEASED_OBSERVATIONS` is where this deployment chooses the
+    count, for site A and now for site C. A default here would be a second
+    choice, and the two would drift."""
+    _indexed(evidence)
+    for start in range(0, 6):
+        _observation(evidence, zone="body", span=TextSpan(start, start + 4),
+                     value=BODY[start:start + 4])
+
+    assert len(cli.reading_citations(evidence, "file-1", limit=2)) == 2
+    assert len(cli.reading_citations(evidence, "file-1", limit=6)) == 6
+
+
+def test_a_file_this_run_has_no_version_for_offers_nothing(evidence):
+    """`located_citations`' own rule, one address up: a file version nothing
+    carries is not evidence, and a reading set keyed to no hash would be a
+    different file's."""
+    _observation(evidence, zone="body", span=TextSpan(10, 21),
+                 value="problem set")
+
+    assert cli.reading_citations(evidence, "file-1", limit=12) == ()
