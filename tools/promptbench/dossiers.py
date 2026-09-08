@@ -26,7 +26,7 @@ from llm_harness.records import (  # noqa: E402
 )
 from llm_harness.vocabulary import (  # noqa: E402
     A_FACT, ACCEPTED_GROUP_FITS_NO_EXISTING_TEMPLATE, B_GROUP, C_PLACEMENT,
-    COHERENCE_JUDGEMENT, D_RESIDUAL, E_TEMPLATE, F_ROLE_SHORTLIST, REDUCTION_NONE,
+    COHERENCE_JUDGEMENT, D_RESIDUAL, E_TEMPLATE, G_SITUATION_SENSITIVITY, REDUCTION_NONE,
     REMAINS_AMBIGUOUS, SEVERAL_LEGAL_NODES_PLAUSIBLE,
     USER_OPTED_RESIDUAL_SET_INTO_AI_REVIEW,
 )
@@ -47,7 +47,7 @@ ELIGIBILITY = {
     E_TEMPLATE: ACCEPTED_GROUP_FITS_NO_EXISTING_TEMPLATE,
     # The situation call (105 §12) rides under the shortlist site: the rules
     # looked and the file remains ambiguous, which is A's reason too.
-    F_ROLE_SHORTLIST: REMAINS_AMBIGUOUS,
+    G_SITUATION_SENSITIVITY: REMAINS_AMBIGUOUS,
 }
 
 
@@ -93,7 +93,13 @@ def dossier_of(case: Case, *, allowed_vocabulary=None,
     # ambiguous" reason; the bench keys judging and reading on `case.site`. The
     # one untruth in the model-visible bytes is `"call_site":"A_fact"`, and the
     # template tells the model that key is bookkeeping.
-    call_site = A_FACT if case.site == F_ROLE_SHORTLIST else case.site
+    # THE SITE'S OWN NAME, since 2026-09-08. This read `A_FACT` for a situation
+    # case because `CALL_SITES` had no member for the site and `DossierRequest`
+    # refuses one it does not carry -- so the bench built the dossier under site A's
+    # name and the model was told it was at a site it was not. `104` §17.1's ruling
+    # ended that: the seventh member exists, `ELIGIBILITY_BY_SITE` carries it, and
+    # the `call_site` key of the model-visible bytes now says which site is asking.
+    call_site = case.site
     return Dossier(
         dossier_id=f"promptbench:{case.site}:{case.case_id}",
         call_site=call_site,

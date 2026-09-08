@@ -36,7 +36,7 @@ from llm_harness.placement_validation import (  # noqa: E402
 from llm_harness.sites import SiteDependencies, dispatch  # noqa: E402
 from llm_harness.vocabulary import (  # noqa: E402
     A_FACT, ABSTAIN, ACCEPT_CONTEXT_SUPPORTED, ACCEPT_DIRECT, B_GROUP,
-    C_PLACEMENT, D_RESIDUAL, E_TEMPLATE, F_ROLE_SHORTLIST,
+    C_PLACEMENT, D_RESIDUAL, E_TEMPLATE, G_SITUATION_SENSITIVITY,
     LEAVE_IN_CURRENT_LOCATION, MARK_REVIEW_LATER, REJECT, SCHEMA_INVALID,
 )
 from llm_harness.wire_handles import wire_handle  # noqa: E402
@@ -152,7 +152,7 @@ def site_dependencies_for(case: Case, *, catalogue=None,
             catalogue = load_shipped_catalogue(read_packaged_library_file)
         return SiteDependencies(fact=None, placement=None, residual=None,
                                 template=template_dependencies(catalogue))
-    if site in (B_GROUP, F_ROLE_SHORTLIST):
+    if site in (B_GROUP, G_SITUATION_SENSITIVITY):
         return SiteDependencies(fact=None, placement=None, residual=None,
                                 template=None)
     raise ValueError(f"site A builds its authorities in site_a.py, not here: {site}")
@@ -303,7 +303,7 @@ def _read_s(case, claims):
 
 
 READERS = {C_PLACEMENT: _read_c, D_RESIDUAL: _read_d, B_GROUP: _read_b,
-           E_TEMPLATE: _read_e, A_FACT: _read_a, F_ROLE_SHORTLIST: _read_s}
+           E_TEMPLATE: _read_e, A_FACT: _read_a, G_SITUATION_SENSITIVITY: _read_s}
 
 
 # --- correctness --------------------------------------------------------------
@@ -389,7 +389,7 @@ def _correct(case: Case, answer: dict, accepted: bool) -> tuple[bool | None, dic
             detail["first_matches"] = bool(names) and names[0] == expect["first"]
             ok = ok and detail["first_matches"]
         return bool(ok), detail
-    if site == F_ROLE_SHORTLIST:
+    if site == G_SITUATION_SENSITIVITY:
         want = expect.get("situation")
         if want in (None, "none"):
             return None, detail
@@ -419,7 +419,7 @@ def judge(case: Case, dossier, response_bytes: bytes, *, schema: dict,
           prompt_fingerprint: str = "bench") -> Judgement:
     parsed = _parse(response_bytes)
     schema_ok, schema_errors = _schema_check(parsed, schema)
-    if case.site == F_ROLE_SHORTLIST:
+    if case.site == G_SITUATION_SENSITIVITY:
         return _judge_shortlist(case, dossier, parsed, schema_ok, schema_errors)
     result = dispatch(
         conn, dossier, response_bytes,

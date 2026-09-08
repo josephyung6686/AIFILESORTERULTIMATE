@@ -187,7 +187,7 @@
    "note": "The same key and text, with the situation frame (vocabulary, glossary, levels, readings, versions, schema, policy) serialised before the file part: the stable-prefix layout the product does not write today (G18)."
   },
   {
-   "site": "F_role_shortlist",
+   "site": "G_situation_sensitivity",
    "candidate": "situation-shortlist",
    "template_id": "situation.unratified.shortlist.2026-09-06",
    "template_file": "situation_template.shortlist.txt",
@@ -200,7 +200,7 @@
    "note": "The situation call, shortlist first: what the text would have to state for each shortlisted situation; protected material overrides whichever way the list reads."
   },
   {
-   "site": "F_role_shortlist",
+   "site": "G_situation_sensitivity",
    "candidate": "situation-safety-first",
    "template_id": "situation.unratified.safety-first.2026-09-06",
    "template_file": "situation_template.safety-first.txt",
