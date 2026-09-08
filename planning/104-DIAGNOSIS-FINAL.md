@@ -1186,10 +1186,10 @@ always was. Five branches are in flight against that, none merged.
 | Branch | Goal | Last commit at session end |
 |---|---|---|
 | `r166-tie-is-a-question` | a recogniser tie reaches site G and returns a cited answer or a visible `unknown` | `511dcd3` |
-| `r164-paragraph-units` | local dossier measured; the 12 starved local files; then the cloud excerpt producer | `f33e727` |
-| `r162-answer-shape` | the 234 nested responses read rather than binned; glossary out of the dossier | `aa06c1d` |
-| `r165-decided-by` | every sorting line carries its decided-by split; R-147 aliases | `181b080` |
-| `r161-field-signals` | item 15's field-signalled sensitivity, in two halves (§17.6's trap) | not started past base |
+| `r164-paragraph-units` | local dossier measured; the 12 starved local files; then the cloud excerpt producer | `3e8388b` |
+| `r162-answer-shape` | the 234 nested responses read rather than binned; glossary out of the dossier | `58efbf6` |
+| `r165-decided-by` | every sorting line carries its decided-by split; R-147 aliases | `c1d7090` |
+| `r161-field-signals` | item 15's field-signalled sensitivity, in two halves (§17.6's trap) | never started |
 
 **Order of work when you resume:**
 
@@ -1214,3 +1214,50 @@ crossing to a provider), which is the last gate before any cloud run. Items 14 a
 
 **Machine rules that bit this project before:** never signal a pytest you did not start; a chain is
 about 40 minutes with the machine to itself; `graphify update .` after code changes.
+
+### 17.8 What the five agents actually left, rescued by the lead
+
+**All five agents hit the session limit mid-task and none delivered a handover report.** Three had
+uncommitted worktrees. The lead ran each one's targeted tests and committed the work; the messages
+on those commits say plainly that the lead wrote them and what is unverified. **No branch has seen
+the full suite. Every measurement any agent was asked for is still owed.**
+
+| Branch | Head | Targeted tests | State |
+|---|---|---|---|
+| `r166-tie-is-a-question` | `511dcd3` | 20 passed | agent committed its own work; clean tree |
+| `r164-paragraph-units` | `3e8388b` | 35 passed | lead committed 280 uncommitted lines |
+| `r162-answer-shape` | `58efbf6` | 127 passed | lead committed, and adapted one caller the refactor missed |
+| `r165-decided-by` | `c1d7090` | 41 passed | lead committed 288 uncommitted lines |
+| `r161-field-signals` | -- | -- | never started; worktree is at base |
+
+**What landed that is worth knowing before you read the diffs:**
+
+- **`r166` closed the artifact properly.** `76a38af`, "the name of a file's format is not one of its
+  words, so a notebook is no longer a code project for being a notebook" -- that is §17.2's
+  serialization-key guard, and it is the general fix rather than a patch to the notebook case.
+  `511dcd3` then makes a tie CITE the observations it rests on, which is what lets `00`:39's question
+  be put with a citation that resolves.
+- **`r162` found the mechanism behind R-163 and it is better than the register's description.** The
+  glossary was a JSON object mapping each answerable field key to one string -- which IS the answer
+  table, already filled in -- while `released_evidence`, the only place a value may legally come
+  from, is keyed by observation and not by field at all. The one structure in the dossier shaped like
+  the answer was the one place a value could never come from. It is now a list of `field`/`meaning`
+  pairs. It also caught `canonical_json` re-sorting that object, so the dossier printed the
+  vocabulary in the tree's order and the glossary alphabetically -- two orders of one list in one
+  document. Every glossary SENTENCE is unchanged, per §16.3; the sentences are owner item 16.
+- **`r164` confirmed the only legal home for excerpt minting.** `opening_reading_for` sits beside
+  `line_reading_for` in `evidence_shape/store.py` because `tests/p7/test_p7_no_invention.py`'s L2
+  guard permits exactly `evidence_shape`, `privacy` and `orchestrator` to bind a P4 text
+  materialiser, AND because the gate resolves a requested item against the STORED observation --
+  so an excerpt synthesised at release time dies at `privacy/resolve.materialise`. Any future design
+  that tries to build excerpts anywhere else will fail for one of those two reasons.
+
+**Still unanswered, and it is the first thing to settle:** the fourth wall. Does a site G verdict
+actually open `privacy.denial.unclassified_denies` for an unclassified file, or is there another
+refusal behind it? `r166` was asked twice and died before answering. Until it is answered, nothing
+about the 95 unclassified files is knowable and the shape of `r166` may be wrong.
+
+**Owed measurements, per branch, none delivered:** `r164` the local dossier contents and the 12
+starved local files; `r165` how many of the 43 labelled coursework files change status under the
+alias, and the document-versus-label spellings; `r162` the D3 brief on owner item 13 (of the 234
+nested responses, how many are shape and how many are content).
