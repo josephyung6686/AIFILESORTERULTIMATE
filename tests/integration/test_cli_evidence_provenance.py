@@ -411,5 +411,5 @@ def test_an_empty_reading_cannot_exist_for_this_seam_to_offer(evidence):
     """
     from evidence_shape.observation import MalformedObservation
 
-    with pytest.raises(MalformedObservation):
+    with pytest.raises(MalformedObservation, match="raw_value"):
         _observation(evidence, zone="body", span=TextSpan(0, 0), value="")
