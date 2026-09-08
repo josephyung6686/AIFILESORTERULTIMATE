@@ -111,11 +111,20 @@ def test_ratified_may_cross_the_internet(monkeypatch):
     cli.require_observe_locality(A_FACT, CLOUD)
 
 
-def test_a_row_naming_another_glossary_is_refused(monkeypatch):
+def test_the_rows_glossary_is_not_checked_against_the_dossiers(monkeypatch):
+    """The promptbench swaps `dossier.GLOSSARY_FILE` to run another glossary arm
+    under this text, and a check here against that global refused
+    `a_fact_prompt` in whichever test followed the swap (the R-144 merge, about
+    thirty tests red under `pytest-randomly`). The row's word is data; which
+    glossary is in the bytes is the dossier's own fact."""
+    from llm_harness import dossier
+    monkeypatch.setattr(dossier, "GLOSSARY_FILE",
+                        dossier.GLOSSARY_FILE.with_name(
+                            "field_glossary_proposal_2026-09-06.json"))
+    assert cli.a_fact_prompt().ratified is True
     _pointed_at(monkeypatch, status=RATIFIED,
                 glossary="field_glossary_proposal_2026-09-06.json")
-    with pytest.raises(cli.AFactGlossaryNotTheShippedOne):
-        cli.a_fact_prompt()
+    assert cli.a_fact_prompt().ratified is True
 
 
 def test_a_row_nobody_published_is_refused_and_names_the_candidates(monkeypatch):
