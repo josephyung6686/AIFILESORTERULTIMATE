@@ -28,6 +28,9 @@ from typing import Any, Callable, Mapping
 
 from extractors.reading import ZONE_BY_STRUCTURED_KIND, Region, StructuredString
 from extractors.failure import unsupported_result
+from extractors.long_tail import (
+    SensitivitySignal, person_valued_field_signals,
+)
 from extractors.runs import coverage
 from extractors.safety import SafetyPolicy, admit
 from extractors.shape import (
@@ -44,6 +47,31 @@ ANALYSIS_TIER = "native"
 #: document title", named at section 2.2 and section 3.2 ("the PDF title"). Every
 #: other slot is `metadata`.
 TITLE_SLOTS: tuple[str, ...] = ("Title",)
+
+#: `104` R-161, owner item 15, ruled 8 Sep 2026: the Info-dictionary slots the PDF
+#: format itself defines as holding a PERSON. One, and the ruling names it: `/Author`
+#: is "the name of the person who created the document" (PDF 32000-1 §14.3.3).
+#:
+#: `/Creator` and `/Producer` are NOT here, and the format is why: `/Creator` is "the
+#: name of the conforming product that created the original document" and `/Producer`
+#: the product that converted it. Measured on the owner's 199-file corpus (`gt-w1bn`,
+#: 8 Sep 2026): 31 `/Creator` values and 52 `/Producer` values, and every one of them
+#: is software -- `Microsoft Word`, `Adobe Scan for iOS 24.09.17`, `wkhtmltopdf
+#: 0.12.5`. Adding `/Creator` because some writer somewhere puts a name in it would
+#: be this module deciding by READING VALUES, which is the word list the ruling
+#: refuses; `104` R-161's row counts 50 `Creator` releases and they stay released.
+PERSON_VALUED_SLOTS: tuple[str, ...] = ("Author",)
+
+
+def person_field_signals(result: ExtractionResult) -> tuple[SensitivitySignal, ...]:
+    """`104` R-161's signal for this batch, by field position. See
+    `long_tail.person_valued_field_signals` for why it reads the finished batch.
+
+    Published here rather than folded into `extract_pdf`'s return value because that
+    return value is an `ExtractionResult` and stays one; `dispatch` puts the two
+    together into the `Dispatched` the orchestrator writes from.
+    """
+    return person_valued_field_signals(result, fields=PERSON_VALUED_SLOTS)
 
 
 @dataclass(frozen=True)

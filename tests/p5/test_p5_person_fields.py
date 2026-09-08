@@ -25,6 +25,7 @@ from extractors.long_tail import (
 from extractors.pdf import PdfDocument, PdfPage, extract_pdf
 from extractors.router import route
 from extractors.safety import SafetyPolicy
+from extractors import structured_text
 from extractors.structured_text import (
     StructuralMarker, TextDocument, extract_structured_text,
 )
@@ -202,7 +203,6 @@ def test_a_plain_text_document_carries_no_person_valued_field():
     `language` and its four structural-indicator classes -- and neither names a
     person. Nothing is signalled here, and adding something would need a word list.
     """
-    from extractors.structured_text import person_field_signals
     document = TextDocument(
         text="# Syllabus\nPHYS 1401.\n", language="en",
         markers=(StructuralMarker(kind="README file", value="README.md"),))
@@ -211,7 +211,11 @@ def test_a_plain_text_document_carries_no_person_valued_field():
         source_type="text_document",
         read_text_document=lambda path: document,
         find_structured_strings=NO_STRINGS, now=FIXED_CLOCK, context_window=20)
-    assert person_field_signals(result) == ()
+    fields = {_field_of(o) for o in result.observations} - {None}
+    assert fields == {"language", "README file"}
+    # There is no `structured_text.person_field_signals`, and the absence is the
+    # statement: neither field names a person, and a third would need a word list.
+    assert not hasattr(structured_text, "person_field_signals")
 
 
 # ---------------------------------------------------------------------- the seam

@@ -182,20 +182,25 @@ def extract_initial(*, file_row: Mapping[str, Any], decision, path: Path, policy
         first = extract_pdf(read_pdf=readers.read_pdf,
                             find_structured_strings=readers.find_structured_strings,
                             **common)
+        # `104` R-161: the format's own person-valued fields, signalled by the FIELD.
+        # The signals index into the NATIVE batch, which is result 0 whether or not
+        # OCR runs beside it -- the same naming CR-05b gave the image branch.
+        signals = pdf.person_field_signals(first)
         # Before P6, only an absent text layer authorizes OCR. A non-empty layer is
         # persisted first so P6 can evaluate the evidence rather than a preview.
         if direct_document_ocr_needed(result=first):
             second = _ocr(readers=readers, **common)
             if second is not None:
-                return Dispatched((first, second))
-        return Dispatched((first,))
+                return Dispatched((first, second), signals, 0)
+        return Dispatched((first,), signals, 0)
 
     if decision.extractor_name == docx.EXTRACTOR_NAME:
         # No OCR route. §2.2 names three text-layer states for PDFs and §2.3 names
         # none for DOCX; wiring one here would be P5 inventing a route.
-        return Dispatched((extract_docx(
+        produced = extract_docx(
             read_docx=readers.read_docx,
-            find_structured_strings=readers.find_structured_strings, **common),))
+            find_structured_strings=readers.find_structured_strings, **common)
+        return Dispatched((produced,), docx.person_field_signals(produced), 0)
 
     if decision.extractor_name == archive.EXTRACTOR_NAME:
         return Dispatched((extract_archive(
@@ -228,6 +233,11 @@ def extract_initial(*, file_row: Mapping[str, Any], decision, path: Path, policy
                 transcription_authorized=transcription_authorized, **common)
             return Dispatched((produced.extraction,), produced.sensitivity)
         if source_type in STRUCTURED_TEXT_SOURCE_TYPES:
+            # NO `104` R-161 signal, and the absence is the finding rather than an
+            # omission: this half emits exactly two metadata fields -- §2.4's
+            # `language` and its four structural-indicator classes -- and neither
+            # names a person. Signalling anything a plain text document says would
+            # need a body-text detector, which the ruling explicitly does not cover.
             return Dispatched((extract_structured_text(
                 source_type=source_type,
                 read_text_document=readers.read_text_document,
