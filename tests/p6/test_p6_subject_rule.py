@@ -632,3 +632,113 @@ def test_the_canonicaliser_was_not_taught_a_spelling_and_this_is_what_it_does():
     assert canonical("ENGI E1006") == "ENGI E1006"
     assert canonical("Physics  1401") == "Physics 1401"
     assert canonical("Physics\n1401") == "Physics 1401"
+
+
+# ======================================================================================
+# `104` R-37's principle one layer down: two values is not a resolution
+# ======================================================================================
+
+
+def test_two_courses_on_one_file_are_declined_and_recorded_rather_than_both_written(
+        p6_conn, tmp_path):
+    """The repair `104` R-146 measured the need for, at the grain it belongs.
+
+    A file that prints `PHYS 1401` beside `Syllabus` and `Section 001` beside
+    `Instructor:` gives §3.5's rule two candidates it cannot tell apart. Both clear
+    the context check -- the teaching words sit beside both -- so the vocabulary
+    cannot separate them and neither can the shape: nothing distinguishes
+    `Section 001` from `Physics 1401` but a list of words saying which are
+    departments, which is the question the model is asked.
+
+    Writing both is what the producer used to do, and it is not a resolution: §3.7
+    then settles on neither and the course level disappears with no row saying why.
+    So the rule declines, and the refusal is RECORDED -- one row per candidate,
+    each citing its own reading, so a reader can see exactly which two readings the
+    disagreement was between.
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw="PHYS 1401", before="Syllabus - ", after=" Introductory Physics",
+             start=0)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw="Section 001", before="Instructor: R. Feynman. ",
+             after=", Fall 2024.", run_id="run-2", start=40)
+
+    assert _subjects(p6_conn, file_id, content_hash) == set()
+    assert _refusals(p6_conn, file_id, content_hash) == [
+        "rule_found_several_values", "rule_found_several_values"]
+
+    # NO VALUE ROW EITHER. A `values` row with no fact citing it is a course this
+    # deployment invented and then never used, and `65` §4.2's collapse is about
+    # what reaches P6 -- so a declined field leaves the table exactly as it was.
+    assert [row["canonical_value"]
+            for row in values_in_field(p6_conn, "subject")] == []
+
+    # Each row cites ONE reading, and between them they cite BOTH. A single row
+    # citing both would say the rule refused once; it refused about two things.
+    cited = [json.loads(row["evidence_refs"])
+             for row in unresolved_for_file(p6_conn, file_id, content_hash)
+             if row["field_key"] == "subject"]
+    assert [len(one) for one in cited] == [1, 1]
+    assert len({ref for one in cited for ref in one}) == 2
+
+
+def test_one_course_printed_two_ways_is_still_one_value_and_still_written(
+        p6_conn, tmp_path):
+    """THE DISCRIMINATING TWIN, and the reason the count is of CANONICAL values.
+
+    `PHYS 1401` and `PHYS1401` on one page are one course. `rule.canonical` exists
+    to collapse exactly that (`65` §4.2: four files of one course became four
+    one-file groups and the folder was proposed empty), so counting raw MATCHES
+    instead of canonical values would make the collapse itself look like a
+    disagreement and refuse the commonest correct case in the corpus.
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw="PHYS 1401", before="Syllabus - ", after=" Introductory Physics",
+             start=0)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw="PHYS1401", before="Instructor: R. Feynman, ",
+             after=" problem sets.", run_id="run-2", start=40)
+
+    assert _subjects(p6_conn, file_id, content_hash) == {
+        ("PHYS1401", VALIDATED, RULE)}
+    assert _refusals(p6_conn, file_id, content_hash) == []
+    # §2.8's first rendering survives the collapse, as it did before.
+    assert [json.loads(row["raw_variants"])
+            for row in values_in_field(p6_conn, "subject")] == [
+        ["PHYS 1401", "PHYS1401"]]
+
+
+def test_a_declined_field_stays_pending_so_the_model_is_the_one_asked(
+        p6_conn, tmp_path):
+    """The half that makes the decline a HANDOFF rather than a silence.
+
+    `model_facts.pending_fields_for` computes what the model is offered by
+    SUBTRACTING the fields the file already carries a fact for, so a field the rule
+    declined is still pending and the question reaches site A. That is the whole
+    design: the rule delivers two candidates and says it cannot choose, and the
+    model -- which can read the words around them -- does.
+
+    Asserted against the shipped reader rather than by reasoning about it, because
+    "the field is absent from `file_facts`" and "the model will be asked" are two
+    statements and only the second one is the product.
+    """
+    from facts.domains import ActivationSignal, ActivationSignals
+    from model_facts import pending_fields_for
+
+    file_id, content_hash = _file(p6_conn, tmp_path)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw="PHYS 1401", before="Syllabus - ", after=" Introductory Physics",
+             start=0)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw="Section 001", before="Instructor: R. Feynman. ",
+             after=", Fall 2024.", run_id="run-2", start=40)
+    cli._rule_stage(p6_conn, file_id=file_id, content_hash=content_hash)
+
+    pending = pending_fields_for(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=ActivationSignals(signals=(
+            ActivationSignal(schema_id="academic", activates=lambda rows: True),)))
+
+    assert "subject" in pending

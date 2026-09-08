@@ -24,7 +24,8 @@ from facts.states import VALIDATED
 from facts.unresolved import (
     ATTEMPTED_PRODUCERS, BELOW_MARGIN, BUDGET_DEFERRED, DIRECT_ROUTE, LLM_ROUTE,
     NOT_ABSTENTIONS, NO_CANDIDATE_EVIDENCE, PRIVACY_WITHHELD, RULE_ROUTE,
-    UNRESOLVED_REASONS, unresolved_for_file, write_unresolved,
+    RULE_FOUND_SEVERAL_VALUES, UNRESOLVED_REASONS, unresolved_for_file,
+    write_unresolved,
 )
 from facts.values import ensure_value
 
@@ -75,9 +76,38 @@ def _columns(conn) -> list[str]:
 
 
 def test_the_thirteen_reasons_are_the_specs_thirteen(p6_conn):
-    assert UNRESOLVED_REASONS == SPEC_THIRTEEN
-    assert len(UNRESOLVED_REASONS) == 13
-    assert len(set(UNRESOLVED_REASONS)) == 13
+    """The SPEC's thirteen, in the SPEC's order, and nothing reshuffled among them.
+
+    **IT IS A PREFIX AND NO LONGER THE WHOLE TUPLE, SINCE 2026-09-08.** `104` R-146
+    added a FOURTEENTH reason that is this deployment's rather than the SPEC's --
+    `rule_found_several_values`, fired when §3.5's rule finds two distinct canonical
+    values for one field on one file version and therefore has not resolved it. The
+    assertion changed shape rather than weakening: the thirteen are still exactly
+    the thirteen and still in order, so nothing that reads this tuple positionally
+    moved, and the addition is asserted by name below rather than by a count that
+    would go green for any fourteenth word at all.
+
+    None of the thirteen fitted, which is the whole justification for a fourteenth:
+    the pattern matched (not `no_candidate_evidence`), the context check PASSED
+    (neither `context_check_failed` nor `context_truncated`), both values normalised
+    (not `normalization_failed`), and `below_margin` belongs to §3.7's resolver and
+    would claim a score and a margin the rule pass never computed.
+    """
+    assert UNRESOLVED_REASONS[:13] == SPEC_THIRTEEN
+    assert len(set(UNRESOLVED_REASONS)) == len(UNRESOLVED_REASONS)
+
+
+def test_the_deployments_own_reason_is_appended_and_is_an_abstention(p6_conn):
+    """The fourteenth, named, placed, and on the answering side of §8.6's line.
+
+    It is an ABSTENTION and not one of `NOT_ABSTENTIONS`: the question was
+    considered on the evidence and P6 declined it, which is what §8.5 asks the row
+    to record. A budget or a privacy class stopping the work is a different thing
+    and stays a different thing.
+    """
+    assert UNRESOLVED_REASONS[13:] == (RULE_FOUND_SEVERAL_VALUES,)
+    assert RULE_FOUND_SEVERAL_VALUES == "rule_found_several_values"
+    assert RULE_FOUND_SEVERAL_VALUES not in NOT_ABSTENTIONS
 
 
 def test_a_fourteenth_reason_is_refused_at_the_write(p6_conn):

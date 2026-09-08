@@ -35,9 +35,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 import cli
 
 
+#: **THE SECTION NUMBER IS `Section 1` AND WAS `Section 001` FOR THREE DAYS.** Three
+#: digits after a capitalised word is a course-code SHAPE, so `104` R-146's widened
+#: recogniser reads `Section 001` as a candidate and §3.5's rule -- with `Syllabus` and
+#: `Instructor` beside it -- validated it, giving every file of this corpus two
+#: courses. R-146 then repaired the real defect at `facts.rules.apply_rules`: two
+#: distinct canonical values for one field on one file version is not a resolution, so
+#: the rule now declines the field and hands both candidates to the model. Under that
+#: repair this corpus would have produced NO subject at all offline and the collapse
+#: below would have been unobservable. One digit keeps the fixture asking its own
+#: question; `tests/integration/test_two_courses_keep_two_terms.py` asks the other one
+#: on a corpus built for it.
 BODY = """{code} Syllabus
 
-Section 001. Instructor: R. Feynman.
+Section 1. Instructor: R. Feynman.
 Meets Tuesday and Thursday.
 """
 
@@ -101,34 +112,19 @@ def test_the_spellings_collapse_to_one_value_per_code(run):
     """The premise. If this fails the corpus stopped exercising the collapse and the
     tests below are measuring nothing -- the failure mode `84` §5.3 names.
 
-    **`Section 001` IS A THIRD SUBJECT ON THIS RUN AND IT IS PINNED, NOT HIDDEN.**
-    `104` R-146 widened `cli._STRUCTURED` so a course printed as a capitalised word
-    and a number is readable at all (`Physics 1401`, which the uppercase-only shape
-    returned nothing for), and `BODY` above prints `Section 001` two lines under
-    `Syllabus` and on the same line as `Instructor:`. So the reading is a candidate,
-    §3.5's context check passes -- two teaching words sit beside it -- and the run
-    writes a `validated` `subject` this document is not about.
-
-    IT IS THE SAME CLASS THE OLD SHAPE ALREADY ADMITTED, AT A NEW FREQUENCY, and
-    both halves matter. Measured on the shape that shipped until 2026-09-08,
-    `\\b[A-Z][A-Z0-9]*[ -]?[0-9]{3,}\\b`: `'SECTION 001. Instructor: R. Feynman.'`
-    -> `['SECTION 001']`. A syllabus that SHOUTED its section already produced this
-    value, and this fixture would already have failed had it been written in
-    capitals. What R-146 changes is how often a real document hits it, because
-    people print `Section 001`, `Chapter 101` and `Room 1234` in title case far more
-    often than in capitals.
-
-    NOTHING OF SHAPE SEPARATES `Section 001` FROM `Physics 1401`, and the only thing
-    that could is a list of words saying which ones are departments -- the domain
-    knowledge the product constitution forbids ("LLM decides, code delivers. Never
-    hardcode domain knowledge"), because "which word names the course" is the
-    question the model is asked. So the fixture keeps saying what a real syllabus
-    says and the value is recorded here rather than tuned away. This is the one case
-    measured in this wave where §3.5's context guard does NOT hold the widening, and
-    `104` is where a narrowing would be ruled if the owner wants one.
+    This assertion listed a third value, `Section 001`, between 2026-09-08 and the
+    repair later the same day, and the note it carried is superseded rather than
+    deleted: the extra value was real, it came from `104` R-146's widened
+    recogniser, and pinning it was the honest thing to do while the cost had no
+    owner. It has one now. `apply_rules` declines a field it found two distinct
+    canonical values for, so the corpus that produced three values produces none,
+    and the fixture above went to a one-digit section so that this test asks the
+    question it was written for. The refusal itself is asserted where it belongs,
+    in `tests/p6/test_p6_subject_rule.py` and on a real run in
+    `tests/integration/test_two_courses_keep_two_terms.py`.
     """
     assert [row["canonical_value"] for row in _subject_values(run)] == [
-        "CHEM2100", "PHYS1401", "Section 001"]
+        "CHEM2100", "PHYS1401"]
 
 
 def test_the_run_keeps_the_wording_each_document_used(run):

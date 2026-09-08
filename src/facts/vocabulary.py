@@ -68,12 +68,15 @@ VALUE_KINDS: tuple[str, ...] = ("string", "date", "identifier", "enum")
 # Task 5 — the abstention vocabularies (§3.6, §8.5, §8.6; B7)
 # ---------------------------------------------------------------------------
 
-#: The thirteen reasons, one named constant each. This module owns the literal
+#: The reasons, one named constant each. This module owns the literal
 #: spelling; every call site imports the CONSTANT (preamble §3.1). That
 #: `write_unresolved` validates the reason through P4's `check` -- so a misspelling
 #: raises `NotInVocabulary` rather than storing -- is true and worth knowing, and it
 #: is NOT a reason to spell the reason inline: validation at the seam catches a TYPO,
 #: it does not stop the literal being a SECOND HOME.
+#:
+#: THIRTEEN ARE THE SPEC'S AND THE FOURTEENTH IS THIS DEPLOYMENT'S, appended below
+#: the thirteen and never mixed among them.
 NO_CANDIDATE_EVIDENCE: str = "no_candidate_evidence"
 BELOW_SCORE_THRESHOLD: str = "below_score_threshold"
 BELOW_MARGIN: str = "below_margin"
@@ -88,10 +91,38 @@ DISCOUNTED_TOOL_METADATA: str = "discounted_tool_metadata"
 PRIVACY_WITHHELD: str = "privacy_withheld"
 BUDGET_DEFERRED: str = "budget_deferred"
 
-#: The thirteen in the SPEC's own table order, for iteration and membership. Each is
-#: fired by exactly one place, named in the comment beside it, so a reason with no
-#: producer or a producer with no reason is visible by reading this list. To NAME one
-#: reason, import the constant above -- never a literal, never an index.
+#: THE FOURTEENTH, AND IT IS THIS DEPLOYMENT'S RATHER THAN THE SPEC'S. `104` R-37's
+#: own principle one layer down: a producer that finds TWO distinct canonical values
+#: for one field on one file version has not RESOLVED that field, and writing both is
+#: not a resolution -- it is a disagreement recorded as two conclusions. §3.7 then
+#: settles on neither and the level disappears, which `104` R-146 measured: a syllabus
+#: printing `Physics 1401` and `Section 001` beside the same `Instructor:` produced
+#: two `validated` subjects and no course folder at all.
+#:
+#: **None of the thirteen fits, which is why a fourteenth exists.** The pattern
+#: matched, so it is not `no_candidate_evidence`; the context check PASSED, so it is
+#: neither `context_check_failed` nor `context_truncated`; both values normalised, so
+#: it is not `normalization_failed`; and it is not `below_margin`, which the SPEC's
+#: table gives to §3.7's resolver and which would claim a score and a margin this pass
+#: never computed. The list above says each reason "is fired by exactly one place", and
+#: borrowing one would break that as surely as misspelling it.
+#:
+#: It is an ABSTENTION and not one of `NOT_ABSTENTIONS`: the question was considered on
+#: the evidence and P6 declined to answer it, which is exactly what §8.5 asks the row
+#: to record. The candidates stay `pending` for the model route, and the model decides
+#: which of them names the thing -- the constitution's first rule, not a tie-break this
+#: file could author.
+RULE_FOUND_SEVERAL_VALUES: str = "rule_found_several_values"
+
+#: The SPEC's thirteen in its own table order, then this deployment's one, for
+#: iteration and membership. Each is fired by exactly one place, named in the comment
+#: beside it, so a reason with no producer or a producer with no reason is visible by
+#: reading this list. To NAME one reason, import the constant above -- never a literal,
+#: never an index.
+#:
+#: **The SPEC's thirteen are a PREFIX and stay one.** Adoption appends; it does not
+#: reshuffle, so nothing that read this tuple positionally changes meaning, and
+#: `tests/p6/test_p6_unresolved.py` asserts the prefix rather than the length.
 UNRESOLVED_REASONS: tuple[str, ...] = (
     NO_CANDIDATE_EVIDENCE,           # no observation offered a candidate (§3.6)
     BELOW_SCORE_THRESHOLD,           # §3.7 minimum score not cleared
@@ -106,6 +137,7 @@ UNRESOLVED_REASONS: tuple[str, ...] = (
     DISCOUNTED_TOOL_METADATA,        # the §2.2/§2.3 producer/creator discount fired
     PRIVACY_WITHHELD,                # P7's handling class forbids the model route (§8.4)
     BUDGET_DEFERRED,                 # §8.6 ceiling reached — never merged with abstention
+    RULE_FOUND_SEVERAL_VALUES,       # this deployment's: §3.5 matched two values, R-37
 )
 
 #: §3.5's three routes, one named constant each. `direct` and `rule` are P6's own;

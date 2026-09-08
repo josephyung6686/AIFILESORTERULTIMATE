@@ -238,56 +238,145 @@ def sectioned_run(tmp_path):
     conn.close()
 
 
-def test_a_second_code_shaped_reading_beside_a_teaching_word_costs_the_course_level(
+def _local_model():
+    """`test_local_model_fact_pass`'s ollama stub, loaded rather than copied.
+
+    `test_r37_single_branch_is_byte_identical.py` sets the precedent for loading a
+    sibling test module here, and the reason is the same one: a second stub would be
+    a second answer to "what does a model reply look like", and the two would drift.
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "local_model_fact_pass",
+        Path(__file__).resolve().parent / "test_local_model_fact_pass.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_a_second_code_shaped_reading_makes_the_rule_decline_and_ask_the_model(
         sectioned_run):
-    """A KNOWN DEFECT, MEASURED AND NOT THIS WAVE'S -- and the one worth reading
-    before any of the assertions above.
+    """`104` R-37's principle one layer down, on a real run.
 
     A syllabus that prints `Section 001` on the same line as `Instructor:` gives
-    §3.5's rule two candidates it cannot tell apart. Both pass the context check --
-    the words are beside both -- so the file carries TWO `validated` `subject` facts,
-    and the subject level then settles on neither: the tree below has a `term` folder
-    for each calendar and NO course folder at all. A person loses the level the whole
-    product is for, and gains no wrong folder to notice it by.
+    §3.5's rule two candidates it cannot tell apart. Both clear the context check --
+    the teaching words are beside both -- so neither the vocabulary nor the shape
+    can separate them, and nothing but a list of department words could. THE RULE
+    THEREFORE DECLINES, and says so: no `subject` fact, no `subject` value, and one
+    `unresolved` row per candidate reading, each citing its own.
 
-    **IT IS NOT `104` R-146's, and that is measured rather than argued.** Run at
-    `9cd52c6` -- the commit before R-146 widened the recogniser -- with this same
-    corpus written `SECTION 001` in capitals, the uppercase-only shape produces the
-    same two facts per file, `PHYS1401` and `SECTION001`, and the same empty subject
-    level. R-146 did not open this door. What it changed is how often a real document
-    walks through it, because people print `Section 001`, `Chapter 101` and
-    `Room 1234` in title case far more often than in capitals, and the widened shape
-    is what makes those readable.
+    **THIS TEST USED TO ASSERT THE OPPOSITE AND THE OPPOSITE WAS THE DEFECT.**
+    Until 2026-09-08 `apply_rules` wrote one validated fact per matching
+    observation, so this corpus carried two courses per file, §3.7 settled on
+    neither, and the run produced both `term` folders and NO course folder -- a
+    person losing the level the product is for, with no row saying why. Measured at
+    `9cd52c6` with this text in capitals, the older uppercase-only recogniser did
+    exactly the same thing, so the defect was never `104` R-146's; R-146 only made
+    a title-case word readable, which is how often a real document reaches it.
 
-    **AND NO SHAPE CAN CLOSE IT.** Nothing separates `Section 001` from
-    `Physics 1401` but a list of words saying which ones are departments, and that is
-    the domain knowledge the product constitution forbids ("LLM decides, code
-    delivers"), because "which word names the course" is the question the model is
-    asked. Where a fix belongs is the other end -- P7 choosing between two validated
-    values, or the model being asked which of them names the course -- and that is
-    `104`'s ruling to make. This test exists so that whoever makes it can see the
-    cost first, and so that a repair announces itself by turning this test red.
+    **THE DOCUMENT HAS NOT GONE QUIET.** `record_anchor_statements` carries its own
+    `is_code` and runs before the rule pass, so the syllabus still STATES both
+    readings and a neighbour still receives both lines as context. That is the same
+    answer the rule is giving -- the model is shown both and judges -- and it is
+    asserted below so nobody reads a decline as a silence.
     """
-    subjects = {}
-    for row in sectioned_run.execute(
-            "SELECT f.filename, v.canonical_value FROM file_facts ff "
-            'JOIN "values" v USING (value_id) '
-            "JOIN files f ON f.file_id = ff.file_id "
-            "WHERE ff.field_key = 'subject' AND ff.reliability_state = 'validated'"):
-        subjects.setdefault(row["filename"], set()).add(row["canonical_value"])
+    subjects = list(sectioned_run.execute(
+        "SELECT ff.field_key FROM file_facts ff WHERE ff.field_key = 'subject'"))
+    assert subjects == []
+    assert [row["canonical_value"] for row in sectioned_run.execute(
+        'SELECT canonical_value FROM "values" WHERE field_key = ?', ("subject",))
+    ] == []
 
-    assert subjects == {
-        "phys syllabus 0.txt": {"PHYS1401", "Section 001"},
-        "phys syllabus 1.txt": {"PHYS1401", "Section 001"},
-        "chem syllabus 0.txt": {"CHEM2100", "Section 001"},
-        "chem syllabus 1.txt": {"CHEM2100", "Section 001"},
-    }
+    reasons = [row["reason"] for row in sectioned_run.execute(
+        "SELECT reason FROM unresolved WHERE field_key = 'subject'")]
+    assert reasons and set(reasons) == {"rule_found_several_values"}
+    # Two candidates per file across four files, each cited by its own row.
+    assert len(reasons) == 8
 
+    # The term level is untouched: the loss was specific, not a run falling over.
     nodes = _final_tree(sectioned_run)
-    assert [one["display_label"] for one in nodes
-            if one["dimension"] == "subject"] == []
-    # The term level is untouched, which is what makes the loss specific rather
-    # than a run that fell over.
     assert sorted(one["display_label"] for one in nodes
                   if one["dimension_role"] == "cycle_period") == [
         "2023-2024Semester1", "Fall2024"]
+
+    # And each syllabus still STATES both codes for its neighbours to be shown.
+    stated = {row["canonical_code"] for row in sectioned_run.execute(
+        "SELECT canonical_code FROM anchor_statements")}
+    assert stated == {"PHYS1401", "CHEM2100", "Section 001"}
+
+
+def test_with_a_model_answering_the_declined_field_the_course_folder_comes_back(
+        tmp_path, monkeypatch):
+    """The other half of the handoff, and the half that makes it a repair.
+
+    A rule that declines and stops would have traded one bad folder for no folder.
+    It does not stop: the field is left absent from `file_facts`, so
+    `model_facts.pending_fields_for` keeps `subject` PENDING, the file's own
+    readings reach site A, and a model answering with the course it can see puts
+    the level back. The model here is `test_local_model_fact_pass`'s ollama stub,
+    which answers by COPYING a span out of the released evidence -- so what it says
+    is the document's own words, exactly as a real model's accepted answer must be.
+
+    Asserted on the shipped run rather than on the seam: the value arrives
+    `llm_supported`, which `00`:42 makes weaker than a rule and overrulable by the
+    person, and the course folder exists again in the tree the person is shown.
+    """
+    local = _local_model()
+    monkeypatch.setenv(local.LOCAL_MODEL_NAME, local.MODEL_ID)
+    with local.StubOllama() as stub:
+        monkeypatch.setenv(local.LOCAL_BASE_URL_NAME, stub.base_url)
+        holder = tmp_path / "holder"
+        corpus = holder / "corpus"
+        corpus.mkdir(parents=True)
+        # NAMED AFTER THE COURSE, which is what makes this a test of the handoff
+        # and not of the stub. `test_local_model_fact_pass._corpus`'s own docstring
+        # records that its corpus releases the file's NAME to the model and that
+        # the stub answers by copying a span out of what it was released; with the
+        # neutral names this module's other fixtures use, the stub answers
+        # `phys syllabus` and the question of whether a model's answer can rebuild
+        # the level is never reached. A person whose syllabus file is called after
+        # its course is also the ordinary case.
+        # ONE MORE LINE PER FILE, and it is not decoration. `84` §5.3's failure mode
+        # in this module's own words: two files whose bytes are identical share a
+        # content hash and therefore a call-cache slot, so the model is asked ONCE,
+        # one of the pair carries the answer, and the level does not settle. The
+        # test then fails for a reason that has nothing to do with what it asks.
+        for _stem, code, _, term, _ in COURSES:
+            for index in range(2):
+                (corpus / f"{code} syllabus {index}.txt").write_text(
+                    SECTIONED.format(code=code, term=term)
+                    + f"Week {index + 1} reading.\n", encoding="utf-8")
+        database = holder / "plan.sqlite"
+        out = io.StringIO()
+        cli.main([str(corpus), "--situation", "academic.coursework",
+                  "--label", "Coursework", "--user", "jy",
+                  "--database", str(database)], out=out)
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    try:
+        # The rule still declined -- that is the premise, and if it stopped
+        # declining this test would be measuring the old behaviour.
+        reasons = {row["reason"] for row in conn.execute(
+            "SELECT DISTINCT reason FROM unresolved WHERE field_key = 'subject'")}
+        assert "rule_found_several_values" in reasons, reasons
+
+        # And the model was asked, and answered, and the answer is a subject fact
+        # at the strength a model's answer carries.
+        answered = [(row["canonical_value"], row["reliability_state"])
+                    for row in conn.execute(
+                        "SELECT v.canonical_value, ff.reliability_state "
+                        "FROM file_facts ff "
+                        'JOIN "values" v USING (value_id) '
+                        "WHERE ff.field_key = 'subject' AND ff.active")]
+        assert answered, "the model was never asked, so this proves nothing"
+        assert {state for _value, state in answered} == {"llm_supported"}
+
+        assert {value for value, _state in answered} == {"PHYS1401", "CHEM2100"}
+
+        courses = sorted(one["display_label"] for one in _final_tree(conn)
+                         if one["dimension"] == "subject")
+        assert courses == ["CHEM2100", "PHYS1401"], "the course level did not come back"
+    finally:
+        conn.close()
