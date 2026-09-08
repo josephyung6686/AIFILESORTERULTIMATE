@@ -242,6 +242,7 @@ def _inputs(conn, **overrides):
         chosen_node_of=lambda _verdict: "n-course-shared",
         residual_action_of=None,
         sensitivity_policy=lambda *_a, **_k: True,
+        usage_recorder=None,
         # Nothing to ask about and nothing already answered. Both are
         # required with no default, so a fixture states its position
         # rather than inheriting one.

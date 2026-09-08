@@ -412,7 +412,11 @@ def test_call_placement_supplies_exactly_the_keywords_run_call_requires():
     call = next(node for node in ast.walk(ast.parse(source.strip()))
                 if isinstance(node, ast.Call)
                 and getattr(node.func, "id", None) == "run_call")
-    assert {kw.arg for kw in call.keywords} == required
+    # Plus the ONE optional keyword P11 threads through (`104` R-145): `104`
+    # R-14's usage mailbox, optional at `run_call` because a transport that
+    # reports no usage is a real deployment, and passed here because site C's
+    # responses recorded no usage row for as long as it was not.
+    assert {kw.arg for kw in call.keywords} == required | {"usage_recorder"}
 
 
 def test_p11_reuses_p8s_revalidation_rather_than_remapping_a_decision():

@@ -437,6 +437,14 @@ class FactCallAuthorities:
     #: only on a neighbour's words is `ACCEPT_CONTEXT_SUPPORTED` and carries a review
     #: obligation.
     anchor_context_for: Callable[..., Sequence] | None = None
+    #: `104` R-145. The same offer as `anchor_context_for`, in §8.6's PRESERVED
+    #: ANCHORS shape: each anchor's own span rather than the line it sits on. Asked
+    #: only when the lines do not fit the dossier ceiling, so a deployment that
+    #: supplies it gains a second rung and one that does not keeps exactly the ladder
+    #: it had -- `anchors_fit` is `False` whenever this is `None`. Measured on r12: a
+    #: neighbour's "line" of 27,510 characters deferred all 17 files in its folder
+    #: family at site A, each recorded `BUDGET_EXHAUSTED` with no reservation made.
+    anchor_excerpts_for: Callable[..., Sequence] | None = None
     #: `105` §14.4 / `104` R-131 and R-102. The levels a file is asked ONLY when it
     #: is an anchor of a permitted kind, on top of `folder_levels` above, which
     #: every file of the situation is asked. `None` is the state `104` R-102
@@ -922,9 +930,14 @@ def _call_dependencies(
     folder_levels: Sequence[FolderLevel],
     authorities: FactCallAuthorities,
     observations: Sequence,
+    anchor_observations: Sequence | None = None,
 ) -> CallDependencies:
     """`observations` is the list the request was BUILT from, and it is here so that
     §8.6's first ladder rung is measured rather than asserted (`103` C7).
+
+    `anchor_observations` is the second shape (`104` R-145): the file's own readings
+    with the anchors' own spans in place of their lines. `None` means the deployment
+    offers no such shape, and the rung is then honestly absent as it always was.
 
     Measured on the raw values rather than on the released ones, because the ladder
     runs before `gate.release` -- `run_call` plans the reduction, then reserves, then
@@ -952,13 +965,16 @@ def _call_dependencies(
         # pass: "A model prompt that exceeds its token budget should not truncate
         # silently in a way that removes the decisive evidence."
         #
-        # The other three rungs stay honestly absent. `00`:257 offers four remedies
-        # -- summarize deterministic facts, preserve anchor excerpts, split the task,
-        # or defer -- and this deployment can build none of the first three: the
-        # dossier is already the capped observation set, and there is no second,
-        # smaller shape of it. Claiming a rung nothing can produce would make
-        # `plan_reduction` choose a shape `_units` cannot return. So when the first
-        # rung fails, the fourth is what is left, and `plan_reduction` takes it:
+        # Two of the other three rungs stay honestly absent. `00`:257 offers four
+        # remedies -- summarize deterministic facts, preserve anchor excerpts, split
+        # the task, or defer -- and this deployment can build the SECOND (`104`
+        # R-145): the file's own readings are the capped set already, but the
+        # context readings beside them have a smaller shape, each anchor's own span
+        # in place of the line it sits on. `anchors_fit` measures that shape when
+        # the composition root supplies one and is `False` when it does not, so
+        # `plan_reduction` never names a rung `_units` cannot hand `run_call`; the
+        # stage builds the request in whichever shape the ladder will pick. When
+        # neither fits, the fourth is what is left, and `plan_reduction` takes it:
         # `DEFERRED`, with a `PreCallAbstention` carrying `BUDGET_EXHAUSTED`, before
         # `reserve_call` and before `gate.release`, so a deferred call spends no
         # budget and mints no release. That is `00`:259's "mark the deferred stage,
@@ -966,7 +982,10 @@ def _call_dependencies(
         unreduced_fits=dossier_tokens(
             observation.raw_value for observation in observations
         ) <= authorities.max_dossier_tokens,
-        summarized_fits=False, anchors_fit=False,
+        summarized_fits=False,
+        anchors_fit=(anchor_observations is not None and dossier_tokens(
+            observation.raw_value for observation in anchor_observations
+        ) <= authorities.max_dossier_tokens),
         split_shard_fits=(), split_shards=(),
         scan_budget=authorities.scan_budget,
         estimated_cost=authorities.estimated_cost,
@@ -1259,6 +1278,20 @@ def _reuse_is_current(conn: sqlite3.Connection, prior, *, request: FactRequest,
     return True
 
 
+def _within_ceiling(observations: Sequence, context: Sequence,
+                    authorities: FactCallAuthorities) -> bool:
+    """Whether a dossier built from these readings fits `00`:251's ceiling.
+
+    The same count `_call_dependencies` hands §8.6's ladder, asked a step earlier so
+    the stage can build the request in the shape the ladder will pick (`104` R-145).
+    One expression in one place: a second spelling here and a third in the ladder
+    would drift the day either changed.
+    """
+    return dossier_tokens(
+        observation.raw_value for observation in tuple(observations) + tuple(context)
+    ) <= authorities.max_dossier_tokens
+
+
 def fact_call_stage(authorities: FactCallAuthorities):
     """One `facts.resolver.Stage`: the §8.6 `llm` producer, wired to a real model.
 
@@ -1297,9 +1330,25 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # they are part of what it is built from -- the identity below, the budget
         # measurement, the citable set and the release target all have to see them.
         context = ()
+        # `104` R-145: §8.6's preserved-anchors shape of the same context, or `None`
+        # when the lines fit or the deployment offers no second shape. `shown` is
+        # the shape the request is BUILT in, which is the shape the ladder will
+        # pick: the lines when they fit, the anchors' own spans when only those do,
+        # and the lines again when neither does -- that call is deferred before
+        # any of it is sent, and `_call_dependencies` measures both shapes so the
+        # dossier records the rung it was actually built at.
+        excerpts = None
         if authorities.anchor_context_for is not None:
             context = tuple(authorities.anchor_context_for(
                 conn, file_id=file_id, content_hash=content_hash, fields=pending))
+            if (authorities.anchor_excerpts_for is not None
+                    and not _within_ceiling(observations, context, authorities)):
+                excerpts = tuple(authorities.anchor_excerpts_for(
+                    conn, file_id=file_id, content_hash=content_hash,
+                    fields=pending))
+        shown = (excerpts if excerpts is not None
+                 and _within_ceiling(observations, excerpts, authorities)
+                 else context)
         request = build_request(
             conn, file_id=file_id, content_hash=content_hash,
             activation_signals=authorities.activation_signals,
@@ -1307,7 +1356,7 @@ def fact_call_stage(authorities: FactCallAuthorities):
             # So a citation naming one of them passes §3.6's check 2. Without this the
             # model would be shown a reading it is forbidden to cite, which is worse
             # than not showing it: `CITATION_NOT_FOUND` rejects the whole claim.
-            context_observations=context)
+            context_observations=shown)
         if not request.allowlist:
             return ()
 
@@ -1371,7 +1420,7 @@ def fact_call_stage(authorities: FactCallAuthorities):
             # nothing -- the only term read off the readings is the set of
             # `(extractor, version)` pairs, and a syllabus is read by the same
             # extractor as the file beside it. `context_refs` says why in full.
-            context=context)
+            context=shown)
         identity_id = call_identity(identity)
         prior = prior_call(conn, identity_id)
         if prior is not None and vocabulary and _reuse_is_current(
@@ -1431,7 +1480,7 @@ def fact_call_stage(authorities: FactCallAuthorities):
                     request, observations,
                     filename=(filename_citation(conn, file_id)
                               if name_may_be_cited else None),
-                    context=context,
+                    context=shown,
                     model_target=authorities.model_target,
                     prompt=authorities.prompt,
                     max_dossier_tokens=authorities.max_dossier_tokens),
@@ -1444,8 +1493,13 @@ def fact_call_stage(authorities: FactCallAuthorities):
                     # `104` R-135: the ladder measures what the DOSSIER will carry,
                     # and it will carry the context readings too. Measuring the file's
                     # own alone would tell §8.6's first rung a dossier fits that does
-                    # not.
-                    observations=tuple(observations) + context),
+                    # not. `104` R-145: the first rung is the LINES shape and the
+                    # preserved-anchors rung is the excerpts shape, each measured as
+                    # its own list, so the rung the dossier records is the one it
+                    # was built at.
+                    observations=tuple(observations) + context,
+                    anchor_observations=(None if excerpts is None
+                                         else tuple(observations) + excerpts)),
                 observed_at=authorities.observed_at,
                 # `104` R-14. Handed to `run_call` and not to `CallDependencies`:
                 # it is optional, and that bundle's every field is required by

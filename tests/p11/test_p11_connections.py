@@ -474,7 +474,7 @@ def test_a_run_without_a_support_policy_or_limits_refuses(p11_conn):
         ask_or_abstain=None, max_return_cycles=None, gate=None,
         model_client=None, prompt=None, residual_prompt=None, call_dependencies=None,
         model_call_request=None, chosen_node_of=None, residual_action_of=None,
-        sensitivity_policy=None, model_target=None,
+        sensitivity_policy=None, model_target=None, usage_recorder=None,
         ask_about_file=lambda subject: None,
         chosen_by_user=lambda subject: None,
         fields_that_cannot_anchor_a_move=frozenset(),

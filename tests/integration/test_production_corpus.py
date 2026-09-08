@@ -529,6 +529,7 @@ def run_corpus_through(conn, tmp_path, *, fields=FIELDS, names=CORPUS,
             call_dependencies=None,
             model_call_request=None, chosen_node_of=None,
             residual_action_of=None, sensitivity_policy=None, model_target=None,
+            usage_recorder=None,
             # Nothing to ask about and nothing already answered. Both are
             # required with no default, so a fixture states its position
             # rather than inheriting one.

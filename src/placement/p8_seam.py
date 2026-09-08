@@ -197,7 +197,7 @@ def transcribe(verdict, *, assessment) -> tuple[str, str | None, str | None]:
 
 
 def call_placement(conn, request, *, gate, model_client, prompt,
-                   call_dependencies, observed_at):
+                   call_dependencies, observed_at, usage_recorder=None):
     """One Site C call. Every argument `run_call` requires, and nothing more.
 
     P11 supplies `gate`, `model_client` and `prompt` because `run_call` requires
@@ -218,6 +218,8 @@ def call_placement(conn, request, *, gate, model_client, prompt,
             "deterministic-only run and must be requested as one, not attempted "
             "and failed"
         )
+    # `usage_recorder` is optional here for `run_call`'s own reason: the mailbox
+    # is `104` R-14's and a transport that reports no usage is a real deployment.
     return run_call(conn, request, gate=gate, model_client=model_client,
                     prompt=prompt, validation_dependencies=call_dependencies,
-                    observed_at=observed_at)
+                    observed_at=observed_at, usage_recorder=usage_recorder)
