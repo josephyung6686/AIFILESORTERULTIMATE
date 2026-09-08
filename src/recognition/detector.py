@@ -50,6 +50,12 @@ from database_agent.files_table import get_file
 
 from evidence_shape.store import is_derived_extractor
 
+#: §2.4's "language where relevant" slot, IMPORTED rather than spelled. `_matches`
+#: refuses term matches from it (see there), and a detector holding its own copy of
+#: an extractor's field label is a rule that stops applying the day the label is
+#: renamed, silently and in the permissive direction.
+from extractors.structured_text import LANGUAGE_FIELD
+
 from facts.domains import SCHEMA_IDS, UnknownSchema
 
 from privacy.classification import UNREADABLE_UNCLASSIFIED, ClassificationRecord
@@ -218,6 +224,30 @@ class Abstention:
     entries verbatim. They are not implemented anywhere and this is the whole of
     their wiring: the reason a deterministic rule could not settle the case,
     attached to the case it could not settle, for P8 to pick up.
+
+    **`matched_terms` AND `evidence_refs` ARE R-166's, AND THEY ARE WHAT MAKES THE
+    CASE ASKABLE.** `00`:39 gives the model a file that "remains ambiguous" or has
+    "multiple plausible domains", and `00`:42 requires it to cite: *"A model that
+    cannot cite sufficient evidence must return unknown."* Until now an abstention
+    named the readings and not one observation behind them, so nothing downstream
+    could put the question with a citation that resolves. Two readers were already
+    reaching for these and finding nothing:
+
+    * `model_situation.question_for` takes `matched_terms` and `evidence_refs` as
+      arguments the CALLER must supply, because the outcome carried neither.
+    * `questions.triggers.tied_readings_and_the_files_they_reach` reads
+      `getattr(outcome, "evidence_refs", ())` and, finding none, cites the string
+      `subject:<value>` instead -- its own comment says "an abstention carries no
+      evidence refs of its own".
+
+    Nothing here is a new observation and nothing is re-read: both fields are the
+    matches `_decide` already had in hand, projected. `_protect_as`'s rule is
+    unchanged and is a different rule -- a PROTECTION cites what raised it and
+    re-runs `_matches` for the safety domain's own terms; this is a RECOGNITION
+    saying what its readings rest on.
+
+    Order is `SCHEMA_IDS`', not match order, for `shortlist_for`'s reason: the same
+    file must put the same question however the matches arrived.
     """
 
     reason: str
@@ -225,11 +255,31 @@ class Abstention:
     detail: str
     tied_schema_ids: tuple[str, ...] = ()
     deferred_readings: tuple[str, ...] = ()
+    #: `(schema_id, terms)` for each reading this abstention names, in `SCHEMA_IDS`
+    #: order, terms in the order they were found. What the file matched, per
+    #: candidate -- which is what keeps "this schema was a leader" from having to be
+    #: taken on trust.
+    matched_terms: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    #: The observation keys those terms sit in, deduplicated, first occurrence
+    #: first. A `Recognition` already carries this field under this name and these
+    #: are the same keys, so a consumer that reads one reads the other.
+    evidence_refs: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         check_abstention_reason(self.reason)
         if self.schema_id is not None and self.schema_id not in SCHEMA_IDS:
             raise UnknownSchema(self.schema_id)
+
+
+def _named(cited: tuple[tuple[tuple[str, tuple[str, ...]], ...], tuple[str, ...]]
+           ) -> dict[str, object]:
+    """`_cited`'s pair as the two keyword arguments `Abstention` takes.
+
+    Spelled once because four abstention sites pass it and a positional pair would
+    be two fields whose order a reader has to remember at each of them.
+    """
+    matched_terms, evidence_refs = cited
+    return {"matched_terms": matched_terms, "evidence_refs": evidence_refs}
 
 
 def _tokens(text: str) -> tuple[str, ...]:
@@ -444,6 +494,43 @@ class Detector:
             source_types.add(row["source_type"])
             where = _json.loads(row["location"])
             if where.get("locator") == "path":
+                continue
+            # AND THE NAME OF THE FILE'S FORMAT IS NOT ONE OF ITS WORDS EITHER.
+            # `extractors.structured_text` emits the reader's `document.language`
+            # -- §2.4's "language where relevant" -- as an observation of its own,
+            # and for a notebook the reader fills it with `Jupyter notebook`. The
+            # `code` schema ships `notebook` as a WORK TYPE, so every `.ipynb` in
+            # existence carried a `code` term before one word of it was read.
+            #
+            # Measured on 2026-09-08 at `5ff35c0` and identically at `8eb41e0`: a
+            # notebook whose entire content is the line `PYTHON 1006 Spring 2026`,
+            # with an empty code cell and no prose, came back `Recognition(code)`.
+            # Its only authored term was this observation; its second signal was
+            # the corroboration gate seconding it with `PYTHON 1006` and
+            # `Spring 2026`, which are evidence of COURSEWORK. The four
+            # `Python 1006` notebooks of the owner's corpus -- the only files that
+            # run placed -- were placed on that arithmetic.
+            #
+            # IT IS THE SAME RULE AS THE LINE ABOVE, and the same rule as
+            # `_decide`'s. The path refusal is "every file on a disk sits under
+            # some words, and none of them are the file's own"; every file on a
+            # disk is also written in some FORMAT, and the format's name is the
+            # reader's word rather than the document's. `_decide` already holds
+            # that `file_kind_plausible` "is a constraint and never a signal", and
+            # a term match on this slot is precisely the kind arriving as a
+            # signal -- while the kind is still doing its constraining job, from
+            # `source_types` gathered two lines above and from the extension.
+            #
+            # NARROW ON PURPOSE. §2.4's four STRUCTURAL MARKERS -- repository
+            # markers, package manifests, notebook metadata, README files -- sit
+            # in the same zone and are left alone: `00` asks code to "rely heavily
+            # on local structural evidence, including repository roots and package
+            # files", so those are evidence the design wants. None of them matches
+            # an authored term today, and
+            # `tests/recognition/test_recognition_serialisation_is_not_evidence.py`
+            # fails the day one does, which is when this rule needs widening
+            # rather than now.
+            if where.get("locator") == f"metadata:field={LANGUAGE_FIELD}":
                 continue
             key = row["observation_key"]
             zone = where.get("zone")
@@ -719,7 +806,11 @@ class Detector:
                    f"outranks another ({', '.join(leaders)})"
                    if len(leaders) > 1 else ""),
                 tied_schema_ids=tuple(leaders) if len(leaders) > 1 else (),
-                deferred_readings=self._readings(schema_id))
+                deferred_readings=self._readings(schema_id),
+                # R-166: EVERY leader, not just the one named. A near miss of one
+                # is a shortlist of one and still needs its citation; a tie of two
+                # needs both sides or the question cannot say what either rests on.
+                **_named(self._cited(by_schema, leaders)))
 
         plausible = [schema_id for schema_id in leaders
                      if self._plausible(self._rules.schemas[schema_id],
@@ -733,7 +824,8 @@ class Detector:
                 f"rows never name ({file_row['extension']!r}, "
                 f"{sorted(source_types)}); `file_kind_plausible` is a constraint "
                 "and never a signal",
-                deferred_readings=self._readings(schema_id))
+                deferred_readings=self._readings(schema_id),
+                **_named(self._cited(by_schema, leaders)))
         if len(plausible) > 1:
             # `00` requires abstention where two readings are both supported.
             # Nothing breaks this tie: a tie-breaker would be the invented
@@ -744,7 +836,8 @@ class Detector:
                 f"each ({', '.join(plausible)}); both readings are supported and "
                 "`00` requires abstention rather than a winner",
                 tied_schema_ids=tuple(plausible),
-                deferred_readings=self._readings(plausible[0]))
+                deferred_readings=self._readings(plausible[0]),
+                **_named(self._cited(by_schema, plausible)))
 
         schema_id = plausible[0]
         found = tuple(by_schema[schema_id])
@@ -759,7 +852,8 @@ class Detector:
                 f"{schema_id} was recognised from {len(found)} authored terms and "
                 "the caller's handling policy states no class for it; recognition "
                 "is not classification",
-                deferred_readings=self._readings(schema_id))
+                deferred_readings=self._readings(schema_id),
+                **_named(self._cited(by_schema, (schema_id,))))
         refs: list[str] = []
         for match in found:
             if match.observation_key not in refs:
@@ -954,6 +1048,28 @@ class Detector:
             handling_class=handling.handling_class, protected=handling.protected,
             basis=handling.basis, evidence_refs=tuple(refs),
             reliability_state=RELIABILITY, observed_at=self._now())
+
+    @staticmethod
+    def _cited(by_schema: Mapping[str, list["TermMatch"]],
+               schemas: Iterable[str]
+               ) -> tuple[tuple[tuple[str, tuple[str, ...]], ...], tuple[str, ...]]:
+        """`(matched_terms, evidence_refs)` for the readings an abstention names.
+
+        A projection of matches the caller already holds. `SCHEMA_IDS` order for
+        the schemas, found-order for the terms and the keys, and every key
+        deduplicated -- one observation carrying two terms is one citation.
+        """
+        named = [schema_id for schema_id in SCHEMA_IDS if schema_id in set(schemas)]
+        terms: list[tuple[str, tuple[str, ...]]] = []
+        refs: list[str] = []
+        for schema_id in named:
+            found = by_schema.get(schema_id, ())
+            terms.append((schema_id, tuple(dict.fromkeys(
+                match.term for match in found))))
+            for match in found:
+                if match.observation_key not in refs:
+                    refs.append(match.observation_key)
+        return tuple(terms), tuple(refs)
 
     def _readings(self, schema_id: str) -> tuple[str, ...]:
         schema = self._rules.schemas.get(schema_id)

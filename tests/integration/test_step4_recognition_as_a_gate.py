@@ -11,19 +11,47 @@ the owner's `sample/Desktop` and over the three-file corpus below, and NEITHER I
   The guard's own third case keeps the run's situation for a file with no
   recognition -- coverage is sacred and an abstention is not evidence of anything --
   so the guard does not fire and the résumé is still offered `subject`.
-* THE RECOGNISER FIRES ON THE FILES THE RUN GETS RIGHT. Over the owner's sample,
-  four of the five `Python 1006` lecture notebooks come back `Recognition(code)` on
-  the authored term `notebook`. Those four are the only files in that corpus the run
-  places, on `subject = E1006` and `work_type = lecture`, and `code` declares
-  neither: its fields are `project`, `repository`, `programming_language` and
-  `artifact_type`, and no level the coursework template builds expects one. The
-  guard's first case fires six times on that corpus -- four notebooks and two
-  vaccine records that abstain anyway -- and not once to anybody's benefit.
+* AND THE NOTEBOOKS WERE NEVER RECOGNISED AS `code` BY ANYTHING THEY SAID -- WHICH
+  THIS FILE USED TO DENY, AND WHICH THE FIRST R-166 COMMIT GOT WRONG TOO. The
+  paragraph here read "the recogniser FIRES on the files the run gets right: four of
+  the five `Python 1006` lecture notebooks come back `Recognition(code)` on the
+  authored term `notebook`." The term is real; where it came from is not the
+  document.
 
-THE DETECTOR IS NOT WRONG. It answers "what is this file made of"; the guard needs
-"which situation is this file part of". A Jupyter notebook of a Python course is
-honestly both, and no reading of the file settles which one the person meant. That
-is R-37's question, and R-37 is the fix step 4 called itself the interim for.
+  MEASURED 2026-09-08, at `5ff35c0` and identically at `8eb41e0`.
+  `extractors.structured_text` emits the reader's `document.language` -- §2.4's
+  "language where relevant" -- as an observation of its own, and for a notebook the
+  reader fills it with the string `Jupyter notebook`. `code` ships `notebook` as a
+  WORK TYPE. So every `.ipynb` in existence carried a `code` term before one word of
+  it was read, an empty one included. The SECOND signal `never_alone` requires came
+  from the corroboration gate, which seconded that one term with `PYTHON 1006` and
+  `Spring 2026` -- a course code and an academic term, which are evidence of
+  coursework. A file was recognised as a code project by its file format plus its
+  course number, and the four notebooks the run placed were placed on that.
+
+  (The first R-166 commit reported the mechanism as four JSON dictionary keys read
+  as four terms before `104` R-160, and reported a surviving `academic`/`code` tie.
+  Both were wrong: the raw JSON matched `code` on the single word `code`, out of
+  `"cell_type": "code"`, and the tie was the format's name against the heading. The
+  measurement above replaces that account.)
+
+  `recognition.detector._matches` now refuses a term match on that slot, for the
+  reason it already refuses the `path` locator -- the name of the file's format is
+  no more one of its words than the name of its directory is -- and for `_decide`'s
+  own rule that `file_kind_plausible` "is a constraint and never a signal". With the
+  container's name no longer voting, the same notebook is `Recognition(academic)` on
+  `lecture` in its own first heading, corroborated by its own course code. That is
+  what the file is.
+  `tests/recognition/test_recognition_serialisation_is_not_evidence.py` holds it.
+
+THE DETECTOR IS NOT WRONG, AND STEP 4'S GUARD IS DEAD FOR A DIFFERENT REASON NOW.
+The finding above inverts the second bullet's argument: the guard would fire on the
+notebook and it would AGREE with the run, because the schema the recogniser settles
+on is `academic`, which is the run's own. It costs nothing here and it buys nothing
+here. What is left of step 4 is the first bullet -- the résumé, which still abstains
+tied between `career` and `college_applications`, is still the file the step was
+written for, and is still the file the guard cannot reach. That is R-37's question,
+and R-37 is the fix step 4 called itself the interim for.
 
 `00`:41 IS NOT A ROUTE PAST IT. Writing the recognition as a file fact so the gate
 can read it needs a field for it, and there is none: `fields.py` ships 56 rows,
@@ -192,19 +220,56 @@ def test_the_recogniser_abstains_on_a_resume_so_the_guard_never_fires_for_it(
     assert "college_applications" in outcome.tied_schema_ids, outcome.tied_schema_ids
 
 
-def test_a_course_notebook_is_recognised_as_code_and_the_guard_would_fire_on_it(
+def test_a_course_notebook_is_academic_once_the_containers_name_stops_voting(
         measured):
-    """THE FILES THE RUN GETS RIGHT, and the guard does reach them.
+    """THE FILE THAT WAS NEVER RECOGNISED AS `code` BY ANYTHING IT SAID.
 
-    Four of the owner's five `Python 1006` lecture notebooks come back exactly this
-    way, on the authored term `notebook`. They are the four the run places.
+    This test used to assert `Recognition(code)` and it passed for a reason that
+    was not about the document: `extractors.structured_text` stores the reader's
+    `document.language` as an observation, for a notebook that value is the string
+    `Jupyter notebook`, and `code` ships `notebook` as a work type. Every `.ipynb`
+    carried that term, an empty one included, and the corroboration gate seconded
+    it with `PYTHON 1006` -- a course code -- to reach `never_alone`'s arity.
+
+    With the format's name refused (`_matches`, for the reason it already refuses
+    the `path` locator), what is left is what the file says: `lecture`, in its own
+    first heading, corroborated by its own course code. The verdict is `academic`,
+    which is the run's own schema and the situation these files are placed under.
+    `tests/recognition/test_recognition_serialisation_is_not_evidence.py` is the
+    guard that keeps the container out of it.
+    """
+    outcome = _verdict(measured, NOTEBOOK)
+
+    assert isinstance(outcome, Recognition), (
+        "a course notebook stopped being recognised at all. Check first that its "
+        "heading is still an observation: that is the only thing the document "
+        "itself contributes: " + repr(outcome))
+    assert outcome.schema_id == RUN_SCHEMA, (
+        "if this says `code`, the container's own name is voting again: "
+        + repr(outcome))
+
+
+def test_every_term_behind_the_notebooks_verdict_is_one_the_document_carries(
+        measured):
+    """PROVENANCE, at the matches rather than at the verdict.
+
+    The point of R-166's measurement is that the term `code` won on was the
+    reader's word for the FORMAT, not the document's. So the terms that remain
+    have to be the document's own, and the zone is what says so: `heading` is SPEC
+    2.2's "page-one heading" and is in `NAMING_ZONES`; `metadata:field=language` is
+    where the format's name sat.
     """
     outcome = _verdict(measured, NOTEBOOK)
 
     assert isinstance(outcome, Recognition), repr(outcome)
-    assert outcome.schema_id == "code", (
-        "a course notebook stopped being recognised as `code`, which is the "
-        "measurement this whole file rests on")
+    assert outcome.matches, repr(outcome)
+    for match in outcome.matches:
+        assert match.zone != "metadata", (
+            "a term behind this verdict came out of the metadata zone, which is "
+            "where the container describes itself: " + repr(match))
+    assert {match.term for match in outcome.matches} == {"lecture"}, (
+        "the only word of this notebook that any schema authored is `lecture`, in "
+        "its markdown heading: " + repr(outcome.matches))
 
 
 def test_a_lecture_in_prose_is_recognised_academic_and_the_guard_would_agree(
@@ -227,6 +292,12 @@ def test_a_lecture_in_prose_is_recognised_academic_and_the_guard_would_agree(
 def test_the_guard_would_take_subject_off_the_notebook_and_offer_it_a_repository(
         measured):
     """THE COST, at P6's own function rather than in prose.
+
+    COUNTERFACTUAL SINCE R-166, AND KEPT FOR IT. The notebook abstains, so step 4's
+    first case never reaches this file and the swap measured here never happens.
+    What the numbers still say is what the swap WOULD cost if a rule ever settled a
+    course notebook as `code` -- which is the outcome the old serialisation produced
+    and the outcome nobody may restore by adding terms.
 
     `104` §11.2 step 3 and this branch's P10 rule both turn on `subject`: a level is
     minted from a value some file states, and the notebook is one of the files that
