@@ -40,6 +40,7 @@ import pytest
 
 import cli
 from llm_harness.value_grounding import grounding_tokens
+from privacy.vocabulary import ALWAYS_LOCAL_ZONES
 from readers.model_ollama import (
     BASE_URL_NAME as LOCAL_BASE_URL_NAME,
     MODEL_NAME as LOCAL_MODEL_NAME,
@@ -1173,3 +1174,152 @@ def test_a_file_with_a_fact_is_shown_the_fact_and_the_readings_around_it(
     kinds = {item["kind"] for item in body["evidence_items"]}
     assert "fact" in kinds, body["evidence_items"]
     assert "excerpt" in kinds, body["evidence_items"]
+
+
+# --- `104` R-154: site C offers only what the gate will release ----------------
+
+#: The file whose EVERY fact is cited from a zone §8.4 never releases, and it is
+#: measured rather than chosen: on this corpus `Columbia Essay.txt` settles one
+#: fact, `work_type`, off its own name. `_facts_with_their_zones` below reads the
+#: same answer out of the finished database, so a corpus that stops producing that
+#: state fails the test rather than quietly passing it.
+ALWAYS_LOCAL_ONLY_NAME = "Columbia Essay.txt"
+
+#: The twin: one fact cited from the body and one cited from the name, on ONE
+#: file. `Lecture 08.txt` states `PHYS 1401` in its text and its kind of work in
+#: its filename, so the same dossier says both halves of R-154 at once -- the body
+#: citation is still offered, the filename citation is not.
+BOTH_ZONES_NAME = "Lecture 08.txt"
+
+
+def _facts_with_their_zones(database: Path, file_id: str) -> dict:
+    """Each live fact of a file, and the zones its citations really resolve to.
+
+    Read through `cli.located_citations` -- the product's own resolver -- rather
+    than by unpacking the serialized locator in `evidence.location`. A test that
+    re-derives an address is a second answer to "where is this reading", and it
+    would go on agreeing with itself after the real one had moved.
+    """
+    conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        return {
+            row["field_key"]: tuple(
+                location.zone for _ref, location in cli.located_citations(
+                    conn, file_id, json.loads(row["evidence_refs"] or "[]")))
+            for row in conn.execute(
+                "SELECT field_key, evidence_refs FROM file_facts "
+                "WHERE file_id = ? AND active = 1 AND superseded_by IS NULL",
+                (file_id,))
+        }
+    finally:
+        conn.close()
+
+
+def _placement_dossier_of(database: Path, file_id: str) -> dict:
+    (subject_ref,), = _query(
+        database,
+        "SELECT subject_ref FROM llm_dossier WHERE call_site = 'C_placement' "
+        "AND subject_ref LIKE ?", f"file:{file_id}:%")
+    return _dossier_body(database, call_site="C_placement",
+                         subject_ref=subject_ref)
+
+
+def test_a_fact_cited_only_from_an_always_local_zone_is_offered_no_item(
+        tmp_path, stub, monkeypatch):
+    """`104` R-154, and it is the whole answer lost rather than one item.
+
+    Measured on r13: 10 of 44 site-C dossiers came back
+    `CITATION_NOT_IN_DOSSIER`, and every one of the twelve cited handles was an
+    exact handle the dossier had issued. `evidence_for` built a `fact` item from
+    every located citation whatever its zone, `model_placement.releasable_
+    excerpts` dropped the always-local ones on the way out, and
+    `validation._check_citation` resolves a citation against what was RELEASED --
+    so the model was shown an item, told to cite, cited it, and rule 10 of the
+    site-C text took the rest of the answer with it.
+
+    Run on this same corpus before the change: this file's dossier carried
+    `fact / filename` and nothing else of its own.
+
+    THE FACT IS NOT DROPPED WITH THE ITEM. Retrieval and §6.10's scoring read
+    `evidence["facts"]` and never `evidence_items`, so this file still reaches
+    site C with candidates to choose between -- which is what the last two
+    assertions say, and what makes this an exclusion rather than a silencing.
+    """
+    database, report = _local_run(tmp_path, stub, monkeypatch)
+
+    (subject,), = _query(database, "SELECT file_id FROM files WHERE filename = ?",
+                         ALWAYS_LOCAL_ONLY_NAME)
+    zones = _facts_with_their_zones(database, subject)
+    assert zones, (
+        f"this test is about a file whose settled facts are cited from a zone "
+        f"§8.4 never releases, and this one settled nothing. {report}")
+    assert all(zone in ALWAYS_LOCAL_ZONES
+               for cited in zones.values() for zone in cited), (
+        f"the corpus changed under this test: {ALWAYS_LOCAL_ONLY_NAME} now cites "
+        f"{zones}, and one of those zones is releasable")
+
+    body = _placement_dossier_of(database, subject)
+    assert [item for item in body["evidence_items"]
+            if item["kind"] == "fact"] == [], body["evidence_items"]
+    # Asked anyway, and asked with something: R-148's readings are what it is
+    # judged on, and the candidates are what its facts carried it to.
+    assert [item for item in body["evidence_items"]
+            if item["kind"] == "excerpt"], body["evidence_items"]
+    assert body["allowed_vocabulary"], body
+    assert _query(
+        database, "SELECT reason FROM llm_pre_call_abstention "
+        "WHERE subject_ref LIKE ?", f"file:{subject}:%") == [], report
+
+
+def test_a_fact_cited_from_the_body_is_still_offered_beside_it(
+        tmp_path, stub, monkeypatch):
+    """The twin that says R-154 is an exclusion and not a narrowing.
+
+    One file, two facts: `subject` read out of its text and `work_type` read out
+    of its name. The body citation is offered exactly as it always was, with P4's
+    own zone on it; the filename citation is not offered at all. Both halves in
+    one dossier, because a rule that dropped the second by dropping every fact
+    item would pass a test that only checked the second.
+    """
+    database, report = _local_run(tmp_path, stub, monkeypatch)
+
+    (subject,), = _query(database, "SELECT file_id FROM files WHERE filename = ?",
+                         BOTH_ZONES_NAME)
+    zones = _facts_with_their_zones(database, subject)
+    assert any(zone in ALWAYS_LOCAL_ZONES
+               for cited in zones.values() for zone in cited), (
+        f"this test needs a file with an always-local citation and this one has "
+        f"{zones}. {report}")
+    releasable = {field for field, cited in zones.items()
+                  if any(zone not in ALWAYS_LOCAL_ZONES for zone in cited)}
+    assert releasable, (f"and it needs a releasable one beside it: {zones}")
+
+    body = _placement_dossier_of(database, subject)
+    offered = [item for item in body["evidence_items"] if item["kind"] == "fact"]
+    assert offered, body["evidence_items"]
+    assert {item["location"] for item in offered} == {"body"}, offered
+
+
+def test_no_placement_dossier_in_the_run_carries_an_item_the_gate_would_drop(
+        tmp_path, stub, monkeypatch):
+    """The register's own claim, over every site-C call this corpus makes.
+
+    Not `not in ("filename", "path")`: the SET is imported, because `ocr` joined
+    it on 2026-09-04 as member 3 and two of r13's twelve rejected handles were
+    `ocr`. A hand-written pair goes on passing while the path offers whatever the
+    newest member is -- `104` R-150 states the same rule for the anchor loop.
+
+    Every item kind, not just `fact`. R-148's readings arrive already excluded --
+    `releasable_observations` drops the zone first -- and R-150 excluded the
+    anchor lines, so this is the corpus-level statement that all three sources
+    now agree.
+    """
+    database, report = _local_run(tmp_path, stub, monkeypatch)
+
+    bodies = _query(database, "SELECT payload FROM llm_dossier "
+                              "WHERE call_site = 'C_placement'")
+    assert bodies, f"no site-C call was made, so this proves nothing. {report}"
+    for (payload,) in bodies:
+        for item in json.loads(payload)["evidence_items"]:
+            assert item["location"] not in ALWAYS_LOCAL_ZONES, item
