@@ -574,13 +574,16 @@ def scorecard(runs: Sequence[RunObservation],
     # placement counted here was decided by the run being reported.
     # `decided_by_counts` carries the argument at length.
     deciders = decided_by_counts(runs)
-    counts = [f"{name} {deciders.get(name, 0)}" for name in DECIDERS]
+    line = ("            placed by="
+            + " / ".join(f"{name} {deciders.get(name, 0)}" for name in DECIDERS))
     # The remainder, printed only when it happened, so the three above plus this
     # come to the number of placements the runs made -- `POLICY_NOT_RECORDED`'s
-    # rule, and for the same reason.
+    # rule, and for the same reason. After a COMMA and not a fourth slash: it is
+    # the absence of a decider and not one of them, and a reader scanning three
+    # counts separated by slashes must not read a fourth actor into the line.
     if deciders.get(DECIDER_NOT_RECORDED):
-        counts.append(f"{DECIDER_NOT_RECORDED} {deciders[DECIDER_NOT_RECORDED]}")
-    w(f"            placed by={' / '.join(counts)}")
+        line += f", {DECIDER_NOT_RECORDED} {deciders[DECIDER_NOT_RECORDED]}"
+    w(line)
     w("            field values by origin: " + (
         ", ".join(f"{k}={n}" for k, n in origins.most_common())
         or "none filled at all"))
