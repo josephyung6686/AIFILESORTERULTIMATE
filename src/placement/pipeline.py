@@ -80,8 +80,10 @@ from placement.index import (
 )
 from placement.learning import basis_key_for, suppressed_nodes
 from placement.p8_seam import (
+    ACCEPTED_GROUP_ITEM, BRANCH_ITEM, CANDIDATE_ITEM, RESIDUAL_AREA_ITEM,
     call_placement, evidence_snapshot_id_for, placement_authorities,
-    residual_authorities, site_dependencies, to_p8_conflicts, transcribe,
+    residual_authorities, site_dependencies, snapshot_observation_keys,
+    to_p8_conflicts, transcribe,
 )
 from placement.privacy import (
     automatic_move_permitted_for, is_unclassified, may_assemble_dossier,
@@ -1772,7 +1774,10 @@ def _observed_only(result, *, prompt):
 #: folder in particular (`00`:120), a `branch` is a branch of the main tree that a
 #: return sends the file back to (`00`:107). P11 does not decide which a node is --
 #: P10's `node_role` already did -- so this is a lookup and not a judgement.
-_D_ITEM_KIND: dict[str, str] = {RESIDUAL_ROLE: "residual_area"}
+#: The kinds are `p8_seam`'s, where `snapshot_observation_keys` excludes them from
+#: the evidence snapshot: a folder is a destination the model may answer with and
+#: never a citation, so the producer and the exclusion read one set of names.
+_D_ITEM_KIND: dict[str, str] = {RESIDUAL_ROLE: RESIDUAL_AREA_ITEM}
 
 
 def _offered_items(conn, *, plan_version: str, node_ids, call_site: str,
@@ -1805,8 +1810,8 @@ def _offered_items(conn, *, plan_version: str, node_ids, call_site: str,
             # this read the same rows, so this is unreachable today; describing a
             # node the index does not hold would be P11 inventing a folder.
             continue
-        kind = ("candidate" if call_site == C_PLACEMENT
-                else _D_ITEM_KIND.get(entry.node_role, "branch"))
+        kind = (CANDIDATE_ITEM if call_site == C_PLACEMENT
+                else _D_ITEM_KIND.get(entry.node_role, BRANCH_ITEM))
         items.append(EvidenceItem(
             evidence_ref=entry.node_id, kind=kind,
             location=node_profile(
@@ -1848,7 +1853,7 @@ def _accepted_group_items(group_ids) -> tuple[EvidenceItem, ...]:
     """
     return tuple(
         EvidenceItem(
-            evidence_ref=group_id, kind="accepted_group",
+            evidence_ref=group_id, kind=ACCEPTED_GROUP_ITEM,
             location="a group the person accepted this file into",
             excerpt_span=None, reliability_state=POSSIBLE,
             basis=P8_CONTEXT_SUPPORTED)
@@ -1952,11 +1957,19 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
     # the dossier will cite. The node profiles and accepted groups are not here
     # for the same reason they are not there: a folder is not an observation, it
     # carries no key P7 could resolve, and addressing one would put a plan id in a
-    # citation record.
-    observation_keys = tuple(
-        item.evidence_ref for item in evidence["evidence_items"]
-        if item.evidence_ref
-    )
+    # citation record. `snapshot_observation_keys` now states that exclusion by
+    # kind rather than leaving it to WHEN this line runs -- the dossier below
+    # carries the offers beside the readings, so a caller reading the finished
+    # dossier has to be able to reach the same set.
+    #
+    # **AND THE DERIVATION IS ONE FUNCTION** (`104` R-155). The expression that
+    # was written out here had a second spelling in `versions._revalidates`, over
+    # the matched FACTS rather than the items -- so the snapshot a re-validation
+    # compared against addressed a different set from the one that was sent.
+    # `snapshot_observation_keys` is the single answer to "what did the model
+    # see", asked here with the items about to be sent and there with the items
+    # the stored dossier carried.
+    observation_keys = snapshot_observation_keys(evidence["evidence_items"])
     # `104` R-143, and it is R-136's door for a third pre-call state. A dossier
     # whose items address nothing makes `evidence_snapshot_id_for` raise
     # `EvidenceSnapshotRequired` -- "an evidence snapshot addresses the evidence a

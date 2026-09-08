@@ -278,3 +278,138 @@ def test_a_file_this_run_has_no_version_for_offers_nothing(evidence):
                  value="problem set")
 
     assert cli.reading_citations(evidence, "file-1", limit=12) == ()
+
+
+# --- `104` R-156: the item set is the set the door releases --------------------
+
+#: R-154 asked the first of `releasable_excerpts`' five refusals a step early, in
+#: `evidence_for`'s fact loop. The other four need the observation row and the
+#: length of the unit a span points into, which `located_citations` does not
+#: carry -- so `releasable_items` asks the door's own predicate over the candidate
+#: refs instead of retyping them here. These tests drive that function with real
+#: P4 rows, which is the same shape the rest of this file uses: the helpers are
+#: module-level in `cli` so a test can put an evidence row in front of them.
+
+
+def _item(ref: str, *, zone: str = "body", span=(10, 21)):
+    from llm_harness.records import EvidenceItem
+    from llm_harness.vocabulary import DIRECT_ANCHOR
+
+    return EvidenceItem(evidence_ref=ref, kind="fact", location=zone,
+                        excerpt_span=span, reliability_state="direct",
+                        basis=DIRECT_ANCHOR)
+
+
+def _offered(conn, *refs) -> list:
+    return [item.evidence_ref
+            for item in cli.releasable_items(conn, [_item(ref) for ref in refs])]
+
+
+def test_a_fact_cited_from_a_body_span_is_offered(evidence):
+    """The positive control, and the half that makes the four refusals below
+    discriminating. A rule that dropped every item would pass all of them."""
+    _indexed(evidence)
+    body = _observation(evidence, zone="body", span=TextSpan(10, 21),
+                        value="problem set")
+
+    assert _offered(evidence, body) == [body]
+
+
+def test_a_fact_cited_from_a_p5_signalled_reading_is_offered_no_item(evidence):
+    """The refusal neither of the others can see, which is why the count is five.
+
+    P5's per-value signal is the only one in the product -- P7 owns no detector --
+    and a flagged card number sits in an ordinary `body` zone and is a fraction of
+    its unit, so the zone test and the whole-unit test both pass it through. The
+    gate answers `ProtectedItemRequested`; before this the seam offered the item,
+    the model cited it, and `CITATION_NOT_IN_DOSSIER` took the whole answer.
+    """
+    from extractors.long_tail import (
+        POTENTIALLY_SENSITIVE, SensitivitySignal, record_sensitivity_signals,
+    )
+
+    _indexed(evidence)
+    card = "4111 1111 1111 1111"
+    unit = (Segment(kind="page", index=4),)
+    record_text_unit(evidence, TextUnit(run_id="run-1", container_path=unit,
+                                        text=f"Card: {card}, expires soon"))
+    flagged = _observation(evidence, zone="body", span=TextSpan(6, 6 + len(card)),
+                           value=card, container=unit)
+    ordinary = _observation(evidence, zone="body", span=TextSpan(10, 21),
+                            value="problem set")
+    keys = [row["observation_key"] for row in evidence.execute(
+        "SELECT observation_key FROM evidence ORDER BY rowid")]
+    record_sensitivity_signals(
+        evidence, run_id="run-1",
+        signals=(SensitivitySignal(observation_index=keys.index(flagged),
+                                   signal=POTENTIALLY_SENSITIVE,
+                                   basis="fixture: a card number"),),
+        observation_keys=keys, now=AT)
+
+    assert _offered(evidence, flagged, ordinary) == [ordinary]
+
+
+def test_a_fact_cited_from_a_whole_multi_line_unit_is_offered_no_item(evidence):
+    """§8.4's "should not send full documents where a short heading or OCR excerpt
+    is enough", read at the seam rather than at the door.
+
+    THE UNIT HOLDS LINE BREAKS ON PURPOSE (`104` R-152): a unit with none is a
+    LINE and a line released whole is an excerpt, so a single-line control would
+    pin a refusal that no longer exists. A fact whose citation covers the whole of
+    a real document is the case that survives.
+    """
+    _indexed(evidence)
+    short = _observation(evidence, zone="body", span=TextSpan(10, 21),
+                         value="problem set")
+    unit = (Segment(kind="page", index=5),)
+    document = (BODY + "\nHand it in at the box outside the office.\n"
+                "Late work loses a letter grade.")
+    record_text_unit(evidence, TextUnit(run_id="run-1", container_path=unit,
+                                        text=document))
+    whole = _observation(evidence, zone="body", span=TextSpan(0, len(document)),
+                         value=document, container=unit)
+
+    assert _offered(evidence, whole, short) == [short]
+
+
+def test_an_always_local_citation_is_offered_no_item_through_the_one_predicate(
+        evidence):
+    """`104` R-154's ruling, now answered by the same call as the other four.
+
+    This is what makes the separate zone test in `evidence_for`'s fact loop safe
+    to remove: the zone is part of an observation key's own address -- the key is
+    minted over `serialize_locator(location)` -- so any live row for a ref carries
+    the zone the loop read off it, and the door's first refusal and the loop's
+    could not have disagreed.
+
+    `anchor_line_citations` keeps its own check (`104` R-150). It is a separate
+    function with its own contract and its own callers, and the reading it refuses
+    it also refuses to NAME -- an address the caller never receives cannot be
+    filtered by anything the caller does afterwards.
+    """
+    _indexed(evidence)
+    body = _observation(evidence, zone="body", span=TextSpan(10, 21),
+                        value="problem set")
+    named = _observation(evidence, zone="filename", span=None,
+                         value="Problem Set 3.txt",
+                         container=(Segment(kind="field", label="name"),))
+
+    assert _offered(evidence, named, body) == [body]
+
+
+def test_an_empty_reading_cannot_exist_for_this_seam_to_offer(evidence):
+    """The fifth refusal's state, and the honest answer about it.
+
+    `releasable_excerpts` refuses an observation with no raw value, and this
+    database cannot hold one: `Observation` refuses the empty string at
+    construction, `record_observation` is the only INSERT into `evidence`, and
+    `evidence_never_overwritten` forbids an UPDATE of `raw_value`. So the refusal
+    guards a shape the record type does not admit rather than a row a corpus can
+    produce, and a fixture that faked one would be testing a database that cannot
+    exist. Pinned here so the guard is not later "fixed" by inventing a path to
+    it.
+    """
+    from evidence_shape.observation import MalformedObservation
+
+    with pytest.raises(MalformedObservation, match="raw_value"):
+        _observation(evidence, zone="body", span=TextSpan(0, 0), value="")
