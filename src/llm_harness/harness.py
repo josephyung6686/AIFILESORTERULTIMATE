@@ -67,6 +67,7 @@ from llm_harness.vocabulary import (
     D_RESIDUAL,
     DEFERRED,
     E_TEMPLATE,
+    G_SITUATION_SENSITIVITY,
     SCOPE_FILE,
     SCOPE_GROUP,
     SCOPE_NODE,
@@ -83,6 +84,9 @@ _SCOPE_BY_SITE = {
     C_PLACEMENT: SCOPE_NODE,
     D_RESIDUAL: SCOPE_FILE,
     E_TEMPLATE: SCOPE_TEMPLATE,
+    # `104` §17.1's seventh site, and the same scope `validation._SCOPE_BY_SITE`
+    # gives it: one file version is what a situation verdict is about.
+    G_SITUATION_SENSITIVITY: SCOPE_FILE,
 }
 
 _BOOL_FLAGS = frozenset({"unreduced_fits", "summarized_fits", "anchors_fit"})

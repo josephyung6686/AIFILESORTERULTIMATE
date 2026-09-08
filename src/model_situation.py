@@ -51,19 +51,21 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from facts.domains import SCHEMA_IDS
-from llm_harness.vocabulary import CALL_SITES
+from llm_harness.vocabulary import CALL_SITES, G_SITUATION_SENSITIVITY
 from recognition.detector import Abstention
 
-#: THE SEVENTH SITE'S NAME, and it is a name and not yet a member. Spelled here so
-#: everything around it can be built, tested and reviewed while the tuple it belongs
-#: in stays closed; `CALL_SITES` gains it when the owner says so (Q-M), and
-#: `test_situation_site_boundary` fails on that day, which is the signal to wire it.
+#: THE SEVENTH SITE'S NAME, AND IT IS NOW A MEMBER. The owner granted it on
+#: 2026-09-08 (`104` §17.1) and the approval is recorded where a closed vocabulary
+#: carries its own approval -- at the member, in `llm_harness.vocabulary`, on the
+#: sixth member's own precedent. This is a RE-EXPORT and not a second spelling: one
+#: call site with two string literals is two vocabularies, and the seam that decides
+#: whether a request may be built would then have two answers.
 #:
 #: The spelling follows the six: a letter for the site and a word for what it asks
 #: about. It asks TWO things that are one question -- which situation, and therefore
 #: which sensitivity class -- because splitting them would ask a model to say a file
 #: is medical without saying it is a medical record.
-SITUATION_SENSITIVITY: str = "G_situation_sensitivity"
+SITUATION_SENSITIVITY: str = G_SITUATION_SENSITIVITY
 
 #: The structural option that makes the shortlist honest. Without it a closed list
 #: is a forced choice, and `00`:42's "must return unknown where support is

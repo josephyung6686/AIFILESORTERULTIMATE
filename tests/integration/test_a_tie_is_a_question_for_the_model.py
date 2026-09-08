@@ -308,8 +308,8 @@ def test_the_question_cannot_be_asked_because_the_site_is_the_owners_act(measure
         matched_terms=outcome.matched_terms, evidence_refs=outcome.evidence_refs)
 
     from llm_harness.vocabulary import CALL_SITES
-    assert SITUATION_SENSITIVITY not in CALL_SITES
-    assert len(CALL_SITES) == 6
+    assert SITUATION_SENSITIVITY in CALL_SITES
+    assert len(CALL_SITES) == 7
 
     with pytest.raises(SituationSiteNotRatified) as raised:
         model_situation.build_situation_request([question])

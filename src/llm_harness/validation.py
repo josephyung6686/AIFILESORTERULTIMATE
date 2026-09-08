@@ -62,6 +62,7 @@ from llm_harness.vocabulary import (
     D_RESIDUAL,
     DEFERRED,
     E_TEMPLATE,
+    G_SITUATION_SENSITIVITY,
     LLM_SUPPORTED,
     LLM_SUPPORTED_REVIEW,
     POSSIBLE,
@@ -86,6 +87,9 @@ _SCOPE_BY_SITE = {
     C_PLACEMENT: SCOPE_NODE,
     D_RESIDUAL: SCOPE_FILE,
     E_TEMPLATE: SCOPE_TEMPLATE,
+    # `104` §17.1's seventh site. One file, one situation: the same scope site A
+    # and site D carry, because the thing judged is one file version.
+    G_SITUATION_SENSITIVITY: SCOPE_FILE,
 }
 
 _DISPOSITION_BY_OUTCOME = {

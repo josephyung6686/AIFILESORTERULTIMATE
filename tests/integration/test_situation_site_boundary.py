@@ -139,13 +139,51 @@ def test_a_question_whose_only_option_is_to_decline_is_refused():
 # --- the three walls -------------------------------------------------------------
 
 
-def test_wall_one_the_site_is_named_and_is_not_a_call_site():
-    """`CALL_SITES` is closed and its sixth member records that a member was added
-    "WITH THE OWNER'S APPROVAL". A seventh is the owner's act (Q-M)."""
-    from llm_harness.vocabulary import CALL_SITES
+def test_wall_one_is_open_and_the_seventh_site_is_a_call_site():
+    """THE WALL OPENED, 8 September 2026, and this test is the record of it.
 
-    assert SITUATION_SENSITIVITY not in CALL_SITES
-    assert len(CALL_SITES) == 6
+    It was the assertion that `SITUATION_SENSITIVITY` is NOT in `CALL_SITES` and
+    that there are six. `104` §17.1 is the owner's act that made both false: the
+    seventh member is granted, on the sixth's own precedent -- "THE SIXTH, ADDED
+    2026-09-02 WITH THE OWNER'S APPROVAL, RECORDED HERE".
+
+    Kept as an assertion rather than deleted, and turned around rather than
+    weakened into a tautology: what it pins now is that the seventh is a MEMBER,
+    that it is spelled in exactly one place, and that opening it did not disturb
+    the six that were already there. A file that only said "six became seven"
+    would let the next member arrive without an approval beside it.
+    """
+    from llm_harness.vocabulary import CALL_SITES, G_SITUATION_SENSITIVITY
+
+    assert SITUATION_SENSITIVITY in CALL_SITES
+    assert len(CALL_SITES) == 7
+    assert CALL_SITES[-1] == SITUATION_SENSITIVITY, (
+        "the seventh is appended, so the six that records already point at keep "
+        "their positions")
+    assert SITUATION_SENSITIVITY is G_SITUATION_SENSITIVITY, (
+        "the site is spelled in `llm_harness.vocabulary` and re-exported here; "
+        "two spellings of one call site is two vocabularies")
+
+
+def test_wall_one_the_seventh_site_can_carry_a_reason_a_recogniser_produces():
+    """A member of `CALL_SITES` that no `DossierRequest` can name is half a wall.
+
+    `records.DossierRequest.__post_init__` checks `eligibility_reason` against
+    `ELIGIBILITY_BY_SITE[call_site]`, so a site with no entry raises `KeyError`
+    before any of its own checks run. The seventh reuses site A's three -- `00`:39's
+    own words, "remain ambiguous, have multiple plausible domains, or contain
+    language that requires interpretation" -- because a recogniser tie IS a file
+    with multiple plausible domains and a fourth closed list would be a second
+    approval taken for one act.
+    """
+    from llm_harness.vocabulary import (
+        ELIGIBILITY_BY_SITE, FACT_ELIGIBILITY, MULTIPLE_PLAUSIBLE_DOMAINS,
+        REMAINS_AMBIGUOUS,
+    )
+
+    assert ELIGIBILITY_BY_SITE[SITUATION_SENSITIVITY] is FACT_ELIGIBILITY
+    assert MULTIPLE_PLAUSIBLE_DOMAINS in ELIGIBILITY_BY_SITE[SITUATION_SENSITIVITY]
+    assert REMAINS_AMBIGUOUS in ELIGIBILITY_BY_SITE[SITUATION_SENSITIVITY]
 
 
 def test_wall_one_is_a_refusal_that_counts_what_is_waiting():
