@@ -261,6 +261,22 @@ def _whole_unit_observation(number: int) -> Observation:
 #: 66-character note holds no line break, so a span covering it is a LINE and is now
 #: released -- see `_whole_unit_observation`, which addresses the unit span-less
 #: instead. The zone and the fixture number are unchanged.
+#:
+#: THE FIXTURE STAYED AND ITS TARGET MOVED ON 2026-09-08, against `104` R-159. The
+#: third time this one case has had to be re-addressed, and the pattern is the same
+#: each time: the SPEC case `Denied.reason = whole_document_requested` is fixed, and
+#: what changes is which request still reaches it. The owner ruled §15.4 item 14 the
+#: first way -- a local model may be shown a whole text unit within the dossier
+#: ceiling -- so the denial is now reachable only for a CLOUD target, and fixture 5
+#: is addressed to one. It carries the `cloud_assisted` mode and the area grant that
+#: a cloud release needs, on fixture 7's shape, or it would deny for
+#: `mode_forbids_target` and publish the wrong reason.
+#:
+#: **The behaviour it used to publish is not lost, it is inverted and asserted**:
+#: `tests/p7/test_p7_whole_document.py` drives this same shape at both localities as
+#: a pair, refused to a cloud model and released to a local one. A fixture recording
+#: the local RELEASE is not added, because SPEC §11 enumerates the cases and adding
+#: one would be inventing a case rather than re-addressing one.
 WHOLE_UNIT_P4_FIXTURE: int = 13
 WHOLE_UNIT_OBSERVATION: Observation = _whole_unit_observation(WHOLE_UNIT_P4_FIXTURE)
 
@@ -624,11 +640,16 @@ FIXTURES: tuple[GateFixture, ...] = (
     GateFixture(
         number=5,
         spec_case="Denied.reason = whole_document_requested",
-        policy=_policy("local_model"),
+        # `104` R-159: a CLOUD target, and the mode and grant that let a cloud
+        # release get as far as this refusal. `WHOLE_UNIT_P4_FIXTURE`'s comment
+        # carries the reasoning; in short, §8.4's "should not send full documents"
+        # sits under `00`:186's "when a cloud model is used", and the owner ruled
+        # that it means what it says.
+        policy=_policy("cloud_assisted", grants=((FIXTURE_AREA, "cloud_model"),)),
         classification=_classified(WHOLE_UNIT_P4_FIXTURE, "public_low",
                                    protected=False),
-        area=None,
-        request=_request(stage="fact_resolution", model_target=LOCAL_MODEL,
+        area=FIXTURE_AREA,
+        request=_request(stage="fact_resolution", model_target=CLOUD_MODEL,
                          items=(Excerpt(
                              observation_key=WHOLE_UNIT_OBSERVATION.observation_key,
                              span=WHOLE_UNIT_OBSERVATION.location.text_span,
@@ -643,11 +664,15 @@ FIXTURES: tuple[GateFixture, ...] = (
                          "§8.4's compact dossier is 'selected excerpts' -- a bounded "
                          "span, addressed by (observation_key, span)"),
             evidence_refs=(_key(WHOLE_UNIT_P4_FIXTURE),)),
-        audit_record=_audit(stage="fact_resolution", operation_mode="local_model",
-                            file_sensitivity="public_low",
-                            content_hash=_hash(WHOLE_UNIT_P4_FIXTURE),
-                            content_hashes=(_hash(WHOLE_UNIT_P4_FIXTURE),),
-                            prompt_fingerprint="fp-05"),
+        # `_cloud_audit` rather than `_audit`, on fixture 7's shape: the audit
+        # record names WHICH MODEL would have received the data (§8.4), and the
+        # default is the local one.
+        audit_record=_cloud_audit(stage="fact_resolution",
+                                  operation_mode="cloud_assisted",
+                                  file_sensitivity="public_low",
+                                  content_hash=_hash(WHOLE_UNIT_P4_FIXTURE),
+                                  content_hashes=(_hash(WHOLE_UNIT_P4_FIXTURE),),
+                                  prompt_fingerprint="fp-05"),
         p4_fixture=WHOLE_UNIT_P4_FIXTURE, downstream_obligation=None, revoked=False),
     GateFixture(
         number=6,
