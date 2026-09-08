@@ -111,13 +111,16 @@ def test_with_no_ratified_prompt_every_injection_is_absent_together(db):
     `model_target` is the tenth (`104` R-118): §8.4's gate reads the target's
     locality BEFORE a dossier exists, and a target handed over without the rest
     would be the half-injection this set exists to refuse.
+
+    `usage_recorder` is the eleventh (`104` R-145): `104` R-14's mailbox, which
+    site C's `run_call` never received, so its responses wrote no usage row.
     """
     injections = model_path_injections(db, _authorities(), plan_version=PLAN)
 
     assert set(injections) == {
         "gate", "model_client", "prompt", "residual_prompt", "call_dependencies",
         "model_call_request", "chosen_node_of", "residual_action_of",
-        "sensitivity_policy", "model_target",
+        "sensitivity_policy", "model_target", "usage_recorder",
     }
     assert all(injections[name] is None for name in injections)
 
