@@ -103,6 +103,46 @@ class TextDocument:
     markers: tuple[StructuralMarker, ...] = ()
 
 
+def paragraph_spans(text: str) -> tuple[tuple[int, int], ...]:
+    """The document's OWN paragraphs, as half-open spans into `text`.
+
+    The separator is a run of one or more blank lines -- a line that is empty or
+    holds only whitespace -- which is the only paragraph boundary a plain text file
+    has and the one every writer of one already uses. Nothing else is consulted:
+    no length, no count, no vocabulary, and no opinion about what a paragraph ought
+    to look like. A file that runs its prose together is one paragraph and is not
+    cut up on this module's guess at a good size.
+
+    The spans are exact and exhaustive. A paragraph runs from the first character
+    of its first non-blank line to the last character of its last one, keeping that
+    line's own terminator and any leading indentation, so `text[start:end]` is the
+    paragraph verbatim and the paragraphs and the blank runs between them
+    concatenate back to `text` character for character. That is what lets a
+    paragraph be a text UNIT: P4 rule 10 measures a reading against the unit at its
+    path, and a unit whose text was trimmed would be measuring against something
+    the file does not contain.
+
+    What counts as a line is whatever `str.splitlines` counts as one, which is to
+    say the document's own terminators rather than a newline named here.
+    """
+    spans: list[tuple[int, int]] = []
+    start: int | None = None
+    end = offset = 0
+    for line in text.splitlines(keepends=True):
+        stop = offset + len(line)
+        if line.strip():
+            if start is None:
+                start = offset
+            end = stop
+        elif start is not None:
+            spans.append((start, end))
+            start = None
+        offset = stop
+    if start is not None:
+        spans.append((start, end))
+    return tuple(spans)
+
+
 def extract_structured_text(
         *, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy,
         source_type: str,
@@ -170,23 +210,53 @@ def extract_structured_text(
     if document.text and source_type == PROSE_SOURCE_TYPE:
         # Addressed `body`, with no span, and BOTH halves of that are load-bearing.
         #
-        # No container, because P4 rule 10 anchors a span-carrying observation to a
-        # text unit at exactly its path, and the whole text is a unit at the empty
-        # path. Giving it a container to hide in would mean duplicating the entire
-        # document as a second unit.
-        #
         # No span, because a span serialises INTO the locator: `body#0-60` starts
         # with `body#`, which is the space the shipped deployment's direct slot
         # claims -- and the whole document would have become a `subject` fact, which
         # is to say a FOLDER NAME. `test_the_readable_text_does_not_become_a_folder_name`
-        # caught precisely that before it shipped.
+        # caught precisely that before it shipped. A paragraph is addressed
+        # `body:paragraph=N`, which carries no `#` either, and
+        # `test_a_paragraph_reading_does_not_become_a_folder_name` asks the same
+        # question of the new locator.
         #
-        # The cost is real and is the right one to pay: a span-less observation is
-        # not model-releasable (P7 will not release an excerpt it cannot locate).
-        # This observation exists to be READ BY THE RECOGNISER ON THIS DEVICE, and
-        # the language and marker observations beside it carry no span either.
-        emit(zone="body", raw=document.text, container_path=(), span=None,
-             unit_text=None, reliability="possible")
+        # THE CONTAINER IS WHAT `104` R-164 CHANGED, and only for the reading that
+        # has one. The whole-document reading carries no container because P4 rule
+        # 10 anchors a reading to a text unit at exactly its path, and the whole
+        # text is the unit at the empty path; giving THAT reading a container would
+        # have meant storing the entire document a second time for it to sit in. A
+        # paragraph's container is not a hiding place: a unit stands at exactly
+        # `paragraph=N` holding exactly those characters, so rule 10 is satisfied by
+        # construction and `store.unit_length_for_observation` measures the reading
+        # against the paragraph it is the whole of -- the same lookup, by the same
+        # serialized path, that already answers for a `.docx` paragraph.
+        #
+        # AND THAT IS WHAT MAKES THE SECOND COPY WORTH ITS COST. `104` R-159 made a
+        # whole UNIT releasable to a local target; a whole DOCUMENT is releasable to
+        # nothing, and rightly. One unit per file therefore meant a 39,000-character
+        # `.txt` that no dossier ceiling could ever admit -- `104` §16.1 measured the
+        # result, a model shown a document's headings and its file extension while
+        # every word of it sat extracted and stored. A paragraph-sized unit is a
+        # reading the ceiling can admit. Nothing on this device loses anything by the
+        # split: the recogniser scans raw values, needs no span, and sees the same
+        # characters spread over the paragraphs that it saw in one reading.
+        #
+        # The split is the DOCUMENT'S OWN -- `paragraph_spans`: its blank lines, in
+        # its order, with its whitespace kept. No length, no count, no preference.
+        paragraphs = paragraph_spans(document.text)
+        if len(paragraphs) > 1:
+            for index, (start, end) in enumerate(paragraphs, start=1):
+                paragraph = document.text[start:end]
+                container = (segment("paragraph", index=index),)
+                units.append(text_unit(text=paragraph, container_path=container))
+                emit(zone="body", raw=paragraph, container_path=container, span=None,
+                     unit_text=None, reliability="possible")
+        else:
+            # One paragraph -- or none at all, which is a file of whitespace. The
+            # document IS the paragraph, the unit at the empty path is already
+            # standing, and a `paragraph=1` beside it would be the same characters
+            # stored twice and offered twice.
+            emit(zone="body", raw=document.text, container_path=(), span=None,
+                 unit_text=None, reliability="possible")
 
     if document.language:
         emit(zone="metadata", raw=document.language,
