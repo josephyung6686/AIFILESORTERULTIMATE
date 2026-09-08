@@ -52,9 +52,22 @@ import cli
 #: is a fact only "together with academic context such as 'syllabus,' 'lecture,'
 #: 'credits,' 'instructor,' or 'semester'". Without a subject there is no course to
 #: bind the term TO, and the test would pass for the wrong reason.
+#:
+#: **THE SECTION NUMBER WAS `Section 001` UNTIL 2026-09-08 AND IT IS `Section 1` NOW,
+#: FOR A REASON THAT IS NOT COSMETIC AND IS PINNED BELOW.** A three-digit section
+#: number beside `Instructor:` is a second `validated` `subject` on every file of this
+#: corpus, the subject level then settles on nothing, and all four assertions about
+#: courses fail while the ones about terms pass. That is a real defect and it is NOT
+#: `104` R-146's: measured at `9cd52c6` with this same fixture written `SECTION 001`,
+#: the run at the previous uppercase-only recogniser produces exactly the same two
+#: facts per file (`PHYS1401` and `SECTION001`). R-146 changed only how often a real
+#: document reaches it, by making a title-case word readable. So this fixture is put
+#: back to asking its own question -- two courses, two calendars -- and the defect it
+#: stumbled into is asked separately, by `test_a_second_code_shaped_reading_...`
+#: below, where it can be measured instead of taking four tests down with it.
 SYLLABUS = """{code} Syllabus -- {term}
 
-Instructor: R. Feynman. Section 001, {term}.
+Instructor: R. Feynman. Section 1, {term}.
 Meets Tuesday and Thursday.
 """
 
@@ -187,3 +200,94 @@ def test_no_file_reaches_the_other_courses_term(run):
                for one in course_nodes}
     assert parents == {"PHYS1401": "Fall2024",
                        "CHEM2100": "2023-2024Semester1"}
+
+
+# ----------------------------------------------------------------------------
+# The defect this fixture used to stumble into, asked on purpose
+# ----------------------------------------------------------------------------
+
+#: The same syllabus with a THREE-digit section number, which is what `SYLLABUS`
+#: above said until 2026-09-08. `Section 001` is a capitalised word and three digits,
+#: so `cli._STRUCTURED` reads it, and `Instructor:` and `Syllabus` are two of §3.5's
+#: five context terms -- so §3.5's rule validates it and the file carries TWO courses.
+SECTIONED = """{code} Syllabus -- {term}
+
+Instructor: R. Feynman. Section 001, {term}.
+Meets Tuesday and Thursday.
+"""
+
+
+@pytest.fixture()
+def sectioned_run(tmp_path):
+    """The same corpus, the same run, one more digit in the section number."""
+    holder = tmp_path / "holder"
+    corpus = holder / "corpus"
+    corpus.mkdir(parents=True)
+    for stem, code, _, term, _ in COURSES:
+        for index in range(2):
+            (corpus / f"{stem} syllabus {index}.txt").write_text(
+                SECTIONED.format(code=code, term=term), encoding="utf-8")
+    database = holder / "plan.sqlite"
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(database)], out=out)
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    yield conn
+    conn.close()
+
+
+def test_a_second_code_shaped_reading_beside_a_teaching_word_costs_the_course_level(
+        sectioned_run):
+    """A KNOWN DEFECT, MEASURED AND NOT THIS WAVE'S -- and the one worth reading
+    before any of the assertions above.
+
+    A syllabus that prints `Section 001` on the same line as `Instructor:` gives
+    §3.5's rule two candidates it cannot tell apart. Both pass the context check --
+    the words are beside both -- so the file carries TWO `validated` `subject` facts,
+    and the subject level then settles on neither: the tree below has a `term` folder
+    for each calendar and NO course folder at all. A person loses the level the whole
+    product is for, and gains no wrong folder to notice it by.
+
+    **IT IS NOT `104` R-146's, and that is measured rather than argued.** Run at
+    `9cd52c6` -- the commit before R-146 widened the recogniser -- with this same
+    corpus written `SECTION 001` in capitals, the uppercase-only shape produces the
+    same two facts per file, `PHYS1401` and `SECTION001`, and the same empty subject
+    level. R-146 did not open this door. What it changed is how often a real document
+    walks through it, because people print `Section 001`, `Chapter 101` and
+    `Room 1234` in title case far more often than in capitals, and the widened shape
+    is what makes those readable.
+
+    **AND NO SHAPE CAN CLOSE IT.** Nothing separates `Section 001` from
+    `Physics 1401` but a list of words saying which ones are departments, and that is
+    the domain knowledge the product constitution forbids ("LLM decides, code
+    delivers"), because "which word names the course" is the question the model is
+    asked. Where a fix belongs is the other end -- P7 choosing between two validated
+    values, or the model being asked which of them names the course -- and that is
+    `104`'s ruling to make. This test exists so that whoever makes it can see the
+    cost first, and so that a repair announces itself by turning this test red.
+    """
+    subjects = {}
+    for row in sectioned_run.execute(
+            "SELECT f.filename, v.canonical_value FROM file_facts ff "
+            'JOIN "values" v USING (value_id) '
+            "JOIN files f ON f.file_id = ff.file_id "
+            "WHERE ff.field_key = 'subject' AND ff.reliability_state = 'validated'"):
+        subjects.setdefault(row["filename"], set()).add(row["canonical_value"])
+
+    assert subjects == {
+        "phys syllabus 0.txt": {"PHYS1401", "Section 001"},
+        "phys syllabus 1.txt": {"PHYS1401", "Section 001"},
+        "chem syllabus 0.txt": {"CHEM2100", "Section 001"},
+        "chem syllabus 1.txt": {"CHEM2100", "Section 001"},
+    }
+
+    nodes = _final_tree(sectioned_run)
+    assert [one["display_label"] for one in nodes
+            if one["dimension"] == "subject"] == []
+    # The term level is untouched, which is what makes the loss specific rather
+    # than a run that fell over.
+    assert sorted(one["display_label"] for one in nodes
+                  if one["dimension_role"] == "cycle_period") == [
+        "2023-2024Semester1", "Fall2024"]
