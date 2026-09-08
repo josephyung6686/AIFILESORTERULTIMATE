@@ -1261,3 +1261,46 @@ about the 95 unclassified files is knowable and the shape of `r166` may be wrong
 starved local files; `r165` how many of the 43 labelled coursework files change status under the
 alias, and the document-versus-label spellings; `r162` the D3 brief on owner item 13 (of the 234
 nested responses, how many are shape and how many are content).
+
+### 17.9 THE FOURTH WALL, answered — and it is not where anyone said it was
+
+Traced 8 Sep, after the agents died. **There is no privacy wall in front of an unclassified file on
+a LOCAL target, and there never was.**
+
+- `privacy/denial.py:221`: `UNCLASSIFIED_PERMITS_LOCAL = True`. The owner answered P7 SPEC Open
+  question 5 twice (§15.3, R-121): a LOCAL model may be asked about an unclassified file, a cloud
+  one may not.
+- `unclassified_denies(locality, local_calls_on_unclassified)` returns True unconditionally for
+  `cloud` and, for local, returns `not local_calls_on_unclassified` -- which is `False`.
+- `no_safety_evidence_denies`' own docstring: **"LOCAL IS STILL PERMITTED UNCONDITIONALLY, evidence
+  or no evidence."**
+
+**So the register's own framing of R-01 and R-32 is a CLOUD statement being read as a general one.**
+"The gate refuses every unclassified file a cloud call and 109 of 199 are unclassified" is true and
+is about cloud. On the local target the project is actually about to run, those files are not
+refused and never were.
+
+**Correction to §17.1's account of the chain, and to what site G buys.** The lead wrote earlier
+today that the chain is: tie -> unclassified -> gate refuses -> no model call -> not placed. On a
+local target that is wrong at the third step. What actually happens is:
+
+`cli.py:4220` builds site A's activation as
+`ActivationSignal(schema_id=schema, activates=lambda facts: True)` -- where `schema` is **the run's
+single `--situation`**, activating **unconditionally for every file**. So every file IS asked, and
+617 site-A dossiers over 199 files (§16.1) is exactly that: nothing is silent.
+
+The defect is therefore not silence. It is that **every file is asked the questions of the one
+situation the run was launched with.** A vaccination record is asked which course it belongs to.
+That is R-23 ("one `--situation` per disk") and it is the same defect that produces the spillover
+number -- 17 files labelled as other domains landing in Coursework.
+
+**What this changes about site G:** it is not "unblocks 95 silent files". It is "each file is asked
+about ITS OWN situation instead of the run's". That is a larger claim, not a smaller one, and it
+puts the spillover column in scope for the first time. It also means site G's value shows up in
+SPILLOVER and in wrong-placement, not only in exact.
+
+**What it changes about the order of work:** nothing is blocked. Site G's wiring can proceed, and
+the local run does not wait on a gate change that was never needed.
+
+**Still true, and unaffected:** for a CLOUD target the wall is real and total, which is one more
+reason the cloud upgrade waits on R-161, the excerpt producer and R-82 (§17.6).
