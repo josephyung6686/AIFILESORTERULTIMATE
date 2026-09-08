@@ -81,7 +81,8 @@ from placement.index import (
 from placement.learning import basis_key_for, suppressed_nodes
 from placement.p8_seam import (
     call_placement, evidence_snapshot_id_for, placement_authorities,
-    residual_authorities, site_dependencies, to_p8_conflicts, transcribe,
+    residual_authorities, site_dependencies, snapshot_observation_keys,
+    to_p8_conflicts, transcribe,
 )
 from placement.privacy import (
     automatic_move_permitted_for, is_unclassified, may_assemble_dossier,
@@ -1953,10 +1954,15 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
     # for the same reason they are not there: a folder is not an observation, it
     # carries no key P7 could resolve, and addressing one would put a plan id in a
     # citation record.
-    observation_keys = tuple(
-        item.evidence_ref for item in evidence["evidence_items"]
-        if item.evidence_ref
-    )
+    #
+    # **AND THE DERIVATION IS ONE FUNCTION** (`104` R-155). The expression that
+    # was written out here had a second spelling in `versions._revalidates`, over
+    # the matched FACTS rather than the items -- so the snapshot a re-validation
+    # compared against addressed a different set from the one that was sent.
+    # `snapshot_observation_keys` is the single answer to "what did the model
+    # see", asked here with the items about to be sent and there with the items
+    # the stored dossier carried.
+    observation_keys = snapshot_observation_keys(evidence["evidence_items"])
     # `104` R-143, and it is R-136's door for a third pre-call state. A dossier
     # whose items address nothing makes `evidence_snapshot_id_for` raise
     # `EvidenceSnapshotRequired` -- "an evidence snapshot addresses the evidence a

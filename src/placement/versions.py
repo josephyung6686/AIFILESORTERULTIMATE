@@ -132,23 +132,45 @@ def _revalidates(conn, decision, to_plan_version: str, inputs) -> bool:
     verdict itself. P11 supplies the current plan version and the current evidence
     snapshot and reads the answer -- the same authorities-in, verdict-out shape as
     Site C, one version later.
+
+    **THE SNAPSHOT IS THE DOSSIER'S, NOT THE FACTS'** (`104` R-155). This minted
+    the current snapshot from `decision.matching_facts` while `_judge_with_model`
+    minted the original from the dossier's `evidence_items` (R-148), so the two
+    ids addressed different sets and `revalidate_for_plan`'s "has the snapshot
+    changed" compared a hash of one thing with a hash of another. Both directions
+    were wrong: a dossier that gained a reading and kept its facts looked
+    unchanged and was carried without re-validation, and a file whose facts moved
+    while its dossier stood still re-validated against a change the model was
+    never shown -- a fresh verdict, a superseded old one, and a model call's worth
+    of work for nothing.
+
+    The items are AT HAND here and were the whole time. `entry["dossier"]` is the
+    `Dossier` `revalidate_for_plan` requires two lines below, `build_dossier`
+    copies `request.evidence_items` onto it verbatim, and `_judge_with_model`
+    builds the request from the same tuple -- so the stored dossier's items ARE
+    what the model saw, read back rather than reconstructed.
     """
     entry = (inputs or {}).get(decision.decision_id)
     if entry is None:
         # No model verdict backs this decision, so there is nothing to
-        # re-validate and the node's survival is the whole question.
+        # re-validate and the node's survival is the whole question. NOTHING IS
+        # HASHED on this branch and that is the honest answer to "what does the
+        # revalidation path address when no dossier exists" (`104` R-155): a
+        # decision reached without a model has no dossier, no verdict and no
+        # snapshot, so there is no evidence set for a snapshot to address and
+        # minting one over the facts would be P11 addressing a call nobody made.
         return True
     from llm_harness.placement_validation import revalidate_for_plan
     from llm_harness.records import ValidationUnavailable
 
-    from placement.p8_seam import evidence_snapshot_id_for
+    from placement.p8_seam import evidence_snapshot_id_for, snapshot_observation_keys
 
     result = revalidate_for_plan(
         conn, current_plan_version=to_plan_version,
         current_evidence_snapshot_id=evidence_snapshot_id_for(
             plan_version=to_plan_version,
-            observation_keys=tuple(fact.evidence_ref
-                                   for fact in decision.matching_facts)),
+            observation_keys=snapshot_observation_keys(
+                entry["dossier"].evidence_items)),
         observed_at=entry["observed_at"], **{
             key: entry[key] for key in (
                 "previous_verdict_id", "dossier", "response_bytes",

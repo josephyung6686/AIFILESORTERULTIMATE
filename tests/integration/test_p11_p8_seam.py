@@ -28,7 +28,7 @@ from llm_harness.records import (
 from llm_harness.transport import ModelClient
 from llm_harness import CallFailed, NeedsConsent, Refusal
 from llm_harness.schema import create_llm_schema
-from llm_harness.vocabulary import C_PLACEMENT
+from llm_harness.vocabulary import C_PLACEMENT, DIRECT_ANCHOR
 from evidence_shape.schema import create_evidence_schema
 from privacy.classification_store import ClassificationStore
 from privacy.gate import Gate
@@ -38,14 +38,16 @@ from privacy.schema import create_privacy_schema
 from privacy.release import ModelCallRequest, ModelTarget, Target
 
 from placement.config import SupportPolicy
-from placement.records import Destination
+from placement.records import Destination, MatchingFact
 from placement.store import record_decision
 from placement.versions import reproject
 from placement.index import build_destination_index, legal_node_ids
 from placement.p8_seam import (
     evidence_snapshot_id_for, placement_authorities, site_dependencies,
+    snapshot_observation_keys,
 )
 from placement.schema import create_placement_schema
+from placement.vocabulary import DIRECT
 from p11.conftest import FIXED_CLOCK
 from p11.p10_fixtures import FROZEN_TREE, next_version
 from p11.test_p11_records import _decision
@@ -250,12 +252,18 @@ def test_the_snapshot_p11_mints_satisfies_p8s_pre_call_check(indexed, tmp_path):
     assert result.denied.reason == "unclassified"
 
 
-def _stored_verdict(conn, pair):
+def _stored_verdict(conn, pair, *, snapshot=None):
     """A real P8 verdict in the table, produced by P8's own validator.
 
     `revalidate_for_plan` raises `KeyError` on a `previous_verdict_id` that is not
     in `llm_verdict`, so a synthesized id would never reach the revalidation at
     all and the test would prove nothing about the seam.
+
+    `snapshot` names the id the verdict was RECORDED under, which the fixture's
+    own literal cannot be for `104` R-155's two tests: they turn on whether the
+    stored snapshot and the one P11 mints now are the same id, so the stored one
+    has to be minted from a stated evidence set rather than from a constant that
+    matches neither.
     """
     deps = placement_authorities(
         conn, plan_version=pair.dossier.plan_version, policy=POLICY,
@@ -268,7 +276,9 @@ def _stored_verdict(conn, pair):
         dossier_builder="p11-integration", release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY)
     verdict = result[0][0]
     return record_cd_verdict(
-        conn, verdict, evidence_snapshot_id=pair.evidence_snapshot_id,
+        conn, verdict,
+        evidence_snapshot_id=(pair.evidence_snapshot_id if snapshot is None
+                              else snapshot),
         model_id="fixture-model", prompt_fingerprint="fp-canonical",
         release_audit_id=17, observed_at=FIXED_CLOCK)
 
@@ -302,9 +312,16 @@ def _revalidation_inputs(pair, conn, *, verdict_id, plan_version):
     }
 
 
-def _v2_tree(*, rename_course_to=None):
-    """plan-2, minted P10's way: every node gets a new id, lineage in origin."""
-    tree = next_version(plan_version_id="plan-2", suffix="@2")
+def _v2_tree(*, rename_course_to=None, plan_version_id="plan-2", suffix="@2"):
+    """plan-2, minted P10's way: every node gets a new id, lineage in origin.
+
+    `plan_version_id` is named for `104` R-155's two tests, which re-project onto
+    the version the FIXTURE DOSSIER carries (`plan-v1`) rather than onto a later
+    one. `revalidate_for_plan` re-validates when the plan OR the snapshot has
+    moved, so a test about the snapshot has to hold the plan version still, and
+    the one it must hold it at is the dossier's own.
+    """
+    tree = next_version(plan_version_id=plan_version_id, suffix=suffix)
     if rename_course_to is None:
         return tree
     old_id = next(node.node_id for node in tree.nodes
@@ -323,11 +340,12 @@ def _v2_tree(*, rename_course_to=None):
                 node.node_id for node in nodes if node.accepts_placement)))
 
 
-def _place_d1(conn):
+def _place_d1(conn, **overrides):
     record_decision(
         conn, _decision(decision_id="d1",
                         destination=Destination(node_id="n-course",
-                                                node_role="ordinary")),
+                                                node_role="ordinary"),
+                        **overrides),
         component_version="P11-integration", observed_at=FIXED_CLOCK)
 
 
@@ -409,3 +427,172 @@ def test_a_decision_with_no_model_verdict_needs_no_revalidation(indexed):
     diff = reproject(indexed, from_plan_version="plan-1",
                      to_plan_version="plan-2")
     assert diff.carried_unchanged == ("d1",)
+
+
+# --- `104` R-155: one snapshot, minted from what the dossier carried ----------------
+
+#: The address `_judge_with_model` mints, spelled with the two functions it mints it
+#: with. Retyping the derivation here would let this file agree with a defect: the
+#: whole row is that there were two spellings of "what did the model see", so the
+#: test asks the one the pipeline asks.
+def _items_snapshot(pair, *, plan_version: str) -> str:
+    return evidence_snapshot_id_for(
+        plan_version=plan_version,
+        observation_keys=snapshot_observation_keys(pair.dossier.evidence_items))
+
+
+def _moved_fact() -> tuple:
+    """A settled fact whose citation is NOT one the dossier carried.
+
+    `obs-9` resolves to nothing in this database, which is the point: P11's own
+    address for a fact is not a citation the model was offered (`104` R-154), so a
+    snapshot built from it addresses a set the dossier never had.
+    """
+    return (MatchingFact(file_fact_id="ff9", field="subject", value="PHYS9999",
+                         reliability=DIRECT, evidence_ref="obs-9"),)
+
+
+def _verdict_count(conn) -> int:
+    return conn.execute("SELECT count(*) AS c FROM llm_verdict").fetchone()["c"]
+
+
+def test_the_revalidation_snapshot_addresses_the_items_and_not_the_facts(indexed):
+    """`104` R-155, the second half of `test_the_snapshot_addresses_the_items_and_
+    not_the_facts` in `tests/p11/test_p11_pipeline.py`.
+
+    That test pins the ORIGINAL snapshot to the dossier's items; this pins the
+    REVALIDATION snapshot to the same items through the same function, which is
+    what makes the two ids comparable at all. Keyed on the matched facts, this
+    path addressed a set the dossier never carried -- so the id it compared
+    against the stored one differed for a reason that had nothing to do with what
+    the model saw.
+
+    The decision's fact cites `obs-9` and the dossier carries `obs-1`, so the two
+    derivations cannot agree by accident here.
+    """
+    pair = SITE_C_OUTCOME_PAIRS[0]
+    verdict_id = _stored_verdict(indexed, pair)
+    _place_d1(indexed, matching_facts=_moved_fact())
+    build_destination_index(indexed,
+                            _v2_tree(rename_course_to=pair.dossier.allowed_vocabulary[0]),
+                            component_version="P11-integration",
+                            observed_at=FIXED_CLOCK)
+    diff = reproject(
+        indexed, from_plan_version="plan-1", to_plan_version="plan-2",
+        revalidation_inputs={"d1": _revalidation_inputs(
+            pair, indexed, verdict_id=verdict_id, plan_version="plan-2")})
+
+    assert diff.carried_unchanged == ("d1",)
+    # P8 stamps the fresh verdict with the snapshot P11 handed it, so the verdict
+    # id IS the answer to "which set did P11 address".
+    assert indexed.execute(
+        "SELECT plan_version FROM llm_verdict WHERE verdict_id = ?",
+        (f"{verdict_id}::plan-2::"
+         + _items_snapshot(pair, plan_version="plan-2"),)
+    ).fetchone()["plan_version"] == "plan-2"
+    # And the facts' own address named nothing. This is the assertion the old
+    # spelling failed: it minted `snap-<hash of obs-9>` and stamped it here.
+    assert indexed.execute(
+        "SELECT 1 FROM llm_verdict WHERE verdict_id = ?",
+        (f"{verdict_id}::plan-2::" + evidence_snapshot_id_for(
+            plan_version="plan-2", observation_keys=("obs-9",)),)).fetchone() is None
+
+
+def _index_the_dossiers_own_version(conn, pair) -> str:
+    """A tree at the plan version the fixture dossier carries, lineage preserved.
+
+    Built BEFORE the verdict is stored, because `_stored_verdict` runs P8's real
+    validator against this version: with no index at it, every node the response
+    names is absent and the stored verdict is a REJECT, which a short-circuiting
+    re-validation would then read back as "the judgement no longer holds" for a
+    reason that is the fixture's and not the snapshot's.
+    """
+    plan = pair.dossier.plan_version
+    build_destination_index(
+        conn, _v2_tree(rename_course_to=pair.dossier.allowed_vocabulary[0],
+                       plan_version_id=plan, suffix="@v1"),
+        component_version="P11-integration", observed_at=FIXED_CLOCK)
+    return plan
+
+
+def _reprojected_onto_the_dossiers_own_version(conn, pair, *, verdict_id,
+                                               inputs_pair=None):
+    """`reproject` with the plan version HELD STILL, which is the only shape in
+    which the snapshot is observable.
+
+    `revalidate_for_plan` returns the stored verdict only when the plan version
+    AND the snapshot both match what was recorded; with two plan versions the
+    version alone forces a re-validation and the snapshot term contributes
+    nothing a test can see. So the version this projects onto is the one the
+    dossier -- and therefore the recorded verdict -- already carries.
+    """
+    plan = pair.dossier.plan_version
+    return reproject(
+        conn, from_plan_version="plan-1", to_plan_version=plan,
+        revalidation_inputs={"d1": _revalidation_inputs(
+            inputs_pair or pair, conn, verdict_id=verdict_id, plan_version=plan)})
+
+
+def test_a_dossier_whose_items_changed_revalidates(indexed):
+    """A reading added to the dossier is a change, and it fires.
+
+    `104` R-155's first direction. The facts are UNCHANGED and the dossier gained
+    an item, which is exactly the case the old spelling missed: it hashed the
+    facts, saw the same id as the stored one, and carried a verdict about a
+    dossier the model would no longer recognise.
+    """
+    pair = SITE_C_OUTCOME_PAIRS[0]
+    plan = _index_the_dossiers_own_version(indexed, pair)
+    # The verdict was recorded when the dossier carried one reading.
+    verdict_id = _stored_verdict(indexed, pair,
+                                 snapshot=_items_snapshot(pair, plan_version=plan))
+    _place_d1(indexed)
+    widened = replace(pair, dossier=replace(
+        pair.dossier,
+        evidence_items=pair.dossier.evidence_items + (
+            EvidenceItem(evidence_ref="obs-2", kind="excerpt", location="body",
+                         excerpt_span=(0, 6), reliability_state=DIRECT,
+                         basis=DIRECT_ANCHOR),)))
+    before = _verdict_count(indexed)
+
+    diff = _reprojected_onto_the_dossiers_own_version(
+        indexed, pair, verdict_id=verdict_id, inputs_pair=widened)
+
+    assert diff.carried_unchanged == ("d1",)
+    # It really re-validated: P8 appended a verdict of its own, stamped with the
+    # id minted from the WIDER item set.
+    assert _verdict_count(indexed) == before + 1
+    assert indexed.execute(
+        "SELECT 1 FROM llm_verdict WHERE verdict_id = ?",
+        (f"{verdict_id}::{plan}::"
+         + _items_snapshot(widened, plan_version=plan),)).fetchone() is not None
+
+
+def test_a_dossier_whose_facts_changed_and_items_did_not_does_not_revalidate(indexed):
+    """The negative twin, and the direction that cost a model call for nothing.
+
+    Same held plan version, same stored snapshot minted from the dossier's items.
+    The decision's fact now cites a different observation and the dossier is
+    untouched -- so nothing the model saw has moved, `revalidate_for_plan`
+    recognises the stored verdict, and no second verdict is written.
+
+    Under the old spelling the fact's address WAS the snapshot, so this wrote a
+    fresh verdict and superseded a sound one: a re-validation fired by a change
+    the dossier never carried.
+    """
+    pair = SITE_C_OUTCOME_PAIRS[0]
+    plan = _index_the_dossiers_own_version(indexed, pair)
+    verdict_id = _stored_verdict(indexed, pair,
+                                 snapshot=_items_snapshot(pair, plan_version=plan))
+    _place_d1(indexed, matching_facts=_moved_fact())
+    before = _verdict_count(indexed)
+
+    diff = _reprojected_onto_the_dossiers_own_version(
+        indexed, pair, verdict_id=verdict_id)
+
+    assert diff.carried_unchanged == ("d1",)
+    assert _verdict_count(indexed) == before
+    assert indexed.execute(
+        "SELECT 1 FROM llm_verdict WHERE verdict_id = ?",
+        (f"{verdict_id}::{plan}::" + evidence_snapshot_id_for(
+            plan_version=plan, observation_keys=("obs-9",)),)).fetchone() is None

@@ -145,6 +145,35 @@ def to_p8_conflicts(conflicts) -> tuple[P8Conflict, ...]:
     return tuple(converted)
 
 
+def snapshot_observation_keys(evidence_items) -> tuple[str, ...]:
+    """The keys an evidence snapshot addresses: the ones the DOSSIER carries.
+
+    `104` R-155. There were two spellings of this and they addressed different
+    sets. `_judge_with_model` read the items it is about to hand
+    `model_call_request` -- R-148's ruling, and the one the docstring below has
+    always described -- while `versions._revalidates` read the matched FACTS. So a
+    file whose dossier changed and whose facts did not revalidated against a hash
+    of something the dossier no longer cites, and a file whose facts changed and
+    whose dossier did not re-validated against a change nothing was shown. One
+    could miss a change; the other could fire on none.
+
+    There is one question here -- *what did the model see* -- so there is one
+    function, and both callers pass the same thing to it: the `EvidenceItem`
+    tuple, which `build_dossier` copies onto the `Dossier` verbatim and which a
+    revalidation therefore has at hand on the dossier it is re-validating.
+
+    A refless item is dropped rather than addressed as an empty string, which is
+    `EvidenceItem`'s own rule read forward: the ref is required non-empty today,
+    so this cannot fire on any item shape that exists, and it is here for the
+    day an item kind arrives with no address. The result is `evidence_snapshot_
+    id_for`'s input and nothing else -- the sort and the de-duplication are its,
+    because the order two callers happen to build their items in is not part of
+    what the model saw.
+    """
+    return tuple(item.evidence_ref for item in evidence_items
+                 if item.evidence_ref)
+
+
 def evidence_snapshot_id_for(*, plan_version: str, observation_keys) -> str:
     """The id C and D require, minted from what the dossier actually cites.
 
