@@ -694,8 +694,15 @@ def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
         TARGET**: `path` and `ocr` are released to a local model by the owner's
         ruling and `filename` is not, which `may_be_released` states in full.
       * `sensitive_observation_keys` -- P5's per-value signal.
-        `ProtectedItemRequested`. Not divided by the target: a recognised human
-        identifier is not a fact about where the value is going.
+        `Denied(always_local_item)`, from `items.check_item`'s
+        `AlwaysLocalRequested` under §8.4's `raw_sensitive_values`. NOT
+        `ProtectedItemRequested`, which is §7.3's refusal of an unratified item
+        KIND on a protected file and is reached a different way -- `104` §17.6
+        named the wrong one and the mistake is worth one line here, because both
+        cost the whole request and only one of them is this. Not divided by the
+        target either way: a recognised human identifier is not a fact about where
+        the value is going. Since `104` R-161 this arm actually fires on a text
+        document -- the format's own person-valued fields.
       * a span that covers the whole of its text unit, and a span-less observation
         whose value is at least as long as the unit standing at its own path. That
         is `items.is_whole_document` read against P4's own length-only lookup,

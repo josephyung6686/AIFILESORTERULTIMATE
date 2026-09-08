@@ -443,10 +443,14 @@ def check_item(item: object, *, unit_length: int | None, zone: str | None,
     the second rule taking the first one's shape.
 
     **THE OCR RESIDUAL, stated plainly because the ruling was made knowing it.** No
-    text detector exists in P5 (`104` R-161: `pdf.text`, `docx.structure` and
-    `text.structured` emit no `SensitivitySignal` and r15's signal table was empty
-    over 199 files), so `sensitive_keys` cannot be what holds back the recognised text
-    of a scanned document. With `ocr` released to a local target, an unclassified
+    text detector exists in P5, so `sensitive_keys` cannot be what holds back the
+    recognised text of a scanned document. **`104` R-161 narrowed this and did not
+    close it** (owner item 15, ruled 8 Sep 2026): `pdf.text`, `docx.structure` and
+    `text.structured` now DO emit a `SensitivitySignal`, and r15's empty signal table
+    is history -- but by FIELD POSITION only, for the format's own person-valued
+    slots. An OCR reading has no field to be signalled by, and body-text address and
+    identifier detection is what the ruling explicitly does not cover. So this
+    paragraph still holds for the one case it was written about. With `ocr` released to a local target, an unclassified
     scanned page -- an identity document, a vaccination record -- now has its
     recognised text reach the local model. Nothing leaves the device on that path and
     `105` §13.3's always-local CLASS still refuses the cloud one, but the sentence
