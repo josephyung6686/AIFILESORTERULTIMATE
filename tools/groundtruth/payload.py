@@ -381,9 +381,15 @@ def inspect_database(database: Path, corpus: Path, *,
             route = bool(permitted(file_id))
             protected = file_id in protected_ids
 
+            # `104` R-159: release is a question about the TARGET and about the
+            # ceiling, so the instrument asks it about the SAME target the route was
+            # asked about above and the SAME ceiling the report measures against.
+            # Any other pair here would measure a payload no run ever builds.
             observations = releasable_observations(
                 conn, file_id=file_id, content_hash=content_hash,
-                limit=authorities.max_released_observations)
+                limit=authorities.max_released_observations,
+                locality=authorities.model_target.locality,
+                ceiling=report.ceiling)
             if not observations:
                 report.files.append(_nothing(
                     path=path, route=route, outcome="not_built",
