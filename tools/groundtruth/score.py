@@ -61,6 +61,12 @@ NO_OUTCOME = "no decision at all (outside the five)"
 #: underneath it are what a person fixing the product needs.
 MISPLACED_BUCKETS = (PLACED_PARENT, PLACED_FLAT, PLACED_WRONG)
 
+#: The buckets that mean a folder was CHOSEN -- the four above plus the one that
+#: got it right. `104` R-165's second half names these and not the other two: a
+#: placement has a decider and `NOT_PLACED` and `NO_DECISION` do not, so they are
+#: the only lines on the block that can carry who decided them.
+PLACED_BUCKETS = (PLACED_EXACT, PLACED_PARENT, PLACED_FLAT, PLACED_WRONG)
+
 _NOT_ALNUM = re.compile(r"[^0-9a-z]+")
 
 

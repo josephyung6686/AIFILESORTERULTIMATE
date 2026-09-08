@@ -38,6 +38,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import dataclasses
 import hashlib
 import json
+import re
 import sqlite3
 
 import pytest
@@ -61,13 +62,15 @@ from tools.groundtruth.measure import (
 )
 from tools.groundtruth.report import (
     DECIDER_NOT_RECORDED, FREE_TO_MOVE, HELD_FOR_THE_PERSON,
-    POLICY_NOT_RECORDED, decided_by_counts, held_counts,
-    outcome_counts, per_file_table, scorecard, sorting_lines,
+    POLICY_NOT_RECORDED, bucket_deciders, decided_by_counts, held_counts,
+    model_share_note, outcome_counts, per_file_table, row_104, row_128,
+    scorecard, sorting_lines,
 )
 from tools.groundtruth.score import (
     APPROPRIATE_ABSTENTION,
     CORRECT_PLACEMENT,
     INCORRECT_PLACEMENT,
+    INVALID_OUTPUT,
     NOT_PLACED,
     NO_DECISION,
     NO_OUTCOME,
@@ -75,6 +78,7 @@ from tools.groundtruth.score import (
     PLACED_FLAT,
     PLACED_PARENT,
     PLACED_WRONG,
+    UNNECESSARY_ABSTENTION,
     protected_verdict,
     score_sorting,
 )
@@ -597,3 +601,180 @@ def test_the_two_policy_words_are_the_ones_the_product_writes():
     assert HELD_POLICIES == (pv.BLOCKED_PENDING_USER, pv.REVIEW_REQUIRED)
     assert AUTO_ELIGIBLE == pv.AUTO_ELIGIBLE
     assert set(HELD_POLICIES) | {AUTO_ELIGIBLE} == set(pv.REVIEW_POLICIES)
+
+
+# ---------------------------------------------------------------------------
+# `104` R-165 second half: the split is on the SORTING line, not only in a
+# block of its own further down the card
+# ---------------------------------------------------------------------------
+# The chain-w1bl case is the whole reason these exist. That run scored 5 of 41
+# `right parent, wrong leaf`; the next chain scored 0, and the 5 turned out
+# never to have been real -- a term counter had matched `cells`, `source` and
+# `kernelspec` as JSON dictionary KEYS in a raw notebook and "recognised" four
+# files the model never saw. A rule artifact read as a win for weeks because the
+# number and the actor who produced it were printed a screen apart. `00`:110
+# sanctions a deterministic pre-filter for a unique direct match and nothing
+# else; every other placement is the model's or it is a defect, so the scoreboard
+# has to say which on the line the number is on.
+
+
+def _line_for(lines, bucket):
+    """The one SORTING line whose bucket is `bucket`, exactly.
+
+    Matched on the bucket ENDING the line or running straight into the aside,
+    rather than on `in`. Two of these names are prefixes of something else on
+    the same card -- `wrong` of `right parent, wrong leaf`, and `no decision` of
+    the five classes' `no decision at all (outside the five)` -- so a looser
+    match reads a line from the wrong block.
+    """
+    found = [line for line in lines
+             if re.match(rf"^\s+\d+\s+[\d.]+%\s+{re.escape(bucket)}(\s+--\s|$)",
+                         line)]
+    assert len(found) == 1, f"{bucket}: {found}"
+    return found[0]
+
+
+def test_each_placed_sorting_bucket_says_who_decided_the_placements_in_it(built):
+    """The fixture crosses the two axes on purpose: three files land in `exact`
+    by three different routes and the fourth placement is a user's in `wrong`.
+    A renderer that read one decider for the whole block, or the block's most
+    common one, passes neither line."""
+    lines = sorting_lines([built["run"]], built["labels"],
+                          heading="SORTING", confident_on_uncertain=0)
+    # f1 model, f2 rule, f6 nobody -- all three in the same bucket.
+    assert "-- decided by model 1 / rule 1 / user 0, not recorded 1" in _line_for(
+        lines, PLACED_EXACT)
+    # f3, and `model 0` is the point: the count is a person's, not the product's.
+    assert "-- decided by model 0 / rule 0 / user 1" in _line_for(lines, PLACED_WRONG)
+
+
+def test_a_bucket_holding_no_placement_names_no_decider(built):
+    """`not placed` and `no decision` are not placements and an empty bucket
+    holds none, so there is nobody to name. Printing three zeros beside them
+    would put an actor's name on a line about a decision that never happened --
+    the same error `NO_OUTCOME` is kept out of the five classes to avoid."""
+    lines = sorting_lines([built["run"]], built["labels"],
+                          heading="SORTING", confident_on_uncertain=0)
+    for bucket in (PLACED_PARENT, PLACED_FLAT, NOT_PLACED, NO_DECISION):
+        assert "decided by" not in _line_for(lines, bucket)
+
+
+def test_the_bucket_splits_come_to_what_the_blocks_scored(built):
+    """Addable, and against the blocks rather than against the MODEL line. The
+    two denominators differ by the protected file -- `decided_by_counts` counts
+    every placement the RUN made and this counts the ones the BLOCKS scored --
+    so a reader who adds the lines has to land on the block's number or one of
+    the two is lying."""
+    confident, uncertain = bucket_deciders([built["run"]], built["labels"])
+    total = sum(sum(c.values()) for c in confident.values())
+    total += sum(sum(c.values()) for c in uncertain.values())
+    assert total == sum(held_counts([built["run"]], built["labels"]).values()) == 4
+    # And it is NOT the MODEL line's five: the protected file was placed too.
+    assert sum(decided_by_counts([built["run"]]).values()) == 5
+
+
+def test_the_w1bl_shape_cannot_present_a_bucket_as_a_win(built):
+    """The regression, reproduced in the small: every placement a rule's, and
+    one of them in `right parent, wrong leaf`. The number is unchanged -- this
+    row does not re-score anything -- and it can no longer be read alone."""
+    run = dataclasses.replace(built["run"], files={
+        path: dataclasses.replace(observation, decided_by=DECIDED_BY_RULE)
+        for path, observation in built["run"].files.items()
+        if observation.outcome == "place"
+    } | {
+        path: observation for path, observation in built["run"].files.items()
+        if observation.outcome != "place"
+    })
+    lines = sorting_lines([run], built["labels"],
+                          heading="SORTING", confident_on_uncertain=0)
+    exact = _line_for(lines, PLACED_EXACT)
+    assert "3" in exact and "-- decided by model 0 / rule 3 / user 0" in exact
+
+
+def test_a_run_the_model_decided_nothing_in_says_so_where_the_numbers_are(built):
+    """`00`:110 again. A run whose every placement came from a rule can still
+    print a good-looking table, and the two one-line rows are what get pasted
+    into a diagnosis -- so the fact travels with them and not only with the
+    block it was measured in."""
+    run = dataclasses.replace(built["run"], files={
+        path: dataclasses.replace(
+            observation,
+            decided_by=DECIDED_BY_RULE if observation.decided_by else None)
+        for path, observation in built["run"].files.items()})
+    note = model_share_note([run])
+    assert note == "the model decided none of this run's 5 placements"
+    lines = sorting_lines([run], built["labels"],
+                          heading="SORTING", confident_on_uncertain=0)
+    # The heading of each block, where the block's denominator is.
+    carrying = [line for line in lines if note in line]
+    assert len(carrying) == 2, carrying
+    assert carrying[0].startswith("SORTING")
+    assert "ask the person" in carrying[1]
+    # And both grep rows.
+    assert note in row_104([run], built["labels"], [])
+    assert note in row_128([run], built["labels"])
+    assert note in scorecard([run], [], built["labels"], [], [],
+                             corpus_files=len(IDS), seconds=1.0)
+
+
+def test_a_run_that_placed_nothing_says_that_beside_its_abstention_rate(built):
+    """The w1bn shape: 100% not placed and 98.6% appropriate abstention, both
+    excellent-looking, and no model was ever asked. `0 of 0` is not English, so
+    this case gets its own sentence rather than a number that reads as a rate."""
+    run = dataclasses.replace(built["run"], files={
+        path: dataclasses.replace(observation, outcome="abstain", decided_by=None)
+        for path, observation in built["run"].files.items()})
+    assert model_share_note([run]) == (
+        "this run placed nothing, so the model decided nothing")
+
+
+def test_the_note_is_absent_when_the_model_decided_any_placement(built):
+    """Exactly zero and not a threshold. A share the reader should worry about
+    is a judgement, and R-165's row is an instrument -- the per-bucket splits
+    above print the ratio on every line and let the reader make it."""
+    assert model_share_note([built["run"]]) == ""
+    lines = sorting_lines([built["run"]], built["labels"],
+                          heading="SORTING", confident_on_uncertain=0)
+    assert not [line for line in lines if "the model decided none" in line]
+    assert "the model decided none" not in row_104([built["run"]], built["labels"], [])
+
+
+
+def test_the_owners_five_classes_carry_the_split_the_buckets_do(built):
+    """`correct placement` is the headline number on the whole card, and until
+    now it was the one line in the SORTING block that could be read without
+    knowing who produced it. `score_outcome` builds it from `PLACED_EXACT`
+    alone, so it carries that bucket's split unchanged -- a mapping, not a
+    second scoring."""
+    lines = sorting_lines([built["run"]], built["labels"],
+                          heading="SORTING", confident_on_uncertain=0)
+    correct = _line_for(lines, CORRECT_PLACEMENT)
+    assert "-- decided by model 1 / rule 1 / user 0, not recorded 1" in correct
+    # The same words the `exact` bucket above it printed, because they are the
+    # same four placements counted twice under two questions.
+    assert correct.split("-- decided by")[1] == (
+        _line_for(lines, PLACED_EXACT).split("-- decided by")[1])
+    assert "-- decided by model 0 / rule 0 / user 1" in _line_for(
+        lines, INCORRECT_PLACEMENT)
+
+
+def test_the_three_classes_that_chose_no_folder_name_nobody(built):
+    """An abstention and an invalid answer placed nothing. Naming an actor
+    beside them would credit a decision that was never made -- `not placed`'s
+    rule, applied to the five classes."""
+    lines = sorting_lines([built["run"]], built["labels"],
+                          heading="SORTING", confident_on_uncertain=0)
+    for name in (APPROPRIATE_ABSTENTION, UNNECESSARY_ABSTENTION, INVALID_OUTPUT):
+        assert "decided by" not in _line_for(lines, name)
+
+
+def test_the_class_split_is_added_over_both_kinds_of_label(built):
+    """`outcome_counts` counts confident and uncertain labels together while the
+    two blocks above keep them apart, so the split beside a class has to be the
+    sum of both or it sits beside a number it was not measured on."""
+    confident, uncertain = bucket_deciders([built["run"]], built["labels"])
+    from_classes = sum(sum(c.values()) for c in confident.values())
+    from_classes += sum(sum(c.values()) for c in uncertain.values())
+    counted = outcome_counts([built["run"]], built["labels"])
+    assert from_classes == (counted[CORRECT_PLACEMENT]
+                            + counted[INCORRECT_PLACEMENT]) == 4

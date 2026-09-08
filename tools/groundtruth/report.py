@@ -12,8 +12,8 @@ from typing import Iterable, Mapping, Sequence
 
 from tools.groundtruth.labels import Label
 from tools.groundtruth.measure import (
-    AUTO_ELIGIBLE, COMPLETENESS_ORDER, DECIDERS, HELD_POLICIES, Observation,
-    RunObservation,
+    AUTO_ELIGIBLE, COMPLETENESS_ORDER, DECIDED_BY_MODEL, DECIDERS, HELD_POLICIES,
+    Observation, RunObservation,
 )
 from tools.groundtruth.score import (
     APPROPRIATE_ABSTENTION,
@@ -23,6 +23,7 @@ from tools.groundtruth.score import (
     MISPLACED_BUCKETS,
     NO_OUTCOME,
     OUTCOME_CLASSES,
+    PLACED_BUCKETS,
     PLACED_EXACT,
     PLACED_FLAT,
     PLACED_PARENT,
@@ -187,6 +188,103 @@ def decided_by_counts(runs: Sequence[RunObservation]) -> collections.Counter:
     return counted
 
 
+def bucket_deciders(runs: Sequence[RunObservation],
+                    labels: Mapping[str, Label]) -> tuple[dict, dict]:
+    """Who decided each placement, kept apart BY SORTING BUCKET. `104` R-165.
+
+    `decided_by_counts` above answers "what was the model's share of this run",
+    which is a fact about the run and reaches the card as one line in the MODEL
+    block. This answers "what was the model's share of THIS NUMBER", which is a
+    fact about a bucket, and it exists because those two were a screen apart.
+
+    THE CASE, and it is not hypothetical. Chain w1bl scored 5 of 41 `right
+    parent, wrong leaf` and the next chain scored 0. The 5 were not lost; they
+    were never real. A raw `.ipynb` is JSON whose dictionary KEYS include
+    `cells`, `source` and `kernelspec`, the `code` schema's authored terms
+    include all three, and the term counter matched the punctuation of the
+    format rather than anything anyone had written -- so four notebooks the
+    model never saw were "recognised" and placed. R-160 made a notebook read as
+    its cells, the JSON went away, and the number fell to the one that had
+    always been true. A rule artifact stood as a win for weeks because the
+    scoreboard printed the count in one block and the actor in another.
+
+    `00`:110 sanctions a deterministic pre-filter for a unique direct match and
+    nothing else, so any other placement is the model's or it is a defect. That
+    makes the decider part of what a bucket's number MEANS, and this walks the
+    labels exactly as `_split_buckets` does -- same skip of protected files,
+    same one observation per labelled file -- so the two are addable. It is a
+    different denominator from `decided_by_counts` and deliberately so: the
+    blocks score the labelled corpus, the MODEL line scores the run.
+    """
+    confident: dict[str, collections.Counter] = {}
+    uncertain: dict[str, collections.Counter] = {}
+    for run in runs:
+        for path, label in labels.items():
+            if label.situation != run.situation or label.protected:
+                continue
+            observation = run.files.get(path)
+            if observation is None or observation.outcome != "place":
+                continue
+            bucket = score_sorting(label, observation)
+            side = uncertain if label.is_uncertain else confident
+            side.setdefault(bucket, collections.Counter())[
+                observation.decided_by or DECIDER_NOT_RECORDED] += 1
+    return confident, uncertain
+
+
+def _decider_suffix(counted: collections.Counter | None) -> str:
+    """The per-bucket split as it is printed, or nothing at all.
+
+    EMPTY FOR A BUCKET THAT PLACED NOTHING, and that is the honest answer rather
+    than a gap. `not placed` and `no decision` chose no folder, and an empty
+    placed bucket holds no choice either -- naming three actors beside a zero
+    would put a decision on the card that nobody made, which is the same reason
+    `NO_OUTCOME` is kept out of the owner's five classes instead of folded into
+    an abstention. The `0` already in the count column says it.
+    """
+    if not counted:
+        return ""
+    split = " / ".join(f"{name} {counted.get(name, 0)}" for name in DECIDERS)
+    # After a COMMA and not a fourth slash, for the reason the MODEL line gives:
+    # `not recorded` is the absence of a decider, not a fourth one.
+    if counted.get(DECIDER_NOT_RECORDED):
+        split += f", {DECIDER_NOT_RECORDED} {counted[DECIDER_NOT_RECORDED]}"
+    return f"   -- decided by {split}"
+
+
+def model_share_note(runs: Sequence[RunObservation]) -> str:
+    """One clause for a run the model decided nothing in, or `""`. `104` R-165.
+
+    The per-bucket split above puts the actor beside every number it can, but a
+    bucket that placed nothing carries no split -- and a run that placed nothing
+    at all is exactly the shape that flatters hardest. Chain w1bn read `41 100%
+    not placed` in one block and `69 98.6% appropriate abstention` in another,
+    both of them excellent-looking, and no model was asked anything. This is the
+    clause that travels with those numbers.
+
+    A STATEMENT AND NOT A VERDICT. It says how many of the run's placements the
+    model decided and stops; there is no threshold at which the card starts
+    calling a share bad, because a threshold is a judgement and R-165's row is
+    an instrument. Zero is the one share that needs no judgement to report: it
+    means §13.5's "model decides, rules validate" did not happen here.
+
+    COUNTED OVER THE RUN, like the MODEL block's own line and unlike the buckets
+    -- so the note is worded to say whose placements it is counting, because it
+    is printed on a block whose denominator is the labelled corpus and the two
+    numbers differ by the protected and unlabelled files.
+    """
+    counted = decided_by_counts(runs)
+    if counted.get(DECIDED_BY_MODEL, 0):
+        return ""
+    placements = sum(counted.values())
+    if not placements:
+        # `0 of 0` reads as a rate and is not one. A run that placed nothing has
+        # no share to report, and saying so is a different fact from a share of
+        # zero -- the first is silence, the second is rules doing the deciding.
+        return "this run placed nothing, so the model decided nothing"
+    return f"the model decided none of this run's {placements} placements"
+
+
 def held_lines(runs: Sequence[RunObservation],
                labels: Mapping[str, Label]) -> list[str]:
     """The held-versus-free count, printed beneath a sorting block.
@@ -245,11 +343,35 @@ def outcome_lines(runs: Sequence[RunObservation],
     for pair in _split_buckets(runs, labels):
         buckets.update(pair)
 
+    # `104` R-165's second half, on these five as well as on the six buckets
+    # above them, because THESE are the numbers the owner reads. `correct
+    # placement` is the card's headline and `score_outcome` builds it from
+    # `PLACED_EXACT` alone, so it carries exactly that bucket's split; the two
+    # here are one mapping and not a second scoring. The other three classes are
+    # abstentions and an invalid answer -- no folder was chosen, so there is
+    # nobody to name, and the same silence `_decider_suffix` keeps over
+    # `not placed` applies for the same reason.
+    #
+    # BOTH LABEL KINDS ADDED, unlike the blocks above, because `outcome_counts`
+    # counts over both and a split on a different denominator from the number it
+    # sits beside would be the misreading this row exists to stop.
+    confident_by, uncertain_by = bucket_deciders(runs, labels)
+    by_bucket: dict[str, collections.Counter] = {}
+    for side in (confident_by, uncertain_by):
+        for bucket, deciders in side.items():
+            by_bucket.setdefault(bucket, collections.Counter()).update(deciders)
+    misplaced_by: collections.Counter = collections.Counter()
+    for bucket in MISPLACED_BUCKETS:
+        misplaced_by.update(by_bucket.get(bucket, ()))
+    class_deciders = {CORRECT_PLACEMENT: by_bucket.get(PLACED_EXACT),
+                      INCORRECT_PLACEMENT: misplaced_by}
+
     lines = [f"            {total} labelled files in the owner's five outcome "
              f"classes (`105` §14.7)"]
     for name in OUTCOME_CLASSES:
         n = counted.get(name, 0)
-        lines.append(f"              {n:4d}  {_pct(n, total)}  {name}")
+        lines.append(f"              {n:4d}  {_pct(n, total)}  "
+                     f"{name}{_decider_suffix(class_deciders.get(name))}")
         if name != INCORRECT_PLACEMENT:
             continue
         # The roll-up, taken apart. `incorrect placement` is the owner's class and
@@ -259,7 +381,8 @@ def outcome_lines(runs: Sequence[RunObservation],
         # same numbers as the block above, counted over the same files.
         for bucket in MISPLACED_BUCKETS:
             lines.append(f"                    {buckets.get(bucket, 0):4d}  "
-                         f"of which {bucket}")
+                         f"of which {bucket}"
+                         f"{_decider_suffix(by_bucket.get(bucket))}")
     remainder = counted.get(NO_OUTCOME, 0)
     if remainder:
         # Shown rather than folded into an abstention, because nobody decided
@@ -280,11 +403,16 @@ def row_128(runs: Sequence[RunObservation],
     parse a table whose spacing may move.
     """
     counted = outcome_counts(runs, labels)
+    # `104` R-165, and `row_104`'s argument applies here twice over: three of
+    # these five are ABSTENTIONS, which score well on a run that asked nobody
+    # anything -- chain w1bn's 98.6% appropriate abstention is the case.
+    note = model_share_note(runs)
     return (f"correct placement {counted.get(CORRECT_PLACEMENT, 0)}"
             f" / incorrect placement {counted.get(INCORRECT_PLACEMENT, 0)}"
             f" / appropriate abstention {counted.get(APPROPRIATE_ABSTENTION, 0)}"
             f" / unnecessary abstention {counted.get(UNNECESSARY_ABSTENTION, 0)}"
-            f" / invalid output {counted.get(INVALID_OUTPUT, 0)}")
+            f" / invalid output {counted.get(INVALID_OUTPUT, 0)}"
+            + (f"   -- {note}" if note else ""))
 
 
 def sorting_lines(runs: Sequence[RunObservation],
@@ -303,18 +431,27 @@ def sorting_lines(runs: Sequence[RunObservation],
     confident_buckets, uncertain_buckets = _split_buckets(runs, labels)
     n_confident = sum(confident_buckets.values())
     n_uncertain = sum(uncertain_buckets.values())
+    # `104` R-165's second half. The actor goes ON the line the number is on --
+    # `bucket_deciders` argues the case from chain w1bl -- and the run-level
+    # clause goes on the two block HEADINGS, which is where the numbers a bucket
+    # split cannot reach are: an empty bucket and a run that placed nothing.
+    confident_by, uncertain_by = bucket_deciders(runs, labels)
+    note = model_share_note(runs)
+    aside = f"   -- {note}" if note else ""
     lines = [f"{heading:<12}{n_confident} files whose right folder is known. "
-             f"Exact is the goal; the 99% target is this block."]
+             f"Exact is the goal; the 99% target is this block.{aside}"]
     for bucket in SORTING_BUCKETS:
         n = confident_buckets.get(bucket, 0)
-        lines.append(f"              {n:4d}  {_pct(n, n_confident)}  {bucket}")
+        lines.append(f"              {n:4d}  {_pct(n, n_confident)}  "
+                     f"{bucket}{_decider_suffix(confident_by.get(bucket))}")
     lines.append("")
     lines.append(f"            {n_uncertain} files whose right answer is 'ask the "
-                 f"person'. Here NOT PLACED is the pass.")
+                 f"person'. Here NOT PLACED is the pass.{aside}")
     for bucket in SORTING_BUCKETS:
         n = uncertain_buckets.get(bucket, 0)
         if n:
-            lines.append(f"              {n:4d}  {_pct(n, n_uncertain)}  {bucket}")
+            lines.append(f"              {n:4d}  {_pct(n, n_uncertain)}  "
+                         f"{bucket}{_decider_suffix(uncertain_by.get(bucket))}")
     lines.append(f"            {confident_on_uncertain} of them were answered "
                  f"confidently anyway")
     # `104` R-151, beneath both blocks because it is counted over both: a hold is
@@ -354,13 +491,20 @@ def row_104(runs: Sequence[RunObservation], labels: Mapping[str, Label],
     n_confident = sum(confident_buckets.values())
     abstained = uncertain_buckets.get(NOT_PLACED, 0)
     n_uncertain = sum(uncertain_buckets.values())
+    # `104` R-165. THE CLAUSE TRAVELS WITH THE ROW. This line and `row_128` exist
+    # to be pasted into a diagnosis on their own, away from the block that
+    # qualified them, so a row that left the fact behind would be the w1bl
+    # misreading with a shorter path: five numbers and no way to tell whether a
+    # model produced any of them.
+    note = model_share_note(runs)
     return (f"{confident_buckets.get(PLACED_EXACT, 0)} / "
             f"{confident_buckets.get(PLACED_PARENT, 0)} / "
             f"{confident_buckets.get(PLACED_FLAT, 0)} / "
             f"{confident_buckets.get(PLACED_WRONG, 0)} / "
             f"{confident_buckets.get(NOT_PLACED, 0) + confident_buckets.get(NO_DECISION, 0)}"
             f" ({n_confident})   abstained {abstained} of {n_uncertain}"
-            f"   spillover {sum(s.contaminated for s in scores)}")
+            f"   spillover {sum(s.contaminated for s in scores)}"
+            + (f"   -- {note}" if note else ""))
 
 
 def scorecard(runs: Sequence[RunObservation],
