@@ -1344,3 +1344,82 @@ def test_no_placement_dossier_in_the_run_carries_an_item_the_gate_would_drop(
         for item in json.loads(payload)["evidence_items"]:
             assert (item["location"]
                     not in ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET), item
+
+
+# --- `104` R-159: what a LOCAL run now shows the model, and what still bounds it
+
+
+def test_a_local_fact_call_is_shown_whole_units_of_its_own_file(
+        tmp_path, stub, monkeypatch):
+    """The outcome the ruling exists for, asserted on a real local run.
+
+    Every file in this corpus is a `.txt`, so `structured_text.py` gives each one a
+    single text unit and one span-less body observation over it (`104` R-164 is that
+    shape's own row). Before 8 Sep 2026 `may_be_released`'s whole-unit arm refused
+    every one of them to every target, and the model was left with the extension,
+    the mime type and a heading fragment -- r15's median site-A dossier carried 109
+    characters of the file's own words under a 4,000-character ceiling.
+
+    **A NEWLINE IS THE CRITERION, and it is the product's own rather than a length.**
+    `privacy.release.unit_is_a_line` calls a unit a LINE when it holds no line break,
+    and R-152 already excepted a whole line from the whole-document rule. So a
+    released value containing a newline is precisely a whole unit that the exception
+    did NOT cover -- the case the ruling opened and nothing else does.
+
+    SABOTAGE: put the whole-unit arm back unconditionally in `may_be_released` and
+    this goes red while every cloud-side test in `tests/p7/` stays green.
+    """
+    database, report = _local_run(tmp_path, stub, monkeypatch)
+
+    bodies = _query(database, "SELECT payload FROM llm_dossier "
+                              "WHERE call_site = 'A_fact'")
+    assert bodies, f"no site-A call was made, so this proves nothing. {report}"
+    multiline = [item["value"]
+                 for (payload,) in bodies
+                 for item in json.loads(payload).get("released_evidence", ())
+                 if isinstance(item, dict) and isinstance(item.get("value"), str)
+                 and "\n" in item["value"]]
+    assert multiline, (
+        "no site-A dossier in a LOCAL run carried a multi-line unit, so the file's "
+        f"own body reached no model and `104` R-159 changed nothing here. {report}")
+
+
+def test_no_dossier_in_a_local_run_exceeds_the_stored_ceiling(
+        tmp_path, stub, monkeypatch):
+    """`104` R-159's other half: the ceiling is what bounds a local call INSTEAD.
+
+    The ruling reads "within the dossier ceiling", and the whole reason the three
+    measurements were made to agree is that they had not been: `_call_dependencies`
+    and `_within_ceiling` counted the file's own readings and the context while the
+    gate's `measure_released_tokens` counted every resolved value INCLUDING the
+    filename. While almost nothing was releasable that gap was invisible. With whole
+    units releasable it is the difference between a call and an
+    `over_dossier_ceiling` denial taken after the budget slot is reserved.
+
+    Measured on what the DOOR released, at every site this run reaches, against the
+    number the door itself compares with -- `model.max_dossier_tokens_per_call` out
+    of P1's own budget table, never a literal repeated here.
+    """
+    from database_agent.budget import get_ceiling
+
+    database, report = _local_run(tmp_path, stub, monkeypatch)
+    conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        ceiling = get_ceiling(conn, "model.max_dossier_tokens_per_call")
+    finally:
+        conn.close()
+    assert ceiling, f"no ceiling is stored, so this asserts nothing. {report}"
+
+    rows = _query(database, "SELECT call_site, payload FROM llm_dossier")
+    assert rows, f"no dossier was built. {report}"
+    for call_site, payload in rows:
+        released = [item["value"]
+                    for item in json.loads(payload).get("released_evidence", ())
+                    if isinstance(item, dict)
+                    and isinstance(item.get("value"), str)]
+        total = sum(len(value) for value in released)
+        assert total <= ceiling, (
+            f"a {call_site} dossier released {total} characters against a stored "
+            f"ceiling of {ceiling}; the builder and the door disagree about what "
+            f"the ceiling bounds")

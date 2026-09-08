@@ -430,3 +430,49 @@ def test_an_empty_reading_cannot_exist_for_this_seam_to_offer(evidence):
 
     with pytest.raises(MalformedObservation, match="raw_value"):
         _observation(evidence, zone="body", span=TextSpan(0, 0), value="")
+
+
+# --- `104` R-159: site C has no ladder, so the remainder is computed --------
+
+def test_the_ceiling_is_a_remainder_and_a_reading_over_it_is_skipped(evidence):
+    """`104` R-159. Site A defers a call whose dossier will not fit; site C cannot.
+
+    `placement.pipeline._judge_with_model` builds its request and the gate answers,
+    so an over-ceiling site-C dossier is `Denied(over_dossier_ceiling)` and the file
+    loses the one stage `00` §5 built for ambiguity. `evidence_for` therefore hands
+    this function what `max_dossier_tokens` has LEFT after the facts' citations and
+    R-135's anchor lines, and the fill spends that rather than the whole ceiling.
+
+    A reading too long for the remainder is SKIPPED and the walk continues, so one
+    oversized unit does not cost the file the smaller readings behind it.
+    """
+    _indexed(evidence)
+    small = _observation(evidence, zone="body", span=TextSpan(0, 9),
+                         value=BODY[:9])
+    _observation(evidence, zone="body", span=TextSpan(0, len(BODY) - 1),
+                 value=BODY[:len(BODY) - 1])
+    later = _observation(evidence, zone="body", span=TextSpan(10, 21),
+                         value=BODY[10:21])
+
+    offered = cli.reading_citations(
+        evidence, "file-1", limit=12, locality="local", ceiling=20)
+
+    assert [ref for ref, _location, _reliability in offered] == [small, later]
+
+
+def test_a_cloud_placement_call_is_bound_by_the_count_and_not_the_remainder(
+        evidence):
+    """The other half, and it is what says this is a locality rule rather than a
+    new bound on everyone. §8.4's "selected excerpts" states no number and
+    `FACT_CALL_MAX_RELEASED_OBSERVATIONS` is where this deployment chooses one; a
+    cloud call spends that and never reads the ceiling."""
+    _indexed(evidence)
+    for start in range(0, 6):
+        _observation(evidence, zone="body", span=TextSpan(start, start + 4),
+                     value=BODY[start:start + 4])
+
+    # A remainder that would admit at most one reading, and the count is what binds.
+    offered = cli.reading_citations(
+        evidence, "file-1", limit=6, locality=CLOUD_LOCALITY, ceiling=1)
+
+    assert len(offered) == 6
