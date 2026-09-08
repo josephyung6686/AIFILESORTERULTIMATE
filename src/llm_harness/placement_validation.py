@@ -66,6 +66,7 @@ from llm_harness.vocabulary import (
     VALID_REVIEW_REQUIRED,
     WEAK,
 )
+from llm_harness.wire_handles import issued_conflict_handles, local_ref
 
 _TARGET_ACTIONS = frozenset({
     RETURN_CONFIRMED_GROUP,
@@ -333,11 +334,42 @@ def _alternatives(payload: Mapping[str, object]) -> tuple[object, ...]:
     return tuple(raw)
 
 
+def _considered_conflicts(
+    payload: Mapping[str, object],
+    field: str,
+    *,
+    handles: Mapping[str, str],
+) -> set[str]:
+    """The LOCAL conflict ids the model's `field` list names.
+
+    `dossier._body` shows the model a keyed handle of every `conflict_id` and
+    never the id, so a list of the handles it was shown is what comes back. Both
+    checks below hold `dossier.conflicts`, whose ids are local, and the list has
+    to be read into that language before either can ask whether one is missing.
+
+    Un-digested exactly as a citation is (`validation._validate_claim`): a string
+    this dossier never issued comes back unchanged, so an invented handle matches
+    no conflict and the conflict it was meant to name stays unconsidered. That
+    also means a model that echoes a local id in the clear is taken at its word,
+    which is the answer the citation path gives the same input -- and an id the
+    model was never shown is no easier to guess here than an `observation_key`
+    is there.
+    """
+    considered = payload.get(field)
+    if not isinstance(considered, Sequence) or isinstance(considered, (str, bytes)):
+        return set()
+    return {
+        local_ref(item, handles=handles)
+        for item in considered if isinstance(item, str)
+    }
+
+
 def _placement_site(
     dossier: Dossier,
     raw: object,
     verdict: P8Verdict,
     dependencies: PlacementDependencies,
+    conflict_handles: Mapping[str, str],
 ) -> P8Verdict | None:
     payload = _payload_of(raw)
     destination = payload.get("destination")
@@ -371,10 +403,8 @@ def _placement_site(
     invented = _invented_dimension(payload, dossier)
     if invented is not None:
         return _reject(verdict, invented, NO_DESTINATION)
-    considered = payload.get("conflicts_considered")
-    considered_ids = set(considered) if isinstance(considered, Sequence) and not isinstance(
-        considered, (str, bytes),
-    ) else set()
+    considered_ids = _considered_conflicts(
+        payload, "conflicts_considered", handles=conflict_handles)
     if dossier.conflicts and any(
         item.conflict_id not in considered_ids for item in dossier.conflicts
     ):
@@ -456,6 +486,7 @@ def _residual_site(
     raw: object,
     verdict: P8Verdict,
     dependencies: ResidualDependencies,
+    conflict_handles: Mapping[str, str],
 ) -> P8Verdict | ValidationUnavailable | None:
     payload = _payload_of(raw)
     if "support" in payload and "next_support" in payload:
@@ -479,10 +510,8 @@ def _residual_site(
         return _reject(verdict, EVIDENCE_NOT_IN_FILE_RECORD, REJECTED)
     if not dependencies.sensitivity_policy(dossier, payload):
         return _reject(verdict, SENSITIVITY_RESTRICTION_IGNORED, REJECTED)
-    considered = payload.get("relationships_considered")
-    considered_ids = set(considered) if isinstance(considered, Sequence) and not isinstance(
-        considered, (str, bytes),
-    ) else set()
+    considered_ids = _considered_conflicts(
+        payload, "relationships_considered", handles=conflict_handles)
     if any(
         item.kind == "stronger_relationship" and item.conflict_id not in considered_ids
         for item in dossier.conflicts
@@ -613,8 +642,12 @@ def validate_placement_response(
     if missing:
         return ValidationUnavailable(missing=missing)
 
+    conflict_handles = issued_conflict_handles(
+        (item.conflict_id for item in dossier.conflicts), key=handle_key)
+
     def site(dossier_arg, raw, verdict):
-        return _placement_site(dossier_arg, raw, verdict, dependencies)
+        return _placement_site(
+            dossier_arg, raw, verdict, dependencies, conflict_handles)
 
     result = validate_response(
         dossier,
@@ -649,8 +682,12 @@ def validate_residual_response(
     if missing:
         return ValidationUnavailable(missing=missing)
 
+    conflict_handles = issued_conflict_handles(
+        (item.conflict_id for item in dossier.conflicts), key=handle_key)
+
     def site(dossier_arg, raw, verdict):
-        return _residual_site(dossier_arg, raw, verdict, dependencies)
+        return _residual_site(
+            dossier_arg, raw, verdict, dependencies, conflict_handles)
 
     result = validate_response(
         dossier,

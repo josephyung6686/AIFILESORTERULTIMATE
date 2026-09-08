@@ -98,6 +98,19 @@ def issued_handles(refs: Iterable[str], *, key: bytes) -> dict[str, str]:
     return {wire_ref(ref, key=key): ref for ref in refs}
 
 
+def issued_conflict_handles(ids: Iterable[str], *, key: bytes) -> dict[str, str]:
+    """The same map for conflict ids, which are keyed unconditionally.
+
+    NOT `issued_handles`. That one goes through `wire_ref`, which keys a
+    reference only when it is a P4 `observation_key`; a `conflict_id` is
+    `f"{group_id}:{kind}"` (P9's seam) and is not one, so `issued_handles` over
+    conflict ids is the identity map and nothing a model returns would ever
+    resolve. `dossier._body` writes every `conflict_id` through `wire_handle`
+    with no such test, and this is that call read backwards.
+    """
+    return {wire_handle(cid, key=key): cid for cid in ids}
+
+
 def local_ref(cited: str, *, handles: Mapping[str, str]) -> str:
     """The local identifier a model's reference names.
 
