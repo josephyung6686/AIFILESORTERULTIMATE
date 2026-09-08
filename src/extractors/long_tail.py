@@ -87,6 +87,20 @@ PERSON_VALUED_FIELD_BASIS: str = (
 #: OOXML branch of the reader reads core properties at all.
 PERSON_VALUED_PACKAGE_FIELDS: tuple[str, ...] = ("creator", "lastModifiedBy")
 
+#: The iCalendar properties whose value is a person, at the names
+#: `readers/long_tail_stdlib` reads off the VEVENT. BEYOND the three `104` §17.6
+#: enumerates, and inside the rule it states: RFC 5545 types both `ORGANIZER` and
+#: `ATTENDEE` as CAL-ADDRESS -- "the calendar user address of the organizer",
+#: normally a `mailto:` -- so the FIELD says a person is there and no value is read.
+#: `SUMMARY`, `LOCATION`, `DTSTART` and the rest of `_EVENT_PROPERTIES` are not
+#: person-valued and are not here.
+#:
+#: Section 2.9 already treats an EMAIL's addresses as sensitive; a meeting
+#: invitation's are the same addresses in a different container, and until now the
+#: rule stopped at the format boundary. No `.ics` file exists on the owner's
+#: 199-file corpus, so this changes no measured number.
+PERSON_VALUED_EVENT_PROPERTIES: tuple[str, ...] = ("ORGANIZER", "ATTENDEE")
+
 
 class UnauthorizedTranscription(Exception):
     """A speech-derived text arrived without P7's explicit policy (section 2.9)."""
@@ -357,7 +371,8 @@ def extract_long_tail(
         if not value.value:
             continue                     # presence only; an absence is never a row
         basis = None
-        if value.name in PERSON_VALUED_PACKAGE_FIELDS:
+        if value.name in (PERSON_VALUED_PACKAGE_FIELDS
+                          + PERSON_VALUED_EVENT_PROPERTIES):
             # `104` R-161: the OOXML package's own person-valued core properties,
             # through the channel this extractor already has. The email rule below
             # wins where both apply, because it is the more specific reason for the

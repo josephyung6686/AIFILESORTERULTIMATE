@@ -218,6 +218,39 @@ def test_a_plain_text_document_carries_no_person_valued_field():
     assert not hasattr(structured_text, "person_field_signals")
 
 
+def test_an_icalendar_organizer_and_attendee_are_signalled_by_their_fields():
+    """BEYOND THE THREE THE RULING ENUMERATES, and inside the rule it states.
+
+    `104` §17.6 names PDF `/Author`, `dc:creator` and `cp:lastModifiedBy` as
+    EXAMPLES of "a format's own person-valued fields"; the test the brief sets for
+    a fourth is that its meaning be structural and need no word list. iCalendar's
+    `ORGANIZER` and `ATTENDEE` are that: RFC 5545 types both as CAL-ADDRESS, a
+    person's own address, so nothing here reads a value either. No `.ics` file
+    exists on the owner's 199-file corpus, so this changes no measured number and
+    closes the hole for a corpus that has one.
+    """
+    invitation = LongTailFile(
+        entries=(LongTailEntry(kind="entry", label="uid-1"),),
+        values=(LongTailValue(name="ORGANIZER", value="mailto:dean@wustl.edu",
+                              entry_ordinal=1),
+                LongTailValue(name="ATTENDEE", value="mailto:joseph@example.com",
+                              entry_ordinal=1),
+                LongTailValue(name="SUMMARY", value="PHYS1401 office hours",
+                              entry_ordinal=1),
+                LongTailValue(name="LOCATION", value="Crow 201", entry_ordinal=1)),
+    )
+    result = extract_long_tail(
+        file_row=_row("hours.ics"), path=Path("/corpus/h.ics"), policy=OPEN_POLICY,
+        source_type="calendar", read_long_tail=lambda p, *, transcribe: invitation,
+        find_structured_strings=NO_STRINGS, transcription_authorized=lambda: False,
+        now=FIXED_CLOCK, context_window=20)
+    assert _signalled_fields(result.extraction, result.sensitivity) == {
+        "ORGANIZER", "ATTENDEE"}
+    # The event's own subject and room are not a person and stay evidence.
+    assert not {"SUMMARY", "LOCATION"} & _signalled_fields(
+        result.extraction, result.sensitivity)
+
+
 # ---------------------------------------------------------------------- the seam
 
 def _readers(**overrides) -> Readers:
