@@ -234,7 +234,7 @@ from readers.pdf_pdfium import pdfium_reader
 from readers.signatures import signature_detector
 from extraction_pool import ExtractionContext, ProcessPool
 from model_placement import (
-    PlacementCallAuthorities, model_path_injections,
+    PlacementCallAuthorities, model_path_injections, releasable_excerpts,
 )
 from readers.model_deepseek import BASE_URL_NAME, CLOUD, CREDENTIAL_NAME
 from readers.model_ollama import (
@@ -6151,6 +6151,48 @@ def reading_citations(conn: sqlite3.Connection, file_id: str, *,
             conn, file_id=file_id, content_hash=content_hash, limit=limit))
 
 
+def releasable_items(conn: sqlite3.Connection, items) -> tuple:
+    """`104` R-156: the offered items, filtered by the door's OWN predicate.
+
+    `evidence_for` builds three kinds of `EvidenceItem` from three producers, and
+    `model_placement.releasable_excerpts` is what the request builder then asks
+    about every one of them on the way out. Five refusals live there -- the
+    always-local zone, a value P5 signalled, an empty raw value, and the two
+    whole-unit tests (`104` R-135's heading and `104` R-152's line exempted) --
+    and `validation._check_citation` resolves the model's citation against what
+    was RELEASED. So an item offered that the door drops is not a smaller
+    dossier: the model is shown it, told to cite, cites it, and rule 10 of the
+    site-C text takes the WHOLE answer with it. Measured on r13: 10 of 44 site-C
+    dossiers rejected `CITATION_NOT_IN_DOSSIER`, every cited handle an exact
+    handle the dossier had issued.
+
+    R-154 closed the zone by asking that one exclusion a step early. The other
+    four cannot be asked that way: they need the observation row and the length
+    of the unit the span points into, which `located_citations` does not carry --
+    which is why this asks the predicate rather than retyping them. There is one
+    question here, *may this reading leave the device*, and one function that
+    answers it; a second spelling at this seam is what R-154's three surviving
+    rejections (body 1, metadata 2) were.
+
+    **Keyed on the REF, and that is exact rather than convenient.**
+    `releasable_excerpts` decides per `evidence_refs` entry, resolving the live
+    observation itself and reading its own span -- so releasability is a function
+    of the ref alone, and two items carrying one ref under two reliabilities are
+    both released or both refused. The items keep their order and their fields:
+    nothing here rewrites an item, and an item this drops was never one the model
+    could have used.
+
+    A file left with no item at all is a file `pipeline._judge_with_model` records
+    as a pre-call abstention, which is R-148's own sentence about the same state:
+    the dossier would cite nothing, and saying so is truer than sending one whose
+    every citation the gate will strip.
+    """
+    releasable = {excerpt.observation_key for excerpt in releasable_excerpts(
+        conn, evidence_refs=tuple(dict.fromkeys(
+            item.evidence_ref for item in items)))}
+    return tuple(item for item in items if item.evidence_ref in releasable)
+
+
 def _folder_family(subject_path: str, stating_path: str) -> bool:
     """Whether a document at `stating_path` speaks for a file at `subject_path`.
 
@@ -7213,13 +7255,15 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         `evidence_items`, and `pipeline._judge_with_model` records that as a
         pre-call abstention rather than sending a dossier that cites nothing.
 
-        **Every item offered is one the gate could release** (`104` R-154). All
-        three loops now ask §8.4's always-local exclusion a step early, which is
-        the pattern `model_placement.releasable_excerpts` states for its own five
-        refusals: an item the door will drop is never BUILT rather than built and
-        denied. R-148's readings came that way already -- `releasable_
-        observations` excludes the zone first -- R-150 did it for the anchor
-        lines, and this is the fact loop.
+        **Every item offered is one the gate will release** (`104` R-154, and
+        `104` R-156 for the rest of it). The item set is passed through
+        `releasable_items` -- `model_placement.releasable_excerpts`, the door's
+        own predicate, asked over the candidate refs -- so what the model is shown
+        is exactly what P7 will hand it. R-154 asked the first of those five
+        refusals a step early in this loop; the other four need the observation
+        row and the length of the unit a span points into, which
+        `located_citations` does not carry, so this asks the function that has
+        them rather than retyping them at the seam.
 
         The FACTS are not narrowed with the items. `facts` is P11's own tuple,
         read by retrieval and by §6.10's scoring, and a fact whose only citation
@@ -7287,31 +7331,25 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 reliability=row["reliability_state"],
                 evidence_ref=located[0][0]))
             for ref, location in located:
-                # `104` R-154: §8.4's own always-local exclusion, asked a step
-                # early -- R-150's ruling for the anchor loop, taken here for the
-                # citation that MADE the fact. `releasable_excerpts` drops every
-                # reading whose zone is in this set on the way out, and
-                # `validation._check_citation` resolves a citation against what
-                # was RELEASED; so an item built over one of them was shown to
-                # the model, cited by it, and rejected `CITATION_NOT_IN_DOSSIER`
-                # -- and a rejected citation destroys the WHOLE answer, not the
-                # item. Measured on r13: 10 of 44 site-C dossiers rejected that
-                # way, and every cited handle was an exact handle the dossier had
-                # issued. The model cites what it is shown.
-                #
-                # The SET is imported and never a list of zone names typed here.
-                # `ocr` joined it on 2026-09-04 as member 3 and two of r13's
-                # twelve rejected handles were `ocr`; a hand-written pair would
-                # have gone on passing while this path offered the newest member.
+                # `104` R-154 lives at the bottom of this function now, with the
+                # other four refusals (`104` R-156). The zone test that stood here
+                # asked the first of `releasable_excerpts`' five a step early;
+                # `releasable_items` asks all five over the same refs, and the
+                # zone is part of an observation key's own address -- the key is
+                # minted over `serialize_locator(location)`, which carries it --
+                # so every live row for a ref this loop resolved has the zone this
+                # loop read. The two questions cannot disagree, and one of them is
+                # the door's.
                 #
                 # THE FACT ITSELF IS UNTOUCHED, and that is the difference between
                 # this and dropping the row. `MatchingFact` is appended above,
                 # before this loop, so retrieval and §6.10's scoring -- which read
                 # `facts` and never `evidence_items` -- still see everything P6
                 # settled, and the file keeps every candidate its facts reached.
-                # What changes is only what may be OFFERED as a citable item.
-                if location.zone in ALWAYS_LOCAL_ZONES:
-                    continue
+                # What changes is only what may be OFFERED as a citable item: a
+                # fact whose every citation the door refuses is offered by its
+                # VALUE, which the design calls supporting evidence rather than a
+                # span.
                 span = location.text_span
                 item = (ref, location.zone,
                         None if span is None else (span.start, span.end),
@@ -7418,7 +7456,9 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 # R-11 records what that cost the last time it was.
                 reliability_state=reliability, basis=DIRECT_ANCHOR))
         return dict(
-            facts=tuple(facts), evidence_items=tuple(items),
+            # `104` R-156: the door's own predicate over the whole candidate set,
+            # asked once, so the item set the model sees is the set P7 releases.
+            facts=tuple(facts), evidence_items=releasable_items(conn, items),
             group_ids=accepted_memberships_of(
                 conn, file_id, accepted=accepted_ids),
             curated_folder_labels=_folders_this_file_is_already_in(file_id),
