@@ -141,6 +141,95 @@ _DUPLICATE_FIELD: str = "duplicate_field"
 #: different one in the optional `claim_ref`. Neither wins by being first; the claim
 #: is refused and the address names both.
 _CLAIM_REF_DISAGREES: str = "claim_ref_disagrees_with_field"
+#: `104` R-162, the two shapes a nested claim can wear that have TWO readings. Both
+#: keep the refusal they have today, because a response that could be read two ways
+#: is a response the model did not give: an object that is at once a complete
+#: citation and a claim, and a citation sitting after a nested claim, which belongs
+#: to the host or to the nested claim and whose bytes do not say which.
+_CITATION_OR_CLAIM_AMBIGUOUS: str = "citation_or_claim_ambiguous"
+_CITATION_AFTER_NESTED_CLAIM: str = "citation_after_nested_claim"
+
+#: The two keys that make an object a CLAIM in the ratified schema. `citation` is a
+#: closed object (`additionalProperties: false`) that carries neither, so a member of
+#: a citation list carrying one is already a shape the schema forbids.
+_CLAIM_KEYS: frozenset[str] = frozenset({"payload", "unknown"})
+
+
+def _reading(member: object) -> bool | None:
+    """Is this member of a `citations` list a claim in the wrong brackets?
+
+    `True` a claim, `False` a citation, `None` two readings and therefore no reading.
+
+    A claim carries `payload` or `unknown` and a citation carries `evidence_ref`.
+    An object with a claim key and no `evidence_ref` cannot be a citation at all --
+    `_proposal` refuses it as `_CITATION_MALFORMED` today -- and IS the shape `104`
+    R-153 recorded off the wire. An object carrying both is where the recovery stops:
+    it is a well-formed citation AND a claim, `parse_citation` currently reads it as
+    the citation and drops the claim inside it, and choosing either reading here
+    would be P8 deciding what the model meant.
+    """
+    if not isinstance(member, Mapping) or not _CLAIM_KEYS & member.keys():
+        return False
+    return None if "evidence_ref" in member else True
+
+
+def _unnest(
+    claim: Mapping[str, object], *, address: str,
+) -> tuple[tuple[Mapping[str, object], ...] | None, str | None]:
+    """One claim, plus every claim the model wrote inside its citation list.
+
+    **`104` R-162: 234 of r15's 619 site-A responses -- 38%, and half of the fresh
+    ones -- were discarded whole for this.** `104` R-153 recorded the shape: *"the
+    response is `claims: [{payload, citations: [{evidence_ref, cited_span,
+    why_it_supports}, {payload, citations: [...]}]}]` -- the model closed the
+    citation list one object late, twice, so the second and third claims sit where a
+    citation should. The first claim and its citation are well-formed and are thrown
+    away with the rest."* It is the ratified template's own one-claim example
+    continued without closing the array. Un-nested, those 234 responses hold 694
+    claims and 141 of them carry at least one claim that would be accepted.
+
+    **This moves a claim out of a list it was never a member of, and nothing else.**
+    The recovered mappings are the model's own, key for key; the host claim is
+    rebuilt with the citations it really made and no others, so a host whose list
+    held only a nested claim is `UNCITED_CLAIM` -- which is what its bytes say. Every
+    recovered claim then goes through `_proposal` and `validate_fact_proposal`
+    unchanged: the four checks of `00`:42 decide it, not this function.
+
+    **Document order, and the input is not touched.** A hoisted claim is spliced in
+    immediately after the claim that contained it, which is where the model wrote it,
+    so the verdicts come back in the order the response sent them. A new mapping is
+    built for the host rather than the parsed object edited, because `store` keeps
+    the response bytes and `104` R-127 re-judges them later; a reading that mutated
+    the parse would make the second judgement of one response disagree with the
+    first.
+
+    **Ambiguity is a refusal**, and the two ambiguous shapes are `_reading`'s `None`
+    and a citation appearing after a nested claim. Recovering an answer the model did
+    not clearly give would be inventing one, so those keep today's refusal with an
+    address that names which ambiguity it was.
+    """
+    raw = claim.get("citations")
+    if not isinstance(raw, list):
+        # Not a citation list at all: `_proposal` has its own word for that.
+        return (claim,), None
+    kept: list[object] = []
+    hoisted: list[Mapping[str, object]] = []
+    for member in raw:
+        reading = _reading(member)
+        if reading is None:
+            return None, f"{address}:{_CITATION_OR_CLAIM_AMBIGUOUS}"
+        if reading:
+            recovered, refusal = _unnest(member, address=address)
+            if recovered is None:
+                return None, refusal
+            hoisted.extend(recovered)
+            continue
+        if hoisted:
+            return None, f"{address}:{_CITATION_AFTER_NESTED_CLAIM}"
+        kept.append(member)
+    if not hoisted:
+        return (claim,), None
+    return ({**claim, "citations": kept},) + tuple(hoisted), None
 
 
 def _answerable_fields(request) -> frozenset[str]:
@@ -204,6 +293,12 @@ def _claims(
     The JSON parse is `validation.decode_response`, which is the one parser every
     site runs: it reports the byte the decoder stopped on and repairs exactly one
     shape, a complete document followed by a single stray closing bracket.
+
+    **The claims are then read out of the brackets the model used** (`104` R-162):
+    `_unnest` hoists a claim the model wrote inside a preceding claim's `citations`
+    list, in document order, and refuses the whole response where the nesting has
+    two readings. That is a parser change and not a validator change -- every claim
+    it returns faces the same four checks any other claim faces.
     """
     parsed, decode_ref = decode_response(response_bytes)
     if decode_ref is not None:
@@ -218,7 +313,15 @@ def _claims(
     for index, claim in enumerate(claims):
         if not isinstance(claim, Mapping):
             return None, f"claim-{index}:{_NOT_AN_OBJECT}"
-    return tuple(claims), None
+    recovered: list[Mapping[str, object]] = []
+    for index, claim in enumerate(claims):
+        # The address is the TOP-LEVEL claim's, at every depth: a refusal names the
+        # claim whose citation list could not be read, and the model wrote one list.
+        unnested, refusal = _unnest(claim, address=f"claim-{index}")
+        if unnested is None:
+            return None, refusal
+        recovered.extend(unnested)
+    return tuple(recovered), None
 
 
 def _proposal(
