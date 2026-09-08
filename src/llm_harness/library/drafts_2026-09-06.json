@@ -211,6 +211,29 @@
    ],
    "layout": "frame-first",
    "note": "The situation call, safety first: the four protected kinds asked about before the shortlist is read at all; then the ordinary situations."
+  },
+  {
+   "site": "A_fact",
+   "candidate": "ratified-folder-levels",
+   "status": "ratified",
+   "template_id": "a_fact.unratified.folder-levels.2026-09-04",
+   "template_file": "a_fact_template_folder_levels.txt",
+   "response_schema_file": "a_fact_response_schema.json",
+   "shaping_policy_file": "a_fact_shaping_policy.json",
+   "glossary_file": "field_glossary.json",
+   "note": "104 R-144: the row site A runs under. The same id, files and digests as the incumbent (the id is inside the prompt fingerprint, so every A_fact record since 2026-09-04 keeps resolving); `status` is the word that says the text is ratified (planning/82 section 0). A v2 of A's text is a new row with its own id under `ratified_local`, selected by cli.A_FACT_ROW."
+  },
+  {
+   "site": "A_fact",
+   "candidate": "v2-code-subject",
+   "status": "ratified_local",
+   "template_id": "a_fact.unratified.folder-levels-v2.2026-09-07",
+   "template_file": "a_fact_template_folder_levels.v2.txt",
+   "response_schema_file": "a_fact_response_schema.json",
+   "shaping_policy_file": "a_fact_shaping_policy.json",
+   "glossary_file": "field_glossary.json",
+   "ratified_by": "the lead, 7 Sep 2026, under the owner's delegation of prompt iteration as new versioned rows (14:15, 7 Sep: \"if it isn't perfect you can try editing prompt too\"); LOCAL only. The ratified text plus rule 12 (the school rule, 105 §14.4) and rule 13 (a context line is named as such; the value it supports is the course CODE it prints, never a title). Measured cause: r11, 21 code-shaped to 39 title answers with the code line in view (104 R-144). The owner ratifies or strikes this row; the glossary is the shipped one (a v2 glossary needs threading into the dossier body, out of scope).",
+   "note": "v2 of the A_fact text: rules 12 and 13 appended after rule 11; everything before THE RULES byte-identical to the ratified text."
   }
  ],
  "digests": {
@@ -244,6 +267,7 @@
   "situation_template.shortlist.txt": "0b2f6ec58c5f7c932a0fe2b3ef6c86810ba03a6604923af3e0990515262e4969",
   "situation_template.safety-first.txt": "00eddb02d0e4e8e6df9215a8f2956961d1ea63b87a23d57a35bd0603fd7d908e",
   "situation_response_schema.json": "138306d24c564d0557cc84d12d0053806e14389b0e6a399b64f9375767845229",
-  "situation_shaping_policy.json": "812c4eb50745df77d927bfdaa30dbcb7d0627d4f8731e3a6f41900eee037ed1b"
+  "situation_shaping_policy.json": "812c4eb50745df77d927bfdaa30dbcb7d0627d4f8731e3a6f41900eee037ed1b",
+  "a_fact_template_folder_levels.v2.txt": "5346d1b37d7373c52a6dd6801d98e1cf60a7f289f0e2393bdec84bb1e8eef929"
  }
 }

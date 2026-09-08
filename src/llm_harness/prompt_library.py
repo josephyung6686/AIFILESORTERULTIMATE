@@ -359,6 +359,35 @@ def draft_status(template_id: str) -> str:
     return drafts_status()
 
 
+def a_fact_row(template_id: str, candidate: str) -> dict:
+    """The ONE A_fact row carrying this id and this candidate (`104` R-144).
+
+    A_fact's rows share one `template_id` -- the id is inside the prompt
+    fingerprint (`fingerprint.prompt_fingerprint`), so a row that named a new id
+    for the same bytes would strand every record written under the old one --
+    and differ by `candidate`: the glossary arm, the readings arm. So the row a
+    deployment runs under is named by both, and two rows agreeing on both is a
+    packet that does not identify a row.
+    """
+    rows = [row for row in _manifest().get("drafts", ())
+            if isinstance(row, dict) and row.get("template_id") == template_id
+            and row.get("candidate") == candidate]
+    if not rows:
+        known = sorted(str(row.get("candidate")) for row in
+                       _manifest().get("drafts", ()) if isinstance(row, dict)
+                       and row.get("template_id") == template_id)
+        raise DraftNotInManifest(
+            f"no row in {DRAFTS_FILE.name} carries template_id {template_id!r} "
+            f"with candidate {candidate!r}. The candidates under that id are "
+            f"{known}.")
+    if len(rows) > 1:
+        raise DraftManifestAmbiguous(
+            f"{len(rows)} rows in {DRAFTS_FILE.name} carry template_id "
+            f"{template_id!r} with candidate {candidate!r}; a pair that names "
+            f"more than one row names none.")
+    return rows[0]
+
+
 def draft_bytes(template_id: str) -> tuple[bytes, bytes, bytes]:
     """The template, response schema and shaping policy for one draft id.
 
