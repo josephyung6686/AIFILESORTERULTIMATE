@@ -1503,7 +1503,10 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
         residual_action_of=(_residual_action_of(conn)
                             if residual_prompt is not None
                             and residual_prompt.ratified
-                            else _must_not_apply(D_RESIDUAL)))
+                            else _must_not_apply(D_RESIDUAL)),
+        # `104` R-145: the SAME mailbox site A's `run_call` takes from. Site C's
+        # responses carried no usage row until this line existed.
+        usage_recorder=fact_authorities.usage_recorder)
     built = model_path_injections(conn, authorities, plan_version=plan_version)
     built.pop("sensitivity_policy", None)
     return built
@@ -1515,7 +1518,7 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
 OBSERVE_PLACEMENT_FIELDS: tuple[str, ...] = (
     "gate", "model_client", "prompt", "residual_prompt", "call_dependencies",
     "model_call_request", "chosen_node_of", "residual_action_of",
-    "model_target",
+    "model_target", "usage_recorder",
 )
 
 
@@ -4160,6 +4163,14 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
             anchor_context_observations(
                 db, scan_run_id=scan_run_id, file_id=file_id, fields=fields,
                 limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS)),
+        # `104` R-145: the same offer in §8.6's preserved-anchors shape, asked only
+        # when the lines above do not fit the dossier ceiling. `model_facts` says
+        # when; this file says what the shape is.
+        anchor_excerpts_for=lambda db, *, file_id, content_hash, fields: (
+            anchor_context_observations(
+                db, scan_run_id=scan_run_id, file_id=file_id, fields=fields,
+                limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
+                preserved_anchors=True)),
         # `105` §14.4. Built here because every part of it is this file's: which
         # levels only an anchor is asked, which field says what a file IS, which
         # kinds the shipped release spells as anchors, and the route's own
@@ -5179,6 +5190,20 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
             value = FILES_PER_REVIEW_SCREEN
         elif name == "max_dossier_tokens":
             value = GROUPING_LIMITS.max_dossier_tokens
+        # THE SAME RULING, TWICE MORE (`104` R-145). P11 replaces the observe
+        # purse's rate and cost ceiling with these two stored numbers before every
+        # site-C call ("a caller must not raise its own ceiling by echoing a
+        # larger one"), and both were seeded at `CEILING_VALUE`. Eight calls per
+        # THOUSAND files is one call on the owner's 199, and site B had spent it:
+        # r12's ledger reads `calls_reserved=1` for `<scan>:observe` beside 60
+        # site-C `BUDGET_EXHAUSTED` abstentions and no site-C dossier at all,
+        # while `observe_scan_budget` had sized that purse at 199. Two answers to
+        # one question again, and the stored one is the one that decides, so the
+        # stored one is the purse's own number.
+        elif name == "max_llm_calls_per_thousand_files":
+            value = OBSERVE_CALLS_PER_1000_FILES
+        elif name == "max_cost_per_scan":
+            value = int(OBSERVE_CALLS_PER_SCAN_CEILING)
         else:
             value = CEILING_VALUE
         set_ceiling(conn, key, value)
@@ -5994,8 +6019,17 @@ def _folder_family(subject_path: str, stating_path: str) -> bool:
 
 def anchor_context_observations(conn: sqlite3.Connection, *, scan_run_id: str,
                                 file_id: str, fields: Sequence[str],
-                                limit: int) -> tuple:
+                                limit: int, preserved_anchors: bool = False) -> tuple:
     """`104` R-135: the anchor headings near this file that a `subject` call may show.
+
+    **`preserved_anchors` is §8.6's second shape of the same offer (`104` R-145).**
+    `False` offers the LINE each anchor sits on, which is what a person would point at
+    on a syllabus; `True` offers each anchor's own span -- the code and nothing round
+    it -- which is `00`:257's "preserve anchor excerpts" when the lines do not fit
+    the dossier ceiling. Same statements, same neighbours, same release check; only
+    which reading of each statement is named. Measured on r12: one neighbour's
+    "line" was a 27,510-character paragraph of extracted text, and every one of the
+    17 files in its folder family was deferred at site A without a call.
 
     **The defect, measured.** 19 of the owner's 43 labelled course codes came back
     MISSING, and 35 of the 43 files whose label carries a course name carry no course
@@ -6057,7 +6091,8 @@ def anchor_context_observations(conn: sqlite3.Connection, *, scan_run_id: str,
         # code beside a neighbouring file is more than the model is shown without it.
         # Skipping instead is what this loop used to do, and on the measured run it
         # skipped 91 of 99 statements and every dossier carried no context at all.
-        ref = statement.line_evidence_ref or statement.code_evidence_ref
+        ref = (statement.code_evidence_ref if preserved_anchors
+               else statement.line_evidence_ref or statement.code_evidence_ref)
         if statement.stating_file_id == file_id:
             continue
         stating = get_file(conn, statement.stating_file_id)

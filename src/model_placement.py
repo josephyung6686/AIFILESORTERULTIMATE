@@ -69,7 +69,7 @@ PLACEMENT_STAGE: str = "placement_interpretation"
 MODEL_PATH_FIELDS: tuple[str, ...] = (
     "gate", "model_client", "prompt", "residual_prompt", "call_dependencies",
     "model_call_request", "chosen_node_of", "residual_action_of",
-    "sensitivity_policy", "model_target",
+    "sensitivity_policy", "model_target", "usage_recorder",
 )
 
 
@@ -124,6 +124,12 @@ class PlacementCallAuthorities:
     #: residual set actually asks for a model, which is the right moment -- it is
     #: not a defect in a run that never had one.
     residual_action_of: Callable[[object], tuple[str, object]] | None
+    #: `104` R-14's one-slot usage mailbox, the same object site A's `run_call`
+    #: takes from, or `None` for a transport that reports no usage. Defaulted for
+    #: `FactCallAuthorities.usage_recorder`'s reason: it is optional by design,
+    #: and a deployment recording none is a real deployment. `104` R-145: site C
+    #: wrote responses with no `llm_call_usage` row until it travelled here.
+    usage_recorder: object | None = None
 
 
 def releasable_excerpts(conn: sqlite3.Connection, *,
@@ -383,4 +389,5 @@ def model_path_injections(conn: sqlite3.Connection,
         # `104` R-118: §8.4's gate reads the target's LOCALITY before a dossier
         # exists, and the builder above closes over the same target too late.
         "model_target": authorities.model_target,
+        "usage_recorder": authorities.usage_recorder,
     }

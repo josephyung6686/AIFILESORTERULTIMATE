@@ -591,6 +591,14 @@ class PipelineInputs:
     #: one. Required with no default, and one of the nine that arrive together
     #: or not at all.
     model_target: object
+    #: `104` R-14's one-slot usage mailbox, or `None`. `104` R-145: site C's calls
+    #: recorded no `llm_call_usage` row because this path was never handed the
+    #: mailbox site A and site B's `run_call` take from -- invisible while site C
+    #: never reached a call, and the standing "every response has its usage
+    #: beside it" test failed the moment it did. Required with no default like
+    #: every field here: `None` is the deployment whose transport reports no
+    #: usage, said by the caller and not assumed by P11.
+    usage_recorder: object
     #: The question to put to the person about ONE file, or `None` for the files
     #: there is nothing to ask about. Called with the subject; answered with a
     #: `(question, node ids)` PAIR and never with an `Ask`.
@@ -2062,6 +2070,7 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
         conn, request, gate=inputs.gate, model_client=inputs.model_client,
         prompt=prompt, call_dependencies=dependencies,
         observed_at=lambda: observed_at,
+        usage_recorder=inputs.usage_recorder,
     ), prompt=prompt)
 
 

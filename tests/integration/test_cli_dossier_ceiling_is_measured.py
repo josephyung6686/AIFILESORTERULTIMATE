@@ -73,22 +73,65 @@ def test_one_ceiling_is_stored_and_it_is_the_one_the_requests_carry(conn):
 
 
 def test_the_other_six_ceilings_are_untouched(conn):
-    """The dossier ceiling is the only one that had a second answer elsewhere.
+    """Each of the other six is seeded from the one place that answers it.
 
     Without this, raising one number in a loop over seven keys could raise all
     seven and nothing would say so -- `placement_limits` reads every one of them
     and refuses a non-positive value, which is not the same as noticing a change.
+
+    `104` R-145: the two SPEND ceilings had the same second answer the dossier
+    ceiling had. P11 replaces the observe purse's rate and cost ceiling with the
+    stored numbers before every site-C call, and the stored numbers were
+    `CEILING_VALUE`, so the purse `cli.observe_scan_budget` sized at one call per
+    file was cut to ONE call on 199 files. They are seeded from the purse's own
+    constants now, and the three neighbourhood ceilings keep `CEILING_VALUE`.
     """
     from placement.config import CEILINGS
 
     cli._bootstrap(conn)
+    seeded_from = {
+        "max_residual_files_per_batch": cli.FILES_PER_REVIEW_SCREEN,
+        "max_llm_calls_per_thousand_files": cli.OBSERVE_CALLS_PER_1000_FILES,
+        "max_cost_per_scan": int(cli.OBSERVE_CALLS_PER_SCAN_CEILING),
+    }
     for name, key in CEILINGS.items():
         if name == "max_dossier_tokens":
             continue
-        expected = (cli.FILES_PER_REVIEW_SCREEN
-                    if name == "max_residual_files_per_batch"
-                    else cli.CEILING_VALUE)
-        assert get_ceiling(conn, key) == expected, name
+        assert get_ceiling(conn, key) == seeded_from.get(name, cli.CEILING_VALUE), name
+
+
+def test_p11s_override_leaves_the_observe_purse_one_call_per_file(conn):
+    """`104` R-145's site-C half, measured the way r12's ledger showed it.
+
+    `placement.pipeline._judge_with_model` rebuilds the scan budget with the two
+    stored spend ceilings -- "a caller must not raise its own ceiling by echoing a
+    larger one" -- so the purse site C actually reserves from is `observe_scan_
+    budget`'s purse under P11's numbers. On r12 that was `max(floor(199 * 8 /
+    1000), 1) == 1`, site B had settled the one call, and 60 files were refused
+    at site C with `calls_reserved=1` on the ledger. The two numbers are one now,
+    and the override changes nothing about how many calls a corpus is allowed.
+    """
+    from dataclasses import replace
+    from decimal import Decimal
+
+    from llm_harness.budgets import ScanBudget, allowed_calls
+    from placement.config import placement_limits
+
+    cli._bootstrap(conn)
+    limits = placement_limits(conn)
+    fact_purse = ScanBudget(
+        scan_id="scan-r145", corpus_file_count=102,
+        max_calls_per_1000_files=cli.FACT_CALLS_PER_1000_FILES,
+        max_estimated_cost=cli.FACT_CALLS_PER_SCAN_CEILING,
+        min_calls_per_scan=cli.FACT_MIN_CALLS_PER_SCAN)
+    purse = cli.observe_scan_budget(fact_purse, corpus_file_count=199)
+    as_p11_reserves = replace(
+        purse,
+        max_calls_per_1000_files=limits.max_llm_calls_per_thousand_files,
+        max_estimated_cost=Decimal(limits.max_cost_per_scan))
+    assert allowed_calls(purse) == 199
+    assert allowed_calls(as_p11_reserves) == allowed_calls(purse)
+    assert as_p11_reserves.max_estimated_cost == purse.max_estimated_cost
 
 
 # --- the measurement --------------------------------------------------------
@@ -136,7 +179,7 @@ def _reading(raw: str, index: int) -> Observation:
                           TextSpan(0, len(raw))))
 
 
-def _dependencies(conn, observations):
+def _dependencies(conn, observations, anchors=None):
     from facts.llm_seam import FactRequest
     from model_facts import _call_dependencies
 
@@ -147,7 +190,8 @@ def _dependencies(conn, observations):
         normalizers={})
     return _call_dependencies(
         request, ("work_type",), folder_levels=(),
-        authorities=_authorities(conn), observations=tuple(observations))
+        authorities=_authorities(conn), observations=tuple(observations),
+        anchor_observations=None if anchors is None else tuple(anchors))
 
 
 def test_a_dossier_inside_the_ceiling_still_fits(conn):
@@ -191,6 +235,48 @@ def test_a_dossier_over_the_ceiling_does_not_fit_and_the_ladder_defers(conn):
     assert decision.gate_releases == 0
     assert decision.reservations == 0
     assert decision.invocations == 0
+
+
+def test_a_context_line_over_the_ceiling_yields_to_the_preserved_anchors_rung(conn):
+    """`104` R-145's site-A half. `00`:257's second remedy, "preserve anchor
+    excerpts", is a shape this deployment CAN build since R-135: the context a
+    neighbour supplies has a line reading and the code's own span, and the span
+    is the excerpt.
+
+    Measured on r12: one neighbour's "line" -- a newline-delimited segment of
+    extracted text -- was 27,510 characters, and all 17 files in its folder
+    family were deferred at site A, each recorded `BUDGET_EXHAUSTED` with no
+    reservation made. The file's own readings here are 10 characters; nothing
+    about the FILE is over any ceiling.
+    """
+    from llm_harness.budgets import plan_reduction
+    from llm_harness.vocabulary import PRESERVED_ANCHORS
+
+    own = [_reading("Homework 3", 1)]
+    paragraph = [_reading("x" * 5000, 2)]
+    code = [_reading("W3134", 3)]
+    deps = _dependencies(conn, own + paragraph, anchors=own + code)
+    assert deps.unreduced_fits is False
+    assert deps.anchors_fit is True
+
+    decision = plan_reduction(
+        unreduced_fits=deps.unreduced_fits,
+        summarized_fits=deps.summarized_fits,
+        anchors_fit=deps.anchors_fit,
+        split_shard_fits=deps.split_shard_fits,
+        call_site="A_fact", subject_ref="file-1")
+    assert decision.rung == PRESERVED_ANCHORS
+    assert decision.abstention is None
+
+
+def test_without_a_second_shape_the_ladder_is_what_it_was(conn):
+    """A deployment that offers no excerpt shape keeps the rung honestly absent:
+    `anchors_fit` is `False`, not a measurement of the wrong list."""
+    own = [_reading("Homework 3", 1)]
+    paragraph = [_reading("x" * 5000, 2)]
+    deps = _dependencies(conn, own + paragraph)
+    assert deps.unreduced_fits is False
+    assert deps.anchors_fit is False
 
 
 def test_the_stage_hands_the_ladder_the_observations_it_is_about_to_send():

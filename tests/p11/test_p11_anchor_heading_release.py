@@ -1235,6 +1235,37 @@ def _body_neighbour(conn, tmp_path, *, text=SCHEDULE,
                 homework_hash=homework_hash, own=own)
 
 
+def test_the_excerpt_shape_names_each_anchors_own_span(conn, tmp_path):
+    """`104` R-145: the same offer, in §8.6's preserved-anchors shape.
+
+    A `.docx` paragraph or a page of PDF text is one newline-delimited segment, and
+    `line_reading_for` reads it back as one LINE -- 27,510 characters on the owner's
+    corpus, in a dossier whose ceiling is 4,000. The excerpt shape offers the code's
+    own span instead: same statement, same stating file, same release check, and the
+    model still sees which course the folder states.
+    """
+    import cli
+
+    paragraph = ("Course policies. " * 300 + "COMS W3134 Data Structures. "
+                 + "Late work is not accepted. " * 100)
+    assert "\n" not in paragraph and len(paragraph) > 4000
+    world = _body_neighbour(conn, tmp_path,
+                            text="Autumn term\n" + paragraph + "\nMeets Tuesdays\n")
+
+    lines = cli.anchor_context_observations(
+        conn, scan_run_id="scan-r135", file_id=world["homework"],
+        fields=("subject",), limit=10)
+    excerpts = cli.anchor_context_observations(
+        conn, scan_run_id="scan-r135", file_id=world["homework"],
+        fields=("subject",), limit=10, preserved_anchors=True)
+
+    assert len(lines) == 1 and lines[0].raw_value == paragraph
+    assert len(excerpts) == 1
+    assert excerpts[0].raw_value == "W3134"
+    assert excerpts[0].observation_key == world["code"].observation_key
+    assert excerpts[0].file_id == world["stating"]
+
+
 def _body_neighbour_extra(conn, tmp_path, *, name, text,
                           folder="Courses/Data Structures"):
     """A SECOND stating file in the same folder, so "which anchor" is a real question.

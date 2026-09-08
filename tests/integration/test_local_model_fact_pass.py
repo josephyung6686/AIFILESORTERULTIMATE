@@ -274,6 +274,82 @@ def _local_run(tmp_path, stub, monkeypatch):
     return database, report
 
 
+# --- `104` R-145: a paragraph-sized context line, end to end ------------------
+
+PARAGRAPH_NAME = "PHYS 1401 lecture policies.txt"
+
+
+def _corpus_with_a_paragraph_neighbour(root: Path) -> Path:
+    """`_corpus`, plus one neighbour whose course line is a whole paragraph.
+
+    `.docx` paragraphs and pages of PDF text reach P4 as one newline-delimited
+    segment, and `line_reading_for` reads the line a code sits on back as that
+    whole segment: 27,510 characters on the owner's corpus, against a 4,000
+    ceiling. The `.txt` here is the same shape and it is the SIXTH file's neighbour,
+    so `HW 3.txt` -- which states no course of its own -- is offered it as context.
+    """
+    corpus = _corpus(root)
+    (corpus / PARAGRAPH_NAME).write_text(
+        # ONE line, and the file names its kind the way `Lecture 08.txt` does,
+        # so the detector classifies it and the context builder admits it as a
+        # neighbour: an unclassified stating file is skipped before its line is
+        # ever offered (`cli.anchor_context_observations`). The code sits beside
+        # §3.5's context words so the subject rule reads it as a course.
+        "Lecture policies\n"
+        + "Attendance is expected at every lecture. " * 120
+        + "Instructor: Dr. Lee. PHYS 1401. Credits: 3. "
+        + "Late work is not accepted without a note. " * 20
+        + "\nQuestions to the instructor.\n")
+    return corpus
+
+
+def test_a_paragraph_sized_context_line_is_offered_as_its_code_span_not_deferred(
+        tmp_path, stub, monkeypatch):
+    """`104` R-145's site-A half, on the wire. Before this, r12 deferred all 17
+    files in one folder family at site A -- `reduction_rung=deferred`, reason
+    `BUDGET_EXHAUSTED`, no reservation made -- because one neighbour's line was
+    the size of a document. The file's own question is asked in §8.6's
+    preserved-anchors shape instead, and the dossier records that rung."""
+    monkeypatch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
+    monkeypatch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)
+    corpus = _corpus_with_a_paragraph_neighbour(tmp_path)
+    database = tmp_path / "holder" / "plan.sqlite"
+    code, report = _run(corpus, database)
+    assert code == 0, report
+
+    (homework,) = _query(
+        database, "SELECT file_id FROM files WHERE filename = ?", "HW 3.txt")[0]
+    rungs = _query(
+        database,
+        "SELECT reduction_rung FROM llm_dossier "
+        "WHERE call_site = 'A_fact' AND subject_ref = ?", homework)
+    deferred = _query(
+        database,
+        "SELECT reason FROM llm_pre_call_abstention "
+        "WHERE call_site = 'A_fact' AND subject_ref = ?", homework)
+    assert rungs, (report, deferred)
+    assert {row[0] for row in rungs} == {"preserved_anchors"}, (rungs, report)
+    assert not deferred, deferred
+    # The site-C half, on the same run. Under the seeded ceilings site C's purse
+    # was ONE call on any corpus under 125 files and site B had spent it; now it
+    # is asked, and -- the defect that surfaced the moment it was -- every one of
+    # its responses has its usage beside it, as site A's always did.
+    asked_at_c = _query(
+        database,
+        "SELECT COUNT(*) FROM llm_response r JOIN llm_dossier d USING (dossier_id) "
+        "WHERE d.call_site = 'C_placement'")[0][0]
+    responses = _query(database, "SELECT COUNT(*) FROM llm_response")[0][0]
+    usage = _query(database, "SELECT COUNT(*) FROM llm_call_usage")[0][0]
+    assert asked_at_c >= 1, report
+    assert usage == responses, (usage, responses)
+    # And the model was shown the course the folder states, as the code's own span.
+    shown = [dossier_in(prompt) for prompt in stub.prompts()]
+    assert any(
+        item.get("value") == "PHYS 1401"
+        for dossier in shown for item in dossier.get("released_evidence", ())), (
+        "the excerpt shape must still carry the code to the model")
+
+
 # --- `103` §10's pass test, on a local model ----------------------------------
 
 def test_the_fact_pass_runs_and_writes_a_supported_fact(tmp_path, stub, monkeypatch):
