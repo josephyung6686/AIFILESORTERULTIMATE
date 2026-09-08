@@ -1119,3 +1119,51 @@ that does get built is a median 212 characters. That is what §17.5 is dispatche
 
 Open owner items unchanged by this section: 13 (response schema, and the answers lane reports on
 it before it is built), 15, 16, 17, 18.
+
+### 17.6 Two further rulings, 8 Sep 2026 (evening), and the target architecture
+
+**Item 15 (R-161), RULED as the lead recommended.** A format's own person-valued fields are
+signalled by the FIELD, which is structure and not a word list: PDF `/Author`, OOXML `dc:creator`,
+`cp:lastModifiedBy`. No vocabulary is authored under this ruling; body-text address and identifier
+detection is NOT covered and stays open. Building on `r161-field-signals` off `c8ee99e`.
+
+**The trap this ruling walks into, recorded so nobody re-discovers it.** The signal feeds
+`sensitive_observation_keys`, one of the four exclusions in `may_be_released`, and every one of
+those refuses the WHOLE request rather than the item -- `ProtectedItemRequested`, not divided by
+target. `Author` was released 139 times, `last_modified_by` 85, `Creator` 50 over 617 dossiers, so
+the naive implementation costs 139 files their entire model call and re-starves site A in one
+commit, while looking like a privacy improvement. The ruling is therefore built in two halves: emit
+the signal, AND make a signalled observation be withheld from the offer instead of fatal to the
+request. The second half is the harder one and is pinned by its own test.
+
+Note the double defect this closes: seven labelled files got the `Author` metadata's NAME returned
+as their `subject`, three times each. The same field is both a privacy leak and an accuracy defect.
+
+**TARGET ARCHITECTURE, ruled: cloud-majority, local reserved for protected material.** The cloud
+provider is the one already wired (`readers.model_routing.deepseek_routing`); no new client. The
+owner's sequencing is explicit and is the order of work: **the local run happens first, to prove the
+pipeline decides at all, and the cloud upgrade follows it.**
+
+What that upgrade requires, all measured, none optional:
+
+1. **The excerpt producer.** Item 14 was ruled the first way, which served the LOCAL target and left
+   cloud restrictions standing -- so a cloud target is shown a median of **0** body characters and
+   76 of the 129 files with body readings get nothing at all. No prompt and no model size fixes
+   that. R-159's row already specifies the shape: a minted reading over the opening of each unit,
+   in document order, on `_minted_line`'s pattern, whose only number is
+   `max_dossier_tokens_per_call`. Building on `r164-paragraph-units` as `opening_reading_for` in
+   `evidence_shape/store.py` -- the only legal home, since `tests/p7/test_p7_no_invention.py`'s L2
+   guard permits exactly `evidence_shape`, `privacy` and `orchestrator` to bind a P4 text
+   materialiser, and the gate resolves a requested item against the STORED observation, so an
+   excerpt synthesised at release time would die at `privacy/resolve.materialise`.
+2. **R-161 above**, since it is what makes "local only for protected" a property rather than a hope.
+3. **R-82 signed** -- the person's own folder labels crossing into model-visible bytes. §15.4's
+   proposed two-halves form stands: local now, cloud only once the consent text names "your folder
+   names" in its own sentence, so consent and crossing are the same act.
+
+**What is NOT a reason to prefer local, stated because it was raised and answered:** cost and
+latency. §12.4 measured 42 cloud calls in 79 seconds, about 1.9 s each; dollar cost is not yet
+observable (R-14, the transport returns no usage) but at this corpus size it is cents, and the
+5,000-file target is ~25x of cents. Cost is not the constraint. The constraint is that the safety
+machinery which would make cloud-majority honest does not exist yet, and today cloud LOOKS safe
+only because it is shown nothing.
