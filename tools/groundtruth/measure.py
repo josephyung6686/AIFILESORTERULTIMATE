@@ -70,6 +70,25 @@ ACCEPTING_VERDICTS = ("accept_direct", "accept_context_supported")
 #: caution the harness asks for as a defect.
 FAILED_VALIDATION = ("weak", "reject")
 
+#: P11's review policies, spelled here for the reason `C_PLACEMENT` is spelled
+#: here: the harness reads what a run WROTE, and a run written by an older build
+#: is still a run this must read. Importing `placement.vocabulary` would make the
+#: instrument agree with the product by construction.
+#:
+#: `104` R-151. A HELD PLACEMENT IS A PLACEMENT. The model named a folder; the only
+#: thing the policy withholds is the MOVE, and a person reading the screen sees a
+#: held placement as a proposal -- "we suggest this folder; confirm". So these
+#: words never reach `score_sorting`: the five classes compare the proposed node
+#: against the label whatever is written here, and the hold is counted BESIDE them,
+#: because "exact" and "exact, and waiting for you" are two different facts and a
+#: reader needs both.
+BLOCKED_PENDING_USER = "blocked_pending_user"
+REVIEW_REQUIRED = "review_required"
+AUTO_ELIGIBLE = "auto_eligible"
+
+#: The policies that mean nothing moves until the person says so.
+HELD_POLICIES = (BLOCKED_PENDING_USER, REVIEW_REQUIRED)
+
 
 @dataclass(frozen=True)
 class Observation:
@@ -112,6 +131,31 @@ class Observation:
     #: every file, which is the truth about such a run: no model answered, so no
     #: model answer failed.
     invalid_model_output: bool = False
+    #: What P11 wrote in the decision's `review_policy` -- `auto_eligible`,
+    #: `review_required`, `blocked_pending_user`, or None when the run recorded
+    #: none. `104` R-151: read so the scorecard can say whether a placement it
+    #: scored is one the product would MOVE or one it is holding out as a proposal.
+    #:
+    #: READ FROM THE PAYLOAD, not from the column, and for the same reason `asked`
+    #: is: `_rows` raises rather than swallowing, so naming a column in the SELECT
+    #: would make a run written before that column existed unreadable ENTIRELY --
+    #: every decision in it would vanish, and the scorecard would read `no
+    #: decision` for a corpus the product had sorted. The payload is
+    #: `asdict(decision)`, so it carries the field for every build that had it.
+    #:
+    #: Last and defaulted, like `invalid_model_output` above, so every existing
+    #: construction of this class keeps working unchanged.
+    review_policy: str | None = None
+
+    @property
+    def held(self) -> bool:
+        """This run PLACED the file and is holding the move for the person.
+
+        Only a placement can be held. An abstention carries a review policy too --
+        P11 computes one for every decision -- and counting that would report a
+        hold on a file nothing was proposed for.
+        """
+        return self.outcome == "place" and self.review_policy in HELD_POLICIES
 
     @property
     def extension(self) -> str:
@@ -497,11 +541,15 @@ def _observe(connection, root, situation, label, promised_levels, report,
         outcome = decision["outcome"] if decision else None
         destination = _destination_of(decision["node_id"], nodes) if decision else ()
         asked = False
+        review_policy = None
         if decision:
             try:
-                asked = json.loads(decision["payload"]).get("ask") is not None
+                body = json.loads(decision["payload"])
             except (ValueError, TypeError):
-                asked = False
+                body = {}
+            asked = body.get("ask") is not None
+            policy = body.get("review_policy")
+            review_policy = policy if isinstance(policy, str) else None
 
         files[relative] = Observation(
             path=relative,
@@ -523,6 +571,7 @@ def _observe(connection, root, situation, label, promised_levels, report,
             destination=destination,
             asked=asked,
             invalid_model_output=file_id in invalid_outputs,
+            review_policy=review_policy,
         )
 
     # A file the scan set aside never becomes a `files` row, and "never silently

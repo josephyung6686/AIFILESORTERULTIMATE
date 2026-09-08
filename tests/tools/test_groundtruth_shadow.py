@@ -489,8 +489,18 @@ def test_the_per_file_table_puts_the_observed_node_beside_the_applied_one(built)
 
 
 def test_without_the_flag_the_table_keeps_exactly_the_columns_it_had(built):
-    table = per_file_table([built["run"]], built["labels"])
-    assert table.splitlines()[0].split("\t")[-1] == "family"
+    """No `--shadow` cell reaches a table nobody passed the flag to.
+
+    The last column is `review_policy` and not `family` since `104` R-151 appended
+    it: what this test guards against is the FLAG adding columns, and R-151's
+    column is there whether or not the flag is given. The three shadow names are
+    now refused BY NAME as well, so a column appended later cannot make this pass
+    by accident.
+    """
+    columns = per_file_table(
+        [built["run"]], built["labels"]).splitlines()[0].split("\t")
+    assert columns[-1] == "review_policy"
+    assert not {"shadow_sorting", "shadow_got", "shadow_source"} & set(columns)
 
 
 def test_no_file_content_reaches_the_block_or_the_table(built):

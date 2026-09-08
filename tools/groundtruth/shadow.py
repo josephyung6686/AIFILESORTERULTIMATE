@@ -452,6 +452,15 @@ def shadow_run(run: RunObservation, observed: Mapping[str, ObservedVerdict],
     Every file in the run gets a word, including the ones site C was never asked
     about, because a shadow row whose provenance is unstated is the silent omission
     this whole harness exists to refuse.
+
+    `104` R-151: a SUBSTITUTED outcome carries NO review policy. P11 computes one
+    for every decision it writes, abstentions included, and an abstention's is
+    almost always `review_required` -- so a shadow placement that kept the applied
+    decision's policy would report "held for the person" about a hold nobody ever
+    decided. The shadow row is a placement P11 never made, so the honest value is
+    "not on the record", which is what None means everywhere else in `Observation`.
+    A file whose applied outcome is CARRIED keeps its own policy, because that one
+    was really written.
     """
     files: dict[str, Observation] = dict(run.files)
     sources: dict[str, str] = {}
@@ -465,10 +474,11 @@ def shadow_run(run: RunObservation, observed: Mapping[str, ObservedVerdict],
             continue
         if answer.destination:
             files[path] = dataclasses.replace(
-                observation, outcome=PLACE, destination=answer.destination)
+                observation, outcome=PLACE, destination=answer.destination,
+                review_policy=None)
         else:
             files[path] = dataclasses.replace(
-                observation, outcome=ABSTAIN, destination=())
+                observation, outcome=ABSTAIN, destination=(), review_policy=None)
     return dataclasses.replace(run, files=files), sources
 
 

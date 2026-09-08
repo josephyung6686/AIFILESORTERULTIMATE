@@ -11,7 +11,9 @@ import collections
 from typing import Iterable, Mapping, Sequence
 
 from tools.groundtruth.labels import Label
-from tools.groundtruth.measure import COMPLETENESS_ORDER, Observation, RunObservation
+from tools.groundtruth.measure import (
+    AUTO_ELIGIBLE, COMPLETENESS_ORDER, HELD_POLICIES, Observation, RunObservation,
+)
 from tools.groundtruth.score import (
     APPROPRIATE_ABSTENTION,
     CORRECT_PLACEMENT,
@@ -100,6 +102,72 @@ def _split_buckets(runs, labels):
                       else score_sorting(label, observation))
             (uncertain if label.is_uncertain else confident)[bucket] += 1
     return confident, uncertain
+
+
+#: The three things the run can have recorded about a placement it made, and the
+#: word each gets on the block. `NOT_RECORDED` is not a fourth review policy: it is
+#: the absence of one, printed only when it happens, by the same rule `NO_OUTCOME`
+#: is printed beneath the five classes -- the arithmetic has to come to the number
+#: of placements, or the line is flattering somebody.
+HELD_FOR_THE_PERSON = "held for the person"
+FREE_TO_MOVE = "free to move"
+POLICY_NOT_RECORDED = "no review policy on the record"
+
+
+def held_counts(runs: Sequence[RunObservation],
+                labels: Mapping[str, Label]) -> collections.Counter:
+    """Of the placements the two blocks scored, how many the run is HOLDING.
+
+    `104` R-151. A `place` decision whose `review_policy` is `blocked_pending_user`
+    or `review_required` is one the product will not carry out until the person
+    says yes -- and a person reads that as a PROPOSAL: "we suggest this folder;
+    confirm". The proposal is scored above like any other placement, because the
+    model's answer is either the label's folder or it is not and the policy has no
+    bearing on which. This counts the hold BESIDE those buckets so the two facts
+    stay apart: where the file was proposed, and whether it went there.
+
+    THE SAME DENOMINATOR AS `_split_buckets`, walked the same way and with
+    protected files left out for the same reason, so a reader may add these against
+    the four placed buckets in the blocks above and get the same number.
+    """
+    counted: collections.Counter = collections.Counter()
+    for run in runs:
+        for path, label in labels.items():
+            if label.situation != run.situation or label.protected:
+                continue
+            observation = run.files.get(path)
+            if observation is None or observation.outcome != "place":
+                continue
+            if observation.review_policy in HELD_POLICIES:
+                counted[HELD_FOR_THE_PERSON] += 1
+            elif observation.review_policy == AUTO_ELIGIBLE:
+                counted[FREE_TO_MOVE] += 1
+            else:
+                counted[POLICY_NOT_RECORDED] += 1
+    return counted
+
+
+def held_lines(runs: Sequence[RunObservation],
+               labels: Mapping[str, Label]) -> list[str]:
+    """The held-versus-free count, printed beneath a sorting block.
+
+    A count and never a bucket. The six buckets say where each file was proposed
+    and the five classes say whether that was right; neither changes because a
+    move is waiting, and R-128's classes are closed.
+    """
+    counted = held_counts(runs, labels)
+    placed = sum(counted.values())
+    held = counted.get(HELD_FOR_THE_PERSON, 0)
+    lines = [f"            {placed} of the files above were placed: {held} "
+             f"{HELD_FOR_THE_PERSON}, "
+             f"{counted.get(FREE_TO_MOVE, 0)} {FREE_TO_MOVE}"]
+    lines.append(f"              a hold ({', '.join(HELD_POLICIES)}) is a PROPOSAL:")
+    lines.append("              the folder above is scored either way, the MOVE "
+                 "waits for the person")
+    unrecorded = counted.get(POLICY_NOT_RECORDED, 0)
+    if unrecorded:
+        lines.append(f"              {unrecorded} {POLICY_NOT_RECORDED}")
+    return lines
 
 
 def outcome_counts(runs: Sequence[RunObservation],
@@ -209,6 +277,13 @@ def sorting_lines(runs: Sequence[RunObservation],
             lines.append(f"              {n:4d}  {_pct(n, n_uncertain)}  {bucket}")
     lines.append(f"            {confident_on_uncertain} of them were answered "
                  f"confidently anyway")
+    # `104` R-151, beneath both blocks because it is counted over both: a hold is
+    # not a seventh bucket and changes no number above it. It says which of the
+    # placements just scored the product would CARRY OUT and which it is holding
+    # out as a proposal -- the difference between "your file is in that folder"
+    # and "we suggest that folder; confirm", which the buckets cannot express.
+    lines.append("")
+    lines.extend(held_lines(runs, labels))
     # `105` §14.7, beneath the two blocks and never instead of them. The blocks say
     # WHERE each file went; these five say whether that was the right thing to do,
     # which the blocks cannot: `not placed` is the pass in one and the miss in the
@@ -572,13 +647,23 @@ def per_file_table(runs: Sequence[RunObservation],
     site-C verdict would have placed, which is the "observed versus applied" pair.
     `shadow_source` says which of the two the shadow row came from -- `verdict`, or
     the word for why the applied outcome was carried instead.
+
+    `review_policy` (`104` R-151) is P11's own word for the decision in `sorting`,
+    and it is what tells "placed exact" apart from "placed exact, and waiting for
+    you": `blocked_pending_user` and `review_required` are holds, `auto_eligible`
+    is a move the product would make on its own, and empty means the run was not
+    placing this file or recorded no policy for it. The RAW word rather than a
+    yes/no, because which hold it is -- nothing has classified this file yet, or
+    somebody should look -- is the first thing a person debugging the row asks. It
+    is appended after `family` and before the shadow cells, so every column above
+    keeps the position the paragraph above promises it.
     """
     by_situation = {run.situation: run for run in runs}
     shadow_by_situation = {run.situation: run for run in shadow}
     header = ["path", "group", "situation", "sorting", "wanted", "got",
               "completeness", "recovered", "protected_label", "protected_marked",
               "opened", "fields_correct", "fields_wrong", "fields_missing",
-              "uncertain", "family"]
+              "uncertain", "family", "review_policy"]
     if shadow:
         header += ["shadow_sorting", "shadow_got", "shadow_source"]
     rows = ["\t".join(header)]
@@ -605,7 +690,7 @@ def per_file_table(runs: Sequence[RunObservation],
                 path, label.group, label.situation, NO_DECISION,
                 "/".join(label.destination or ()), "", "", "",
                 str(label.protected), "", "", "", "", "",
-                "yes" if label.is_uncertain else "", label.family or "",
+                "yes" if label.is_uncertain else "", label.family or "", "",
                 *tail(path, label)]))
             continue
         c, wr, m, _ = score_fields(label, observation)
@@ -621,6 +706,11 @@ def per_file_table(runs: Sequence[RunObservation],
             "yes" if observation.opened else "no",
             str(c), str(wr), str(m),
             "yes" if label.is_uncertain else "", label.family or "",
+            # Only a placement can be held, so an abstention's policy -- P11 writes
+            # one for every decision -- is left out rather than read as a hold on
+            # a file nothing was proposed for. `Observation.held` is the same rule.
+            ((observation.review_policy or "")
+             if observation.outcome == "place" else ""),
             *tail(path, label)]))
     return "\n".join(rows)
 
