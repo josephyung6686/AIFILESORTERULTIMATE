@@ -610,10 +610,30 @@ def test_widening_the_pattern_did_not_widen_it_to_ordinary_prose():
     `cli.py` states the posture the narrow pattern was chosen for: "A wider
     pattern would put more of the file's text into P4's observations, and a first
     run on somebody's disk is not the place to widen what gets read." Widening it
-    to read `PHYS 1401` must not turn it into a reader of sentences, dates,
-    money, or a person's initials followed by a year.
+    to read `PHYS 1401` must not turn it into a reader of sentences, money, or a
+    person's initials followed by a year.
+
+    **THE DATE CLAUSE LEFT THIS TEST ON 2026-09-08 AND IT WAS NEVER TRUE.** The
+    line below used to read `== []` and pinned "or dates" into the sentence above.
+    `104` R-146 widened the letters from `[A-Z]` to `[A-Za-z]` so a syllabus that
+    prints `Physics 1401` is readable at all, and the same widening reads
+    `March 2026` out of the date below. The old pin did not describe a refusal
+    this pattern was making; it described one it made only for months a document
+    writes in title case. Measured on the shape that was here before the change,
+    `\\b[A-Z][A-Z0-9]*[ -]?[0-9]{3,}\\b`:
+
+        '14 MARCH 2026'  ->  ['MARCH 2026']
+
+    A shouted month was already an identifier, and the sentence above already had
+    no business promising otherwise. Nothing of SHAPE separates `March 2026` from
+    `Physics 2026`, and the only thing that could is a list of month names -- which
+    is the domain knowledge this deployment refuses to author, because the model is
+    the one asked what a line names. So the reading is delivered and refused where
+    a refusal can be reasoned: `_is_term` holds a term off `subject`, and §3.5's
+    rule takes no candidate that has no teaching word beside it.
     """
-    assert _identifiers("Meeting on 14 March 2026 about the 2026 budget") == []
+    assert _identifiers("Meeting on 14 March 2026 about the 2026 budget") == [
+        "March 2026"]
     assert _identifiers("The total was 1401 dollars") == []
     assert _identifiers("see Appendix A for the 2026 figures") == []
     # Two words before the digits is prose, not an identifier token.

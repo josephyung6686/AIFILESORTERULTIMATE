@@ -2577,10 +2577,64 @@ COLLECTOR_FIELD_KEYS = frozenset({"authored_by", "organization"})
 #: reading better, never by asking the person: "No onboarding answer could have
 #: recovered that course code."
 #:
-#: The posture above is unchanged. The letters must still be a single uppercase
-#: token and the digits must still be three or more, so a date, a sum of money, a
-#: page number and a sentence are all still invisible to it.
-_STRUCTURED = re.compile(r"\b[A-Z][A-Z0-9]*[ -]?[0-9]{3,}\b")
+#: THE CASE OF THE LETTERS LEFT THIS PATTERN ON 2026-09-08, and `104` R-146 is the
+#: measurement. Read with the uppercase-only shape
+#: `\b[A-Z][A-Z0-9]*[ -]?[0-9]{3,}\b`, on this file's own strings:
+#:
+#:     'Physics 1401'         -> []                 'PHYS 1401'  -> ['PHYS 1401']
+#:     'French 1101 syllabus' -> []                 'W3134'      -> ['W3134']
+#:     'COMS W3134'           -> ['W3134']          'BUSIB 4300' -> ['BUSIB 4300']
+#:
+#: A syllabus that prints its course as a capitalised WORD and a number was invisible
+#: -- no reading, so no observation, so nothing for §3.5's rule to test and nothing
+#: for the anchor pass to find. R-146, measured on the owner's corpus in shapes only:
+#: of 43 labelled files, the label's subject is stated by a recognised anchor in the
+#: file's own folder family for NONE, and 9 of the model's 19 `subject` answers on
+#: that run are a one-letter identifier naming something else, copied from a cited
+#: neighbour because it was the only anchor sharing the digits.
+#:
+#: **A DEPARTMENT IS WHATEVER WORD THE DOCUMENT PRINTS BEFORE ITS NUMBER.** No word
+#: list decides this and none may: the constitution's first rule is that code
+#: delivers candidates and the model judges, and a list of department names would be
+#: this file answering "which words are departments" -- the question the model is
+#: asked. So the letters may be title case, and the second alternative below reads a
+#: department WORD followed by a section letter glued to the digits, which is the
+#: reading `COMS W3134` was cut in half by.
+#:
+#: **THE SECOND ALTERNATIVE'S SECOND TOKEN IS ONE LETTER, AND THAT IS THE WHOLE
+#: RESTRAINT ON IT.** `[A-Z][A-Za-z]*[ -][A-Z][0-9]{3,}` -- a word, a separator, ONE
+#: capital, the digits. The reasoning is `_SUBJECT_IDENTIFIER`'s own, below: a
+#: one-letter glued token is a FRAGMENT (`E1006` is the tail of `ENGI E1006`), so the
+#: capitalised word in front of it completes a reading this deployment was already
+#: making badly; a multi-letter glued token (`PHYS1401`, `ELTU3017`) is already
+#: whole, so the word in front of it is prose. Measured both ways before choosing:
+#: with a multi-letter second token, `Homework PHYS1401` reads as one identifier and
+#: `Syllabus ELTU3017` as another -- and `canonical` keeps those spaces (`_SEPARATOR`
+#: wants a capital before the space and a digit after), so `PHYS1401` and
+#: `Homework PHYS1401` would arrive at P6 as TWO identities, which is `65` §4.2's
+#: recorded failure exactly. With one letter: `Homework PHYS1401` -> `PHYS1401`,
+#: `Syllabus ELTU3017` -> `ELTU3017`, `COMS W3134` -> `COMS W3134`,
+#: `ENGI E1006` -> `ENGI E1006`.
+#:
+#: **WHAT IT NOW READS OUT OF ORDINARY PROSE, DECIDED CASE BY CASE AND NOT REGRETTED.**
+#: `Chapter 101`, `Room 1234`, `The 2026`, `Room B101` and `March 2026` are all
+#: candidate readings now, and `page 12345` and `iPhone 12345` are not -- a lowercase
+#: word is not a candidate (`\b` also refuses the `P` inside `iPhone`), a capitalised
+#: one is. Nothing distinguishes `Chapter 101` from `Physics 1401` by SHAPE, and the
+#: only thing that could tell them apart is a list of words, which is refused above.
+#: So they are delivered and judged elsewhere: §3.5's rule refuses every one of them
+#: unless a context term naming an act of teaching sits beside it, `_is_term` holds
+#: the term readings off `subject`, and the model is the one asked which line names
+#: the course. THE DATE CASE IS THE HONEST ONE: `14 March 2026` now reads
+#: `March 2026`. It is not a new door -- `14 MARCH 2026` produced `MARCH 2026` under
+#: the uppercase shape too -- so "not a reader of dates" was never true; it was true
+#: only of months this deployment's own users happen not to shout.
+#:
+#: The digits must still be three or more and the separator is still at most one, so
+#: a sum of money, a page number, a two-digit day and a sentence are all still
+#: invisible to it.
+_STRUCTURED = re.compile(
+    r"\b(?:[A-Z][A-Za-z]*[ -][A-Z][0-9]{3,}|[A-Z][A-Za-z0-9]*[ -]?[0-9]{3,})\b")
 
 #: THE SECOND DIMENSION, and §3.10's three named forms rather than one of them.
 #: `00`:78's recommended tree is `Academics/Columbia/2026-Spring/PHYS1401/Homework`,
@@ -2931,15 +2985,19 @@ SUBJECT_FIELD = "subject"
 #: shipped run then wrote 158 refusal rows over 51 files -- 89 `context_truncated`,
 #: 69 `context_check_failed`.
 #:
-#: **THE SECOND LOOKAHEAD REFUSES A CONCATENATION ACROSS A SPACE.** Two capitals, OR
-#: one capital GLUED TO A DIGIT -- and the difference between those two is the whole
-#: rule, so it is worth saying what it is about rather than what it matches.
+#: **THE SECOND LOOKAHEAD REFUSES A CONCATENATION ACROSS A SPACE.** A capital and a
+#: SECOND letter, OR one capital GLUED TO A DIGIT -- and the difference between those
+#: two is the whole rule, so it is worth saying what it is about rather than what it
+#: matches. (It read `[A-Z]{2}|[A-Z][0-9]` until `104` R-146 let `_STRUCTURED` read a
+#: title-case word; `[A-Z][A-Za-z0-9]` is the same sentence over the wider shape, and
+#: the refusal it exists for -- a ONE-letter word before a number -- is untouched:
+#: `I 1403`, `A 2150`, `B 4100`, `A 9999` and `A-2150` are all still refused here,
+#: while `Ph`ysics, `CO`MS, `E1`006 and `W3`134 are all admitted.)
 #:
-#: `_STRUCTURED` admits one optional separator: `[A-Z][A-Z0-9]*[ -]?[0-9]{3,}`. When
-#: that separator is PRESENT, the letters before it are a standalone word of the
-#: running text, and a one-letter word before a number is not a department -- it is a
-#: roman numeral or a list marker that the pattern then glues onto the number beside
-#: it. Byte-exact from the owner's disk:
+#: `_STRUCTURED` admits one optional separator. When that separator is PRESENT, the
+#: letters before it are a standalone word of the running text, and a one-letter word
+#: before a number is not a department -- it is a roman numeral or a list marker that
+#: the pattern then glues onto the number beside it. Byte-exact from the owner's disk:
 #:
 #:     General Chemistry I 1403        Dr. Beer
 #:     Sample Exam 1 - No. 2
@@ -2953,13 +3011,23 @@ SUBJECT_FIELD = "subject"
 #: **WHEN THERE IS NO SEPARATOR THE READING IS ONE TOKEN AND IT STAYS.** `E1006` in
 #: `# ENGI E1006: Introduction to Computing` is a single word that nothing else in
 #: the sentence claims -- Columbia's own spelling, where the school letter leads the
-#: number. It IS a truncation of `ENGI E1006`, and it is a truncation this rule
-#: cannot repair: `apply_rules` searches `observation.raw_value`, which P4 already
-#: cut down to `E1006`, and `ENGI` survives only in `context_before`. So the choice
-#: on a glued reading is the token or nothing, and MEASURED it is worth keeping: the
-#: five notebooks of that course match their own folder on it, and refusing it took
-#: `right parent` from 6 to 2 and `not placed` from 73.2% to 82.9% over the
-#: ground-truth corpus while removing no value the labels call correct.
+#: number. On a glued reading the choice here is the token or nothing, and MEASURED
+#: it is worth keeping: the five notebooks of that course match their own folder on
+#: it, and refusing it took `right parent` from 6 to 2 and `not placed` from 73.2% to
+#: 82.9% over the ground-truth corpus while removing no value the labels call correct.
+#:
+#: **THIS PARAGRAPH SAID THE TRUNCATION "CANNOT BE REPAIRED" AND THAT STOPPED BEING
+#: TRUE ON 2026-09-08.** The reasoning was `apply_rules` searches
+#: `observation.raw_value`, which P4 had already cut down to `E1006` because the
+#: RECOGNISER cut it there, so `ENGI` survived only in `context_before` and no rule
+#: could reach it. `104` R-146 moved the cut: `_STRUCTURED`'s second alternative reads
+#: a word before a one-letter glued token, so `# ENGI E1006: Introduction to
+#: Computing` now yields the reading `ENGI E1006` and this pattern admits it whole.
+#: The repair is the RECOGNISER's and nothing here changed to make it: no rule was
+#: widened, no canonicaliser was taught a spelling (`104` R-147 is the owner's ruling
+#: on that and it is not made here), and `canonical("ENGI E1006")` is `ENGI E1006` --
+#: `_SEPARATOR` wants a digit after the space and finds `E`. A document that prints
+#: only `E1006` still yields only `E1006`, which is what the corpus test fixtures do.
 #:
 #: THE LABELS DISAGREE WITH BOTH READINGS AND THAT IS RECORDED, NOT RESOLVED. They
 #: want `PYTHON1006` -- the person's own FOLDER name, which appears in the corpus 22
@@ -2968,8 +3036,8 @@ SUBJECT_FIELD = "subject"
 #: is a producer this file does not have; inventing one to match a label is not a fix.
 #:
 #: IT CANNOT BE EXPRESSED BY TIGHTENING `_STRUCTURED`, AND THAT IS DELIBERATE TWICE
-#: OVER. The shape's `[A-Z][A-Z0-9]*` lets digits into its own "prefix" -- `E1006`
-#: matches as `E` + `1` + `006` -- so the shape has no notion of a letter RUN to
+#: OVER. The shape's letter run lets digits into its own "prefix" -- `E1006` matches
+#: as `E` + `1` + `006` -- so the shape has no notion of a letter RUN to
 #: tighten. And `_STRUCTURED` is what the product SEES: it feeds P4's extraction and
 #: `recognition`'s identifier observations, and narrowing it there would silently
 #: stop the product reading an identifier it has always read.
@@ -2985,7 +3053,7 @@ SUBJECT_FIELD = "subject"
 #: by that name. `SPRING 2026` beside the word `semester` is precisely the reading
 #: that would otherwise walk through the context check.
 _SUBJECT_IDENTIFIER = re.compile(
-    rf"\A\s*(?=[A-Z]{{2}}|[A-Z][0-9])(?!(?i:{_TERM.pattern})\s*\Z)"
+    rf"\A\s*(?=[A-Z][A-Za-z0-9])(?!(?i:{_TERM.pattern})\s*\Z)"
     rf"(?:{_STRUCTURED.pattern})\s*\Z")
 
 #: §3.5's rule for `subject`, quoted: *"Rules create validated facts when a candidate
@@ -3259,6 +3327,19 @@ def find_structured_strings(text: str) -> tuple[StructuredString, ...]:
     The term pattern runs FIRST and its spans are taken: `SPRING2026` matches both
     patterns, and two observations of one span would become two facts about one
     reading -- a term and a course code, from the same characters.
+
+    **THAT ORDERING STOPPED BEING A PRECAUTION AND BECAME THE GUARD ON 2026-09-08.**
+    `SPRING2026` was the only overlap worth naming while `_STRUCTURED` was uppercase-
+    only: `Spring 2026` matched the term pattern and nothing else, because a title-
+    case word was invisible to the identifier shape. `104` R-146 made that word
+    visible, so the season spellings a person actually types -- `Spring 2026`,
+    `Fall 2023`, `Winter 2024` -- now match BOTH patterns, and the only reason they
+    are read as terms and not as courses is that `_TERM` runs first here and claims
+    the characters. Measured after the widening: `PHYS 1401 Fall 2023` yields exactly
+    two readings, `PHYS 1401` and `Fall 2023`, and `AY 2024-25` yields the one term
+    (`_STRUCTURED` alone would have claimed `AY 2024` out of it, which is `65` §2.1's
+    recorded incident). Swapping the two lines would file a person's essays under a
+    course named after their semester.
     """
     found: list[StructuredString] = []
     taken: set[int] = set()
