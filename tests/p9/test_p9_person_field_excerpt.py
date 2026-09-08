@@ -40,7 +40,7 @@ from extractors.long_tail import POTENTIALLY_SENSITIVE, record_sensitivity_signa
 from extractors.long_tail import PERSON_VALUED_FIELD_BASIS, SensitivitySignal
 from extractors.schema import create_extraction_schema
 from grouping.config import GroupingLimits
-from grouping.dossier import assemble_group_dossier
+from grouping.dossier import DossierRefused, assemble_group_dossier
 from grouping.graph import build_graph
 from grouping.records import AnchorFact, CandidateGroupDossier, Group
 from grouping.retrieval import Neighbor, Neighborhood
@@ -219,13 +219,26 @@ def test_the_fact_itself_still_travels_and_so_does_every_other_excerpt(
     assert corpus["Lecture 3 copy.pdf"][2] in quoted
 
 
-def test_a_group_whose_only_citation_is_signalled_still_assembles(
+def test_a_group_whose_only_citation_is_signalled_is_refused_here_and_not_at_the_door(
         dossier_conn, corpus):
-    """The site-B twin of `fact_call_stage`'s empty-offer guard. A group left with
-    no quotable excerpt is still a group with anchor files and facts, and P9's own
-    refusal (`DossierRefused`) is about having no ANCHOR FILE, not no excerpt."""
+    """The one group this ruling costs, and it is NOT a group the withhold costs.
+
+    A group whose every anchor citation is a person's name has nothing else to
+    quote, so it gets no answer either way -- before the withhold it was built,
+    reserved a budget slot and came back `Denied(always_local_item)` from the door;
+    after it, `assemble_group_dossier` refuses it with the reason that is actually
+    true. Same number of groups judged, spent earlier and said honestly.
+
+    Measured on `gt-w1bn`'s 17 groups: ONE is this shape -- a `duplicate_family`
+    group over two copies of one PDF, whose shared `/Author` row is the only
+    observation either copy cites. The other 16 keep a quotation. Site B was not
+    wired on that run (`group_dossiers` is empty, and B ratification is owner item
+    5), so today the live count is 0.
+
+    The refusal is P9's OWN, unchanged by this build: `ModelCallRequest` refuses to
+    construct with no items, which once ended a 48-minute local-model run at this
+    site, and the guard that catches it predates R-161.
+    """
     dossier = _assemble(dossier_conn, corpus, [_duplicate_family_fact(corpus)])
-    assert isinstance(dossier, CandidateGroupDossier)
-    assert dossier.anchor_files
-    assert not {e.observation_key for e in dossier.excerpts} & {
-        corpus[name][3] for name in corpus}
+    assert isinstance(dossier, DossierRefused)
+    assert "observation of its own" in dossier.reason

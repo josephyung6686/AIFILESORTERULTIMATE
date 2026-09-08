@@ -31,6 +31,7 @@ from evidence_shape.location import Location, Segment
 from evidence_shape.observation import Observation
 from evidence_shape.runs import ExtractionRun
 from evidence_shape.schema import create_evidence_schema
+from extractors.schema import create_extraction_schema
 from evidence_shape.store import record_observation, record_run
 from grouping.config import ConfigurationRequired, GroupingLimits
 from grouping.dossier import DossierRefused, assemble_group_dossier
@@ -61,6 +62,10 @@ SEED_FILE = "file-seed"
 def dossier_conn(conn):
     create_schema(conn)
     create_evidence_schema(conn)
+    # `104` R-161: the group dossier withholds a reading P5 signalled, so it
+    # reads P5's `extraction_sensitivity_signal` -- the same table site A's
+    # builders have always read through `sensitive_observation_keys`.
+    create_extraction_schema(conn)
     return conn
 
 
