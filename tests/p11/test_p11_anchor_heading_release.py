@@ -1164,8 +1164,15 @@ SCHEDULE = "Autumn term\nCOMS W3134 Data Structures\nMeets Tuesdays at 10:10\n"
 
 
 def _body_neighbour(conn, tmp_path, *, text=SCHEDULE,
-                    folder="Courses/Data Structures", protected_stating=False):
-    """A body-shaped stating file beside a piece of coursework, both classified."""
+                    folder="Courses/Data Structures", protected_stating=False,
+                    code="W3134", coursework=None):
+    """A body-shaped stating file beside a piece of coursework, both classified.
+
+    `code` is the reading the structured-string pass found inside `text`, and
+    `coursework` the neighbour's own body. Both are the caller's for the same reason
+    the span is stated rather than parsed: this fixture must not hold a second
+    implementation of the recogniser. `104` R-146 added the callers that pass them.
+    """
     import cli
     from facts.anchor_statements import record_anchor_statements
     from facts.fields import create_fields
@@ -1209,21 +1216,21 @@ def _body_neighbour(conn, tmp_path, *, text=SCHEDULE,
             return observation
 
         whole = observe(body, None)
-        code = None
+        reading = None
         if spanned:
-            start = body.index("W3134")
-            code = observe("W3134", TextSpan(start, start + 5))
+            start = body.index(code)
+            reading = observe(code, TextSpan(start, start + len(code)))
         # ONE live record per file version: `ClassificationStore.strongest` refuses
         # two at one reliability, so the protected case is built here rather than
         # written over an ordinary one.
         _classified(conn, file_id, content_hash, refs=(whole.observation_key,),
                     protected=protected)
-        return file_id, content_hash, whole, code
+        return file_id, content_hash, whole, reading
 
-    stating, stating_hash, _whole, code = store(
+    stating, stating_hash, _whole, found = store(
         "schedule.txt", text, spanned=True, protected=protected_stating)
     homework, homework_hash, own, _none = store(
-        "homework3.txt", COURSEWORK + "\n", spanned=False)
+        "homework3.txt", (coursework or COURSEWORK) + "\n", spanned=False)
 
     record_anchor_statements(
         conn, scan_run_id="scan-r135",
@@ -1231,7 +1238,7 @@ def _body_neighbour(conn, tmp_path, *, text=SCHEDULE,
         is_code=lambda one: cli.SUBJECT_RULE.pattern.search(one) is not None,
         canonical=cli.SUBJECT_RULE.canonical,
         reads_in_document=cli.reads_a_structured_string)
-    return dict(stating=stating, code=code, homework=homework,
+    return dict(stating=stating, code=found, homework=homework,
                 homework_hash=homework_hash, own=own)
 
 
@@ -1397,6 +1404,69 @@ def test_when_no_line_can_be_minted_the_code_span_is_offered_instead(
     assert [one.observation_key for one in context] == [
         world["code"].observation_key]
     assert context[0].raw_value == "W3134"
+
+
+# --------------------------------------------------------------------------
+# `104` R-146: the same path for a course the recogniser could not see
+# --------------------------------------------------------------------------
+
+#: The shape R-146 measured on the owner's disk: a syllabus that prints its course as
+#: a capitalised word, a space and four digits, beside `Instructor:`. Under the
+#: uppercase-only recogniser that shipped until 2026-09-08 this text produced no code
+#: reading, so no anchor statement, so nothing on this path at all -- which is R-146's
+#: finding stated as a mechanism: of 43 labelled files, the label's subject is stated
+#: by a recognised anchor in the file's own folder family for NONE, and the model then
+#: copied the only anchor sharing the digits onto 9 of its 19 `subject` answers.
+WORD_SCHEDULE = ("Spring 2026\nPhysics 1401 Introductory Mechanics\n"
+                 "Instructor: Dr. Lee. Credits: 3.\n")
+WORD_COURSEWORK = "Introductory Mechanics, Homework 3: rotational dynamics"
+
+
+def test_a_course_printed_as_a_word_reaches_its_neighbour_as_context(conn, tmp_path):
+    """`104` R-146, end to end on the path R-135 built: read, state, carry.
+
+    Nothing on this path changed for it to work. `record_anchor_statements` takes the
+    same `is_code` and the same `canonical`, `anchor_context_observations` runs the
+    same query, and what the neighbour is offered is the stating document's own
+    sentence -- `Physics 1401 Introductory Mechanics`, not the four digits and not a
+    name this repo invented for the course. The one thing that moved is upstream of
+    all of it: the recogniser now produces a reading for the line.
+
+    The homework file states no code of its own, which is the case the path is FOR:
+    a piece of coursework that says what it is about in words, in a folder whose
+    syllabus says what the course is called.
+    """
+    import cli
+    from llm_harness.vocabulary import CONTEXT_SUPPORTED
+    from model_facts import build_fact_request
+
+    # The premise, measured against the shipped recogniser rather than assumed: two
+    # readings, the term first because `find_structured_strings` takes its spans first.
+    assert [WORD_SCHEDULE[one.start:one.end]
+            for one in cli.find_structured_strings(WORD_SCHEDULE)] == [
+        "Spring 2026", "Physics 1401"]
+
+    world = _body_neighbour(conn, tmp_path, text=WORD_SCHEDULE,
+                            folder="Courses/Introductory Mechanics",
+                            code="Physics 1401", coursework=WORD_COURSEWORK)
+    context = cli.anchor_context_observations(
+        conn, scan_run_id="scan-r135", file_id=world["homework"],
+        fields=("subject",), limit=10)
+
+    assert len(context) == 1
+    minted = context[0]
+    assert minted.raw_value == "Physics 1401 Introductory Mechanics"
+    assert minted.file_id == world["stating"]
+
+    request = _fact_request(conn, world, context)
+    built = build_fact_request(
+        request, (world["own"],), context=context,
+        model_target=_target(), prompt=_prompt(), max_dossier_tokens=4000)
+    carried = {item.evidence_ref: item for item in built.evidence_items}
+
+    assert carried[minted.observation_key].basis == CONTEXT_SUPPORTED
+    assert built.model_call_request.target.file_ids == (
+        world["homework"], world["stating"])
 
 
 # --------------------------------------------------------------------------

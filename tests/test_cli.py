@@ -641,6 +641,153 @@ def test_widening_the_pattern_did_not_widen_it_to_ordinary_prose():
 
 
 # ======================================================================================
+# `104` R-146: the case of the letters, and the department the shape used to drop
+# ======================================================================================
+
+
+def test_a_course_printed_as_a_word_and_a_number_is_one_reading():
+    """`104` R-146's defect, in the strings the register measured it on.
+
+    Read with the uppercase-only shape that shipped until 2026-09-08,
+    `\\b[A-Z][A-Z0-9]*[ -]?[0-9]{3,}\\b`, every assertion below was `[]`. A
+    syllabus that prints its course as a capitalised WORD and four digits produced
+    no reading -- so no observation, so nothing for §3.5's rule to test and nothing
+    for the anchor pass to carry. R-146 measured the cost on the owner's corpus in
+    shapes only: of 43 labelled files, the label's subject is stated by a recognised
+    anchor in the file's own folder family for NONE of them.
+
+    ONE reading, covering the word AND the number. Not the number alone, which is
+    what a shape that only widened the digits would give, and not the sentence
+    around it, which A_fact rule 4 refuses ("the smallest run of characters that
+    identifies the thing, not the phrase that contains it").
+    """
+    assert _identifiers("Physics 1401") == ["Physics 1401"]
+    assert _identifiers("French 1101 syllabus") == ["French 1101"]
+    assert _identifiers("Botany 1001") == ["Botany 1001"]
+    # The reading is the code and not the label in front of it.
+    assert _identifiers("Instructor: Physics 1401") == ["Physics 1401"]
+    assert _identifiers("Homework for Physics 1401, due Friday") == ["Physics 1401"]
+
+
+def test_a_department_word_before_a_section_letter_is_one_reading():
+    """`COMS W3134` is one course, and the shape used to keep only its last five
+    characters.
+
+    Measured before the change: `_identifiers('COMS W3134') == ['W3134']`. The
+    department was not refused, it was never seen -- the old shape's letter run
+    stopped at `W`, so the match began there and `COMS` stayed in `context_before`
+    where no rule reads. `104` R-135's own heading fixture is this string.
+
+    The same alternative repairs `E1006`, which `_SUBJECT_IDENTIFIER`'s comment used
+    to call a truncation "this rule cannot repair". It was never the rule's to
+    repair: the recogniser had cut the reading before any rule saw it, and moving
+    the cut is what R-146 did. No canonicaliser was taught a spelling -- `104` R-147
+    is the owner's ruling on that -- so the value is what the document prints.
+    """
+    assert _identifiers("COMS W3134") == ["COMS W3134"]
+    assert _identifiers("COMS-W3134") == ["COMS-W3134"]
+    assert _identifiers("# ENGI E1006: Introduction to Computing") == ["ENGI E1006"]
+    assert _identifiers("Autumn term\nCOMS W3134 Data Structures\n") == [
+        "COMS W3134"]
+
+
+def test_the_word_in_front_is_taken_only_when_the_token_behind_it_is_a_fragment():
+    """WHY THAT ALTERNATIVE'S SECOND TOKEN IS ONE LETTER, and it is not a style
+    choice -- it is `65` §4.2's failure, measured on the alternative that was
+    rejected.
+
+    A one-letter glued token is a FRAGMENT: `E1006` is the tail of `ENGI E1006`, so
+    the capitalised word in front completes it. A multi-letter glued token is
+    already whole, so the word in front is prose. With the second token written
+    `[A-Z][A-Za-z]*` instead of `[A-Z]`, the readings below are
+    `['Homework PHYS1401']` and `['Syllabus ELTU3017']` -- and `SUBJECT_RULE.
+    canonical` KEEPS those spaces, because `_SEPARATOR` wants a digit after the
+    space and finds a letter. So `PHYS1401` off one file and `Homework PHYS1401`
+    off the next would reach P6 as two identities, which is exactly `65` §4.2's
+    recorded incident: four files of one course became four one-file groups and the
+    course folder was proposed and left empty.
+    """
+    assert _identifiers("Homework PHYS1401") == ["PHYS1401"]
+    assert _identifiers("Syllabus ELTU3017") == ["ELTU3017"]
+    # And the same restraint in front of a word-and-number reading: a capitalised
+    # word before `Physics 1401` is a word of the sentence, not a department.
+    assert _identifiers("Homework Physics 1401") == ["Physics 1401"]
+
+
+def test_every_uppercase_reading_is_exactly_the_reading_it_always_was():
+    """The regression half. R-146 widens what is READ and must move nothing that
+    was already read, because `_STRUCTURED` feeds P4's extraction on every file of
+    a person's disk and a changed reading is a changed observation key.
+    """
+    assert _identifiers("PHYS 1401") == ["PHYS 1401"]
+    assert _identifiers("PHYS-1401") == ["PHYS-1401"]
+    assert _identifiers("PHYS1401") == ["PHYS1401"]
+    assert _identifiers("BUSIB 4300") == ["BUSIB 4300"]
+    assert _identifiers("W3134") == ["W3134"]
+    assert _identifiers("ELTU3017") == ["ELTU3017"]
+    # The three readings `_SUBJECT_IDENTIFIER`'s lookahead exists to refuse are
+    # still READ here and still refused THERE -- two knobs, and this is the seeing
+    # one. `tests/p6/test_p6_subject_rule.py` holds the asserting one.
+    assert _identifiers("General Chemistry I 1403  Dr. Beer") == ["I 1403"]
+    assert _identifiers("Music Theory A 2150") == ["A 2150"]
+    assert _identifiers("Organic Chemistry B 4100") == ["B 4100"]
+
+
+def test_a_lowercase_word_before_a_number_is_not_a_reading():
+    """The line R-146 draws, and the only one a shape can draw here.
+
+    A capitalised word is a candidate; a lowercase one is not. `iPhone 12345` is
+    the case worth naming: there IS a capital in it, and `\\b` refuses it anyway
+    because `i` and `P` are both word characters and no boundary sits between them.
+    """
+    assert _identifiers("page 12345") == []
+    assert _identifiers("iPhone 12345") == []
+    assert _identifiers("the course is 1401") == []
+
+
+def test_the_capitalised_prose_this_now_reads_is_delivered_and_not_decided():
+    """THE COST, STATED RATHER THAN HIDDEN, and why it is paid.
+
+    Nothing of SHAPE separates `Chapter 101` from `Physics 1401`, or `Room B101`
+    from `COMS W3134`. The only thing that could is a list of words that says which
+    ones are departments -- and that is the domain knowledge the product
+    constitution forbids this file to author ("LLM decides, code delivers. Never
+    hardcode domain knowledge: no alias tables, no equivalence maps"), because
+    "which word names the course" is the question the model is asked.
+
+    So they are read, and the refusals happen where a refusal can be REASONED:
+    §3.5's rule takes no candidate without a teaching word beside it (this file
+    owns none of that: see `tests/p6/test_p6_subject_rule.py`), `_is_term` holds a
+    term off `subject`, and a value that survives both is still `validated` and
+    still overrulable by a person or a model.
+    """
+    assert _identifiers("Chapter 101") == ["Chapter 101"]
+    assert _identifiers("Room 1234") == ["Room 1234"]
+    assert _identifiers("The 2026") == ["The 2026"]
+    assert _identifiers("Room B101") == ["Room B101"]
+
+
+def test_the_term_pattern_still_takes_its_spans_first():
+    """The ordering in `find_structured_strings` stopped being a precaution.
+
+    `SPRING2026` was the only overlap worth naming while the identifier shape was
+    uppercase-only: `Spring 2026` matched the term pattern and NOTHING else,
+    because a title-case word was invisible. R-146 made it visible, so the season
+    spellings a person actually types match both patterns and the ordering is now
+    the only reason a semester is not read as a course.
+    """
+    assert _identifiers("Spring 2026") == ["Spring 2026"]
+    assert cli._is_term("Spring 2026")
+    # Two readings, and the right two: the code, and the term after it.
+    assert _identifiers("PHYS 1401 Fall 2023") == ["PHYS 1401", "Fall 2023"]
+    assert _identifiers("Physics 1401 Fall 2023") == ["Physics 1401", "Fall 2023"]
+    # `65` §2.1's recorded incident: the identifier shape alone claims `AY 2024`
+    # out of this and files a person's essays under a course by that name.
+    assert _identifiers("AY 2024-25") == ["AY 2024-25"]
+    assert cli._STRUCTURED.search("AY 2024-25").group(0) == "AY 2024"
+
+
+# ======================================================================================
 # The handling policy: recognition is not classification
 # ======================================================================================
 
