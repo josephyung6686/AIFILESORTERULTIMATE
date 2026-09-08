@@ -505,3 +505,89 @@ def test_the_same_check_is_right_about_a_destination_and_that_half_stays():
 
     assert _invented_dimension(
         payload, _grounded_in("Submitted to Columbia University")) is None
+
+
+# --- `104` R-149: the request that cannot be formed --------------------------
+
+
+def _placement_prompt():
+    """Site C's real `PromptDefinition`. The builder binds the request to the
+    prompt's own fingerprint, so a stand-in stops it before the item set is ever
+    the question -- and the item set is the question here."""
+    from llm_harness.records import PromptDefinition
+    from llm_harness.vocabulary import C_PLACEMENT
+
+    return PromptDefinition(
+        template_id="template.placement", template_bytes=b"TEMPLATE",
+        response_schema_bytes=b'{"type":"object"}', call_site=C_PLACEMENT,
+        call_site_version="1", shaping_policy_bytes=b'{"policy":"authored"}')
+
+
+def _placement_builder(db):
+    """The live builder, wired the way `cli.placement_inputs` wires it."""
+    return model_path_injections(
+        db, _authorities(prompt=_placement_prompt()),
+        plan_version=PLAN)["model_call_request"]
+
+
+def _item(ref: str, *, location: str, span):
+    from llm_harness.records import EvidenceItem
+
+    return EvidenceItem(evidence_ref=ref, kind="fact", location=location,
+                        excerpt_span=span, reliability_state="direct",
+                        basis="direct-anchor")
+
+
+def test_a_file_whose_only_cited_reading_is_its_filename_forms_no_request(db):
+    """`104` R-149's state, through the live seam and with nothing stubbed.
+
+    The two exclusions meet here. `releasable_excerpts` drops an always-local
+    reading -- that is the test above, and it is the one that matters most at
+    this site -- and `ModelCallRequest.__post_init__` then refuses what is left:
+    *"a request with no items has nothing to release"*. So a file whose whole
+    citation set is its own name reaches P11's builder and no request comes back.
+
+    Measured on the six-file stub corpus of
+    `tests/integration/test_local_model_fact_pass.py` before `104` R-148:
+    one file, one fact, a filename-only citation. `placement.pipeline` used to
+    catch this raise into the deterministic fallback and record it in neither
+    ledger; `tests/p11/test_p11_pipeline.py` pins the abstention it writes now.
+
+    R-148 does not close the state. It offers a factless file its own releasable
+    readings, and a file with NO body reading at all -- every reading it has in
+    an always-local zone, which is what this fixture builds -- still arrives
+    with nothing to send.
+    """
+    from privacy.release import MalformedRequest
+
+    name = _observation(db, key="k-name", zone="filename",
+                        value="Columbia Essay.txt", span=None, unit_text=None)
+    assert releasable_excerpts(db, evidence_refs=(name,)) == ()
+
+    build = _placement_builder(db)
+    with pytest.raises(MalformedRequest):
+        build(subject_ref=f"{SUBJECT_FILE}:{FILE}:{HASH}",
+              evidence_items=(_item(name, location="filename", span=None),),
+              max_dossier_tokens=4000)
+
+
+def test_the_same_file_with_one_body_reading_does_form_a_request(db):
+    """The twin that says the refusal is about the item set and not the file.
+
+    One releasable reading beside the filename is a request, and it carries the
+    reading and not the name -- so the abstention above is what an EMPTY offer
+    means, never a file P11 declined to ask about.
+    """
+    name = _observation(db, key="k-name-2", zone="filename",
+                        value="Columbia Essay.txt", span=None, unit_text=None)
+    body = _observation(db, key="k-body", zone="heading", value="PHYS1401",
+                        span=TextSpan(start=0, end=8),
+                        unit_text="PHYS1401 Lecture 8 — Rotational dynamics")
+
+    request = _placement_builder(db)(
+        subject_ref=f"{SUBJECT_FILE}:{FILE}:{HASH}",
+        evidence_items=(_item(name, location="filename", span=None),
+                        _item(body, location="heading", span=(0, 8))),
+        max_dossier_tokens=4000)
+
+    assert [item.observation_key for item in request.requested_items] == [body]

@@ -181,7 +181,7 @@ from privacy.resolve import (
     AmbiguousObservationKey, UnresolvableSpan, current_location,
     current_observation, filename_address,
 )
-from privacy.vocabulary import MODE_SEMANTICS
+from privacy.vocabulary import ALWAYS_LOCAL_ZONES, MODE_SEMANTICS
 from questions.explanation import explain_question, render_explanation
 from questions.effects import changed_answer, diff_for_answer_change
 from questions.explanation import explain_question, render_explanation
@@ -6049,10 +6049,27 @@ def anchor_line_citations(conn: sqlite3.Connection, *, scan_run_id: str,
     constitution forbids.
 
     **The gate still decides.** These are addresses, not text. `releasable_excerpts`
-    applies P7's own refusals to them like any other ref -- an always-local zone, a
-    value P5 signalled, a dead key -- and the door materialises and redacts. What
-    changed in `104` R-135 is only that a span covering a whole HEADING unit is no
-    longer refused, which is what makes an address like this releasable at all.
+    applies P7's own refusals to them like any other ref -- a value P5 signalled, a
+    dead key -- and the door materialises and redacts. What changed in `104` R-135
+    is only that a span covering a whole HEADING unit is no longer refused, which is
+    what makes an address like this releasable at all.
+
+    **The always-local zone is asked HERE now** (`104` R-150), which is the pattern
+    R-135 already took from the excerpt builder: *"each is one of the gate's own
+    refusals applied a step early, so the request is never BUILT rather than built
+    and denied."* An anchor whose line reading is a `filename` or a `path` is one
+    the gate can never release, so offering it built a site-C dossier carrying an
+    item that was dead on arrival -- measured on the six-file stub corpus as
+    `excerpt / filename / [0, 22] / possible` beside the fact item at the same
+    address, and every such dossier one item larger than what the model may see.
+
+    A filename reading reaches a statement through no fault of its own:
+    `extractors/filesystem.py` gives the name "the run's single `container_path: ()`
+    text unit" and reads it as one span over the whole of it, a text extractor gives
+    the body a `()` unit too, and `anchor_statements._containing_span_reading`
+    compares spans within a container path and asks nothing about the zone. The
+    STATEMENT is right to record it -- what the document contains is P4's and P6's
+    answer -- and this site is where what may be OFFERED is decided.
 
     A statement whose `line_evidence_ref` is `None` yields nothing HERE, and that is
     site C's own answer rather than a gap. `facts.anchor_statements` returns `None` for
@@ -6077,6 +6094,13 @@ def anchor_line_citations(conn: sqlite3.Connection, *, scan_run_id: str,
         except (UnresolvableSpan, AmbiguousObservationKey):
             continue
         if observation.file_id != file_id:
+            continue
+        # `104` R-150: §8.4's own always-local exclusion, asked a step early. The
+        # SET is imported and never a pair of zone names typed here -- `ocr` joined
+        # it on 2026-09-04 as member 3, and `tests/integration/test_model_placement`
+        # states what a hand-written list costs: it goes on passing while the path
+        # offers whatever the newest member is.
+        if observation.location.zone in ALWAYS_LOCAL_ZONES:
             continue
         # P4's OWN reliability for that reading, never a constant typed here.
         # `model_facts.filename_citation` states the rule for the same field.

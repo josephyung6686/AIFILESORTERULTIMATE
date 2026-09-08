@@ -50,6 +50,12 @@ from llm_harness import P8Verdict, Refusal
 from llm_harness.vocabulary import ABSTAIN as P8_ABSTAIN
 from llm_harness.records import (
     REFUSAL_EXCEPTIONS, CallRefused, DossierRequest, EvidenceItem,
+    # `104` R-149 reads P7's raise, and reads it THROUGH THE RECORDS MODULE.
+    # `tests/p11/test_p11_connections.py` pins the whole of P11's `privacy` import
+    # surface to two files, neither of them this one, and `REFUSAL_EXCEPTIONS` is
+    # re-exported one line below for that same reason: "the records module is the
+    # surface every one of them already reads".
+    MalformedRequest,
     PreCallAbstention,
 )
 from llm_harness.store import record_unbuilt_call_abstention, refusal_outcome
@@ -2051,6 +2057,51 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
                                 node_id=offered[0]),
         learning_scope=FILE, learning_subject_id=subject.file_id,
     )
+    # `104` R-149. THE BUILDER'S RAISE, CAUGHT WHERE IT IS STILL A PRE-CALL STATE.
+    #
+    # `model_placement.releasable_excerpts` applies P7's five refusals a step early,
+    # and the first of them drops every reading whose zone is always-local -- so a
+    # file whose cited readings are all `path` or `filename` leaves this request
+    # with NO items and `ModelCallRequest.__post_init__` refuses it: "a request with
+    # no items has nothing to release". Measured on the six-file stub corpus of
+    # `tests/integration/test_local_model_fact_pass.py` before R-148: one file, one
+    # fact, a filename-only citation, and it went to the deterministic fallback with
+    # no row in `llm_pre_call_abstention` and none in `llm_refusal` -- so r12's 104
+    # `NOT_ELIGIBLE_FOR_MODEL` was a FLOOR on the silent site-C losses rather than
+    # the total. R-148 lifts that particular file; a file with no body reading at
+    # all is still this file, and any narrowing of the item set re-opens the hole.
+    #
+    # **The reason word is R-136's, for R-136's reading of it.**
+    # `NOT_ELIGIBLE_FOR_MODEL` is what `eligibility.not_reserved_for_llm` returns
+    # for a subject the model is not reserved for, and the model is not reserved for
+    # a file with nothing releasable to send. Nothing is minted: §6.10's abstention
+    # reasons stay closed and `PRE_CALL_REASON_CODES` gains no fourth member, which
+    # is a spec-level act and the owner's.
+    #
+    # It is the reason that is TRUE of the file, and the other refusals
+    # `__post_init__` makes are why: the stage, the target, the model target and the
+    # template id are fixed for the run, and `max_dossier_tokens` is a deployment
+    # number -- each would refuse every file of the corpus alike. The ITEM SET is
+    # the only one of them that varies per file, so a per-file reason is a reason
+    # about the item set.
+    #
+    # **NOT a `CallRefused`, and only the BUILDER's raise.** The `try` stops at this
+    # expression: a `MalformedRequest` from inside `call_placement` is P7 unable to
+    # evaluate a request that was built, which is R-O's refusal and stays one.
+    # `record_unbuilt_call_abstention` states the rest -- "nothing was ever grounded,
+    # and nothing refused a call that was never built" -- so no `call_refused` event
+    # is appended beside the row and a reader counting refusals counts this once.
+    try:
+        release_request = inputs.model_call_request(
+            subject_ref=subject_ref,
+            evidence_items=tuple(evidence["evidence_items"]),
+            max_dossier_tokens=inputs.limits.max_dossier_tokens)
+    except MalformedRequest:
+        return _not_asked(
+            conn, call_site=call_site, subject=subject, observed_at=observed_at,
+            because="P7 will not form a release request for this file: every "
+                    "reading its evidence cites was dropped before the door, so "
+                    "the call would carry nothing for the model to look at")
     request = DossierRequest(
         call_site=call_site, subject_ref=subject_ref,
         # P8's controlled reason, imported and not retyped. §6.6 lists six
@@ -2077,12 +2128,9 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
                         + _accepted_group_items(evidence.get("group_ids", ()))),
         conflicts=to_p8_conflicts(retrieval.conflicts),
         # P7 builds the release request; P11 holds the builder and never a `Gate`.
-        # Assembling it here, after `may_assemble_dossier` answered, is what keeps
+        # Assembling it above, after `may_assemble_dossier` answered, is what keeps
         # §8.4's gate on the right side of the spend.
-        model_call_request=inputs.model_call_request(
-            subject_ref=subject_ref,
-            evidence_items=tuple(evidence["evidence_items"]),
-            max_dossier_tokens=inputs.limits.max_dossier_tokens),
+        model_call_request=release_request,
         plan_version=inputs.plan_version, evidence_snapshot_id=snapshot,
     )
     # THIS SITE'S OWN TEXT, and the observe lever reads the same one. Asking under
@@ -2100,11 +2148,27 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
 def _judged_or_refused(conn, **kwargs):
     """`_judge_with_model`, with `104` R-O's one difference: a refusal comes back.
 
-    The `try` covers the REQUEST BUILD as well as the call. `inputs.model_call_
-    request` and the `DossierRequest` above it construct P7's `ModelCallRequest`,
-    whose `__post_init__` raises `MalformedRequest` -- the second of the two
-    refusals that ended a real run -- and that raise never reaches `run_call`'s own
-    `try` because it happens while its argument is being built.
+    The `try` covers the REQUEST BUILD as well as the call, because a raise while
+    an argument is being built never reaches `run_call`'s own `try`. It stays that
+    wide though this deployment's own builder no longer reaches it: `inputs.model_
+    call_request` is INJECTED, so P11 cannot know what a builder raises, and
+    `resolve`'s two spellings of "this span cannot be taken" are in
+    `REFUSAL_EXCEPTIONS` because a builder that materialises anything raises them.
+
+    **`MalformedRequest` FROM THE BUILDER NO LONGER ARRIVES HERE** (`104` R-149).
+    `_judge_with_model` catches that one at the expression that raises it and
+    returns a pre-call abstention instead, because a request P7 will not FORM is a
+    call that never happened rather than a call something refused -- and this
+    function recorded it as neither: an event, and no row in `llm_pre_call_
+    abstention` or `llm_refusal`.
+
+    It was the ONLY member of the three the placement builder could raise:
+    `model_placement.releasable_excerpts` selects rows, reads unit lengths and
+    reads P5's signal, and materialises nothing, so neither span refusal is
+    reachable from it -- the door raises those, and the door is past `run_call`'s
+    own `try`. So at these two sites what this `except` still sees is P7 refusing a
+    request that WAS built, from inside `call_placement`, which is a refusal and is
+    recorded as one.
 
     Recorded here rather than swallowed: the same `call_refused` event site A
     writes, so one query over the run counts every refusal wherever it was raised.
@@ -2601,13 +2665,23 @@ def _review_set_with_model(conn, *, item: ResidualSet, inputs: PipelineInputs,
                 qualifier=PRIVACY_BLOCKED, residual=residual, evidence=evidence,
                 component_version=component_version, observed_at=observed_at))
             continue
-        if isinstance(result, CallRefused):
+        if isinstance(result, (CallRefused, PreCallAbstention)):
             # `104` R-O, and the residual half of what site C does above: the
             # file stays where the person's own decision put it, recorded and
             # named, rather than the run ending on the set it belongs to.
             # `NO_SUPPORTED_DESTINATION` is the honest qualifier -- D proposes a
             # destination and none was proposed -- and `PRIVACY_BLOCKED` would be
             # the untruth, because §8.4 allowed this dossier.
+            #
+            # **`PreCallAbstention` JOINS IT HERE** (`104` R-149), and it closes a
+            # hole R-136 left open at this site. `_judge_with_model` serves C and
+            # D alike, so R-136's three guards could already hand D a
+            # `PreCallAbstention` -- and D read only the two types above, so
+            # `_require_verdict` raised `ModelJudgementUnavailable` and the run
+            # died on the set. Site C has read both since R-136; this is D saying
+            # the same sentence. The qualifier's own argument carries over
+            # unchanged: D proposes a destination, and a call that was never built
+            # proposed none.
             written.append(_residual_decision(
                 conn, subject=subject, inputs=inputs, outcome=ABSTAIN,
                 qualifier=NO_SUPPORTED_DESTINATION, residual=residual,

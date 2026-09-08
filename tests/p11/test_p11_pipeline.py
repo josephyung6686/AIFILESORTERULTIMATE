@@ -2509,3 +2509,205 @@ def test_the_next_file_is_judged_after_one_carries_no_matching_fact(
 
     assert middle is not None and third is not None
     assert len(asked) == 2
+
+
+# --- `104` R-149: a request the builder cannot form is a pre-call abstention -----
+
+#: The state R-149 is about, as a builder. `model_placement.releasable_excerpts`
+#: applies P7's five refusals a step early, and the first of them drops every
+#: reading whose zone is always-local -- so a file whose only cited reading is its
+#: own filename leaves the request with NO items and P7's
+#: `ModelCallRequest.__post_init__` refuses it: *"a request with no items has
+#: nothing to release"*.
+#:
+#: THE RAISE IS THE REAL ONE. Only the excerpt selection is short-circuited here;
+#: `tests/integration/test_model_placement.py` drives the same state through the
+#: live `releasable_excerpts` over a real filename-zone observation, which is
+#: where the drop itself is pinned.
+def _nothing_left_to_release(*, subject_ref, evidence_items, max_dossier_tokens):
+    from privacy.release import ModelCallRequest, Target
+
+    return ModelCallRequest(
+        stage="placement", target=Target(file_ids=(subject_ref.split(":")[1],)),
+        model_target=LOCAL_TARGET, requested_items=(),
+        prompt_template_id="template.placement",
+        prompt_fingerprint="fp-canonical",
+        max_dossier_tokens=max_dossier_tokens)
+
+
+def _refused_call_events(conn) -> list[str]:
+    from llm_harness.authorship import CALL_REFUSED
+
+    return [row["explanation"] for row in conn.execute(
+        "SELECT explanation FROM events WHERE event_type = ? ORDER BY event_id",
+        (CALL_REFUSED,))]
+
+
+def test_a_file_with_nothing_releasable_records_the_abstention_and_falls_back(
+        skeleton, monkeypatch):
+    """`104` R-149: the silent site-C loss, made a row.
+
+    Measured on the six-file stub corpus of
+    `tests/integration/test_local_model_fact_pass.py` before R-148: a file whose
+    one fact cited only a `filename`-zone reading had that reading dropped by
+    `releasable_excerpts`, `ModelCallRequest.__post_init__` raised, and
+    `_judged_or_refused` caught it into the deterministic fallback --
+    `llm_pre_call_abstention` gained no row and `llm_refusal` gained no row, so
+    r12's 104 `NOT_ELIGIBLE_FOR_MODEL` was a floor on the site-C losses and not
+    the total.
+
+    **R-148 does not make this state unreachable.** It offers a factless file its
+    own releasable readings, and a file with NO body readings at all -- every
+    reading it has sits in an always-local zone -- still arrives here with
+    nothing to send. This fixture is that file: the evidence is supplied
+    directly, so `cli.evidence_for` and R-148's readings are not in the path at
+    all, and the only question asked is what P11 does when the builder refuses.
+
+    Both halves are asserted: the row, and the placement the deterministic path
+    had already earned.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail(
+                            "a request that cannot be built is not sent"))
+    inputs = _model_inputs(skeleton,
+                           model_call_request=_nothing_left_to_release)
+
+    unbuilt = _place(skeleton, inputs=inputs, evidence=_evidence(**AMBIGUOUS))
+    offline = _place(skeleton, evidence=_evidence(**AMBIGUOUS))
+
+    # §13.5's own clause: "with no model configured the deterministic path
+    # remains the fallback". The file keeps the home the rules could defend.
+    assert unbuilt.outcome == offline.outcome
+    assert unbuilt.confidence_class == offline.confidence_class
+    assert (unbuilt.destination is None) == (offline.destination is None)
+    if offline.destination is not None:
+        assert unbuilt.destination.node_id == offline.destination.node_id
+
+
+def test_the_unbuildable_request_is_recorded_in_p8s_own_pre_call_row(
+        skeleton, monkeypatch):
+    """R-136's row, for R-136's reason, at the third door into it.
+
+    `NOT_ELIGIBLE_FOR_MODEL` is P8's own word -- `eligibility.
+    not_reserved_for_llm` returns it for a subject the model is not reserved for
+    -- and it is true of a file with nothing releasable to send. No member is
+    added to any vocabulary: §6.10's abstention reasons stay closed, and
+    `PRE_CALL_REASON_CODES` gains nothing.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail("not asked"))
+    _place(skeleton,
+           inputs=_model_inputs(skeleton,
+                                model_call_request=_nothing_left_to_release),
+           evidence=_evidence(**AMBIGUOUS))
+
+    from llm_harness.vocabulary import C_PLACEMENT, NOT_ELIGIBLE_FOR_MODEL
+
+    rows = [dict(row) for row in skeleton.execute(
+        "SELECT reason, call_site, subject_ref, dossier_id "
+        "FROM llm_pre_call_abstention")]
+    assert len(rows) == 1
+    assert rows[0]["reason"] == NOT_ELIGIBLE_FOR_MODEL
+    assert rows[0]["call_site"] == C_PLACEMENT
+    # Addressed the way every pre-call row is, so one query finds it beside site
+    # A's exhausted-budget rows and R-136's.
+    assert rows[0]["dossier_id"].startswith("pre-call:")
+
+
+def test_the_unbuilt_call_is_an_abstention_and_not_a_refusal(skeleton,
+                                                             monkeypatch):
+    """One non-call, one record. `record_unbuilt_call_abstention` says why in its
+    own words: *"nothing was ever grounded, and nothing refused a call that was
+    never built"* -- the gate never saw this request, so a `call_refused` event
+    beside the row would be one reader counting the same non-call twice.
+
+    `llm_refusal` is P7's `Denied` row and is empty for the same reason: §8.4
+    denied nothing here.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail("not asked"))
+    _place(skeleton,
+           inputs=_model_inputs(skeleton,
+                                model_call_request=_nothing_left_to_release),
+           evidence=_evidence(**AMBIGUOUS))
+
+    assert _refused_call_events(skeleton) == []
+    assert not skeleton.execute("SELECT 1 FROM llm_refusal").fetchall()
+    # And no budget was reserved: the abstention is decided before `reserve_call`,
+    # so a corpus of such files does not spend the placement budget on questions
+    # nobody could ask.
+    assert not skeleton.execute(
+        "SELECT 1 FROM llm_budget_reservation").fetchall()
+
+
+def test_a_malformed_request_from_inside_the_call_is_still_a_refusal(
+        skeleton, monkeypatch):
+    """The negative twin, and it is what keeps R-149 from widening R-O's catch.
+
+    `MalformedRequest` is raised in two places at this site: by the BUILDER,
+    before anything exists, and by P7 inside `run_call`, which is a request the
+    gate could not evaluate. Only the first is a pre-call abstention. A catch
+    that could not tell them apart would file every gate refusal as "the model
+    was not reserved for this file", which is a different sentence about a
+    different actor.
+    """
+    import placement.pipeline as pipeline
+    from privacy.release import MalformedRequest
+
+    def _refuse_inside_the_call(conn, request, **kwargs):
+        raise MalformedRequest("the gate cannot evaluate this request")
+
+    monkeypatch.setattr(pipeline, "call_placement", _refuse_inside_the_call)
+    decision = _place(skeleton, inputs=_model_inputs(skeleton),
+                      evidence=_evidence(**AMBIGUOUS))
+
+    assert decision is not None
+    assert not skeleton.execute(
+        "SELECT 1 FROM llm_pre_call_abstention").fetchall()
+    explanations = _refused_call_events(skeleton)
+    assert explanations, "a refusal raised inside the call is still an event"
+    assert "MalformedRequest" in explanations[-1]
+
+
+def test_a_residual_file_the_model_is_not_asked_about_does_not_end_the_run(
+        skeleton, monkeypatch):
+    """Site D reads a pre-call abstention, which until `104` R-149 it could not.
+
+    `_judge_with_model` serves C and D alike, so every door R-136 opened to a
+    `PreCallAbstention` -- no evidence items, no retrievable candidate, no
+    resolvable address -- opened at site D too. D read `Refusal` and `CallRefused`
+    and nothing else, so `_require_verdict` raised `ModelJudgementUnavailable` and
+    the run died on the whole residual set. A file the user asked to have reviewed
+    is exactly the file most likely to have nothing settled about it.
+
+    The file abstains with the qualifier D's own refusal already carries: D
+    proposes a destination, and a call that was never built proposed none.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement",
+                        lambda *_a, **_k: pytest.fail(
+                            "a file with nothing to send is not asked"))
+    result = _corpus(skeleton)
+    assert result.residual_sets, "the file must reach §7 for this to test anything"
+    _decide(skeleton, result.residual_sets[0].set_id)
+
+    written = _review(skeleton, result,
+                      evidence_for=lambda file_id: _evidence(
+                          facts=(), evidence_items=()))
+
+    assert [d.outcome for d in written] == [v.ABSTAIN]
+    assert written[0].abstention_reason == v.NO_SUPPORTED_DESTINATION
+    # And it is P8's pre-call row that says why the model was not asked, at D's
+    # own call site.
+    from llm_harness.vocabulary import D_RESIDUAL, NOT_ELIGIBLE_FOR_MODEL
+
+    rows = [dict(row) for row in skeleton.execute(
+        "SELECT reason, call_site FROM llm_pre_call_abstention")]
+    assert rows == [{"reason": NOT_ELIGIBLE_FOR_MODEL, "call_site": D_RESIDUAL}]

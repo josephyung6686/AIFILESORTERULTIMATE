@@ -483,6 +483,139 @@ def test_two_anchor_lines_for_one_course_both_appear_and_neither_is_chosen(
     assert sorted(values) == sorted([HEADING, SECOND_LINE])
 
 
+#: The filename `extractors/filesystem.py` reads, and the length the register
+#: measured on the real corpus: `excerpt / filename / [0,22] / possible`.
+ANCHOR_FILENAME = "COMS W3134 syllabus.md"
+
+#: The document's own first line, whose `W3134` sits at the same offsets the
+#: filename's does. The two spans are what makes the defect reachable.
+ANCHOR_BODY = "COMS W3134 syllabus\nInstructor: Dr Lacker"
+
+
+def _filename_line_corpus(conn, tmp_path):
+    """A file whose containing reading for its course code is its own FILENAME.
+
+    Two runs, exactly as a real scan has them, and the container path is what joins
+    them. `extractors/filesystem.py` gives the filename "the run's single
+    `container_path: ()` text unit" and reads it as one span over the whole name; a
+    text extractor gives the document body a `()` unit of its own. So the two
+    readings SERIALIZE TO THE SAME CONTAINER PATH, and
+    `anchor_statements._containing_span_reading` compares spans within a path and
+    asks nothing about the zone -- the filename's `[0, 22]` covers the body's
+    `W3134`, and it is shorter than nothing else, so it wins and is recorded as the
+    statement's line.
+
+    Nothing here is contrived to produce the defect: the fixture is two extractors
+    writing what they write, and the register measured the result on the owner's
+    corpus.
+    """
+    import cli
+    from facts.anchor_statements import record_anchor_statements
+    from facts.fields import create_fields
+
+    create_schema(conn)
+    create_evidence_schema(conn)
+    create_fields(conn)
+    conn.executescript(SENSITIVITY_DDL)
+
+    body = ANCHOR_BODY.encode()
+    path = tmp_path / ANCHOR_FILENAME
+    path.write_bytes(body)
+    file_id = record_file(
+        conn, path, filename=ANCHOR_FILENAME,
+        normalized_filename=ANCHOR_FILENAME, extension=".md",
+        observed_size=len(body),
+        observed_timestamps=json.dumps({"mtime": 1_700_000_000.0}),
+        parent_folder_context="Courses", mime_type="text/markdown",
+        detected_format="markdown", scan_state="included", materialized=True)
+    content_hash = get_file(conn, file_id)["content_hash"]
+
+    def _read(run_id, extractor, text, *, zone, raw, span):
+        record_run(conn, ExtractionRun(
+            run_id=run_id, file_id=file_id, content_hash=content_hash,
+            extractor_name=extractor, extractor_version="1.0.0",
+            source_type="text_document", analysis_tier="native", config={},
+            completeness="complete", started_at=CLOCK, finished_at=CLOCK))
+        record_text_unit(conn, TextUnit(run_id=run_id, container_path=(),
+                                        text=text))
+        observation = Observation(
+            file_id=file_id, content_hash=content_hash, extractor_name=extractor,
+            extractor_version="1.0.0", source_type="text_document", raw_value=raw,
+            location=Location(zone, (), text_span=span),
+            occurrence_count=1, observed_at=CLOCK, reliability="possible",
+            run_id=run_id)
+        record_observation(conn, observation)
+        return observation
+
+    # The filesystem extractor's own reading of the name, over its own `()` unit.
+    name = _read("run-fs", "filesystem", ANCHOR_FILENAME, zone="filename",
+                 raw=ANCHOR_FILENAME,
+                 span=TextSpan(0, len(ANCHOR_FILENAME)))
+    start = ANCHOR_BODY.index("W3134")
+    code = _read("run-md", "markdown.text", ANCHOR_BODY, zone="body",
+                 raw="W3134", span=TextSpan(start, start + len("W3134")))
+
+    record_anchor_statements(
+        conn, scan_run_id="scan-r150", file_versions=[(file_id, content_hash)],
+        is_code=lambda text: cli.SUBJECT_RULE.pattern.search(text) is not None,
+        canonical=cli.SUBJECT_RULE.canonical,
+        reads_in_document=cli.reads_a_structured_string)
+    return file_id, name, code
+
+
+def test_an_anchor_line_in_an_always_local_zone_is_never_offered(conn, tmp_path):
+    """`104` R-150: the site-C dossier stops carrying an item that cannot leave.
+
+    Measured on the same six-file stub corpus as R-149: the syllabus's site-C
+    dossier carried `excerpt / filename / [0, 22] / possible` beside the fact item
+    at the same address. Nothing leaked -- `releasable_excerpts` drops an
+    always-local zone and the gate would refuse it again -- but the payload
+    carried an item that was dead on arrival, and every such dossier was one item
+    larger than what the model may be shown.
+
+    The anchor loop now asks §8.4's always-local exclusion a step early, which is
+    the pattern `releasable_excerpts` states for its own five: *"each is one of
+    the gate's own refusals applied a step early, so the request is never BUILT
+    rather than built and denied."*
+
+    The statement itself is untouched. `facts.anchor_statements` still records the
+    line it found -- what a document contains is P4's and P6's answer, not this
+    site's -- and what changes is only what site C OFFERS.
+    """
+    import cli
+    from facts.anchor_statements import anchor_statements_for
+
+    file_id, name, code = _filename_line_corpus(conn, tmp_path)
+
+    # The state the register measured: the statement's line IS the filename.
+    statements = anchor_statements_for(conn, "scan-r150",
+                                       stating_file_ids=(file_id,))
+    assert [s.line_evidence_ref for s in statements] == [name.observation_key]
+
+    assert cli.anchor_line_citations(
+        conn, scan_run_id="scan-r150", file_id=file_id) == ()
+
+
+def test_the_body_line_beside_it_is_still_offered(conn, tmp_path):
+    """The twin that says R-150 is an exclusion and not a silencing.
+
+    `104` R-135's whole point is that the judge sees the words beside the code, and
+    a document whose containing reading is its own heading still hands that reading
+    over. Only the zone §8.4 will never release is dropped.
+    """
+    import cli
+
+    file_id, emitted = _anchor_corpus(conn, tmp_path)
+    (whole, _code), = emitted
+
+    lines = cli.anchor_line_citations(
+        conn, scan_run_id="scan-r135", file_id=file_id)
+
+    assert [ref for ref, _location, _reliability in lines] == [
+        whole.observation_key]
+    assert [location.zone for _ref, location, _r in lines] == ["heading"]
+
+
 def test_a_document_that_states_no_course_offers_no_anchor_line(conn, tmp_path):
     """The empty case, and it is the one that says this is not a widening.
 
