@@ -1,0 +1,19 @@
+{
+  "_": "DRAFT FOR THE OWNER, NOT RATIFIED, 2026-09-07 (the lead, under the owner's 14:15 delegation of prompt iteration as new versioned rows). The `subject` entry, rewritten so the glossary says what the labels expect and what the corpus prints: the course CODE. Measured cause: r11 put a neighbour's code line before the model in 70 of 80 fresh dossiers and the model still answered a title 39 times to 21 codes; the ratified wording does not say the value is the code.",
+  "_status": {
+    "status": "unratified",
+    "date": "2026-09-07",
+    "differs_from": "src/llm_harness/library/field_glossary.json",
+    "differing_keys": [
+      "subject"
+    ],
+    "row": "planning/104-DIAGNOSIS-FINAL.md R-144",
+    "paired_with": "tools/promptbench/drafts/a_fact_template.v2.txt (rule 13)"
+  },
+  "fields": {
+    "subject": {
+      "meaning": "the course this file belongs to, given as the course CODE its documents print -- the identifier the school uses for the course, taken from a line that prints it -- never the course's title alone; a title is the value only if no document in view prints the code beside it, and then it is declined rather than guessed",
+      "source": "planning/104-DIAGNOSIS-FINAL.md R-144"
+    }
+  }
+}
