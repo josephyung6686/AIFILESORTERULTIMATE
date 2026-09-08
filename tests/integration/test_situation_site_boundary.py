@@ -202,24 +202,82 @@ def test_wall_one_is_a_refusal_that_counts_what_is_waiting():
     assert "CLASSIFICATION_BASES" in message
 
 
-def test_wall_two_a_verdict_from_a_model_has_no_lawful_basis():
-    """MEASURED, not read. This is why no record is written: writing one as
-    `detector` would claim a deterministic rule concluded it, which is the untruth
-    `96` §19 caught when `detector_no_safety_evidence` was read as "I checked and it
-    is fine"."""
-    from privacy.classification import ClassificationRecord
-    from privacy.vocabulary import CLASSIFICATION_BASES
+def test_wall_two_is_open_and_a_local_model_verdict_has_a_truthful_basis():
+    """THE SECOND WALL OPENED, 8 September 2026, and this is the record of it.
 
-    assert "local_model" not in CLASSIFICATION_BASES
-    assert len(CLASSIFICATION_BASES) == 4
-    with pytest.raises(Exception) as raised:
+    It was the assertion that a verdict from a model on this device has no lawful
+    basis, measured by watching `ClassificationRecord(basis="local_model")` raise.
+    `104` §17.1 grants the fifth member, with the owner's intent stated in one
+    line: **a model verdict must NEVER be recorded as `detector`.**
+
+    THE SPELLING, AND WHY IT IS NOT `local_model`. `96` §19's lesson governs the
+    choice -- a basis word must not overclaim what was checked. What was checked is
+    ONE question: which of a SHORTLIST of situations, raised by the recognisers
+    themselves, this file is part of. The model was not shown the 23 schemas, was
+    not asked what else the file might be, and was not asked to examine it for
+    anything outside the list. `local_model` alone reads as "a model looked at this
+    file", which is broader than the question that was put; `local_model_situation`
+    says which question was answered and by what. That is the same narrowing the
+    fourth member made in the other direction, one column along.
+
+    `local` is load-bearing and stays: it says the bytes did not leave the device,
+    which is what makes a record about an unclassified file admissible at all
+    (`privacy.denial.UNCLASSIFIED_PERMITS_LOCAL`).
+    """
+    from privacy.classification import ClassificationRecord
+    from privacy.vocabulary import CLASSIFICATION_BASES, LOCAL_MODEL_SITUATION
+
+    assert LOCAL_MODEL_SITUATION == "local_model_situation"
+    assert LOCAL_MODEL_SITUATION in CLASSIFICATION_BASES
+    assert len(CLASSIFICATION_BASES) == 5
+    assert CLASSIFICATION_BASES[-1] == LOCAL_MODEL_SITUATION
+    assert "detector" not in LOCAL_MODEL_SITUATION, (
+        "the owner's stated intent is that a model verdict is never recorded as "
+        "`detector`, and a word carrying it would read as one at a glance")
+
+    record = ClassificationRecord(
+        file_id="f", content_hash="a" * 64,
+        handling_class="personal_non_sensitive", protected=False,
+        basis=LOCAL_MODEL_SITUATION, evidence_refs=("sha256:" + "a" * 64,),
+        reliability_state="llm_supported",
+        observed_at="2026-09-06T00:00:00+00:00")
+
+    assert record.basis == LOCAL_MODEL_SITUATION
+
+
+def test_wall_two_the_new_basis_still_has_to_cite():
+    """The weaker word must not become the way to skip the citation.
+
+    `00`:42 -- "A model that cannot cite sufficient evidence must return unknown"
+    -- is stricter here than it is for a detector, not looser: an uncited situation
+    answer is not a record written without evidence, it is an `unknown`, and an
+    `unknown` writes no record at all. So the fifth basis joins the two detector
+    bases in `_EVIDENCE_REQUIRED_BASES` rather than sitting beside `user`, whose
+    own act is its evidence.
+    """
+    from privacy.classification import ClassificationRecord, UnbackedClassification
+    from privacy.vocabulary import LOCAL_MODEL_SITUATION
+
+    with pytest.raises(UnbackedClassification):
         ClassificationRecord(
             file_id="f", content_hash="a" * 64,
             handling_class="personal_non_sensitive", protected=False,
-            basis="local_model", evidence_refs=("sha256:" + "a" * 64,),
+            basis=LOCAL_MODEL_SITUATION, evidence_refs=(),
             reliability_state="llm_supported",
             observed_at="2026-09-06T00:00:00+00:00")
-    assert "local_model" in str(raised.value)
+
+
+def test_wall_two_did_not_widen_what_a_detector_may_claim():
+    """The four that were there are unchanged, in their order.
+
+    A fifth member is an addition and not a re-reading of the four: `96` §19's
+    split of `detector` still means what it meant, and nothing here lets a
+    deterministic rule borrow the model's word or the model borrow a rule's.
+    """
+    from privacy.vocabulary import CLASSIFICATION_BASES
+
+    assert CLASSIFICATION_BASES[:4] == (
+        "detector", "detector_no_safety_evidence", "safety_domain", "user")
 
 
 def test_wall_three_no_prompt_is_ratified_for_this_site():

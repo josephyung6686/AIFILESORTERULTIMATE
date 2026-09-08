@@ -220,10 +220,15 @@ def test_the_basis_vocabulary_gains_a_fourth_member_and_stays_closed():
 
     Asserted as an equality rather than a membership, because a closed vocabulary
     that only ever grows by assertion is not closed. A fifth member is a red test
-    and a decision, which is exactly what SPEC §2's three were.
+    and a decision, which is exactly what SPEC §2's three were -- and on 2026-09-08
+    it was exactly that: this test went red, the owner's ruling (`104` §17.1) is
+    what turned it green again, and `local_model_situation` is recorded at the
+    member in `privacy/vocabulary.py`. The equality still holds the line: a SIXTH
+    member is a red test and a decision.
     """
     assert CLASSIFICATION_BASES == (
-        "detector", "detector_no_safety_evidence", "safety_domain", "user")
+        "detector", "detector_no_safety_evidence", "safety_domain", "user",
+        "local_model_situation")
     assert DETECTOR_NO_SAFETY_EVIDENCE == "detector_no_safety_evidence"
     assert DETECTOR_NO_SAFETY_EVIDENCE in CLASSIFICATION_BASES
 
