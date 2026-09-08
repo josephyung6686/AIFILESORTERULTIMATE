@@ -55,12 +55,14 @@ from tree_design.schema import create_tree_schema
 
 from tools.groundtruth.labels import load_labels
 from tools.groundtruth.measure import (
-    AUTO_ELIGIBLE, BLOCKED_PENDING_USER, HELD_POLICIES, REVIEW_REQUIRED,
+    AUTO_ELIGIBLE, BLOCKED_PENDING_USER, DECIDED_BY_MODEL, DECIDED_BY_RULE,
+    DECIDED_BY_USER, DECIDERS, HELD_POLICIES, REVIEW_REQUIRED,
     observe_run,
 )
 from tools.groundtruth.report import (
-    FREE_TO_MOVE, HELD_FOR_THE_PERSON, POLICY_NOT_RECORDED, held_counts,
-    outcome_counts, per_file_table, sorting_lines,
+    DECIDER_NOT_RECORDED, FREE_TO_MOVE, HELD_FOR_THE_PERSON,
+    POLICY_NOT_RECORDED, decided_by_counts, held_counts,
+    outcome_counts, per_file_table, scorecard, sorting_lines,
 )
 from tools.groundtruth.score import (
     APPROPRIATE_ABSTENTION,
@@ -164,7 +166,7 @@ def _file_row(conn, file_id: str, corpus: Path, relative: str, *,
 
 
 def _decision(conn, file_id: str, *, outcome: str, node_id: str | None,
-              review_policy: str | None) -> None:
+              review_policy: str | None, decided_by: str | None = None) -> None:
     """One `placement_decisions` row, with P11's policy in BOTH places it writes it.
 
     The column and the payload, because `store._payload` is `asdict(decision)` and
@@ -173,10 +175,18 @@ def _decision(conn, file_id: str, *, outcome: str, node_id: str | None,
 
     `review_policy=None` writes NEITHER, which is the shape of a row from a build
     before the field existed -- the case `NO_POLICY` is here to cover.
+
+    `decided_by` (`104` R-165) goes in the PAYLOAD ONLY, because that is the
+    record's one home for it: P11 adds no column, `store._from_row` rebuilds from
+    `payload` alone, and a column here would be a shape the product never writes.
+    Left out when None, so `NO_POLICY` doubles as the row from a build before this
+    field existed -- the case the report's `not recorded` remainder is printed for.
     """
     payload = {"ask": None}
     if review_policy is not None:
         payload["review_policy"] = review_policy
+    if decided_by is not None:
+        payload["decided_by"] = decided_by
     conn.execute(
         "INSERT INTO placement_decisions (record_id, subject_ref, plan_version, "
         "origin_stage, outcome, node_id, review_policy, created_at, payload) "
@@ -219,21 +229,30 @@ def built(tmp_path_factory):
 
     # The label's own leaf, proposed twice: once the person has to confirm, once
     # the product would carry it out. The only difference is the policy.
+    #
+    # `104` R-165's three deciders are spread across the same rows, one apiece, so
+    # every count below has a denominator bigger than one and a decider that is not
+    # the majority. The two axes are deliberately CROSSED -- the held one is the
+    # model's, the free one is a rule's -- because a fixture where the same rows
+    # carried both facts would pass a scorer that read either field for the other.
     _decision(conn, "f1", outcome="place", node_id="n-1403-hw",
-              review_policy=BLOCKED_PENDING_USER)
+              review_policy=BLOCKED_PENDING_USER, decided_by=DECIDED_BY_MODEL)
     _decision(conn, "f2", outcome="place", node_id="n-1403-hw",
-              review_policy=AUTO_ELIGIBLE)
+              review_policy=AUTO_ELIGIBLE, decided_by=DECIDED_BY_RULE)
     # Held, and on another course entirely. A hold is not an excuse.
     _decision(conn, "f3", outcome="place", node_id="n-1401-exam",
-              review_policy=REVIEW_REQUIRED)
+              review_policy=REVIEW_REQUIRED, decided_by=DECIDED_BY_USER)
     # P11 computes a policy for an ABSTENTION too, and almost always
-    # `review_required` -- nothing was proposed, so nothing is being held.
+    # `review_required` -- nothing was proposed, so nothing is being held. It names
+    # no decider either: nothing was placed for anybody to have chosen.
     _decision(conn, "f4", outcome="abstain", node_id=None,
               review_policy=REVIEW_REQUIRED)
     # f5 gets no row at all.
+    # Neither field, which is one row from a build that had neither -- and the
+    # `not recorded` remainder R-165's line prints rather than folding away.
     _decision(conn, "f6", outcome="place", node_id="n-1403-hw", review_policy=None)
     _decision(conn, "f7", outcome="place", node_id="n-1403-hw",
-              review_policy=BLOCKED_PENDING_USER)
+              review_policy=BLOCKED_PENDING_USER, decided_by=DECIDED_BY_MODEL)
 
     conn.commit()
     conn.close()
@@ -399,8 +418,122 @@ def test_every_row_has_a_cell_for_the_column(built):
     decision at all takes the shorter branch through the writer."""
     header, *rows = per_file_table([built["run"]], built["labels"]).splitlines()
     width = len(header.split("\t"))
-    assert width == 17
+    assert width == 18
     assert {len(row.split("\t")) for row in rows} == {width}
+
+
+# --- `104` R-165: who decided, beside what the model path cost --------------
+
+def test_the_decider_is_read_off_every_decision_the_run_wrote(built):
+    """§13.5 rules that every placement goes through the model, and until this
+    field existed the run could not say whether one had: a rule that fired first
+    and skipped the model was indistinguishable from a model verdict."""
+    files = built["run"].files
+    assert files[HELD_EXACT].decided_by == DECIDED_BY_MODEL
+    assert files[FREE_EXACT].decided_by == DECIDED_BY_RULE
+    assert files[HELD_WRONG].decided_by == DECIDED_BY_USER
+    # Nothing was placed, so nobody chose a folder. A decider here would be an
+    # actor credited with a decision that never happened.
+    assert files[ABSTAINED].decided_by is None
+    # A row from a build that had no such field, and a file with no row at all.
+    assert files[NO_POLICY].decided_by is None
+    assert files[SILENT].decided_by is None
+
+
+def test_the_placements_are_counted_by_who_decided_them(built):
+    counted = decided_by_counts([built["run"]])
+    assert counted[DECIDED_BY_MODEL] == 2          # f1 on the leaf, f7 protected
+    assert counted[DECIDED_BY_RULE] == 1           # f2
+    assert counted[DECIDED_BY_USER] == 1           # f3
+    # Printed as a remainder rather than folded into one of the three, so the
+    # arithmetic comes to the number of placements the run made.
+    assert counted[DECIDER_NOT_RECORDED] == 1      # f6
+    placements = sum(1 for o in built["run"].files.values()
+                     if o.outcome == "place")
+    assert sum(counted.values()) == placements == 5
+
+
+def test_the_hold_and_the_decider_are_counted_on_different_denominators(built):
+    """Not a discrepancy, and a reader adding one line against the other has to
+    be able to tell why. The hold is counted against what the BLOCKS scored, so
+    the protected file is left out of it; the decider is counted against what the
+    RUN recorded, because the model's share is a fact about the run and not about
+    which files happened to be labelled."""
+    held = held_counts([built["run"]], built["labels"])
+    deciders = decided_by_counts([built["run"]])
+    assert sum(held.values()) == 4
+    assert sum(deciders.values()) == 5
+    assert built["labels"][PROTECTED].protected is True
+
+
+def test_the_model_block_says_how_many_placements_each_actor_made(built):
+    card = scorecard([built["run"]], [], built["labels"], [], [],
+                     corpus_files=len(IDS), seconds=1.0)
+    assert "placed by=model 2 / rule 1 / user 1, not recorded 1" in card
+
+
+def test_the_line_is_printed_by_a_run_that_reached_no_model_at_all(built):
+    """`model 0 / rule N` is the measurement on a deterministic-only run, which
+    §6.6 makes a legal one -- so the line is not folded into the counts above it
+    that collapse to "no model tables in these databases"."""
+    run = dataclasses.replace(built["run"], files={
+        path: dataclasses.replace(
+            observation,
+            decided_by=DECIDED_BY_RULE if observation.decided_by else None)
+        for path, observation in built["run"].files.items()})
+    card = scorecard([run], [], built["labels"], [], [],
+                     corpus_files=len(IDS), seconds=1.0)
+    # All three words every time, zeros included. A line that fell silent about
+    # the actors it had nothing to report would leave a reader unable to tell
+    # "no model decided anything" from "this build does not count that".
+    assert "placed by=model 0 / rule 4 / user 0, not recorded 1" in card
+
+
+def test_the_table_says_who_chose_the_folder_in_the_row(built):
+    table = per_file_table([built["run"]], built["labels"])
+    header, *rows = table.splitlines()
+    columns = header.split("\t")
+    by_path = {row.split("\t")[0]: row.split("\t") for row in rows}
+    decider = columns.index("decided_by")
+    # Directly after the policy, which is the promise the writer's docstring makes.
+    assert columns[decider - 1] == "review_policy"
+
+    assert by_path[HELD_EXACT][decider] == DECIDED_BY_MODEL
+    assert by_path[FREE_EXACT][decider] == DECIDED_BY_RULE
+    assert by_path[HELD_WRONG][decider] == DECIDED_BY_USER
+    # Nothing was proposed for these three, so the cell is empty rather than
+    # naming an actor for a folder nobody offered.
+    assert by_path[ABSTAINED][decider] == ""
+    assert by_path[SILENT][decider] == ""
+    assert by_path[NO_POLICY][decider] == ""
+
+
+def test_the_decider_changes_no_number_in_the_six_buckets_or_the_five_classes(built):
+    """The line is a count beside the classes and never a class, exactly as the
+    hold is. Scoring the run with every decider stripped off must give bucket for
+    bucket the same card."""
+    run = built["run"]
+    stripped = dataclasses.replace(run, files={
+        path: dataclasses.replace(observation, decided_by=None)
+        for path, observation in run.files.items()})
+    assert (outcome_counts([run], built["labels"])
+            == outcome_counts([stripped], built["labels"]))
+    from tools.groundtruth.report import _split_buckets
+    assert (_split_buckets([run], built["labels"])
+            == _split_buckets([stripped], built["labels"]))
+
+
+def test_the_three_decider_words_are_the_ones_the_product_writes():
+    """The harness spells them rather than importing them -- it must read a run an
+    older build wrote -- so something has to check the spellings still agree."""
+    from placement import vocabulary as pv
+
+    assert DECIDERS == pv.DECIDERS
+    assert (DECIDED_BY_MODEL, DECIDED_BY_RULE, DECIDED_BY_USER) == (
+        pv.DECIDED_BY_MODEL, pv.DECIDED_BY_RULE, pv.DECIDED_BY_USER)
+    # Not a fourth decider, and it must never collide with one: it is the absence
+    # of a value, and a scorer that read it as a word would count it as an actor.
+    assert DECIDER_NOT_RECORDED not in pv.DECIDERS
 
 
 # --- protected is the protected block's business, not this one --------------
@@ -436,6 +569,24 @@ def test_a_shadow_placement_carries_no_policy_p11_never_wrote(built):
     # A file site C was never asked about keeps the decision P11 really wrote.
     assert shadow.files[HELD_EXACT].review_policy == BLOCKED_PENDING_USER
     assert sources[ABSTAINED] == SUBSTITUTED
+
+
+def test_a_shadow_placement_names_no_decider_p11_never_recorded(built):
+    """`104` R-165 travels with R-151, by the identical argument. The substituted
+    row is a placement P11 never made, so keeping the applied decision's decider
+    would credit `rule` or `user` with a node the rules and the person never
+    chose, and the model's share would be counted off the wrong record."""
+    run = built["run"]
+    observed = {
+        ABSTAINED: ObservedVerdict(
+            path=ABSTAINED, outcome="accept_direct", reasons=(),
+            destination=("Coursework", "PHYS1403", "homework"),
+            source=SUBSTITUTED),
+    }
+    shadow, _sources = shadow_run(run, observed)
+    assert shadow.files[ABSTAINED].outcome == "place"
+    assert shadow.files[ABSTAINED].decided_by is None
+    assert shadow.files[HELD_EXACT].decided_by == DECIDED_BY_MODEL
 
 
 def test_the_two_policy_words_are_the_ones_the_product_writes():
