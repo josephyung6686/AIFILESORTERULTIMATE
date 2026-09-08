@@ -105,6 +105,7 @@ from privacy.redaction import RedactionManifest, apply_redaction, span_address
 from privacy.release import (
     CLOUD_LOCALITY, DECISION_ORDER, Denied, MalformedRequest, ModelCallRequest,
     NeedsConsent, NoPolicyInForce, ReleaseDecision, Released, ReleasedItem,
+    whole_unit_is_an_excerpt,
 )
 from privacy.resolve import (
     AmbiguousObservationKey, UnresolvableSpan, current_location, materialise,
@@ -899,6 +900,14 @@ class Gate:
         """
         lengths = {item.observation_key: item.unit_length for item in resolved}
         zones = {item.observation_key: item.zone for item in resolved}
+        # `104` R-152 with `104` R-135. Which resolutions took §8.4's own alternative
+        # to a full document, asked through the one function both release builders
+        # admit by, so the gate and the builders exempt the same set of units.
+        excerpts = {
+            item.observation_key: whole_unit_is_an_excerpt(
+                whole_heading_unit=item.whole_heading_unit,
+                whole_line_unit=item.whole_line_unit)
+            for item in resolved}
         for item in request.requested_items:
             if not isinstance(item, TEXT_BEARING):
                 continue
@@ -909,6 +918,30 @@ class Gate:
                            allow_unratified=True,
                            suspension_permits_self_description=self._suspends(policy))
             except WholeDocumentRequested as caught:
+                if excerpts.get(item.observation_key, False):
+                    # THE EXEMPTION IS TAKEN HERE AND NOT INSIDE `check_item`, because
+                    # `check_item` cannot answer the question. Whether the whole unit is
+                    # a heading or a single line is a fact about P4's `Location`, which
+                    # only `resolve.materialise` still holds; `check_item` is given the
+                    # request's shape and the unit's LENGTH, and a length is exactly
+                    # what neither ruling would decide by.
+                    #
+                    # Excepting it excepts nothing else, and that is structural rather
+                    # than a hope. `_precheck_items` above already asked `check_item`
+                    # everything it can answer with `unit_length=None` -- the
+                    # always-local names, the sensitive key, the always-local zone, the
+                    # protected file, the unratified kind -- and returned the refusal
+                    # BEFORE anything was materialised. The whole-document arm is the
+                    # only one that needed the resolved length, which is why this pass
+                    # exists at all, so it is the only refusal this line can waive. A
+                    # one-line unit in a `path` zone never reaches here.
+                    #
+                    # Measured at `e5cce44`: the gate denied a whole HEADING unit
+                    # `whole_document_requested`, so R-135's exemption reached the two
+                    # builders and stopped at the gate -- the builders offered the
+                    # heading and the gate refused the call it was in. That is the 36
+                    # site-A refusals of r13, each one the whole of a file's call.
+                    continue
                 return caught
         return None
 
@@ -975,7 +1008,9 @@ class Gate:
                 zone=found.zone, unit_length=found.unit_length,
                 # `104` R-135, carried and not recomputed: `materialise` asked P4's
                 # `Location` and this is that answer.
-                whole_heading_unit=found.whole_heading_unit))
+                whole_heading_unit=found.whole_heading_unit,
+                # `104` R-152, carried on the same terms.
+                whole_line_unit=found.whole_line_unit))
             entries.append(entry)
         return tuple(resolved), RedactionManifest(entries=tuple(entries))
 

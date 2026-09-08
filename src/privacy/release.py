@@ -40,6 +40,8 @@ __all__ = [
     "DENIED_FIELDS", "NEEDS_CONSENT_FIELDS", "DECISION_TYPES", "DECISION_ORDER",
     "FORBIDDEN_PARAMETER_NAMES", "RELEASE_PARAMETERS", "MalformedRequest",
     "HEADING_SEGMENT", "unit_is_a_heading", "released_whole_heading_unit",
+    "unit_is_a_line", "released_whole_line_unit", "whole_unit_is_an_excerpt",
+    "released_whole_excerpt_unit",
     "MalformedDecision", "NoPolicyInForce",
 ]
 
@@ -275,6 +277,100 @@ def released_whole_heading_unit(location, unit_length: int | None) -> bool:
             and unit_is_a_heading(location))
 
 
+def unit_is_a_line(unit_holds_line_break: bool | None) -> bool:
+    """Whether this observation's UNIT is a line rather than a document.
+
+    **`104` R-152's ruling, and it is one expression for `unit_is_a_heading`'s reason:
+    the question is structural.** A text unit that holds no line break between its ends
+    IS one line -- that is not an opinion about the unit's size, it is the document
+    declining to say it has a second line. `evidence_shape.store.line_reading_for`
+    already reads a line as "the previous newline to the next newline", so a unit with
+    no interior newline is exactly one such line and nothing more.
+
+    Measured before the ruling, on the owner's corpus at r13: 47 calls came back
+    `Denied(whole_document_requested)`, 36 of them the WHOLE of a site-A call -- the
+    grounding report recorded `PRIVACY_GATE_REFUSED` and every fact of the file was
+    left `missing` -- over units under 200 characters, 24 of them under 50, mostly pdf
+    and docx. §8.4's sentence is *"should not send full documents where a short heading
+    or OCR excerpt is enough to resolve the question"*, and a 20-character line IS the
+    short excerpt that sentence prefers. Refusing it refused the file.
+
+    **THERE IS NO LENGTH BOUND HERE, and that is the ruling and not an omission.** A
+    bound is a number nobody authored and this deployment invents none, exactly as
+    R-135 refused to invent one for a heading. What this does NOT decide is the size of
+    what leaves: a very long single line is still one line, is still released whole, and
+    is COUNTED -- `llm_harness.records.GroundingReport` carries how many whole line
+    units a call released and the longest one's length. That case is `104` R-145's
+    paragraph, and bounding it is §8.6's dossier ceiling's job, which runs on the
+    measured tokens of the whole call. It is not this predicate's, which answers one
+    question about one unit's shape.
+
+    `None` is the absence `evidence_shape.store.unit_holds_a_line_break` reports when no
+    unit stands at the observation's path -- §2.3's cell and §2.8's EXIF field -- and it
+    is not a line: there is no unit there for anything to be the whole of, which is the
+    same reading `unit_length is None` already has one function above.
+    """
+    return unit_holds_line_break is False
+
+
+def released_whole_line_unit(location, unit_length: int | None, *,
+                             unit_holds_line_break: bool | None) -> bool:
+    """Whether this item is the EXEMPTION above: a span covering a whole line unit.
+
+    The twin of `released_whole_heading_unit`, and deliberately the same shape down to
+    the two absences it refuses on, because the two exemptions must be one rule asked
+    twice rather than two rules that drift. `model_facts.releasable_observations` /
+    `releasable_readings`, `model_placement.releasable_excerpts` and `privacy.gate`
+    admit by it, and `llm_harness.validation.report_from_verdicts` counts by it.
+
+    **A SPAN-LESS address is not exempted, and that is CR-07 and `104` SF-1 staying
+    closed.** `extractors/structured_text.py` emits a whole `.txt` and
+    `extractors/docx.py` a whole Word body as ONE span-less observation at the empty
+    container path, beside the unit holding the same characters -- 7 dossiers over
+    16,000 bytes, the largest 45,843, before it was refused. A one-line `.txt` is still
+    that shape, and the shape is what §8.4 calls a full document. The exemption needs a
+    span that says which characters were asked for, which is what a released excerpt is.
+    """
+    if unit_length is None:
+        return False
+    span = location.text_span
+    if span is None:
+        return False
+    return (span.start <= 0 and span.end >= unit_length
+            and unit_is_a_line(unit_holds_line_break))
+
+
+def whole_unit_is_an_excerpt(*, whole_heading_unit: bool,
+                             whole_line_unit: bool) -> bool:
+    """The two things a whole unit may be and still not be a full document.
+
+    **One spelling, because two callers hold different halves of the same answer.**
+    The two release builders hold P4's `Location` and ask `released_whole_excerpt_unit`
+    below; `privacy.gate` holds a RESOLVED item, whose `Location` no longer exists by
+    then -- `104` R-135 decided that fact at resolution and carries it -- so it asks
+    here with the two booleans in hand. Written as `or` at both sites, the set of
+    exempt units would be two sets that happen to agree today.
+
+    §8.4 names both: *"a short heading or OCR excerpt"*. R-135 admitted the heading;
+    R-152 admits the line, which is the shape an OCR excerpt and a table cell and a
+    running footer all arrive in.
+    """
+    return whole_heading_unit or whole_line_unit
+
+
+def released_whole_excerpt_unit(location, unit_length: int | None, *,
+                                unit_holds_line_break: bool | None) -> bool:
+    """`whole_unit_is_an_excerpt`, asked of a `Location` that is still in hand.
+
+    The form the two release builders use, so a builder states the question once
+    instead of composing two predicates and an `or` of its own.
+    """
+    return whole_unit_is_an_excerpt(
+        whole_heading_unit=released_whole_heading_unit(location, unit_length),
+        whole_line_unit=released_whole_line_unit(
+            location, unit_length, unit_holds_line_break=unit_holds_line_break))
+
+
 @dataclass(frozen=True, slots=True)
 class ReleasedItem:
     """One item as the MODEL sees it. SPEC §6: "post-redaction values only".
@@ -309,6 +405,16 @@ class ReleasedItem:
     #: Not in `content_mapping` and not on the wire, for `unit_length`'s reason below:
     #: it is a measurement the refusal is taken against, not a value.
     whole_heading_unit: bool = False
+    #: `104` R-152, and everything the field above says applies to this one unchanged:
+    #: decided in `resolve.materialise` where P4's `Location` still exists, carried and
+    #: never re-derived, absent from `content_mapping` and absent from the wire. A span
+    #: covering the whole of a unit that holds no line break.
+    #:
+    #: A SECOND boolean rather than one "exempt" flag, because the count is the thing
+    #: that stands in for the length bound neither ruling would invent, and one flag
+    #: would report a heading and a line as the same exposure. `GroundingReport` carries
+    #: the two counts apart for the same reason.
+    whole_line_unit: bool = False
 
     def content_mapping(self) -> dict[str, str]:
         """What this item CONTRIBUTES to the model-visible bytes, and only that.

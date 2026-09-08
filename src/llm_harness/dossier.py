@@ -117,6 +117,8 @@ def _released_evidence(released: Released) -> tuple[ReleasedEvidence, ...]:
             # carried straight through. Neither field is written by `_released_body`,
             # so the four model-visible keys and the dossier address are unchanged.
             whole_heading_unit=item.whole_heading_unit,
+            # `104` R-152's answer, on the same terms as the line above it.
+            whole_line_unit=item.whole_line_unit,
         )
         for item in released.materialised_items
     )
@@ -454,6 +456,11 @@ def dossier_from_stored_body(body: Mapping[str, object], *,
                 # rebuild was short.
                 unit_length=item.get("unit_length"),
                 whole_heading_unit=item.get("whole_heading_unit", False),
+                # `104` R-152, read the same way and for the paragraph above's reason:
+                # `store.record_dossier` serialises the whole record, so a row written
+                # since this field existed HOLDS it, and a rebuild short of it is
+                # `MalformedRecord` out of a reuse decision.
+                whole_line_unit=item.get("whole_line_unit", False),
             ) for item in body["released_evidence"]),
         max_dossier_tokens=body["max_dossier_tokens"],
         reduction_rung=body["reduction_rung"],

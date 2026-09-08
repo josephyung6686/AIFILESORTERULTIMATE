@@ -342,6 +342,12 @@ class ReleasedEvidence:
     #: a call's fate. Like `unit_length`, it is not among `RELEASED_EVIDENCE_FIELDS`
     #: and never reaches the model.
     whole_heading_unit: bool = False
+    #: `104` R-152's twin of the field above, on identical terms: P7's own answer about
+    #: this item -- a span covering the whole of a unit that holds no line break --
+    #: decided in `resolve.materialise` and carried here so `report_from_verdicts` can
+    #: COUNT rather than re-derive. Not among `RELEASED_EVIDENCE_FIELDS`; the model
+    #: never sees it.
+    whole_line_unit: bool = False
 
     def __post_init__(self) -> None:
         if not self.observation_key or not self.address:
@@ -354,10 +360,11 @@ class ReleasedEvidence:
             raise MalformedRecord(
                 "unit_length is a measured length of stored text, so it is a "
                 "non-negative int or the absence of a unit")
-        if not isinstance(self.whole_heading_unit, bool):
-            raise MalformedRecord(
-                "whole_heading_unit is P7's answer about this item and is a boolean; "
-                "a truthy stand-in would be counted as an exposure nobody measured")
+        for name in ("whole_heading_unit", "whole_line_unit"):
+            if not isinstance(getattr(self, name), bool):
+                raise MalformedRecord(
+                    f"{name} is P7's answer about this item and is a boolean; a "
+                    "truthy stand-in would be counted as an exposure nobody measured")
 
 
 @dataclass(frozen=True, slots=True)
@@ -651,6 +658,20 @@ class GroundingReport:
     #: row cannot break a call site that has nothing to do with R-135.
     heading_units_released: int = 0
     longest_heading_unit_length: int = 0
+    #: `104` R-152'S EXPOSURE COUNT, AND IT STANDS IN FOR THE SAME ABSENT NUMBER.
+    #: The ruling releases a span covering a whole unit that holds no LINE BREAK,
+    #: because a unit with no line break is one line and §8.4 asks for a short excerpt
+    #: instead of a full document; it sets no length bound, for R-135's reason.
+    #: `line_units_released` is how many released items were a whole line unit;
+    #: `longest_line_unit_length` is the longest of them in characters.
+    #:
+    #: Counted APART from the heading pair rather than added to it, because the two
+    #: answer different questions about the same run. A heading that is really prose is
+    #: `recognition/detector.py`'s typographic guess going wrong; a very long line is
+    #: `104` R-145's paragraph, whose size is §8.6's dossier ceiling to bound and not
+    #: this predicate's. One merged count would hide each behind the other.
+    line_units_released: int = 0
+    longest_line_unit_length: int = 0
 
     def __post_init__(self) -> None:
         _require(self.call_site, CALL_SITES, name="call_site")
@@ -662,7 +683,8 @@ class GroundingReport:
             raise MalformedRecord("GroundingReport requires dossier, model, and fingerprint")
         if not self.validator_version or not self.dossier_builder:
             raise MalformedRecord("validator_version and dossier_builder are required")
-        for name in ("heading_units_released", "longest_heading_unit_length"):
+        for name in ("heading_units_released", "longest_heading_unit_length",
+                     "line_units_released", "longest_line_unit_length"):
             value = getattr(self, name)
             if type(value) is not int or value < 0:
                 raise MalformedRecord(f"{name} is a count, and a count is never negative")

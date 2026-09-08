@@ -41,6 +41,7 @@ from types import MappingProxyType
 
 from evidence_shape.store import (
     get_observation, observations_by_key, unit_for_observation,
+    unit_holds_a_line_break,
 )
 from evidence_shape.location import Location, TextSpan
 from evidence_shape.locator import location_from_mapping
@@ -48,7 +49,9 @@ from evidence_shape.observation import Observation
 from evidence_shape.text_units import SpanAnchorError, check_span_anchor, raw_value_at
 
 from privacy.redaction import span_address
-from privacy.release import released_whole_heading_unit
+from privacy.release import (
+    released_whole_heading_unit, released_whole_line_unit,
+)
 
 #: The one zone a `items.Filename` may resolve through, and the zone
 #: `extractors/filesystem.py` writes the person's own name for the file into. Named
@@ -204,6 +207,12 @@ class Materialised:
     #: building a `Materialised` by hand states what it means rather than being
     #: required to compute it.
     whole_heading_unit: bool = False
+    #: `104` R-152, decided here for the reason above and carried the same way: a span
+    #: covering the whole of a unit that holds no line break. Kept apart from the
+    #: heading answer because the two are counted apart -- the counts are what both
+    #: rulings report INSTEAD of a length bound, and one flag would report a heading
+    #: and a line as one exposure.
+    whole_line_unit: bool = False
 
 
 def _live_observation_ids(conn: sqlite3.Connection,
@@ -421,4 +430,13 @@ def materialise(conn: sqlite3.Connection, item, *,
         # `model_placement.releasable_excerpts` admit by, so what the gate releases
         # under the exemption and what `GroundingReport` reports as exposure are one
         # condition evaluated on one object.
-        whole_heading_unit=released_whole_heading_unit(location, unit_length))
+        whole_heading_unit=released_whole_heading_unit(location, unit_length),
+        # `104` R-152's twin of the line above, and the reason the newline is read in
+        # SQL: `unit_holds_a_line_break` asks P4 whether the unit has a second line
+        # without bringing its text back, so the document does not cross into `privacy`
+        # in order to be declined. The gate cannot ask this itself -- by the time it
+        # decides, the `Location` is a serialised address -- which is why the answer is
+        # settled here and travels on `ReleasedItem`.
+        whole_line_unit=released_whole_line_unit(
+            location, unit_length,
+            unit_holds_line_break=unit_holds_a_line_break(conn, observation)))
