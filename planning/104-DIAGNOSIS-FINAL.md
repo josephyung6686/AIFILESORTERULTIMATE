@@ -1167,3 +1167,50 @@ observable (R-14, the transport returns no usage) but at this corpus size it is 
 5,000-file target is ~25x of cents. Cost is not the constraint. The constraint is that the safety
 machinery which would make cloud-majority honest does not exist yet, and today cloud LOOKS safe
 only because it is shown nothing.
+
+### 17.7 START HERE NEXT SESSION (written 8 Sep 2026 as the session ended)
+
+**Working branch `build/p6-p7-first-packages` at `0537f02`. Nothing is merged. The tree is clean.**
+
+Read §17 to §17.6 first. `103` §26-§28 and §10 of this document remain valid where §17 does not
+amend them. **§17.1's ruling governs anything in this repository that reads as rules-first.**
+
+**The state in one paragraph.** Chain w1bn on `d1a135e` came back with 13 failures and 0 of 41
+placed. Twelve failures were one dead instrument, fixed at `5ff35c0`. The thirteenth was not a
+regression at all: w1bl's five placements were the term counter matching `.ipynb` JSON dictionary
+keys, and R-160 deleted the artifact (§17.2). The honest offline baseline is **0 of 41**, and it
+always was. Five branches are in flight against that, none merged.
+
+**The five branches, all off `5ff35c0`/`c8ee99e`, worktrees under `~/.graph-agent/agents/`:**
+
+| Branch | Goal | Last commit at session end |
+|---|---|---|
+| `r166-tie-is-a-question` | a recogniser tie reaches site G and returns a cited answer or a visible `unknown` | `511dcd3` |
+| `r164-paragraph-units` | local dossier measured; the 12 starved local files; then the cloud excerpt producer | `f33e727` |
+| `r162-answer-shape` | the 234 nested responses read rather than binned; glossary out of the dossier | `aa06c1d` |
+| `r165-decided-by` | every sorting line carries its decided-by split; R-147 aliases | `181b080` |
+| `r161-field-signals` | item 15's field-signalled sensitivity, in two halves (§17.6's trap) | not started past base |
+
+**Order of work when you resume:**
+
+1. **Read the five agents' handover reports** appended below as §17.8. They contain corpus facts and
+   ruled-out dead ends that cost an hour each to re-derive.
+2. **Get the fourth-wall answer** if §17.8 does not already carry it: once site G answers, does
+   `privacy.denial.unclassified_denies` actually let an unclassified file through, or is there
+   another refusal behind it? **Nothing about the 95 unclassified files is knowable until this is
+   answered**, and it may invalidate the shape of `r166`.
+3. **Rebase each branch onto the current head, merge one at a time, chain after each.** Do not
+   merge a group and chain once -- §17.2 is what happens when a number's provenance is unclear.
+4. **Then the local run.** It is the owner's explicit sequencing (§17.6): prove the pipeline decides
+   at all on the local target before the cloud upgrade. Site A and site C are already
+   `ratified_local`; site G opens under §17.1. Expect roughly two hours seeded, seven unseeded.
+5. **Then the cloud upgrade**, which needs the excerpt producer, R-161, and R-82 signed -- in that
+   order and no earlier.
+
+**Owner items still owed:** 13 (response schema; `r162`'s report is the input to it), 16 (glossary
+sentences), 17 (the model-decided bar), 18 (site A asked every field), and **R-82** (folder labels
+crossing to a provider), which is the last gate before any cloud run. Items 14 and 15 are ruled
+(§17.1, §17.6). R-147's spellings are `r165`'s to report.
+
+**Machine rules that bit this project before:** never signal a pytest you did not start; a chain is
+about 40 minutes with the machine to itself; `graphify update .` after code changes.

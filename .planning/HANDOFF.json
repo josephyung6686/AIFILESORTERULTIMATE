@@ -1,60 +1,68 @@
 {
   "version": "1.0",
-  "timestamp": "2026-08-25T09:35:59.781Z",
-  "phase": "P8",
-  "phase_name": "llm-harness-validator",
-  "phase_dir": "planning/parts/P8-llm-harness-validator",
-  "plan": 8,
-  "task": 1,
-  "total_tasks": 12,
-  "status": "paused",
-  "completed_tasks": [
+  "timestamp": "2026-09-08T22:00:00Z",
+  "phase": "104-diagnosis-repair",
+  "phase_name": "llm-as-decision-engine repair chain",
+  "working_branch": "build/p6-p7-first-packages",
+  "head": "0537f02",
+  "status": "paused-out-of-usage",
+  "read_first": "planning/104-DIAGNOSIS-FINAL.md sections 17 through 17.8",
+  "ruling_in_force": "The LLM is the decision engine (owner, 8 Sep 2026). Code either feeds the model better inputs or applies its outputs. Documents in this repo that read as rules-first predate this and do not overrule it.",
+  "target_architecture": "cloud-majority (provider already wired, deepseek-shaped), local reserved for protected material. Owner's sequencing: local run FIRST to prove the pipeline decides, cloud upgrade after.",
+  "merged_this_session": [
     {
-      "id": 1,
-      "name": "Freeze vocabularies and immutable contracts",
-      "status": "in_progress",
-      "progress": "Implementation committed as dd94ee3. Spec compliance review and code quality review were NOT run. Subagent reported DONE_WITH_CONCERNS.",
-      "commit": "dd94ee3"
-    }
-  ],
-  "remaining_tasks": [
-    {"id": 1, "name": "Spec + quality review of Task 1, then mark complete", "status": "in_progress"},
-    {"id": 2, "name": "Deterministic fingerprint and dossier identity", "status": "not_started"},
-    {"id": 3, "name": "Append-only storage", "status": "not_started"},
-    {"id": 4, "name": "Eligibility, suppression, budgets", "status": "not_started"},
-    {"id": 5, "name": "Release-consuming transport", "status": "not_started"},
-    {"id": 6, "name": "Universal validation", "status": "not_started"},
-    {"id": 7, "name": "Site A fact validation", "status": "not_started"},
-    {"id": 8, "name": "Sites B–E fixtures", "status": "not_started"},
-    {"id": 9, "name": "Compose Gate.release branches / run_call", "status": "not_started"},
-    {"id": 10, "name": "P2 stage output", "status": "not_started"},
-    {"id": 11, "name": "No-bypass / no-invention guards", "status": "not_started"},
-    {"id": 12, "name": "Walking skeleton", "status": "not_started"}
-  ],
-  "blockers": [],
-  "human_actions_pending": [],
-  "decisions": [
-    {
-      "decision": "Ship P8 via subagent-driven development on branch build/p6-p7-first-packages, working in place (no new worktree).",
-      "rationale": "Uncommitted P1–P7 assembly had to stay available for later P8 tasks; user asked to ship P8 in this session.",
-      "phase": "P8"
+      "sha": "5ff35c0",
+      "what": "payload instrument passes locality and ceiling; 12 failed -> 20 passed"
     },
     {
-      "decision": "Task 1 public __all__ is Dossier, P8Verdict, Refusal, ValidationUnavailable, NeedsConsent. Do not export run_call until Task 9.",
-      "rationale": "Frozen surface in planning/30-p8-p9-connection-contract.md; run_call does not exist yet.",
-      "phase": "P8"
+      "sha": "c8ee99e",
+      "what": "104 s17: the ruling, and w1bl's 5 placements were JSON dictionary keys"
     },
     {
-      "decision": "Do not implement P9 in this slice.",
-      "rationale": "P9 plan still needs body fixes; user asked only to ship P8.",
-      "phase": "P8"
+      "sha": "0537f02",
+      "what": "104 s17.6: item 15 ruled by field; target architecture; the exclusion trap"
     }
   ],
-  "uncommitted_files": [
-    ".superpowers/ (untracked SDD briefs/reports; do not need to commit unless useful)",
-    ".planning/HANDOFF.json",
-    ".planning/.continue-here.md"
+  "branches_in_flight": [
+    {
+      "branch": "r166-tie-is-a-question",
+      "head": "511dcd3",
+      "goal": "recogniser tie reaches site G",
+      "merged": false
+    },
+    {
+      "branch": "r164-paragraph-units",
+      "head": "f33e727",
+      "goal": "local dossier measured, then cloud excerpt producer",
+      "merged": false
+    },
+    {
+      "branch": "r162-answer-shape",
+      "head": "aa06c1d",
+      "goal": "read the 234 nested responses; glossary out of dossier",
+      "merged": false
+    },
+    {
+      "branch": "r165-decided-by",
+      "head": "181b080",
+      "goal": "decided-by on every sorting line; R-147 aliases",
+      "merged": false
+    },
+    {
+      "branch": "r161-field-signals",
+      "head": null,
+      "goal": "item 15 field-signalled sensitivity, in two halves",
+      "merged": false
+    }
   ],
-  "next_action": "Resume SDD: independently spec-review then quality-review commit dd94ee3 (P8 Task 1). Fix any MUST-FIX findings in a follow-up commit. Only then dispatch Task 2.",
-  "context_notes": "Controller was mid-P8 ship. Task 1 implementer finished; spec reviewer Task call was interrupted when the user paused to go offline. Codex may still be running in terminal 78 on domain/planning work — P8 file set is src/llm_harness/, tests/p8/, and later the two named integration tests. Do not git add -A."
+  "blockers": [
+    "FOURTH WALL, unanswered: does a site G verdict actually open privacy.denial.unclassified_denies, or is there another refusal behind it? Nothing about the 95 unclassified files is knowable until this is answered."
+  ],
+  "human_actions_pending": [
+    "R-82: folder labels crossing to a provider. LAST GATE before any cloud run.",
+    "Item 13: response schema. r162's report is the input.",
+    "Item 16: glossary sentences. Item 17: the model-decided bar. Item 18: site A asked every field."
+  ],
+  "next_action": "Read the agent handover reports in 104 s17.8. Get the fourth-wall answer. Then rebase and merge the five branches ONE AT A TIME, chaining after each -- never merge a group and chain once. Then the local run.",
+  "context_notes": "Chain w1bn's 5-placement 'regression' was not one: the code schema's terms include kernel/source/cell/notebook and a raw .ipynb carries those as DICTIONARY KEYS, so the term counter placed four notebooks on JSON punctuation. Honest offline baseline is 0 of 41. Site A and site C are already ratified_local; ratification was never the blocker. Machine rule: never signal a pytest you did not start."
 }
