@@ -107,6 +107,19 @@ STAYS_REFUSED: tuple[str, ...] = (
     "&", "-", "(i)", "* DIEI ==outcomes in E", "#corre 1 . 4 - 1 : 4 . 10 - 4",
     "AUDIENCES IN GA4", "ADVERTISING REPORTS", "Addition principle-",
     "Analytics with google analytics 4 (ga4)",
+    # `104` R-146 widened refusal 1 and these three are what that means on this
+    # path. `normalize_for_review` refuses "a code, or a line containing one" by
+    # asking `cli._STRUCTURED.search`, and until 2026-09-08 that shape saw only
+    # UPPERCASE letters -- so S1's rule caught `PHYS1401 Problem Set 4` above and
+    # let the same sentence through whenever the department was a word. All three
+    # below were ACCEPTED as `possible` titles before R-146 and are refused now,
+    # which is S1's own rule reaching the readings it always meant: A_fact rule 4
+    # takes "the smallest run of characters that identifies the thing, not the
+    # phrase that contains it". The third carries a term rather than a code and is
+    # refused for `Spring 2026`'s reason, one line up in the same function.
+    "Physics 1401 Introductory Mechanics",
+    "Linear Algebra Section 001",
+    "Modern Physics Spring 2026",
 )
 
 
