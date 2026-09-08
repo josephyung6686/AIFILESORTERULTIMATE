@@ -38,7 +38,6 @@ from model_situation import (  # noqa: E402
     NONE_OF_THESE,
     SITUATION_SENSITIVITY,
     NothingToAsk,
-    SituationSiteNotRatified,
     build_situation_request,
     question_for,
     shortlist_for,
@@ -59,6 +58,51 @@ class _Semantic:
         self.schema_id = schema_id
         self.runner_up = runner_up
         self.tied_schema_ids = tuple(tied)
+
+
+class _Observation:
+    """The three things `build_situation_request` reads off a P4 observation.
+
+    A stand-in and not a stub of a decision: the real `Observation` is P4's and the
+    request builder reads its key, its locator and its reliability and nothing else.
+    `test_a_tie_is_a_question_for_the_model` builds the same request over the real
+    ones, so what this file measures is the SHAPE and that file measures the wiring.
+    """
+
+    def __init__(self, key: str, zone: str):
+        from evidence_shape.location import Location
+
+        self.observation_key = key
+        self.location = Location(zone=zone)
+        self.reliability = "direct"
+
+
+def _observation(key: str, zone: str) -> _Observation:
+    return _Observation(key, zone)
+
+
+#: A LOCAL target, because that is the only target this site has. `104` §17.1:
+#: nothing leaves the device under the ruling that opened it.
+class _LocalTargetShape:
+    locality = "local"
+    model_id = "test-local"
+    provider = "test"
+
+
+_LOCAL_TARGET = _LocalTargetShape()
+
+
+def _prompt():
+    """The deployment's own site-G prompt, read through the manifest row.
+
+    Not a fixture prompt: `prompt_fingerprint` hashes the template id with the
+    three files' bytes, so a request built under a made-up definition would carry a
+    fingerprint no record could resolve, and `transport.issue` refuses the release
+    when the two disagree.
+    """
+    import cli
+
+    return cli.situation_prompt()
 
 
 # --- the shortlist is what the recognisers raised, and nothing else --------------
@@ -186,20 +230,94 @@ def test_wall_one_the_seventh_site_can_carry_a_reason_a_recogniser_produces():
     assert REMAINS_AMBIGUOUS in ELIGIBILITY_BY_SITE[SITUATION_SENSITIVITY]
 
 
-def test_wall_one_is_a_refusal_that_counts_what_is_waiting():
-    """A gap with a number on it. The refusal names all three walls, so a reader who
-    opens one finds the other two without going looking."""
+def test_wall_one_a_question_now_becomes_a_request_at_the_seventh_site():
+    """WHAT THE REFUSAL BECAME. It counted the files waiting behind three walls and
+    named all three; the walls are open and the count is zero, so what is asserted
+    now is the request the refusal described.
+
+    Reference-only, and that is the property worth pinning rather than the fact that
+    something was returned: `DossierRequest` carries no text, the candidates are the
+    library's own ids, and the file's own readings are `Excerpt` items naming
+    observation keys. What the model is shown of the file is whatever P7 releases
+    for those keys at the door, and nothing here can widen it.
+    """
     question = question_for(
         _abstention("ambiguous", tied=("academic", "career")),
-        file_id="f", content_hash="a" * 64)
+        file_id="file-1", content_hash="b" * 64,
+        matched_terms=(("academic", ("syllabus",)), ("career", ("resume",))),
+        evidence_refs=("sha256:" + "c" * 64,))
 
-    with pytest.raises(SituationSiteNotRatified) as raised:
-        build_situation_request([question, question])
+    request = build_situation_request(
+        question, (_observation("sha256:" + "c" * 64, "heading"),),
+        model_target=_LOCAL_TARGET, prompt=_prompt(), max_dossier_tokens=4000)
 
-    message = str(raised.value)
-    assert "2 files" in message
-    assert SITUATION_SENSITIVITY in message
-    assert "CLASSIFICATION_BASES" in message
+    assert request.call_site == SITUATION_SENSITIVITY
+    assert request.subject_ref == "file-1"
+    assert request.eligibility_reason == "multiple_plausible_domains"
+    assert request.plan_version is None
+    assert request.evidence_snapshot_id is None
+    kinds = [item.kind for item in request.evidence_items]
+    assert kinds == ["candidate_schema"] * 3 + ["recogniser_abstention", "excerpt"]
+    refs = [item.evidence_ref for item in request.evidence_items]
+    assert refs[:3] == ["academic", "career", NONE_OF_THESE], (
+        "every option the model is offered is described, the way out included; an "
+        "option shown in the vocabulary and in no item is the one the prompt most "
+        "wants used and the one it says least about")
+    assert [item.observation_key
+            for item in request.model_call_request.requested_items] == [
+        "sha256:" + "c" * 64], "the file's own readings are asked for by key"
+    assert request.model_call_request.target.file_ids == ("file-1",), (
+        "one file and no neighbour: nothing at this site gathers a neighbour's "
+        "readings, and `gate._decisive` reads the first id's handling class as the "
+        "one the release is judged under")
+
+
+def test_wall_one_the_abstention_report_carries_the_recognisers_own_words():
+    """The item the ratified prompt calls "a report, not a verdict".
+
+    Everything in it is the recogniser's: its reason, the shortlist it produced,
+    and the LIBRARY's authored terms each candidate matched. Nothing about the
+    person's file reaches these bytes that the recogniser had not already concluded.
+    """
+    question = question_for(
+        _abstention("no_corroboration", schema_id="medical"),
+        file_id="file-2", content_hash="b" * 64,
+        matched_terms=(("medical", ("diagnosis",)),))
+
+    request = build_situation_request(
+        question, (_observation("sha256:" + "d" * 64, "body"),),
+        model_target=_LOCAL_TARGET, prompt=_prompt(), max_dossier_tokens=4000)
+
+    report = next(item for item in request.evidence_items
+                  if item.kind == "recogniser_abstention")
+    assert "no_corroboration" in report.location
+    assert "diagnosis" in report.location
+    assert request.eligibility_reason == "remains_ambiguous"
+
+    protected = next(item for item in request.evidence_items
+                     if item.evidence_ref == "medical")
+    assert "protected" in protected.location, (
+        "one of `00`:52's four kinds is marked as one on its own item, so the "
+        "prompt's rule about protected material has something to read")
+
+
+def test_wall_one_a_file_with_no_releasable_reading_is_not_asked():
+    """`00`:42, one step earlier than the model.
+
+    A shortlist and nothing to read it against is not a question a model can
+    answer: `DossierRequest` would refuse the empty item list and `ModelCallRequest`
+    the empty request, both correctly and both from a place that cannot say what
+    happened. It is said here instead, and the file stays where the rules left it
+    -- which for an unclassified file is local.
+    """
+    question = question_for(
+        _abstention("ambiguous", tied=("academic", "career")),
+        file_id="file-3", content_hash="b" * 64)
+
+    with pytest.raises(NothingToAsk):
+        build_situation_request(
+            question, (), model_target=_LOCAL_TARGET, prompt=_prompt(),
+            max_dossier_tokens=4000)
 
 
 def test_wall_two_is_open_and_a_local_model_verdict_has_a_truthful_basis():

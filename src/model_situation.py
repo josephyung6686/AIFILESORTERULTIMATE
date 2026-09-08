@@ -26,33 +26,83 @@ them fits. `recognition/_CONTRACT.md` rule 5 forbids the recogniser inventing a
 class to let the pipeline continue, and a model naming a schema nobody proposed
 would be that same invention wearing a model's face.
 
-WHY THIS FILE STOPS SHORT OF A CALL, and the three walls are measured, not assumed:
+THE THREE WALLS ARE OPEN, 8 September 2026 (`104` §17.1), and this is what each
+one turned into:
 
-1. `llm_harness.vocabulary.CALL_SITES` is a closed tuple of six. Its sixth member
-   carries "THE SIXTH, ADDED 2026-09-02 WITH THE OWNER'S APPROVAL, RECORDED HERE",
-   so a seventh is the owner's act. `SITUATION_SENSITIVITY` below is deliberately
-   NOT in it, and `build_situation_request` refuses rather than pretending.
-2. `privacy.vocabulary.CLASSIFICATION_BASES` is a closed tuple of four, and a
-   verdict from a model on this device is none of them. Measured:
-   `ClassificationRecord(basis="local_model", ...)` raises `OutOfVocabulary`.
-   Writing one as `detector` would claim a deterministic rule concluded it, which
-   is the untruth `96` §19 caught when `detector_no_safety_evidence` was read as
-   "I checked and it is fine". So this module writes no record.
-3. The prompt is the owner's to ratify, and the dossier needs slots
-   (`allowed_situations`, the matched terms, the abstention's reason) that the
-   ratified A_fact template does not name. The packet holds the request.
+1. `llm_harness.vocabulary.CALL_SITES` carries seven members and the seventh is
+   `G_situation_sensitivity`, recorded at the member on the sixth's own precedent.
+   `SITUATION_SENSITIVITY` below is a RE-EXPORT of it, and
+   `build_situation_request` builds a real `DossierRequest` rather than refusing.
+2. `privacy.vocabulary.CLASSIFICATION_BASES` carries five and the fifth is
+   `local_model_situation`. The owner's intent was that a model verdict must never
+   be recorded as `detector`, and the spelling names the QUESTION because `96`
+   §19's lesson is that a basis word must not overclaim what was checked.
+3. A situation prompt is ratified LOCAL-ONLY, by the bakeoff of the two authored
+   candidates under `103` §28.1. `ratified_local` is `prompt_library`'s own word
+   for an approval to ACT on the answer with the cloud still shut.
 
-All three are pinned by `tests/integration/test_situation_site_boundary.py`, each
-failing the day it opens.
+WHAT THIS SITE IS ACTUALLY WORTH, and it is not what the register first said.
+`104` §17.9 traced the fourth wall and found it does not exist: `privacy.denial.
+UNCLASSIFIED_PERMITS_LOCAL` is `True`, so an unclassified file is NOT refused a
+local call and never was. Nothing was silent. What happens instead is that
+`cli.py` builds site A's activation as `ActivationSignal(schema_id=<the run's
+--situation>, activates=lambda facts: True)` -- so every file is asked the
+questions of the ONE situation the run was launched with, and a vaccination
+record is asked which course it belongs to. That is R-23. **This site's job is
+that each file is asked about ITS OWN situation instead of the run's**, and its
+value shows up in spillover and in wrong-placement, not only in exact matches.
+
+`tests/integration/test_situation_site_boundary.py` holds the record of each wall
+opening; the tests were turned around rather than deleted.
 """
 from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from evidence_shape.locator import serialize_locator
+from evidence_shape.vocabulary import RELIABILITY_STATES
 from facts.domains import SCHEMA_IDS
-from llm_harness.vocabulary import CALL_SITES, G_SITUATION_SENSITIVITY
+from llm_harness.fingerprint import prompt_fingerprint
+from llm_harness.records import DossierRequest, EvidenceItem
+from llm_harness.vocabulary import (
+    CALL_SITES, DIRECT_ANCHOR, G_SITUATION_SENSITIVITY,
+    MULTIPLE_PLAUSIBLE_DOMAINS, REMAINS_AMBIGUOUS,
+)
+from privacy.items import Excerpt
+from privacy.release import ModelCallRequest, Target
 from recognition.detector import Abstention
+from recognition.vocabulary import SAFETY_DOMAIN_IDS
+
+#: P4's own word for a reading an extractor read explicitly, read off P4's tuple
+#: rather than typed. A `candidate_schema` item and the abstention report are the
+#: builder's own descriptions of what it knows for certain, so `direct` is the
+#: truthful state for them -- and `EvidenceItem` checks membership, so a rename in
+#: P4 goes red here rather than reaching a dossier as a word nothing recognises.
+DIRECT: str = "direct"
+if DIRECT not in RELIABILITY_STATES:  # pragma: no cover - a P4 rename
+    raise ImportError(
+        f"{DIRECT!r} is not one of P4's six reliability states "
+        f"{RELIABILITY_STATES}; the states are P4's and this module reads them")
+
+#: §8.5's per-stage decomposition needs a word for what this call is doing, and
+#: this is the site's. Not `A_FACT`'s stage: an audit row saying `fact` for a call
+#: that proposed no field would make the two indistinguishable in the one table
+#: that records every release.
+SITUATION_STAGE: str = "situation"
+
+#: The recogniser's three reasons, in `00`:39's own words. Not a rule -- three
+#: entries, each a translation between two vocabularies for one state.
+#:
+#: `ambiguous` is `multiple_plausible_domains` exactly: the schemas tied, which is
+#: what "multiple plausible domains" says. `no_corroboration` and `no_evidence` are
+#: a file that REMAINS AMBIGUOUS after the rules ran -- one term is not a domain and
+#: no term is not a domain either.
+_ELIGIBILITY_BY_REASON: dict[str, str] = {
+    "ambiguous": MULTIPLE_PLAUSIBLE_DOMAINS,
+    "no_corroboration": REMAINS_AMBIGUOUS,
+    "no_evidence": REMAINS_AMBIGUOUS,
+}
 
 #: THE SEVENTH SITE'S NAME, AND IT IS NOW A MEMBER. The owner granted it on
 #: 2026-09-08 (`104` §17.1) and the approval is recorded where a closed vocabulary
@@ -189,22 +239,186 @@ def question_for(abstention: Abstention, *, file_id: str, content_hash: str,
     )
 
 
-def build_situation_request(questions: Sequence[SituationQuestion]) -> None:
-    """THE WALL. Refuses, and says how much is waiting behind it.
+#: The abstention report's own address on the wire. Not an observation key and not
+#: a schema id: it is the ONE item of a situation dossier that is neither, and the
+#: ratified prompt names it -- *"a `recogniser_abstention` item is the reason the
+#: rules stopped ... It is a report, not a verdict: the rules aimed the question and
+#: you answer it."*
+#:
+#: A constant rather than a per-file string, deliberately. `wire_handles.wire_ref`
+#: leaves a non-observation reference raw, so whatever is here reaches the model
+#: verbatim; a per-file address would put an identifier of this person's file into
+#: the model-visible bytes through a slot nothing keys.
+ABSTENTION_REF: str = "abstention"
 
-    This is where a `DossierRequest` would be built and cannot be:
-    `records.DossierRequest` validates `call_site` against `CALL_SITES`, which does
-    not carry this site and will not until the owner ratifies it. Raising here rather
-    than building something almost-right keeps the refusal at the place a reader
-    looks for it, and the count is what makes the gap a number instead of a note.
+#: What the model may cite. The abstention report and the candidate schemas are
+#: REFERENCES the builder describes, not text P7 released, and the ratified prompt
+#: says so in its own rule 2: *"Cite only keys that appear in `released_evidence`: a
+#: candidate, the abstention report or a reading is not evidence and cannot be
+#: cited."* Nothing here enforces that -- `validation._check_citation` already does,
+#: by requiring the cited ref to be among the dossier's RELEASED items -- and the
+#: two agreeing is the property, not a second check.
+_REFERENCE_ONLY_KINDS: tuple[str, ...] = ("recogniser_abstention", "candidate_schema")
+
+
+def _abstention_item(question: SituationQuestion) -> EvidenceItem:
+    """The recogniser's own report of why it stopped, as one reference item.
+
+    Every word of `location` comes from the recogniser: its reason, its near miss,
+    the ids it tied on, and the terms each candidate matched. Nothing is authored
+    here and nothing about the person's file beyond what the recogniser already
+    concluded reaches the bytes -- the matched terms are the LIBRARY's authored
+    words, which is what `test_a_tie_is_a_question_for_the_model` asserts of them.
     """
-    raise SituationSiteNotRatified(
-        f"{len(questions)} files have a question with valid options and none can "
-        f"be asked: {SITUATION_SENSITIVITY!r} is not one of the {len(CALL_SITES)} "
-        f"call sites the product carries, and a seventh is the owner's act -- the "
-        f"sixth records that it was 'ADDED 2026-09-02 WITH THE OWNER'S APPROVAL'. "
-        f"Two more walls stand behind this one: no prompt is ratified for the site, "
-        f"and a verdict from a model on this device has no lawful basis to be "
-        f"written under (`CLASSIFICATION_BASES` carries four and none of them names "
-        f"a model). Q-M puts all three to the owner together."
+    matched = "; ".join(
+        f"{schema_id}: {', '.join(terms)}" if terms else f"{schema_id}: no term"
+        for schema_id, terms in question.matched_terms)
+    return EvidenceItem(
+        evidence_ref=ABSTENTION_REF,
+        kind="recogniser_abstention",
+        location=(
+            f"recogniser abstention | reason: {question.reason} | "
+            f"shortlist: {', '.join(question.allowed_situations)}"
+            + (f" | matched: {matched}" if matched else "")),
+        excerpt_span=None,
+        reliability_state=DIRECT,
+        basis=DIRECT_ANCHOR,
+    )
+
+
+def _candidate_items(question: SituationQuestion,
+                     safety_domain_ids: Sequence[str]) -> tuple[EvidenceItem, ...]:
+    """One item per option, the decline included, and no option without one.
+
+    THE DECLINE GETS AN ITEM TOO. It is on `allowed_vocabulary`, so a model reading
+    the vocabulary and then the items would find one option it was offered and never
+    described -- and the option it would find undescribed is the one the prompt most
+    wants used when the two readings are close.
+
+    **`location` says whether the kind is one of the four the product protects**, in
+    the prompt's own terms, and that is the only judgement in this function. It is
+    read off `recognition.vocabulary.SAFETY_DOMAIN_IDS` rather than listed here:
+    `00`:52's four are the recogniser's own list and a second copy would be a second
+    answer to which material is protected.
+    """
+    items = []
+    for schema_id in question.allowed_situations:
+        if schema_id == NONE_OF_THESE:
+            where = ("no situation on this list | choosing this leaves the file "
+                     "where the rules left it, on this device, for a person")
+        else:
+            where = f"{schema_id} | a situation the recogniser shortlisted for this file"
+            if schema_id in safety_domain_ids:
+                where += (" | one of 00's four protected kinds: material of this "
+                          "kind is protected before any cloud or automated "
+                          "placement decision is allowed")
+        items.append(EvidenceItem(
+            evidence_ref=schema_id, kind="candidate_schema", location=where,
+            excerpt_span=None, reliability_state=DIRECT, basis=DIRECT_ANCHOR))
+    return tuple(items)
+
+
+def build_situation_request(
+    question: SituationQuestion,
+    observations: Sequence, *,
+    model_target,
+    prompt,
+    max_dossier_tokens: int,
+    safety_domain_ids: Sequence[str] = SAFETY_DOMAIN_IDS,
+) -> DossierRequest:
+    """One file's situation question, as the reference-only request P7 decides on.
+
+    THE WALL THAT USED TO BE HERE IS OPEN. This function raised
+    `SituationSiteNotRatified` and counted what was waiting behind it; `104` §17.1
+    is the owner's act that made the count zero. What replaces the refusal is the
+    request the refusal described: `DossierRequest` validates `call_site` against
+    `CALL_SITES`, which now carries this site, and `eligibility_reason` against
+    `ELIGIBILITY_BY_SITE`, which gives it site A's three.
+
+    **No text crosses this line.** Every field is a reference: the schema ids are
+    the library's, the abstention report is the recogniser's own words about its own
+    conclusion, and the file's readings are `Excerpt` items naming observation keys.
+    What the model is shown of the file is whatever P7 decides to release for those
+    keys, at the door, and this function cannot widen it.
+
+    **The eligibility reason is the recogniser's reason, translated once.**
+    `ambiguous` IS `00`:39's "multiple plausible domains" -- the same sentence, in
+    two vocabularies -- and the other two reasons are a file that remains ambiguous.
+    The mapping is `_ELIGIBILITY_BY_REASON` and it is three entries, not a rule.
+    """
+    if not observations:
+        # NOT A DOSSIER WITH NOTHING IN IT. `DossierRequest` refuses an empty
+        # `evidence_items` and `ModelCallRequest` refuses empty `requested_items`,
+        # so a file whose readings were all withheld would raise at the constructor
+        # -- correctly, but from a place that cannot say what happened. It is said
+        # here: `00`:42's "must return unknown where support is insufficient" is
+        # about the MODEL's answer, and a file with no releasable reading never gets
+        # far enough to be asked. It stays where the rules left it, which is local.
+        raise NothingToAsk(
+            f"{question.file_id} has a shortlist and no releasable reading, so "
+            f"there is nothing for a model to read the answer out of. A question "
+            f"with valid options and no evidence is not a question `00`:42 permits "
+            f"an answer to: the file stays where the rules left it.")
+    return DossierRequest(
+        call_site=SITUATION_SENSITIVITY,
+        subject_ref=question.file_id,
+        eligibility_reason=_ELIGIBILITY_BY_REASON.get(
+            question.reason, REMAINS_AMBIGUOUS),
+        # THE FRAME'S ITEMS FIRST and the file's after them. `104` R-58: the
+        # dossier's shared prefix is what does not vary between two files of one
+        # run, and for this site the candidates and the abstention's SHAPE are
+        # nearly constant while the readings are not.
+        evidence_items=_candidate_items(question, safety_domain_ids)
+        + (_abstention_item(question),)
+        + tuple(
+            EvidenceItem(
+                evidence_ref=observation.observation_key,
+                kind="excerpt",
+                location=serialize_locator(observation.location),
+                excerpt_span=(
+                    None if observation.location.text_span is None else
+                    (observation.location.text_span.start,
+                     observation.location.text_span.end)),
+                reliability_state=observation.reliability,
+                basis=DIRECT_ANCHOR,
+            )
+            for observation in observations
+        ),
+        # This site asks about ONE file and retrieves no neighbours, so there is no
+        # competing value for the engine to have recorded. The prompt says the same
+        # thing to the model: "`field_glossary`, `folder_levels` and `conflicts` are
+        # empty at this site."
+        conflicts=(),
+        model_call_request=ModelCallRequest(
+            stage=SITUATION_STAGE,
+            # ONE FILE AND NO NEIGHBOUR. Site A's target grows to hold the files a
+            # context reading came from; this one cannot, because nothing here
+            # gathers a neighbour's readings. A single id is also what makes
+            # `gate._decisive` read this file's own handling class as the one the
+            # release is judged under.
+            target=Target(file_ids=(question.file_id,), group_id=None),
+            model_target=model_target,
+            requested_items=tuple(
+                Excerpt(
+                    observation_key=observation.observation_key,
+                    span=observation.location.text_span,
+                    reason="a reading of this file the situation may rest on",
+                )
+                for observation in observations
+            ),
+            prompt_template_id=prompt.template_id,
+            # THE PROMPT'S OWN FINGERPRINT, never the dossier's address.
+            # `transport.issue` recomputes this from the `PromptDefinition` it is
+            # about to send and refuses the release when the two disagree, after P7
+            # has already spent it. `model_facts.build_fact_request` records what
+            # that cost at site B and the note is repeated here rather than left to
+            # be rediscovered.
+            prompt_fingerprint=prompt_fingerprint(prompt),
+            max_dossier_tokens=max_dossier_tokens,
+        ),
+        plan_version=None,
+        # C and D need one; this site proposes no destination in any tree, so it has
+        # no snapshot to be judged against. `SITES_REQUIRING_EVIDENCE_SNAPSHOT` is
+        # the list that decides it and this site is not on it.
+        evidence_snapshot_id=None,
     )

@@ -146,7 +146,7 @@ from llm_harness.sites import SiteDependencies
 from llm_harness.schema import create_llm_schema
 from llm_harness.vocabulary import (
     A_FACT, B_GROUP, C_PLACEMENT, CONTEXT_SUPPORTED, D_RESIDUAL, DIRECT_ANCHOR,
-    E_TEMPLATE, PRE_CALL_NAMESPACE,
+    E_TEMPLATE, G_SITUATION_SENSITIVITY, PRE_CALL_NAMESPACE,
     SCOPE_TEMPLATE as TEMPLATE_SCOPE,
 )
 from placement import vocabulary as pv
@@ -749,6 +749,27 @@ assert set(OBSERVE_TEMPLATE_ID) == OBSERVE_CALL_SITES
 # is selected for a measurement run by pointing this pair at it in that run's checkout.
 A_FACT_ROW: tuple[str, str] = (
     "a_fact.unratified.folder-levels.2026-09-04", "ratified-folder-levels")
+
+
+#: `104` §17.1's THIRD WALL: THE MANIFEST ROW SITE G RUNS UNDER, `(template_id,
+#: candidate)`, on `A_FACT_ROW`'s own pattern and for the same reason -- the row is
+#: what points at bytes, and the digests in the packet are what verify them.
+#:
+#: THE PAIR IS THE BAKEOFF'S ANSWER AND NOT A PREFERENCE. `103` §28.1 is the
+#: protocol and the two authored candidates were `situation.unratified.shortlist.
+#: 2026-09-06` and `situation.unratified.safety-first.2026-09-06`. The measurement
+#: is recorded in the commit that set this line; re-pointing the site is an edit
+#: here and to nothing else.
+#:
+#: **`ratified_local` AND NOT `ratified`.** `104` §17.1: "Nothing leaves the device
+#: under this ruling." The word is the row's, in the manifest, and it is the one
+#: `prompt_library` invented for exactly this: the site ACTS on the answer and the
+#: cloud stays shut. The population this site exists for is the unclassified files,
+#: and `privacy.denial.unclassified_denies` refuses every cloud release of one
+#: unconditionally -- so a `ratified` here would name a permission no file at this
+#: site could use.
+SITUATION_ROW: tuple[str, str] = (
+    "situation.unratified.shortlist.2026-09-06", "situation-shortlist")
 
 
 #: WHAT EACH STATUS WORD BUYS, and the two questions it answers are not one
@@ -1580,6 +1601,8 @@ def prompt_for(call_site: str) -> PromptDefinition:
     """
     if call_site == A_FACT:
         return a_fact_prompt()
+    if call_site == G_SITUATION_SENSITIVITY:
+        return situation_prompt()
     if call_site in OBSERVE_CALL_SITES:
         return observe_prompt(call_site)
     raise ValueError(
@@ -4010,6 +4033,48 @@ def a_fact_prompt() -> PromptDefinition:
         # THE ROW'S WORD. `planning/82-FACT-PROMPT-DRAFT.md` §0 records the owner
         # ratifying this text; the row is where that is written down now, and
         # `a_fact_row` has already refused a row that does not carry it.
+        ratified=draft_status(template_id) in STATUS_APPLIES,
+        shaping_policy_bytes=shaping_policy)
+
+
+def situation_prompt() -> PromptDefinition:
+    """The text site G asks under. Composed HERE, on `observe_prompt`'s pattern.
+
+    `104` §17.1's third wall. The bytes come through `SITUATION_ROW`, a manifest
+    row, exactly as site A's and the observe sites' do: `draft_bytes` resolves the
+    id through the packet and verifies each of the three files against the digest
+    recorded there, so this function picks an id and a version and reads nothing
+    else.
+
+    **`ratified` IS THE ROW'S WORD AND NOT A LITERAL HERE**, which is why this
+    follows `observe_prompt` rather than `a_fact_prompt`: `a_fact_row` REFUSES a row
+    that is not applying, because site A applying nothing is a broken run. Site G
+    asking and recording is a legitimate state -- it is what every observe site does
+    -- so an unratified row leaves `ratified` false and the site records its answer
+    without acting on it. The day the row is ratified the site starts applying and
+    no line of this function changes.
+
+    **`ratified_local` counts as ratified here and not at the locality gate.** This
+    field is "act on the answer", which a local run may do; the gate is "these bytes
+    may leave the device", which they may not. `observe_locality_permits` is the
+    other half and site G is subject to it.
+    """
+    template_id, candidate = SITUATION_ROW
+    # THE PAIR, RESOLVED BEFORE ANYTHING IS READ. `prompt_library.a_fact_row` is
+    # the one reader that resolves a row by id AND candidate; it is named for site
+    # A's glossary arms and it is a general reader, so site G uses it rather than a
+    # second one. The two situation candidates carry different ids today, so the id
+    # alone would resolve -- naming the candidate as well is what makes re-pointing
+    # this site a change to `SITUATION_ROW` and never a change the manifest makes
+    # on its own.
+    prompt_library_a_fact_row(template_id, candidate)
+    template, response_schema, shaping_policy = draft_bytes(template_id)
+    return PromptDefinition(
+        template_id=template_id,
+        template_bytes=template,
+        response_schema_bytes=response_schema,
+        call_site=G_SITUATION_SENSITIVITY,
+        call_site_version="1",
         ratified=draft_status(template_id) in STATUS_APPLIES,
         shaping_policy_bytes=shaping_policy)
 
