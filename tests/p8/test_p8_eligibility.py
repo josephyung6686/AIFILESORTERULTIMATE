@@ -32,6 +32,7 @@ from llm_harness.vocabulary import (
     E_TEMPLATE,
     ELIGIBILITY_BY_SITE,
     FACT_ELIGIBILITY,
+    G_SITUATION_SENSITIVITY,
     GROUP_ELIGIBILITY,
     NOT_ELIGIBLE_FOR_MODEL,
     PLACEMENT_ELIGIBILITY,
@@ -178,7 +179,17 @@ def test_closed_eligibility_reasons_are_imported_from_p8_vocabulary_not_injected
     assert FACT_ELIGIBILITY + GROUP_ELIGIBILITY + PLACEMENT_ELIGIBILITY + (
         RESIDUAL_ELIGIBILITY + TEMPLATE_ELIGIBILITY
     ) == ALL_ELIGIBILITY
-    assert set(ELIGIBILITY_BY_SITE) == {A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE}
+    # SEVEN SITES, SIX ENTRIES' WORTH OF WORDS. `104` §17.1's seventh site reuses
+    # site A's three reasons rather than authoring a fourth list, so the map gains
+    # a key and `ALL_ELIGIBILITY` gains nothing -- which is the assertion above
+    # still holding after the addition, and the point of taking one approval
+    # instead of two. `F_role_shortlist` is absent because no request is built at
+    # it; a site with no entry cannot pass `DossierRequest.__post_init__`.
+    assert set(ELIGIBILITY_BY_SITE) == {
+        A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE,
+        G_SITUATION_SENSITIVITY,
+    }
+    assert ELIGIBILITY_BY_SITE[G_SITUATION_SENSITIVITY] is FACT_ELIGIBILITY
     source = inspect.getsource(assess_call)
     assert "ELIGIBILITY_BY_SITE" in source
     assert "eligibility_reasons=" not in source
