@@ -605,7 +605,7 @@ def test_the_word_documents_body_is_never_offered_to_a_model_call(whole_conn):
         whole_conn, "Wash U 2.docx", b"docx-2")
 
     offered = releasable_observations(
-        whole_conn, file_id=file_id, content_hash=digest, limit=12)
+        whole_conn, file_id=file_id, content_hash=digest, limit=12, locality=CLOUD_LOCALITY, ceiling=MAX_DOSSIER_TOKENS)
     values = [observation.raw_value for observation in offered]
     assert offered, "the headings and cells beside the body are still offered"
     assert not [value for value in values if DOCX_CANARY in value], values

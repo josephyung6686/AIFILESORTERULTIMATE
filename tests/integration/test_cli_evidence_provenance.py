@@ -38,6 +38,14 @@ from evidence_shape.store import (  # noqa: E402
     TextUnit, record_observation, record_run, record_text_unit,
 )
 from extractors.long_tail import SENSITIVITY_DDL  # noqa: E402
+from privacy.vocabulary import CLOUD_LOCALITY  # noqa: E402
+
+#: `104` R-159's two new keywords, spelled once for this file. `CLOUD_LOCALITY`
+#: because every test here predates the ruling and is about the cloud half of it,
+#: which is the half that did not change; the ceiling because a cloud call is bound
+#: by the COUNT and never reads the ceiling, so any value states the same thing and
+#: this one is the product's own stored number.
+A_CEILING = 4000
 
 CONTENT_HASH = "b" * 64
 AT = "2026-09-06T00:00:00+00:00"
@@ -180,7 +188,8 @@ def test_a_file_with_body_text_and_no_fact_still_offers_its_own_readings(
     key = _observation(evidence, zone="body", span=TextSpan(10, 21),
                        value="problem set")
 
-    offered = cli.reading_citations(evidence, "file-1", limit=12)
+    offered = cli.reading_citations(evidence, "file-1", limit=12,
+                                  locality=CLOUD_LOCALITY, ceiling=A_CEILING)
 
     assert [ref for ref, _location, _reliability in offered] == [key]
     # And there is no fact to be had: P6's table is not even on this connection,
@@ -197,7 +206,8 @@ def test_a_reading_carries_its_own_zone_and_its_own_span(evidence):
     _observation(evidence, zone="table", span=TextSpan(0, 9), value="PHYS 1401")
 
     (_ref, location, reliability), = cli.reading_citations(
-        evidence, "file-1", limit=12)
+        evidence, "file-1", limit=12, locality=CLOUD_LOCALITY,
+        ceiling=A_CEILING)
 
     assert location.zone == "table"
     assert (location.text_span.start, location.text_span.end) == (0, 9)
@@ -210,7 +220,8 @@ def test_a_file_with_no_readings_offers_none(evidence):
     sentence: a file with nothing to send is not sent."""
     _indexed(evidence)
 
-    assert cli.reading_citations(evidence, "file-1", limit=12) == ()
+    assert cli.reading_citations(evidence, "file-1", limit=12,
+                                  locality=CLOUD_LOCALITY, ceiling=A_CEILING) == ()
 
 
 def test_an_always_local_reading_is_not_offered(evidence):
@@ -224,7 +235,8 @@ def test_an_always_local_reading_is_not_offered(evidence):
     _observation(evidence, zone="path", span=None, value="/holder/corpus",
                  container=(Segment(kind="field", label="directory"),))
 
-    offered = cli.reading_citations(evidence, "file-1", limit=12)
+    offered = cli.reading_citations(evidence, "file-1", limit=12,
+                                  locality=CLOUD_LOCALITY, ceiling=A_CEILING)
 
     assert [ref for ref, _location, _reliability in offered] == [body]
 
@@ -252,7 +264,8 @@ def test_a_whole_document_reading_is_not_offered(evidence):
     _observation(evidence, zone="body", span=TextSpan(0, len(document)),
                  value=document, container=page_three)
 
-    offered = cli.reading_citations(evidence, "file-1", limit=12)
+    offered = cli.reading_citations(evidence, "file-1", limit=12,
+                                  locality=CLOUD_LOCALITY, ceiling=A_CEILING)
 
     assert [ref for ref, _location, _reliability in offered] == [short]
 
@@ -266,8 +279,10 @@ def test_the_cap_is_the_callers_and_this_function_states_no_number(evidence):
         _observation(evidence, zone="body", span=TextSpan(start, start + 4),
                      value=BODY[start:start + 4])
 
-    assert len(cli.reading_citations(evidence, "file-1", limit=2)) == 2
-    assert len(cli.reading_citations(evidence, "file-1", limit=6)) == 6
+    assert len(cli.reading_citations(evidence, "file-1", limit=2,
+                                     locality=CLOUD_LOCALITY, ceiling=A_CEILING)) == 2
+    assert len(cli.reading_citations(evidence, "file-1", limit=6,
+                                     locality=CLOUD_LOCALITY, ceiling=A_CEILING)) == 6
 
 
 def test_a_file_this_run_has_no_version_for_offers_nothing(evidence):
@@ -277,7 +292,8 @@ def test_a_file_this_run_has_no_version_for_offers_nothing(evidence):
     _observation(evidence, zone="body", span=TextSpan(10, 21),
                  value="problem set")
 
-    assert cli.reading_citations(evidence, "file-1", limit=12) == ()
+    assert cli.reading_citations(evidence, "file-1", limit=12,
+                                  locality=CLOUD_LOCALITY, ceiling=A_CEILING) == ()
 
 
 # --- `104` R-156: the item set is the set the door releases --------------------
@@ -302,7 +318,8 @@ def _item(ref: str, *, zone: str = "body", span=(10, 21)):
 
 def _offered(conn, *refs) -> list:
     return [item.evidence_ref
-            for item in cli.releasable_items(conn, [_item(ref) for ref in refs])]
+            for item in cli.releasable_items(conn, [_item(ref) for ref in refs],
+                                     locality=CLOUD_LOCALITY)]
 
 
 def test_a_fact_cited_from_a_body_span_is_offered(evidence):

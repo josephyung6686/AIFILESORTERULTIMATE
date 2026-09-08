@@ -96,7 +96,9 @@ from privacy.resolve import (
 from privacy.release import (
     ModelCallRequest, ModelTarget, Target, released_whole_excerpt_unit,
 )
-from privacy.vocabulary import ALWAYS_LOCAL_ZONES
+from privacy.vocabulary import (
+    ALWAYS_LOCAL_ZONES, CLOUD_LOCALITY, LOCALITIES, RELEASED_TO_A_LOCAL_TARGET,
+)
 
 #: P8's own stage name for a fact call, and the `ModelCallRequest.stage` §8.4's audit
 #: record carries. P9 spells its own as `group_interpretation` in `p8_seam.py`.
@@ -547,21 +549,153 @@ def measure_released_tokens(request, resolved: Sequence) -> int:
     return dossier_tokens(item.value for item in resolved)
 
 
+def document_order(observation) -> tuple[int, ...]:
+    """Where this reading stands in the file, as P4's own locator already says.
+
+    `104` R-159. The tuple of `index` values along `location.container_path`,
+    outermost first -- `page=7` before `page=12`, and a paragraph inside a page after
+    the page's own reading, because a shorter prefix sorts first and a page-level
+    address IS a prefix of the addresses inside it. A label-only segment (§2.3's
+    sheet, a `field` name) carries no index and contributes `0`.
+
+    THIS IS NOT A PREFERENCE, and the distinction is the whole reason it is written
+    down. `_ZONE_PREFERENCE` above IS a preference -- §3.7's own sentence that a
+    title carries more meaning than a late body reference -- and it still runs first.
+    What this replaces is the `observation_key` tie-break that used to break ties
+    WITHIN a zone: a content-addressed SHA-256, so among a PDF's forty body pages the
+    twelve that reached a dossier were the twelve whose digests happened to sort
+    lowest. That is not a reading of the document; it is a reading of a hash. The
+    document's own order is the one fact P4 records about where a page stands, and
+    using it invents nothing -- the key stays as the last term, because two readings
+    at one address still need a total order.
+    """
+    return tuple(
+        0 if segment.index is None else segment.index
+        for segment in observation.location.container_path)
+
+
+def _span_start(observation) -> int:
+    """The reading's offset into its unit, or `0` where it has no span.
+
+    `0` is the honest value rather than a chosen one: a span-less observation is the
+    whole of the unit standing at its path (`items.is_whole_document`'s own reading
+    of it), and the whole of a unit starts where the unit starts. It is spelled here
+    so that the ordering has no branch a later reader has to reconstruct.
+    """
+    span = observation.location.text_span
+    return 0 if span is None else span.start
+
+
+def _check_locality(locality: str) -> str:
+    """`104` R-159's keyword, refused rather than defaulted. `items.check_item` says
+    why in full: every arm that reads it tests `== CLOUD_LOCALITY`, so an
+    unrecognised value takes the LOCAL branch and releases a path."""
+    if locality not in LOCALITIES:
+        raise ValueError(
+            f"locality {locality!r} is not one of SPEC §6's {LOCALITIES}; a value "
+            f"outside a closed vocabulary is a load error, not a fallback, and the "
+            f"fallback here would be the permissive half")
+    return locality
+
+
+def ordered_releasable_observations(conn: sqlite3.Connection, *, file_id: str,
+                                    content_hash: str, locality: str) -> tuple:
+    """Every reading of this file the gate would release, in the order it offers
+    them. NO cap and no fill -- `within_dossier_budget` below spends the budget.
+
+    Split out from `releasable_observations` for `104` R-159, because the fill needs
+    the two questions apart. `fact_call_stage` asks THIS one to decide whether the
+    file has anything to say at all -- the rule that a file with no readings of its
+    own is not asked is about the file, not about what fits -- and asks the budget
+    function once per context shape, over one database read.
+
+    The order is `(zone_rank, document order, span start, observation_key)`; the
+    exclusions are `may_be_released`'s, asked of every reading.
+    """
+    sensitive = sensitive_observation_keys(conn, file_id)
+    offered = [observation
+               for observation in observations_for_version(conn, file_id, content_hash)
+               if may_be_released(conn, observation, sensitive=sensitive,
+                                  locality=locality)]
+
+    def placed(observation) -> tuple:
+        return (zone_rank(observation.location.zone),
+                document_order(observation), _span_start(observation),
+                observation.observation_key)
+
+    return tuple(sorted(offered, key=placed))
+
+
+def within_dossier_budget(observations: Sequence, *, limit: int, locality: str,
+                          ceiling: int) -> tuple:
+    """What of an ordered offer a call may carry: `limit` readings, or `ceiling`
+    characters. `104` R-159.
+
+    **A CLOUD call keeps the count cap exactly as it was.** §8.4 says "selected
+    excerpts" and states no number; `cli.FACT_CALL_MAX_RELEASED_OBSERVATIONS` is
+    where this deployment chooses one, and nothing about the ruling touches it.
+
+    **A LOCAL call is bound by the ceiling instead, and the ceiling alone.** Once a
+    whole page is releasable the count stops being the honest bound: twelve readings
+    of a spreadsheet's cells are a few hundred characters and twelve pages of a PDF
+    are twenty thousand. Measured in the scratchpad before this was written, over the
+    same 199-file corpus r15 ran: with the 12-cap under local rules 47 files exceed
+    the 4,000-character ceiling and 26 PDF/docx files get NO body reading at all --
+    heading fragments win the twelve slots and the pages behind them never fit --
+    while with the ceiling as the only bound, files carrying zero body text drop from
+    118 to 5.
+
+    **A reading that does not fit is SKIPPED and the walk continues.** Stopping at
+    the first over-long reading would let one 39,000-character `.txt` unit (`104`
+    R-164) cost a file every smaller reading behind it; skipping it costs that file
+    only the reading that would not have fitted anyway. The order is the caller's and
+    is not re-sorted here: `ordered_releasable_observations` has already put the
+    document in its own order, and picking "the ones that fit best" would be this
+    function choosing what a person reads first.
+
+    The measurement is `dossier_tokens` -- characters, P7's own upper bound on tokens
+    -- over the RAW values, which is what `_call_dependencies` and the gate's
+    `measure_released_tokens` both count. The ceiling passed in is the caller's
+    remainder, never the whole of `max_dossier_tokens`: what a page has to fit under
+    is what the anchor context and the filename left.
+    """
+    if _check_locality(locality) == CLOUD_LOCALITY:
+        return tuple(observations)[:limit]
+    taken: list = []
+    spent = 0
+    for observation in observations:
+        cost = dossier_tokens((observation.raw_value,))
+        if spent + cost > ceiling:
+            continue
+        taken.append(observation)
+        spent += cost
+    return tuple(taken)
+
+
 def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
-                            content_hash: str, limit: int) -> tuple:
-    """The observations this file may offer a model, most placed first, capped.
+                            content_hash: str, limit: int, locality: str,
+                            ceiling: int) -> tuple:
+    """The observations this file may offer a model, most placed first, bounded.
+
+    The two halves above, composed: `ordered_releasable_observations` for what may be
+    offered and in what order, `within_dossier_budget` for how much of it this call
+    can carry. A caller that needs them apart -- `fact_call_stage`, which fills the
+    same offer into two different remainders -- asks them separately over one read.
 
     Four exclusions, and each is one of the gate's own refusals applied a step early
     so the call is never BUILT rather than built and denied. Every one of them
     refuses the WHOLE request, not the item -- one bad observation among eight costs
     the file its call -- which is why they are read here and not left to the door:
 
-      * `ALWAYS_LOCAL_ZONES` -- `path` and `filename`, the two zones §8.4's members
-        1 and 6 have a route out through. The filesystem extractor writes one
-        observation per file whose raw value is the parent directory.
-        `Denied(always_local_item)`.
+      * `ALWAYS_LOCAL_ZONES` -- `path`, `filename` and `ocr`, the three zones §8.4's
+        members 1, 3 and 6 have a route out through. The filesystem extractor writes
+        one observation per file whose raw value is the parent directory.
+        `Denied(always_local_item)`. **Since `104` R-159 this is a question about the
+        TARGET**: `path` and `ocr` are released to a local model by the owner's
+        ruling and `filename` is not, which `may_be_released` states in full.
       * `sensitive_observation_keys` -- P5's per-value signal.
-        `ProtectedItemRequested`.
+        `ProtectedItemRequested`. Not divided by the target: a recognised human
+        identifier is not a fact about where the value is going.
       * a span that covers the whole of its text unit, and a span-less observation
         whose value is at least as long as the unit standing at its own path. That
         is `items.is_whole_document` read against P4's own length-only lookup,
@@ -569,7 +703,8 @@ def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
         where a short heading or OCR excerpt is enough to resolve the question."
         `Denied(whole_document_requested)`, and it fires AFTER the text has been
         resolved, so leaving it to the gate means paying to materialise a document
-        in order to refuse it.
+        in order to refuse it. **Cloud only since `104` R-159**, and the ceiling is
+        what bounds a local call instead.
       * a span-less observation with no unit at its path is offered, because that is
         §2.3's cell and §2.8's EXIF field -- the shape where the address IS the
         whole citation and there is no document for it to be the whole of.
@@ -578,15 +713,10 @@ def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
     `p8_seam` records what that cost at site B -- every unbounded observation
     refused with `UnresolvableSpan` after the release had been minted.
     """
-    sensitive = sensitive_observation_keys(conn, file_id)
-    offered = [observation
-               for observation in observations_for_version(conn, file_id, content_hash)
-               if may_be_released(conn, observation, sensitive=sensitive)]
-
-    def placed(observation) -> tuple[int, str]:
-        return (zone_rank(observation.location.zone), observation.observation_key)
-
-    return tuple(sorted(offered, key=placed)[:limit])
+    return within_dossier_budget(
+        ordered_releasable_observations(
+            conn, file_id=file_id, content_hash=content_hash, locality=locality),
+        limit=limit, locality=locality, ceiling=ceiling)
 
 
 def zone_rank(zone: str) -> int:
@@ -602,8 +732,25 @@ def zone_rank(zone: str) -> int:
 
 
 def may_be_released(conn: sqlite3.Connection, observation, *,
-                    sensitive: frozenset) -> bool:
+                    sensitive: frozenset, locality: str) -> bool:
     """The four exclusions above, asked of ONE reading. No ranking and no cap.
+
+    **`locality` divides two of the four (`104` R-159), and it has no default.** The
+    owner ruled §15.4 item 14 the first way on 8 Sep 2026: a LOCAL model may be shown
+    a whole text unit, the person's folder path and OCR text, within the dossier
+    ceiling; the cloud restrictions stand unchanged for a cloud target.
+    `items.check_item` carries the reasoning and the OCR residual in full, and this
+    is the same rule asked a step early -- the two must not answer differently, which
+    is why both read `vocabulary.RELEASED_TO_A_LOCAL_TARGET` rather than each
+    spelling the ruling's two zones.
+
+    **A `filename`-zone observation stays refused as an excerpt for BOTH targets**,
+    and that is the one member of `ALWAYS_LOCAL_ZONES` the ruling does not release.
+    The name already arrives through `NAME_BEARING`'s own item -- `filename_citation`
+    below builds it and `build_fact_request` puts it first -- so a second copy of it
+    as an excerpt is noise the ceiling pays for, and it would reach the model through
+    a door where §7.7's `allow_unratified` opt-in and §7.3's protected-records ban do
+    not apply.
 
     Split out for `104` R-135's third defect, which is worth writing down because the
     code read as though it were doing the right thing. `anchor_context_observations`
@@ -625,8 +772,10 @@ def may_be_released(conn: sqlite3.Connection, observation, *,
     `ClassificationStore` before it asks anything about readings. Asking it per reading
     would be one `classifications` read per line for one answer.
     """
+    cloud = _check_locality(locality) == CLOUD_LOCALITY
     where = observation.location
-    if where.zone in ALWAYS_LOCAL_ZONES:
+    if where.zone in ALWAYS_LOCAL_ZONES and (
+            cloud or where.zone not in RELEASED_TO_A_LOCAL_TARGET):
         return False
     if observation.observation_key in sensitive:
         return False
@@ -636,7 +785,8 @@ def may_be_released(conn: sqlite3.Connection, observation, *,
     if where.text_span is None:
         # The two span-less shapes, told apart exactly as `resolve.materialise`
         # tells them apart: by the unit at the observation's own path.
-        if unit_length is not None and len(observation.raw_value) >= unit_length:
+        if (cloud and unit_length is not None
+                and len(observation.raw_value) >= unit_length):
             return False
         return True
     if unit_length is None:
@@ -651,7 +801,8 @@ def may_be_released(conn: sqlite3.Connection, observation, *,
     # It is the SAME predicate `GroundingReport`'s counters are computed from and the
     # same one the gate excepts by, so what this admits, what the gate releases and
     # what the report calls exposure cannot become three conditions.
-    if (where.text_span.start <= 0
+    if (cloud
+            and where.text_span.start <= 0
             and where.text_span.end >= unit_length
             and not released_whole_excerpt_unit(
                 where, unit_length,
@@ -662,7 +813,7 @@ def may_be_released(conn: sqlite3.Connection, observation, *,
 
 
 def releasable_readings(conn: sqlite3.Connection, *, file_id: str,
-                        content_hash: str, keys) -> tuple:
+                        content_hash: str, keys, locality: str) -> tuple:
     """The NAMED readings of one file that a model may be shown. No ranking, no cap.
 
     `releasable_observations` above answers "what may this file offer, best first,
@@ -674,6 +825,10 @@ def releasable_readings(conn: sqlite3.Connection, *, file_id: str,
 
     Returned in `keys`' own order, so the caller's reason for choosing them survives to
     wherever it does its own ordering.
+
+    `locality` is forwarded and not decided here (`104` R-159): the question this asks
+    is `may_be_released`'s, and a neighbour's reading leaves by the same door the
+    file's own does.
     """
     wanted = tuple(dict.fromkeys(keys))
     if not wanted:
@@ -686,7 +841,8 @@ def releasable_readings(conn: sqlite3.Connection, *, file_id: str,
     return tuple(
         by_key[key] for key in wanted
         if key in by_key and may_be_released(conn, by_key[key],
-                                             sensitive=sensitive))
+                                             sensitive=sensitive,
+                                             locality=locality))
 
 
 def _evidence_items(observations: Sequence) -> tuple[EvidenceItem, ...]:
@@ -749,6 +905,35 @@ def filename_citation(conn, file_id: str) -> EvidenceItem | None:
         reliability_state=_filename_reliability(conn, address.observation_key),
         basis=DIRECT_ANCHOR,
     )
+
+
+def filename_characters(conn, item: EvidenceItem | None) -> int:
+    """How many characters the filename item will cost the dossier, or `0`.
+
+    `104` R-159. `measure_released_tokens` counts the resolved filename like any
+    other released value -- `104` R-06 put it in `NAME_BEARING` precisely so it is
+    resolved and not reference-only -- so a builder that filled its readings up to
+    the ceiling and then added the name would hand the gate a dossier the gate
+    refuses `over_dossier_ceiling`. This is that cost, measured before the fill.
+
+    Measured on the observation's RAW VALUE rather than by materialising it, on
+    `_call_dependencies`' own rule for the readings beside it: the ladder runs before
+    `gate.release`, redaction only ever shortens, so a raw-value count is at or above
+    what the door will measure and the two agree about every dossier either would
+    refuse. It is also the same measurement the other two items in the total get,
+    which is what makes the total one number rather than three.
+    """
+    if item is None:
+        return 0
+    row = conn.execute(
+        "SELECT raw_value FROM evidence WHERE observation_key = ? "
+        "AND superseded_by IS NULL LIMIT 1", (item.evidence_ref,)).fetchone()
+    if row is None:
+        raise UnresolvableSpan(
+            f"observation {item.evidence_ref!r} was addressed as this file's name "
+            f"and then had no row; P4's evidence table answered two ways about one "
+            f"key")
+    return dossier_tokens((row["raw_value"],))
 
 
 def _filename_reliability(conn, observation_key: str) -> str:
@@ -936,6 +1121,7 @@ def _call_dependencies(
     folder_levels: Sequence[FolderLevel],
     authorities: FactCallAuthorities,
     observations: Sequence,
+    name_characters: int,
     anchor_observations: Sequence | None = None,
 ) -> CallDependencies:
     """`observations` is the list the request was BUILT from, and it is here so that
@@ -985,13 +1171,22 @@ def _call_dependencies(
         # `reserve_call` and before `gate.release`, so a deferred call spends no
         # budget and mints no release. That is `00`:259's "mark the deferred stage,
         # and leave the file in review rather than guessing".
+        #
+        # `104` R-159: `name_characters` IS PART OF BOTH RUNGS, and it is what made
+        # this measurement a different measurement from the gate's. `observations`
+        # here is already the file's own readings PLUS the context the request was
+        # built with -- the caller concatenates them -- and the filename was the one
+        # released value neither this nor `_within_ceiling` counted while
+        # `measure_released_tokens` did. All three now count own + shown context +
+        # the name, so a dossier the ladder passes at rung NONE is a dossier the door
+        # measures under the ceiling.
         unreduced_fits=dossier_tokens(
             observation.raw_value for observation in observations
-        ) <= authorities.max_dossier_tokens,
+        ) + name_characters <= authorities.max_dossier_tokens,
         summarized_fits=False,
         anchors_fit=(anchor_observations is not None and dossier_tokens(
             observation.raw_value for observation in anchor_observations
-        ) <= authorities.max_dossier_tokens),
+        ) + name_characters <= authorities.max_dossier_tokens),
         split_shard_fits=(), split_shards=(),
         scan_budget=authorities.scan_budget,
         estimated_cost=authorities.estimated_cost,
@@ -1285,6 +1480,7 @@ def _reuse_is_current(conn: sqlite3.Connection, prior, *, request: FactRequest,
 
 
 def _within_ceiling(observations: Sequence, context: Sequence,
+                    name_characters: int,
                     authorities: FactCallAuthorities) -> bool:
     """Whether a dossier built from these readings fits `00`:251's ceiling.
 
@@ -1292,10 +1488,18 @@ def _within_ceiling(observations: Sequence, context: Sequence,
     the stage can build the request in the shape the ladder will pick (`104` R-145).
     One expression in one place: a second spelling here and a third in the ladder
     would drift the day either changed.
+
+    **`name_characters` closes the third gap (`104` R-159).** Until 8 Sep 2026 this
+    summed the file's own readings and the context and stopped, while the gate's
+    `measure_released_tokens` counted every resolved value INCLUDING the filename --
+    so the ladder could pass a dossier at rung NONE that the door then denied
+    `over_dossier_ceiling`. With whole pages releasable that stopped being a rounding
+    difference. `filename_characters` supplies the number, and it is `0` when the
+    call offers no name, which is `name_may_be_cited`'s answer and not a second one.
     """
     return dossier_tokens(
         observation.raw_value for observation in tuple(observations) + tuple(context)
-    ) <= authorities.max_dossier_tokens
+    ) + name_characters <= authorities.max_dossier_tokens
 
 
 def fact_call_stage(authorities: FactCallAuthorities):
@@ -1311,6 +1515,36 @@ def fact_call_stage(authorities: FactCallAuthorities):
     P2 an envelope. Every outcome `run_call` can RETURN -- a refusal, an abstention,
     a call failure, an unavailable validation -- is already a record on disk by the
     time it comes back, and is handed to `on_result` for counting.
+
+    **THE THREE CEILING CHECKS AND WHAT EACH ONE NOW COUNTS (`104` R-159).** Three
+    places measure this dossier against `00`:251's ceiling, and before 8 Sep 2026
+    they measured three different things -- which was harmless only because almost
+    nothing was releasable. Once whole pages reach a local model it stops being
+    harmless: a dossier the ladder passes at rung NONE would arrive at a door that
+    denies it `over_dossier_ceiling`, and the file loses its call after the budget
+    slot is reserved. All three now measure ONE total, the file's own readings plus
+    the context shape the request is built in plus the filename when the call offers
+    one:
+
+      1. `_within_ceiling`, in this stage, choosing between R-145's two context
+         shapes: `sum(len(own fill for that shape)) + sum(len(that context)) +
+         name_characters`.
+      2. `_call_dependencies`, feeding §8.6's ladder: `unreduced_fits` over the LINES
+         shape's own fill plus the lines plus the name; `anchors_fit` over the
+         preserved-anchors shape's own fill plus those excerpts plus the name. Each
+         rung is measured over the fill that rung would carry, because the two shapes
+         leave different remainders.
+      3. `gate.measure_released_tokens`, at the door, over every RESOLVED value --
+         the same three sets, after materialisation and redaction. It is at or below
+         the two above: redaction only ever shortens, and `apply_redaction` refuses a
+         transform that returns its input.
+
+    The order of work in the stage follows from that. The context is gathered first
+    because a neighbour rule cannot know what room is left; the vocabulary is settled
+    next because it decides whether the name is offered at all; the name is measured
+    third; and the file's own readings fill whatever remains. Building the file's own
+    readings first -- twelve of them, by count -- is what let a dossier exceed a
+    ceiling the ladder had already passed.
     """
 
     def stage(conn: sqlite3.Connection, file_id: str,
@@ -1320,41 +1554,44 @@ def fact_call_stage(authorities: FactCallAuthorities):
             activation_signals=authorities.activation_signals)
         if not pending:
             return ()
-        observations = releasable_observations(
-            conn, file_id=file_id, content_hash=content_hash,
-            limit=authorities.max_released_observations)
-        if not observations:
+        locality = authorities.model_target.locality
+        # `104` R-159: WHAT THIS FILE MAY OFFER, ordered, and not yet bounded. The
+        # cap and the ceiling are spent below, once the context and the filename have
+        # taken their share; this set is the answer to "does the file have anything
+        # to say", which is a different question and is the one the guard asks.
+        offered = ordered_releasable_observations(
+            conn, file_id=file_id, content_hash=content_hash, locality=locality)
+        if not offered:
             # A file with no readings of its own is not asked, and context does not
             # change that. `104` R-135 carries a NEIGHBOUR's words to a file that has
             # something to say and cannot say this; a file with nothing at all would be
             # answered entirely out of another document, which is a fact about that
             # document. Constitution 2's "any successfully-read file must reach the
             # model" is about files that were read.
+            #
+            # THE GUARD IS ON THE UNBOUNDED SET AND NOT ON THE FILL (`104` R-159).
+            # "Nothing may be released" and "everything releasable is longer than
+            # what the context left" are different states, and only the first is this
+            # file having nothing to say. In the second the call still goes out
+            # carrying the context and the name, and the ladder measures that truthfully
+            # -- reporting `unreduced_fits=False` to force a deferral would be lying
+            # to §8.6 about a dossier that does fit.
             return ()
         # `104` R-135: the anchor headings near this file, if the deployment offers
         # any and this call is asking a field they answer. BEFORE the request, because
         # they are part of what it is built from -- the identity below, the budget
         # measurement, the citable set and the release target all have to see them.
+        #
+        # AND BEFORE THE FILE'S OWN READINGS ARE CHOSEN (`104` R-159), which is the
+        # order this stage did not have. The context is gathered by a neighbour rule
+        # that knows nothing about how much room is left; the file's own readings are
+        # what fills whatever remains. Doing it the other way round -- twelve of the
+        # file's own pages first -- is how a dossier came to exceed the ceiling that
+        # the ladder had already passed.
         context = ()
-        # `104` R-145: §8.6's preserved-anchors shape of the same context, or `None`
-        # when the lines fit or the deployment offers no second shape. `shown` is
-        # the shape the request is BUILT in, which is the shape the ladder will
-        # pick: the lines when they fit, the anchors' own spans when only those do,
-        # and the lines again when neither does -- that call is deferred before
-        # any of it is sent, and `_call_dependencies` measures both shapes so the
-        # dossier records the rung it was actually built at.
-        excerpts = None
         if authorities.anchor_context_for is not None:
             context = tuple(authorities.anchor_context_for(
                 conn, file_id=file_id, content_hash=content_hash, fields=pending))
-            if (authorities.anchor_excerpts_for is not None
-                    and not _within_ceiling(observations, context, authorities)):
-                excerpts = tuple(authorities.anchor_excerpts_for(
-                    conn, file_id=file_id, content_hash=content_hash,
-                    fields=pending))
-        shown = (excerpts if excerpts is not None
-                 and _within_ceiling(observations, excerpts, authorities)
-                 else context)
         request = build_request(
             conn, file_id=file_id, content_hash=content_hash,
             activation_signals=authorities.activation_signals,
@@ -1362,7 +1599,7 @@ def fact_call_stage(authorities: FactCallAuthorities):
             # So a citation naming one of them passes §3.6's check 2. Without this the
             # model would be shown a reading it is forbidden to cite, which is worse
             # than not showing it: `CITATION_NOT_FOUND` rejects the whole claim.
-            context_observations=shown)
+            context_observations=context)
         if not request.allowlist:
             return ()
 
@@ -1408,6 +1645,77 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # module does not own.
         name_may_be_cited = bool(
             set(vocabulary) - {level.field for level in anchor_levels})
+
+        # ================================================================
+        # `104` R-159: THE FILL, and it runs here because it needs every term
+        # above it. The three things a site-A dossier releases are the file's own
+        # readings, the anchor context, and the filename -- and the filename is
+        # offered only when `name_may_be_cited`, which is not known until the
+        # vocabulary is. So the order is: context, then vocabulary, then the name's
+        # cost, then whatever room is left goes to the file's own readings.
+        #
+        # For a CLOUD target this changes nothing measurable: `within_dossier_budget`
+        # returns the same first `max_released_observations` readings it always did,
+        # and the remainder below is only a ceiling the count cap almost never
+        # reaches. For a LOCAL target the count cap yields to the ceiling, and the
+        # remainder is what makes "within the dossier ceiling" in the owner's ruling
+        # a real bound rather than a hope.
+        # ================================================================
+        filename = (filename_citation(conn, file_id)
+                    if name_may_be_cited else None)
+        name_characters = filename_characters(conn, filename)
+
+        def own_readings(shown_context: Sequence) -> tuple:
+            """The file's own readings that fit beside THIS context and the name."""
+            return within_dossier_budget(
+                offered, limit=authorities.max_released_observations,
+                locality=locality,
+                ceiling=(authorities.max_dossier_tokens
+                         - dossier_tokens(one.raw_value for one in shown_context)
+                         - name_characters))
+
+        lines_readings = own_readings(context)
+        observations = lines_readings
+        # `104` R-145: §8.6's preserved-anchors shape of the same context, or `None`
+        # when the lines fit or the deployment offers no second shape. `shown` is
+        # the shape the request is BUILT in, which is the shape the ladder will
+        # pick: the lines when they fit, the anchors' own spans when only those do,
+        # and the lines again when neither does -- that call is deferred before
+        # any of it is sent, and `_call_dependencies` measures both shapes so the
+        # dossier records the rung it was actually built at.
+        #
+        # The rung still matters under the fill, and this is when: the fill can only
+        # give the file's own readings the room the CONTEXT left, so a context that
+        # exceeds the ceiling on its own leaves a remainder of zero and no reading
+        # fits. That is exactly the state R-145 built the second shape for, and it is
+        # now reached by measuring rather than by counting readings.
+        excerpts = None
+        own_excerpts = None
+        if (authorities.anchor_excerpts_for is not None
+                and authorities.anchor_context_for is not None
+                and not _within_ceiling(observations, context, name_characters,
+                                        authorities)):
+            excerpts = tuple(authorities.anchor_excerpts_for(
+                conn, file_id=file_id, content_hash=content_hash, fields=pending))
+            own_excerpts = own_readings(excerpts)
+        if (excerpts is not None
+                and _within_ceiling(own_excerpts, excerpts, name_characters,
+                                    authorities)):
+            shown, observations = excerpts, own_excerpts
+        else:
+            shown = context
+        if shown is not context:
+            # The ONLY field that changes is the context, and `build_request` is
+            # asked again rather than the tuple being patched onto the record it
+            # already returned: `FactRequest` is frozen, and the allowlist and the
+            # existing facts it also carries are reads of the store this call must
+            # not make twice and get two answers to. Reached only when the lines
+            # shape did not fit, which is where the second read was always paid.
+            request = build_request(
+                conn, file_id=file_id, content_hash=content_hash,
+                activation_signals=authorities.activation_signals,
+                normalizers=authorities.normalizers,
+                context_observations=shown)
 
         # `104` R-13, AND IT IS HERE FOR ONE REASON: everything after this line
         # costs. `run_call` reserves a budget slot, `gate.release` mints an audit
@@ -1484,8 +1792,10 @@ def fact_call_stage(authorities: FactCallAuthorities):
                 conn,
                 build_fact_request(
                     request, observations,
-                    filename=(filename_citation(conn, file_id)
-                              if name_may_be_cited else None),
+                    # The item measured above, not a second call for the same row:
+                    # a name counted at one length and released at another is the
+                    # gap `104` R-159 closed.
+                    filename=filename,
                     context=shown,
                     model_target=authorities.model_target,
                     prompt=authorities.prompt,
@@ -1503,9 +1813,18 @@ def fact_call_stage(authorities: FactCallAuthorities):
                     # preserved-anchors rung is the excerpts shape, each measured as
                     # its own list, so the rung the dossier records is the one it
                     # was built at.
-                    observations=tuple(observations) + context,
+                    #
+                    # `104` R-159: EACH RUNG IS MEASURED OVER ITS OWN FILL. The two
+                    # shapes leave different remainders for the file's own readings,
+                    # so `lines_readings` belongs to the lines rung and
+                    # `own_excerpts` to the anchors rung; passing the chosen shape's
+                    # fill to both would report a total for a dossier that was never
+                    # built. `name_characters` is added to both by
+                    # `_call_dependencies`, because the name travels in either.
+                    observations=tuple(lines_readings) + context,
+                    name_characters=name_characters,
                     anchor_observations=(None if excerpts is None
-                                         else tuple(observations) + excerpts)),
+                                         else tuple(own_excerpts) + excerpts)),
                 observed_at=authorities.observed_at,
                 # `104` R-14. Handed to `run_call` and not to `CallDependencies`:
                 # it is optional, and that bundle's every field is required by

@@ -40,7 +40,7 @@ from evidence_shape.text_units import TextUnit
 from llm_harness.budgets import ScanBudget
 from llm_harness.records import EvidenceItem
 from privacy.release import ModelTarget
-from privacy.vocabulary import ALWAYS_LOCAL_ZONES
+from privacy.vocabulary import ALWAYS_LOCAL_ZONES, CLOUD_LOCALITY
 
 from model_placement import (
     PLACEMENT_STAGE,
@@ -195,7 +195,7 @@ def test_no_always_local_zone_is_ever_offered_to_a_placement_model(db):
         unit_text="PHYS1401 Lecture 8 — Rotational dynamics")
 
     offered = releasable_excerpts(
-        db, evidence_refs=(*always_local.values(), heading))
+        db, evidence_refs=(*always_local.values(), heading), locality=CLOUD_LOCALITY)
 
     assert [item.observation_key for item in offered] == [heading]
 
@@ -216,7 +216,7 @@ def test_the_span_offered_is_the_observations_own_and_never_a_synthesised_one(db
         span=TextSpan(start=17, end=25),
         unit_text="Lecture 8 for the PHYS1401 course, week three")
 
-    offered = releasable_excerpts(db, evidence_refs=(heading,))
+    offered = releasable_excerpts(db, evidence_refs=(heading,), locality=CLOUD_LOCALITY)
 
     assert len(offered) == 1
     assert offered[0].span == TextSpan(start=17, end=25)
@@ -243,7 +243,7 @@ def test_an_observation_covering_its_whole_unit_is_refused_before_the_spend(db):
         db, key="k-all", zone="body", value=document,
         span=TextSpan(start=0, end=len(document)), unit_text=document)
 
-    assert releasable_excerpts(db, evidence_refs=(whole,)) == ()
+    assert releasable_excerpts(db, evidence_refs=(whole,), locality=CLOUD_LOCALITY) == ()
 
 
 def test_a_placement_request_names_the_placement_stage_and_this_file_only(db):
@@ -321,9 +321,9 @@ def test_a_superseded_reading_is_never_offered_to_a_placement_model(db):
                           new_observation_id=new_id,
                           reason="a later extraction read the course code again")
 
-    assert releasable_excerpts(db, evidence_refs=(old,)) == ()
+    assert releasable_excerpts(db, evidence_refs=(old,), locality=CLOUD_LOCALITY) == ()
     assert [item.observation_key
-            for item in releasable_excerpts(db, evidence_refs=(new,))] == [new]
+            for item in releasable_excerpts(db, evidence_refs=(new,), locality=CLOUD_LOCALITY)] == [new]
 
 
 def test_a_value_p5_signalled_sensitive_is_never_offered_to_a_placement_model(db):
@@ -359,7 +359,7 @@ def test_a_value_p5_signalled_sensitive_is_never_offered_to_a_placement_model(db
                                    basis="fixture: a card number"),),
         observation_keys=keys, now=T0)
 
-    offered = releasable_excerpts(db, evidence_refs=(flagged, ordinary))
+    offered = releasable_excerpts(db, evidence_refs=(flagged, ordinary), locality=CLOUD_LOCALITY)
 
     assert [item.observation_key for item in offered] == [ordinary]
 
@@ -570,7 +570,7 @@ def test_a_file_whose_only_cited_reading_is_its_filename_forms_no_request(db):
 
     name = _observation(db, key="k-name", zone="filename",
                         value="Columbia Essay.txt", span=None, unit_text=None)
-    assert releasable_excerpts(db, evidence_refs=(name,)) == ()
+    assert releasable_excerpts(db, evidence_refs=(name,), locality=CLOUD_LOCALITY) == ()
 
     build = _placement_builder(db)
     with pytest.raises(MalformedRequest):
