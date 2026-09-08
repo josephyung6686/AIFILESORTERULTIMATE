@@ -44,7 +44,7 @@ def _label(**over):
     base = dict(path="p", group="g", situation="academic.coursework",
                 destination=("PHYS1403", "exam"), also_acceptable=(),
                 expected_fields={}, protected=False, uncertain=None,
-                family=None, note=None)
+                family=None, note=None, aliases={})
     base.update(over)
     return Label(**base)
 
@@ -210,3 +210,71 @@ def test_a_field_records_which_half_of_the_pipeline_earned_it():
     observation = _obs(fields={"subject": "PHYS1403"},
                        field_origins={"subject": "llm_interpretation"})
     assert observation.field_origins["subject"] == "llm_interpretation"
+
+
+# ---------------------------------------------------------------------------
+# `104` R-147: a fact and a label that name the same course agree
+# ---------------------------------------------------------------------------
+
+def test_a_fact_in_the_documents_spelling_agrees_with_the_labels():
+    """The register's own example. The documents of that course print
+    `ENGI E1006`; the label spells it `PYTHON1006`; they are one course, and
+    until the labels file said so the scoreboard read every one of them as the
+    model getting the course wrong."""
+    label = _label(expected_fields={"subject": "PYTHON1006"},
+                   aliases={"subject": ("ENGI E1006",)})
+    assert score_fields(label, _obs(fields={"subject": "ENGI E1006"})) == (1, 0, 0, 0)
+
+
+def test_the_alias_is_read_with_the_same_rule_the_label_is():
+    """`_same` and not equality, so an alias inherits the separator-blindness
+    the labelled spelling already had rather than needing every punctuation of
+    itself written out."""
+    label = _label(expected_fields={"subject": "PYTHON1006"},
+                   aliases={"subject": ("ENGI E1006",)})
+    assert score_fields(label, _obs(fields={"subject": "engi-e1006"})) == (1, 0, 0, 0)
+
+
+def test_an_alias_does_not_make_every_wrong_answer_right():
+    label = _label(expected_fields={"subject": "PYTHON1006"},
+                   aliases={"subject": ("ENGI E1006",)})
+    assert score_fields(label, _obs(fields={"subject": "PHYS1403"})) == (0, 1, 0, 0)
+
+
+def test_an_alias_cannot_fill_a_fact_that_was_never_extracted():
+    """The finding §16.2 actually points at. An alias moves a WRONG to a
+    CORRECT and can do nothing whatever about a MISSING -- 31 of the 43
+    labelled coursework files have no subject fact at all, and no spelling
+    ruling reaches them. Coverage is the lever; this is not."""
+    label = _label(expected_fields={"subject": "PYTHON1006"},
+                   aliases={"subject": ("ENGI E1006",)})
+    assert score_fields(label, _obs(fields={})) == (0, 0, 1, 0)
+
+
+def test_an_alias_reaches_only_the_field_it_was_written_for():
+    label = _label(expected_fields={"subject": "PYTHON1006", "work_type": "lecture"},
+                   aliases={"subject": ("ENGI E1006",)})
+    assert score_fields(label, _obs(fields={"subject": "ENGI E1006",
+                                            "work_type": "ENGI E1006"})) == (1, 1, 0, 0)
+
+
+# --- the line the alias may not cross ---------------------------------------
+
+def test_an_alias_never_moves_a_file_into_a_folder():
+    """THE GUARD, and the reason R-147 is a scoring row and not a product one.
+    `00`'s 2026-09-05 amendment is explicit -- "There are no alias tables or
+    equivalence maps in code" -- so this equivalence lives in the LABELS file,
+    which is measurement data, and is read by `score_fields` and by nothing
+    else. A run that filed this file under the document's own spelling put it
+    somewhere the person's tree does not have, and it is still `wrong`: the
+    alias says two spellings name one course, never that one folder is
+    another."""
+    label = _label(destination=("PYTHON1006", "lecture"),
+                   expected_fields={"subject": "PYTHON1006"},
+                   aliases={"subject": ("ENGI E1006",)})
+    placed = _obs(destination=("Coursework", "ENGI E1006", "lecture"),
+                  fields={"subject": "ENGI E1006"})
+    assert score_sorting(label, placed) == PLACED_WRONG
+    # And the fact on that same file is scored as agreeing, which is the whole
+    # point: the two questions get two answers from one record.
+    assert score_fields(label, placed) == (1, 0, 0, 0)
