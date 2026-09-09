@@ -1607,7 +1607,7 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
 OBSERVE_PLACEMENT_FIELDS: tuple[str, ...] = (
     "gate", "model_client", "prompt", "residual_prompt", "call_dependencies",
     "model_call_request", "chosen_node_of", "residual_action_of",
-    "model_target", "usage_recorder",
+    "model_target", "route_for", "usage_recorder",
 )
 
 

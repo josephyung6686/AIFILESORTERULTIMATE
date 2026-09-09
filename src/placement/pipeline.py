@@ -600,6 +600,20 @@ class PipelineInputs:
     #: one. Required with no default, and one of the nine that arrive together
     #: or not at all.
     model_target: object
+    #: WHICH MODEL WOULD BE ASKED ABOUT ONE FILE -- `callable(file_id)` returning
+    #: the `(client, target)` pair or `None`, or `None` itself for a deployment
+    #: whose destination is the single pair above. `104` §17.13 ruling 3: the cloud
+    #: model where the cloud gate permits the file, the local one where it does
+    #: not, and no call where neither does. One site is two destinations now, so a
+    #: single pair can no longer describe the run, and `route_in_force` below is
+    #: the only read of either spelling.
+    #:
+    #: REQUIRED WITH NO DEFAULT like every field here, and
+    #: `test_no_unfinished_knowledge_source_gained_an_implementation_default` is
+    #: the guard: which files may cross to a provider is the deployment's question
+    #: and a caller that has not answered it must not silently get "the one pair,
+    #: for everything". A run with one destination passes `None` and says so.
+    route_for: object
     #: `104` R-14's one-slot usage mailbox, or `None`. `104` R-145: site C's calls
     #: recorded no `llm_call_usage` row because this path was never handed the
     #: mailbox site A and site B's `run_call` take from -- invisible while site C
@@ -773,22 +787,64 @@ class PipelineInputs:
         no model injections is a correct run and must not look like a failure.
         What is NOT legal is discovering the injections are missing after a
         dossier has been assembled, which is why this is asked before one is.
-        """
-        return None not in (self.gate, self.model_client, self.prompt,
-                            self.call_dependencies, self.model_call_request,
-                            self.chosen_node_of, self.sensitivity_policy,
-                            self.model_target)
 
-    def target_locality(self) -> str | None:
-        """Where the model that would be asked runs, or `None` with none configured.
-
-        Read off `model_target` and nowhere else: the request builder closes
-        over the same target, but it is called only after §8.4's gate has
-        answered, and the gate is what needs this (`104` R-118).
+        The destination is asked through `route_in_force` rather than as two
+        members of the set, because `104` §17.13 makes it one question with two
+        spellings: a deployment states its one pair, or it states the route that
+        picks per file. Either is a destination; neither present is not.
         """
-        if self.model_target is None:
+        return (None not in (self.gate, self.prompt, self.call_dependencies,
+                             self.model_call_request, self.chosen_node_of,
+                             self.sensitivity_policy)
+                and self.route_in_force() is not None)
+
+    def route_in_force(self):
+        """The one callable answering "which model for this file", or `None`.
+
+        `104` §17.13 ruling 3 gives a call site two destinations, so the single
+        `model_client`/`model_target` pair can no longer be read directly. This is
+        where the two spellings become one: a caller that stated the pair gets it
+        back as a route that answers the same thing for every file, and a caller
+        that stated a route gets its own. `None` is a run with no model path at
+        all, which is a correct run.
+        """
+        if self.route_for is not None:
+            return self.route_for
+        if self.model_client is None or self.model_target is None:
             return None
-        return self.model_target.locality
+        pair = (self.model_client, self.model_target)
+        return lambda _file_id: pair
+
+    def route(self, file_id: str):
+        """The `(client, target)` pair this FILE is answered by, or `None`.
+
+        `None` covers both "no model path in this run" and "no model this file may
+        reach", and the callers want the same thing of each: assemble nothing and
+        say so. The two are told apart where the difference matters, by
+        `route_in_force`, which is what `_abstention_explanation` asks before it
+        claims no model is set up.
+        """
+        route = self.route_in_force()
+        if route is None:
+            return None
+        return route(file_id)
+
+    def target_locality(self, file_id: str) -> str | None:
+        """Where the model asked about THIS FILE runs, or `None` if none would be.
+
+        Read off the route and nowhere else: the request builder closes over the
+        same answer, but it is called only after §8.4's gate has answered, and the
+        gate is what needs this (`104` R-118).
+
+        **It takes a file id since `104` §17.13 ruling 3**, because the answer
+        stopped being one value for the run: the same site sends one file to a
+        cloud model and the next to a local one, and a locality read without a
+        file would authorise a dossier for a destination that file never had.
+        """
+        chosen = self.route(file_id)
+        if chosen is None:
+            return None
+        return chosen[1].locality
 
     def prompt_for(self, call_site: str) -> object:
         """The text THIS site is asked under. One field per site, never a shared one.
@@ -1125,8 +1181,13 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         offline_would_place = not needs_model_call(assessment, model_decides=False)
         # `104` R-118: asked about the target that would be sent to. A file the
         # mode keeps off the cloud is a file a LOCAL model may be asked about.
-        if not may_assemble_dossier(privacy,
-                                    target_locality=inputs.target_locality()):
+        # `104` §17.13 ruling 3: THIS FILE's target, not the run's. The same site
+        # sends one file to a cloud model and the next to a local one, so a
+        # locality read without a file would authorise a dossier for a destination
+        # this file never had.
+        if not may_assemble_dossier(
+                privacy, target_locality=inputs.target_locality(
+                    subject.file_id)):
             if not offline_would_place:
                 return _abstention(conn, context, reason=PRIVACY_BLOCKED)
             gate_refused = True
@@ -1522,7 +1583,12 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
                 "nothing moved. It is waiting for you to say what it is, not "
                 "marked sensitive and not judged on thin evidence."
             )
-        if context.inputs.model_target is None:
+        # `route_in_force` and not this file's own route: the sentence below says
+        # NO MODEL IS SET UP, which is a fact about the deployment. A protected
+        # file on a machine with a local model reaches here too, and its route is
+        # `None` while a model very much is set up -- it takes the last sentence,
+        # which names the settings rather than the absence.
+        if context.inputs.route_in_force() is None:
             # `104` R-118's third sentence. The only reason left for this state
             # is the operation mode, and the mode forbids the CLOUD: a model on
             # this device could be asked, and none is set up. The sentence
@@ -2160,8 +2226,17 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
     # C's prompt and then checking C's `ratified` for a D call would have been two
     # wrong answers agreeing with each other.
     prompt = inputs.prompt_for(call_site)
+    # THE CLIENT THIS FILE WAS ROUTED TO. `may_assemble_dossier` has already
+    # answered about the same file's target, so a pair is here; a second read of a
+    # single field would send to a destination the gate never decided about.
+    chosen = inputs.route(subject.file_id)
+    if chosen is None:
+        return _not_asked(
+            conn, call_site=call_site, subject=subject, observed_at=observed_at,
+            because="no model in this run may be asked about this file, so "
+                    "nothing about it was assembled and nothing was sent")
     return _observed_only(call_placement(
-        conn, request, gate=inputs.gate, model_client=inputs.model_client,
+        conn, request, gate=inputs.gate, model_client=chosen[0],
         prompt=prompt, call_dependencies=dependencies,
         observed_at=lambda: observed_at,
         usage_recorder=inputs.usage_recorder,
@@ -2705,8 +2780,8 @@ def _review_set_with_model(conn, *, item: ResidualSet, inputs: PipelineInputs,
                 conn, plan_version=inputs.plan_version,
                 set_id=item.set_id).choice,
             lifecycle_policy_ref=None)
-        if not may_assemble_dossier(privacy,
-                                    target_locality=inputs.target_locality()):
+        if not may_assemble_dossier(
+                privacy, target_locality=inputs.target_locality(file_id)):
             # §8.4 before the dossier, on the residual path exactly as on the
             # placement path. Protected material does not become releasable
             # because the file reached §7 instead of §6 -- and it is RECORDED

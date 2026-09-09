@@ -201,7 +201,8 @@ def _inputs(corpus, result, **over):
         ask_or_abstain=lambda ids: v.ABSTAIN, max_return_cycles=1, gate=None,
         model_client=None, prompt=None, residual_prompt=None, call_dependencies=None,
         model_call_request=None, chosen_node_of=None, residual_action_of=None,
-        sensitivity_policy=None, model_target=None, usage_recorder=None,
+        sensitivity_policy=None, model_target=None, route_for=None,
+        usage_recorder=None,
         # Nothing to ask about and nothing already answered. Both are
         # required with no default, so a fixture states its position
         # rather than inheriting one.

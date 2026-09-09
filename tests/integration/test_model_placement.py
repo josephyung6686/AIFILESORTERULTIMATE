@@ -114,13 +114,19 @@ def test_with_no_ratified_prompt_every_injection_is_absent_together(db):
 
     `usage_recorder` is the eleventh (`104` R-145): `104` R-14's mailbox, which
     site C's `run_call` never received, so its responses wrote no usage row.
+
+    `route_for` is the twelfth (`104` §17.13 ruling 3): the target is chosen per
+    FILE now -- cloud where the cloud gate permits the file, local where it does
+    not -- and a route handed over without the rest would be the same
+    half-injection. It is `None` in a deployment whose destination is the single
+    pair, which is why it is the SET that is asserted and not its emptiness.
     """
     injections = model_path_injections(db, _authorities(), plan_version=PLAN)
 
     assert set(injections) == {
         "gate", "model_client", "prompt", "residual_prompt", "call_dependencies",
         "model_call_request", "chosen_node_of", "residual_action_of",
-        "sensitivity_policy", "model_target", "usage_recorder",
+        "sensitivity_policy", "model_target", "route_for", "usage_recorder",
     }
     assert all(injections[name] is None for name in injections)
 
