@@ -1425,3 +1425,13 @@ The owner, asked §17.6's question again with the code's answer in front of them
 
 Order: site G bakeoff (running, local, 14 cases x 2 candidates) -> owner ratifies the winner -> merge r169, chain -> merge r170, chain -> run r18 with both targets configured, unseeded. The local-only run r17 is retired; r18 is the run that counts.
 
+
+
+### 17.14 Site G is live: the situation prompt ratified for the local model by bakeoff (9 Sep, 894ece4)
+
+`tools/promptbench run --site G_situation_sensitivity --candidates situation-shortlist,situation-safety-first --models local` over the 14 synthetic cases of `suites/suite_s.py`, qwen3:8b, output `tools/promptbench/out/g-bakeoff-1`. The two candidates answered EVERY case identically: 4 of 4 should-abstain cases abstained (the safety property held on all four); 4 of 10 should-answer cases right; 1 wrong, a journal abstract about a disease called a medical record (the over-protective direction, which sends a file local rather than cloud); 5 unnecessary abstentions. Median latency 56 s (safety-first) against 61 s (shortlist); all 28 calls parsed, schema-valid and grounded.
+
+Named: `situation-safety-first`, set `ratified_local` in its manifest row and pointed at by `cli.SITUATION_ROW`, for its speed and because it asks the four protected kinds before it reads the shortlist. The tie is the record. The strict xfail on `test_the_situation_verdict_is_written_under_the_new_basis` came off and the file's five tests pass; `test_cli_observe_sites` (80) and `test_cli_a_fact_row` (8) pass. Site G stays LOCAL under §17.13: it is the site that decides whether a file may go to the cloud at all, and asking a cloud model that question about an unclassified file would answer it by sending the file.
+
+The five unnecessary abstentions are the next thing to measure on the real corpus, not on the bench: every one sends a file to the local model instead of the cloud, which is the safe failure, and the number that matters is how many real files it costs.
+
