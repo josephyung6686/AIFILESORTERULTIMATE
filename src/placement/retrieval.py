@@ -51,6 +51,37 @@ CHANNELS: tuple[str, ...] = (
 #: strongly enough to place. Task 9 refuses a `place` supported only by these.
 NON_DECIDING_CHANNELS: tuple[str, ...] = (SEMANTIC_NEIGHBOUR, CURATED_FOLDER)
 
+#: THE CHANNELS `retrieve` CAN ACTUALLY PUT ON A CANDIDATE, which is not
+#: `CHANNELS` and has never been. `104` §18.2 gap 13 is what the difference cost:
+#: `retrieve`'s loop below appends exactly four -- `DIRECT_FACT` from
+#: `matched_pairs`, `ACCEPTED_GROUP` from `accepted_groups`, `CURATED_FOLDER`
+#: from `label_matches` and `SEMANTIC_NEIGHBOUR` from `semantic_matches` -- and
+#: nothing anywhere produces `GRAPH_RELATIONSHIP` or `STRUCTURAL_RELATIONSHIP`.
+#: The scorer, meanwhile, divided by all four DECIDING weights (3+2+1+1 = 7), so
+#: a file whose every direct fact matched one node scored 3/7 = 0.429 against a
+#: 0.50 bar and could not be placed by facts alone. Two sevenths of the scale
+#: were reserved for evidence nothing could collect, and that reservation decided
+#: the outcome.
+#:
+#: So retrieval DECLARES what it produces and the scorer normalises over that.
+#: The declaration lives here because this is the module whose loop decides it:
+#: a channel gains a producer here and its weight starts counting in the same
+#: commit, and a channel that loses one stops counting without anybody editing a
+#: number in `scoring.py`.
+#:
+#: **The two absentees are Release-2 items and not oversights.** §18.2 gap 12 is
+#: the node-local typed graph, which is built and contributes nothing -- five of
+#: nine edge types, never entering the dossier -- and it is what would produce
+#: `GRAPH_RELATIONSHIP`. §18.2 gap 14 is group placement as a first-class
+#: capability, which today is post-hoc aggregation over single-file decisions,
+#: and the version family / duplicate family / photo event links it would carry
+#: are what would produce `STRUCTURAL_RELATIONSHIP`. Both are ranked **L**.
+#: Adding either name here without its producer would restore exactly the gap
+#: this constant closes.
+PRODUCED_CHANNELS: tuple[str, ...] = (
+    DIRECT_FACT, ACCEPTED_GROUP, CURATED_FOLDER, SEMANTIC_NEIGHBOUR,
+)
+
 
 @dataclass(frozen=True)
 class Candidate:
@@ -67,6 +98,15 @@ class Retrieval:
     candidates: tuple[Candidate, ...]
     conflicts: tuple[ConflictConsidered, ...]
     semantic_only_node_ids: frozenset[str]
+    #: Which of `CHANNELS` the run that produced this retrieval could put on a
+    #: candidate. REQUIRED, WITH NO DEFAULT, for the reason `PipelineInputs.
+    #: ask_or_abstain` is required: a default here would be a second answer to
+    #: the question this field exists to make explicit, and it would be the
+    #: WRONG answer the moment a caller retrieves through a narrower path than
+    #: `retrieve` -- silently scoring against a scale that caller cannot reach.
+    #: `scoring.score_candidates` reads it as the denominator; `104` §18.2 gap
+    #: 13 is what the missing declaration cost.
+    producible_channels: tuple[str, ...]
 
 
 def _eligible_facts(conn: sqlite3.Connection, facts) -> tuple[MatchingFact, ...]:
@@ -188,4 +228,5 @@ def retrieve(conn: sqlite3.Connection, *, subject, plan_version, limits,
         subject_ref=subject_ref, plan_version=plan_version,
         candidates=candidates, conflicts=tuple(conflicts),
         semantic_only_node_ids=semantic_only,
+        producible_channels=PRODUCED_CHANNELS,
     )

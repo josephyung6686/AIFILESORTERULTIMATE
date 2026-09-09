@@ -168,18 +168,85 @@ def test_the_one_exemption_is_declared_and_its_values_are_pinned():
     # The exemption is not a hole: §6.3's channel weights are named, documented
     # as structural rather than tuned, and pinned here -- so a change to one of
     # them breaks this test instead of silently re-ranking every candidate.
-    from placement.scoring import _CHANNEL_WEIGHT, _MAX_WEIGHT
+    from placement.scoring import _CHANNEL_WEIGHT, producible_weight
     from placement.retrieval import (
-        ACCEPTED_GROUP, DIRECT_FACT, GRAPH_RELATIONSHIP, NON_DECIDING_CHANNELS,
-        STRUCTURAL_RELATIONSHIP,
+        ACCEPTED_GROUP, CHANNELS, DIRECT_FACT, GRAPH_RELATIONSHIP,
+        NON_DECIDING_CHANNELS, PRODUCED_CHANNELS, STRUCTURAL_RELATIONSHIP,
     )
 
     assert _CHANNEL_WEIGHT == {DIRECT_FACT: 3, ACCEPTED_GROUP: 2,
                                GRAPH_RELATIONSHIP: 1, STRUCTURAL_RELATIONSHIP: 1}
-    assert _MAX_WEIGHT == 7
     # The two non-deciding channels contribute nothing at all, which is §6.5's
     # rule and not a weight of zero somebody could raise.
     assert not set(NON_DECIDING_CHANNELS) & set(_CHANNEL_WEIGHT)
+    # THE DENOMINATOR IS NO LONGER A NUMBER AT ALL. `_MAX_WEIGHT = 7` used to be
+    # bound beside the weights and used to divide every score, which is the magic
+    # number `104` §18.2 gap 13 is about: it reserved two sevenths of the scale
+    # for channels with no producer anywhere, so a direct fact alone came out at
+    # .429 against a .50 bar and could never place. `producible_weight` derives it
+    # from what the retrieval declares instead, so there is nothing to pin here --
+    # only a relationship to assert.
+    assert producible_weight(PRODUCED_CHANNELS) == 5
+    assert producible_weight(CHANNELS) == sum(_CHANNEL_WEIGHT.values())
+    assert producible_weight(PRODUCED_CHANNELS) < producible_weight(CHANNELS)
+
+
+def test_a_channel_with_no_producer_cannot_be_scored_against_a_retrieval_that_says_so():
+    """`104` §18.2 gap 13's second half: the declaration is enforced, not advisory.
+
+    A candidate carrying `graph_relationship` against a retrieval declaring only
+    `PRODUCED_CHANNELS` is either a producer added without its declaration -- in
+    which case every score in the run was divided by a denominator too small -- or
+    a hand-built candidate scored against a scale the run cannot reach. Both are
+    silent, and the second one is what gap 13 was for months.
+
+    SABOTAGE: drop the `unproducible` check from `score_candidates` -- the
+    candidate scores 4/5 = 0.8, a support figure above what its own retrieval
+    says is possible, and nothing anywhere says so.
+    """
+    import pytest
+
+    from placement.config import SupportPolicy
+    from placement.records import MatchingFact
+    from placement.retrieval import (
+        Candidate, DIRECT_FACT, GRAPH_RELATIONSHIP, PRODUCED_CHANNELS, Retrieval,
+    )
+    from placement.scoring import ChannelNoRetrievalProduces, score_candidates
+    from placement import vocabulary as v
+
+    fact = MatchingFact(file_fact_id="ff1", field="subject", value="PHYS1401",
+                        reliability=v.DIRECT, evidence_ref="obs-1")
+    retrieval = Retrieval(
+        subject_ref="file:f1:h1", plan_version="plan-1",
+        candidates=(Candidate(node_id="n-course",
+                              channels=(DIRECT_FACT, GRAPH_RELATIONSHIP),
+                              matching_facts=(fact,), group_ids=()),),
+        conflicts=(), semantic_only_node_ids=frozenset(),
+        producible_channels=PRODUCED_CHANNELS)
+    policy = SupportPolicy(policy_id="fixture-v2", support_scale_max=1.0,
+                           minimum_support_threshold=0.50, margin_threshold=0.20)
+    with pytest.raises(ChannelNoRetrievalProduces):
+        score_candidates(retrieval, {}, policy=policy)
+
+
+def test_a_retrieval_that_can_produce_nothing_weighted_refuses_to_divide():
+    """0/0 is a refusal, not a score. `104` §18.2 gap 13.
+
+    A retrieval declaring only the two non-deciding channels can put no weight on
+    any candidate, so there is no scale for a threshold to divide. Returning zero
+    would read as "nothing matched"; returning anything else would be invented.
+
+    SABOTAGE: let `producible_weight` fall through to `sum(...) == 0` and divide
+    -- every score raises `ZeroDivisionError` from inside the scorer instead of
+    being refused where the configuration is wrong.
+    """
+    import pytest
+
+    from placement.retrieval import NON_DECIDING_CHANNELS
+    from placement.scoring import ChannelNoRetrievalProduces, producible_weight
+
+    with pytest.raises(ChannelNoRetrievalProduces):
+        producible_weight(NON_DECIDING_CHANNELS)
 
 
 def test_the_number_scan_would_catch_a_threshold_in_a_signature():

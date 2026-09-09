@@ -38,6 +38,23 @@ score none of them earned. Asking "which of these seven?" over 62 files would be
 43% precise against a 41% base rate -- noise with a question mark on it, and worse
 than the silence it replaced.
 
+Those two scores are the measurement's own and are left in the units it was taken
+in: it was read under `cli-support-v1`, whose scale reserved two sevenths for
+channels nothing produced, and under `cli-support-v2` the same two populations read
+0.4 and 1.0 (`104` §18.2 gap 13). What the finding turns on -- that the ties are
+the person's own top-level folders rather than competing destinations -- is a fact
+about `alternatives` and not about the denominator, so gap 13 does not touch it.
+Re-measure before quoting either pair as current.
+
+**THE FOURTH LEG, AND `104` §18.2 GAP 15 IS WHERE IT WAS MISSING.** Everything
+above is about a file nothing could be read out of. §6.9 has a second kind of
+question and it is the opposite case: a file the run read plenty about, which has
+accepted membership in two packets, and which the tree offers no shared branch
+for. `00`:113 permits two answers there -- "it should abstain OR ASK THE USER TO
+CHOOSE A PRIMARY HOME" -- and this deployment wired `lambda node_ids: pv.ABSTAIN`,
+so only one of them was ever reachable. The tests at the foot of this file are the
+other one.
+
 **One question per folder, not one per file.** `66` §14 asks for a question on a
 "repeated ambiguity", and `triggers.tied_readings` already reads that as *"four
 files of one course tying the same way is one ambiguity, asked once"*. Unreadable
@@ -339,3 +356,80 @@ def test_an_answer_about_a_folder_is_remembered_and_places_the_files(tmp_path):
         assert chain_of(decision["destination"]["node_id"]) == chosen, decision
     # And the question does not come back.
     assert "--answer home:scans=" not in " ".join(answered.split()), answered
+
+
+# --- `104` §18.2 gap 15: the two-homes case is a question ------------------------
+
+
+def test_the_two_homes_selector_asks_when_there_are_two_homes_to_offer():
+    """§6.9's selector, which used to be `lambda node_ids: pv.ABSTAIN`.
+
+    `104` §18.2 gap 15. The comment above the lambda read "there is no screen here
+    to ask on", which stopped being true when `WAITING_ON_AN_ANSWER` became a
+    review set of its own and `review_surface.items.render_state_for` gained
+    `ask_user_state`. A file with accepted membership in two packets is the case
+    `00`:113 names, and abstaining on it told the person "no folder matched" about
+    a file two folders matched.
+
+    SABOTAGE: put the unconditional `pv.ABSTAIN` back -- a file in two packets is
+    recorded `no_shared_branch`, joins the pile of files nothing could be said
+    about, and the person is never offered the choice that is theirs to make.
+    """
+    from placement import vocabulary as pv
+
+    assert cli._ask_when_there_are_two_homes_to_offer(
+        ("n-columbia", "n-duke")) == pv.ASK_USER
+    assert cli._ask_when_there_are_two_homes_to_offer(
+        ("n-columbia", "n-duke", "n-nyu")) == pv.ASK_USER
+
+
+def test_a_question_with_one_option_is_a_placement_wearing_a_question_mark():
+    """The abstention that survives gap 15, and `placement.records.Ask`'s own words.
+
+    `Ask.__post_init__` refuses fewer than two options, so a question this
+    deployment cannot put honestly is not put -- §6.9's abstention is still one of
+    its three legal answers and this is where it is chosen.
+
+    SABOTAGE: return `pv.ASK_USER` unconditionally -- `resolve_multi_home` hands
+    the ids to `_multi_home_decision`, which mints an `Ask`, and
+    `MalformedPlacementRecord` ends the run on a file that should simply have
+    abstained.
+    """
+    from placement import vocabulary as pv
+
+    assert cli._ask_when_there_are_two_homes_to_offer(("n-columbia",)) == pv.ABSTAIN
+    assert cli._ask_when_there_are_two_homes_to_offer(()) == pv.ABSTAIN
+
+
+def test_the_run_hands_the_placement_pipeline_the_asking_selector(tmp_path,
+                                                                  monkeypatch):
+    """The wiring, not the function. `104` §18.2 gap 15 was one lambda.
+
+    The selector above can be correct and reach nothing, which is exactly the
+    state the gap describes: `placement/records.py` has required two options for
+    an `Ask` since it was written, `pipeline._multi_home_decision` has built one
+    since it was written, and the composition root passed an answer that made both
+    unreachable. So this asserts what the run actually hands the pipeline.
+
+    SABOTAGE: rewire `ask_or_abstain` to `lambda node_ids: pv.ABSTAIN` -- every
+    unit test above still passes and this one fails, which is the whole point of
+    testing the seam rather than the policy.
+    """
+    import production
+
+    from placement import vocabulary as pv
+
+    seen = {}
+    real = production.run_corpus
+
+    def _capture(conn, **kwargs):
+        seen["ask_or_abstain"] = kwargs["inputs"].ask_or_abstain
+        return real(conn, **kwargs)
+
+    monkeypatch.setattr(production, "run_corpus", _capture)
+    corpus = _unreadable_corpus(tmp_path)
+    _run(_argv(corpus, tmp_path / "plan.sqlite"))
+
+    assert "ask_or_abstain" in seen, "the placement pipeline was never reached"
+    assert seen["ask_or_abstain"] is cli._ask_when_there_are_two_homes_to_offer
+    assert seen["ask_or_abstain"](("n-a", "n-b")) == pv.ASK_USER

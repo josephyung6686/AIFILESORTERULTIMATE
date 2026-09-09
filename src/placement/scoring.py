@@ -7,6 +7,26 @@ support threshold" without defining a scale, so the scale lives in the injected
 `SupportPolicy` and is recorded on the decision, which is what lets a P2 replay
 compare two runs and a reviewer see that a threshold changed.
 
+**WHICH CHANNELS ARE PRODUCIBLE TODAY, AND WHY THE OTHER TWO ARE NOT.** §6.3
+names six retrieval channels and `_CHANNEL_WEIGHT` weighs the four that decide.
+`placement/retrieval.py` produces four of the six -- direct fact, accepted group,
+curated folder and semantic neighbour -- of which two carry weight. Nothing in
+this codebase produces `graph_relationship` or `structural_relationship`:
+
+* `graph_relationship` waits on `104` §18.2 gap 12, the node-local typed graph
+  that is built and contributes nothing (five of nine edge types, never reaching
+  the dossier). **Release 2, ranked L.**
+* `structural_relationship` waits on `104` §18.2 gap 14, group placement as a
+  first-class capability. Today group placement is post-hoc aggregation over
+  single-file decisions and no model call ever takes a group, so the version
+  families, duplicate families and photo events that would carry this channel
+  have nothing to attach to. **Release 2, ranked L.**
+
+So the denominator is `producible_weight(retrieval.producible_channels)` and not
+a constant over all four weights. `104` §18.2 gap 13 is what the constant cost
+and `producible_weight`'s own docstring is the argument; the weights and their
+relative order are untouched by it.
+
 Nothing here re-implements a P8 check. Site C's `BELOW_SUPPORT_THRESHOLD`,
 `INSUFFICIENT_MARGIN` and `GENERIC_HUB_ONLY` judge a MODEL's answer. This module
 judges P11's own evidence, produces the `support` and `next_support` the dossier
@@ -25,7 +45,7 @@ from placement.config import SupportPolicy, require_policy
 from placement.graph import is_typed_support
 from placement.records import Alternative, TwoCondition
 from placement.retrieval import (
-    ACCEPTED_GROUP, CURATED_FOLDER, DIRECT_FACT, GRAPH_RELATIONSHIP,
+    ACCEPTED_GROUP, CHANNELS, CURATED_FOLDER, DIRECT_FACT, GRAPH_RELATIONSHIP,
     STRUCTURAL_RELATIONSHIP,
 )
 from placement.vocabulary import (
@@ -40,13 +60,73 @@ from placement.vocabulary import (
 #: These are structural weights over §6.3's channels, not tuned numbers: a direct
 #: fact outweighs a group membership outweighs a relationship, which is §3.13's
 #: own ordering, and the two non-deciding channels contribute nothing at all.
+#:
+#: THE RELATIVE ORDER IS UNCHANGED BY `104` §18.2 GAP 13 and must stay unchanged:
+#: gap 13 is about the DENOMINATOR, not about what a channel is worth.
 _CHANNEL_WEIGHT: dict[str, int] = {
     DIRECT_FACT: 3,
     ACCEPTED_GROUP: 2,
     GRAPH_RELATIONSHIP: 1,
     STRUCTURAL_RELATIONSHIP: 1,
 }
-_MAX_WEIGHT: int = sum(_CHANNEL_WEIGHT.values())
+
+
+class ChannelNoRetrievalProduces(ValueError):
+    """A candidate carries a channel the retrieval that built it cannot produce.
+
+    Refused rather than scored, because the two readings are both wrong and both
+    silent. Either the retrieval's declaration is stale -- a producer was added
+    and `PRODUCED_CHANNELS` was not -- in which case every score in the run was
+    normalised by a denominator too small, and files were placed on evidence the
+    scale over-credited. Or the candidate was hand-built with a channel nothing
+    produces, in which case the score is over a scale the run cannot reach and
+    the file abstains for a reason nobody can find. `104` §18.2 gap 13 is the
+    second failure lived through for months without a name.
+    """
+
+
+def producible_weight(producible_channels) -> int:
+    """The denominator: what a candidate in THIS run could possibly have scored.
+
+    **`104` §18.2 GAP 13, AND IT IS THE MAGIC NUMBER THIS FUNCTION DELETES.** The
+    denominator used to be `sum(_CHANNEL_WEIGHT.values())` -- a constant 7 over
+    all four deciding channels -- while `placement/retrieval.py` produced two of
+    them. The attainable score set was therefore {0, 2/7, 3/7, 5/7} = {0, .286,
+    .429, .714} against a wired 0.50 support bar, so a file whose direct facts
+    matched one node and nothing else scored .429 and never placed: `00`:110's
+    "if a file's validated facts uniquely match one frozen path, deterministic
+    matching is faster, cheaper, and more stable" was unreachable without a group
+    membership the file had no reason to have, and "ready to file" read near zero
+    whatever the evidence said. Two of seven parts of the scale were reserved for
+    channels with no producer anywhere in the codebase.
+
+    Normalising over what CAN be produced makes a file with the full producible
+    support score 1.0 of what is producible, which is the only reading of "full
+    support" that is true of the run that computed it. The threshold does not
+    move -- 0.50 is still 0.50 -- but it now divides a scale the run can reach:
+    {0, .4, .6, 1.0}, direct facts alone clearing it at .6 and an accepted group
+    alone falling short at .4, which is `_CHANNEL_WEIGHT`'s own ordering finally
+    expressed in the outcome instead of only in the numerator.
+
+    **This is not a looser bar.** Nothing gains support it did not have; the same
+    evidence in the same order buys the same rank. What changes is that the scale
+    stops reserving room for evidence this deployment cannot collect, which is
+    the difference between a threshold and a ceiling nobody can reach.
+
+    A denominator of zero raises rather than returning: a retrieval that produces
+    no deciding channel at all can place nothing, and 0/0 rendered as a score
+    would be a number where a refusal belongs.
+    """
+    total = sum(_CHANNEL_WEIGHT.get(channel, 0)
+                for channel in producible_channels)
+    if total <= 0:
+        raise ChannelNoRetrievalProduces(
+            f"{tuple(producible_channels)!r} declares no channel §6.3 weights, "
+            "so no candidate in this run could reach any score at all. A scale "
+            "with a zero denominator is not a strict threshold; it is a division "
+            "that has to be refused before it is printed"
+        )
+    return total
 
 
 @dataclass(frozen=True)
@@ -56,6 +136,13 @@ class Scored:
     typed_support: bool
     semantic_only: bool
     generic_hub: bool
+    #: The two integers `support_score` is the quotient of, carried so `_exact_
+    #: margin` can be ONE division instead of the difference of two roundings.
+    #: REQUIRED, with no default, because a zero denominator here would be a
+    #: division nobody authored: `producible_weight` refuses that case before a
+    #: `Scored` can exist, and a default would give it a second, silent answer.
+    support_weight: int
+    producible_weight: int
     #: Whether this candidate IS the folder the file is already sitting in.
     #: Carried, never weighted -- `_CHANNEL_WEIGHT` has no entry for
     #: `CURATED_FOLDER` and must not gain one. `assess` reads this only to
@@ -79,9 +166,34 @@ class Assessment:
 
 
 def score_candidates(retrieval, graphs, *, policy: SupportPolicy) -> tuple[Scored, ...]:
+    """§6.10's support figure, normalised over the channels THIS run can produce.
+
+    `producible_weight` above carries the whole of `104` §18.2 gap 13 and why the
+    denominator is no longer a constant. What is here is the second half of the
+    same rule: a candidate may not carry a channel the retrieval says it cannot
+    produce. Without that check the declaration would be advisory -- a numerator
+    could climb past a denominator that never counted it and hand back a score
+    above the declared scale -- and the only symptom would be a file placed on a
+    number nobody could reproduce.
+    """
     require_policy(policy)
+    denominator = producible_weight(retrieval.producible_channels)
+    producible = frozenset(retrieval.producible_channels)
     scored: list[Scored] = []
     for candidate in retrieval.candidates:
+        unproducible = tuple(channel for channel in CHANNELS
+                             if channel in candidate.channels
+                             and channel not in producible)
+        if unproducible:
+            raise ChannelNoRetrievalProduces(
+                f"{candidate.node_id!r} carries {unproducible!r}, which the "
+                f"retrieval that built it declares it cannot produce "
+                f"({tuple(retrieval.producible_channels)!r}). Either a producer "
+                "was added and `retrieval.PRODUCED_CHANNELS` was not, or this "
+                "candidate was built by hand against a scale the run cannot "
+                "reach; both score the file against a denominator that is not "
+                "its own"
+            )
         graph = graphs.get(candidate.node_id)
         weight = sum(_CHANNEL_WEIGHT.get(channel, 0) for channel in candidate.channels)
         typed = graph is not None and is_typed_support(graph)
@@ -89,8 +201,9 @@ def score_candidates(retrieval, graphs, *, policy: SupportPolicy) -> tuple[Score
         hub = graph is not None and bool(graph.anchors) and not typed
         scored.append(Scored(
             node_id=candidate.node_id,
-            support_score=policy.support_scale_max * weight / _MAX_WEIGHT,
+            support_score=policy.support_scale_max * weight / denominator,
             typed_support=typed, semantic_only=semantic_only, generic_hub=hub,
+            support_weight=weight, producible_weight=denominator,
             already_there=CURATED_FOLDER in candidate.channels,
         ))
     return tuple(sorted(scored, key=lambda s: (-s.support_score, s.node_id)))
@@ -245,6 +358,45 @@ def _staying_put_wins_a_tie(
             (lower[0] if lower else None), True)
 
 
+def _exact_margin(best: Scored, runner_up: Scored, *,
+                  policy: SupportPolicy) -> float:
+    """`best - runner_up`, as ONE division rather than the difference of two.
+
+    **THIS IS THE SAME RULE, COMPUTED EXACTLY. It is not a new rule and must not
+    become one.** `support_score` is `scale * weight / denominator`, and IEEE 754
+    rounds each quotient before the subtraction sees it. Under `104` §18.2 gap
+    13's denominator of 5 that rounding decides an outcome: a candidate carrying
+    the direct-fact channel alone (3/5) against one carrying the accepted-group
+    channel alone (2/5) is `0.6 - 0.4 = 0.19999999999999996`, which is BELOW a
+    0.20 margin threshold by one part in 10^17. Computed as `1.0 * (3 - 2) / 5`
+    the same difference is exactly 0.2 and clears it.
+
+    That pair is not a corner case; it is gap 13's headline. A file whose subject
+    fact names one course and whose accepted group names one application packet
+    is exactly the shape `00`:110 calls a unique direct match, and the whole
+    point of deriving the denominator was to make that reachable. Leaving the
+    margin to float error would have made it reachable only when no group-only
+    rival existed -- gap 13 closed on paper and open in the case a person meets.
+
+    `margin_over_next` is recorded on the decision and read by a P2 replay, so
+    the exact value is also the honest one: the difference of the two weights
+    over the scale is what the rule SAYS, and 0.19999999999999996 was never it.
+
+    Both candidates were normalised by the same denominator or one of them was
+    not scored by `score_candidates`, and comparing across two scales would be a
+    margin between two different rules. Refused rather than computed.
+    """
+    if best.producible_weight != runner_up.producible_weight:
+        raise ChannelNoRetrievalProduces(
+            f"{best.node_id!r} was scored over {best.producible_weight} and "
+            f"{runner_up.node_id!r} over {runner_up.producible_weight}; a margin "
+            "between two scales measures neither of them"
+        )
+    return (policy.support_scale_max
+            * (best.support_weight - runner_up.support_weight)
+            / best.producible_weight)
+
+
 def assess(retrieval, graphs, *, policy: SupportPolicy,
            their_own_folder_node_ids: frozenset[str] | None = None,
            refinements: frozenset[str] = frozenset()) -> Assessment:
@@ -264,10 +416,12 @@ def assess(retrieval, graphs, *, policy: SupportPolicy,
         margin_over_next = None
         meets_margin = MARGIN_TRUE_VACUOUS
     else:
-        margin_over_next = best.support_score - runner_up.support_score
+        margin_over_next = _exact_margin(best, runner_up, policy=policy)
+        # The policy still owns the comparison AND the threshold -- this is
+        # `margin_predicate` asked of a difference computed exactly instead of a
+        # difference of two rounded quotients. See `_exact_margin`.
         meets_margin = (
-            MARGIN_TRUE if policy.margin_predicate(best.support_score,
-                                                   runner_up.support_score)
+            MARGIN_TRUE if policy.margin_predicate(margin_over_next, 0.0)
             else MARGIN_FALSE
         )
 

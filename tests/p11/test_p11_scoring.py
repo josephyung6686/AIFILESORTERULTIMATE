@@ -9,8 +9,9 @@ from placement.graph import NodeLocalGraph, build_node_local_graph
 from placement.index import build_destination_index, entry_for
 from placement.records import ConflictConsidered, GraphAnchor, MatchingFact, Subject
 from placement.retrieval import (
-    ACCEPTED_GROUP, CURATED_FOLDER, Candidate, DIRECT_FACT, GRAPH_RELATIONSHIP,
-    Retrieval, SEMANTIC_NEIGHBOUR, retrieve,
+    ACCEPTED_GROUP, CHANNELS, CURATED_FOLDER, Candidate, DIRECT_FACT,
+    GRAPH_RELATIONSHIP, PRODUCED_CHANNELS, Retrieval, SEMANTIC_NEIGHBOUR,
+    retrieve,
 )
 from placement.scoring import assess, needs_model_call
 from p11.conftest import FIXED_CLOCK
@@ -23,18 +24,36 @@ LIMITS = PlacementLimits(
     max_cost_per_scan=5,
 )
 
-# The threshold is 0.4, and the number is derived rather than picked. `assess`
-# normalises by `_MAX_WEIGHT = 3 + 2 + 1 + 1 = 7`, so the highest score a
-# candidate carrying ONLY the direct-fact channel can reach is
-# `1.0 * 3 / 7 = 0.4285714…`. `_candidate()`'s default channels are
-# `(DIRECT_FACT,)`, so a threshold of 0.5 would make every test in this module
-# that expects a placement arithmetically impossible: the strongest evidence the
-# fixture carries would still abstain. 0.4 sits below 3/7 and above the
-# accepted-group-only score of `2/7 = 0.2857…`, so `test_one_high_frequency_
-# entity_stays_uncertain` and the two semantic-only tests still fail the
-# threshold, which is what they exist to prove.
-POLICY = SupportPolicy(policy_id="fixture-v1", support_scale_max=1.0,
-                       minimum_support_threshold=0.4, margin_threshold=0.2)
+# THE FIXTURE POLICY IS THE DEPLOYMENT'S OWN, and `104` §18.2 gap 13 is why it
+# can be. It used to be 0.4 against `cli.py`'s 0.5, and the old comment said
+# exactly why: `assess` divided by `_MAX_WEIGHT = 3 + 2 + 1 + 1 = 7` while
+# `retrieve` produced two of those four channels, so the strongest evidence this
+# module's `_candidate()` carries -- a direct fact and nothing else -- reached
+# `1.0 * 3 / 7 = 0.4285…` and a 0.5 bar made every placement test here
+# arithmetically impossible. A fixture that has to lower the product's threshold
+# to see the product place anything is a fixture reporting a defect.
+#
+# `scoring.producible_weight` now derives the denominator from what the retrieval
+# declares it produces, so over `PRODUCED_CHANNELS` the attainable set is
+# {0, .4, .6, 1.0}: a direct fact alone is 0.6 and clears, an accepted group
+# alone is 0.4 and falls short, semantic-only is 0. The fixture and the product
+# now run the SAME numbers, which is the only way a test here says anything about
+# a real run.
+POLICY = SupportPolicy(policy_id="fixture-v2", support_scale_max=1.0,
+                       minimum_support_threshold=0.50, margin_threshold=0.20)
+
+# THE RELEASE-2 SCALE, for the three tests that exercise a channel nothing
+# produces yet. `GRAPH_RELATIONSHIP` has no producer until §18.2 gap 12 lands and
+# `STRUCTURAL_RELATIONSHIP` none until gap 14 does, so `score_candidates` refuses
+# a candidate carrying either against a retrieval declaring `PRODUCED_CHANNELS`.
+# A test about what a graph edge is WORTH still has to be able to say so, and it
+# says so by declaring a retrieval that produces all six -- which is exactly the
+# shape those two gaps will create, denominator 7 and all. The threshold goes
+# back to 0.4 for the same arithmetic reason the whole module used to: over seven
+# a direct fact alone is 0.4285.
+POLICY_OVER_ALL_SIX = SupportPolicy(
+    policy_id="fixture-release2-v1", support_scale_max=1.0,
+    minimum_support_threshold=0.40, margin_threshold=0.20)
 
 
 def _fact(value="PHYS1401"):
@@ -63,10 +82,12 @@ def _graph(node_id="n-course", anchors=1, informative=True):
     )
 
 
-def _retrieval(candidates, conflicts=(), semantic_only=frozenset()):
+def _retrieval(candidates, conflicts=(), semantic_only=frozenset(),
+               producible=PRODUCED_CHANNELS):
     return Retrieval(subject_ref="file:f1:h1", plan_version="plan-1",
                      candidates=tuple(candidates), conflicts=tuple(conflicts),
-                     semantic_only_node_ids=semantic_only)
+                     semantic_only_node_ids=semantic_only,
+                     producible_channels=producible)
 
 
 def test_a_unique_direct_match_needs_no_model_and_says_so():
@@ -101,21 +122,31 @@ def test_the_degenerate_case_still_abstains_when_support_is_short():
 
 
 def test_a_low_margin_between_two_candidates_is_unresolved():
-    # The runner-up is reached by its accepted group alone (2/7 = 0.2857), which
-    # is BELOW the 0.4 threshold, so it is not a home the evidence supports. What
-    # failed is the margin -- 3/7 - 2/7 = 0.1429, inside the 0.2 band -- and
-    # `low_margin` is the true name for it: the best destination is not clearly
-    # better than a rival that is not itself supported.
-    #
-    # This is the negative twin of `test_two_supported_homes_...` below. A fix
-    # that renamed EVERY margin failure "two homes" would pass that test and
-    # destroy this signal, so the two are read together or neither means anything.
+    """A margin failure with ONE supported candidate is `low_margin`, not two homes.
+
+    ON THE RELEASE-2 SCALE, and `104` §18.2 gap 13 is why it had to move there.
+    Over `PRODUCED_CHANNELS` the attainable weights are 0, 2, 3 and 5 over a
+    denominator of 5, so the smallest non-zero margin is `(3 - 2) / 5 = 0.2` --
+    exactly the threshold, which it clears. Every non-zero margin this deployment
+    can produce is therefore decisive, and a failing NON-ZERO margin needs a finer
+    scale to exist at all. Over all six channels it does: a direct fact
+    (3/7 = 0.4286) against an accepted group alone (2/7 = 0.2857) is 1/7 = 0.1429,
+    inside the 0.2 band, with only the best one clearing the 0.4 bar.
+
+    This is the negative twin of `test_two_supported_homes_...` below. A fix that
+    renamed EVERY margin failure "two homes" would pass that test and destroy this
+    signal, so the two are read together or neither means anything.
+
+    SABOTAGE: name the pair against `POLICY` and `PRODUCED_CHANNELS` instead --
+    the margin comes out 0.2, clears, and the assessment places the file rather
+    than leaving it unresolved.
+    """
     two = [_candidate(),
            _candidate(node_id="n-course-alt", channels=(ACCEPTED_GROUP,),
                       facts=())]
-    result = assess(_retrieval(two),
+    result = assess(_retrieval(two, producible=CHANNELS),
                     {"n-course": _graph(), "n-course-alt": _graph("n-course-alt")},
-                    policy=POLICY)
+                    policy=POLICY_OVER_ALL_SIX)
     assert result.two_condition.margin_over_next == pytest.approx(1 / 7)
     assert result.two_condition.meets_margin == v.MARGIN_FALSE
     assert result.two_condition.verdict == "weak"
@@ -128,7 +159,7 @@ def test_two_supported_homes_are_named_as_two_homes_not_as_weak_evidence():
 
     Both destinations are reached by a direct fact on a DIFFERENT field --
     `subject = PHYS1401` and `project = PVA-RDP` -- so §6.3's suppression
-    correctly suppresses neither, and both score 3/7 = 0.4286, above the 0.4
+    correctly suppresses neither, and both score 3/5 = 0.6, above the 0.5
     threshold. The margin is exactly 0.0.
 
     The routing is already right: verdict `weak`, `requires_review` true, nothing
@@ -163,11 +194,11 @@ def test_a_third_supported_home_reads_the_same_as_two():
 
 
 def test_a_tie_nothing_supports_is_not_two_homes():
-    # The other half of the threshold half. Two candidates tie exactly, and
-    # NEITHER clears the support threshold -- accepted-group evidence alone on
-    # both sides. There are no supported homes here at all, so calling it "two
-    # homes" would promise the user a choice between two destinations the
-    # evidence never backed.
+    # The other half of the threshold half. Two candidates tie exactly at 2/5 =
+    # 0.4, and NEITHER clears the 0.5 support threshold -- accepted-group
+    # evidence alone on both sides. There are no supported homes here at all, so
+    # calling it "two homes" would promise the user a choice between two
+    # destinations the evidence never backed.
     two = [_candidate(channels=(ACCEPTED_GROUP,), facts=()),
            _candidate(node_id="n-course-alt", channels=(ACCEPTED_GROUP,),
                       facts=())]
@@ -180,19 +211,33 @@ def test_a_tie_nothing_supports_is_not_two_homes():
 
 
 def test_a_measured_margin_over_the_threshold_reads_true_not_vacuous():
-    # The third `meets_margin` value has to be reachable or the three-valued
-    # field is two-valued with a spare name. DIRECT_FACT (3/7 = 0.4285…) against
-    # ACCEPTED_GROUP alone (2/7 = 0.2857…) is a margin of 1/7 = 0.1428…, so the
-    # runner-up is pushed to GRAPH_RELATIONSHIP alone (1/7 = 0.1428…) for a
-    # margin of 2/7 = 0.2857… -- above the 0.2 the policy calls meaningful.
+    """The third `meets_margin` value is reachable, and on THIS deployment's scale.
+
+    `104` §18.2 gap 13's headline pair, and the one the arithmetic used to lose.
+    A file whose direct facts match one node (3/5 = 0.6) against a node reached by
+    an accepted group alone (2/5 = 0.4) is a margin of exactly 0.2, which is the
+    threshold and clears it. The old fixture could not use this pair -- over seven
+    it was 1/7 = 0.1429 and failed -- so it reached for `GRAPH_RELATIONSHIP`, a
+    channel nothing produces, to manufacture a margin the product could not.
+
+    THE FLOAT MATTERS HERE AND IS WHY `_exact_margin` EXISTS. `0.6 - 0.4` is
+    `0.19999999999999996` in IEEE 754, below the threshold by one part in 10^17;
+    `1.0 * (3 - 2) / 5` is exactly 0.2. Same rule, one division instead of the
+    difference of two roundings.
+
+    SABOTAGE: compute the margin as `best.support_score - runner_up.support_score`
+    again -- `meets_margin` flips to `false`, `unique_direct_match` to False, and
+    gap 13's unique direct match is unreachable in exactly the case a person meets.
+    """
     two = [_candidate(),
-           _candidate(node_id="n-course-alt", channels=(GRAPH_RELATIONSHIP,),
+           _candidate(node_id="n-course-alt", channels=(ACCEPTED_GROUP,),
                       facts=())]
     result = assess(_retrieval(two),
                     {"n-course": _graph(), "n-course-alt": _graph("n-course-alt")},
                     policy=POLICY)
     assert result.two_condition.meets_margin == v.MARGIN_TRUE
-    assert result.two_condition.margin_over_next == pytest.approx(2 / 7)
+    assert result.two_condition.margin_over_next == 0.2
+    assert result.two_condition.meets_threshold is True
     assert result.unique_direct_match is True
 
 
@@ -219,8 +264,14 @@ def test_a_group_supported_acceptance_is_context_supported_and_reviewed():
     # relationship evidence with no direct fact anywhere, so §6.6's deterministic
     # path does not apply and the verdict must say `accept_context_supported`.
     # Recording `accept_direct` here would name a fact match that never happened.
+    #
+    # ON THE RELEASE-2 SCALE, because `GRAPH_RELATIONSHIP` has no producer until
+    # `104` §18.2 gap 12 lands and `score_candidates` refuses a candidate carrying
+    # a channel its retrieval says it cannot produce. The rule under test is what
+    # a graph edge is WORTH, which is gap 12's question and survives the wait.
     candidate = _candidate(channels=(ACCEPTED_GROUP, GRAPH_RELATIONSHIP), facts=())
-    result = assess(_retrieval([candidate]), {"n-course": _graph()}, policy=POLICY)
+    result = assess(_retrieval([candidate], producible=CHANNELS),
+                    {"n-course": _graph()}, policy=POLICY_OVER_ALL_SIX)
     assert result.abstention_reason is None
     assert result.unique_direct_match is False
     assert result.confidence_class == v.CONTEXT_SUPPORTED_GROUP_MATCH
@@ -275,10 +326,16 @@ def test_a_support_policy_is_required_and_never_defaulted():
 
 
 def test_several_plausible_nodes_ask_for_a_model_rather_than_guessing():
-    two = [_candidate(), _candidate(node_id="n-course-alt",
-                                    channels=(ACCEPTED_GROUP,), facts=())]
+    # TWO DIRECT-FACT CANDIDATES, and `104` §18.2 gap 13 is why the fixture had to
+    # change. It used to pair a direct fact against an accepted group alone, which
+    # was ambiguous only because the old denominator kept the direct match below
+    # the bar; on the producible scale that pair is a decisive 0.6 against 0.4 and
+    # asking a model about it would be the round trip §6.6 forbids. Genuine
+    # ambiguity is two candidates the SAME evidence reaches equally, which is what
+    # `unique_direct_match` is a property of: the facts, not the candidate count.
+    two = [_candidate(), _candidate(node_id="n-project")]
     result = assess(_retrieval(two),
-                    {"n-course": _graph(), "n-course-alt": _graph("n-course-alt")},
+                    {"n-course": _graph(), "n-project": _graph("n-project")},
                     policy=POLICY)
     assert result.unique_direct_match is False
     assert needs_model_call(result) is True
@@ -374,10 +431,11 @@ def test_r19_a_file_with_no_candidate_at_all_is_asked_of_nobody():
 
 
 def test_r19_an_ambiguous_file_is_asked_either_way():
-    two = [_candidate(), _candidate(node_id="n-course-alt",
-                                    channels=(ACCEPTED_GROUP,), facts=())]
+    # Two direct-fact homes, for the reason
+    # `test_several_plausible_nodes_ask_for_a_model_rather_than_guessing` gives.
+    two = [_candidate(), _candidate(node_id="n-project")]
     result = assess(_retrieval(two),
-                    {"n-course": _graph(), "n-course-alt": _graph("n-course-alt")},
+                    {"n-course": _graph(), "n-project": _graph("n-project")},
                     policy=POLICY)
     assert needs_model_call(result) is True
     assert needs_model_call(result, model_decides=True) is True

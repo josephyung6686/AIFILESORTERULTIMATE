@@ -160,6 +160,12 @@ def _without_superseded_ancestors(conn: sqlite3.Connection, retrieval: Retrieval
     parent IS the deepest candidate and is what this returns -- which is the case
     `DecisionDepth.unsupported_levels` was written for.
     """
+    # `dataclasses.replace`, not a field-by-field rebuild. Every one of these
+    # pruners changes exactly ONE field and copies the rest by name, and a
+    # rebuild that names them silently RESETS any field added later. For
+    # `producible_channels` that would mean a pruned retrieval scored against a
+    # denominator that is not the one that built it, which is `104` §18.2 gap 13
+    # re-opened one function further down.
     node_ids = {candidate.node_id for candidate in retrieval.candidates}
     if len(node_ids) < 2:
         return retrieval
@@ -180,14 +186,10 @@ def _without_superseded_ancestors(conn: sqlite3.Connection, retrieval: Retrieval
     if not superseded:
         return retrieval
 
-    return Retrieval(
-        subject_ref=retrieval.subject_ref,
-        plan_version=retrieval.plan_version,
+    return dataclasses.replace(
+        retrieval,
         candidates=tuple(candidate for candidate in retrieval.candidates
-                         if candidate.node_id not in superseded),
-        conflicts=retrieval.conflicts,
-        semantic_only_node_ids=retrieval.semantic_only_node_ids,
-    )
+                         if candidate.node_id not in superseded))
 
 
 def _without_duplicated_proposals(conn: sqlite3.Connection, retrieval: Retrieval,
@@ -241,14 +243,10 @@ def _without_duplicated_proposals(conn: sqlite3.Connection, retrieval: Retrieval
     if not superseded:
         return retrieval
 
-    return Retrieval(
-        subject_ref=retrieval.subject_ref,
-        plan_version=retrieval.plan_version,
+    return dataclasses.replace(
+        retrieval,
         candidates=tuple(candidate for candidate in retrieval.candidates
-                         if candidate.node_id not in superseded),
-        conflicts=retrieval.conflicts,
-        semantic_only_node_ids=retrieval.semantic_only_node_ids,
-    )
+                         if candidate.node_id not in superseded))
 
 
 def _refinements_of(their_own_folder: str | None,
@@ -383,14 +381,10 @@ def _without_kind_only_moves(
     if not carried:
         return retrieval
 
-    return Retrieval(
-        subject_ref=retrieval.subject_ref,
-        plan_version=retrieval.plan_version,
+    return dataclasses.replace(
+        retrieval,
         candidates=tuple(candidate for candidate in retrieval.candidates
-                         if candidate.node_id not in carried),
-        conflicts=retrieval.conflicts,
-        semantic_only_node_ids=retrieval.semantic_only_node_ids,
-    )
+                         if candidate.node_id not in carried))
 
 
 def _a_folder_made_for_this_keeps_it(
@@ -491,14 +485,10 @@ def _a_folder_made_for_this_keeps_it(
     if not carried:
         return retrieval
 
-    return Retrieval(
-        subject_ref=retrieval.subject_ref,
-        plan_version=retrieval.plan_version,
+    return dataclasses.replace(
+        retrieval,
         candidates=tuple(candidate for candidate in retrieval.candidates
-                         if candidate.node_id not in carried),
-        conflicts=retrieval.conflicts,
-        semantic_only_node_ids=retrieval.semantic_only_node_ids,
-    )
+                         if candidate.node_id not in carried))
 
 
 class ModelJudgementUnavailable(RuntimeError):
@@ -1038,14 +1028,10 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         )
     }
     if rejected:
-        retrieval = Retrieval(
-            subject_ref=retrieval.subject_ref,
-            plan_version=retrieval.plan_version,
+        retrieval = dataclasses.replace(
+            retrieval,
             candidates=tuple(c for c in retrieval.candidates
-                             if c.node_id not in rejected),
-            conflicts=retrieval.conflicts,
-            semantic_only_node_ids=retrieval.semantic_only_node_ids,
-        )
+                             if c.node_id not in rejected))
     if inputs.p2 is not None:
         emit_retrieval_stage(conn, run_id=inputs.p2.run_id, retrieval=retrieval,
                              version_tuple_ref=inputs.p2.version_tuple_ref,
@@ -2440,6 +2426,35 @@ def _flat_two_condition(inputs: PipelineInputs) -> TwoCondition:
         requires_review=True)
 
 
+def _protected_material_is_never_a_question(node_ids) -> str:
+    """§6.9's selector, overridden for a file P7 marked protected.
+
+    The second lock that had to come with `104` §18.2 gap 15.
+
+    **ABSTAINS RATHER THAN RAISING, AND THE DIFFERENCE FROM `_asking` IS REAL.**
+    `_asking` refuses outright, because reaching it means the caller's policy is
+    broken and a broken policy has to be FOUND. This is not that: nothing is
+    broken when a protected file turns out to belong to two packets, and the
+    injected selector is not wrong to want to ask about ordinary material. Two
+    homes on a protected file is an ordinary outcome with one option removed, and
+    §6.9 already names abstention as one of its three legal answers -- so the
+    answer is the legal one, not a traceback that stops the run.
+
+    **THE FILE IS NOT LOST BY IT.** The screen puts every protected file into its
+    own review set off P7's flag (`cli._protected_among`) before it ever reads a
+    decision's reason, so it is named and counted exactly as it would have been. What does not
+    happen is an `Ask` naming two packets -- "Applications/UChicago or
+    Applications/Columbia?" beside a passport scan -- which is the specific
+    disclosure `00`:201 is about. Marked, counted, never opened, never silently
+    omitted, and never turned into a question.
+
+    `node_ids` is accepted and ignored: `resolve_multi_home` calls its selector
+    with the competing ids and this function's answer does not depend on them.
+    """
+    del node_ids
+    return ABSTAIN
+
+
 def _multi_home_decision(conn, *, subject, inputs: PipelineInputs, outcome,
                          payload, privacy, automatic_move_permitted: bool,
                          component_version: str,
@@ -2969,7 +2984,17 @@ def run_corpus(conn: sqlite3.Connection, *, subjects, group_ids,
             candidate_node_ids=tuple(parents),
             shared_material_policy=inputs.tree.shared_material_policy,
             shared_branch_node_id=_shared_branch_of(inputs.tree),
-            ask_or_abstain=inputs.ask_or_abstain)
+            # THE SECOND LOCK, and `_asking` already carries the argument for
+            # why there is one: an `ask_user` decision is A REQUEST FOR
+            # ATTENTION, a review surface lists what it holds, and `00`:201 says
+            # a visible list of protected specifics may not be safe to have on a
+            # screen somebody else can see. `104` §18.2 gap 15 turned the
+            # composition root's selector from "always abstain" into one that
+            # asks, and the selector is handed node ids and nothing else -- it
+            # cannot see that this file is a passport. The privacy state is
+            # right here, so the refusal is here.
+            ask_or_abstain=(_protected_material_is_never_a_question
+                            if privacy.protected else inputs.ask_or_abstain))
         decisions.append(_multi_home_decision(
             conn, subject=subject, inputs=inputs, outcome=outcome,
             payload=payload, privacy=privacy,
