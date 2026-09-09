@@ -1543,7 +1543,8 @@ def _must_not_apply(call_site: str):
 
 def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
                                  placeable_file_count: int,
-                                 routing: TierRouting, plan_version: str) -> dict:
+                                 routing: TierRouting, plan_version: str,
+                                 operation_mode: str = OPERATION_MODE) -> dict:
     """Sites C and D, wired to run and to change nothing. Eight of the nine.
 
     `sensitivity_policy` is NOT here: R-55 supplies it at `placement_inputs`
@@ -1569,8 +1570,10 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
     # is `ratified_local` -- so on a two-target deployment every file C is asked
     # about goes to the model on this machine, and the site keeps running where
     # reading `locality_for` would have handed it a cloud client and turned it off.
-    placement_route = target_for(conn, routing, C_PLACEMENT)
-    if not site_has_a_destination(conn, routing, C_PLACEMENT):
+    placement_route = target_for(conn, routing, C_PLACEMENT,
+                                 operation_mode=operation_mode)
+    if not site_has_a_destination(conn, routing, C_PLACEMENT,
+                                  operation_mode=operation_mode):
         return {}
     placement_prompt = prompt_for(C_PLACEMENT)
     # D IS ASKED ONLY WHERE ITS OWN WORD PERMITS. C and D are ratified separately,
@@ -1580,7 +1583,8 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
     # a residual set that asks for a model is refused there, at the moment it
     # asks, naming the site that has no text. Nothing of D's leaves the device
     # under a word that forbids it, which is the count this gate keeps.
-    residual_permitted = site_has_a_destination(conn, routing, D_RESIDUAL)
+    residual_permitted = site_has_a_destination(conn, routing, D_RESIDUAL,
+                                                operation_mode=operation_mode)
     residual_prompt = prompt_for(D_RESIDUAL) if residual_permitted else None
     authorities = PlacementCallAuthorities(
         # NO SINGLE PAIR: `route_for` below answers per file, and the two
@@ -8856,7 +8860,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         observe_cd = (observe_placement_injections(
             conn, fact_authorities[0], routing=routing,
             plan_version=tree.tree.plan_version_id,
-            placeable_file_count=placeable_file_count(conn, scan_run_id[0]))
+            placeable_file_count=placeable_file_count(conn, scan_run_id[0]),
+            # THIS RUN'S MODE, and it stopped being cosmetic the day C's
+            # `eliminate-v2` was ratified for the cloud: the site now HAS a cloud
+            # candidate, so a default here would have kept every placement call on
+            # this device under a consent that permits sending, and the evidence
+            # gathered for it -- which does read the mode -- would have been
+            # collected for a destination the call never used.
+            operation_mode=operation_mode)
             if fact_authorities else {})
         unreadable = folders_nothing_could_be_read_from(conn, root=directory)
         asks = _home_questions(tree.tree, unreadable)

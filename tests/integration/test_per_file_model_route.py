@@ -29,7 +29,8 @@ import pytest
 
 import cli
 from llm_harness.transport import ModelClient
-from llm_harness.vocabulary import A_FACT, C_PLACEMENT, G_SITUATION_SENSITIVITY
+from llm_harness.vocabulary import (
+    A_FACT, C_PLACEMENT, D_RESIDUAL, G_SITUATION_SENSITIVITY)
 from privacy.release import ModelTarget
 from readers.model_deepseek import CLOUD, PROVIDER
 from readers.model_ollama import LOCAL, PROVIDER as LOCAL_PROVIDER
@@ -195,22 +196,25 @@ def test_the_protected_file_is_refused_every_destination(corpus, conn):
 
 # --- sites C and G: their own text keeps them here ----------------------------
 
-def test_site_c_keeps_every_file_on_this_device_whatever_its_class(corpus, conn):
-    """C's draft is `ratified_local`: it APPLIES and it may not cross the
-    internet. So the cloud candidate is dropped for the site before any file is
-    asked about, and the classified file that site A sends to a provider is
-    answered here instead.
+def test_site_c_splits_the_same_way_a_does_now_that_its_text_is_ratified(corpus,
+                                                                        conn):
+    """C's `eliminate-v2` was ratified for the cloud on the owner's 9 September
+    ruling, so the site gained a cloud candidate and splits exactly as A does: the
+    classified, unprotected file to the provider, the one nothing has classified
+    kept here, the protected one asked nowhere.
 
-    This is the assertion that would have caught the regression this build could
-    have introduced. Reading `routing.locality_for(C_PLACEMENT)` on a two-target
-    routing answers CLOUD, `observe_locality_permits` then refuses, and site C
-    turns OFF for the whole run -- a coverage loss wearing a safety measure's
-    clothes."""
+    **This test read the other way one commit ago and the CODE did not change.**
+    Under `ratified_local` the cloud candidate was dropped for the site and every
+    file went local. `observe_locality_permits` reads the row's own word, so
+    ratifying the text moved the route and no line of `target_for` moved with it --
+    which is the property `104` R-05's seam exists to have.
+    """
     route = cli.target_for(conn, _both(), C_PLACEMENT, operation_mode=SENDING_ON)
 
     assert _where(route, corpus) == {
-        "ordinary": LOCAL, "unclassified": LOCAL, "protected": None}
-    assert route(corpus["ordinary"])[1].model_id == LOCAL_ID
+        "ordinary": CLOUD, "unclassified": LOCAL, "protected": None}
+    assert route(corpus["ordinary"])[1].model_id == CLOUD_IDS[LOGIC]
+    assert route(corpus["unclassified"])[1].model_id == LOCAL_ID
 
 
 def test_site_g_keeps_every_file_on_this_device_too(corpus, conn):
@@ -228,10 +232,17 @@ def test_site_g_keeps_every_file_on_this_device_too(corpus, conn):
 def test_the_sites_that_may_not_cross_are_still_on_with_both_models_configured(
         conn):
     """The other half of the regression: a site whose text keeps it here must
-    still HAVE a destination when a local model is configured beside a key."""
+    still HAVE a destination when a local model is configured beside a key.
+
+    G and D_residual are those sites now -- G's row is `ratified_local` and D's is
+    unratified -- since C's was ratified for the cloud.
+    """
     both = _both()
 
-    for site in (C_PLACEMENT, G_SITUATION_SENSITIVITY):
+    for site in (D_RESIDUAL, G_SITUATION_SENSITIVITY):
+        assert not cli.observe_locality_permits(site, CLOUD), (
+            "this test is about sites whose own text keeps them here; if one of "
+            "them was ratified for the cloud it belongs beside A and C instead")
         assert cli.site_has_a_destination(conn, both, site,
                                           operation_mode=SENDING_ON)
 
@@ -431,13 +442,25 @@ def test_site_gs_guard_lets_the_pass_run_on_a_two_target_deployment(conn):
 
 def test_the_placement_evidence_is_gathered_under_the_destination_it_will_go_to(
         corpus, conn):
-    """Site C's evidence locality was `routing.locality_for(C_PLACEMENT)`, which on
-    a two-target routing answers CLOUD while every file C is asked about goes
-    LOCAL. Cloud releases the least, so the error was in the safe direction and
-    still wrong: readings the local model may see would have been withheld from it,
-    starving the site the run had just kept switched on."""
+    """Site C's evidence was gathered under one locality for the whole run, and it
+    has to follow the FILE: the classified file's dossier goes to a provider and
+    the unclassified file's to the model here, and cloud and local release
+    different sets. Gathering both under one answer offers the model a reading the
+    other call refuses, or withholds one it was entitled to see."""
     route = cli.target_for(conn, _both(), C_PLACEMENT, operation_mode=SENDING_ON)
 
-    assert route(corpus["ordinary"])[1].locality == LOCAL
-    assert _both().locality_for(C_PLACEMENT) == CLOUD, (
-        "if this stops being true the test above has stopped testing anything")
+    assert route(corpus["ordinary"])[1].locality == CLOUD
+    assert route(corpus["unclassified"])[1].locality == LOCAL
+
+
+def test_site_c_asks_nobody_over_the_internet_when_sending_is_off(corpus, conn):
+    """C's text may cross the internet; this folder's consent is what says whether
+    it does. With sending off the mode drops the cloud candidate and every file is
+    answered here -- and the injections must be told the mode for that to be true,
+    because the evidence gathered for the call reads it and a default would have
+    collected readings for a destination the call never used."""
+    route = cli.target_for(conn, _both(), C_PLACEMENT,
+                           operation_mode=cli.OPERATION_MODE)
+
+    assert _where(route, corpus) == {
+        "ordinary": LOCAL, "unclassified": LOCAL, "protected": None}
