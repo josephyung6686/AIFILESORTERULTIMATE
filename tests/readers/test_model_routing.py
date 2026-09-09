@@ -39,6 +39,7 @@ from readers.model_routing import (
     TierRouting,
     TierUnavailable,
     UnroutedCallSite,
+    cloud_and_local_routing,
     deepseek_routing,
     ollama_routing,
 )
@@ -478,3 +479,126 @@ def test_a_window_that_could_not_have_been_sent_is_refused(window):
     with pytest.raises(MalformedRequest, match="context_tokens"):
         ModelTarget(locality=LOCAL, model_id="qwen3:8b",
                     provider=LOCAL_PROVIDER, context_tokens=window)
+
+
+# --- `104` §17.13 ruling 3: both models at once, chosen per FILE ---------------
+#
+# The per-SITE split above (`serves=`) gives one call site to the local model and
+# leaves the rest on the cloud key. The ruling is finer than that: ONE site is two
+# destinations, and which one a given file gets is a question about that file's
+# classification. These tests are about the SHAPE that can carry it -- which
+# client comes back for `cloud_permitted=True` and for `False` -- and never about
+# which files those are, which is `cli.target_for`'s and is tested there.
+
+def _both(**overrides):
+    settings = dict(beside=_routing(table=LOCAL_TABLE), model_id="qwen3:8b",
+                    base_url=None, max_response_tokens=2048,
+                    context_ceiling=32768, timeout_seconds=600.0)
+    settings.update(overrides)
+    return cloud_and_local_routing(**settings)
+
+
+def test_both_clients_are_held_at_once_and_the_site_is_not_given_away():
+    """The difference from `serves=`: A_fact keeps its cloud client AND gains a
+    local one, rather than trading the first for the second."""
+    both = _both()
+
+    cloud_client, cloud_target = both.route_for(A_FACT, cloud_permitted=True)
+    local_client, local_target = both.route_for(A_FACT, cloud_permitted=False)
+
+    assert cloud_target.locality == CLOUD
+    assert cloud_target.model_id == IDS[LOGIC]
+    assert local_target.locality == LOCAL
+    assert local_target.model_id == "qwen3:8b"
+    assert cloud_client is not local_client
+
+
+def test_the_target_returned_is_the_clients_own_and_never_a_second_one():
+    """`FactCallAuthorities.__post_init__`'s rule, kept true at the source: two
+    values would authorise one destination and deliver to a different one."""
+    both = _both()
+
+    for permitted in (True, False):
+        client, target = both.route_for(A_FACT, cloud_permitted=permitted)
+        assert client.model_target is target
+
+
+def test_every_tier_gains_the_local_half_and_the_cloud_half_keeps_its_own_model():
+    """One local client for all three tiers -- there is one installed model -- and
+    the cloud side still resolves each tier to the model its own name paid for."""
+    both = _both()
+
+    assert len({id(client)
+                for client in both.local_client_of_tier.values()}) == 1
+    assert both.route_for(
+        D_RESIDUAL, cloud_permitted=True)[1].model_id == IDS[FAST]
+    assert both.route_for(
+        D_RESIDUAL, cloud_permitted=False)[1].model_id == "qwen3:8b"
+
+
+def test_the_ordinary_reads_still_describe_the_cloud_half():
+    """`client_for`, `model_id_for` and `locality_for` are what the screen and the
+    observe gates ask, and on a two-target deployment they answer about the
+    destination that is not this machine. A caller that needs the other half says
+    so, which is the whole point of `route_for` taking an argument."""
+    both = _both()
+
+    assert both.locality_for(A_FACT) == CLOUD
+    assert both.model_id_for(A_FACT) == IDS[LOGIC]
+    assert both.client_for(A_FACT) is both.route_for(
+        A_FACT, cloud_permitted=True)[0]
+
+
+def test_one_cloud_model_alone_answers_both_ways_and_says_it_is_cloud():
+    """A deployment with a key and no local model is unchanged, and this is the
+    assertion that stops `cloud_permitted=False` from being read as "went local":
+    the LOCALITY of the returned target is the answer, and here it is CLOUD both
+    times. `cli.target_for` is what refuses to send on that answer."""
+    cloud = _routing(table=LOCAL_TABLE)
+
+    for permitted in (True, False):
+        client, target = cloud.route_for(A_FACT, cloud_permitted=permitted)
+        assert target.locality == CLOUD
+        assert client is cloud.client_for(A_FACT)
+
+
+def test_one_local_model_alone_answers_both_ways_and_says_it_is_local():
+    """The mirror, and the one that keeps D1's deployment behaving exactly as it
+    did: one installed model is the destination for every question, and asking for
+    a cloud-permitted route does not conjure a cloud client."""
+    local = _local()
+
+    for permitted in (True, False):
+        client, target = local.route_for(A_FACT, cloud_permitted=permitted)
+        assert target.locality == LOCAL
+        assert client is local.client_for(A_FACT)
+
+
+def test_an_unrouted_site_refuses_from_the_per_file_door_too():
+    """`83` §3's last row is not weakened by a second entry point: a site nobody
+    routed gets the refusal that names it, whichever way it is asked."""
+    both = _both()
+
+    for permitted in (True, False):
+        with pytest.raises(UnroutedCallSite, match="A_nowhere"):
+            both.route_for("A_nowhere", cloud_permitted=permitted)
+
+
+def test_a_tier_with_no_client_on_either_half_refuses_rather_than_borrowing():
+    """The local half is not a fallback for a cloud tier the deployment never
+    configured: with the local mapping empty, a missing tier refuses by name."""
+    routing = TierRouting(tier_of_call_site={A_FACT: LOGIC, D_RESIDUAL: FAST},
+                          client_of_tier={LOGIC: _routing().client_of_tier[LOGIC]})
+
+    with pytest.raises(TierUnavailable, match=MODEL_NAME_OF_TIER[FAST]):
+        routing.route_for(D_RESIDUAL, cloud_permitted=True)
+
+
+def test_the_two_halves_share_one_tier_table_and_cannot_be_two_policies():
+    """A second table would let one site be one tier on the cloud and another on
+    this machine, which is the same site being two policies. `83` §3 has one
+    answer per site and the composition keeps it one."""
+    cloud = _routing(table=LOCAL_TABLE)
+    both = _both(beside=cloud)
+
+    assert both.tier_of_call_site == cloud.tier_of_call_site
