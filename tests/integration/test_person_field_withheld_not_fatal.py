@@ -44,6 +44,7 @@ from pathlib import Path
 
 import pytest
 
+import cli
 from database_agent.db import create_schema
 from database_agent.files_table import record_file
 from evidence_shape.canonical import canonical_json
@@ -192,8 +193,12 @@ def test_the_offer_drops_the_author_and_keeps_everything_else(person_conn, local
     """The withhold, at the builder. `may_be_released` asks the door's own question
     a step early, so the call is never BUILT with the Author in it."""
     file_id, by_value = _scanned_lecture(person_conn)
+    # `limit` became required on this function in `104` R-164, after this test was
+    # written: the deployment's own cap, so what is asserted is the offer a real
+    # call would build rather than an unbounded one no caller ever asks for.
     offered = ordered_releasable_observations(
-        person_conn, file_id=file_id, content_hash=CONTENT_HASH, locality=locality)
+        person_conn, file_id=file_id, content_hash=CONTENT_HASH, locality=locality,
+        limit=cli.FACT_CALL_MAX_RELEASED_OBSERVATIONS)
     values = {observation.raw_value for observation in offered}
     assert AUTHOR not in values
     assert "Lecture 3: Martingales" in values
