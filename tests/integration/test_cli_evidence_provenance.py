@@ -224,21 +224,45 @@ def test_a_file_with_no_readings_offers_none(evidence):
                                   locality=CLOUD_LOCALITY, ceiling=A_CEILING) == ()
 
 
-def test_an_always_local_reading_is_not_offered(evidence):
-    """`releasable_observations`' first exclusion, reached through this seam
-    rather than restated: §8.4's `path` and `filename` zones may never leave the
-    device, and placement is the site where the folder a file already sits in
-    looks like the most relevant evidence in the store."""
+def test_the_always_local_zones_split_and_the_filename_stays_behind(evidence):
+    """`releasable_observations`' first exclusion, reached through this seam rather
+    than restated -- and it stopped being one exclusion on 9 Sep 2026.
+
+    It read: §8.4's `path` and `filename` zones may never leave the device, and
+    placement is the site where the folder a file already sits in looks like the most
+    relevant evidence in the store. `104` R-159 released `path` to a local target;
+    `104` §17.13 released it to the cloud as well, in the ruling's own words -- "the
+    person's folder path and OCR text within the same ceiling" -- with R-82 signed in
+    the same build so the consent text names those labels before they cross. On the
+    measured corpus that path was where 20 of 43 labelled coursework files kept their
+    course code and nowhere else, which is why placement is exactly the site that
+    wanted it.
+
+    `filename` did not move, and the reason was never the destination: §7.7's name
+    arrives through `items.Filename` under `allow_unratified`, where §7.3's
+    protected-records ban also applies, and a `filename`-zone excerpt would bypass
+    both while carrying nothing new.
+
+    So the one assertion becomes two, and the pair is what keeps this discriminating:
+    a seam that had simply stopped asking about zones would pass the first and fail
+    the second.
+    """
     _indexed(evidence)
     body = _observation(evidence, zone="body", span=TextSpan(10, 21),
                         value="problem set")
-    _observation(evidence, zone="path", span=None, value="/holder/corpus",
-                 container=(Segment(kind="field", label="directory"),))
+    folder = _observation(evidence, zone="path", span=None,
+                          value="/holder/corpus",
+                          container=(Segment(kind="field", label="directory"),))
+    named = _observation(evidence, zone="filename", span=None,
+                         value="Problem Set 3.txt",
+                         container=(Segment(kind="field", label="name"),))
 
     offered = cli.reading_citations(evidence, "file-1", limit=12,
                                   locality=CLOUD_LOCALITY, ceiling=A_CEILING)
 
-    assert [ref for ref, _location, _reliability in offered] == [body]
+    refs = [ref for ref, _location, _reliability in offered]
+    assert refs == [body, folder]
+    assert named not in refs
 
 
 def test_a_whole_document_reading_is_not_offered(evidence):
@@ -246,12 +270,22 @@ def test_a_whole_document_reading_is_not_offered(evidence):
     excerpt is enough", applied a step before the door so the call is never built
     rather than built and denied.
 
+    **`104` §17.13 (9 Sep 2026) MOVED THE SENTENCE'S TEETH FROM COVERAGE TO LENGTH.**
+    A whole text unit is shown to either model within the ceiling, so covering a unit
+    is no longer what makes a reading a document: being longer than P1's stored
+    ceiling is. The assertion is unchanged and the ceiling now carries it, derived
+    from the document at one character short -- which is the only honest way to write
+    "this does not fit" about a fixture.
+
+    The claim survives the change intact, and the second call says so: under a ceiling
+    the document fits, the same reading is offered. So the seam refuses a length and
+    not a shape, which is what the ruling decided.
+
     THE DOCUMENT GAINED ITS LINE BREAKS FOR `104` R-152, and it needed its own unit to
-    hold them. It was the whole of `BODY`, one 49-character line, which is now RELEASED:
-    a unit holding no line break is a line, and §8.4 names a short excerpt as what to
-    send instead of a document. A control built from a single line was pinning the
-    refusal that row measured as the loss -- 47 gate denials at r13, 36 of them a whole
-    site-A call. `BODY` stays as it is because half this file addresses spans into it.
+    hold them. It was the whole of `BODY`, one 49-character line, which was released
+    once a unit holding no line break was a line. That distinction no longer decides
+    anything here -- every unit is released within the ceiling -- and the fixture is
+    left as it is because `BODY` is addressed by half this file.
     """
     _indexed(evidence)
     short = _observation(evidence, zone="body", span=TextSpan(10, 21),
@@ -261,28 +295,58 @@ def test_a_whole_document_reading_is_not_offered(evidence):
                 "Late work loses a letter grade.")
     record_text_unit(evidence, TextUnit(run_id="run-1",
                                         container_path=page_three, text=document))
-    _observation(evidence, zone="body", span=TextSpan(0, len(document)),
-                 value=document, container=page_three)
+    whole = _observation(evidence, zone="body", span=TextSpan(0, len(document)),
+                         value=document, container=page_three)
 
     offered = cli.reading_citations(evidence, "file-1", limit=12,
-                                  locality=CLOUD_LOCALITY, ceiling=A_CEILING)
+                                  locality=CLOUD_LOCALITY,
+                                  ceiling=len(document) - 1)
 
     assert [ref for ref, _location, _reliability in offered] == [short]
+    # And it is the LENGTH and not the coverage: raise the ceiling over the unit and
+    # the same whole-unit reading is offered.
+    assert whole in [ref for ref, _location, _reliability in cli.reading_citations(
+        evidence, "file-1", limit=12, locality=CLOUD_LOCALITY,
+        ceiling=A_CEILING)]
 
 
-def test_the_cap_is_the_callers_and_this_function_states_no_number(evidence):
-    """`FACT_CALL_MAX_RELEASED_OBSERVATIONS` is where this deployment chooses the
-    count, for site A and now for site C. A default here would be a second
-    choice, and the two would drift."""
+def test_the_bound_is_the_callers_and_this_function_states_no_number(evidence):
+    """`FACT_CALL_MAX_RELEASED_OBSERVATIONS` is where this deployment chose the
+    count, for site A and then for site C. A default here would be a second choice,
+    and the two would drift.
+
+    **THE BOUND THE CALLER SUPPLIES IS NOW THE CEILING, and the count binds nothing.**
+    `104` §17.13 retired the count cap along with the locality it divided by -- the
+    cloud is shown what the local model is shown, within the same ceiling -- so
+    `model_facts.within_dossier_budget` takes neither `limit` nor `locality` and this
+    seam's answer no longer changes with `limit` at all. That is asserted rather than
+    left implied: the same six readings under the same ceiling come back six deep at
+    `limit=2` and at `limit=6`, which is the old assertion turned inside out and the
+    honest statement of what changed.
+
+    `limit` is still passed and is still the caller's, because it is what
+    `model_facts.opening_excerpt_bound` divides the ceiling by, and a seam that
+    invented either number would be choosing for the deployment.
+
+    The ceiling that binds is derived from the readings themselves -- the length of
+    two of them -- so the number in the assertion is the fixture's own and not one
+    typed beside it.
+    """
     _indexed(evidence)
-    for start in range(0, 6):
+    values = [BODY[start:start + 4] for start in range(0, 6)]
+    for start, value in enumerate(values):
         _observation(evidence, zone="body", span=TextSpan(start, start + 4),
-                     value=BODY[start:start + 4])
+                     value=value)
 
-    assert len(cli.reading_citations(evidence, "file-1", limit=2,
-                                     locality=CLOUD_LOCALITY, ceiling=A_CEILING)) == 2
-    assert len(cli.reading_citations(evidence, "file-1", limit=6,
-                                     locality=CLOUD_LOCALITY, ceiling=A_CEILING)) == 6
+    def offered(*, limit, ceiling):
+        return cli.reading_citations(evidence, "file-1", limit=limit,
+                                     locality=CLOUD_LOCALITY, ceiling=ceiling)
+
+    # The count is spent and the answer does not move.
+    assert len(offered(limit=2, ceiling=A_CEILING)) == len(values)
+    assert len(offered(limit=6, ceiling=A_CEILING)) == len(values)
+    # The ceiling is what the caller bounds the call with, and it does move.
+    assert len(offered(limit=6, ceiling=sum(len(one) for one in values[:2]))) == 2
 
 
 def test_a_file_this_run_has_no_version_for_offers_nothing(evidence):
@@ -366,14 +430,27 @@ def test_a_fact_cited_from_a_p5_signalled_reading_is_offered_no_item(evidence):
     assert _offered(evidence, flagged, ordinary) == [ordinary]
 
 
-def test_a_fact_cited_from_a_whole_multi_line_unit_is_offered_no_item(evidence):
-    """§8.4's "should not send full documents where a short heading or OCR excerpt
-    is enough", read at the seam rather than at the door.
+def test_a_fact_cited_from_a_whole_multi_line_unit_is_offered_an_item(evidence):
+    """§8.4's document sentence, read at the seam -- and the seam no longer carries it.
 
-    THE UNIT HOLDS LINE BREAKS ON PURPOSE (`104` R-152): a unit with none is a
-    LINE and a line released whole is an excerpt, so a single-line control would
-    pin a refusal that no longer exists. A fact whose citation covers the whole of
-    a real document is the case that survives.
+    This asserted that a fact whose citation covered the whole of a real document was
+    offered NO item, so the call was never built rather than built and denied. `104`
+    §17.13 (9 Sep 2026) released a whole text unit to either model within the ceiling,
+    and `cli.releasable_items` reads no ceiling: it runs `may_be_released`'s
+    exclusions over named refs, and the length bound belongs to the fill and to the
+    gate, one door on. `test_a_whole_document_reading_is_not_offered` above is where
+    that bound is now asserted, on the same document, through `reading_citations`,
+    which does take a ceiling.
+
+    So the assertion inverts, and this file's four refusals lose one. The three that
+    remain still make the seam discriminating and are unaffected by §17.13: the
+    P5-signalled reading above, the `filename` citation below, and the empty reading
+    the record type cannot hold. The positive control keeps its job.
+
+    THE UNIT KEEPS ITS LINE BREAKS, though the reason has expired. `104` R-152 gave
+    them: a unit with none was a LINE and a whole line was an excerpt, so a
+    single-line control would have pinned a refusal that had already gone. Every unit
+    is released now and the distinction decides nothing here.
     """
     _indexed(evidence)
     short = _observation(evidence, zone="body", span=TextSpan(10, 21),
@@ -386,7 +463,7 @@ def test_a_fact_cited_from_a_whole_multi_line_unit_is_offered_no_item(evidence):
     whole = _observation(evidence, zone="body", span=TextSpan(0, len(document)),
                          value=document, container=unit)
 
-    assert _offered(evidence, whole, short) == [short]
+    assert _offered(evidence, whole, short) == [whole, short]
 
 
 def test_an_always_local_citation_is_offered_no_item_through_the_one_predicate(
@@ -460,47 +537,51 @@ def test_the_ceiling_is_a_remainder_and_a_reading_over_it_is_skipped(evidence):
     assert [ref for ref, _location, _reliability in offered] == [small, later]
 
 
-def test_a_cloud_placement_call_is_bound_by_the_count_and_by_the_ceiling(
+def test_a_cloud_placement_call_is_bound_by_the_ceiling_and_by_nothing_else(
         evidence):
-    """The other half, REWRITTEN BY `104` R-164, and the rewrite is the finding.
+    """The other half, and it has been rewritten twice by two rulings.
 
-    This test used to assert that "a cloud call spends the count and never reads
-    the ceiling", which is what R-159 left true: for a cloud target the ceiling was
-    slack, because the count cap always bit first. R-164 took that away. Once the
-    opening of a unit can be minted as its own reading, twelve readings can carry
-    far more characters than twelve metadata fields ever did, so the ceiling is not
-    slack any more.
+    R-159 left it as "a cloud call spends the count and never reads the ceiling": the
+    ceiling was slack because the count cap always bit first. R-164 added the ceiling
+    beside the count, because once the opening of a unit could be minted as its own
+    reading, twelve readings could carry far more characters than twelve metadata
+    fields ever did. `104` §17.13 (9 Sep 2026) removed the count, along with the
+    locality it divided by -- the cloud is shown what the local model is shown, within
+    the same ceiling -- so ONE bound is left and it is the same bound the test above
+    asserts for a local call. This is no longer a locality rule at all, which is why
+    both halves of the old pin collapse into the two assertions below.
 
     **The ceiling is applied a step EARLY, and that is a kindness rather than a new
     restriction.** `104` R-07's gate already refuses an over-ceiling request
     outright -- the whole request, not the surplus item. Spending the ceiling here
     turns a call that would have been REFUSED into a call that is merely SHORTER,
-    which is the difference between a file the model never sees and a file the
-    model sees some of.
+    which is the difference between a file the model never sees and a file the model
+    sees some of.
 
-    So both bounds now hold for cloud, and this pins both halves: the count still
-    binds when the ceiling is slack, and the ceiling binds when it is not. The
-    LOCAL half is unchanged and lives in the test above -- there the ceiling is the
-    only bound, which is R-159's ruling and is why this is still a locality rule.
+    The starving ceiling is one character short of a single reading, read off the
+    readings rather than typed: a remainder that admits none of them yields none.
     """
     _indexed(evidence)
-    for start in range(0, 6):
+    values = [BODY[start:start + 4] for start in range(0, 6)]
+    for start, value in enumerate(values):
         _observation(evidence, zone="body", span=TextSpan(start, start + 4),
-                     value=BODY[start:start + 4])
+                     value=value)
 
-    # THE COUNT STILL BINDS. A ceiling with room for every reading leaves the cap
-    # as the only thing that can refuse one, exactly as before R-164.
+    # THE COUNT BINDS NOTHING. A ceiling with room for every reading returns every
+    # reading, whatever the caller's `limit` says.
     generous = cli.reading_citations(
-        evidence, "file-1", limit=3, locality=CLOUD_LOCALITY, ceiling=10_000)
-    assert len(generous) == 3, (
-        "the count stopped binding for a cloud call, which would make "
-        "FACT_CALL_MAX_RELEASED_OBSERVATIONS dead for the target it was chosen for")
+        evidence, "file-1", limit=3, locality=CLOUD_LOCALITY, ceiling=A_CEILING)
+    assert len(generous) == len(values), (
+        "a cloud call was cut at the count; `104` §17.13 left the ceiling as the "
+        "only bound and `FACT_CALL_MAX_RELEASED_OBSERVATIONS` now buys the excerpt "
+        "bound alone")
 
-    # AND SO DOES THE CEILING, WHICH IS WHAT R-164 CHANGED. A remainder that admits
-    # no reading of this size yields none, rather than yielding six and handing the
-    # gate a request it is bound to refuse whole.
+    # AND THE CEILING BINDS. A remainder that admits no reading of this size yields
+    # none, rather than yielding six and handing the gate a request it must refuse
+    # whole.
     starved = cli.reading_citations(
-        evidence, "file-1", limit=6, locality=CLOUD_LOCALITY, ceiling=1)
+        evidence, "file-1", limit=6, locality=CLOUD_LOCALITY,
+        ceiling=len(values[0]) - 1)
     assert starved == (), (
         "a cloud call carried readings past its ceiling; the gate would refuse the "
         "whole request and the file would reach the model with nothing at all")
