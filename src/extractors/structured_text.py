@@ -41,7 +41,18 @@ from extractors.shape import (
 )
 from extractors.sink import ExtractionResult
 
-VERSION = "0.1.0"
+#: BUMPED 0.1.0 -> 0.2.0 BY `104` R-164, AND THE BUMP IS THE POINT OF THE RULE.
+#: This reader now splits a plain-text document into paragraph units where it used
+#: to emit one span-less body observation over the whole file, so the SAME bytes
+#: now produce different evidence. `00`:44 says the cache key exists so that "an
+#: upgraded reader invalidates the answers that rested on its output", and
+#: `model_facts.call_identity_dimensions` reads `extractor_versions` as a set of
+#: `(name, version)` pairs -- WHICH readers ran, never what they produced. So the
+#: version string is the only signal a changed output has, and leaving it at 0.1.0
+#: after R-164 would have let `--reuse-answers-from` answer from a prior run's
+#: cache for files whose evidence had completely changed, and report it as a
+#: saving. `104` §17.11 records the trap in full.
+VERSION = "0.2.0"
 
 #: One family name for both halves of E3: the router dispatches eight `source_type`s
 #: here and `runs.ANALYSIS_TIER_BY_EXTRACTOR` keys the tier on the family.

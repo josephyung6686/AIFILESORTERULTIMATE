@@ -460,19 +460,47 @@ def test_the_ceiling_is_a_remainder_and_a_reading_over_it_is_skipped(evidence):
     assert [ref for ref, _location, _reliability in offered] == [small, later]
 
 
-def test_a_cloud_placement_call_is_bound_by_the_count_and_not_the_remainder(
+def test_a_cloud_placement_call_is_bound_by_the_count_and_by_the_ceiling(
         evidence):
-    """The other half, and it is what says this is a locality rule rather than a
-    new bound on everyone. §8.4's "selected excerpts" states no number and
-    `FACT_CALL_MAX_RELEASED_OBSERVATIONS` is where this deployment chooses one; a
-    cloud call spends that and never reads the ceiling."""
+    """The other half, REWRITTEN BY `104` R-164, and the rewrite is the finding.
+
+    This test used to assert that "a cloud call spends the count and never reads
+    the ceiling", which is what R-159 left true: for a cloud target the ceiling was
+    slack, because the count cap always bit first. R-164 took that away. Once the
+    opening of a unit can be minted as its own reading, twelve readings can carry
+    far more characters than twelve metadata fields ever did, so the ceiling is not
+    slack any more.
+
+    **The ceiling is applied a step EARLY, and that is a kindness rather than a new
+    restriction.** `104` R-07's gate already refuses an over-ceiling request
+    outright -- the whole request, not the surplus item. Spending the ceiling here
+    turns a call that would have been REFUSED into a call that is merely SHORTER,
+    which is the difference between a file the model never sees and a file the
+    model sees some of.
+
+    So both bounds now hold for cloud, and this pins both halves: the count still
+    binds when the ceiling is slack, and the ceiling binds when it is not. The
+    LOCAL half is unchanged and lives in the test above -- there the ceiling is the
+    only bound, which is R-159's ruling and is why this is still a locality rule.
+    """
     _indexed(evidence)
     for start in range(0, 6):
         _observation(evidence, zone="body", span=TextSpan(start, start + 4),
                      value=BODY[start:start + 4])
 
-    # A remainder that would admit at most one reading, and the count is what binds.
-    offered = cli.reading_citations(
-        evidence, "file-1", limit=6, locality=CLOUD_LOCALITY, ceiling=1)
+    # THE COUNT STILL BINDS. A ceiling with room for every reading leaves the cap
+    # as the only thing that can refuse one, exactly as before R-164.
+    generous = cli.reading_citations(
+        evidence, "file-1", limit=3, locality=CLOUD_LOCALITY, ceiling=10_000)
+    assert len(generous) == 3, (
+        "the count stopped binding for a cloud call, which would make "
+        "FACT_CALL_MAX_RELEASED_OBSERVATIONS dead for the target it was chosen for")
 
-    assert len(offered) == 6
+    # AND SO DOES THE CEILING, WHICH IS WHAT R-164 CHANGED. A remainder that admits
+    # no reading of this size yields none, rather than yielding six and handing the
+    # gate a request it is bound to refuse whole.
+    starved = cli.reading_citations(
+        evidence, "file-1", limit=6, locality=CLOUD_LOCALITY, ceiling=1)
+    assert starved == (), (
+        "a cloud call carried readings past its ceiling; the gate would refuse the "
+        "whole request and the file would reach the model with nothing at all")
