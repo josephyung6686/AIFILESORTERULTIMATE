@@ -81,16 +81,25 @@ CONSENT_AUTHORIZES: Mapping[str, bool] = MappingProxyType({
 #:   - `local_model` authorizes a local target and nothing more. This is the blocker.
 #:   - `cloud_model` authorizes cloud, and local as the strictly weaker case -- a user
 #:     who permitted the cloud is not re-asked to permit their own machine.
-#:   - `redacted_prompt` authorizes both, because it constrains the ITEMS and not the
-#:     target: `TEXT_BEARING` includes `RedactedIdentifier`, so the re-composed
-#:     redacted request reaches this check again and an empty set would ask forever.
+#:   - `redacted_prompt` authorizes a LOCAL target only, since `104` §18.7 S1
+#:     (9 Sep 2026, the owner's ruling). It used to authorize both, on the argument
+#:     that it constrains the ITEMS and not the target -- `TEXT_BEARING` includes
+#:     `RedactedIdentifier`, so the re-composed redacted request reaches this check
+#:     again. But no identifier classifier exists in this deployment, so nothing was
+#:     ever redacted and the option sent a cloud model the same bytes as
+#:     `cloud_model` while its sentence said identifiers had been removed. The
+#:     surface now withholds the option (`review_surface.consent_surface.
+#:     WITHHELD_OPTIONS`); this row is the other half, for a grant already stored
+#:     under it by an earlier run: it fails CLOSED to the local machine rather than
+#:     sending. When a classifier ships, this row returns to `{local, cloud}` with
+#:     the surface's withholding, in one commit.
 #:   - `no_model_use` authorizes nothing. It never reaches `policy.consent_grants` --
 #:     `CONSENT_AUTHORIZES` is False, so `record_consent_choice` does not call
 #:     `grant_consent` -- but the table is total so no option falls through it.
 CONSENT_AUTHORIZES_LOCALITY: Mapping[str, frozenset[str]] = MappingProxyType({
     "local_model": frozenset({"local"}),
     "cloud_model": frozenset({"local", "cloud"}),
-    "redacted_prompt": frozenset({"local", "cloud"}),
+    "redacted_prompt": frozenset({"local"}),
     "no_model_use": frozenset(),
 })
 

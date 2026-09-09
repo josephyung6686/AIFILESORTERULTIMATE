@@ -950,6 +950,11 @@ def test_every_consent_option_says_which_localities_it_authorizes():
     assert grant_authorizes("local_model", "cloud") is False
     assert grant_authorizes("cloud_model", "cloud") is True
     assert grant_authorizes("no_model_use", "local") is False
+    # `104` §18.7 S1 (9 Sep 2026): no classifier exists, so a grant stored under
+    # the redacted-prompt option fails closed to the local machine. SABOTAGE:
+    # restore `{"local", "cloud"}` for it and this line goes red.
+    assert grant_authorizes("redacted_prompt", "local") is True
+    assert grant_authorizes("redacted_prompt", "cloud") is False
 
 
 def test_an_option_outside_the_four_raises_rather_than_reading_as_a_denial():

@@ -66,6 +66,32 @@ OPTION_SENTENCES: Mapping[str, str] = MappingProxyType({
 assert set(OPTION_SENTENCES) == set(FOUR_OPTIONS)
 assert len(set(OPTION_SENTENCES.values())) == len(FOUR_OPTIONS)
 
+#: WITHHELD FROM THE SCREEN, on the owner's ruling (`104` §18.7, S1, 9 Sep 2026).
+#:
+#: "Allow a redacted prompt, with identifiers removed" was a false sentence: no
+#: identifier classifier exists in this deployment (`privacy/redaction.py`'s span
+#: classifier declines every value and `cli.py` wires a transform nothing calls),
+#: so choosing it granted `{local, cloud}` and sent bytes identical to plain cloud
+#: consent while the screen said identifiers had been removed. The audit row
+#: recorded `redaction_applied: False` truthfully; the person was not told. The
+#: owner ruled the option is HIDDEN until a real classifier ships, rather than
+#: kept with a warning.
+#:
+#: Withheld from PRESENTATION, not from P7's vocabulary. `CONSENT_OPTIONS` is P7's
+#: closed set and a `NeedsConsent` still carries all four -- `consent_item` still
+#: refuses a request that carries fewer, because P7's rule at its own seam is
+#: unchanged -- and the surface presents the three that are true. The day a
+#: classifier exists this set empties and the fourth sentence returns; it is data
+#: so that day is one edit with one test, not a rewrite.
+WITHHELD_OPTIONS: frozenset[str] = frozenset({"redacted_prompt"})
+assert WITHHELD_OPTIONS < set(FOUR_OPTIONS)
+
+#: What the person is shown and may choose: P7's four less the withheld, in P7's
+#: order. `collect_consent_choice` checks the choice against THIS tuple, so a
+#: withheld option cannot arrive from a stale screen or a hand-built action.
+PRESENTED_OPTIONS: tuple[str, ...] = tuple(
+    option for option in FOUR_OPTIONS if option not in WITHHELD_OPTIONS)
+
 #: The one render state. Not a closed vocabulary because there is only ever one
 #: value: a pending consent request is in exactly one state, and a tuple of one
 #: would invite a second.
@@ -93,7 +119,15 @@ class ConsentSurfaceItem:
 
 
 def consent_item(needs: NeedsConsent) -> ConsentSurfaceItem:
-    """Present the requirement and all four options. Refuse a shorter list."""
+    """Present the requirement and the options that are true. Refuse a shorter
+    request.
+
+    The REQUEST must carry all four (P7's seam, unchanged); the ITEM presents
+    `PRESENTED_OPTIONS`, which withholds the redacted-prompt option while no
+    classifier exists (`104` §18.7 S1, the owner's ruling). The two checks are
+    different questions: the first is whether P7 made the person's decision for
+    them, the second is whether the screen tells them the truth.
+    """
     offered = tuple(needs.options)
     missing = [option for option in FOUR_OPTIONS if option not in offered]
     if missing:
@@ -105,8 +139,9 @@ def consent_item(needs: NeedsConsent) -> ConsentSurfaceItem:
     return ConsentSurfaceItem(
         consent_request_id=needs.consent_request_id,
         requirement=needs.requirement,
-        options=FOUR_OPTIONS,
-        option_sentences=OPTION_SENTENCES,
+        options=PRESENTED_OPTIONS,
+        option_sentences=MappingProxyType({
+            option: OPTION_SENTENCES[option] for option in PRESENTED_OPTIONS}),
         review_policy=BLOCKED_PENDING_USER,
         render_state=AWAITING_USER)
 
@@ -135,7 +170,9 @@ def collect_consent_choice(conn: sqlite3.Connection, item: ConsentSurfaceItem,
     supplies is an inference wearing a keyword's clothes, and the whole mechanism
     is that no path exists by which one gets supplied.
     """
-    check(option, FOUR_OPTIONS, name="consent option")
+    # Against what was PRESENTED, not against P7's four: a withheld option is not
+    # a choice the person could have made (`104` §18.7 S1).
+    check(option, PRESENTED_OPTIONS, name="consent option")
     return collect(
         conn, action_id=action_id, surface=SURFACE_CONSENT,
         subject_ref=subject_ref, plan_version=plan_version,

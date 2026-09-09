@@ -30,6 +30,8 @@ from privacy.display import RedactionSettings
 from review_surface.consent_surface import (
     AWAITING_USER,
     FOUR_OPTIONS,
+    PRESENTED_OPTIONS,
+    WITHHELD_OPTIONS,
     ConsentIsNotAnAbstention,
     ConsentOptionsIncomplete,
     as_abstention,
@@ -98,8 +100,15 @@ def test_needs_consent_presents_all_four_options_and_never_maps_to_abstain(
     assert FOUR_OPTIONS == ("local_model", "cloud_model", "redacted_prompt",
                             "no_model_use")
     item = consent_item(_needs())
-    assert item.options == FOUR_OPTIONS
-    assert len({item.option_sentences[o] for o in FOUR_OPTIONS}) == 4
+    # `104` §18.7 S1 (9 Sep 2026): the redacted-prompt option is WITHHELD from the
+    # screen while no classifier exists, so what is presented is P7's four less
+    # that one, in P7's order, each with its own sentence. The request still
+    # carries four (the test below); the screen tells the truth with three.
+    assert WITHHELD_OPTIONS == frozenset({"redacted_prompt"})
+    assert item.options == PRESENTED_OPTIONS
+    assert item.options == ("local_model", "cloud_model", "no_model_use")
+    assert "redacted_prompt" not in item.option_sentences
+    assert len({item.option_sentences[o] for o in item.options}) == 3
     assert item.requirement.items == ("excerpt: page 2 lines 4-9",)
     assert "body text" in item.requirement.why
     assert item.requirement.handling_class == "sensitive_personal"
@@ -136,13 +145,32 @@ def test_a_surface_offering_three_options_is_refused(p13_conn):
 def test_choosing_an_option_is_collected_and_routed_to_p7(p13_conn, ref):
     """SPEC:397-398: P13 records the collection, not the grant."""
     action = collect_consent_choice(
-        p13_conn, consent_item(_needs()), "redacted_prompt",
+        p13_conn, consent_item(_needs()), "cloud_model",
         action_id="a-consent", subject_ref="cr-1", plan_version="plan-1",
         session_id="s-1", correction_scope="file", presented_state_ref=ref,
         user_id="jy", acted_at=T0, component_version="p13-1")
     assert action.action == ACTION_SELECT_CONSENT_OPTION
     assert action.routed_to == ("P7",)
-    assert action.payload["consent_option"] == "redacted_prompt"
+    assert action.payload["consent_option"] == "cloud_model"
+
+
+def test_a_withheld_option_cannot_be_chosen(p13_conn, ref):
+    """`104` §18.7 S1's negative half. The option is withheld from the screen, and
+    a choice of it -- from a stale screen, or a hand-built action -- is refused at
+    the collector rather than recorded and routed to P7, where a grant under it
+    would have authorized a cloud release nothing had redacted.
+
+    SABOTAGE: make `collect_consent_choice` check against `FOUR_OPTIONS` again and
+    this goes red while every other consent test stays green.
+    """
+    for withheld in WITHHELD_OPTIONS:
+        with pytest.raises(ValueError):
+            collect_consent_choice(
+                p13_conn, consent_item(_needs()), withheld,
+                action_id="a-consent", subject_ref="cr-1", plan_version="plan-1",
+                session_id="s-1", correction_scope="file",
+                presented_state_ref=ref, user_id="jy", acted_at=T0,
+                component_version="p13-1")
 
 
 def test_the_scope_is_presented_here_too_and_has_no_default(p13_conn, ref):
