@@ -188,7 +188,8 @@ from privacy.classification import (
 )
 from privacy.classification_store import ClassificationStore
 from privacy.learning_seam import assign
-from privacy.denial import UNCLASSIFIED_PERMITS_LOCAL, unclassified_denies
+from privacy.denial import (
+    UNCLASSIFIED_PERMITS_LOCAL, mode_forbids, unclassified_denies)
 from privacy.gate import Gate
 from privacy.defaults import LOCAL_FIRST_MODES
 from privacy.display import display_policy
@@ -262,8 +263,8 @@ from readers.model_ollama import (
     MODEL_NAME as LOCAL_MODEL_NAME,
 )
 from readers.model_routing import (
-    FAST, LOGIC, MODEL_NAME_OF_TIER, REASONING, TierRouting, deepseek_routing,
-    ollama_routing,
+    FAST, LOGIC, MODEL_NAME_OF_TIER, REASONING, TierRouting,
+    cloud_and_local_routing, deepseek_routing, ollama_routing,
 )
 from facts.domains import SCHEMA_IDS
 from recognition.detector import (
@@ -1008,19 +1009,34 @@ def observe_group_authorities(fact_authorities, *, routing: TierRouting,
     "what may leave this device" and the two would drift on the next ruling. What
     differs is the client, the prompt, and the five learning fields below.
 
-    `(None, None)` when there is no routing, or when B's tier does not resolve to
-    a model on this device. That second case is not an error: a deployment with a
-    cloud key and no local model is correctly configured and simply does not run
-    the observe sites, because their text is unratified. `require_observe_locality`
-    is the backstop for anyone who builds these another way.
+    **THE DESTINATION MUST SERVE EVERY MEMBER (`104` §17.13 ruling 3), and B is
+    the site where "the members" is not one file.** A group call carries readings
+    from every file in the group, so the rule is cloud only if every member is
+    cloud-permitted, else local. `site_destination` carries how this deployment
+    satisfies that -- B's text is unratified, so its only destination is the model
+    on this machine and every member may use it -- and why the per-file gate is not
+    folded over the corpus here: it would refuse the whole call for one protected
+    file anywhere in it, and buy nothing, because that file's readings are already
+    refused one by one at the door.
+
+    `(None, None)` when there is no routing, or when B's tier resolves to no
+    destination its own text permits. That second case is not an error: a
+    deployment with a cloud key and no local model is correctly configured and
+    simply does not run the observe sites, because their text is unratified.
+    `require_observe_locality` is the backstop for anyone who builds these another
+    way.
+
+    **ONE PURSE, unchanged.** `observe_scan_budget` is site B's own `ScanBudget`
+    and the destination does not divide it: a group is one call and spends one
+    reservation whichever model answers it.
     """
     if routing is None:
         return None, None
-    locality = routing.locality_for(B_GROUP)
-    if not observe_locality_permits(B_GROUP, locality):
+    chosen = site_destination(routing, B_GROUP)
+    if chosen is None:
         return None, None
-    require_observe_locality(B_GROUP, locality)
-    client = routing.client_for(B_GROUP)
+    client, group_target = chosen
+    require_observe_locality(B_GROUP, group_target.locality)
     #: The half that is the same for every group in the run. The two that are not
     #: -- which group, and on what basis -- are set per call below, because
     #: `ModelCallAuthorities` is built once and `group_subject` runs per subject.
@@ -1093,7 +1109,7 @@ def observe_group_authorities(fact_authorities, *, routing: TierRouting,
         prompt=prompt_for(B_GROUP),
         validation_dependencies=shared,
         observed_at=fact_authorities.observed_at,
-        # The SAME target the client is pointed at, read off the client rather
+        # The SAME target the client is pointed at, read off the client rather than
         # than built beside it.
         model_target=client.model_target)
 
@@ -1124,11 +1140,15 @@ def observe_template_call(conn: sqlite3.Connection, fact_authorities, *,
     """
     if routing is None:
         return None
-    locality = routing.locality_for(E_TEMPLATE)
-    if not observe_locality_permits(E_TEMPLATE, locality):
+    # THE DESTINATION MUST SERVE EVERY MEMBER, as at site B and for the reason
+    # `site_destination` carries: a template call is built from a group's anchors,
+    # so one client serves every group this pass will be handed and it may only be
+    # one every member may use. E's text is unratified, so that is this machine.
+    chosen = site_destination(routing, E_TEMPLATE)
+    if chosen is None:
         return None
-    require_observe_locality(E_TEMPLATE, locality)
-    client = routing.client_for(E_TEMPLATE)
+    client, template_target = chosen
+    require_observe_locality(E_TEMPLATE, template_target.locality)
     prompt = prompt_for(E_TEMPLATE)
 
     def ask(groups, plan_version: str) -> None:
@@ -1543,8 +1563,14 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
     """
     if routing is None:
         return {}
-    locality = routing.locality_for(C_PLACEMENT)
-    if not observe_locality_permits(C_PLACEMENT, locality):
+    # `104` §17.13 ruling 3: C's destination is PER FILE, so what is asked here is
+    # only whether the site has any destination at all. `target_for` drops the
+    # cloud candidate for a site whose text may not cross the internet -- C's word
+    # is `ratified_local` -- so on a two-target deployment every file C is asked
+    # about goes to the model on this machine, and the site keeps running where
+    # reading `locality_for` would have handed it a cloud client and turned it off.
+    placement_route = target_for(conn, routing, C_PLACEMENT)
+    if not site_has_a_destination(conn, routing, C_PLACEMENT):
         return {}
     placement_prompt = prompt_for(C_PLACEMENT)
     # D IS ASKED ONLY WHERE ITS OWN WORD PERMITS. C and D are ratified separately,
@@ -1554,12 +1580,13 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
     # a residual set that asks for a model is refused there, at the moment it
     # asks, naming the site that has no text. Nothing of D's leaves the device
     # under a word that forbids it, which is the count this gate keeps.
-    residual_permitted = observe_locality_permits(
-        D_RESIDUAL, routing.locality_for(D_RESIDUAL))
+    residual_permitted = site_has_a_destination(conn, routing, D_RESIDUAL)
     residual_prompt = prompt_for(D_RESIDUAL) if residual_permitted else None
     authorities = PlacementCallAuthorities(
+        # NO SINGLE PAIR: `route_for` below answers per file, and the two
+        # spellings must not both be in force (`104` §17.13 ruling 3).
+        model_client=None,
         gate=fact_authorities.gate,
-        model_client=routing.client_for(C_PLACEMENT),
         # ONE PROMPT EACH. This said "the prompt it sends is C's for both -- which
         # is a REAL limitation of wiring two sites through one function", and the
         # limitation is gone rather than reported: `PipelineInputs.prompt_for`
@@ -1569,7 +1596,8 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
         # `SCHEMA_INVALID` -- for obeying text that was not its own either.
         prompt=placement_prompt,
         residual_prompt=residual_prompt,
-        model_target=routing.client_for(C_PLACEMENT).model_target,
+        model_target=None,
+        route_for=placement_route,
         evidence_resolver=fact_authorities.evidence_resolver,
         # NOT A's ORACLE, for the reason `_no_placement_contradiction` carries:
         # `contradicts_stronger` reads its argument as a P6 fact row and a
@@ -2305,9 +2333,24 @@ def model_route(*, out, on_usage=None) -> TierRouting | None:
     if not local_model:
         return cloud
     try:
-        # D1's local half, and `serves` is what makes it FIRST rather than
-        # instead-of: beside a cloud key the local model takes the tier A_fact
-        # requires and the other tiers keep the models the key paid for.
+        if cloud is not None:
+            # `104` §17.13 ruling 3: BOTH, and the choice is made per file rather
+            # than per site. `serves=A_FACT` used to hand the local model site A's
+            # whole tier and leave the rest on the key -- so a run either sent
+            # every fact question to a provider or none of them, and half the
+            # corpus was refused outright because the cloud gate cannot see an
+            # unclassified file. Holding both clients is what lets `target_for`
+            # send the classified, unprotected files to the cloud and keep the
+            # rest here.
+            return cloud_and_local_routing(
+                beside=cloud,
+                model_id=local_model,
+                base_url=value(LOCAL_BASE_URL_NAME),
+                max_response_tokens=MAX_RESPONSE_TOKENS,
+                context_ceiling=LOCAL_CONTEXT_CEILING,
+                timeout_seconds=LOCAL_MODEL_TIMEOUT_SECONDS,
+                on_usage=on_usage)
+        # D1's local half, alone: one installed model answers every site.
         return ollama_routing(
             model_id=local_model,
             base_url=value(LOCAL_BASE_URL_NAME),
@@ -2315,11 +2358,12 @@ def model_route(*, out, on_usage=None) -> TierRouting | None:
             max_response_tokens=MAX_RESPONSE_TOKENS,
             context_ceiling=LOCAL_CONTEXT_CEILING,
             timeout_seconds=LOCAL_MODEL_TIMEOUT_SECONDS,
-            serves=A_FACT if cloud is not None else None,
-            beside=cloud,
-            # `104` R-14, and this is the route that usually serves A_fact: a
-            # deployment with a local model gives it that site, so a usage row with
-            # no tokens on it would be the ordinary case rather than the exception.
+            serves=None,
+            beside=None,
+            # `104` R-14, and this is the route that answers every site here: a
+            # deployment with only a local model gives it every question, so a
+            # usage row with no tokens on it would be the ordinary case rather
+            # than the exception.
             on_usage=on_usage)
     except (ValueError, RuntimeError) as refusal:
         # NO MODEL AT ALL, and deliberately not the cloud one. A person who set
@@ -2352,6 +2396,49 @@ def _turn_off_line(corpus_root: Path, *other_sources: Path) -> str:
             + " --disable-cloud")
 
 
+def _announced_locality(routing: TierRouting, call_site: str,
+                        consent: "CloudConsent | None") -> str:
+    """WHERE THIS RUN'S FILES ACTUALLY GO at this site, for the screen.
+
+    `locality_for` answers about the cloud half of a two-target deployment, which
+    is what the observe gates want and is the wrong answer for a person reading
+    what happened to their folder: with sending off, `mode_forbids` drops the cloud
+    candidate and every file is answered here. A notice that named the provider
+    would be describing a destination this run cannot use.
+
+    `104` §17.13 ruling 3 is why the two came apart at all. Before it the routing
+    had one client per site and this question had one answer.
+    """
+    if (routing.locality_for(call_site) == CLOUD
+            and not mode_forbids(operation_mode_for(consent), CLOUD)):
+        return CLOUD
+    return routing.route_for(call_site, cloud_permitted=False)[1].locality
+
+
+def _local_beside_cloud(routing: TierRouting, call_site: str) -> bool:
+    """Whether this site has a cloud destination AND a local one behind it.
+
+    The two-target deployment `104` §17.13 ruling 3 describes, asked as one
+    question so the screen and the route cannot disagree about which deployment
+    this is. `route_for` is the only reader of the second client anywhere, and this
+    is how the announcement reaches it without learning the routing's shape.
+    """
+    return (routing.locality_for(call_site) == CLOUD
+            and routing.route_for(
+                call_site, cloud_permitted=False)[1].locality == LOCAL)
+
+
+def _local_model_id(routing: TierRouting, call_site: str) -> str:
+    """The NAME of the model on this device, for the sentence that names it.
+
+    `model_id_for` answers about the cloud half on a two-target deployment, which
+    is right for every other sentence and wrong for this one. A person told their
+    file is going to "a model on your device" has been told less than a person told
+    which model.
+    """
+    return routing.route_for(call_site, cloud_permitted=False)[1].model_id
+
+
 def announce_cloud_posture(routing: TierRouting | None,
                            consent: CloudConsent | None, *,
                            corpus_root: Path,
@@ -2382,7 +2469,19 @@ def announce_cloud_posture(routing: TierRouting | None,
     if consent is not None and consent.permits_sending:
         print(f"\nCloud sending is ON for this folder"
               f"{'' if routing else ', but no model is configured'}.", file=out)
-        if routing is not None and routing.locality_for(A_FACT) == LOCAL:
+        if routing is not None and _local_beside_cloud(routing, A_FACT):
+            # BOTH MODELS, AND THE PERSON IS TOLD WHICH FILES GO WHERE (`104`
+            # §17.13 ruling 3). Naming only the cloud model would be true of the
+            # files that reach it and silent about the rest -- and "the rest" is
+            # protected material and everything site G has not classified yet,
+            # which is the half of their corpus they would most want to ask
+            # about. A person who is told one destination assumes one destination.
+            print(_wrapped(
+                f"Files this folder's rules keep off the internet -- protected "
+                f"material, and anything not yet classified -- are answered by "
+                f"{_local_model_id(routing, A_FACT)} on this device instead, and "
+                f"do not leave it.", indent="  "), file=out)
+        elif routing is not None and routing.locality_for(A_FACT) == LOCAL:
             # FACTS ARE NOT PART OF WHAT WAS TURNED ON. Consent is about what
             # leaves the device, and with the fact question answered on this
             # machine the sentence below -- "may be sent to X" -- would name a
@@ -2458,7 +2557,7 @@ def announce_cloud_posture(routing: TierRouting | None,
         # `model_route` has already said no model is configured. A second sentence
         # about consent would answer a question the person cannot yet be asking.
         return
-    if routing.locality_for(A_FACT) == LOCAL:
+    if _announced_locality(routing, A_FACT, consent) == LOCAL:
         # THE ONE SENTENCE A LOCAL MODEL CHANGES, and it has to change because
         # every other sentence in this branch says nothing will be asked. With a
         # model on this machine something IS asked, and a person reading "cloud
@@ -2470,8 +2569,8 @@ def announce_cloud_posture(routing: TierRouting | None,
         # model and this run sending nothing are both true at once, and a person
         # who cannot see that has been told the weaker half.
         print(_wrapped(
-            f"Model: {routing.model_id_for(A_FACT)}, running on this device, for "
-            f"facts -- what course, what school, what kind of document. It is "
+            f"Model: {_local_model_id(routing, A_FACT)}, running on this device, "
+            f"for facts -- what course, what school, what kind of document. It is "
             f"asked over loopback, no key is used, and NOTHING LEAVES YOUR "
             f"DEVICE; `{OPERATION_MODE}` is \"{MODE_SEMANTICS[OPERATION_MODE]}\", "
             f"and a local model is one of them. Protected material and §8.4's "
@@ -4263,6 +4362,184 @@ def model_route_permitted(conn: sqlite3.Connection, *, locality: str,
     return permitted
 
 
+def _route_locality(route_for, file_id: str) -> str:
+    """Where THIS file's readings are going, for the release rules that ask.
+
+    `104` R-159: a neighbour's reading leaves by the door this file's own readings
+    leave by, so the release question is asked with the same answer to "where is
+    this going" -- which since `104` §17.13 ruling 3 is a per-file answer.
+
+    A file with no destination cannot reach here: `model_facts` asks the route
+    before it asks for context, and `FactResolver` asks before that. The refusal
+    names what went wrong rather than defaulting to a locality, because defaulting
+    to `local` would understate the release and defaulting to `cloud` would
+    overstate it, and both are decided elsewhere.
+    """
+    chosen = route_for(file_id)
+    if chosen is None:
+        raise ValueError(
+            f"file {file_id!r} is routed to no model, so there is no destination "
+            f"for its neighbours' readings to be released to. Nothing should have "
+            f"asked for them")
+    return chosen[1].locality
+
+
+def site_has_a_destination(conn: sqlite3.Connection, routing: TierRouting,
+                           call_site: str, *,
+                           operation_mode: str = OPERATION_MODE) -> bool:
+    """Whether this site has any model it may use at all, before any file is asked.
+
+    The observe sites turn themselves off when their tier resolves to nowhere they
+    are allowed to send, and until `104` §17.13 ruling 3 that was one question --
+    `observe_locality_permits(site, routing.locality_for(site))`. With two clients
+    behind one tier it is two: a site whose text may not cross the internet still
+    has a destination if this deployment installed a local model. Asked through the
+    same candidate list `target_for` builds, so "the site is on" and "this file has
+    a route" cannot answer from two different readings of the same configuration.
+    """
+    return bool(_route_candidates(conn, routing, call_site,
+                                  operation_mode=operation_mode))
+
+
+def target_for(conn: sqlite3.Connection, routing: TierRouting, call_site: str,
+               *, operation_mode: str = OPERATION_MODE):
+    """WHICH MODEL ANSWERS ABOUT EACH FILE at this site. `104` §17.13 ruling 3.
+
+    The owner's words: *"a protected file, and an unclassified file until site G
+    classifies it, goes to the local model; everything else goes to the cloud"* --
+    and no call at all where neither destination is permitted. This is where that
+    becomes a callable: `callable(file_id) -> (client, target) | None`.
+
+    **It asks `model_route_permitted` for CLOUD first, then LOCAL**, which is the
+    order the ruling reads in and the order that puts the wider capability first.
+    The predicate is the one the gate is built from, called and never respelled: a
+    second spelling of the gate's rule beside the gate's rule is how the two came
+    to disagree once already (`104` R-02), and this one decides where bytes go.
+
+    **A DESTINATION IS A CANDIDATE ONLY IF THE ROUTING ACTUALLY HAS ONE THERE.**
+    `TierRouting.route_for` answers with the single configured client when only one
+    kind is configured, whichever way it is asked, so the LOCALITY of what comes
+    back is checked against the locality being asked about. Without that check, a
+    deployment with a cloud key and no local model would send a file the cloud may
+    not see to the cloud, under the name of the local route. With the check it gets
+    `None`, which is exactly what it got before this function existed.
+
+    **AND ONLY IF THIS SITE'S TEXT MAY CROSS THE INTERNET.** `observe_locality_
+    permits` is asked about the cloud candidate for the same reason it is asked
+    everywhere else: sites B, D and E run under unratified drafts, C under
+    `ratified_local`, and G under an unratified one, so their bytes stay on this
+    machine whatever a file's classification says. Only site A's text is
+    `ratified`. Without this the two-client routing would hand every observe site a
+    cloud client and either send a person's dossier under a prompt nobody approved
+    or -- where the site checks first -- turn the site off entirely, which is a
+    coverage loss dressed as a safety measure.
+
+    **`operation_mode` DEFAULTS TO THE LOCAL-FIRST FLOOR**, which is what
+    `operation_mode_for` returns when nobody has decided: absent means refuse, and
+    a caller that has not said this folder's consent permits sending gets a route
+    that does not send. The cost of the default being wrong is a local answer
+    instead of a cloud one; the cost of the other default is a person's file
+    leaving their device under a permission they never gave.
+
+    The predicates are built ONCE, here, and only the per-file question is asked in
+    the loop: the routing's pairs do not vary by file and only the permission does.
+
+    `None` for a file no destination permits. `FactResolver` reads that through its
+    own `model_route_permitted`, bound to this same callable, and writes one
+    `unresolved` row per pending field reading `privacy_withheld` -- so the route's
+    answer and the destination are one answer rather than two that can disagree.
+    """
+    candidates = _route_candidates(conn, routing, call_site,
+                                   operation_mode=operation_mode)
+
+    def chosen(file_id: str):
+        for permitted, pair in candidates:
+            if permitted(file_id):
+                return pair
+        return None
+
+    return chosen
+
+
+def _route_candidates(conn: sqlite3.Connection, routing: TierRouting,
+                      call_site: str, *, operation_mode: str):
+    """The destinations this site really has, widest first, each with its gate.
+
+    Built once per site because the routing's pairs do not vary by file and only
+    the permission does. Cloud is first because the ruling reads that way and
+    because it is the wider capability; a candidate that survives all three checks
+    here is a destination a file can actually be sent to.
+
+    **THE THREE CHECKS, and each is a different question.** Does the routing have a
+    client THERE -- `route_for` answers with the one configured client when only
+    one kind is configured, so the returned target's locality is what says whether
+    the destination exists. May this SITE's text go there -- `observe_locality_
+    permits`, which refuses the cloud to every draft. And does this RUN's mode
+    permit it -- `mode_forbids`, the gate's own rule, called and not respelled.
+
+    **The mode check is not redundant with the gate, and leaving it out starved a
+    corpus.** `--enable-cloud` unset is `offline`, and under `offline` the gate
+    refuses every cloud release. Without this line a classified, unprotected file
+    would be routed to the cloud client, reach the gate and be denied -- no answer
+    at all, where the same file used to be answered by the local model. Cost:
+    every classified file in a run nobody enabled the cloud for. The route is asked
+    the same question the gate will answer, which is `104` R-02's whole rule.
+    """
+    candidates = []
+    for locality, cloud_permitted in ((CLOUD, True), (LOCAL, False)):
+        client, target = routing.route_for(
+            call_site, cloud_permitted=cloud_permitted)
+        if target.locality != locality:
+            continue
+        if locality == CLOUD and not observe_locality_permits(call_site, CLOUD):
+            continue
+        if mode_forbids(operation_mode, locality):
+            continue
+        candidates.append((
+            model_route_permitted(
+                conn, locality=locality,
+                unclassified_permits_local=UNCLASSIFIED_PERMITS_LOCAL),
+            (client, target)))
+    return candidates
+
+
+def site_destination(routing: TierRouting, call_site: str):
+    """The one pair a MANY-FILE site may use, or `None`. `104` §17.13 ruling 3.
+
+    **Why sites B and E do not get a per-file route.** A group call and a template
+    call each carry readings from several files under ONE `ModelCallAuthorities`,
+    built before P9 has formed a single group -- so there is one client for every
+    group of the run and no file to ask about when it is chosen. The rule for a
+    call that carries several files is that its destination must be one EVERY
+    member may use: cloud only if every member is cloud-permitted, else local.
+
+    **This deployment satisfies that rule by construction rather than by a fold,
+    and the difference is coverage.** B's and E's texts are unratified, so
+    `observe_locality_permits` refuses them the cloud whatever any file's
+    classification says, and the only destination either site has is the model on
+    this machine. Folding the per-file gate over the run's files instead would
+    refuse the WHOLE call the moment one protected file appeared anywhere in the
+    corpus -- taking every other member's observe row with it -- and it would buy
+    no safety, because a protected member's readings are already refused one by one
+    by `Gate.release` when the dossier is built. The bar for an individual file
+    stays where it already holds; what is decided here is the destination.
+
+    The day either text is ratified this stops being enough, and the fold becomes
+    real work: the members are named on the request, so it belongs at
+    `observed_run_call`, where a group's own file ids are in hand.
+
+    `None` when the site has no destination its own text permits, which is a
+    deployment with a cloud key and no local model -- correctly configured, and it
+    simply does not run the observe sites.
+    """
+    for cloud_permitted in (True, False):
+        client, target = routing.route_for(
+            call_site, cloud_permitted=cloud_permitted)
+        if observe_locality_permits(call_site, target.locality):
+            return client, target
+    return None
+
+
 def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
                           scan_run_id: str, corpus_file_count: int,
                           policy_version: str, wire_handle_key: bytes,
@@ -4271,6 +4548,7 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
                           deferred_readings: tuple[str, ...] = (),
                           anchor_levels: tuple[FolderLevel, ...] = (),
                           usage_recorder: object | None = None,
+                          operation_mode: str = OPERATION_MODE,
                           on_result=None) -> FactCallAuthorities:
     """Everything one A_fact call needs, chosen here and nowhere else.
 
@@ -4328,6 +4606,12 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
     `sensitive_observation_keys`, the file-level bar above, and the gate's own
     `_precheck_items`.
     """
+    # ONE CALLABLE FOR THE WHOLE OF SITE A, built once here: the authorities'
+    # route, the anchor readings' locality and the anchor bar below all read it,
+    # and `model_fact_resolver` binds its own `model_route_permitted` to it, so the
+    # route's answer and the destination cannot be two answers (`104` R-02).
+    route_for = target_for(conn, routing, A_FACT,
+                           operation_mode=operation_mode)
     return FactCallAuthorities(
         gate=Gate(
             conn, store=ClassificationStore(conn), plan_version=PLAN_VERSION,
@@ -4366,12 +4650,15 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
             # sending. `model_facts.dossier_tokens` carries the reasoning.
             measure_tokens=measure_released_tokens,
             component_version=COMPONENT_VERSION, now=now, user_id=user_id),
-        model_client=routing.client_for(A_FACT),
+        # NO SINGLE PAIR, because site A no longer has one destination
+        # (`104` §17.13 ruling 3). `target_for` answers per file -- the cloud model
+        # where the cloud gate permits the file, the local one where it does not,
+        # `None` where neither does -- and `FactCallAuthorities` refuses to hold
+        # both spellings at once, so this is the whole answer.
+        model_client=None,
         prompt=a_fact_prompt(),
-        # The SAME target the client is pointed at, read off the client rather than
-        # built beside it: two values here would let the gate decide about one
-        # destination while the bytes went to another.
-        model_target=routing.client_for(A_FACT).model_target,
+        model_target=None,
+        route_for=route_for,
         activation_signals=ActivationSignals(signals=(
             ActivationSignal(schema_id=schema, activates=lambda facts: True),)),
         folder_levels=folder_levels,
@@ -4424,7 +4711,7 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
             anchor_context_observations(
                 db, scan_run_id=scan_run_id, file_id=file_id, fields=fields,
                 limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
-                locality=routing.client_for(A_FACT).model_target.locality)),
+                locality=_route_locality(route_for, file_id))),
         # `104` R-145: the same offer in §8.6's preserved-anchors shape, asked only
         # when the lines above do not fit the dossier ceiling. `model_facts` says
         # when; this file says what the shape is.
@@ -4432,7 +4719,7 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
             anchor_context_observations(
                 db, scan_run_id=scan_run_id, file_id=file_id, fields=fields,
                 limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
-                locality=routing.client_for(A_FACT).model_target.locality,
+                locality=_route_locality(route_for, file_id),
                 preserved_anchors=True)),
         # `105` §14.4. Built here because every part of it is this file's: which
         # levels only an anchor is asked, which field says what a file IS, which
@@ -4443,12 +4730,11 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
             levels=anchor_levels,
             kind_field=WORK_TYPE_FIELD,
             anchor_kinds=SCHOOL_ANCHOR_KINDS,
-            # THE ROUTE'S PREDICATE, not a second reading of the flag. Built on
-            # the same locality the client is pointed at, which is the one
-            # `model_fact_resolver` binds its own route to.
-            may_reach_a_model=model_route_permitted(
-                conn, locality=routing.client_for(A_FACT).model_target.locality,
-                unclassified_permits_local=UNCLASSIFIED_PERMITS_LOCAL))
+            # THE ROUTE'S OWN ANSWER, not a second reading of the flag and no
+            # longer a second reading of one locality: `route_for` already asked
+            # `model_route_permitted` for both, so "may this file reach a model"
+            # is "did the route find it a destination" and there is one answer.
+            may_reach_a_model=lambda file_id: route_for(file_id) is not None)
             if anchor_levels else None))
 
 
@@ -4638,6 +4924,13 @@ class SituationPass:
     #: not accept. `00`: correct abstention is a successful outcome, and either way
     #: the file stays where the rules left it -- which is local.
     declined: int
+    #: Files no model in this run may be asked about at all (`104` §17.13 ruling
+    #: 3): protected material, which the route bars on every locality. COUNTED and
+    #: not folded into `nothing_to_read`, because the two are different facts about
+    #: a file -- one had nothing to say, the other was never allowed to be asked --
+    #: and the standing rule is that protected material is marked and counted,
+    #: never silently omitted.
+    no_route: int
 
 
 #: THE PASS THAT DID NOT RUN, and it is a value rather than a `None` for the
@@ -4677,10 +4970,15 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     same place.
     """
     named: dict = {}
-    settled = nothing_to_ask = nothing_to_read = declined = 0
+    settled = nothing_to_ask = nothing_to_read = declined = no_route = 0
     dependencies_for = situation_call_dependencies
     store = ClassificationStore(conn)
-    target = routing.client_for(G_SITUATION_SENSITIVITY).model_target
+    # `104` §17.13 ruling 3: PER FILE, not per site. Site G's own text is
+    # unratified, so `target_for` drops the cloud candidate for it and every file
+    # this pass asks about goes to the model on this machine -- which is what
+    # `104` §17.1 already said in words and what this now makes mechanical rather
+    # than a consequence of which tier the local model happened to take.
+    route_for = target_for(conn, routing, G_SITUATION_SENSITIVITY)
     for file_id, content_hash in roster:
         outcome = explain(conn, file_id, content_hash)
         if not isinstance(outcome, Abstention):
@@ -4697,6 +4995,16 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         except NothingToAsk:
             nothing_to_ask += 1
             continue
+        chosen = route_for(file_id)
+        if chosen is None:
+            # NOTHING IS ASSEMBLED AND NOTHING IS SENT. Protected material is
+            # barred from every locality by `model_route_permitted`, and asking
+            # site G about it would be opening a file the standing rule says is
+            # marked and counted, never opened. It is counted here, on its own
+            # line, so the report cannot read it as a file with nothing to say.
+            no_route += 1
+            continue
+        client, target = chosen
         observations = releasable_observations(
             conn, file_id=file_id, content_hash=content_hash,
             limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
@@ -4712,7 +5020,10 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         verdict = run_call(
             conn, request,
             gate=fact_authorities.gate,
-            model_client=routing.client_for(G_SITUATION_SENSITIVITY),
+            # THE CLIENT THIS FILE WAS ROUTED TO, and the same object the
+            # target above was read off: two reads would let the gate decide
+            # about one destination while the bytes went to another.
+            model_client=client,
             prompt=prompt,
             validation_dependencies=dependencies_for(
                 fact_authorities,
@@ -4741,11 +5052,12 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         named[file_id] = situation
     return SituationPass(
         named=named, settled=settled, nothing_to_ask=nothing_to_ask,
-        nothing_to_read=nothing_to_read, declined=declined)
+        nothing_to_read=nothing_to_read, declined=declined, no_route=no_route)
 
 
 _NOTHING_ASKED = SituationPass(
-    named={}, settled=0, nothing_to_ask=0, nothing_to_read=0, declined=0)
+    named={}, settled=0, nothing_to_ask=0, nothing_to_read=0, declined=0,
+    no_route=0)
 
 
 def model_fact_resolver(conn: sqlite3.Connection, *,
@@ -4789,11 +5101,13 @@ def model_fact_resolver(conn: sqlite3.Connection, *,
         # bar it writes -- `budget_deferred` -- would then describe a deferral P8
         # never made.
         budget_exhausted=lambda ceiling: False,
-        # R-02: the route is asked the same question the gate will answer, with
-        # the same locality and the same one answer to Open question 5.
-        model_route_permitted=model_route_permitted(
-            conn, locality=authorities.model_target.locality,
-            unclassified_permits_local=UNCLASSIFIED_PERMITS_LOCAL),
+        # R-02: the route is asked the same question the gate will answer -- and
+        # since `104` §17.13 ruling 3 it is the SAME CALLABLE rather than a second
+        # predicate built on the same locality. The stage asks `authorities.route`
+        # for the destination and this asks whether there was one, so a file
+        # counted as routed is a file with a model to route it to.
+        model_route_permitted=lambda file_id: (
+            authorities.route(file_id) is not None),
         # NOTHING IS RECORDED, and `"llm"` being a member of P4's `ANALYSIS_TIERS`
         # is exactly why the temptation had to be refused. `facts.usable` publishes
         # one reader of that table and it asks two questions: `no_usable_facts`
@@ -8771,6 +9085,11 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # syllabus anchor.
             folder_levels=file_level_fields, user_id=user_id,
             now=now,
+            # THIS RUN'S MODE, read off the folder's own consent by
+            # `operation_mode_for` and stated rather than inherited: it is what
+            # decides whether the cloud is a destination at all, and the default
+            # is the local-first floor.
+            operation_mode=operation_mode,
             # `105` §14.4. The school level, asked of the anchors and of nothing
             # else. Empty when this situation binds no such role, which is every
             # situation but coursework's today.
