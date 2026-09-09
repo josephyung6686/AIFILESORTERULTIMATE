@@ -1409,3 +1409,5 @@ of one PDF share their `/Author` row exactly. The citation is now withheld and t
 content hash rather than a name, so nothing leaks today. But a P6 rule that ever wrote a fact whose
 VALUE is a person's name would still carry it by value, and that needs `facts/discount.py`'s
 demotion rule rather than P5's signal. Owner's, or the lead's on a later pass; not urgent.
+
+- `106-THE-DAY-THE-RULES-STOPPED-DECIDING.md` — the 8 Sep session in full: the ruling, the five findings, the six merges, and the one wall left shut. Narrative companion to `104` §17.
