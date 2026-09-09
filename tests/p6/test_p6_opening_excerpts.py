@@ -429,27 +429,43 @@ def test_nothing_is_minted_over_an_always_local_zone(conn, tmp_path):
 
     So the assertion inverts for `path`. It used to be that the folder was ABSENT from
     the offer; it is now present, as itself, and what must be absent is any excerpt
-    cut from it. `filename` is walked here too, in the shape the producer would meet
-    it, because `mint_opening_excerpts` still guards on the whole of
-    `ALWAYS_LOCAL_ZONES` rather than on the half §17.13 kept -- and that is the
-    behaviour worth pinning, since an OCR unit longer than the ceiling gets no excerpt
-    either.
+    cut from it.
+
+    All three zones are walked, in the shape the producer would meet them, because
+    `mint_opening_excerpts` still guards on the whole of `ALWAYS_LOCAL_ZONES` rather
+    than on the half §17.13 kept. THE `ocr` READING IS WHAT MAKES THAT
+    LOAD-BEARING, and it is built with care: it is longer than the ceiling and it has
+    a real stored unit to cut from, so the zone guard is the only thing standing
+    between it and an excerpt. Given a reading with no unit, `opening_reading_for`
+    would decline to cut anyway and this test would pass for a reason that is not
+    the zone.
 
     The fixture is the over-ceiling one, so the producer is minting: a slack ceiling
     would satisfy "nothing was cut from `path`" by cutting nothing at all.
+
+    SABOTAGE: narrow the guard to `ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET` and a second
+    row is minted, over the OCR unit, and the two assertions on `minted` go red.
     """
     file_id, content_hash, folder, page = _corpus(conn, tmp_path,
                                                   ceiling=OVER_CEILING)
     named = replace(
         folder, raw_value="HW 3.pdf",
         location=Location("filename", (Segment("field", label="filename"),)))
+    scanned_at = (Segment("page", 2),)
+    record_text_unit(conn, TextUnit(run_id="run-hw", container_path=scanned_at,
+                                    text=PAGE))
+    scanned = replace(page, raw_value=PAGE,
+                      location=Location("ocr", scanned_at))
+    record_observation(conn, scanned)
 
-    minted = _mint(conn, [folder, named, page], CLOUD_LOCALITY,
+    minted = _mint(conn, [folder, named, scanned, page], CLOUD_LOCALITY,
                    ceiling=OVER_CEILING)
     offered = _offer(conn, file_id, content_hash, CLOUD_LOCALITY)
 
-    # One row, and it is the page's -- nothing was cut from either always-local zone.
+    # One row, and it is the page's -- nothing was cut from any always-local zone.
     assert [one.location.zone for one in minted] == ["body"]
+    assert [one.location.container_path for one in minted] == [
+        page.location.container_path]
     assert A_FOLDER not in "".join(_minted(conn))
     assert "HW 3.pdf" not in "".join(_minted(conn))
     # And the folder now travels as itself, which is the half of the ruling that
