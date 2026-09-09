@@ -2447,6 +2447,15 @@ def _local_beside_cloud(routing: TierRouting, call_site: str) -> bool:
                 call_site, cloud_permitted=False)[1].locality == LOCAL)
 
 
+#: The question each cloud-eligible site asks, in the person's own words, for the
+#: consent notice. Screen text and nothing else: no reader decides anything by it.
+_QUESTION_OF_SITE: dict[str, str] = {
+    A_FACT: "a FACT judgement -- what course, what school, what kind of document --",
+    C_PLACEMENT: "a placement CHECK -- whether a proposed folder is the right one --",
+    D_RESIDUAL: "a REVIEW SET -- what to do with what nothing else placed --",
+}
+
+
 def _local_model_id(routing: TierRouting, call_site: str) -> str:
     """The NAME of the model on this device, for the sentence that names it.
 
@@ -2551,24 +2560,48 @@ def announce_cloud_posture(routing: TierRouting | None,
                 f"changes. Sending stays ON for this folder until you turn it off "
                 f"with:", indent="  "), file=out)
         else:
-            # PER SITE, because only one of the three is wired. `A_fact` can send
-            # and the other two cannot, and a sentence that named all three as
-            # recipients would frighten a person about two things that cannot
-            # happen -- the same untruth `WIRED_CALL_SITES` replaced, inverted.
-            # Every model is still NAMED, including the two that will not be
-            # asked: a person deciding today is deciding about tomorrow's runs,
-            # and "an external provider" tells them less than a name does.
+            # PER SITE, READ OFF THE TWO GATES THE ROUTE ITSELF READS (`104`
+            # §17.13, R-170): a site names a recipient only if its cloud client
+            # serves it AND its text may cross (`observe_locality_permits`, the
+            # row's own word). A sentence that named all three would frighten a
+            # person about things that cannot happen; one that named only site A
+            # -- what this branch said until 9 Sep 2026 -- hid site C the moment
+            # C's text was ratified. Every model is still NAMED, including the
+            # ones that will not be asked: a person deciding today is deciding
+            # about tomorrow's runs.
+            #
+            # WHAT LEAVES is said in the person's own terms, and it is `104` R-82's
+            # sentence: since §17.13 a cloud model is shown what the local one is
+            # shown -- the file's name, the path of the folder it sits in, its
+            # extracted or recognised text within the dossier bound -- and the
+            # earlier clause here ("your paths, your filenames, whole documents
+            # ... are not among what is sent") would now misstate two of its
+            # three items on the one screen where being believed is the point.
+            crossing = tuple(
+                site for site in (A_FACT, C_PLACEMENT, D_RESIDUAL)
+                if routing.locality_for(site) == CLOUD
+                and observe_locality_permits(site, CLOUD))
+            kept = tuple(site for site in (A_FACT, C_PLACEMENT, D_RESIDUAL)
+                         if site not in crossing)
+            if crossing:
+                sending = "; ".join(
+                    f"files that need {_QUESTION_OF_SITE[site]} may be sent to "
+                    f"{routing.model_id_for(site)}" for site in crossing)
+                sending = sending[:1].upper() + sending[1:] + "."
+            else:
+                sending = ("No site's text is ratified to cross the internet in "
+                           "this run, so nothing is sent.")
+            held = ("" if not kept else " " + " and ".join(
+                routing.model_id_for(site) for site in kept)
+                + (" is" if len(kept) == 1 else " are")
+                + " configured and no part of this run sends anything there.")
             print(_wrapped(
-                f"Files that need a FACT judgement -- what course, what school, "
-                f"what kind of document -- may be sent to "
-                f"{routing.model_id_for(A_FACT)}. That is the only question this "
-                f"run can ask a model. {routing.model_id_for(C_PLACEMENT)} "
-                f"(checks) and {routing.model_id_for(D_RESIDUAL)} (review sets) "
-                f"are configured and no part of this run can reach them yet, so "
-                f"nothing goes to either. Protected material and §8.4's "
-                f"always-local kinds -- your paths, your filenames, whole "
-                f"documents -- are refused by P7 and are not among what is sent. "
-                f"Sending stays ON for this folder until you turn it off with:",
+                f"{sending}{held} What leaves about a file: its name, the path of "
+                f"the folder it sits in on this machine, and its extracted or "
+                f"recognised text within the dossier bound -- a document longer "
+                f"than that bound is cut to its opening. Protected material, and "
+                f"any file not yet classified, is never sent. Sending stays ON for "
+                f"this folder until you turn it off with:",
                 indent="  "), file=out)
         print(_turn_off_line(corpus_root, *other_sources), file=out)
         return
@@ -2592,9 +2625,9 @@ def announce_cloud_posture(routing: TierRouting | None,
             f"for facts -- what course, what school, what kind of document. It is "
             f"asked over loopback, no key is used, and NOTHING LEAVES YOUR "
             f"DEVICE; `{OPERATION_MODE}` is \"{MODE_SEMANTICS[OPERATION_MODE]}\", "
-            f"and a local model is one of them. Protected material and §8.4's "
-            f"always-local kinds are refused by P7 and are not among what it is "
-            f"shown, the same way they would be refused a model anywhere else.",
+            f"and a local model is one of them. It is shown a file's name, the "
+            f"path of the folder it sits in and its text within the dossier "
+            f"bound; protected material is refused to it as to any model.",
             indent=""), file=out)
         elsewhere = tuple(sorted({
             routing.model_id_for(site) for site in (C_PLACEMENT, D_RESIDUAL)

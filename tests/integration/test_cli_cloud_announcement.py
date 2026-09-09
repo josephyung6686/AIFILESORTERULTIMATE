@@ -104,13 +104,27 @@ def test_a_run_that_can_send_says_exactly_which_question_leaves_the_device():
     """
     said = _unwrapped(_announced(_Consent()))
 
+    # `104` §17.13 (9 Sep 2026): which sites may send is READ, per site, off the
+    # same gate the route reads -- the row's own word -- so this test derives its
+    # expectation from that gate rather than naming a site. On the real manifest
+    # A and C are `ratified` and D is not.
+    for site in (cli.A_FACT, cli.C_PLACEMENT, cli.D_RESIDUAL):
+        recipient = f"may be sent to model-for-{site}"
+        if cli.observe_locality_permits(site, cli.CLOUD):
+            assert recipient in said, site
+        else:
+            assert recipient not in said, site
+            assert f"model-for-{site} is configured and no part of this run " \
+                   f"sends anything there" in said, site
     assert "may be sent to model-for-A_fact" in said
-    assert "That is the only question this run can ask a model" in said
-    # The two that are configured and cannot be reached, said to be unreachable
-    # rather than left out: a person who sees only one name cannot tell a wired
-    # product from a misconfigured one.
-    assert "are configured and no part of this run can reach them yet" in said
-    assert "nothing goes to either" in said
+    # `104` R-82: what leaves is said in the person's own terms, and the old
+    # clause that called paths and whole documents "not among what is sent" is
+    # gone, because since §17.13 it would be untrue.
+    assert "What leaves about a file: its name, the path of the folder it sits " \
+           "in on this machine" in said
+    assert "Protected material, and any file not yet classified, is never sent" \
+           in said
+    assert "are refused by P7 and are not among what is sent" not in said
     # And the old sentence is GONE from the branch it was true in.
     assert "Nothing was sent and nothing could have been" not in said
 
