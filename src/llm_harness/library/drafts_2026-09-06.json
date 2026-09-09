@@ -112,8 +112,8 @@
    "template_file": "c_placement_template.eliminate-v2.txt",
    "response_schema_file": "c_placement_response_schema.json",
    "shaping_policy_file": "c_placement_shaping_policy.json",
-   "status": "ratified_local",
-   "ratified_by": "the owner, 7 Sep 2026, in chat (\"I want the ratification done as soon as possible\"); applied by the lead. Local model first; the cloud waits on R-82 (104 §15.1), which is what the word `ratified_local` says: the site acts on its answer here and its text does not cross the internet. 105 §14's amendments follow as eliminate-v3, a new row.",
+   "status": "ratified",
+   "ratified_by": "the owner, 7 Sep 2026, in chat (\"I want the ratification done as soon as possible\"); applied by the lead. Local model first; the cloud waits on R-82 (104 §15.1), which is what the word `ratified_local` says: the site acts on its answer here and its text does not cross the internet. 105 §14's amendments follow as eliminate-v3, a new row. CLOUD OPENED 9 Sep 2026: the owner ruled the cloud run happens now (104 §17.13; R-82 signed there), local kept for protected and unclassified files by the per-file route (R-170); applied by the lead.",
    "note": "eliminate plus three sentences, each a stated delta: a group is support and never a citation; a shared branch serving two accepted groups stands alone; refinement is not_applicable unless a candidate is described as the file's current folder."
   },
   {
@@ -227,13 +227,13 @@
   {
    "site": "A_fact",
    "candidate": "v2-code-subject",
-   "status": "ratified_local",
+   "status": "ratified",
    "template_id": "a_fact.unratified.folder-levels-v2.2026-09-07",
    "template_file": "a_fact_template_folder_levels.v2.txt",
    "response_schema_file": "a_fact_response_schema.json",
    "shaping_policy_file": "a_fact_shaping_policy.json",
    "glossary_file": "field_glossary.json",
-   "ratified_by": "the lead, 7 Sep 2026, under the owner's delegation of prompt iteration as new versioned rows (14:15, 7 Sep: \"if it isn't perfect you can try editing prompt too\"); LOCAL only. The ratified text plus rule 12 (the school rule, 105 §14.4) and rule 13 (a context line is named as such; the value it supports is the course CODE it prints, never a title). Measured cause: r11, 21 code-shaped to 39 title answers with the code line in view (104 R-144). The owner ratifies or strikes this row; the glossary is the shipped one (a v2 glossary needs threading into the dossier body, out of scope).",
+   "ratified_by": "the lead, 7 Sep 2026, under the owner's delegation of prompt iteration as new versioned rows (14:15, 7 Sep: \"if it isn't perfect you can try editing prompt too\"); LOCAL only. The ratified text plus rule 12 (the school rule, 105 §14.4) and rule 13 (a context line is named as such; the value it supports is the course CODE it prints, never a title). Measured cause: r11, 21 code-shaped to 39 title answers with the code line in view (104 R-144). The owner ratifies or strikes this row; the glossary is the shipped one (a v2 glossary needs threading into the dossier body, out of scope). CLOUD OPENED 9 Sep 2026: the owner ruled the cloud run happens now (104 §17.13; R-82 signed there), local kept for protected and unclassified files by the per-file route (R-170); applied by the lead.",
    "note": "v2 of the A_fact text: rules 12 and 13 appended after rule 11; everything before THE RULES byte-identical to the ratified text."
   }
  ],

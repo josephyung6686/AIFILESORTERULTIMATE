@@ -977,23 +977,25 @@ def test_the_cloud_refusal_lifts_for_the_ratified_site_and_holds_for_the_rest(
 def test_the_real_manifest_on_disk_ratifies_c_alone():
     """THE PIN. On 7 Sep 2026 the owner ratified C's eliminate-v2 row and nothing
     else, FOR THE LOCAL MODEL (`104` §15.1: the cloud waits on R-82), so the row's
-    word is `ratified_local`: the packet's word stays `unratified`, B, D and E
-    inherit it, and the manifest is the owner's to edit and nobody else's. C's
-    cloud target is refused by this word, and not by whichever model happens to
-    be configured -- the gate is the text's standing, in code."""
+    word was `ratified_local`. On 9 Sep 2026 the owner ruled the cloud run
+    happens now and signed R-82 in the same breath (`104` §17.13), so C's word is
+    `ratified`: its text may cross, and which FILE crosses is the per-file
+    route's question (R-170), not this word's. The packet's word stays
+    `unratified`, B, D and E inherit it, and the manifest is the owner's to edit
+    and nobody else's. The gate is the text's standing, in code, and not
+    whichever model happens to be configured."""
     from llm_harness.prompt_library import draft_status
 
     assert drafts_status() == UNRATIFIED
     for site in sorted(WINNERS):
         expected = site == C_PLACEMENT
-        word = RATIFIED_LOCAL if expected else UNRATIFIED
+        word = RATIFIED if expected else UNRATIFIED
         assert draft_status(WINNERS[site]) == word, site
         assert ("status" in draft_row(WINNERS[site])) is expected, site
-        # The site acts on its answer, and its text still does not leave the
-        # device: the local word applies and does not cross.
         assert cli.observe_prompt(site).ratified is expected, site
         assert cli.observe_locality_permits(site, LOCAL) is True, site
-        assert cli.observe_locality_permits(site, CLOUD) is False, site
+        # Only the ratified text may cross the internet.
+        assert cli.observe_locality_permits(site, CLOUD) is expected, site
 
 
 # --- P2: the real resolvers behind C and D, and the stub that guards a draft ------
