@@ -1435,3 +1435,7 @@ Named: `situation-safety-first`, set `ratified_local` in its manifest row and po
 
 The five unnecessary abstentions are the next thing to measure on the real corpus, not on the bench: every one sends a file to the local model instead of the cloud, which is the safe failure, and the number that matters is how many real files it costs.
 
+
+### 17.15 The two rows the cloud run is asked under are `ratified` (9 Sep, 8f584cd)
+
+Applied on §17.13: C `eliminate-v2` and A `v2-code-subject` move from `ratified_local` to `ratified`, each `ratified_by` carrying the 9 Sep ruling. G `situation-safety-first` stays `ratified_local` (§17.14). The pin `test_the_real_manifest_on_disk_ratifies_c_alone` now says C's cloud target is permitted by the word and which FILE crosses is R-170's question. 122 targeted tests pass (`test_cli_observe_sites`, `test_cli_a_fact_row`, `test_c_v3_bundle`, `test_site_g_end_to_end`). The full suite runs in chain w1bq after R-169 merges. R-169 (cloud sees local's evidence) and R-170 (per-file route) are in build; r18 starts on the head that carries both.
