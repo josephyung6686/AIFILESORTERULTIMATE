@@ -2396,6 +2396,21 @@ def _turn_off_line(corpus_root: Path, *other_sources: Path) -> str:
             + " --disable-cloud")
 
 
+def _fact_pass_models(routing: TierRouting) -> str:
+    """The model or models site A's files were sent to, named for the screen.
+
+    One name on a one-destination deployment, which is every deployment before
+    `104` §17.13 ruling 3 and most of them after it. Two when a key and a local
+    model are both configured, because that run really did send some files to each
+    and a sentence naming one of them is a sentence about half the corpus. Which
+    files went where is on each file's own line; this is the header.
+    """
+    cloud = routing.model_id_for(A_FACT)
+    if not _local_beside_cloud(routing, A_FACT):
+        return cloud
+    return f"{cloud}, or {_local_model_id(routing, A_FACT)} on this device"
+
+
 def _announced_locality(routing: TierRouting, call_site: str,
                         consent: "CloudConsent | None") -> str:
     """WHERE THIS RUN'S FILES ACTUALLY GO at this site, for the screen.
@@ -8080,6 +8095,21 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                                   for member, nodes in collected.items())
         return _nodes_listing.get(file_id, ())
 
+    #: WHERE A PLACEMENT DOSSIER ABOUT THIS FILE WOULD GO, built once for the run
+    #: (`104` §17.13 ruling 3). `None` routing is a run with no model at all; a
+    #: file the route gives no destination is one no dossier is ever sent for, and
+    #: both answer `cloud`, which is the strictest release and therefore the
+    #: honest default -- a reading offered under it is one every destination may
+    #: see.
+    _placement_route = (None if routing is None else target_for(
+        conn, routing, C_PLACEMENT, operation_mode=operation_mode))
+
+    def _placement_locality(file_id: str) -> str:
+        if _placement_route is None:
+            return CLOUD_LOCALITY
+        chosen = _placement_route(file_id)
+        return CLOUD_LOCALITY if chosen is None else chosen[1].locality
+
     def evidence_for(file_id: str) -> dict:
         """§6.3's evidence for one file: what this run can address about it.
 
@@ -8286,13 +8316,15 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                      - released_characters(conn, items))
         for ref, location, reliability in reading_citations(
                 conn, file_id, limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
-                # The PLACEMENT client's locality, not site A's: `routing` points the
-                # two sites at their own tiers and a fact call's destination says
-                # nothing about where a placement dossier goes. `None` is a run with
-                # no model configured, where no dossier is ever sent and the strict
-                # half is the honest default.
-                locality=(CLOUD_LOCALITY if routing is None
-                          else routing.locality_for(C_PLACEMENT)),
+                # The PLACEMENT destination for THIS FILE, not site A's and no
+                # longer the site's: `routing` points the two sites at their own
+                # tiers, a fact call's destination says nothing about where a
+                # placement dossier goes, and since `104` §17.13 ruling 3 the
+                # placement destination is per file too. `CLOUD_LOCALITY` is a run
+                # with no model configured and a file with no route -- no dossier
+                # is ever sent for either, and the strict half is the honest
+                # default, since cloud releases the least.
+                locality=_placement_locality(file_id),
                 ceiling=remainder):
             span = location.text_span
             address = (ref, location.zone,
@@ -8314,8 +8346,10 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # asked once, so the item set the model sees is the set P7 releases.
             facts=tuple(facts), evidence_items=releasable_items(
                 conn, items,
-                locality=(CLOUD_LOCALITY if routing is None
-                          else routing.locality_for(C_PLACEMENT))),
+                # THE SAME ANSWER the citations above were gathered under. Two
+                # reads would offer the model a reading one call collected and the
+                # other refuses.
+                locality=_placement_locality(file_id)),
             group_ids=accepted_memberships_of(
                 conn, file_id, accepted=accepted_ids),
             curated_folder_labels=_folders_this_file_is_already_in(file_id),
@@ -9038,9 +9072,9 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         """
         if routing is None:
             return
-        if (routing.locality_for(A_FACT) == CLOUD
-                and operation_mode != CLOUD_ENABLED_MODE):
-            # BY LOCALITY, not by mode alone, and the cloud half is unchanged: a
+        if not site_has_a_destination(conn, routing, A_FACT,
+                                      operation_mode=operation_mode):
+            # BY DESTINATION, not by mode alone, and the cloud half is unchanged: a
             # cloud target still requires `hybrid`, which still requires this
             # folder's stored consent. What the mode-only test also refused was a
             # model on the person's OWN MACHINE, which `00`:189-193 permits under
@@ -9049,6 +9083,15 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # local target that would not be released to a cloud one; the gate
             # makes that decision below, from the same `model_target`, and it is
             # `Gate.release` that reads the locality rather than this line.
+            #
+            # `104` §17.13 ruling 3 IS WHY THE READING MOVED. This line asked
+            # `routing.locality_for(A_FACT) == CLOUD`, which on a two-target
+            # routing is now True -- so a person with a key AND a local model, and
+            # sending off, would have had the whole fact pass return here and every
+            # file answered by nothing, where the same run used to answer every one
+            # of them on their own machine. `site_has_a_destination` asks the three
+            # questions the route asks and returns False only when there is
+            # genuinely nowhere to send.
             return
         roster = corpus_roster(conn, run_id)
         if not roster:
@@ -9175,9 +9218,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # unclassified file, which is the whole population this site asks
             # about -- so a run that got past this line would pay for a call per
             # file to be denied per file.
-            if observe_locality_permits(
-                G_SITUATION_SENSITIVITY,
-                routing.locality_for(G_SITUATION_SENSITIVITY))
+            # `104` §17.13 ruling 3: THE SITE'S DESTINATION, not the cloud half's
+            # locality. `locality_for(G)` on a two-target routing answers CLOUD,
+            # which this guard would read as "G may not run" and turn the pass off
+            # in exactly the deployment the ruling is for -- while `target_for`
+            # inside the pass was already keeping every file on this device.
+            if site_has_a_destination(conn, routing, G_SITUATION_SENSITIVITY,
+                                      operation_mode=operation_mode)
             else _NOTHING_ASKED)
         situation_cell[:] = [situation_pass]
         # ONE RESOLVER PER SCHEMA A MODEL NAMED, on `104` R-37's own pattern one
@@ -9266,7 +9313,11 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         _print_fact_pass(
             written=len(written), withheld=withheld,
             files=len(roster), outcomes=outcomes,
-            model_id=routing.model_id_for(A_FACT), out=out,
+            # BOTH NAMES WHEN BOTH ANSWERED (`104` §17.13 ruling 3). `model_id_for`
+            # describes the cloud half, and on a two-target run it would tell a
+            # person one model was sent their files when the file they most care
+            # about -- the one nothing has classified -- went to the other.
+            model_id=_fact_pass_models(routing), out=out,
             not_asked=not_asked)
 
     def _anchor_statement_pass(run_id: str) -> None:

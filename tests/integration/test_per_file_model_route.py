@@ -386,3 +386,58 @@ def test_the_authorities_refuse_to_hold_both_spellings_at_once():
             wire_handle_key=bytes(32), max_released_observations=1,
             max_dossier_tokens=1, observed_at=lambda: "T", on_result=None,
             route_for=lambda _file_id: (client, target))
+
+
+# --- the guards OUTSIDE the passes, which read the routing too -----------------
+#
+# Every one of these decides whether a pass runs at all, and each read
+# `routing.locality_for(site)` -- the CLOUD half's answer on a two-target routing.
+# A per-file route inside a pass that never runs is a per-file route nobody
+# reaches, so the guards are pinned here beside the choice they gate.
+
+def test_the_fact_pass_runs_with_both_models_configured_and_sending_off(conn):
+    """THE STARVATION THIS ALMOST SHIPPED. The fact pass returned early when
+    `locality_for(A_FACT) == CLOUD` and the mode was not `hybrid`. Under the old
+    per-site split A_fact was LOCAL, so that was False and a person with both
+    models and sending off had every file answered on their own machine. On a
+    two-target routing it is True -- and the whole pass would have returned,
+    answering nothing at all."""
+    assert cli.site_has_a_destination(conn, _both(), A_FACT,
+                                      operation_mode=cli.OPERATION_MODE)
+    assert cli.site_has_a_destination(conn, _both(), A_FACT,
+                                      operation_mode=SENDING_ON)
+    # And the half that must NOT move: a cloud key alone, with sending off, has
+    # nowhere to send and the pass is right to stop.
+    assert not cli.site_has_a_destination(conn, _cloud_only(), A_FACT,
+                                          operation_mode=cli.OPERATION_MODE)
+
+
+def test_site_gs_guard_lets_the_pass_run_on_a_two_target_deployment(conn):
+    """`104` §17.1 says nothing leaves the device at site G, and the guard used to
+    enforce that by reading `locality_for(G)`. On a two-target routing that answers
+    CLOUD, so the guard would have turned site G off in exactly the deployment the
+    ruling is for -- while `target_for` inside the pass was already keeping every
+    file here. The site is asked whether it has a DESTINATION, and it has one."""
+    for mode in (cli.OPERATION_MODE, SENDING_ON):
+        assert cli.site_has_a_destination(conn, _both(),
+                                          G_SITUATION_SENSITIVITY,
+                                          operation_mode=mode)
+    assert not cli.site_has_a_destination(conn, _cloud_only(),
+                                          G_SITUATION_SENSITIVITY,
+                                          operation_mode=SENDING_ON), (
+        "site G's text may not cross the internet, so a cloud key alone leaves it "
+        "with nowhere to ask and the pass is right to stop")
+
+
+def test_the_placement_evidence_is_gathered_under_the_destination_it_will_go_to(
+        corpus, conn):
+    """Site C's evidence locality was `routing.locality_for(C_PLACEMENT)`, which on
+    a two-target routing answers CLOUD while every file C is asked about goes
+    LOCAL. Cloud releases the least, so the error was in the safe direction and
+    still wrong: readings the local model may see would have been withheld from it,
+    starving the site the run had just kept switched on."""
+    route = cli.target_for(conn, _both(), C_PLACEMENT, operation_mode=SENDING_ON)
+
+    assert route(corpus["ordinary"])[1].locality == LOCAL
+    assert _both().locality_for(C_PLACEMENT) == CLOUD, (
+        "if this stops being true the test above has stopped testing anything")
