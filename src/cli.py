@@ -4655,6 +4655,7 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
                           anchor_levels: tuple[FolderLevel, ...] = (),
                           usage_recorder: object | None = None,
                           operation_mode: str = OPERATION_MODE,
+                          corpus_roots: Sequence[Path] = (),
                           on_result=None) -> FactCallAuthorities:
     """Everything one A_fact call needs, chosen here and nowhere else.
 
@@ -4755,6 +4756,12 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
             # bound on tokens, which errs towards refusing and never towards
             # sending. `model_facts.dossier_tokens` carries the reasoning.
             measure_tokens=measure_released_tokens,
+            # `104` §18.7. The folders this run was asked to scan, handed to the
+            # door so a `path`-zone value can be made relative to one of them before
+            # a CLOUD release. The SOURCES and not the candidate roots: §1.1's roots
+            # are context, and `scan.py` writes no `files` row from one, so a root
+            # here would be a prefix no released value can carry.
+            corpus_roots=corpus_roots,
             component_version=COMPONENT_VERSION, now=now, user_id=user_id),
         # NO SINGLE PAIR, because site A no longer has one destination
         # (`104` §17.13 ruling 3). `target_for` answers per file -- the cloud model
@@ -9239,6 +9246,9 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # decides whether the cloud is a destination at all, and the default
             # is the local-first floor.
             operation_mode=operation_mode,
+            # `104` §18.7: the scanned folders, the same list `record_selection`
+            # was handed, so a cloud release of a folder path is relative to one.
+            corpus_roots=sources,
             # `105` §14.4. The school level, asked of the anchors and of nothing
             # else. Empty when this situation binds no such role, which is every
             # situation but coursework's today.

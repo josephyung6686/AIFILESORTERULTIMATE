@@ -58,6 +58,15 @@ from privacy.release import (
 #: here rather than in the gate because this module is the only one that reads P4.
 FILENAME_ZONE: str = "filename"
 
+#: `104` §18.7's folder-path ruling keys on this zone, and it is spelled here beside
+#: `FILENAME_ZONE` for that constant's own reason: this module is the only one under
+#: `src/privacy/` that reads P4, and Brief §11 forbids a bare string at the door.
+#: The gate compares a released item's zone against it to decide whether the value
+#: is a FOLDER PATH -- the one released value whose SHAPE depends on where the call
+#: is going, because "relative to the scanned folder" is what a cloud model may be
+#: shown and the whole path is what a local one may still see.
+PATH_ZONE: str = "path"
+
 #: §2.9's format family for P3's section 1.2 record, and the SECOND half of the
 #: address, without which the first half is not unique. Measured on the owner's 199
 #: files: `image.metadata` also writes a `filename`-zone observation -- the

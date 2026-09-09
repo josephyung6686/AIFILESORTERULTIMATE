@@ -71,6 +71,7 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Callable, Mapping, Sequence
+from pathlib import Path
 from typing import NoReturn
 
 from database_agent.budget import get_ceiling
@@ -108,8 +109,8 @@ from privacy.release import (
     whole_unit_is_an_excerpt,
 )
 from privacy.resolve import (
-    AmbiguousObservationKey, UnresolvableSpan, current_location, materialise,
-    materialise_filename,
+    PATH_ZONE, AmbiguousObservationKey, UnresolvableSpan, current_location,
+    materialise, materialise_filename,
 )
 # Aliased under a leading underscore, the way `classification.py` binds `DETECTOR`,
 # and for that module's reason: `test_p7_skeleton_step` asserts that no name here
@@ -223,7 +224,8 @@ class Gate:
                  component_version: str, now: Callable[[], str],
                  user_id: str | None,
                  measure_tokens: Callable[..., int] | None = None,
-                 template_for: Callable[[str], str | None] | None = None) -> None:
+                 template_for: Callable[[str], str | None] | None = None,
+                 corpus_roots: Sequence[Path] = ()) -> None:
         self._conn = conn
         self._store = store
         self._plan_version = plan_version
@@ -238,6 +240,36 @@ class Gate:
         self._user_id = user_id
         self._measure_tokens = measure_tokens
         self._template_for = template_for
+        #: THE FOLDERS THIS RUN WAS ASKED TO SCAN, and the only thing a `path`-zone
+        #: value is ever made relative TO. `104` §18.7: "the folder path released to
+        #: the CLOUD is relative to the scanned folder; the local model may still see
+        #: the full path." It answers §18.1's one honest addition -- the observation
+        #: `scan_agent/basic_record.py` computes is the ABSOLUTE parent directory, so
+        #: since §17.13 opened this zone to every target the person's home directory
+        #: and account name crossed with every file, and the model gains nothing from
+        #: the part above the corpus root.
+        #:
+        #: INJECTED, like `scope_for` and `measure_tokens`, because it is a fact
+        #: about THIS RUN and not about the database: the gate is built once per run
+        #: and the composition root hands it the same `Path` objects it handed
+        #: `scan_agent.selection.record_selection`. Not looked up here -- reading
+        #: `corpus_selections` would make `src/privacy/` import P3's tables, and
+        #: `scope_for`'s `scan_run_id` is Open question 3's placeholder rather than a
+        #: root.
+        #:
+        #: NO `.resolve()`, on either side, and that is load-bearing on macOS. `main`
+        #: resolves once (`args.directory.expanduser().resolve()`, and
+        #: `_folder_landscape` does the same for `--also-read`), `run` stores exactly
+        #: those in R1, and the walk descends from the stored value -- so
+        #: `directory_position` already carries the resolved prefix and
+        #: `relative_to`, which is a string comparison, matches. Resolving again here
+        #: would be a second answer to a question the run has already answered, and
+        #: where `/tmp` is a symlink for `/private/tmp` the two answers differ and
+        #: every file falls under no root.
+        #:
+        #: EMPTY means the composition root never wired it. That is refused rather
+        #: than defaulted -- see `_precheck_items`.
+        self._corpus_roots = tuple(Path(root) for root in corpus_roots)
 
     # -- §8.4's only door ---------------------------------------------------
 
@@ -539,7 +571,8 @@ class Gate:
         name_items = tuple(item for item in request.requested_items
                            if isinstance(item, NAME_BEARING))
         resolved, manifest = self._materialise(text_items, file_ids,
-                                               name_items=name_items)
+                                               name_items=name_items,
+                                               locality=locality)
 
         # 4 -- the two reasons that needed the resolved text.
         late: dict[str, Callable[[], Denied]] = {}
@@ -936,10 +969,35 @@ class Gate:
         destination while the bytes went to another.
         """
         for item in request.requested_items:
+            # THE ZONE IN A NAME, because two rules now read it. `104` §18.7's
+            # folder-path refusal below is decidable from the REQUEST -- the zone
+            # comes off the locator, the locality off the target, and whether this
+            # gate holds any scanned folders is a fact about the gate -- so it is
+            # taken here beside the other five reasons `denial.DECIDABLE_FROM_
+            # REQUEST` names, and that claim stays true.
+            zone = self._located_zone(item, request.target.file_ids)
+            if (zone == PATH_ZONE
+                    and request.model_target.locality == CLOUD_LOCALITY
+                    and not self._corpus_roots):
+                return AlwaysLocalRequested(
+                    f"a {PATH_ZONE!r}-zone item is bound for a {CLOUD_LOCALITY!r} "
+                    f"model and this gate was given no scanned folders. `104` "
+                    f"§18.7 releases the folder path to a cloud target RELATIVE to "
+                    f"the folder that was scanned; with no root there is nothing to "
+                    f"be relative to, and the only two remaining answers are to "
+                    f"refuse and to send the absolute path. Sending it is the "
+                    f"release the ruling closed -- §8.4's always-local list opens "
+                    f"with 'Paths', and an absolute one carries the shape of the "
+                    f"person's machine above their corpus. Refused rather than "
+                    f"defaulted, because a knob nobody set must not decide an "
+                    f"egress: `104` §18.1's S3 residue names that shape once "
+                    f"already, 'a fail-open on an unset knob'. Pass `corpus_roots` "
+                    f"to `Gate`. A LOCAL target is unaffected -- it may be shown "
+                    f"the whole path and needs no root to be shown it."
+                )
             try:
                 check_item(item, unit_length=None,
-                           zone=self._located_zone(
-                               item, request.target.file_ids),
+                           zone=zone,
                            protected=protected,
                            sensitive_keys=sensitive_keys, allow_unratified=True,
                            suspension_permits_self_description=self._suspends(policy),
@@ -1049,7 +1107,8 @@ class Gate:
 
     def _materialise(self, text_items: Sequence[object],
                      file_ids: Sequence[str] = (), *,
-                     name_items: Sequence[object] = ()
+                     name_items: Sequence[object] = (),
+                     locality: str
                      ) -> tuple[tuple[ReleasedItem, ...], RedactionManifest]:
         """(observation_key, span) -> text -> redacted text. `resolve` is the only
         module under `src/privacy/` that binds a P4 text materialiser (L2).
@@ -1082,7 +1141,8 @@ class Gate:
                 context_truncated=found.context_truncated,
                 classifier=self._classifier, transform=self._transform)
             resolved.append(ReleasedItem(
-                observation_key=found.observation_key, span=found.span, value=value,
+                observation_key=found.observation_key, span=found.span,
+                value=self._for_target(value, zone=found.zone, locality=locality),
                 zone=found.zone, unit_length=found.unit_length,
                 # `104` R-135, carried and not recomputed: `materialise` asked P4's
                 # `Location` and this is that answer.
@@ -1091,6 +1151,57 @@ class Gate:
                 whole_line_unit=found.whole_line_unit))
             entries.append(entry)
         return tuple(resolved), RedactionManifest(entries=tuple(entries))
+
+    def _for_target(self, value: str, *, zone: str, locality: str) -> str:
+        """`104` §18.7: what a FOLDER PATH looks like to the target it is going to.
+
+        The owner's ruling, 9 Sep 2026: "relative to the scanned folder for the
+        cloud; the local model may still see the full path." One value, two shapes,
+        and the locality is what chooses -- which is why this is at the DOOR and not
+        at the source. `scan_agent/basic_record.py` computes §1.2's parent-folder
+        context ONCE (O5) and `extractors/filesystem.py` re-emits it without
+        recomputing; relativising in either would take the full path away from the
+        local model too, silently answering the other half of the ruling the wrong
+        way. `tests/p3/test_p3_basic_record.py` holds the record's end of that.
+
+        APPLIED AFTER REDACTION AND BEFORE THE RELEASE RECORD, so the audit row
+        carries what actually crossed. §8.4's record is the answer to "what was
+        sent", and a row holding the absolute path beside a wire holding the
+        relative one would make the log the less trustworthy of the two.
+
+        NOT `cli._relative_to_any`, whose fallback for a path under no root is the
+        path's own last component. That is a DISPLAY policy -- it exists so a screen
+        can name a file -- and at the door the same situation is an invariant break:
+        every `files` row comes from a walk that descended from one of these roots,
+        so a `path`-zone value under none of them means the roots are not this run's.
+        Falling back would release a name nobody bounded. It raises instead, which is
+        the stance `104` §18 S5 has just applied to this class of condition.
+
+        A file directly inside a scanned folder relativises to ".", and that is the
+        ruling read literally -- the whole of its path IS the part above the corpus
+        root. It is a coverage loss where a person scans one course folder by name
+        and the code lives in that folder's own name; the measurement is `104`
+        §17.13's (20 of 43 labelled coursework files carried their course code only
+        in the `path` zone), and whether the scanned folder's OWN name should stand
+        at the top of the released path is the owner's to say.
+        """
+        if zone != PATH_ZONE or locality != CLOUD_LOCALITY:
+            return value
+        for root in self._corpus_roots:
+            try:
+                return Path(value).relative_to(root).as_posix()
+            except ValueError:
+                continue
+        raise GateInvariantBroken(
+            f"a {PATH_ZONE!r}-zone value is bound for a {CLOUD_LOCALITY!r} model "
+            f"and sits under none of this run's {len(self._corpus_roots)} scanned "
+            f"folders, so there is no folder for `104` §18.7 to make it relative "
+            f"to. Every `files` row is written by a walk that descended from one of "
+            f"those roots, so this is not a case a live scan produces: either the "
+            f"gate was given roots that are not this run's, or the value's own "
+            f"prefix was rewritten after the scan. Raised rather than released "
+            f"whole, because releasing it is exactly the crossing the ruling closed."
+        )
 
     def _release_record(self, request, policy, classes, hashes, resolved, manifest,
                         observed_at) -> AuditRecord:
