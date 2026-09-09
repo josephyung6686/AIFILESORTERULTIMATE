@@ -797,7 +797,10 @@ def mint_opening_excerpts(conn: sqlite3.Connection, observations: Sequence, *,
     known = {observation.observation_key for observation in observations}
     minted: list = []
     for observation in observations:
-        if observation.location.zone in ALWAYS_LOCAL_ZONES:
+        # `104` §17.13: `path` and `ocr` release to every target, so an
+        # over-ceiling OCR unit gets its opening like a page does; `filename`
+        # alone has no excerpt, because it has no release as an excerpt at all.
+        if observation.location.zone in ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET:
             continue
         if observation.observation_key in sensitive:
             continue
@@ -856,11 +859,22 @@ def ordered_releasable_observations(conn: sqlite3.Connection, *, file_id: str,
                 document_order(observation), _span_start(observation),
                 observation.observation_key)
 
+    # A READING LONGER THAN THE STORED CEILING IS NOT ON OFFER (`104` §17.13). No
+    # call on any target can carry it, `items.check_item` refuses it as the whole
+    # document when it covers its unit, and the opening excerpt minted above is
+    # its stand-in. Leaving it on offer would let `_without_superseded_excerpts`
+    # drop that excerpt in its favour and `within_dossier_budget` then skip the
+    # page for length -- the unit reaching the model as nothing, which r169b
+    # measured at 4896628 (365-character page, ceiling 182: body offered, excerpt
+    # yielded, body skipped, nothing carried). The stage and the gate answer the
+    # same about it: neither carries it.
     offered = [observation
                for observation in observations_for_version(conn, file_id,
                                                            content_hash)
                if may_be_released(conn, observation, sensitive=sensitive,
-                                  locality=locality)]
+                                  locality=locality)
+               and (ceiling is None
+                    or dossier_tokens((observation.raw_value,)) <= int(ceiling))]
     return tuple(sorted(_without_superseded_excerpts(offered), key=placed))
 
 
@@ -876,6 +890,9 @@ def _without_superseded_excerpts(offered: Sequence) -> list:
     the ruling meant for the first.
 
     So the excerpt yields whenever the reading it was cut from is itself on offer.
+    Since `104` §17.13 a reading longer than the stored ceiling is NOT on offer
+    (`ordered_releasable_observations` withholds it), so its excerpt stands; a
+    reading that fits is on offer for either target, and its excerpt yields.
     They are matched by ADDRESS -- same zone, same container path, the excerpt
     span-bearing and the reading it copies span-less -- because that is what
     `opening_reading_for` preserved and it needs no second record of where the excerpt
