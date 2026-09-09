@@ -21,13 +21,27 @@ is the BUILDER's half -- the same refusals asked a step early so a call is never
 built rather than built and denied -- plus the ordering and the fill that spend what
 the ruling opened.
 
-Every test here is a PAIR or a walk over `LOCALITIES` where the rule divides, because
-"this now depends on the target" is a claim about a difference and an assertion about
-one half of it would not make that claim.
+Every test here was a PAIR or a walk over `LOCALITIES` where the rule divided,
+because "this now depends on the target" is a claim about a difference and an
+assertion about one half of it would not make that claim.
+
+**SUPERSESSION, 9 Sep 2026, `104` §17.13 (the owner's ruling).** Asked §17.6's
+question again with the code's answer in front of them -- a cloud call was shown zero
+characters of body on the measured corpus -- the owner ruled item 14 the rest of the
+way: *"honestly now let's just do cloud run"*, a cloud model shown a whole text unit,
+the person's folder path and OCR text within the same ceiling. So the two arms R-159
+divided divide by nothing now, and the two PAIRS below are WALKS with the same answer
+on both localities. That is a weaker shape of assertion, so what keeps them
+discriminating is spelled rather than assumed: the `filename` zone, the half of the
+partition §17.13 did not move, is asserted refused in the same walk, and the P5 arm
+below is asserted refused on both. `locality` itself stays required and validated,
+because the gate's privacy-CLASS rule and the per-file route (R-170) still divide by
+it -- which FILE may reach a cloud target is decided before any of this is asked.
 """
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 
 from database_agent.db import create_schema
 from database_agent.files_table import get_file, record_file
@@ -123,11 +137,11 @@ def _released(conn, observation, locality):
 
 
 # --------------------------------------------------------------------------
-# may_be_released: the two arms the ruling divides, and the two it does not
+# may_be_released: the arms R-159 divided, and what is left of the division
 # --------------------------------------------------------------------------
 
-def test_a_path_zone_reading_is_released_to_a_local_target_only(conn, tmp_path):
-    """THE PAIR on the zone the ruling names first.
+def test_a_path_zone_reading_is_released_to_every_target(conn, tmp_path):
+    """THE WALK on the zone the ruling names first, and the zone it left behind.
 
     "The person's folder path" is the ruling's own phrase, and this is the reading
     it is about: `extractors/filesystem.py` writes one per indexed file, span-less,
@@ -136,30 +150,71 @@ def test_a_path_zone_reading_is_released_to_a_local_target_only(conn, tmp_path):
     asked what course a file belonged to while the answer sat in a reading the
     builder refused to offer.
 
-    SABOTAGE: drop the `RELEASED_TO_EVERY_TARGET` half of the zone condition in
-    `may_be_released` and the local half goes red; drop the `cloud or` half and the
-    cloud half does.
+    **This was a PAIR until 9 Sep 2026.** R-159 released the path to a LOCAL target
+    and held the cloud refusal, so the assertion was `False` for the cloud and `True`
+    for the local. `104` §17.13 extends item 14 to the cloud -- the same folder path,
+    within the same ceiling -- and R-82 is signed in the same build so the consent
+    text names the folder labels before they cross. The zone arm therefore reads
+    `ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET`, which `path` is not in, and the answer is
+    the same on both localities.
+
+    **The `filename` half is what keeps the walk discriminating.** An arm that had
+    simply stopped asking about zones would pass the first assertion below and
+    release the filename with it. `filename` is the one member of `ALWAYS_LOCAL_ZONES`
+    §17.13 did not move, for a reason that was never about the destination: §7.7's
+    name has its own door, `items.Filename` under `allow_unratified`, where §7.3's
+    protected-records ban also applies, and a `filename`-zone excerpt would bypass
+    both while releasing nothing the door does not already carry.
+
+    The constructed reading is not recorded, and does not need to be: the zone arm
+    answers off `observation.location` and returns before the store is read at all.
+
+    SABOTAGE: widen the zone arm to `ALWAYS_LOCAL_ZONES` and the path assertions go
+    red; delete the zone arm and the filename assertions do.
     """
     _file_id, _hash, folder, _heading, _page = _corpus(conn, tmp_path)
-    assert _released(conn, folder, CLOUD_LOCALITY) is False
-    assert _released(conn, folder, LOCAL) is True
+    named = replace(
+        folder, raw_value="HW 3.pdf",
+        location=Location("filename", (Segment("field", label="filename"),)))
+    # A WALK MAKES THE RULING'S CLAIM ONLY IF THE CLOUD IS IN IT. The pair this
+    # replaced said `cloud` out loud; a walk over a set that had lost its cloud
+    # member would pass while asserting the opposite of what §17.13 decided.
+    assert CLOUD_LOCALITY in LOCALITIES
+    for locality in LOCALITIES:
+        assert _released(conn, folder, locality) is True, locality
+        assert _released(conn, named, locality) is False, locality
 
 
-def test_a_whole_page_is_released_to_a_local_target_only(conn, tmp_path):
-    """THE PAIR on the whole-unit rule, in the span-less shape the corpus is in.
+def test_a_whole_page_is_released_to_every_target(conn, tmp_path):
+    """THE WALK on the whole-unit rule, in the span-less shape the corpus is in.
 
     §8.4's "should not send full documents where a short heading or OCR excerpt is
-    enough" sits under `00`:186's *"when a cloud model is used"*. Every text
-    extractor emits one span-less observation over each page or paragraph, so this
-    single arm refused the body of all 199 files to a local model that never sends
-    anything anywhere.
+    enough" sat under `00`:186's *"when a cloud model is used"*, and R-159 read that
+    sentence literally. Every text extractor emits one span-less observation over
+    each page or paragraph, so this single arm refused the body of all 199 files --
+    to a local model that never sends anything anywhere until 8 Sep, and to a cloud
+    one until 9 Sep.
 
-    What bounds the local branch instead is the ceiling, and that is
-    `within_dossier_budget`'s tests below rather than a length written here.
+    **`104` §17.13 amends the sentence for this deployment**, which is the honest
+    description of what the ruling did: a cloud model may be shown a whole text unit
+    within the same ceiling, so `may_be_released` has no whole-unit arm left on
+    either target and this assertion is the same on both.
+
+    THE LENGTH RULE DID NOT GO AWAY; IT MOVED, and this test asserts none of it. What
+    bounds a whole unit now is the ceiling alone, in two places: `within_dossier_
+    budget` below skips a reading that does not fit, and `items.check_item` refuses a
+    whole unit longer than P1's STORED ceiling at the door. Neither is a number this
+    file could write, which is why what is asserted here is only that the
+    zone-and-coverage refusal is gone.
+
+    A `may_be_released` that had stopped answering at all would pass this. The two
+    tests below are what stops that reading: the short reading must still be
+    released, and the P5-signalled one must still be refused.
     """
     _file_id, _hash, _folder, _heading, page = _corpus(conn, tmp_path)
-    assert _released(conn, page, CLOUD_LOCALITY) is False
-    assert _released(conn, page, LOCAL) is True
+    assert CLOUD_LOCALITY in LOCALITIES
+    for locality in LOCALITIES:
+        assert _released(conn, page, locality) is True, locality
 
 
 def test_a_short_reading_is_released_to_either_target(conn, tmp_path):
@@ -193,9 +248,16 @@ def test_a_locality_outside_the_closed_set_is_refused_not_read_as_local(
         conn, tmp_path):
     """SPEC §1: a value outside a closed set is a load error, not a fallback.
 
-    Both arms test `== CLOUD_LOCALITY`, so `"Cloud"` or `""` would take the LOCAL
-    branch and release the folder. The guard is what makes the fail direction closed
-    instead of open, and it is asserted rather than assumed.
+    **The reason moved on 9 Sep 2026 and got stronger.** Until `104` §17.13 two arms
+    of this function tested `== CLOUD_LOCALITY`, so `"Cloud"` or `""` would take the
+    LOCAL branch and release the folder -- the guard caught a value the arms would
+    have misread. §17.13 removed both arms, so `_check_locality` is now called for
+    its raise alone and its answer is discarded: NOTHING else in this function reads
+    `locality`. That is exactly the shape a later reader deletes as dead code, and
+    deleting it would let a mistyped locality through to the two places that still
+    divide by one -- the gate's privacy-CLASS refusal and R-170's per-file route,
+    both of which read an unrecognised value as local. So the guard is asserted here
+    rather than assumed, and this test is now the only thing holding it.
     """
     import pytest
 
@@ -308,7 +370,7 @@ def test_a_segment_with_no_index_contributes_zero_and_is_still_comparable(
 
 
 # --------------------------------------------------------------------------
-# The bound: a count for a cloud call, the ceiling for a local one
+# The bound: the ceiling, for either target (`104` §17.13 retired the count)
 # --------------------------------------------------------------------------
 
 class _Reading:

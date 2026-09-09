@@ -32,14 +32,19 @@ from evidence_shape.schema import create_evidence_schema
 from evidence_shape.store import record_observation, record_run, record_text_unit
 from evidence_shape.text_units import TextUnit
 
-from extractors.long_tail import SENSITIVITY_DDL
+from extractors.long_tail import POTENTIALLY_SENSITIVE, SENSITIVITY_DDL
 
 from model_placement import releasable_excerpts
 from privacy.vocabulary import CLOUD_LOCALITY
 #: `104` R-159's two new keywords, spelled once for this file. `CLOUD_LOCALITY`
-#: because every test here predates the ruling and asserts the cloud half of it,
-#: which is the half that did not change; the ceiling because a cloud call is bound
-#: by the COUNT and never reads the ceiling, so any value states the same thing.
+#: because every test here predates the ruling and asserted the cloud half of it.
+#:
+#: **THE SECOND HALF OF THIS NOTE WAS TRUE FOR ONE DAY.** It read: "the ceiling
+#: because a cloud call is bound by the COUNT and never reads the ceiling, so any
+#: value states the same thing". `104` §17.13 (9 Sep 2026) retired the count cap with
+#: the locality it divided by, so the ceiling is the ONE bound on either target and
+#: the value decides what a call carries. Left generous here, and the one test that
+#: wants it to bind derives its own from `A_PAGE`.
 A_CEILING = 4000
 
 
@@ -133,15 +138,48 @@ def test_site_c_offers_a_whole_single_line_unit(conn, tmp_path):
     assert [one.observation_key for one in offered] == [line.observation_key]
 
 
-def test_site_c_still_refuses_the_same_words_once_they_hold_line_breaks(
+def test_the_same_words_with_line_breaks_are_released_and_still_told_apart(
         conn, tmp_path):
-    """The control. A unit that holds a line break has said it has a second line, and
-    the whole of it is what §8.4 calls a full document. Nothing here is about length:
-    the page is 68 characters and the released line is 19, and swapping the two numbers
-    would not swap the answers."""
-    _file_id, _hash, _line, page, _inner = _corpus(conn, tmp_path)
+    """THE CONTROL SURVIVES ITS OWN REFUSAL, because the criterion outlived it.
 
-    assert releasable_excerpts(conn, evidence_refs=[page.observation_key], locality=CLOUD_LOCALITY) == ()
+    It read: a unit that holds a line break has said it has a second line, and the
+    whole of it is what §8.4 calls a full document -- so `releasable_excerpts` returned
+    `()` for the page and the one-line unit above was offered. Nothing about it was
+    length: the page is 68 characters and the released line is 19, and swapping the
+    numbers would not have swapped the answers.
+
+    `104` §17.13 (9 Sep 2026) released the page too. A whole text unit goes to either
+    model within the ceiling, so the BUILDER no longer divides these two words from
+    those, and asserting that it does would assert a rule that was overturned.
+
+    **The criterion still decides, one door further on, and that is what is asserted
+    instead.** `privacy.release.released_whole_excerpt_unit` is the predicate the two
+    builders, the gate and `GroundingReport`'s counters all read; it is what
+    `resolve.materialise` writes into `whole_line_unit`, and it is what
+    `whole_unit_is_an_excerpt` waives `WholeDocumentRequested` by at `gate.py` ~934.
+    Since §17.13 that arm fires only above the stored ceiling, so the exemption now
+    means: a whole LINE unit longer than the ceiling still crosses, and a whole
+    multi-line page longer than the ceiling does not. The predicate must therefore go
+    on separating exactly these two units, and it is asked of both here for the same
+    reason the old assertion asked the builder -- nothing else in this file would
+    notice it collapsing.
+    """
+    from evidence_shape.store import unit_holds_a_line_break
+    from privacy.release import released_whole_excerpt_unit
+
+    _file_id, _hash, line, page, _inner = _corpus(conn, tmp_path)
+
+    offered = releasable_excerpts(
+        conn, evidence_refs=[page.observation_key], locality=CLOUD_LOCALITY)
+    assert [one.observation_key for one in offered] == [page.observation_key]
+
+    def is_an_excerpt(observation, unit_length):
+        return released_whole_excerpt_unit(
+            observation.location, unit_length,
+            unit_holds_line_break=unit_holds_a_line_break(conn, observation))
+
+    assert is_an_excerpt(line, len(A_LINE)) is True
+    assert is_an_excerpt(page, len(A_PAGE)) is False
 
 
 def test_site_c_still_offers_a_bounded_span_inside_the_multi_line_unit(
@@ -164,34 +202,73 @@ def test_site_a_takes_the_same_ruling_for_the_same_reason(conn, tmp_path):
     by and the gate excepts by. Constitution 2: "Any successfully-read file must reach
     the model" -- at site A the denial was the file's whole call, so the file reached no
     model at all.
+
+    **`104` §17.13 KEPT THE PAGE OUT OF THIS CALL AND CHANGED WHY.** The whole-unit
+    condition is gone: every one of these three readings is releasable now, on either
+    target. What excludes the page is the CEILING, which since §17.13 is the one bound
+    a call has, so the ceiling here is derived from the page rather than left at
+    `A_CEILING` -- one character short of the unit, which is the honest way to write
+    "the page does not fit".
+
+    The assertion is otherwise the one it always was, and it is stronger for the
+    change: `within_dossier_budget` SKIPS what does not fit and walks on, so the line
+    and the five-character excerpt behind the page both survive it. A fill that stopped
+    at the first over-long reading would cost this file everything after the page,
+    which is the state R-159 was ruled to end.
     """
     from model_facts import releasable_observations
 
     file_id, content_hash, line, page, inner = _corpus(conn, tmp_path)
 
     offered = releasable_observations(
-        conn, file_id=file_id, content_hash=content_hash, limit=10, locality=CLOUD_LOCALITY, ceiling=A_CEILING)
+        conn, file_id=file_id, content_hash=content_hash, limit=10,
+        locality=CLOUD_LOCALITY, ceiling=len(A_PAGE) - 1)
     keys = [one.observation_key for one in offered]
 
     assert line.observation_key in keys
     assert inner.observation_key in keys
     assert page.observation_key not in keys
+    # And under a ceiling it fits, the same page comes back -- which is the ruling
+    # rather than a coincidence of this fixture's lengths.
+    assert page.observation_key in [
+        one.observation_key for one in releasable_observations(
+            conn, file_id=file_id, content_hash=content_hash, limit=10,
+            locality=CLOUD_LOCALITY, ceiling=A_CEILING)]
 
 
 def test_the_named_readings_builder_takes_it_too(conn, tmp_path):
     """`model_facts.releasable_readings` answers "may these particular readings be
     shown" and runs the same exclusions as the ranking above. `104` R-135's context
     builder is its caller, so a one-line reading of a neighbouring file was refused
-    there as well."""
+    there as well.
+
+    **It takes `104` §17.13 too, which is why the page is now on the answer.** This
+    function reads no ceiling -- it is the door, not the fill -- so both readings come
+    back and the length bound is the caller's, asserted in the ranked test above.
+
+    That leaves an answer in which everything passes, which would make "runs the same
+    exclusions" an empty claim, so an exclusion §17.13 did not touch is exercised in
+    the same call: P5's per-value signal, which refuses a reading because a human
+    identifier was recognised in it and not because of where the value is going. The
+    order of the two survivors is asserted as well, because "returned in `keys`' own
+    order" is this function's other promise and the page's key is deliberately first.
+    """
     from model_facts import releasable_readings
 
-    file_id, content_hash, line, page, _inner = _corpus(conn, tmp_path)
+    file_id, content_hash, line, page, inner = _corpus(conn, tmp_path)
+    conn.execute(
+        "INSERT INTO extraction_sensitivity_signal "
+        "(run_id, observation_key, signal, basis, observed_at) "
+        "VALUES (?, ?, ?, 'test', ?)",
+        ("run-invoice", inner.observation_key, POTENTIALLY_SENSITIVE, CLOCK))
 
     offered = releasable_readings(
         conn, file_id=file_id, content_hash=content_hash,
-        keys=[page.observation_key, line.observation_key], locality=CLOUD_LOCALITY)
+        keys=[page.observation_key, inner.observation_key,
+              line.observation_key], locality=CLOUD_LOCALITY)
 
-    assert [one.observation_key for one in offered] == [line.observation_key]
+    assert [one.observation_key for one in offered] == [
+        page.observation_key, line.observation_key]
 
 
 # --------------------------------------------------------------------------

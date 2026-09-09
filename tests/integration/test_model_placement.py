@@ -40,7 +40,10 @@ from evidence_shape.text_units import TextUnit
 from llm_harness.budgets import ScanBudget
 from llm_harness.records import EvidenceItem
 from privacy.release import ModelTarget
-from privacy.vocabulary import ALWAYS_LOCAL_ZONES, CLOUD_LOCALITY
+from privacy.vocabulary import (
+    ALWAYS_LOCAL_ZONES, ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET, CLOUD_LOCALITY,
+    RELEASED_TO_EVERY_TARGET,
+)
 
 from model_placement import (
     PLACEMENT_STAGE,
@@ -169,24 +172,33 @@ def _observation(db, *, key: str, zone: str, value: str,
     return observation.observation_key
 
 
-def test_no_always_local_zone_is_ever_offered_to_a_placement_model(db):
+def test_the_always_local_zones_are_offered_exactly_as_the_partition_says(db):
     """The whole point of asking this question at Site C rather than inheriting it.
 
     Placement is about where a file belongs, so the observations that most
     obviously bear on it are the ones naming where it already IS -- and `path`
     and `filename` are the zones §8.4's always-local members 1 and 6 have a route
     out through. The filesystem extractor writes one observation per file whose
-    raw value is the parent directory. Offering it here would send the owner's
-    folder structure to a provider under the name "evidence".
+    raw value is the parent directory.
 
-    **Iterated over `ALWAYS_LOCAL_ZONES` rather than over a list written here**,
-    and `d005418` is why: `ocr` was added to that set on 2026-09-04 as member 3
-    (text Apple Vision read off a scanned identity card), and the comment beside
-    the set says the mapping from the nine kinds of DATA to the fifteen zones is
-    made BY HAND, one member at a time. A test naming its own zones would have
-    gone on passing while the placement path offered OCR text, which is exactly
-    the shape of the defect that commit fixes. This one covers member 4 on the
-    day someone maps it, without being edited.
+    **`104` §17.13 (9 Sep 2026) SPLIT THE ANSWER, so this test asserts the split.**
+    It read: no always-local zone is ever offered to a placement model. The owner
+    ruled `path` and `ocr` shown to either model within the ceiling -- on the measured
+    corpus the folder path was where 20 of 43 labelled coursework files kept their
+    course code, at the one site that is ABOUT where a file belongs -- and left
+    `filename` behind, because §7.7's name has its own door in `items.Filename` under
+    `allow_unratified`, where §7.3's protected-records ban also applies.
+
+    **Iterated over the vocabulary rather than over a list written here**, and
+    `d005418` is why: `ocr` was added to `ALWAYS_LOCAL_ZONES` on 2026-09-04 as member
+    3 (text Apple Vision read off a scanned identity card), and the comment beside the
+    set says the mapping from the nine kinds of DATA to the fifteen zones is made BY
+    HAND, one member at a time. A test naming its own zones would have gone on passing
+    while the placement path offered OCR text, which is the shape of the defect that
+    commit fixed. Since §17.13 that iteration has to walk BOTH halves, so the two
+    published sets are read and their union is asserted to be the whole -- which is
+    how member 4 still reaches this test on the day someone maps it, whichever side of
+    the ruling it is put on.
     """
     always_local = {
         zone: _observation(db, key=f"k-{zone}", zone=zone,
@@ -195,6 +207,10 @@ def test_no_always_local_zone_is_ever_offered_to_a_placement_model(db):
         for zone in sorted(ALWAYS_LOCAL_ZONES)
     }
     assert always_local, "ALWAYS_LOCAL_ZONES is empty; this test proves nothing"
+    assert (RELEASED_TO_EVERY_TARGET | ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET
+            == ALWAYS_LOCAL_ZONES), (
+        "a fourth always-local zone was added without a §17.13 decision, and this "
+        "test would then be silent about it")
     heading = _observation(
         db, key="k-head", zone="heading", value="PHYS1401",
         span=TextSpan(start=0, end=8),
@@ -203,7 +219,11 @@ def test_no_always_local_zone_is_ever_offered_to_a_placement_model(db):
     offered = releasable_excerpts(
         db, evidence_refs=(*always_local.values(), heading), locality=CLOUD_LOCALITY)
 
-    assert [item.observation_key for item in offered] == [heading]
+    keys = {item.observation_key for item in offered}
+    assert keys == {heading} | {always_local[zone]
+                                for zone in RELEASED_TO_EVERY_TARGET}
+    for zone in ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET:
+        assert always_local[zone] not in keys, zone
 
 
 def test_the_span_offered_is_the_observations_own_and_never_a_synthesised_one(db):
@@ -228,28 +248,53 @@ def test_the_span_offered_is_the_observations_own_and_never_a_synthesised_one(db
     assert offered[0].span == TextSpan(start=17, end=25)
 
 
-def test_an_observation_covering_its_whole_unit_is_refused_before_the_spend(db):
-    """§8.4's own sentence, applied where it costs nothing to apply it.
+def test_an_observation_covering_its_whole_unit_is_offered_and_the_ceiling_refuses(
+        db):
+    """§8.4's own sentence, and `104` §17.13 moved which word carries it.
 
-    "should not send full documents where a short heading or OCR excerpt is
-    enough". The gate refuses this too, with `whole_document_requested` -- but it
-    refuses AFTER the text has been materialised and after the release was minted,
-    so leaving it to the door means paying to build a document in order to say no
-    to it.
+    It read: "should not send full documents where a short heading or OCR excerpt is
+    enough", refused HERE rather than at the door, because the gate refuses AFTER the
+    text has been materialised and the release minted -- so leaving it to the door
+    means paying to build a document in order to say no to it.
 
-    THE UNIT GAINED ITS LINE BREAKS FOR `104` R-152. It was `"the whole thing"` --
-    fifteen characters on one line -- and that is now released, because a unit holding
-    no line break is a LINE and §8.4 names a short excerpt as what to send instead of a
-    document. A control built from one was pinning the refusal R-152 measured as a
-    coverage loss: 47 gate denials at r13, 36 of them the whole of a site-A call, on
-    units under 200 characters. What this test is about is the DOCUMENT, so it uses one.
+    §17.13 ruled a whole text unit shown to either model WITHIN THE CEILING, so
+    covering a unit is no longer what makes a reading a document. Being longer than
+    P1's stored ceiling is, and `releasable_excerpts` reads no ceiling: it is the
+    zone-and-signal door, and the length is spent by the fill and refused by
+    `items.check_item`.
+
+    So the test follows its sentence to where the sentence now lives. The same
+    Excerpt this door hands back is refused by `check_item` under a ceiling one
+    character short of the unit and admitted under one that fits, both read off the
+    document rather than typed beside it.
+
+    THE UNIT KEEPS ITS LINE BREAKS AND THE REASON HAS EXPIRED. `104` R-152 gave them:
+    the unit was `"the whole thing"`, fifteen characters on one line, and a unit
+    holding no line break became a LINE and was released. Every unit is released now
+    and the distinction decides nothing here.
     """
+    from privacy.items import WholeDocumentRequested, check_item
+
     document = "the whole thing\nand a second line of it\nand a third"
     whole = _observation(
         db, key="k-all", zone="body", value=document,
         span=TextSpan(start=0, end=len(document)), unit_text=document)
 
-    assert releasable_excerpts(db, evidence_refs=(whole,), locality=CLOUD_LOCALITY) == ()
+    excerpt, = releasable_excerpts(db, evidence_refs=(whole,),
+                                   locality=CLOUD_LOCALITY)
+    assert excerpt.observation_key == whole
+
+    def at_ceiling(ceiling):
+        return check_item(
+            excerpt, unit_length=len(document), zone="body", protected=False,
+            sensitive_keys=frozenset(), allow_unratified=True,
+            suspension_permits_self_description=False, locality=CLOUD_LOCALITY,
+            ceiling=ceiling)
+
+    with pytest.raises(WholeDocumentRequested) as caught:
+        at_ceiling(len(document) - 1)
+    assert "full documents" in str(caught.value)
+    assert at_ceiling(len(document)) is None
 
 
 def test_a_placement_request_names_the_placement_stage_and_this_file_only(db):
