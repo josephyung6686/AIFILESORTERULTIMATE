@@ -15,7 +15,7 @@ from eval_harness.stage_output import (
 
 from placement import vocabulary as v
 from placement.records import ConflictConsidered
-from placement.retrieval import Candidate, Retrieval
+from placement.retrieval import Candidate, PRODUCED_CHANNELS, Retrieval
 from placement.stage_output import emit_retrieval_stage, emit_scoring_stage
 from p11.conftest import (  # noqa: F401  -- fixtures, bound into this module
     FIXED_CLOCK, p11_conn, p11_version_tuple, p2_run_id,
@@ -28,7 +28,8 @@ def a_retrieval():
     """One candidate set, keyed on the same subject the decision below uses."""
     return Retrieval(subject_ref="file:f1:h1", plan_version="plan-1",
                      candidates=(), conflicts=(),
-                     semantic_only_node_ids=frozenset())
+                     semantic_only_node_ids=frozenset(),
+                     producible_channels=PRODUCED_CHANNELS)
 
 
 @pytest.fixture
@@ -46,7 +47,8 @@ def a_full_retrieval():
         conflicts=(ConflictConsidered(
             kind="contradicted_expected_value", conflicting_value="PHYS1402",
             suppressed_node_ids=("n-course-alt",), evidence_ref="obs-1"),),
-        semantic_only_node_ids=frozenset({"n-general"}))
+        semantic_only_node_ids=frozenset({"n-general"}),
+        producible_channels=PRODUCED_CHANNELS)
 
 
 def test_a_placement_stage_round_trips_with_its_dimension(p11_conn, p2_run_id,

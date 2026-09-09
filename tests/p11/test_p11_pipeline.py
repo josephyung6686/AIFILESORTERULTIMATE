@@ -54,11 +54,16 @@ from p11.conftest import FIXED_CLOCK
 from p11.p10_fixtures import FROZEN_TREE
 from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
-#: 0.50 sits ABOVE a direct fact alone (3/7 = 0.4286) and BELOW a direct fact plus
-#: an accepted group (5/7 = 0.7143). Both halves are asserted below, so a threshold
-#: moved out of that band fails loudly instead of turning every placement into an
-#: abstention.
-POLICY = SupportPolicy(policy_id="skeleton-v1", support_scale_max=1.0,
+#: 0.50 sits BELOW a direct fact alone (3/5 = 0.6) and ABOVE an accepted group
+#: alone (2/5 = 0.4). Both halves are asserted below, so a threshold moved out of
+#: that band fails loudly instead of turning every placement into an abstention.
+#:
+#: **THE BAND MOVED WITH `104` §18.2 GAP 13 AND THE NUMBER DID NOT.** It used to
+#: read "ABOVE a direct fact alone (3/7 = 0.4286)", which is the defect stated as
+#: an intention: the scorer divided by all four deciding weights while retrieval
+#: produced two of them, so facts alone could not place and `00`:110's unique
+#: direct match needed a group membership to be reachable at all.
+POLICY = SupportPolicy(policy_id="skeleton-v2", support_scale_max=1.0,
                        minimum_support_threshold=0.5, margin_threshold=0.2)
 
 OBS = observation_key(content_hash="h1", extractor_name="fixture",
@@ -68,10 +73,12 @@ SUBJECT = Subject(kind=v.FILE, file_id="f1", content_hash="h1", group_id=None,
                   member_file_ids=())
 
 #: The evidence that makes the skeleton place, and the arithmetic that makes it
-#: place. `assess` normalises by `_MAX_WEIGHT = 3 + 2 + 1 + 1 = 7`:
+#: place. `assess` normalises by `producible_weight(PRODUCED_CHANNELS)` -- the
+#: weights of the channels retrieval can actually produce, `3 + 2 = 5` -- and not
+#: by the four-channel constant `104` §18.2 gap 13 removed:
 #:
-#:   n-course        direct_fact(3) + accepted_group(2) = 5/7 = 0.7143
-#:   n-course-shared                  accepted_group(2) = 2/7 = 0.2857
+#:   n-course        direct_fact(3) + accepted_group(2) = 5/5 = 1.0
+#:   n-course-shared                  accepted_group(2) = 2/5 = 0.4
 #:   n-course-alt    expects subject = PHYS1402, which contradicts the file's
 #:                   PHYS1401, so retrieval SUPPRESSES it -- a conflict, not a
 #:                   candidate, and it populates `conflicts_considered`.
@@ -268,8 +275,9 @@ def test_the_skeletons_margin_is_measured_and_never_vacuous(skeleton):
     decision = _place(skeleton)
     two = decision.two_condition
     assert two.meets_margin == v.MARGIN_TRUE          # measured, not true_vacuous
-    assert two.margin_over_next == pytest.approx(3 / 7)   # 5/7 - 2/7
-    assert two.support_score == pytest.approx(5 / 7)
+    assert two.margin_over_next == 0.6                # (5 - 2) / 5, exactly
+    assert two.support_score == 1.0                   # 5/5: all the support
+                                                      # this run can produce
     assert two.meets_threshold is True
     assert [a.node_id for a in decision.alternatives] == [
         "n-course", "n-course-shared"]
@@ -279,13 +287,56 @@ def test_the_skeletons_margin_is_measured_and_never_vacuous(skeleton):
                               for node in conflict.suppressed_node_ids}
 
 
-def test_the_direct_fact_alone_does_not_clear_the_threshold(skeleton):
-    # The other half of the arithmetic, asserted rather than assumed. A threshold
-    # the strongest available evidence cannot reach would make every placement in
-    # this part unreachable, and this test is what would catch it.
+def test_the_direct_fact_alone_clears_the_threshold_and_places(skeleton):
+    """`104` §18.2 GAP 13, AND THIS TEST USED TO ASSERT THE DEFECT.
+
+    It was `test_the_direct_fact_alone_does_not_clear_the_threshold`, and what it
+    pinned was arithmetic nobody chose: `assess` divided by the sum of all four
+    deciding weights (7) while `placement/retrieval.py` produced two of them, so a
+    file whose validated facts matched exactly one frozen path scored 3/7 = 0.429
+    against a 0.50 bar and abstained. `00`:110 -- "if a file's validated facts
+    uniquely match one frozen path, deterministic matching is faster, cheaper and
+    more stable" -- was unreachable without an accepted group the file had no
+    reason to have, and the screen read "not yet placed" for the strongest
+    evidence this product collects.
+
+    Normalised over the channels retrieval declares it produces the same evidence
+    is 3/5 = 0.6, above the same unmoved 0.50, and the file places on its facts as
+    a direct match with no model call. The two-condition record is unchanged in
+    shape: the threshold is still 0.50, still recorded, still binding on the
+    accepted-group-alone case the test below keeps.
+
+    SABOTAGE: restore the denominator to the sum of all four weights (7) -- this
+    file scores 0.4286, `meets_threshold` goes False, the outcome goes back to
+    `abstain`, and `unique_direct_match` is unreachable again.
+    """
     decision = _place(skeleton, evidence=_evidence())
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-course"
+    assert decision.two_condition.support_score == 0.6
+    assert decision.two_condition.meets_threshold is True
+    assert decision.confidence_class == v.EXACT_FACT_MATCH
+
+
+def test_an_accepted_group_alone_still_does_not_clear_the_threshold(skeleton):
+    """The other half of the arithmetic, and the half that keeps the bar a bar.
+
+    `104` §18.2 gap 13 raised the whole producible scale, so a test that only
+    proved facts now place would be satisfied by a denominator of 3 -- or of 1 --
+    which would place everything. What holds the derivation honest is that group
+    membership WITHOUT a fact is 2/5 = 0.4 and still falls short: the weights'
+    relative order (`direct fact > accepted group`) is expressed in the outcome
+    and not only in the numerator, which is the first time it ever has been.
+
+    SABOTAGE: derive the denominator from the DECIDING channels a candidate
+    happens to carry rather than from what the retrieval can produce -- this file
+    scores 2/2 = 1.0 and an accepted group with no fact anywhere places
+    automatically.
+    """
+    decision = _place(skeleton, evidence=_evidence(facts=(),
+                                                   group_ids=("g-shared",)))
     assert decision.outcome == v.ABSTAIN
-    assert decision.two_condition.support_score == pytest.approx(3 / 7)
+    assert decision.two_condition.support_score == 0.4
     assert decision.two_condition.meets_threshold is False
 
 
@@ -297,24 +348,36 @@ def test_a_mathematical_looking_file_never_produces_math_stuff(skeleton):
     assert decision.abstention_reason == v.NO_SUPPORTED_DESTINATION
 
 
-#: A policy whose support threshold two candidates can clear at once. The
-#: fixture's own POLICY sits at 0.50, above every score `FROZEN_TREE` can
-#: produce, so "more than one home cleared it" is unreachable there -- and a
-#: sentence about two homes cannot be tested against a tree where one is
-#: arithmetically impossible.
-TWO_HOMES_POLICY = SupportPolicy(policy_id="two-homes-v1", support_scale_max=1.0,
+#: A policy under which two of this tree's candidates clear the support bar AND
+#: neither clears the margin. Both halves have to be arranged, because a sentence
+#: about two homes cannot be tested against a tree where one is arithmetically
+#: impossible.
+#:
+#: **BOTH NUMBERS ARE THE FIXTURE'S AND `104` §18.2 GAP 13 MOVED THE SECOND ONE.**
+#: Before gap 13 only the threshold needed lowering: every score was over seven,
+#: `n-course` reached 3/7 = 0.4286 and `n-course-shared` 2/7 = 0.2857, so 0.25
+#: admitted both and their 1/7 = 0.1429 gap failed the 0.2 margin on its own. On
+#: the producible scale the same two are 0.6 and 0.4 and the gap is exactly 0.2,
+#: which CLEARS a 0.2 margin -- gap 13 working, and the reason `n-course` now
+#: places on its facts. So the margin is the number that moves here: at 0.3 the
+#: same pair is two supported homes the evidence does not separate, which is the
+#: state the sentence under test is about. The threshold stays at 0.25 so that
+#: `n-course-shared` is a SUPPORTED home rather than a rival nothing backs --
+#: that distinction is the whole point of `multiple_supported_homes` against
+#: `low_margin`.
+TWO_HOMES_POLICY = SupportPolicy(policy_id="two-homes-v2", support_scale_max=1.0,
                                  minimum_support_threshold=0.25,
-                                 margin_threshold=0.2)
+                                 margin_threshold=0.3)
 
 
 def test_a_file_with_two_supported_homes_is_told_it_has_two_homes(skeleton):
     """§3a of `planning/59-FINAL-UX-EVALUATION.md`, in the sentence the user reads.
 
-    The direct fact reaches `n-course` (3/7) and the accepted group reaches
-    `n-course-shared` (2/7). Both clear 0.25 on their own; the margin between
-    them is 1/7, inside the 0.2 band. Nothing moves -- and the record says why in
-    the person's terms, naming the destinations rather than complaining about the
-    evidence that produced them.
+    The direct fact reaches `n-course` (3/5 = 0.6) and the accepted group reaches
+    `n-course-shared` (2/5 = 0.4). Both clear 0.25 on their own; the margin
+    between them is 0.2, inside `TWO_HOMES_POLICY`'s 0.3 band. Nothing moves --
+    and the record says why in the person's terms, naming the destinations rather
+    than complaining about the evidence that produced them.
     """
     decision = _place(skeleton,
                       inputs=_inputs(skeleton, policy=TWO_HOMES_POLICY),
@@ -408,8 +471,11 @@ def test_one_unclassified_file_does_not_refuse_the_corpus_it_arrived_in(skeleton
     result = run_corpus(
         skeleton, subjects=(SUBJECT, unknown), group_ids=(),
         inputs=_inputs(skeleton, partition=_partition),
-        evidence_for=lambda file_id: _evidence(
-            group_ids=PLACING_GROUPS if file_id == "f1" else ()),
+        # f1 places on the full producible support; every group member gets the
+        # ambiguous shape so §7 has something left to surface.
+        evidence_for=lambda file_id: (
+            _evidence(group_ids=PLACING_GROUPS) if file_id == "f1"
+            else _evidence(**AMBIGUOUS)),
         component_version="P11-test", observed_at=FIXED_CLOCK)
 
     by_file = {d.subject.file_id: d for d in result.decisions}
@@ -565,13 +631,26 @@ def _model_inputs(conn, **overrides):
     return _inputs(conn, **values)
 
 
-#: A bounded ambiguity, in the arithmetic. The direct fact reaches n-course
-#: (3/7 = 0.4286, BELOW the 0.50 threshold), the accepted group reaches
-#: n-course-shared (2/7 = 0.2857) and the semantic channel reaches n-general
-#: (0/7). No candidate clears the threshold and the margin is 1/7 = 0.1429,
-#: inside the 0.20 band -- so `unique_direct_match` is False, `needs_model_call`
-#: is True, and the deterministic answer alone would be `low_margin`.
-AMBIGUOUS = dict(group_ids=("g-shared",), semantic_neighbours=("n-general",))
+#: A bounded ambiguity, in the arithmetic. TWO accepted groups reach two
+#: different nodes -- `g-phys1401` reaches `n-course` and `g-shared` reaches
+#: `n-course-shared`, both 2/5 = 0.4 -- and the semantic channel reaches
+#: `n-general` (0). Neither clears the 0.50 threshold, the margin between them is
+#: exactly 0.0, and so `unique_direct_match` is False, `needs_model_call` is True,
+#: and the deterministic answer alone would be `low_margin`.
+#:
+#: **IT USED TO BE A DIRECT FACT AGAINST AN ACCEPTED GROUP, and `104` §18.2 gap
+#: 13 is why it cannot be any more.** Over the old denominator of seven that pair
+#: was 0.4286 against 0.2857: neither cleared 0.50 and their 0.1429 gap was inside
+#: the margin, so it read as ambiguous. It was never ambiguity -- it was a scale
+#: that put the strongest evidence this product collects below its own bar. On
+#: the producible scale the same pair is 0.6 against 0.4, the direct match wins by
+#: exactly the margin, and asking a model about it would be the round trip §6.6
+#: forbids. Genuine ambiguity is two candidates the evidence reaches EQUALLY, so
+#: that is what this fixture now is. No fact is stated, which is also truer to the
+#: case the model path exists for: `00`:110 calls a model in when a file "is an
+#: accepted context member but lacks a key branch-level fact".
+AMBIGUOUS = dict(facts=(), group_ids=("g-phys1401", "g-shared"),
+                 semantic_neighbours=("n-general",))
 
 
 def test_the_model_path_is_reached_when_the_deterministic_one_is_ambiguous(
@@ -1026,8 +1105,11 @@ def test_run_corpus_places_groups_before_files_and_surfaces_the_rest(skeleton):
     result = run_corpus(
         skeleton, subjects=(SUBJECT,), group_ids=(group_id,),
         inputs=_inputs(skeleton, partition=_partition),
-        evidence_for=lambda file_id: _evidence(
-            group_ids=PLACING_GROUPS if file_id == "f1" else ()),
+        # f1 places on the full producible support; every group member gets the
+        # ambiguous shape so §7 has something left to surface.
+        evidence_for=lambda file_id: (
+            _evidence(group_ids=PLACING_GROUPS) if file_id == "f1"
+            else _evidence(**AMBIGUOUS)),
         component_version="P11-test", observed_at=FIXED_CLOCK)
 
     # §6.8 ran: one plan, and the outlier P9 flagged is excluded and explained.
@@ -1072,9 +1154,16 @@ def test_the_group_plan_is_persisted_and_not_only_returned(skeleton):
 def _corpus(conn, **overrides):
     from placement.pipeline import run_corpus
 
+    # `AMBIGUOUS` AND NOT THE PLAIN FACT, and `104` §18.2 gap 13 is why. This
+    # helper exists for the §7 residual pass, which needs a file §6 did NOT place;
+    # the default evidence was a direct fact alone, which used to score 3/7 = 0.429
+    # against a 0.50 bar and abstain. It now scores 0.6 and places -- correctly --
+    # so every test below it was reading an empty residual set. `AMBIGUOUS` is the
+    # shape that still cannot be settled deterministically: two accepted groups
+    # reaching two nodes, tied at 0.4, neither supported.
     kwargs = dict(subjects=(SUBJECT,), group_ids=(),
                   inputs=_inputs(conn, partition=_partition),
-                  evidence_for=lambda file_id: _evidence(),
+                  evidence_for=lambda file_id: _evidence(**AMBIGUOUS),
                   component_version="P11-test", observed_at=FIXED_CLOCK)
     kwargs.update(overrides)
     return run_corpus(conn, **kwargs)
@@ -1093,7 +1182,7 @@ def _review(conn, result, **overrides):
     from placement.pipeline import review_residual_sets
 
     kwargs = dict(result=result, inputs=_model_inputs(conn, partition=_partition),
-                  evidence_for=lambda file_id: _evidence(),
+                  evidence_for=lambda file_id: _evidence(**AMBIGUOUS),
                   component_version="P11-test", observed_at=FIXED_CLOCK)
     kwargs.update(overrides)
     return review_residual_sets(conn, **kwargs)
@@ -1401,11 +1490,36 @@ def test_half_a_p2_injection_refuses_rather_than_silently_skipping(skeleton,
 # --- §6.9: a file with two accepted homes ------------------------------------------
 
 
-def _second_group(conn, *, group_id, file_ids):
+def _protect(conn, *, file_id, content_hash):
+    """P7 says this file is protected, SUPERSEDING what the fixture already said.
+
+    `_second_group` classifies every member `personal_non_sensitive`, and a second
+    live record for one `(file_id, content_hash)` is `AmbiguousCurrentClassification`
+    -- P7's own refusal to hold two current answers about one file (§8.2). So the
+    later record supersedes the earlier one, which is how P7 changes its mind
+    everywhere else too.
+    """
+    store = ClassificationStore(conn)
+    was = store.current_fact_id(file_id, content_hash)
+    now = store.write(ClassificationRecord(
+        file_id=file_id, content_hash=content_hash,
+        handling_class="sensitive_personal", protected=True,
+        basis="detector", evidence_refs=(OBS,), reliability_state="direct",
+        observed_at=FIXED_CLOCK))
+    if was is not None:
+        store.supersede(was, now, "P7 re-read this file and it is protected")
+
+
+def _second_group(conn, *, group_id, file_ids, hash_of=lambda fid: f"h-{fid}"):
     """A second ACCEPTED P9 group, written through P9's own writers.
 
     Nothing here is a stand-in: `group_state_as_of` and `memberships_for_group`
     read these rows, and `place_group` calls both.
+
+    `hash_of` exists because one caller needs a member that is a REAL P1 file:
+    `may_move_automatically` resolves a protected file's content hash BY FILE ID
+    out of the `files` table, so a synthesized id has no row and the protected
+    branch cannot run at all. Everything else keeps the synthetic `h-<file_id>`.
     """
     from facts.states import VALIDATED
     from grouping.acceptance import record_acceptance
@@ -1440,7 +1554,8 @@ def _second_group(conn, *, group_id, file_ids):
     for file_id in file_ids:
         record_membership(conn, Membership(
             membership_id=f"m-{group_id}-{file_id}", group_id=group_id,
-            file_id=file_id, content_hash=f"h-{file_id}", basis=DIRECT_ANCHOR,
+            file_id=file_id, content_hash=hash_of(file_id),
+            basis=DIRECT_ANCHOR,
             decision=INCLUDED, decision_source=RULES,
             support=(Support(support_kind=SHARED_VALIDATED_FACT,
                              observation_key=f"obs-{file_id}",
@@ -1449,7 +1564,7 @@ def _second_group(conn, *, group_id, file_ids):
             insufficient_evidence=False, insufficiency_statement=None,
             conflicts=(), outlier_flag=NOT_FLAGGED,
             validation_verdict_ref=None, created_at=FIXED_CLOCK))
-        _classify(conn, file_id=file_id, content_hash=f"h-{file_id}")
+        _classify(conn, file_id=file_id, content_hash=hash_of(file_id))
     record_acceptance(conn, GroupAcceptance(
         acceptance_id=f"acc-{group_id}", plan_version_id="plan-1",
         group_id=group_id, membership_id=None, acceptance=ACCEPTED,
@@ -1462,23 +1577,33 @@ def _second_group(conn, *, group_id, file_ids):
 #: PHYS1402 and reach `n-course-alt`, which suppresses `n-course` as a conflict.
 #: So the two packets settle on DIFFERENT shared parents, which is what makes the
 #: file that belongs to both a genuine §6.9 case rather than an agreement.
-def _two_home_evidence(file_id):
-    if file_id in ("f-duke-x", "f-shared"):
-        return _evidence(
-            facts=(MatchingFact(file_fact_id="ff2", field="subject",
-                                value="PHYS1402", reliability=v.DIRECT,
-                                evidence_ref=OBS),),
-            group_ids=("g-phys1402",))
-    return _evidence(group_ids=("g-phys1401",))
+#: The file that belongs to both packets. A pair, because one caller replaces it
+#: with a real P1 file (see `_second_group`'s `hash_of`).
+SHARED = ("f-shared", "h-f-shared")
 
 
-def _two_homes(conn, tree=None):
+def _two_home_evidence_for(shared_file_id):
+    def _evidence_for(file_id):
+        if file_id in ("f-duke-x", shared_file_id):
+            return _evidence(
+                facts=(MatchingFact(file_fact_id="ff2", field="subject",
+                                    value="PHYS1402", reliability=v.DIRECT,
+                                    evidence_ref=OBS),),
+                group_ids=("g-phys1402",))
+        return _evidence(group_ids=("g-phys1401",))
+    return _evidence_for
+
+
+def _two_homes(conn, tree=None, shared=SHARED):
     from placement.pipeline import run_corpus
 
+    shared_file_id, shared_hash = shared
     group_a = _seeded(conn)
     _second_group(conn, group_id="g-phys1402-packet",
-                  file_ids=("f-duke-x", "f-shared"))
-    # `f-shared` joins group A too, so it has accepted membership in both.
+                  file_ids=("f-duke-x", shared_file_id),
+                  hash_of=lambda fid: (shared_hash if fid == shared_file_id
+                                       else f"h-{fid}"))
+    # The shared file joins group A too, so it has accepted membership in both.
     from grouping.records import Membership, Support
     from grouping.store import record_membership
     from grouping.vocabulary import (
@@ -1486,11 +1611,11 @@ def _two_homes(conn, tree=None):
     )
 
     record_membership(conn, Membership(
-        membership_id="m-columbia-f-shared", group_id=group_a,
-        file_id="f-shared", content_hash="h-f-shared", basis=DIRECT_ANCHOR,
+        membership_id=f"m-columbia-{shared_file_id}", group_id=group_a,
+        file_id=shared_file_id, content_hash=shared_hash, basis=DIRECT_ANCHOR,
         decision=INCLUDED, decision_source=RULES,
         support=(Support(support_kind=SHARED_VALIDATED_FACT,
-                         observation_key="obs-f-shared",
+                         observation_key=f"obs-{shared_file_id}",
                          quote_or_field="target_school", location="body",
                          edge_ref=None),),
         insufficient_evidence=False, insufficiency_statement=None,
@@ -1502,12 +1627,12 @@ def _two_homes(conn, tree=None):
         inputs = dataclasses.replace(inputs, tree=tree)
     return run_corpus(
         conn, subjects=(), group_ids=(group_a, "g-phys1402-packet"),
-        inputs=inputs, evidence_for=_two_home_evidence,
+        inputs=inputs, evidence_for=_two_home_evidence_for(shared_file_id),
         component_version="P11-test", observed_at=FIXED_CLOCK)
 
 
-def _multi_home(result):
-    return next(d for d in result.decisions if d.subject.file_id == "f-shared")
+def _multi_home(result, file_id=SHARED[0]):
+    return next(d for d in result.decisions if d.subject.file_id == file_id)
 
 
 def test_the_two_packets_really_do_settle_on_different_parents(skeleton):
@@ -1545,7 +1670,7 @@ def test_the_user_can_be_asked_which_packet_is_the_primary_home(skeleton):
     assert set(decision.ask.options) == {"n-course", "n-course-alt"}
 
 
-def _two_homes_asking(conn):
+def _two_homes_asking(conn, shared=SHARED):
     """The same corpus under the asking selector. A second run supersedes the
     first decision about each subject, which is §8.2's own rule."""
     from placement.pipeline import run_corpus
@@ -1555,13 +1680,101 @@ def _two_homes_asking(conn):
     # same label in one version collides on the primary key. Reported as a gap;
     # it is `residual.py`'s address to change, not this test's to work around
     # silently.
+    # THE SAME SHAPE THE COMPOSITION ROOT WIRES since `104` §18.2 gap 15 --
+    # `cli._ask_when_there_are_two_homes_to_offer` -- rather than an
+    # unconditional yes, so this fixture and the deployment cannot drift apart on
+    # the one condition that decides whether a question is legal at all.
     inputs = _inputs(conn,
                      partition=lambda ids: _partition(ids, label="Asked"),
-                     ask_or_abstain=lambda ids: v.ASK_USER)
+                     ask_or_abstain=lambda ids: (
+                         v.ASK_USER if len(tuple(ids)) >= 2 else v.ABSTAIN))
     return run_corpus(
         conn, subjects=(), group_ids=("g-columbia", "g-phys1402-packet"),
-        inputs=inputs, evidence_for=_two_home_evidence,
+        inputs=inputs, evidence_for=_two_home_evidence_for(shared[0]),
         component_version="P11-test", observed_at="2026-08-27T01:00:00Z")
+
+
+def test_the_two_homes_question_reaches_the_review_surface_as_a_question(skeleton):
+    """`104` §18.2 GAP 15: the Ask is emitted into the review screen, with its evidence.
+
+    The gap was never that the record did not exist. `placement/records.py` has
+    required two options for an `Ask` since it was written, `_multi_home_decision`
+    has minted one since it was written, and `review_surface.items` has rendered
+    `ask_user_state` since it was written. What did not exist was a caller that
+    ever returned `ask_user`: the composition root wired
+    `lambda node_ids: pv.ABSTAIN`, so a file in two packets was told "the files
+    these belong with are spread out" -- a sentence about missing evidence, over a
+    file with more evidence than most.
+
+    So this runs the corpus under `cli._ask_when_there_are_two_homes_to_offer`'s
+    own contract and follows the decision all the way to the projection a person
+    reads: the render state is the question's, the two packets ARE the options,
+    and the alternatives and explanation ride along so the screen can say why each
+    one fits. Nothing moves and nothing is chosen -- `resolve_multi_home` has no
+    branch that returns a competing packet -- which is the difference between
+    asking somebody and deciding for them.
+
+    SABOTAGE: return `v.ABSTAIN` from the injected selector -- the render state
+    goes back to `abstention_state`, `ask` is None, and the person sees a file
+    with no home instead of a file with two.
+    """
+    from review_surface.items import RENDER_ASK, render_state_for
+
+    # `_two_homes` seeds the two packets; `_two_homes_asking` re-runs the same
+    # corpus under the asking selector, superseding the first decision (§8.2).
+    _two_homes(skeleton)
+    decision = _multi_home(_two_homes_asking(skeleton))
+    assert decision.outcome == v.ASK_USER
+    assert decision.ask is not None
+    assert set(decision.ask.options) == {"n-course", "n-course-alt"}
+    assert len(decision.ask.options) >= 2
+    # The screen's own record: this is what a review surface renders, and it is
+    # the state `ask_user` has of its own rather than an abstention's.
+    assert render_state_for(decision) == RENDER_ASK
+    # An `ask_user` carries no abstention reason -- the record enforces it -- so
+    # the reason a file was not placed can never read as the reason it was asked.
+    assert decision.abstention_reason is None
+    assert decision.destination is None
+    # And the evidence for each: the explanation names the competition rather than
+    # complaining about the readings that produced it.
+    assert "more than one packet" in decision.explanation
+
+
+def test_a_protected_file_in_two_packets_is_never_turned_into_a_question(
+        skeleton, tmp_path):
+    """The second lock, and `104` §18.2 gap 15 is what made it necessary.
+
+    `_asking` refuses outright to build an `ask_user` for protected material and
+    says why: a review surface LISTS what it holds, and `00`:201 says a visible
+    list of protected specifics may not be safe to have on a screen somebody else
+    can see. `_multi_home_decision` mints its own `Ask` without going through
+    `_asking`, and the injected selector is handed node ids and nothing else -- so
+    it cannot tell a passport from a transcript. Before gap 15 that did not matter
+    because the selector always abstained; the moment it asks, it does.
+
+    The answer is §6.9's own abstention rather than a traceback: nothing is broken
+    when a protected file turns out to belong to two packets, and the file is not
+    lost by it -- `_protected_among` puts it in the protected review set before any
+    reason is read, so it is still named and still counted. What does not happen is
+    an `Ask` naming two packets beside a passport scan.
+
+    SABOTAGE: pass `inputs.ask_or_abstain` straight through regardless of
+    `privacy.protected` -- this decision comes back `ask_user` carrying an `Ask`
+    whose options are the two packets, and the protected file's competing homes
+    are printed on a screen.
+    """
+    # A REAL P1 file, because the protected branch resolves the content hash by
+    # file id out of the `files` table (`privacy.moves.may_move_automatically`)
+    # and a synthesized id has no row to resolve.
+    shared = _real_file(skeleton, tmp_path / "packets", name="passport.pdf")
+    _two_homes(skeleton, shared=shared)
+    _protect(skeleton, file_id=shared[0], content_hash=shared[1])
+    decision = _multi_home(_two_homes_asking(skeleton, shared=shared),
+                           file_id=shared[0])
+    assert decision.outcome == v.ABSTAIN
+    assert decision.ask is None
+    assert decision.abstention_reason == v.NO_SHARED_BRANCH
+    assert decision.privacy.protected is True
 
 
 def test_a_shared_branch_takes_the_file_and_the_packets_still_do_not(skeleton):
@@ -2276,7 +2489,12 @@ def test_r17_an_accepted_group_arrives_as_an_item_of_its_own(skeleton,
     _place(skeleton, inputs=_model_inputs(skeleton),
            evidence=_evidence(**AMBIGUOUS))
     groups = _items_of(seen, "accepted_group")
-    assert set(groups) == {"g-shared"}
+    # BOTH of `AMBIGUOUS`'s groups, because since `104` §18.2 gap 13 the fixture's
+    # ambiguity IS two accepted groups reaching two nodes -- a direct fact against
+    # a group is no longer a close thing. The rule under test is unchanged: each
+    # accepted group arrives as an item of its own rather than being folded into
+    # the candidate that carries it.
+    assert set(groups) == {"g-phys1401", "g-shared"}
     assert "accepted" in groups["g-shared"]
 
 
@@ -2410,7 +2628,7 @@ def test_a_file_with_no_settled_fact_abstains_instead_of_ending_the_run(
                         lambda *_a, **_k: pytest.fail(
                             "a file with nothing to send is not asked"))
     decision = _place(skeleton, inputs=_model_inputs(skeleton),
-                      evidence=_evidence(**AMBIGUOUS, facts=(), evidence_items=()))
+                      evidence=_evidence(**AMBIGUOUS, evidence_items=()))
 
     assert decision is not None
 
@@ -2431,7 +2649,7 @@ def test_the_file_that_is_not_asked_records_why_in_p8s_own_row(skeleton,
     monkeypatch.setattr(pipeline, "call_placement",
                         lambda *_a, **_k: pytest.fail("not asked"))
     _place(skeleton, inputs=_model_inputs(skeleton),
-           evidence=_evidence(**AMBIGUOUS, facts=(), evidence_items=()))
+           evidence=_evidence(**AMBIGUOUS, evidence_items=()))
 
     # P8's vocabulary, from P8. `placement.vocabulary` is §6.10's closed set and
     # this word is deliberately not a member of it.
@@ -2461,7 +2679,7 @@ def test_the_file_that_is_not_asked_reserves_no_budget(skeleton, monkeypatch):
     monkeypatch.setattr(pipeline, "call_placement",
                         lambda *_a, **_k: pytest.fail("not asked"))
     _place(skeleton, inputs=_model_inputs(skeleton),
-           evidence=_evidence(**AMBIGUOUS, facts=(), evidence_items=()))
+           evidence=_evidence(**AMBIGUOUS, evidence_items=()))
 
     reserved = list(skeleton.execute("SELECT * FROM llm_budget_reservation"))
     assert reserved == []
@@ -2489,7 +2707,7 @@ def test_the_next_file_is_still_judged_after_one_is_not_asked(skeleton,
 
     first = _place(skeleton, inputs=inputs, evidence=_evidence(**AMBIGUOUS))
     middle = _place(skeleton, inputs=inputs,
-                    evidence=_evidence(**AMBIGUOUS, facts=(),
+                    evidence=_evidence(**AMBIGUOUS,
                                        evidence_items=()))
     third = _place(skeleton, inputs=inputs, evidence=_evidence(**AMBIGUOUS))
 
@@ -2534,7 +2752,7 @@ def test_a_subject_with_no_matching_fact_is_asked_on_the_items_it_does_carry(
 
     monkeypatch.setattr(pipeline, "call_placement", judge)
     decision = _place(skeleton, inputs=_model_inputs(skeleton),
-                      evidence=_evidence(**AMBIGUOUS, facts=()))
+                      evidence=_evidence(**AMBIGUOUS))
 
     assert decision is not None
     assert seen["snapshot"], "a dossier whose items carry addresses is minted one"
@@ -2565,7 +2783,7 @@ def test_the_snapshot_addresses_the_items_and_not_the_facts(skeleton,
     inputs = _model_inputs(skeleton)
 
     _place(skeleton, inputs=inputs, evidence=_evidence(**AMBIGUOUS))
-    _place(skeleton, inputs=inputs, evidence=_evidence(**AMBIGUOUS, facts=()))
+    _place(skeleton, inputs=inputs, evidence=_evidence(**AMBIGUOUS))
 
     assert len(minted) == 2
     assert minted[0] == minted[1]
@@ -2585,7 +2803,7 @@ def test_the_next_file_is_judged_after_one_carries_no_matching_fact(
                         lambda *_a, **_k: (asked.append("call"), _verdict())[1])
     inputs = _model_inputs(skeleton)
     middle = _place(skeleton, inputs=inputs,
-                    evidence=_evidence(**AMBIGUOUS, facts=()))
+                    evidence=_evidence(**AMBIGUOUS))
     third = _place(skeleton, inputs=inputs, evidence=_evidence(**AMBIGUOUS))
 
     assert middle is not None and third is not None

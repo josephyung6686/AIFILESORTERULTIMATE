@@ -373,13 +373,36 @@ COMPONENT_VERSION: str = "cli-0.1.0"
 
 #: §6.10's two conditions. SPEC Open questions 1 and 2 leave BOTH the thresholds
 #: and the scale open, so these are declared here rather than derived: 1.0 as the
-#: scale because the scorer's weights already sum to it, 0.50 as the support bar
-#: because that is the band a direct fact alone (3/7) falls below and a direct fact
-#: plus an accepted group (5/7) clears, and 0.20 as the margin. A run under these
-#: is auditable because `policy_id` travels on every decision -- change a number
-#: and change the id with it, or a replay silently compares two different rules.
+#: scale, 0.50 as the support bar, and 0.20 as the margin. A run under these is
+#: auditable because `policy_id` travels on every decision -- change a number and
+#: change the id with it, or a replay silently compares two different rules.
+#:
+#: **THE NUMBERS DID NOT MOVE AND THE SCALE UNDER THEM DID (`104` §18.2 gap 13),
+#: which is why the id moves.** The old comment justified 0.50 as "the band a
+#: direct fact alone (3/7 = .429) falls below and a direct fact plus an accepted
+#: group (5/7 = .714) clears" -- an argument that reads as a choice and was a
+#: consequence: the scorer divided by all four deciding weights while
+#: `placement/retrieval.py` produced two of them, so two sevenths of the scale
+#: belonged to channels with no producer anywhere and a file whose facts uniquely
+#: matched one folder could not clear the bar on facts. `00`:110's unique direct
+#: match was unreachable without a group membership, and "ready to file" read near
+#: zero whatever the evidence said.
+#:
+#: `scoring.producible_weight` now derives the denominator from the channels the
+#: retrieval declares it produces, so the attainable set is {0, .4, .6, 1.0}
+#: instead of {0, .286, .429, .714}: an accepted group alone falls short at .4,
+#: direct facts alone clear at .6, and both together are 1.0 of what is
+#: producible. THE BAR IS THE SAME 0.50 AND NOW DIVIDES A SCALE THE RUN CAN
+#: REACH.
+#:
+#: **The id is `cli-support-v2` because every recorded `support_score` means
+#: something different from here on.** The policy's own docstring says a changed
+#: threshold must be identifiable in a replay; a changed SCALE under an unchanged
+#: threshold is the same hazard wearing the number's old clothes, and a replay
+#: comparing a v1 decision's .714 against a v2 decision's 1.0 would be comparing
+#: two rules that share an id. Nothing else about the policy changed.
 SUPPORT_POLICY = SupportPolicy(
-    policy_id="cli-support-v1", support_scale_max=1.0,
+    policy_id="cli-support-v2", support_scale_max=1.0,
     minimum_support_threshold=0.50, margin_threshold=0.20)
 
 #: P1's ceilings, which every other part reads through its own config module.
@@ -8239,10 +8262,19 @@ REVIEW_SET_REASONS: tuple[tuple[str, str, str], ...] = (
      "this run reached its ceiling before deciding these, so nothing was "
      "concluded about them. That is not the same as looking and being unable to "
      "tell (§8.6); the next run picks them up where this one stopped."),
+    # `104` §18.2 gap 15 gave this set a SECOND kind of member and the old
+    # sentence -- "nothing this run could read says what these are" -- became
+    # false for it. A file in two accepted packets is the opposite case: the run
+    # read plenty, and two homes have an equal claim on it. §18.3 ranks a false
+    # sentence in front of the person the worst class of defect there is, so the
+    # words name both askers rather than the older one. What they still refuse to
+    # say is that the product could not tell: it could, and what it cannot do is
+    # choose for somebody.
     (WAITING_ON_AN_ANSWER, "Waiting on a question you have been asked",
-     "nothing this run could read says what these are, so this report asks you "
-     "about them rather than deciding on thin evidence. Answering the question "
-     "printed beside them is what moves them."),
+     "this run put a question to you about each of these rather than deciding "
+     "on thin evidence: either nothing it could read says what they are, or "
+     "more than one home has an equal claim on them. Answering the question "
+     "each one carries is what moves them."),
     (NOT_YET_PLACED, "Not yet placed",
      "no destination in this tree matched them well enough to decide without "
      "asking you."),
@@ -8273,6 +8305,64 @@ REVIEW_SET_WORDS: Mapping[str, tuple[str, str]] = MappingProxyType({
 #: decided by `_protected_among` and by nothing else.
 ORDINARY_REVIEW_SET_KEYS: frozenset[str] = frozenset(
     key for key, _, _ in REVIEW_SET_REASONS)
+
+
+def _ask_when_there_are_two_homes_to_offer(node_ids) -> str:
+    """§6.9's selector: THE TWO-HOMES CASE IS A QUESTION, NOT AN ABSTENTION.
+
+    **`104` §18.2 gap 15.** This deployment used to be `lambda node_ids:
+    pv.ABSTAIN` under a comment reading "there is no screen here to ask on".
+    That sentence was true when it was written and has not been true for some
+    time. `WAITING_ON_AN_ANSWER` is a review set of its own, `_why` routes every
+    `ask_user` decision into it off the decision's own outcome, and
+    `review_surface.items.render_state_for` gives such a decision
+    `RENDER_ASK` with the `Ask` and the ranked `alternatives` attached -- which
+    is the review-surface record for a question to the person, already built,
+    already carried by the plan, and reached by nothing because the one selector
+    that could produce an `ask_user` always said no.
+
+    So a file with accepted membership in two packets now carries "this fits two
+    places: A or B" -- the two node ids as the `Ask`'s options, the ranked
+    `alternatives` and the §6.9 explanation beside them -- instead of joining the
+    pile of files the run could not explain. `00`:113 is the design's own words
+    for the difference: with no shared branch the system "should abstain OR ASK
+    THE USER TO CHOOSE A PRIMARY HOME", and only one of those two was reachable.
+
+    **WHAT IS STILL MISSING, SAID HERE SO NOBODY READS MORE INTO THIS THAN IT
+    DOES.** The question reaches the REVIEW-SURFACE RECORD and the review set:
+    the file is listed under "Waiting on a question you have been asked" and its
+    `PlacementReviewItem` renders `ask_user_state` carrying the options. It does
+    NOT reach the text report's "Questions only you can answer" panel, because
+    that panel prints the `questions` store and this Ask is never
+    `record_question`'d -- so there is no `--answer` gesture that resolves it and
+    no folder LABELS printed beside the two node ids. Closing that is the same
+    shape `_home_questions` already builds (a recorded question whose options are
+    folder chains, resolved back through `chosen_destination`), and it is a
+    follow-up rather than part of gap 15.
+
+    **NOTHING HERE CHOOSES A HOME.** `resolve_multi_home` has no branch that
+    returns a member of `node_ids`, so the strongest thing this selector can do
+    is turn an abstention into a question; the packets stay exactly as competing
+    as they were and the file still moves nowhere until a person says so.
+
+    **ABSTAIN REMAINS THE ANSWER WHEN THE OPTIONS ARE NOT THERE.**
+    `placement.records.Ask` refuses fewer than two options in as many words --
+    "one option is a placement wearing a question mark" -- so a question this
+    deployment cannot put honestly is not put. `resolve_multi_home` refuses fewer
+    than two candidates before this is ever called, so that clause is unreachable
+    through today's only caller; it is written anyway because this function is a
+    POLICY and the shape of a legal question is the policy's own business, not
+    something to be inherited from whichever caller happens to guard it first --
+    and `tests/test_ask_about_a_file.py::test_a_question_with_one_option_is_a_
+    placement_wearing_a_question_mark` is what holds it. Where §6.9's abstention
+    still lands, it lands as `no_shared_branch` and reads "the files these belong
+    with are spread out".
+
+    Protected material never reaches here as a question, and the lock for that
+    is `placement.pipeline`'s, beside the privacy state this selector cannot
+    see: it is handed node ids and nothing else.
+    """
+    return pv.ASK_USER if len(tuple(node_ids)) >= 2 else pv.ABSTAIN
 
 
 def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str,
@@ -9639,10 +9729,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # run was typed in and not about the corpus, and this is the same
             # reading the report marks with and the freeze refuses on.
             a_move_the_person_has_not_permitted=crossed,
-            # §6.9, when a file has two homes. This deployment abstains rather than
-            # asking, because there is no screen here to ask on and choosing one
-            # institution is the failure §6.9 exists to prevent.
-            ask_or_abstain=lambda node_ids: pv.ABSTAIN,
+            # §6.9, when a file has two homes. `104` §18.2 gap 15.
+            ask_or_abstain=_ask_when_there_are_two_homes_to_offer,
             max_return_cycles=1,
             # §6.12 step 7's model path, absent in every part. `model_path_available`
             # reads these as a set: with them `None`, a file that needs a judgement
@@ -10813,6 +10901,17 @@ def folders_nothing_could_be_read_from(
     (`Desktop/MONEY`, `Desktop/Vaccine records`) tied at a score none of them
     earned. Asking from it would have been 43% precise against a 41% base rate,
     across 62 files -- noise with a question mark on it.
+
+    **THE TWO SCORES ABOVE ARE THE MEASUREMENT'S OWN AND ARE NOT RE-DERIVED.**
+    They were read off a run under `cli-support-v1`, whose scale reserved two
+    sevenths for channels nothing produced; under `cli-support-v2` the same two
+    populations read 0.4 and 1.0 (`104` §18.2 gap 13). The measurement is left in
+    the units it was taken in, because rewriting a number nobody re-ran would
+    make a record of what was observed into a claim about what would be. What the
+    finding turns on -- that the ties are the person's own top-level folders and
+    not competing destinations -- is a fact about `alternatives`, not about the
+    denominator, and gap 13 does not touch it. Re-measure before quoting either
+    pair as current.
 
     **PROTECTED FILES ARE COUNTED AND NEVER RETURNED.** §8.4 marks them so nothing
     about them is assembled, and `00`:201 says a visible list of protected

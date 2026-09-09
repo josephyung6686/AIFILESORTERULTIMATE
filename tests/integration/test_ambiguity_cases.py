@@ -105,10 +105,15 @@ LIMITS = PlacementLimits(
     max_cost_per_scan=5,
 )
 
-# The same policy `tests/p11/test_p11_scoring.py` derives: `_MAX_WEIGHT` is 7, so a
-# direct-fact-only candidate scores 3/7 = 0.4285…, an accepted-group-only candidate
-# scores 2/7 = 0.2857…, and a threshold of 0.4 separates them.
-POLICY = SupportPolicy(policy_id="ambiguity-v1", support_scale_max=1.0,
+# A THRESHOLD LOW ENOUGH THAT EVERY CHANNEL IN THIS FILE'S FIXTURES REACHES IT,
+# because what these cases are about is RANKING and not the bar. It used to be
+# derived from `scoring._MAX_WEIGHT = 7` -- direct-fact-only 3/7 = 0.4285,
+# accepted-group-only 2/7 = 0.2857, and 0.4 between them. `104` §18.2 gap 13
+# removed that constant: the denominator is now the weight of the channels
+# retrieval declares it produces (3 + 2 = 5), so the same two are 0.6 and 0.4 and
+# BOTH clear 0.4. Every assertion below is about which node ranks above which and
+# about what carries no weight at all, and neither reading moves with the bar.
+POLICY = SupportPolicy(policy_id="ambiguity-v2", support_scale_max=1.0,
                        minimum_support_threshold=0.4, margin_threshold=0.2)
 
 
@@ -214,7 +219,9 @@ def test_two_packets_claim_one_transcript_and_the_shared_branch_ranks_last(p11_c
 
     It retrieves it and prefers nothing. `node_role` is carried into the index
     (`placement/index.py:109`) and read by no scorer: `placement/scoring.py`'s
-    `_CHANNEL_WEIGHT` scores channels, and `shared-material` is not a channel.
+    `_CHANNEL_WEIGHT` scores channels, and `shared-material` is not a channel --
+    still true after `104` §18.2 gap 13, which changed the denominator and left
+    every weight and their order exactly where they were.
     The shared branch is reached through `accepted_group` (weight 2) while both
     institution branches are reached through `direct_fact` (weight 3), so the one
     node §6.9 names is ranked BELOW the two nodes §6.9 forbids choosing between.

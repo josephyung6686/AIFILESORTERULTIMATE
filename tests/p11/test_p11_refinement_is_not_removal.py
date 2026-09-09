@@ -37,7 +37,7 @@ from placement.config import PlacementLimits, SupportPolicy
 from placement.pipeline import _refinements_of, _without_kind_only_moves
 from placement.records import MatchingFact
 from placement.retrieval import (
-    CURATED_FOLDER, Candidate, DIRECT_FACT, Retrieval,
+    CURATED_FOLDER, Candidate, DIRECT_FACT, PRODUCED_CHANNELS, Retrieval,
 )
 from placement.scoring import assess
 
@@ -75,7 +75,8 @@ def _candidate(node_id, *, channels=(DIRECT_FACT,), facts=None):
 def _retrieval(*candidates):
     return Retrieval(subject_ref="file:f1:h1", plan_version="plan-1",
                      candidates=tuple(candidates), conflicts=(),
-                     semantic_only_node_ids=frozenset())
+                     semantic_only_node_ids=frozenset(),
+                     producible_channels=PRODUCED_CHANNELS)
 
 
 def _refinements(own=OWN, nodes=(OWN, CHILD, ELSEWHERE)):

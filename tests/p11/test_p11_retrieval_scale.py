@@ -35,7 +35,8 @@ from placement.index import (
 from placement.records import ConflictConsidered, MatchingFact, Subject
 from placement.retrieval import (
     ACCEPTED_GROUP, CURATED_FOLDER, Candidate, DIRECT_FACT,
-    NON_DECIDING_CHANNELS, Retrieval, SEMANTIC_NEIGHBOUR, retrieve,
+    NON_DECIDING_CHANNELS, PRODUCED_CHANNELS, Retrieval, SEMANTIC_NEIGHBOUR,
+    retrieve,
 )
 from placement.scoring import assess
 from placement.store import subject_ref_of
@@ -308,6 +309,12 @@ def _retrieve_by_full_scan(conn, *, subject, plan_version, limits, facts,
         semantic_only_node_ids=frozenset(
             candidate.node_id for candidate in candidates
             if set(candidate.channels) <= set(NON_DECIDING_CHANNELS)),
+        # The same four this reference implementation's loop above appends, which
+        # is the same four `retrieve` appends. Declaring anything else here would
+        # score the two implementations against different denominators and the
+        # agreement test would compare two scales rather than two readings
+        # (`104` §18.2 gap 13).
+        producible_channels=PRODUCED_CHANNELS,
     )
 
 
