@@ -127,10 +127,21 @@ def test_raw_recognized_text_is_a_unit_and_reaches_evidence_exactly_once(sink):
 
     `pdf.py` and `docx.py` made this same exception first and for the same reason.
     Exactly one such row, so the exception cannot quietly become the rule.
+
+    **`104` R-171 (9 Sep 2026): the passage has its OWN text unit as well.** Per
+    region the unit list held the regions alone; the whole passage now stands in
+    `text_units` at its own container path too, which is SF-1's docx shape and the
+    row `resolve.materialise` needs to report the passage's length, so that
+    `items.check_item` can call it a whole document past the ceiling and
+    `opening_reading_for` can cut its opening. A second copy of the text in
+    `text_units`, deliberately; still ONE evidence row.
     """
     result, _ = run_it()
     run_id = sink.write(result)
-    assert [u["text"] for u in sink.units_for(run_id)] == [RECOGNIZED]
+    units = [u["text"] for u in sink.units_for(run_id)]
+    assert units.count(RECOGNIZED) == 2, units
+    assert units == [RECOGNIZED, RECOGNIZED] or sorted(units) == sorted(
+        [RECOGNIZED, RECOGNIZED]), units
     whole = [o for o in sink.observations_for(run_id) if o["raw_value"] == RECOGNIZED]
     assert len(whole) == 1, "the recognised text reaches evidence once, or not at all"
     assert whole[0]["location"]["text_span"] is None
@@ -306,7 +317,8 @@ def test_the_four_hundred_page_book_is_capped_and_keeps_its_text(sink):
     assert row["completeness"] == "capped"
     assert row["completeness"] != "complete"
     assert row["coverage"] == {"units": "pages", "processed": 50, "total": 400}
-    assert len(sink.units_for(run_id)) == 50
+    # Fifty page units, plus the whole passage's own unit (`104` R-171).
+    assert len(sink.units_for(run_id)) == 50 + 1
     sink.conforms()
 
 

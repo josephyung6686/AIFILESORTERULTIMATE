@@ -87,8 +87,12 @@ def test_both_runs_text_units_survive(sink):
     # per file that a re-run overwrites.
     first = sink.write(an_ocr_pass(text=GARBLED, provider_version="18.0"))
     second = sink.write(an_ocr_pass(text=RECOVERED, provider_version="19.1"))
-    assert len(sink.text_units) == 2
+    # Two units per run since `104` R-171: the region's, and the whole passage's
+    # own (SF-1's docx shape). Each run keeps both; neither run overwrites the other.
+    assert len(sink.text_units) == 2 * 2
     assert {u["run_id"] for u in sink.text_units} == {first, second}
+    assert all(sum(u["run_id"] == run for u in sink.text_units) == 2
+               for run in (first, second))
 
 
 def test_p5_supplies_the_reason_and_sets_no_supersede_column(sink):

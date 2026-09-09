@@ -269,6 +269,16 @@ def extract_ocr(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy
     # The per-region rows above keep theirs.
     passage = "\n".join(recognized.text for recognized in output.regions)
     if passage.strip():
+        # `104` R-171 (9 Sep 2026): THE PASSAGE'S OWN TEXT UNIT, at its own
+        # container path, which is SF-1's docx shape (`extractors/docx.py`:
+        # `units.append(text_unit(text=whole_body))`) and what this extractor
+        # never wrote. Without it `resolve.materialise` reports no length for
+        # the passage, `items.check_item`'s whole-document arm cannot bound it
+        # at any ceiling, and `opening_reading_for` has nothing to cut an
+        # opening from, so a scanned page longer than the ceiling reached the
+        # model as nothing. It costs a second copy of the passage in
+        # `text_units`, the price docx already pays for the same reason.
+        units.append(text_unit(text=passage))
         observations.append(observation(
             file_id=file_row["file_id"], content_hash=file_row["content_hash"],
             extractor_name=name, extractor_version=output.provider_version,

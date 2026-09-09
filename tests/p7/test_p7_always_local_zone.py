@@ -652,7 +652,7 @@ def test_the_zone_set_now_maps_three_members_and_still_adds_no_tenth():
     assert not ALWAYS_LOCAL_ZONES & set(ALWAYS_LOCAL)
 
 
-def test_the_real_ocr_extractors_whole_passage_is_released_and_nothing_bounds_it_here(
+def test_the_real_ocr_extractors_whole_passage_is_released_within_the_ceiling_and_refused_above_it(
         zone_conn):
     """The one above seeds a synthetic row. THIS ONE runs the real extractor.
 
@@ -675,23 +675,15 @@ def test_the_real_ocr_extractors_whole_passage_is_released_and_nothing_bounds_it
     refused now, and saying so is more useful than keeping a sabotage that cannot
     fire.
 
-    **WHAT BOUNDS THIS ROW IS NOT `check_item`, AND THAT IS THE FINDING THIS TEST NOW
-    CARRIES.** §17.13's whole-document arm refuses a whole unit LONGER THAN the stored
-    ceiling, and "whole" is answered by coverage of a text unit. `extractors/ocr.py`
-    emits this whole-passage observation with NO `text_units` row at its own container
-    path -- the same shape `104` §5 SF-1 found in `extractors/docx.py` -- so
-    `resolve.materialise` reports `unit_length=None`, `is_whole_document` is False,
-    and the arm cannot fire at any ceiling. The assertion below is run with a ceiling
-    one character SHORTER than the passage and the passage is still released, which is
-    that fact stated as a run rather than as a worry.
-
-    The bound that does apply is one step out, in the two places that count characters
-    rather than coverage: `model_facts.within_dossier_budget` skips a reading that
-    does not fit the caller's remainder, so the stage never offers this row inside a
-    full dossier, and the gate's own `dossier_over_budget` refuses a dossier over the
-    stored ceiling when `measure_tokens` is wired -- which `_gate` in this file
-    deliberately does not wire, so that a zone question is answered by the zone rules
-    alone.
+    **WHAT BOUNDS THIS ROW IS `check_item`'S WHOLE-DOCUMENT ARM, SINCE `104` R-171.**
+    §17.13's arm refuses a whole unit LONGER THAN the stored ceiling, and "whole" is
+    answered by coverage of a text unit. Until 9 Sep 2026 `extractors/ocr.py` emitted
+    this whole-passage observation with NO `text_units` row at its own container
+    path -- the shape `104` §5 SF-1 found in `extractors/docx.py` -- so
+    `resolve.materialise` reported `unit_length=None` and the arm could not fire at
+    any ceiling (r169a's finding, R-171). The extractor now writes the passage's own
+    unit, so the row is bounded where every other page is: released at a ceiling the
+    passage fits, refused one character below it. Both halves are run here.
     """
     from evidence_shape.store import RunWriter
     from extractors.ocr import OcrOutput, OcrRegion, extract_ocr
@@ -729,28 +721,30 @@ def test_the_real_ocr_extractors_whole_passage_is_released_and_nothing_bounds_it
 
     _classify(zone_conn, file_id, content_hash, key=whole[0]["observation_key"])
     _store_policy(zone_conn)
-    # One character SHORTER than the passage, which is the ceiling that WOULD refuse
-    # a whole unit under §17.13. It refuses nothing here, because the emitted row has
-    # no text unit at its path for the coverage test to answer about.
-    set_ceiling(zone_conn, CEILING_KEY, len(scanned) - 1)
     resolved = materialise(
         zone_conn, _Item(whole[0]["observation_key"], None))
-    assert resolved.unit_length is None, (
-        "`extractors/ocr.py` grew a `text_units` row at the whole passage's own "
-        "container path, so the whole-document arm CAN fire for it now and the "
-        "paragraph above this test is out of date -- read it before changing this")
+    assert resolved.unit_length == len(scanned), (
+        "`extractors/ocr.py` writes the whole passage's own `text_units` row since "
+        "`104` R-171; without it the whole-document arm cannot bound this row")
 
-    decision = _gate(zone_conn).release(_request(
-        items=(Excerpt(observation_key=whole[0]["observation_key"], span=None,
-                       reason="the recognised text of a scanned card"),),
-        file_id=file_id))
+    def released_under(ceiling: int):
+        set_ceiling(zone_conn, CEILING_KEY, ceiling)
+        return _gate(zone_conn).release(_request(
+            items=(Excerpt(observation_key=whole[0]["observation_key"], span=None,
+                           reason="the recognised text of a scanned card"),),
+            file_id=file_id))
 
+    # A ceiling the passage fits: released whole, card number and name together,
+    # which is what §17.13 item 4 accepts knowingly.
+    decision = released_under(len(scanned))
     assert isinstance(decision, Released), (
         f"a whole page of OCR text was {type(decision).__name__}; `104` §17.13 "
         f"releases OCR text to every target within the ceiling")
-    assert [one.value for one in decision.materialised_items] == [scanned], (
-        "the whole recognised page is what reaches the model, card number and name "
-        "together, which is what §17.13 item 4 accepts knowingly")
+    assert [one.value for one in decision.materialised_items] == [scanned]
+    # One character below it: the whole document, refused for every target.
+    refused = released_under(len(scanned) - 1)
+    assert isinstance(refused, Denied), refused
+    assert refused.reason == "whole_document_requested", refused
 
 
 # ================================================================================
