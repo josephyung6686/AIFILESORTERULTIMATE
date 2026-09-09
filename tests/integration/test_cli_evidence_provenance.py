@@ -41,10 +41,15 @@ from extractors.long_tail import SENSITIVITY_DDL  # noqa: E402
 from privacy.vocabulary import CLOUD_LOCALITY  # noqa: E402
 
 #: `104` R-159's two new keywords, spelled once for this file. `CLOUD_LOCALITY`
-#: because every test here predates the ruling and is about the cloud half of it,
-#: which is the half that did not change; the ceiling because a cloud call is bound
-#: by the COUNT and never reads the ceiling, so any value states the same thing and
-#: this one is the product's own stored number.
+#: because every test here predates the ruling and was about the cloud half of it.
+#:
+#: **THE SECOND HALF OF THIS NOTE WAS TRUE FOR ONE DAY.** It read: "the ceiling
+#: because a cloud call is bound by the COUNT and never reads the ceiling, so any
+#: value states the same thing". `104` §17.13 (9 Sep 2026) retired the count cap with
+#: the locality it divided by, so the ceiling is the ONE bound on either target and
+#: the value decides what a call carries. It stays the product's own stored number
+#: and stays generous, and the three tests that want it to bind derive their own from
+#: the readings they built.
 A_CEILING = 4000
 
 CONTENT_HASH = "b" * 64
