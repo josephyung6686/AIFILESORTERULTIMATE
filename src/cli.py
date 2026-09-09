@@ -91,12 +91,12 @@ from branch_situation import (
 # `active_schema_for` literal was the only line in this file that named it.
 from facts.photo_event import media_type
 from facts.budgets import LLM_ROUTE
-from facts.resolver import PRIVACY_BAR, FactResolver
+from facts.resolver import BUDGET_BAR, PRIVACY_BAR, FactResolver
 from facts.anchor_statements import (
     anchor_statements_for, record_anchor_statements,
 )
 from facts.rules import ACADEMIC_CONTEXT_TERMS, Rule, apply_rules
-from facts.unresolved import NO_CANDIDATE_EVIDENCE
+from facts.unresolved import BUDGET_DEFERRED, NO_CANDIDATE_EVIDENCE
 from facts.usable import record_pass
 from facts.fields import DOMAIN_FIELDS
 from facts.read_surface import DanglingCitation, evidence_chain
@@ -334,8 +334,26 @@ from apply_run.run import (
     already_applied, applied_entries, apply_selected, plans_under, take_back,
 )
 from review_run.progress import progress_lines
+# `104` §18.2 gap 10. The rule -- "no indexed file may be absent from every entry"
+# -- asked for BY NAME, from the module that owns it, rather than restated here by
+# the pass it is meant to check. `progress_lines` above reaches the same function
+# through P13's own §8.6 line, which is a different question over P4's extraction
+# states; this run needs the rule over a set of buckets P13 knows nothing about, so
+# the function is imported directly and nothing in P13 is widened to hold them.
+from review_surface.progress import (
+    UNREADABLE, assert_every_file_accounted, bucket_for,
+)
+from review_surface.records import ProgressEntry
 from review_surface.schema import create_review_schema
-from review_surface.vocabulary import ACTION_REJECT
+from review_surface.vocabulary import (
+    ACTION_REJECT, SOURCE_P4_RUNS, SOURCE_P8, STATE_BLOCKED, STATE_COMPLETED,
+    STATE_DEFERRED,
+)
+# `104` §18.2 gap 10: P4's own extraction record, for the files the fact pass
+# never reached. Read through P4's published reader rather than a query of this
+# file's own, so "this file could not be read" means here exactly what it means on
+# §8.6's line and the two screens cannot disagree about one file.
+from evidence_shape.store import runs_for_content
 from tree_design.residuals import (
     ResidualChoice, ResidualTemplate, build_library,
 )
@@ -2449,13 +2467,34 @@ def _local_beside_cloud(routing: TierRouting, call_site: str) -> bool:
                 call_site, cloud_permitted=False)[1].locality == LOCAL)
 
 
-#: The question each cloud-eligible site asks, in the person's own words, for the
-#: consent notice. Screen text and nothing else: no reader decides anything by it.
+#: The question each MODEL SITE asks, in the person's own words, for the consent
+#: notice. Screen text and nothing else: no reader decides anything by it.
+#:
+#: **Site G joined this table on `104` §18.2 gap 9, and it is not cloud-eligible.**
+#: The comment here read "each cloud-eligible site" while site G -- the site that
+#: decides whether a file may reach the cloud AT ALL -- was in no per-site line of
+#: the notice and in no posture branch. A person reading the notice was told about
+#: the three sites that act on a file's situation and nothing about the site that
+#: chooses it, which is the one they would most want named. Its row is
+#: `ratified_local` (§17.14), so `observe_locality_permits` refuses it the internet
+#: and it never appears among the recipients below; it appears in a sentence of its
+#: own, and `_situation_site_sentence` is where the difference is kept.
 _QUESTION_OF_SITE: dict[str, str] = {
     A_FACT: "a FACT judgement -- what course, what school, what kind of document --",
     C_PLACEMENT: "a placement CHECK -- whether a proposed folder is the right one --",
     D_RESIDUAL: "a REVIEW SET -- what to do with what nothing else placed --",
+    G_SITUATION_SENSITIVITY:
+        "a SITUATION judgement -- which situation a file is asked under, and "
+        "whether it may reach the cloud at all --",
 }
+
+#: The three sites a file's text may be sent to, and the ONLY three this notice
+#: names recipients for. Spelled once because two lines below read it and a fourth
+#: member arriving in one of them and not the other is how site C came to be hidden
+#: for a day (`104` §17.13). Site G is deliberately absent: it has a row in
+#: `_QUESTION_OF_SITE` above and no place here, because a site whose text may not
+#: cross the internet has no recipient to name.
+_SITES_THAT_MAY_SEND: tuple[str, str, str] = (A_FACT, C_PLACEMENT, D_RESIDUAL)
 
 
 def _local_model_id(routing: TierRouting, call_site: str) -> str:
@@ -2467,6 +2506,48 @@ def _local_model_id(routing: TierRouting, call_site: str) -> str:
     which model.
     """
     return routing.route_for(call_site, cloud_permitted=False)[1].model_id
+
+
+def _situation_site_sentence(routing: TierRouting) -> str:
+    """Site G's line in the posture notice, or `""` where G cannot run.
+
+    **`104` §18.2 gap 9, second half.** Site G was absent from the per-site table
+    and from every posture branch, so the notice described three sites that act on
+    a file's situation and never named the one that DECIDES it. `104` §17.14 is
+    what makes that the worst omission of the four: G "is the site that decides
+    whether a file may go to the cloud at all", and a person deciding about sending
+    was being shown every consequence of that decision and not the decision.
+
+    **THE SENTENCE CLAIMS ONLY WHAT G DOES**, in the vocabulary the branches around
+    it already use -- "answered by X on this device", "do not leave it" -- with the
+    question itself read out of `_QUESTION_OF_SITE` so the notice cannot describe
+    this site in two ways. Nothing here says G is accurate, or that its answer is
+    final, because neither is this screen's claim to make.
+
+    **`""` WHERE G HAS NO LOCAL DESTINATION, and that is not a detail.** G's row is
+    `ratified_local`, so `target_for` drops its cloud candidate for every file and a
+    deployment with a key and no local model simply does not run this site -- the
+    pass is `_NOTHING_ASKED` and no file is asked its own situation. A sentence
+    saying G decides anything on such a run would be the notice describing work
+    that did not happen, on the one screen where being believed is the whole point.
+
+    The name comes off the LOCAL half of the route for `_local_model_id`'s reason:
+    `model_id_for` answers about the cloud half on a two-target deployment, and
+    this site never reaches it.
+    """
+    _client, target = routing.route_for(G_SITUATION_SENSITIVITY,
+                                        cloud_permitted=False)
+    if target.locality != LOCAL:
+        return ""
+    # THE SENTENCE STOPS WHERE THE CLAIM DOES. A first version added "decided
+    # here before anything about it is assembled for any other model", which is
+    # true of this build by construction and is a claim about ORDERING that
+    # nothing on this screen is being asked to make. On the notice a person
+    # decides by, every extra clause is another thing that has to stay true.
+    return _wrapped(
+        f"Files that need {_QUESTION_OF_SITE[G_SITUATION_SENSITIVITY]} are "
+        f"answered by {target.model_id} on this device and do not leave it.",
+        indent="  ")
 
 
 def announce_cloud_posture(routing: TierRouting | None,
@@ -2611,10 +2692,10 @@ def announce_cloud_posture(routing: TierRouting | None,
             # If that door is ever unwired, this clause is the first thing that
             # becomes false, and `84` §6 is what it would be false against.
             crossing = tuple(
-                site for site in (A_FACT, C_PLACEMENT, D_RESIDUAL)
+                site for site in _SITES_THAT_MAY_SEND
                 if routing.locality_for(site) == CLOUD
                 and observe_locality_permits(site, CLOUD))
-            kept = tuple(site for site in (A_FACT, C_PLACEMENT, D_RESIDUAL)
+            kept = tuple(site for site in _SITES_THAT_MAY_SEND
                          if site not in crossing)
             if crossing:
                 sending = "; ".join(
@@ -2638,6 +2719,16 @@ def announce_cloud_posture(routing: TierRouting | None,
                 f"sent. Sending stays ON for this folder until you turn it off "
                 f"with:",
                 indent="  "), file=out)
+        # SITE G, IN EVERY CONSENT-ON BRANCH AND NOT IN ONE OF THEM. `104` §18.2
+        # gap 9: the site that decides whether a file may be sent belongs beside
+        # the sentence about what is sent, whichever of the three branches above
+        # wrote that sentence -- and it is placed HERE, after them and before the
+        # command that turns sending off, so a person who reads only the last two
+        # lines still reads it. Empty and silent where G has no local destination.
+        if routing is not None:
+            said = _situation_site_sentence(routing)
+            if said:
+                print(said, file=out)
         print(_turn_off_line(corpus_root, *other_sources), file=out)
         return
     if routing is None:
@@ -2673,6 +2764,14 @@ def announce_cloud_posture(routing: TierRouting | None,
             f"full path of the folder it sits in and its text within the dossier "
             f"bound; protected material is shown to it and to no other model.",
             indent=""), file=out)
+        # SITE G HERE TOO, for the reason it appears in the consent-ON branch.
+        # `104` §18.2 gap 9. With sending off it is the same site doing the same
+        # work -- G runs on every deployment that has a model on this machine,
+        # whatever this folder's consent says -- and a person who reads it only on
+        # the runs where sending is on has been told it is a thing about sending.
+        said = _situation_site_sentence(routing)
+        if said:
+            print(said, file=out)
         elsewhere = tuple(sorted({
             routing.model_id_for(site) for site in (C_PLACEMENT, D_RESIDUAL)
             if routing.locality_for(site) != LOCAL}))
@@ -6415,6 +6514,64 @@ WITHHELD_SENTENCE: Mapping[str, str] = MappingProxyType({
         "run would ask.",
 })
 
+#: `104` §18.2 gap 10, and the constitution's "coverage is sacred". THE SIX
+#: BUCKETS EVERY INDEXED FILE FALLS IN, exactly one each.
+#:
+#: **Every one of them is a word this build already uses.** `WITHHELD_PROTECTED`
+#: is the fact pass's own name for a file P7 marked; `UNREADABLE` is P13's, off
+#: `review_surface.progress`, where §8.6's line spells it; `DEFERRED` is P4's, and
+#: is the constant this file already declares for the ceiling that never started.
+#: The other three name outcomes the code has always had and never had a word for
+#: -- a file the rules settled, a file a model answered about, a file that was not
+#: asked -- and they are spelled once, here, so no screen respells one.
+#:
+#: A SEVENTH BUCKET WOULD BE A DEFECT and not an addition. The sum is what a person
+#: checks the report with, and a bucket is only worth having if a file can be in it
+#: and in no other; the moment two of them could hold one file the arithmetic stops
+#: meaning anything. `_reconcile_the_roster` states the precedence that keeps them
+#: disjoint and argues it, because an order that decides an outcome is a ruling.
+COVERAGE_SETTLED: str = "settled by rule"
+COVERAGE_ASKED: str = "asked a model"
+COVERAGE_NOT_ASKED: str = "not asked"
+
+#: WHY THE FACT PASS NEVER RAN AT ALL, for the reconciliation that must print
+#: anyway. `104` §18.2 gap 10 says the sum runs on an ORDINARY run, and the four
+#: conditions `_model_fact_pass` returns on are ordinary: no key and no local
+#: model, a key whose site has no destination this mode permits, an empty roster,
+#: no wire handle key. Under every one of them the old report simply had no line
+#: for any file, which is the silence the whole gap is about.
+#:
+#: Each is a condition the pass already tests and already comments on; what is new
+#: is that the reason is CARRIED OUT rather than dropped at a bare `return`. A file
+#: under one of these is `COVERAGE_NOT_ASKED` and not `COVERAGE_SETTLED`: nothing
+#: settled its open fields, and reporting it as settled would be the false
+#: impression `00`:259 names in as many words.
+NOT_RUN_NO_MODEL: str = "no_model_configured"
+NOT_RUN_NO_DESTINATION: str = "no_destination_this_mode_permits"
+NOT_RUN_NO_HANDLE_KEY: str = "no_wire_handle_key"
+
+#: The sentence each cause earns, on `WITHHELD_SENTENCE`'s rule: prose, not a code
+#: with a template around it. The three not-run causes are here beside the reasons
+#: the pass produces when it DOES run, because a person reading one line does not
+#: care which of the two produced it -- they care what happened to their file.
+COVERAGE_SENTENCE: Mapping[str, str] = MappingProxyType({
+    NOT_RUN_NO_MODEL:
+        "no model is configured for this run, so nothing could be asked about "
+        "them. What this device could read and decide on its own still stands.",
+    NOT_RUN_NO_DESTINATION:
+        "no model this run may use has a destination for the fact question -- a "
+        "cloud model needs this folder's sending turned on, and there is no "
+        "model on this device to fall back to.",
+    NOT_RUN_NO_HANDLE_KEY:
+        "this run has no wire handle key, and every identifier that reaches a "
+        "model is digested under one. There is no un-keyed form to fall back to.",
+    NOT_ASKED_AMBIGUOUS: NOT_ASKED_SENTENCE[NOT_ASKED_AMBIGUOUS],
+    NOT_ASKED_UNSETTLED: NOT_ASKED_SENTENCE[NOT_ASKED_UNSETTLED],
+    WITHHELD_UNCLASSIFIED: WITHHELD_SENTENCE[WITHHELD_UNCLASSIFIED],
+    WITHHELD_PRIVACY: WITHHELD_SENTENCE[WITHHELD_PRIVACY],
+    WITHHELD_PROTECTED: WITHHELD_SENTENCE[WITHHELD_PROTECTED],
+})
+
 
 def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
                      outcomes: Sequence[tuple[str, object]], model_id: str,
@@ -6513,6 +6670,126 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
               f"{reason.replace('_', ' ')} ({reason}).", file=out)
 
 
+#: `104` §18.2 gap 9. ONE SENTENCE PER `SituationPass` COUNTER, in the person's
+#: own words, written out rather than assembled -- `WITHHELD_SENTENCE`'s rule one
+#: block up, and for its reason: a reason a person reads is prose and not a code
+#: with a template around it. Each value begins with the outcome's own short name,
+#: because the line it goes on is `"{count} {value}"` and the count is meaningless
+#: without the word beside it.
+#:
+#: `no_route` BORROWS THE FACT PASS'S OWN SENTENCE rather than restating it. It is
+#: the same fact about the same files -- `target_for` returns nothing for a file
+#: P7 marked, on every locality, so nothing about it was assembled for site G
+#: either -- and two sentences about one fact are how two blocks on one screen come
+#: to disagree. `104` §18.2 gap 9 calls this counter "the protected-file count the
+#: design wanted surfaced", and this is where it is surfaced.
+SITUATION_SENTENCE: Mapping[str, str] = MappingProxyType({
+    "settled":
+        "settled by rule: the recognisers named what they are from their own "
+        "words, so no model was asked about them. `00`:110 reserves the model "
+        "for what the rules cannot settle, and this is that rule holding.",
+    # TWO "NOT ASKED" LINES, AND EACH SAYS WHICH ONE IT IS IN ITS FIRST THREE
+    # WORDS. A first version began both with the bare phrase, and the block then
+    # printed two lines reading "0 not asked" with different paragraphs under
+    # them -- a reader has to get to the third line of prose to find out they are
+    # different facts, and a reader scanning counts never gets there at all.
+    "nothing_to_ask":
+        "not asked, no candidate: nothing that could be read out of them offered "
+        "a candidate situation at all, so there was no question to put to a "
+        "model. That is about what this product could read, not about what they "
+        "are.",
+    "nothing_to_read":
+        "not asked, nothing to read: a shortlist of situations existed for them "
+        "and no releasable reading did, so the question could not be asked from "
+        "anything. Nothing about them was assembled and nothing was sent.",
+    "declined":
+        "asked and left alone: a model was asked and named no situation it could "
+        "cite, or the check did not accept the one it named. They keep this "
+        "run's own situation, which is where the rules had already left them.",
+    "no_route": "protected: " + WITHHELD_SENTENCE[WITHHELD_PROTECTED],
+})
+
+assert set(SITUATION_SENTENCE) | {"named"} == {
+    field.name for field in dataclasses.fields(SituationPass)}, (
+    "every counter site G leaves behind earns a sentence on the screen. A "
+    "counter with no sentence would be a number this report silently drops, "
+    "which is the defect `104` §18.2 gap 9 is about -- so a new one fails to "
+    "import rather than going unprinted")
+
+
+def _print_situation_pass(situation: SituationPass, *, files: int,
+                          model_id: str, out) -> None:
+    """Site G's six counters, in the shape the fact pass prints its own.
+
+    **`104` §18.2 gap 9: these counts reached nobody.** `cli.py` initialised the
+    cell, the pass filled it, and no line of the report ever read it -- so the one
+    site that decides whether a file may reach the cloud at all ran on every
+    ordinary run and left nothing a person could see. `00`:259 is the standing rule
+    it broke: the interface "should show the difference between completed work and
+    deferred work", and it exists so a person is not left with "the false
+    impression that an unprocessed file was understood and found unimportant".
+    Every file site G did not name is exactly such a file.
+
+    **THE SHAPE IS `_print_fact_pass`'S AND IS NOT A SECOND ONE.** A header naming
+    what was decided and for how many of how many files, then one indented line per
+    outcome carrying its own count and its own reason -- because "a model declined
+    to name this file's situation" and "this file may never be asked at all" are
+    different sentences to a person and only one of them is about their file. Two
+    blocks in two shapes on one screen would read as two products.
+
+    **ALL SIX, INCLUDING THE ZEROS, and that is the difference from the fact pass
+    block.** These counters PARTITION the roster -- every file the pass walked
+    lands in exactly one of them -- so the six numbers are an arithmetic a person
+    can check against the total, and a zero that disappears makes that arithmetic
+    unreadable. `104` §17.2 is what a number with no provenance costs; a missing
+    line is the same cost paid silently.
+
+    **A PASS THAT DID NOT RUN PRINTS NOTHING**, and that is `_NOTHING_ASKED`'s own
+    ruling one layer up: a run where site G was not asked and a run where it was
+    asked and named nothing "must not read the same downstream". Six zeros under a
+    header is precisely how the two would come to read the same.
+
+    The model is named for `_local_model_id`'s reason and G's row is why it is the
+    local one: `ratified_local` (`104` §17.14), so `target_for` drops the cloud
+    candidate for every file and this site is answered on this machine or not at
+    all.
+    """
+    if situation is _NOTHING_ASKED or not files:
+        return
+    named = len(situation.named)
+    # The blank line on its own `print`, because `textwrap.fill` collapses the
+    # whitespace in its input and a `\n` inside the header would simply vanish.
+    print("", file=out)
+    print(_wrapped(
+        f"Situations from a model: {named} of {files} "
+        f"{'file was' if files == 1 else 'files were'} given "
+        f"{'its' if named == 1 else 'their'} own situation by {model_id} on this "
+        f"device, instead of being asked this run's questions. Nothing about any "
+        f"of them left the device: this is the site that decides whether a file "
+        f"may be sent at all, so it is never asked anywhere else.", indent=""),
+        file=out)
+    for field in dataclasses.fields(SituationPass):
+        if field.name == "named":
+            continue
+        print(_wrapped(f"{getattr(situation, field.name)} "
+                       f"{SITUATION_SENTENCE[field.name]}", indent="  "),
+              file=out)
+
+
+def _protected_file_ids(conn: sqlite3.Connection) -> set[str]:
+    """Every file P7 currently marks protected. ONE query, for three readers.
+
+    `_protected_file_count`, `_nothing_could_be_read_report` and (since `104` §18.2
+    gap 10) the roster reconciliation all need the same set, and the SAME set: the
+    screen prints a protected count in three places and three readings of one
+    column is how they would come to differ by one and leave a person deciding
+    which number is about their folder.
+    """
+    return {row[0] for row in conn.execute(
+        "SELECT DISTINCT file_id FROM classifications "
+        "WHERE protected = 1 AND superseded_by IS NULL")}
+
+
 def _protected_file_count(conn: sqlite3.Connection, scan_run_id: str) -> int:
     """How many of THIS scan's files P7 marked protected. `104` R-J.
 
@@ -6524,11 +6801,264 @@ def _protected_file_count(conn: sqlite3.Connection, scan_run_id: str) -> int:
     classification rows, `protected = 1` -- so the screen's two protected counts
     cannot come from two readings of the same column.
     """
-    withheld = {row[0] for row in conn.execute(
-        "SELECT DISTINCT file_id FROM classifications "
-        "WHERE protected = 1 AND superseded_by IS NULL")}
+    withheld = _protected_file_ids(conn)
     return sum(1 for file_id, _hash in corpus_roster(conn, scan_run_id)
                if file_id in withheld)
+
+
+def _verdicts_from_outcomes(
+        outcomes: Sequence[tuple[str, object]]) -> dict[str, tuple[str, str | None]]:
+    """What the model calls say about each file, for `104` §18.2 gap 10's sum.
+
+    **`_sent_and_abstained`'S RULING, PER FILE INSTEAD OF PER RUN.** That function
+    already decides what counts as a response and what does not, and its reasons
+    are `104` R-03's: a gate refusal sends nothing, and a pre-call abstention comes
+    back as a `P8Verdict` too, so neither is a model answering. Deciding it a second
+    time here would let the closed sum and the "from N files sent" line printed a
+    few lines above it come to disagree about the same run -- which is the whole
+    class of defect this block exists to make visible.
+
+    **A FILE WITH SEVERAL OUTCOMES IS ONE FILE.** `on_result` fires per result and a
+    file may produce more than one, so the strongest wins: a response outranks an
+    abstention, and an abstention outranks a refusal that carries no reason of its
+    own. Anything else would make the sum depend on the order the pass happened to
+    append in.
+
+    **A REFUSAL AND A FAILED CALL COUNT AS `COVERAGE_NOT_ASKED`, WITH THEIR OWN
+    REASON BESIDE THEM.** Calling them "asked a model" would restate the number
+    `104` R-03 was fixed to stop overstating; leaving them out of the sum would be
+    the omission this whole block is against. What a person reads is "not asked"
+    with the honest reason on the next line -- the call did not come back, the gate
+    refused the release -- rather than a file that looks like one a model shrugged
+    at.
+    """
+    verdicts: dict[str, tuple[str, str | None]] = {}
+    for file_id, result in outcomes:
+        claim_ref = getattr(result, "claim_ref", None)
+        if claim_ref is not None and claim_ref != PRE_CALL_NAMESPACE:
+            verdicts[file_id] = (COVERAGE_ASKED, None)
+            continue
+        if verdicts.get(file_id, (None, None))[0] == COVERAGE_ASKED:
+            continue
+        if claim_ref == PRE_CALL_NAMESPACE:
+            # `P8Verdict.__post_init__` checks every member of `reasons`, so one
+            # cannot be built without at least one. The first is the one named:
+            # a line naming all of them would be a paragraph about one file.
+            verdicts[file_id] = (COVERAGE_NOT_ASKED, result.reasons[0])
+            continue
+        # A refusal that named itself keeps its own word; one that did not is
+        # named by the class that carried it, which is what `_print_fact_pass`
+        # already does two paragraphs above and for the same reason -- "the gate
+        # could not read one of the items" and "the request could not be
+        # described" are different things and the same non-event.
+        verdicts.setdefault(file_id, (
+            COVERAGE_NOT_ASKED,
+            getattr(result, "refusal_class", None) or type(result).__name__))
+    return verdicts
+
+
+#: P4's two ceiling completenesses, and they are NOT interchangeable: `capped` read
+#: something and stopped, `deferred` never started. `extractors/stage_output.py`
+#: holds them as one tuple because both mean "a budget was reached"; the sentences
+#: they earn are different, which is why each is named here.
+#:
+#: MOVED UP FROM BESIDE `_no_extractor_cause` on `104` §18.2 gap 10, AND NOT
+#: COPIED: the roster reconciliation below names `DEFERRED` as one of its six
+#: buckets, and a second spelling of a P4 completeness state in this file is
+#: exactly the second home a published vocabulary exists to prevent.
+#: `_no_extractor_cause` and `_CAPPED_BY_SOURCE_TYPE` still read these two from
+#: further down the file and are otherwise unchanged.
+CAPPED: str = "capped"
+DEFERRED: str = "deferred"
+
+
+#: The six buckets in the order they are printed, and the order is an argument.
+#: `00`:259 asks the interface to "show the difference between completed work and
+#: deferred work", so the line reads from the most finished outcome to the least:
+#: a file the rules settled needed nothing, a file a model answered about got what
+#: it needed, and everything below those is work that did not happen, ending with
+#: the two that say the product could not or would not do it. A person scanning
+#: down stops where the news starts.
+_COVERAGE_ORDER: tuple[str, ...] = (
+    COVERAGE_SETTLED, COVERAGE_ASKED, COVERAGE_NOT_ASKED, WITHHELD_PROTECTED,
+    UNREADABLE, DEFERRED)
+
+#: WHICH §8.6 STATE EACH BUCKET REPORTS AS, and P13's three words rather than any
+#: of this file's own. A `ProgressEntry` carries one, `assert_every_file_accounted`
+#: is written against that record, and a fourth state invented here would be a
+#: second vocabulary for the thing P13 publishes.
+_COVERAGE_STATE: Mapping[str, str] = MappingProxyType({
+    COVERAGE_SETTLED: STATE_COMPLETED,
+    COVERAGE_ASKED: STATE_COMPLETED,
+    COVERAGE_NOT_ASKED: STATE_DEFERRED,
+    WITHHELD_PROTECTED: STATE_BLOCKED,
+    UNREADABLE: STATE_BLOCKED,
+    DEFERRED: STATE_DEFERRED,
+})
+
+
+class FileInTwoBuckets(RuntimeError):
+    """One indexed file reached two of the six buckets. The sum does not close.
+
+    The mirror of `review_surface.progress.FileAbsentFromEveryEntry`, and it is a
+    refusal for the same reason: a coverage line a person cannot add up is a
+    coverage line that tells them nothing, and one that quietly overcounts tells
+    them something false. `104` §18.2 gap 10 asks for a CLOSED sum, and closed is
+    both directions.
+    """
+
+
+def _reconcile_the_roster(conn: sqlite3.Connection, *, run_id: str,
+                          verdicts: Mapping[str, tuple[str, str | None]],
+                          not_run: str | None, out) -> None:
+    """One closed sum over every indexed file, at the end of the fact pass.
+
+    **`104` §18.2 gap 10, and the constitution's "coverage is sacred".**
+    `assert_every_file_accounted` -- "no indexed file may be absent from every
+    entry" -- was written, tested, and reachable from `src/` only down
+    `_nothing_could_be_read_report`, the screen for a folder NOTHING could be read
+    out of. So the rule held on the one run where a person could see the answer by
+    looking, and held on no ordinary run at all: a file the deterministic producers
+    settled got no line anywhere, and a person had a report full of counts with no
+    way to tell whether the counts covered their folder. `00`:259 names exactly the
+    impression that leaves -- "that an unprocessed file was understood and found
+    unimportant".
+
+    **IT RUNS WHETHER OR NOT THE FACT PASS DID.** That is why it is a function of
+    its own called after the pass rather than a block at the end of it: the pass has
+    four early returns -- no model, no destination this mode permits, an empty
+    roster, no wire handle key -- and every one of them is an ordinary way for a run
+    to go. A sum that disappeared under them would be missing on precisely the runs
+    where a person is most likely to wonder what happened to their files. The pass
+    hands out its reason instead of dropping it at a bare `return`.
+
+    **THE PRECEDENCE IS A RULING AND NOT A SORT ORDER**, so it is stated:
+
+    1. **Protected first, always.** The standing rule is that protected material is
+       marked and counted, never opened and never silently omitted. A protected
+       file reported as "unreadable" would say the product tried to read it and
+       failed, which is the opposite of what happened, and one reported as "settled
+       by rule" would hide it in the largest bucket on the screen.
+    2. **Then the fact pass's own verdict for that file**, because it is the finer
+       answer and because it is what the block directly above already printed: if
+       the sum called a file "unreadable" that the fact pass had just counted among
+       "N files sent", the two blocks would contradict each other on one screen and
+       a person would have no way to tell which was lying.
+    3. **Then what was read out of it**, for a file the pass never reached --
+       which is every file when the pass did not run. Unreadable before deferred,
+       because "nothing could be read out of it" is a settled outcome and a ceiling
+       is not, and unreadable answered by `_files_something_was_read_out_of` rather
+       than by P4's worst run: a file several extractors were pointed at, one of
+       which reported `unreadable`, has still been read, and calling it unreadable
+       on this line while the report proposes a folder for it two blocks down is
+       the screen contradicting itself about the same file.
+    4. **Then the pass's own reason for not running**, as the cause on a
+       `COVERAGE_NOT_ASKED` line. Never `COVERAGE_SETTLED`: nothing settled those
+       files' open fields, and saying so would be the false impression itself.
+
+    A file that reaches none of the four is a defect in this function, and
+    `assert_every_file_accounted` raises on it rather than letting the sum print
+    short. That is the same choice `review_surface/progress.py` made and for the
+    reason its module docstring gives: a progress line that omits a file looks
+    complete.
+    """
+    roster = corpus_roster(conn, run_id)
+    if not roster:
+        return
+    protected = _protected_file_ids(conn)
+    # NOTHING WAS READ OUT OF IT IS THE TEST, AND NOT P4'S WORST RUN. The first
+    # version of this function bucketed by `bucket_for(..., WORST_FIRST)`, which
+    # answers a different question: worst-first is P13's tie-break for its own
+    # §8.6 line, where a file with runs in several states has to be SHOWN as one
+    # of them, and it makes `unreadable` win as soon as ONE extractor among
+    # several reports it. This line makes a claim about the file instead --
+    # "nothing could be read out of it" -- and under worst-first a file two
+    # readers handled and a third could not would carry that claim on this line
+    # while the report proposed a folder for it two blocks down, which is the
+    # screen contradicting itself about one file. `_files_something_was_read_out_of`
+    # is this build's one definition of read -- an observation that did not come
+    # from the filesystem -- and it is the rule the folder screen and R-24's report
+    # already answer with, so the three cannot come to disagree about one file.
+    read = _files_something_was_read_out_of(conn)
+    buckets: dict[str, list[str]] = {label: [] for label in _COVERAGE_ORDER}
+    causes: dict[str, dict[str, list[str]]] = {
+        label: {} for label in _COVERAGE_ORDER}
+    for file_id, content_hash in roster:
+        if file_id in protected:
+            label, cause = WITHHELD_PROTECTED, None
+        elif file_id in verdicts:
+            label, cause = verdicts[file_id]
+        elif file_id not in read:
+            label, cause = UNREADABLE, None
+        else:
+            mine = [run for run in runs_for_content(conn, content_hash)
+                    if run.file_id == file_id]
+            state = bucket_for(mine, precedence=WORST_FIRST)
+            if state in (CAPPED, DEFERRED):
+                # A CEILING, AND P4'S OWN WORD FOR WHICH ONE. `capped` read
+                # something and stopped; `deferred` never started. Both mean a
+                # budget was reached and neither means the product could not read
+                # the file, which is why they are here and not above.
+                label, cause = DEFERRED, state
+            elif not_run is not None:
+                label, cause = COVERAGE_NOT_ASKED, not_run
+            else:
+                # NO BUCKET, DELIBERATELY. The assertion below names the file and
+                # refuses the report rather than printing a sum that is short by
+                # one, which is the only way a person could ever find out.
+                continue
+        buckets[label].append(file_id)
+        if cause is not None:
+            causes[label].setdefault(cause, []).append(file_id)
+
+    entries = [ProgressEntry(
+        label=label, count=len(buckets[label]), state=_COVERAGE_STATE[label],
+        # WHERE THE ANSWER CAME FROM, in P13's own two words for it. The buckets
+        # a model call or the route decided are P8's; the two read off P4's
+        # extraction record are P4's. Neither is P3's population, which is what
+        # this whole line is being reconciled against.
+        source=SOURCE_P4_RUNS if label in (UNREADABLE, DEFERRED) else SOURCE_P8,
+        cause=None, file_ids=tuple(sorted(buckets[label])))
+        for label in _COVERAGE_ORDER]
+    # BOTH HALVES OF "EXACTLY ONE", and one function answers only the first.
+    # `assert_every_file_accounted` is P13's own rule -- no indexed file is absent
+    # from every entry -- and it is asked for by name because it is the rule `104`
+    # §18.2 gap 10 says was unreachable. It cannot catch the other direction: two
+    # entries that both hold one file satisfy it and still make the printed sum
+    # overshoot the roster, and a sum a person cannot trust is worse than none.
+    assert_every_file_accounted(dict(roster), entries)
+    total = len(roster)
+    counted = sum(entry.count for entry in entries)
+    if counted != total:
+        raise FileInTwoBuckets(
+            f"the six buckets hold {counted} files over a roster of {total}. "
+            f"Every indexed file belongs in exactly one of them, and a sum that "
+            f"does not close is a report that cannot be checked -- which is the "
+            f"whole reason `104` §18.2 gap 10 asks for one. Counts: "
+            f"{ {entry.label: entry.count for entry in entries} }")
+
+    print("", file=out)
+    # "COVERAGE", AND NOT "EVERY FILE IS ACCOUNTED FOR". Those words are already
+    # on this screen: `_nothing_could_be_read_report` opens with them and then
+    # NAMES the files, so a run down that path printed one sentence twice a few
+    # lines apart -- one block summing, one block listing -- and left a reader to
+    # work out whether they were the same claim about the same files. The word
+    # here is the constitution's own for the rule this block enforces.
+    print(f"Coverage: {total} file{'' if total == 1 else 's'} indexed.",
+          file=out)
+    for entry in entries:
+        print(f"    {entry.count} {entry.label}", file=out)
+        for cause, ids in sorted(causes[entry.label].items()):
+            print(_wrapped(
+                f"{len(ids)} of {'them' if entry.count != 1 else 'these'}: "
+                f"{COVERAGE_SENTENCE.get(cause, cause.replace('_', ' '))} "
+                f"({cause})", indent="      "), file=out)
+    # THE ARITHMETIC ON THE SCREEN, not just in an assertion nobody sees pass. The
+    # rule this block enforces is one a person has to be able to CHECK, and six
+    # numbers with no sum beneath them is six numbers they would have to add up
+    # themselves to find out whether their folder was covered.
+    print(f"  {' + '.join(str(entry.count) for entry in entries)} = {total}, "
+          f"and every file is on exactly one line above.", file=out)
 
 
 #: One locked container, as the screen needs it: the name the person calls it and
@@ -9144,6 +9674,23 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     #: it say what happened to every file that is not in it.
     situation_cell: list = [_NOTHING_ASKED]
 
+    #: `104` §18.2 gap 10: file_id -> (bucket, cause), what the fact pass decided
+    #: about each file it walked. Filled by `_model_fact_pass` and read by
+    #: `_reconcile_the_roster`, which runs whether or not the pass reached its end.
+    #:
+    #: A DICT AND NOT A COUNT, for `ProgressEntry.file_ids`' own reason: the rule
+    #: being checked is "every indexed file is in exactly one bucket", and that is
+    #: not assertable from counts -- two buckets of four and five over nine files
+    #: could both have missed the same file and double-counted another and the
+    #: arithmetic would still look right.
+    fact_pass_verdicts: dict[str, tuple[str, str | None]] = {}
+
+    #: WHY THE FACT PASS DID NOT RUN, or `None` because it did. One slot for
+    #: `fact_authorities`' reason. Carried out of the closure rather than dropped
+    #: at a bare `return`, because `104` §18.2 gap 10's sum has to print on those
+    #: runs too and "nothing was asked" is not a reason a person can act on.
+    fact_pass_not_run: list[str | None] = [None]
+
     #: `104` R-37: the run's top-level branches and the situation each carries,
     #: filled by `_partition_branches` in `downstream` once the deterministic
     #: facts exist, and read by the fact pass, the acceptance and the design.
@@ -9224,6 +9771,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         under.
         """
         if routing is None:
+            # `104` §18.2 gap 10: THE REASON LEAVES WITH THE RETURN. Every one
+            # of the four returns in this function used to drop it, and
+            # `_reconcile_the_roster` then had to choose between calling every
+            # file "settled by rule" -- which would be false about their open
+            # fields -- and leaving them out of the sum, which is the omission
+            # the sum exists against.
+            fact_pass_not_run[0] = NOT_RUN_NO_MODEL
             return
         if not site_has_a_destination(conn, routing, A_FACT,
                                       operation_mode=operation_mode):
@@ -9245,6 +9799,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # of them on their own machine. `site_has_a_destination` asks the three
             # questions the route asks and returns False only when there is
             # genuinely nowhere to send.
+            fact_pass_not_run[0] = NOT_RUN_NO_DESTINATION
             return
         roster = corpus_roster(conn, run_id)
         if not roster:
@@ -9259,6 +9814,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 "key, and every identifier that reaches a model is digested under "
                 "one. There is no un-keyed form to fall back to.", indent="  "),
                 file=out)
+            fact_pass_not_run[0] = NOT_RUN_NO_HANDLE_KEY
             return
 
         policy_version = set_policy(
@@ -9343,7 +9899,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                             if level.field not in group_levels),
                         deferred_readings=rules.schemas[
                             branch.schema].deferred_readings))
-        not_asked: dict[str, int] = {}
+        # THE FILE IDS AND NOT JUST HOW MANY, since `104` §18.2 gap 10. A count
+        # cannot be reconciled: two buckets of four and five over nine files could
+        # both have missed the same file and double-counted another, and the
+        # arithmetic would still look right. `ProgressEntry.file_ids` carries the
+        # same argument in the same words, and this is the same rule one pass
+        # earlier. `_print_fact_pass` is still handed counts -- it prints counts --
+        # and takes them off `len` here rather than keeping a second tally.
+        not_asked: dict[str, list[str]] = {}
 
         # `104` §17.1 AND §17.9: EACH FILE'S OWN SITUATION, ASKED BEFORE THE
         # FIELDS. This runs first because its answer is what decides the fact
@@ -9385,6 +9948,17 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                                       operation_mode=operation_mode)
             else _NOTHING_ASKED)
         situation_cell[:] = [situation_pass]
+        # `104` §18.2 gap 9: THE CELL NOW HAS A READER. It was written here and
+        # read by nothing, so site G's whole account of the roster -- including
+        # the protected count `no_route` holds -- reached nobody. Printed HERE,
+        # immediately after the pass and before the fact pass's own block, because
+        # that is the order the two ran in and because the situation a file is
+        # asked under is chosen before its fields are asked: a person reading down
+        # the screen reads the decisions in the order the run made them.
+        _print_situation_pass(situation_pass, files=len(roster),
+                              model_id=_local_model_id(
+                                  routing, G_SITUATION_SENSITIVITY),
+                              out=out)
         # ONE RESOLVER PER SCHEMA A MODEL NAMED, on `104` R-37's own pattern one
         # row up. Built by `replace` over the default authorities so the gate, the
         # budget, the key, the client and the counting sink are the SAME objects:
@@ -9433,13 +10007,11 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 # `104` R-140: only a file TWO branches reach is here; a file
                 # none reaches is under the default branch and asked its
                 # questions.
-                not_asked[NOT_ASKED_AMBIGUOUS] = (
-                    not_asked.get(NOT_ASKED_AMBIGUOUS, 0) + 1)
+                not_asked.setdefault(NOT_ASKED_AMBIGUOUS, []).append(file_id)
                 return None
             chosen = resolvers.get(branch.label)
             if chosen is None:
-                not_asked[NOT_ASKED_UNSETTLED] = (
-                    not_asked.get(NOT_ASKED_UNSETTLED, 0) + 1)
+                not_asked.setdefault(NOT_ASKED_UNSETTLED, []).append(file_id)
             return chosen
 
         written: list[str] = []
@@ -9451,7 +10023,15 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # sentence behind the same word. The store is asked here, where the file
         # ids still are, and `_print_fact_pass` prints what it is told.
         store = ClassificationStore(conn)
-        withheld: dict[str, int] = {}
+        withheld: dict[str, list[str]] = {}
+        #: `104` §18.2 gap 10: THE FILES THIS PASS WALKED AND NEITHER BARRED NOR
+        #: ASKED ABOUT. The deterministic producers had left nothing pending for
+        #: them, which is `ask_the_situation`'s `settled` one site over and
+        #: `00`:110's own rule -- "The LLM should not be called for direct, unique
+        #: matches". Until this gap they were the invisible majority of a run: no
+        #: line in the fact block, no line anywhere.
+        settled_by_rule: list[str] = []
+        deferred_by_budget: list[str] = []
         for file_id, content_hash in roster:
             asking = resolver_for(file_id)
             if asking is None:
@@ -9459,7 +10039,17 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             result = asking.resolve(
                 conn, file_id=file_id, content_hash=content_hash)
             written.extend(result.fact_ids)
-            if result.stages_barred.get(LLM_ROUTE) != PRIVACY_BAR:
+            barred = result.stages_barred.get(LLM_ROUTE)
+            if barred == BUDGET_BAR:
+                # A CEILING, NOT A REFUSAL, and `facts/resolver.py` keeps the two
+                # apart for the reason `00`:257 gives: a file that may never reach
+                # a model is not a file waiting for budget to free up, and
+                # reporting one as the other "would promise work that will never
+                # be done". The same separation has to survive into the sum.
+                deferred_by_budget.append(file_id)
+                continue
+            if barred != PRIVACY_BAR:
+                settled_by_rule.append(file_id)
                 continue
             row = get_file(conn, file_id)
             record = (store.current(file_id, row["content_hash"])
@@ -9467,16 +10057,49 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             cause = (WITHHELD_UNCLASSIFIED if record is None
                      else WITHHELD_PROTECTED if record.protected
                      else WITHHELD_PRIVACY)
-            withheld[cause] = withheld.get(cause, 0) + 1
+            withheld.setdefault(cause, []).append(file_id)
         _print_fact_pass(
-            written=len(written), withheld=withheld,
+            written=len(written),
+            withheld={cause: len(ids) for cause, ids in withheld.items()},
             files=len(roster), outcomes=outcomes,
             # BOTH NAMES WHEN BOTH ANSWERED (`104` §17.13 ruling 3). `model_id_for`
             # describes the cloud half, and on a two-target run it would tell a
             # person one model was sent their files when the file they most care
             # about -- the one nothing has classified -- went to the other.
             model_id=_fact_pass_models(routing), out=out,
-            not_asked=not_asked)
+            not_asked={reason: len(ids) for reason, ids in not_asked.items()})
+        # `104` §18.2 gap 10. WHAT THE PASS SAW, HANDED OUT WHOLE. The
+        # reconciliation runs whether or not this function reached this line, so
+        # it cannot be written here; what it can be given is every verdict this
+        # pass reached, per file, and it fills in the rest of the roster itself.
+        fact_pass_verdicts.update(
+            {file_id: (COVERAGE_NOT_ASKED, reason)
+             for reason, ids in not_asked.items() for file_id in ids})
+        fact_pass_verdicts.update(
+            {file_id: (COVERAGE_NOT_ASKED, cause)
+             for cause, ids in withheld.items()
+             if cause != WITHHELD_PROTECTED for file_id in ids})
+        # PROTECTED IS ITS OWN BUCKET AND NOT A KIND OF "NOT ASKED". The standing
+        # rule is that protected material is marked and counted, never silently
+        # omitted, and folding it under a reason among reasons is the soft form of
+        # omitting it -- a person scanning the sum would have to read a cause line
+        # to find out that any of their files are protected at all.
+        fact_pass_verdicts.update(
+            {file_id: (WITHHELD_PROTECTED, None)
+             for file_id in withheld.get(WITHHELD_PROTECTED, ())})
+        fact_pass_verdicts.update(
+            {file_id: (DEFERRED, BUDGET_DEFERRED)
+             for file_id in deferred_by_budget})
+        fact_pass_verdicts.update(
+            {file_id: (COVERAGE_SETTLED, None) for file_id in settled_by_rule})
+        # LAST, so a response OVERRIDES the walk's own guess. A file the loop put
+        # in `settled_by_rule` is a file whose LLM stage was not barred, and the
+        # stage running is not the same event as a model answering -- `104` R-03
+        # is that distinction costing a wrong number on this very screen.
+        # `_sent_and_abstained` already rules what counts as a response and is
+        # reused rather than re-derived, so the sum and the "from N files sent"
+        # line two paragraphs above cannot come to disagree.
+        fact_pass_verdicts.update(_verdicts_from_outcomes(outcomes))
 
     def _anchor_statement_pass(run_id: str) -> None:
         """`104` R-135: where in this corpus does a document STATE a course's name?
@@ -9655,6 +10278,17 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # purpose: they report what the scan found, and a fact this pass writes is
         # part of what the scan found.
         _model_fact_pass(p1_p7.scan_run_id)
+        # `104` §18.2 gap 10, AND IT IS OUTSIDE THE PASS ON PURPOSE. The pass has
+        # four early returns and every one of them is an ordinary way for a run to
+        # go -- no model, no destination this mode permits, an empty roster, no
+        # wire handle key -- so a sum written at the end of the pass would be
+        # missing on precisely the runs where a person is most likely to wonder
+        # what happened to their files. Here it runs on every run, immediately
+        # after the pass and before anything else prints, which is where the two
+        # blocks it reconciles already are.
+        _reconcile_the_roster(
+            conn, run_id=p1_p7.scan_run_id, verdicts=fact_pass_verdicts,
+            not_run=fact_pass_not_run[0], out=out)
         # AFTER the fact pass, because that is what builds the authorities these
         # borrow, and BEFORE P9 groups, because that is what asks site B.
         observe_b = (observe_group_authorities(
@@ -10038,13 +10672,6 @@ def _nothing_could_be_read_report(
         cause_for=_no_extractor_cause(conn)))
     return tuple(lines)
 
-
-#: P4's two ceiling completenesses, and they are NOT interchangeable: `capped` read
-#: something and stopped, `deferred` never started. `extractors/stage_output.py`
-#: holds them as one tuple because both mean "a budget was reached"; the sentences
-#: they earn are different, which is why each is named here.
-CAPPED: str = "capped"
-DEFERRED: str = "deferred"
 
 #: WHICH CEILING STOPPED A `capped` RUN, by the `source_type` that recorded it.
 #: Three extractors write `capped` under three different ceilings and every one of
