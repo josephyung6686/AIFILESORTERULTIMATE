@@ -351,8 +351,17 @@ def test_a_redacted_identifier_over_the_whole_document_is_refused_too(
     value starred out.
 
     The stored ceiling is one shorter than the unit for `104` §17.13's reason and it
-    is the SAME ceiling the excerpt above is refused under, so what this test isolates
-    is still the item kind and nothing else."""
+    is the SAME ceiling the excerpt above is refused under.
+
+    **`104` §18 S4 (9 Sep 2026) puts a stronger refusal in front of this one.** The
+    gate in this file is built with a classifier that names no class -- which is
+    every deployment while `104` SF-2's classifier is unwritten -- so the value
+    would leave UNREDACTED under a name that says it was redacted. That is
+    `raw_sensitive_values`, member of §8.4's nine, and `release.DECISION_ORDER`
+    publishes `always_local_item` before `whole_document_requested`. So the reason
+    asserted here is the always-local one; the whole-document arm is exercised on
+    the same address by the `Excerpt` test above, and would be this kind's reason
+    too under a classifier that redacts."""
     file_id, key = a_document
     set_ceiling(whole_conn, CEILING_KEY, len(DOCUMENT) - 1)
     decision = _gate(whole_conn).release(_request(
@@ -360,7 +369,8 @@ def test_a_redacted_identifier_over_the_whole_document_is_refused_too(
                                   identifier_class="course-code"),),
         file_id=file_id))
     assert isinstance(decision, Denied)
-    assert decision.reason == "whole_document_requested"
+    assert decision.reason == "always_local_item", decision.reason
+    assert "no redaction applied" in decision.explanation
 
 
 # ================================================================================

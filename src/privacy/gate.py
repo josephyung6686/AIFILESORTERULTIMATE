@@ -132,6 +132,18 @@ from privacy import display, learning_seam, moves, revocation
 #: are never materialised and never echoed back.
 TEXT_BEARING: tuple[type, ...] = (Excerpt, RedactedIdentifier)
 
+
+class GateInvariantBroken(RuntimeError):
+    """A condition the gate's own ordering depends on does not hold.
+
+    `104` §18 S5: these were bare `assert`s, which `python -O` strips, and two of
+    the three are privacy invariants -- "pending and unclassified are one set" and
+    "classification precedes the model call it governs". An invariant that
+    disappears under an interpreter flag is a hope, so each is now a raise that
+    survives every flag. Raised, never denied: a broken invariant is a defect in
+    this module, not a fact about the file.
+    """
+
 #: §4's four kinds that address no local text and so resolve to no value. They are
 #: absent from a release's `materialised_items` BY DESIGN and always were -- §4: an
 #: evidence reference is "an id only -- no content" -- which is what makes them
@@ -231,7 +243,11 @@ class Gate:
 
     def release(self, request: ModelCallRequest) -> ReleaseDecision:
         """See `release.DECISION_ORDER` for the order and why it is forced."""
-        assert DECISION_ORDER[0] == "collect_request_denials"
+        if DECISION_ORDER[0] != "collect_request_denials":
+            raise GateInvariantBroken(
+                f"`release.DECISION_ORDER` opens with {DECISION_ORDER[0]!r}, and "
+                f"this method is written for an order that opens with "
+                f"'collect_request_denials'")
         policy = current_policy(self._conn, plan_version=self._plan_version)
         if policy is None:
             raise NoPolicyInForce(
@@ -364,11 +380,13 @@ class Gate:
         unclassified = tuple(sorted(
             file_id for file_id, name in classes.items()
             if name == UNREADABLE_UNCLASSIFIED))
-        assert pending == unclassified, (
-            f"{sorted(set(pending) ^ set(unclassified))} are {PRIVACY_CLASS_PENDING!r} "
-            f"on one reading and not the other. `105` §14.3 rules an unassessed file "
-            f"pending rather than ordinary and treats pending like unclassified for "
-            f"every gate, which holds only while the two agree")
+        if pending != unclassified:
+            raise GateInvariantBroken(
+                f"{sorted(set(pending) ^ set(unclassified))} are "
+                f"{PRIVACY_CLASS_PENDING!r} on one reading and not the other. `105` "
+                f"§14.3 rules an unassessed file pending rather than ordinary and "
+                f"treats pending like unclassified for every gate, which holds only "
+                f"while the two agree")
         if unclassified and unclassified_denies(
                 locality=locality,
                 local_calls_on_unclassified=self._unclassified_permits_local):
@@ -532,6 +550,31 @@ class Gate:
             late["whole_document_requested"] = \
                 lambda: deny_whole_document_requested(caught, file_ids=file_ids)
 
+        # 4a -- `104` §18 S4. A `RedactedIdentifier` is §8.4's "redacted
+        # identifiers" and is admitted past the sensitive-key refusal on the
+        # promise that the value is redacted before it leaves. `apply_redaction`
+        # returns the value UNCHANGED when the classifier names no class -- which
+        # is every value while `104` SF-2's classifier is unwritten -- so without
+        # this arm the raw identifier left under a name that said it was redacted,
+        # and the audit row's `redaction_applied: False` was the only honest line.
+        # Asked here, after materialisation, because "was it redacted" is a fact
+        # about the released value and not about the request. Refused as the
+        # always-local item it is: `raw_sensitive_values` is member of §8.4's nine.
+        unredacted = tuple(
+            item.observation_key
+            for item, entry in zip((*name_items, *text_items), manifest.entries)
+            if isinstance(item, RedactedIdentifier) and not entry.redacted)
+        if unredacted:
+            not_redacted = AlwaysLocalRequested(
+                f"{list(unredacted)} were requested as RedactedIdentifier and no "
+                f"redaction applied: the identifier classifier named no class for "
+                f"the value, so what would leave is the raw value under a name "
+                f"that says it was redacted. §8.4 permits 'redacted identifiers' "
+                f"and places 'raw_sensitive_values' in the always-local set; an "
+                f"unredacted identifier is the second and not the first.")
+            late["always_local_item"] = lambda: deny_always_local_item(
+                not_redacted, file_ids=file_ids)
+
         if self._measure_tokens is not None:
             measured = self._measure_tokens(request, resolved)
             if over_dossier_ceiling(self._conn, measured_tokens=measured):
@@ -562,12 +605,14 @@ class Gate:
         # "unless the local-unclassified rule admits it" is the rule itself and not a
         # second copy of it -- Open question 5 is still unanswered and the answer is
         # still the caller's `unclassified_permits_local`.
-        assert not pending or not unclassified_denies(
-            locality=locality,
-            local_calls_on_unclassified=self._unclassified_permits_local), (
-            f"{list(pending)} reach a dossier with no assessed classification, and "
-            f"the local-unclassified rule does not admit them for a {locality} "
-            f"target. `105` §14.3: classification precedes the model call it governs")
+        if pending and unclassified_denies(
+                locality=locality,
+                local_calls_on_unclassified=self._unclassified_permits_local):
+            raise GateInvariantBroken(
+                f"{list(pending)} reach a dossier with no assessed classification, "
+                f"and the local-unclassified rule does not admit them for a "
+                f"{locality} target. `105` §14.3: classification precedes the "
+                f"model call it governs")
 
         # 5 -- the one write, before the value exists.
         audit_id = append_audit(
