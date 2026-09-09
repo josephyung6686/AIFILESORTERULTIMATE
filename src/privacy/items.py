@@ -422,7 +422,12 @@ def check_item(item: object, *, unit_length: int | None, zone: str | None,
     arm below branches on `locality`: the zone arm refuses `filename` for every
     target (`ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET`), and the whole-document arm fires
     for every target when the unit is longer than the stored CEILING, the eighth
-    keyword. `locality` stays required and validated because the gate's privacy-CLASS
+    keyword -- a unit WITH A STORED LENGTH, which is every text extractor's page
+    and not the OCR extractor's whole passage: `extractors/ocr.py` writes no
+    `text_units` row at that passage's path, so `unit_length` arrives `None` and
+    this arm cannot bound it at any ceiling (r169a's finding, `104` R-171). What
+    bounds that row is the stage: `model_facts.ordered_releasable_observations`
+    withholds any reading longer than the ceiling. `locality` stays required and validated because the gate's privacy-CLASS
     rule (`gate.py` ~347) and the per-file route (R-170, `cli.target_for`) still
     divide by it, and a caller must still say where the bytes are going. Which FILE
     may cross is decided per file before this is asked: protected and unclassified

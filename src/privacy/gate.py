@@ -707,9 +707,11 @@ class Gate:
     def _stored_ceiling(self) -> int | None:
         """P1's stored ceiling, or `None` when none is stored. `104` §17.13.
 
-        `check_item`'s whole-document arm reads it: a whole unit longer than it is
-        refused for every target. Never `request.max_dossier_tokens` (M9). `None`
-        refuses nothing, because P7 invents no number.
+        `check_item`'s whole-document arm reads it: a whole unit with a stored
+        length, longer than it, is refused for every target (the OCR passage has
+        no stored length and is bounded by the stage instead, `104` R-171). Never
+        `request.max_dossier_tokens` (M9). `None` refuses nothing, because P7
+        invents no number.
         """
         value = get_ceiling(self._conn, "model.max_dossier_tokens_per_call")
         return None if value is None else int(value)
