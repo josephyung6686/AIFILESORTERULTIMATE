@@ -28,6 +28,20 @@ It also keeps `denial.DECIDABLE_FROM_REQUEST`'s claim about `always_local_item` 
 The two controls below are the reason this is a zone check and not a flip of
 `is_whole_document`: a span-less `metadata`-zone field and a span-less `title`-zone
 field are BOUNDED VALUES, not documents, and both must still be released.
+
+**SUPERSESSION, 9 Sep 2026, `104` §17.13 (the owner's ruling, applied on the owner's
+word "for now its ok let it through").** The title line above is the rule this file
+was written for and is kept as its history. The rule now is that `path` and `ocr` are
+released to EVERY target within the dossier ceiling and `filename` alone is refused to
+every target -- `vocabulary.RELEASED_TO_EVERY_TARGET` against
+`ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET`. What CR-01 built is untouched: the zone is
+still read off the LOCATOR in `_precheck_items` before anything is materialised, and a
+zone in the refused set is still answered there. What changed is the MEMBERSHIP of
+that set, from three zones to one. Every test the ruling moved carries its own dated
+paragraph saying what it asserted before and why it asserts the opposite now; none of
+them was deleted, and the tests below that were re-addressed from `path` to `filename`
+assert exactly what they always did, at the zone where there is still a refusal to
+assert it about.
 """
 from __future__ import annotations
 
@@ -38,6 +52,7 @@ from pathlib import Path
 
 import pytest
 
+from database_agent.budget import set_ceiling
 from database_agent.db import create_schema
 from database_agent.files_table import record_file
 from evidence_shape.canonical import canonical_json
@@ -61,7 +76,7 @@ from privacy.items import (
 )
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.release import Denied, ModelCallRequest, ModelTarget, Released, Target
-from privacy.resolve import UnresolvableSpan
+from privacy.resolve import UnresolvableSpan, materialise
 from privacy.schema import create_privacy_schema
 from privacy.vocabulary import (
     ALWAYS_LOCAL, ALWAYS_LOCAL_ZONES, ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET,
@@ -80,6 +95,18 @@ CLOUD = ModelTarget(locality="cloud", model_id="a-model", provider="Acme")
 LOCAL = ModelTarget(locality="local", model_id="a-model", provider="ollama")
 #: P7's own ceiling echo. A number only a test may choose.
 MAX_DOSSIER_TOKENS = 4000
+#: P1's stored ceiling, which is the one `Gate._stored_ceiling` reads and the only
+#: one `check_item`'s whole-document arm may be asked about (`104` §17.13, M9: the
+#: request's `max_dossier_tokens` is "the caller's echo of it").
+CEILING_KEY = "model.max_dossier_tokens_per_call"
+
+
+class _Item:
+    """A key and a span, which is all `resolve.materialise` reads off an item."""
+
+    def __init__(self, observation_key: str, span) -> None:
+        self.observation_key = observation_key
+        self.span = span
 
 #: The directory the reviewer's probe carried onto the wire, in the shape
 #: `extractors/filesystem.py` writes it: the parent folder of a scanned file.
@@ -224,46 +251,83 @@ def test_the_zone_set_maps_onto_always_local_and_adds_no_member():
 # The defect: the ordinary release path, on the zone §8.4 names first
 # ================================================================================
 
-def test_a_span_less_path_zone_excerpt_is_denied_and_the_path_never_appears(zone_conn):
-    """CR-01, reproduced and closed.
+def test_a_span_less_path_zone_excerpt_now_puts_the_directory_on_the_cloud_wire(
+        zone_conn):
+    """CR-01's own reproduction, re-argued to the opposite answer by `104` §17.13.
 
-    SABOTAGE: delete the `zone in ALWAYS_LOCAL_ZONES` branch from
-    `privacy/items.check_item` and this test goes red on `isinstance(decision,
-    Denied)` -- the run in which `/Users/joseph/Documents/Legal/Divorce` is the
-    `value` of a `released_evidence` entry in the bytes a cloud model is shown.
+    **THIS TEST ASSERTED `Denied` UNTIL 9 Sep 2026**, and the sentence it asserted it
+    with is the one worth reading first: the sabotage it named was "the run in which
+    `/Users/joseph/Documents/Legal/Divorce` is the `value` of a `released_evidence`
+    entry in the bytes a cloud model is shown". That run is now the ruling. Asked
+    §17.6's question with the code's answer in front of them -- the cloud is shown
+    zero characters, and half the corpus is refused to it -- the owner extended item
+    14 to the cloud target: a cloud model may be shown a whole text unit, the person's
+    folder path and OCR text, within the same ceiling, for every file the cloud gate
+    permits.
+
+    So what is asserted here is the released VALUE and not the verdict, deliberately.
+    The directory CR-01 kept off the wire is named in this test, on a CLOUD target, so
+    that this file cannot be read as having applied the ruling without showing what
+    the ruling releases. Which FILE may cross is decided elsewhere and per file
+    (`cli.target_for` over `cli.model_route_permitted`, `104` R-170): a protected file
+    and an unclassified file never reach this door with a cloud target.
+
+    The mechanism CR-01 built is untouched and is still driven, one zone along.
+    `test_a_span_less_filename_zone_excerpt_is_denied_too` runs this exact shape
+    through the same locator pass and is still `Denied`, because `filename` is the one
+    member of `ALWAYS_LOCAL_ZONES` the ruling does not release.
     """
     file_id, key = _seed(zone_conn, zone="path", raw_value=PRIVATE_DIRECTORY)
     decision = _gate(zone_conn).release(_request(
         items=(Excerpt(observation_key=key, span=None, reason="path"),),
         file_id=file_id))
 
-    assert isinstance(decision, Denied), (
-        f"a path-zone excerpt was {type(decision).__name__}; §8.4's always-local "
-        f"list opens with the word 'Paths'")
-    assert decision.reason == "always_local_item"
-    assert PRIVATE_DIRECTORY not in decision.explanation, (
-        "the refusal must not quote the value it refused to release")
+    assert isinstance(decision, Released), (
+        f"a path-zone excerpt bound for a cloud model was "
+        f"{type(decision).__name__}; `104` §17.13 releases the person's folder path "
+        f"to every target within the ceiling")
+    assert [one.value for one in decision.materialised_items] == [PRIVATE_DIRECTORY], (
+        "the cloud model is shown the folder itself, which is what the ruling is")
 
 
 def test_the_denial_names_the_zone_and_the_section_that_forbids_it(zone_conn):
-    file_id, key = _seed(zone_conn, zone="path", raw_value=PRIVATE_DIRECTORY)
+    """RE-ADDRESSED from `path` to `filename` by `104` §17.13, and the claim is
+    unchanged by the move: a person reading the refusal is told WHICH zone was
+    refused, WHICH section refuses it, and where to go instead.
+
+    The zone the assertion names had to move because the path zone no longer produces
+    a denial to read. Nothing about what is asserted moved with it -- `check_item`'s
+    message names the zone, `deny_always_local_item` quotes §8.4's nine-name sentence
+    whole, and §8.6 requires the remedy.
+    """
+    file_id, key = _seed(zone_conn, zone="filename",
+                         raw_value="Divorce Petition.pdf")
     decision = _gate(zone_conn).release(_request(
-        items=(Excerpt(observation_key=key, span=None, reason="path"),),
+        items=(Excerpt(observation_key=key, span=None, reason="filename"),),
         file_id=file_id))
-    assert "path" in decision.explanation
+    assert "filename" in decision.explanation
     assert "8.4" in decision.explanation
     assert decision.remedy_options, "§8.6: a denial is never a dead end"
 
 
 def test_a_redacted_identifier_is_not_a_way_round_the_zone(zone_conn):
     """The sensitive-key refusal names `RedactedIdentifier` as the legitimate second
-    route for the same key. A zone has no such route: redacting a directory leaves a
-    directory, and §8.4 puts the whole kind local rather than a value inside it.
+    route for the same key. A zone has no such route: §8.4 puts the whole kind local
+    rather than a value inside it, and the refusal is on the ADDRESS, so a second item
+    kind pointed at the same address is answered the same way.
+
+    RE-ADDRESSED from `path` to `filename` by `104` §17.13, and the claim is stronger
+    at the zone it moved to than at the one it left. `filename` has no redacted second
+    route BY CONSTRUCTION rather than by argument: §7.7's name has exactly one door,
+    `items.Filename`, where `allow_unratified` and §7.3's protected-records ban both
+    apply, and a filename arriving as a redacted identifier would go round both while
+    releasing nothing the `Filename` door does not already release.
     """
-    file_id, key = _seed(zone_conn, zone="path", raw_value=PRIVATE_DIRECTORY)
+    file_id, key = _seed(zone_conn, zone="filename",
+                         raw_value="Divorce Petition.pdf")
     decision = _gate(zone_conn).release(_request(
         items=(RedactedIdentifier(
-            observation_key=key, span=None, identifier_class="path"),),
+            observation_key=key, span=None, identifier_class="filename"),),
         file_id=file_id))
     assert isinstance(decision, Denied)
     assert decision.reason == "always_local_item"
@@ -292,12 +356,25 @@ def test_nothing_was_materialised_before_the_refusal(zone_conn):
     location, superseded_by` and no content column; `materialise` is what reads
     `raw_value`. Proving the order matters because `DECISION_ORDER` is explicit that
     a gate which resolved first would hold the text in memory before deciding it was
-    allowed to -- and a path is the one value where holding it IS the harm.
+    allowed to -- and a name a person gave a file is a value where holding it IS the
+    harm, which is why `filename` keeps its own door.
+
+    RE-ADDRESSED from `path` to `filename` by `104` §17.13. What is asserted is the
+    ORDER and not the zone: the refusal must arrive before the value exists. The path
+    zone no longer produces a refusal for the order to be asserted about, so the
+    assertion moved to the zone that still does. The property is the same property.
+
+    The stub takes `**kwargs` for a reason worth stating rather than working around.
+    `Gate._materialise` passes `within_file_ids`, and a two-argument stub would raise
+    `TypeError` on any path that actually reached materialisation -- which would fail
+    this test for the wrong reason and hide the real one. It must fail on `read == []`
+    with the sentence below it, or not at all.
 
     SABOTAGE: move the branch from `_precheck_items` into `_postcheck_items` and this
-    test goes red while the four above stay green.
+    test goes red while the ones above stay green.
     """
-    file_id, key = _seed(zone_conn, zone="path", raw_value=PRIVATE_DIRECTORY)
+    file_id, key = _seed(zone_conn, zone="filename",
+                         raw_value="Divorce Petition.pdf")
     read: list[str] = []
     gate = _gate(zone_conn)
 
@@ -305,36 +382,44 @@ def test_nothing_was_materialised_before_the_refusal(zone_conn):
 
     original = gate_module.materialise
 
-    def watched(conn, item):
+    def watched(conn, item, **kwargs):
         read.append(item.observation_key)
-        return original(conn, item)
+        return original(conn, item, **kwargs)
 
     gate_module.materialise = watched
     try:
         decision = gate.release(_request(
-            items=(Excerpt(observation_key=key, span=None, reason="path"),),
+            items=(Excerpt(observation_key=key, span=None, reason="filename"),),
             file_id=file_id))
     finally:
         gate_module.materialise = original
 
     assert isinstance(decision, Denied)
     assert read == [], (
-        "the gate resolved the path's raw_value before refusing to release it")
+        "the gate resolved the filename's raw_value before refusing to release it")
 
 
-def test_a_reference_to_a_path_observation_is_refused_too(zone_conn):
+def test_a_reference_to_a_refused_zones_observation_is_refused_too(zone_conn):
     """BROADER THAN THE FINDING, and recorded at the branch in `check_item`.
 
     `Gate._precheck_items` reads the zone for every item carrying an
     `observation_key`, so an `EvidenceReference` -- which §4 calls "an id only, no
     content" -- is refused as well. It blocks no demonstrated leak: the id leaves
-    keyed. It is kept because "an excerpt may not address a path, a reference may"
+    keyed. It is kept because "an excerpt may not address this zone, a reference may"
     is a rule needing its own justification and §8.4's sentence gives none. The rule
     is about the ZONE, so it holds whoever asks.
 
+    RE-ADDRESSED from `path` to `filename` by `104` §17.13, which moved the zone and
+    left the claim alone. The claim was never about paths: it is that the refusal
+    keys off the zone and not off the item kind, and `filename` is the zone that
+    still refuses. Its control below ("a reference to an ordinary zone is
+    untouched") is what stops this being satisfied by a gate that refuses every
+    reference.
+
     SABOTAGE: scope `_located_zone` to `TEXT_BEARING` and this goes red alone.
     """
-    file_id, key = _seed(zone_conn, zone="path", raw_value=PRIVATE_DIRECTORY)
+    file_id, key = _seed(zone_conn, zone="filename",
+                         raw_value="Divorce Petition.pdf")
     decision = _gate(zone_conn).release(_request(
         items=(EvidenceReference(observation_key=key),), file_id=file_id))
     assert isinstance(decision, Denied)
@@ -518,35 +603,45 @@ def test_a_span_less_bounded_field_is_still_released(zone_conn, zone):
 # The third zone, and the member nobody mapped
 # ================================================================================
 
-def test_an_ocr_zone_excerpt_is_denied_because_ocr_output_is_always_local(zone_conn):
-    """`ocr_output` is member THREE of the nine, and `ocr` is the zone it leaves by.
+def test_an_ocr_zone_excerpt_now_puts_the_recognised_text_on_the_cloud_wire(
+        zone_conn):
+    """Member THREE, re-argued to the opposite answer by `104` §17.13.
 
-    CR-01 mapped `paths` to the `path` zone and §7.7's filename kind to `filename`,
-    and stopped there. The comment beside `ALWAYS_LOCAL_ZONES` says why the gap was
-    invisible: "the nine are kinds of DATA and the fifteen zones are places in a
-    document, and no member-by-member correspondence exists between them". So the
-    mapping is made by hand, one member at a time, and member three was never made.
+    **THIS TEST ASSERTED `Denied` FROM 4 Sep TO 9 Sep 2026.** What it was written for
+    is still true and is why it exists: `ocr_output` is member three of §8.4's nine,
+    the mapping from the nine kinds of DATA onto the fifteen document ZONES is made by
+    hand one member at a time, and this member's mapping was missed for three days
+    while `extractors/ocr.py` wrote every recognised region into `zone="ocr"`. The
+    mapping is not undone -- `ocr` is still in `ALWAYS_LOCAL_ZONES` and
+    `ALWAYS_LOCAL` still stands at nine. What the ruling changed is what that
+    membership DOES: the two mapped zones §8.4's paths sentence actually names, `path`
+    and `ocr`, are released to every target within the ceiling.
 
-    `extractors/ocr.py` writes every recognised region into `zone="ocr"`, and until
-    this test nothing refused one. A card number Apple Vision read off a scanned
-    identity document was an ordinary releasable excerpt -- the same shape as the
-    absolute directory CR-01 caught, one member along.
+    **THE RESIDUAL IS THIS FIXTURE AND THE OWNER RULED KNOWING IT.** `104` R-161 is
+    open: P5 emits a sensitivity signal by FIELD POSITION for a format's own
+    person-valued slots, and an OCR reading has no field to be signalled by, so
+    `sensitive_keys` is empty for a scanned page. The card number Apple Vision read
+    off an identity document is therefore an ordinary releasable excerpt again, and
+    §17.13 item 4 records it as accepted knowingly: "names and addresses inside body
+    text are not detected ... and reach the provider for unprotected files". The
+    value is asserted here rather than the verdict so that this file states the price
+    of the ruling in the ruling's own terms.
 
-    THIS IS A NARROWING AND ADDS NO TENTH MEMBER. `ALWAYS_LOCAL` stays at nine. What
-    changes is that a third document zone is recognised as a route out of one of
-    them, which is what the CR-01 comment already describes doing for the first.
+    What still holds the line is the FILE gate and not this door: `cli.target_for`
+    over `cli.model_route_permitted` (`104` R-170) sends a protected file and an
+    unclassified file to the local model, and `105` §13.3's always-local privacy
+    CLASS refuses a cloud target for a file classified into it.
     """
     file_id, key = _seed(zone_conn, zone="ocr", raw_value=CARD_NUMBER)
     decision = _gate(zone_conn).release(_request(
         items=(Excerpt(observation_key=key, span=None, reason="ocr"),),
         file_id=file_id))
 
-    assert isinstance(decision, Denied), (
-        f"an `ocr`-zone excerpt was {type(decision).__name__}; `ocr_output` is "
-        f"member three of §8.4's nine always-local kinds")
-    assert decision.reason == "always_local_item"
-    assert CARD_NUMBER not in decision.explanation, (
-        "the refusal must not quote the value it refused to release")
+    assert isinstance(decision, Released), (
+        f"an `ocr`-zone excerpt bound for a cloud model was "
+        f"{type(decision).__name__}; `104` §17.13 releases OCR text to every target "
+        f"within the ceiling")
+    assert [one.value for one in decision.materialised_items] == [CARD_NUMBER]
 
 
 def test_the_zone_set_now_maps_three_members_and_still_adds_no_tenth():
@@ -557,7 +652,8 @@ def test_the_zone_set_now_maps_three_members_and_still_adds_no_tenth():
     assert not ALWAYS_LOCAL_ZONES & set(ALWAYS_LOCAL)
 
 
-def test_the_real_ocr_extractors_whole_passage_is_denied_by_the_gate(zone_conn):
+def test_the_real_ocr_extractors_whole_passage_is_released_and_nothing_bounds_it_here(
+        zone_conn):
     """The one above seeds a synthetic row. THIS ONE runs the real extractor.
 
     `extractors/ocr.py` gained a whole-passage observation on 2026-09-04, because
@@ -571,9 +667,31 @@ def test_the_real_ocr_extractors_whole_passage_is_denied_by_the_gate(zone_conn):
     reason, and this test is the proof that the choice is load-bearing rather than
     cosmetic: it drives the REAL gate over the REAL emitted observation.
 
-    SABOTAGE: change `zone="ocr"` to `zone="body"` in `extractors/ocr.py`, which is
-    the zone `pdf.py` and `docx.py` use for their own prose and the obvious thing to
-    copy. Nothing in P5's own tests notices. This goes red.
+    **RE-ARGUED 9 Sep 2026 BY `104` §17.13, AND THE ANSWER IS NOW `Released`.** The
+    paragraphs above are why this test drives the real extractor and they are
+    unchanged; what changed is the verdict, for the same reason as the two tests
+    above it. The old sabotage -- change `zone="ocr"` to `zone="body"` in
+    `extractors/ocr.py` -- no longer changes any answer, because neither zone is
+    refused now, and saying so is more useful than keeping a sabotage that cannot
+    fire.
+
+    **WHAT BOUNDS THIS ROW IS NOT `check_item`, AND THAT IS THE FINDING THIS TEST NOW
+    CARRIES.** §17.13's whole-document arm refuses a whole unit LONGER THAN the stored
+    ceiling, and "whole" is answered by coverage of a text unit. `extractors/ocr.py`
+    emits this whole-passage observation with NO `text_units` row at its own container
+    path -- the same shape `104` §5 SF-1 found in `extractors/docx.py` -- so
+    `resolve.materialise` reports `unit_length=None`, `is_whole_document` is False,
+    and the arm cannot fire at any ceiling. The assertion below is run with a ceiling
+    one character SHORTER than the passage and the passage is still released, which is
+    that fact stated as a run rather than as a worry.
+
+    The bound that does apply is one step out, in the two places that count characters
+    rather than coverage: `model_facts.within_dossier_budget` skips a reading that
+    does not fit the caller's remainder, so the stage never offers this row inside a
+    full dossier, and the gate's own `dossier_over_budget` refuses a dossier over the
+    stored ceiling when `measure_tokens` is wired -- which `_gate` in this file
+    deliberately does not wire, so that a zone question is answered by the zone rules
+    alone.
     """
     from evidence_shape.store import RunWriter
     from extractors.ocr import OcrOutput, OcrRegion, extract_ocr
@@ -611,88 +729,119 @@ def test_the_real_ocr_extractors_whole_passage_is_denied_by_the_gate(zone_conn):
 
     _classify(zone_conn, file_id, content_hash, key=whole[0]["observation_key"])
     _store_policy(zone_conn)
+    # One character SHORTER than the passage, which is the ceiling that WOULD refuse
+    # a whole unit under §17.13. It refuses nothing here, because the emitted row has
+    # no text unit at its path for the coverage test to answer about.
+    set_ceiling(zone_conn, CEILING_KEY, len(scanned) - 1)
+    resolved = materialise(
+        zone_conn, _Item(whole[0]["observation_key"], None))
+    assert resolved.unit_length is None, (
+        "`extractors/ocr.py` grew a `text_units` row at the whole passage's own "
+        "container path, so the whole-document arm CAN fire for it now and the "
+        "paragraph above this test is out of date -- read it before changing this")
+
     decision = _gate(zone_conn).release(_request(
         items=(Excerpt(observation_key=whole[0]["observation_key"], span=None,
                        reason="the recognised text of a scanned card"),),
         file_id=file_id))
 
-    assert isinstance(decision, Denied), (
-        f"a whole page of OCR text was {type(decision).__name__}; `ocr_output` is "
-        "member three of §8.4's nine always-local kinds and this is all of it")
-    assert decision.reason == "always_local_item"
-    assert CARD_NUMBER not in decision.explanation
-    assert "CHAN TAI MAN" not in decision.explanation
+    assert isinstance(decision, Released), (
+        f"a whole page of OCR text was {type(decision).__name__}; `104` §17.13 "
+        f"releases OCR text to every target within the ceiling")
+    assert [one.value for one in decision.materialised_items] == [scanned], (
+        "the whole recognised page is what reaches the model, card number and name "
+        "together, which is what §17.13 item 4 accepts knowingly")
 
 
 # ================================================================================
-# `104` R-159: whose target the always-local ZONE rule was ever about
+# `104` R-159, then `104` §17.13: whose target the always-local ZONE rule was about,
+# and then that the answer stopped depending on the target at all
 # ================================================================================
 #
-# Every test above sends to `CLOUD` and every one of them still passes, which is
-# half of what the ruling says. The other half is below. `00`:186 puts paths,
-# complete extracted text and OCR output under "should remain local" and says the
-# engine sends selected excerpts "when a cloud model is used"; until 8 Sep 2026 the
-# code applied that sentence to every destination, and the gate's OTHER always-local
-# rule -- `105` §13.3's privacy CLASS, `gate.py` ~347 -- was already cloud-only, so
-# one door answered "always local" two ways about one request. The owner ruled §15.4
-# item 14 the first way: a local model may be shown the person's folder path and OCR
-# text within the dossier ceiling.
+# THE R-159 PARAGRAPH, KEPT AS HISTORY. `00`:186 puts paths, complete extracted text
+# and OCR output under "should remain local" and says the engine sends selected
+# excerpts "when a cloud model is used"; until 8 Sep 2026 the code applied that
+# sentence to every destination, and the gate's OTHER always-local rule -- `105`
+# §13.3's privacy CLASS, `gate.py` ~347 -- was already cloud-only, so one door
+# answered "always local" two ways about one request. The owner ruled §15.4 item 14
+# the first way: a local model may be shown the person's folder path and OCR text
+# within the dossier ceiling. The two tests below were written as PAIRS for that
+# ruling -- the same fixture, the same request, one field different -- because "the
+# rule now depends on the target" is a claim about a difference.
+#
+# **`104` §17.13, 9 Sep 2026: THE PAIR COLLAPSED, AND THAT IS WHAT THESE TESTS NOW
+# ASSERT.** The owner extended item 14 to the cloud target -- "a cloud model may be
+# shown a whole text unit, the person's folder path and OCR text within the same
+# ceiling, for every file the cloud gate permits" -- so `path` and `ocr` no longer
+# divide by destination and `check_item` has no arm that branches on `locality`. The
+# tests keep their two-target shape rather than dropping to one, because a difference
+# that has gone is a claim worth running: a build that quietly restored the cloud
+# refusal would go red here and nowhere else in this section.
+#
+# What the destination still decides is which FILE reaches this door at all
+# (`cli.target_for` over `cli.model_route_permitted`, `104` R-170) and §13.3's
+# privacy CLASS in `gate.py` ~347. Neither is a zone rule, and neither is here.
 
-def test_a_path_zone_excerpt_is_released_to_a_local_target_and_refused_to_a_cloud_one(
-        zone_conn):
-    """THE PAIR, and the pair is the test. Same fixture, same item, one field.
+def test_a_path_zone_excerpt_is_released_to_every_target(zone_conn):
+    """THE PAIR THAT COLLAPSED. Same fixture, same item, one field -- same answer.
 
-    20 of r15's 43 labelled coursework files carried their course code ONLY here --
-    in the folder the person filed the file in -- and the refusal above is why the
-    model was never shown it. Nothing leaves the device on the local branch, which is
-    the whole of the owner's reasoning.
+    **This test asserted `Denied` for `CLOUD` and `Released` for `LOCAL` on 8 Sep
+    2026, which was `104` R-159.** The measurement that made R-159 is still the
+    reason the zone is released at all: 20 of r15's 43 labelled coursework files
+    carried their course code ONLY here, in the folder the person filed the file in,
+    and until 8 Sep no model was shown it. `104` §17.13 then asked the same question
+    about the cloud with the same measurement in front of it -- half the corpus
+    refused, the cloud shown zero characters -- and the owner extended item 14 to the
+    cloud target.
 
-    SABOTAGE: drop the `locality == CLOUD_LOCALITY` guard from `check_item`'s zone
-    arm and the local half goes red; drop the `zone not in
-    RELEASED_TO_EVERY_TARGET` half of the same condition and the CLOUD half of
-    `test_a_span_less_filename_zone_excerpt_is_denied_too` survives while the
-    filename pair below goes red.
+    Both halves are asserted rather than one, and the loop is over both targets, for
+    the reason the pair was written in the first place: the claim is about a
+    DIFFERENCE, and "there is no longer a difference" is a claim of the same kind. A
+    build that restored the cloud refusal -- by putting `locality` back into
+    `check_item`'s zone arm, which is the obvious way to read `00`:186's "when a
+    cloud model is used" -- goes red here.
     """
     file_id, key = _seed(zone_conn, zone="path", raw_value=PRIVATE_DIRECTORY)
     item = Excerpt(observation_key=key, span=None, reason="path")
 
-    denied = _gate(zone_conn).release(_request(
-        items=(item,), file_id=file_id, model_target=CLOUD))
-    assert isinstance(denied, Denied) and denied.reason == "always_local_item"
+    for target in (CLOUD, LOCAL):
+        released = _gate(zone_conn).release(_request(
+            items=(item,), file_id=file_id, model_target=target))
+        assert isinstance(released, Released), (
+            f"a path-zone excerpt bound for a {target.locality} model was "
+            f"{type(released).__name__}; `104` §17.13 releases it to either")
+        assert ([one.value for one in released.materialised_items]
+                == [PRIVATE_DIRECTORY]), (
+            f"the {target.locality} model is shown the folder itself, which is what "
+            f"the ruling is")
 
-    released = _gate(zone_conn).release(_request(
-        items=(item,), file_id=file_id, model_target=LOCAL))
-    assert isinstance(released, Released), (
-        f"a path-zone excerpt bound for a LOCAL model was "
-        f"{type(released).__name__}; `104` R-159's ruling releases it")
-    assert [one.value for one in released.materialised_items] == [PRIVATE_DIRECTORY], (
-        "the local model is shown the folder itself, which is what the ruling is")
 
+def test_an_ocr_zone_excerpt_is_released_to_every_target(zone_conn):
+    """The same collapsed pair on member three, and the residual moved with it.
 
-def test_an_ocr_zone_excerpt_is_released_to_a_local_target_and_refused_to_a_cloud_one(
-        zone_conn):
-    """The same pair on member three, and the residual is named in the ruling.
+    **This asserted `Denied` for `CLOUD` and `Released` for `LOCAL` on 8 Sep 2026.**
+    29 OCR runs on r15 were shown to nobody, which is what R-159 was ruled on. The
+    sentence that ended the R-159 version of this docstring was "nothing here leaves
+    the device", and under `104` §17.13 that sentence is no longer true of this test:
+    with R-161 open, `sensitive_keys` is empty for a scanned page, so the recognised
+    text of an unclassified scanned document -- the card number in this very fixture
+    -- now goes to the provider. §17.13 item 4 records that as accepted knowingly.
 
-    29 OCR runs on r15 were shown to nobody. With `104` R-161 open -- P5 emits no
-    signal over a text document, so `sensitive_keys` is empty for a scanned page --
-    the recognised text of an unclassified scanned document now reaches the local
-    model, and the card number in this very fixture is what that looks like. The
-    owner ruled it that way knowing it: `105` §13.3's always-local CLASS still
-    refuses the cloud target, and nothing here leaves the device.
+    `105` §13.3's always-local privacy CLASS still refuses a cloud target, and
+    `cli.model_route_permitted` still routes a protected or unclassified file to the
+    local model. Those are decisions about the FILE, taken before this door; this
+    door asks about the zone, and the zone answers the same for either target.
     """
     file_id, key = _seed(zone_conn, zone="ocr", raw_value=CARD_NUMBER)
     item = Excerpt(observation_key=key, span=None, reason="ocr")
 
-    denied = _gate(zone_conn).release(_request(
-        items=(item,), file_id=file_id, model_target=CLOUD))
-    assert isinstance(denied, Denied) and denied.reason == "always_local_item"
-
-    released = _gate(zone_conn).release(_request(
-        items=(item,), file_id=file_id, model_target=LOCAL))
-    assert isinstance(released, Released), (
-        f"an ocr-zone excerpt bound for a LOCAL model was "
-        f"{type(released).__name__}; `104` R-159's ruling releases it")
-    assert [one.value for one in released.materialised_items] == [CARD_NUMBER]
+    for target in (CLOUD, LOCAL):
+        released = _gate(zone_conn).release(_request(
+            items=(item,), file_id=file_id, model_target=target))
+        assert isinstance(released, Released), (
+            f"an ocr-zone excerpt bound for a {target.locality} model was "
+            f"{type(released).__name__}; `104` §17.13 releases it to either")
+        assert [one.value for one in released.materialised_items] == [CARD_NUMBER]
 
 
 def test_a_filename_zone_excerpt_is_refused_to_a_local_target_too(zone_conn):
@@ -710,6 +859,13 @@ def test_a_filename_zone_excerpt_is_refused_to_a_local_target_too(zone_conn):
 
     The ruling's own words name two zones, "the person's folder path and OCR text",
     and `vocabulary.RELEASED_TO_EVERY_TARGET` is that phrase transcribed.
+
+    **UNMOVED BY `104` §17.13, 9 Sep 2026, and this is the test that says so.** The
+    ruling that extended item 14 to the cloud target extended it to the two zones the
+    sentence names and to no third one, so this test is the only one in the section
+    whose two-target loop still returns two refusals. Everything above it changed
+    answer; this did not, because the reason it refuses was never about a
+    destination.
     """
     file_id, key = _seed(zone_conn, zone="filename", raw_value="passport.pdf")
     item = Excerpt(observation_key=key, span=None, reason="the name")

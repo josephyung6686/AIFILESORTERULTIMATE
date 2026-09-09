@@ -88,19 +88,29 @@ ONE_OF_EACH: tuple[RequestedItem, ...] = (
 def admit(item, *, unit_length=None, zone=None, protected=False,
           sensitive_keys=frozenset(),
           allow_unratified=True, suspension_permits_self_description=False,
-          locality=CLOUD_LOCALITY) -> None:
+          locality=CLOUD_LOCALITY, ceiling=None) -> None:
     # `suspension_permits_self_description=False` by default HERE, where the existing tests are
     # all about the other six kinds: the seventh is `80` §8's suspension and it has
     # its own file, `test_p7_self_description_item.py`. A helper that opened it for
     # every test in this one would be the scope creep `80` §8.1 forbids.
-    # `locality=CLOUD_LOCALITY` by default for the same reason: `104` R-159 divides
-    # two of the arms below by the destination, and the tests in this file that
-    # predate the ruling are all about the CLOUD half of it. A test about the local
-    # half overrides exactly this one keyword.
+    #
+    # `locality=CLOUD_LOCALITY` by default was chosen for `104` R-159, which divided
+    # two arms by the destination and left this file on the cloud half of both.
+    # **`104` §17.13, 9 Sep 2026: NO ARM BRANCHES ON `locality` ANY MORE.** The
+    # keyword stays required on `check_item` and is still validated against
+    # `LOCALITIES` -- a caller must say where the bytes go, for the gate's privacy
+    # CLASS rule and R-170's per-file route -- so the default stays here too, and it
+    # now selects nothing about which arms fire.
+    #
+    # `ceiling=None` by default is the EIGHTH keyword, added by §17.13, and `None` is
+    # the honest default rather than a convenient one: it means no ceiling is stored,
+    # and P7 invents no number, so nothing is refused as a whole document. A test
+    # about the whole-document arm passes a ceiling below its unit, which is the only
+    # way that arm fires.
     check_item(item, unit_length=unit_length, zone=zone, protected=protected,
                sensitive_keys=sensitive_keys, allow_unratified=allow_unratified,
                suspension_permits_self_description=suspension_permits_self_description,
-               locality=locality, ceiling=None)
+               locality=locality, ceiling=ceiling)
 
 
 # --- the six kinds, and the five that §8.4 actually names ----------------------
@@ -290,14 +300,62 @@ def test_items_imports_no_mode_and_no_policy_so_the_nine_are_not_a_default():
 # --- whole_document_requested -------------------------------------------------
 
 def test_an_excerpt_covering_the_whole_unit_is_a_whole_document():
-    # §8.4: "It should not send full documents where a short heading or OCR excerpt
-    # is enough to resolve the question."
+    """§8.4: "It should not send full documents where a short heading or OCR excerpt
+    is enough to resolve the question."
+
+    **`104` §17.13, 9 Sep 2026: COVERAGE IS NO LONGER SUFFICIENT ON ITS OWN.** The
+    arm now fires only when the unit is ALSO longer than the stored ceiling, so the
+    refusal below is asked with a ceiling one character short of the unit -- the
+    unit's own length minus one, and no number this test invented. Coverage stays the
+    QUALIFIER and that half is unmoved: `is_whole_document` is asserted separately
+    above the refusal, and a short excerpt cut from a long page is still not the page
+    and is still not refused for the page's length
+    (`test_a_bounded_excerpt_is_not_a_whole_document` below, which passes the same
+    short ceiling for exactly that reason).
+
+    Both halves are asserted because either alone is satisfied by the wrong rule: a
+    ceiling test with no coverage test passes for a bounded excerpt of a long unit,
+    and a coverage test with no ceiling passes for the rule §17.13 replaced.
+    """
     whole = Excerpt(observation_key=KEY, span=TextSpan(0, BODY_LENGTH),
                     reason="all of it")
     assert is_whole_document(whole, unit_length=BODY_LENGTH) is True
     with pytest.raises(WholeDocumentRequested) as caught:
-        admit(whole, unit_length=BODY_LENGTH)
+        admit(whole, unit_length=BODY_LENGTH, ceiling=BODY_LENGTH - 1)
     assert "0" in str(caught.value) and str(BODY_LENGTH) in str(caught.value)
+
+
+def test_a_whole_unit_that_fits_under_the_stored_ceiling_is_admitted():
+    """The other half of `104` §17.13, and the half that has no older version.
+
+    A whole unit is refused for being longer than the ceiling, not for being whole:
+    what fits is shown to either model as itself, which is the ruling ("a cloud model
+    may be shown a whole text unit ... within the same ceiling"). The item, the unit
+    and the coverage are identical to the test above and only the ceiling differs, so
+    a build that restored the coverage-only refusal goes red here and nowhere else.
+
+    The bound is strict `>`: a unit exactly AT the ceiling fits, which is why the
+    ceiling asserted here is the unit's own length rather than something above it.
+    """
+    whole = Excerpt(observation_key=KEY, span=TextSpan(0, BODY_LENGTH),
+                    reason="all of it")
+    assert is_whole_document(whole, unit_length=BODY_LENGTH) is True
+    admit(whole, unit_length=BODY_LENGTH, ceiling=BODY_LENGTH)
+
+
+def test_with_no_ceiling_stored_no_whole_unit_is_refused():
+    """`ceiling=None` means P1 has stored no ceiling, and P7 invents no number.
+
+    `check_item`'s own docstring: "`None` means no ceiling is stored, and then
+    nothing is refused as a whole document". This is the fail-OPEN direction and it is
+    deliberate rather than overlooked, so it is run rather than left implied -- the
+    SPEC's *Deferred* section forbids this module a number of its own, and a P7 that
+    picked one when P1 had not would be the "hand-authored threshold" §8.6 puts
+    outside it.
+    """
+    whole = Excerpt(observation_key=KEY, span=TextSpan(0, BODY_LENGTH),
+                    reason="all of it")
+    admit(whole, unit_length=BODY_LENGTH, ceiling=None)
 
 
 def test_a_span_that_over_covers_the_unit_is_still_a_whole_document():
@@ -309,18 +367,28 @@ def test_a_span_that_over_covers_the_unit_is_still_a_whole_document():
 
 
 def test_a_bounded_excerpt_is_not_a_whole_document():
+    # `ceiling=BODY_LENGTH - 1` since `104` §17.13, and it is the point of this test
+    # rather than a detail of it: the unit IS over the ceiling here, and the excerpt
+    # is admitted anyway because it does not cover the unit. Coverage stays the
+    # qualifier, so a short excerpt cut from a long page is not the page and is not
+    # refused for the page's length.
     short = Excerpt(observation_key=KEY, span=TextSpan(16, 27), reason="the number")
     assert is_whole_document(short, unit_length=BODY_LENGTH) is False
-    admit(short, unit_length=BODY_LENGTH)
+    admit(short, unit_length=BODY_LENGTH, ceiling=BODY_LENGTH - 1)
 
 
 def test_a_redacted_identifier_over_the_whole_unit_is_also_refused():
     # The rule is about the SPAN, not about the kind. A redaction that covered the
     # whole unit would send the whole unit with one value starred out.
+    #
+    # `ceiling=BODY_LENGTH - 1` since `104` §17.13: the arm fires only for a whole
+    # unit LONGER than the stored ceiling. What is asserted is unchanged -- the two
+    # text-bearing kinds are answered alike -- and the ceiling is what lets the arm
+    # fire at all, so it is the same ceiling the excerpt above is refused under.
     whole = RedactedIdentifier(observation_key=KEY, span=TextSpan(0, BODY_LENGTH),
                                identifier_class="passport_number")
     with pytest.raises(WholeDocumentRequested):
-        admit(whole, unit_length=BODY_LENGTH)
+        admit(whole, unit_length=BODY_LENGTH, ceiling=BODY_LENGTH - 1)
 
 
 def test_a_container_path_address_is_never_a_whole_document():
@@ -328,9 +396,13 @@ def test_a_container_path_address_is_never_a_whole_document():
     # field. There is no unit, so there is nothing for a span to cover, and a
     # `None` unit_length must not be read as "length zero" -- which would make every
     # cell a whole document.
+    #
+    # Asked with a ceiling of 1 since `104` §17.13, which is as low as a stored
+    # ceiling can meaningfully go: a missing unit length must not be read as "over
+    # any ceiling" either, and `check_item` guards `unit_length is not None` for that.
     cell = Excerpt(observation_key=KEY, span=None, reason="the cell")
     assert is_whole_document(cell, unit_length=None) is False
-    admit(cell, unit_length=None)
+    admit(cell, unit_length=None, ceiling=1)
 
 
 def test_a_kind_with_no_span_is_never_a_whole_document():
@@ -367,25 +439,33 @@ def test_an_excerpt_over_an_unsignalled_key_is_permitted():
           unit_length=BODY_LENGTH, sensitive_keys=frozenset({KEY}))
 
 
-def test_check_item_requires_every_one_of_its_seven_keywords():
-    # A11: none of the seven has a default. A build that forgets one is a TypeError,
+def test_check_item_requires_every_one_of_its_eight_keywords():
+    # A11: none of the eight has a default. A build that forgets one is a TypeError,
     # never a release. `sensitive_keys` in particular: a default of `frozenset()`
     # would mean "nothing is sensitive" for a caller who never wired P5, and `zone`
     # for the same reason: a default of None would mean "no zone was checked" for a
     # caller who never wired the locator, which is the state CR-01 reproduced.
     #
-    # `locality` is the seventh (`104` R-159) and is the strongest case of the rule:
-    # both arms it divides test `== CLOUD_LOCALITY`, so a default -- of either value
-    # -- would decide the always-local question for a caller who never wired the
-    # target, and the wrong half of that default releases a path.
+    # `locality` is the seventh (`104` R-159). It kept its no-default rule through
+    # `104` §17.13 even though no arm branches on it any more: a caller must still
+    # say where the bytes are going, because the gate's privacy-CLASS rule and
+    # R-170's per-file route both divide by that answer, and it is validated here
+    # rather than trusted.
+    #
+    # `ceiling` is the EIGHTH and was added by §17.13 (9 Sep 2026). It has no default
+    # for the sharpest version of the reason the other seven have none: the value it
+    # would default to is `None`, `None` refuses nothing as a whole document, and a
+    # caller who never wired `Gate._stored_ceiling` would silently get a door that
+    # sends whole pages. The keyword is what makes forgetting P1's ceiling a
+    # TypeError instead of a release, and this loop is where that is asserted.
     item = Excerpt(observation_key=KEY, span=TextSpan(16, 27), reason="it")
     for omit in ("unit_length", "zone", "protected", "sensitive_keys",
                  "allow_unratified", "suspension_permits_self_description",
-                 "locality"):
+                 "locality", "ceiling"):
         kwargs = dict(unit_length=BODY_LENGTH, zone="body", protected=False,
                       sensitive_keys=frozenset(), allow_unratified=False,
                       suspension_permits_self_description=False,
-                      locality=CLOUD_LOCALITY)
+                      locality=CLOUD_LOCALITY, ceiling=None)
         del kwargs[omit]
         with pytest.raises(TypeError):
             check_item(item, **kwargs)
@@ -394,10 +474,19 @@ def test_check_item_requires_every_one_of_its_seven_keywords():
 def test_a_locality_outside_the_closed_set_is_refused_and_never_read_as_local():
     """`104` R-159: the fail-OPEN direction is the one that needs a guard.
 
-    Both arms `locality` divides ask `== CLOUD_LOCALITY`, so `"Cloud"`, `""` and
-    `None` would every one of them take the LOCAL branch and release the person's
-    folder path to a provider. SPEC §1's rule for a closed set -- a load error, not a
-    fallback -- is what stops that, and it is asserted rather than assumed.
+    The R-159 argument, kept as history: both arms `locality` then divided asked
+    `== CLOUD_LOCALITY`, so `"Cloud"`, `""` and `None` would every one of them take
+    the LOCAL branch and release the person's folder path to a provider.
+
+    **`104` §17.13, 9 Sep 2026: no arm in `check_item` branches on `locality` any
+    more, and the guard is kept anyway.** It is not vestigial. The two places that
+    still divide by the destination -- the gate's `105` §13.3 privacy-CLASS refusal
+    and R-170's per-file route, `cli.model_route_permitted` -- both compare against
+    `CLOUD_LOCALITY`, so a misspelling reaching them reads as local and opens a
+    release; refusing it at the door a caller passes it through is where the closed
+    set can be enforced once for all of them. SPEC §1's rule -- a load error, not a
+    fallback -- is what this asserts, and `check_item`'s own message names the
+    fail-open direction as the reason.
     """
     item = Excerpt(observation_key=KEY, span=None, reason="it")
     for outside in ("Cloud", "CLOUD", "remote", "", None):

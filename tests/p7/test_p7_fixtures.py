@@ -524,32 +524,52 @@ def test_the_p5_signal_is_what_the_gate_reads(p7_conn, tmp_path):
         fixture.sensitive_keys)
 
 
-def test_without_the_p5_signal_the_always_local_fixture_is_still_denied(p7_conn,
-                                                                       tmp_path):
-    """This test USED to assert `Released`, and the change is a real strengthening
-    rather than a weakened assertion, so here is exactly what moved.
+def test_without_the_p5_signal_the_always_local_fixture_is_released(p7_conn,
+                                                                   tmp_path):
+    """The P5 signal is load-bearing: strip it and fixture 7's request goes through.
 
-    Fixture 7 exercises `always_local_item` through P5's per-value signal, and the
-    observation it does it with happens to be the OCR one (`"ocr" in
-    p4(8).observations[0].locator`). Stripping the signal used to release it, which
-    proved the signal was load-bearing rather than the denial arriving by accident.
+    This assertion has now been made three times and it is worth reading the round
+    trip, because the two reversals are two different rulings and not a wobble.
 
-    `ocr` joined `ALWAYS_LOCAL_ZONES` on 2026-09-04, because `ocr_output` is member 3
-    of §8.4's nine and `zone="ocr"` is the door it leaves by. So this request now has
-    TWO independent reasons to be refused, and removing one of them no longer
-    releases it. That is the product being right, not the test being loosened: an
-    excerpt of text read off a scanned identity document should not become
-    releasable because a P5 signal was absent.
+      * ORIGINALLY `Released`. Fixture 7 exercises `always_local_item` through P5's
+        per-value signal, and the observation it does it with happens to be the OCR
+        one (`"ocr" in p4(8).observations[0].locator`). Stripping the signal released
+        it, which proved the signal was what the gate read rather than the denial
+        arriving by accident.
+      * `Denied` FROM 4 Sep 2026, when `ocr` joined `ALWAYS_LOCAL_ZONES` -- member 3
+        of §8.4's nine, and `zone="ocr"` is the door it leaves by. The request then
+        had TWO independent reasons to be refused and removing one no longer released
+        it, so the assertion was strengthened to say so.
+      * `Released` AGAIN FROM 9 Sep 2026, `104` §17.13. The owner extended item 14 to
+        the cloud target: `path` and `ocr` are released to every target within the
+        ceiling, and `filename` alone is refused. The second reason is gone by
+        ruling, so the ORIGINAL claim is the true one again -- the P5 signal is the
+        only thing between fixture 7's excerpt and a release, and this is the run
+        that says so.
 
-    The original claim -- that the P5 signal is genuinely what the gate reads -- is
-    not lost. `test_the_p5_signal_is_what_the_gate_reads` above asserts it directly,
-    against `sensitive_observation_keys`, without going through a release at all.
+    **The SPEC case fixture 7 covers is untouched.** Its `spec_case` is
+    "Denied.reason = always_local_item (a key P5 signalled)", and that path is
+    unchanged and still asserted -- by
+    `test_replaying_a_fixture_through_the_real_gate_reproduces_the_decision` over the
+    fixture as published, with its signal in place, and by
+    `test_the_p5_signal_is_what_the_gate_reads` directly against
+    `sensitive_observation_keys`. This test is the negative control on that
+    coverage, and a negative control that cannot answer negatively is not one.
+
+    What is accepted here is `104` §17.13 item 4, and the fixture is a scanned
+    identity document, so it is worth naming: with R-161 open there is no P5 signal
+    over body text or over a recognised page, so an unclassified scanned document's
+    OCR text reaches the provider. `cli.model_route_permitted` (R-170) is what keeps
+    protected and unclassified FILES away from a cloud target; this door decides
+    zones, and it decides them the same way for either one.
     """
     fixture = dataclasses.replace(by_number(7), sensitive_keys=())
     decision, _ = replay(p7_conn, fixture, tmp_path)
-    assert isinstance(decision, Denied), (
-        "the P5 signal was the only thing refusing an OCR excerpt")
-    assert decision.reason == "always_local_item"
+    assert isinstance(decision, Released), (
+        f"fixture 7 with its P5 signal stripped was {type(decision).__name__}; "
+        f"`104` §17.13 leaves the signal as the only thing refusing this excerpt, "
+        f"so a refusal here means something OTHER than the signal is refusing it "
+        f"and the fixture no longer covers its own spec case")
 
 
 # --- the mode sweep ---------------------------------------------------------

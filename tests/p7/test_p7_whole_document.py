@@ -28,6 +28,24 @@ the only module holding the resolved value AND permitted to ask P4 for the unit 
 the observation's path, so it computes the fact; `items.is_whole_document` decides
 what the fact means. That is the split `check_item`'s own docstring already assigned
 to the two modules.
+
+**SUPERSESSION, 9 Sep 2026, `104` §17.13 (the owner's ruling, applied on the owner's
+word "for now its ok let it through").** Everything above still stands and none of
+it moved: coverage of a text unit is still what "whole" means, and the two halves
+that compute it are still the two modules named above. What §17.13 added is a SECOND
+condition on the same arm -- the unit must ALSO be longer than P1's stored
+`model.max_dossier_tokens_per_call`, read through `Gate._stored_ceiling` and never
+the request's echo of it (M9). A whole unit that fits under the stored ceiling is
+shown to either model as itself, on the owner's ruling that a cloud model may be
+shown a whole text unit "within the same ceiling"; a whole unit longer than it is
+refused, for every target, by the same bound the stage already fills to
+(`model_facts.within_dossier_budget`), so the gate never refuses what the stage
+sends. `None` -- no ceiling stored -- refuses nothing, because P7 invents no number.
+
+So every gate test in this file that is ABOUT the refusal now stores a ceiling
+shorter than its unit, and each says so where it does it. The one test that was a
+locality PAIR is now a ceiling pair, which is the honest replacement: what divides
+release from refusal here stopped being the destination and became the number.
 """
 from __future__ import annotations
 
@@ -38,6 +56,7 @@ from pathlib import Path
 
 import pytest
 
+from database_agent.budget import set_ceiling
 from database_agent.db import create_schema
 from database_agent.files_table import record_file
 from evidence_shape.canonical import canonical_json
@@ -72,11 +91,18 @@ OBSERVED_AT = "2026-09-03T09:00:00Z"
 PLAN_VERSION = "plan-whole-1"
 COMPONENT = "0.1.0"
 CLOUD = ModelTarget(locality="cloud", model_id="a-model", provider="Acme")
-#: `104` R-159's other destination. Every test above the ruling's own section
-#: sends here; the pair at the bottom is what the ruling changed.
+#: `104` R-159's other destination. Under `104` §17.13 this door answers the same
+#: for either target, so the pair at the bottom loops over both rather than
+#: contrasting them; the tests between here and there send to `CLOUD` because that
+#: is the target the ruling moved.
 LOCAL = ModelTarget(locality="local", model_id="a-model", provider="ollama")
 #: P7's own ceiling echo. A number only a test may choose.
 MAX_DOSSIER_TOKENS = 4000
+#: P1's stored ceiling, which is the one `Gate._stored_ceiling` reads and the only
+#: one `check_item`'s whole-document arm may be asked about (`104` §17.13). M9 calls
+#: `request.max_dossier_tokens` "the caller's echo of it", so a test that wants the
+#: refusal writes the number HERE and never into the request.
+CEILING_KEY = "model.max_dossier_tokens_per_call"
 
 #: What `structured_text.py` reads out of a `.txt` and emits whole: the document,
 #: as both the run's one text unit and the raw value of one span-less observation.
@@ -295,11 +321,18 @@ def test_the_gate_denies_a_span_less_whole_document_and_releases_nothing(
     `complete_extracted_text` is member 2 of `ALWAYS_LOCAL`; the run that produced
     this finding ended with the file's own text as the `value` of a released item.
 
+    A CEILING ONE SHORTER THAN THE UNIT SINCE `104` §17.13, stored where P1 stores
+    it. Under §17.13 the arm fires for a whole unit LONGER than the stored ceiling,
+    so a test about the refusal has to put the document over one; the number is
+    `len(DOCUMENT) - 1` and nothing this test invented. The pair at the bottom of the
+    file is the same fixture with the ceiling AT the unit's length, released.
+
     SABOTAGE: either half of the fix -- `resolve`'s unit lookup or
     `is_whole_document`'s span-less arm -- and this goes red on `isinstance(decision,
     Denied)`.
     """
     file_id, key = a_document
+    set_ceiling(whole_conn, CEILING_KEY, len(DOCUMENT) - 1)
     decision = _gate(whole_conn).release(_request(
         items=(Excerpt(observation_key=key, span=None, reason="the whole thing"),),
         file_id=file_id))
@@ -315,8 +348,13 @@ def test_a_redacted_identifier_over_the_whole_document_is_refused_too(
     """The rule is about the ADDRESS, not about the kind -- the same line
     `test_a_redacted_identifier_over_the_whole_unit_is_also_refused` draws for the
     span form. A redaction covering the document would send the document with one
-    value starred out."""
+    value starred out.
+
+    The stored ceiling is one shorter than the unit for `104` §17.13's reason and it
+    is the SAME ceiling the excerpt above is refused under, so what this test isolates
+    is still the item kind and nothing else."""
     file_id, key = a_document
+    set_ceiling(whole_conn, CEILING_KEY, len(DOCUMENT) - 1)
     decision = _gate(whole_conn).release(_request(
         items=(RedactedIdentifier(observation_key=key, span=None,
                                   identifier_class="course-code"),),
@@ -579,11 +617,18 @@ def test_the_whole_body_of_a_word_document_is_denied_and_releases_nothing(
     `104` SF-1's own words: "keep dossier payloads local". The canary is the
     assertion that says so -- a sentence that exists only in the body, so its
     presence in released bytes has exactly one explanation.
+
+    A CEILING ONE SHORTER THAN THE BODY SINCE `104` §17.13. The measurement SF-1 was
+    found by is what makes this the right half of the ruling to pin: 7 of 42 dossiers
+    over 16,000 bytes, largest 45,843. A body that size is over any ceiling this
+    product would store, so the refusal SF-1 closed is the one §17.13 keeps; what
+    §17.13 releases is the short unit that never had 45,843 characters in it.
     """
     file_id, _digest, key = _write_the_word_document(
         whole_conn, "Wash U.docx", b"docx")
     _classify(whole_conn, file_id, "hash-docx", key=key)
     _store_policy(whole_conn)
+    set_ceiling(whole_conn, CEILING_KEY, len(DOCX_BODY) - 1)
 
     decision = _gate(whole_conn).release(_request(
         items=(Excerpt(observation_key=key, span=None, reason="the body"),),
@@ -594,23 +639,49 @@ def test_the_whole_body_of_a_word_document_is_denied_and_releases_nothing(
     assert not getattr(decision, "materialised_items", ())
 
 
-def test_the_word_documents_body_is_never_offered_to_a_model_call(whole_conn):
+def test_the_word_documents_body_is_offered_only_when_it_fits_the_ceiling(whole_conn):
     """The other half: the call is not BUILT, so nothing pays to materialise a
     document in order to refuse it (`model_facts.releasable_observations`).
 
     The canary check runs over every value the builder WOULD offer, which is the
     shape the instrument (`104` §7 "Instruments") repeats over the owner's corpus.
+
+    **THIS ASSERTED THE ABSENCE ALONE UNTIL 9 Sep 2026.** `may_be_released` refused a
+    whole unit for a cloud target then, so the body was never offered whatever the
+    ceiling was. `104` §17.13 dropped that arm: ONE bound now decides, the ceiling, in
+    `within_dossier_budget`, and it decides the same way for either target. So the
+    absence has to be asserted against its own presence or it no longer says anything
+    -- a builder that had simply stopped offering body readings at all would satisfy
+    the old single assertion, and would be the coverage loss §17.13 was ruled to end.
+
+    Both halves are run over the same document and the same limit, and the two
+    ceilings are the body's own length either side of the bound. Under the generous
+    one the body IS offered, canary and all; under the short one it is SKIPPED and the
+    walk continues, so the headings and the cell beside it are still offered -- which
+    is `within_dossier_budget`'s own rule that an over-long reading costs its file
+    only itself.
     """
     from model_facts import releasable_observations
 
     file_id, digest, _key = _write_the_word_document(
         whole_conn, "Wash U 2.docx", b"docx-2")
 
-    offered = releasable_observations(
-        whole_conn, file_id=file_id, content_hash=digest, limit=12, locality=CLOUD_LOCALITY, ceiling=MAX_DOSSIER_TOKENS)
-    values = [observation.raw_value for observation in offered]
-    assert offered, "the headings and cells beside the body are still offered"
-    assert not [value for value in values if DOCX_CANARY in value], values
+    def offer(ceiling):
+        return [observation.raw_value for observation in releasable_observations(
+            whole_conn, file_id=file_id, content_hash=digest, limit=12,
+            locality=CLOUD_LOCALITY, ceiling=ceiling)]
+
+    fits = offer(MAX_DOSSIER_TOKENS)
+    assert [value for value in fits if DOCX_CANARY in value], (
+        "the body is not offered under a ceiling 26 times its length, so this test "
+        "cannot tell the ceiling from a builder that dropped body readings; `104` "
+        f"§17.13 offers it -- got {[value[:30] for value in fits]}")
+
+    over = offer(len(DOCX_BODY) - 1)
+    assert over, "the headings and cells beside the body are still offered"
+    assert not [value for value in over if DOCX_CANARY in value], over
+    assert set(over) < set(fits), (
+        "the short ceiling dropped something other than the body")
 
 
 # ================================================================================
@@ -677,12 +748,22 @@ def test_the_gate_releases_a_short_single_line_unit_whole(whole_conn):
     the file's facts were recorded `missing` and the model was never asked. §8.4 wants
     a short excerpt sent INSTEAD of a document, and this IS the short excerpt.
 
+    **A CEILING ONE SHORTER THAN THE LINE SINCE `104` §17.13, AND WITHOUT IT THIS
+    TEST STOPS TESTING ANYTHING.** §17.13 gave the whole-document arm a second
+    condition -- the unit must be longer than P1's stored ceiling -- so with no
+    ceiling stored the arm never fires, the postcheck has no `WholeDocumentRequested`
+    to catch, and R-152's exemption is never reached on the way to this `Released`.
+    The ceiling below puts the unit over the bound so that the arm DOES fire and the
+    exemption is what waives it, which is what this test was written to assert. The
+    sabotage above only goes red because of it.
+
     SABOTAGE: make `unit_holds_a_line_break` return `True` for a unit with no newline
     and this goes red, which is the whole of the criterion.
     """
     file_id, key = _whole_unit(
         whole_conn, name="Invoice.pdf", tag="line", zone="body",
         container_path=(Segment("page", 1), Segment("paragraph", 1)), text=A_LINE)
+    set_ceiling(whole_conn, CEILING_KEY, len(A_LINE) - 1)
 
     decision = _release_whole(whole_conn, file_id, key, A_LINE)
 
@@ -698,10 +779,17 @@ def test_the_gate_denies_the_same_words_once_they_hold_line_breaks(whole_conn):
     A unit that holds a line break has said it has more than one line, and the whole of
     it is what §8.4 calls a full document. The exemption is structural, so it cannot
     widen to a page by accident -- and a page is exactly what this is.
+
+    A CEILING ONE SHORTER THAN THE PAGE SINCE `104` §17.13, because the arm the
+    exemption is an exemption FROM now needs the unit to be over the ceiling before it
+    fires at all. R-152's criterion is untouched and is still what this isolates: the
+    test above it releases the same words with the same ceiling arithmetic and differs
+    from this one by newlines and nothing else.
     """
     file_id, key = _whole_unit(
         whole_conn, name="Statement.pdf", tag="page", zone="body",
         container_path=(Segment("page", 1),), text=A_PAGE)
+    set_ceiling(whole_conn, CEILING_KEY, len(A_PAGE) - 1)
 
     decision = _release_whole(whole_conn, file_id, key, A_PAGE)
 
@@ -749,10 +837,16 @@ def test_the_gate_releases_a_whole_heading_unit_which_is_r135s_missing_half(
 
     It is fixed here rather than in a row of its own because it is one exemption asked
     in three places, and the gate was the third.
+
+    The stored ceiling is one shorter than the heading for `104` §17.13's reason, and
+    it is load-bearing rather than decorative: with no ceiling stored the arm this
+    exemption excepts would not fire, and the test would pass without ever reaching
+    R-135's exemption -- green, and testing nothing.
     """
     file_id, key = _whole_unit(
         whole_conn, name="Syllabus.pdf", tag="title", zone="heading",
         container_path=(Segment("page", 1), Segment("heading", 1)), text=A_TITLE)
+    set_ceiling(whole_conn, CEILING_KEY, len(A_TITLE) - 1)
 
     decision = _release_whole(whole_conn, file_id, key, A_TITLE)
 
@@ -769,11 +863,16 @@ def test_a_unit_that_only_ENDS_in_a_line_break_is_one_line(whole_conn):
     for its punctuation -- and `store.line_reading_for`, which is P4's own reading of
     what a line is, would disagree: it takes the previous newline to the next one, and
     there is no next one after the last character.
+
+    The stored ceiling is one shorter than the unit for `104` §17.13's reason: the arm
+    the exemption excepts fires only over the ceiling, so without it this test would
+    be green without the terminator question ever being asked.
     """
     text = A_LINE + "\n"
     file_id, key = _whole_unit(
         whole_conn, name="Invoice 2.pdf", tag="terminated", zone="body",
         container_path=(Segment("page", 1), Segment("paragraph", 1)), text=text)
+    set_ceiling(whole_conn, CEILING_KEY, len(text) - 1)
 
     decision = _release_whole(whole_conn, file_id, key, text)
 
@@ -787,22 +886,35 @@ def test_an_always_local_zone_still_refuses_a_whole_single_line_unit(whole_conn)
     `Gate._precheck_items` asks `check_item` everything it can answer with no unit
     length -- the always-local names, the sensitive key, the always-local zone, the
     protected file -- and returns that refusal BEFORE anything is materialised, which
-    is `DECISION_ORDER`'s rule that a gate must not hold an absolute directory in
-    memory in order to decide it was not allowed to. The whole-document arm is the only
-    refusal that needed the resolved length, so it is the only one the postcheck's
-    exception can waive.
+    is `DECISION_ORDER`'s rule that a gate must not hold a value in memory in order to
+    decide it was not allowed to. The whole-document arm is the only refusal that
+    needed the resolved length, so it is the only one the postcheck's exception can
+    waive.
 
     There is no one-line sabotage of the postcheck that turns this red, and that is
     the property rather than a gap in the test: `release` puts the precheck's refusal
-    into the early denial builders, so a `path`-zone item is answered before the
-    postcheck runs and cannot be released by anything the postcheck does. What this
-    catches is a FUTURE move -- an exemption hoisted above `_precheck_items`, or a
-    release short-circuited on one -- and it catches it with an absolute directory on
-    the wire, which is CR-01.
+    into the early denial builders, so an always-local-zone item is answered before
+    the postcheck runs and cannot be released by anything the postcheck does. What
+    this catches is a FUTURE move -- an exemption hoisted above `_precheck_items`, or
+    a release short-circuited on one.
+
+    **RE-ADDRESSED from `path` to `filename` by `104` §17.13, 9 Sep 2026**, which
+    released `path` and `ocr` to every target and left `filename` as the one member of
+    `ALWAYS_LOCAL_ZONES` refused to every target. The claim is untouched by the move
+    -- it was never about paths, it is that R-152's exemption waives the
+    whole-document refusal and NOTHING ELSE -- and `filename` is where there is still
+    a zone refusal for the exemption to fail to waive. The value on the wire in the
+    failure mode is now a name a person gave a file rather than an absolute directory,
+    which is §7.7's own reason for giving the filename one door.
+
+    The stored ceiling is one shorter than the line so that the whole-document arm
+    fires too: without it the item is over no bound, only one refusal is in play, and
+    "the exemption waives one refusal and not the other" is not being asked.
     """
     file_id, key = _whole_unit(
-        whole_conn, name="Where.pdf", tag="path-line", zone="path",
+        whole_conn, name="Where.pdf", tag="filename-line", zone="filename",
         container_path=(Segment("page", 1), Segment("paragraph", 1)), text=A_LINE)
+    set_ceiling(whole_conn, CEILING_KEY, len(A_LINE) - 1)
 
     decision = _release_whole(whole_conn, file_id, key, A_LINE)
 
@@ -811,61 +923,81 @@ def test_an_always_local_zone_still_refuses_a_whole_single_line_unit(whole_conn)
 
 
 # ================================================================================
-# `104` R-159: whose target the whole-DOCUMENT rule was ever about
+# `104` R-159, then `104` §17.13: the pair stopped being about the target and
+# became about the ceiling
 # ================================================================================
 
-def test_a_whole_unit_is_released_to_a_local_target_and_refused_to_a_cloud_one(
+def test_a_whole_unit_is_released_to_every_target_when_it_fits_the_stored_ceiling(
         whole_conn, a_document):
-    """THE PAIR. Same document, same span-less excerpt, one field different.
+    """THE PAIR, and the field that differs is now the CEILING and not the target.
 
-    §8.4's sentence -- the engine "should not send full documents where a short
-    heading or OCR excerpt is enough to resolve the question" -- sits under
-    `00`:186's *"when a cloud model is used"*, and until 8 Sep 2026 the code applied
-    it to every destination. This is the measurement that made the owner rule: every
-    extractor emits page- and paragraph-sized units with one span-less observation
-    over each, so on r15 fifty-four of 199 files had body readings and NOT ONE was
-    releasable, and the median file was shown 109 characters of its own text under a
-    4,000-character ceiling.
+    **This test asserted `Denied` for `CLOUD` and `Released` for `LOCAL` on 8 Sep
+    2026, which was `104` R-159.** §8.4's sentence -- the engine "should not send full
+    documents where a short heading or OCR excerpt is enough to resolve the question"
+    -- sits under `00`:186's *"when a cloud model is used"*, and until 8 Sep the code
+    applied it to every destination. The measurement that made R-159 is still why
+    anything here releases at all: every extractor emits page- and paragraph-sized
+    units with one span-less observation over each, so on r15 fifty-four of 199 files
+    had body readings and NOT ONE was releasable, and the median file was shown 109
+    characters of its own text under a 4,000-character ceiling.
 
-    What bounds the local branch instead is the DOSSIER CEILING, which is the bound
-    §8.4's own sentence hands to `max_dossier_tokens_per_call`; the fill that spends
-    it lives in `model_facts.releasable_observations` and is measured there, not
-    here. This test is about the door alone: the unit is releasable, and how much of
-    a call's budget it costs is the builder's question.
+    **`104` §17.13, 9 Sep 2026, extended item 14 to the cloud target**: "a cloud model
+    may be shown a whole text unit, the person's folder path and OCR text within the
+    same ceiling, for every file the cloud gate permits." R-159 had already named what
+    bounds the release -- the dossier ceiling, which is the bound §8.4's own sentence
+    hands to `max_dossier_tokens_per_call` -- and §17.13 made that bound the whole of
+    the rule, for both targets. So the pair survives with the same shape and a
+    different axis: same document, same span-less excerpt, one field different, and
+    the field is P1's stored ceiling.
 
-    SABOTAGE: drop the `locality == CLOUD_LOCALITY` guard from `check_item`'s
-    whole-document arm and the local half goes red;
-    `test_the_gate_denies_a_span_less_whole_document_and_releases_nothing` above is
-    the cloud half of the same pair and stays green either way, which is why both
-    halves are asserted here.
+    The bound is strict `>`: a unit exactly AT the ceiling fits, which is why the
+    releasing half stores `len(DOCUMENT)` rather than something above it, and the
+    refusing half stores one less. Both halves loop over both targets, because "the
+    answer no longer depends on the destination" is a claim worth running -- a build
+    that put `locality` back into the whole-document arm goes red here.
+
+    The ceiling is stored where P1 stores it and never echoed through the request:
+    `Gate._stored_ceiling` reads `budget_ceilings`, M9 calls `max_dossier_tokens` "the
+    caller's echo of it", and a caller must not be able to raise its own ceiling.
     """
     file_id, key = a_document
     item = Excerpt(observation_key=key, span=None, reason="the whole thing")
 
-    denied = _gate(whole_conn).release(_request(
-        items=(item,), file_id=file_id, model_target=CLOUD))
-    assert isinstance(denied, Denied), (
-        f"a whole unit bound for a CLOUD model was {type(denied).__name__}; "
-        f"{ALWAYS_LOCAL[1]!r} is the second of the nine and the ruling left the "
-        f"cloud restrictions standing")
-    assert denied.reason == "whole_document_requested"
+    set_ceiling(whole_conn, CEILING_KEY, len(DOCUMENT) - 1)
+    for target in (CLOUD, LOCAL):
+        denied = _gate(whole_conn).release(_request(
+            items=(item,), file_id=file_id, model_target=target))
+        assert isinstance(denied, Denied), (
+            f"a whole unit longer than the stored ceiling, bound for a "
+            f"{target.locality} model, was {type(denied).__name__}; "
+            f"{ALWAYS_LOCAL[1]!r} is the second of the nine")
+        assert denied.reason == "whole_document_requested"
 
-    released = _gate(whole_conn).release(_request(
-        items=(item,), file_id=file_id, model_target=LOCAL))
-    assert isinstance(released, Released), (
-        f"a whole unit bound for a LOCAL model was {type(released).__name__}; "
-        f"`104` R-159's ruling shows it the unit")
-    assert [one.value for one in released.materialised_items] == [DOCUMENT], (
-        "the local model is shown the page it is being asked about, which is the "
-        "whole of what the ruling changes at this door")
+    set_ceiling(whole_conn, CEILING_KEY, len(DOCUMENT))
+    for target in (CLOUD, LOCAL):
+        released = _gate(whole_conn).release(_request(
+            items=(item,), file_id=file_id, model_target=target))
+        assert isinstance(released, Released), (
+            f"a whole unit that FITS the stored ceiling, bound for a "
+            f"{target.locality} model, was {type(released).__name__}; `104` §17.13 "
+            f"shows either model the unit")
+        assert [one.value for one in released.materialised_items] == [DOCUMENT], (
+            f"the {target.locality} model is shown the page it is being asked "
+            f"about, which is the whole of what the ruling changes at this door")
 
 
 def test_a_bounded_span_is_released_to_either_target_and_the_pair_proves_the_arm(
         whole_conn, a_document):
     """The control on the pair above: nothing about a SHORT excerpt changed.
 
-    A test that only showed the whole unit arriving locally could not tell "the
-    whole-document arm is now cloud-only" from "the door stopped checking spans".
+    Written for `104` R-159, where a test that only showed the whole unit arriving
+    locally could not tell "the whole-document arm is now cloud-only" from "the door
+    stopped checking spans". **`104` §17.13 makes the control read the other way and
+    keeps it just as necessary**: the pair above now turns on the ceiling, and a test
+    that only showed a whole unit released under a generous ceiling could not tell
+    "the arm is ceiling-bound" from "the door stopped checking spans" either. The
+    excerpt here is twelve characters of a 199-character unit and is released whatever
+    the ceiling, because coverage is still the qualifier.
     """
     file_id = _file(whole_conn, "Syllabus.txt", "hash-bounded")
     span = TextSpan(0, 12)
