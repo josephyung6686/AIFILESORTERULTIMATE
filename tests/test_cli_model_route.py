@@ -171,9 +171,14 @@ def test_a_missing_env_file_is_not_an_error(monkeypatch, tmp_path):
 def test_every_call_site_p8_publishes_is_routed_to_a_tier():
     """`83` §3's last row refuses an unrouted site, which is the right behaviour
     and a bad surprise: a site P8 already publishes and this table forgot would
-    refuse forever and nothing would say why. So the five are checked here."""
+    refuse forever and nothing would say why. So the six are checked here: the
+    five of `83` §3, and site G since `104` §17.1 (9 Sep 2026), which asks the
+    situation question on this device before any other site is asked."""
+    from llm_harness.vocabulary import G_SITUATION_SENSITIVITY
+
     assert set(cli.TIER_OF_CALL_SITE) == {
-        A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE}
+        A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE,
+        G_SITUATION_SENSITIVITY}
 
 
 def test_the_site_whose_errors_become_folders_gets_the_checkable_tier():
