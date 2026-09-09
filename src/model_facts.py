@@ -351,6 +351,26 @@ def _settled_kind(request: FactRequest, kind_field: str) -> str | None:
     return None
 
 
+def _one_route_pair(client: ModelClient,
+                    target: ModelTarget) -> tuple[ModelClient, ModelTarget]:
+    """The pair, checked to be one destination and not two descriptions of it.
+
+    The gate is asked about `model_target` and the transport sends to
+    `model_client.model_target`; two values here would authorise one destination
+    and deliver to a different one. `test_live_path` names the same rule at site
+    B. Checked at construction for the single-pair spelling and at every read for
+    the per-file one, because a route that returns a mismatched pair for one file
+    is exactly as wrong as a mismatched field and there is no earlier moment to
+    catch it.
+    """
+    if client.model_target != target:
+        raise ValueError(
+            "the gate is asked about `model_target` and the client sends to "
+            "`model_client.model_target`; two values here would authorise one "
+            "destination and deliver to a different one")
+    return client, target
+
+
 @dataclass(frozen=True)
 class FactCallAuthorities:
     """Everything one A_fact call needs and this module authors none of.
@@ -366,9 +386,18 @@ class FactCallAuthorities:
     """
 
     gate: Gate
-    model_client: ModelClient
+    #: THE ONE PAIR, or `None` twice when the route is per file. `104` §17.13
+    #: ruling 3 gives one call site two destinations -- the cloud model for the
+    #: files the cloud gate permits, the local one for the rest -- so a single
+    #: client here cannot describe the run. A deployment with ONE destination
+    #: still states it as this pair and `route_for` below is derived from it,
+    #: which is why every existing caller is unchanged; a deployment with two
+    #: passes `None` to both and supplies `route_for` instead. Exactly one of the
+    #: two spellings is in force, checked below: two would be the "authorise one
+    #: destination and deliver to another" defect one level up.
+    model_client: ModelClient | None
     prompt: PromptDefinition
-    model_target: ModelTarget
+    model_target: ModelTarget | None
     activation_signals: ActivationSignals
     #: The folder levels of the situation the person named, read off the shipped
     #: template library by the composition root. Required with no default: absent
@@ -459,6 +488,19 @@ class FactCallAuthorities:
     #: default, because restoring the question is the OWNER's ruling and a
     #: deployment that has not read it must not start asking by omission.
     anchor_only: AnchorOnlyLevels | None = None
+    #: WHICH MODEL ANSWERS ABOUT THIS FILE, or `None` for a file that may reach
+    #: none (`104` §17.13 ruling 3). `cli.target_for` builds it: it asks
+    #: `model_route_permitted` for the cloud first and the local second and hands
+    #: back the routing's pair for whichever permits, so the route's predicate and
+    #: the destination are one answer rather than two that can disagree -- which is
+    #: the `104` R-02 defect, in the direction that sends.
+    #:
+    #: Defaulted to `None` because the single-pair spelling above is the one every
+    #: deployment with one destination uses, and a required field here would make
+    #: every caller state a route it does not have. `route` below is the ONLY read:
+    #: nothing in this module touches `model_client` or `model_target` directly, so
+    #: the two spellings cannot drift into two behaviours.
+    route_for: Callable[[str], tuple[ModelClient, ModelTarget] | None] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "folder_levels",
@@ -467,13 +509,44 @@ class FactCallAuthorities:
             raise ValueError(
                 "a dossier with no released evidence is a model asked to answer "
                 "from nothing; the cap is a bound on what is sent, not a switch")
-        if self.model_client.model_target != self.model_target:
-            # The gate decides about one destination and the transport sends to
-            # another. `test_live_path` names the same rule at site B.
+        if self.route_for is None:
+            if self.model_client is None or self.model_target is None:
+                raise ValueError(
+                    "a call site with no `route_for` states its one destination as "
+                    "`model_client` and `model_target`, and one of them is absent. "
+                    "A site with neither spelling has no model and no way to say "
+                    "so, which is a call built against nothing rather than a "
+                    "deployment that decided not to make one")
+            _one_route_pair(self.model_client, self.model_target)
+            return
+        if self.model_client is not None or self.model_target is not None:
+            # TWO SPELLINGS OF ONE FACT, which is how the gate and the route came
+            # to disagree the first time (`104` R-02). A per-file route makes the
+            # single pair a statement about a destination that is only sometimes
+            # the one used, and a reader trusting it would be right about some
+            # files and silently wrong about the rest.
             raise ValueError(
-                "the gate is asked about `model_target` and the client sends to "
-                "`model_client.model_target`; two values here would authorise one "
-                "destination and deliver to a different one")
+                "`route_for` chooses this call's destination per file, so the "
+                "single `model_client`/`model_target` pair beside it describes a "
+                "destination that is only sometimes the one used. State one or the "
+                "other, never both")
+
+    def route(self, file_id: str) -> tuple[ModelClient, ModelTarget] | None:
+        """The client and the target THIS FILE is answered by, or `None` for none.
+
+        One read for both spellings, so a deployment with one destination and a
+        deployment with two go down the same line of code. `None` means the file
+        may reach no model at all -- `cli.target_for` returns it when neither the
+        cloud nor the local gate permits the file -- and the caller records
+        `privacy_withheld` rather than sending anywhere.
+        """
+        if self.route_for is None:
+            return self.model_client, self.model_target
+        chosen = self.route_for(file_id)
+        if chosen is None:
+            return None
+        client, target = chosen
+        return _one_route_pair(client, target)
 
 
 def pending_fields_for(conn: sqlite3.Connection, *, file_id: str,
@@ -1426,6 +1499,25 @@ def _policy_content(conn: sqlite3.Connection, policy_version: str) -> str:
     })
 
 
+def _routed_target(authorities: "FactCallAuthorities",
+                   file_id: str) -> ModelTarget:
+    """The target this file is routed to, refusing rather than guessing.
+
+    `call_identity_dimensions` is only ever built for a call that is about to be
+    made, so a file with no route cannot reach here; a `None` would mean the
+    identity is being recorded for a call nothing authorised, and a dimension
+    invented for it would key an answer under a destination that was never asked.
+    """
+    chosen = authorities.route(file_id)
+    if chosen is None:
+        raise ValueError(
+            f"file {file_id!r} is routed to no model, so there is no `model_id` "
+            f"for `00`:44's cache key to record. A call identity written without "
+            f"one would key this file's answers under a destination nothing sent "
+            f"them to")
+    return chosen[1]
+
+
 def call_identity_dimensions(
     conn: sqlite3.Connection, *,
     file_id: str,
@@ -1489,7 +1581,14 @@ def call_identity_dimensions(
         "extractor_versions": sorted(
             {(observation.extractor_name, observation.extractor_version)
              for observation in observations}),
-        "model_id": authorities.model_target.model_id,
+        # THE ROUTE'S OWN ANSWER FOR THIS FILE (`104` §17.13 ruling 3). The
+        # target is per file now, so a constant here would key two destinations'
+        # answers under one dimension: a file answered by the local model would
+        # reuse the cloud model's cached verdict, and `00`:44's "makes model or
+        # prompt changes auditable" would be false in the one direction that
+        # matters. Asked through `route` rather than off a field, which is the
+        # only read this module makes.
+        "model_id": _routed_target(authorities, file_id).model_id,
         # Null at A, and `build_fact_request` says why in its own words: "a fact is
         # about a file version and not about a plan, and the same fact survives a
         # re-plan". Read from the same place rather than restated, so the two cannot
@@ -1759,7 +1858,17 @@ def fact_call_stage(authorities: FactCallAuthorities):
             activation_signals=authorities.activation_signals)
         if not pending:
             return ()
-        locality = authorities.model_target.locality
+        # WHICH MODEL ANSWERS ABOUT THIS FILE, before a dossier exists, because
+        # the locality is what decides what may go into one (`104` §17.13 ruling
+        # 3). `None` is a file neither gate permits; the resolver's own
+        # `model_route_permitted` is built from this same callable, so it has
+        # already recorded `privacy_withheld` and stopped -- this is the backstop
+        # for anyone who wires a stage another way, and it sends nothing.
+        chosen = authorities.route(file_id)
+        if chosen is None:
+            return ()
+        model_client, model_target = chosen
+        locality = model_target.locality
         # `104` R-159: WHAT THIS FILE MAY OFFER, ordered, and not yet bounded. The
         # cap and the ceiling are spent below, once the context and the filename have
         # taken their share; this set is the answer to "does the file have anything
@@ -2003,11 +2112,14 @@ def fact_call_stage(authorities: FactCallAuthorities):
                     # gap `104` R-159 closed.
                     filename=filename,
                     context=shown,
-                    model_target=authorities.model_target,
+                    # THE PAIR THIS FILE WAS ROUTED TO, chosen once at the top
+                    # of the stage and carried down. Reading the authorities again
+                    # here would be a second answer to a per-file question.
+                    model_target=model_target,
                     prompt=authorities.prompt,
                     max_dossier_tokens=authorities.max_dossier_tokens),
                 gate=authorities.gate,
-                model_client=authorities.model_client,
+                model_client=model_client,
                 prompt=authorities.prompt,
                 validation_dependencies=_call_dependencies(
                     request, vocabulary, folder_levels=visible_levels,

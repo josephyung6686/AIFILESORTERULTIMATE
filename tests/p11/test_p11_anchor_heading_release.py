@@ -1069,7 +1069,11 @@ def test_the_call_identity_moves_when_an_anchor_appears_beside_a_file(
     monkeypatch.setattr(model_facts, "_policy_content",
                         lambda _conn, _version: "{}")
     authorities = SimpleNamespace(
-        model_target=_target(), policy_version="policy-1", prompt=_prompt(),
+        # `104` §17.13 ruling 3: the target is per FILE, so the identity asks the
+        # route for it rather than reading one field. This fixture has one
+        # destination and says so as the pair the route returns.
+        route=lambda _file_id: (None, _target()),
+        policy_version="policy-1", prompt=_prompt(),
         activation_signals=SimpleNamespace(
             signals=(SimpleNamespace(schema_id="academic"),)))
 
