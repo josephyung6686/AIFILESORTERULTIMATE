@@ -6706,7 +6706,17 @@ SITUATION_SENTENCE: Mapping[str, str] = MappingProxyType({
         "asked and left alone: a model was asked and named no situation it could "
         "cite, or the check did not accept the one it named. They keep this "
         "run's own situation, which is where the rules had already left them.",
-    "no_route": "protected: " + WITHHELD_SENTENCE[WITHHELD_PROTECTED],
+    # `104` §18.7 (9 Sep 2026): protected material reaches the LOCAL model, so
+    # this is no longer the protected count on a run with a local target. It is
+    # the files no model this site may use could take -- protected material
+    # where the only destination is a cloud one, or no destination wired. The
+    # sentence says what the counter IS rather than borrowing the fact pass's
+    # protected line, which would name a reason that is no longer the reason.
+    "no_route":
+        "no target: no model this site may use could take them -- protected "
+        "material where the only destination was a cloud one, or no model "
+        "wired at all. Nothing about them was assembled and nothing was sent; "
+        "they keep this run's own situation.",
 })
 
 assert set(SITUATION_SENTENCE) | {"named"} == {
@@ -6934,16 +6944,21 @@ def _reconcile_the_roster(conn: sqlite3.Connection, *, run_id: str,
 
     **THE PRECEDENCE IS A RULING AND NOT A SORT ORDER**, so it is stated:
 
-    1. **Protected first, always.** The standing rule is that protected material is
-       marked and counted, never opened and never silently omitted. A protected
-       file reported as "unreadable" would say the product tried to read it and
-       failed, which is the opposite of what happened, and one reported as "settled
-       by rule" would hide it in the largest bucket on the screen.
-    2. **Then the fact pass's own verdict for that file**, because it is the finer
+    1. **The fact pass's own verdict for that file first**, because it is the finer
        answer and because it is what the block directly above already printed: if
        the sum called a file "unreadable" that the fact pass had just counted among
        "N files sent", the two blocks would contradict each other on one screen and
-       a person would have no way to tell which was lying.
+       a person would have no way to tell which was lying. Since `104` §18.7
+       (9 Sep 2026) that includes a PROTECTED file the local model was asked
+       about: the owner ruled protected material reaches the local model, so a
+       protected file the pass sent is "asked a model", and one the pass withheld
+       carries the pass's own `WITHHELD_PROTECTED` verdict onto this line.
+    2. **Then protected, for a file the pass never reached.** The standing rule is
+       that protected material is marked and counted and never silently omitted. A
+       protected file reported as "unreadable" would say the product tried to read
+       it and failed, and one reported as "settled by rule" would hide it in the
+       largest bucket on the screen; when no pass ran at all, "protected" is the
+       one true thing this line can say about it.
     3. **Then what was read out of it**, for a file the pass never reached --
        which is every file when the pass did not run. Unreadable before deferred,
        because "nothing could be read out of it" is a settled outcome and a ceiling
@@ -6984,10 +6999,10 @@ def _reconcile_the_roster(conn: sqlite3.Connection, *, run_id: str,
     causes: dict[str, dict[str, list[str]]] = {
         label: {} for label in _COVERAGE_ORDER}
     for file_id, content_hash in roster:
-        if file_id in protected:
-            label, cause = WITHHELD_PROTECTED, None
-        elif file_id in verdicts:
+        if file_id in verdicts:
             label, cause = verdicts[file_id]
+        elif file_id in protected:
+            label, cause = WITHHELD_PROTECTED, None
         elif file_id not in read:
             label, cause = UNREADABLE, None
         else:

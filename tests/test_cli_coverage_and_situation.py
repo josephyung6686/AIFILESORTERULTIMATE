@@ -85,7 +85,7 @@ def test_all_six_of_site_gs_counters_reach_the_screen():
                           (33, "not asked, no candidate"),
                           (44, "not asked, nothing to read"),
                           (55, "asked and left alone"),
-                          (66, "protected")):
+                          (66, "no target")):
         assert f"{count} {phrase}" in said, (count, phrase)
 
 
@@ -108,7 +108,7 @@ def test_a_zero_counter_still_prints_its_line():
     assert "0 not asked, no candidate" in said
     assert "0 not asked, nothing to read" in said
     assert "0 asked and left alone" in said
-    assert "0 protected" in said
+    assert "0 no target" in said
 
 
 def test_a_run_where_site_g_was_never_asked_prints_no_block_at_all():
@@ -138,8 +138,11 @@ def test_the_protected_counter_says_what_the_fact_pass_says_about_the_same_files
     SABOTAGE: write `no_route` a sentence of its own. This assertion goes red the
     moment the two texts stop being one text.
     """
-    assert (cli.WITHHELD_SENTENCE[cli.WITHHELD_PROTECTED]
-            in cli.SITUATION_SENTENCE["no_route"])
+    # `104` §18.7 (9 Sep 2026): protected material reaches the local model, so
+    # `no_route` stopped being the protected count and its sentence says what it
+    # now is -- no target this site may use could take them.
+    assert cli.SITUATION_SENTENCE["no_route"].startswith("no target")
+    assert "protected" in cli.SITUATION_SENTENCE["no_route"]
 
 
 def test_every_counter_site_g_leaves_behind_earns_a_sentence():
@@ -355,10 +358,11 @@ def test_every_indexed_file_lands_in_exactly_one_bucket_and_the_sum_closes(
     printed = _reconciled(
         monkeypatch, rows,
         protected=("f3",), unread=("f4",),
+        # `104` §18.7: a protected file the pass ASKED is "asked a model" now, so
+        # the one that lands on the protected line is one the pass never reached.
         verdicts={"f0": (cli.COVERAGE_SETTLED, None),
                   "f1": (cli.COVERAGE_ASKED, None),
                   "f2": (cli.COVERAGE_NOT_ASKED, cli.WITHHELD_UNCLASSIFIED),
-                  "f3": (cli.COVERAGE_ASKED, None),
                   "f5": (cli.DEFERRED, cli.BUDGET_DEFERRED)},
         runs=(_p4_run("f4", "h4", "unreadable"),))
 
@@ -371,30 +375,36 @@ def test_every_indexed_file_lands_in_exactly_one_bucket_and_the_sum_closes(
     assert "every file is on exactly one line above" in printed
 
 
-def test_a_protected_file_is_never_reported_as_anything_else(monkeypatch):
-    """The standing rule: marked and counted, never opened, never silently
-    omitted -- and never filed under somebody else's word.
+def test_a_protected_file_the_pass_never_reached_is_counted_protected(monkeypatch):
+    """The standing rule: marked and counted, never silently omitted -- and never
+    filed under somebody else's word. Amended by `104` §18.7 (9 Sep 2026):
+    protected material reaches the LOCAL model, so a protected file the pass ASKED
+    is "asked a model" (the second half below), and the protected line is for a
+    protected file the pass never reached. Reported as "unreadable" it would say
+    the product tried to read it and failed; reported as "settled by rule" it
+    would vanish into the largest bucket on the screen.
 
-    `f3` above carries an `asked a model` verdict AND is protected, and it is
-    counted protected. A protected file reported as "asked a model" would say
-    bytes about it left for a model, which is the one thing that never happened;
-    reported as "unreadable" it would say the product tried to read it and failed;
-    reported as "settled by rule" it would vanish into the largest bucket on the
-    screen.
-
-    SABOTAGE: move the `file_id in protected` test below `file_id in verdicts` in
-    `_reconcile_the_roster`. The protected count drops to zero here and the file
-    reappears among the files a model was asked about.
+    SABOTAGE: drop the `file_id in protected` arm from `_reconcile_the_roster`.
+    The first half's protected count goes to zero and the file reappears as
+    unreadable. Put that arm back ABOVE `file_id in verdicts` and the second
+    half goes red instead: the file the local model was asked about is hidden
+    under "protected", which says bytes never reached a model when they did.
     """
-    printed = _reconciled(
+    unreached = _reconciled(
         monkeypatch, [("f0", "h0")], protected=("f0",), unread=("f0",),
-        verdicts={"f0": (cli.COVERAGE_ASKED, None)},
-        runs=(_p4_run("f0", "h0", "unreadable"),))
-
-    counts = _counts(printed)
+        verdicts={}, runs=(_p4_run("f0", "h0", "unreadable"),))
+    counts = _counts(unreached)
     assert counts[cli.WITHHELD_PROTECTED] == 1
     assert counts[cli.COVERAGE_ASKED] == 0
     assert counts[cli.UNREADABLE] == 0
+
+    asked = _reconciled(
+        monkeypatch, [("f0", "h0")], protected=("f0",), unread=("f0",),
+        verdicts={"f0": (cli.COVERAGE_ASKED, None)},
+        runs=(_p4_run("f0", "h0", "unreadable"),))
+    counts = _counts(asked)
+    assert counts[cli.COVERAGE_ASKED] == 1
+    assert counts[cli.WITHHELD_PROTECTED] == 0
 
 
 def test_the_sum_and_the_sent_line_above_it_agree_about_one_file(monkeypatch):
