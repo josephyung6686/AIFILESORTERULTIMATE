@@ -1411,3 +1411,17 @@ VALUE is a person's name would still carry it by value, and that needs `facts/di
 demotion rule rather than P5's signal. Owner's, or the lead's on a later pass; not urgent.
 
 - `106-THE-DAY-THE-RULES-STOPPED-DECIDING.md` — the 8 Sep session in full: the ruling, the five findings, the six merges, and the one wall left shut. Narrative companion to `104` §17.
+
+
+### 17.13 RULING, 9 Sep 2026 (morning): the cloud run happens now
+
+The owner, asked §17.6's question again with the code's answer in front of them (cloud is shown zero characters; half the corpus is refused for cloud until site G classifies; body-text names are undetected; R-82 unsigned), ruled: **"honestly now let's just do cloud run, but then local for classified and protected files."** Recorded as three rulings and two builds.
+
+1. **Item 14 extended to the cloud target.** A cloud model may be shown a whole text unit, the person's folder path and OCR text within the same ceiling, for every file the cloud gate permits. `00`:186's "selected excerpts" sentence is amended by this ruling for this deployment; the ceiling stays the one number. Build `r169-cloud-evidence`: `privacy.vocabulary`'s R-159 partition becomes "released to every target", `check_item`'s two arms and `may_be_released` follow, `releasable_excerpts` delegates as before.
+2. **R-82 signed.** The person's own folder labels may cross to a cloud provider once the consent text names them; the sentence is added to the `--enable-cloud` wording in the same build, so consent and crossing are one act.
+3. **Per-file target: cloud where the cloud gate permits, local where it does not, no call where neither does.** Today a local model beside a cloud key serves site A and the cloud serves the rest -- a per-SITE split. The ruling is per FILE: a protected file, and an unclassified file until site G classifies it, goes to the local model; everything else goes to the cloud. Build `r170-per-file-route`: the routing answers `(client, target)` per file from `model_route_permitted` asked for `cloud` then `local`; every site's authorities carry that answer instead of one client; the dossier fill and the gate read the chosen target's locality. One purse per site stays.
+4. **Accepted knowingly**: names and addresses inside body text are not detected (R-161 covers metadata fields only) and reach the provider for unprotected files; the provider is DeepSeek. Cost is cents; latency about 2 s a call.
+5. **Agents are Opus only, reaffirmed.** No agent runs on Fable.
+
+Order: site G bakeoff (running, local, 14 cases x 2 candidates) -> owner ratifies the winner -> merge r169, chain -> merge r170, chain -> run r18 with both targets configured, unseeded. The local-only run r17 is retired; r18 is the run that counts.
+
