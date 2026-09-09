@@ -961,6 +961,33 @@ def observe_scan_budget(fact_budget: ScanBudget, *,
         min_calls_per_scan=OBSERVE_MIN_CALLS_PER_SCAN)
 
 
+def situation_scan_budget(fact_budget: ScanBudget, *,
+                          corpus_file_count: int) -> ScanBudget:
+    """`104` §17.1's site G, spending from a THIRD ledger. Same rate, own purse.
+
+    `observe_scan_budget`'s whole argument, applied one site along and measured the
+    same way. Site G asks one call per file the rules could not settle and it runs
+    BEFORE the fact pass, so pointing it at the observe purse reproduced exactly the
+    defect R-131 ended: on the six-file corpus of
+    `tests/integration/test_local_model_fact_pass.py` it emptied the observe ledger
+    and site C recorded `BUDGET_EXHAUSTED` for five tests that had been green, with
+    nothing in the run saying so.
+
+    **The rate, the floor and the ceiling are the observe ones and are not new
+    numbers.** "How many model calls may one scan make about one corpus" is a
+    deployment answer and this deployment has given it once; a fourth set of
+    constants here would be a second answer to a question nobody asked again. What
+    is site G's own is the `scan_id`, which is what makes it a separate ledger --
+    and a separate ledger is the entire fix.
+    """
+    return ScanBudget(
+        scan_id=fact_budget.scan_id + SITUATION_BUDGET_SUFFIX,
+        corpus_file_count=corpus_file_count,
+        max_calls_per_1000_files=OBSERVE_CALLS_PER_1000_FILES,
+        max_estimated_cost=OBSERVE_CALLS_PER_SCAN_CEILING,
+        min_calls_per_scan=OBSERVE_MIN_CALLS_PER_SCAN)
+
+
 def observe_group_authorities(fact_authorities, *, routing: TierRouting,
                               situation: str, placeable_file_count: int):
     """Site B, wired to run and to change nothing. `(p8_run_call, authorities)`.
@@ -1807,6 +1834,15 @@ OBSERVE_CALLS_PER_SCAN_CEILING: Decimal = Decimal("200")
 #: its own, so two ids are two ledgers -- and one id was the shared purse this
 #: separation exists to end.
 OBSERVE_BUDGET_SUFFIX: str = ":observe"
+
+#: SITE G'S OWN LEDGER, and it exists because the defect `104` R-131 measured
+#: happened again the moment site G was wired to `observe_scan_budget`. That purse
+#: is B's, C's and D's; site G asks one call per UNSETTLED FILE and runs BEFORE all
+#: three, so on the six-file corpus of `tests/integration/test_local_model_fact_
+#: pass.py` it spent every observe slot and site C recorded `BUDGET_EXHAUSTED` for
+#: five tests that had been green. A starved site looks exactly like a site nobody
+#: wired (`104` R-04), which is why this is a third id and not a bigger second one.
+SITUATION_BUDGET_SUFFIX: str = ":situation"
 
 #: What one A_fact call is charged, and what it settles for. THIS DEPLOYMENT
 #: MEASURES NEITHER A TOKEN NOR A PRICE: `readers.model_deepseek` returns no usage
@@ -4482,7 +4518,13 @@ def situation_call_dependencies(fact_authorities, *, allowed_vocabulary,
         # to fall back to -- the same argument `model_facts` makes at site B.
         unreduced_fits=True, summarized_fits=False, anchors_fit=False,
         split_shard_fits=(), split_shards=(),
-        scan_budget=observe_scan_budget(
+        # SITE G'S OWN PURSE, not the observe sites'. `observe_scan_budget` is B's,
+        # C's and D's, and this site runs before all three and asks one call per
+        # unsettled file -- exactly the shape that starved them the first time
+        # (`104` R-131). The rate, the floor and the ceiling are the observe ones,
+        # because the question "how many model calls may one scan make about one
+        # corpus" has one deployment answer; what differs is the LEDGER.
+        scan_budget=situation_scan_budget(
             fact_authorities.scan_budget,
             corpus_file_count=placeable_file_count),
         estimated_cost=fact_authorities.estimated_cost,
