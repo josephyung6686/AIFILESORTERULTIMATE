@@ -49,7 +49,7 @@ from database_agent.supersede import mark_superseded
 from llm_harness import P8Verdict, Refusal
 from llm_harness.vocabulary import ABSTAIN as P8_ABSTAIN
 from llm_harness.records import (
-    REFUSAL_EXCEPTIONS, CallRefused, DossierRequest, EvidenceItem,
+    REFUSAL_EXCEPTIONS, CallFailed, CallRefused, DossierRequest, EvidenceItem,
     # `104` R-149 reads P7's raise, and reads it THROUGH THE RECORDS MODULE.
     # `tests/p11/test_p11_connections.py` pins the whole of P11's `privacy` import
     # surface to two files, neither of them this one, and `REFUSAL_EXCEPTIONS` is
@@ -57,6 +57,7 @@ from llm_harness.records import (
     # surface every one of them already reads".
     MalformedRequest,
     PreCallAbstention,
+    ValidationUnavailable,
 )
 from llm_harness.store import record_unbuilt_call_abstention, refusal_outcome
 from llm_harness.vocabulary import (
@@ -505,12 +506,13 @@ class ModelJudgementUnavailable(RuntimeError):
 
     P8 declares five return types and only one of them is a judgement.
     `Refusal` is P7 denying the release, which IS §8.4's `privacy_blocked` and is
-    recorded as that. The other three -- `NeedsConsent`, `ValidationUnavailable`
-    and `CallFailed` -- are not judgements about evidence, and §6.10's abstention
-    reasons are a closed set with no member for "the call did not happen". Naming
-    one anyway would record a conclusion about the file that nothing reached, so
-    this raises and the caller decides. B2 says the same of `NeedsConsent`: it
-    writes no P11 decision and no P2 row.
+    recorded as that. `ValidationUnavailable` and `CallFailed` are not judgements
+    about evidence, and §6.10's abstention reasons are a closed set with no member
+    for "the call did not happen"; since `104` R-173 (9 Sep 2026) neither names
+    one -- the file falls through to §13.5's no-model fallback with the failure
+    recorded as its own event, and the run goes on. `NeedsConsent` alone reaches
+    this: it is the gate asking the person a question, and B2 says it writes no
+    P11 decision and no P2 row, so this raises and the caller decides.
     """
 
 
@@ -1236,18 +1238,24 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
             # door: `chosen_node_id` stays `None` and the file is placed the way a
             # run with no model configured would place it.
             #
-            # THE OTHER THREE RETURN TYPES ARE NOT ADDED HERE, and the reason is a
-            # standing test rather than an oversight. `tests/integration/
-            # test_p11_pipeline_live.py::test_a_refusal_is_the_privacy_answer_and_
-            # a_non_verdict_is_refused_loudly` pins `NeedsConsent`,
-            # `ValidationUnavailable` and `CallFailed` to raising, on the argument
-            # `_require_verdict` states: §6.10's reasons are a closed set with no
-            # member meaning "the call did not happen", and naming one would
-            # record a conclusion nothing reached. Those three are a call that
-            # HAPPENED and came back wrong; R-136's two are a call that could
-            # never be built. Whether a failed call should also fall through is a
-            # ruling with a test standing on it, and it is not taken here.
-            elif not isinstance(result, (CallRefused, PreCallAbstention)):
+            # `104` R-173 (9 Sep 2026): A CALL THAT FAILED FALLS THROUGH THE SAME
+            # DOOR. `CallFailed` (the provider did not answer: a connection
+            # error, a timeout) and `ValidationUnavailable` (the answer could not
+            # be judged) are a call that happened and came back with no
+            # judgement, and until this ruling they raised
+            # `ModelJudgementUnavailable` here and ENDED THE RUN on every file
+            # after them. The first cloud run is two hours over a network; one
+            # blip at one file would have cost every file behind it its answer,
+            # which is the coverage loss the constitution forbids for the sake of
+            # a record's tidiness. The record stays exact: the failure is already
+            # written as its own event and nothing below names a §6.10 reason
+            # for it -- `chosen_node_id` stays `None` and step 9 places the file
+            # the way a run with no model configured would, §13.5's own fallback.
+            # `NeedsConsent` alone still raises: it is not "the call did not
+            # happen", it is the gate asking the person a question, and a run
+            # that answered it for them would be worse than one that stopped.
+            elif not isinstance(result, (CallRefused, PreCallAbstention,
+                                         CallFailed, ValidationUnavailable)):
                 verdict = _require_verdict(result, call_site=C_PLACEMENT)
                 outcome, reason, deferred = transcribe(
                     verdict, assessment=assessment)
@@ -2811,7 +2819,12 @@ def _review_set_with_model(conn, *, item: ResidualSet, inputs: PipelineInputs,
                 qualifier=PRIVACY_BLOCKED, residual=residual, evidence=evidence,
                 component_version=component_version, observed_at=observed_at))
             continue
-        if isinstance(result, (CallRefused, PreCallAbstention)):
+        if isinstance(result, (CallRefused, PreCallAbstention,
+                               CallFailed, ValidationUnavailable)):
+            # `104` R-173: a call that failed or could not be judged joins the
+            # two below at this site, for the reason given at site C -- the run
+            # does not die on the set, and D proposed no destination.
+            #
             # `104` R-O, and the residual half of what site C does above: the
             # file stays where the person's own decision put it, recorded and
             # named, rather than the run ending on the set it belongs to.

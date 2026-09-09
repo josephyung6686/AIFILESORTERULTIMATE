@@ -496,20 +496,25 @@ def test_p8s_verdict_reaches_p11_and_the_whole_write_lands_together(live, tmp_pa
     assert decision.destination is None
 
 
-def test_a_refusal_is_the_privacy_answer_and_a_non_verdict_is_refused_loudly(
+def test_a_refusal_is_the_privacy_answer_and_a_failed_call_falls_through(
         live, tmp_path):
     """The four return types that are not verdicts, and what P11 does with each.
 
     `Refusal` is P7 denying the release and IS §8.4's `privacy_blocked`, asserted
-    above on the live path. The other three -- `NeedsConsent`,
-    `ValidationUnavailable`, `CallFailed` -- are not judgements about evidence,
-    and §6.10's abstention reasons are a closed set with no member meaning "the
-    call did not happen". P11 raises rather than naming one, which is what a
-    record of a conclusion nothing reached would be.
+    above on the live path. `CallFailed` and `ValidationUnavailable` are a call
+    that happened and came back with no judgement; §6.10's abstention reasons are
+    a closed set with no member meaning "the call did not happen", so P11 names
+    none of them -- and since `104` R-173 (9 Sep 2026) it does not RAISE either:
+    the file falls through to §13.5's no-model fallback and the run goes on.
+    Until R-173 both raised `ModelJudgementUnavailable`, which ended the run on
+    every file after the first network blip; on a two-hour cloud run that is the
+    coverage loss the constitution forbids. `NeedsConsent` alone still raises: it
+    is the gate asking the person a question, not a call that did not happen.
     """
     import placement.pipeline as pipeline
-    from llm_harness.records import ValidationUnavailable
+    from llm_harness.records import CallFailed, ValidationUnavailable
     from placement.pipeline import ModelJudgementUnavailable
+    from privacy.consent import ConsentRequirement, NeedsConsent
 
     file_id, content_hash = _corpus_file(live, tmp_path / "corpus")
     obs = _observation(live, file_id=file_id, content_hash=content_hash)
@@ -518,16 +523,37 @@ def test_a_refusal_is_the_privacy_answer_and_a_non_verdict_is_refused_loudly(
     subject = Subject(kind=v.FILE, file_id=file_id, content_hash=content_hash,
                       group_id=None, member_file_ids=())
     real = pipeline.call_placement
-    pipeline.call_placement = lambda *_a, **_k: ValidationUnavailable(
-        missing=("site_dependencies",))
-    try:
-        with pytest.raises(ModelJudgementUnavailable):
-            place_file(live, subject=subject, inputs=_inputs(live, gate=_gate(live)),
-                       evidence=_evidence(obs), component_version="P11-live",
-                       observed_at=FIXED_CLOCK)
-    finally:
-        pipeline.call_placement = real
-    # And the discriminating twin: a `Refusal` is NOT raised, it is recorded.
+
+    def placed_under(result):
+        pipeline.call_placement = lambda *_a, **_k: result
+        try:
+            return place_file(live, subject=subject,
+                              inputs=_inputs(live, gate=_gate(live)),
+                              evidence=_evidence(obs), component_version="P11-live",
+                              observed_at=FIXED_CLOCK)
+        finally:
+            pipeline.call_placement = real
+
+    # A failed call and an unjudgeable answer: no raise, a decision is written
+    # the way a run with no model would write it, and nothing names a reason
+    # the model never gave.
+    for result in (
+            CallFailed(request_identity="rid", release_id="release-x",
+                       audit_id=None, explanation="APIConnectionError",
+                       validator_version="P8/0.1.0", policy_version="policy-x"),
+            ValidationUnavailable(missing=("site_dependencies",))):
+        decision = placed_under(result)
+        assert decision is not None, type(result).__name__
+
+    # The discriminating twin: consent pending is a question for the person,
+    # and P11 still refuses to answer it for them.
+    with pytest.raises(ModelJudgementUnavailable):
+        placed_under(NeedsConsent(
+            consent_request_id="consent-x",
+            requirement=ConsentRequirement(
+                file_ids=(file_id,), handling_class="protected",
+                items=(), why="a test")))
+    # And a `Refusal` is NOT raised, it is recorded.
     assert issubclass(Refusal, object)
 
 
