@@ -30,6 +30,9 @@ from typing import Any, Callable, Mapping
 
 from extractors.reading import ZONE_BY_STRUCTURED_KIND, StructuredString
 from extractors.failure import unsupported_result
+from extractors.long_tail import (
+    SensitivitySignal, person_valued_field_signals,
+)
 from extractors.runs import coverage
 from extractors.safety import SafetyPolicy, admit
 from extractors.shape import (
@@ -44,6 +47,42 @@ ANALYSIS_TIER = "native"
 
 #: The core property that is its own zone (P4: `title` is "the document title").
 TITLE_PROPERTIES: tuple[str, ...] = ("title",)
+
+#: `104` R-161, owner item 15, ruled 8 Sep 2026: the OOXML core properties the
+#: format itself defines as holding a PERSON. Two, and the ruling names both --
+#: `dc:creator` ("an entity primarily responsible for making the resource", which
+#: for a Word document is its author) and `cp:lastModifiedBy` ("the user who
+#: performed the last modification").
+#:
+#: FOUR NAMES FOR TWO FIELDS, because P5 names no reader (§2.9) and the two readers
+#: in this repository spell them differently: `readers/docx_python_docx.py` supplies
+#: python-docx's attribute names (`author`, `last_modified_by`) and
+#: `readers/long_tail_stdlib._package_properties` supplies the XML elements' own
+#: local names (`creator`, `lastModifiedBy`). Both spellings are the SAME field, and
+#: a deployment that wires a third reader gets whichever of the two it supplies.
+#:
+#: `subject`, `keywords`, `category`, `comments`, `content_status`, `identifier`,
+#: `language` and `version` are not person-valued and are not here. `comments` is
+#: the closest call and is deliberately out: it holds prose, so admitting it would
+#: need something to read that prose with.
+PERSON_VALUED_PROPERTIES: tuple[str, ...] = (
+    "author", "creator", "last_modified_by", "lastModifiedBy",
+)
+
+
+def person_field_signals(result: ExtractionResult) -> tuple[SensitivitySignal, ...]:
+    """`104` R-161's signal for this batch, by field position. See
+    `long_tail.person_valued_field_signals` for why it reads the finished batch, and
+    `extractors/pdf.py`'s twin for why it is published beside the extractor rather
+    than returned from it.
+
+    §2.3's "available revision or comment metadata" is NOT reached by this: a
+    comment's own author is DROPPED by the reader before it gets here
+    (`readers/docx_python_docx.py`: putting it in the container path would have
+    produced the locator `annotation:field[Mara Ellison]`, a person's name inside a
+    citation string), so there is no field here to signal.
+    """
+    return person_valued_field_signals(result, fields=PERSON_VALUED_PROPERTIES)
 
 
 @dataclass(frozen=True)

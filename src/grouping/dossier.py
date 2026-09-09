@@ -36,6 +36,7 @@ from evidence_shape.canonical import canonical_json
 from evidence_shape.store import observations_by_key
 from facts.read_surface import proposal_eligible
 from privacy.classification import UNREADABLE_UNCLASSIFIED, resolve_class
+from privacy.items import sensitive_observation_keys
 
 from grouping.config import ConfigurationRequired, GroupingLimits
 from grouping.graph import LocalEvidenceGraph
@@ -128,7 +129,24 @@ def _excerpts_for(
     resolve a span to a file the request did not name.
     """
     found: list[Excerpt] = []
+    #: `104` R-161, and it is the gate's OWN refusal asked a step early -- the same
+    #: step `model_facts.may_be_released` takes at site A and
+    #: `model_placement.releasable_excerpts` takes at site C, and the only one of
+    #: the three that site B did not have. `items.check_item` raises
+    #: `AlwaysLocalRequested` for an `Excerpt` over a signalled key, and
+    #: `Gate._precheck_items` returns on the FIRST one, so a group request denies
+    #: whole: one signalled reading among twenty costs the group its call.
+    #:
+    #: Read once per file rather than per key: the lookup walks every extraction run
+    #: for the file, and a group asks about the same file once per fact it states.
+    signalled = sensitive_observation_keys(conn, file_id)
     for key in dict.fromkeys(keys):
+        if key in signalled:
+            # WITHHELD FROM THE OFFER, NOT DROPPED FROM THE DOSSIER. The fact this
+            # key cites still travels in `key_facts` with its value -- `104` R-154's
+            # own answer to the same shape: "a fact whose only citations are
+            # always-local is offered by its value with no citable item".
+            continue
         observations = [item for item in observations_by_key(conn, key)
                         if item.file_id == file_id]
         if not observations:

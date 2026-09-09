@@ -62,6 +62,45 @@ SENSITIVE_EMAIL_VALUE_KINDS: tuple[str, ...] = ("address",)
 #: folder proposals" - every value of a VCF, with no exception to enumerate.
 FULLY_SENSITIVE_SOURCE_TYPES: tuple[str, ...] = ("contacts",)
 
+#: `104` R-161, owner item 15, RULED 8 Sep 2026 (`104` §17.6), in the owner's words:
+#: *"a format's own person-valued fields (PDF `/Author`, OOXML `dc:creator`,
+#: `cp:lastModifiedBy`) are signalled by the field, which is structure and not a
+#: word list."*
+#:
+#: The whole of the reason it needs no vocabulary: the FORMAT defines the slot to
+#: hold a person. Nothing reads the value, so nothing here can be wrong about a name
+#: it has never seen, and P5 acquires no list of names, addresses or identifier
+#: patterns -- a detector's vocabulary is the owner's and it has not been given
+#: (`104` §15.4 item 15). Body-text address and identifier detection is NOT covered
+#: by the ruling and stays open.
+PERSON_VALUED_FIELD_BASIS: str = (
+    "the format's own person-valued field: `104` R-161, owner item 15, ruled "
+    "8 Sep 2026 -- the FIELD is the signal, no value is read, and §8.4 places a "
+    "recognised human identifier in the always-local set"
+)
+
+#: The OOXML package core properties whose value is a person, at the local names
+#: `readers/long_tail_stdlib._package_properties` reads off `docProps/core.xml`:
+#: `dc:creator` and `cp:lastModifiedBy`, which is what the ruling names. `title`,
+#: `subject`, `keywords`, `created` and `modified` are not person-valued and are not
+#: here, and no OTHER long-tail family emits a value under either name -- only the
+#: OOXML branch of the reader reads core properties at all.
+PERSON_VALUED_PACKAGE_FIELDS: tuple[str, ...] = ("creator", "lastModifiedBy")
+
+#: The iCalendar properties whose value is a person, at the names
+#: `readers/long_tail_stdlib` reads off the VEVENT. BEYOND the three `104` §17.6
+#: enumerates, and inside the rule it states: RFC 5545 types both `ORGANIZER` and
+#: `ATTENDEE` as CAL-ADDRESS -- "the calendar user address of the organizer",
+#: normally a `mailto:` -- so the FIELD says a person is there and no value is read.
+#: `SUMMARY`, `LOCATION`, `DTSTART` and the rest of `_EVENT_PROPERTIES` are not
+#: person-valued and are not here.
+#:
+#: Section 2.9 already treats an EMAIL's addresses as sensitive; a meeting
+#: invitation's are the same addresses in a different container, and until now the
+#: rule stopped at the format boundary. No `.ics` file exists on the owner's
+#: 199-file corpus, so this changes no measured number.
+PERSON_VALUED_EVENT_PROPERTIES: tuple[str, ...] = ("ORGANIZER", "ATTENDEE")
+
 
 class UnauthorizedTranscription(Exception):
     """A speech-derived text arrived without P7's explicit policy (section 2.9)."""
@@ -151,6 +190,57 @@ class SensitivitySignal:
     observation_index: int
     signal: str
     basis: str
+
+
+def field_label_of(observation: Mapping[str, Any]) -> str | None:
+    """The observation's own innermost `field` segment label, or None.
+
+    P4 D7 already carries it: a metadata value is addressed by the format's own slot
+    name, verbatim, as a label-addressed `field` segment (P4 segment-kind rule 2).
+    INNERMOST, because §2.9's own shape puts the field under its entry -- an email
+    header is `entry[uid] / field[From]` -- and the value's own slot is the last
+    segment, never the first.
+    """
+    labels = [segment_["label"]
+              for segment_ in observation["location"]["container_path"]
+              if segment_["kind"] == "field"]
+    return labels[-1] if labels else None
+
+
+def person_valued_field_signals(extraction: ExtractionResult, *,
+                                fields: Sequence[str]) -> tuple[SensitivitySignal, ...]:
+    """`104` R-161's signal for every reading whose ADDRESS is one of `fields`.
+
+    Read off the FINISHED batch rather than raised during emit, and both halves of
+    that are deliberate:
+
+      * `extract_pdf` and `extract_docx` return a bare `ExtractionResult`, which
+        fifteen test modules and `extraction_pool` read as one. Giving them the
+        `(extraction, sensitivity)` pair `LongTailResult` and `ImageResult` carry
+        would be a return-type change across all of them for a rule that needs
+        nothing from emit time. `extract_long_tail` HAS that pair and an emit-time
+        `sensitive_basis` channel, so its two package fields go through the channel
+        it already has -- one rule, spelled once in `PERSON_VALUED_FIELD_BASIS`, and
+        no second mechanism.
+      * D10 has already collapsed and renumbered by the time this is called, so
+        there is no `collapsed_index` remap to get wrong -- the defect that filed
+        §2.9's signal against a neighbour, twice, in the two emitters that do raise
+        at emit time. A position here is a position in the batch it is returned
+        beside, which is what `Dispatched.__post_init__` checks.
+
+    Two person fields holding one value collapse to one observation and therefore to
+    one signal, which is what `extraction_sensitivity_signal`'s UNIQUE (run_id,
+    observation_key) requires. The survivor is the FIRST in document order (D10), and
+    both extractors emit their metadata slots sorted by slot name ahead of any body,
+    so the survivor of two person fields is itself a person field.
+    """
+    wanted = frozenset(fields)
+    return tuple(
+        SensitivitySignal(observation_index=index, signal=POTENTIALLY_SENSITIVE,
+                          basis=PERSON_VALUED_FIELD_BASIS)
+        for index, observed in enumerate(extraction.observations)
+        if field_label_of(observed) in wanted
+    )
 
 
 @dataclass(frozen=True)
@@ -281,6 +371,13 @@ def extract_long_tail(
         if not value.value:
             continue                     # presence only; an absence is never a row
         basis = None
+        if value.name in (PERSON_VALUED_PACKAGE_FIELDS
+                          + PERSON_VALUED_EVENT_PROPERTIES):
+            # `104` R-161: the OOXML package's own person-valued core properties,
+            # through the channel this extractor already has. The email rule below
+            # wins where both apply, because it is the more specific reason for the
+            # one signal value §2.9 publishes.
+            basis = PERSON_VALUED_FIELD_BASIS
         if (source_type == "email"
                 and value.kind in SENSITIVE_EMAIL_VALUE_KINDS):
             basis = "section 2.9, Email: addresses are potentially sensitive"

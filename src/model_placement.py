@@ -192,8 +192,11 @@ def releasable_excerpts(conn: sqlite3.Connection, *,
         of the rules above can see it: a card number sits in an ordinary `body`
         zone and is a fraction of its unit, so the zone test and the whole-unit
         test both pass it. `model_facts.releasable_observations` reads it at site
-        A and this is its counterpart. `Denied(ProtectedItemRequested)` at the
-        gate; not offered at all here.
+        A and this is its counterpart. `Denied(always_local_item)` at the gate --
+        `items.check_item` raises `AlwaysLocalRequested` for it, never
+        `ProtectedItemRequested`, which is §7.3's about an item KIND on a protected
+        file; not offered at all here. Since `104` R-161 the arm actually fires on
+        a text document: the format's own person-valued fields.
       * a ref with no LIVE observation behind it -- a citation handle that no
         longer resolves, or one whose reading a later extraction retracted.
 
