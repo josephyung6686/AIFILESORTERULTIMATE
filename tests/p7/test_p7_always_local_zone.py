@@ -195,7 +195,18 @@ def _classify(conn, file_id: str, content_hash: str, *, key: str) -> None:
     ))
 
 
-def _gate(conn) -> Gate:
+def _gate(conn, **injected) -> Gate:
+    """The gate every test here drives, with nothing defaulted that P7 refuses to
+    default.
+
+    `**injected` goes STRAIGHT THROUGH to `Gate.__init__` and is not a set of
+    options this helper knows about. A test that names a keyword the constructor
+    does not take gets the constructor's own `TypeError`, at the constructor, which
+    is what makes `test_the_cloud_is_shown_the_folder_relative_to_the_one_that_was
+    _scanned` a report about the DOOR rather than about this file: a helper that
+    swallowed unknown keywords, or accepted them and passed them only when
+    non-empty, would turn a missing seam into a passing test.
+    """
     return Gate(
         conn,
         store=ClassificationStore(conn),
@@ -208,6 +219,7 @@ def _gate(conn) -> Gate:
         component_version=COMPONENT,
         now=lambda: OBSERVED_AT,
         user_id="joseph",
+        **injected,
     )
 
 
@@ -278,7 +290,12 @@ def test_a_span_less_path_zone_excerpt_now_puts_the_directory_on_the_cloud_wire(
     member of `ALWAYS_LOCAL_ZONES` the ruling does not release.
     """
     file_id, key = _seed(zone_conn, zone="path", raw_value=PRIVATE_DIRECTORY)
-    decision = _gate(zone_conn).release(_request(
+    # `104` §18.7: the door is given the folder that was scanned -- a parent of
+    # the directory, as a real run's root is -- and the cloud sees the path
+    # relative to it. The fixture's tempdir is not a root any released value
+    # sits under, so it is not what is passed.
+    scanned = Path(PRIVATE_DIRECTORY).parents[1]
+    decision = _gate(zone_conn, corpus_roots=(scanned,)).release(_request(
         items=(Excerpt(observation_key=key, span=None, reason="path"),),
         file_id=file_id))
 
@@ -286,8 +303,88 @@ def test_a_span_less_path_zone_excerpt_now_puts_the_directory_on_the_cloud_wire(
         f"a path-zone excerpt bound for a cloud model was "
         f"{type(decision).__name__}; `104` §17.13 releases the person's folder path "
         f"to every target within the ceiling")
-    assert [one.value for one in decision.materialised_items] == [PRIVATE_DIRECTORY], (
-        "the cloud model is shown the folder itself, which is what the ruling is")
+    # `104` §18.7: the folder itself, in the shape a cloud target is given it --
+    # relative to the folder that was scanned. The test below pins the shapes.
+    assert ([one.value for one in decision.materialised_items]
+            == [Path(PRIVATE_DIRECTORY).relative_to(scanned).as_posix()]), (
+        "the cloud model is shown the folder, relative to the scanned one")
+
+
+def test_the_cloud_is_shown_the_folder_relative_to_the_one_that_was_scanned(
+        zone_conn):
+    """`104` §18.7's folder-path ruling, at the door that decides it.
+
+    The ruling, 9 Sep 2026: *"Folder path: relative to the scanned folder for the
+    cloud; the local model may still see the full path."* It answers §18.1's "one
+    honest addition" against the test directly above this one -- the cloud is shown
+    `/Users/joseph/Documents/Legal/Divorce` today, so the person's home directory
+    and account name cross with every file, and `00`'s own reasoning is that the
+    model gains nothing from the part above the corpus root.
+
+    **SABOTAGE, and there are two of them, which is why this is one test and not
+    two.**
+
+    The first is the run in which a cloud dossier still carries the scanned
+    folder's absolute prefix -- the sentence `announce_cloud_posture` now prints
+    ("the path of the folder it sits in relative to the folder you scanned") made
+    false by the door that sentence describes. The second is subtler and is what
+    the LOCAL arm below stands against: a patch that satisfies the first by making
+    the value relative for EVERYONE -- at `scan_agent/basic_record.py`, or in
+    `extractors/filesystem.py`, or by relativising before the locality is known --
+    passes a cloud-only test and quietly takes the full path away from the local
+    model, which is the half of the ruling the owner deliberately kept.
+    `tests/p3/test_p3_basic_record.py::
+    test_the_recorded_parent_folder_is_absolute_and_stays_that_way` holds the
+    record's end of the same claim; this holds the door's.
+
+    The third assertion is the unset knob. `104` §18.1's S3 residue records the
+    shape of that defect once already -- "the whole-document arm and
+    `denial.py:317-333` refuse nothing when P1 has no ceiling stored, a fail-open
+    on an unset knob" -- and a gate handed no scanned folders is the same knob in
+    the same door. There is no root to make the path relative TO, and the only two
+    answers are to refuse or to send the absolute path; sending it is the defect
+    this ruling exists to close, so a gate with no roots must not release a
+    `path`-zone item to a cloud target. It stays free to release it to a LOCAL one,
+    because no root is needed for the value the local model is entitled to anyway.
+
+    **Nothing is hardcoded and no prefix is stripped.** The scanned folder is
+    derived from the fixture's own directory and the expected value from
+    `relative_to`, so this test states the RELATIONSHIP rather than restating two
+    strings -- the same reason the product may not carry a literal `/Users`.
+    """
+    scanned = Path(PRIVATE_DIRECTORY).parents[1]      # /Users/joseph/Documents
+    relative = Path(PRIVATE_DIRECTORY).relative_to(scanned).as_posix()
+    assert relative and not relative.startswith("/"), (
+        "the fixture no longer sits under two levels of scanned folder, so this "
+        "test would assert nothing")
+
+    file_id, key = _seed(zone_conn, zone="path", raw_value=PRIVATE_DIRECTORY)
+    items = (Excerpt(observation_key=key, span=None, reason="path"),)
+    rooted = _gate(zone_conn, corpus_roots=(scanned,))
+
+    to_cloud = rooted.release(_request(items=items, file_id=file_id))
+    assert isinstance(to_cloud, Released), (
+        f"the folder path is still released to a cloud target -- `104` §17.13 is "
+        f"unchanged by §18.7, which shortened the value and refused nothing new; "
+        f"this was {type(to_cloud).__name__}")
+    assert [one.value for one in to_cloud.materialised_items] == [relative]
+    assert str(scanned) not in to_cloud.materialised_items[0].value, (
+        "the scanned folder's own absolute prefix is on the wire, which is the "
+        "part `104` §18.7 ruled the cloud may not have")
+
+    to_local = rooted.release(
+        _request(items=items, file_id=file_id, model_target=LOCAL))
+    assert isinstance(to_local, Released)
+    assert [one.value for one in to_local.materialised_items] == [PRIVATE_DIRECTORY], (
+        "the local model lost the full path; `104` §18.7 kept it -- the value is "
+        "shortened for the target that is not on this machine, and for no other")
+
+    unrooted = _gate(zone_conn).release(_request(items=items, file_id=file_id))
+    assert not isinstance(unrooted, Released), (
+        "a gate that was never given the run's scanned folders released the "
+        "absolute folder path to a cloud model. There is no root to be relative "
+        "to, so there are two answers and one of them is the defect `104` §18.7 "
+        "closed: fail closed on the unset knob (§18.1's S3 residue)")
 
 
 def test_the_denial_names_the_zone_and_the_section_that_forbids_it(zone_conn):
@@ -797,17 +894,22 @@ def test_a_path_zone_excerpt_is_released_to_every_target(zone_conn):
     """
     file_id, key = _seed(zone_conn, zone="path", raw_value=PRIVATE_DIRECTORY)
     item = Excerpt(observation_key=key, span=None, reason="path")
+    # `104` §18.7: one value, two shapes. The cloud is shown the folder relative
+    # to the one that was scanned; the local model is shown the whole of it.
+    scanned = Path(PRIVATE_DIRECTORY).parents[1]
+    shape = {CLOUD: Path(PRIVATE_DIRECTORY).relative_to(scanned).as_posix(),
+             LOCAL: PRIVATE_DIRECTORY}
 
     for target in (CLOUD, LOCAL):
-        released = _gate(zone_conn).release(_request(
+        released = _gate(zone_conn, corpus_roots=(scanned,)).release(_request(
             items=(item,), file_id=file_id, model_target=target))
         assert isinstance(released, Released), (
             f"a path-zone excerpt bound for a {target.locality} model was "
             f"{type(released).__name__}; `104` §17.13 releases it to either")
         assert ([one.value for one in released.materialised_items]
-                == [PRIVATE_DIRECTORY]), (
-            f"the {target.locality} model is shown the folder itself, which is what "
-            f"the ruling is")
+                == [shape[target]]), (
+            f"the {target.locality} model is shown the folder in the shape `104` "
+            f"§18.7 gives that target")
 
 
 def test_an_ocr_zone_excerpt_is_released_to_every_target(zone_conn):

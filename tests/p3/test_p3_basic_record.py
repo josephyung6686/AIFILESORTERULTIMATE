@@ -63,6 +63,56 @@ def test_one_row_per_non_excluded_file_with_all_ten_1_2_fields(ready, corpus: Pa
     assert row["scan_state"] == FIXTURE_STATE                       # 10 scan state
 
 
+def test_the_recorded_parent_folder_is_absolute_and_stays_that_way(
+        ready, corpus: Path):
+    """`104` §18.7's ruling has a half that lives HERE, and it is the half that
+    does nothing: R2's parent-folder context is the ABSOLUTE parent directory, and
+    the folder-path ruling did not move it.
+
+    **SABOTAGE.** The ruling is "the folder path released to the CLOUD is relative
+    to the scanned folder; the local model may still see the full path". The
+    cheapest-looking way to satisfy its first clause is to relativise the value
+    right here, where P3 computes it once (O5) and every later part reads it back:
+    two lines in `parent_folder_context`, no privacy edit, and a cloud dossier that
+    carries no `/Users/<name>` prefix ever again. That patch passes the cloud test
+    and breaks the ruling, because R2's value is what the LOCAL model is shown too
+    -- `extractors/filesystem.py` re-emits it as the one `path`-zone observation,
+    and `104` §17.13 releases that zone to every target. Relativising at the source
+    would take the full path away from the local model as well, silently answering
+    a question the owner answered the other way, and it would do it in the one
+    module the design says computes this value once and nowhere else.
+
+    So the release-time transform belongs at the door (`privacy/gate.py`, on a
+    CLOUD target, against the run's own scanned folders) and this test is what
+    stands under it: the record keeps the whole path. `current_path` is asserted
+    beside `directory_position` because the two are the local record's two halves
+    of the same fact, and a patch that relativised one and left the other would be
+    caught by whichever it did not touch.
+
+    MINOR 11's sentence is the older reason for the same assertion -- "the value is
+    the parent directory's path and nothing more ... P3 invents no structure for
+    it" -- and a corpus-relative path is structure P3 would be inventing, computed
+    from a root R2 does not carry.
+    """
+    nested = corpus / "Autumn 2026" / "PHYS 1401"
+    nested.mkdir(parents=True)
+    document = nested / "Syllabus.pdf"
+    document.write_bytes(b"%PDF-1.4 fixture bytes")
+
+    _scan(ready, corpus)
+
+    row = ready.execute(
+        "SELECT current_path, directory_position FROM files").fetchone()
+    assert row["directory_position"] == str(nested)
+    assert row["current_path"] == str(document)
+    # The prefix the cloud must never be shown is still ON the local record, and
+    # it is asserted as a prefix rather than by equality so that the claim is
+    # "the part above the scanned folder survives" and not "this string is that
+    # string" -- the same claim the gate's cloud arm has to remove.
+    assert row["directory_position"].startswith(str(corpus))
+    assert str(corpus.parent) in row["directory_position"]
+
+
 def test_p3_supplies_no_detected_format(ready, corpus: Path):
     # detected_format is NOT one of R2's ten. It is §8.2's field and §2.9's
     # determination is P5's; P3 invents no value another part owns.

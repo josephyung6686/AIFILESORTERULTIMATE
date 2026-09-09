@@ -2579,6 +2579,37 @@ def announce_cloud_posture(routing: TierRouting | None,
             # earlier clause here ("your paths, your filenames, whole documents
             # ... are not among what is sent") would now misstate two of its
             # three items on the one screen where being believed is the point.
+            #
+            # THE FOLDER PATH IS RELATIVE, and that clause is `104` §18.7's ruling
+            # ("Folder path: relative to the scanned folder for the cloud; the
+            # local model may still see the full path"), which answered §18.1's
+            # "one honest addition": the path this notice promised was ABSOLUTE,
+            # so the home directory and the account name crossed with it and the
+            # model gained nothing from the part above the corpus root. The
+            # sentence names the folders it is relative TO by standing directly
+            # under the "for:" list this branch has just printed -- a person who
+            # reads "relative to the folder you scanned" can see, three lines up,
+            # which folder that is. The half the ruling did NOT move is said in
+            # the same breath rather than left to be inferred: the part above the
+            # scanned folder stays on this machine, because a person told what
+            # leaves is owed the boundary and not only the item.
+            #
+            # THE BOUNDARY SENTENCE NAMES NO CONTENTS, and that is deliberate. On
+            # this machine the part above the corpus root is usually the home
+            # directory and the account name -- which is why §18.1 called this a
+            # leak worth closing, and it is said HERE, in a comment, where it is
+            # a motivation. On the screen it would be a claim, and it is false
+            # for a scan of an external volume (`/Volumes/...`), false for a scan
+            # of the home directory itself, and imprecise whenever the corpus
+            # sits some folders down. "The part of the path above the folder you
+            # scanned" is true of every one of those, which is the only standard
+            # a sentence on this screen is allowed to meet (`84` §6).
+            #
+            # This sentence is true only while `Gate` is given the run's scanned
+            # folders and makes a `path`-zone value relative to them before a
+            # CLOUD release (`104` §18.7, the edit `src/privacy/gate.py` carries).
+            # If that door is ever unwired, this clause is the first thing that
+            # becomes false, and `84` §6 is what it would be false against.
             crossing = tuple(
                 site for site in (A_FACT, C_PLACEMENT, D_RESIDUAL)
                 if routing.locality_for(site) == CLOUD
@@ -2599,11 +2630,13 @@ def announce_cloud_posture(routing: TierRouting | None,
                 + " configured and no part of this run sends anything there.")
             print(_wrapped(
                 f"{sending}{held} What leaves about a file: its name, the path of "
-                f"the folder it sits in on this machine, and its extracted or "
-                f"recognised text within the dossier bound -- a document longer "
-                f"than that bound is cut to its opening. Protected material, and "
-                f"any file not yet classified, is never sent. Sending stays ON for "
-                f"this folder until you turn it off with:",
+                f"the folder it sits in relative to the folder you scanned, and "
+                f"its extracted or recognised text within the dossier bound -- a "
+                f"document longer than that bound is cut to its opening. The part "
+                f"of the path above the folder you scanned stays on this machine. "
+                f"Protected material, and any file not yet classified, is never "
+                f"sent. Sending stays ON for this folder until you turn it off "
+                f"with:",
                 indent="  "), file=out)
         print(_turn_off_line(corpus_root, *other_sources), file=out)
         return
@@ -2622,13 +2655,22 @@ def announce_cloud_posture(routing: TierRouting | None,
         # device; only local rules and LOCAL MODELS may run", so this run asking a
         # model and this run sending nothing are both true at once, and a person
         # who cannot see that has been told the weaker half.
+        #
+        # "FULL" is the word `104` §18.7 makes load-bearing here, and it is the
+        # asymmetry the ruling IS: the cloud is shown the folder path relative to
+        # the folder that was scanned, this model is shown the whole of it. The
+        # two sentences say different things because the product now does two
+        # different things, and a notice that used one wording for both would
+        # hide the half a person might care about most. Nothing leaves on this
+        # branch, so the full path here is a statement of what one process on
+        # this machine hands another -- which is why it can be said plainly.
         print(_wrapped(
             f"Model: {_local_model_id(routing, A_FACT)}, running on this device, "
             f"for facts -- what course, what school, what kind of document. It is "
             f"asked over loopback, no key is used, and NOTHING LEAVES YOUR "
             f"DEVICE; `{OPERATION_MODE}` is \"{MODE_SEMANTICS[OPERATION_MODE]}\", "
             f"and a local model is one of them. It is shown a file's name, the "
-            f"path of the folder it sits in and its text within the dossier "
+            f"full path of the folder it sits in and its text within the dossier "
             f"bound; protected material is shown to it and to no other model.",
             indent=""), file=out)
         elsewhere = tuple(sorted({

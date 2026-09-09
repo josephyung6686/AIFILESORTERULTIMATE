@@ -361,7 +361,12 @@ def inspect_database(database: Path, corpus: Path, *,
         policy_version = set_policy(
             conn,
             Policy(policy_version=UNSET_POLICY_VERSION,
-                   operation_mode=cli.CLOUD_ENABLED_MODE, consent_grants=(),
+                   operation_mode=cli.CLOUD_ENABLED_MODE,
+                   # `104` §18.7: the run's own standing grant, so a protected
+                   # file on a local route is measured as the product releases
+                   # it rather than as a consent question the instrument cannot
+                   # answer.
+                   consent_grants=cli.standing_consent_grants(scan_run_id),
                    redaction_settings={}, automatic_move_permissions={},
                    plan_version=cli.PLAN_VERSION,
                    set_at="2026-01-01T00:00:00+00:00"),
@@ -376,7 +381,12 @@ def inspect_database(database: Path, corpus: Path, *,
             now=lambda: "2026-01-01T00:00:00+00:00",
             # The same mode the policy above puts in force, so `target_for`
             # sees the cloud candidate this instrument exists to measure.
-            operation_mode=cli.CLOUD_ENABLED_MODE)
+            operation_mode=cli.CLOUD_ENABLED_MODE,
+            # `104` §18.7: the scanned folder, so the door can make a `path`
+            # release relative to it for a cloud target as the product does;
+            # without it every cloud dossier carrying a folder path is refused
+            # and the instrument measures nothing.
+            corpus_roots=(root,))
         # `104` R-170: THE ROUTE IS PER FILE. `authorities.route(file_id)` is the
         # one the fact pass asks (`model_facts.fact_call_stage`), so this asks it
         # and never respells it. Where it answers None the route refused, and the

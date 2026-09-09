@@ -120,8 +120,41 @@ def test_a_run_that_can_send_says_exactly_which_question_leaves_the_device():
     # `104` R-82: what leaves is said in the person's own terms, and the old
     # clause that called paths and whole documents "not among what is sent" is
     # gone, because since §17.13 it would be untrue.
+    #
+    # RE-ARGUED 9 Sep 2026 by `104` §18.7 ("Folder path: relative to the scanned
+    # folder for the cloud"). This assertion read "the path of the folder it sits
+    # in ON THIS MACHINE" until that ruling, and the three words it has lost are
+    # the whole of the change: §18.1's "one honest addition" measured what that
+    # sentence was promising and found it was an ABSOLUTE path, so the home
+    # directory and the account name crossed with every file and the model gained
+    # nothing from the part above the corpus root. What is asserted is still what
+    # was always asserted here -- that the screen names the three things that
+    # leave, in the person's own words -- and the SABOTAGE it now stands against
+    # is a notice that keeps promising a relative path after the door has gone
+    # back to releasing an absolute one. The boundary sentence is asserted with
+    # it, and separately, because "relative to the folder you scanned" states
+    # what leaves and only the second clause states what does not: a person owed
+    # the boundary is owed it in words, not by inference from the first half.
     assert "What leaves about a file: its name, the path of the folder it sits " \
-           "in on this machine" in said
+           "in relative to the folder you scanned" in said
+    assert "on this machine, and its extracted or recognised text" not in said, (
+        "the absolute-path promise is back on the screen; `104` §18.7 released "
+        "the folder path to the cloud RELATIVE to the folder that was scanned")
+    # The boundary clause names NO CONTENTS, and this is where that stays true.
+    # §18.1's finding is that the part above the corpus root is the home directory
+    # and the account name, which is why the leak was worth closing -- but a
+    # screen that SAYS so is wrong for a scan of an external volume, wrong for a
+    # scan of the home directory itself, and imprecise whenever the corpus sits a
+    # few folders down. This fixture's own root, `/Users/jy/Desktop/Files`, is
+    # already one of those: the part above it includes `Desktop`. So the clause is
+    # asserted in the form that is true of every corpus, and the form that is not
+    # is asserted absent.
+    assert "The part of the path above the folder you scanned stays on this " \
+           "machine" in said
+    assert "your home directory and your account name" not in said, (
+        "the boundary clause has grown a claim about what the part above the "
+        "corpus root CONTAINS, and that claim is false on an external volume and "
+        "on a scan of the home directory itself")
     assert "Protected material, and any file not yet classified, is never sent" \
            in said
     assert "are refused by P7 and are not among what is sent" not in said
