@@ -28,6 +28,7 @@ sys.path.insert(0, str(REPO))
 
 from llm_harness.vocabulary import (  # noqa: E402
     F_ROLE_SHORTLIST,
+    G_SITUATION_SENSITIVITY,
     A_FACT, ABSTAIN, ACCEPT_CONTEXT_SUPPORTED, ACCEPT_DIRECT, B_GROUP, C_PLACEMENT,
     D_RESIDUAL, E_TEMPLATE,
 )
@@ -154,7 +155,9 @@ def _instantiate(candidate, case, shape: dict) -> bytes:
     payload = claim["payload"]
     if "citations" in claim:
         claim["citations"] = _cite(case)
-    if candidate.site == F_ROLE_SHORTLIST:
+    # Site G asks the situation question F once asked (`104` §17.1), with the
+    # same payload shape; the case's own expected situation is the answer.
+    if candidate.site in (F_ROLE_SHORTLIST, G_SITUATION_SENSITIVITY):
         payload["situation"] = case.expect.get("situation") or "none"
         payload["alternatives"] = []
     if candidate.site == C_PLACEMENT:

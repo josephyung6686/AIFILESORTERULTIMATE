@@ -28,6 +28,7 @@ from evidence_shape.location import Location, Segment, TextSpan
 from evidence_shape.observation import Observation
 from evidence_shape.runs import ExtractionRun
 from evidence_shape.schema import create_evidence_schema
+from extractors.long_tail import SENSITIVITY_DDL
 from evidence_shape.store import record_observation, record_run
 from facts.file_facts import facts_for_file, write_fact
 from facts.read_surface import proposal_eligible
@@ -61,6 +62,8 @@ def skeleton_conn(conn):
 
     create_schema(conn)
     create_evidence_schema(conn)
+    # P5's per-value signal table, which site B's dossier reads since `104` R-161.
+    conn.executescript(SENSITIVITY_DDL)
     create_grouping_schema(conn)
     create_fields(conn)
     return conn

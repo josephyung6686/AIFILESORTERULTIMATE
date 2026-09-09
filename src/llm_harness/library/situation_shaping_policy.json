@@ -1,6 +1,6 @@
 {
  "policy_id": "situation_shaping_policy.unratified.2026-09-06",
- "call_site": "F_role_shortlist",
+ "call_site": "G_situation_sensitivity",
  "what_this_is": "How the dossier beside it was shaped, so the reader knows what it is looking at and what it is not. It describes the SHAPING, never the file: every sentence here is the same on every file in every corpus, and nothing in it is evidence.",
  "closed_world": "The dossier is the whole of what was sent. There is no document behind it, no page, no filename, no path, no surrounding sentence, and no part of the tree beyond the candidates listed. A destination can only be an identifier present in allowed_vocabulary, and a citation can only be anchored in a value present in released_evidence.",
  "selection": {
