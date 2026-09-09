@@ -46,9 +46,16 @@ from extractors.long_tail import SENSITIVITY_DDL
 from model_placement import releasable_excerpts
 from privacy.vocabulary import CLOUD_LOCALITY
 #: `104` R-159's two new keywords, spelled once for this file. `CLOUD_LOCALITY`
-#: because every test here predates the ruling and asserts the cloud half of it,
-#: which is the half that did not change; the ceiling because a cloud call is bound
-#: by the COUNT and never reads the ceiling, so any value states the same thing.
+#: because every test here predates the ruling and asserted the cloud half of it.
+#:
+#: **THE SECOND HALF OF THIS NOTE WAS TRUE FOR ONE DAY.** It read: "the ceiling
+#: because a cloud call is bound by the COUNT and never reads the ceiling, so any
+#: value states the same thing". `104` §17.13 (9 Sep 2026) retired the count cap
+#: along with the locality it divided by, so the ceiling is now the ONE bound on
+#: either target and the value is load-bearing wherever a test asks what a call
+#: carries. It is left generous here on purpose: every reading these fixtures build
+#: is a heading or a line, none of them approaches 4,000 characters, and a test that
+#: wants the ceiling to bind derives one from its own unit instead.
 A_CEILING = 4000
 
 
@@ -181,24 +188,38 @@ def test_no_release_carries_the_context_beside_a_span(conn, tmp_path):
                                     unit_length=None), "context_before")
 
 
-def test_a_whole_body_unit_is_still_refused(conn, tmp_path):
-    """The half of the ruling that did NOT move, and the reason it is safe.
+def test_a_whole_body_unit_is_released_and_the_ceiling_is_what_bounds_it(conn,
+                                                                        tmp_path):
+    """WHAT THIS TEST DENIED IS NOW THE RULE, so it asserts where the bound went.
 
-    `104` R-135 exempts a whole HEADING unit and `104` R-152 a whole LINE unit, and
-    nothing else. A span covering a whole `body` unit of SEVERAL LINES is a full
-    document, which is exactly what §8.4 forbids sending, and both exemptions are
-    structural -- the innermost container segment, and whether the unit holds a line
-    break -- so neither can widen to a page by accident. Without this assertion the
-    ruling would read as "whole units are releasable now", which is not what was ruled.
+    It read: "the half of the ruling that did NOT move". `104` R-135 exempted a whole
+    HEADING unit and `104` R-152 a whole LINE unit and nothing else, so a span
+    covering a whole `body` unit of SEVERAL LINES was a full document and refused, and
+    without the assertion "the ruling would read as 'whole units are releasable now',
+    which is not what was ruled".
 
-    THE PROSE GAINED ITS LINE BREAKS FOR R-152. It was one 61-character line, which
-    made this test a pin on the refusal that row measured as a coverage loss: 47 gate
-    refusals at r13, 36 of them the whole of a site-A call, on units under 200
-    characters. A one-line unit is now released, so a control that used one was
-    measuring the defect rather than the rule. A page of prose has line breaks in it,
-    which is the shape this test was always about.
+    `104` §17.13 (9 Sep 2026) ruled exactly that. A whole text unit is shown to either
+    model WITHIN THE CEILING, so the structural exemptions this test guarded -- the
+    innermost container segment, the line break -- no longer decide anything here, and
+    the sentence that refuses a full document is a LENGTH: `check_item` refuses a
+    whole unit longer than P1's stored ceiling, for every target.
+
+    So the test keeps its subject and follows the refusal to where it lives. The page
+    of prose is released by the builder's door, and the same reading is refused at the
+    gate's door under a ceiling one character short of its unit and admitted under one
+    that fits. Both ceilings are read off the prose, which is the only honest way to
+    write "longer than" about a fixture.
+
+    THE PROSE KEEPS ITS LINE BREAKS, though the reason has expired. R-152 gave them to
+    it: a 61-character single line was released once a whole LINE unit was exempt, so
+    a control that used one was measuring the defect rather than the rule. Every unit
+    is released now and the line breaks distinguish nothing, but changing the fixture
+    would change what the assertion is about for no gain.
     """
+    import pytest
+
     from evidence_shape.location import Location, Segment, TextSpan
+    from privacy.items import WholeDocumentRequested, check_item
 
     _file_id, _whole, code = _corpus(conn, tmp_path)
     file_id = code.file_id
@@ -216,9 +237,27 @@ def test_a_whole_body_unit_is_still_refused(conn, tmp_path):
         run_id="run-syllabus")
     record_observation(conn, body)
 
-    offered = releasable_excerpts(conn, evidence_refs=[body.observation_key], locality=CLOUD_LOCALITY)
+    offered = releasable_excerpts(conn, evidence_refs=[body.observation_key],
+                                  locality=CLOUD_LOCALITY)
 
-    assert offered == ()
+    excerpt, = offered
+    assert excerpt.observation_key == body.observation_key
+
+    def at_ceiling(ceiling):
+        """The gate's own question, asked of the reading the builder just offered."""
+        return check_item(
+            excerpt, unit_length=len(prose), zone="body", protected=False,
+            sensitive_keys=frozenset(), allow_unratified=True,
+            suspension_permits_self_description=False, locality=CLOUD_LOCALITY,
+            ceiling=ceiling)
+
+    # One character short of the unit, and §8.4's sentence is the refusal.
+    with pytest.raises(WholeDocumentRequested) as caught:
+        at_ceiling(len(prose) - 1)
+    assert "full documents" in str(caught.value)
+    # A ceiling the unit fits under, and the same reading is admitted -- which is
+    # `104` §17.13 in one line.
+    assert at_ceiling(len(prose)) is None
 
 
 # --------------------------------------------------------------------------
@@ -1666,6 +1705,17 @@ def test_a_minted_line_survives_a_stating_file_whose_own_ranking_is_full(
     Here the stating file carries twenty `title` readings, all ranked above `body`, so
     the line is far outside its own top twelve. It is offered anyway, because the
     question asked of it is "may this reading be released", not "did it place".
+
+    **THE PREMISE IS MEASURED DIFFERENTLY SINCE `104` §17.13, and the defect it
+    describes is unchanged.** `releasable_observations` used to CUT a cloud call at
+    twelve readings, so "off the ranking" could be asked as membership: the line was
+    simply absent from what came back. §17.13 retired the count cap along with the
+    locality it divided by -- one bound, the ceiling, for either target -- so
+    everything releasable under a slack ceiling comes back and the line is in the list.
+    It is still nowhere near the top of it, which is what "off the ranking" always
+    meant, so the premise is asserted against the first twelve by ORDER. That is the
+    same twelve the builder used to compare against, read out of the ranking instead
+    of cut out of it.
     """
     import cli
     from model_facts import releasable_observations
@@ -1684,7 +1734,7 @@ def test_a_minted_line_survives_a_stating_file_whose_own_ranking_is_full(
     assert len(context) == 1
     assert context[0].raw_value == "COMS W3134 Data Structures"
     assert context[0].observation_key not in {
-        one.observation_key for one in ranked}
+        one.observation_key for one in ranked[:12]}
 
 
 def test_a_line_in_a_protected_stating_file_is_still_refused(conn, tmp_path):
@@ -1704,18 +1754,29 @@ def test_a_line_in_a_protected_stating_file_is_still_refused(conn, tmp_path):
         fields=("subject",), limit=10, locality=CLOUD_LOCALITY) == ()
 
 
-def test_a_whole_body_line_is_refused_and_a_heading_is_released(conn, tmp_path):
-    """The whole-unit rule and `104` R-135's exemption, both intact under the new call.
+def test_a_whole_body_unit_is_released_by_name_and_a_filename_is_not(conn,
+                                                                     tmp_path):
+    """The exclusions `releasable_readings` shares with `releasable_observations`,
+    re-argued to the set `104` §17.13 left standing.
 
-    `releasable_readings` runs the same four exclusions as `releasable_observations`,
-    so a span covering a whole MULTI-LINE `body` unit is still a full document and
-    refused, and a span covering a whole `heading` unit is still the thing §8.4 names
-    as what to send instead. Asked of named readings rather than of a ranking, which is
-    the only thing that changed.
+    This read: "the whole-unit rule and `104` R-135's exemption, both intact under the
+    new call" -- a span covering a whole MULTI-LINE `body` unit was still a full
+    document and refused, a span covering a whole `heading` unit was §8.4's short
+    excerpt and released. §17.13 released the multi-line unit too, on either target,
+    and moved the length bound to the ceiling, which this function does not read and
+    `test_a_whole_body_unit_is_released_and_the_ceiling_is_what_bounds_it` above pins
+    at the door.
 
-    THE PROSE GAINED ITS LINE BREAKS FOR `104` R-152, for the reason the whole-body
-    test above gives: a 54-character single line is a line, §8.4's short excerpt, and
-    is released now. This test is about the DOCUMENT, so it uses one.
+    So the claim this call still makes is that it runs the SAME exclusions as the
+    ranked door, and a test in which everything passes would not make it. The
+    discriminator is `filename`: it is the one member of `ALWAYS_LOCAL_ZONES` §17.13
+    did not move, refused to every target as an excerpt because §7.7's name has its
+    own door in `items.Filename`. A reading of it is recorded here and named in the
+    same call, and it does not come back.
+
+    Order is asserted as well as membership, because "returned in `keys`' own order"
+    is this function's other promise and three readings that all release is exactly
+    the case where a re-sort would go unnoticed.
     """
     from model_facts import releasable_readings
 
@@ -1736,13 +1797,23 @@ def test_a_whole_body_line_is_refused_and_a_heading_is_released(conn, tmp_path):
         run_id="run-anchor")
     record_observation(conn, body)
 
+    named = Observation(
+        file_id=file_id, content_hash=content_hash, extractor_name="pdf.text",
+        extractor_version="1.0.0", source_type="text_document",
+        raw_value="Syllabus.pdf",
+        location=Location("filename", (Segment("field", label="filename"),)),
+        occurrence_count=1, observed_at=CLOCK, reliability="possible",
+        run_id="run-anchor")
+    record_observation(conn, named)
+
     offered = releasable_readings(
         conn, file_id=file_id, content_hash=content_hash,
-        keys=[body.observation_key, whole.observation_key,
-              code.observation_key], locality=CLOUD_LOCALITY)
+        keys=[body.observation_key, named.observation_key,
+              whole.observation_key, code.observation_key],
+        locality=CLOUD_LOCALITY)
 
     assert [one.observation_key for one in offered] == [
-        whole.observation_key, code.observation_key]
+        body.observation_key, whole.observation_key, code.observation_key]
 
 
 def test_the_cap_bounds_the_context_items_and_not_the_candidates(conn, tmp_path):
