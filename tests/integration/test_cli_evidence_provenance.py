@@ -29,6 +29,9 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 import cli  # noqa: E402
+from model_facts import (  # noqa: E402
+    ordered_releasable_observations, released_wire_cost,
+)
 from evidence_shape.location import Location, Segment, TextSpan  # noqa: E402
 from evidence_shape.locator import serialize_locator  # noqa: E402
 from evidence_shape.observation import Observation, observation_key  # noqa: E402
@@ -536,8 +539,16 @@ def test_the_ceiling_is_a_remainder_and_a_reading_over_it_is_skipped(evidence):
     later = _observation(evidence, zone="body", span=TextSpan(10, 21),
                          value=BODY[10:21])
 
+    # `104` R-174: the remainder is spent in wire bytes. Room for the two short
+    # readings is their cost, read off the unbounded offer, and the long one
+    # between them does not fit it.
+    in_order = ordered_releasable_observations(
+        evidence, file_id="file-1", content_hash=CONTENT_HASH, locality="local",
+        limit=12)
+    by_key = {one.observation_key: one for one in in_order}
+    room = released_wire_cost(by_key[small]) + released_wire_cost(by_key[later])
     offered = cli.reading_citations(
-        evidence, "file-1", limit=12, locality="local", ceiling=20)
+        evidence, "file-1", limit=12, locality="local", ceiling=room)
 
     assert [ref for ref, _location, _reliability in offered] == [small, later]
 

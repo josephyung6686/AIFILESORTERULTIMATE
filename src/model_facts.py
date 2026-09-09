@@ -40,6 +40,7 @@ and to `Gate`, which records its own.
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -49,7 +50,9 @@ from typing import Any
 from database_agent.budget import CEILING_KEYS, get_ceiling
 from database_agent.db import transaction
 from evidence_shape.canonical import canonical_json
-from evidence_shape.locator import serialize_container_path, serialize_locator
+from evidence_shape.locator import (
+    location_from_mapping, serialize_container_path, serialize_locator,
+)
 from evidence_shape.store import (
     DERIVED_NAMESPACE, opening_reading_for, record_observation,
     unit_length_for_observation,
@@ -60,7 +63,7 @@ from facts.evidence import observations_for_version
 from facts.llm_seam import FactRequest, build_request
 from facts.states import EXCLUDED_STATE
 from llm_harness.budgets import ScanBudget
-from llm_harness.dossier import dossier_address
+from llm_harness.dossier import dossier_address, released_item_wire_bytes
 from llm_harness.fact_validation import FactValidationDependencies, judgement_version
 from llm_harness.fingerprint import prompt_fingerprint
 from llm_harness.harness import CallDependencies, run_call
@@ -90,6 +93,7 @@ from llm_harness.vocabulary import (
 )
 from privacy.gate import Gate
 from privacy.policy import policy_at
+from privacy.redaction import span_address
 from privacy.items import Excerpt, Filename, sensitive_observation_keys
 from privacy.resolve import (
     AmbiguousObservationKey, UnresolvableSpan, current_location,
@@ -604,6 +608,50 @@ def dossier_tokens(values: Iterable[str]) -> int:
     return sum(len(value) for value in values)
 
 
+def released_wire_cost(observation) -> int:
+    """What ONE reading costs the dossier if it is carried: its bytes on the wire.
+    `104` R-174 (9 Sep 2026).
+
+    **Why the value's characters stopped being the measure at the fill.** `00`:251
+    bounds "tokens per model call", and the model reads a reading as
+    `dossier._released_body` writes it -- address, keyed handle, value, zone and the
+    four key names -- not as the value alone. While a call carried at most twelve
+    readings the envelope was a rounding difference; `104` §17.13 removed the count
+    cap so that a whole page could reach the model, and the same rule then let a
+    spreadsheet's 509 cells, ~30 characters each, all fit under a 4,000-character
+    ceiling while their envelopes made a 241 KB payload the local window refused
+    (`gt-local-w3-r18`, four site-G calls). A bound that counts what the model is
+    not shown is not a bound on the call.
+
+    So the FILL -- `within_dossier_budget`, the offer's withholding in
+    `ordered_releasable_observations`, the excerpt condition in
+    `mint_opening_excerpts`, and the ladder's three measurements -- spends the
+    ceiling in wire bytes, measured off the function that writes the wire. The
+    address is spelled by `privacy.redaction.span_address`, the same spelling the
+    gate's `resolve.materialise` gives the released item, so the two addresses are
+    one string. The value is the RAW value, on `_call_dependencies`' standing
+    reason: this runs before redaction exists.
+
+    **What the gate measures is unchanged, and the order between them still holds.**
+    `measure_released_tokens` still counts the released values' characters, and a
+    wire cost is never less than its value's characters, so every dossier the fill
+    admits under a ceiling is one the door measures under it; nothing this admits
+    can be refused `dossier_over_budget`. Making the door count wire bytes too is
+    an open row under R-174, and it is a widening of what the door REFUSES, so it
+    is the owner's to rule on and not this function's to assume.
+
+    **What is bounded indirectly.** `evidence_items` -- the citation metadata
+    beside each released reading -- scales with the same count and is not measured
+    here; bounding the released list's bytes bounds its count, and the count is
+    what made the metadata large.
+    """
+    return released_item_wire_bytes(
+        observation_key=observation.observation_key,
+        address=span_address(observation.location),
+        value=observation.raw_value,
+        zone=observation.location.zone)
+
+
 def measure_released_tokens(request, resolved: Sequence) -> int:
     """`Gate.measure_tokens`'s binding for site A: `(request, resolved) -> int`.
 
@@ -806,7 +854,7 @@ def mint_opening_excerpts(conn: sqlite3.Connection, observations: Sequence, *,
             continue
         if (may_be_released(conn, observation, sensitive=sensitive,
                             locality=locality)
-                and dossier_tokens((observation.raw_value,)) <= ceiling):
+                and released_wire_cost(observation) <= ceiling):
             continue
         excerpt = opening_reading_for(
             conn, observation, extractor_name=OPENING_EXCERPT_EXTRACTOR,
@@ -874,7 +922,7 @@ def ordered_releasable_observations(conn: sqlite3.Connection, *, file_id: str,
                if may_be_released(conn, observation, sensitive=sensitive,
                                   locality=locality)
                and (ceiling is None
-                    or dossier_tokens((observation.raw_value,)) <= int(ceiling))]
+                    or released_wire_cost(observation) <= int(ceiling))]
     return tuple(sorted(_without_superseded_excerpts(offered), key=placed))
 
 
@@ -909,7 +957,14 @@ def _without_superseded_excerpts(offered: Sequence) -> list:
 
 
 def within_dossier_budget(observations: Sequence, *, ceiling: int) -> tuple:
-    """What of an ordered offer a call may carry: `ceiling` characters. `104` R-159.
+    """What of an ordered offer a call may carry: `ceiling` bytes on the wire.
+    `104` R-159, measured per `104` R-174.
+
+    **R-174 (9 Sep 2026): the cost of a reading is `released_wire_cost`**, its
+    bytes as the model sees them, and no longer its value's characters. The
+    paragraphs below say why the fill is bounded by the ceiling alone; R-174 is
+    what makes that bound hold for a document of many small readings, which is
+    where a character count admitted 509 readings and a 241 KB payload.
 
     **SUPERSESSION, 9 Sep 2026, `104` §17.13.** The cloud is shown what the local
     model is shown, within the same ceiling, so the count cap the R-164 paragraph
@@ -959,7 +1014,7 @@ def within_dossier_budget(observations: Sequence, *, ceiling: int) -> tuple:
     taken: list = []
     spent = 0
     for observation in observations:
-        cost = dossier_tokens((observation.raw_value,))
+        cost = released_wire_cost(observation)
         if spent + cost > ceiling:
             continue
         taken.append(observation)
@@ -1213,18 +1268,28 @@ def filename_characters(conn, item: EvidenceItem | None) -> int:
     what the door will measure and the two agree about every dossier either would
     refuse. It is also the same measurement the other two items in the total get,
     which is what makes the total one number rather than three.
+
+    **`104` R-174: the same measurement is now `released_wire_cost`'s** -- the
+    name's bytes as `dossier._released_body` writes them, address and handle and
+    zone included -- so that the total stays one number when the readings beside
+    the name are measured that way. The name has no `Observation` in hand here,
+    only its row, so the cost is spelled from the row's own columns through the
+    same function the readings go through.
     """
     if item is None:
         return 0
     row = conn.execute(
-        "SELECT raw_value FROM evidence WHERE observation_key = ? "
+        "SELECT raw_value, location FROM evidence WHERE observation_key = ? "
         "AND superseded_by IS NULL LIMIT 1", (item.evidence_ref,)).fetchone()
     if row is None:
         raise UnresolvableSpan(
             f"observation {item.evidence_ref!r} was addressed as this file's name "
             f"and then had no row; P4's evidence table answered two ways about one "
             f"key")
-    return dossier_tokens((row["raw_value"],))
+    location = location_from_mapping(json.loads(row["location"]))
+    return released_item_wire_bytes(
+        observation_key=item.evidence_ref, address=span_address(location),
+        value=row["raw_value"], zone=location.zone)
 
 
 def _filename_reliability(conn, observation_key: str) -> str:
@@ -1471,12 +1536,12 @@ def _call_dependencies(
         # `measure_released_tokens` did. All three now count own + shown context +
         # the name, so a dossier the ladder passes at rung NONE is a dossier the door
         # measures under the ceiling.
-        unreduced_fits=dossier_tokens(
-            observation.raw_value for observation in observations
+        unreduced_fits=sum(
+            released_wire_cost(observation) for observation in observations
         ) + name_characters <= authorities.max_dossier_tokens,
         summarized_fits=False,
-        anchors_fit=(anchor_observations is not None and dossier_tokens(
-            observation.raw_value for observation in anchor_observations
+        anchors_fit=(anchor_observations is not None and sum(
+            released_wire_cost(observation) for observation in anchor_observations
         ) + name_characters <= authorities.max_dossier_tokens),
         split_shard_fits=(), split_shards=(),
         scan_budget=authorities.scan_budget,
@@ -1823,8 +1888,9 @@ def _within_ceiling(observations: Sequence, context: Sequence,
     extractor never ran over this file -- and in both the request carries no
     `Filename`, so the door releases no name either.
     """
-    return dossier_tokens(
-        observation.raw_value for observation in tuple(observations) + tuple(context)
+    return sum(
+        released_wire_cost(observation)
+        for observation in tuple(observations) + tuple(context)
     ) + name_characters <= authorities.max_dossier_tokens
 
 
@@ -2007,7 +2073,7 @@ def fact_call_stage(authorities: FactCallAuthorities):
             return within_dossier_budget(
                 offered,
                 ceiling=(authorities.max_dossier_tokens
-                         - dossier_tokens(one.raw_value for one in shown_context)
+                         - sum(released_wire_cost(one) for one in shown_context)
                          - name_characters))
 
         lines_readings = own_readings(context)

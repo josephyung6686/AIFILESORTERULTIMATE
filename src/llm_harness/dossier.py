@@ -185,6 +185,40 @@ def _released_body(item: ReleasedEvidence, *, handle_key: bytes) -> dict:
     }
 
 
+#: The key `released_item_wire_bytes` measures with. Any non-empty key gives a
+#: handle of the same length -- `wire_handle` is an HMAC-SHA256 hex digest behind a
+#: fixed prefix -- so the measurement does not depend on the run's key, and the
+#: measuring key never keys a handle that leaves: the caller measures, then the
+#: builder handles with the run's own key. `tools/groundtruth/payload.py` already
+#: measures with `bytes(32)` on the same reasoning.
+_MEASURING_KEY: bytes = bytes(32)
+
+
+def released_item_wire_bytes(*, observation_key: str, address: str, value: str,
+                             zone: str) -> int:
+    """The bytes ONE released item occupies in the model-visible dossier. `104` R-174.
+
+    `_released_body` is what the model sees of a reading, and it is not the value
+    alone: the address, the keyed 71-character handle, the zone and the four key
+    names travel with every value, in `canonical_json`'s form, inside the
+    `released_evidence` list. Measured on r18 (9 Sep 2026), 509 readings of one
+    spreadsheet averaged 30 characters of value and ~250 bytes on the wire each: a
+    ceiling that counts characters admitted 129 KB of `released_evidence` under a
+    4,000-character bound, and a 241 KB payload was refused by the local window.
+
+    This is the value's cost AND its envelope, measured off the same function that
+    writes the envelope, so the two cannot drift: change `_released_body` and this
+    number changes with it. The separator that joins the item to its neighbours in
+    the list is counted as the item's, so that a sum of these over a list is at
+    least the bytes the list occupies.
+    """
+    body = _released_body(
+        ReleasedEvidence(observation_key=observation_key, address=address,
+                         value=value, zone=zone),
+        handle_key=_MEASURING_KEY)
+    return len(canonical_json(body).encode("utf-8")) + len(",")
+
+
 def _folder_levels_body(
     folder_levels: Sequence[FolderLevel],
     allowed_vocabulary: Sequence[str],

@@ -55,6 +55,8 @@ from database_agent.files_table import get_file, record_file
 
 from dataclasses import replace
 
+from types import SimpleNamespace
+
 from evidence_shape.location import Location, Segment, TextSpan
 from evidence_shape.observation import Observation
 from evidence_shape.runs import ExtractionRun
@@ -70,7 +72,7 @@ import pytest
 
 from model_facts import (
     DOSSIER_CEILING_KEY, OPENING_EXCERPT_EXTRACTOR, may_be_released,
-    mint_opening_excerpts, opening_excerpt_bound,
+    mint_opening_excerpts, opening_excerpt_bound, released_wire_cost,
     ordered_releasable_observations, within_dossier_budget,
 )
 from privacy.vocabulary import CLOUD_LOCALITY
@@ -94,13 +96,23 @@ PAGE = ("PHYS 1401 Homework 3, Spring 2026\n"
 
 A_FOLDER = "/Users/joseph/Documents/Courses/PHYS 1401"
 
+#: The page as the fill measures it: the same key, zone and container `_corpus`
+#: records it under, so that `released_wire_cost` spells the same address. `104`
+#: R-174 made a reading's cost its bytes on the wire, and a fixture that derives a
+#: ceiling from the page has to derive it from that cost, not from the characters.
+_PAGE_AS_READ = SimpleNamespace(
+    observation_key="sha256:" + "0" * 64, raw_value=PAGE,
+    location=Location("body", (Segment("page", 1),)))
+
 #: The ceiling at which this page becomes a whole document under `104` §17.13, and it
-#: is DERIVED FROM THE PAGE rather than chosen: half the unit's own length. §17.13
+#: is DERIVED FROM THE PAGE rather than chosen: half the unit's own cost. §17.13
 #: made the stored ceiling the condition for minting, so a fixture that wants an
 #: excerpt has to hold a unit longer than the ceiling, and the honest way to write
 #: "longer than" is to read the unit. `OVER_CEILING // CAP` is still positive, which
-#: is what `opening_excerpt_bound` needs in order to return a bound at all.
-OVER_CEILING = len(PAGE) // 2
+#: is what `opening_excerpt_bound` needs in order to return a bound at all. Half the
+#: page's WIRE cost (`104` R-174) is still more than the folder path's whole cost,
+#: which is what lets the tests below say "the page is over and the folder is not".
+OVER_CEILING = released_wire_cost(_PAGE_AS_READ) // 2
 
 
 def _corpus(conn, tmp_path, *, ceiling=4_000, text=PAGE):
@@ -377,7 +389,8 @@ def test_an_excerpt_already_stored_yields_to_the_unit_it_was_cut_from(conn,
             excerpt.observation_key], locality
 
     # Raise the ceiling so the page fits: the page is offered, the excerpt yields.
-    set_ceiling(conn, DOSSIER_CEILING_KEY, len(PAGE))
+    # "Fits" is the page's cost on the wire (`104` R-174), not its characters.
+    set_ceiling(conn, DOSSIER_CEILING_KEY, released_wire_cost(page))
     for locality in (CLOUD_LOCALITY, LOCAL):
         body = [one for one in _offer(conn, file_id, content_hash, locality)
                 if one.location.zone == "body"]
@@ -608,19 +621,24 @@ def test_the_ceiling_is_the_one_bound_for_a_cloud_call_and_the_cap_only_cuts(con
     slack = [_Reading(f"r{n}", 10) for n in range(CAP * 2)]
     assert within_dossier_budget(slack, ceiling=1_000_000) == tuple(slack)
 
-    # And the ceiling, the one bound left, still binds: five of these fit under 550
-    # and the sixth does not.
+    # And the ceiling, the one bound left, still binds: five of these fit and the
+    # sixth does not. `104` R-174 spends the ceiling in wire bytes, so the room for
+    # five is five readings' cost, derived and one byte short of a sixth.
     hundreds = [_Reading(f"r{n}", 100) for n in range(20)]
-    assert within_dossier_budget(hundreds, ceiling=550) == tuple(hundreds[:5])
+    room = sum(released_wire_cost(one) for one in hundreds[:6]) - 1
+    assert within_dossier_budget(hundreds, ceiling=room) == tuple(hundreds[:5])
 
 
 class _Reading:
-    """Just the `raw_value` `within_dossier_budget` measures, as `104` R-159's own
-    budget tests build it."""
+    """What `within_dossier_budget` measures, as `104` R-159's own budget tests
+    build it: since `104` R-174 the reading's bytes on the wire, spelled from its
+    key, its location and its raw value."""
 
     def __init__(self, name, length):
         self.name = name
+        self.observation_key = name
         self.raw_value = "x" * length
+        self.location = Location("body", (), text_span=TextSpan(0, length))
 
     def __repr__(self):
         return f"<{self.name}:{len(self.raw_value)}>"

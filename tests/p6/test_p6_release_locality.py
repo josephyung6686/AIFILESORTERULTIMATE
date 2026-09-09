@@ -57,7 +57,7 @@ from extractors.long_tail import SENSITIVITY_DDL
 
 from model_facts import (
     document_order, may_be_released, ordered_releasable_observations,
-    releasable_observations, within_dossier_budget,
+    releasable_observations, released_wire_cost, within_dossier_budget,
 )
 from privacy.vocabulary import CLOUD_LOCALITY, LOCALITIES
 
@@ -374,12 +374,16 @@ def test_a_segment_with_no_index_contributes_zero_and_is_still_comparable(
 # --------------------------------------------------------------------------
 
 class _Reading:
-    """Just the `raw_value` `within_dossier_budget` measures. The function reads
-    nothing else, and a fixture that built P4 rows would be asserting the store."""
+    """What `within_dossier_budget` measures, and nothing else: since `104` R-174
+    that is the reading's bytes on the wire, which `released_wire_cost` spells from
+    the key, the location and the raw value. A fixture that built P4 rows would be
+    asserting the store."""
 
     def __init__(self, name, length):
         self.name = name
+        self.observation_key = name
         self.raw_value = "x" * length
+        self.location = Location("body", (), text_span=TextSpan(0, length))
 
     def __repr__(self):
         return f"<{self.name}:{len(self.raw_value)}>"
@@ -405,9 +409,13 @@ def test_a_local_call_ignores_the_count_and_stops_at_the_ceiling():
     twelve PDF pages are twenty thousand.
     """
     readings = [_Reading(f"r{n}", 100) for n in range(20)]
-    taken = within_dossier_budget(readings, ceiling=550)
+    # `104` R-174: the ceiling is spent in wire bytes, so "room for five" is five
+    # readings' cost and not five hundred characters. Derived from the readings
+    # rather than typed, and short of a sixth by one byte.
+    ceiling = sum(released_wire_cost(one) for one in readings[:6]) - 1
+    taken = within_dossier_budget(readings, ceiling=ceiling)
     assert taken == tuple(readings[:5])
-    assert sum(len(one.raw_value) for one in taken) <= 550
+    assert sum(released_wire_cost(one) for one in taken) <= ceiling
 
 
 def test_a_reading_that_does_not_fit_is_skipped_and_the_walk_continues():
@@ -425,7 +433,8 @@ def test_a_reading_that_does_not_fit_is_skipped_and_the_walk_continues():
     enormous = _Reading("enormous", 5_000)
     small_two = _Reading("small-2", 30)
     taken = within_dossier_budget(
-        [small_one, enormous, small_two], ceiling=100)
+        [small_one, enormous, small_two],
+        ceiling=released_wire_cost(small_one) + released_wire_cost(small_two))
     assert taken == (small_one, small_two)
 
 
@@ -438,7 +447,8 @@ def test_the_order_is_the_callers_and_the_fill_does_not_re_sort():
     """
     readings = [_Reading("first", 60), _Reading("second", 20),
                 _Reading("third", 20)]
-    taken = within_dossier_budget(readings, ceiling=100)
+    taken = within_dossier_budget(
+        readings, ceiling=sum(released_wire_cost(one) for one in readings))
     assert [one.name for one in taken] == ["first", "second", "third"]
 
 
@@ -451,6 +461,37 @@ def test_a_zero_remainder_takes_nothing_rather_than_taking_one_anyway():
         readings, ceiling=0) == ()
 
 
+def test_many_tiny_readings_are_bounded_by_their_bytes_on_the_wire():
+    """`104` R-174, the r18 shape: a spreadsheet's 509 cells, ~30 characters each.
+
+    Under a character count all of them fit a 4,000-character ceiling and their
+    envelopes made a 241 KB payload; under the wire cost the same ceiling admits as
+    many as their whole bodies fit, and the bytes the model is shown stay under it.
+
+    SABOTAGE: make `within_dossier_budget` measure `len(raw_value)` again and the
+    second assertion goes red -- every reading fits, and the sum of their wire
+    costs is many times the ceiling.
+    """
+    readings = [_Reading(f"cell-{n}", 30) for n in range(509)]
+    ceiling = 4_000
+    taken = within_dossier_budget(readings, ceiling=ceiling)
+    assert 0 < len(taken) < len(readings)
+    assert sum(released_wire_cost(one) for one in taken) <= ceiling
+    assert taken == tuple(readings[:len(taken)])
+
+
+def test_the_wire_cost_is_the_bytes_the_dossier_writes_for_the_reading():
+    """The measure is taken off `dossier._released_body`, not re-spelled here: the
+    address the gate would give the item, the handle at its wire length, the zone
+    and the value. So the cost of a one-character reading is dominated by its
+    envelope, and a reading's cost is never less than its value's characters."""
+    one = _Reading("one", 1)
+    long = _Reading("long", 300)
+    assert released_wire_cost(one) > len(one.raw_value)
+    # 299 characters more, and the address grows with the span's end as well.
+    assert released_wire_cost(long) - released_wire_cost(one) >= 300 - 1
+
+
 def test_the_composed_function_offers_the_document_in_order_under_the_ceiling(
         conn, tmp_path):
     """`releasable_observations` is the two halves composed, and its callers still
@@ -459,8 +500,14 @@ def test_the_composed_function_offers_the_document_in_order_under_the_ceiling(
     pages = [(7, "g" * 40), (1, "a" * 40), (12, "l" * 40), (3, "c" * 40)]
     file_id, content_hash, _made = _paged_corpus(conn, tmp_path, pages)
 
+    # `104` R-174: room for three pages is three pages' bytes on the wire, read off
+    # the unbounded offer rather than typed.
+    in_order = ordered_releasable_observations(
+        conn, file_id=file_id, content_hash=content_hash, locality=LOCAL,
+        limit=12)
+    room = sum(released_wire_cost(one) for one in in_order[:3])
     offered = releasable_observations(
         conn, file_id=file_id, content_hash=content_hash, limit=12,
-        locality=LOCAL, ceiling=120)
+        locality=LOCAL, ceiling=room)
 
     assert [document_order(one)[0] for one in offered] == [1, 3, 7]

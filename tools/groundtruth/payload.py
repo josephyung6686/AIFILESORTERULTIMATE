@@ -305,6 +305,7 @@ def inspect_database(database: Path, corpus: Path, *,
     from database_agent.files_table import get_file
     from model_facts import (
         build_fact_request, dossier_tokens, filename_citation,
+        released_wire_cost,
         measure_released_tokens,
         releasable_observations,
     )
@@ -417,7 +418,10 @@ def inspect_database(database: Path, corpus: Path, *,
             # can never exceed the ceiling and a count taken there is 0 on every
             # corpus forever. `104` R-07's 45,843 bytes is a size at this line.
             offered = tuple(one.raw_value for one in observations)
-            built_tokens = dossier_tokens(offered)
+            # `104` R-174: the size is the readings' bytes on the wire, which is
+            # what the fill spends the ceiling in, and no longer their characters.
+            # `built_bytes` stays the values' own bytes, the number R-07 reported.
+            built_tokens = sum(released_wire_cost(one) for one in observations)
             # `104` §17.13: a whole document that FITS the ceiling is offered to
             # either target by the ruling, so it is no longer a canary. The whole
             # documents that must never be offered are the ones LONGER than the
