@@ -202,6 +202,7 @@
   {
    "site": "G_situation_sensitivity",
    "candidate": "situation-safety-first",
+   "status": "ratified_local",
    "template_id": "situation.unratified.safety-first.2026-09-06",
    "template_file": "situation_template.safety-first.txt",
    "response_schema_file": "situation_response_schema.json",

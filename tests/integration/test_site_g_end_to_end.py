@@ -36,7 +36,6 @@ import json
 import sqlite3
 from pathlib import Path
 
-import pytest
 
 import cli
 from model_situation import NONE_OF_THESE
@@ -198,18 +197,6 @@ def test_an_unclassified_file_reaches_site_g_and_is_shown_its_own_shortlist(
         assert dossier["folder_levels"] == []
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "THE THIRD WALL IS STILL SHUT. `104` §17.1 granted three: the seventh call "
-    "site (open), a truthful local-model basis (open, and this test is what "
-    "asserts it), and a situation prompt ratified LOCAL-ONLY by bakeoff of "
-    "`situation.unratified.shortlist.2026-09-06` and "
-    "`situation.unratified.safety-first.2026-09-06`. Neither row carries a "
-    "`status` yet, so `observe_locality_permits(G_SITUATION_SENSITIVITY, ...)` "
-    "refuses, `ask_the_situation` is never reached, and no classification is "
-    "written for it to check. The wiring above it is built and its four "
-    "neighbours in this file pass. Run the bakeoff, set the winner's row to "
-    "`ratified_local`, and this goes green -- which is the signal, exactly as "
-    "`test_situation_site_boundary` was."))
 def test_the_situation_verdict_is_written_under_the_new_basis(
         tmp_path, monkeypatch):
     """`104` §17.1's second wall, spent. The owner's intent, in the stored column.

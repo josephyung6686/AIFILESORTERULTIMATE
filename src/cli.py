@@ -792,6 +792,15 @@ A_FACT_ROW: tuple[str, str] = (
 #: is recorded in the commit that set this line; re-pointing the site is an edit
 #: here and to nothing else.
 #:
+#: MEASURED 9 Sep 2026 (`tools/promptbench/out/g-bakeoff-1`, 14 synthetic cases,
+#: local qwen3:8b): the two candidates answered EVERY case identically -- 4 of 4
+#: should-abstain cases abstained, 4 of 10 should-answer cases right, 1 wrong (a
+#: journal abstract about a disease called a medical record: the over-protective
+#: direction), 5 unnecessary abstentions. Safety-first is the one named because its
+#: median call was faster (56 s against 61 s) and because it asks the four protected
+#: kinds before it reads the shortlist, which is the order the owner's ruling puts
+#: them in. The tie is the record, not a preference.
+#:
 #: **`ratified_local` AND NOT `ratified`.** `104` §17.1: "Nothing leaves the device
 #: under this ruling." The word is the row's, in the manifest, and it is the one
 #: `prompt_library` invented for exactly this: the site ACTS on the answer and the
@@ -800,7 +809,7 @@ A_FACT_ROW: tuple[str, str] = (
 #: unconditionally -- so a `ratified` here would name a permission no file at this
 #: site could use.
 SITUATION_ROW: tuple[str, str] = (
-    "situation.unratified.shortlist.2026-09-06", "situation-shortlist")
+    "situation.unratified.safety-first.2026-09-06", "situation-safety-first")
 
 
 #: WHAT EACH STATUS WORD BUYS, and the two questions it answers are not one
