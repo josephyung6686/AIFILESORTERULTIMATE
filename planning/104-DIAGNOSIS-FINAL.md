@@ -1129,8 +1129,10 @@ detection is NOT covered and stays open. Building on `r161-field-signals` off `c
 
 **The trap this ruling walks into, recorded so nobody re-discovers it.** The signal feeds
 `sensitive_observation_keys`, one of the four exclusions in `may_be_released`, and every one of
-those refuses the WHOLE request rather than the item -- `ProtectedItemRequested`, not divided by
-target. `Author` was released 139 times, `last_modified_by` 85, `Creator` 50 over 617 dossiers, so
+those refuses the WHOLE request rather than the item -- `AlwaysLocalRequested`, answered
+`Denied(always_local_item)`, not divided by target. (CORRECTED: this section first said
+`ProtectedItemRequested`, copying an error in `releasable_observations`' own docstring, which
+agent `r161` found and fixed in the same pass.) `Author` was released 139 times, `last_modified_by` 85, `Creator` 50 over 617 dossiers, so
 the naive implementation costs 139 files their entire model call and re-starves site A in one
 commit, while looking like a privacy improvement. The ruling is therefore built in two halves: emit
 the signal, AND make a signalled observation be withheld from the offer instead of fatal to the
@@ -1304,3 +1306,106 @@ the local run does not wait on a gate change that was never needed.
 
 **Still true, and unaffected:** for a CLOUD target the wall is real and total, which is one more
 reason the cloud upgrade waits on R-161, the excerpt producer and R-82 (§17.6).
+
+### 17.10 The four merges, and what the numbers did and did not do (8 Sep, evening)
+
+**Merged one at a time, each with its own score run, so no number's provenance is ambiguous.** That
+discipline exists because of §17.2: a JSON-punctuation artifact scored as a win for a week precisely
+because a group was merged and chained once.
+
+| Head | Merge | Targeted tests | Offline coursework row | Score run |
+|---|---|---|---|---|
+| `123c671` | baseline | -- | 0 / 0 / 0 / 0 / 41; spillover 1 | 1.5 min |
+| `2a0e3ac` | R-165 decided-by, R-147 aliases | 217 passed | unchanged | 1.4 min |
+| `15c34a8` | R-166 serialisation guard, tie citations | 208 passed | unchanged | **11.3 min** |
+| `409a699` | R-164 paragraph units, `opening_reading_for` | 2315 passed | -- | -- |
+| `198da90` | R-162 nested claims, R-163 glossary | 1012 passed | -- | -- |
+
+**THE OFFLINE ROW DID NOT MOVE, AND THAT IS THE EXPECTED RESULT, NOT A DISAPPOINTMENT.** Every one
+of these changes bites only when a model is answering. An offline run has no model. The offline
+scoreboard is not the discriminator for any of this work; the local run is. Recording it here so a
+later reader does not read four flat rows as four failures.
+
+**What did visibly change:** every SORTING line now carries its decided-by split. The row reads
+`-- the model decided none of this run's 2 placements`. §17.2's artifact could not have hidden
+behind that line.
+
+**A performance regression, measured and accepted for now.** The score run went 1.4 to 11.3 minutes
+at the R-166 merge, 8x. The cause is not new code being slow: `_precaution` re-runs `_matches` for
+the safety domain on EVERY abstention, and R-166's guard correctly turned a large number of false
+recognitions into abstentions. A pre-existing cost, newly exposed. Correctness is unaffected. At the
+5,000-file target of Phase 4 this is hours and must be fixed there; it is not fixed here because
+the critical path is the local run.
+
+### 17.11 The seeding trap: why the next local run costs seven hours and not two
+
+`--reuse-answers-from` would cut the run from about seven hours to two. **It must not be used, and
+this section exists so nobody re-discovers that by wasting a run.**
+
+`model_facts.call_identity_dimensions` is the reuse key. Its terms are `content_hash`,
+`extractor_versions`, `model_id`, `prompt_fingerprint`, `schema_id`, `policy`, `plan_version` and
+`context_refs`. **The dossier's CONTENT is not one of them.** `extractor_versions` is a SET of
+`(name, version)` pairs -- which readers ran, not what they produced.
+
+So any change that alters what the model SEES, without moving a reader's version, the prompt
+template, the schema or the policy, is invisible to the cache. R-164 and R-163 are both exactly
+that. Confirmed: `extractors/structured_text.py` still declared `VERSION = "0.1.0"` after R-164
+changed what it emits. `00`:44's own words are that the version exists so "an upgraded reader
+invalidates the answers that rested on its output" -- the reader was upgraded and the version was
+not. That is fixed in the commit carrying this section.
+
+A seeded run would therefore have answered from r15's cache for files whose evidence is now
+completely different, and reported it as a saving. `~/.graph-agent/lead/local-w3-r17.sh` runs
+unseeded and carries this reasoning in its own header so a later reader does not "optimise" it.
+
+### 17.12 R-161 as built, and one residual outside it
+
+Branch `r161-field-signals` at `3572ced`, six commits. Signalled BY ADDRESS -- the observation's own
+innermost `field` segment -- never by value: `pdf.text` `/Author`; `docx.structure` `dc:creator` and
+`cp:lastModifiedBy` in both spellings this repo's two readers supply; `text.structured`'s long-tail
+half at the local names `_package_properties` reads. iCalendar `ORGANIZER`/`ATTENDEE` in a separate
+droppable commit (RFC 5545 types both as CAL-ADDRESS, so the field says a person is there and no
+value is read).
+
+**`/Creator` is deliberately NOT signalled** and the reasoning is the ruling being honoured rather
+than stretched: all 83 of its values on `gt-w1bn` are software strings (`Microsoft Word`,
+`Adobe Scan for iOS 24.09.17`, `wkhtmltopdf 0.12.5`), and signalling it would mean reading values --
+the word list item 15 refuses. R-161's 50 `Creator` releases stay released. Also named and not
+added: PDF `/Company` (an organisation), DOCX `comments` (prose), WAV/RIFF `IART` (convention, not a
+typed field).
+
+**§17.6's trap cost nothing, and that is a correction to §17.6.** `may_be_released` (site A) and
+`model_placement.releasable_excerpts` (site C) ALREADY dropped a signalled key from the offer rather
+than failing the request. Pinned with 8 tests including the counterfactual, rather than claimed as
+new work.
+
+**Site B was the one builder of four that lacked it.** `grouping/p8_seam.build_dossier_request`
+turned every excerpt into a `ReleaseExcerpt` with no filter and `Gate._precheck_items` returns on
+the first refusal, so one signalled reading among twenty cost the group its whole call. Four lines
+in `grouping/dossier._excerpts_for`. The same path wrote `observation.raw_value[:limit]` inline into
+the STORED group dossier, so a person's name was being persisted into group state and not merely
+released.
+
+**Nothing needs remediating, verified rather than assumed.** Site A persists by REFERENCE: a stored
+payload carries `evidence_ref` sha256 digests, `kind`, `location` and `excerpt_span`, no raw text.
+All 656 stored dossiers in `gt-local-w3-r15` were scanned and none contains an author-type field.
+Every one of the 656 is `A_fact`; site B has zero rows because it has never been ratified, and
+`database-agent-plan.sqlite` has zero dossiers of any site. The fix lands before site B is ever
+turned on, which is the good version of this outcome.
+
+Counts: files that lose their call go 0 -> 0 at site A local, 4 -> 4 at site A cloud (those four
+were already empty), and 0 -> 0 live at site B. **It goes up for no file.** Site C was explicitly
+NOT measured and the agent refused to claim it: `releasable_excerpts` withholds rather than refuses,
+verified by reading, but the count of C calls lost is unknown rather than zero.
+
+**76 observations across 60 of 199 files** are now signalled: `/last_modified_by` 26, `/Author` 25,
+`/author` 23, `/creator` 1, `/lastModifiedBy` 1. The seven files that were returned a person's NAME
+as their `subject` are no longer offered the field, and 0 of the 95 active facts take a
+person-field value.
+
+**NEW REGISTER ROW, R-168, found outside item 15's scope.** 13 facts still CITE a person-valued
+reading. All are `duplicate_family`, because `observation_key` is content-addressed and two copies
+of one PDF share their `/Author` row exactly. The citation is now withheld and their value is a
+content hash rather than a name, so nothing leaks today. But a P6 rule that ever wrote a fact whose
+VALUE is a person's name would still carry it by value, and that needs `facts/discount.py`'s
+demotion rule rather than P5's signal. Owner's, or the lead's on a later pass; not urgent.
