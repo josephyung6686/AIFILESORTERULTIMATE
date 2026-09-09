@@ -581,7 +581,7 @@ def test_a_contact_value_cannot_leave_as_an_excerpt(db, tmp_path):
                 unit_length=None, zone="metadata", protected=False,
                 sensitive_keys=sensitive, allow_unratified=False,
                 suspension_permits_self_description=False,
-                locality=locality)
+                locality=locality, ceiling=None)
 
 
 def test_an_html_pages_script_body_never_reaches_the_evidence_table(db, tmp_path):

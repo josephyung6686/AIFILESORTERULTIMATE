@@ -136,7 +136,7 @@ def test_a_path_zone_reading_is_released_to_a_local_target_only(conn, tmp_path):
     asked what course a file belonged to while the answer sat in a reading the
     builder refused to offer.
 
-    SABOTAGE: drop the `RELEASED_TO_A_LOCAL_TARGET` half of the zone condition in
+    SABOTAGE: drop the `RELEASED_TO_EVERY_TARGET` half of the zone condition in
     `may_be_released` and the local half goes red; drop the `cloud or` half and the
     cloud half does.
     """
@@ -323,18 +323,16 @@ class _Reading:
         return f"<{self.name}:{len(self.raw_value)}>"
 
 
-def test_a_cloud_call_keeps_the_count_cap_and_the_ceiling_is_slack():
-    """The half of the ruling that changed nothing.
-
-    §8.4 asks for "a compact dossier ... selected excerpts" and states no number;
-    `cli.FACT_CALL_MAX_RELEASED_OBSERVATIONS` is where this deployment chooses one,
-    and R-159 does not touch it. Twelve readings come back however much room the
-    ceiling has left.
+def test_a_cloud_call_is_bound_by_the_ceiling_alone_like_a_local_one():
+    """`104` §17.13 (9 Sep 2026): the cloud is shown what the local model is shown,
+    within the same ceiling, so the count cap R-159 kept for a cloud call is gone
+    with the locality it divided by. Twenty readings under a slack ceiling all come
+    back; `cli.FACT_CALL_MAX_RELEASED_OBSERVATIONS` is spent on the excerpt bound
+    and on nothing else.
     """
     readings = [_Reading(f"r{n}", 10) for n in range(20)]
-    taken = within_dossier_budget(readings, limit=12, locality=CLOUD_LOCALITY,
-                                  ceiling=1_000_000)
-    assert taken == tuple(readings[:12])
+    taken = within_dossier_budget(readings, ceiling=1_000_000)
+    assert taken == tuple(readings)
 
 
 def test_a_local_call_ignores_the_count_and_stops_at_the_ceiling():
@@ -345,7 +343,7 @@ def test_a_local_call_ignores_the_count_and_stops_at_the_ceiling():
     twelve PDF pages are twenty thousand.
     """
     readings = [_Reading(f"r{n}", 100) for n in range(20)]
-    taken = within_dossier_budget(readings, limit=12, locality=LOCAL, ceiling=550)
+    taken = within_dossier_budget(readings, ceiling=550)
     assert taken == tuple(readings[:5])
     assert sum(len(one.raw_value) for one in taken) <= 550
 
@@ -365,7 +363,7 @@ def test_a_reading_that_does_not_fit_is_skipped_and_the_walk_continues():
     enormous = _Reading("enormous", 5_000)
     small_two = _Reading("small-2", 30)
     taken = within_dossier_budget(
-        [small_one, enormous, small_two], limit=12, locality=LOCAL, ceiling=100)
+        [small_one, enormous, small_two], ceiling=100)
     assert taken == (small_one, small_two)
 
 
@@ -378,7 +376,7 @@ def test_the_order_is_the_callers_and_the_fill_does_not_re_sort():
     """
     readings = [_Reading("first", 60), _Reading("second", 20),
                 _Reading("third", 20)]
-    taken = within_dossier_budget(readings, limit=12, locality=LOCAL, ceiling=100)
+    taken = within_dossier_budget(readings, ceiling=100)
     assert [one.name for one in taken] == ["first", "second", "third"]
 
 
@@ -388,7 +386,7 @@ def test_a_zero_remainder_takes_nothing_rather_than_taking_one_anyway():
     about to report as met, which is the disagreement `104` R-159 closed."""
     readings = [_Reading("only", 1)]
     assert within_dossier_budget(
-        readings, limit=12, locality=LOCAL, ceiling=0) == ()
+        readings, ceiling=0) == ()
 
 
 def test_the_composed_function_offers_the_document_in_order_under_the_ceiling(

@@ -241,7 +241,7 @@ def test_the_gate_refuses_a_self_description_under_a_policy_that_permits_none(
                    allow_unratified=True,
                    suspension_permits_self_description=(
                        "self_description" in policy.suspended_item_kinds),
-                   locality=CLOUD_LOCALITY)
+                   locality=CLOUD_LOCALITY, ceiling=None)
 
 
 def test_the_gate_admits_one_under_a_policy_that_permits_it(p7_conn):
@@ -255,7 +255,7 @@ def test_the_gate_admits_one_under_a_policy_that_permits_it(p7_conn):
         protected=False, sensitive_keys=frozenset(), allow_unratified=False,
         suspension_permits_self_description=(
             "self_description" in policy.suspended_item_kinds),
-        locality=CLOUD_LOCALITY) is None
+        locality=CLOUD_LOCALITY, ceiling=None) is None
 
 
 # --- the seam with the OTHER record of one run --------------------------------------

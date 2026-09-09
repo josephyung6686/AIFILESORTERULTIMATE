@@ -645,6 +645,12 @@ FIXTURES: tuple[GateFixture, ...] = (
         # carries the reasoning; in short, §8.4's "should not send full documents"
         # sits under `00`:186's "when a cloud model is used", and the owner ruled
         # that it means what it says.
+        #
+        # `104` §17.13 (9 Sep 2026), the fixture's FOURTH address: a whole unit is
+        # the whole document when it is longer than the STORED ceiling, on any
+        # target. The replay harness stores `max_dossier_tokens` as P1's ceiling, so
+        # the request's number is put below the 66-character unit; the dossier is
+        # over budget as well, and `DENIAL_ORDER` publishes this reason first.
         policy=_policy("cloud_assisted", grants=((FIXTURE_AREA, "cloud_model"),)),
         classification=_classified(WHOLE_UNIT_P4_FIXTURE, "public_low",
                                    protected=False),
@@ -654,7 +660,7 @@ FIXTURES: tuple[GateFixture, ...] = (
                              observation_key=WHOLE_UNIT_OBSERVATION.observation_key,
                              span=WHOLE_UNIT_OBSERVATION.location.text_span,
                              reason="read the whole unit"),),
-                         fingerprint="fp-05", max_dossier_tokens=20000),
+                         fingerprint="fp-05", max_dossier_tokens=60),
         decision=_denied(
             "whole_document_requested",
             "the requested address resolves to the whole text unit. §8.4: the engine "

@@ -704,6 +704,16 @@ class Gate:
         stored = rows[file_id]["extraction_status_by_tier"]
         return str(stored) if stored else None
 
+    def _stored_ceiling(self) -> int | None:
+        """P1's stored ceiling, or `None` when none is stored. `104` §17.13.
+
+        `check_item`'s whole-document arm reads it: a whole unit longer than it is
+        refused for every target. Never `request.max_dossier_tokens` (M9). `None`
+        refuses nothing, because P7 invents no number.
+        """
+        value = get_ceiling(self._conn, "model.max_dossier_tokens_per_call")
+        return None if value is None else int(value)
+
     def _ceiling(self) -> int:
         """P1's stored ceiling, read for the denial's explanation only.
 
@@ -886,7 +896,8 @@ class Gate:
                            protected=protected,
                            sensitive_keys=sensitive_keys, allow_unratified=True,
                            suspension_permits_self_description=self._suspends(policy),
-                           locality=request.model_target.locality)
+                           locality=request.model_target.locality,
+                           ceiling=self._stored_ceiling())
             except (AlwaysLocalRequested, ProtectedItemRequested) as caught:
                 return caught
         return None
@@ -931,7 +942,8 @@ class Gate:
                            protected=protected, sensitive_keys=sensitive_keys,
                            allow_unratified=True,
                            suspension_permits_self_description=self._suspends(policy),
-                           locality=request.model_target.locality)
+                           locality=request.model_target.locality,
+                           ceiling=self._stored_ceiling())
             except WholeDocumentRequested as caught:
                 if excerpts.get(item.observation_key, False):
                     # THE EXEMPTION IS TAKEN HERE AND NOT INSIDE `check_item`, because

@@ -256,7 +256,7 @@ ALWAYS_LOCAL: tuple[str, ...] = (
 #: destination, applied here to every destination there is. The owner ruled the first
 #: of §15.4 item 14's two ways: a LOCAL model may be shown a whole text unit, the
 #: person's own folder path and OCR text, within the dossier ceiling; the cloud
-#: restrictions stand unchanged for a cloud target. `RELEASED_TO_A_LOCAL_TARGET`
+#: restrictions stand unchanged for a cloud target. `RELEASED_TO_EVERY_TARGET`
 #: below is that ruling transcribed, and `gate.py`'s privacy-CLASS refusal -- already
 #: `if locality == CLOUD_LOCALITY else ()` since `104` R-89 -- is the shape it copies.
 #:
@@ -265,8 +265,20 @@ ALWAYS_LOCAL: tuple[str, ...] = (
 #: their course code only in the `path` zone, and 29 OCR runs were shown to nobody.
 ALWAYS_LOCAL_ZONES: frozenset[str] = frozenset({"path", "filename", "ocr"})
 
-#: The members of `ALWAYS_LOCAL_ZONES` the R-159 ruling releases to a LOCAL target,
-#: in the ruling's own two words: "the person's folder path and OCR text".
+#: The members of `ALWAYS_LOCAL_ZONES` released to EVERY target within the dossier
+#: ceiling, in the R-159 ruling's own two words: "the person's folder path and OCR
+#: text".
+#:
+#: **SUPERSESSION, 9 Sep 2026, `104` §17.13 (the owner's ruling, applied on the
+#: owner's word "for now its ok let it through").** R-159 released these two zones
+#: to a LOCAL target and held the cloud restrictions unchanged; §17.13 extends item
+#: 14 to the cloud: a cloud model is shown what the local one is shown -- the folder
+#: path, the OCR text and a whole text unit -- within the same ceiling. Which FILE
+#: may cross is decided elsewhere and per file (`cli.target_for` over
+#: `cli.model_route_permitted`, R-170): protected and unclassified files never do.
+#: This constant was `RELEASED_TO_EVERY_TARGET` from 8 to 9 Sep 2026; the
+#: paragraphs above and below that say "to a local target" describe the ruling it
+#: was named for and are kept as its history.
 #:
 #: `filename` is NOT here and is refused for every target, which is the one place this
 #: split departs from a flat reading of "the zone arm is cloud-only". Its membership
@@ -279,19 +291,19 @@ ALWAYS_LOCAL_ZONES: frozenset[str] = frozenset({"path", "filename", "ocr"})
 #: `filename`-zone excerpt would falsify all three while releasing nothing new: the
 #: name already arrives through `items.Filename`, the door built for it, and a second
 #: copy of it is noise the ceiling pays for.
-RELEASED_TO_A_LOCAL_TARGET: frozenset[str] = frozenset({"path", "ocr"})
+RELEASED_TO_EVERY_TARGET: frozenset[str] = frozenset({"path", "ocr"})
 
 #: The remainder, spelled rather than derived, so that the guard below has two
 #: independently authored sets to compare instead of one and its own complement.
 ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET: frozenset[str] = frozenset({"filename"})
 
-if (RELEASED_TO_A_LOCAL_TARGET | ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET
-        != ALWAYS_LOCAL_ZONES) or (RELEASED_TO_A_LOCAL_TARGET
+if (RELEASED_TO_EVERY_TARGET | ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET
+        != ALWAYS_LOCAL_ZONES) or (RELEASED_TO_EVERY_TARGET
                                    & ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET):
     raise ImportError(
         f"every member of {sorted(ALWAYS_LOCAL_ZONES)} belongs to exactly one side "
         f"of the `104` R-159 ruling, and "
-        f"{sorted(RELEASED_TO_A_LOCAL_TARGET)} + "
+        f"{sorted(RELEASED_TO_EVERY_TARGET)} + "
         f"{sorted(ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET)} does not partition it. A "
         f"FOURTH always-local zone added without a locality decision would default "
         f"to reaching the local model, which is the direction the mapping above says "

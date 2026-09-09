@@ -65,7 +65,7 @@ from privacy.resolve import UnresolvableSpan
 from privacy.schema import create_privacy_schema
 from privacy.vocabulary import (
     ALWAYS_LOCAL, ALWAYS_LOCAL_ZONES, ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET,
-    RELEASED_TO_A_LOCAL_TARGET,
+    RELEASED_TO_EVERY_TARGET,
 )
 
 OBSERVED_AT = "2026-09-02T09:00:00Z"
@@ -649,7 +649,7 @@ def test_a_path_zone_excerpt_is_released_to_a_local_target_and_refused_to_a_clou
 
     SABOTAGE: drop the `locality == CLOUD_LOCALITY` guard from `check_item`'s zone
     arm and the local half goes red; drop the `zone not in
-    RELEASED_TO_A_LOCAL_TARGET` half of the same condition and the CLOUD half of
+    RELEASED_TO_EVERY_TARGET` half of the same condition and the CLOUD half of
     `test_a_span_less_filename_zone_excerpt_is_denied_too` survives while the
     filename pair below goes red.
     """
@@ -709,7 +709,7 @@ def test_a_filename_zone_excerpt_is_refused_to_a_local_target_too(zone_conn):
     arrives through `items.Filename`, the door built for it.
 
     The ruling's own words name two zones, "the person's folder path and OCR text",
-    and `vocabulary.RELEASED_TO_A_LOCAL_TARGET` is that phrase transcribed.
+    and `vocabulary.RELEASED_TO_EVERY_TARGET` is that phrase transcribed.
     """
     file_id, key = _seed(zone_conn, zone="filename", raw_value="passport.pdf")
     item = Excerpt(observation_key=key, span=None, reason="the name")
@@ -732,8 +732,8 @@ def test_the_ruling_partitions_the_three_zones_and_a_fourth_would_fail_at_import
     the two halves stop partitioning the whole, which puts that person in front of
     the locality question instead of defaulting their zone to the local model.
     """
-    assert RELEASED_TO_A_LOCAL_TARGET == frozenset({"path", "ocr"})
+    assert RELEASED_TO_EVERY_TARGET == frozenset({"path", "ocr"})
     assert ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET == frozenset({"filename"})
-    assert (RELEASED_TO_A_LOCAL_TARGET | ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET
+    assert (RELEASED_TO_EVERY_TARGET | ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET
             == ALWAYS_LOCAL_ZONES)
-    assert not (RELEASED_TO_A_LOCAL_TARGET & ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET)
+    assert not (RELEASED_TO_EVERY_TARGET & ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET)

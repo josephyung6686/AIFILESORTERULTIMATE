@@ -467,7 +467,7 @@ def test_the_filename_sixth_kind_is_flagged_and_not_treated_as_settled():
             check_item(item, unit_length=None, zone=None, protected=protected,
                        sensitive_keys=(), allow_unratified=False,
                        suspension_permits_self_description=False,
-                       locality=CLOUD_LOCALITY)
+                       locality=CLOUD_LOCALITY, ceiling=None)
         assert "B5d" in str(caught.value) and "C9a" in str(caught.value)
 
     # With the opt-in, §7.3's narrow settled part holds: denied for a protected file,
@@ -478,11 +478,11 @@ def test_the_filename_sixth_kind_is_flagged_and_not_treated_as_settled():
         check_item(item, unit_length=None, zone=None, protected=True,
                    sensitive_keys=(),
                    suspension_permits_self_description=False,
-                   allow_unratified=True, locality=CLOUD_LOCALITY)
+                   allow_unratified=True, locality=CLOUD_LOCALITY, ceiling=None)
     assert check_item(item, unit_length=None, zone=None, protected=False,
                       sensitive_keys=(),
                       suspension_permits_self_description=False,
-                      allow_unratified=True, locality=CLOUD_LOCALITY) is None
+                      allow_unratified=True, locality=CLOUD_LOCALITY, ceiling=None) is None
 
 
 def test_a_normalized_bounding_box_is_measured_from_the_top_left_d10():

@@ -46,8 +46,8 @@ from evidence_shape.store import runs_for_file
 from extractors.long_tail import POTENTIALLY_SENSITIVE, sensitivity_signals_for
 
 from privacy.vocabulary import (
-    ALWAYS_LOCAL, ALWAYS_LOCAL_ZONES, CLOUD_LOCALITY, LOCALITIES,
-    RELEASED_TO_A_LOCAL_TARGET,
+    ALWAYS_LOCAL, ALWAYS_LOCAL_ZONES, ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET,
+    CLOUD_LOCALITY, LOCALITIES,
     ITEM_KINDS, OPEN_QUESTIONS, OutOfVocabulary, check_item_kind,
 )
 
@@ -412,10 +412,31 @@ def check_item(item: object, *, unit_length: int | None, zone: str | None,
                protected: bool, sensitive_keys: Container[str],
                allow_unratified: bool,
                suspension_permits_self_description: bool,
-               locality: str) -> None:
+               locality: str, ceiling: int | None) -> None:
     """The release-time half of §8.4's item rules. Returns None or raises (A11).
 
-    SEVEN required keywords, no defaults. `sensitive_keys` in particular: a default of
+    **SUPERSESSION, 9 Sep 2026, `104` §17.13 (the owner's ruling).** The R-159
+    paragraphs below divided two arms by `locality`; §17.13 extends item 14 to the
+    cloud, so a cloud model is shown what the local one is shown -- the folder path,
+    the OCR text, a whole text unit -- within the same ceiling. After this change NO
+    arm below branches on `locality`: the zone arm refuses `filename` for every
+    target (`ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET`), and the whole-document arm fires
+    for every target when the unit is longer than the stored CEILING, the eighth
+    keyword. `locality` stays required and validated because the gate's privacy-CLASS
+    rule (`gate.py` ~347) and the per-file route (R-170, `cli.target_for`) still
+    divide by it, and a caller must still say where the bytes are going. Which FILE
+    may cross is decided per file before this is asked: protected and unclassified
+    files never reach a cloud target.
+
+    `ceiling` is P1's STORED `model.max_dossier_tokens_per_call`
+    (`Gate._stored_ceiling`), never the request's echo of it (M9). `None` means no
+    ceiling is stored, and then nothing is refused as a whole document: P7 invents no
+    number. "Whole" keeps its coverage test (`is_whole_document`): a short excerpt cut
+    from a long page is not the page and is not refused for the page's length. The
+    stage fills to the same ceiling's remainder (`model_facts.within_dossier_budget`),
+    so the gate never refuses what the stage sends.
+
+    EIGHT required keywords, no defaults. `sensitive_keys` in particular: a default of
     the empty set would mean "nothing is sensitive" for a caller who never wired P5,
     which is the same shape of failure as a column with no writer. And
     `suspension_permits_self_description` in particular: a default of False would be SAFE, and it
@@ -458,7 +479,7 @@ def check_item(item: object, *, unit_length: int | None, zone: str | None,
     "shown to nobody". The owner ruled it that way with R-161 open.
 
     `filename` is the one member of `ALWAYS_LOCAL_ZONES` this keyword does NOT
-    release: `vocabulary.RELEASED_TO_A_LOCAL_TARGET` carries the reasoning, which is
+    release: `vocabulary.RELEASED_TO_EVERY_TARGET` carries the reasoning, which is
     that its membership was never §8.4's paths sentence but §7.7's own door.
 
     `zone` is the DOCUMENT ZONE the item's observation addresses, read off P4's
@@ -483,8 +504,8 @@ def check_item(item: object, *, unit_length: int | None, zone: str | None,
         raise OutOfVocabulary(
             f"locality {locality!r} is not one of SPEC §6's {LOCALITIES}. Refused "
             f"rather than treated as unknown: the two arms below test "
-            f"`== {CLOUD_LOCALITY!r}`, so an unrecognised value would take the LOCAL "
-            f"branch and release a path")
+            f"`== {CLOUD_LOCALITY!r}` in the gate's class rule and the per-file "
+            f"route, so an unrecognised value would read as local and open a release")
     kind = kind_of(item)
 
     if kind in SUSPENDED_ITEM_KINDS and not suspension_permits_self_description:
@@ -531,19 +552,13 @@ def check_item(item: object, *, unit_length: int | None, zone: str | None,
             f"whose transform is injected with no default."
         )
 
-    if zone in ALWAYS_LOCAL_ZONES and (
-            locality == CLOUD_LOCALITY
-            or zone not in RELEASED_TO_A_LOCAL_TARGET):
+    if zone in ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET:
         raise AlwaysLocalRequested(
             f"the observation addresses zone {zone!r}, and no releasable item kind "
-            f"may address one of {sorted(ALWAYS_LOCAL_ZONES)} on a {locality} "
-            f"target ({sorted(RELEASED_TO_A_LOCAL_TARGET)} are released to a local "
-            f"one under `104` R-159's ruling and this is not that). §8.4's "
-            f"always-local "
-            f"list opens with the word 'Paths', and a `path`-zone observation "
-            f"carries the parent directory of a scanned file -- span-less, so "
-            f"`is_whole_document` cannot bound it, and unredacted, because a path "
-            f"is the classifier's ordinary `None`. §7.7's filename is the flagged "
+            f"may address one of {sorted(ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET)} on "
+            f"any target (`104` §17.13: the other members of "
+            f"{sorted(ALWAYS_LOCAL_ZONES)} are released to every target within the "
+            f"ceiling, and this is not one of them). §7.7's filename is the flagged "
             f"SIXTH releasable kind and must arrive as a `Filename` under "
             f"`allow_unratified`, where §7.3's protected-records ban also applies; "
             f"as an excerpt it would bypass both. Neither has a redacted second "
@@ -564,8 +579,16 @@ def check_item(item: object, *, unit_length: int | None, zone: str | None,
     # carries no observation and is untouched, which is the same line §4 already
     # draws.
 
-    if (locality == CLOUD_LOCALITY
+    if (ceiling is not None and unit_length is not None
+            and unit_length > ceiling
             and is_whole_document(item, unit_length=unit_length)):
+        # EVERY TARGET SINCE `104` §17.13, and "whole document" now means a whole
+        # unit LONGER THAN THE STORED CEILING: what fits under the ceiling is shown
+        # to either model as itself, and what does not is refused here by the same
+        # bound the stage already fills to (`model_facts.within_dossier_budget`), so
+        # the gate never refuses what the stage sends. The paragraph below is this
+        # arm's R-159 history.
+        #
         # CLOUD ONLY SINCE `104` R-159, and the sentence this arm quotes is the one
         # that says so: §8.4's "should not send full documents" sits under `00`:186's
         # *"when a cloud model is used"*. Every extractor emits page- and
@@ -585,7 +608,8 @@ def check_item(item: object, *, unit_length: int | None, zone: str | None,
                    f"span {item.span.start}-{item.span.end} covers")
         raise WholeDocumentRequested(
             f"{covered} the whole of a "
-            f"{unit_length}-character text unit. §8.4: the engine 'should not send "
+            f"{unit_length}-character text unit, longer than the stored "
+            f"{ceiling}-character dossier ceiling. §8.4: the engine 'should not send "
             f"full documents where a short heading or OCR excerpt is enough to "
             f"resolve the question.'"
         )

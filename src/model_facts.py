@@ -52,7 +52,7 @@ from evidence_shape.canonical import canonical_json
 from evidence_shape.locator import serialize_container_path, serialize_locator
 from evidence_shape.store import (
     DERIVED_NAMESPACE, opening_reading_for, record_observation,
-    unit_holds_a_line_break, unit_length_for_observation,
+    unit_length_for_observation,
 )
 from facts.domains import ActivationSignals, active_field_allowlist
 from facts.file_facts import facts_for_file
@@ -96,10 +96,11 @@ from privacy.resolve import (
     filename_address,
 )
 from privacy.release import (
-    ModelCallRequest, ModelTarget, Target, released_whole_excerpt_unit,
+    ModelCallRequest, ModelTarget, Target,
 )
 from privacy.vocabulary import (
-    ALWAYS_LOCAL_ZONES, CLOUD_LOCALITY, LOCALITIES, RELEASED_TO_A_LOCAL_TARGET,
+    ALWAYS_LOCAL_ZONES, ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET, CLOUD_LOCALITY,
+    LOCALITIES,
 )
 
 #: P8's own stage name for a fact call, and the `ModelCallRequest.stage` §8.4's audit
@@ -731,8 +732,18 @@ def opening_excerpt_bound(conn: sqlite3.Connection, *, limit: int) -> int | None
 
 def mint_opening_excerpts(conn: sqlite3.Connection, observations: Sequence, *,
                           sensitive: frozenset, locality: str,
-                          bound: int | None) -> tuple:
+                          bound: int | None, ceiling: int | None) -> tuple:
     """An opening excerpt for each reading of this file that cannot travel as itself.
+
+    **SUPERSESSION, 9 Sep 2026, `104` §17.13.** A whole unit now travels to EITHER
+    target when it fits under the stored ceiling, so "cannot travel as itself" is no
+    longer the cloud's whole-unit refusal: it is a reading refused outright, or a
+    reading LONGER THAN THE CEILING, which no call on any target can carry and which
+    `items.check_item` now calls a whole document. That is the one case this producer
+    still serves, for both targets alike: a 39,000-character `.txt` unit reaches the
+    model as its opening rather than as nothing. `ceiling` is P1's stored value,
+    `None` when none is stored, and `None` mints nothing here for the same reason
+    `bound` does. The paragraphs below are the R-164 history of the producer.
 
     **The defect, stated once.** Every text extractor writes one span-less `body`
     observation over each page or paragraph, and `may_be_released` refuses a span-less
@@ -781,7 +792,7 @@ def mint_opening_excerpts(conn: sqlite3.Connection, observations: Sequence, *,
     once however many times this is asked; the check is against the readings already
     in hand rather than a `SELECT` per candidate.
     """
-    if bound is None:
+    if bound is None or ceiling is None:
         return ()
     known = {observation.observation_key for observation in observations}
     minted: list = []
@@ -790,8 +801,9 @@ def mint_opening_excerpts(conn: sqlite3.Connection, observations: Sequence, *,
             continue
         if observation.observation_key in sensitive:
             continue
-        if may_be_released(conn, observation, sensitive=sensitive,
-                           locality=locality):
+        if (may_be_released(conn, observation, sensitive=sensitive,
+                            locality=locality)
+                and dossier_tokens((observation.raw_value,)) <= ceiling):
             continue
         excerpt = opening_reading_for(
             conn, observation, extractor_name=OPENING_EXCERPT_EXTRACTOR,
@@ -834,8 +846,10 @@ def ordered_releasable_observations(conn: sqlite3.Connection, *, file_id: str,
     """
     sensitive = sensitive_observation_keys(conn, file_id)
     stored = observations_for_version(conn, file_id, content_hash)
+    ceiling = get_ceiling(conn, DOSSIER_CEILING_KEY)
     mint_opening_excerpts(conn, stored, sensitive=sensitive, locality=locality,
-                          bound=opening_excerpt_bound(conn, limit=limit))
+                          bound=opening_excerpt_bound(conn, limit=limit),
+                          ceiling=None if ceiling is None else int(ceiling))
 
     def placed(observation) -> tuple:
         return (zone_rank(observation.location.zone),
@@ -877,10 +891,15 @@ def _without_superseded_excerpts(offered: Sequence) -> list:
                              one.location.container_path)) in covered)]
 
 
-def within_dossier_budget(observations: Sequence, *, limit: int, locality: str,
-                          ceiling: int) -> tuple:
-    """What of an ordered offer a call may carry: `limit` readings, or `ceiling`
-    characters. `104` R-159.
+def within_dossier_budget(observations: Sequence, *, ceiling: int) -> tuple:
+    """What of an ordered offer a call may carry: `ceiling` characters. `104` R-159.
+
+    **SUPERSESSION, 9 Sep 2026, `104` §17.13.** The cloud is shown what the local
+    model is shown, within the same ceiling, so the count cap the R-164 paragraph
+    below kept for a cloud call is gone with the locality it divided by: ONE bound,
+    the ceiling, for either target. `cli.FACT_CALL_MAX_RELEASED_OBSERVATIONS` still
+    exists and is spent on one thing only, the excerpt bound
+    (`opening_excerpt_bound`). The paragraphs below are this function's history.
 
     **A CLOUD call keeps the count cap, AND is bounded by the ceiling (`104` R-164).**
     §8.4 says "selected excerpts" and states no number; `cli.FACT_CALL_MAX_RELEASED_
@@ -920,8 +939,6 @@ def within_dossier_budget(observations: Sequence, *, limit: int, locality: str,
     remainder, never the whole of `max_dossier_tokens`: what a page has to fit under
     is what the anchor context and the filename left.
     """
-    if _check_locality(locality) == CLOUD_LOCALITY:
-        observations = tuple(observations)[:limit]
     taken: list = []
     spent = 0
     for observation in observations:
@@ -985,7 +1002,7 @@ def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
         ordered_releasable_observations(
             conn, file_id=file_id, content_hash=content_hash, locality=locality,
             limit=limit),
-        limit=limit, locality=locality, ceiling=ceiling)
+        ceiling=ceiling)
 
 
 def zone_rank(zone: str) -> int:
@@ -1010,7 +1027,7 @@ def may_be_released(conn: sqlite3.Connection, observation, *,
     ceiling; the cloud restrictions stand unchanged for a cloud target.
     `items.check_item` carries the reasoning and the OCR residual in full, and this
     is the same rule asked a step early -- the two must not answer differently, which
-    is why both read `vocabulary.RELEASED_TO_A_LOCAL_TARGET` rather than each
+    is why both read `vocabulary.RELEASED_TO_EVERY_TARGET` rather than each
     spelling the ruling's two zones.
 
     **A `filename`-zone observation stays refused as an excerpt for BOTH targets**,
@@ -1041,42 +1058,30 @@ def may_be_released(conn: sqlite3.Connection, observation, *,
     `ClassificationStore` before it asks anything about readings. Asking it per reading
     would be one `classifications` read per line for one answer.
     """
-    cloud = _check_locality(locality) == CLOUD_LOCALITY
+    # SUPERSESSION, 9 Sep 2026, `104` §17.13: the cloud is shown what the local
+    # model is shown, so the two arms that once divided by `cloud` -- the zone arm
+    # and the whole-unit arm -- are gone. `filename` is refused as an excerpt for
+    # every target (its door is `Filename`), and a whole unit is no longer refused
+    # HERE by its coverage: what bounds it is the ceiling, in `within_dossier_budget`
+    # (a reading that does not fit is skipped) and in `items.check_item` (a whole
+    # unit longer than the stored ceiling is the whole document the gate refuses).
+    # `locality` is still validated: a caller must say where the bytes go.
+    _check_locality(locality)
     where = observation.location
-    if where.zone in ALWAYS_LOCAL_ZONES and (
-            cloud or where.zone not in RELEASED_TO_A_LOCAL_TARGET):
+    if where.zone in ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET:
         return False
     if observation.observation_key in sensitive:
         return False
     if not observation.raw_value:
         return False
-    unit_length = unit_length_for_observation(conn, observation)
     if where.text_span is None:
-        # The two span-less shapes, told apart exactly as `resolve.materialise`
-        # tells them apart: by the unit at the observation's own path.
-        if (cloud and unit_length is not None
-                and len(observation.raw_value) >= unit_length):
-            return False
+        # The two span-less shapes -- the cell or field with no unit at its path,
+        # and the whole unit -- both release now; the unit is bounded by the ceiling.
         return True
-    if unit_length is None:
+    if unit_length_for_observation(conn, observation) is None:
         # `materialise` raises `UnresolvableSpan` here rather than denying: a span
         # with nothing to take a substring of is a contract failure, and this call
         # is not the place to discover it.
-        return False
-    # `104` R-135 and `104` R-152: a whole HEADING unit is released, and so is a
-    # whole LINE unit; a whole document is not.
-    # `privacy.release.released_whole_excerpt_unit` carries the reasoning and the
-    # counts that stand in for the length bound this deployment refuses to invent.
-    # It is the SAME predicate `GroundingReport`'s counters are computed from and the
-    # same one the gate excepts by, so what this admits, what the gate releases and
-    # what the report calls exposure cannot become three conditions.
-    if (cloud
-            and where.text_span.start <= 0
-            and where.text_span.end >= unit_length
-            and not released_whole_excerpt_unit(
-                where, unit_length,
-                unit_holds_line_break=unit_holds_a_line_break(
-                    conn, observation))):
         return False
     return True
 
@@ -1983,8 +1988,7 @@ def fact_call_stage(authorities: FactCallAuthorities):
         def own_readings(shown_context: Sequence) -> tuple:
             """The file's own readings that fit beside THIS context and the name."""
             return within_dossier_budget(
-                offered, limit=authorities.max_released_observations,
-                locality=locality,
+                offered,
                 ceiling=(authorities.max_dossier_tokens
                          - dossier_tokens(one.raw_value for one in shown_context)
                          - name_characters))

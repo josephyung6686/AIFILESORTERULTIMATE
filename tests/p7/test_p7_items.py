@@ -60,7 +60,7 @@ from privacy.items import (
 from privacy.release import CLOUD_LOCALITY
 from privacy.vocabulary import (
     ALWAYS_LOCAL, ITEM_KINDS, OPEN_QUESTIONS, OutOfVocabulary,
-    RELEASED_TO_A_LOCAL_TARGET,
+    RELEASED_TO_EVERY_TARGET,
 )
 
 FIXED_CLOCK = "2026-08-22T12:00:00+00:00"
@@ -100,7 +100,7 @@ def admit(item, *, unit_length=None, zone=None, protected=False,
     check_item(item, unit_length=unit_length, zone=zone, protected=protected,
                sensitive_keys=sensitive_keys, allow_unratified=allow_unratified,
                suspension_permits_self_description=suspension_permits_self_description,
-               locality=locality)
+               locality=locality, ceiling=None)
 
 
 # --- the six kinds, and the five that §8.4 actually names ----------------------
@@ -405,7 +405,7 @@ def test_a_locality_outside_the_closed_set_is_refused_and_never_read_as_local():
             check_item(item, unit_length=None, zone="path", protected=False,
                        sensitive_keys=frozenset(), allow_unratified=False,
                        suspension_permits_self_description=False,
-                       locality=outside)
+                       locality=outside, ceiling=None)
 
 
 def test_sensitive_observation_keys_walks_p4_runs_to_p5_signals(p7_conn):
@@ -471,7 +471,7 @@ def test_a_filename_cannot_be_admitted_without_the_explicit_opt_in():
                    protected=False,
                    sensitive_keys=frozenset(), allow_unratified=False,
                    suspension_permits_self_description=False,
-                   locality=CLOUD_LOCALITY)
+                   locality=CLOUD_LOCALITY, ceiling=None)
     assert "filename" in str(caught.value)
     assert "B5d" in str(caught.value) and "C9a" in str(caught.value)
 
@@ -487,7 +487,7 @@ def test_the_five_ratified_kinds_need_no_opt_in():
         check_item(item, unit_length=None, zone=None, protected=False,
                    sensitive_keys=frozenset(), allow_unratified=False,
                    suspension_permits_self_description=False,
-                   locality=CLOUD_LOCALITY)
+                   locality=CLOUD_LOCALITY, ceiling=None)
 
 
 def test_a_filename_is_permitted_for_a_non_protected_file():

@@ -55,7 +55,7 @@ def _check(item, **overrides):
                   # `104` R-159's seventh keyword. This file is about `80` §8's
                   # suspension, which carries no locality of its own, so the strict
                   # half is the default here as it is in `test_p7_items.admit`.
-                  locality=CLOUD_LOCALITY)
+                  locality=CLOUD_LOCALITY, ceiling=None)
     kwargs.update(overrides)
     return check_item(item, **kwargs)
 

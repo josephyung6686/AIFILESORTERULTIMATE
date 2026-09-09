@@ -278,10 +278,12 @@ def test_check_item_refuses_it_and_the_message_survives_the_missing_span(
     _file_id, key = a_document
     item = Excerpt(observation_key=key, span=None, reason="the whole thing")
     with pytest.raises(WholeDocumentRequested) as caught:
+        # `104` §17.13: a whole unit is the whole DOCUMENT when it is longer than
+        # the stored ceiling, on any target; the ceiling here is one short of it.
         check_item(item, unit_length=len(DOCUMENT), zone="body", protected=False,
                    sensitive_keys=frozenset(), allow_unratified=True,
                    suspension_permits_self_description=False,
-                   locality=CLOUD_LOCALITY)
+                   locality=CLOUD_LOCALITY, ceiling=len(DOCUMENT) - 1)
     assert str(len(DOCUMENT)) in str(caught.value)
     assert "full documents" in str(caught.value)
 
