@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib
 
 from llm_harness.vocabulary import (
-    A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE, F_ROLE_SHORTLIST,
+    A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE, G_SITUATION_SENSITIVITY,
 )
 
 _MODULES = {
@@ -16,7 +16,7 @@ _MODULES = {
     E_TEMPLATE: "tools.promptbench.suites.suite_e",
     # The situation call of 105 §12, carried under the shortlist site until the
     # owner names its CALL_SITES member.
-    F_ROLE_SHORTLIST: "tools.promptbench.suites.suite_s",
+    G_SITUATION_SENSITIVITY: "tools.promptbench.suites.suite_s",
 }
 
 

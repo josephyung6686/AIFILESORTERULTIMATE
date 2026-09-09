@@ -55,7 +55,7 @@ import cli
 import model_situation
 from facts.domains import SCHEMA_IDS
 from model_situation import (
-    NONE_OF_THESE, SITUATION_SENSITIVITY, SituationSiteNotRatified, question_for,
+    NONE_OF_THESE, SITUATION_SENSITIVITY, question_for,
 )
 from privacy.classification_store import ClassificationStore
 from questions.store import activated_schemas
@@ -63,6 +63,20 @@ from recognition.detector import Abstention, Detector
 from recognition.rules import load_rules
 
 RESUME = "Jane Doe resume.txt"
+
+
+def _local_target():
+    """The one target this site has. `104` §17.1: nothing leaves the device.
+
+    Read off the product's own routing rather than built here would be better and
+    is not available offline -- `conftest` sets `GRAPH_AGENT_NO_DOTENV=1`, so no
+    client is configured and `routing.client_for` has nothing to answer with. What
+    the request builder reads off a target is its locality, and `local` is the only
+    value this site may carry.
+    """
+    from readers.model_routing import ModelTarget
+
+    return ModelTarget(provider="ollama", model_id="offline", locality=cli.LOCAL)
 
 #: The two readings a résumé honestly has. `00`'s own example of the case: the same
 #: document is the thing you send an employer and the thing you send an admissions
@@ -293,13 +307,20 @@ def test_and_a_cloud_target_is_still_refused_for_it(measured):
 # --- what is in the way ----------------------------------------------------------
 
 
-def test_the_question_cannot_be_asked_because_the_site_is_the_owners_act(measured):
-    """THE WALL, reached from a real run rather than from a fixture.
+def test_the_question_is_asked_now_and_the_request_is_built_from_the_real_run(
+        measured):
+    """THE WALL, OPENED, and reached from a real run rather than from a fixture.
 
-    Everything above works: the tie is real, it cites observations that resolve, and
-    a local model is permitted this file. The request still cannot be built, and the
-    refusal names all three of the reasons -- the site, the prompt, and the basis a
-    verdict would be written under. None of them is an engineering step.
+    This test used to assert the refusal: `build_situation_request` counted the
+    files waiting and named all three reasons -- the site, the prompt, and the basis
+    a verdict would be written under -- and said that none of them was an
+    engineering step. `104` §17.1 is the owner's act that made all three false on
+    8 September 2026, and what it asserts now is the request that refusal described,
+    built over the résumé this module has been measuring since the top.
+
+    Everything above still holds and is what makes the request legal: the tie is
+    real, it cites observations that resolve against P4's own table, and the route
+    permits a local model this file.
     """
     outcome = _verdict(measured)
     file_id, content_hash = _version(measured)
@@ -308,13 +329,58 @@ def test_the_question_cannot_be_asked_because_the_site_is_the_owners_act(measure
         matched_terms=outcome.matched_terms, evidence_refs=outcome.evidence_refs)
 
     from llm_harness.vocabulary import CALL_SITES
-    assert SITUATION_SENSITIVITY not in CALL_SITES
-    assert len(CALL_SITES) == 6
+    assert SITUATION_SENSITIVITY in CALL_SITES
+    assert len(CALL_SITES) == 7
 
-    with pytest.raises(SituationSiteNotRatified) as raised:
-        model_situation.build_situation_request([question])
-    message = str(raised.value)
-    assert "1 files" in message
-    assert SITUATION_SENSITIVITY in message
-    assert "no prompt is ratified" in message
-    assert "CLASSIFICATION_BASES" in message
+    observations = cli.releasable_observations(
+        measured, file_id=file_id, content_hash=content_hash,
+        limit=cli.FACT_CALL_MAX_RELEASED_OBSERVATIONS, locality=cli.LOCAL,
+        ceiling=cli.GROUPING_LIMITS.max_dossier_tokens)
+    assert observations, (
+        "the résumé has readings the recogniser matched on and none of them is "
+        "releasable to a local model; the tie could then never be put to one")
+
+    request = model_situation.build_situation_request(
+        question, observations,
+        model_target=_local_target(), prompt=cli.situation_prompt(),
+        max_dossier_tokens=cli.GROUPING_LIMITS.max_dossier_tokens)
+
+    assert request.call_site == SITUATION_SENSITIVITY
+    assert request.subject_ref == file_id
+    assert request.eligibility_reason == "multiple_plausible_domains", (
+        "`ambiguous` IS `00`:39's multiple plausible domains, and the request says "
+        "so in P8's vocabulary rather than in the recogniser's")
+    offered = {item.evidence_ref
+               for item in request.evidence_items if item.kind == "candidate_schema"}
+    assert offered == set(TIED) | {NONE_OF_THESE}
+    assert offered <= set(SCHEMA_IDS) | {NONE_OF_THESE}, (
+        "an option outside the library is `recognition/_CONTRACT.md` rule 5's "
+        "invention arriving through the prompt")
+
+
+def test_every_reading_the_request_asks_for_is_this_files_own(measured):
+    """`gate._resolve` refuses an item whose observation lives outside the target's
+    file ids, AFTER the release has been minted. One file and no neighbour is what
+    this site asks for, so the two can never disagree."""
+    outcome = _verdict(measured)
+    file_id, content_hash = _version(measured)
+    question = question_for(
+        outcome, file_id=file_id, content_hash=content_hash,
+        matched_terms=outcome.matched_terms, evidence_refs=outcome.evidence_refs)
+    observations = cli.releasable_observations(
+        measured, file_id=file_id, content_hash=content_hash,
+        limit=cli.FACT_CALL_MAX_RELEASED_OBSERVATIONS, locality=cli.LOCAL,
+        ceiling=cli.GROUPING_LIMITS.max_dossier_tokens)
+
+    request = model_situation.build_situation_request(
+        question, observations,
+        model_target=_local_target(), prompt=cli.situation_prompt(),
+        max_dossier_tokens=cli.GROUPING_LIMITS.max_dossier_tokens)
+
+    assert request.model_call_request.target.file_ids == (file_id,)
+    for item in request.model_call_request.requested_items:
+        row = measured.execute(
+            "SELECT file_id, content_hash FROM evidence WHERE observation_key = ? "
+            "AND superseded_by IS NULL", (item.observation_key,)).fetchone()
+        assert row is not None, f"{item.observation_key} resolves to nothing"
+        assert (row["file_id"], row["content_hash"]) == (file_id, content_hash)

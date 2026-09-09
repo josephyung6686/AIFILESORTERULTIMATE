@@ -57,8 +57,45 @@ E_TEMPLATE: str = "E_template"
 #: pointing at a file that may not exist is worse than one that does not point.
 F_ROLE_SHORTLIST: str = "F_role_shortlist"
 
+#: THE SEVENTH, ADDED 2026-09-08 WITH THE OWNER'S APPROVAL, RECORDED HERE.
+#:
+#: The owner ruled, in these terms, that **an LLM is the decision engine that sorts
+#: files** (`104` §17.1), and named the three closed vocabularies that ruling opens.
+#: This is the first of them. The authority the ruling itself cites is `00`:39,
+#: which already described this site's subject in its own words: an LLM receives
+#: evidence packets for files that *"remain ambiguous, have multiple plausible
+#: domains, or contain language that requires interpretation"*. A recogniser tie IS
+#: a file with multiple plausible domains, and until today it had never reached a
+#: model.
+#:
+#: The five SPEC spellings are about FILES and the sixth is about the PERSON. This
+#: one is about the SITUATION: which of the researched situations one file is part
+#: of, and therefore under what sensitivity class. It is a seventh member rather
+#: than a reading of A_fact because A_fact asks what FIELDS a file states inside a
+#: situation already fixed by the run, and this asks which situation that is. `104`
+#: §17.9 is the measurement that separates them: `cli.py` builds site A's activation
+#: as `ActivationSignal(schema_id=<the run's --situation>, activates=lambda: True)`,
+#: so every file is asked the questions of the ONE situation the run was launched
+#: with -- a vaccination record is asked which course it belongs to. That is R-23,
+#: and this site is what asks each file about its own.
+#:
+#: WHAT THE APPROVAL COVERS, and it is narrow like the sixth's: which situation,
+#: from a shortlist the recognisers themselves raised, with a way to decline. It
+#: does not admit a second question about the file, it does not let the model name
+#: a situation nobody proposed (`recognition/_CONTRACT.md` rule 5), and the answer
+#: it may give is checked by the same citation validator every other site runs.
+#:
+#: **LOCAL ONLY UNDER THIS RULING.** `104` §17.1: "Nothing leaves the device under
+#: this ruling." The prompt is ratified `ratified_local` and not `ratified`, which
+#: is `prompt_library`'s own word for an approval to ACT on the answer with the
+#: cloud still shut; and `privacy.denial.unclassified_denies` refuses every CLOUD
+#: release of an unclassified file unconditionally, which is the population this
+#: site exists for.
+G_SITUATION_SENSITIVITY: str = "G_situation_sensitivity"
+
 CALL_SITES: tuple[str, ...] = (
     A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE, F_ROLE_SHORTLIST,
+    G_SITUATION_SENSITIVITY,
 )
 
 # ---------------------------------------------------------------------------
@@ -203,6 +240,18 @@ ELIGIBILITY_BY_SITE: MappingProxyType[str, tuple[str, ...]] = MappingProxyType({
     C_PLACEMENT: PLACEMENT_ELIGIBILITY,
     D_RESIDUAL: RESIDUAL_ELIGIBILITY,
     E_TEMPLATE: TEMPLATE_ELIGIBILITY,
+    # THE SEVENTH SITE REUSES SITE A'S THREE, and that is one approval rather than
+    # two. `00`:39 names the three states that send a file to a model in one
+    # sentence -- "remain ambiguous, have multiple plausible domains, or contain
+    # language that requires interpretation" -- and a recogniser tie is the second
+    # of them by its own definition. A fourth closed list holding the same three
+    # words would be a second vocabulary saying one thing, and `DossierRequest`
+    # would then check the same reason against two tuples depending on the site.
+    #
+    # The recogniser's own reasons map onto them without a translation table:
+    # `ambiguous` is `multiple_plausible_domains`, and `no_corroboration` and
+    # `no_evidence` are `remains_ambiguous` -- the file the rules could not settle.
+    G_SITUATION_SENSITIVITY: FACT_ELIGIBILITY,
 })
 
 SITES_REQUIRING_PLAN_VERSION: frozenset[str] = frozenset(

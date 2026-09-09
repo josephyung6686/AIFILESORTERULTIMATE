@@ -41,6 +41,7 @@ from llm_harness.records import (
     MalformedRecord,
     ValidationUnavailable,
 )
+from llm_harness.situation_validation import validate_situation_response
 from llm_harness.template_validation import (
     TemplateDependencies,
     validate_template_response,
@@ -58,6 +59,7 @@ from llm_harness.vocabulary import (
     C_PLACEMENT,
     D_RESIDUAL,
     E_TEMPLATE,
+    G_SITUATION_SENSITIVITY,
 )
 
 
@@ -587,5 +589,15 @@ def dispatch(
         return _addressed_to_the_response(validate_template_response(
             dossier, response_bytes,
             dependencies=site_dependencies.template, **common,
+        ), response_bytes)
+    if site == G_SITUATION_SENSITIVITY:
+        # NO BUNDLE, ON SITE B'S PRECEDENT. C, D and E take typed authorities
+        # because they need a frozen tree, a controlled action set or a fragment
+        # catalogue; B and G need none. Everything site G checks is already in the
+        # dossier -- the shortlist it showed the model and the evidence it released
+        # -- so a slot here would be a slot a caller could fill with an acceptance
+        # callback, which is the shape this module exists to refuse.
+        return _addressed_to_the_response(validate_situation_response(
+            dossier, response_bytes, **common,
         ), response_bytes)
     return ValidationUnavailable(missing=("site_validator",))

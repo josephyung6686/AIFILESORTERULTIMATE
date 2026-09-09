@@ -17,6 +17,7 @@ from llm_harness.vocabulary import (
     BUDGET_EXHAUSTED,
     C_PLACEMENT,
     CALL_SITES,
+    G_SITUATION_SENSITIVITY,
     CHOOSE_BROAD_PARENT,
     CHOOSE_RESIDUAL_DESTINATION,
     CITATION_NOT_FOUND,
@@ -139,11 +140,18 @@ def test_call_sites_are_the_spec_envelope_spellings():
     # reading of one of the five. No prompt is installed for it: a
     # `PromptDefinition` naming it still needs `template_bytes` the owner ratifies.
     assert F_ROLE_SHORTLIST == "F_role_shortlist"
+    # The SEVENTH is the owner's too, added 2026-09-08 under `104` §17.1's ruling
+    # that an LLM is the decision engine that sorts files. Five sites are about
+    # FILES, the sixth is about the PERSON, and this one is about the SITUATION --
+    # which of the researched situations one file is part of, asked of a local
+    # model when the recognisers could not settle it. Appended, so the six that
+    # records already point at keep their positions.
+    assert G_SITUATION_SENSITIVITY == "G_situation_sensitivity"
     assert CALL_SITES == (A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE,
-                          F_ROLE_SHORTLIST)
+                          F_ROLE_SHORTLIST, G_SITUATION_SENSITIVITY)
     assert CALL_SITES == (
         "A_fact", "B_group", "C_placement", "D_residual", "E_template",
-        "F_role_shortlist",
+        "F_role_shortlist", "G_situation_sensitivity",
     )
 
 

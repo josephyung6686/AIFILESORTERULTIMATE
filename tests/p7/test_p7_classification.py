@@ -198,12 +198,17 @@ def test_an_out_of_vocabulary_handling_class_is_refused(file_id, content_hash):
 
 def test_p6s_origin_vocabulary_is_not_p7s_basis_vocabulary(file_id, content_hash):
     # P6's five §3.1 origins include "rule" and "LLM interpretation"; P7's basis is
-    # four values. The two are never mapped onto one another -- and the fourth,
-    # added 2026-09-04, does not narrow the gap: `detector_no_safety_evidence` is
-    # still a statement about WHAT LOOKED, where P6's `rule` is a statement about
-    # how a value was produced.
+    # five values. The two are never mapped onto one another -- and neither of the
+    # additions narrows the gap. `detector_no_safety_evidence` (2026-09-04) is still
+    # a statement about WHAT LOOKED, where P6's `rule` is a statement about how a
+    # value was produced. `local_model_situation` (2026-09-08, `104` §17.1) is the
+    # nearest the two vocabularies come and is still a different claim: P6's "LLM
+    # interpretation" says a VALUE was produced by a model, and this says a model
+    # answered the SITUATION question -- one is about a field of a file, the other
+    # about which kind of material the file is.
     assert CLASSIFICATION_BASES == (
-        "detector", "detector_no_safety_evidence", "safety_domain", "user")
+        "detector", "detector_no_safety_evidence", "safety_domain", "user",
+        "local_model_situation")
     with pytest.raises(OutOfVocabulary):
         a_record(file_id, content_hash, basis="rule")
 

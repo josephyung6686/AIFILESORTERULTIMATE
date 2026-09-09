@@ -38,7 +38,6 @@ from model_situation import (  # noqa: E402
     NONE_OF_THESE,
     SITUATION_SENSITIVITY,
     NothingToAsk,
-    SituationSiteNotRatified,
     build_situation_request,
     question_for,
     shortlist_for,
@@ -59,6 +58,51 @@ class _Semantic:
         self.schema_id = schema_id
         self.runner_up = runner_up
         self.tied_schema_ids = tuple(tied)
+
+
+class _Observation:
+    """The three things `build_situation_request` reads off a P4 observation.
+
+    A stand-in and not a stub of a decision: the real `Observation` is P4's and the
+    request builder reads its key, its locator and its reliability and nothing else.
+    `test_a_tie_is_a_question_for_the_model` builds the same request over the real
+    ones, so what this file measures is the SHAPE and that file measures the wiring.
+    """
+
+    def __init__(self, key: str, zone: str):
+        from evidence_shape.location import Location
+
+        self.observation_key = key
+        self.location = Location(zone=zone)
+        self.reliability = "direct"
+
+
+def _observation(key: str, zone: str) -> _Observation:
+    return _Observation(key, zone)
+
+
+#: A LOCAL target, because that is the only target this site has. `104` §17.1:
+#: nothing leaves the device under the ruling that opened it.
+class _LocalTargetShape:
+    locality = "local"
+    model_id = "test-local"
+    provider = "test"
+
+
+_LOCAL_TARGET = _LocalTargetShape()
+
+
+def _prompt():
+    """The deployment's own site-G prompt, read through the manifest row.
+
+    Not a fixture prompt: `prompt_fingerprint` hashes the template id with the
+    three files' bytes, so a request built under a made-up definition would carry a
+    fingerprint no record could resolve, and `transport.issue` refuses the release
+    when the two disagree.
+    """
+    import cli
+
+    return cli.situation_prompt()
 
 
 # --- the shortlist is what the recognisers raised, and nothing else --------------
@@ -139,49 +183,219 @@ def test_a_question_whose_only_option_is_to_decline_is_refused():
 # --- the three walls -------------------------------------------------------------
 
 
-def test_wall_one_the_site_is_named_and_is_not_a_call_site():
-    """`CALL_SITES` is closed and its sixth member records that a member was added
-    "WITH THE OWNER'S APPROVAL". A seventh is the owner's act (Q-M)."""
-    from llm_harness.vocabulary import CALL_SITES
+def test_wall_one_is_open_and_the_seventh_site_is_a_call_site():
+    """THE WALL OPENED, 8 September 2026, and this test is the record of it.
 
-    assert SITUATION_SENSITIVITY not in CALL_SITES
-    assert len(CALL_SITES) == 6
+    It was the assertion that `SITUATION_SENSITIVITY` is NOT in `CALL_SITES` and
+    that there are six. `104` §17.1 is the owner's act that made both false: the
+    seventh member is granted, on the sixth's own precedent -- "THE SIXTH, ADDED
+    2026-09-02 WITH THE OWNER'S APPROVAL, RECORDED HERE".
+
+    Kept as an assertion rather than deleted, and turned around rather than
+    weakened into a tautology: what it pins now is that the seventh is a MEMBER,
+    that it is spelled in exactly one place, and that opening it did not disturb
+    the six that were already there. A file that only said "six became seven"
+    would let the next member arrive without an approval beside it.
+    """
+    from llm_harness.vocabulary import CALL_SITES, G_SITUATION_SENSITIVITY
+
+    assert SITUATION_SENSITIVITY in CALL_SITES
+    assert len(CALL_SITES) == 7
+    assert CALL_SITES[-1] == SITUATION_SENSITIVITY, (
+        "the seventh is appended, so the six that records already point at keep "
+        "their positions")
+    assert SITUATION_SENSITIVITY is G_SITUATION_SENSITIVITY, (
+        "the site is spelled in `llm_harness.vocabulary` and re-exported here; "
+        "two spellings of one call site is two vocabularies")
 
 
-def test_wall_one_is_a_refusal_that_counts_what_is_waiting():
-    """A gap with a number on it. The refusal names all three walls, so a reader who
-    opens one finds the other two without going looking."""
+def test_wall_one_the_seventh_site_can_carry_a_reason_a_recogniser_produces():
+    """A member of `CALL_SITES` that no `DossierRequest` can name is half a wall.
+
+    `records.DossierRequest.__post_init__` checks `eligibility_reason` against
+    `ELIGIBILITY_BY_SITE[call_site]`, so a site with no entry raises `KeyError`
+    before any of its own checks run. The seventh reuses site A's three -- `00`:39's
+    own words, "remain ambiguous, have multiple plausible domains, or contain
+    language that requires interpretation" -- because a recogniser tie IS a file
+    with multiple plausible domains and a fourth closed list would be a second
+    approval taken for one act.
+    """
+    from llm_harness.vocabulary import (
+        ELIGIBILITY_BY_SITE, FACT_ELIGIBILITY, MULTIPLE_PLAUSIBLE_DOMAINS,
+        REMAINS_AMBIGUOUS,
+    )
+
+    assert ELIGIBILITY_BY_SITE[SITUATION_SENSITIVITY] is FACT_ELIGIBILITY
+    assert MULTIPLE_PLAUSIBLE_DOMAINS in ELIGIBILITY_BY_SITE[SITUATION_SENSITIVITY]
+    assert REMAINS_AMBIGUOUS in ELIGIBILITY_BY_SITE[SITUATION_SENSITIVITY]
+
+
+def test_wall_one_a_question_now_becomes_a_request_at_the_seventh_site():
+    """WHAT THE REFUSAL BECAME. It counted the files waiting behind three walls and
+    named all three; the walls are open and the count is zero, so what is asserted
+    now is the request the refusal described.
+
+    Reference-only, and that is the property worth pinning rather than the fact that
+    something was returned: `DossierRequest` carries no text, the candidates are the
+    library's own ids, and the file's own readings are `Excerpt` items naming
+    observation keys. What the model is shown of the file is whatever P7 releases
+    for those keys at the door, and nothing here can widen it.
+    """
     question = question_for(
         _abstention("ambiguous", tied=("academic", "career")),
-        file_id="f", content_hash="a" * 64)
+        file_id="file-1", content_hash="b" * 64,
+        matched_terms=(("academic", ("syllabus",)), ("career", ("resume",))),
+        evidence_refs=("sha256:" + "c" * 64,))
 
-    with pytest.raises(SituationSiteNotRatified) as raised:
-        build_situation_request([question, question])
+    request = build_situation_request(
+        question, (_observation("sha256:" + "c" * 64, "heading"),),
+        model_target=_LOCAL_TARGET, prompt=_prompt(), max_dossier_tokens=4000)
 
-    message = str(raised.value)
-    assert "2 files" in message
-    assert SITUATION_SENSITIVITY in message
-    assert "CLASSIFICATION_BASES" in message
+    assert request.call_site == SITUATION_SENSITIVITY
+    assert request.subject_ref == "file-1"
+    assert request.eligibility_reason == "multiple_plausible_domains"
+    assert request.plan_version is None
+    assert request.evidence_snapshot_id is None
+    kinds = [item.kind for item in request.evidence_items]
+    assert kinds == ["candidate_schema"] * 3 + ["recogniser_abstention", "excerpt"]
+    refs = [item.evidence_ref for item in request.evidence_items]
+    assert refs[:3] == ["academic", "career", NONE_OF_THESE], (
+        "every option the model is offered is described, the way out included; an "
+        "option shown in the vocabulary and in no item is the one the prompt most "
+        "wants used and the one it says least about")
+    assert [item.observation_key
+            for item in request.model_call_request.requested_items] == [
+        "sha256:" + "c" * 64], "the file's own readings are asked for by key"
+    assert request.model_call_request.target.file_ids == ("file-1",), (
+        "one file and no neighbour: nothing at this site gathers a neighbour's "
+        "readings, and `gate._decisive` reads the first id's handling class as the "
+        "one the release is judged under")
 
 
-def test_wall_two_a_verdict_from_a_model_has_no_lawful_basis():
-    """MEASURED, not read. This is why no record is written: writing one as
-    `detector` would claim a deterministic rule concluded it, which is the untruth
-    `96` §19 caught when `detector_no_safety_evidence` was read as "I checked and it
-    is fine"."""
+def test_wall_one_the_abstention_report_carries_the_recognisers_own_words():
+    """The item the ratified prompt calls "a report, not a verdict".
+
+    Everything in it is the recogniser's: its reason, the shortlist it produced,
+    and the LIBRARY's authored terms each candidate matched. Nothing about the
+    person's file reaches these bytes that the recogniser had not already concluded.
+    """
+    question = question_for(
+        _abstention("no_corroboration", schema_id="medical"),
+        file_id="file-2", content_hash="b" * 64,
+        matched_terms=(("medical", ("diagnosis",)),))
+
+    request = build_situation_request(
+        question, (_observation("sha256:" + "d" * 64, "body"),),
+        model_target=_LOCAL_TARGET, prompt=_prompt(), max_dossier_tokens=4000)
+
+    report = next(item for item in request.evidence_items
+                  if item.kind == "recogniser_abstention")
+    assert "no_corroboration" in report.location
+    assert "diagnosis" in report.location
+    assert request.eligibility_reason == "remains_ambiguous"
+
+    protected = next(item for item in request.evidence_items
+                     if item.evidence_ref == "medical")
+    assert "protected" in protected.location, (
+        "one of `00`:52's four kinds is marked as one on its own item, so the "
+        "prompt's rule about protected material has something to read")
+
+
+def test_wall_one_a_file_with_no_releasable_reading_is_not_asked():
+    """`00`:42, one step earlier than the model.
+
+    A shortlist and nothing to read it against is not a question a model can
+    answer: `DossierRequest` would refuse the empty item list and `ModelCallRequest`
+    the empty request, both correctly and both from a place that cannot say what
+    happened. It is said here instead, and the file stays where the rules left it
+    -- which for an unclassified file is local.
+    """
+    question = question_for(
+        _abstention("ambiguous", tied=("academic", "career")),
+        file_id="file-3", content_hash="b" * 64)
+
+    with pytest.raises(NothingToAsk):
+        build_situation_request(
+            question, (), model_target=_LOCAL_TARGET, prompt=_prompt(),
+            max_dossier_tokens=4000)
+
+
+def test_wall_two_is_open_and_a_local_model_verdict_has_a_truthful_basis():
+    """THE SECOND WALL OPENED, 8 September 2026, and this is the record of it.
+
+    It was the assertion that a verdict from a model on this device has no lawful
+    basis, measured by watching `ClassificationRecord(basis="local_model")` raise.
+    `104` §17.1 grants the fifth member, with the owner's intent stated in one
+    line: **a model verdict must NEVER be recorded as `detector`.**
+
+    THE SPELLING, AND WHY IT IS NOT `local_model`. `96` §19's lesson governs the
+    choice -- a basis word must not overclaim what was checked. What was checked is
+    ONE question: which of a SHORTLIST of situations, raised by the recognisers
+    themselves, this file is part of. The model was not shown the 23 schemas, was
+    not asked what else the file might be, and was not asked to examine it for
+    anything outside the list. `local_model` alone reads as "a model looked at this
+    file", which is broader than the question that was put; `local_model_situation`
+    says which question was answered and by what. That is the same narrowing the
+    fourth member made in the other direction, one column along.
+
+    `local` is load-bearing and stays: it says the bytes did not leave the device,
+    which is what makes a record about an unclassified file admissible at all
+    (`privacy.denial.UNCLASSIFIED_PERMITS_LOCAL`).
+    """
     from privacy.classification import ClassificationRecord
-    from privacy.vocabulary import CLASSIFICATION_BASES
+    from privacy.vocabulary import CLASSIFICATION_BASES, LOCAL_MODEL_SITUATION
 
-    assert "local_model" not in CLASSIFICATION_BASES
-    assert len(CLASSIFICATION_BASES) == 4
-    with pytest.raises(Exception) as raised:
+    assert LOCAL_MODEL_SITUATION == "local_model_situation"
+    assert LOCAL_MODEL_SITUATION in CLASSIFICATION_BASES
+    assert len(CLASSIFICATION_BASES) == 5
+    assert CLASSIFICATION_BASES[-1] == LOCAL_MODEL_SITUATION
+    assert "detector" not in LOCAL_MODEL_SITUATION, (
+        "the owner's stated intent is that a model verdict is never recorded as "
+        "`detector`, and a word carrying it would read as one at a glance")
+
+    record = ClassificationRecord(
+        file_id="f", content_hash="a" * 64,
+        handling_class="personal_non_sensitive", protected=False,
+        basis=LOCAL_MODEL_SITUATION, evidence_refs=("sha256:" + "a" * 64,),
+        reliability_state="llm_supported",
+        observed_at="2026-09-06T00:00:00+00:00")
+
+    assert record.basis == LOCAL_MODEL_SITUATION
+
+
+def test_wall_two_the_new_basis_still_has_to_cite():
+    """The weaker word must not become the way to skip the citation.
+
+    `00`:42 -- "A model that cannot cite sufficient evidence must return unknown"
+    -- is stricter here than it is for a detector, not looser: an uncited situation
+    answer is not a record written without evidence, it is an `unknown`, and an
+    `unknown` writes no record at all. So the fifth basis joins the two detector
+    bases in `_EVIDENCE_REQUIRED_BASES` rather than sitting beside `user`, whose
+    own act is its evidence.
+    """
+    from privacy.classification import ClassificationRecord, UnbackedClassification
+    from privacy.vocabulary import LOCAL_MODEL_SITUATION
+
+    with pytest.raises(UnbackedClassification):
         ClassificationRecord(
             file_id="f", content_hash="a" * 64,
             handling_class="personal_non_sensitive", protected=False,
-            basis="local_model", evidence_refs=("sha256:" + "a" * 64,),
+            basis=LOCAL_MODEL_SITUATION, evidence_refs=(),
             reliability_state="llm_supported",
             observed_at="2026-09-06T00:00:00+00:00")
-    assert "local_model" in str(raised.value)
+
+
+def test_wall_two_did_not_widen_what_a_detector_may_claim():
+    """The four that were there are unchanged, in their order.
+
+    A fifth member is an addition and not a re-reading of the four: `96` §19's
+    split of `detector` still means what it meant, and nothing here lets a
+    deterministic rule borrow the model's word or the model borrow a rule's.
+    """
+    from privacy.vocabulary import CLASSIFICATION_BASES
+
+    assert CLASSIFICATION_BASES[:4] == (
+        "detector", "detector_no_safety_evidence", "safety_domain", "user")
 
 
 def test_wall_three_no_prompt_is_ratified_for_this_site():

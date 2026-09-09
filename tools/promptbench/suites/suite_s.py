@@ -13,7 +13,7 @@ ordinary situation. Carried under `F_role_shortlist` because the site's
 """
 from __future__ import annotations
 
-from llm_harness.vocabulary import F_ROLE_SHORTLIST
+from llm_harness.vocabulary import G_SITUATION_SENSITIVITY
 
 from tools.promptbench.cases import Case, Item, evidence
 
@@ -39,7 +39,7 @@ def _case(case_id, title, persona, traces, subject, items, reason, leader, short
                       "protected before any cloud or automated placement")
         bench_items.append(Item(evidence_ref=schema, kind="candidate_schema", location=where))
     return Case(
-        case_id=case_id, site=F_ROLE_SHORTLIST, title=title, persona=persona,
+        case_id=case_id, site=G_SITUATION_SENSITIVITY, title=title, persona=persona,
         traces=tuple(traces), subject_ref=subject, allowed_vocabulary=tuple(shortlist),
         evidence=tuple(evidence(subject_ref=subject, **item) for item in items),
         items=tuple(bench_items), expect={"situation": expect_situation},

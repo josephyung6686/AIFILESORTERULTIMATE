@@ -68,6 +68,7 @@ from extractors.long_tail import POTENTIALLY_SENSITIVE, sensitivity_signals_for
 from privacy.vocabulary import (
     CLASSIFICATION_BASES, DETECTOR as _DETECTOR,
     DETECTOR_NO_SAFETY_EVIDENCE as _DETECTOR_NO_SAFETY_EVIDENCE,
+    LOCAL_MODEL_SITUATION as _LOCAL_MODEL_SITUATION,
     PRIVACY_CLASS_BY_KIND, PRIVACY_CLASS_ORDINARY,
     PRIVACY_CLASS_PENDING, PRIVACY_CLASS_PROTECTED, PRIVACY_CLASSES,
     OutOfVocabulary, check_handling_class, check_privacy_class,
@@ -100,8 +101,15 @@ UNREADABLE_UNCLASSIFIED: str = check_handling_class("unreadable_unclassified")
 #: what the record cites. A record on it carrying nothing would be the detector
 #: asserting an ordinary class out of thin air, which is exactly what `96` §19
 #: objected to -- so the weaker word must not become the way to skip the citation.
+#: THE FIFTH BASIS IS HERE TOO, and it is the strictest case rather than a new
+#: exemption. `00`:42 -- "A model that cannot cite sufficient evidence must return
+#: unknown" -- means an uncited situation answer is not a record with no evidence;
+#: it is an `unknown`, and an `unknown` writes no record at all
+#: (`model_situation`). So a `local_model_situation` row that reached this
+#: constructor with an empty `evidence_refs` is a wiring defect, and it is refused
+#: here rather than stored as a model conclusion nobody can trace.
 _EVIDENCE_REQUIRED_BASES: frozenset[str] = frozenset(
-    {_DETECTOR, _DETECTOR_NO_SAFETY_EVIDENCE})
+    {_DETECTOR, _DETECTOR_NO_SAFETY_EVIDENCE, _LOCAL_MODEL_SITUATION})
 
 
 

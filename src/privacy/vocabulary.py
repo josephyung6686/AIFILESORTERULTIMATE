@@ -449,8 +449,51 @@ REDACTION_VALUES: tuple[str, str] = (SHOWN, REDACTED)
 #: weaker claim needs the weaker word, because `basis` is the only field in SPEC §2's
 #: record that can carry it -- `handling_class` would have to lie about the class and
 #: `protected` would have to lie about the flag.
+#: **A FIFTH MEMBER, ADDED 2026-09-08 WITH THE OWNER'S APPROVAL, and it is the
+#: first basis in this vocabulary that is not a rule or a person.** `104` §17.1:
+#: the owner ruled that an LLM is the decision engine that sorts files, and named
+#: this vocabulary as one of the three the ruling opens. The owner's intent was
+#: stated in one line and it is the whole constraint on the spelling: **a model
+#: verdict must NEVER be recorded as `detector`.**
+#:
+#: WHY THE FOUR COULD NOT CARRY IT. `detector` and `detector_no_safety_evidence`
+#: both say a deterministic rule concluded from the file's own terms; a model
+#: verdict written under either is `96` §19's untruth in a new column -- a sentence
+#: claiming a rule fired where none did. `safety_domain` is §3.15's rule about a
+#: domain. `user` is the person's own act, which is its own evidence. A model on
+#: this device is none of the four, and until today it had nowhere lawful to write.
+#:
+#: THE SPELLING, AND WHAT IT WAS CHOSEN OVER. `local_model` was the obvious one and
+#: is the one this module's own tests measured the refusal with. It was not taken,
+#: for `96` §19's reason: **a basis word must not overclaim what was checked.** What
+#: was checked is ONE question -- which of a SHORTLIST of situations, raised by the
+#: recognisers themselves, this file is part of. The model is not shown the 23
+#: schemas (`model_situation.shortlist_for`), is not asked what else the file might
+#: be, and is not asked to examine it for anything the shortlist does not carry. A
+#: bare `local_model` reads as "a model looked at this file", which is broader than
+#: the question that was put, and a reader a run later would take it for a general
+#: examination. Naming the question is the narrowing, and it is the same move the
+#: fourth member made from the other side.
+#:
+#: `local` is load-bearing and stays. It says the bytes did not leave the device,
+#: which is what makes a record about an UNCLASSIFIED file admissible at all:
+#: `denial.UNCLASSIFIED_PERMITS_LOCAL` permits a local call on one and
+#: `unclassified_denies` refuses every cloud release of one unconditionally. A
+#: cloud model has no basis here and this member does not give it one.
+#:
+#: WHAT IT ESTABLISHES, AND WHAT IT DOES NOT. It establishes that a model running
+#: on this device named one situation from a closed list it was shown, and that the
+#: citation it gave resolved against what was released and matched the span -- the
+#: same check every other site's answer passes (`llm_harness.validation.
+#: check_citations`). It does NOT establish that the file is nothing else, that
+#: anything outside the shortlist was considered, or that a person has agreed. It
+#: is a `possible`-strength conclusion in `basis` terms: a later `user_confirmed`
+#: record supersedes it, and `reliability_state` is where that ranking lives.
+LOCAL_MODEL_SITUATION: str = "local_model_situation"
+
 CLASSIFICATION_BASES: tuple[str, ...] = (
     "detector", "detector_no_safety_evidence", "safety_domain", "user",
+    LOCAL_MODEL_SITUATION,
 )
 
 #: The one basis P7 itself writes: Task 16's reclassification records the user's own

@@ -308,17 +308,26 @@ def test_the_five_display_facets_are_the_designs_own_words():
         "names", "previews", "thumbnails", "ocr_text", "location_data")
 
 
-def test_four_classification_bases_and_three_audit_outcomes():
-    """SPEC §2 names three bases; the fourth is a SPLIT of the first, added 2026-09-04.
+def test_five_classification_bases_and_three_audit_outcomes():
+    """SPEC §2 names three bases; the fourth is a SPLIT of the first, added
+    2026-09-04, and the fifth is the owner's of 2026-09-08.
 
     Both detector members are the detector concluding from the file's own terms. What
     separates them is whether any safety domain's own work type was among those terms
     -- `96` §19 measured 41 of 78 released files where none was, and every one of them
     was saying `detector`, the same word as a file whose safety evidence had been
     examined and weighed.
+
+    THE FIFTH IS NOT A DETECTOR AT ALL. `104` §17.1 ruled that an LLM is the
+    decision engine that sorts files, and the owner's stated intent was that a model
+    verdict must never be recorded as `detector`. `local_model_situation` is what a
+    model on this device concluded about ONE question -- which of a shortlist of
+    situations the file is part of -- and the question is named in the word because
+    `96` §19's lesson is that a basis must not overclaim what was checked.
     """
     assert CLASSIFICATION_BASES == (
-        "detector", "detector_no_safety_evidence", "safety_domain", "user")
+        "detector", "detector_no_safety_evidence", "safety_domain", "user",
+        "local_model_situation")
     assert AUDIT_OUTCOMES == ("released", "denied", "consent_requested")
 
 
