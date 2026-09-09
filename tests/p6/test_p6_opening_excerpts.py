@@ -316,9 +316,11 @@ def test_a_unit_longer_than_the_ceiling_is_minted_an_opening_on_either_target(
                                locality=locality), locality
 
 
-def test_every_target_gets_the_whole_unit_and_no_second_copy(conn, tmp_path):
+def test_every_target_gets_the_opening_alone_when_the_unit_is_over_the_ceiling(
+        conn, tmp_path):
     """`104` R-159's ruling is not paid for twice, and since §17.13 neither is the
-    cloud's.
+    cloud's -- and since 9753023 the over-ceiling unit is NOT on offer at all, so
+    what both targets get is its opening, alone.
 
     A model may be shown the whole page within the ceiling, so an excerpt beside it
     would be the same characters spending the ceiling a second time. R-159 made that
@@ -335,37 +337,31 @@ def test_every_target_gets_the_whole_unit_and_no_second_copy(conn, tmp_path):
 
     for locality in (CLOUD_LOCALITY, LOCAL):
         offered = _offer(conn, file_id, content_hash, locality)
+        body = [one for one in offered if one.location.zone == "body"]
 
-        assert [one.observation_key for one in offered
-                if one.location.zone == "body"] == [page.observation_key], locality
+        # One body row, the opening, and never the page beside it: the page is
+        # longer than the stored ceiling and `ordered_releasable_observations`
+        # withholds it, so the excerpt it superseded stands (9753023).
+        assert [one.extractor_name for one in body] == [
+            OPENING_EXCERPT_EXTRACTOR], locality
+        assert page.observation_key not in {
+            one.observation_key for one in offered}, locality
     assert _minted(conn) != []
 
 
 def test_an_excerpt_already_stored_yields_to_the_unit_it_was_cut_from(conn,
                                                                      tmp_path):
-    """A minted excerpt is RECORDED, so it outlives the call that minted it -- and
-    since `104` §17.13 it yields to that unit on EVERY call, which is a residual this
-    test records rather than hides.
+    """A minted excerpt is RECORDED, so it outlives the call that minted it, and
+    `_without_superseded_excerpts` says it is offered INSTEAD OF the reading it was
+    cut from, never beside it. Since `104` §17.13 and 9753023 that has two halves,
+    and both are run here on the same row:
 
-    The rule is `_without_superseded_excerpts`: an excerpt is offered instead of the
-    reading it was cut from, never beside it. It was written for one case, a corpus
-    read for a cloud target and then read again for a local one, where the local read
-    would otherwise find the stored excerpt standing beside a page R-159 had just made
-    releasable -- the same characters twice, the second copy spending a ceiling the
-    ruling meant for the first.
+      * while the unit is LONGER than the stored ceiling it is not on offer, so the
+        excerpt stands -- on both targets;
+      * once the ceiling is raised so the unit fits, the unit is offered whole and
+        the excerpt yields to it -- the same characters are never sent twice.
 
-    **§17.13 turned that one case into every case, and this is the consequence.** The
-    reading an excerpt is cut from is now ALWAYS releasable, on both targets, whatever
-    its length, so the excerpt always yields. This fixture is the case the producer
-    exists for -- a unit longer than the ceiling, which no call can carry -- and the
-    row is minted, is one row, and is on no offer. What the call then carries is the
-    page, which the fill drops for length, so the body reaches the model as nothing.
-
-    That is R-164's own starvation returning by another door, it is reported to the
-    lead as a code defect at `4896628`, and the test that states the intended
-    behaviour is the strict xfail below. This one asserts what the code does today,
-    because a test that asserted the intention would be red for a reason that has
-    nothing to do with excerpts yielding.
+    The row is minted once and stays minted through both; nothing here deletes it.
     """
     file_id, content_hash, _folder, page = _corpus(conn, tmp_path,
                                                    ceiling=OVER_CEILING)
@@ -377,29 +373,28 @@ def test_an_excerpt_already_stored_yields_to_the_unit_it_was_cut_from(conn,
     for locality in (CLOUD_LOCALITY, LOCAL):
         body = [one for one in _offer(conn, file_id, content_hash, locality)
                 if one.location.zone == "body"]
+        assert [one.observation_key for one in body] == [
+            excerpt.observation_key], locality
 
+    # Raise the ceiling so the page fits: the page is offered, the excerpt yields.
+    set_ceiling(conn, DOSSIER_CEILING_KEY, len(PAGE))
+    for locality in (CLOUD_LOCALITY, LOCAL):
+        body = [one for one in _offer(conn, file_id, content_hash, locality)
+                if one.location.zone == "body"]
         assert [one.observation_key for one in body] == [
             page.observation_key], locality
-    # And the row is still there, unoffered, which is the residual in one line.
     assert _minted(conn) == [excerpt.raw_value]
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "`104` §17.13's own promise, unmet at 4896628 and reported to the lead. "
-    "`mint_opening_excerpts` says a 39,000-character `.txt` unit 'reaches the model "
-    "as its opening rather than as nothing', but the ruling made the page it was cut "
-    "from releasable, so `_without_superseded_excerpts` yields the excerpt to a "
-    "reading `within_dossier_budget` then drops for length. The producer mints a row "
-    "no offer can carry and the body reaches the model as nothing, which is the "
-    "R-164 starvation `104` §17.16 warned would return. STRICT: the day the offer is "
-    "fixed this XPASSes and the suite goes red until the two tests around it are "
-    "re-argued to the fix."))
 def test_the_offer_carries_the_opening_of_a_unit_no_call_can_carry(conn, tmp_path):
     """What §17.13 has to mean if `mint_opening_excerpts` is to serve any purpose.
 
     A unit longer than the stored ceiling cannot travel as itself on any target. The
-    producer cuts its opening for exactly that case. So the call this fixture builds
-    should carry the opening in the body's place, and it carries nothing.
+    producer cuts its opening for exactly that case, so the call this fixture builds
+    carries the opening in the body's place. At 4896628 it carried nothing (the
+    page was offered, the opening yielded to it, the fill dropped the page);
+    9753023 withholds the over-ceiling page from the offer, and this went from a
+    strict xfail to the assertion it always meant.
     """
     file_id, content_hash, _folder, _page = _corpus(conn, tmp_path,
                                                     ceiling=OVER_CEILING)
@@ -431,20 +426,19 @@ def test_nothing_is_minted_over_an_always_local_zone(conn, tmp_path):
     the offer; it is now present, as itself, and what must be absent is any excerpt
     cut from it.
 
-    All three zones are walked, in the shape the producer would meet them, because
-    `mint_opening_excerpts` still guards on the whole of `ALWAYS_LOCAL_ZONES` rather
-    than on the half §17.13 kept. THE `ocr` READING IS WHAT MAKES THAT
-    LOAD-BEARING, and it is built with care: it is longer than the ceiling and it has
-    a real stored unit to cut from, so the zone guard is the only thing standing
-    between it and an excerpt. Given a reading with no unit, `opening_reading_for`
-    would decline to cut anyway and this test would pass for a reason that is not
-    the zone.
+    All three zones are walked, in the shape the producer would meet them. Since
+    9753023 the guard is `ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET`: `ocr` is released to
+    every target like a page, so an over-ceiling OCR unit is cut like a page (`104`
+    R-171 gave the real extractor's passage the unit that makes that possible).
+    THE `ocr` READING IS WHAT MAKES THAT LOAD-BEARING: it is longer than the
+    ceiling and has a real stored unit, so an excerpt over it is expected, and
+    `path` and `filename` still get none.
 
     The fixture is the over-ceiling one, so the producer is minting: a slack ceiling
     would satisfy "nothing was cut from `path`" by cutting nothing at all.
 
-    SABOTAGE: narrow the guard to `ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET` and a second
-    row is minted, over the OCR unit, and the two assertions on `minted` go red.
+    SABOTAGE: widen the guard back to `ALWAYS_LOCAL_ZONES` and the OCR row is not
+    minted; drop the guard and a filename excerpt appears.
     """
     file_id, content_hash, folder, page = _corpus(conn, tmp_path,
                                                   ceiling=OVER_CEILING)
@@ -462,10 +456,11 @@ def test_nothing_is_minted_over_an_always_local_zone(conn, tmp_path):
                    ceiling=OVER_CEILING)
     offered = _offer(conn, file_id, content_hash, CLOUD_LOCALITY)
 
-    # One row, and it is the page's -- nothing was cut from any always-local zone.
-    assert [one.location.zone for one in minted] == ["body"]
-    assert [one.location.container_path for one in minted] == [
-        page.location.container_path]
+    # Two rows, the OCR passage's and the page's -- nothing was cut from `path`
+    # or `filename`, the zones that release to no target as an excerpt.
+    assert sorted(one.location.zone for one in minted) == ["body", "ocr"]
+    assert {one.location.container_path for one in minted} == {
+        page.location.container_path, scanned_at}
     assert A_FOLDER not in "".join(_minted(conn))
     assert "HW 3.pdf" not in "".join(_minted(conn))
     # And the folder now travels as itself, which is the half of the ruling that
