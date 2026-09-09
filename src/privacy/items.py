@@ -538,14 +538,22 @@ def check_item(item: object, *, unit_length: int | None, zone: str | None,
             f"to admit it deliberately; there is no default."
         )
 
-    if protected and kind in UNRATIFIED_ITEM_KINDS:
+    # `104` §18.7 (9 Sep 2026), the owner's ruling, asked twice and confirmed:
+    # protected material reaches the LOCAL model only. Until that day this arm
+    # read §7.3's "must not cause filenames or content to be exposed in model
+    # prompts" as carrying no locality qualifier and refused a protected file's
+    # name for ANY target; the owner's word is that "should normally remain
+    # local-only" is the sentence that binds, and local-only is where the name
+    # now goes. A cloud target is refused here exactly as before.
+    if protected and kind in UNRATIFIED_ITEM_KINDS and locality == CLOUD_LOCALITY:
         raise ProtectedItemRequested(
             f"§7.3: a Protected Records file 'should normally remain local-only and "
             f"must not cause filenames or content to be exposed in model prompts.' "
-            f"That sentence carries no locality qualifier, so a {kind!r} on a "
-            f"protected file is refused for any target. §8.4's 'not included in "
-            f"cloud-model prompts by default' is what the consent path reopens, and "
-            f"that path is NeedsConsent."
+            f"A {kind!r} on a protected file is refused for a cloud target; the "
+            f"owner's ruling of 9 Sep 2026 (`104` §18.7) sends protected material "
+            f"to the local model only. §8.4's 'not included in cloud-model prompts "
+            f"by default' is what the consent path reopens, and that path is "
+            f"NeedsConsent."
         )
 
     if kind == _KIND_BY_TYPE[Excerpt] and item.observation_key in sensitive_keys:

@@ -839,7 +839,8 @@ def test_r118_the_same_file_is_still_kept_from_a_cloud_target(
 
 def test_r118_protected_material_is_shown_to_no_model_local_included(
         skeleton, monkeypatch, tmp_path):
-    """(c) The standing rule: read on this device and shown to no model."""
+    """(c) The standing rule, amended `104` §18.7: read on this device, shown to
+    the local model only, and to no model off it."""
     import placement.pipeline as pipeline
 
     monkeypatch.setattr(pipeline, "call_placement",

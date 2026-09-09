@@ -315,12 +315,14 @@ def test_a_file_that_was_read_reaches_the_model_even_with_no_classification(
 
     on_device = cli.model_route_permitted(
         conn, locality=LOCAL,
-        unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL)
+        unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL,
+        operation_mode=cli.OPERATION_MODE)
 
     assert on_device(read_but_unclassified) is True, (
         "a file the product read and the detector merely abstained on is not "
         "'unreadable'; refusing it keeps 95 of 199 files away from the engine")
-    assert on_device(protected) is False, "protected material never reaches a model"
+    # `104` §18.7 (9 Sep 2026): protected material reaches the LOCAL model only.
+    assert on_device(protected) is True, "protected material reaches the local model"
 
 
 def test_the_route_refuses_on_a_cloud_target_what_the_gate_would_have_refused(
@@ -339,19 +341,22 @@ def test_the_route_refuses_on_a_cloud_target_what_the_gate_would_have_refused(
 
     on_device = cli.model_route_permitted(
         conn, locality=LOCAL,
-        unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL)
+        unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL,
+        operation_mode=cli.OPERATION_MODE)
     over_the_internet = cli.model_route_permitted(
         conn, locality=CLOUD,
-        unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL)
+        unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL,
+        operation_mode=cli.CLOUD_ENABLED_MODE)
 
     assert on_device(read_but_unclassified) is True
     assert over_the_internet(read_but_unclassified) is False, (
         "the gate refuses every cloud release of an unclassified file, so a route "
         "that permits one is counting a file as routed that has no route")
-    # AND THE ROUTE STAYS STRICTER THAN THE GATE ON PROTECTED MATERIAL, on every
-    # locality. `protected_cloud_denies` would allow a protected file a LOCAL
-    # target; this route does not, and marked-and-counted-never-opened is why.
-    assert on_device(protected) is False
+    # AND ON PROTECTED MATERIAL THE ROUTE ASKS THE GATE'S OWN RULE (`104` §18.7,
+    # 9 Sep 2026): `protected_cloud_denies` allows a protected file a LOCAL
+    # target and refuses it a cloud one, and the route now says the same.
+    # SABOTAGE: restore `return not record.protected` and the first line goes red.
+    assert on_device(protected) is True
     assert over_the_internet(protected) is False
 
 

@@ -189,7 +189,8 @@ from privacy.classification import (
 from privacy.classification_store import ClassificationStore
 from privacy.learning_seam import assign
 from privacy.denial import (
-    UNCLASSIFIED_PERMITS_LOCAL, mode_forbids, unclassified_denies)
+    UNCLASSIFIED_PERMITS_LOCAL, mode_forbids, protected_cloud_denies,
+    unclassified_denies)
 from privacy.gate import Gate
 from privacy.defaults import LOCAL_FIRST_MODES
 from privacy.display import display_policy
@@ -200,7 +201,8 @@ from privacy.resolve import (
     current_observation, filename_address,
 )
 from privacy.vocabulary import (
-    ALWAYS_LOCAL_ZONES, CLOUD_LOCALITY, LOCAL_MODEL_SITUATION, MODE_SEMANTICS,
+    ALWAYS_LOCAL_ZONES, CLOUD_LOCALITY, CONSENT_OPTIONS, LOCAL_MODEL_SITUATION,
+    MODE_SEMANTICS,
 )
 from questions.explanation import explain_question, render_explanation
 from questions.effects import changed_answer, diff_for_answer_change
@@ -2627,7 +2629,7 @@ def announce_cloud_posture(routing: TierRouting | None,
             f"DEVICE; `{OPERATION_MODE}` is \"{MODE_SEMANTICS[OPERATION_MODE]}\", "
             f"and a local model is one of them. It is shown a file's name, the "
             f"path of the folder it sits in and its text within the dossier "
-            f"bound; protected material is refused to it as to any model.",
+            f"bound; protected material is shown to it and to no other model.",
             indent=""), file=out)
         elsewhere = tuple(sorted({
             routing.model_id_for(site) for site in (C_PLACEMENT, D_RESIDUAL)
@@ -4320,8 +4322,45 @@ def situation_prompt() -> PromptDefinition:
         shaping_policy_bytes=shaping_policy)
 
 
+#: The consent option the owner's ruling answers with. Spelled here for the
+#: reason `review_surface.consent_surface.OPTION_SENTENCES` spells the four --
+#: P7 publishes the tuple and no constant per member -- and checked against P7's
+#: closed set at import so a rename upstream is an ImportError here.
+STANDING_LOCAL_CONSENT: str = "local_model"
+if STANDING_LOCAL_CONSENT not in CONSENT_OPTIONS:
+    raise ImportError(
+        f"{STANDING_LOCAL_CONSENT!r} is not one of P7's consent options "
+        f"{CONSENT_OPTIONS}; the owner's standing ruling names an option that "
+        f"no longer exists")
+
+
+def standing_consent_grants(scan_run_id: str) -> tuple[tuple[str, str], ...]:
+    """The owner's ruling of 9 Sep 2026 (`104` §18.7), recorded as the consent it is.
+
+    §8.4's door asks the person before any model reads text from a file entered
+    into protected state: with no grant for the file's corpus area the gate
+    answers `NeedsConsent`, the four options go to the review screen, and --
+    since no command-line path answers a consent request -- the file waits
+    there for ever. That is what the owner's protected files did on every run,
+    and the owner answered the question in session, asked twice and confirmed:
+    protected material reaches the LOCAL model, on this machine, and never the
+    cloud. "Allow a local model to read this text" is that answer in P7's own
+    vocabulary, so the run's policy carries it as a grant over the run's one
+    corpus area -- the scan (`fact_call_authorities` names the scan as the scope
+    for the same reason) -- and the door releases to a local target what it
+    would otherwise have asked about.
+
+    Only the local option. `grant_authorizes("local_model", "cloud")` is False,
+    so nothing here widens a cloud release: `protected_cloud_denies` still
+    refuses a protected file every cloud target under this deployment's modes,
+    and a cloud grant is still the person's to give on the screen.
+    """
+    return ((scan_run_id, STANDING_LOCAL_CONSENT),)
+
+
 def model_route_permitted(conn: sqlite3.Connection, *, locality: str,
-                          unclassified_permits_local: bool):
+                          unclassified_permits_local: bool,
+                          operation_mode: str):
     """§8.4 as `FactResolver` asks it: may THIS file's route reach a model at all?
 
     Two files never may, and the resolver's own docstring says why the answer
@@ -4396,20 +4435,34 @@ def model_route_permitted(conn: sqlite3.Connection, *, locality: str,
             return not unclassified_denies(
                 locality=locality,
                 local_calls_on_unclassified=unclassified_permits_local)
-        # PROTECTED IS BARRED ON EVERY LOCALITY, AND THAT IS NOT THIS FIX'S
-        # BUSINESS TO WIDEN. `protected_cloud_denies` permits a protected file a
-        # LOCAL target, and this route refuses it one anyway: the standing rule is
-        # marked and counted, NEVER OPENED, and `tests/integration/
-        # test_local_model_fact_pass.py::test_a_protected_file_is_never_sent_to_
-        # the_local_model_either` holds it there.
+        # PROTECTED REACHES THE LOCAL MODEL ONLY -- the owner's ruling of 9 Sep
+        # 2026 (`104` §18.7), asked twice and confirmed. Until that day this
+        # route barred a protected file on EVERY locality while the gate's own
+        # rule, `protected_cloud_denies`, bars it from the cloud alone; the route
+        # was stricter than the door, which is the safe direction, and it was
+        # also 100% of the protected files never reaching the engine that decides
+        # where files go. The owner's word: files should not be refused; make
+        # sure the necessary information is processed and used.
         #
-        # That is the route being STRICTER than the gate, which is the safe
-        # direction and not the defect R-02 names. R-02 is the route permitting
-        # what the gate denies -- a file counted as routed that never had a route.
-        # A route that withholds something the gate would have allowed sends
-        # nothing it should not; it is a coverage question, and the owner has
-        # already answered this one.
-        return not record.protected
+        # THE GATE'S RULE IS CALLED, NOT COPIED, exactly as the unclassified
+        # branch above calls `unclassified_denies`: one spelling of "may a
+        # protected file reach this target", at the door, and the route asks it.
+        # Under this deployment's `hybrid` mode that rule has no carve-out, so a
+        # cloud target is refused whatever scope is named; the empty scope here
+        # is "no grant", which is the route being no wider than the door.
+        #
+        # What this does NOT change: a protected file is still marked and counted
+        # on its own line in every report (`no_route` at site G becomes the
+        # cloud-refused count on a cloud run, not a silence); it is still never
+        # sent to the cloud; and it is still never FILED automatically -- §7.3's
+        # placement rule at `placement_inputs` is a separate question about
+        # moving, and it stands. Protected CONTAINERS (`.app` bundles, system
+        # items; `scan_agent.exclusion.is_protected_container`) are a different
+        # mechanism again: the walk creates no `files` row inside one, so nothing
+        # here can route them, and nothing should.
+        return not protected_cloud_denies(
+            protected=record.protected, locality=locality,
+            operation_mode=operation_mode, scope="", granted_scopes=())
 
     return permitted
 
@@ -4550,7 +4603,8 @@ def _route_candidates(conn: sqlite3.Connection, routing: TierRouting,
         candidates.append((
             model_route_permitted(
                 conn, locality=locality,
-                unclassified_permits_local=UNCLASSIFIED_PERMITS_LOCAL),
+                unclassified_permits_local=UNCLASSIFIED_PERMITS_LOCAL,
+                operation_mode=operation_mode),
             (client, target)))
     return candidates
 
@@ -5049,11 +5103,14 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             continue
         chosen = route_for(file_id)
         if chosen is None:
-            # NOTHING IS ASSEMBLED AND NOTHING IS SENT. Protected material is
-            # barred from every locality by `model_route_permitted`, and asking
-            # site G about it would be opening a file the standing rule says is
-            # marked and counted, never opened. It is counted here, on its own
-            # line, so the report cannot read it as a file with nothing to say.
+            # NOTHING IS ASSEMBLED AND NOTHING IS SENT. A file with no route is
+            # one `model_route_permitted` refused every target this site has:
+            # since `104` §18.7 (9 Sep 2026) a protected file reaches the LOCAL
+            # model, so on a run with a local target this is no longer the
+            # protected count -- it is the files no target may take (a cloud-only
+            # site asked about protected material, or no target wired). It is
+            # counted here, on its own line, so the report cannot read it as a
+            # file with nothing to say.
             no_route += 1
             continue
         client, target = chosen
@@ -6538,8 +6595,8 @@ def _print_protected(areas, *, protected_files: int,
     if protected_files:
         print(_wrapped(
             f"Protected material: {protected_files} "
-            f"{'file' if protected_files == 1 else 'files'}, read on this device "
-            f"and shown to no model, and filed only one at a time by you. Their "
+            f"{'file' if protected_files == 1 else 'files'}, read on this device, "
+            f"shown to no model off it, and filed only one at a time by you. Their "
             f"names are not printed here, because a list of them is the part of "
             f"this report least safe to have on a screen somebody else can see. "
             f"Nothing is being kept from you -- to see every one:", indent="  "),
@@ -8039,7 +8096,10 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     def set_privacy_policy(db: sqlite3.Connection, plan_version: str) -> None:
         set_policy(db, Policy(
             policy_version=UNSET_POLICY_VERSION, operation_mode=operation_mode,
-            consent_grants=(), redaction_settings={},
+            # `104` §18.7: the owner's standing answer for protected material on
+            # this machine, carried on the plan's policy as on the fact pass's.
+            consent_grants=standing_consent_grants(scan_run_id[0]),
+            redaction_settings={},
             # §8.4: protected material is not moved automatically without a policy
             # that permits it. This deployment permits none, so nothing protected
             # moves and P11 records the refusal on the decision.
@@ -9155,7 +9215,9 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         policy_version = set_policy(
             conn,
             Policy(policy_version=UNSET_POLICY_VERSION,
-                   operation_mode=operation_mode, consent_grants=(),
+                   operation_mode=operation_mode,
+                   # `104` §18.7: protected material reaches the local model.
+                   consent_grants=standing_consent_grants(run_id),
                    redaction_settings={}, automatic_move_permissions={},
                    plan_version=PLAN_VERSION, set_at=clock),
             component_version=COMPONENT_VERSION, user_id=user_id,

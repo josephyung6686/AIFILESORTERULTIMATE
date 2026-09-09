@@ -155,8 +155,9 @@ def test_site_a_sends_the_classified_file_to_the_cloud_and_the_rest_here(corpus,
     """
     route = cli.target_for(conn, _both(), A_FACT, operation_mode=SENDING_ON)
 
+    # `104` §18.7 (9 Sep 2026): the protected file keeps to the local model.
     assert _where(route, corpus) == {
-        "ordinary": CLOUD, "unclassified": LOCAL, "protected": None}
+        "ordinary": CLOUD, "unclassified": LOCAL, "protected": LOCAL}
 
 
 def test_site_a_names_the_model_each_file_actually_goes_to(corpus, conn):
@@ -180,18 +181,26 @@ def test_the_pair_is_one_destination_and_not_two_descriptions_of_it(corpus, conn
         assert client.model_target is target
 
 
-def test_the_protected_file_is_refused_every_destination(corpus, conn):
-    """The standing rule, and it does NOT follow §17.13's sentence about protected
-    files going local. `model_route_permitted` bars a protected file on every
-    locality -- "marked and counted, never opened" -- and this build asks that
-    predicate as it stands rather than widening it. A `None` here is
-    `privacy_withheld` on the file's row: nothing assembled, nothing sent, and the
-    file present in the report rather than missing from it."""
-    for routing in (_both(), _cloud_only(), _local_only()):
-        for site in (A_FACT, C_PLACEMENT, G_SITUATION_SENSITIVITY):
-            route = cli.target_for(conn, routing, site,
-                                   operation_mode=SENDING_ON)
-            assert route(corpus["protected"]) is None
+def test_the_protected_file_goes_local_and_never_to_the_cloud(corpus, conn):
+    """`104` §18.7 (9 Sep 2026), the owner's ruling: protected material reaches the
+    LOCAL model only. `model_route_permitted` now asks the gate's own
+    `protected_cloud_denies`, so wherever a local target exists the protected file
+    takes it, and where only a cloud target exists it takes nothing -- a `None`
+    that is `privacy_withheld` on the file's row: nothing assembled, nothing sent,
+    the file present in the report rather than missing from it.
+
+    SABOTAGE: bar protected on every locality again and the `_both()` line goes
+    red at every site.
+    """
+    for site in (A_FACT, C_PLACEMENT, G_SITUATION_SENSITIVITY):
+        with_both = cli.target_for(conn, _both(), site, operation_mode=SENDING_ON)
+        assert with_both(corpus["protected"])[1].locality == LOCAL
+        local_only = cli.target_for(conn, _local_only(), site,
+                                    operation_mode=SENDING_ON)
+        assert local_only(corpus["protected"])[1].locality == LOCAL
+        cloud_only = cli.target_for(conn, _cloud_only(), site,
+                                    operation_mode=SENDING_ON)
+        assert cloud_only(corpus["protected"]) is None
 
 
 # --- sites C and G: their own text keeps them here ----------------------------
@@ -201,7 +210,7 @@ def test_site_c_splits_the_same_way_a_does_now_that_its_text_is_ratified(corpus,
     """C's `eliminate-v2` was ratified for the cloud on the owner's 9 September
     ruling, so the site gained a cloud candidate and splits exactly as A does: the
     classified, unprotected file to the provider, the one nothing has classified
-    kept here, the protected one asked nowhere.
+    kept here, the protected one kept here too (`104` §18.7).
 
     **This test read the other way one commit ago and the CODE did not change.**
     Under `ratified_local` the cloud candidate was dropped for the site and every
@@ -212,7 +221,7 @@ def test_site_c_splits_the_same_way_a_does_now_that_its_text_is_ratified(corpus,
     route = cli.target_for(conn, _both(), C_PLACEMENT, operation_mode=SENDING_ON)
 
     assert _where(route, corpus) == {
-        "ordinary": CLOUD, "unclassified": LOCAL, "protected": None}
+        "ordinary": CLOUD, "unclassified": LOCAL, "protected": LOCAL}
     assert route(corpus["ordinary"])[1].model_id == CLOUD_IDS[LOGIC]
     assert route(corpus["unclassified"])[1].model_id == LOCAL_ID
 
@@ -226,7 +235,7 @@ def test_site_g_keeps_every_file_on_this_device_too(corpus, conn):
                            operation_mode=SENDING_ON)
 
     assert _where(route, corpus) == {
-        "ordinary": LOCAL, "unclassified": LOCAL, "protected": None}
+        "ordinary": LOCAL, "unclassified": LOCAL, "protected": LOCAL}
 
 
 def test_the_sites_that_may_not_cross_are_still_on_with_both_models_configured(
@@ -269,7 +278,7 @@ def test_a_local_model_alone_behaves_exactly_as_it_did(corpus, conn):
                            operation_mode=SENDING_ON)
 
     assert _where(route, corpus) == {
-        "ordinary": LOCAL, "unclassified": LOCAL, "protected": None}
+        "ordinary": LOCAL, "unclassified": LOCAL, "protected": LOCAL}
 
 
 def test_with_sending_off_both_models_configured_still_sends_nothing(corpus,
@@ -283,7 +292,7 @@ def test_with_sending_off_both_models_configured_still_sends_nothing(corpus,
                            operation_mode=cli.OPERATION_MODE)
 
     assert _where(route, corpus) == {
-        "ordinary": LOCAL, "unclassified": LOCAL, "protected": None}
+        "ordinary": LOCAL, "unclassified": LOCAL, "protected": LOCAL}
     assert route(corpus["ordinary"])[1].model_id == LOCAL_ID
 
 
@@ -297,7 +306,7 @@ def test_the_mode_default_is_the_local_first_floor(corpus, conn):
     defaulted = cli.target_for(conn, _both(), A_FACT)
 
     assert (_where(defaulted, corpus) == _where(stated, corpus)
-            == {"ordinary": LOCAL, "unclassified": LOCAL, "protected": None})
+            == {"ordinary": LOCAL, "unclassified": LOCAL, "protected": LOCAL})
 
 
 # --- the seam: what the authorities carry and what the record says ------------
@@ -367,7 +376,8 @@ def test_site_as_authorities_carry_the_route_and_hold_no_single_pair(corpus,
     assert authorities.model_target is None
     assert authorities.route(corpus["ordinary"])[1].locality == CLOUD
     assert authorities.route(corpus["unclassified"])[1].locality == LOCAL
-    assert authorities.route(corpus["protected"]) is None
+    # `104` §18.7: the protected file keeps to the local model.
+    assert authorities.route(corpus["protected"])[1].locality == LOCAL
 
 
 def test_the_authorities_refuse_to_hold_both_spellings_at_once():
@@ -463,4 +473,4 @@ def test_site_c_asks_nobody_over_the_internet_when_sending_is_off(corpus, conn):
                            operation_mode=cli.OPERATION_MODE)
 
     assert _where(route, corpus) == {
-        "ordinary": LOCAL, "unclassified": LOCAL, "protected": None}
+        "ordinary": LOCAL, "unclassified": LOCAL, "protected": LOCAL}

@@ -564,20 +564,23 @@ def test_site_a_is_never_asked_the_school_of_one_file(tmp_path, stub, monkeypatc
 
 # --- the standing rule, under a model that is running -------------------------
 
-def test_a_protected_file_is_never_sent_to_the_local_model_either(
+def test_a_protected_file_reaches_the_local_model_and_only_the_local_model(
         tmp_path, stub, monkeypatch):
-    """MARKED AND COUNTED, NEVER OPENED -- and "never" includes a model on the
-    person's own machine.
+    """`104` §18.7 (9 Sep 2026), the owner's ruling, asked twice and confirmed:
+    protected material reaches the LOCAL model only.
 
-    The gate alone would not have carried this. `privacy.denial.protected_cloud_denies`
-    returns False for any locality that is not `cloud`, so a local target walks past
-    it; what holds the line is `cli.model_route_permitted`, which refuses a protected
-    file whatever the destination. This test exists because that is not obvious from
-    either function on its own, and because the local route is the first thing in
-    this product that could ever have tested it.
+    Until that day this test asserted the opposite -- no dossier about the
+    protected file, its secret in none of the bytes the server received -- on the
+    standing rule "marked and counted, never opened". The owner's word: files
+    should not be refused; the necessary information is processed and used, on
+    this machine. So a local run now builds a dossier about the protected file
+    like any other, and the half that must NOT move is the cloud half:
+    `test_a_cloud_model_without_consent_still_sends_nothing` below and
+    `test_per_file_model_route.test_the_protected_file_goes_local_and_never_to_the_
+    cloud` hold it.
 
-    Asserted twice over, because a count is not a guarantee: no dossier was built
-    about that file, AND its text is not in any of the bytes the server received.
+    SABOTAGE: make `cli.model_route_permitted` return `not record.protected`
+    again and the dossier count goes to zero.
     """
     database, report = _local_run(tmp_path, stub, monkeypatch)
 
@@ -592,11 +595,12 @@ def test_a_protected_file_is_never_sent_to_the_local_model_either(
     dossiers = _query(
         database, "SELECT COUNT(*) FROM llm_dossier WHERE subject_ref = ?",
         file_id)[0][0]
-    assert dossiers == 0, "a protected file reached a dossier"
-
-    for sent in stub.raw:
-        assert PROTECTED_SECRET.encode("utf-8") not in sent
-        assert b"Passport" not in sent
+    assert dossiers >= 1, (
+        "the protected file reached no dossier on a LOCAL run; the owner ruled it "
+        "reaches the local model: " + report)
+    # And every byte went to the one server this run has, on loopback: the stub
+    # IS the local model. Nothing else was configured to receive anything.
+    assert stub.requests, "nothing was sent at all, so the line above proves nothing"
 
 
 def test_the_other_files_were_sent_so_the_protected_one_is_a_refusal_not_a_silence(

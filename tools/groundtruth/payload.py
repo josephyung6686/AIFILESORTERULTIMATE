@@ -99,9 +99,12 @@ class FilePayload:
     over_ceiling: bool              # the BUILT dossier, whatever the gate then said
     canary_offered: bool            # a whole document was in what was offered
     #: Live `classifications.protected`. Read for ONE column below, and it is the
-    #: column that has to be zero: §7.3 forbids a protected file's NAME in a prompt,
-    #: not only its content.
+    #: column that has to be zero: a protected file's NAME crossing to a CLOUD
+    #: target. `104` §18.7 (9 Sep 2026): protected material reaches the LOCAL
+    #: model, so the name reaching a local target is the ruling working, not a
+    #: breach; `cloud_target` beside it says which this row's target was.
     protected: bool
+    cloud_target: bool
     #: §7.7's filename, which `104` R-06 made a released value rather than an
     #: admitted reference. `offered` is a `Filename` item in the request; `released`
     #: is the file's own name found verbatim in what came back out of the door.
@@ -160,10 +163,20 @@ class PayloadReport:
 
     @property
     def protected_filename_released(self) -> list[FilePayload]:
-        """The one that must be empty on every corpus, forever. §7.3: a Protected
-        Records file "must not cause filenames or content to be exposed in model
-        prompts at all", and that sentence carries no locality qualifier."""
-        return [f for f in self.filename_released if f.protected]
+        """The one that must be empty on every corpus, forever: a protected file's
+        name released to a CLOUD target.
+
+        Until `104` §18.7 (9 Sep 2026) this counted every locality, reading §7.3's
+        "must not cause filenames or content to be exposed in model prompts at
+        all" as the rule for every protected file. That sentence is about the
+        Protected Records TEMPLATE (`privacy.denial.is_protected_records`, S6);
+        the safety-domain `protected` flag this column reads is the other
+        mechanism, and the owner ruled it reaches the local model. A local target
+        seeing a protected name is therefore the product working; a cloud target
+        seeing one is the breach.
+        """
+        return [f for f in self.filename_released
+                if f.protected and f.cloud_target]
 
     @property
     def protected(self) -> list[FilePayload]:
@@ -386,6 +399,7 @@ def inspect_database(database: Path, corpus: Path, *,
             route = chosen is not None
             target = chosen[1] if chosen is not None else offered_target
             protected = file_id in protected_ids
+            cloud_target = target.locality == cli.CLOUD
 
             # `104` R-159: release is a question about the TARGET and about the
             # ceiling, so the instrument asks it about the SAME target the route was
@@ -438,7 +452,7 @@ def inspect_database(database: Path, corpus: Path, *,
                 built_tokens=built_tokens,
                 over_ceiling=built_tokens > report.ceiling,
                 canary_offered=canary_hit(offered, wanted),
-                protected=protected,
+                protected=protected, cloud_target=cloud_target,
                 # ASKED OF THE REQUEST, never assumed of the builder. The whole of
                 # `104` R-06 is that an item can be in a request and reach nothing,
                 # so "was it offered" and "was it released" have to be two readings
@@ -489,7 +503,8 @@ def inspect_database(database: Path, corpus: Path, *,
 
 
 def _nothing(*, path: str, route: bool, outcome: str, reason: str | None,
-             protected: bool = False, built_items: int = 0, built_bytes: int = 0,
+             protected: bool = False, cloud_target: bool = False,
+             built_items: int = 0, built_bytes: int = 0,
              built_tokens: int = 0, over_ceiling: bool = False,
              canary_offered: bool = False, filename_offered: bool = False
              ) -> FilePayload:
@@ -502,7 +517,7 @@ def _nothing(*, path: str, route: bool, outcome: str, reason: str | None,
         built_items=built_items, built_bytes=built_bytes,
         built_tokens=built_tokens, over_ceiling=over_ceiling,
         canary_offered=canary_offered, protected=protected,
-        filename_offered=filename_offered,
+        cloud_target=cloud_target, filename_offered=filename_offered,
         released_items=0, released_bytes=0, measured_tokens=0, canary_hit=False,
         filename_released=False)
 

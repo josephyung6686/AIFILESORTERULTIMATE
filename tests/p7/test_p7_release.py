@@ -1050,23 +1050,33 @@ def test_the_released_filename_carries_an_audit_row_naming_its_address(gate_conn
     assert "notes.pdf" not in row["explanation"]
 
 
-def test_a_filename_is_never_released_for_a_protected_file(gate_conn):
-    """§7.3, and it is the whole reason the kind goes through a door at all: a
-    Protected Records file "must not cause filenames or content to be exposed in
-    model prompts". Serialising the name opened no second route for that one."""
+def test_a_protected_files_name_goes_to_the_local_model_and_never_to_the_cloud(
+        gate_conn):
+    """§7.3 as the owner read it on 9 Sep 2026 (`104` §18.7): a Protected Records
+    file "should normally remain local-only", and local-only is where its name
+    goes. Until that ruling this test asserted the name was refused for ANY target;
+    the cloud half of that is unchanged and asserted second.
+
+    SABOTAGE: drop `and locality == CLOUD_LOCALITY` from `items.check_item`'s
+    protected arm and the first decision becomes `Denied` again.
+    """
     file_id = _file(gate_conn, "passport.pdf", "hash-passport")
     _policy(gate_conn, "local_model")
     _filename_evidence(gate_conn, file_id, "passport.pdf")
     _classify(gate_conn, file_id, "hash-passport",
               handling_class="highly_sensitive_credential_bearing", protected=True)
+    name = Filename(file_id=file_id, observation_key="sha256:" + "f" * 64)
 
-    decision = _gate(gate_conn, classifier=_no_redaction).release(
-        _request(items=(Filename(file_id=file_id, observation_key="sha256:" + "f" * 64),), model_target=LOCAL,
-                 file_ids=(file_id,), stage="residual"))
+    local = _gate(gate_conn, classifier=_no_redaction).release(
+        _request(items=(name,), model_target=LOCAL, file_ids=(file_id,),
+                 stage="residual"))
+    assert isinstance(local, Released), local
 
-    assert isinstance(decision, Denied)
-    assert decision.reason == "protected_records_template"
-    assert not getattr(decision, "materialised_items", ())
+    over_the_internet = _gate(gate_conn, classifier=_no_redaction).release(
+        _request(items=(name,), model_target=CLOUD, file_ids=(file_id,),
+                 stage="residual"))
+    assert isinstance(over_the_internet, Denied)
+    assert not getattr(over_the_internet, "materialised_items", ())
 
 
 def test_a_filename_with_no_filesystem_observation_refuses_rather_than_guessing(

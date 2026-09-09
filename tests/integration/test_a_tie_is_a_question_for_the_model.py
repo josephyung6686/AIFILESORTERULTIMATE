@@ -281,7 +281,8 @@ def test_a_local_model_may_already_be_asked_about_this_file(measured):
 
     permitted = cli.model_route_permitted(
         measured, locality="local",
-        unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL)
+        unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL,
+        operation_mode=cli.OPERATION_MODE)
 
     assert cli.UNCLASSIFIED_PERMITS_LOCAL is True
     assert permitted(file_id) is True, (
@@ -299,7 +300,8 @@ def test_and_a_cloud_target_is_still_refused_for_it(measured):
 
     permitted = cli.model_route_permitted(
         measured, locality="cloud",
-        unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL)
+        unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL,
+        operation_mode=cli.CLOUD_ENABLED_MODE)
 
     assert permitted(file_id) is False
 
