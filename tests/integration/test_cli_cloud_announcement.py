@@ -23,6 +23,9 @@ from pathlib import Path
 import cli
 
 
+from types import SimpleNamespace
+
+
 class _Routing:
     """Enough of `TierRouting` to be announced. It is never called, which is the point.
 
@@ -42,6 +45,22 @@ class _Routing:
 
     def locality_for(self, site):
         return self.locality
+
+    def route_for(self, site, *, cloud_permitted: bool):
+        """THE THIRD QUESTION, since `104` §17.13 ruling 3.
+
+        This stub is a ONE-DESTINATION deployment, so it answers with the same
+        target both ways -- which is exactly what `TierRouting.route_for` does when
+        one kind of model is configured, and it keeps every test in this file about
+        the cloud notice it was written for. The two-destination notice has its own
+        tests in `tests/test_cli_model_route.py`.
+        """
+        from privacy.release import ModelTarget
+
+        target = ModelTarget(locality=self.locality,
+                             model_id=self.model_id_for(site),
+                             provider="deepseek")
+        return SimpleNamespace(model_target=target), target
 
 
 class _Consent:
@@ -195,10 +214,22 @@ def test_the_wired_set_agrees_with_the_injections_rather_than_with_itself():
     grouping = _keywords_of("CorpusAuthorities")
 
     # A -- wired. Every one of `run_call`'s four is a real expression.
-    for name in ("gate", "model_client", "prompt"):
+    #
+    # `route_for` STANDS WHERE `model_client` STOOD, since `104` §17.13 ruling 3.
+    # Site A has two destinations now -- the cloud model where the cloud gate
+    # permits the file, the local one where it does not -- so the single client is
+    # `None` on purpose and the route is what says a request can be built. Reading
+    # `model_client` here would now assert the absence of the thing that used to
+    # prove the site was wired, which is the tautology this test exists to avoid,
+    # inverted.
+    for name in ("gate", "route_for", "prompt"):
         assert name in fact and not _is_none(fact[name]), (
             f"A_fact's {name} is absent or None, so `WIRED_CALL_SITES` claims a "
             "site that cannot construct a request")
+    assert _is_none(fact["model_client"]) and _is_none(fact["model_target"]), (
+        "a single pair beside a per-file route describes a destination that is "
+        "only sometimes the one used; `FactCallAuthorities` refuses both at once "
+        "and the composition root must state the route")
     assert cli.A_FACT in cli.WIRED_CALL_SITES
 
     # C and D -- INJECTED in observe mode, and still NOT wired. They no longer
