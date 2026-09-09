@@ -55,7 +55,8 @@ from llm_harness.records import EvidenceItem, PromptDefinition
 # spellings of a rule the owner has now divided by the destination.
 from model_facts import may_be_released
 from privacy.items import Excerpt, sensitive_observation_keys
-from privacy.release import ModelCallRequest, ModelTarget, Target
+from privacy.release import (
+    MalformedRequest, ModelCallRequest, ModelTarget, Target)
 from placement.vocabulary import FILE
 
 #: P8's stage name for a placement call, and the `ModelCallRequest.stage` §8.4's
@@ -71,7 +72,7 @@ PLACEMENT_STAGE: str = "placement_interpretation"
 MODEL_PATH_FIELDS: tuple[str, ...] = (
     "gate", "model_client", "prompt", "residual_prompt", "call_dependencies",
     "model_call_request", "chosen_node_of", "residual_action_of",
-    "sensitivity_policy", "model_target", "usage_recorder",
+    "sensitivity_policy", "model_target", "route_for", "usage_recorder",
 )
 
 
@@ -96,6 +97,11 @@ class PlacementCallAuthorities:
     """
 
     gate: object
+    #: THE ONE PAIR, or `None` twice when the route is per file (`104` §17.13
+    #: ruling 3). A deployment with one destination states it here and `route`
+    #: below hands it back for every file; a deployment with two states
+    #: `route_for` instead and leaves these absent. `route` is the only read of
+    #: either, so two spellings cannot become two behaviours.
     model_client: object
     prompt: PromptDefinition | None
     #: SITE D'S OWN TEXT, and `None` is legal on exactly the terms
@@ -132,6 +138,30 @@ class PlacementCallAuthorities:
     #: and a deployment recording none is a real deployment. `104` R-145: site C
     #: wrote responses with no `llm_call_usage` row until it travelled here.
     usage_recorder: object | None = None
+    #: WHICH MODEL ANSWERS ABOUT THIS FILE -- `callable(file_id)` returning the
+    #: `(client, target)` pair or `None` -- or `None` itself when the pair above is
+    #: the whole answer. `104` §17.13 ruling 3: the cloud model where the cloud
+    #: gate permits the file, the local one where it does not, no call where
+    #: neither does. Defaulted for the same reason `usage_recorder` is: a
+    #: deployment that has one destination already said so above, and every caller
+    #: that predates the ruling keeps working unchanged.
+    route_for: object | None = None
+
+    def route(self, file_id: str):
+        """The `(client, target)` pair this FILE is answered by, or `None`.
+
+        One read for both spellings. `None` is a file that may reach no model at
+        all, and the caller assembles nothing rather than sending anywhere.
+
+        No pair-shaped check here, unlike `model_facts._one_route_pair`: sites C
+        and D take their client as `object` -- P11 supplies a `Gate` and a client
+        it never inspects -- so there is no `model_target` on it to compare, and a
+        check that only ran for some callers would be a guarantee that reads as
+        universal and is not.
+        """
+        if self.route_for is None:
+            return self.model_client, self.model_target
+        return self.route_for(file_id)
 
 
 def releasable_excerpts(conn: sqlite3.Connection, *,
@@ -281,13 +311,26 @@ def _model_call_request_builder(conn: sqlite3.Connection, *,
 
     def build(*, subject_ref: str, evidence_items: Sequence[EvidenceItem],
               max_dossier_tokens: int) -> ModelCallRequest:
+        file_id = file_id_of(subject_ref)
+        # `104` §17.13 ruling 3: THIS FILE's destination, asked once and used for
+        # both the address and the release rules below. A protected or unclassified
+        # file goes to the local model where the cloud may not see it, so a target
+        # read off a field would address one destination for every file in the run.
+        chosen = authorities.route(file_id)
+        if chosen is None:
+            raise MalformedRequest(
+                f"file {file_id!r} may reach no model in this run, so there is no "
+                f"target to address a placement request to. `may_assemble_dossier` "
+                f"answers the same question before a dossier is built and this is "
+                f"the backstop behind it")
+        model_target = chosen[1]
         return ModelCallRequest(
             stage=PLACEMENT_STAGE,
             # ONE file. A placement call decides where one subject goes, and a
             # target naming more would authorise a release about files the judge
             # was never asked about.
-            target=Target(file_ids=(file_id_of(subject_ref),), group_id=None),
-            model_target=authorities.model_target,
+            target=Target(file_ids=(file_id,), group_id=None),
+            model_target=model_target,
             requested_items=releasable_excerpts(
                 conn,
                 evidence_refs=tuple(
@@ -297,7 +340,7 @@ def _model_call_request_builder(conn: sqlite3.Connection, *,
                 # lines above. Reading it off the authorities twice would let the
                 # release rules answer about one destination while `model_target`
                 # named another.
-                locality=authorities.model_target.locality),
+                locality=model_target.locality),
             prompt_template_id=prompt.template_id,
             prompt_fingerprint=prompt_fingerprint(prompt),
             max_dossier_tokens=max_dossier_tokens)
@@ -415,6 +458,10 @@ def model_path_injections(conn: sqlite3.Connection,
         "sensitivity_policy": authorities.sensitivity_policy,
         # `104` R-118: §8.4's gate reads the target's LOCALITY before a dossier
         # exists, and the builder above closes over the same target too late.
+        # `104` §17.13 ruling 3: and it reads it PER FILE, so the route travels
+        # beside the pair and `PipelineInputs.route_in_force` picks which spelling
+        # is in force.
         "model_target": authorities.model_target,
+        "route_for": authorities.route_for,
         "usage_recorder": authorities.usage_recorder,
     }

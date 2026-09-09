@@ -136,12 +136,28 @@ class TierRouting:
 
     tier_of_call_site: Mapping[str, str]
     client_of_tier: Mapping[str, ModelClient]
+    #: THE SECOND HALF OF A TWO-TARGET DEPLOYMENT, and empty is the ordinary
+    #: state (`104` §17.13 ruling 3). When a person has BOTH a cloud key and a
+    #: model on their own machine, `client_of_tier` holds the cloud client for
+    #: every tier and this holds the local one for every tier, and `route_for`
+    #: below is what picks between them PER FILE rather than per site. When only
+    #: one kind of model is configured this is empty, `client_of_tier` holds
+    #: whichever one it is, and every method here answers exactly what it
+    #: answered before this field existed.
+    #:
+    #: `client_of_tier` stays "the client this site gets when nothing says
+    #: otherwise", which on a two-target deployment is the cloud one -- so
+    #: `client_for`, `model_id_for` and `locality_for` all describe the CLOUD
+    #: half, and a caller that needs the other half asks `route_for` for it.
+    local_client_of_tier: Mapping[str, ModelClient] = MappingProxyType({})
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "tier_of_call_site",
                            _checked_table(self.tier_of_call_site))
         object.__setattr__(self, "client_of_tier",
                            _checked_clients(self.client_of_tier))
+        object.__setattr__(self, "local_client_of_tier",
+                           _checked_clients(self.local_client_of_tier))
 
     def tier_for(self, call_site: str) -> str:
         """Which tier `83` §3 routes this site to, or a refusal naming the site."""
@@ -189,6 +205,44 @@ class TierRouting:
         the screen and the gate ask the same object the same question.
         """
         return self.client_for(call_site).model_target.locality
+
+    def route_for(self, call_site: str, *,
+                  cloud_permitted: bool) -> tuple[ModelClient, ModelTarget]:
+        """THE PAIR THIS SITE USES FOR A FILE THE CLOUD MAY OR MAY NOT SEE.
+
+        `104` §17.13 ruling 3, in the one place that holds both clients: *"a
+        protected file, and an unclassified file until site G classifies it, goes
+        to the local model; everything else goes to the cloud."* Which files those
+        are is a question about a person's own corpus and is not asked here --
+        `cli.model_route_permitted` reads the classification record and
+        `cli.target_for` asks it per file. What is here is the other half: given
+        the answer, which client and which target.
+
+        **The target is read off the client and returned beside it** rather than
+        built again, for the reason `FactCallAuthorities.__post_init__` already
+        gives: two values would let the gate decide about one destination while the
+        bytes went to another.
+
+        **WITH ONE KIND OF MODEL CONFIGURED IT RETURNS THAT ONE, both ways.** A
+        deployment with only a local model answers every site from it whatever
+        `cloud_permitted` says, exactly as it did before this method existed; a
+        deployment with only a cloud key does the same with the cloud client. That
+        is deliberately NOT a fallback of the kind `83` §4 forbids -- the tier is
+        unchanged either way, and there is no second tier to be quietly downgraded
+        to. What it does mean is that a caller must not read a `False` here as
+        "this went local": the LOCALITY of the returned target is the answer, and
+        `cli.target_for` checks it before it accepts the pair, so a file the cloud
+        may not see gets no call at all rather than the cloud client.
+
+        The refusals stay at the root: an unrouted site and a tier with no client
+        refuse from here through `tier_for` and `client_for`, in the same words.
+        """
+        tier = self.tier_for(call_site)
+        if not cloud_permitted and tier in self.local_client_of_tier:
+            local = self.local_client_of_tier[tier]
+            return local, local.model_target
+        client = self.client_for(call_site)
+        return client, client.model_target
 
 
 def deepseek_routing(*, api_key: str | None, base_url: str | None,
@@ -328,3 +382,46 @@ def ollama_routing(*, model_id: str | None, base_url: str | None,
     # the tier that site was already routed to and not a second opinion about it.
     clients[table[serves]] = client
     return TierRouting(tier_of_call_site=table, client_of_tier=clients)
+
+
+def cloud_and_local_routing(*, beside: TierRouting, model_id: str | None,
+                            base_url: str | None,
+                            max_response_tokens: int, context_ceiling: int,
+                            timeout_seconds: float,
+                            on_usage=None) -> TierRouting:
+    """BOTH, per tier, so the choice can be made per file instead of per site.
+
+    **What it replaces, and why the old shape could not carry the ruling.**
+    `ollama_routing(serves=..., beside=...)` gives the local model ONE call site's
+    tier and leaves every other tier on the cloud client -- a per-SITE split, and
+    it is what `cli.model_route` built until now: site A local, the rest cloud.
+    `104` §17.13 ruling 3 is per FILE: *"a protected file, and an unclassified file
+    until site G classifies it, goes to the local model; everything else goes to
+    the cloud."* One site cannot be two destinations while one client answers for
+    it, so this holds both and `TierRouting.route_for` picks.
+
+    **Nothing about a person's files is decided here** and this function reads
+    none of them. It is composition: the cloud clients arrive already built in
+    `beside`, the local client is built exactly as `ollama_routing` builds it --
+    by CALLING it, so there is one spelling of the local target, the window it
+    carries and the transport behind it -- and the result is the two mappings side
+    by side under the one tier table.
+
+    **The tier table is `beside`'s and is not re-supplied.** A second table here
+    could route a site to one tier on the cloud half and another tier on the local
+    half, which is the same site being two policies; `83` §3 has one answer per
+    site and this keeps it one.
+
+    Every refusal is the one the two functions already make, in their own words: a
+    deployment that names no local model refuses by `LOCAL_MODEL_NAME`, and an
+    unroutable site refuses at `beside`'s construction before this is reached.
+    """
+    local = ollama_routing(
+        model_id=model_id, base_url=base_url,
+        tier_of_call_site=beside.tier_of_call_site,
+        max_response_tokens=max_response_tokens,
+        context_ceiling=context_ceiling,
+        timeout_seconds=timeout_seconds, on_usage=on_usage)
+    return TierRouting(tier_of_call_site=beside.tier_of_call_site,
+                       client_of_tier=beside.client_of_tier,
+                       local_client_of_tier=local.client_of_tier)

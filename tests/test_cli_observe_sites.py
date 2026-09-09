@@ -442,13 +442,21 @@ class _LocalClient:
 
 
 class _LocalRouting:
-    """`TierRouting`, reduced to the two questions the B seam asks it."""
+    """`TierRouting`, reduced to the three questions the B seam asks it.
+
+    `route_for` joined the two since `104` §17.13 ruling 3: a deployment with one
+    installed model answers both ways with it, and `site_destination` is what asks.
+    """
 
     def locality_for(self, _call_site: str) -> str:
         return LOCAL
 
     def client_for(self, _call_site: str):
         return _LocalClient()
+
+    def route_for(self, _call_site: str, *, cloud_permitted: bool):
+        client = _LocalClient()
+        return client, client.model_target
 
 
 def _fact_authorities_with(**overrides):

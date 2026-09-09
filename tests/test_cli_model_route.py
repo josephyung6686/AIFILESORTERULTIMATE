@@ -374,16 +374,47 @@ def test_a_local_model_alone_is_a_model_and_the_run_has_one(monkeypatch):
     assert CREDENTIAL_NAME not in printed
 
 
-def test_the_local_model_goes_first_when_a_key_is_there_too(monkeypatch):
-    """D1: "Local model first". Beside a cloud key the local model answers the
-    fact question and the cloud models keep the questions it is not asked -- which
-    is what makes this a widening rather than a swap."""
+def test_a_key_and_a_local_model_together_hold_both_at_every_site(monkeypatch):
+    """`104` §17.13 ruling 3, at the composition root.
+
+    **This replaces D1's per-SITE split and the assertion that pinned it.** That
+    one read `routing.model_id_for(A_FACT) == "qwen3:8b"`: beside a cloud key the
+    local model took site A's whole tier and the cloud kept the rest, so a run
+    either asked a provider every fact question or none of them -- and none was the
+    answer, which left every classified file answered by an 8b model on this
+    machine while half the corpus was refused outright.
+
+    The ruling is per FILE, and a site that is two destinations cannot be one
+    client. So both are held, `client_for` still describes the cloud half for the
+    screen and the observe gates, and `route_for` is where the second one lives.
+    WHICH files go where is `cli.target_for`'s and is tested there; this is only
+    that the root builds a routing that can answer both ways.
+    """
     routing, _ = _route(monkeypatch, dict(ENV, **LOCAL_ENV))
 
-    assert routing.model_id_for(A_FACT) == "qwen3:8b"
-    assert routing.client_for(A_FACT).model_target.locality == LOCAL
+    cloud_client, cloud_target = routing.route_for(A_FACT, cloud_permitted=True)
+    local_client, local_target = routing.route_for(A_FACT, cloud_permitted=False)
+
+    assert cloud_target.locality == "cloud"
+    assert cloud_target.model_id == "a-logician"
+    assert local_target.locality == LOCAL
+    assert local_target.model_id == "qwen3:8b"
+    assert cloud_client is not local_client
+    # FAST is untouched and still describes the model the key paid for.
     assert routing.model_id_for(D_RESIDUAL) == "a-sprinter"
     assert routing.client_for(D_RESIDUAL).model_target.locality == "cloud"
+
+
+def test_a_local_model_alone_is_unchanged_by_the_per_file_route(monkeypatch):
+    """The deployment the ruling does not touch, pinned beside the one it does: one
+    installed model is the destination for every site and both ways of asking."""
+    routing, _ = _route(monkeypatch, LOCAL_ENV)
+
+    for permitted in (True, False):
+        client, target = routing.route_for(A_FACT, cloud_permitted=permitted)
+        assert target.locality == LOCAL
+        assert target.model_id == "qwen3:8b"
+        assert client is routing.client_for(A_FACT)
 
 
 def test_with_neither_name_the_sentence_offers_both_ways_to_have_a_model(monkeypatch):
