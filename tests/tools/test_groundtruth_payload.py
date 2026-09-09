@@ -143,8 +143,10 @@ def test_no_dossier_is_over_the_ceiling_and_no_whole_document_escapes(
     """`104` §7 Phase 1 step 1's pass condition, on a corpus a test may carry.
 
     Three numbers, and each is zero for its own reason: the ceiling is seeded at
-    4,000 and measured (`104` SF-5); a span-less whole-document body is never
-    OFFERED, because a text unit stands at its own path (SF-1); and nothing that
+    4,000 and measured (`104` SF-5); a whole document LONGER than the ceiling is
+    never OFFERED, because the stage withholds it and mints its opening instead
+    (`104` §17.13, R-169 -- a whole document that fits the ceiling is offered to
+    either target by the ruling and is not a canary any more); and nothing that
     was not offered can be released.
 
     `over_ceiling` and `canary_offered` are read off what was BUILT and not off

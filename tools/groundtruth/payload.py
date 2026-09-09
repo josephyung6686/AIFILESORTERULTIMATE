@@ -359,14 +359,17 @@ def inspect_database(database: Path, corpus: Path, *,
             corpus_file_count=len(roster), policy_version=policy_version,
             wire_handle_key=bytes(32), schema=schema, folder_levels=levels,
             user_id="payload-inspection",
-            now=lambda: "2026-01-01T00:00:00+00:00")
-        # R-02: the route now answers per LOCALITY, because that is the question
-        # `Gate.release` answers and the two disagreeing is what this instrument
-        # was built to measure. The target is the one the routing above built, so
-        # the route is asked about the same destination the gate is asked about.
-        permitted = cli.model_route_permitted(
-            conn, locality=authorities.model_target.locality,
-            unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL)
+            now=lambda: "2026-01-01T00:00:00+00:00",
+            # The same mode the policy above puts in force, so `target_for`
+            # sees the cloud candidate this instrument exists to measure.
+            operation_mode=cli.CLOUD_ENABLED_MODE)
+        # `104` R-170: THE ROUTE IS PER FILE. `authorities.route(file_id)` is the
+        # one the fact pass asks (`model_facts.fact_call_stage`), so this asks it
+        # and never respells it. Where it answers None the route refused, and the
+        # instrument still measures the payload against the destination the
+        # routing offers -- R-02's question is whether the gate and the route
+        # disagree, which needs the gate asked about the refused destination too.
+        offered_target = routing.route_for(cli.A_FACT, cloud_permitted=True)[1]
 
         ceiling = get_ceiling(conn, "model.max_dossier_tokens_per_call")
         if ceiling is None:
@@ -378,7 +381,9 @@ def inspect_database(database: Path, corpus: Path, *,
             row = get_file(conn, file_id)
             path = _relative(row["current_path"], root) if row else file_id
             name = row["filename"] if row else ""
-            route = bool(permitted(file_id))
+            chosen = authorities.route(file_id)
+            route = chosen is not None
+            target = chosen[1] if chosen is not None else offered_target
             protected = file_id in protected_ids
 
             # `104` R-159: release is a question about the TARGET and about the
@@ -388,7 +393,7 @@ def inspect_database(database: Path, corpus: Path, *,
             observations = releasable_observations(
                 conn, file_id=file_id, content_hash=content_hash,
                 limit=authorities.max_released_observations,
-                locality=authorities.model_target.locality,
+                locality=target.locality,
                 ceiling=report.ceiling)
             if not observations:
                 report.files.append(_nothing(
@@ -403,7 +408,7 @@ def inspect_database(database: Path, corpus: Path, *,
                 # the `filename canary: offered` column counts what a real run would
                 # offer rather than what this file happens to pass (`104` R-06).
                 filename=filename_citation(conn, file_id),
-                model_target=authorities.model_target,
+                model_target=target,
                 prompt=authorities.prompt,
                 max_dossier_tokens=authorities.max_dossier_tokens)
 
@@ -413,7 +418,14 @@ def inspect_database(database: Path, corpus: Path, *,
             # corpus forever. `104` R-07's 45,843 bytes is a size at this line.
             offered = tuple(one.raw_value for one in observations)
             built_tokens = dossier_tokens(offered)
-            wanted = _whole_document_texts(conn, file_id, content_hash)
+            # `104` §17.13: a whole document that FITS the ceiling is offered to
+            # either target by the ruling, so it is no longer a canary. The whole
+            # documents that must never be offered are the ones LONGER than the
+            # ceiling -- `items.check_item`'s whole document -- and those are what
+            # this counts. A planted canary is a sentence and is always looked for.
+            wanted = tuple(
+                text for text in _whole_document_texts(conn, file_id, content_hash)
+                if dossier_tokens((text,)) > report.ceiling)
             if canary:
                 wanted = wanted + (canary,)
             built = dict(
