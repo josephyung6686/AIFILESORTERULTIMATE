@@ -200,6 +200,14 @@ def test_dossier_request_is_frozen_reference_only():
         "model_call_request",
         "plan_version",
         "evidence_snapshot_id",
+        # `104` §18.2 gap 5. What the dossier ceiling cut out of this file's offer,
+        # as a COUNT and its bytes -- never the readings themselves, which is why two
+        # integers can live on a record whose whole rule is reference-only. The fill
+        # dropped them with a bare `continue` and the run then reported the same
+        # dossier for a file that carried its whole evidence and a file that carried
+        # a quarter of it. Defaulted, so P9's and P10's requests construct unchanged.
+        "readings_dropped",
+        "readings_dropped_bytes",
     )
     assert isinstance(request.model_call_request, ModelCallRequest)
     forbidden_content_fields = {
@@ -207,6 +215,13 @@ def test_dossier_request_is_frozen_reference_only():
         "excerpt_span", "raw_value", "observation_body",
     }
     assert not (set(_field_names(DossierRequest)) & forbidden_content_fields)
+    # A cut is a count AND its bytes: half a measurement would let the screen print
+    # "nothing was left out" beside a number saying a page was.
+    with pytest.raises(MalformedRecord):
+        dataclasses.replace(request, readings_dropped=3)
+    with pytest.raises(MalformedRecord):
+        dataclasses.replace(request, readings_dropped=-1,
+                            readings_dropped_bytes=-1)
     with pytest.raises(dataclasses.FrozenInstanceError):
         request.subject_ref = "other"  # type: ignore[misc]
 
@@ -614,6 +629,16 @@ def test_grounding_report_carries_the_spec_measurement_fields():
         # and a paragraph that is really one long line are different defects.
         "line_units_released",
         "longest_line_unit_length",
+        # `104` §18.2 gap 5's pair, and it is the OPPOSITE measurement to the four
+        # above: those count what left the device, this counts what the dossier
+        # ceiling stopped from leaving. Both belong on one record because a person
+        # reading how much text a call carried, with no number beside it for how much
+        # it could not, cannot tell a model that was shown everything and said little
+        # from a model that was shown a quarter of the file. Copied off
+        # `DossierRequest` by the harness rather than computed here: the cut happened
+        # in the builder's fill, before this validator saw anything.
+        "readings_dropped",
+        "readings_dropped_bytes",
     )
     assert report.release_audit_id == 17
     with pytest.raises((MalformedRecord, ValueError)):

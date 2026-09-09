@@ -397,8 +397,14 @@ def test_a_cloud_call_is_bound_by_the_ceiling_alone_like_a_local_one():
     and on nothing else.
     """
     readings = [_Reading(f"r{n}", 10) for n in range(20)]
-    taken = within_dossier_budget(readings, ceiling=1_000_000)
-    assert taken == tuple(readings)
+    # `104` §18.2 gap 5: the fill answers a `DossierFill` -- what it took AND what
+    # the ceiling cut -- so the claim this test always made is now the `.taken` half,
+    # and the other half is asserted beside it because a slack ceiling cutting
+    # anything would be the same defect stated the other way round.
+    fill = within_dossier_budget(readings, ceiling=1_000_000)
+    assert fill.taken == tuple(readings)
+    assert fill.dropped == ()
+    assert fill.dropped_bytes == 0
 
 
 def test_a_local_call_ignores_the_count_and_stops_at_the_ceiling():
@@ -413,9 +419,14 @@ def test_a_local_call_ignores_the_count_and_stops_at_the_ceiling():
     # readings' cost and not five hundred characters. Derived from the readings
     # rather than typed, and short of a sixth by one byte.
     ceiling = sum(released_wire_cost(one) for one in readings[:6]) - 1
-    taken = within_dossier_budget(readings, ceiling=ceiling)
-    assert taken == tuple(readings[:5])
-    assert sum(released_wire_cost(one) for one in taken) <= ceiling
+    fill = within_dossier_budget(readings, ceiling=ceiling)
+    assert fill.taken == tuple(readings[:5])
+    assert sum(released_wire_cost(one) for one in fill.taken) <= ceiling
+    # `104` §18.2 gap 5: the fifteen that did not fit are the CUT, and they are
+    # returned rather than dropped in silence. Every reading is in exactly one half,
+    # which is what makes the two counts a complete account of the offer.
+    assert fill.dropped == tuple(readings[5:])
+    assert len(fill.taken) + len(fill.dropped) == len(readings)
 
 
 def test_a_reading_that_does_not_fit_is_skipped_and_the_walk_continues():
@@ -428,14 +439,21 @@ def test_a_reading_that_does_not_fit_is_skipped_and_the_walk_continues():
 
     SABOTAGE: turn the `continue` in `within_dossier_budget` into a `break` and this
     goes red while the test above it still passes.
+
+    SABOTAGE (`104` §18.2 gap 5): drop the `dropped.append` before the `continue` and
+    the last two assertions go red -- the walk still carries the right readings and
+    the run can no longer say what it left behind, which is the silence the gap is
+    about.
     """
     small_one = _Reading("small-1", 40)
     enormous = _Reading("enormous", 5_000)
     small_two = _Reading("small-2", 30)
-    taken = within_dossier_budget(
+    fill = within_dossier_budget(
         [small_one, enormous, small_two],
         ceiling=released_wire_cost(small_one) + released_wire_cost(small_two))
-    assert taken == (small_one, small_two)
+    assert fill.taken == (small_one, small_two)
+    assert fill.dropped == (enormous,)
+    assert fill.dropped_bytes == released_wire_cost(enormous)
 
 
 def test_the_order_is_the_callers_and_the_fill_does_not_re_sort():
@@ -447,18 +465,24 @@ def test_the_order_is_the_callers_and_the_fill_does_not_re_sort():
     """
     readings = [_Reading("first", 60), _Reading("second", 20),
                 _Reading("third", 20)]
-    taken = within_dossier_budget(
+    fill = within_dossier_budget(
         readings, ceiling=sum(released_wire_cost(one) for one in readings))
-    assert [one.name for one in taken] == ["first", "second", "third"]
+    assert [one.name for one in fill.taken] == ["first", "second", "third"]
 
 
 def test_a_zero_remainder_takes_nothing_rather_than_taking_one_anyway():
     """The state `fact_call_stage` reaches when the anchor context has spent the
     whole ceiling. Taking a reading anyway would breach the ceiling the ladder is
-    about to report as met, which is the disagreement `104` R-159 closed."""
+    about to report as met, which is the disagreement `104` R-159 closed.
+
+    `104` §18.2 gap 5: and the reading is in the CUT rather than nowhere. A zero
+    remainder is the state where the whole of a file's own evidence is lost to the
+    anchor context, which is precisely the state a person most needs told about.
+    """
     readings = [_Reading("only", 1)]
-    assert within_dossier_budget(
-        readings, ceiling=0) == ()
+    fill = within_dossier_budget(readings, ceiling=0)
+    assert fill.taken == ()
+    assert fill.dropped == tuple(readings)
 
 
 def test_many_tiny_readings_are_bounded_by_their_bytes_on_the_wire():
@@ -474,10 +498,17 @@ def test_many_tiny_readings_are_bounded_by_their_bytes_on_the_wire():
     """
     readings = [_Reading(f"cell-{n}", 30) for n in range(509)]
     ceiling = 4_000
-    taken = within_dossier_budget(readings, ceiling=ceiling)
+    fill = within_dossier_budget(readings, ceiling=ceiling)
+    taken = fill.taken
     assert 0 < len(taken) < len(readings)
     assert sum(released_wire_cost(one) for one in taken) <= ceiling
     assert taken == tuple(readings[:len(taken)])
+    # `104` §18.2 gap 5: this is the shape the cut was invented for. A spreadsheet
+    # whose 509 cells become a handful of released readings is the file whose report
+    # most needs to say how much was left out, and before the gap was closed the
+    # screen said nothing at all.
+    assert len(fill.dropped) == len(readings) - len(taken)
+    assert fill.dropped_bytes > ceiling
 
 
 def test_the_wire_cost_is_the_bytes_the_dossier_writes_for_the_reading():

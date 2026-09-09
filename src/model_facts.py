@@ -22,21 +22,34 @@ budget, clock, model, prompt, normaliser and oracle arrives in `FactCallAuthorit
 with no default, and `src/cli.py` is the only file that fills one in. What this
 module owns is the SHAPE of the request and the order the checks run in.
 
-**The three refusals that happen before a call is built**, each because the
-alternative is worse than not asking:
+**The four states in which no call is built**, each because the alternative is
+worse than not asking, and each NAMED since `104` §18.2 gap 4 (9 Sep 2026):
 
   * nothing pending -- every field the schema allows is already settled, so the
     question has no content and the spend buys a repetition of what is known;
-  * nothing releasable -- every observation is in an always-local zone, is
-    unbounded, or was signalled sensitive, so the dossier would be empty and the
-    model would be asked to answer from nothing;
+  * no route -- neither gate permits this file a model, which is a fact about the
+    person's policy and about this file's class;
+  * nothing releasable -- either P5 read nothing at all, or every observation is in
+    an always-local zone, is unbounded, or was signalled sensitive, so the dossier
+    would be empty and the model would be asked to answer from nothing;
   * no allowlist -- no domain activated and no universal field remains, so §3.5's
     closed vocabulary is empty and every answer would be out of schema.
 
-Each returns `()` and leaves no `unresolved` row: they are not refusals ABOUT the
-file, they are the absence of a question. The refusals that ARE about the file --
-the privacy bar and the budget bar -- belong to `FactResolver`, which writes them,
-and to `Gate`, which records its own.
+**Each of them used to return a bare `()`, and that was the defect.** No call, no
+`unresolved` row, and `FactResolver` then appended `llm` to `stages_run` because it
+recorded the stage's INVOCATION rather than its outcome -- so the run reported the
+file as one a model had been asked about and had had nothing to say. §13.1's bar and
+the constitution's second rule both say the opposite: what is skipped is counted and
+NAMED, never silently omitted. Each now returns a `facts.resolver.StageOutcome`
+carrying one of the words in `NOT_ASKED_REASONS` and the P6 `unresolved` reason it
+owes a row under; the resolver writes one row per pending field and publishes the
+word in `ResolveResult.stages_not_asked`, and `cli._print_fact_pass` prints "not
+asked" with the sentence that word earns. The reason vocabulary is P6's own and this
+module mints no member of it.
+
+The refusals that are decided BEFORE the stage is reached -- the privacy bar and the
+budget bar -- still belong to `FactResolver`, which writes them through the same
+writer, and to `Gate`, which records its own.
 """
 from __future__ import annotations
 
@@ -45,6 +58,7 @@ import sqlite3
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
+from types import MappingProxyType
 from typing import Any
 
 from database_agent.budget import CEILING_KEYS, get_ceiling
@@ -61,7 +75,11 @@ from facts.domains import ActivationSignals, active_field_allowlist
 from facts.file_facts import facts_for_file
 from facts.evidence import observations_for_version
 from facts.llm_seam import FactRequest, build_request
+from facts.resolver import StageOutcome
 from facts.states import EXCLUDED_STATE
+from facts.unresolved import (
+    FIELD_NOT_IN_ACTIVE_SCHEMA, NO_CANDIDATE_EVIDENCE, PRIVACY_WITHHELD,
+)
 from llm_harness.budgets import ScanBudget
 from llm_harness.dossier import dossier_address, released_item_wire_bytes
 from llm_harness.fact_validation import FactValidationDependencies, judgement_version
@@ -122,6 +140,54 @@ FACT_STAGE: str = "fact_interpretation"
 #: decisions about what a call IS -- the owner's, not this module's.
 LEARNING_SCOPE: str = "file"
 PROPOSAL_CLASS: str = "fact.llm_extraction"
+
+#: WHY THE FACT STAGE DID NOT ASK ABOUT A FILE (`104` §18.2 gap 4, 9 Sep 2026).
+#:
+#: The stage has four ways to return before a call is built, and until this ruling all
+#: four returned a bare `()`: no call, no `unresolved` row, and `FactResolver` then
+#: appending `llm` to `stages_run` because it recorded the stage's INVOCATION. The run
+#: told a person the model had been asked about the file and had had nothing to say,
+#: which §13.1's bar and constitution rule two both forbid -- what is skipped is
+#: counted and NAMED.
+#:
+#: One word per state, and the states are kept apart because the sentence a person is
+#: owed differs for each. "Nothing about this file could be read" is about the reader;
+#: "everything readable about it is in an always-local zone or was signalled
+#: sensitive" is about the privacy rules; "no model may see this file" is about their
+#: policy; "the schema left no field to ask" is about the situation they chose. One
+#: bucket would say the wrong one of those four to three files out of four.
+NOT_ASKED_SETTLED: str = "every_field_already_settled"
+NOT_ASKED_NO_ROUTE: str = "no_model_route"
+NOT_ASKED_NOTHING_READ: str = "nothing_was_read"
+NOT_ASKED_ALL_REFUSED: str = "every_reading_refused"
+NOT_ASKED_NO_SCHEMA: str = "no_field_in_active_schema"
+
+#: THE `unresolved` REASON EACH WORD OWES A ROW UNDER, from P6's own closed
+#: vocabulary and never a new member of it: this stage names a state, it does not mint
+#: a reason. `FactResolver._write_bars` writes one row per pending field under the
+#: reason named here, which is the same obligation and the same writer the privacy and
+#: budget bars already use.
+#:
+#: `NOT_ASKED_SETTLED` maps to `None` and that is not an omission: there is no pending
+#: field left to write a row about, so a row would have no field to name. The state is
+#: still recorded -- `ResolveResult.stages_not_asked` carries the word -- and it is the
+#: one of the five that is not a gap in coverage but the answer "this file is done".
+NOT_ASKED_REASONS: Mapping[str, str | None] = MappingProxyType({
+    NOT_ASKED_SETTLED: None,
+    NOT_ASKED_NO_ROUTE: PRIVACY_WITHHELD,
+    NOT_ASKED_NOTHING_READ: NO_CANDIDATE_EVIDENCE,
+    NOT_ASKED_ALL_REFUSED: NO_CANDIDATE_EVIDENCE,
+    NOT_ASKED_NO_SCHEMA: FIELD_NOT_IN_ACTIVE_SCHEMA,
+})
+
+
+def _not_asked(word: str) -> StageOutcome:
+    """The stage declining to ask, with its reason, as `FactResolver` reads it.
+
+    One spelling of the pair, so a state cannot be named in the outcome and left out
+    of the rows: the word and the `unresolved` reason are read from one mapping.
+    """
+    return StageOutcome(not_asked=word, unresolved_reason=NOT_ASKED_REASONS[word])
 
 #: The zones §2.2 ranks as meaningful evidence, most placed first. A dossier is
 #: capped, so WHICH observations survive the cap is a real choice: a title or a
@@ -956,7 +1022,41 @@ def _without_superseded_excerpts(offered: Sequence) -> list:
                              one.location.container_path)) in covered)]
 
 
-def within_dossier_budget(observations: Sequence, *, ceiling: int) -> tuple:
+@dataclass(frozen=True)
+class DossierFill:
+    """What `within_dossier_budget` did to one offer: what it took AND what it cut.
+
+    `104` §18.2 gap 5 (9 Sep 2026). The fill used to return the taken half alone and
+    drop the rest with a bare `continue`, so the cut existed for the length of one
+    loop iteration and nowhere after it. A person reading the run's report could not
+    tell a file whose whole evidence reached the model from a file that offered forty
+    readings and carried four, and `00`:257's promise -- a prompt over its budget
+    "should not truncate silently in a way that removes the decisive evidence" -- had
+    no record behind it to be true or false against.
+
+    **Two lists and one derived number, and the number is derived rather than
+    accumulated.** `dropped_bytes` re-measures the dropped readings with the same
+    `released_wire_cost` the fill spent, so the reported bytes cannot drift from the
+    bytes the ceiling was spent in; a counter incremented in the loop would be a
+    second spelling of the same measure and the two would disagree the day one of
+    them changed.
+
+    **It is not a refusal and it does not become one.** The taken half is byte-for-
+    byte what the old return was, in the caller's order, under the same ceiling. The
+    owner's word on the day this was built is "files should not be refused; make sure
+    all necessary information is processed and used", so what this record buys is a
+    true sentence about a cut that was already happening -- never a shorter dossier.
+    """
+    taken: tuple
+    dropped: tuple
+
+    @property
+    def dropped_bytes(self) -> int:
+        """The cut, in the same wire bytes the ceiling was spent in."""
+        return sum(released_wire_cost(one) for one in self.dropped)
+
+
+def within_dossier_budget(observations: Sequence, *, ceiling: int) -> DossierFill:
     """What of an ordered offer a call may carry: `ceiling` bytes on the wire.
     `104` R-159, measured per `104` R-174.
 
@@ -1010,16 +1110,31 @@ def within_dossier_budget(observations: Sequence, *, ceiling: int) -> tuple:
     `measure_released_tokens` both count. The ceiling passed in is the caller's
     remainder, never the whole of `max_dossier_tokens`: what a page has to fit under
     is what the anchor context and the filename left.
+
+    **AND THE CUT COMES BACK WITH IT (`104` §18.2 gap 5).** The skip below was a bare
+    `continue` and the dropped reading existed nowhere afterwards, which made two
+    silences out of one: the report could not say what was cut, and
+    `_call_dependencies` measured §8.6's first rung over THIS FUNCTION'S OWN OUTPUT --
+    "does what fits fit" -- so the ladder answered yes for every dossier ever built
+    and its DEFERRED rung could not fire for a file's own evidence. `DossierFill`
+    returns both halves; the taken half is unchanged, in the caller's order, under the
+    same ceiling, and nothing here refuses more than it refused before.
     """
     taken: list = []
+    dropped: list = []
     spent = 0
     for observation in observations:
         cost = released_wire_cost(observation)
         if spent + cost > ceiling:
+            # THE SKIP IS UNCHANGED AND IS NOW RECORDED. Stopping here would cost
+            # the file every smaller reading behind the long one, which is the state
+            # R-159 ended; keeping the reading in a second list costs it nothing and
+            # is what lets the run say out loud what the ceiling took.
+            dropped.append(observation)
             continue
         taken.append(observation)
         spent += cost
-    return tuple(taken)
+    return DossierFill(taken=tuple(taken), dropped=tuple(dropped))
 
 
 def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
@@ -1069,12 +1184,22 @@ def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
     The span is the observation's OWN, never a synthesised `(0, len(value))`:
     `p8_seam` records what that cost at site B -- every unbounded observation
     refused with `UnresolvableSpan` after the release had been minted.
+
+    **THE TAKEN HALF, AND THE BOUNDARY IS NAMED RATHER THAN WIDENED (`104` §18.2
+    gap 5).** `within_dossier_budget` now hands back the dropped readings beside the
+    taken ones, and this composition throws the dropped half away. That is honest
+    here and nowhere else: the caller that needs the cut is `fact_call_stage`, which
+    asks the two halves separately over one read "because it fills the same offer
+    into two different remainders", and it is that stage's dossier the cut is
+    recorded on. A caller of this function is asking "what may this file offer,
+    bounded" and has no call to record anything against. If one ever does, it takes
+    the `DossierFill` rather than this, and the record goes with it.
     """
     return within_dossier_budget(
         ordered_releasable_observations(
             conn, file_id=file_id, content_hash=content_hash, locality=locality,
             limit=limit),
-        ceiling=ceiling)
+        ceiling=ceiling).taken
 
 
 def zone_rank(zone: str) -> int:
@@ -1344,8 +1469,18 @@ def build_fact_request(
     model_target: ModelTarget,
     prompt: PromptDefinition,
     max_dossier_tokens: int,
+    fill: "DossierFill | None" = None,
 ) -> DossierRequest:
     """A reference-shape conversion and nothing else. No text crosses this line.
+
+    **`fill` IS THE CUT THIS REQUEST WAS BUILT UNDER (`104` §18.2 gap 5).** It is the
+    `DossierFill` whose `taken` half is the `observations` above, and the only thing
+    read off it is the two counts: how many readings the ceiling dropped and their
+    bytes. `None` is a caller that did not fill -- a test building a request by hand
+    -- and reports a cut of nothing, which is the truthful answer for an offer that
+    was never trimmed. Passing the observations and the fill separately would let
+    them disagree, so the assertion below is that they do not: the fill's taken half
+    IS what is being described.
 
     `prompt_fingerprint` is the PROMPT's. `transport.issue` recomputes it from the
     `PromptDefinition` it is about to send and refuses the release when the two
@@ -1354,6 +1489,12 @@ def build_fact_request(
     defect that kept P9's first real group call from ever reaching a model, and it
     is written down here so site A does not rediscover it.
     """
+    if fill is not None and tuple(fill.taken) != tuple(observations):
+        raise MalformedRecord(
+            "the fill handed to `build_fact_request` describes a different set of "
+            "readings than the ones the request carries: a cut counted against a "
+            "dossier that was not built from it is a number about nothing"
+        )
     return DossierRequest(
         call_site=A_FACT,
         # The FILE, because `validate_fact_proposal` refuses a dossier whose
@@ -1451,6 +1592,12 @@ def build_fact_request(
         # version and not about a plan, and the same fact survives a re-plan.
         plan_version=None,
         evidence_snapshot_id=None,
+        # `104` §18.2 gap 5. Counts, not readings: what the ceiling cut never reaches
+        # this record in any other form, and it must not -- a `DossierRequest` is
+        # reference-only and a dropped reading's text is exactly the content this
+        # line is forbidden to carry.
+        readings_dropped=0 if fill is None else len(fill.dropped),
+        readings_dropped_bytes=0 if fill is None else fill.dropped_bytes,
     )
 
 
@@ -1479,6 +1626,7 @@ def _call_dependencies(
     observations: Sequence,
     name_characters: int,
     anchor_observations: Sequence | None = None,
+    unreduced_observations: Sequence | None = None,
 ) -> CallDependencies:
     """`observations` is the list the request was BUILT from, and it is here so that
     §8.6's first ladder rung is measured rather than asserted (`103` C7).
@@ -1487,13 +1635,58 @@ def _call_dependencies(
     with the anchors' own spans in place of their lines. `None` means the deployment
     offers no such shape, and the rung is then honestly absent as it always was.
 
+    `unreduced_observations` is the offer BEFORE the fill spent the ceiling on it
+    (`104` §18.2 gap 5), and it is what the first rung now measures. `None` keeps the
+    old spelling for a caller that never filled -- there the built list IS the whole
+    offer and the two questions have one answer.
+
     Measured on the raw values rather than on the released ones, because the ladder
     runs before `gate.release` -- `run_call` plans the reduction, then reserves, then
     releases -- so the redacted text does not exist yet. Redaction only ever
     shortens (`apply_redaction` refuses a transform that returns its input), so the
     pre-call number is at or above what the door will measure, and the two therefore
     agree about every dossier either would refuse.
+
+    **`104` §18.2 GAP 5: WHAT "UNREDUCED FITS" MEANS, AND WHY NO FILE IS REFUSED FOR
+    THE CHANGE.** Until this patch the first rung was measured over `observations` --
+    the list `within_dossier_budget` had ALREADY trimmed to fit -- so it asked "does
+    what fits fit" and could only answer yes. Every dossier ever built therefore
+    recorded `reduction_rung = none`, including the ones that reached the model
+    carrying four of a document's forty readings, and §8.6's ladder was a decoration
+    on a measurement that could not fail. The rung a person reads on the record was
+    the one thing telling them a reduction had happened, and it said none.
+
+    So the first rung measures the UNFILLED offer: it is true only when nothing was
+    cut. What replaces it when something was cut is `anchors_fit`, and that is the
+    whole of the safety argument, because `plan_reduction` falls from `unreduced_fits`
+    to `summarized_fits` to `anchors_fit` to the shards and then to DEFERRED -- and
+    DEFERRED is a `PreCallAbstention` that sends nothing. The owner's word on the day
+    this was built is "files should not be refused; make sure all necessary
+    information is processed and used", so the arithmetic below is written to leave
+    the deferred set EXACTLY as it was:
+
+      * `anchors_fit` is true when the shape that was BUILT fits, or when R-145's
+        excerpts shape fits. The built shape is the fill's output plus the shown
+        context plus the name, and the fill's own ceiling is `max_dossier_tokens`
+        less the context and the name -- so it fits by construction whenever that
+        remainder is not negative. `PRESERVED_ANCHORS` is the honest name for it:
+        `00`:257's second remedy is to preserve the excerpts that matter and drop the
+        rest, which is precisely what the fill did.
+      * DEFERRED is therefore reached in exactly one state, the same state that
+        reached it before: the context and the filename alone exceed the ceiling, so
+        no reading of the file's own fits, AND R-145's excerpts shape does not fit
+        either. Before this patch `unreduced_fits` was false in that state for the
+        same reason and the ladder fell the same way.
+
+    A file that was asked before is asked now; what changed is that its record says
+    `preserved_anchors` instead of `none` when the ceiling took part of its evidence,
+    and `GroundingReport.readings_dropped` says how much.
     """
+    built_fits = sum(
+        released_wire_cost(observation) for observation in observations
+    ) + name_characters <= authorities.max_dossier_tokens
+    offered = observations if unreduced_observations is None else (
+        unreduced_observations)
     return CallDependencies(
         proposal_class=PROPOSAL_CLASS,
         basis_key=request.content_hash,
@@ -1536,11 +1729,21 @@ def _call_dependencies(
         # `measure_released_tokens` did. All three now count own + shown context +
         # the name, so a dossier the ladder passes at rung NONE is a dossier the door
         # measures under the ceiling.
+        #
+        # `104` §18.2 GAP 5: over the UNFILLED offer, so "unreduced" means what the
+        # word says. The docstring above carries the argument that this refuses no
+        # file: what the first rung stops claiming, the third rung claims instead.
         unreduced_fits=sum(
-            released_wire_cost(observation) for observation in observations
+            released_wire_cost(observation) for observation in offered
         ) + name_characters <= authorities.max_dossier_tokens,
         summarized_fits=False,
-        anchors_fit=(anchor_observations is not None and sum(
+        # THE SHAPE THAT WAS BUILT, OR R-145'S SECOND ONE. `00`:257's second remedy
+        # is to preserve the excerpts that matter and drop the rest, and both of these
+        # are that remedy: the fill preserving the file's own readings that fit, and
+        # the anchors' own spans standing in for the lines they sit on. A dossier the
+        # ceiling trimmed records `preserved_anchors` rather than `none`, which is the
+        # one word on the record that tells a person a reduction happened at all.
+        anchors_fit=built_fits or (anchor_observations is not None and sum(
             released_wire_cost(observation) for observation in anchor_observations
         ) + name_characters <= authorities.max_dossier_tokens),
         split_shard_fits=(), split_shards=(),
@@ -1940,12 +2143,18 @@ def fact_call_stage(authorities: FactCallAuthorities):
     """
 
     def stage(conn: sqlite3.Connection, file_id: str,
-              content_hash: str) -> tuple[str, ...]:
+              content_hash: str) -> "tuple[str, ...] | StageOutcome":
         pending = pending_fields_for(
             conn, file_id=file_id, content_hash=content_hash,
             activation_signals=authorities.activation_signals)
         if not pending:
-            return ()
+            # THE ONE DECLINE THAT IS NOT A GAP IN COVERAGE. Every field the schema
+            # allows is settled, so the question has no content; there is no pending
+            # field for a row to name and `NOT_ASKED_REASONS` says so with a `None`.
+            # It is still named rather than returned silently, because "asked and the
+            # model said nothing" and "there was nothing left to ask" are the two
+            # sentences `104` §18.2 gap 4 exists to keep apart.
+            return _not_asked(NOT_ASKED_SETTLED)
         # WHICH MODEL ANSWERS ABOUT THIS FILE, before a dossier exists, because
         # the locality is what decides what may go into one (`104` §17.13 ruling
         # 3). `None` is a file neither gate permits; the resolver's own
@@ -1954,7 +2163,14 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # for anyone who wires a stage another way, and it sends nothing.
         chosen = authorities.route(file_id)
         if chosen is None:
-            return ()
+            # `104` §18.2 gap 4. The backstop names its reason like every other
+            # decline, and the row it asks for is `privacy_withheld` -- the same
+            # reason `_write_bars` writes when the resolver's own
+            # `model_route_permitted` stops first, because it is the same fact about
+            # the same file. Reaching this line at all means the two predicates
+            # disagreed, and a duplicate row under the right reason is a far smaller
+            # defect than a file recorded as asked.
+            return _not_asked(NOT_ASKED_NO_ROUTE)
         model_client, model_target = chosen
         locality = model_target.locality
         # `104` R-159: WHAT THIS FILE MAY OFFER, ordered, and not yet bounded. The
@@ -1979,7 +2195,20 @@ def fact_call_stage(authorities: FactCallAuthorities):
             # carrying the context and the name, and the ladder measures that truthfully
             # -- reporting `unreduced_fits=False` to force a deferral would be lying
             # to §8.6 about a dossier that does fit.
-            return ()
+            #
+            # AND THE TWO WAYS OF HAVING NOTHING TO SAY ARE DIFFERENT SENTENCES
+            # (`104` §18.2 gap 4). A file P5 could not read at all offers nothing
+            # because nothing was extracted, and that is a fact about the reader; a
+            # file with forty readings every one of which is in an always-local zone,
+            # is the whole document, or carries a sensitive signal offers nothing
+            # because the privacy rules refused them all, and that is a fact about
+            # what may leave the device. The store is asked ONLY here, on the path
+            # that is already about to return, so an ordinary call pays nothing for
+            # the distinction.
+            read_anything = bool(observations_for_version(
+                conn, file_id=file_id, content_hash=content_hash))
+            return _not_asked(NOT_ASKED_ALL_REFUSED if read_anything
+                              else NOT_ASKED_NOTHING_READ)
         # `104` R-135: the anchor headings near this file, if the deployment offers
         # any and this call is asking a field they answer. BEFORE the request, because
         # they are part of what it is built from -- the identity below, the budget
@@ -2004,7 +2233,14 @@ def fact_call_stage(authorities: FactCallAuthorities):
             # than not showing it: `CITATION_NOT_FOUND` rejects the whole claim.
             context_observations=context)
         if not request.allowlist:
-            return ()
+            # `104` §18.2 gap 4. No domain activated and no universal field remains,
+            # so §3.5's closed vocabulary is empty and every answer would be out of
+            # schema -- which is `field_not_in_active_schema`, the reason P6 already
+            # publishes for exactly that judgement at §3.6's check 1. The row is
+            # written for the fields that are still PENDING, which is the honest
+            # subject: they are open, and this situation's schema has no place to
+            # put an answer to them.
+            return _not_asked(NOT_ASKED_NO_SCHEMA)
 
         # What is still open on THIS file, in the order the tree is built in. A
         # subset of `request.allowlist`, which is what check 1 measures the answer
@@ -2068,15 +2304,24 @@ def fact_call_stage(authorities: FactCallAuthorities):
                     if name_may_be_cited else None)
         name_characters = filename_characters(conn, filename)
 
-        def own_readings(shown_context: Sequence) -> tuple:
-            """The file's own readings that fit beside THIS context and the name."""
+        def own_readings(shown_context: Sequence) -> DossierFill:
+            """The file's own readings that fit beside THIS context and the name.
+
+            A `DossierFill` since `104` §18.2 gap 5: what fits AND what the ceiling
+            cut. The cut of the fill that is actually BUILT is recorded on the call
+            below -- the two shapes leave different remainders and therefore drop
+            different readings, so reporting the lines shape's cut for a call built
+            in the excerpts shape would be a number about a dossier nobody sent.
+            """
             return within_dossier_budget(
                 offered,
                 ceiling=(authorities.max_dossier_tokens
                          - sum(released_wire_cost(one) for one in shown_context)
                          - name_characters))
 
-        lines_readings = own_readings(context)
+        lines_fill = own_readings(context)
+        lines_readings = lines_fill.taken
+        fill = lines_fill
         observations = lines_readings
         # `104` R-145: §8.6's preserved-anchors shape of the same context, or `None`
         # when the lines fit or the deployment offers no second shape. `shown` is
@@ -2099,11 +2344,17 @@ def fact_call_stage(authorities: FactCallAuthorities):
                                         authorities)):
             excerpts = tuple(authorities.anchor_excerpts_for(
                 conn, file_id=file_id, content_hash=content_hash, fields=pending))
-            own_excerpts = own_readings(excerpts)
+            excerpts_fill = own_readings(excerpts)
+            own_excerpts = excerpts_fill.taken
         if (excerpts is not None
                 and _within_ceiling(own_excerpts, excerpts, name_characters,
                                     authorities)):
             shown, observations = excerpts, own_excerpts
+            # THE CUT OF THE SHAPE THAT WAS BUILT (`104` §18.2 gap 5). The excerpts
+            # shape leaves a different remainder than the lines shape, so it drops a
+            # different set; the call carries this one and the record must be about
+            # the call.
+            fill = excerpts_fill
         else:
             shown = context
         if shown is not context:
@@ -2204,7 +2455,13 @@ def fact_call_stage(authorities: FactCallAuthorities):
                     # here would be a second answer to a per-file question.
                     model_target=model_target,
                     prompt=authorities.prompt,
-                    max_dossier_tokens=authorities.max_dossier_tokens),
+                    max_dossier_tokens=authorities.max_dossier_tokens,
+                    # `104` §18.2 gap 5: the fill that produced `observations`, so
+                    # the request carries how much of this file's offer the ceiling
+                    # took. `fill` is `lines_fill` or `excerpts_fill` above, chosen
+                    # by the same branch that chose `shown` -- the cut recorded is
+                    # the cut of the dossier that is about to be sent.
+                    fill=fill),
                 gate=authorities.gate,
                 model_client=model_client,
                 prompt=authorities.prompt,
@@ -2229,7 +2486,15 @@ def fact_call_stage(authorities: FactCallAuthorities):
                     observations=tuple(lines_readings) + context,
                     name_characters=name_characters,
                     anchor_observations=(None if excerpts is None
-                                         else tuple(own_excerpts) + excerpts)),
+                                         else tuple(own_excerpts) + excerpts),
+                    # `104` §18.2 gap 5: THE OFFER BEFORE THE FILL SPENT THE CEILING
+                    # ON IT, which is what "unreduced" has to mean for the word to
+                    # be worth recording. `offered` is what
+                    # `ordered_releasable_observations` returned at the top of the
+                    # stage; the context beside it is the LINES shape's, because the
+                    # first rung is the shape a file would have been asked in had
+                    # nothing needed reducing at all.
+                    unreduced_observations=tuple(offered) + context),
                 observed_at=authorities.observed_at,
                 # `104` R-14. Handed to `run_call` and not to `CallDependencies`:
                 # it is optional, and that bundle's every field is required by

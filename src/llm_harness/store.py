@@ -10,7 +10,7 @@ import hashlib
 import json
 import sqlite3
 import uuid
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import fields, is_dataclass
 
 from database_agent.db import transaction
@@ -432,6 +432,47 @@ def record_grounding_report(conn: sqlite3.Connection, report: GroundingReport, *
         ),
     )
     return report_id
+
+
+def grounding_counters(conn: sqlite3.Connection,
+                       dossier_ids: Sequence[str]) -> list[Mapping[str, object]]:
+    """The stored reports for these calls, as the mappings they were written from.
+
+    `104` §18.2 gap 5. The screen has to print what the dossier ceiling cut, and the
+    standing rule is that a report is READ BACK FROM THE RECORDS rather than
+    accumulated in memory while the pass runs -- a number the loop carried would be a
+    second measurement of the same event, and the two would part company the first
+    time an exception left the loop early.
+
+    **Scoped by the ids the caller hands in, and that is the whole scoping.**
+    `llm_grounding_report` has no run column: it is addressed by `dossier_id`, and a
+    second scan of a second folder against the same database writes rows beside these.
+    The caller has the dossier ids of the calls THIS pass made -- they are on the
+    outcomes `on_result` collected -- so the question is asked about those and nothing
+    else. A `SELECT` over the whole table would answer a different question and would
+    grow every run.
+
+    The counters live in `payload` rather than in columns: `record_grounding_report`
+    promotes six fields for indexing and stores the record whole beside them, so a
+    counter added to `GroundingReport` needs no migration and is readable the day it
+    is added. That is why this returns the parsed payload and not a row.
+
+    Empty ids means an empty answer without touching the database, because
+    `IN ()` is not valid SQL and a pass that made no call has nothing to report.
+    """
+    ids = tuple(dict.fromkeys(dossier_ids))
+    if not ids:
+        return []
+    placeholders = ", ".join("?" for _ in ids)
+    return [
+        json.loads(row["payload"])
+        for row in conn.execute(
+            "SELECT payload FROM llm_grounding_report "
+            f"WHERE dossier_id IN ({placeholders}) "
+            "ORDER BY observed_at, report_id",
+            ids,
+        )
+    ]
 
 
 def _append_call_refused(conn: sqlite3.Connection, report: GroundingReport, *,
