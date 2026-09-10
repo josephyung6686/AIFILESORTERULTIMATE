@@ -162,6 +162,26 @@ def _iso_brand(head: bytes) -> str | None:
     return _BRANDS.get(head[8:12])
 
 
+def format_from_magic(head: bytes) -> str | None:
+    """The format token these bytes' OWN magic number names, or None.
+
+    THE BYTE-LEVEL HALF OF `detect_format`, PUBLISHED, and published for one caller:
+    `readers/image_headers.py` needs to know that a `.heic` really is a HEIC and a
+    `.bmp` really is a BMP, and the answer is already here in `_MAGIC` and `_BRANDS`.
+    A second brand table in the image reader would be a second answer to "what are
+    these bytes", which is the defect this module's own docstring refuses.
+
+    It takes BYTES and not a path, so it opens nothing, reads nothing and asks no
+    question about a protected container -- the caller has already read its header
+    window. `detect_format` below is the whole detector, with the extension, the ZIP
+    and text tests and the protected-container refusal that only a path needs.
+    """
+    for magic, token in _MAGIC:
+        if head.startswith(magic):
+            return token
+    return _iso_brand(head)
+
+
 def _zip_format(path: Path) -> str:
     """Which ZIP this is. `zip` when it is just a ZIP, which §2.5 handles."""
     try:
@@ -291,12 +311,9 @@ def signature_detector(
         if not head:
             return declared if declared in SOURCE_TYPE_BY_FORMAT else None
 
-        for magic, token in _MAGIC:
-            if head.startswith(magic):
-                return token
-        brand = _iso_brand(head)
-        if brand is not None:
-            return brand
+        by_magic = format_from_magic(head)
+        if by_magic is not None:
+            return by_magic
         if head.startswith(b"PK\x03\x04"):
             return _zip_format(path)
         if head.startswith(b"RIFF") and len(head) >= 12:

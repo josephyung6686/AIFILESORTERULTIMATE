@@ -209,6 +209,80 @@ def test_no_extractor_is_reachable_inside_a_protected_container():
                       context_window=20)
 
 
+# --------------------------------------------------------------------------- #
+# `104` §18.2 gap 18 -- the facts reach the store, and what was never read says so
+# --------------------------------------------------------------------------- #
+
+
+def test_every_capture_metadata_fact_is_a_metadata_row_a_citation_can_address(sink):
+    """`00`:32's facts have to arrive somewhere a model can CITE them. A citation
+    carries "exactly one of `cited_span` or `metadata_field_name`", and
+    `metadata_field_name` "must equal that item's address exactly" -- so an image
+    fact is usable at site A and site G only if it is in zone `metadata` with the
+    format's own slot name as its address. Every one of §2.6's slots is."""
+    run_id = sink.write(run_it())
+    rows = sink.observations_for(run_id)
+    addressed = slots(rows)
+
+    for label in ("Make", "Model", "DateTimeOriginal", "GPSLatitude", "Software",
+                  "ColorSpace", FORMAT_FIELD, DIMENSIONS_FIELD):
+        row = addressed[label]
+        assert row["location"]["zone"] == "metadata", label
+        segment, = row["location"]["container_path"]
+        assert segment["kind"] == "field" and segment["label"] == label
+        # A metadata field is a whole slot, so there is no span to cite instead --
+        # which is exactly why `metadata_field_name` is the citation form for it.
+        assert row["location"]["text_span"] is None, label
+
+
+def test_a_run_that_read_everything_it_can_says_so_and_stays_complete(sink):
+    """The ordinary path. `unread` is present and `None`, so one image run has one
+    config shape and a reader that read the file's metadata is never confused with
+    one that could not."""
+    run_id = sink.write(run_it())
+    run = sink.run_for(run_id)
+    assert run["completeness"] == "complete"
+    assert run["config"]["unread"] is None
+
+
+def test_what_was_never_read_is_named_on_the_run_and_never_in_a_row(sink):
+    """§18.2 gap 18: "what a format cannot supply is recorded as the honest reason on
+    the extraction run", and P4 decides where. `failure_reason` is gated to
+    `unreadable` and `failed` -- this file WAS read -- and an absence may not be an
+    observation ("the run record already says it, and an absence written as evidence
+    is a value P6 can rank"). So the sentence lands in the run's `config`, the one
+    run field P4 leaves schema-free, and the run is `partial`."""
+    reason = ("the image stack recognises no image format in these bytes, so §2.6's "
+              "EXIF, capture-time, GPS, colour and software slots were never looked "
+              "at")
+    record = ImageRecord(image_format="SVG", dimensions="240x120", width=240,
+                         height=120, unread_reason=reason)
+    run_id = sink.write(run_it(record=record))
+    run = sink.run_for(run_id)
+
+    assert run["completeness"] == "partial"
+    assert run["config"]["unread"] == reason
+    # The rows the file DID yield are still there -- `partial` is not a stop.
+    assert slots(sink.observations_for(run_id))[FORMAT_FIELD]["raw_value"] == "SVG"
+    # And nothing about the absence became evidence.
+    joined = " ".join(o["raw_value"] for o in sink.observations_for(run_id))
+    assert "never looked at" not in joined
+    sink.conforms()
+
+
+def test_two_runs_that_read_different_amounts_have_different_fingerprints(sink):
+    """§3.4's key and §8.5's diff exist "so they can tell configs apart", and a run
+    whose metadata route never ran was not configured the same way as one whose did.
+    Recording the reason in `config` makes that difference visible instead of
+    leaving two runs that read different things looking identical."""
+    read_everything = sink.run_for(sink.write(run_it()))
+    read_nothing = sink.run_for(sink.write(run_it(record=ImageRecord(
+        image_format="SVG", dimensions="8x8", width=8, height=8,
+        unread_reason="§2.6's slots were never looked at"))))
+    assert (read_everything["config_fingerprint"]
+            != read_nothing["config_fingerprint"])
+
+
 def test_a_dataless_image_is_never_materialized():
     policy = SafetyPolicy(is_protected_container=lambda path: False,
                           is_dataless=lambda path: True)

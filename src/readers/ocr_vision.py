@@ -188,10 +188,57 @@ def _render_pdf_page(page, dpi: float):
     return Quartz.CGBitmapContextCreateImage(context)
 
 
+def recognition_languages(*, recognition_level: str) -> tuple[str, ...]:
+    """The languages THIS recogniser publishes for that level. Never a typed list.
+
+    `104` §18.2 gap 19. §2.7 asks for "appropriate language support INCLUDING CJK
+    WHERE REQUIRED" and this deployment asked for `en-US` and nothing else, so the
+    owner's Chinese-titled documents came back empty or garbled -- measured again
+    here on a rendered `会计学原理`, which `en-US` recognises as no text at all.
+
+    The fix is not a longer list. A list is a guess about a corpus, and the machine
+    already knows the answer: `supportedRecognitionLanguagesAndReturnError_` is
+    Vision's own published set, versioned with the OS the way `_provider_version`
+    above says recognition itself is. It is asked of a request AT THE LEVEL that
+    will run, because Apple documents the set as a property of the revision and the
+    recognition level -- asking at one level and recognising at another would record
+    a set that was never offered.
+
+    `recognition_level` has NO DEFAULT: the level is `config`'s (§2.7 persists it,
+    §3.4 keys the cache on it) and a default here would be a second, unreviewed
+    setting quietly deciding what the first one asked about.
+    """
+    if recognition_level not in _LEVELS:
+        raise ValueError(
+            f"{recognition_level!r} is not a Vision recognition level; "
+            f"choose one of {sorted(_LEVELS)}")
+    request = Vision.VNRecognizeTextRequest.alloc().init()
+    request.setRecognitionLevel_(_LEVELS[recognition_level])
+    published, error = request.supportedRecognitionLanguagesAndReturnError_(None)
+    if published is None:
+        raise RuntimeError(
+            f"Vision published no recognition languages for {recognition_level!r}: "
+            f"{error}")
+    return tuple(str(language) for language in published)
+
+
 def _recognise(image, *, languages, level) -> list[tuple[str, float, Any]]:
     handler = Vision.VNImageRequestHandler.alloc().initWithCGImage_options_(image, {})
     request = Vision.VNRecognizeTextRequest.alloc().init()
     request.setRecognitionLevel_(level)
+    # §2.7's "including CJK where required", and WHERE REQUIRED is decided per FILE
+    # by the recogniser rather than per deployment by a list. Apple offers language
+    # identification on the request itself, so the file's own text chooses the model
+    # and `recognitionLanguages` below stays what it is -- the recogniser's own
+    # published set, from `recognition_languages`, never a set this product typed.
+    #
+    # MEASURED, because the two are not interchangeable and the docs do not say so:
+    # on a rendered `会计学原理`, `recognitionLanguages` set to the whole published
+    # set and no automatic detection recognises NOTHING, while automatic detection
+    # recognises it at confidence 1.0 with or without the list. So the detection
+    # flag is the load-bearing line and the list is the prior beside it.
+    if hasattr(request, "setAutomaticallyDetectsLanguage_"):
+        request.setAutomaticallyDetectsLanguage_(True)
     if languages:
         request.setRecognitionLanguages_(list(languages))
     ok, error = handler.performRequests_error_([request], None)
@@ -245,7 +292,6 @@ def vision_ocr() -> Callable[..., OcrOutput]:
     def ocr_engine(path: Path,
                    config: Mapping[str, Any] | None = None) -> OcrOutput | None:
         settings = dict(config or {})
-        languages = settings.get("languages") or ["en-US"]
         dpi = float(settings.get("dpi") or 200)
         level_name = settings.get("recognition_level") or "accurate"
         if level_name not in _LEVELS:
@@ -253,6 +299,15 @@ def vision_ocr() -> Callable[..., OcrOutput]:
                 f"{level_name!r} is not a Vision recognition level; "
                 f"choose one of {sorted(_LEVELS)}")
         level = _LEVELS[level_name]
+        # WAS `settings.get("languages") or ["en-US"]`, and that fallback is `104`
+        # §18.2 gap 19 in one line: a caller who configured nothing got English, and
+        # every non-English file in the corpus was read as though it held no text.
+        # The recogniser's own published set is the answer to "which languages does
+        # this deployment have", so a config that names none asks IT, never a
+        # constant. The set still reaches the run's `config` (§2.7's third persisted
+        # field) because `readers/deployment.py` puts it there before the call.
+        languages = settings.get("languages") or recognition_languages(
+            recognition_level=level_name)
         page_cap = settings.get("page_cap")
         time_limit = settings.get("time_limit_seconds")
 

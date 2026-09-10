@@ -34,7 +34,15 @@ from extractors.shape import (
 from extractors.long_tail import POTENTIALLY_SENSITIVE, SensitivitySignal
 from extractors.sink import ExtractionResult
 
-VERSION = "0.1.0"
+#: 0.2.0: `104` §18.2 gap 18. The reading this extractor produces for one unchanged
+#: image is not the reading it produced yesterday -- the wired reader supplies EXIF,
+#: GPS, colour and software metadata where it supplied none, so a photograph that
+#: yielded two rows now yields a dozen, and a file the metadata route could not open
+#: is `partial` where it was `complete`. R-164 set the rule (`5aa0898`, "the reader
+#: that changed says so in its version") and §3.4's cache key and rule 8's replay key
+#: are why: without the bump, a person reading two rows for one file could not tell
+#: whether the FILE changed or the product did.
+VERSION = "0.2.0"
 EXTRACTOR_NAME = "image.metadata"
 SOURCE_TYPE = "image"
 ANALYSIS_TIER = "native"
@@ -102,6 +110,16 @@ class ImageRecord:
     `dimensions` is the format's own rendering of the pair, verbatim, because a raw
     value is never constructed by P5 (RAW-1); `width` and `height` are ints supplied
     for the caller's dimension signal and are emitted nowhere.
+
+    `unread_reason` is the reader's own sentence for a §2.6 slot it never looked at,
+    and it is the ONLY thing this record says about something it does not carry.
+    `104` §18.2 gap 18: an image whose metadata route did not run must not be
+    indistinguishable from one that ran and found nothing, and P4 forbids the
+    obvious spelling -- an extractor "may not write an 'EXIF absent', 'no text layer'
+    or 'metadata stripped' observation; THE RUN RECORD ALREADY SAYS IT". So it goes
+    on the run below and never into an observation. `None` means the reader looked
+    everywhere it can look, which is the ordinary case and says nothing at all about
+    whether the file had anything there.
     """
     image_format: str
     dimensions: str
@@ -111,6 +129,7 @@ class ImageRecord:
     exif: tuple[ExifValue, ...] = ()
     color: Mapping[str, str] = dataclass_field(default_factory=dict)
     software: Mapping[str, str] = dataclass_field(default_factory=dict)
+    unread_reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -263,8 +282,25 @@ def extract_image(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPoli
                 extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
                 source_type=SOURCE_TYPE, analysis_tier=ANALYSIS_TIER,
                 config={"reader": "injected",
-                        "context_window": context_window},
-                completeness="complete",
+                        "context_window": context_window,
+                        # `104` §18.2 gap 18's honest half, and `config` is where it
+                        # can go. P4 gates `failure_reason` to `unreadable` and
+                        # `failed` (`evidence_shape/runs.py`), which this run is
+                        # neither -- the file WAS read -- and P4 forbids an absence
+                        # as an observation. `config` is the one run field P4 leaves
+                        # schema-free ("config is a mapping; P4 defines no schema for
+                        # it"), and the fingerprint consequence is the correct one:
+                        # a run whose metadata route never ran was not configured the
+                        # same way as one whose did, so §3.4's key and §8.5's diff
+                        # SHOULD tell them apart. `None` on the ordinary path, so the
+                        # key is always present and one config has one shape.
+                        "unread": record.unread_reason},
+                # §2.5's word, for §2.6's case. `archive.py` already spells it this
+                # way -- a reader that could not supply everything makes the run
+                # `partial`, which `stage_output.OUTCOME_BY_COMPLETENESS` maps to
+                # `produced` exactly as `complete` is, so the rows still count and
+                # the shortfall is still visible.
+                completeness="partial" if record.unread_reason else "complete",
                 coverage=coverage("images", 1, 1),
                 observation_count=len(observations), started_at=now, finished_at=now),
         observations=tuple(observations),
