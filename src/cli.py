@@ -186,7 +186,9 @@ from model_situation import (
 from placement import vocabulary as pv
 from placement.config import CEILINGS, SupportPolicy, placement_limits
 from placement.graph import (
+    ATTACHMENT_OF as P11_ATTACHMENT_OF,
     COMPATIBLE_DOCUMENT_TYPE as P11_COMPATIBLE_DOCUMENT_TYPE,
+    DIRECT_REFERENCE as P11_DIRECT_REFERENCE,
     DUPLICATE as P11_DUPLICATE,
     EDGE_TYPES as P11_EDGE_TYPES,
     EXISTING_RELATED_FOLDER as P11_EXISTING_RELATED_FOLDER,
@@ -9496,6 +9498,16 @@ P9_TO_P11_EDGE_TYPE: Mapping[str, str] = MappingProxyType({
 #: channel, and never as an edge.
 NOT_A_PLACEMENT_EDGE: tuple[str, ...] = (BOUNDED_SESSION, MUTUAL_SEMANTIC_RETRIEVAL)
 
+#: And the other direction (`104` §18.2 gap 12): P11 edge types P9 DOES NOT DRAW,
+#: named here rather than left as a hole in the mapping above. P9 owns grouping
+#: and draws the five relationships it groups on; these two are not groupings but
+#: two files' own observations agreeing about a third thing, so
+#: `observation_edges_of` produces them at the composition root and P9 gains no
+#: second engine. The day P9 draws one, its spelling joins the mapping and its
+#: name leaves this tuple -- and `test_cli_p9_p11_edge_seam.py` is what makes
+#: either move visible instead of silent.
+NOT_A_P9_EDGE: tuple[str, ...] = (P11_ATTACHMENT_OF, P11_DIRECT_REFERENCE)
+
 
 def bridge_entity_for(edge_type: str, bridge: str | None) -> str | None:
     """The entity an edge rests on, in a form that may be shown.
@@ -10086,7 +10098,8 @@ def typed_edges_of(conn: sqlite3.Connection,
     related = []
     for row in conn.execute(
             "SELECT e.from_file_id, e.to_file_id, e.edge_type, e.weight, "
-            "e.bridge_entity_ref FROM group_edges e "
+            "e.bridge_entity_ref, f.content_hash AS other_content_hash "
+            "FROM group_edges e "
             "LEFT JOIN files f ON f.file_id = CASE WHEN e.from_file_id = ? "
             "  THEN e.to_file_id ELSE e.from_file_id END "
             "WHERE (e.from_file_id = ? OR e.to_file_id = ?) "
@@ -10105,8 +10118,198 @@ def typed_edges_of(conn: sqlite3.Connection,
             "weight": 1.0 if row["weight"] is None else float(row["weight"]),
             "entity": bridge_entity_for(row["edge_type"],
                                         row["bridge_entity_ref"]),
+            # `104` §18.2 gap 12. The OTHER end's content hash, carried because
+            # `privacy.privacy_state_for` needs a file version and not a file:
+            # `pipeline._graph_items` asks §8.4's own per-file predicate about
+            # every neighbour it would describe, and a hash looked up a second
+            # time there would be a second answer to which VERSION was judged.
+            # `None` when the LEFT JOIN found no `files` row, which is a unit
+            # fixture's edge rather than a run's; the gate refuses an unresolvable
+            # neighbour rather than describing one.
+            "to_content_hash": row["other_content_hash"],
         })
     return tuple(related)
+
+
+#: `104` §18.2 gap 12: how `observation_edges_of` names the reading a
+#: `direct_reference` rests on. The bridge is the shared identifier itself, keyed
+#: the way `fact_bridge_ref` keys a shared fact, so §6.5's generic-entity test
+#: reads one shape whatever channel produced the edge. `entity_frequency` carries
+#: no count for it -- the map is over FACTS -- and 0 is the honest answer for a
+#: bridge that is not one, exactly as it already is for a folder label.
+_REFERENCE_BRIDGE_FIELD: str = "reference"
+#: And how it names an `attachment_of`. Never the filename: §8.4's always-local
+#: list opens with names and paths, and `graph.EDGE_PRODUCER` is what the model
+#: is told instead.
+_ATTACHMENT_BRIDGE_FIELD: str = "attachment"
+
+
+def observation_edges_of(file_id: str, *, attachments, references
+                         ) -> tuple[dict, ...]:
+    """The two edge types `00`:109 names that P9 does not draw (`104` §18.2 gap 12).
+
+    P9 owns GROUPING and draws the five edges P11 already reads; these two are
+    not groupings. They are two files' own observations agreeing about a third
+    thing -- an attachment name, a reference identifier -- and the composition
+    root is where a store's rows become another part's shape, which is the same
+    argument `P9_TO_P11_EDGE_TYPE` above makes for the translation beside it.
+    `build_node_local_graph` still discovers nothing: it is handed these the way
+    it is handed P9's.
+
+    **`attachment_of`** is `00`:109's derivation link. `readers/long_tail_stdlib.
+    py` emits one `attachment` value per named part of an email, `extractors/
+    long_tail.py` stores it as a `metadata` observation whose container path ends
+    `field:attachment`, and `attachments` is that value matched to an indexed
+    file of the same name. The edge runs FROM the email: `anchor_file_id` is the
+    message, which is the file the relationship was read out of.
+
+    **`direct_reference`** is `00`:109's direct reference, and it is UNDIRECTED.
+    `104` §18.31 added the DOI kind, but P4 has no kind column and the kind
+    reaches the store as a ZONE (`extractors/reading.ZONE_BY_STRUCTURED_KIND`
+    sends `url`, `email` and `doi` alike to `link`), so what the store can say is
+    that two files carry one DOI -- not which of them is the paper and which
+    cites it. The edge says the true half; `graph.DESIGN_RELATIONSHIPS` records
+    the missing half rather than guessing it.
+
+    **Why the DOI and not every `link`.** `references` is built by re-asking the
+    product's OWN `_DOI` pattern -- the one that put the value in the store -- of
+    the stored value, so this recovers the kind rather than guessing at it, which
+    is the distinction `bridge_entity_for` draws for the same reason one line up.
+    An email address or a bare URL is shared by every file a mailing list
+    touched, and §6.5's hub test cannot catch it: `entity_frequency` is a count
+    over FACTS and a link value is not one. So the kind that is a globally unique
+    document identifier is the kind that becomes an edge, and no frequency
+    ceiling is invented to rescue the other two.
+
+    NO CEILING OF ITS OWN, and none is needed: §8.6's `max_candidate_cluster_
+    size` and `max_local_graph_neighborhood` already bound what reaches a graph,
+    and the community filter drops every edge whose other end is not already
+    accepted in the candidate node.
+
+    Both maps are `observation_edge_index`'s, keyed by the file being placed:
+    `attachments[file_id]` is `(other, other_hash, message_file_id, name)` and
+    `references[file_id]` is `(other, other_hash, doi)`. Built once for the run,
+    because the alternative is a corpus scan per file.
+    """
+    related: list[dict] = []
+    for other, other_hash, anchor, name in attachments.get(file_id, ()):
+        related.append({
+            "edge_type": P11_ATTACHMENT_OF, "to_file_id": other,
+            # The MESSAGE anchors it, whichever end is being placed: the
+            # relationship was read out of the email's own parts.
+            "anchor_file_id": anchor, "weight": 1.0,
+            "entity": fact_bridge_ref(_ATTACHMENT_BRIDGE_FIELD, name),
+            "to_content_hash": other_hash,
+        })
+    for other, other_hash, value in references.get(file_id, ()):
+        related.append({
+            "edge_type": P11_DIRECT_REFERENCE, "to_file_id": other,
+            # Undirected, so the anchor is the file being placed: the edge was
+            # read out of ITS observations as much as out of the other's.
+            "anchor_file_id": file_id, "weight": 1.0,
+            "entity": fact_bridge_ref(_REFERENCE_BRIDGE_FIELD, value),
+            "to_content_hash": other_hash,
+        })
+    # THE ORDER IS PART OF THE CONTRACT (`104` R-111), for the reason
+    # `typed_edges_of`'s `ORDER BY` is: §8.6's two cuts rank nothing when every
+    # weight is 1.0, so what survives is decided by the order they arrive in, and
+    # an order that varies between two runs over one folder shows the same
+    # placement two different reasons. The other end's own id is stable within a
+    # database and the bridge separates two edges to one file.
+    related.sort(key=lambda edge: (edge["edge_type"], edge["to_file_id"],
+                                   edge["entity"] or ""))
+    return tuple(related)
+
+
+#: The container-path segment an email attachment name is stored under.
+#: `readers/long_tail_stdlib._message_values` names the slot and `extractors/
+#: long_tail.py` writes it as `segment("field", label=<slot>)`, so this reads the
+#: reader's own word rather than a second spelling of it.
+_ATTACHMENT_SLOT: str = "attachment"
+
+
+def observation_edge_index(conn: sqlite3.Connection) -> tuple[dict, dict]:
+    """The corpus maps `observation_edges_of` reads, built in two passes.
+
+    `104` §18.2 gap 12. Per file rather than per pair, and built once for the run
+    for the reason `_how_many_files_state_each_fact` is: the alternative is one
+    corpus scan per file placed, which is `planning/58-SCALE-STRESS.md` §2's
+    O(files x files) shape.
+
+    An attachment is matched on the FILE NAME, case-folded, because a name is
+    what an email carries: the part's bytes are inside the message and the file
+    on disk is a copy somebody saved. Two files of one name both match, which is
+    the honest answer -- the community filter and §8.6's cluster ceiling decide
+    which reaches a graph, and neither is a question this map may answer.
+
+    A DOI is matched on the whole stored value under `_DOI.fullmatch`, which is
+    `observation_edges_of`'s argument: it recovers the KIND gap 20 could not
+    store, using the same pattern that put the value there. A `link` reading that
+    is a URL or an email address fails it and draws no edge.
+
+    TWO ZONE-FILTERED SCANS of `evidence` and one of `files`, once per run. There
+    is no index on the location's zone -- `evidence_key`, `evidence_run`,
+    `evidence_file` and `evidence_content` are the four the schema declares -- so
+    each is a table scan with a `json_extract` per row. Measured against the
+    alternative rather than against nothing: a per-file build is one scan per
+    file placed, which is `planning/58-SCALE-STRESS.md` §2's O(files x files).
+    At the owner's 199 files it is imperceptible; at 10,000 it is one scan of a
+    table that already carries every reading, and an index on the zone is the fix
+    if it ever shows -- a P4 schema change, not this function's.
+    """
+    hashes: dict[str, str] = {}
+    by_name: dict[str, list[str]] = {}
+    for row in conn.execute(
+            "SELECT file_id, filename, content_hash FROM files "
+            "ORDER BY content_hash, current_path"):
+        hashes[row["file_id"]] = row["content_hash"]
+        by_name.setdefault(str(row["filename"]).casefold(),
+                           []).append(row["file_id"])
+
+    attachments: dict[str, list[tuple[str, str, str, str]]] = {}
+    for row in conn.execute(
+            "SELECT file_id, raw_value, location FROM evidence "
+            "WHERE superseded_by IS NULL "
+            "AND json_extract(location, '$.zone') = 'metadata' "
+            "ORDER BY observation_key"):
+        path = json.loads(row["location"]).get("container_path") or []
+        if not path or path[-1].get("kind") != "field" or (
+                path[-1].get("label") != _ATTACHMENT_SLOT):
+            continue
+        message, name = row["file_id"], str(row["raw_value"])
+        if message not in hashes:
+            continue
+        for other in by_name.get(name.casefold(), ()):
+            if other == message:
+                continue
+            # BOTH ENDS, because `typed_edges_of` answers about a file whichever
+            # end of an edge it is, and a graph built for the attachment that
+            # could not see its own message would be the same silence gap 12 is.
+            attachments.setdefault(message, []).append(
+                (other, hashes[other], message, name))
+            attachments.setdefault(other, []).append(
+                (message, hashes[message], message, name))
+
+    holders: dict[str, list[str]] = {}
+    for row in conn.execute(
+            "SELECT DISTINCT file_id, raw_value FROM evidence "
+            "WHERE superseded_by IS NULL "
+            "AND json_extract(location, '$.zone') = 'link' "
+            "ORDER BY raw_value, file_id"):
+        value = str(row["raw_value"])
+        if _DOI.fullmatch(value) is None or row["file_id"] not in hashes:
+            continue
+        carried = holders.setdefault(value, [])
+        if row["file_id"] not in carried:
+            carried.append(row["file_id"])
+    references: dict[str, list[tuple[str, str, str]]] = {}
+    for value, files in holders.items():
+        for one in files:
+            for other in files:
+                if other != one:
+                    references.setdefault(one, []).append(
+                        (other, hashes[other], value))
+    return attachments, references
 
 
 def semantic_neighbour_nodes(conn: sqlite3.Connection, file_id: str, *,
@@ -11003,6 +11206,101 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         chosen = _placement_route(file_id)
         return CLOUD_LOCALITY if chosen is None else chosen[1].locality
 
+    #: `104` §18.2 gap 12's two corpus maps and the neighbour descriptions, both
+    #: held for the run for `_how_many_files_state_each_fact`'s reason.
+    _observation_edges: list = []
+    _described: dict[str, str | None] = {}
+
+    def _observation_edge_maps():
+        if not _observation_edges:
+            _observation_edges.append(observation_edge_index(conn))
+        return _observation_edges[0]
+
+    def _how_another_file_would_describe_itself(other_file_id: str) -> str | None:
+        """A NEIGHBOUR, in the words its own site-C call would have used.
+
+        `104` §18.2 gap 12: a graph edge reaches the dossier as a reference-only
+        item, and an item naming an opaque `file_id` tells a model nothing. So the
+        other end is named the way `00`:112's group dossier names a member -- by
+        its accepted facts -- and by nothing else.
+
+        **NOTHING CROSSES THAT WOULD NOT CROSS FOR THAT FILE'S OWN CALL, and two
+        separate rules make that true.** A fact is carried only if `releasable_
+        items` -- the door's own predicate, the same one `evidence_for` passes its
+        item set through -- releases at least one of its citations, asked under
+        `CLOUD_LOCALITY`, which is the STRICTEST target. Asking under the
+        neighbour's own route would build a wider string for a locally-routed
+        neighbour and then hand it to a call that may be going to the cloud; asked
+        under the strictest, the answer is safe for every target this run has.
+        `pipeline._graph_items` then asks §8.4's own per-file predicate about the
+        neighbour BEFORE it writes the item at all, so a protected or held file is
+        never described to any model.
+
+        DESTINATION-ELIGIBLE FIELDS ONLY (§3.8, P6's own answer). What the model
+        needs from a neighbour is which branch it belongs under, and that is what
+        a destination dimension is. It also keeps `authored_by` -- a person's name,
+        and §3.8's authorship role -- out of a string that describes somebody
+        else's file.
+
+        `None` for a neighbour with nothing describable, and the item is not
+        written: an item naming a file the dossier may not describe would be a
+        reference to nothing.
+
+        `is_destination_eligible` RAISES for a field the catalogue does not carry,
+        and it is left to raise here for `retrieval._eligible_facts`' reason -- "a
+        typo must not read as a policy". The blast radius is wider: that field on
+        that neighbour would already have ended the neighbour's own placement, and
+        now it ends the placement of every file related to it. Recorded rather
+        than caught, because catching it would answer "is this a destination
+        dimension?" with a silent no for a field nobody has classified.
+        """
+        if other_file_id in _described:
+            return _described[other_file_id]
+        from facts.read_surface import is_destination_eligible
+        from llm_harness.records import EvidenceItem
+
+        pairs: list[str] = []
+        for row in conn.execute(
+                "SELECT ff.field_key, ff.evidence_refs, ff.reliability_state, "
+                'v.canonical_value FROM file_facts ff JOIN "values" v '
+                "ON ff.value_id = v.value_id WHERE ff.file_id = ? "
+                "AND ff.active = 1 AND ff.superseded_by IS NULL "
+                "AND ff.reliability_state != ? "
+                "ORDER BY ff.field_key, v.canonical_value",
+                (other_file_id, pv.DROPPED_RELIABILITY_STATE)):
+            if not is_destination_eligible(conn, field_key=row["field_key"]):
+                continue
+            offered = []
+            for ref, location in located_citations(
+                    conn, other_file_id,
+                    json.loads(row["evidence_refs"] or "[]")):
+                span = location.text_span
+                offered.append(EvidenceItem(
+                    evidence_ref=ref, kind="fact", location=location.zone,
+                    excerpt_span=(None if span is None
+                                  else (span.start, span.end)),
+                    reliability_state=row["reliability_state"],
+                    basis=citation_basis_for(row["reliability_state"])))
+            if not offered or not releasable_items(conn, tuple(offered),
+                                                   locality=CLOUD_LOCALITY):
+                continue
+            pairs.append(f"{row['field_key']} = {row['canonical_value']}")
+        answer = "; ".join(dict.fromkeys(pairs)) or None
+        _described[other_file_id] = answer
+        return answer
+
+    def _related_files(file_id: str) -> tuple[dict, ...]:
+        """P9's five typed edges and gap 12's two, each with its other end named."""
+        attachments, references = _observation_edge_maps()
+        edges = typed_edges_of(conn, file_id) + observation_edges_of(
+            file_id, attachments=attachments, references=references)
+        return tuple(
+            dict(edge,
+                 to_describes=_how_another_file_would_describe_itself(
+                     edge["to_file_id"]))
+            for edge in edges
+        )
+
     def evidence_for(file_id: str) -> dict:
         """§6.3's evidence for one file: what this run can address about it.
 
@@ -11248,7 +11546,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             curated_folder_labels=_folders_this_file_is_already_in(file_id),
             semantic_neighbours=semantic_neighbour_nodes(
                 conn, file_id, nodes_listing=_nodes_that_already_list),
-            related_files=typed_edges_of(conn, file_id),
+            related_files=_related_files(file_id),
             # §6.5's generic-entity suppression. A fact stated by more files than
             # this is treated as a hub rather than as a discriminator. Both numbers
             # are this deployment's; `00` states neither.

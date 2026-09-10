@@ -41,6 +41,12 @@ DUPLICATE: str = "duplicate"
 VERSION_FAMILY: str = "version_family"
 COMPATIBLE_DOCUMENT_TYPE: str = "compatible_document_type"
 EXISTING_RELATED_FOLDER: str = "existing_related_folder"
+#: `104` §18.2 gap 12's two new types, and the only two of `00`:109's nine that
+#: had no carrier AND have a producer the store can answer truthfully today.
+#: `DESIGN_RELATIONSHIPS` below says which of the nine each type carries and what
+#: produces it; nothing here is minted for a relationship nothing can observe.
+ATTACHMENT_OF: str = "attachment_of"
+DIRECT_REFERENCE: str = "direct_reference"
 
 #: §6.5's typed relationships. A semantic neighbour is deliberately absent: it is
 #: a retrieval channel (`placement.retrieval.SEMANTIC_NEIGHBOUR`) and never an edge,
@@ -48,8 +54,124 @@ EXISTING_RELATED_FOLDER: str = "existing_related_folder"
 #: like evidence of the same kind as a shared fact.
 EDGE_TYPES: tuple[str, ...] = (
     SHARED_VALIDATED_FACT, DUPLICATE, VERSION_FAMILY, COMPATIBLE_DOCUMENT_TYPE,
-    EXISTING_RELATED_FOLDER,
+    EXISTING_RELATED_FOLDER, ATTACHMENT_OF, DIRECT_REFERENCE,
 )
+
+
+@dataclass(frozen=True)
+class Relationship:
+    """One of `00`:109's nine typed relationships, and what answers it today.
+
+    `carried_by` is the edge type (or the retrieval channel) that carries it;
+    `producer` names the code that writes it, or is EMPTY for a relationship
+    nothing produces yet. `104` §18.2 gap 12 opened as "five of nine edge types"
+    with no way to check the count, so the count lives here and a test walks it.
+    """
+
+    design_name: str
+    carried_by: tuple[str, ...]
+    producer: str
+    note: str = ""
+
+
+#: `00`:109 in its own words: *"The node-local graph should include typed
+#: relationships, such as shared validated facts, accepted group membership,
+#: duplicate or version links, derivation links, compatible document type,
+#: matching time period, direct references, mutual semantic retrieval, and
+#: user-confirmed membership."*
+#:
+#: NINE, EACH WITH ITS PRODUCER OR WITH NONE, which is `104` §18.2 gap 12's
+#: second half: the ranked list says "five of nine edge types" and no reader
+#: could check the five, the nine, or which four were missing. Two of the nine
+#: are not edges here AT ALL and never will be -- an accepted group and a
+#: semantic neighbour reach P11 as `placement.retrieval` CHANNELS, which is
+#: `00`:107's own placement of them ("accepted group membership should retrieve
+#: the branch that was created from that group ... full-text and OCR embeddings
+#: should retrieve semantically compatible node profiles") and §6.5's rule that
+#: an embedding alone is insufficient. Recording them here as channels is what
+#: stops them being counted as missing edges forever.
+#:
+#: `EXISTING_RELATED_FOLDER` is a TENTH carrier and is deliberately not one of
+#: the nine: it is P9's own channel (a folder the person already made), which
+#: `00`:107 names under retrieval rather than under the graph's relationships.
+DESIGN_RELATIONSHIPS: tuple[Relationship, ...] = (
+    Relationship(
+        "shared validated facts", (SHARED_VALIDATED_FACT,),
+        "grouping.graph, from P9's shared-fact channel",
+        # `authored_by` is a P6 field like any other (`facts/fields.py`), so two
+        # files by one author are already related by this edge. A `same_author`
+        # type would be a second name for one relationship, and the graph would
+        # count it twice.
+        # CHECKED, not assumed: `grouping.seeds._anchor_rows` reads P6's
+        # `proposal_eligible`, `event_facts` and `family_facts` with NO field
+        # allow-list, so any field at P9's anchor bar can seed this channel --
+        # `authored_by` included, though §3.8 makes it no destination dimension.
+        "carries a shared author, a shared institution and a shared course "
+        "alike; the bridge names which, and a `same_author` type would be a "
+        "second name for one relationship the graph would then count twice"),
+    Relationship(
+        "accepted group membership", ("retrieval.accepted_group",),
+        "cli.accepted_memberships_of, as a RETRIEVAL CHANNEL",
+        "never an edge: `00`:107 makes an accepted group retrieve the branch "
+        "built from it, and `pipeline._accepted_group_items` carries it into "
+        "the dossier in its own shape"),
+    Relationship(
+        "duplicate or version links", (DUPLICATE, VERSION_FAMILY),
+        "grouping.graph, typed by cli._duplicate_or_version",
+        "two edge types for one design phrase, because a duplicate and a "
+        "revision are not the same statement about two files"),
+    Relationship(
+        "derivation links", (ATTACHMENT_OF,),
+        "cli.observation_edges_of, from the email reader's attachment names",
+        "one derivation the product can observe. A derived export, a rendered "
+        "PDF of a document, a crop of a photograph: none has a producer yet"),
+    Relationship(
+        "compatible document type", (COMPATIBLE_DOCUMENT_TYPE,),
+        "grouping.graph, from P9's compatible-document-type channel"),
+    Relationship(
+        "matching time period", (SHARED_VALIDATED_FACT,),
+        "grouping.graph, when the shared fact IS the period",
+        # Same check: `term` and `capture_event` reach `_anchor_rows` like any
+        # other field at the anchor bar, so the edge exists today and the entry
+        # is not an overclaim.
+        "no type of its own: a term or a capture date is a P6 field, so two "
+        "files sharing one are already related by the shared-fact edge and a "
+        "second type would double-count the one relationship"),
+    Relationship(
+        "direct references", (DIRECT_REFERENCE,),
+        "cli.observation_edges_of, from `104` §18.31's DOI kind",
+        "UNDIRECTED, and the store is why: gap 20 stores a structured string's "
+        "ZONE and not its kind, so two files carrying one DOI are known to "
+        "share a reference and not which of them is the paper"),
+    Relationship(
+        "mutual semantic retrieval", ("retrieval.semantic_neighbour",),
+        "cli.semantic_neighbour_nodes, as a RETRIEVAL CHANNEL",
+        "never an edge: §6.5 says an embedding alone is insufficient, and an "
+        "edge type would make it look like evidence of a shared fact's kind"),
+    Relationship(
+        "user-confirmed membership", ("retrieval.accepted_group",),
+        "",
+        "none yet AS AN EDGE. §3.13's `user_confirmed` is a state on a FACT, "
+        "and a membership the person confirmed arrives as the accepted-group "
+        "channel above; what has no producer is an edge between two files the "
+        "person confirmed belong together, which needs a gesture P7 has not "
+        "shipped"),
+)
+
+#: What produced an edge, in one phrase, for the dossier item's `location`. This
+#: is the PRODUCER and never the bridge entity: `existing_related_folder` bridges
+#: through a folder path label and `attachment_of` through a filename, and
+#: §8.4's always-local list opens with the word "Paths". The model is told where
+#: the relationship came from, not the string it rests on.
+EDGE_PRODUCER: dict[str, str] = {
+    SHARED_VALIDATED_FACT: "a validated fact both files state",
+    DUPLICATE: "the duplicate-family detection",
+    VERSION_FAMILY: "the version-family detection",
+    COMPATIBLE_DOCUMENT_TYPE: "both files being the same kind of document",
+    EXISTING_RELATED_FOLDER: "a folder the person already keeps both in",
+    ATTACHMENT_OF: "an attachment named in an email this run read",
+    DIRECT_REFERENCE: "a reference identifier both files carry",
+}
 
 
 class WholeCorpusReclusteringRefused(RuntimeError):

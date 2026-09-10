@@ -169,8 +169,23 @@ CANDIDATE_ITEM: str = "candidate"
 RESIDUAL_AREA_ITEM: str = "residual_area"
 BRANCH_ITEM: str = "branch"
 ACCEPTED_GROUP_ITEM: str = "accepted_group"
+#: `104` §18.2 gap 12: one typed edge of the node-local graph. It joins the four
+#: above for the reason the group item is there and by the same test -- it has no
+#: `observation_key`, nothing about it was released, and `validation._check_
+#: citation` answers `CITATION_NOT_IN_DOSSIER` for a ref that is in the items and
+#: not in `released_evidence`. The ratified C text says the same thing in its own
+#: words ("cite only keys that appear in released_evidence: a candidate, a group
+#: or a conflict is not evidence and cannot be cited"), so a citation of a graph
+#: item resolves exactly as a citation of a group does and P8 gains no check.
+#:
+#: An edge's `evidence_ref` is `pipeline._graph_items`' own address for the edge
+#: and never a P4 key, so addressing one in an evidence snapshot would put a
+#: relationship's id where an observation's belongs -- the same sentence
+#: `snapshot_observation_keys` already makes about a plan id.
+GRAPH_EDGE_ITEM: str = "graph_edge"
 UNCITABLE_ITEM_KINDS: frozenset[str] = frozenset(
-    {CANDIDATE_ITEM, RESIDUAL_AREA_ITEM, BRANCH_ITEM, ACCEPTED_GROUP_ITEM})
+    {CANDIDATE_ITEM, RESIDUAL_AREA_ITEM, BRANCH_ITEM, ACCEPTED_GROUP_ITEM,
+     GRAPH_EDGE_ITEM})
 
 
 def snapshot_observation_keys(evidence_items) -> tuple[str, ...]:

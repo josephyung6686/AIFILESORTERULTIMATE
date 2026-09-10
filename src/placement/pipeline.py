@@ -71,7 +71,7 @@ from grouping.vocabulary import NOT_FLAGGED
 
 from placement import events as placement_events
 from placement.config import PlacementLimits, SupportPolicy, require_policy
-from placement.graph import build_node_local_graph
+from placement.graph import EDGE_PRODUCER, build_node_local_graph, is_typed_support
 from placement.groups import (
     AcceptedGroup, ExcludedOutlier, GroupPlan, accepted_group_as_of,
     confirm_shared_parent, excluded_outlier_for, resolve_multi_home,
@@ -81,7 +81,8 @@ from placement.index import (
 )
 from placement.learning import basis_key_for, suppressed_nodes
 from placement.p8_seam import (
-    ACCEPTED_GROUP_ITEM, BRANCH_ITEM, CANDIDATE_ITEM, RESIDUAL_AREA_ITEM,
+    ACCEPTED_GROUP_ITEM, BRANCH_ITEM, CANDIDATE_ITEM, GRAPH_EDGE_ITEM,
+    RESIDUAL_AREA_ITEM,
     # `104` §18.15: the driver for one call and the driver for many, taken
     # from P11's own seam onto P8 rather than from P8 directly. The lane is
     # P8's mechanism -- what it holds open is P8's round trip -- and this
@@ -107,7 +108,8 @@ from placement.residual import (
 )
 from llm_harness.placement_validation import ACCEPTED_MEMBERSHIP_STATE
 from placement.retrieval import (
-    CURATED_FOLDER, Candidate, Retrieval, SetAside, retrieve,
+    CURATED_FOLDER, GRAPH_RELATIONSHIP, NON_DECIDING_CHANNELS, Candidate,
+    Retrieval, SetAside, retrieve,
 )
 from placement.scoring import assess, needs_model_call, score_candidates
 from placement.stage_output import emit_retrieval_stage, emit_scoring_stage
@@ -1346,6 +1348,85 @@ RANKED_BELOW_BECAUSE_THE_GROUPING_SET_IT_APART: str = (
 )
 
 
+def _with_the_graphs_own_channel(retrieval: Retrieval, graphs) -> Retrieval:
+    """`104` §18.2 gap 12's scoring half: §6.3's graph channel, finally produced.
+
+    `00`:107 lists graph relationships among the six things that retrieve a node,
+    `scoring._CHANNEL_WEIGHT` has weighed `graph_relationship` at 1 since the
+    module was written, and NOTHING PUT IT ON A CANDIDATE -- so
+    `retrieval.PRODUCED_CHANNELS` truthfully declared four channels, gap 13's
+    denominator counted 5, and a candidate whose whole case was a typed
+    relationship to a file already accepted in it scored zero for it. That is the
+    half of gap 12 the scorer owns.
+
+    **THE WEIGHT IS THE ONE ALREADY THERE, AND IT STAYS 1.** `00`:109-110 name
+    the relationships and give no numbers, so the fallback would be the nearest
+    channel's weight -- except that a weight is not missing here. `_CHANNEL_
+    WEIGHT`'s own argument is §3.13's ordering ("a direct fact outweighs a group
+    membership outweighs a relationship") and gap 13's note says in terms that
+    the relative order must stay unchanged. Raising it to the accepted group's 2
+    would put a relationship level with a membership, which §3.13 does not, and
+    would make a direct fact alone score 3/7 -- gap 13's headline defect,
+    reopened by the fix for gap 12.
+
+    **THE DECLARATION IS THIS RETRIEVAL'S, NOT A CONSTANT, AND THE ARITHMETIC IS
+    WHY.** `Retrieval.producible_channels` is per retrieval and required with no
+    default precisely so "a caller that retrieves through a narrower path than
+    `retrieve`" declares its own; the object that PUTS the channel on a candidate
+    is the object that declares it, which is exactly the invariant `score_
+    candidates` checks. Declaring it for every retrieval instead would move the
+    denominator from 5 to 6 for every file in the corpus, and `(3 - 2) / 6 =
+    0.1667` is below the wired 0.20 margin -- so a file whose direct facts match
+    one node against a rival reached by an accepted group alone would abstain
+    `low_margin`, which is `_exact_margin`'s own worked example and the pair
+    `test_a_measured_margin_over_the_threshold_reads_true_not_vacuous` pins. No
+    positive weight avoids it: `(3 - 2) / (5 + w) >= 0.20` has no solution for
+    `w > 0`. A file with no typed edge therefore scores byte-identically to
+    before, and the run-wide change stays what it is -- a policy number, `cli-
+    support-v2`'s 0.20, which is the owner's to re-set.
+
+    **What it buys, on a file that HAS one.** The denominator is 6, so a node
+    reached by an accepted group AND a typed edge scores 3/6 and meets the 0.50
+    bar that a group alone (2/6) does not: `00`:109's own example, where `HW
+    3.pdf` is compared "against the PHYS1401 node's syllabus, lectures, midterm,
+    accepted problem sets". A node reached by a typed edge alone scores 1/6 and
+    still cannot place, which is §6.5's "a target file connected only by generic
+    similarity or one high-frequency entity must remain uncertain".
+
+    `is_typed_support` and not `graph.anchors` is the test, and it is §6.5's:
+    anchors held together by one everywhere-entity are a generic hub, and
+    `score_candidates` already reports that node as `generic_hub`. A channel
+    granted on the hub would score the hub.
+
+    `semantic_only_node_ids` is recomputed rather than carried, because it is the
+    same question asked of the new channel set: a node reached only by an
+    embedding that turns out to hold a typed relationship is no longer supported
+    by an embedding alone, and `score_candidates` reads that set directly to
+    decide `semantic_only`. Leaving it would report a node with a typed edge as
+    semantic-only and `_reason` would abstain it on that word.
+    """
+    supported = frozenset(
+        node_id for node_id, graph in graphs.items() if is_typed_support(graph))
+    if not supported:
+        return retrieval
+    candidates = tuple(
+        candidate if candidate.node_id not in supported
+        else dataclasses.replace(
+            candidate,
+            channels=tuple(dict.fromkeys(
+                candidate.channels + (GRAPH_RELATIONSHIP,))))
+        for candidate in retrieval.candidates
+    )
+    return dataclasses.replace(
+        retrieval, candidates=candidates,
+        producible_channels=tuple(dict.fromkeys(
+            tuple(retrieval.producible_channels) + (GRAPH_RELATIONSHIP,))),
+        semantic_only_node_ids=frozenset(
+            candidate.node_id for candidate in candidates
+            if set(candidate.channels) <= set(NON_DECIDING_CHANNELS)),
+    )
+
+
 def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
                evidence, component_version: str, observed_at: str,
                group_plan_id: str | None = None,
@@ -1488,6 +1569,12 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
         )
         for candidate in retrieval.candidates
     }
+    # AFTER `emit_retrieval_stage`, deliberately. §6.2's stage is what RETRIEVAL
+    # answered, and its `semantic_only` is retrieval's own; the graph is step 4's
+    # and can only be known once the entries are read. What the SCORE used is on
+    # every `Scored` row (`producible_weight`), so a P2 replay reads the scale
+    # from the thing that was scored rather than from the stage before it.
+    retrieval = _with_the_graphs_own_channel(retrieval, graphs)
 
     # Step 6. FIRST, BEFORE THE COLLAPSES, AND THE ORDER IS THE RULE. A folder
     # every one of whose files agrees about something was built for that, and
@@ -1754,6 +1841,11 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
                 set_aside=set_aside,
                 own_folder_node_id=(
                     inputs.the_folder_each_file_is_in or {}).get(subject.file_id),
+                # `104` §18.2 gap 12: step 4's graphs, carried to step 7 so the
+                # relationships that scored the candidates are also the ones the
+                # model is shown. They were built and read by nobody but the
+                # scorer and the decision record.
+                graphs=graphs,
             )
             if isinstance(result, Refusal):
                 # P7 denied the release, from inside `run_call`. That is §8.4's
@@ -2659,12 +2751,116 @@ def _accepted_group_items(group_ids) -> tuple[EvidenceItem, ...]:
     )
 
 
+def _graph_items(conn, *, subject, plan_version: str, graphs, related_files,
+                 offered, target_locality) -> tuple[EvidenceItem, ...]:
+    """`104` §18.2 gap 12: the node-local typed graph, IN THE DOSSIER at last.
+
+    `00`:110 lists what a placement dossier carries and "graph anchor evidence"
+    is on it, between the accepted group memberships and the top legal
+    candidates. It was the one entry with no producer: the graph was built at
+    step 4, read for two flags, recorded on the decision, and never shown to the
+    model -- so a file whose relationship to another file IS the reason it
+    belongs somewhere was judged as though that relationship did not exist, and
+    the model could not have cited it if it had wanted to.
+
+    **REFERENCE-ONLY, AND UNCITABLE, WHICH IS THE SAME SHAPE AS AN ACCEPTED
+    GROUP.** The item carries a kind, a location, no span and a basis, and its
+    `evidence_ref` is this function's own address for the edge. Nothing about it
+    is in `released_evidence`, so `validation._check_citation` answers
+    `CITATION_NOT_IN_DOSSIER` to a citation of it exactly as it does to a
+    citation of a group -- P8 gains no check, which is gap 12's own instruction,
+    and the ratified C text already says the rule in its own words ("a candidate,
+    a group or a conflict is not evidence and cannot be cited"). **The owner is
+    owed one sentence of that text** naming this fourth kind, written out in the
+    report rather than applied here: the template is the library's, and the
+    dossier's own inventory of keys is unchanged.
+
+    **WHAT NAMES THE OTHER FILE.** Site C releases no filename -- `model_facts.
+    may_be_released` refuses a `filename`-zone reading to both localities,
+    checked again for this -- so the other end is named the way `00`:112's group
+    dossier names a member: by its accepted facts, through `cli.evidence_for`'s
+    `to_describes`, which carries only fields P6 calls destination dimensions and
+    only where the door would release a citation of them under the strictest
+    target. A neighbour with nothing describable gets NO ITEM: a reference to a
+    file the dossier may not describe is a reference to nothing.
+
+    **AND THE GATE IS ASKED PER FILE THIS DESCRIBES.** `may_assemble_dossier` is
+    §8.4's own per-file predicate, and it is asked here about the NEIGHBOUR
+    against the target this call was actually routed to -- the same two lines
+    `_one_destination_every_member_may_use` runs per group member. A protected or
+    held neighbour is refused for both localities and is never described to any
+    model; a neighbour this run may not describe to the cloud is dropped from a
+    cloud dossier and kept in a local one. Nothing crosses that would not cross
+    for that file's own call to the same target.
+
+    **THE UNION OF THE GRAPHS, ONE ITEM PER EDGE.** One edge can survive in
+    several candidates' neighbourhoods, and the model does not need it told
+    several times; what it needs is which of the offered folders the other file
+    is already accepted in, so those node ids are collected into the one item's
+    `location`. They are ids the model already holds -- every one is on
+    `allowed_vocabulary` and described by a `candidate` item -- so this adds a
+    relationship and no new vocabulary.
+
+    §8.6's two ceilings are already spent by the time this runs: the items are
+    built from `NodeLocalGraph.anchors`, which is what survived
+    `max_candidate_cluster_size` and `max_local_graph_neighborhood`. No count of
+    its own is invented here.
+
+    The `evidence_ref` carries two `file_id`s in the clear, and that is
+    `wire_handles.wire_ref`'s own rule rather than an oversight: it keys a
+    reference only when it is a P4 `observation_key`, because "a `file_id` is
+    `uuid.uuid4()` ... derived from nothing, inverting to nothing", and a node id
+    already crosses the same way on every `candidate` item.
+    """
+    described = {edge["to_file_id"]: edge.get("to_describes")
+                 for edge in related_files or ()}
+    hashes = {edge["to_file_id"]: edge.get("to_content_hash")
+              for edge in related_files or ()}
+    allowed = set(offered)
+    reached: dict[tuple[str, str, str], list[str]] = {}
+    for node_id, graph in (graphs or {}).items():
+        for anchor in graph.anchors:
+            key = (anchor.edge_type, anchor.to_file_id, anchor.anchor_file_id)
+            names = reached.setdefault(key, [])
+            if node_id in allowed and node_id not in names:
+                names.append(node_id)
+    items: list[EvidenceItem] = []
+    permitted: dict[str, bool] = {}
+    for (edge_type, other, anchor_file_id), node_ids in reached.items():
+        summary = described.get(other)
+        content_hash = hashes.get(other)
+        if not summary or not content_hash or other == subject.file_id:
+            continue
+        if other not in permitted:
+            permitted[other] = may_assemble_dossier(
+                privacy_state_for(conn, file_id=other,
+                                  content_hash=content_hash,
+                                  plan_version=plan_version),
+                target_locality=target_locality)
+        if not permitted[other]:
+            continue
+        where = (f"already accepted in {', '.join(node_ids)}" if node_ids
+                 else "not accepted in any folder on this list")
+        items.append(EvidenceItem(
+            evidence_ref=f"edge:{edge_type}:{anchor_file_id}:{other}",
+            kind=GRAPH_EDGE_ITEM,
+            location=" | ".join((
+                f"a {edge_type.replace('_', ' ')} relationship to another file",
+                f"that file's accepted facts: {summary}",
+                where,
+                f"found by {EDGE_PRODUCER[edge_type]}")),
+            excerpt_span=None, reliability_state=POSSIBLE,
+            basis=P8_CONTEXT_SUPPORTED))
+    return tuple(items)
+
+
 def _judge_with_model_steps(conn, *, subject, inputs: PipelineInputs, retrieval,
                             evidence, call_site: str, observed_at: str,
                             ranked: tuple[str, ...] = (),
                             set_aside: tuple[SetAside, ...] = (),
                             own_folder_node_id: str | None = None,
-                            route_pair: object | None = None):
+                            route_pair: object | None = None,
+                            graphs=None):
     """§6.12 step 7, and step 8 with it. P11 assembles the REQUEST, never a check.
 
     **`104` §18.15: A GENERATOR, AND THE ONE `yield` IS THE SOCKET.** Every line
@@ -3035,7 +3231,19 @@ def _judge_with_model_steps(conn, *, subject, inputs: PipelineInputs, retrieval,
         # every RELEASED key has builder metadata, and adds nothing about items
         # that were never released.
         evidence_items=(tuple(evidence["evidence_items"]) + profiles
-                        + _accepted_group_items(evidence.get("group_ids", ()))),
+                        + _accepted_group_items(evidence.get("group_ids", ()))
+                        # `104` §18.2 gap 12. Beside the groups and for the same
+                        # reason: `00`:110 lists "accepted group memberships,
+                        # GRAPH ANCHOR EVIDENCE, the small set of top legal
+                        # destination candidates" as three things one dossier
+                        # carries, and two of the three were here.
+                        + _graph_items(
+                            conn, subject=subject,
+                            plan_version=inputs.plan_version, graphs=graphs,
+                            related_files=evidence.get("related_files", ()),
+                            offered=offered,
+                            target_locality=getattr(chosen[1], "locality",
+                                                    None))),
         conflicts=to_p8_conflicts(retrieval.conflicts),
         # P7 builds the release request; P11 holds the builder and never a `Gate`.
         # Assembling it above, after `may_assemble_dossier` answered, is what keeps
@@ -3320,9 +3528,16 @@ def _the_groups_own_answer(conn, *, accepted: AcceptedGroup, memberships,
     # for two FLAGS only -- `typed_support` and `generic_hub` -- and takes every
     # point of support from `candidate.channels`, so the group's ranking is the
     # same arithmetic over the same channels either way; what the empty map says
-    # is that this call claims neither flag, which is true of it. `104` §18.2
-    # gap 12 (the typed graph contributes nothing and never enters a dossier) is
-    # inherited here and not re-opened.
+    # is that this call claims neither flag, which is true of it.
+    #
+    # **AND GAP 12 DOES NOT CHANGE IT.** The graph now carries a support channel
+    # and reaches the dossier as reference-only items; both are read off `graphs`,
+    # so an empty map means the group's call declares no `graph_relationship` (its
+    # denominator stays 5) and carries no edge item. That is the honest reading of
+    # a subject with no graph, and it is `build_node_local_graph`'s refusal above
+    # rather than a second decision: a group of four files has four originating
+    # files and no one of them is the anchor's. The MEMBERS still get theirs, on
+    # their own calls, where the anchor is the file the edge came from.
     graphs: dict = {}
     assessment = assess(retrieval, graphs, policy=inputs.policy,
                         their_own_folder_node_ids=frozenset(),

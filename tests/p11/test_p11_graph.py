@@ -8,8 +8,8 @@ import pytest
 from placement import vocabulary as v
 from placement.config import PlacementLimits
 from placement.graph import (
-    EDGE_TYPES, WholeCorpusReclusteringRefused, build_node_local_graph,
-    is_typed_support,
+    DESIGN_RELATIONSHIPS, EDGE_PRODUCER, EDGE_TYPES,
+    WholeCorpusReclusteringRefused, build_node_local_graph, is_typed_support,
 )
 from placement.index import build_destination_index, entry_for
 from placement.records import MatchingFact, Subject
@@ -59,16 +59,69 @@ def _build(entry, **overrides):
     return build_node_local_graph(**values)
 
 
-def test_the_five_edge_types_are_typed_and_closed():
+def test_the_edge_types_are_typed_and_closed():
+    """`104` §18.2 gap 12 added two, and the set is still closed.
+
+    It was five. `attachment_of` and `direct_reference` are the two of `00`:109's
+    nine relationships that had no carrier AND have a producer the store can
+    answer truthfully; every other missing one is recorded in
+    `DESIGN_RELATIONSHIPS` with the reason it has none, which is the pin below.
+    """
     assert set(EDGE_TYPES) == {
         "shared_validated_fact", "duplicate", "version_family",
         "compatible_document_type", "existing_related_folder",
+        "attachment_of", "direct_reference",
     }
     with pytest.raises(ValueError):
         build_node_local_graph(
             subject=SUBJECT, candidate=_candidate(), entry=None,
             related_files=(_related(edge_type="vibes"),), limits=LIMITS,
             entity_frequency={}, generic_entity_frequency=200)
+
+
+def test_the_nine_design_relationships_each_name_a_producer_or_none():
+    """`00`:109's nine typed relationships, each with its producer or with none.
+
+    *"The node-local graph should include typed relationships, such as shared
+    validated facts, accepted group membership, duplicate or version links,
+    derivation links, compatible document type, matching time period, direct
+    references, mutual semantic retrieval, and user-confirmed membership."*
+
+    `104` §18.2 gap 12 opened as "five of nine edge types" and no reader could
+    check the five, the nine, or which four were missing -- the count was the
+    mystery the ranked list complained about. The measurement: the nine are
+    enumerated, each names a carrier, and each says which code produces it or
+    that nothing does. Every carrier that is an EDGE is in `EDGE_TYPES`; the two
+    that are retrieval channels say so by name.
+
+    SABOTAGE: drop `user-confirmed membership` from the tuple -- the count falls
+    to eight and gap 12's own question ("which four are missing?") stops having
+    an answer in the code.
+    """
+    assert len(DESIGN_RELATIONSHIPS) == 9
+    assert [row.design_name for row in DESIGN_RELATIONSHIPS] == [
+        "shared validated facts", "accepted group membership",
+        "duplicate or version links", "derivation links",
+        "compatible document type", "matching time period", "direct references",
+        "mutual semantic retrieval", "user-confirmed membership",
+    ]
+    for row in DESIGN_RELATIONSHIPS:
+        assert row.carried_by, row.design_name
+        for carrier in row.carried_by:
+            assert carrier in EDGE_TYPES or carrier.startswith("retrieval."), (
+                row.design_name, carrier)
+        # A relationship with no producer says so by an EMPTY producer and a note
+        # that explains the absence; one with a producer names the code.
+        assert row.producer or row.note, row.design_name
+    without = [row.design_name for row in DESIGN_RELATIONSHIPS
+               if not row.producer]
+    assert without == ["user-confirmed membership"]
+    # Every edge type is reachable from the nine, and every one of them can say
+    # what produced it when it reaches a dossier item.
+    assert set(EDGE_PRODUCER) == set(EDGE_TYPES)
+    carried = {carrier for row in DESIGN_RELATIONSHIPS
+               for carrier in row.carried_by}
+    assert set(EDGE_TYPES) - carried == {"existing_related_folder"}
 
 
 def test_the_graph_only_ever_names_files_related_to_this_one_node(entry):

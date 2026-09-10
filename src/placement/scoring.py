@@ -13,9 +13,15 @@ names six retrieval channels and `_CHANNEL_WEIGHT` weighs the four that decide.
 curated folder and semantic neighbour -- of which two carry weight. Nothing in
 this codebase produces `graph_relationship` or `structural_relationship`:
 
-* `graph_relationship` waits on `104` §18.2 gap 12, the node-local typed graph
-  that is built and contributes nothing (five of nine edge types, never reaching
-  the dossier). **Release 2, ranked L.**
+* `graph_relationship` HAS a producer since `104` §18.2 gap 12, and it is not
+  `retrieve`: the node-local graph is built at §6.12 step 4, and
+  `pipeline._with_the_graphs_own_channel` puts the channel on a candidate whose
+  graph gives `is_typed_support` and declares it producible on the same
+  `Retrieval`. So it is producible FOR A SUBJECT THAT HAS A TYPED EDGE and not
+  for one that has none -- which is what this function is asked, and which
+  `retrieval.PRODUCED_CHANNELS` explains it is not declared run-wide for: over a
+  denominator of 6 the margin `(3 - 2) / 6` falls under the wired 0.20 and gap
+  13's headline pair abstains. The weight is unchanged at 1.
 * `structural_relationship` waits on `104` §18.2 gap 14, group placement as a
   first-class capability. Today group placement is post-hoc aggregation over
   single-file decisions and no model call ever takes a group, so the version
