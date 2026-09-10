@@ -303,6 +303,21 @@
    "layout": "frame-first",
    "note": "v4 of the situation text, from the r18 judgement (104 §18.16): v3 answered \"none\" on 34 of 46 files whose shortlists were 2-6 long, saying the text did not CLEARLY indicate which -- the ratified text says \"when the two are close, answer none\" and \"two or more left is not a decision\". v4 says \"none\" is for a text that states NO listed situation; between stated ones, name the most direct and list the rest in alternatives, which the product puts to the person. The protected-first question and everything else byte-identical to v3.",
    "ratified_by": "nobody -- a bakeoff candidate authored by the lead under the owner's 7 Sep delegation of prompt iteration as new versioned rows; the owner ratifies or strikes it on the numbers."
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-safety-first-v5",
+   "status": "unratified",
+   "template_id": "situation.unratified.safety-first-v5.2026-09-10",
+   "template_file": "situation_template.safety-first.v5.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_shaping_policy.v2.json",
+   "readings_rows": [
+    "@case"
+   ],
+   "layout": "frame-first",
+   "note": "v5 of the situation text, from the §18.20 bakeoff and the owner's 10 Sep ruling that the protected hold be \"a little more sure than now\". v4 answered 7 more of 14 cases than v3 and got 5 wrong instead of 1. v5 keeps v4's default (name the stated situation, put the rest in alternatives) and adds two sentences: the cited span must itself carry the statement (name, code, target, study, employer, capture field, source), and a restricted kind is named only when the span shows the record's own particulars, never for a file that teaches, sells, lists, discusses or asks for such a record. Everything else byte-identical to v4.",
+   "ratified_by": "nobody -- an A/B candidate authored by the lead under the owner's 10 Sep instruction to A/B test a small sample; the owner ratifies or strikes it on the numbers."
   }
  ],
  "digests": {
@@ -345,6 +360,7 @@
   "a_fact_template_folder_levels.v3.txt": "25d9415b5179afbbb28d556c09c23a92aeff88204c9799bdaf5aec35ca5858f1",
   "a_fact_shaping_policy.v2.json": "0c3d3a4d5c7e5fc1099e32aa9a84008d022cc4665e1c63c9c5c039dc80679669",
   "c_placement_template.eliminate-v2r.txt": "0b3816e142fa0b2a17def7f9059cf693c0a42f27110005b8c6f32333b406385e",
-  "situation_template.safety-first.v4.txt": "afc24f64ebf5410cf96eb7d4183ad3e7740a4a7b7e9a138fb5aa2de4828725d4"
+  "situation_template.safety-first.v4.txt": "afc24f64ebf5410cf96eb7d4183ad3e7740a4a7b7e9a138fb5aa2de4828725d4",
+  "situation_template.safety-first.v5.txt": "214cccca857246cdfea8621560ccfca07437537269dc70b66edc55a707a5462c"
  }
 }
