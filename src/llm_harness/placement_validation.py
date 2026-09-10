@@ -8,6 +8,18 @@ fully supported destination after resolving ancestors and shared branches.
 `support` and `next_support` are recorded diagnostics and never a veto; a level
 marked `context` is verified against the dossier's accepted groups; a placement
 every level of which is `context` may carry no citation at all.
+
+**Site C rejects on three things and flags the rest** (`104` §18.2 gap 2, under
+`00`'s amendment of 2026-09-05: "deterministic validation rejects only a
+structurally invalid answer"). The three are the frozen tree (`node_exists`),
+grounding (a level whose value the file's own released text does not state, and a
+`context` level whose group the dossier does not say the person accepted), and
+shape (a required key absent or not a number) -- plus the person's own privacy
+policy, which is theirs and not this module's opinion. Everything else --
+a destination P11's shortlist did not happen to contain, an unechoed conflict id,
+a generic hub, a placement with no supported level, a populated `alternatives`
+list -- is recorded on the verdict and sent to a person by `requires_review`.
+See `_flagged`.
 """
 from __future__ import annotations
 
@@ -158,14 +170,40 @@ def _reject(verdict: P8Verdict, reason: str, disposition: str) -> P8Verdict:
     )
 
 
-def _weak(verdict: P8Verdict, reason: str) -> P8Verdict:
+def _flagged(verdict: P8Verdict, reasons: tuple[str, ...]) -> P8Verdict | None:
+    """`104` §18.2 gap 2: what a NON-structural check does instead of rejecting.
+
+    `00`'s amendment of 2026-09-05 is one sentence and it is the whole of this
+    function's argument: "deterministic scores rank and shortlist the candidates
+    the model is shown, and deterministic validation REJECTS ONLY A STRUCTURALLY
+    INVALID ANSWER: a node that is not in the frozen tree, or a cited fact that is
+    not in the evidence." Everything a site check asks that is neither of those is
+    an opinion about the answer's QUALITY, and an opinion held by code that saw
+    less of the file than the model did.
+
+    So the answer survives, keeps its outcome, and carries the reason to the
+    person: `requires_review` is set, `_placement_disposition` turns that into
+    `valid_review_required`, and `p8_seam.transcribe` -- which already reads
+    `requires_review` to gate `review_policy` and not the outcome -- puts the file
+    in front of somebody with the code beside it. Nothing auto-moves on a flagged
+    verdict, which is the property the six rejections were really buying.
+
+    **The reasons accumulate.** A rejection could return at the first thing it
+    found because the answer was over; a flag cannot, or a placement with three
+    things worth telling the person would tell them one. `reasons` is appended to
+    whatever the claim-level validator already recorded, in the order the checks
+    ask, so the histogram counts each check once per verdict it fired on.
+
+    `None` when nothing was flagged, because that is `_placement_site`'s own
+    contract for "this site has no objection" and a verdict rewritten with no
+    change is a rewrite a reader has to check for.
+    """
+    if not reasons:
+        return None
     return _rewrite(
         verdict,
-        outcome=WEAK,
-        disposition=UNRESOLVED,
-        reasons=(reason,),
-        may_propose=False,
-        requires_review=False,
+        reasons=verdict.reasons + reasons,
+        requires_review=True,
     )
 
 
@@ -385,8 +423,12 @@ def _placement_site(
             requires_review=False,
         )
     destination = str(destination)
-    if destination not in vocab:
-        return _reject(verdict, INVENTED_NODE, NO_DESTINATION)
+    # THE STRUCTURAL WALL, AND IT IS THE FROZEN TREE (`104` §18.2 gap 2). `00`'s
+    # amendment names exactly two things a placement may be rejected for, and this
+    # is the first of them: "a node that is not in the frozen tree". It is asked
+    # FIRST now, ahead of the vocabulary flag below, so that a destination which
+    # is neither on the shortlist nor in the tree is refused as the invention it
+    # is rather than sent to a person as a folder they might want.
     if not dependencies.node_exists(destination, plan_version):
         return _reject(verdict, NODE_NOT_IN_FROZEN_TREE, NO_DESTINATION)
     # THE MODEL'S OWN ADMISSION FIRST. A level it marks `unsupported` is a slot
@@ -403,52 +445,125 @@ def _placement_site(
     invented = _invented_dimension(payload, dossier)
     if invented is not None:
         return _reject(verdict, invented, NO_DESTINATION)
-    considered_ids = _considered_conflicts(
-        payload, "conflicts_considered", handles=conflict_handles)
-    if dossier.conflicts and any(
-        item.conflict_id not in considered_ids for item in dossier.conflicts
-    ):
-        return _reject(verdict, CONFLICT_IGNORED, NO_DESTINATION)
+    # THE PRIVACY CHECK STAYS A REJECTION, AND IT IS THE ONE EXCEPTION `104`
+    # §18.2 GAP 2 IS NOT ALLOWED TO MAKE (recorded so the owner can strike it).
+    # The gap's patch says the non-structural downgrades become flags; this one
+    # is not a downgrade of an answer's quality. `00`:114 names it beside the
+    # structural checks in the same sentence -- the validator confirms "that a
+    # sensitive file is handled under the USER'S PRIVACY POLICY" -- and the
+    # policy is the person's own instruction, not code's opinion about evidence.
+    # A flag here would move a sensitive file into a folder their policy forbids
+    # and tell them afterwards, which is the one direction this product does not
+    # trade for coverage. `dependencies.sensitivity_policy` is injected by the
+    # composition root, so what it forbids is configuration and never this
+    # module's guess.
     if not dependencies.sensitivity_policy(dossier, payload):
         return _reject(verdict, SENSITIVITY_POLICY_VIOLATION, NO_DESTINATION)
-    if payload.get("generic_hub") is True or destination == "node-hub":
-        return _weak(verdict, GENERIC_HUB_ONLY)
     # THE TWO COUNTS ARE DIAGNOSTICS (`105` §14.1). They must be present and be
     # numbers -- that is the shape, and a shape violation destroys the answer --
     # but they are never compared to a threshold or to each other: one passage
     # can support a parent and its child, and several citations can repeat one
     # nondiscriminating fact, so a count establishes nothing about uniqueness.
     # They stay in the recorded response; nothing here reads their values.
+    #
+    # SCHEMA IS THE SECOND STRUCTURAL REFUSAL AND STAYS ONE: an answer whose
+    # required key is absent or is not a number is not an answer this validator
+    # can read at all, which is a different thing from an answer it disagrees
+    # with.
     for key in ("support", "next_support"):
         if key not in payload or not _real_number(payload[key]):
             return _reject(verdict, SCHEMA_INVALID, NO_DESTINATION)
+    # ----------------------------------------------------------------------
+    # EVERYTHING BELOW IS A FLAG (`104` §18.2 gap 2). Five checks that used to
+    # destroy or downgrade the answer, each now recorded on a verdict that
+    # requires review. See `_flagged` for the ruling they all rest on.
+    # ----------------------------------------------------------------------
+    flags: list[str] = []
+    # INVENTED_NODE NOW MEANS: A REAL FOLDER P11 DID NOT SHOW YOU.
+    #
+    # This was a rejection and it was the gap's headline: `allowed_vocabulary` is
+    # the shortlist P11's six retrieval channels reached, `node_exists` above has
+    # already confirmed the destination is a frozen, approved node of this plan,
+    # and rejecting it here told the person their own folder was invented. The
+    # amendment's structural test is the tree, and the tree said yes. What is
+    # left worth saying is that the engine did not think of this folder, which is
+    # a reason for a person to look and not a reason to lose the answer.
+    if destination not in vocab:
+        flags.append(INVENTED_NODE)
+    considered_ids = _considered_conflicts(
+        payload, "conflicts_considered", handles=conflict_handles)
+    if dossier.conflicts and any(
+        item.conflict_id not in considered_ids for item in dossier.conflicts
+    ):
+        # The prompt asks the model to echo every `conflict_id` "so that it is on
+        # record that you saw it", and the dossier already showed it each one. A
+        # missing echo is a bookkeeping failure about a flag the model was given,
+        # not a fact about the destination -- and `00`:42's amendment for the
+        # same shape at site A is explicit that a contradiction "is shown to the
+        # model as a flag with its evidence, and the model reconciles".
+        flags.append(CONFLICT_IGNORED)
+    if payload.get("generic_hub") is True or destination == "node-hub":
+        # §6.5's "connected only by generic similarity or one high-frequency
+        # entity must remain uncertain rather than being absorbed". Uncertain is
+        # what a review IS; `weak` also made it unproposable, which is the
+        # product declining to say anything at all about a file.
+        flags.append(GENERIC_HUB_ONLY)
     # BELOW_SUPPORT_THRESHOLD now means: no level of the chosen candidate is
     # supported -- the model placed the file and listed nothing that holds it.
     if not _dimensions(payload):
-        return _weak(verdict, BELOW_SUPPORT_THRESHOLD)
+        flags.append(BELOW_SUPPORT_THRESHOLD)
     # INSUFFICIENT_MARGIN now means: the model itself reports a second fully
     # supported candidate still standing beside its destination. The text
     # defines `alternatives` as exactly that -- what stood after ancestors and
     # shared branches were resolved -- and tells the model that a non-empty list
-    # is a `none`. A placement that lists one anyway is recorded unresolved and
-    # goes to a person, not into a folder.
+    # is a `none`.
+    #
+    # **THIS IS THE CODE ARM OF `104` §18.2 GAP 7** and it is worth naming,
+    # because that gap is marked OWNER'S WORD: gap 7 records that "`:501-509`
+    # converts any non-empty `alternatives` into `INSUFFICIENT_MARGIN`, which the
+    # prompt never says (it invites a populated list)" and offers two remedies --
+    # "make alternatives non-fatal, or say in the text that a populated list is
+    # an abstention". §18.2 gap 2's patch chooses the first for the reason gap 2
+    # is about; the second is a prompt change and stays the owner's. A
+    # cooperative model that lists what else it considered keeps its placement
+    # and a person sees the list.
     if _alternatives(payload):
-        return _weak(verdict, INSUFFICIENT_MARGIN)
+        flags.append(INSUFFICIENT_MARGIN)
     if payload.get("weak_retrieval") is True:
-        return _rewrite(
-            verdict,
-            outcome=WEAK,
-            disposition=UNRESOLVED,
-            reasons=(),
-            may_propose=False,
-            requires_review=False,
-        )
-    return None
+        # THE ONE FLAG WITH NO WORD OF ITS OWN, and it had none as a downgrade
+        # either -- this arm set `reasons=()`, so nothing it fired on could be
+        # counted in a histogram or explained to anybody. The site-C reason set is
+        # closed and adding a member to it is the owner's call (the precedent is
+        # `VALUE_NOT_IN_CITED_TEXT`, added at site A "WITH THE OWNER'S APPROVAL,
+        # RECORDED HERE"), so what this does today is set the review flag and no
+        # more, which is strictly more than the person got before. The proposed
+        # name is in the report. `c_placement_response_schema.json` forbids the
+        # key outright (`additionalProperties: false`), so in the product this
+        # arm is reachable only through `llm_harness.fixtures`' bench payloads.
+        return _flagged(verdict, tuple(flags)) or _rewrite(
+            verdict, requires_review=True)
+    return _flagged(verdict, tuple(flags))
 
 
 def _placement_disposition(verdict: P8Verdict) -> P8Verdict:
+    """The disposition each outcome lands on, asked once after every check.
+
+    **`ACCEPT_DIRECT` NOW READS `requires_review`** (`104` §18.2 gap 2). It did not
+    have to before: nothing could set that flag on a direct acceptance, so the
+    outcome alone decided and `move_plan_eligible` was safe. `_flagged` can now,
+    and this is the line that makes a flag mean something -- without it, a
+    placement carrying `INVENTED_NODE` or `INSUFFICIENT_MARGIN` would be
+    `move_plan_eligible`, which is the flag written into the record and the file
+    moved anyway. That is a worse product than the rejection it replaced.
+
+    Read off `requires_review` rather than off `reasons`, because `requires_review`
+    is the field `p8_seam.transcribe` and `PlacementDecision.review_policy` already
+    gate on, and a second predicate over the same question is how the two come to
+    disagree.
+    """
     if verdict.outcome == ACCEPT_DIRECT:
-        disposition = MOVE_PLAN_ELIGIBLE
+        disposition = (VALID_REVIEW_REQUIRED if verdict.requires_review
+                       else MOVE_PLAN_ELIGIBLE)
     elif verdict.outcome == ACCEPT_CONTEXT_SUPPORTED:
         disposition = VALID_REVIEW_REQUIRED
     elif verdict.outcome == WEAK:

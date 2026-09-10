@@ -100,8 +100,8 @@ from placement.residual import (
     record_set_decision, require_model_call_permitted, require_set_actionable,
     require_set_decision, surface_residual_sets,
 )
-from placement.retrieval import CURATED_FOLDER, Retrieval, retrieve
-from placement.scoring import assess, needs_model_call
+from placement.retrieval import CURATED_FOLDER, Retrieval, SetAside, retrieve
+from placement.scoring import assess, needs_model_call, score_candidates
 from placement.stage_output import emit_retrieval_stage, emit_scoring_stage
 from placement.store import current_decision, record_decision, subject_ref_of
 from placement.vocabulary import (
@@ -132,6 +132,111 @@ STEPS: tuple[str, ...] = (
 )
 
 
+#: WHAT EACH STEP-6 RULE SAYS ABOUT A FOLDER IT RANKED BELOW THE CONTENDERS.
+#:
+#: `104` §18.2 gap 2. Every one of these used to be a DELETION and is now a
+#: sentence the model reads inside the folder's own description. They are written
+#: for the person's model rather than for the log: no section numbers, no engine
+#: words, and no instruction -- each says what the engine noticed and stops,
+#: because the sentence that told the model what to conclude would be the deletion
+#: again in a longer form.
+#:
+#: **They decide nothing and they are not a word list.** No branch anywhere reads
+#: these strings; `SetAside.because` carries whichever one the rule that set the
+#: candidate aside wrote, and the only thing that ever happens to it is that
+#: `_offered_items` appends it to that candidate's `location` and `_explain`
+#: repeats it to the person if the model picks the folder anyway.
+_RANKED_BELOW_ANCESTOR: str = (
+    "the engine ranked this folder below another: a folder further down this same "
+    "chain is also on this list, and a file filed in the deeper one is filed in "
+    "this one too"
+)
+_RANKED_BELOW_VAGUER_COPY: str = (
+    "the engine ranked this folder below another: it is a folder this run would "
+    "create, and a folder the person already made expects everything it expects"
+)
+#: NO CLAUSE ABOUT CARRYING THE FILE OUT OF WHERE IT IS, though the rule that
+#: writes this is named for exactly that. `_without_kind_only_moves` reads the
+#: stay off `CURATED_FOLDER`, which is a LABEL match -- so a folder whose name
+#: does not agree with the file, reached on `DIRECT_FACT` alone, is the file's own
+#: folder and the channel is silent about it. That is the `Kid` shape
+#: `_a_folder_made_for_this_keeps_it` records from the other side ("a first draft
+#: of this rule, reading the channel, dropped the file's own folder along with the
+#: rivals"). As a deletion the mistake cost the candidate; as a SENTENCE it would
+#: be a false statement in front of the model, which is worse. What the rule
+#: actually measured is the agreement, and that is all this says.
+_RANKED_BELOW_KIND_ONLY: str = (
+    "the engine ranked this folder below the others: everything it agrees with "
+    "this file about is what kind of thing the file is, or when it was made"
+)
+_RANKED_BELOW_COVERED_FOLDER: str = (
+    "the engine ranked this folder below the others: the folder this file is in "
+    "now was made for what it holds -- every file in it agrees about something -- "
+    "and this folder's only agreement with the file is what kind of thing it is, "
+    "or when it was made"
+)
+
+
+def _ranked_below(retrieval: Retrieval, node_ids, because: str) -> Retrieval:
+    """Move these candidates off the contender list and onto the shortlist's tail.
+
+    `104` §18.2 gap 2's whole mechanism, in one function so that the four rules
+    below share it and none of them can drop a candidate on the floor by writing
+    the `dataclasses.replace` slightly differently.
+
+    `dataclasses.replace`, not a field-by-field rebuild. Every one of these rules
+    changes exactly TWO fields and copies the rest by name, and a rebuild that
+    names them silently RESETS any field added later. For `producible_channels`
+    that would mean a ranked retrieval scored against a denominator that is not
+    the one that built it, which is `104` §18.2 gap 13 re-opened one function
+    further down.
+    """
+    if not node_ids:
+        return retrieval
+    moved = tuple(candidate for candidate in retrieval.candidates
+                  if candidate.node_id in node_ids)
+    return dataclasses.replace(
+        retrieval,
+        candidates=tuple(candidate for candidate in retrieval.candidates
+                         if candidate.node_id not in node_ids),
+        set_aside=retrieval.set_aside + tuple(
+            SetAside(candidate=candidate, because=because) for candidate in moved),
+    )
+
+
+def _ranked_set_aside(retrieval: Retrieval, graphs, *, policy) -> tuple[SetAside, ...]:
+    """The set-aside tail of the shortlist, in the SCORES' own order.
+
+    `00`'s amendment says deterministic scores RANK and shortlist. The contenders
+    are ranked by `assess`; this is the same arithmetic asked of the folders the
+    step-6 rules moved off the contender list, so "ranked below" is a ranking and
+    not an insertion order that happened to fall out of the order four rules ran
+    in.
+
+    **It is offer-only and never reaches `assess`.** The `Retrieval` built here is
+    a scratch record whose `candidates` are the set-aside ones; nothing keeps it,
+    nothing scores a contender against it, and `producible_channels` is copied so
+    the tail is scored against the same denominator the contenders were
+    (`104` §18.2 gap 13).
+
+    The order is invisible to the model -- the prompt says "the order of the items
+    carries no meaning" -- and that is not a reason to leave it arbitrary: it
+    decides `offered[0]`, which is the `basis_key` a past rejection is filed
+    against, and on a file whose every candidate was set aside it is the only
+    ranking there is.
+    """
+    if not retrieval.set_aside:
+        return ()
+    by_id = {item.candidate.node_id: item for item in retrieval.set_aside}
+    scored = score_candidates(
+        dataclasses.replace(
+            retrieval,
+            candidates=tuple(item.candidate for item in retrieval.set_aside),
+            set_aside=()),
+        graphs, policy=policy)
+    return tuple(by_id[item.node_id] for item in scored)
+
+
 def _without_superseded_ancestors(conn: sqlite3.Connection, retrieval: Retrieval,
                                   *, plan_version: str) -> Retrieval:
     """Step 6's first half: an ANCESTOR of another candidate is not a rival.
@@ -146,8 +251,23 @@ def _without_superseded_ancestors(conn: sqlite3.Connection, retrieval: Retrieval
     They are not multiple homes. Filing something in `Columbia/PHYS1401/Homework`
     files it in `Columbia` and in `PHYS1401` too; that is what nesting MEANS, and
     §6.7 asks for the deepest node the evidence actually supports. So a candidate
-    that is a strict ancestor of another candidate is dropped -- not judged, not
-    rejected, superseded by a more specific form of itself.
+    that is a strict ancestor of another candidate stops being a CONTENDER -- not
+    judged, not rejected, superseded by a more specific form of itself.
+
+    **AND IT IS STILL OFFERED, WHICH IS `104` §18.2 GAP 11'S FIRST HALF.** Until
+    this it was deleted, and the shallower approved parent then could not be
+    chosen by anybody: `00`:111 asks for exactly that choice -- "if the system
+    cannot distinguish Spring 2025 from Spring 2026 but a parent path such as
+    `Academics/Columbia/PHYS1401/Homework` exists, the model should choose the
+    approved shallower path" -- and the prompt invites it in as many words
+    ("A candidate with an unfilled level is struck; if a shallower candidate on
+    the same chain has all its levels supported, that shallower one stands",
+    `c_placement_template.eliminate-v2.txt`:43). The menu could not contain the
+    option the text offered. The deepest candidate is supported BY CONSTRUCTION
+    only in the sense that its expected values matched SOME fact; whether every
+    level of it is supported is the model's question, and the parent has to be on
+    the list for its answer to be reachable. So the ancestor is ranked below and
+    described, and the sentence it carries says what the ranking means.
 
     **Only strict ancestors, and only within one chain.** Two candidates on
     different branches are genuinely two homes and stay two homes: that is the
@@ -160,12 +280,6 @@ def _without_superseded_ancestors(conn: sqlite3.Connection, retrieval: Retrieval
     parent IS the deepest candidate and is what this returns -- which is the case
     `DecisionDepth.unsupported_levels` was written for.
     """
-    # `dataclasses.replace`, not a field-by-field rebuild. Every one of these
-    # pruners changes exactly ONE field and copies the rest by name, and a
-    # rebuild that names them silently RESETS any field added later. For
-    # `producible_channels` that would mean a pruned retrieval scored against a
-    # denominator that is not the one that built it, which is `104` §18.2 gap 13
-    # re-opened one function further down.
     node_ids = {candidate.node_id for candidate in retrieval.candidates}
     if len(node_ids) < 2:
         return retrieval
@@ -183,13 +297,7 @@ def _without_superseded_ancestors(conn: sqlite3.Connection, retrieval: Retrieval
                 superseded.add(cursor)
             cursor = entry_for(conn, plan_version=plan_version,
                                node_id=cursor).parent_node_id
-    if not superseded:
-        return retrieval
-
-    return dataclasses.replace(
-        retrieval,
-        candidates=tuple(candidate for candidate in retrieval.candidates
-                         if candidate.node_id not in superseded))
+    return _ranked_below(retrieval, superseded, _RANKED_BELOW_ANCESTOR)
 
 
 def _without_duplicated_proposals(conn: sqlite3.Connection, retrieval: Retrieval,
@@ -220,9 +328,15 @@ def _without_duplicated_proposals(conn: sqlite3.Connection, retrieval: Retrieval
     * The person's folder must expect a SUPERSET, not merely overlap. Two folders
       that share one field and differ on another are genuinely two homes, and
       §6.10's ambiguity is what the model call exists for.
-    * Only a PROPOSAL is dropped. Two of the person's own folders competing is
+    * Only a PROPOSAL is set aside. Two of the person's own folders competing is
       their business, and resolving it here would be the product overruling one
       of their decisions with another.
+
+    **`104` §18.2 gap 2: THIS RANKS, IT NO LONGER DELETES.** The vaguer copy stays
+    on the shortlist below the person's own folder, carrying
+    `_RANKED_BELOW_VAGUER_COPY`, because "a folder this run would create" is a
+    judgement about which of two names for one place a person would rather see,
+    and `00`'s amendment gives that judgement to the model.
     """
     entries = {candidate.node_id: entry_for(conn, plan_version=plan_version,
                                             node_id=candidate.node_id)
@@ -240,13 +354,7 @@ def _without_duplicated_proposals(conn: sqlite3.Connection, retrieval: Retrieval
         if entry.node_type != EXISTING and entry.expected_values
         and any(set(entry.expected_values) <= set(folder.expected_values)
                 for folder in adopted)}
-    if not superseded:
-        return retrieval
-
-    return dataclasses.replace(
-        retrieval,
-        candidates=tuple(candidate for candidate in retrieval.candidates
-                         if candidate.node_id not in superseded))
+    return _ranked_below(retrieval, superseded, _RANKED_BELOW_VAGUER_COPY)
 
 
 def _refinements_of(their_own_folder: str | None,
@@ -368,6 +476,16 @@ def _without_kind_only_moves(
     exempt is a descendant of the folder THIS FILE IS IN, which `AP world` is not
     for a paper sitting on the Desktop. `_refinements_of` is the whole of that
     test and the caller supplies the folder.
+
+    **`104` §18.2 gap 2: THIS RANKS, IT NO LONGER DELETES.** `Desktop/AP world`
+    stays on the shortlist under `_RANKED_BELOW_KIND_ONLY`, and the six physics
+    papers are still safe: the sentence tells the model that the folder's only
+    agreement with the file is a kind or a period, the model has the folder's own
+    profile beside it, and if it places the file there anyway the placement
+    carries `requires_review` and the sentence into the plan the person reads
+    (`_place_one`, `_explain`). What is gone is the case this rule could never
+    tell from those six -- a folder whose kind-only agreement IS the right answer,
+    which under a deletion had no way to be said at all.
     """
     carried = {
         candidate.node_id for candidate in retrieval.candidates
@@ -378,13 +496,7 @@ def _without_kind_only_moves(
                 for fact in candidate.matching_facts)
         and dimension_of.get(candidate.node_id) not in {
             fact.field for fact in candidate.matching_facts}}
-    if not carried:
-        return retrieval
-
-    return dataclasses.replace(
-        retrieval,
-        candidates=tuple(candidate for candidate in retrieval.candidates
-                         if candidate.node_id not in carried))
+    return _ranked_below(retrieval, carried, _RANKED_BELOW_KIND_ONLY)
 
 
 def _a_folder_made_for_this_keeps_it(
@@ -470,9 +582,18 @@ def _a_folder_made_for_this_keeps_it(
     folder along with the rivals and abstained on all five files. The caller
     names the node instead.
 
-    Nothing is dropped when the file's own folder was made for nothing, which is
+    Nothing is set aside when the file's own folder was made for nothing, which is
     every file in a folder that is merely a place things land, and every file
     that is not in one of the person's folders at all.
+
+    **`104` §18.2 gap 2: THIS RANKS, IT NO LONGER DELETES.** The rival stays on
+    the shortlist under `_RANKED_BELOW_COVERED_FOLDER`. The report card is still
+    safe for the reason it always was -- the sentence names the coverage the rule
+    measured, and a model that carries the child's school record into the law
+    student's `Coursework/Fall2026/report card` anyway does it in front of a
+    person, with the reason printed beside it -- and the discrimination this rule
+    exists to keep alive for the xfail'd contract change is measured exactly as
+    before, because `assess` never sees what this sets aside.
     """
     if its_own_folder is None:
         return retrieval
@@ -482,13 +603,7 @@ def _a_folder_made_for_this_keeps_it(
         and candidate.matching_facts
         and all(fact.field in fields_that_cannot_anchor_a_move
                 for fact in candidate.matching_facts)}
-    if not carried:
-        return retrieval
-
-    return dataclasses.replace(
-        retrieval,
-        candidates=tuple(candidate for candidate in retrieval.candidates
-                         if candidate.node_id not in carried))
+    return _ranked_below(retrieval, carried, _RANKED_BELOW_COVERED_FOLDER)
 
 
 class ModelJudgementUnavailable(RuntimeError):
@@ -1113,8 +1228,18 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         retrieval, dimension_of=dimension_of,
         fields_that_cannot_anchor_a_move=inputs.fields_that_cannot_anchor_a_move,
         refinements=refinements)
+    # THE SET-ASIDE NODES KEEP THEIR GRAPHS (`104` §18.2 gap 2). They were built
+    # one step above, over every retrieved candidate, before any step-6 rule ran;
+    # throwing them away now would mean a file the MODEL places on a set-aside
+    # folder records `graph_anchors=()` for a graph this run actually built, and
+    # `_ranked_set_aside` below could not order the tail by its real scores.
+    # `assess` is unaffected either way: `score_candidates` walks
+    # `retrieval.candidates` and asks `graphs.get`, so a key it does not walk to
+    # is a key it never reads.
+    offer_ids = {c.node_id for c in retrieval.candidates} | {
+        item.candidate.node_id for item in retrieval.set_aside}
     graphs = {node_id: graph for node_id, graph in graphs.items()
-              if node_id in {c.node_id for c in retrieval.candidates}}
+              if node_id in offer_ids}
     # WHICH CANDIDATES ARE FOLDERS THE PERSON ALREADY HAS. `existing_path` is set
     # only on an adopted node and is the same fact P10's report reads to print
     # "[yours already]", so this is not a second opinion about it. §6.10's margin
@@ -1147,7 +1272,12 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
     #: `104` R-74's own condition, carried to the explanation so the record names
     #: the rules as the actor rather than saying nothing about why no judge spoke.
     gate_refused = False
-    if needs_model_call(assessment, model_decides=inputs.model_decides()):
+    # `104` §18.2 gap 2's own case in the routing: a file whose every candidate
+    # step 6 ranked below the contenders still has a shortlist, and the model is
+    # the one `00`'s amendment gives that question to.
+    set_aside = _ranked_set_aside(retrieval, graphs, policy=inputs.policy)
+    if needs_model_call(assessment, model_decides=inputs.model_decides(),
+                        set_aside_candidates=bool(set_aside)):
         # `104` R-74. WHETHER THE DETERMINISTIC PATH WOULD HAVE PLACED THIS FILE,
         # asked of the same function with the model taken out of it. R-19 sends
         # every placeable file to site C, so a protected file with a unique direct
@@ -1166,7 +1296,18 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         # refusal it already had. And it is `False` here, not `True`: a file the
         # deterministic path called a BOUNDED AMBIGUITY has no answer to fall back
         # to either, and its abstention is the same one an offline run makes.
-        offline_would_place = not needs_model_call(assessment, model_decides=False)
+        #
+        # `bool(assessment.scored) and` is `104` §18.2 gap 2's arrival here.
+        # Before it, this line was reachable only with a non-empty assessment --
+        # `needs_model_call`'s first clause turned an empty one away -- so
+        # "offline would place" and "offline would not need a model" were the same
+        # sentence. They are not the same sentence for a file whose every
+        # candidate was ranked below the contenders: no model is needed offline
+        # because there is nothing offline can do with it, and reading that as
+        # "the rules had a home for this file" would hand R-74 a placement that
+        # does not exist.
+        offline_would_place = bool(assessment.scored) and not needs_model_call(
+            assessment, model_decides=False)
         # `104` R-118: asked about the target that would be sent to. A file the
         # mode keeps off the cloud is a file a LOCAL model may be asked about.
         # `104` §17.13 ruling 3: THIS FILE's target, not the run's. The same site
@@ -1193,6 +1334,10 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
                 # deterministic winner -- including the unique direct match,
                 # which is now the top-ranked candidate rather than a bypass.
                 ranked=tuple(item.node_id for item in assessment.scored),
+                # AND THE TAIL OF THE SAME SHORTLIST (`104` §18.2 gap 2). Ranked
+                # below every contender, described exactly as a contender is, and
+                # each one carrying the sentence the rule that ranked it wrote.
+                set_aside=set_aside,
                 own_folder_node_id=(
                     inputs.the_folder_each_file_is_in or {}).get(subject.file_id),
             )
@@ -1327,11 +1472,23 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         confidence_class=confidence,
         matching_facts=_facts_of(retrieval, entry.node_id),
         group_support=None,
-        # A model-chosen node need not be one P11 retrieved: `allowed_vocabulary`
-        # is every legal destination, which is what stops Site C rejecting a
-        # correct answer P11's six channels happened to miss. So the node-local
+        # A model-chosen node need not be one P11 CONTENDED, so the node-local
         # graph may not exist, and claiming anchors it does not have would be
         # evidence the file was never shown to carry.
+        #
+        # **THIS COMMENT WAS FALSE AND `104` §18.2 GAP 2 NAMES IT.** It read
+        # "`allowed_vocabulary` is every legal destination, which is what stops
+        # Site C rejecting a correct answer P11's six channels happened to miss"
+        # -- true until R-17 narrowed the vocabulary to the ranked shortlist, and
+        # left standing for the seven weeks in which the opposite was true: a real
+        # folder off the shortlist came back `INVENTED_NODE`. What stops that now
+        # is not the vocabulary but the validator, which rejects on `node_exists`
+        # and flags membership (`placement_validation._placement_site`).
+        #
+        # Two ways to reach this line with no graph, and both are real: a node the
+        # model named that retrieval never reached at all, and a node step 6
+        # ranked below the contenders -- the second of which DOES have a graph,
+        # because `_place_one` stopped throwing those away in the same commit.
         graph_anchors=(graphs[entry.node_id].anchors
                        if entry.node_id in graphs else ()),
         conflicts_considered=retrieval.conflicts,
@@ -1383,9 +1540,21 @@ class _Context:
 
 
 def _facts_of(retrieval, node_id: str) -> tuple:
+    """This file's facts that matched THIS node, contender or not.
+
+    `104` §18.2 gap 2. The set-aside half of the shortlist is searched too, and it
+    has to be: a folder a step-6 rule ranked below the contenders is one the facts
+    reached -- `_without_kind_only_moves` and `_a_folder_made_for_this_keeps_it`
+    only ever set aside a candidate WITH `matching_facts` -- so reading `()` for a
+    node the model placed the file on would write a decision claiming no fact
+    matched when the run has the facts in hand.
+    """
     for candidate in retrieval.candidates:
         if candidate.node_id == node_id:
             return candidate.matching_facts
+    for item in retrieval.set_aside:
+        if item.candidate.node_id == node_id:
+            return item.candidate.matching_facts
     return ()
 
 
@@ -1400,11 +1569,26 @@ def _explain(entry, assessment, retrieval, *, model_decided: bool = False,
     record must not say the model or the person when the rules decided, so the
     sentence names the rules and the gate, and `model_decided` is `False` beside
     it because no judge was consulted.
+
+    **AND WHEN THE MODEL PICKED A FOLDER THE RULES HAD RANKED BELOW, THE PERSON IS
+    TOLD WHAT THE RULES SAID** (`104` §18.2 gap 2). That sentence is the whole
+    safety of turning four deletions into four rankings: `Desktop/AP world` and
+    the law student's `Coursework/Fall2026/report card` can now be chosen, and the
+    plan that offers to move a file there prints the reason the engine ranked the
+    folder below the others, in the same words the model read, beside a placement
+    that already carries `requires_review` (a set-aside node is never
+    `assessment.scored[0]`, so `_place_one`'s `direct` is False and the review flag
+    is set). Read off the retrieval rather than passed in, because the record must
+    not be able to disagree with the shortlist that was sent.
     """
     parts = [f"{entry.display_label} expects "
              + (", ".join(f"{field} = {value}"
                           for field, value in entry.expected_values)
                 or "no stated value")]
+    for item in retrieval.set_aside:
+        if item.candidate.node_id == entry.node_id:
+            parts.append(item.because)
+            break
     if entry.node_id in refinements:
         # `00`'s amendment of line 22 separates refinement from removal, and a
         # person reading the plan is owed the same distinction: nothing is being
@@ -1851,7 +2035,9 @@ _D_ITEM_KIND: dict[str, str] = {RESIDUAL_ROLE: RESIDUAL_AREA_ITEM}
 
 
 def _offered_items(conn, *, plan_version: str, node_ids, call_site: str,
-                   own_folder_node_id: str | None) -> tuple[EvidenceItem, ...]:
+                   own_folder_node_id: str | None,
+                   ranked_below: Mapping[str, str] | None = None,
+                   ) -> tuple[EvidenceItem, ...]:
     """`00`:105's destination profile for every node the model may answer with.
 
     **`104` R-17 and packet §7 G3.** The dossier used to carry the node ids alone:
@@ -1868,7 +2054,32 @@ def _offered_items(conn, *, plan_version: str, node_ids, call_site: str,
     One `entries_for_plan` per call, which is one query: the profile needs the
     ancestors' labels and how many folders stand beside each candidate, and neither
     is answerable from an entry alone.
+
+    **`ranked_below` IS `104` §18.2 GAP 2'S CHANNEL, AND IT IS DELIBERATELY NOT A
+    NEW KEY.** The C template's own inventory is closed -- "the dossier has these
+    keys and no others" -- and a `candidate` item's shape is closed with it: an
+    `evidence_ref`, a `kind`, and a `location` that "describes that folder, from
+    the top of the tree down to the folder itself, with the values a file in it is
+    expected to carry, and sometimes what it holds". A sixteenth dossier key, or a
+    seventh field on an item, would be the model instructed to read something the
+    text it was given never mentions.
+
+    So the rule's sentence goes INSIDE `location`, which is where the one other
+    non-descriptive thing the model is told about a folder already goes: "the file
+    sits in this folder now" (`index.node_profile`'s `own_folder`), which the
+    template names in that same paragraph and which the model reads without any
+    key of its own. The sentence is a description of the folder's standing in this
+    shortlist, in the same string, separated by the same `|`.
+
+    **The owner is owed one sentence of prompt text for this**, and it is written
+    out in the report rather than applied here: the template is the library's and
+    a builder that writes something the ratified text does not describe is the
+    same defect as a key it does not name, one layer down. What stops that being a
+    silent change in the meantime is that the sentence says only what was noticed,
+    never what to conclude -- a folder ranked below is still on `allowed_vocabulary`
+    and the model may answer with it.
     """
+    ranked_below = ranked_below or {}
     entries = entries_for_plan(conn, plan_version=plan_version)
     by_id = {entry.node_id: entry for entry in entries}
     beside = sibling_counts(entries)
@@ -1882,11 +2093,15 @@ def _offered_items(conn, *, plan_version: str, node_ids, call_site: str,
             continue
         kind = (CANDIDATE_ITEM if call_site == C_PLACEMENT
                 else _D_ITEM_KIND.get(entry.node_role, BRANCH_ITEM))
+        profile = node_profile(
+            entry, siblings=beside.get(entry.parent_node_id, 1),
+            own_folder=entry.node_id == own_folder_node_id)
+        because = ranked_below.get(entry.node_id)
+        if because:
+            profile = f"{profile} | {because}"
         items.append(EvidenceItem(
             evidence_ref=entry.node_id, kind=kind,
-            location=node_profile(
-                entry, siblings=beside.get(entry.parent_node_id, 1),
-                own_folder=entry.node_id == own_folder_node_id),
+            location=profile,
             # A folder is not an excerpt of the file. It carries no span, it is
             # never in `released_evidence`, and P7 releases none of it.
             excerpt_span=None, reliability_state=DIRECT,
@@ -1934,6 +2149,7 @@ def _accepted_group_items(group_ids) -> tuple[EvidenceItem, ...]:
 def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
                       evidence, call_site: str, observed_at: str,
                       ranked: tuple[str, ...] = (),
+                      set_aside: tuple[SetAside, ...] = (),
                       own_folder_node_id: str | None = None):
     """§6.12 step 7, and step 8 with it. P11 assembles the REQUEST, never a check.
 
@@ -1942,12 +2158,23 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
     C checks stay in `llm_harness/placement_validation.py` and P11 spells none of
     their reason codes.
 
-    `allowed_vocabulary` is the SHORTLIST and is the single most load-bearing
-    value handed over: Site C rejects any destination outside it as
-    `INVENTED_NODE`. It is set here rather than taken from the caller's
-    `CallDependencies`, because a caller-supplied vocabulary is a caller-supplied
-    answer to "which nodes may this file go to", which is the index's question and
-    the scores'.
+    `allowed_vocabulary` is the SHORTLIST: the folders this file's own evidence
+    reached, ranked, every one of them described. It is set here rather than taken
+    from the caller's `CallDependencies`, because a caller-supplied vocabulary is a
+    caller-supplied answer to "which nodes may this file go to", which is the
+    index's question and the scores'.
+
+    **AND IT IS NO LONGER A WALL** (`104` §18.2 gap 2). Site C used to reject any
+    destination outside this list as `INVENTED_NODE`, which made a SHORTLIST into
+    a set of legal answers -- so a real, frozen, approved folder that P11's six
+    channels happened to miss came back to the person as an invention. `00`'s
+    amendment of 2026-09-05 says what a rejection is for: "deterministic validation
+    rejects only a structurally invalid answer: A NODE THAT IS NOT IN THE FROZEN
+    TREE, or a cited fact that is not in the evidence". Membership of the list P11
+    chose to show is not that sentence. `placement_validation._placement_site` now
+    asks `node_exists` first and rejects on it; a real node off this list is
+    flagged `INVENTED_NODE` and sent to a person, and only a node the frozen tree
+    does not contain is refused.
 
     **IT WAS `sorted(legal_node_ids(...))`, WHICH IS `104` R-17 AND PACKET G3.**
     Every legal node in the plan, alphabetically, with nothing said about any of
@@ -1958,18 +2185,42 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
     bypass." So `ranked` is `Assessment.scored`'s order, winner first, and
     `_offered_items` describes every entry on it.
 
-    **The two walls are unchanged and they are different walls.** `INVENTED_NODE`
-    asks whether the answer is on the list the model was shown; `NODE_NOT_IN_FROZEN
-    _TREE` asks `node_exists`, which is the whole frozen tree and is not narrowed
-    here. `place_file` then re-checks the resolved node against
-    `legal_node_ids` before it writes anything. Narrowing the list narrows what may
-    be OFFERED, never what counts as legal.
+    **`set_aside` IS THE REST OF THAT SHORTLIST** (`104` §18.2 gap 2, and gap 11's
+    first half). `ranked` is what step 6's four rules left CONTENDING; `set_aside`
+    is what they moved below -- the shallower approved parent, the person's-folder
+    duplicate, the folder whose only agreement is a kind or a period -- each one
+    ranked among its own kind by `_ranked_set_aside` and described by
+    `_offered_items` with the rule's sentence inside its `location`. The rules keep
+    their ordering and lose their veto, which is `00`'s amendment in one line:
+    "Deterministic scores RANK AND SHORTLIST the candidates the model is shown."
 
-    **This is also `104` R-56's second abstention mechanism**, named there as "the
-    deterministic shortlist refusing an ungrounded choice": a model that names a
-    real folder it was not shown is refused, rather than placing a file on a node
-    the evidence never reached. The first mechanism is the drafts' own `none`,
-    which `_placement_site` already scores as `ABSTAIN`.
+    **THE BOUND IS THE ONE §8.6 ALREADY SET AND NO NUMBER IS INVENTED HERE.** Every
+    entry on both halves came out of `retrieve`, whose candidate list is cut to
+    `limits.max_retrieved_neighbors` (`retrieval.retrieve`'s `ordered` slice) --
+    P11's own §8.6 ceiling, read from P1 by `config.placement_limits` and never
+    defaulted. Setting a candidate aside cannot grow the offer past what retrieval
+    already handed over, so the shortlist is bounded by a configured ceiling rather
+    than by a rule deleting the folders it disagrees with; the dossier's own
+    `max_dossier_tokens` and its reduction rungs bound the BYTES on top of that.
+
+    **The two walls are now one wall and a flag.** `NODE_NOT_IN_FROZEN_TREE` asks
+    `node_exists`, which is the whole frozen tree, and it is the structural refusal
+    `00`'s amendment names; `INVENTED_NODE` asks whether the answer was on the list
+    the model was shown, which is a fact about P11's retrieval and not about the
+    answer's validity, so it is carried as a flag and the placement goes to a
+    person. `place_file` then re-checks the resolved node against `legal_node_ids`
+    before it writes anything, and `_place_one` raises if the resolver disagrees
+    with the index -- so nothing is placed on a folder the plan does not hold, by
+    two mechanisms that survive this change untouched.
+
+    **`104` R-56's second abstention mechanism is narrowed, deliberately.** It was
+    "the deterministic shortlist refusing an ungrounded choice": a model naming a
+    real folder it was not shown lost the file. That is precisely the case §18.2
+    gap 2 is opened for -- the folder was real, approved and frozen, and the only
+    thing wrong with it was that six retrieval channels missed it -- so what
+    remains of the mechanism is a REVIEW rather than a refusal. The first
+    mechanism, the drafts' own `none`, is untouched and `_placement_site` still
+    scores it as `ABSTAIN`.
 
     `ranked` EMPTY falls back to retrieval order, and that is the residual path:
     §7.7 runs no `assess`, so D has no ranking of its own and its offer is the
@@ -2000,7 +2251,13 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
                     "dossier builder supplies, and this file version has no "
                     "settled fact to build one from; P11 synthesises no kind, "
                     "location, span or basis of its own")
-    if not retrieval.candidates:
+    # `104` §18.2 gap 2 moved the second half of this condition. A file whose
+    # every candidate a step-6 rule ranked below the contenders HAS a shortlist,
+    # and it is made of frozen, approved destinations -- so the sentence below is
+    # false about it in both halves: there is something for the judge to choose
+    # between, and nothing about a list of approved folders invites an invention.
+    # It was the case the rules answered on the model's behalf, which is the gap.
+    if not retrieval.candidates and not set_aside:
         return _not_asked(
             conn, call_site=call_site, subject=subject, observed_at=observed_at,
             because="no legal destination was retrievable for this subject, so "
@@ -2069,10 +2326,17 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
     legal = sorted(legal_node_ids(conn, plan_version=inputs.plan_version))
     retrieved = tuple(dict.fromkeys(
         candidate.node_id for candidate in retrieval.candidates))
+    #: WHICH OFFERED FOLDERS A STEP-6 RULE RANKED BELOW THE CONTENDERS, and the
+    #: sentence each one carries (`104` §18.2 gap 2). Empty at site D, which runs
+    #: no `assess` and no step 6.
+    ranked_below = {item.candidate.node_id: item.because for item in set_aside}
     if call_site == C_PLACEMENT:
-        # The scores' order, and every candidate on it. `dict.fromkeys` rather
-        # than a set: this is a RANKING and a set has no first element.
-        offered = tuple(dict.fromkeys(ranked)) or retrieved
+        # The scores' order, and every candidate on it -- CONTENDERS FIRST, then
+        # the folders step 6 ranked below them, each in its own scored order.
+        # `dict.fromkeys` rather than a set: this is a RANKING and a set has no
+        # first element, and `basis_key` below reads that first element.
+        offered = tuple(dict.fromkeys(
+            tuple(ranked) + tuple(ranked_below))) or retrieved
         sites = site_dependencies(placement=placement_authorities(
             conn, plan_version=inputs.plan_version, policy=inputs.policy,
             sensitivity_policy=inputs.sensitivity_policy))
@@ -2090,7 +2354,8 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
             sensitivity_policy=inputs.sensitivity_policy))
     profiles = _offered_items(
         conn, plan_version=inputs.plan_version, node_ids=offered,
-        call_site=call_site, own_folder_node_id=own_folder_node_id)
+        call_site=call_site, own_folder_node_id=own_folder_node_id,
+        ranked_below=ranked_below)
 
     # §8.6's two spend ceilings, put on the budget P8 reserves against.
     #

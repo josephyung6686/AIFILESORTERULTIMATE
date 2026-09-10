@@ -511,7 +511,8 @@ def assess(retrieval, graphs, *, policy: SupportPolicy,
     )
 
 
-def needs_model_call(assessment: Assessment, *, model_decides: bool = False) -> bool:
+def needs_model_call(assessment: Assessment, *, model_decides: bool = False,
+                     set_aside_candidates: bool = False) -> bool:
     """§6.6: never for a direct unique match; only for a bounded ambiguity.
 
     **UNLESS A MODEL DECIDES, WHICH IS R-19 AND THE OWNER'S Q-A RULING.** `104`
@@ -555,9 +556,28 @@ def needs_model_call(assessment: Assessment, *, model_decides: bool = False) -> 
     one case §6.6's "bounded ambiguity" was never about: there is no ambiguity
     between moving a file and leaving it exactly where its owner put it.
     `_staying_put_wins_a_tie` above is what makes `scored[0]` the answer here.
+
+    **`set_aside_candidates` IS `104` §18.2 GAP 2'S OWN CASE, AND IT IS THE ONLY
+    THING THAT MOVES THE FIRST CLAUSE.** A file every one of whose candidates a
+    step-6 rule ranked below the contenders has an EMPTY `Assessment.scored` and a
+    non-empty shortlist: the rules said "not on this evidence" about each folder
+    in turn, and under the first clause nobody was ever asked whether they were
+    right. That is the gap in one sentence -- rules delete the candidates before
+    the model sees them -- and it is what `00`'s amendment forbids. There IS
+    something for a model to choose between, so the clause's own reason ("nothing
+    for a model to CHOOSE between, and sending it is inviting the invention") does
+    not hold, and the folders it would choose between are all frozen, approved
+    destinations. Nothing is invited.
+
+    **Only when a model decides.** `model_decides` is a configured AND ratified
+    model, and with no model the deterministic path is `00`'s own fallback -- it
+    places only what it can validate, which on this file is nothing. So an offline
+    run gets exactly the routing it had, down to the abstention reason, and the
+    two callers that ask this question with `model_decides=False` (the R-74
+    "would offline have placed it" probe) get the answer they got before.
     """
     if not assessment.scored:
-        return False
+        return model_decides and set_aside_candidates
     if model_decides:
         return True
     if assessment.unique_direct_match:

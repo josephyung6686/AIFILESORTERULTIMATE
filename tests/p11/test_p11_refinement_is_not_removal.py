@@ -130,6 +130,48 @@ def test_a_kind_only_move_out_of_the_folder_is_still_refused():
         "was allowed to claim the file on that agreement alone")
 
 
+def test_a_kind_only_move_is_ranked_below_the_contenders_and_never_deleted():
+    """SABOTAGE: the rule goes back to DELETING the folder it disagrees with.
+
+    `104` §18.2 gap 2, against `00`'s amendment of 2026-09-05: "deterministic
+    scores RANK AND SHORTLIST the candidates the model is shown". `AP world` is
+    still refused as a CONTENDER -- the six physics papers are the measurement and
+    they are safe -- but the folder stays on the shortlist with the rule's own
+    sentence attached, so the model sees the option and the reason together and
+    the person sees both if it takes it. Deleting it made the rule the last word
+    on a question `00` gives to the model, and it also made the case the rule
+    cannot tell from those six -- a kind-only agreement that IS the right answer
+    -- unsayable.
+    """
+    kept = _without_kind_only_moves(
+        _retrieval(_candidate(ELSEWHERE)),
+        dimension_of={ELSEWHERE: None},
+        fields_that_cannot_anchor_a_move=CANNOT_ANCHOR,
+        refinements=_refinements())
+
+    assert [item.candidate.node_id for item in kept.set_aside] == [ELSEWHERE], (
+        "a folder the rule ranked below the contenders was dropped on the floor "
+        "instead, and the model can only answer with what it is shown")
+    assert "kind of thing" in kept.set_aside[0].because
+    # The candidate is CARRIED, not rebuilt: the model is owed the same profile
+    # and the same matched facts a contender gets, and `_facts_of` reads them off
+    # this record when the model places the file here.
+    assert kept.set_aside[0].candidate.matching_facts
+
+
+def test_a_contender_the_rule_leaves_alone_is_not_set_aside():
+    """The control. Nothing is ranked below when nothing was refused, so an
+    ordinary retrieval reaches `assess` with the record it always had."""
+    kept = _without_kind_only_moves(
+        _retrieval(_candidate(CHILD)),
+        dimension_of={CHILD: KIND},
+        fields_that_cannot_anchor_a_move=CANNOT_ANCHOR,
+        refinements=_refinements())
+
+    assert [c.node_id for c in kept.candidates] == [CHILD]
+    assert kept.set_aside == ()
+
+
 def test_a_kind_only_move_into_the_folders_own_child_is_allowed():
     """THE FIX. Same evidence, same fields, same absence of a dimension on the
     node -- the only difference is that the destination is inside the folder the

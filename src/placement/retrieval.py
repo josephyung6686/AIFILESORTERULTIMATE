@@ -92,6 +92,40 @@ class Candidate:
 
 
 @dataclass(frozen=True)
+class SetAside:
+    """A candidate a step-6 rule RANKED BELOW the contenders instead of deleting.
+
+    `104` §18.2 gap 2, and `00`'s placement amendment of 2026-09-05 is the whole
+    of the argument: "Deterministic scores RANK AND SHORTLIST the candidates the
+    model is shown, and deterministic validation rejects only a structurally
+    invalid answer." A rule that DELETES a legal folder before the model sees it
+    is not ranking it -- it is answering the model's question for it, and then
+    Site C calls the model's own correct answer `INVENTED_NODE` because the
+    folder is not on the list P11 handed over.
+
+    So the four step-6 rules keep every discrimination their docstrings argue and
+    measure, and lose only the deletion. What each one used to drop is moved
+    here, `because` carrying the rule's own sentence, and `pipeline._offered_items`
+    writes that sentence into the folder's description in the dossier -- the same
+    `location` string that already tells the model "the file sits in this folder
+    now". The model reads the reason and decides; the rules stop deciding.
+
+    **The contenders are still the contenders**, and that is why this is a
+    separate field rather than a flag on `Candidate`. `Retrieval.candidates` is
+    read by `score_candidates`, `assess`, `needs_model_call`, the node-local
+    graphs and `_explain`, and every one of those is §6.10's DETERMINISTIC path
+    -- the fallback `00` keeps "with no model configured". A flag on `Candidate`
+    would need a filter at each of those readers, and a single missed filter
+    would silently move an offline placement: the `Desktop/AP world` exams and the
+    law student's report card, both measured on 2026-09-05, come back the moment
+    a set-aside candidate is scored as a rival. Here they cannot, by construction.
+    """
+
+    candidate: Candidate
+    because: str
+
+
+@dataclass(frozen=True)
 class Retrieval:
     subject_ref: str
     plan_version: str
@@ -107,6 +141,17 @@ class Retrieval:
     #: `scoring.score_candidates` reads it as the denominator; `104` §18.2 gap
     #: 13 is what the missing declaration cost.
     producible_channels: tuple[str, ...]
+    #: The candidates step 6's four rules ranked below the contenders rather than
+    #: deleting (`104` §18.2 gap 2, and gap 11's shallower approved parent).
+    #: DEFAULTED, unlike `producible_channels` above, and the difference is real:
+    #: an empty set-aside list is the honest answer for every retrieval nobody
+    #: has run a step-6 rule over, whereas an empty producible-channel list is a
+    #: scale no candidate could score against. `retrieve` never fills this --
+    #: §6.3 suppresses on conflicting evidence and that suppression is a
+    #: CONFLICT, recorded in `conflicts` and shown to the model as a flag it must
+    #: echo; the four rules that fill this are §6.12 step 6's and live in
+    #: `placement.pipeline`.
+    set_aside: tuple[SetAside, ...] = ()
 
 
 def _eligible_facts(conn: sqlite3.Connection, facts) -> tuple[MatchingFact, ...]:

@@ -196,18 +196,26 @@ def test_the_shared_branch_stands_alone_on_its_two_groups_and_is_no_longer_weak(
     assert result.outcome_class == CORRECT_PLACEMENT
 
 
-def test_a_placement_that_reports_a_standing_alternative_is_unresolved():
-    """The one thing INSUFFICIENT_MARGIN means now: the model placed the file
-    and listed another fully supported candidate still standing. The text says
-    that is a `none`; the validator records it unresolved, not as a move."""
+def test_a_placement_that_reports_a_standing_alternative_is_flagged_for_review():
+    """SABOTAGE: a populated `alternatives` list silently costs the placement.
+
+    INSUFFICIENT_MARGIN still means what `105` §14.1 made it mean -- the model
+    placed the file and listed another fully supported candidate still standing --
+    and it is still recorded. What `104` §18.2 gap 2 changes is the consequence:
+    the text INVITES the list ("other identifiers the evidence also fits, best
+    first, or an empty list"), so a cooperative model that answers the question it
+    was asked kept losing its placement to the answer. `104` §18.2 gap 7 is the
+    same defect read from the prompt's side and offers two remedies; this is the
+    first of them, "make alternatives non-fatal". The second, saying in the text
+    that a populated list is an abstention, is a prompt change and stays the
+    owner's.
+    """
     response = _place("n-11", [
         _context("branch", "Shared Application Materials", "group-columbia")], [],
         alternatives=["n-09", "n-10"])
     result = _judge("C05", response)
-    assert result.worst_outcome == WEAK
+    assert result.worst_outcome != WEAK
     assert _reasons(result) == [INSUFFICIENT_MARGIN]
-    assert result.accepted is False
-    assert result.outcome_class == UNNECESSARY_ABSTENTION
 
 
 def test_parent_and_child_supported_by_one_passage_the_child_stands_on_context():
@@ -267,11 +275,20 @@ def test_a_missing_or_non_numeric_count_is_a_shape_violation():
 
 
 def test_below_support_threshold_means_no_supported_level_was_listed():
+    """SABOTAGE: the code stops naming what it found.
+
+    `104` §18.2 gap 2 leaves the CHECK exactly where it was -- a placement whose
+    `per_dimension_support` is empty listed nothing that holds the file, and the
+    code says so -- and moves only the consequence: `weak` forbids `may_propose`,
+    so the product threw away a destination and a reason rather than showing a
+    person both. The shape failure is separate and still reported:
+    `json_schema_valid` is False because v2 wants at least one level.
+    """
     case = CASES["C18"]
     response = _place("n-03", [], [_cite(case, 0, "PHYS 1401")], support=1)
     result = _judge("C18", response)
     assert result.json_schema_valid is False           # v2 wants one level
-    assert result.worst_outcome == WEAK
+    assert result.worst_outcome != WEAK
     assert _reasons(result) == [BELOW_SUPPORT_THRESHOLD]
 
 

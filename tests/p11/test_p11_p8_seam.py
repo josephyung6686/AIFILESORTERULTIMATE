@@ -19,8 +19,9 @@ from llm_harness.records import Conflict as P8Conflict, P8Verdict
 from llm_harness.records import ValidationUnavailable
 from llm_harness.sites import SiteDependencies, dispatch
 from llm_harness.vocabulary import (
-    ABSTAIN, ACCEPT_DIRECT, BUDGET_EXHAUSTED, INVENTED_NODE, REJECT,
-    SCOPE_NODE, SITE_C_REASON_CODES,
+    ABSTAIN, ACCEPT_DIRECT, BUDGET_EXHAUSTED, INSUFFICIENT_MARGIN, INVENTED_NODE,
+    NODE_NOT_IN_FROZEN_TREE, REJECT, SCOPE_NODE, SITE_C_REASON_CODES, UNRESOLVED,
+    WEAK,
 )
 
 from placement import vocabulary as v
@@ -154,24 +155,61 @@ def test_the_bundle_is_accepted_by_p8s_own_call_dependencies(indexed):
 
 # --- P8 still refuses, because the checks are P8's --------------------------------
 
-def test_a_permissive_sensitivity_authority_cannot_pass_an_invented_node(indexed):
-    # The point of the whole task: authorities are not acceptance. P8 still
-    # refuses, and P11 writes none of the checks that do the refusing.
-    pair = next(p for p in SITE_C_OUTCOME_PAIRS if p.name == "direct_accept")
-    body = json.loads(pair.response_bytes)
-    body["claims"][0]["payload"]["destination"] = "n-invented"
-    deps = site_dependencies(placement=PlacementDependencies(
-        node_exists=lambda *_a: True, support_threshold=0.0,
-        margin_predicate=_permissive, sensitivity_policy=_permissive))
-    verdicts, _ = dispatch(
+def _dispatch_c(pair, body, deps):
+    return dispatch(
         None, pair.dossier, json.dumps(body, separators=(",", ":")).encode(),
         site_dependencies=deps, evidence_resolver=lambda key: "span-1",
         contradicts=lambda *_a, **_k: False, model_id="fixture-model",
         prompt_fingerprint="fp-1", dossier_builder="p11-test",
-        release_audit_id=17, policy_version="policy-1", apply_consequence=False, handle_key=FIXTURE_HANDLE_KEY,
+        release_audit_id=17, policy_version="policy-1", apply_consequence=False,
+        handle_key=FIXTURE_HANDLE_KEY,
     )
+
+
+def test_a_permissive_sensitivity_authority_cannot_pass_an_invented_node(indexed):
+    """SABOTAGE: permissive authorities become acceptance.
+
+    The point of the whole task: authorities are not acceptance. P8 still refuses,
+    and P11 writes none of the checks that do the refusing. What `104` §18.2 gap 2
+    changed is WHICH check refuses -- `00`'s amendment names the frozen tree, so
+    `node_exists` says no here and the destination is refused whatever the
+    sensitivity authority says. The vocabulary half is the test below.
+    """
+    pair = next(p for p in SITE_C_OUTCOME_PAIRS if p.name == "direct_accept")
+    body = json.loads(pair.response_bytes)
+    body["claims"][0]["payload"]["destination"] = "n-invented"
+    deps = site_dependencies(placement=PlacementDependencies(
+        node_exists=lambda node_id, *_a: node_id != "n-invented",
+        support_threshold=0.0,
+        margin_predicate=_permissive, sensitivity_policy=_permissive))
+    verdicts, _ = _dispatch_c(pair, body, deps)
     assert verdicts[0].outcome == REJECT
+    assert NODE_NOT_IN_FROZEN_TREE in verdicts[0].reasons
+
+
+def test_a_real_folder_p11_did_not_shortlist_is_flagged_and_reviewed(indexed):
+    """SABOTAGE: `104` §18.2 gap 2 at the seam P11 actually assembles.
+
+    P11 hands over `allowed_vocabulary` and Site C used to treat it as the set of
+    legal answers, so a folder the person had approved and frozen came back as
+    `INVENTED_NODE` and the file lost its home. `node_exists` says yes here, which
+    is `00`'s own structural test, so the answer stands and carries the reason to
+    a person -- `requires_review`, which is the field `transcribe` and
+    `review_policy` already gate on.
+    """
+    pair = next(p for p in SITE_C_OUTCOME_PAIRS if p.name == "direct_accept")
+    body = json.loads(pair.response_bytes)
+    body["claims"][0]["payload"]["destination"] = "n-real-elsewhere"
+    assert "n-real-elsewhere" not in pair.dossier.allowed_vocabulary
+    deps = site_dependencies(placement=PlacementDependencies(
+        node_exists=lambda *_a: True, support_threshold=0.0,
+        margin_predicate=_permissive, sensitivity_policy=_permissive))
+    verdicts, _ = _dispatch_c(pair, body, deps)
+    assert verdicts[0].outcome != REJECT
     assert INVENTED_NODE in verdicts[0].reasons
+    assert verdicts[0].requires_review is True
+    outcome, reason, deferred = transcribe(verdicts[0], assessment=None)
+    assert outcome == v.PLACE and reason is None and deferred is None
 
 
 def test_omitting_an_authority_is_unavailable_and_never_a_pass():
@@ -347,14 +385,49 @@ def test_a_context_supported_accept_is_still_a_placement():
 
 
 def test_a_weak_verdict_becomes_an_abstention_with_a_named_reason():
-    pair = next(p for p in SITE_C_REASON_PAIRS
-                if p.expected_reasons == ("INSUFFICIENT_MARGIN",))
-    verdict = _verdict_for(pair, node_exists=lambda *_a: True,
-                           margin_predicate=lambda *_a: False)
+    """`transcribe`'s WEAK arm, on a verdict that is still weak.
+
+    SABOTAGE: P11 stops naming §6.10's reason for a weak site-C verdict and files
+    the abstention under something the closed set does not have.
+
+    The fixture moved and the rule did not. `104` §18.2 gap 2 turned
+    `INSUFFICIENT_MARGIN` into a flag on an answer that survives -- that pin is
+    `test_a_flagged_placement_is_still_a_placement_and_asks_for_review` below --
+    so this asks the same question of a verdict P8 really does return `weak` for:
+    a claim whose citation the dossier does not carry. `transcribe`'s mapping is
+    what is under test, not which check produced the verdict.
+    """
+    verdict = P8Verdict(
+        verdict_id="v-weak", dossier_id="d-weak", claim_ref="claim-1",
+        outcome=WEAK, disposition=UNRESOLVED, reasons=(INSUFFICIENT_MARGIN,),
+        may_propose=False, requires_review=False, citations_checked=(),
+        scope=SCOPE_NODE, validator_version="v", policy_version="p",
+        plan_version="plan-1")
     outcome, reason, deferred = transcribe(verdict, assessment=None)
     assert outcome == v.ABSTAIN
     assert reason == v.LOW_MARGIN
     assert deferred is None
+
+
+def test_a_flagged_placement_is_still_a_placement_and_asks_for_review():
+    """SABOTAGE: `104` §18.2 gap 2's six downgrades come back as losses.
+
+    `INSUFFICIENT_MARGIN` is the sharpest of them: the prompt invites a populated
+    `alternatives` list ("other identifiers the evidence also fits") and the
+    validator converted any non-empty one into a lost placement, so a cooperative
+    model that said what else it considered was punished for saying it (`104`
+    §18.2 gap 7 names the same defect from the prompt's side). The placement now
+    stands, carries the code, and asks for a person.
+    """
+    pair = next(p for p in SITE_C_REASON_PAIRS
+                if p.expected_reasons == ("INSUFFICIENT_MARGIN",))
+    verdict = _verdict_for(pair, node_exists=lambda *_a: True,
+                           margin_predicate=lambda *_a: False)
+    assert verdict.reasons == (INSUFFICIENT_MARGIN,)
+    assert verdict.requires_review is True
+    outcome, reason, deferred = transcribe(verdict, assessment=None)
+    assert outcome == v.PLACE
+    assert reason is None and deferred is None
 
 
 def _pre_call_budget_verdict() -> P8Verdict:
