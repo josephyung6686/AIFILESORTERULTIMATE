@@ -46,12 +46,21 @@ from readers.text_documents import stdlib_text_document_reader
 #: number with a default is a number nobody reviewed. NEEDS JOSEPH.
 SENSOR_RATIO_TOLERANCE: float = 0.005
 
-#: §2.7's three explicit Vision settings, as a `config` mapping. It is passed through
+#: §2.7's explicit Vision settings, as a `config` mapping. It is passed through
 #: to `extract_ocr`, stored on the run, and folded into §3.4's cache key -- so
 #: changing a setting here makes stale OCR results fall out of the cache, which is
 #: the whole reason these are configuration rather than constructor arguments.
+#:
+#: **`languages` IS NOT HERE ANY MORE, and `104` §18.2 gap 19 is why.** It read
+#: `["en-US"]`, which is a list this deployment typed about a corpus it had not seen,
+#: and §2.7 asks for "appropriate language support INCLUDING CJK WHERE REQUIRED".
+#: The owner's own disk holds Chinese-titled documents whose OCR came back empty.
+#: The third persisted field is still recorded -- `macos_readers` asks
+#: `recognition_languages` for Vision's OWN published set and puts THAT in
+#: `ocr_config` -- so the run says which languages were available, and no list in
+#: this product decides it. Every stored OCR fingerprint changes with this, which is
+#: exactly what a cache key exists to do when the configuration really did change.
 VISION_CONFIG: dict[str, Any] = {
-    "languages": ["en-US"],
     "dpi": 200,
     "recognition_level": "accurate",
 }
@@ -113,7 +122,7 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
     # no image in it, waited all of that for a framework their run never used.
     # The module still imports it eagerly relative to THIS call, so nothing about
     # when OCR is available changes; only the moment the cost is paid does.
-    from readers.ocr_vision import vision_ocr
+    from readers.ocr_vision import recognition_languages, vision_ocr
 
     wired: dict[str, Any] = {
         "read_pdf": pdfminer_reader(),
@@ -139,7 +148,14 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
         "read_text_document": stdlib_text_document_reader(
             read_doc=cocoa_doc_reader()),
         "ocr_engine": vision_ocr(),
+        # §2.7's third persisted field, asked of the recogniser rather than typed.
+        # It is asked AT THE CONFIGURED LEVEL because Vision publishes the set per
+        # level, and it is asked HERE rather than inside the engine so that the run's
+        # `config` -- which `extract_ocr` stores verbatim and §3.4 fingerprints --
+        # records the languages that were actually available on this machine.
         "ocr_config": {**VISION_CONFIG,
+                       "languages": list(recognition_languages(
+                           recognition_level=VISION_CONFIG["recognition_level"])),
                        "page_cap": ocr_page_ceiling,
                        "time_limit_seconds": ocr_seconds_per_file},
         "read_docx": python_docx_reader(),
@@ -172,8 +188,14 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
         # §2.6's container header, from the standard library. Wired 2026-08-31: it
         # was `_no_reader`, so `extract_image` returned `unsupported` on its second
         # line and the two catalogue-fed keywords below were never called at all.
-        # This reader carries no EXIF, so §2.6's tier-1 band stays unavailable --
-        # `readers/image_headers.py` says why that is a stated limit and not a trap.
+        #
+        # AND IT CARRIES EXIF NOW (`104` §18.2 gap 18). The sentence here used to
+        # read "This reader carries no EXIF, so §2.6's tier-1 band stays
+        # unavailable", which meant a photograph could not be "stated by its capture
+        # metadata" anywhere in the product. The reader reaches ImageIO through
+        # `Quartz` -- already shipped for Vision above, so nothing is added -- and
+        # HEIC, HEIF, AVIF, TIFF and BMP have branches, which §2.6 requires by name
+        # for the first of them.
         "read_image": header_image_reader(),
         # ANSWERS NOW, and `104` §18.2 gap 17 is why. It was `lambda names: ()` --
         # reached on every archive, returning nothing on every archive -- and its

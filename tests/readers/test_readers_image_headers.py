@@ -8,13 +8,18 @@ arguments P5 declares as required keywords were, in the shipped deployment, dead
 behind a missing library. Wiring the catalogues without wiring a reader would have
 left them exactly as unreachable as they were in `planning/`.
 
-This reader reads the container header and nothing else: the format token and the
-pixel dimensions, which are what catalogues 02, 03 and 04 need. **It does not read
-EXIF**, so §2.6's tier-1 band ("camera EXIF is strong photo evidence") and the
-capture-time and GPS halves of tier 2 stay unavailable in this deployment. That is a
-stated limit, not an oversight -- and §2.6's own trap 1 is the reason it is safe to
-state: "the system must not mistake the absence of EXIF for proof that an image is a
-screenshot." An absence here is written nowhere.
+This reader reads the container header for the format token and the pixel dimensions,
+which are what catalogues 02, 03 and 04 need, **and it reads §2.6's metadata slots
+through the image stack this deployment already ships** (`104` §18.2 gap 18). The
+sentence that stood here said "**It does not read EXIF**, so §2.6's tier-1 band
+('camera EXIF is strong photo evidence') and the capture-time and GPS halves of tier 2
+stay unavailable in this deployment", which made `00`:32's promise -- a photograph
+"stated by its capture metadata" -- unavailable everywhere in the product.
+
+§2.6's own trap 1 still holds and is still the reason nothing is written about an
+absence: "the system must not mistake the absence of EXIF for proof that an image is a
+screenshot." A stripped photograph and a BMP, whose container has nowhere to put EXIF
+at all, both yield no tags and no row saying so.
 
 A format the reader does not know returns `None`, which §2.4 calls `unsupported`: the
 bytes were never looked at. It is never `failed`, which means a reader ran and raised.
@@ -26,8 +31,17 @@ import zlib
 
 import pytest
 
-from extractors.image import ImageRecord
-from readers.image_headers import header_image_reader
+from extractors.image import ImageRecord, SIGNAL_TIER
+from readers.image_headers import (
+    CAMERA_EXIF, CAPTURE_TIME, GPS, header_image_reader,
+)
+
+Quartz = pytest.importorskip(
+    "Quartz",
+    reason="ImageIO is this deployment's image-metadata library (pyproject's "
+           "`readers` extra, macOS only); without it §2.6's slots are unreadable "
+           "here and the pins below would pass by measuring nothing")
+NSURL = pytest.importorskip("Foundation").NSURL
 
 
 def png(path, width, height):
@@ -78,8 +92,10 @@ def test_the_format_token_is_what_section_2_6_compares_png_against(tmp_path):
 
 def test_a_format_this_reader_does_not_know_is_unsupported_not_failed(tmp_path):
     """§2.4's two outcomes are different answers to the user: "this product cannot
-    open this kind of file" and "this file is damaged". A reader with no branch for
-    HEIC must give the first."""
+    open this kind of file" and "this file is damaged". Bytes that announce an ISO
+    brand and then hold no image must give the first -- the brand is read, the image
+    stack finds nothing to size, and the answer is `None` rather than a `0x0` record
+    or a raise."""
     path = tmp_path / "scan.heic"
     path.write_bytes(b"\x00\x00\x00\x18ftypheic not really an image")
     assert header_image_reader()(path) is None
@@ -94,14 +110,19 @@ def test_bytes_that_claim_a_format_and_are_truncated_are_unsupported(tmp_path):
     assert header_image_reader()(path) is None
 
 
-def test_the_reader_reads_no_exif_and_claims_none(tmp_path):
-    """The stated limit, asserted so it cannot quietly become untrue. §2.6's tier-1
-    band is unreachable in this deployment and the record says so by carrying no
-    tags, rather than by carrying a tag that says "absent"."""
+def test_a_photograph_with_no_exif_carries_no_tag_saying_so(tmp_path):
+    """§2.6's trap 1: "the system must not mistake the absence of EXIF for proof that
+    an image is a screenshot." The SPEC's `whatsapp-stripped-exif.jpg` is this case,
+    and the record states it by carrying no tags -- never by carrying a tag whose
+    value is "absent", which P4 forbids outright ("the run record already says it,
+    and an absence written as evidence is a value P6 can rank")."""
     record = header_image_reader()(jpeg(tmp_path / "photo.jpg", 4032, 3024))
     assert record.exif == ()
     assert record.software == {}
     assert record.perceptual_hash is None
+    # And the run is NOT marked short of anything: the metadata route ran on this
+    # file and found nothing, which is a different fact from never having run.
+    assert record.unread_reason is None
 
 
 # --------------------------------------------------------------------------- #
@@ -126,7 +147,9 @@ def test_an_svg_yields_its_canvas_size(tmp_path):
     record = read(svg(tmp_path / "logo.svg", 'width="240" height="120"'))
 
     assert record == ImageRecord(image_format="SVG", dimensions="240x120",
-                                 width=240, height=120)
+                                 width=240, height=120,
+                                 unread_reason=record.unread_reason)
+    assert (record.image_format, record.width, record.height) == ("SVG", 240, 120)
 
 
 @pytest.mark.parametrize("attributes", [
@@ -195,3 +218,276 @@ def test_the_svg_branch_reads_no_exif_and_no_entity(tmp_path):
 
     assert (record.width, record.height) == (8, 8)
     assert record.exif == () and record.software == {}
+
+
+# --------------------------------------------------------------------------- #
+# §2.6's metadata slots -- `104` §18.2 gap 18
+#
+# "For every supported image, the engine should store its format, pixel dimensions,
+# ... EXIF camera make and model, lens data, ISO, focal length, capture time, GPS,
+# orientation, software metadata, filename pattern, and OCR output where needed."
+# (`00`:32.) None of it was available: the extractor was complete and the reader
+# handed it a record with `exif=()`, `color={}` and `software={}` on every image.
+#
+# The fixtures are WRITTEN BY THE TEST through the same library the reader reads
+# with, so no binary sample is checked in and the tags asserted below are the tags
+# this file declared. What is measured is the round trip: the slots a person's camera
+# writes come back out as `ExifValue`s carrying §2.6's own signal names.
+# --------------------------------------------------------------------------- #
+
+#: What a photograph carries, in ImageIO's own key names. Not a table of this test's:
+#: every key is a `Quartz.kCGImageProperty*` constant, which is the external
+#: vocabulary `ExifValue`'s docstring says the reader classifies against.
+DECLARED = {
+    Quartz.kCGImagePropertyTIFFDictionary: {
+        Quartz.kCGImagePropertyTIFFMake: "Apple",
+        Quartz.kCGImagePropertyTIFFModel: "iPhone 15 Pro",
+        Quartz.kCGImagePropertyTIFFSoftware: "iOS 19.1",
+    },
+    Quartz.kCGImagePropertyExifDictionary: {
+        Quartz.kCGImagePropertyExifDateTimeOriginal: "2026:07:17 14:03:22",
+        Quartz.kCGImagePropertyExifLensModel: "iPhone 15 Pro back camera",
+        Quartz.kCGImagePropertyExifISOSpeedRatings: [400],
+        Quartz.kCGImagePropertyExifFocalLength: 6.86,
+    },
+    Quartz.kCGImagePropertyGPSDictionary: {
+        Quartz.kCGImagePropertyGPSLatitude: 38.6488,
+        Quartz.kCGImagePropertyGPSLatitudeRef: "N",
+    },
+}
+
+#: The formats gap 18 names, at the type identifier ImageIO writes each with. HEIF
+#: and AVIF are absent because this ImageIO writes neither -- see the docstring of
+#: `test_every_format_gap_18_names_is_read`.
+WRITABLE = {"JPEG": ("public.jpeg", "photo.jpg"),
+            "PNG": ("public.png", "capture.png"),
+            "HEIC": ("public.heic", "IMG_4821.heic"),
+            "TIFF": ("public.tiff", "scan.tiff"),
+            "BMP": ("com.microsoft.bmp", "old.bmp")}
+
+
+def blank_image(width, height):
+    context = Quartz.CGBitmapContextCreate(
+        None, width, height, 8, 0, Quartz.CGColorSpaceCreateDeviceRGB(),
+        Quartz.kCGImageAlphaPremultipliedLast)
+    Quartz.CGContextSetRGBFillColor(context, 1, 1, 1, 1)
+    Quartz.CGContextFillRect(context, Quartz.CGRectMake(0, 0, width, height))
+    return Quartz.CGBitmapContextCreateImage(context)
+
+
+def written(tmp_path, uti, name, properties=None, width=4032, height=3024):
+    path = tmp_path / name
+    destination = Quartz.CGImageDestinationCreateWithURL(
+        NSURL.fileURLWithPath_(str(path)), uti, 1, None)
+    assert destination is not None, f"this ImageIO cannot write {uti}"
+    Quartz.CGImageDestinationAddImage(destination, blank_image(width, height),
+                                      properties)
+    assert Quartz.CGImageDestinationFinalize(destination), uti
+    return path
+
+
+def by_name(record):
+    return {tag.name: tag for tag in record.exif}
+
+
+@pytest.mark.parametrize("token", sorted(WRITABLE))
+def test_every_format_gap_18_names_is_read(tmp_path, token):
+    """§2.6 requires HEIC by name -- "failing to configure the image stack for HEIC
+    can silently exclude a meaningful portion of an Apple-centric corpus" -- and
+    §18.2 gap 18 counts HEIC, HEIF, AVIF, TIFF and BMP as routed to a reader with no
+    branch for them, so every one fell through to OCR. Each is read here for its
+    format token and its pixel dimensions.
+
+    HEIF and AVIF are not in this list because this ImageIO writes neither
+    (`CGImageDestinationCopyTypeIdentifiers` publishes `public.heic` and no AVIF
+    identifier), so no fixture for them can be built without checking a binary in.
+    They share HEIC's branch exactly -- one call to `format_from_magic`, whose
+    `_BRANDS` maps all three -- and `test_the_three_iso_brands_share_one_branch`
+    below pins that the branch answers for all three tokens.
+    """
+    uti, name = WRITABLE[token]
+    record = header_image_reader()(
+        written(tmp_path, uti, name, DECLARED, width=4032, height=3024))
+
+    assert record is not None, f"{token} still reads as nothing"
+    assert record.image_format == token
+    assert (record.width, record.height) == (4032, 3024)
+    assert record.dimensions == "4032x3024"
+
+
+def test_a_photographs_capture_metadata_comes_back_with_section_2_6s_tiers(tmp_path):
+    """`00`:32's own promise, and the one site G quotes: a photograph is "stated by
+    its capture metadata". Camera EXIF is §2.6's tier-1 band, capture time and GPS its
+    tier-2 reinforcement, software metadata its tier-3 screenshot signal -- and the
+    READER assigns each, because `ExifValue.kind` is where §2.6's tier is decided by
+    the reader ("WHICH TAG IS WHICH is library knowledge")."""
+    record = header_image_reader()(
+        written(tmp_path, *WRITABLE["HEIC"], DECLARED))
+    tags = by_name(record)
+
+    assert tags["Make"].value == "Apple" and tags["Make"].kind == CAMERA_EXIF
+    assert tags["Model"].value == "iPhone 15 Pro"
+    assert tags["Model"].kind == CAMERA_EXIF
+    assert tags["LensModel"].value == "iPhone 15 Pro back camera"
+    assert tags["LensModel"].kind == CAMERA_EXIF
+    assert tags["DateTimeOriginal"].value == "2026:07:17 14:03:22"
+    assert tags["DateTimeOriginal"].kind == CAPTURE_TIME
+    assert tags["Latitude"].value == "38.6488" and tags["Latitude"].kind == GPS
+    assert tags["LatitudeRef"].kind == GPS
+    # §2.6 lists orientation and ranks it nowhere -- `ExifValue`'s own example of a
+    # tag that carries `kind=None` and therefore no tier.
+    assert tags["Orientation"].kind is None
+    # Software is not an EXIF tag and does not ride in `exif`: it is §2.6's tier-3
+    # slot and `extract_image` tiers `software` itself.
+    assert record.software == {"Software": "iOS 19.1"}
+    assert "Software" not in tags
+
+
+def test_one_tag_name_is_one_row_so_a_citation_addresses_one_thing(tmp_path):
+    """`Orientation` is published twice on a HEIC -- at the top level and inside
+    `{TIFF}` -- and `extract_image` addresses every metadata row by its tag name,
+    which is the address a model cites with `metadata_field_name`. Two rows at one
+    address is an ambiguous citation."""
+    record = header_image_reader()(written(tmp_path, *WRITABLE["HEIC"], DECLARED))
+    names = [tag.name for tag in record.exif]
+    assert len(names) == len(set(names)), names
+
+
+def test_a_screenshots_encoder_written_exif_is_not_strong_photo_evidence(tmp_path):
+    """§2.6's hierarchy is FIVE NOUNS at tier 1 -- "EXIF camera make and model, lens
+    data, ISO, focal length" -- and not "anything in the `{Exif}` dictionary".
+
+    A macOS screenshot is a PNG whose `{Exif}` holds `PixelXDimension`,
+    `PixelYDimension` and `UserComment`: tags every encoder writes and no camera is
+    needed for. Ranking those tier 1 would put "camera EXIF is strong photo evidence"
+    beside "PNG format ... may support a screenshot hypothesis" on every screenshot
+    in the corpus, and §2.6's answer to conflicting signals is abstention -- so the
+    `photos.screenshot-captures` situation would never fire for the file it names."""
+    screenshot = written(tmp_path, *WRITABLE["PNG"], {
+        Quartz.kCGImagePropertyExifDictionary: {
+            Quartz.kCGImagePropertyExifPixelXDimension: 2880,
+            Quartz.kCGImagePropertyExifPixelYDimension: 1800,
+            Quartz.kCGImagePropertyExifUserComment: "Screenshot",
+        },
+        Quartz.kCGImagePropertyPNGDictionary: {
+            Quartz.kCGImagePropertyPNGSoftware: "macOS 26.0",
+        },
+    }, width=2880, height=1800)
+    record = header_image_reader()(screenshot)
+
+    assert [tag.name for tag in record.exif if tag.kind == CAMERA_EXIF] == []
+    # The screenshot's OWN §2.6 signal is still read, at its own tier.
+    assert record.software == {"Software": "macOS 26.0"}
+    # And the encoder-written tags are still evidence -- untiered, never dropped.
+    assert {"PixelXDimension", "UserComment"} <= set(by_name(record))
+
+
+def test_one_format_has_one_name_however_the_reader_reached_it(tmp_path):
+    """A JPEG whose start-of-frame sits past the 64 KiB header window -- an iPhone
+    photo with a large APP1, XMP and ICC run does -- is sized by the image stack
+    rather than by `_jpeg`, and it must still be `JPEG`. Two spellings of one format
+    in `image_format` would make §2.6's format comparison depend on how big the
+    file's metadata happened to be."""
+    from readers.image_headers import _image_format
+    padded = tmp_path / "big-header.jpg"
+    filler = b"\xff\xe1" + struct.pack(">H", 65535) + b"\x00" * 65533
+    padded.write_bytes(
+        b"\xff\xd8" + filler + filler
+        + b"\xff\xc0" + struct.pack(">H", 11) + b"\x08"
+        + struct.pack(">HH", 3024, 4032) + b"\x01\x01\x11\x00" + b"\xff\xd9")
+
+    assert _image_format(padded.read_bytes()[:1 << 16]) == "JPEG"
+    header_read = header_image_reader()(jpeg(tmp_path / "small.jpg", 4032, 3024))
+    assert header_read.image_format == "JPEG"
+
+
+def test_the_signal_names_the_reader_assigns_are_section_2_6s_own():
+    """The reader classifies and P5 places, so a fourth name or a misspelling would
+    reach `extract_image._tier` and raise `UnknownSignal` on a real photograph.
+    `SIGNAL_TIER` is that gate, and these three are its keys."""
+    assert {CAMERA_EXIF: 1, CAPTURE_TIME: 2, GPS: 2}.items() <= SIGNAL_TIER.items()
+
+
+def test_a_list_valued_tag_is_one_string_and_not_an_objective_c_description(tmp_path):
+    """`ISOSpeedRatings` is an array and arrives as an `NSArray`, whose own `str()` is
+    a multi-line Objective-C description. RAW-1 forbids P5 constructing a raw value,
+    so the READER renders it -- one way, once -- and `400` is what a person reads."""
+    tags = by_name(header_image_reader()(
+        written(tmp_path, *WRITABLE["JPEG"], DECLARED)))
+    assert tags["ISOSpeedRatings"].value == "400"
+    assert "\n" not in tags["ISOSpeedRatings"].value
+    assert tags["FocalLength"].value == "6.86"
+
+
+def test_colour_information_is_read_where_the_format_publishes_it(tmp_path):
+    """§2.6's "color information where useful", at ImageIO's own key names. It is not
+    EXIF, so it lands in `color`, which `extract_image` emits with no signal tier."""
+    record = header_image_reader()(written(tmp_path, *WRITABLE["PNG"], DECLARED))
+    assert record.color["ColorModel"] == "RGB"
+    assert record.color["Depth"] == "8"
+
+
+def test_a_bmp_publishes_no_capture_metadata_and_no_row_claims_it_did(tmp_path):
+    """A BMP container has nowhere to put EXIF, and the same properties written into
+    the other four formats come back out of it as nothing at all.
+
+    THE RECORD SAYS SO BY BEING EMPTY, and the limit is worth stating out loud: this
+    reader cannot tell "this container has no EXIF box" from "this photograph was
+    stripped by a messaging app", and §2.6's trap 1 is that they must not be told
+    apart by guessing. P4 settles what may be written either way -- an extractor "may
+    not write an 'EXIF absent' ... observation" -- so neither case produces a row."""
+    record = header_image_reader()(written(tmp_path, *WRITABLE["BMP"], DECLARED))
+
+    assert record.image_format == "BMP"
+    assert record.exif == () and record.software == {}
+    # The metadata route RAN; there was nothing in the container for it to read.
+    assert record.unread_reason is None
+
+
+def test_a_file_whose_format_the_image_stack_cannot_name_says_which_slots_are_unread(
+        tmp_path):
+    """"What a format cannot supply is recorded as the honest reason", and the case
+    this reader can state honestly is the one where the metadata route never ran at
+    all: ImageIO recognises no format in an SVG, so §2.6's slots were not looked at
+    rather than looked at and found empty.
+
+    The sentence goes on the extraction run -- `extractors/image.py` puts it in the
+    run's `config` and marks the run `partial` -- and never into an observation."""
+    record = read(svg(tmp_path / "logo.svg", 'width="240" height="120"'))
+
+    assert record.unread_reason is not None
+    assert "never looked at" in record.unread_reason
+    assert record.exif == () and record.color == {} and record.software == {}
+
+
+def test_the_three_iso_brands_share_one_branch_and_it_is_the_signature_readers():
+    """HEIC, HEIF and AVIF are one container with three brands, and the product
+    already had the table that tells them apart. `104` §18.2 item 21 made
+    `readers/signatures.py` the single answer to "what are these bytes"; the image
+    reader asks IT rather than carrying a second brand table, and the ROUTER decides
+    which of those tokens is an image."""
+    from extractors.router import SOURCE_TYPE_BY_FORMAT
+    from readers.image_headers import _image_format
+    from readers.signatures import format_from_magic
+
+    for brand, token in ((b"heic", "HEIC"), (b"mif1", "HEIC"), (b"msf1", "HEIF"),
+                         (b"hevc", "HEIF"), (b"avif", "AVIF"), (b"avis", "AVIF")):
+        head = b"\x00\x00\x00\x18ftyp" + brand + b"\x00" * 8
+        assert format_from_magic(head) == token.lower()
+        assert _image_format(head) == token
+
+    # A brand the router does NOT call an image is not claimed here: a `.mov` screen
+    # recording is the same box structure with a different brand.
+    quicktime = b"\x00\x00\x00\x18ftypqt  " + b"\x00" * 8
+    assert format_from_magic(quicktime) == "mov"
+    assert _image_format(quicktime) is None
+    assert SOURCE_TYPE_BY_FORMAT["mov"][0] != "image"
+
+
+def test_a_pdf_and_a_psd_are_not_claimed_by_the_image_reader():
+    """`format_from_magic` knows more than images -- it is the whole signature table
+    -- so the filter is the router's own routing and not a format list here. A `.pdf`
+    and a `.psd` have their own handlers and must not be answered for."""
+    from readers.image_headers import _image_format
+    assert _image_format(b"%PDF-1.7\n%\xe2\xe3\xcf\xd3") is None
+    assert _image_format(b"8BPS\x00\x01" + b"\x00" * 20) is None
