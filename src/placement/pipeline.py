@@ -2961,17 +2961,23 @@ def _the_groups_own_answer(conn, *, accepted: AcceptedGroup, memberships,
         conn, retrieval, plan_version=inputs.plan_version)
     retrieval = _without_duplicated_proposals(
         conn, retrieval, plan_version=inputs.plan_version)
-    graphs = {
-        candidate.node_id: build_node_local_graph(
-            subject=subject, candidate=candidate,
-            entry=entry_for(conn, plan_version=inputs.plan_version,
-                            node_id=candidate.node_id),
-            related_files=evidence["related_files"], limits=inputs.limits,
-            entity_frequency=evidence["entity_frequency"],
-            generic_entity_frequency=evidence["generic_entity_frequency"],
-        )
-        for candidate in retrieval.candidates
-    }
+    # NO NODE-LOCAL GRAPH FOR A GROUP, and it is a refusal `placement.graph`
+    # already writes down rather than an omission: every `GraphAnchor` names the
+    # file the edge came FROM, and `build_node_local_graph` passes
+    # `subject.file_id` through uncoerced precisely so that "a group subject has
+    # no single originating file and fails here by name rather than storing one".
+    # A group of four files has four originating files and no one of them is the
+    # anchor's; a `""` or a first-member stand-in would be a placeholder
+    # satisfying a type, and it would be recorded as evidence.
+    #
+    # Nothing is lost from the SCORE by this. `score_candidates` reads the graph
+    # for two FLAGS only -- `typed_support` and `generic_hub` -- and takes every
+    # point of support from `candidate.channels`, so the group's ranking is the
+    # same arithmetic over the same channels either way; what the empty map says
+    # is that this call claims neither flag, which is true of it. `104` §18.2
+    # gap 12 (the typed graph contributes nothing and never enters a dossier) is
+    # inherited here and not re-opened.
+    graphs: dict = {}
     assessment = assess(retrieval, graphs, policy=inputs.policy,
                         their_own_folder_node_ids=frozenset(),
                         refinements=frozenset())

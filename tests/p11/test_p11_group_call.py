@@ -344,6 +344,39 @@ def test_a_group_of_related_files_is_one_call_whose_dossier_lists_them_all(
         assert _obs(seeded.file_id[name]) in carried, name
 
 
+def test_a_group_whose_members_carry_typed_edges_still_gets_its_call(
+        seeded, monkeypatch):
+    """SABOTAGE: the group call builds a node-local graph. It must not.
+
+    `placement.graph` refuses a group subject BY NAME -- every `GraphAnchor`
+    names the file the edge came from, and "a group subject has no single
+    originating file and fails here by name rather than storing one". A packet of
+    four files has four originating files and no one of them is the anchor's. So
+    the group's call builds no graph, and the ranking is the same arithmetic over
+    the same channels either way.
+
+    Without this pin the defect is invisible: every other test in this file runs
+    with `related_files=()`, which never reaches the anchor construction, so the
+    FIRST real corpus with a group whose members share a typed edge would raise
+    inside the group call and take the whole group down to the fallback.
+    """
+    edges = ({"edge_type": "shared_validated_fact", "to_file_id": "f-syllabus",
+              "entity": "PHYS1401", "anchor_file_id": "f-syllabus",
+              "weight": 1},)
+    agrees = _member_evidence("PHYS1401")
+
+    def evidence_for(file_id: str) -> dict:
+        return dict(agrees(file_id), related_files=edges)
+
+    plan, calls = _place_group(seeded, monkeypatch=monkeypatch,
+                               evidence_for=evidence_for)
+    assert len(_group_calls(calls)) == 1
+    assert plan.shared_parent_node_id == "n-course"
+    # And a single FILE with the same edges still gets its graph: the refusal is
+    # about the group subject, not about graphs.
+    assert any(d.group_support is not None for d in plan.member_decisions)
+
+
 def test_the_members_are_placed_from_the_groups_answer_and_ask_nothing_of_their_own(
         seeded, monkeypatch):
     """§6.8's own sentence, made true: "confirm the shared parent FIRST, then
