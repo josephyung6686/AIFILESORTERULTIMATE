@@ -108,9 +108,34 @@ QUESTIONS    -> P1 P4 RECOGNITION
 RECOGNITION  -> P1 P3 P7  ROOT
 ```
 
-`ROOT -> P8` is `create_llm_schema` and `create_budget_schema`. `ROOT -> P12` is
-`create_mutation_schema` **and, since `104` R-N, `source_high_level_folder`**.
-`ROOT -> P13` is `create_review_schema`.
+`ROOT -> P8` is `create_llm_schema` and `create_budget_schema` **and, since `104`
+R-174, `released_item_wire_bytes`**. `ROOT -> P12` is `create_mutation_schema`
+**and, since `104` R-N, `source_high_level_folder`**. `ROOT -> P13` is
+`create_review_schema` **and, since `104` §18.2 gap 10, `bucket_for` and
+`assert_every_file_accounted`**.
+
+**P8 is no longer `CREATE TABLE`-only on a plain run either, and for the same
+kind of reason.** R-174 bounds what one released reading costs on the WIRE rather
+than in characters: r18 measured 509 readings averaging 30 characters of value and
+about 250 bytes each once the address, the keyed handle, the zone and the four key
+names travel with them, so a 4,000-character ceiling admitted 129 KB of
+`released_evidence` and the local window refused the call. The measure has to be
+P8's, because `released_item_wire_bytes` is taken off `_released_body` -- the
+function that WRITES the envelope -- and a second spelling in the composition root
+would be a bound that drifts from the bytes it claims to bound. It is a pure
+function of four strings: no schema, no store, no model call, and nothing is sent
+by it. The dossier is still composed in the root and P8 still validates nothing on
+a run with no model wired.
+
+**P13 is no longer `CREATE TABLE`-only either.** `104` §18.2 gap 10: an ordinary
+run closed no sum over the roster, so a file the deterministic pass settled got no
+line anywhere and `assert_every_file_accounted` was reachable only when nothing had
+been readable at all. The fact pass now reconciles the whole roster and prints it,
+using P13's own §8.6 rule -- `bucket_for` for the one bucket a file falls in, and
+`assert_every_file_accounted` to refuse a roster that does not add up, naming the
+files it cannot account for rather than counting them. Both are pure functions over
+rows the root already holds: no review screen is composed, no question is recorded,
+and P13 still writes nothing on a plain run.
 
 **P12 is no longer `CREATE TABLE`-only on a plain run, and the reason is a defect
 this census helped find.** The proposal screen offered a Desktop file a home under

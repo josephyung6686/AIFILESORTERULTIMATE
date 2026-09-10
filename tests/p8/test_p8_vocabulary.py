@@ -125,6 +125,7 @@ from llm_harness.vocabulary import (
     VALUE_NOT_NORMALIZABLE,
     VERDICT_SCOPES,
     WEAK,
+    WEAK_RETRIEVAL_REPORTED,
 )
 
 
@@ -336,6 +337,23 @@ def test_site_b_adds_its_reason_codes():
 
 
 def test_site_c_adds_its_codes_and_reuses_invented_date_and_project():
+    """C's closed set, and it GREW on the owner's word (`104` §18.14).
+
+    `WEAK_RETRIEVAL_REPORTED` is the twelfth, ratified 9 Sep 2026 with the gap 2
+    texts and applied in the same commit. It is `104` §18.2 gap 2's leftover (a):
+    `placement_validation` had an arm that flagged a placement whose retrieval the
+    model itself reported weak, and the arm set `reasons=()`, so the one thing that
+    fired had no word -- nothing it caught could be counted in the reasons histogram
+    or explained to the person whose file it held back. A reason code is a member of
+    a CLOSED set (`00`:44), so inventing one is the owner's act and not an agent's,
+    and the tuple is where the set is written down.
+
+    SABOTAGE: dropping the new member here, or appending it anywhere but last, is
+    the same defect the pin exists for -- `ALL_REASON_CODES` is a union and would
+    still hold it, so a membership check alone would pass over a set that lost its
+    order. The tuple is asserted whole, in order, exactly as the other four sites'
+    are.
+    """
     assert NODE_NOT_IN_FROZEN_TREE == "NODE_NOT_IN_FROZEN_TREE"
     assert INVENTED_INSTITUTION == "INVENTED_INSTITUTION"
     assert INVENTED_NODE == "INVENTED_NODE"
@@ -345,6 +363,7 @@ def test_site_c_adds_its_codes_and_reuses_invented_date_and_project():
     assert BELOW_SUPPORT_THRESHOLD == "BELOW_SUPPORT_THRESHOLD"
     assert INSUFFICIENT_MARGIN == "INSUFFICIENT_MARGIN"
     assert GENERIC_HUB_ONLY == "GENERIC_HUB_ONLY"
+    assert WEAK_RETRIEVAL_REPORTED == "WEAK_RETRIEVAL_REPORTED"
     assert INVENTED_DATE in SITE_C_REASON_CODES
     assert INVENTED_PROJECT in SITE_C_REASON_CODES
     assert SITE_C_REASON_CODES == (
@@ -359,6 +378,11 @@ def test_site_c_adds_its_codes_and_reuses_invented_date_and_project():
         BELOW_SUPPORT_THRESHOLD,
         INSUFFICIENT_MARGIN,
         GENERIC_HUB_ONLY,
+        # THE OWNER'S, 9 Sep 2026 (`104` §18.14). Appended, never inserted: the
+        # eleven above are the set every C record written before that date was
+        # judged against, and a reordering would make this tuple disagree with
+        # `vocabulary.py`'s own comment about which of them is new.
+        WEAK_RETRIEVAL_REPORTED,
     )
 
 

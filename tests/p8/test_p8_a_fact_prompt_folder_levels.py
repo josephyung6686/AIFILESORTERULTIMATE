@@ -178,10 +178,47 @@ def test_a_changed_byte_in_the_revision_is_refused_rather_than_loaded(tmp_path,
 
 
 def test_the_prompt_in_force_says_unratified_in_its_own_id():
-    """The id is on every audit row, fact row and cache key. It is the one place the
-    owner sees, in their own records, that the text in force is not one they read."""
-    from cli import a_fact_prompt
+    """The id is on every audit row, fact row and cache key -- and the STATUS, not the
+    id, is the word that says the owner has read the text.
+
+    **This pin used to name the 2026-09-04 row and it is re-argued to the row in force
+    (`104` §18.14).** The owner ratified §18.13's two sentences on 9 Sep 2026 -- gap
+    1's conflicts flag explained and gap 3's "an unseen value may be proposed" -- and
+    the lead applied them as a NEW row, `v3-conflicts-open-values`, with A's policy v2;
+    `cli.A_FACT_ROW` points at it, which is how the product runs a ratified text
+    without a worktree patch (`local-w3-r18.sh`'s A_FACT_ROW patch is superseded by
+    exactly this). The old pin asserted the v1 revision's id and the v1 revision's
+    bytes, so it now says the deployment is running a text it stopped running.
+
+    **The word `unratified` STAYS IN THE ID, and that is not a lie: it is
+    `prompt_library`'s own rule that a row's status word is not its id.**
+    `prompt_fingerprint` hashes the template id with the bytes, so renaming an id to
+    match a status would move the fingerprint of every A_fact record written under it
+    and orphan the audit trail -- `cli.A_FACT_ROW`'s comment records that reasoning in
+    the product itself. What says the owner read this text is `draft_status`, and
+    `a_fact_row` refuses an `unratified` row before a byte is loaded. So the two are
+    asserted TOGETHER here: the id carries the word, the status carries the
+    ratification, and `PromptDefinition.ratified` is what the composition root reads.
+
+    SABOTAGE: this file derives the folder-levels delta from the ratified text and
+    would be satisfied by a v3 that quietly dropped it, since the delta lives in a v1
+    file that is still shipped and still verified. So the last two assertions say the
+    delta SURVIVED into the text in force -- the fifteen-key list and its count -- and
+    that the bytes in force are no longer the v1 file's.
+    """
+    from cli import A_FACT_ROW, a_fact_prompt
+    from llm_harness.prompt_library import draft_bytes, draft_status
 
     prompt = a_fact_prompt()
-    assert prompt.template_id == "a_fact.unratified.folder-levels.2026-09-04"
-    assert prompt.template_bytes == a_fact_template_folder_levels_bytes()
+    assert prompt.template_id == "a_fact.unratified.folder-levels-v3.2026-09-09"
+    assert prompt.template_id == A_FACT_ROW[0]
+    assert "unratified" in prompt.template_id
+    assert draft_status(prompt.template_id) == "ratified"
+    assert prompt.ratified is True
+
+    template, _schema, _policy = draft_bytes(A_FACT_ROW[0])
+    assert prompt.template_bytes == template
+    assert prompt.template_bytes != a_fact_template_folder_levels_bytes()
+    in_force = prompt.template_bytes.decode("utf-8")
+    assert in_force.count(KEY_LIST_NEW) == 1
+    assert in_force.count(COUNT_NEW) == 1

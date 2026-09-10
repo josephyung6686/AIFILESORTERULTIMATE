@@ -306,6 +306,49 @@ def test_a_second_code_shaped_reading_makes_the_rule_decline_and_ask_the_model(
     assert stated == {"PHYS1401", "CHEM2100", "Section 001"}
 
 
+def _asked_about_the_declined_field(local):
+    """`test_local_model_fact_pass`'s own answer, asked about `subject` first.
+
+    **Why this exists, and it is `104` §18.2 gap 1 rather than a preference.** The
+    sibling stub answers "one claim per allowed field: the first supported, the rest
+    declined", and the field it supports is `allowed_vocabulary[0]`. That was
+    `subject` until gap 1 merged (dcda7d0, `104` §18.14): `model_facts.open_question`
+    now asks `pending ∪ settled`, so a level field a RULE holds is offered again WITH
+    its conflict for the model to reconcile -- and on this corpus the rules hold
+    `term` from the sectioned line, so `term` is now what the vocabulary lists first
+    and what the stub answers. The model then says nothing about `subject`, which is
+    the one field this test is about, and the test measured the stub's field-picking
+    rule instead of the handoff.
+
+    So the stub is TOLD which field to answer, and nothing else about it changes: it
+    is the same function, given the same dossier with `subject` moved to the head of
+    the vocabulary, so the value is still a span COPIED out of the released evidence,
+    still cited to the reading it was copied from, and every other field still comes
+    back declined. Reordering a closed list the model may propose from is not an
+    answer -- the product hands the model all four either way.
+
+    A real model would answer both, and that is exactly what a one-claim stub cannot
+    do; `test_local_model_fact_pass` is where the stub's own rule is pinned, and this
+    module has no business asserting through it.
+
+    Takes the already-loaded module and closes over it: `_local_model` re-executes the
+    sibling file, and the stub answers on the request thread, so looking it up per
+    request would re-import it once per model call.
+    """
+    def answer(payload: str) -> str:
+        head, dossier_text = payload.split(local.DOSSIER_FOLLOWS, 1)
+        dossier = json.loads(dossier_text)
+        fields = [field for field in dossier.get("allowed_vocabulary", ())
+                  if isinstance(field, str)]
+        if "subject" in fields:
+            dossier["allowed_vocabulary"] = ["subject"] + [
+                field for field in fields if field != "subject"]
+        return local._answer_for(
+            head + local.DOSSIER_FOLLOWS + json.dumps(dossier))
+
+    return answer
+
+
 def test_with_a_model_answering_the_declined_field_the_course_folder_comes_back(
         tmp_path, monkeypatch):
     """The other half of the handoff, and the half that makes it a repair.
@@ -321,10 +364,19 @@ def test_with_a_model_answering_the_declined_field_the_course_folder_comes_back(
     Asserted on the shipped run rather than on the seam: the value arrives
     `llm_supported`, which `00`:42 makes weaker than a rule and overrulable by the
     person, and the course folder exists again in the tree the person is shown.
+
+    **The stub is now asked about `subject` explicitly, and the reason is checked
+    rather than asserted in prose.** `104` §18.2 gap 1 widened the question this file
+    is asked -- see `_asked_about_the_declined_field` -- and the block below reads the
+    dossier the run actually sent and pins the two things that made the old fixture
+    stop measuring the handoff: `term` is in the offered vocabulary although a rule
+    settled it, and it is offered carrying a conflict. If gap 1 is ever reverted those
+    two lines fail and the reordering above becomes dead weight that says so, rather
+    than a silent crutch.
     """
     local = _local_model()
     monkeypatch.setenv(local.LOCAL_MODEL_NAME, local.MODEL_ID)
-    with local.StubOllama() as stub:
+    with local.StubOllama(answer=_asked_about_the_declined_field(local)) as stub:
         monkeypatch.setenv(local.LOCAL_BASE_URL_NAME, stub.base_url)
         holder = tmp_path / "holder"
         corpus = holder / "corpus"
@@ -352,6 +404,23 @@ def test_with_a_model_answering_the_declined_field_the_course_folder_comes_back(
         cli.main([str(corpus), "--situation", "academic.coursework",
                   "--label", "Coursework", "--user", "jy",
                   "--database", str(database)], out=out)
+
+    # `104` §18.2 gap 1, read off the question the run actually asked. A settled
+    # LEVEL field is offered again and it is offered WITH its flag, so `term` -- which
+    # the rules answered from the sectioned line -- is in the vocabulary and carries a
+    # conflict. This is what puts a field other than `subject` at the head of the list
+    # and why the stub above is told which field to answer.
+    asked = [local.dossier_in(prompt) for prompt in stub.prompts()
+             if local.DOSSIER_FOLLOWS in prompt]
+    a_fact = [one for one in asked if one.get("call_site") == cli.A_FACT]
+    assert a_fact, "site A was never asked, so this proves nothing"
+    for dossier in a_fact:
+        assert "subject" in dossier["allowed_vocabulary"]
+        assert "term" in dossier["allowed_vocabulary"], (
+            "a rule-settled level field is no longer offered -- gap 1 was reverted "
+            "and the reordering in `_asked_about_the_declined_field` is now dead")
+        assert any(conflict["kind"] == "term"
+                   for conflict in dossier["conflicts"]), dossier["conflicts"]
 
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
