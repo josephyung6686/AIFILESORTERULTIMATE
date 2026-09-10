@@ -318,6 +318,18 @@
    "layout": "frame-first",
    "note": "v5 of the situation text, from the §18.20 bakeoff and the owner's 10 Sep ruling that the protected hold be \"a little more sure than now\". v4 answered 7 more of 14 cases than v3 and got 5 wrong instead of 1. v5 keeps v4's default (name the stated situation, put the rest in alternatives) and adds two sentences: the cited span must itself carry the statement (name, code, target, study, employer, capture field, source), and a restricted kind is named only when the span shows the record's own particulars, never for a file that teaches, sells, lists, discusses or asks for such a record. Everything else byte-identical to v4.",
    "ratified_by": "nobody -- an A/B candidate authored by the lead under the owner's 10 Sep instruction to A/B test a small sample; the owner ratifies or strikes it on the numbers."
+  },
+  {
+   "site": "A_fact",
+   "candidate": "v4-a-year-is-not-a-term",
+   "status": "unratified",
+   "template_id": "a_fact.unratified.folder-levels-v4.2026-09-10",
+   "template_file": "a_fact_template_folder_levels.v4.txt",
+   "response_schema_file": "a_fact_response_schema.json",
+   "shaping_policy_file": "a_fact_shaping_policy.v2.json",
+   "glossary_file": "field_glossary.json",
+   "ratified_by": "nobody -- a candidate authored by the lead under the owner's 7 Sep delegation of prompt iteration as new versioned rows; the owner ratifies or strikes it.",
+   "note": "v4 of the A_fact text: rule 14 tells the model what a term IS and that a year alone, a range alone, a month-year or a date is not one, so it declines instead of answering. Measured on r19 (104 §18.24): 136 claims died at the validator as VALUE_NOT_NORMALIZABLE, 104 of them a bare year, a bare range or a season initial for \"term\" -- refusals 105 §14.2 ruled and the ratified text never tells the model about. Everything else byte-identical to v3."
   }
  ],
  "digests": {
@@ -361,6 +373,7 @@
   "a_fact_shaping_policy.v2.json": "0c3d3a4d5c7e5fc1099e32aa9a84008d022cc4665e1c63c9c5c039dc80679669",
   "c_placement_template.eliminate-v2r.txt": "0b3816e142fa0b2a17def7f9059cf693c0a42f27110005b8c6f32333b406385e",
   "situation_template.safety-first.v4.txt": "afc24f64ebf5410cf96eb7d4183ad3e7740a4a7b7e9a138fb5aa2de4828725d4",
-  "situation_template.safety-first.v5.txt": "214cccca857246cdfea8621560ccfca07437537269dc70b66edc55a707a5462c"
+  "situation_template.safety-first.v5.txt": "214cccca857246cdfea8621560ccfca07437537269dc70b66edc55a707a5462c",
+  "a_fact_template_folder_levels.v4.txt": "618d1202fbbd2928af6ca3212f92839d927a56a311b1e84ca563a96a235e4774"
  }
 }
