@@ -83,7 +83,7 @@ def live(conn, tmp_path):
     for key in CEILINGS.values():
         set_ceiling(conn, key, 8)
     build_destination_index(conn, FROZEN_TREE, component_version="P11-live",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     return conn
 
 

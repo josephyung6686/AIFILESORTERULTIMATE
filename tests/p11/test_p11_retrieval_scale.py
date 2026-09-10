@@ -238,6 +238,18 @@ def _retrieve_by_full_scan(conn, *, subject, plan_version, limits, facts,
     Kept verbatim, minus the §8.2 append, so it can be compared against the live
     implementation rather than trusted. If the two ever disagree this is the half
     that is right, because it is the half the whole suite was green against.
+
+    **WITH ONE EXCEPTION SINCE `104` §18.2 GAP 16, AND IT IS NOT A DISAGREEMENT
+    ABOUT SPEED.** This loop reads each node's OWN expected values, which is the
+    defect gap 16 names: a folder's own values are not what filing a file in it
+    commits the file to, so a conflict on the folder ABOVE it is invisible here.
+    The live read walks the chain and this one cannot. The two still agree over
+    every shape below because `FROZEN_TREE`'s only parent (`n-academics`) states
+    no expected value at all, so there is no chain conflict in this fixture to
+    disagree about -- `tests/p11/test_p11_the_conflict_above_and_below.py` is
+    where a tree that HAS one is asserted, and it is the half that is right about
+    that case. This function is the pre-gap-16 comparison, kept for what it was
+    written to check: that narrowing the READ did not change the ANSWER.
     """
     from facts.read_surface import is_destination_eligible
     from placement.index import entries_for_plan

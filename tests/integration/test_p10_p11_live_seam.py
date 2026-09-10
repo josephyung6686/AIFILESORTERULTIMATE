@@ -792,12 +792,26 @@ def test_parent_concepts_is_computed_by_the_chain_and_reaches_no_p11_reader(corp
         "decide deliberately whether the index should project it, and update "
         "this guard either way")
 
-    # And the guard on the CONSUMER, so the two cannot drift apart quietly:
-    # §6.7's broad-parent case is the only P11 question about which ancestor
-    # levels the evidence supports, and P11 does not produce it. Every
-    # `DecisionDepth` the pipeline builds passes `unsupported_levels=()`. The day
-    # one does not, §6.7 is live and the ancestors' dimensions become a question
-    # P11 asks — which is exactly when wiring `parent_concepts` is worth deciding.
+    # And the guard on the CONSUMER, which asked to be re-decided on the day
+    # §6.7 went live. That day is `104` §18.2 gap 11b (10 Sep 2026): exactly one
+    # `DecisionDepth` in the pipeline now fills `unsupported_levels`, so P11 does
+    # produce the broad-parent case and the question this guard reserved is a
+    # real one.
+    #
+    # **RE-DECIDED, AND THE ANSWER IS STILL NO.** `parent_concepts_for` maps a
+    # node to the dimensions its ANCESTORS express, and the question P11 asks is
+    # the mirror of that: which levels BELOW the node the model chose went
+    # unfilled -- the term on a `PHYS1401` a file could not be dated into.
+    # `_levels_not_filled` reads them off the chain between the chosen node and
+    # the leaf the rules built, out of the `dimension_of` and `parent_of` maps
+    # `place_file_steps` already builds in its ONE walk of the tree per file.
+    # Wiring §5.9's map would answer the other direction, and it would cost a
+    # second whole-tree walk per file to do it -- the O(files x nodes) shape
+    # `planning/58-SCALE-STRESS.md` §2 measured.
+    #
+    # So the guard above stands unchanged (no placement module names it), and
+    # this half now pins the shape rather than the absence: ONE producer, and a
+    # second would be a second answer to "which levels were left unfilled".
     import ast
 
     pipeline_src = placement_src / "pipeline.py"
@@ -810,10 +824,11 @@ def test_parent_concepts_is_computed_by_the_chain_and_reaches_no_p11_reader(corp
                         isinstance(keyword.value, ast.Tuple)
                         and not keyword.value.elts):
                     filled.append(node.lineno)
-    assert filled == [], (
-        f"pipeline.py:{filled} now fills §6.7's `unsupported_levels`. P11 has "
-        "started producing the broad-parent case; re-decide whether the index "
-        "should carry §5.9's parent concepts")
+    assert len(filled) == 1, (
+        f"pipeline.py:{filled} fills §6.7's `unsupported_levels` at "
+        f"{len(filled)} sites. One producer answers 'which levels were left "
+        "unfilled'; two would drift, and either way the parent-concepts "
+        "decision above is worth re-reading")
 
 
 def test_a_tree_that_repeats_a_parent_dimension_fires_59s_warning(corpus):

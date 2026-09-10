@@ -314,6 +314,16 @@ def _levels_not_filled(node_id: str, *, deepest: str | None, parent_of,
 
     Empty for every other placement, which is what an empty tuple has always
     meant here: this node is as deep as the evidence goes and nothing was skipped.
+
+    **AND EMPTY, TODAY, WHEN THE RULES BUILT NO LEAF AT ALL.** `deepest` is
+    `assessment.scored[0]`, and on `104` §18.2 gap 2's own shape -- a file every
+    one of whose candidates a step-6 rule ranked below the contenders -- `scored`
+    is empty, so a model taking an ancestor off that shortlist records no unfilled
+    level. That is silence rather than a false statement: there is no chain the
+    rules committed to for this node to be shallower THAN, and inventing one out
+    of the set-aside list would be naming levels no assessment ever reached. The
+    ruling asks for the levels of the leaf the rules built; where they built none,
+    this says so by saying nothing.
     """
     # The General case first, because it is decided by the node itself: a
     # scoped-general node is on the chain to nothing, so the walk below would

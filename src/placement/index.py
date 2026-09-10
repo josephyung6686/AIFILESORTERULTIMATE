@@ -254,7 +254,15 @@ class Reachable:
     is in none of its groups, does not wear a label it named, and is not a
     semantic neighbour. §6.3's loop would have collected nothing from it and
     suppressed nothing on it, so skipping it is a provable no-op -- which is what
-    makes this narrowing a performance change and not a behaviour change.
+    made this narrowing a performance change and not a behaviour change.
+
+    **THAT SENTENCE NOW HAS A CHAIN-SHAPED EXCEPTION, AND IT IS `104` §18.2 GAP
+    16's WHOLE POINT.** A node nothing reached CAN matter after all -- not on its
+    own account, but because it sits above or below one that was reached, and
+    filing a file in a folder files it in every folder above that one. So the set
+    considered is the reached nodes AND THEIR CHAINS (`_chain_around`), which is
+    still bounded by the branches the evidence pulled at rather than by the tree.
+    What remains a provable no-op is skipping a node on no reached chain at all.
 
     **Suppression is counted in full and named up to a ceiling, and that split is
     the whole of the second narrowing.** §6.3 suppresses a node when the subject
@@ -269,6 +277,19 @@ class Reachable:
     So the list is a BOUNDED SAMPLE and the count is EXACT. Nothing is silently
     omitted: a conflict that ruled out 799 branches says 799 either way, and the
     ones it does name are the ones a reader can act on.
+
+    **THE COUNT IS EXACT ABOUT THE ROWS AND IS A FLOOR ABOUT THE FOLDERS**, since
+    `104` §18.2 gap 16. It is one integer per stated field, written at build time:
+    how many `(node, value)` rows in the whole plan state that field with a value
+    the subject does not hold. A node ruled out because an ANCESTOR states one has
+    no such row of its own, so a chain conflict adds to the NAMES without adding
+    to the count -- and the last loop below raises the count to the length of its
+    own list rather than letting a summary contradict the names beside it.
+    Counting every such node exactly would mean walking the chain of every node in
+    the plan for every file, which is the O(files x nodes) read this module exists
+    to have stopped. Under-reporting is the omission the count exists to prevent
+    and it does not happen; what the number does not claim is to have visited the
+    branches nothing pulled the file towards.
 
     Which ones get named is not arbitrary. The nodes a retrieval channel REACHED
     go first, always -- they are the ones §6.3's own sentence is about

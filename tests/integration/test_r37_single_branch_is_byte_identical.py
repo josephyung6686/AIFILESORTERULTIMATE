@@ -26,6 +26,16 @@ to capture from; the fixture is now captured at the merged head and pins the
 single-branch screen and records against drift, to be recaptured deliberately
 whenever a merge changes them on purpose.
 
+**Recaptured on 10 Sep 2026 for `104` §18.2 gap 16, and the diff was read before
+it was taken.** The gap adds `ConflictConsidered.found_on` -- which node a ruling
+value was found on -- so every `conflicts_considered` entry in the stored payload
+gains a key. Structurally the recapture differs from its predecessor in exactly
+six places and every one of them is that key: the same placements, the same
+suppressed node ids, the same counts, the same sentences. This corpus has no
+chain conflict to find, because P10 gives each node its whole chain's expected
+values, so every pair here reads `(node, that same node)` -- which is what a
+conflict on a node's own value has always meant.
+
 The corpus is `test_local_model_fact_pass._corpus`'s six files: a syllabus, a
 lecture, a homework, a problem set, an application essay and a passport scan. The
 anchors the work-type rule finds on it are all academic's, so it is one branch.
