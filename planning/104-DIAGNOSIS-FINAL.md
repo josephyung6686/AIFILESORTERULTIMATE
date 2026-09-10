@@ -1748,6 +1748,16 @@ At ~18:52 the machine rebooted (every system daemon three minutes old at 18:55; 
 
 Plan to 05:00: merge the four agents as they report; resume the G bakeoff (v3/v4/v5 × two local models) once r22's situation pass frees the local model; run the FULL suite on the merged head (not run since ec3e349); judge r22 as a person would; author the candidate rows the agents left (A v4 stands; C group sentence; E's three; G's held sentence) as unratified rows for the owner; the morning report.
 
+### 18.33 Gaps 16 + 11b and gap 25 merged; three candidate rows written (10 Sep 19:05-19:20)
+
+**Gaps 16 + 11b merged (a0e389a; 853 passed, 1 xfailed on the merged head).** `index._chain_around` walks up and down from the reached nodes off the two indexes the schema already declares (`parent_node_id` joined to the term sources so both directions are answerable without a whole-tree scan); UP suppresses (a value on an ancestor is one the file acquires by being filed below it), DOWN explains (a conflicting value below rules that descendant out and is named); the tree is canonicalised once per build and the subject's facts once per file through `cli.normalize_for_model`, the validator's own canonicaliser, at build time because the module's three reads are SQL equalities; `ConflictConsidered.found_on` names where. 11b: `_levels_not_filled` writes SPEC:401-404's field for the first time (six writers had said `()`), so a placement on an offered ancestor records the levels between it and the leaf; a contender's own scoped-general child is on the shortlist as a set-aside, offered and never scored. Three pins flipped with their reasons; the r37 fixture recaptured for one new key after a structural diff of exactly six differences. **The merge needed one thing the agent could not see:** `retrieve` and `build_destination_index` now take `canonical=`, and two call sites written after its base (gap 14's group retrieval, the group-call pin's index build) lacked it -- 35 failures, 9 errors, two lines. **Owed to the owner, restated:** the on-demand General under a parent that has a parent-only-supported file (a tree-pass ordering question).
+
+**Gap 25 merged (555fc83; 152 passed).** `review_surface/trail.py` `file_trail(conn, wanted)` walks the five stages from rows only; `--trail FILE` beside `--explain`, which now points at it in one sentence. The agent corrected the lead's interim script on four points: two subject-ref shapes (sites A/E/G write the bare id, site C and placement write `file:<id>:<hash>`, so the script dropped every placement call); several attempts per dossier; the refusal with no row (R-175's over-ceiling skip lives in a `call_refused` event, never before read back); no invented reasons. Not printable per file: `no_route` is an in-memory count with no row (a row nobody has authorised).
+
+**Three candidate rows written (19c4313), the owner's to ratify:** C `eliminate-v2r-group` (the packet subject sentence), G `situation-safety-first-v6` (v5 plus the held-phrase paragraph), E `what-a-person-opens-v3` (the per-file subject and `folder_levels`). Not written: E's per-file eligibility word (a P8 vocabulary widening).
+
+**Against the lead:** a one-second pin file was run beside a background pytest session, two sessions at once; nothing was harmed, and it is not to be repeated.
+
 
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
