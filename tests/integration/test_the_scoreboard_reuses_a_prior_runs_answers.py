@@ -57,6 +57,7 @@ from readers import model_routing  # noqa: E402
 from readers.model_routing import MODEL_NAME_OF_TIER  # noqa: E402
 from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME  # noqa: E402
 from llm_harness import fact_validation  # noqa: E402
+from llm_harness.vocabulary import A_FACT, C_PLACEMENT  # noqa: E402
 from tools.groundtruth.reuse import (  # noqa: E402
     ReuseRefused,
     prior_database,
@@ -98,13 +99,39 @@ UNCITED = "Something the evidence does not carry"
 
 
 class _Socket:
-    """Every model call these runs make, and the dossier each one carried."""
+    """Every model call these runs make, and the dossier each one carried.
+
+    **COUNTED PER CALL SITE, `104` §17.13 ruling 3.** When this file was written
+    the corpus produced one model call per file and nothing else, so a total was a
+    site-A total. §17.13 moved site C's `eliminate-v2` from `ratified_local` to
+    `ratified` and R-170 made the route per FILE, so a run with `--enable-cloud`
+    now also sends a `C_placement` dossier for each file P11 proposes a folder for
+    -- one, on this two-file corpus, through the same stubbed `deepseek_invoke`.
+
+    R-123 is the reuse of ANSWERS, and an answer here is a fact: `reuse.seed`
+    copies `llm_call_identity`, `llm_dossier`, `llm_response` and `llm_verdict`,
+    and site C records no call identity at all, so there is nothing of C's for a
+    seeding to hand on and nothing for `_reuse_is_current` to look up. Counting C
+    in the totals would report the scoreboard buying an answer it was never given.
+    Every pin that counts A's savings also states C's repetition, so a placement
+    that starts reusing -- or stops calling -- turns a line red instead of quietly
+    moving a number this file believes is site A's.
+    """
 
     def __init__(self) -> None:
         self.payloads: list[bytes] = []
 
     def __len__(self) -> int:
         return len(self.payloads)
+
+    def calls_at(self, call_site: str) -> int:
+        """How many calls these runs made at ONE site."""
+        return sum(1 for p in self.payloads
+                   if self._body(p)["call_site"] == call_site)
+
+    def subjects_at(self, call_site: str) -> list[str]:
+        return [self._body(p)["subject_ref"] for p in self.payloads
+                if self._body(p)["call_site"] == call_site]
 
     def subjects(self) -> list[str]:
         return [self._body(p)["subject_ref"] for p in self.payloads]
@@ -170,6 +197,30 @@ def _rows(database, sql: str) -> list[dict]:
         conn.close()
 
 
+def _a_fact_verdicts(database) -> list[dict]:
+    """The verdicts of the pass this file is about, and no other site's.
+
+    `llm_verdict` holds every site's judgements. Since `104` §17.13 ruling 3 a run
+    of this corpus writes `C_placement` verdicts beside site A's, judged by P8's
+    own validator and copied by no seeding, so an unscoped count says the seeder
+    left answers behind when it left nothing behind at all. Joined on
+    `llm_dossier.call_site`, which is the record of which site asked.
+    """
+    return _rows(
+        database,
+        "SELECT v.verdict_id AS verdict_id, v.validator_version AS "
+        "validator_version, v.superseded_by AS superseded_by FROM llm_verdict v "
+        "JOIN llm_dossier d ON d.dossier_id = v.dossier_id "
+        f"WHERE d.call_site = '{A_FACT}'")
+
+
+def _a_fact_addresses(database) -> set[str]:
+    """The addresses of the dossiers a seeding can carry, and no others."""
+    return {row["dossier_id"] for row in _rows(
+        database,
+        f"SELECT dossier_id FROM llm_dossier WHERE call_site = '{A_FACT}'")}
+
+
 def _paths(database) -> dict[str, str]:
     return {row["file_id"]: pathlib.Path(row["current_path"]).name
             for row in _rows(database, "SELECT file_id, current_path FROM files")}
@@ -188,11 +239,20 @@ def _asked_again(database, seeded) -> set[str]:
     ended that: a seeded dossier is re-addressed for the file id THIS database
     gives it, so its address is new by design and comparing the two databases
     would report every reused file as freshly asked.
+
+    Site A's dossiers ONLY (`104` §17.13 ruling 3). `seed` hands on what the four
+    `llm_*` tables can be reused from, and site C records no `llm_call_identity`,
+    so no C dossier is ever among `seeded.addresses` and every one of them would
+    read as freshly asked -- under its own `file:<id>:<hash>` subject, which
+    `_paths` cannot name and which would then be reported to a reader as a file
+    the seeding failed to cover. C IS asked again, every run; the pins say so in
+    their own line rather than through this set.
     """
     names = _paths(database)
     handed = set(seeded.addresses.values())
     return {names.get(row["subject_ref"], row["subject_ref"]) for row in
-            _rows(database, "SELECT dossier_id, subject_ref FROM llm_dossier")
+            _rows(database, "SELECT dossier_id, subject_ref FROM llm_dossier "
+                            f"WHERE call_site = '{A_FACT}'")
             if row["dossier_id"] not in handed}
 
 
@@ -200,19 +260,22 @@ def _asked_again(database, seeded) -> set[str]:
 
 
 def test_the_seeded_rows_are_the_prior_runs_own_answers(corpus, socket, tmp_path):
-    """The four tables, filled by the product rather than by a fixture."""
+    """The four tables, filled by the product rather than by a fixture.
+
+    Counted at site A (`_Socket`): the run also makes site C's placement call, and
+    the four tables carry no row of C's for the seeding to copy.
+    """
     first, second = tmp_path / "one.sqlite", tmp_path / "two.sqlite"
     _run(corpus, first)
-    assert len(socket) == 2, socket.subjects()
+    assert socket.calls_at(A_FACT) == len(CORPUS), socket.subjects()
 
     given = seed(second, first, corpus=corpus)
 
-    assert given.answers == 2
-    assert given.rows["llm_call_identity"] == 2
-    assert given.rows["llm_dossier"] == 2
-    assert given.rows["llm_response"] == 2
-    assert given.rows["llm_verdict"] == len(
-        _rows(first, "SELECT 1 FROM llm_verdict")) > 0
+    assert given.answers == len(CORPUS)
+    assert given.rows["llm_call_identity"] == len(CORPUS)
+    assert given.rows["llm_dossier"] == len(CORPUS)
+    assert given.rows["llm_response"] == len(CORPUS)
+    assert given.rows["llm_verdict"] == len(_a_fact_verdicts(first)) > 0
     # The run has not started, so nothing about placement or consent is there and
     # the reuse ledger is empty. What the fresh database exists to keep out is out.
     assert not _rows(second, "SELECT 1 FROM llm_call_reuse")
@@ -260,18 +323,34 @@ def test_two_databases_over_one_corpus_agree_on_every_dimension_but_the_subject_
 
 def test_a_seeded_fresh_database_asks_nothing_the_prior_run_answered(
         corpus, socket, tmp_path):
-    """R-123 in one number: the second run of an unchanged corpus spends nothing."""
+    """R-123 in one number: the second run of an unchanged corpus spends nothing.
+
+    **The number the fix restored is this one.** `104` R-172a: §18.7's standing
+    consent grant is scoped to `scan_run_id`, `policy` is a call-identity
+    dimension, and a scan run id is a fresh `uuid4`, so every seeded identity sat
+    under a digest the fresh run could never compute and this pin read 4 where it
+    says 2 -- R-109's own closing sentence, *"No dimension carries a run id, a
+    timestamp or a path"*, made false by a ruling that had no reason to know it.
+    `model_facts._consent_grants_content` records the grant under its standing
+    scope and the gate still matches the raw one, so §18.7 holds and R-123 pays
+    nothing again. Site C's own call is counted on its own line, per `_Socket`.
+    """
     first, second = tmp_path / "one.sqlite", tmp_path / "two.sqlite"
     _run(corpus, first)
-    paid_for = len(socket)
-    assert paid_for == 2, socket.subjects()
+    paid_for = socket.calls_at(A_FACT)
+    placements = socket.calls_at(C_PLACEMENT)
+    assert paid_for == len(CORPUS), socket.subjects()
 
     given = seed(second, first, corpus=corpus)
     _run(corpus, second)
 
-    assert len(socket) == paid_for, (
-        f"the seeded run re-asked {len(socket) - paid_for} questions whose answers "
-        f"it had been handed: {sorted(_asked_again(second, given))}")
+    assert socket.calls_at(A_FACT) == paid_for, (
+        f"the seeded run re-asked {socket.calls_at(A_FACT) - paid_for} questions "
+        f"whose answers it had been handed: "
+        f"{sorted(_asked_again(second, given))}")
+    assert socket.calls_at(C_PLACEMENT) == placements * 2, (
+        "site C is no longer asked once per run and the count above is measuring "
+        "something other than the fact pass")
     assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == paid_for
 
 
@@ -281,10 +360,14 @@ def test_only_the_file_whose_bytes_changed_is_asked_again(corpus, socket, tmp_pa
     A seeded answer must not survive a change to the thing it is an answer about.
     `content_hash` is a dimension, so a rewritten file is a different identity and
     is asked; its neighbour, untouched, is not.
+
+    Site A's calls, per `_Socket`: the run's placement call is not an answer this
+    seeding could have handed on, and counting it here would report a file asked
+    that was not.
     """
     first, second = tmp_path / "one.sqlite", tmp_path / "two.sqlite"
     _run(corpus, first)
-    paid_for = len(socket)
+    paid_for = socket.calls_at(A_FACT)
 
     (corpus / "week two notes.txt").write_text(
         "Rewritten between the runs. Notes from the seminar on elasticity, with "
@@ -292,7 +375,8 @@ def test_only_the_file_whose_bytes_changed_is_asked_again(corpus, socket, tmp_pa
     given = seed(second, first, corpus=corpus)
     _run(corpus, second)
 
-    assert len(socket) - paid_for == 1, socket.subjects()[paid_for:]
+    assert socket.calls_at(A_FACT) - paid_for == 1, (
+        socket.subjects_at(A_FACT)[paid_for:])
     assert _asked_again(second, given) == {"week two notes.txt"}
     # And the one that did not change was answered from the record.
     assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == 1
@@ -318,23 +402,24 @@ def test_a_seeded_run_in_its_own_directory_is_given_the_prior_runs_key(
     nothing, reject every citation, and reuse that instead.
 
     The key is copied with the answers, and this is the number that says so. The
-    reuse itself is unchanged: nothing was re-asked.
+    reuse itself is unchanged: nothing was re-asked. Site A's calls, per `_Socket`.
     """
     prior_dir, fresh_dir = tmp_path / "prior", tmp_path / "fresh"
     prior_dir.mkdir()
     first, second = prior_dir / "one.sqlite", fresh_dir / "two.sqlite"
     _run(corpus, first)
-    paid_for = len(socket)
-    assert paid_for == 2, socket.subjects()
+    paid_for = socket.calls_at(A_FACT)
+    assert paid_for == len(CORPUS), socket.subjects()
 
     given = seed(second, first, corpus=corpus)
 
     assert wire_handle_key_file(fresh_dir).read_bytes() == (
         wire_handle_key_file(prior_dir).read_bytes())
     _run(corpus, second)
-    assert len(socket) == paid_for, (
-        f"the seeded run re-asked {len(socket) - paid_for} questions whose "
-        f"answers it had been handed: {sorted(_asked_again(second, given))}")
+    assert socket.calls_at(A_FACT) == paid_for, (
+        f"the seeded run re-asked {socket.calls_at(A_FACT) - paid_for} questions "
+        f"whose answers it had been handed: "
+        f"{sorted(_asked_again(second, given))}")
     assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == paid_for
 
 
@@ -362,8 +447,8 @@ def test_a_seeded_answer_is_re_judged_when_the_validator_moves(
     prior_dir.mkdir()
     first, second = prior_dir / "one.sqlite", fresh_dir / "two.sqlite"
     _run(corpus, first)
-    paid_for = len(socket)
-    seeded_verdicts = len(_rows(first, "SELECT 1 FROM llm_verdict"))
+    paid_for = socket.calls_at(A_FACT)
+    seeded_verdicts = len(_a_fact_verdicts(first))
     assert seeded_verdicts
 
     monkeypatch.setattr(
@@ -372,29 +457,47 @@ def test_a_seeded_answer_is_re_judged_when_the_validator_moves(
     given = seed(second, first, corpus=corpus)
     _run(corpus, second)
 
-    assert len(socket) == paid_for, (
+    assert socket.calls_at(A_FACT) == paid_for, (
         f"the seeded run under a changed validator bought "
-        f"{len(socket) - paid_for} answers it had been handed: "
+        f"{socket.calls_at(A_FACT) - paid_for} answers it had been handed: "
         f"{sorted(_asked_again(second, given))}")
     assert given.untranslated == 0, "an A_fact dossier was seeded unre-addressed"
     # Re-judged, not merely reused: every seeded conclusion was read again under
-    # the new validator and superseded where it stood.
+    # the new validator and superseded where it stood. Site A's verdicts, per
+    # `_a_fact_verdicts`: site C's are written fresh by this run and were never
+    # anybody's to re-judge.
     assert len(_supersessions(second)) == seeded_verdicts
-    standing = _rows(
-        second, "SELECT validator_version FROM llm_verdict "
-        "WHERE superseded_by IS NULL")
+    standing = [row for row in _a_fact_verdicts(second)
+                if row["superseded_by"] is None]
     assert standing and all(
-        row["validator_version"] == fact_validation.judgement_version(_deps())
+        row["validator_version"] == fact_validation.judgement_version(
+            _deps(second))
         for row in standing), {row["validator_version"] for row in standing}
     assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == paid_for
 
 
-def _deps():
-    """The three callbacks `cli` hands Site A, as `model_facts` bundles them."""
-    return fact_validation.FactValidationDependencies(
-        normalize=cli.normalize_for_model,
-        contradicts=cli.contradicts_stronger,
-        normalize_for_review=cli.normalize_for_review)
+def _deps(database):
+    """The three callbacks `cli` hands Site A, as `model_facts` bundles them.
+
+    **`normalize` is a CLOSURE, `104` §18.2 gap 3.** This helper named
+    `cli.normalize_for_model` from the day it was written, and the assertion that
+    reads it could only be reached once the seeded reuse worked (R-172a); by then
+    `cli.p1_p7_authorities` had stopped passing that function. Gap 3 gave check 3
+    a second half -- `normalize_with_the_persons_own_values(conn)` asks the shipped
+    library first and the person's confirmed spellings second -- and
+    `judgement_version` digests the bundle, so the superseded spelling computes a
+    version no run ever wrote. `_callable_version` digests the closure's module,
+    qualname and source rather than the rows behind it, so the connection only has
+    to be to a database of this schema.
+    """
+    conn = sqlite3.connect(database)
+    try:
+        return fact_validation.FactValidationDependencies(
+            normalize=cli.normalize_with_the_persons_own_values(conn),
+            contradicts=cli.contradicts_stronger,
+            normalize_for_review=cli.normalize_for_review)
+    finally:
+        conn.close()
 
 
 def test_the_seed_note_names_the_address_every_dossier_had_before(
@@ -404,6 +507,12 @@ def test_the_seed_note_names_the_address_every_dossier_had_before(
     A seeded dossier is filed under an address this run recomputed, and the one it
     had in the run it came from is how anybody checks the two against each other.
     The note beside the database carries the map.
+
+    Site A's dossiers on both sides (`104` §17.13 ruling 3). The map is of what was
+    SEEDED, and the seeding copies the four `llm_*` tables an identity can be
+    reused from; site C records no identity, so a C dossier is in neither
+    database's map and comparing against every row of `llm_dossier` would read the
+    seeder as having dropped a file it was never given.
     """
     prior_dir, fresh_dir = tmp_path / "prior", tmp_path / "fresh"
     prior_dir.mkdir()
@@ -422,11 +531,8 @@ def test_the_seed_note_names_the_address_every_dossier_had_before(
     assert addresses
     # Every address the prior run used is a key, and every address this database
     # holds is the value it maps to.
-    assert set(addresses) == {
-        row["dossier_id"] for row in _rows(first, "SELECT dossier_id FROM llm_dossier")}
-    assert set(addresses.values()) == {
-        row["dossier_id"] for row in
-        _rows(second, "SELECT dossier_id FROM llm_dossier")}
+    assert set(addresses) == _a_fact_addresses(first)
+    assert set(addresses.values()) == _a_fact_addresses(second)
     assert all(old != new for old, new in addresses.items()), (
         "an A_fact dossier kept the prior run's address, so its bytes still name "
         "the prior run's file")
@@ -462,13 +568,13 @@ def test_a_changed_file_is_asked_fresh_even_when_the_validator_moved(
     cannot: `content_hash` is a dimension of the identity, so a rewritten file is
     a different question and the prior is never looked up -- there is nothing to
     re-judge, and the file is asked. The neighbour, untouched, is re-judged from
-    its stored response and costs nothing.
+    its stored response and costs nothing. Site A's calls, per `_Socket`.
     """
     prior_dir, fresh_dir = tmp_path / "prior", tmp_path / "fresh"
     prior_dir.mkdir()
     first, second = prior_dir / "one.sqlite", fresh_dir / "two.sqlite"
     _run(corpus, first)
-    paid_for = len(socket)
+    paid_for = socket.calls_at(A_FACT)
 
     (corpus / "week two notes.txt").write_text(
         "Rewritten between the runs. Notes from the seminar on elasticity, with "
@@ -479,7 +585,8 @@ def test_a_changed_file_is_asked_fresh_even_when_the_validator_moved(
     given = seed(second, first, corpus=corpus)
     _run(corpus, second)
 
-    assert len(socket) - paid_for == 1, socket.subjects()[paid_for:]
+    assert socket.calls_at(A_FACT) - paid_for == 1, (
+        socket.subjects_at(A_FACT)[paid_for:])
     assert _asked_again(second, given) == {"week two notes.txt"}
     assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == 1
 
@@ -492,13 +599,17 @@ def test_a_seed_of_a_seed_pairs_every_answer_the_prior_held(
     in this corpus", while the two `files` tables paired 199 of 199 by path and by
     content hash. A rerun of a rerun paid for everything, which is every rerun
     after the first.
+
+    Site A's calls, per `_Socket`: `answers` counts what the seeding handed on, and
+    site C hands on nothing, so the two numbers only compare at the site that
+    records an identity.
     """
     a_dir, b_dir, c_dir = tmp_path / "a", tmp_path / "b", tmp_path / "c"
     a_dir.mkdir()
     first, second, third = (a_dir / "x.sqlite", b_dir / "x.sqlite",
                             c_dir / "x.sqlite")
     _run(corpus, first)
-    paid_for = len(socket)
+    paid_for = socket.calls_at(A_FACT)
 
     given_b = seed(second, first, corpus=corpus)
     _run(corpus, second)
@@ -513,7 +624,8 @@ def test_a_seed_of_a_seed_pairs_every_answer_the_prior_held(
     assert given_c.skipped == 0, (
         f"a seed of a seed left {given_c.skipped} answers behind")
     assert given_c.answers == given_b.answers
-    assert len(socket) == paid_for, socket.subjects()[paid_for:]
+    assert socket.calls_at(A_FACT) == paid_for, (
+        socket.subjects_at(A_FACT)[paid_for:])
 
 
 def test_the_note_says_why_each_answer_was_left_behind(
