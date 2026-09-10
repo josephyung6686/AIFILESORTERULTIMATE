@@ -183,7 +183,7 @@ from placement.schema import create_placement_schema
 from model_facts import (
     AnchorOnlyLevels, FactCallAuthorities, dossier_tokens, fact_call_stage,
     measure_released_tokens, pending_fields_for, releasable_observations,
-    releasable_readings, zone_rank,
+    releasable_readings, zone_evidence_counts,
 )
 # `104` §18.2 gap 4: the module and not its names, because `NOT_ASKED_SENTENCE`
 # below reads five of its constants and a five-name import line beside the one above
@@ -4219,6 +4219,25 @@ def _direct_stage(conn, file_id: str, content_hash: str) -> tuple[str, ...]:
 #: defaulting, so all fifteen are here. The shape is §3.7's own sentence: "a value
 #: in a filename or document title carries more meaning than the same value in a
 #: footer or a late body-page reference."
+#:
+#: **`104` §18.2 GAP 6 NAMED THIS TABLE AND IT STANDS, WITH ITS REASON (9 Sep 2026).**
+#: The gap reads this as the product's second ordering of what the model sees,
+#: disagreeing with `model_facts._ZONE_PREFERENCE`; the other half of the pair is
+#: gone, replaced by `model_facts.zone_evidence_counts`, and this one is not. It is
+#: not an ordering of what the model sees at all: nothing in a dossier reads it. Its
+#: two consumers are `date_facts` and `kind_facts` below, through `facets.rank`,
+#: where it decides which candidate value a DETERMINISTIC producer writes to
+#: `file_facts` -- and two consequences follow that the gap does not weigh. A weight
+#: map derived from the store would make file N's facts depend on files 1..N-1, which
+#: is the property `facts/evidence.py` states this package does not have ("the same
+#: corpus extracted in a different order produces the same facts", §8.5 replay); an
+#: ORDER may be corpus-derived because nothing is decided by it, a stored fact may
+#: not. And the neutral answer where nothing has been measured -- every zone equal --
+#: turns §3.7's 3:1 title-over-footer into a `below_margin` abstention on every
+#: first-seen field, against `MINIMUM_SCORE` and `MINIMUM_MARGIN` below, which are
+#: set to these numbers. So this is recorded rather than deleted, on §18.6's own
+#: pattern for S6: the arm is not dead, and the owner rules whether §3.7's weights
+#: become something else.
 ZONE_WEIGHT = {"filename": 3.0, "title": 3.0, "heading": 2.0, "body": 1.0,
                "header_footer": 0.25, "metadata": 1.0, "path": 1.0, "table": 1.0,
                "notes": 1.0, "link": 1.0, "annotation": 1.0, "reference_list": 0.5,
@@ -8405,15 +8424,26 @@ def anchor_context_observations(conn: sqlite3.Connection, *, scan_run_id: str,
             offered[observation.observation_key] = observation
 
     # THE CAP IS ON THE CONTEXT ITEMS, not on any file's candidates: it bounds what
-    # this call sends, which is what a release cap is for. Ordered by the product's own
-    # zone preference and then by statement order -- `model_facts.zone_rank` is that
-    # table published rather than copied. Nothing here prefers a nearer folder or a
-    # shorter path; which anchor names this file's course is the model's judgement, and
-    # a distance rule would be this module answering it.
+    # this call sends, which is what a release cap is for. Ordered by the SAME term
+    # the file's own offer is ordered by and then by statement order. Nothing here
+    # prefers a nearer folder or a shorter path; which anchor names this file's course
+    # is the model's judgement, and a distance rule would be this module answering it.
+    #
+    # **`104` §18.2 gap 6: THE TERM IS A MEASUREMENT AND IT IS ASKED, NOT COPIED.**
+    # This read `model_facts.zone_rank`, a six-name table typed in that module, while
+    # `cli.ZONE_WEIGHT` a few hundred lines above weighed metadata, body, ocr and path
+    # equally -- two hand-typed orderings of the same fifteen zones, disagreeing, one
+    # of them deciding what the model is shown. `zone_evidence_counts` answers the
+    # question by counting: for the fields this call is asking, the zones this
+    # corpus's own recognisers have cited. It is asked for THESE fields, so the
+    # context lines are ordered by the same evidence the file's own readings are, and
+    # a zone nobody has measured scores zero and falls to statement order rather than
+    # behind every named zone.
+    cited = zone_evidence_counts(conn, fields=fields)
     order = {ref: index for index, (_file, ref) in enumerate(wanted)}
     return tuple(sorted(
         offered.values(),
-        key=lambda one: (zone_rank(one.location.zone),
+        key=lambda one: (-cited.get(one.location.zone, 0),
                          order[one.observation_key]))[:limit])
 
 

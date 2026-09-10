@@ -1666,28 +1666,62 @@ def test_a_course_printed_as_a_word_reaches_its_neighbour_as_context(conn, tmp_p
 # The release check is asked of the READINGS, not of the stating file's ranking
 # --------------------------------------------------------------------------
 
+def _stated(conn, *, file_id, content_hash, field, value, ref):
+    """One fact of the store's own, citing one reading. `104` §18.2 gap 6's input.
+
+    The order a dossier is offered in is no longer a table of zone names; it is a
+    COUNT of the readings this corpus's recognisers have cited for the field being
+    asked (`model_facts.zone_evidence_counts`). So a fixture that wants one zone to
+    outrank another states a fact in it, which is what a rule pass does, and the
+    ordering follows the corpus instead of following a list.
+    """
+    from facts.cache import pass_cache_key
+    from facts.file_facts import RULE, write_fact
+    from facts.values import VALUE_ORIGINS, ensure_value
+
+    value_id = ensure_value(conn, field_key=field, canonical_value=value,
+                            first_evidence_ref=ref, origin=VALUE_ORIGINS[0])
+    return write_fact(
+        conn, file_id=file_id, content_hash=content_hash, field_key=field,
+        value_id=value_id, reliability_state="validated", origin=RULE,
+        evidence_refs=(ref,), active=True,
+        cache_key=pass_cache_key(conn, file_id=file_id,
+                                 content_hash=content_hash))
+
+
 def _crowd(conn, file_id, content_hash, *, count):
     """`count` more readings of the stating file, every one ranked ABOVE a body line.
 
-    `title` is first in `model_facts._ZONE_PREFERENCE` and `body` is fourth, so these
-    fill the head of that file's own ranking. The point of the fixture is that they are
-    perfectly ordinary readings: nothing here is unreleasable, and nothing about them
+    **WHAT PUTS THEM ABOVE IT IS A MEASUREMENT SINCE `104` §18.2 gap 6.** It used to
+    be `model_facts._ZONE_PREFERENCE`, where `title` was first of six typed names and
+    `body` fourth; that table is gone, and the first term of the order is now the
+    count of readings this corpus's recognisers have cited for the field being asked.
+    So the first of these readings is STATED -- a `subject` fact citing it, the shape
+    `facts.rules` writes -- and `title` outranks `body` for that field because this
+    corpus says so. The point of the fixture is otherwise unchanged: they are
+    perfectly ordinary readings, nothing here is unreleasable, and nothing about them
     says anything about the line.
     """
+    stated = None
     for index in range(count):
         value = f"Reading {index} of this document"
         container = (Segment("field", label=f"note-{index}"),)
         record_text_unit(conn, TextUnit(
             run_id="run-schedule.txt", container_path=container,
             text=value + " and more besides"))
-        record_observation(conn, Observation(
+        observation = Observation(
             file_id=file_id, content_hash=content_hash,
             extractor_name="text.structured", extractor_version="1.0.0",
             source_type="text_document", raw_value=value,
             location=Location("title", container,
                               text_span=TextSpan(0, len(value))),
             occurrence_count=1, observed_at=CLOCK, reliability="direct",
-            run_id="run-schedule.txt"))
+            run_id="run-schedule.txt")
+        record_observation(conn, observation)
+        if stated is None:
+            stated = _stated(conn, file_id=file_id, content_hash=content_hash,
+                             field="subject", value="COMSW3134",
+                             ref=observation.observation_key)
 
 
 def test_a_minted_line_survives_a_stating_file_whose_own_ranking_is_full(
@@ -1716,6 +1750,13 @@ def test_a_minted_line_survives_a_stating_file_whose_own_ranking_is_full(
     meant, so the premise is asserted against the first twelve by ORDER. That is the
     same twelve the builder used to compare against, read out of the ranking instead
     of cut out of it.
+
+    **AND THE RANKING IS ASKED FOR A FIELD SINCE `104` §18.2 gap 6.** The offer's
+    order is measured off the fields a call is asking about, so "the stating file's
+    own ranking" is only a ranking at all when a field is named -- the same field
+    `anchor_context_observations` is asked below, `subject`. Asking without one would
+    compare the line against the document's own order, which is not the competition
+    R-135's defect entered it into.
     """
     import cli
     from model_facts import releasable_observations
@@ -1726,7 +1767,8 @@ def test_a_minted_line_survives_a_stating_file_whose_own_ranking_is_full(
 
     # The premise, measured rather than assumed: the line really is off the ranking.
     ranked = releasable_observations(
-        conn, file_id=world["stating"], content_hash=stating_hash, limit=12, locality=CLOUD_LOCALITY, ceiling=A_CEILING)
+        conn, file_id=world["stating"], content_hash=stating_hash, limit=12,
+        locality=CLOUD_LOCALITY, ceiling=A_CEILING, fields=("subject",))
     context = cli.anchor_context_observations(
         conn, scan_run_id="scan-r135", file_id=world["homework"],
         fields=("subject",), limit=10, locality=CLOUD_LOCALITY)

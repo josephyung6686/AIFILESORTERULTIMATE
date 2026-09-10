@@ -56,8 +56,9 @@ from evidence_shape.text_units import TextUnit
 from extractors.long_tail import SENSITIVITY_DDL
 
 from model_facts import (
-    document_order, may_be_released, ordered_releasable_observations,
-    releasable_observations, released_wire_cost, within_dossier_budget,
+    document_order, fill_reserving_top_reading, may_be_released,
+    ordered_releasable_observations, releasable_observations,
+    released_wire_cost, within_dossier_budget, zone_evidence_counts,
 )
 from privacy.vocabulary import CLOUD_LOCALITY, LOCALITIES
 
@@ -542,3 +543,338 @@ def test_the_composed_function_offers_the_document_in_order_under_the_ceiling(
         locality=LOCAL, ceiling=room)
 
     assert [document_order(one)[0] for one in offered] == [1, 3, 7]
+
+
+# --------------------------------------------------------------------------
+# `104` §18.2 gap 6: the order is measured, and no table decides it
+# --------------------------------------------------------------------------
+
+def _states_the_field(conn, *, file_id, content_hash, field, value, ref):
+    """One fact of the store's own, citing one reading -- what the order is measured
+    off. This is the shape `facts.rules` and `facts.direct` write, asked of the
+    fixture directly so that a test about ORDER does not run a rule pass to get one.
+    """
+    from facts.cache import pass_cache_key
+    from facts.file_facts import RULE, write_fact
+    from facts.values import VALUE_ORIGINS, ensure_value
+
+    value_id = ensure_value(conn, field_key=field, canonical_value=value,
+                            first_evidence_ref=ref, origin=VALUE_ORIGINS[0])
+    return write_fact(
+        conn, file_id=file_id, content_hash=content_hash, field_key=field,
+        value_id=value_id, reliability_state="validated", origin=RULE,
+        evidence_refs=(ref,), active=True,
+        cache_key=pass_cache_key(conn, file_id=file_id,
+                                 content_hash=content_hash))
+
+
+def _with_facts(conn):
+    """P6's own tables, beside the fixture's P1 and P4 ones. `_corpus` does not
+    create them because nothing it tested read a fact; the order does now."""
+    from facts.fields import create_fields
+    from facts.schema import create_facts_schema
+
+    create_facts_schema(conn)
+    create_fields(conn)
+
+
+def _observe_extra(conn, file_id, content_hash, *, zone, raw, container):
+    """One more reading of the same file version, in a zone `_corpus` does not
+    produce. Written here rather than added to `_corpus` because every other test in
+    this file asserts over the three readings that fixture holds.
+
+    The unit is recorded beside it and is LONGER than the reading, because the
+    whole-unit rule is asked of every candidate: a span covering the whole of its
+    unit is refused and the reading would never reach the order this test is about.
+    """
+    record_text_unit(conn, TextUnit(
+        run_id="run-hw", container_path=container,
+        text=raw + " and the rest of the scanned page"))
+    observation = Observation(
+        file_id=file_id, content_hash=content_hash, extractor_name="pdf.text",
+        extractor_version="1.0.0", source_type="text_document", raw_value=raw,
+        location=Location(zone, container, text_span=TextSpan(0, len(raw))),
+        occurrence_count=1, observed_at=CLOCK, reliability="possible",
+        run_id="run-hw")
+    record_observation(conn, observation)
+    return observation
+
+
+def test_no_zone_table_stands_in_the_module_that_orders_the_dossier():
+    """CONSTITUTION RULE ONE, pinned by introspection because prose cannot hold it.
+
+    `104` §18.2 gap 6: `model_facts._ZONE_PREFERENCE` was six zone names typed in
+    this product's own order -- title, heading, metadata, body, table, notes -- and
+    `zone_rank` sent every zone outside the six, `ocr` and `path` among them, behind
+    all six. That table decided which of a file's readings survived a capped dossier,
+    which is hardcoded domain knowledge deciding what the model sees.
+
+    The pin is over the SOURCE and not over any behaviour, because a second table
+    would pass every behavioural test the day it was written and disagree with the
+    measurement six months later -- which is exactly how this deployment came to hold
+    two of them, `_ZONE_PREFERENCE` here and `cli.ZONE_WEIGHT` there, ranking the
+    same fifteen zones differently. Any literal sequence or mapping in this module
+    naming two or more of P4's zones is that table coming back, whatever it is
+    called.
+
+    SABOTAGE: put `_ZONE_PREFERENCE = ("title", "heading")` back into `model_facts`
+    -- or any dict keyed on two zone names -- and this goes red while every other
+    test in this file still passes.
+    """
+    import ast
+    import inspect
+
+    import model_facts
+    from evidence_shape.vocabulary import ZONES
+
+    def named_zones(node):
+        if isinstance(node, (ast.Tuple, ast.List, ast.Set)):
+            written = node.elts
+        elif isinstance(node, ast.Dict):
+            written = node.keys
+        else:
+            return set()
+        return {one.value for one in written
+                if isinstance(one, ast.Constant)
+                and isinstance(one.value, str)} & set(ZONES)
+
+    tables = [(node.lineno, sorted(named_zones(node)))
+              for node in ast.walk(ast.parse(inspect.getsource(model_facts)))
+              if len(named_zones(node)) >= 2]
+
+    assert tables == [], (
+        "a literal ordering of P4's zones is back in the module that decides what "
+        "the model is shown; the order is measured, not typed")
+
+
+def test_the_order_follows_the_zones_this_corpus_states_the_field_in(conn, tmp_path):
+    """THE REPLACEMENT FOR THE TABLE: the corpus is asked, and it answers.
+
+    `104` §18.2 gap 6. The offer is ordered for the fields the call is about to ask,
+    and the first term is the count of readings this corpus's own recognisers have
+    cited for those fields. Here one `subject` fact cites the file's HEADING, so
+    `body` is where this corpus states a subject, and the body readings lead the
+    offer -- ahead of the folder path, which the document's own order puts first (a
+    label-only address stands at 0 and a page at 1, which is what the assertion
+    before the fact says).
+
+    Nothing about the readings changed between the two calls and no rule was added:
+    the same three readings, the same file, the same call, one fact in the store.
+    That is the whole claim -- what the model is shown first is a property of the
+    corpus and not of a list in `model_facts`.
+
+    SABOTAGE: make `ordered_releasable_observations` ignore its `fields` (or make
+    `zone_evidence_counts` return `{}`) and the two orders become one, so the second
+    assertion goes red while the first still passes.
+    """
+    _with_facts(conn)
+    file_id, content_hash, folder, heading, page = _corpus(conn, tmp_path)
+
+    def offer(fields):
+        return [one.observation_key for one in ordered_releasable_observations(
+            conn, file_id=file_id, content_hash=content_hash, locality=LOCAL,
+            limit=12, fields=fields)]
+
+    # NOTHING MEASURED: the document's own order, and the folder's address is first.
+    assert offer(()) == [folder.observation_key, heading.observation_key,
+                         page.observation_key]
+
+    _states_the_field(conn, file_id=file_id, content_hash=content_hash,
+                      field="subject", value="PHYS1401",
+                      ref=heading.observation_key)
+
+    # MEASURED: `body` is where this corpus states a subject, so the two body
+    # readings come first and the path reading follows them.
+    assert offer(("subject",)) == [heading.observation_key,
+                                   page.observation_key, folder.observation_key]
+    assert zone_evidence_counts(conn, fields=("subject",)) == {"body": 1}
+
+
+def test_a_field_nobody_asked_about_orders_nothing(conn, tmp_path):
+    """The measurement is per FIELD, so a fact about one field does not re-order the
+    offer for a call asking another.
+
+    `104` §18.2 gap 6's own sentence -- "a per-field zone preference" -- and the
+    reason it has to be per field: `subject` is answered from folder paths and course
+    codes, `work_type` from headings and filenames, and one order for both would be a
+    smaller version of the table this replaced.
+
+    SABOTAGE: drop the `field_key IN (...)` clause from `zone_evidence_counts` and
+    the second assertion goes red, because the `subject` fact starts ordering a
+    `work_type` call.
+    """
+    _with_facts(conn)
+    file_id, content_hash, folder, heading, page = _corpus(conn, tmp_path)
+    _states_the_field(conn, file_id=file_id, content_hash=content_hash,
+                      field="subject", value="PHYS1401",
+                      ref=heading.observation_key)
+
+    def offer(fields):
+        return [one.observation_key for one in ordered_releasable_observations(
+            conn, file_id=file_id, content_hash=content_hash, locality=LOCAL,
+            limit=12, fields=fields)]
+
+    assert offer(("subject",))[0] == heading.observation_key
+    assert offer(("work_type",)) == [folder.observation_key,
+                                     heading.observation_key,
+                                     page.observation_key]
+    assert zone_evidence_counts(conn, fields=("work_type",)) == {}
+
+
+def test_a_zone_no_fact_has_cited_is_not_sent_behind_every_other_one(conn, tmp_path):
+    """`zone_rank`'s worst half, and the one `104` §17.13 had just made expensive.
+
+    Every zone outside the six typed names scored `len(_ZONE_PREFERENCE)` -- WORSE
+    than every named zone -- so `path` and `ocr`, opened to every target by §17.13
+    days earlier, queued behind `notes` and `table`, zones no reader in this
+    deployment produces. On the measured corpus the folder path was where 20 of 43
+    labelled coursework files kept their course code and nowhere else, and a scanned
+    page's only reading is `ocr`.
+
+    An unmeasured zone now scores zero, which ties it with every other unmeasured
+    zone and leaves the document's own order to decide between them. Both assertions
+    are needed: the first says an unmeasured zone follows a measured one WITHOUT
+    being sent behind every other unmeasured zone, and the second says that with
+    nothing measured at all the offer is simply the document in its own order.
+
+    SABOTAGE: give the sort key a fallback that scores an unmeasured zone behind a
+    measured one -- `cited.get(zone, -1)` in `ordered_releasable_observations` --
+    and the second assertion goes red.
+    """
+    _with_facts(conn)
+    file_id, content_hash, folder, heading, page = _corpus(conn, tmp_path)
+    scanned = _observe_extra(conn, file_id, content_hash, zone="ocr",
+                             raw="PHYS 1401 scanned header",
+                             container=(Segment("region", 1),))
+    _states_the_field(conn, file_id=file_id, content_hash=content_hash,
+                      field="subject", value="PHYS1401",
+                      ref=heading.observation_key)
+
+    offered = [one.observation_key for one in ordered_releasable_observations(
+        conn, file_id=file_id, content_hash=content_hash, locality=LOCAL,
+        limit=12, fields=("subject",))]
+
+    # `body` is the measured zone, so it leads; the two UNMEASURED zones follow in
+    # the document's own order -- the folder's label-only address at 0, the scanned
+    # region at 1 -- and neither is behind the other because of what it is.
+    assert offered == [heading.observation_key, page.observation_key,
+                       folder.observation_key, scanned.observation_key]
+    # And with nothing measured at all they are not last either. `path` -- the zone
+    # `zone_rank` sent behind every named one -- LEADS the offer, and the whole offer
+    # is non-decreasing in the document's own order, which is the only thing left
+    # deciding it. Where the scanned region falls among the two readings that share
+    # page 1's address is that order and then the content-addressed tie-break, never
+    # the fact that it is `ocr`.
+    unmeasured = ordered_releasable_observations(
+        conn, file_id=file_id, content_hash=content_hash, locality=LOCAL, limit=12)
+    assert unmeasured[0].location.zone == "path"
+    assert ([document_order(one) for one in unmeasured]
+            == sorted(document_order(one) for one in unmeasured))
+
+
+# --------------------------------------------------------------------------
+# `104` §18.2 gap 6: the file's own strongest reading is reserved
+# --------------------------------------------------------------------------
+
+def test_the_files_own_strongest_reading_travels_beside_a_large_context():
+    """THE COVERAGE HALF OF gap 6, and the state it is about is not hypothetical.
+
+    `104` R-135 gathers the anchor context from a NEIGHBOUR under a rule that knows
+    nothing about how much room is left, and the fill then gave the file's own
+    readings whatever the context had not spent. One long syllabus in the folder left
+    a remainder of zero, and the file reached the model carrying not one word of its
+    own -- so the model was asked what THIS file is and shown only what the file next
+    door says. An answer built that way is a fact about the syllabus.
+
+    The reserve admits the top reading first and lets the context fill what is left.
+    Both halves are asserted, because "the file's reading travels" is only half the
+    claim: the total still fits the ceiling, so nothing here buys coverage by
+    breaching the bound the door is about to measure.
+
+    SABOTAGE: delete the `if` in `fill_reserving_top_reading` and the file's own
+    reading disappears from `taken` while the context keeps every line.
+    """
+    head = _Reading("the file's own page", 200)
+    rest = [_Reading(f"own-{n}", 200) for n in range(3)]
+    crowd = [_Reading(f"neighbour-{n}", 200) for n in range(9)]
+    # ROOM FOR THREE READINGS, derived from the readings rather than typed -- and the
+    # context alone wants nine of them, which is the state that used to leave zero.
+    ceiling = sum(released_wire_cost(one) for one in crowd[:3])
+
+    kept, fill = fill_reserving_top_reading([head, *rest], crowd, ceiling=ceiling)
+
+    assert fill.taken[0] is head
+    assert sum(released_wire_cost(one)
+               for one in tuple(kept) + fill.taken) <= ceiling
+    # The context yielded, and it yielded only what it had to: it still carries every
+    # line the reserve left room for.
+    assert list(kept) == crowd[:2]
+
+
+def test_the_context_the_reserve_trimmed_is_in_the_cut_and_not_in_a_silence():
+    """`104` §18.2 gap 5's promise, kept one object over.
+
+    The reserve is a second place where the ceiling takes readings away, and a cut
+    recorded for the file's own readings but not for the context would be the same
+    silence gap 5 closed, moved rather than fixed. `GroundingReport.readings_dropped`
+    reads one `DossierFill`, so both cuts come back in it.
+
+    SABOTAGE: return `own` unchanged from `fill_reserving_top_reading` instead of
+    folding `cut` into its `dropped`, and the trimmed context lines vanish from every
+    record this run writes.
+    """
+    head = _Reading("own", 200)
+    crowd = [_Reading(f"neighbour-{n}", 200) for n in range(9)]
+    ceiling = sum(released_wire_cost(one) for one in crowd[:3])
+
+    kept, fill = fill_reserving_top_reading([head], crowd, ceiling=ceiling)
+
+    assert set(fill.dropped) == set(crowd) - set(kept)
+    assert fill.dropped_bytes == sum(
+        released_wire_cost(one) for one in fill.dropped)
+
+
+def test_a_context_that_already_leaves_room_is_handed_back_as_itself():
+    """THE ORDINARY PATH, asserted by IDENTITY because that is what the caller asks.
+
+    `fact_call_stage` decides whether to pay for a second `build_request` by asking
+    `shown is not context`, so a reserve that rebuilt an untouched tuple would cost
+    every call in the run a second read of the store for nothing. And a fill that
+    moved on a call it had no business moving is the change nobody would notice.
+
+    SABOTAGE: make `fill_reserving_top_reading` always trim (drop the second half of
+    its condition) and this goes red -- the context comes back equal and not the
+    same.
+    """
+    head = _Reading("own", 100)
+    crowd = [_Reading(f"neighbour-{n}", 100) for n in range(2)]
+    roomy = sum(released_wire_cost(one) for one in (head, *crowd))
+
+    kept, fill = fill_reserving_top_reading([head], crowd, ceiling=roomy)
+
+    assert kept is crowd
+    assert fill.taken == (head,)
+    assert fill.dropped == ()
+
+
+def test_a_top_reading_that_cannot_travel_alone_takes_nothing_from_the_context():
+    """The other boundary, and the reason the condition has two halves.
+
+    A reading longer than the whole ceiling does not fit however much is taken away
+    from the neighbours, so trimming for it would cost the call its context and buy
+    the file nothing. `ordered_releasable_observations` already withholds a reading
+    longer than the STORED ceiling; this is the same answer asked of the call's own
+    remainder, which is smaller.
+
+    SABOTAGE: drop `head <= ceiling` from the condition and the context is stripped
+    to make room for a reading that still does not fit.
+    """
+    enormous = _Reading("own", 5_000)
+    crowd = [_Reading(f"neighbour-{n}", 100) for n in range(2)]
+    ceiling = sum(released_wire_cost(one) for one in crowd)
+
+    kept, fill = fill_reserving_top_reading([enormous], crowd, ceiling=ceiling)
+
+    assert kept is crowd
+    assert fill.taken == ()
+    assert fill.dropped == (enormous,)
