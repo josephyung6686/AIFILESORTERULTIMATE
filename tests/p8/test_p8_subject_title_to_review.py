@@ -36,6 +36,7 @@ by "the ratified library is the vocabulary the model is shown first".
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
 
@@ -65,9 +66,12 @@ from llm_harness.records import Dossier, EvidenceItem, ReleasedEvidence
 from llm_harness.schema import create_llm_schema
 from llm_harness.sites import FactSiteDependencies, SiteDependencies, dispatch
 from llm_harness.vocabulary import (
+    ABSTAIN,
     A_FACT,
     ACCEPT_CONTEXT_SUPPORTED,
     ACCEPT_DIRECT,
+    CONTEXT_SUPPORTED,
+    CONTRADICTED_BY_STRONGER,
     DIRECT_ANCHOR,
     LLM_SUPPORTED_REVIEW,
     REDUCTION_NONE,
@@ -334,18 +338,40 @@ def site_a_conn(conn):
 
 def _world(conn, tmp_path, *, released: str, review: bool = True,
            stronger: tuple[str, str] | None = None,
-           normalize=None) -> World:
-    path = tmp_path / "Essay 2 Final Draft.pdf"
+           normalize=None, basis: str = DIRECT_ANCHOR, contradicts=None) -> World:
+    """`basis` and `contradicts` arrived with `104` §18.2 gap 3b.
+
+    `basis` is R-135's: an `EvidenceItem` the file did not say itself is
+    `context-supported`, and `acceptance_outcome` turns a DIRECT acceptance of it
+    into `accept_context_supported` -- the second producer of the outcome gap 3b's
+    flag exists to tell apart. `contradicts` is the deployment's check-4 oracle, and
+    it is a parameter because `cli.contradicts_stronger` answers `False` for a value
+    its normaliser declined, which is right for this deployment and makes the
+    two-flag case unreachable through it.
+    """
+    # ONE NAME PER WORLD, so a test may build TWO of them in one database. `104`
+    # §18.2 gap 3b needs a comparison -- a proposal beside a neighbour-grounded
+    # answer -- and a second `_world` with the same `run_id` and the same filename
+    # collided on `extraction_runs.run_id` rather than telling the caller anything.
+    # `name` is derived from `released` so it is stable per world and unique
+    # between two worlds that differ at all.
+    # A DIGEST AND NOT `hash()`: Python randomises string hashing per process, and a
+    # filename that moves between runs is exactly what `tests/p8/determinism_probe.py`
+    # exists to catch.
+    stamp = hashlib.sha256(released.encode("utf-8")).hexdigest()[:8]
+    name = f"Essay 2 Final Draft {stamp}.pdf"
+    path = tmp_path / name
     path.write_bytes(b"a university writing essay")
     file_id = record_file(
-        conn, path, filename="Essay 2 Final Draft.pdf",
-        normalized_filename="essay 2 final draft.pdf", extension=".pdf",
+        conn, path, filename=name,
+        normalized_filename=name.lower(), extension=".pdf",
         observed_size=26, observed_timestamps=json.dumps({"mtime": 1_700_000_000.0}),
         parent_folder_context="Downloads", mime_type="application/pdf",
         detected_format="pdf", scan_state="included", materialized=True)
     content_hash = get_file(conn, file_id)["content_hash"]
+    run_id = f"r-{file_id}"
     record_run(conn, ExtractionRun(
-        run_id="r-1", file_id=file_id, content_hash=content_hash,
+        run_id=run_id, file_id=file_id, content_hash=content_hash,
         extractor_name="pdf.text", extractor_version="1.0.0",
         source_type="text_document", analysis_tier="native", config={},
         completeness="complete", started_at=CLOCK, finished_at=CLOCK))
@@ -353,7 +379,7 @@ def _world(conn, tmp_path, *, released: str, review: bool = True,
         file_id=file_id, content_hash=content_hash, extractor_name="pdf.text",
         extractor_version="1.0.0", source_type="text_document", raw_value=released,
         location=Location("heading", (Segment("field", label="heading"),)),
-        occurrence_count=1, observed_at=CLOCK, reliability="possible", run_id="r-1")
+        occurrence_count=1, observed_at=CLOCK, reliability="possible", run_id=run_id)
     record_observation(conn, observation)
     released_key = observation.observation_key
 
@@ -374,13 +400,13 @@ def _world(conn, tmp_path, *, released: str, review: bool = True,
             ActivationSignal(schema_id="academic", activates=lambda rows: True),)),
         normalizers={})
     dossier = Dossier(
-        dossier_id="dossier-review", call_site=A_FACT, subject_ref=file_id,
+        dossier_id=f"dossier-review-{stamp}", call_site=A_FACT, subject_ref=file_id,
         eligibility_reason=REMAINS_AMBIGUOUS, plan_version=None,
         policy_version=POLICY, allowed_vocabulary=tuple(request.allowlist),
         evidence_items=(EvidenceItem(
             evidence_ref=released_key, kind="excerpt", location="body",
             excerpt_span=(0, len(released)), reliability_state="direct",
-            basis=DIRECT_ANCHOR),),
+            basis=basis),),
         conflicts=(),
         released_evidence=(ReleasedEvidence(
             observation_key=released_key, address=ADDRESS, value=released,
@@ -392,13 +418,14 @@ def _world(conn, tmp_path, *, released: str, review: bool = True,
     # `104` §18.2 gap 3 asks exactly what it asked, and a test about the person's
     # own vocabulary passes the closure the run would.
     chosen = normalize_for_model if normalize is None else normalize
+    oracle = contradicts_stronger if contradicts is None else contradicts
     fact_dependencies = (
         FactValidationDependencies(
-            normalize=chosen, contradicts=contradicts_stronger,
+            normalize=chosen, contradicts=oracle,
             normalize_for_review=normalize_for_review)
         if review else
         FactValidationDependencies(
-            normalize=chosen, contradicts=contradicts_stronger,
+            normalize=chosen, contradicts=oracle,
             normalize_for_review=None))
     return World(
         conn=conn, file_id=file_id, content_hash=content_hash, dossier=dossier,
@@ -469,6 +496,16 @@ def test_a_title_is_recorded_as_a_candidate_the_person_confirms(
     `llm_supported_review`. `may_propose` is true because the value IS proposed --
     once, as §13.7 says -- and `requires_review` is true because nothing may act on
     it until somebody answers.
+
+    **RE-ARGUED FOR `104` §18.2 GAP 3b: `reasons` WAS `()` AND IS NOW THE FLAG.**
+    The old line asserted that an accepted title carried no reason code, and the
+    argument for it was that a reason belongs to a refusal. That argument cost the
+    record the one thing it needed: `accept_context_supported` has a second
+    producer -- R-135's neighbour-grounded acceptance -- and with an empty `reasons`
+    the two were the same row, so nothing could count how many values a run had put
+    to the person. `VALUE_NOT_NORMALIZABLE` is the honest word for what happened
+    (the canonicaliser DID decline) and it is now a reason to ask rather than a
+    reason to discard, exactly as `CONTRADICTED_BY_STRONGER` became under gap 1.
     """
     world = _world(
         site_a_conn, tmp_path, released="University Writing - Essay 2")
@@ -476,7 +513,8 @@ def test_a_title_is_recorded_as_a_candidate_the_person_confirms(
         world, _response("subject", "University Writing", key=world.released_key,
                          span="University Writing"), apply=True)
 
-    assert (verdict.outcome, verdict.reasons) == (ACCEPT_CONTEXT_SUPPORTED, ())
+    assert (verdict.outcome, verdict.reasons) == (
+        ACCEPT_CONTEXT_SUPPORTED, (VALUE_NOT_NORMALIZABLE,))
     assert verdict.disposition == LLM_SUPPORTED_REVIEW
     assert verdict.requires_review is True
     assert verdict.may_propose is True
@@ -535,6 +573,11 @@ def test_an_unseen_term_reaches_the_person_instead_of_the_rejection_pile(
     `accept_context_supported` and is written `possible`, which is the same seam
     `subject`'s titles pass through six tests above -- not a copy of it, the same
     `_check_three`.
+
+    **RE-ARGUED FOR `104` §18.2 GAP 3b:** the verdict now NAMES check 3 while
+    accepting. `104` §18.22 is why -- on r19 the local model answered `term` 109
+    times and the run could not say which of its `value_not_normalizable` claims
+    had become proposals -- and this field is the one that measurement was about.
     """
     world = _world(
         site_a_conn, tmp_path, released="Trimester 2 2025 reading list")
@@ -542,7 +585,8 @@ def test_an_unseen_term_reaches_the_person_instead_of_the_rejection_pile(
         world, _response("term", "Trimester 2 2025", key=world.released_key,
                          span="Trimester 2 2025"), apply=True)
 
-    assert (verdict.outcome, verdict.reasons) == (ACCEPT_CONTEXT_SUPPORTED, ())
+    assert (verdict.outcome, verdict.reasons) == (
+        ACCEPT_CONTEXT_SUPPORTED, (VALUE_NOT_NORMALIZABLE,))
     assert verdict.disposition == LLM_SUPPORTED_REVIEW
     assert verdict.requires_review is True
     assert _rows_in(world, "term") == [(POSSIBLE, "Trimester 2 2025")]
@@ -564,6 +608,11 @@ def test_an_unseen_work_type_reaches_the_person_instead_of_the_rejection_pile(
     The pair that must NOT move is asserted one test down: `.pdf`, from the same run,
     is still refused, and it is the value that became the folder
     `Coursework/Daniel Lacker/IEOR3658/.pdf`.
+
+    **RE-ARGUED FOR `104` §18.2 GAP 3b:** the accepted verdict carries check 3's
+    word. The rejection two tests down carries the SAME word under `reject`, and
+    that is the point rather than a collision -- one code, two consequences, and the
+    outcome is what says which.
     """
     world = _world(
         site_a_conn, tmp_path, released="Proposed Scope of the module")
@@ -571,7 +620,8 @@ def test_an_unseen_work_type_reaches_the_person_instead_of_the_rejection_pile(
         world, _response("work_type", "Proposed Scope", key=world.released_key,
                          span="Proposed Scope"), apply=True)
 
-    assert (verdict.outcome, verdict.reasons) == (ACCEPT_CONTEXT_SUPPORTED, ())
+    assert (verdict.outcome, verdict.reasons) == (
+        ACCEPT_CONTEXT_SUPPORTED, (VALUE_NOT_NORMALIZABLE,))
     assert verdict.requires_review is True
     assert _rows_in(world, "work_type") == [(POSSIBLE, "Proposed Scope")]
 
@@ -698,6 +748,14 @@ def test_a_title_beside_a_stronger_code_is_a_candidate_and_not_a_contradiction(
     because the second row is `possible`: it cannot outrank the code and cannot
     become a folder. It is recorded rather than left to be discovered, because the
     day the review path writes anything stronger, this test is where it breaks.
+
+    **RE-ARGUED FOR `104` §18.2 GAP 3b, AND THE ASSERTION IS SHARPER THAN IT WAS.**
+    `reasons` is no longer empty, so "no `CONTRADICTED_BY_STRONGER`" is now a claim
+    about WHICH word is on the record rather than about there being none: check 3's
+    flag is present and check 4's is absent, which is exactly the sentence this
+    test's title makes. Under the old empty tuple, a check-4 flag appearing here
+    would have been caught -- and so would check 3's, which is the finding gap 3b
+    exists to record.
     """
     world = _world(site_a_conn, tmp_path,
                    released="PHYS 1401 University Writing",
@@ -706,7 +764,9 @@ def test_a_title_beside_a_stronger_code_is_a_candidate_and_not_a_contradiction(
         world, _response("subject", "University Writing", key=world.released_key,
                          span="University Writing"), apply=True)
 
-    assert (verdict.outcome, verdict.reasons) == (ACCEPT_CONTEXT_SUPPORTED, ())
+    assert (verdict.outcome, verdict.reasons) == (
+        ACCEPT_CONTEXT_SUPPORTED, (VALUE_NOT_NORMALIZABLE,))
+    assert CONTRADICTED_BY_STRONGER not in verdict.reasons
     assert sorted(_subject_rows(world)) == [
         (POSSIBLE, "University Writing"), (VALIDATED, "PHYS1401")]
 
@@ -721,3 +781,152 @@ def test_the_deterministic_pass_still_refuses_every_title_it_ever_refused(
     """
     assert cli.SUBJECT_RULE.pattern.search("University Writing") is None
     assert cli.normalize_for_model("subject", "University Writing") is None
+
+
+# --- `104` §18.2 gap 3b: the record says WHICH half of check 3 answered ------------
+
+
+def test_a_proposal_and_a_neighbours_answer_no_longer_arrive_as_the_same_row(
+        site_a_conn, tmp_path):
+    """`104` §18.2 gap 3b's whole reason for existing, in one comparison.
+
+    **SABOTAGE:** take `VALUE_NOT_NORMALIZABLE` back off the review acceptance in
+    `fact_validation._run_checks` -- return `reasons=()` for it, as gap 3 did. Then
+    the two verdicts below are indistinguishable: same `accept_context_supported`,
+    same `llm_supported_review`, same `requires_review`, same empty reasons, same
+    `possible` fact. One of them is *"nobody has ever seen this value, please
+    confirm it"* and the other is *"this was read off the syllabus next door"*, and
+    no reader of `llm_verdict` can tell which is which. `104` §18.22 is that
+    blindness measured on a real run: the local model answered `term` 109 times, 125
+    claims carried check 3's word, and the run could not say how many had become
+    proposals.
+
+    The two producers are genuinely different questions. R-135's is about WHERE the
+    answer was grounded and is settled by `acceptance_outcome` reading the cited
+    item's `basis`; gap 3's is about whether this deployment's canonicaliser has ever
+    seen the value, and is settled by the review-shape predicate. Only the second is
+    a question for a person.
+    """
+    proposed = _world(site_a_conn, tmp_path, released="University Writing - Essay 2")
+    proposal_verdict = _verdicts(
+        proposed, _response("subject", "University Writing",
+                            key=proposed.released_key, span="University Writing"))
+
+    neighbour = _world(site_a_conn, tmp_path, released="PHYS 1401 syllabus",
+                       basis=CONTEXT_SUPPORTED)
+    neighbour_verdict = _verdicts(
+        neighbour, _response("subject", "PHYS 1401", key=neighbour.released_key,
+                             span="PHYS 1401"))
+
+    # THE HALF THEY SHARE, which is why the reason had to carry the difference.
+    assert proposal_verdict.outcome == neighbour_verdict.outcome
+    assert proposal_verdict.disposition == neighbour_verdict.disposition
+    assert proposal_verdict.requires_review is True
+    assert neighbour_verdict.requires_review is True
+    # AND THE HALF THAT NOW SEPARATES THEM.
+    assert proposal_verdict.reasons == (VALUE_NOT_NORMALIZABLE,)
+    assert neighbour_verdict.reasons == ()
+
+
+def test_check_three_and_check_four_both_land_on_one_verdict(
+        site_a_conn, tmp_path):
+    """Two flags, two questions, one claim -- and neither erases the other.
+
+    **SABOTAGE:** put the two-armed assignment back --
+    `reasons = (CONTRADICTED_BY_STRONGER,) if flagged else ()` -- and check 4's
+    finding overwrites check 3's. The person is then told a stronger fact disagrees
+    and never told the value is one the product has never seen, so the screen asks
+    them to settle a conflict between two values it claims to know, one of which it
+    has never heard of. `placement_validation._flagged` composes for the same reason
+    at site C: several flags tell the person one thing each.
+
+    **`contradicts` IS THIS DEPLOYMENT'S AND IT IS INJECTED HERE ON PURPOSE.**
+    `cli.contradicts_stronger` answers `False` when its normaliser declines the value
+    -- so under `src/cli.py` a title beside a stronger code is a candidate and not a
+    contradiction, which the test above this block pins. That is the DEPLOYMENT's
+    answer (C-5), not P8's, and the validator must compose the two flags whatever a
+    deployment's oracle says, or the order the checks happen to run in would quietly
+    decide what the record keeps.
+    """
+    world = _world(site_a_conn, tmp_path,
+                   released="PHYS 1401 University Writing",
+                   stronger=("subject", "PHYS1401"),
+                   contradicts=lambda proposal, row: True)
+    verdict = _verdicts(
+        world, _response("subject", "University Writing", key=world.released_key,
+                         span="University Writing"), apply=True)
+
+    assert verdict.outcome == ACCEPT_CONTEXT_SUPPORTED
+    assert verdict.reasons == (VALUE_NOT_NORMALIZABLE, CONTRADICTED_BY_STRONGER)
+    assert verdict.requires_review is True
+    # STILL AN ACCEPTANCE, AND STILL BELOW THE FLOOR. Two flags do not add up to a
+    # rejection: the claim is written `possible` beside the rule's `validated` row,
+    # which is `104` §18.2 gap 1's ruling and gap 3b does not touch it.
+    assert sorted(_subject_rows(world)) == [
+        (POSSIBLE, "University Writing"), (VALIDATED, "PHYS1401")]
+
+
+@pytest.mark.parametrize("field_key,value,released", [
+    ("term", "Trimester 2 2025", "Trimester 2 2025 reading list"),
+    ("work_type", "Proposed Scope", "Proposed Scope of the module"),
+    ("subject", "University Writing", "University Writing - Essay 2"),
+])
+def test_one_word_two_outcomes_and_the_outcome_is_what_says_which(
+        site_a_conn, tmp_path, field_key, value, released):
+    """`VALUE_NOT_NORMALIZABLE` is now a refusal AND a question, and that is fine.
+
+    **SABOTAGE:** mint a second reason code for the flag -- `value_proposed`, say --
+    instead of reusing check 3's own word. Then `_REASON_TO_CHECK` needs a row for
+    it, `p6_verdict_from_p8` needs to know it can never be a rejection, the closed
+    vocabulary grows a code meaning the same thing as one it already has, and every
+    stored verdict written before the new code is one nobody can compare with a
+    verdict written after. Gap 1 made the same choice one check later and for the
+    same reason: `CONTRADICTED_BY_STRONGER` is the flag word AND the rejection word
+    it used to be.
+
+    What tells the two apart is the OUTCOME, which is the field a reader already has
+    to look at to know whether a claim became a fact. `p6_verdict_from_p8` branches
+    on it too, so the flagged half never reaches `_REASON_TO_CHECK` at all.
+    """
+    accepted = _world(site_a_conn, tmp_path, released=released)
+    proposal = _verdicts(
+        accepted, _response(field_key, value, key=accepted.released_key, span=value))
+
+    refused_value = "GRC Proposed Scope V2.1"
+    rejected_world = _world(site_a_conn, tmp_path,
+                            released=f"heading: {refused_value} here")
+    rejection = _verdicts(
+        rejected_world, _response(field_key, refused_value,
+                                  key=rejected_world.released_key,
+                                  span=refused_value))
+
+    assert proposal.reasons == (VALUE_NOT_NORMALIZABLE,)
+    assert rejection.reasons == (VALUE_NOT_NORMALIZABLE,)
+    assert (proposal.outcome, proposal.may_propose) == (
+        ACCEPT_CONTEXT_SUPPORTED, True)
+    assert (rejection.outcome, rejection.may_propose) == (REJECT, False)
+
+
+@pytest.mark.parametrize("raw", ["", "   ", '""'])
+def test_an_empty_answer_is_still_an_abstention_and_carries_no_flag(
+        site_a_conn, tmp_path, raw):
+    """R-119 is upstream of gap 3b and stays there.
+
+    **SABOTAGE:** move `_declined_the_field` below `_check_three`, or let the review
+    predicate answer for an empty string. Either way a decline becomes a PROPOSAL:
+    the person is shown `term: ''` on the confirm screen, `model_facts` stops reusing
+    the abstention (`store.abstained_fields` reads abstentions, not acceptances), and
+    the same model is asked the same question it already declined. R-119 measured 19
+    of these on the owner's corpus.
+
+    An empty value is the third of the three outcomes this change is about --
+    propose, reject, abstain -- and it is the one gap 3b must not touch.
+    """
+    world = _world(site_a_conn, tmp_path, released="Trimester 2 2025 reading list")
+    verdict = _verdicts(
+        world, _response("term", raw, key=world.released_key,
+                         span="Trimester 2 2025"), apply=True)
+
+    assert (verdict.outcome, verdict.reasons) == (ABSTAIN, ())
+    assert verdict.requires_review is False
+    assert _rows_in(world, "term") == []
