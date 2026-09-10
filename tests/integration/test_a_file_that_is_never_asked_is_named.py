@@ -270,11 +270,19 @@ def test_no_arm_of_the_stage_returns_before_a_call_without_naming_its_state():
     import inspect
 
     tree = ast.parse(inspect.getsource(model_facts))
-    stage = next(node for node in ast.walk(tree)
-                 if isinstance(node, ast.FunctionDef) and node.name == "stage")
+    factory = next(node for node in ast.walk(tree)
+                   if isinstance(node, ast.FunctionDef)
+                   and node.name == "fact_call_stage")
+    # `104` §18.15: the stage's body moved into the `steps` generator, defined
+    # beside `stage` inside `fact_call_stage`, so the cloud lane can hold several
+    # round trips at once; `stage` itself is one line that drives it inline. The
+    # arms live in `steps`, and the call they return before is `run_call_steps`
+    # (the socket is its one `yield`).
+    stage = next(node for node in ast.walk(factory)
+                 if isinstance(node, ast.FunctionDef) and node.name == "steps")
     call = next(node for node in ast.walk(stage)
                 if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-                and node.func.id == "run_call")
+                and node.func.id == "run_call_steps")
 
     def names_a_state(node: ast.Return) -> bool:
         value = node.value
@@ -292,9 +300,27 @@ def test_no_arm_of_the_stage_returns_before_a_call_without_naming_its_state():
             yield from returns_of(child)
 
     early = [node for node in returns_of(stage) if node.lineno < call.lineno]
-    # Four arms plus `104` R-13's reuse return, which is a stage that ran: the answer
-    # was already given under this identity and reusing it IS asking.
-    assert len(early) == 5, [node.lineno for node in early]
+    # Four arms plus `104` R-13's reuse return, which is a stage that ran (the
+    # answer was already given under this identity and reusing it IS asking),
+    # plus `104` R-175's over-ceiling arm, which names its state through
+    # `refusal_outcome` -- the same row a builder's `MalformedRequest` writes --
+    # before it returns, so a file skipped for time never looks like a file the
+    # model had nothing to say about.
+    assert len(early) == 6, [node.lineno for node in early]
+
+    def writes_a_refusal(node: ast.Return) -> bool:
+        """The over-ceiling arm: a `refusal_outcome(...)` call in the same block."""
+        block = next((parent for parent in ast.walk(stage)
+                      if isinstance(parent, ast.ExceptHandler)
+                      and any(child is node for child in ast.walk(parent))), None)
+        if block is None:
+            return False
+        return any(isinstance(inner, ast.Call) and isinstance(inner.func, ast.Name)
+                   and inner.func.id == "refusal_outcome"
+                   for inner in ast.walk(block))
+
+    over_ceiling = [node for node in early if writes_a_refusal(node)]
+    assert len(over_ceiling) == 1, [node.lineno for node in over_ceiling]
     named = [node for node in early if names_a_state(node)]
     assert len(named) == 4, (
         "every arm that returns before a call is built owes the record a reason; "
