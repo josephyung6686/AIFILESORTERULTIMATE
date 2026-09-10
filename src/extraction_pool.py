@@ -137,6 +137,17 @@ class ExtractionRequest:
     now: str
     context_window: int
     versions: Mapping[str, str]
+    #: WHETHER THIS SCAN'S OCR BUDGET IS ALREADY SPENT (`104` §18.2 gap 22).
+    #:
+    #: The ANSWER travels, not the question: §8.6's `ocr.max_time_per_scan` is a
+    #: per-SCAN ceiling and a worker sees one file, so the total and the ceiling
+    #: both stay with the caller and what crosses is one boolean. It also has to
+    #: cross as data rather than be re-read in the worker, because a spawned
+    #: worker holds no connection.
+    #:
+    #: Defaulted, like `Dispatched.ocr_seconds`, so every existing construction
+    #: means what it meant: no ceiling stored is no ceiling.
+    ocr_budget_spent: bool = False
 
 
 @dataclass(frozen=True)
@@ -161,6 +172,11 @@ class TargetedOcrRequest:
     path: Path
     now: str
     context_window: int
+    #: `ExtractionRequest.ocr_budget_spent`'s twin, and it is asked separately
+    #: because this pass runs LATER: the initial loop may have spent the rest of
+    #: §8.6's OCR clock between the two, and a flag computed once at submission
+    #: would let the targeted pass overspend a ceiling the scan had already met.
+    ocr_budget_spent: bool = False
 
 
 @dataclass(frozen=True)
@@ -195,7 +211,8 @@ def perform(request: ExtractionRequest | TargetedOcrRequest,
             file_row=request.file_row, decision=request.decision, path=request.path,
             policy=context.policy, readers=context.readers, now=request.now,
             context_window=request.context_window,
-            transcription_authorized=context.transcription_authorized)
+            transcription_authorized=context.transcription_authorized,
+            ocr_budget_spent=request.ocr_budget_spent)
     except ProtectedContainerRefused as refusal:
         return ExtractionOutcome(PROTECTED, message=str(refusal))
     except DatalessRefused as refusal:
@@ -237,7 +254,8 @@ def _perform_targeted(request: TargetedOcrRequest,
         dispatched = perform_targeted_ocr(
             file_row=request.file_row, path=request.path, policy=context.policy,
             readers=context.readers, now=request.now,
-            context_window=request.context_window)
+            context_window=request.context_window,
+            ocr_budget_spent=request.ocr_budget_spent)
     except ProtectedContainerRefused as refusal:
         return ExtractionOutcome(PROTECTED, message=str(refusal))
     except DatalessRefused as refusal:
