@@ -1,0 +1,247 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "C_placement response (unratified draft, 2026-09-06)",
+ "description": "The one JSON object a model may return at call site C_placement. It is the machine-readable form of THE SHAPE and THE RULES in the C_placement draft templates; the validator that enforces most of it is llm_harness.placement_validation, and where the two could differ the template is what the model was told.",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "claims"
+ ],
+ "properties": {
+  "claims": {
+   "description": "Exactly one entry: one file, one decision.",
+   "type": "array",
+   "minItems": 1,
+   "maxItems": 1,
+   "items": {
+    "$ref": "#/$defs/claim"
+   }
+  }
+ },
+ "$defs": {
+  "claim": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "payload"
+   ],
+   "properties": {
+    "claim_ref": {
+     "type": "string"
+    },
+    "payload": {
+     "$ref": "#/$defs/payload"
+    },
+    "citations": {
+     "$ref": "#/$defs/citations"
+    },
+    "unknown": {
+     "$ref": "#/$defs/unknown"
+    }
+   },
+   "oneOf": [
+    {
+     "title": "place",
+     "required": [
+      "citations"
+     ],
+     "not": {
+      "required": [
+       "unknown"
+      ]
+     },
+     "properties": {
+      "payload": {
+       "required": [
+        "destination",
+        "per_dimension_support",
+        "alternatives",
+        "conflicts_considered",
+        "support",
+        "next_support",
+        "refinement"
+       ],
+       "properties": {
+        "destination": {
+         "not": {
+          "const": "none"
+         }
+        }
+       }
+      }
+     }
+    },
+    {
+     "title": "none",
+     "required": [
+      "unknown"
+     ],
+     "not": {
+      "required": [
+       "citations"
+      ]
+     },
+     "properties": {
+      "payload": {
+       "required": [
+        "destination",
+        "conflicts_considered"
+       ],
+       "properties": {
+        "destination": {
+         "const": "none"
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  "payload": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "destination"
+   ],
+   "properties": {
+    "destination": {
+     "description": "An identifier copied from allowed_vocabulary, or the word none.",
+     "type": "string",
+     "minLength": 1
+    },
+    "per_dimension_support": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "dimension",
+       "value",
+       "support"
+      ],
+      "properties": {
+       "dimension": {
+        "type": "string",
+        "minLength": 1
+       },
+       "value": {
+        "type": "string",
+        "minLength": 1
+       },
+       "support": {
+        "type": "string",
+        "enum": [
+         "direct",
+         "context"
+        ]
+       },
+       "context_group": {
+        "description": "For a level whose support is context: the identifier of the accepted group that carries it, copied from an accepted_group item's evidence_ref. Required by the validator for context support; absent for direct support.",
+        "type": "string",
+        "minLength": 1
+       }
+      }
+     }
+    },
+    "alternatives": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "conflicts_considered": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "support": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "next_support": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "refinement": {
+     "type": "string",
+     "enum": [
+      "deeper_in_own_folder",
+      "out_of_own_folder",
+      "not_applicable"
+     ]
+    }
+   }
+  },
+  "citations": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "$ref": "#/$defs/citation"
+   }
+  },
+  "citation": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "evidence_ref",
+    "why_it_supports"
+   ],
+   "properties": {
+    "evidence_ref": {
+     "type": "string",
+     "minLength": 1
+    },
+    "cited_span": {
+     "type": "string",
+     "minLength": 1
+    },
+    "metadata_field_name": {
+     "type": "string",
+     "minLength": 1
+    },
+    "why_it_supports": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "oneOf": [
+    {
+     "required": [
+      "cited_span"
+     ],
+     "not": {
+      "required": [
+       "metadata_field_name"
+      ]
+     }
+    },
+    {
+     "required": [
+      "metadata_field_name"
+     ],
+     "not": {
+      "required": [
+       "cited_span"
+      ]
+     }
+    }
+   ]
+  },
+  "unknown": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "insufficiency_statement"
+   ],
+   "properties": {
+    "insufficiency_statement": {
+     "type": "string",
+     "minLength": 1
+    }
+   }
+  }
+ }
+}

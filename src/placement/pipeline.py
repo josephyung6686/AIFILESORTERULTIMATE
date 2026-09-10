@@ -105,6 +105,7 @@ from placement.residual import (
     record_set_decision, require_model_call_permitted, require_set_actionable,
     require_set_decision, surface_residual_sets,
 )
+from llm_harness.placement_validation import ACCEPTED_MEMBERSHIP_STATE
 from placement.retrieval import (
     CURATED_FOLDER, Candidate, Retrieval, SetAside, retrieve,
 )
@@ -2647,7 +2648,12 @@ def _accepted_group_items(group_ids) -> tuple[EvidenceItem, ...]:
         EvidenceItem(
             evidence_ref=group_id, kind=ACCEPTED_GROUP_ITEM,
             location="a group the person accepted this file into",
-            excerpt_span=None, reliability_state=POSSIBLE,
+            # `104` §18.34: every id here IS accepted (the docstring above), and
+            # the validator admits a context level only for a group whose item
+            # carries the accepted-membership state. `POSSIBLE` here made every
+            # accepted group read as merely retrieved and every context level
+            # SLOT_FILLED_WITHOUT_EVIDENCE.
+            excerpt_span=None, reliability_state=ACCEPTED_MEMBERSHIP_STATE,
             basis=P8_CONTEXT_SUPPORTED)
         for group_id in group_ids
     )
