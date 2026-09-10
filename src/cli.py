@@ -378,6 +378,7 @@ from review_surface.progress import (
 )
 from review_surface.records import ProgressEntry
 from review_surface.schema import create_review_schema
+from review_surface.trail import file_trail
 from review_surface.vocabulary import (
     ACTION_REJECT, SOURCE_P4_RUNS, SOURCE_P8, STATE_BLOCKED, STATE_COMPLETED,
     STATE_DEFERRED,
@@ -15534,6 +15535,49 @@ def _replay_bundle(args, *, out) -> int:
     return 0
 
 
+def _print_trail(args, *, out) -> int:
+    """`104` §18.27 gap 25: one file's trail, printed off the database alone.
+
+    **What this function does NOT do is the point of it.** It opens no file,
+    builds no model target, starts no run and writes nothing. The whole walk is
+    `review_surface.trail.file_trail`, which reads rows; this frame opens the
+    database, prints what came back and picks the exit code. Putting the walk in
+    P13 rather than here is what lets any other surface print the same trail
+    without a second rendering to drift from this one.
+
+    **A missing database is refused rather than created.** `open_database` would
+    make an empty one at a mistyped `--database` path, and the trail off an empty
+    database says the person's file is not in this run -- which is true of the
+    file it just invented and a lie about the run they meant. The plan database
+    is the only thing a trail can be read from, so its absence is the answer.
+
+    `_bootstrap` for `--explain`'s reason: a database written before a part
+    existed has none of that part's tables, and a reader that raised
+    `no such table` at somebody asking why their file moved would be the same
+    silence gap 25 is about.
+    """
+    database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+    if not database.exists():
+        print(f"\nThere is no plan database at {database}. A trail is what one "
+              f"run recorded about one file, so there is nothing to read until "
+              f"a run has been made. Pass --database if the plan you mean is "
+              f"somewhere else.", file=out)
+        return 2
+    # No `scan_roots`: nothing is scanned, so there is no root the database
+    # could be inside of.
+    conn = open_database(database)
+    print(f"Plan database: {database}", file=out)
+    try:
+        _bootstrap(conn)
+        trail = file_trail(conn, args.trail)
+    finally:
+        conn.close()
+    print("", file=out)
+    for line in trail.lines:
+        print(line, file=out)
+    return 0 if trail.found else 2
+
+
 def main(argv: Sequence[str] | None = None, *, out=None,
          # `104` R-175. NOT A FLAG, and that is the decision. A per-file ceiling is
          # not a thing a person types: it is derived from the deployment's own
@@ -15679,6 +15723,18 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         "--explain", action="append", default=[], metavar="QUESTION",
         help="print what one answer controls, where it applies, when it was "
              "given, how it was settled and how to change it.")
+    parser.add_argument(
+        # `104` §18.27 gap 25. BESIDE `--explain` because it answers the other
+        # half of the same question: `--explain` says what one ANSWER controls,
+        # and this says what happened to one FILE. Neither needs a run.
+        "--trail", default=None, metavar="FILE",
+        help="print one file's whole trail and stop: what was extracted from "
+             "it, what the model was sent about it, what the model answered, "
+             "what the validator made of that, and where it was placed. Name "
+             "it by path, by filename or by file id, exactly as the report "
+             "printed it. It is read out of the plan database alone -- your "
+             "file is not opened, no model is asked anything, and nothing "
+             "leaves the machine.")
     parser.add_argument(
         "--list-residuals", action="store_true",
         help="print the residual areas `--residual` accepts, and stop.")
@@ -15831,6 +15887,13 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     if args.replay is not None:
         return _replay_bundle(args, out=out)
 
+    # BEFORE the required-argument check, for the reason `--replay` is: reading
+    # what a run recorded about one file needs no folder, no situation and no
+    # label, and re-running the pipeline to answer it would scan a person's disk
+    # to print rows that are already written down. `104` §18.27 gap 25.
+    if args.trail is not None:
+        return _print_trail(args, out=out)
+
     # Absent means refuse, never guess. `--record` with no name would have to
     # invent one, and a recording called something the person did not choose is
     # one they will not find again -- which is the whole of what a name is for.
@@ -15972,6 +16035,19 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                 else:
                     print("", file=out)
                     print(render_explanation(explanation), file=out)
+            # `104` §18.27 gap 25, as ONE SENTENCE and not a second rendering.
+            # `--explain` answers "what does this answer control", which is a
+            # question about a question -- P15 scopes an answer to the corpus, an
+            # organization, a branch or a folder and never to a file, so this
+            # flag cannot name the file a person is actually wondering about.
+            # What it can do is say where that question is answered, once, at the
+            # end, rather than under each explanation: a person who typed three
+            # `--explain`s does not need telling three times.
+            print(_wrapped(
+                "To see what happened to one of your files instead -- what was "
+                "extracted from it, what the model was sent, what it answered, "
+                "what the validator made of that and where it went -- see "
+                "--trail FILE.", indent="  "), file=out)
         if args.record:
             # BEFORE the scan, and that ordering is the whole point. The writer
             # refuses a taken name too, but by then the person has waited out a
