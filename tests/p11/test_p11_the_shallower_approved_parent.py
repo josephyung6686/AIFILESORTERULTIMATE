@@ -140,6 +140,16 @@ def test_the_shallow_placement_names_the_level_the_leaf_needed(
     shown the deeper folder and struck it -- it judged that level unsupported --
     so claiming the evidence reached deeper would be the opposite of what
     happened.
+
+    **THE FIELD RECORDS WHAT THE DECISION LEFT UNFILLED, NOT WHAT THE EVIDENCE
+    COULD NOT FILL, AND THIS FIXTURE IS THE HARDER HALF OF THAT.** `00`:111's own
+    example is a term nothing could settle; here the leaf MATCHED on a direct
+    fact and the model took the parent anyway. The record says `subject` either
+    way, because §13.5 gives the answer to the model and `DecisionDepth`'s own
+    words are "the levels deliberately not filled" -- deliberately, by whoever
+    decided. A record that wrote `()` here because the rules could have filled the
+    level would be telling the person they were offered the deepest folder that
+    fits, which is exactly the thing they were not.
     """
     _answering("n-academics", monkeypatch)
     decision = _place(
