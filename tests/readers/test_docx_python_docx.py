@@ -197,7 +197,10 @@ def test_the_annotation_name_is_a_slot_word_and_never_the_authors_name():
     silence: `DocxAnnotation` has three fields and none of them is an author, so
     carrying one would mean changing an extractor contract, which is not a reader's
     to change. §2.3's clause is served in part -- the comment TEXT arrives -- and the
-    rest is the honest next increment, exactly as links and relationships are.
+    author, along with the tracked insertions and deletions the library does not
+    surface, is what remains of it. (This sentence used to say "exactly as links and
+    relationships are"; `104` §18.2 gap 17 built those, so the comparison would now
+    point at work that is done.)
     """
     from readers.docx_python_docx import _ANNOTATION_SLOT
 

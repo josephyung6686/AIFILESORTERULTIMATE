@@ -303,6 +303,10 @@ from eval_harness.bundle import RecordingNameTaken, bundle_named
 from grouping.acceptance import group_state_as_of
 from scan_agent.replay import CORPUS_FORM_SNAPSHOT, RecordingCorpusSource, snapshot_from
 from scan_agent.exclusion import is_protected_container
+#: `104` §18.2 gap 21's second guard. `_detect_format` opens files now, and the OTHER
+#: class of file that must not be opened is the iCloud-evicted one -- see that
+#: function for the whole argument.
+from scan_agent.dataless import is_dataless
 from scan_agent.selection import record_selection
 from scan_agent.summary import scan_run_summary, set_aside_paths
 from tree_design.catalogue import TemplateCatalogue
@@ -5946,7 +5950,29 @@ def _detect_format(path: Path) -> str | None:
     reading a byte. A file inside a protected container therefore records NO detected
     format where the extension map used to supply one -- which is the truth, because
     nothing looked.
+
+    **AND THERE IS A SECOND SUCH CLASS, which the extension shortcut used to hide.**
+    An iCloud-evicted file's bytes are not on this machine, and 11 §5 is absolute
+    about it: *"P3 detects a dataless / not-downloaded ubiquitous item before hashing
+    ... DO NOT MATERIALIZE, hash, or extract."* Opening one does not raise -- it
+    triggers the download the rule exists to prevent -- so `signature_detector`'s
+    OSError arm is no help, and `SafetyPolicy.is_dataless` is no help either because
+    it guards `admit()`, which runs in the EXTRACTOR, long after the router has
+    chosen one. `orchestrator.py` calls `route()` for every evicted file (its pass
+    2b, the one that writes C4's `dataless` run), so before this guard the deleted
+    shortcut was the only thing standing between a corpus in iCloud and a full
+    download. The flag is read from the file's own `stat`, which reads metadata and
+    materialises nothing, and the answer is the same shape as the protected one: no
+    detected format, because nothing looked. `route()` then falls back to the
+    declared extension exactly as it did yesterday.
     """
+    try:
+        if is_dataless(path.stat()):
+            return None
+    except OSError:
+        # Not this function's to diagnose, and not a reason to stop: the signature
+        # reader has the same arm and answers from the extension there.
+        pass
     if not path.suffix:
         name = path.name.lower()
         # `LICENSE-CC-BY-NC-SA` is on this disk, and `LICENSE-APACHE` and

@@ -32,6 +32,7 @@ still `unsupported`, which is still the truth.
 """
 from __future__ import annotations
 
+import builtins
 import io
 import sys
 from pathlib import Path
@@ -583,6 +584,51 @@ def test_the_seven_spelling_variants_disagree_and_route_identically(tmp_path):
         assert decision.disagree is True, path.name
         assert decision.source_type == family, path.name
         assert decision.extractor_name == handler, path.name
+
+
+def test_an_evicted_file_is_never_opened_to_name_its_format(tmp_path, monkeypatch):
+    """11 §5, and the rule the deleted extension shortcut was accidentally enforcing.
+
+    "P3 detects a dataless / not-downloaded ubiquitous item before hashing ... DO NOT
+    MATERIALIZE, hash, or extract." `_detect_format` opens files now, and opening an
+    iCloud-evicted one does not raise -- it DOWNLOADS it, which is the exact event
+    the rule exists to prevent. `SafetyPolicy.is_dataless` does not cover this: it
+    guards `admit()`, inside the extractor, and `orchestrator.py`'s pass 2b routes
+    every evicted file before any extractor is chosen.
+
+    `SF_DATALESS` is outside macOS's `SF_SETTABLE` mask, so no test can set it on a
+    real file and the predicate is substituted instead -- `scan_agent.dataless`'s own
+    docstring names that constraint.
+
+    SABOTAGE: delete the `is_dataless` guard at the top of `_detect_format`. `open()`
+    is spied on here rather than asserted about afterwards, because on a real machine
+    the download is the damage and it has already happened by the time anything could
+    be checked.
+    """
+    evicted = tmp_path / "thesis-final.pdf"
+    evicted.write_bytes(_one_page_pdf(_SYLLABUS))
+
+    monkeypatch.setattr(cli, "is_dataless", lambda stat_result: True)
+    opened: list[str] = []
+    real_open = builtins.open
+
+    def spy(target, *args, **kwargs):
+        opened.append(str(target))
+        return real_open(target, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", spy)
+
+    assert cli._detect_format(evicted) is None
+    assert str(evicted) not in opened, (
+        "an evicted file was opened to name its format, which on a real disk is the "
+        "iCloud download 11 §5 forbids")
+
+    # And it still routes, on the extension, exactly as it did before the bytes were
+    # ever consulted -- the `dataless` run C4 exists for needs a `source_type`.
+    decision = route(file_id="f1", content_hash=HASH, path=evicted,
+                     extension=evicted.suffix, detect_format=cli._detect_format)
+    assert decision.source_type == "text_document"
+    assert decision.disagree is False
 
 
 def test_a_known_extension_is_still_answered_when_the_file_cannot_be_opened():

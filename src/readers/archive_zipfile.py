@@ -145,6 +145,15 @@ def manifest_marker_recognizer(
     not literally manifests -- and the flag is repeated here rather than quietly
     inherited.
 
+    **WHAT §2.5's OWN SENTENCE NAMES AND THIS DOES NOT ANSWER: `src`, and "Python
+    package layout".** Neither `src` nor `__init__.py` is in catalogue 05, so neither
+    is recognised here, and `test_a_source_code_manifest_inside_an_archive_is_
+    recognized` pins `project/src/index.js` as unrecognised on purpose. Adding them
+    would be the second list the paragraph above has just refused, and it would be a
+    claim about DIRECTORY SHAPE rather than about filenames a tool requires by exact
+    spelling -- a different kind of statement, which is why catalogue 05 does not
+    carry it either. Open with a reason beats closed by invention.
+
     **§2.5's SECOND CLASS IS DEFERRED AND STAYS DEFERRED, WITH ITS REASON.**
     `document name` would be §2.5's five English words -- transcript, personal
     statement, resume, certificate, form -- matched against member basenames. That
