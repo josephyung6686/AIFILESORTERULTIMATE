@@ -97,6 +97,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Callable
 from urllib.parse import urlsplit
 
@@ -168,6 +169,40 @@ FINISHED: str = "stop"
 #: request and the record must not be able to disagree about it.
 RESPONSE_FORMAT: str = "json"
 
+#: THE FOUR PHASES OF ONE LOCAL CALL, IN ORDER, and between them the whole of what
+#: `timeout_seconds` has to cover (`104` R-175). They are named rather than left
+#: implicit because the failure record has to be able to SAY which one a call died
+#: in: r19's 26-minute hang on 10 Sep 2026 was diagnosed from a process tree and a
+#: `netstat` line, because the exception the client would have raised -- had one
+#: fired -- could say only "it did not answer".
+#:
+#: The order is also the argument for one deadline over four. Each phase can be the
+#: one that never ends, and each can end normally while the next hangs: a server
+#: that accepts the connection and sends nothing hangs the third; one that sends
+#: headers and stalls hangs the fourth; one that trickles a byte at a time hangs the
+#: fourth while satisfying any per-read timer for ever. A budget that is SPENT
+#: across all four is the only shape that bounds the call itself.
+CONNECTING: str = "connecting"
+SENDING_THE_REQUEST: str = "sending the request"
+WAITING_FOR_THE_FIRST_BYTE: str = "waiting for the first byte"
+READING_THE_BODY: str = "reading the body"
+CALL_PHASES: tuple[str, ...] = (
+    CONNECTING, SENDING_THE_REQUEST, WAITING_FOR_THE_FIRST_BYTE,
+    READING_THE_BODY)
+
+#: How much of the body is asked for at a time. It is a re-check interval and not a
+#: buffer size: the point of reading in pieces is that the deadline is consulted
+#: BETWEEN pieces, so a body arriving slowly is cut off at the deadline rather than
+#: arriving for ever one satisfied read at a time. One answer from this deployment's
+#: models is a few kilobytes, so in practice this is one read.
+BODY_CHUNK_BYTES: int = 1 << 16
+
+#: The ports a URL with no port of its own means. Spelled because `http.client`
+#: takes the port as an argument and `urlsplit` answers `None` when the endpoint
+#: named none; ollama's own default endpoint names 11434 explicitly.
+HTTP_PORT: int = 80
+HTTPS_PORT: int = 443
+
 
 class OllamaUnavailable(RuntimeError):
     """The local model could not be reached, so no call happened."""
@@ -185,6 +220,85 @@ class OllamaRanOutOfTime(OllamaUnavailable):
     person told to run `ollama serve` when ollama is already running and working
     has been sent to fix the one thing that is not wrong.
     """
+
+
+class OllamaRanOutOfTimeConnecting(OllamaRanOutOfTime):
+    """The deadline expired before the socket to the local server was open."""
+
+
+class OllamaRanOutOfTimeSendingTheRequest(OllamaRanOutOfTime):
+    """The deadline expired while the dossier was still going out."""
+
+
+class OllamaRanOutOfTimeWaitingForTheFirstByte(OllamaRanOutOfTime):
+    """The deadline expired with the request sent and not one byte back.
+
+    THE SHAPE `104` §18.22 FOUND BY HAND. An ESTABLISHED connection to a server at
+    0.4% CPU is this class, and until R-175 there was no way for the record to say
+    so: the run had to be diagnosed from a process tree.
+    """
+
+
+class OllamaRanOutOfTimeReadingTheBody(OllamaRanOutOfTime):
+    """The deadline expired part-way through an answer that never finished.
+
+    A reply that stalls and a reply that trickles land here alike, and both are
+    invisible to a per-read timer: the trickle satisfies it for ever.
+    """
+
+
+#: PHASE TO THE CLASS THAT NAMES IT, and the reason it is a class per phase rather
+#: than a field is the one place the phase has to survive to. `llm_harness.transport.
+#: _client_exception_explanation` reduces a client exception to `type(exc).
+#: __qualname__` and a status code, deliberately -- §8.4's property 4 says no
+#: credential may reach a durable record and there is no way to enumerate every
+#: string a library might put in a message, so the MESSAGE IS DROPPED. `104` §18.22
+#: read r19's failures as "4 `OllamaRanOutOfTime`", which is exactly that column.
+#: A phase carried only in the message would therefore be a phase nobody can read
+#: back, which is the defect R-175 is about wearing a fix's clothes.
+#:
+#: Subclasses and not four unrelated errors: every `except OllamaRanOutOfTime`,
+#: every `except OllamaUnavailable` and every `isinstance` upstream still catches
+#: them, and a `post` a caller injected that raises the plain `TimeoutError` still
+#: gets the base class -- which is the honest record when the phase is unknown.
+RAN_OUT_OF_TIME_IN: "MappingProxyType[str, type[OllamaRanOutOfTime]]" = (
+    MappingProxyType({
+        CONNECTING: OllamaRanOutOfTimeConnecting,
+        SENDING_THE_REQUEST: OllamaRanOutOfTimeSendingTheRequest,
+        WAITING_FOR_THE_FIRST_BYTE: OllamaRanOutOfTimeWaitingForTheFirstByte,
+        READING_THE_BODY: OllamaRanOutOfTimeReadingTheBody,
+    }))
+
+assert tuple(RAN_OUT_OF_TIME_IN) == CALL_PHASES, (
+    "every phase of a call earns a class, because the class name is the whole of "
+    "what the durable failure record keeps. A phase with no class fails to import "
+    "rather than being recorded as an unattributed timeout, which is `104` R-175's "
+    "own defect")
+
+
+class _OutOfTimeInPhase(TimeoutError):
+    """The one deadline expired, and this is the phase of the call it expired in.
+
+    A `TimeoutError` SUBCLASS AND NOT A NEW KIND, because `ollama_invoke` already
+    turns a `TimeoutError` into `OllamaRanOutOfTime` and a caller who replaced
+    `post` with a fake that raises the plain one must keep working. It is private
+    for the same reason the phases are public: nothing outside this module handles
+    it, and everything outside this module reads the sentence it produced.
+
+    `phase` is carried as an ATTRIBUTE rather than only in the message so
+    `ollama_invoke` can compose its own sentence around it. `104` R-175: the whole
+    reason the phases are named is that the hang could not be attributed, and a
+    phase that only ever appears inside a formatted string is one the next reader
+    has to parse back out.
+    """
+
+    def __init__(self, phase: str, *, timeout: float, elapsed: float):
+        super().__init__(
+            f"the deadline of {timeout:g} seconds for the whole call expired "
+            f"while {phase}, {elapsed:.1f} seconds in")
+        self.phase = phase
+        self.timeout = timeout
+        self.elapsed = elapsed
 
 
 class OllamaContextExceeded(RuntimeError):
@@ -260,13 +374,146 @@ def usage_of(response: object, *, model_id: str) -> Usage | None:
 
 
 def _post(url: str, body: bytes, *, timeout: float) -> bytes:
-    """The one place this module touches a socket, so a test can replace it."""
-    from urllib.request import Request, urlopen
+    """The one place this module touches a socket, so a test can replace it.
 
-    request = Request(url, data=body,
-                      headers={"Content-Type": "application/json"})
-    with urlopen(request, timeout=timeout) as response:
-        return response.read()
+    **ONE DEADLINE OVER THE WHOLE CALL, and `104` R-175 is why this is no longer
+    `urlopen(request, timeout=...)`.** That argument becomes `socket.settimeout`,
+    which is an INACTIVITY timer and not a deadline: it bounds one `recv` and
+    restarts on the next one. The connect is bounded by it once; the status line,
+    the headers and every read of the body are bounded only per-read; and the TOTAL
+    is bounded by nothing at all. A server that sends a byte more often than the
+    patience -- a trickle, a chunked reply it never terminates -- holds the socket
+    for ever while the timer goes on being satisfied.
+
+    That is what r19 sat in on 10 Sep 2026 (`104` §18.22): an ESTABLISHED
+    connection to a local server at 0.4% CPU, twenty-six minutes into a call whose
+    patience was 600 seconds, in a run where this same client's `OllamaRanOutOfTime`
+    had already fired four times. The idle timer was working. There was no deadline
+    for it to be a substitute for, and `cli.MODEL_CALL_TIMEOUT_SECONDS` said so in
+    its own docstring -- *"A total deadline is a different mechanism and is not
+    built here"* -- for the cloud client, which is where the shape was copied from.
+
+    **So the budget is SPENT and never restarted.** `started` is taken once and
+    every phase asks `left()` for what remains of it: the connect, the write of the
+    request, the wait for the first byte, and EACH read of the body. A phase that
+    begins with nothing left raises before it blocks; a phase that blocks is given
+    only the remainder as its socket timeout. A call therefore cannot outlive
+    `timeout` whatever shape the server's silence takes -- silence at the front,
+    silence in the middle, or a body that never ends.
+
+    **The phase rides on the exception**, because R-175 was diagnosed from a
+    process tree rather than from a message. `_OutOfTimeInPhase` says which of the
+    four the call died in, `ollama_invoke` puts that in the `OllamaRanOutOfTime` it
+    raises, and P8 stores that sentence as the `client_raised` explanation exactly
+    as it stores the existing one.
+
+    **`http.client` and not `urllib.request`, for one reason:** `urlopen` offers
+    the caller no seam between connecting, sending and reading, so there is nowhere
+    to put a budget. Nothing else about the request changes -- same method, same
+    header, same bytes, same endpoint -- because a transport that altered the
+    request would mean the release ledger recorded one thing and the model saw
+    another.
+    """
+    from http.client import HTTPConnection, HTTPSConnection
+    from time import monotonic
+
+    started = monotonic()
+    #: The phase now spending the budget. A cell rather than a name because the
+    #: `except` below has to say which phase the socket's own timer fired in, and
+    #: it is not the one that raised.
+    phase = [CONNECTING]
+
+    def left(next_phase: str) -> float:
+        """What is left of the one budget, and the phase about to spend it."""
+        phase[0] = next_phase
+        remaining = timeout - (monotonic() - started)
+        if remaining <= 0:
+            raise _OutOfTimeInPhase(next_phase, timeout=timeout,
+                                    elapsed=monotonic() - started)
+        return remaining
+
+    parts = urlsplit(url)
+    secure = parts.scheme == "https"
+    connection = (HTTPSConnection if secure else HTTPConnection)(
+        parts.hostname, parts.port or (HTTPS_PORT if secure else HTTP_PORT),
+        timeout=left(CONNECTING))
+    try:
+        try:
+            connection.connect()
+            sock = connection.sock
+            sock.settimeout(left(SENDING_THE_REQUEST))
+            connection.request("POST", parts.path or "/", body=body,
+                               headers={"Content-Type": "application/json"})
+            sock.settimeout(left(WAITING_FOR_THE_FIRST_BYTE))
+            response = connection.getresponse()
+            chunks: list[bytes] = []
+            # `read1` AND NOT `read`, AND THE DIFFERENCE IS THE WHOLE FIX. Both
+            # `response.read()` and `response.read(n)` sit on a `BufferedReader`,
+            # which loops on the socket until it has all n bytes or the peer hangs
+            # up -- so a body arriving one byte at a time keeps ONE call to `read`
+            # blocked for as long as the trickle lasts, and the budget below is
+            # never consulted again. `read1` performs at most one underlying read
+            # and hands back whatever arrived, which is what puts a deadline check
+            # BETWEEN the pieces of a slow body. It returns `b""` at the end of a
+            # length-delimited and a chunked body alike, and closes the response
+            # when the last byte is in, which is what ends this loop normally.
+            while not response.isclosed():
+                sock.settimeout(left(READING_THE_BODY))
+                chunk = response.read1(BODY_CHUNK_BYTES)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+        except _OutOfTimeInPhase:
+            raise
+        except TimeoutError as expiry:
+            # The socket's own timer fired inside the phase's remainder, which is
+            # the same deadline arriving by a different route. One sentence for
+            # both, so nothing above this line has to tell them apart.
+            raise _OutOfTimeInPhase(phase[0], timeout=timeout,
+                                    elapsed=monotonic() - started) from expiry
+        return b"".join(chunks)
+    finally:
+        # A call that ran out of time leaves no socket behind. The ESTABLISHED
+        # connection in R-175's evidence outlived the call it belonged to, because
+        # nothing closed it when the wait was abandoned.
+        connection.close()
+
+
+#: What a timeout says when it cannot say which phase it died in. A `post` a caller
+#: injected -- every test fake, and any other transport somebody wires -- raises a
+#: plain `TimeoutError`, and the honest sentence about one of those is that the
+#: phase is unknown, not a guess at the likeliest one.
+PHASE_UNKNOWN: str = "waiting on the call"
+
+
+def _out_of_time(problem: BaseException, sentence: str) -> OllamaRanOutOfTime:
+    """The phase's own class, carrying the phase's own sentence. `104` R-175.
+
+    **TWO CHANNELS FOR ONE FACT, AND THE CLASS IS THE ONE THAT SURVIVES.**
+    `llm_harness.transport._client_exception_explanation` reduces a client exception
+    to `type(exc).__qualname__` and a status code and DROPS THE MESSAGE, deliberately
+    -- §8.4's property 4 forbids a credential reaching a durable record and there is
+    no way to enumerate every string a library may produce. That column is what
+    `104` §18.22 was reading when it wrote "5 failures (4 `OllamaRanOutOfTime`, 1
+    `NoAnswerFromModel`)". So a phase carried only in the message would be a phase
+    nobody can read back, and R-175's whole diagnostic cost was that the hang could
+    not be attributed: the run had to be taken apart with a process tree and a
+    `netstat` line. The class name carries it; the sentence carries the seconds and
+    the advice, for the person at the screen.
+
+    `getattr` and not `isinstance`: an injected `post` may raise the plain
+    `TimeoutError`, and the base class plus "waiting on the call" is the honest
+    record for one of those rather than a guess at the likeliest phase.
+    """
+    phase = getattr(problem, "phase", None)
+    return RAN_OUT_OF_TIME_IN.get(phase, OllamaRanOutOfTime)(
+        sentence.replace(PHASE_SLOT, f"died while {phase or PHASE_UNKNOWN}"))
+
+
+#: Where `_out_of_time` writes the phase into the sentence its caller wrote, so
+#: each timeout branch below reads as the one sentence it is and neither has to
+#: know how a phase is spelled.
+PHASE_SLOT: str = "<phase>"
 
 
 def _require_loopback(base_url: str | None) -> str:
@@ -425,24 +672,24 @@ def ollama_invoke(*, model_target: "ModelTarget", base_url: str | None,
             # THE MODEL WAS ASKED AND IS STILL THINKING, which is not the same as
             # a model that is not there, and telling a person to start a server
             # that is already running would send them to fix the thing that works.
-            raise OllamaRanOutOfTime(
+            raise _out_of_time(problem,
                 f"the local model at {endpoint} was asked and had not answered "
                 f"after {timeout_seconds:g} seconds, so this run stopped waiting "
-                f"({problem}). The call HAPPENED -- ollama is running and was "
-                f"working -- and no answer came back, so nothing was decided on "
-                f"the strength of a judgement that was never finished. A bigger "
-                f"model on a busy machine is the ordinary cause; raise the "
-                f"deployment's patience or name a smaller model."
+                f"({PHASE_SLOT}: {problem}). The call HAPPENED -- ollama "
+                f"is running and was working -- and no answer came back, so "
+                f"nothing was decided on the strength of a judgement that was "
+                f"never finished. A bigger model on a busy machine is the ordinary "
+                f"cause; raise the deployment's patience or name a smaller model."
             ) from problem
         except Exception as problem:  # transport failure of any kind
             # A read timeout can also arrive wrapped, and what it MEANS does not
             # change with the wrapper it arrived in.
             if isinstance(getattr(problem, "reason", None), TimeoutError):
-                raise OllamaRanOutOfTime(
+                raise _out_of_time(problem.reason,
                     f"the local model at {endpoint} was asked and had not "
                     f"answered after {timeout_seconds:g} seconds, so this run "
-                    f"stopped waiting ({problem}). The call HAPPENED and no "
-                    f"answer came back."
+                    f"stopped waiting ({PHASE_SLOT}: {problem}). "
+                    f"The call HAPPENED and no answer came back."
                 ) from problem
             raise OllamaUnavailable(
                 f"the local model at {endpoint} could not be reached ({problem}). "

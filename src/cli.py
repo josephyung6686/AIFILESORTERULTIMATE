@@ -153,7 +153,13 @@ from llm_harness.records import (
     CallRefused, FolderLevel, P8Verdict, PromptDefinition,
 )
 from llm_harness.situation_validation import is_decline
-from llm_harness.store import grounding_counters, last_response_bytes
+from llm_harness.store import (
+    grounding_counters, last_response_bytes,
+    # `104` R-175: how site G records a file it skipped past its ceiling. The same
+    # reduction `model_facts.fact_call_stage` uses at site A, so one skipped file is
+    # recorded one way wherever the loop that skipped it lives.
+    refusal_outcome,
+)
 from llm_harness.sites import SiteDependencies
 from llm_harness.schema import create_llm_schema
 from llm_harness.vocabulary import (
@@ -190,7 +196,8 @@ from placement.pipeline import (
 from placement.residual import ProtectedSetNotReadable, prior_set_decisions
 from placement.schema import create_placement_schema
 from model_facts import (
-    AnchorOnlyLevels, FactCallAuthorities, dossier_tokens, fact_call_stage,
+    AnchorOnlyLevels, FactCallAuthorities, FileTookTooLong, PerFileCeiling,
+    dossier_tokens, fact_call_stage,
     measure_released_tokens, pending_fields_for, releasable_observations,
     releasable_readings, zone_evidence_counts,
 )
@@ -687,6 +694,15 @@ MAX_RESPONSE_TOKENS: int = 8192
 #: is not built here. §8.6 bounds model SPEND and says nothing about a call that never
 #: returns, so this is not a budget ceiling and a call that hits it is not
 #: `budget_deferred`; it is a failed call, and P8 records it as one.
+#:
+#: **`104` R-175 BUILT THAT MECHANISM FOR THE LOCAL CLIENT AND NOT FOR THIS ONE.**
+#: `readers.model_ollama._post` now spends one budget across connect, request,
+#: first byte and every read of the body, so `LOCAL_MODEL_TIMEOUT_SECONDS` below is
+#: a deadline and this number is still the idle timer described above. The two are
+#: not made the same here because `model_deepseek` reaches a provider that closes
+#: its own idle sockets and bills what it answered, and because the failure R-175
+#: measured was a local one; the paragraph stands as the record of what this number
+#: does and does not promise.
 MODEL_CALL_TIMEOUT_SECONDS: float = 90.0
 
 #: HOW LONG ONE LOCAL CALL MAY TAKE, and it is not the cloud number. A provider
@@ -701,7 +717,31 @@ MODEL_CALL_TIMEOUT_SECONDS: float = 90.0
 #:
 #: The cost of the two directions is not symmetric. Too long and a person waits;
 #: too short and the file is recorded as unanswered by a model that was answering.
+#:
+#: **SINCE `104` R-175 THIS IS A DEADLINE OVER THE WHOLE CALL AND NOT AN IDLE
+#: TIMER.** It was the second until r19 hung for twenty-six minutes on one call
+#: with the server at 0.4% CPU (§18.22): the number reached `socket.settimeout`,
+#: which restarts on every read, so a server that dribbled or never terminated a
+#: response outlived it without ever being idle for six hundred seconds.
+#: `readers.model_ollama._post` now spends one budget across connect, request,
+#: first byte and every read of the body, and names the phase it died in. So the
+#: sentence this number now makes is the strong one: no local call outlives it.
 LOCAL_MODEL_TIMEOUT_SECONDS: float = 600.0
+
+#: THE LOCAL CALL SITES ONE FILE CAN BE ASKED AT IN A SINGLE PASS, in the order the
+#: pass asks them, and the multiplier `104` R-175's per-file ceiling is built from.
+#: `_model_fact_pass` runs `ask_the_situation` (site G, one `run_call` per unsettled
+#: file, cli.py) and then the fact resolver (site A, one `run_call` per file,
+#: `model_facts.fact_call_stage`), so two is the most calls one FILE can make before
+#: the pass moves on. B and E are per GROUP and C is asked in the placement pass, so
+#: none of them lengthens a file's turn here.
+#:
+#: A TUPLE OF THE SITES AND NOT THE NUMBER 2, because the number is a fact about
+#: which loops exist and would go quietly wrong the day a third site is wired --
+#: which is the same failure `MODEL_CALL_SITES_WIRED` is derived rather than written
+#: to avoid. Whoever adds a per-file call site adds it here, beside the sites, and
+#: the ceiling moves with it.
+PER_FILE_LOCAL_CALL_SITES: tuple[str, ...] = (G_SITUATION_SENSITIVITY, A_FACT)
 
 #: THE LARGEST CONTEXT WINDOW THIS DEPLOYMENT WILL ASK A LOCAL MODEL TO HOLD OPEN,
 #: in tokens, and the bound `readers.model_ollama` refuses above rather than letting
@@ -5295,6 +5335,12 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
                           usage_recorder: object | None = None,
                           operation_mode: str = OPERATION_MODE,
                           corpus_roots: Sequence[Path] = (),
+                          # `104` R-175. THE CEILING AND NOT THE SECONDS, because
+                          # the object carries the first sightings and site G reads
+                          # the same one off the bundle this returns: two ceilings
+                          # built from one number would give a file its whole budget
+                          # twice. `None` is the shipped default -- see the field.
+                          per_file_ceiling: PerFileCeiling | None = None,
                           on_result=None) -> FactCallAuthorities:
     """Everything one A_fact call needs, chosen here and nowhere else.
 
@@ -5494,7 +5540,10 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
             # `model_route_permitted` for both, so "may this file reach a model"
             # is "did the route find it a destination" and there is one answer.
             may_reach_a_model=lambda file_id: route_for(file_id) is not None)
-            if anchor_levels else None))
+            if anchor_levels else None),
+        # `104` R-175, passed through and never built here: the composition root
+        # decides how long a file may hold the run, and this function assembles.
+        per_file_ceiling=per_file_ceiling)
 
 
 def _stored_value_of(conn: sqlite3.Connection):
@@ -5727,6 +5776,13 @@ class SituationPass:
     #: and the standing rule is that protected material is marked and counted,
     #: never silently omitted.
     no_route: int
+    #: `104` R-175: files past the run's per-file wall-clock ceiling, skipped so the
+    #: pass could reach the rest. Its own count for `no_route`'s reason -- a file
+    #: nobody could ask, a file with nothing to read and a file that ate its budget
+    #: are three different facts, and one bucket would let the slowest of them hide
+    #: in the largest. Zero on every run that sets no ceiling, which is every run a
+    #: person is watching.
+    over_ceiling: int = 0
 
 
 #: THE PASS THAT DID NOT RUN, and it is a value rather than a `None` for the
@@ -5767,6 +5823,12 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     """
     named: dict = {}
     settled = nothing_to_ask = nothing_to_read = declined = no_route = 0
+    over_ceiling = 0
+    # `104` R-175. THE SAME OBJECT SITE A'S STAGE CONSULTS, taken off the bundle
+    # both are handed rather than built here: one ceiling with one set of first
+    # sightings is what makes this a bound on the FILE's turn. Two would let a file
+    # spend the whole budget here and the whole budget again at site A.
+    ceiling = fact_authorities.per_file_ceiling
     dependencies_for = situation_call_dependencies
     store = ClassificationStore(conn)
     # `104` §17.13 ruling 3: PER FILE, not per site. Site G's own text is
@@ -5776,6 +5838,33 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     # than a consequence of which tier the local model happened to take.
     route_for = target_for(conn, routing, G_SITUATION_SENSITIVITY)
     for file_id, content_hash in roster:
+        # `104` R-175, and BEFORE the recogniser runs. `open_turn` charges the
+        # PREVIOUS file for everything its turn took -- the semantic recogniser, the
+        # dossier, the call -- and starts this one's; it sits at the top of the body
+        # rather than in a `with` because a loop with six `continue`s in it has six
+        # ends and one beginning, and the next file's beginning is the previous
+        # file's end.
+        #
+        # The check is a backstop HERE and the live one at site A: today site G sees
+        # each file first, so nothing has been charged to it yet. It is written at
+        # both because the two loops are the same shape and which of them runs first
+        # is a fact about `_model_fact_pass`, not about either loop -- and a guard
+        # that is correct only because of where it is called is the kind this
+        # project has paid for (`model_fact_resolver` says so about `record_pass`).
+        #
+        # Recorded through `refusal_outcome`, which is the path every other pre-call
+        # refusal at this site takes, so a skipped file has a row and is never a
+        # silent omission.
+        if ceiling is not None:
+            ceiling.open_turn(file_id)
+            try:
+                ceiling.check(file_id)
+            except FileTookTooLong as over:
+                refusal_outcome(conn, call_site=G_SITUATION_SENSITIVITY,
+                                subject_ref=file_id, error=over,
+                                observed_at=now())
+                over_ceiling += 1
+                continue
         outcome = explain(conn, file_id, content_hash)
         if not isinstance(outcome, Abstention):
             # The rules settled it. `00`:110 sanctions exactly this: "The LLM should
@@ -5864,9 +5953,16 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                    restricted_kind=restricted_kind_named_by_verdict(conn, verdict)),
                store=store, component_version=component_version)
         named[file_id] = situation
+    # `104` R-175: the last file's turn ends with the loop and not with the next
+    # file, because there is no next file. Leaving it open would under-charge one
+    # file, which cannot invent a skip -- it is closed anyway so the number site A
+    # reads about this file is the whole of what site G spent on it.
+    if ceiling is not None:
+        ceiling.close_turn()
     return SituationPass(
         named=named, settled=settled, nothing_to_ask=nothing_to_ask,
-        nothing_to_read=nothing_to_read, declined=declined, no_route=no_route)
+        nothing_to_read=nothing_to_read, declined=declined, no_route=no_route,
+        over_ceiling=over_ceiling)
 
 
 _NOTHING_ASKED = SituationPass(
@@ -7443,6 +7539,14 @@ SITUATION_SENTENCE: Mapping[str, str] = MappingProxyType({
         "material where the only destination was a cloud one, or no model "
         "wired at all. Nothing about them was assembled and nothing was sent; "
         "they keep this run's own situation.",
+    # `104` R-175. The sentence names the RUN's decision and not the file's fault:
+    # a file that ran out of time is one this deployment stopped waiting for, and
+    # writing it as though the file were at fault would tell a person to go and
+    # look at a document when what they need to look at is the model's speed.
+    "over_ceiling":
+        "out of time: they had already held this run longer than one file may, "
+        "so the run stopped waiting and went on to the rest. Nothing about them "
+        "was decided -- what is open is open, and the next run asks again.",
 })
 
 assert set(SITUATION_SENTENCE) | {"named"} == {
@@ -7455,7 +7559,7 @@ assert set(SITUATION_SENTENCE) | {"named"} == {
 
 def _print_situation_pass(situation: SituationPass, *, files: int,
                           model_id: str, out) -> None:
-    """Site G's six counters, in the shape the fact pass prints its own.
+    """Site G's seven counters, in the shape the fact pass prints its own.
 
     **`104` §18.2 gap 9: these counts reached nobody.** `cli.py` initialised the
     cell, the pass filled it, and no line of the report ever read it -- so the one
@@ -7473,17 +7577,19 @@ def _print_situation_pass(situation: SituationPass, *, files: int,
     different sentences to a person and only one of them is about their file. Two
     blocks in two shapes on one screen would read as two products.
 
-    **ALL SIX, INCLUDING THE ZEROS, and that is the difference from the fact pass
+    **ALL SEVEN, INCLUDING THE ZEROS, and that is the difference from the fact pass
     block.** These counters PARTITION the roster -- every file the pass walked
-    lands in exactly one of them -- so the six numbers are an arithmetic a person
+    lands in exactly one of them -- so the seven numbers are an arithmetic a person
     can check against the total, and a zero that disappears makes that arithmetic
     unreadable. `104` §17.2 is what a number with no provenance costs; a missing
-    line is the same cost paid silently.
+    line is the same cost paid silently. `104` R-175's `over_ceiling` joined the
+    partition for exactly that reason: a file skipped for time is a file this run
+    did not decide about, and it has to be visible as one.
 
     **A PASS THAT DID NOT RUN PRINTS NOTHING**, and that is `_NOTHING_ASKED`'s own
     ruling one layer up: a run where site G was not asked and a run where it was
-    asked and named nothing "must not read the same downstream". Six zeros under a
-    header is precisely how the two would come to read the same.
+    asked and named nothing "must not read the same downstream". Seven zeros under
+    a header is precisely how the two would come to read the same.
 
     The model is named for `_local_model_id`'s reason and G's row is why it is the
     local one: `ratified_local` (`104` §17.14), so `target_for` drops the cloud
@@ -9101,6 +9207,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # RUN, and a second thing bolted onto that record would be a fact about
         # the screen living inside the plan.
         questions_reach: dict[str, tuple[str, ...]] | None = None,
+        # `104` R-175's per-file wall-clock ceiling, in seconds, or `None` for a run
+        # that sets none. A NUMBER here and the object below, because a caller
+        # states a deployment fact and the assembly is this function's: two callers
+        # handing in two `PerFileCeiling`s would be two sets of sightings for one
+        # run. Defaulted for `usage_recorder`'s reason -- a run with a person
+        # watching it has a person who can stop it, and every existing caller
+        # composes exactly the run it composed before.
+        file_ceiling_seconds: float | None = None,
         wire_handle_key: bytes | None = None) -> ProductionRun:
     """One corpus, end to end. Assembles the authorities and calls the composition.
 
@@ -10476,6 +10590,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             p2=None,
             the_folder_each_file_is_in=_the_folder_each_file_is_in(tree.tree))
 
+    #: `104` R-175. ONE CEILING FOR THE WHOLE RUN, built here from the seconds the
+    #: caller stated and handed to the authorities both per-file loops read. Built
+    #: once and not per pass, because its sightings are what make it a bound on a
+    #: FILE's turn rather than on each pass's opinion of that file.
+    per_file_ceiling = (None if file_ceiling_seconds is None
+                        else PerFileCeiling(seconds=file_ceiling_seconds))
+
     #: One slot, filled by `_model_fact_pass` when it builds A's authorities and
     #: read by `downstream` for the observe sites. A list because the pass is a
     #: closure and this is the one value that has to cross out of it.
@@ -10677,6 +10798,9 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # `104` R-14. `run` was handed this beside the routing it was handed,
             # so the mailbox the transport fills is the mailbox `run_call` reads.
             usage_recorder=usage_recorder,
+            # `104` R-175. Site A's stage and site G's loop consult THIS object,
+            # because `ask_the_situation` below is handed this same bundle.
+            per_file_ceiling=per_file_ceiling,
             on_result=lambda file_id, result: outcomes.append((file_id, result)))
         # KEPT FOR THE OBSERVE SITES, which need the same gate, budget, costs,
         # policy version and handle key. Stashed rather than rebuilt: a second
@@ -13850,7 +13974,16 @@ def _replay_bundle(args, *, out) -> int:
     return 0
 
 
-def main(argv: Sequence[str] | None = None, *, out=None) -> int:
+def main(argv: Sequence[str] | None = None, *, out=None,
+         # `104` R-175. NOT A FLAG, and that is the decision. A per-file ceiling is
+         # not a thing a person types: it is derived from the deployment's own
+         # patience and the call sites one file can be asked at, and an unattended
+         # RUNNER is what needs it -- `tools.groundtruth._one_run` walks 199 files
+         # for nine hours with nobody at the screen, and r19 lost that run to one
+         # stuck file (§18.22). `out` is here on the same terms and for the same
+         # kind of caller: an injection point for whoever composes a run in
+         # process, defaulted so the command line is unchanged.
+         file_ceiling_seconds: float | None = None) -> int:
     # Bound at CALL time, not as a default: a default argument is evaluated when
     # this module is imported, which pins the stream that existed then.
     out = out if out is not None else sys.stdout
@@ -14316,6 +14449,9 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                      usage_recorder=usage_recorder,
                      questions_reach=questions_reach,
                      semantic_model=args.semantic_model,
+                     # `104` R-175, straight through from whoever composed this
+                     # run. `None` on the command line, always.
+                     file_ceiling_seconds=file_ceiling_seconds,
                      wire_handle_key=wire_handle_key_for(database))
     except RecordingNameTaken as refusal:
         # Belt and braces behind hunk 13. The name is checked before the scan, so
