@@ -144,7 +144,9 @@ def test_raw_recognized_text_is_a_unit_and_reaches_evidence_exactly_once(sink):
         [RECOGNIZED, RECOGNIZED]), units
     whole = [o for o in sink.observations_for(run_id) if o["raw_value"] == RECOGNIZED]
     assert len(whole) == 1, "the recognised text reaches evidence once, or not at all"
-    assert whole[0]["location"]["text_span"] is None
+    # `104` §18.2 gap 17d gave the passage its box, and P7 addresses a box only
+    # beside a span, so the whole passage carries the unit's own span.
+    assert whole[0]["location"]["text_span"] == {"start": 0, "end": len(whole[0]["raw_value"])}
     assert whole[0]["location"]["container_path"] == ()
 
 
@@ -552,9 +554,9 @@ def test_an_observations_span_indexes_into_its_own_region():
 
     span_less = [o for o in result.observations
                  if o["location"]["text_span"] is None]
-    assert [o["location"]["container_path"] for o in span_less] == [()], (
-        "a span-less OCR observation that is NOT the whole passage has appeared; "
-        "it would be an unanchored excerpt with a container nobody checks")
+    # Since the passage carries its whole-unit span (gap 17d), no OCR observation
+    # is span-less at all: every one is anchored, the passage by its unit.
+    assert span_less == []
 
 
 def test_the_passage_collapses_into_a_match_it_duplicates(sink):

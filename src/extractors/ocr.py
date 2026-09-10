@@ -365,7 +365,16 @@ def extract_ocr(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy
             extractor_name=name, extractor_version=output.provider_version,
             source_type=SOURCE_TYPE, raw_value=passage,
             normalized_value=normalize_mechanical(passage),
-            location=location(zone="ocr", container_path=(), text_span=None,
+            # THE WHOLE UNIT AS A SPAN, not span-less, because the passage now
+            # carries its box (`104` §18.2 gap 17d) and P7's `span_address`
+            # refuses a location with a box and no span -- a box-only locator
+            # would address a page by a rectangle whose origin corner nobody
+            # named. With the span, the address is the unit's own start and end
+            # and the box rides beside it; `is_whole_document` reads a span that
+            # covers the unit exactly as it reads none. Measured on r19 (10 Sep
+            # 05:08): span-less-with-box crashed the fill on the first OCR file.
+            location=location(zone="ocr", container_path=(),
+                              text_span={"start": 0, "end": len(passage)},
                               region=passage_region(output.regions)),
             context_before="", context_after="", context_truncated=False,
             observed_at=now, reliability="possible",
