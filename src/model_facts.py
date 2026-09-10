@@ -56,8 +56,12 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
+# `104` R-175: the per-file ceiling's default clock, aliased at the import so the
+# dataclass default is the FUNCTION and not a call of it, and so a test that
+# injects its own clock is replacing something with a name.
+from time import monotonic as _monotonic
 from types import MappingProxyType
 from typing import Any
 
@@ -459,6 +463,128 @@ def _settled_kind(request: FactRequest, kind_field: str) -> str | None:
     return None
 
 
+class FileTookTooLong(RuntimeError):
+    """One FILE spent more wall-clock in a pass than the deployment allows it.
+
+    NOT a timeout and not a refusal, and the difference is why it has a name of its
+    own. A timeout is about one CALL and `readers.model_ollama.OllamaRanOutOfTime`
+    is where it is raised (`104` R-175 part a). This is about a file that has
+    already had its turn -- however that time went -- and it exists because a
+    per-call deadline still lets one file hold a run: two calls of six hundred
+    seconds each is twenty minutes on one file, and a pass that walks 199 of them
+    has no other way to notice.
+
+    It is recorded through `store.refusal_outcome`, which is the same path a
+    `MalformedRequest` from the builder takes, so the outcome is one the report and
+    the scoreboard already read. The point of raising it rather than returning
+    quietly: a file skipped in silence is indistinguishable from a file the model
+    had nothing to say about, which is `104` R-04's failure exactly.
+    """
+
+
+@dataclass(frozen=True)
+class PerFileCeiling:
+    """How long one FILE may hold a pass, measured from the first time it is seen.
+
+    **`104` R-175 part b, and it is the second half of one fix.** Part (a) put one
+    deadline over a whole local call, so no CALL can run for ever. That is not the
+    same as no FILE running for ever: `104` §17.1 and §17.13 have one file asked at
+    site G and then at site A within a single pass, so a file's turn is as long as
+    the calls it makes, and a deployment whose patience is ten minutes a call gives
+    one file twenty. r19 held 199 files behind one of them (§18.22).
+
+    **The number is not chosen here.** `seconds` is injected by whoever composes the
+    run, exactly as `refuse_if_busy`'s load ceiling is: this class is mechanism and
+    the ceiling is a deployment fact, derived from the local timeout and the call
+    sites one file can be asked at. A number this class picked for itself would be a
+    policy decided in the wrong place and invisible to whoever changed their mind
+    about it.
+
+    **IT MEASURES THE FILE'S OWN TURNS AND NOT THE WALL-CLOCK SINCE IT WAS FIRST
+    SEEN, and the difference is the whole correctness of the thing.** The passes
+    are SEQUENTIAL over the roster: `_model_fact_pass` asks site G about all 199
+    files and only then walks them again at site A. So "seconds since this file was
+    first seen" is, by the time the second pass reaches file 1, the length of the
+    entire first pass -- hours -- and every file would be over any ceiling worth
+    setting. What is charged to a file is the time the run spends WITH it:
+    `open_turn` starts its turn, the next `open_turn` (or `close_turn`) ends it, and
+    the turns add up. A loop walking files one at a time needs nothing else, and the
+    charge covers everything the turn does rather than only the call -- a dossier
+    that takes minutes to assemble is exactly as much of a stuck file as a call that
+    never returns.
+
+    **Nothing is interrupted.** `check` is consulted at the top of each turn and
+    raises before any of it is done, so a file already past its ceiling is skipped
+    and the loop moves on. It does not cut a call that is in flight -- part (a) is
+    what bounds that, and reaching for `signal.setitimer` to cut one would put an
+    alarm in a run whose cloud lane is meant to become threaded, where alarms do not
+    arrive. So this is the BACKSTOP behind part (a) and is stated as one: with every
+    call ending at its own deadline a file's turns cannot reach this ceiling, and
+    what it catches is the day that stops being true -- a deadline that fails to
+    cover some phase, which is R-175 itself, or work outside a call that will not
+    end.
+    """
+
+    seconds: float
+    #: `time.monotonic` by default, and injectable so a test can hold a file past
+    #: its ceiling without spending the wall-clock the ceiling is measured in.
+    #: Monotonic and never `time.time`: a wall-clock that steps backwards over a
+    #: nine-hour run would make an over-budget file look fresh.
+    clock: Callable[[], float] = _monotonic
+    #: File id to the seconds the run has already spent with it, summed over every
+    #: turn it has had. Mutable inside a frozen record because the ceiling is the
+    #: policy and this is the measurement the policy is applied to.
+    spent: dict[str, float] = field(default_factory=dict)
+    #: The turn now open, as `[file_id, started_at]`, or empty. A list because the
+    #: record is frozen and this is the one thing about it that moves.
+    open_turn_cell: list = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.seconds, (int, float)) or isinstance(
+                self.seconds, bool) or self.seconds <= 0:
+            raise ValueError(
+                f"a per-file ceiling is a positive number of seconds and "
+                f"{self.seconds!r} is not one. Zero is not a ceiling; it is a run "
+                f"that skips every file while reporting that it asked.")
+
+    def open_turn(self, file_id: str) -> None:
+        """Start this file's turn, charging the previous one for the time it took.
+
+        Called at the top of a per-file loop's body, which is the one position that
+        needs no `with` and survives every `continue` in it: a loop that walks files
+        one at a time has exactly one turn open, and the next file's arrival is the
+        previous file's end.
+        """
+        now = self.clock()
+        self.close_turn(now=now)
+        self.open_turn_cell[:] = [file_id, now]
+
+    def close_turn(self, *, now: float | None = None) -> None:
+        """End the open turn, if there is one. Idempotent, and safe to leave unsaid.
+
+        A pass that forgets to call this leaves its last file's final turn uncharged
+        -- which under-counts one file and never over-counts one, so a forgotten
+        close cannot invent a skipped file.
+        """
+        if not self.open_turn_cell:
+            return
+        file_id, started = self.open_turn_cell
+        moment = self.clock() if now is None else now
+        self.spent[file_id] = self.spent.get(file_id, 0.0) + (moment - started)
+        self.open_turn_cell.clear()
+
+    def check(self, file_id: str) -> None:
+        """Raise if this file has already had more than its share of the run."""
+        already = self.spent.get(file_id, 0.0)
+        if already > self.seconds:
+            raise FileTookTooLong(
+                f"this file has already held the run for {already:.0f} seconds "
+                f"against a ceiling of {self.seconds:.0f}, so it was not asked "
+                f"again and the run moved on. `104` R-175: one file that will not "
+                f"finish is not allowed to be the whole corpus's wait. What is left "
+                f"open here is open, not answered -- the next run asks it again.")
+
+
 def _one_route_pair(client: ModelClient,
                     target: ModelTarget) -> tuple[ModelClient, ModelTarget]:
     """The pair, checked to be one destination and not two descriptions of it.
@@ -609,6 +735,18 @@ class FactCallAuthorities:
     #: nothing in this module touches `model_client` or `model_target` directly, so
     #: the two spellings cannot drift into two behaviours.
     route_for: Callable[[str], tuple[ModelClient, ModelTarget] | None] | None = None
+    #: `104` R-175's per-file wall-clock ceiling, or `None` for a run that sets
+    #: none. HERE and not on `CallDependencies`, for the reason `usage_recorder`
+    #: gives above and one more: `cli.ask_the_situation` is handed this same bundle
+    #: as `fact_authorities`, so site G's loop and site A's stage consult ONE
+    #: ceiling with one set of sightings -- which is what makes it a ceiling on the
+    #: file's whole turn rather than two independent budgets a file can spend twice.
+    #:
+    #: `None` is the shipped default and is not a stub. A person's own scan has a
+    #: person watching it who can stop it; the run this was built for is the 199-file
+    #: scoreboard, where nobody is at the screen for nine hours and one stuck file
+    #: costs the whole measurement (§18.22). The composition root decides.
+    per_file_ceiling: "PerFileCeiling | None" = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "folder_levels",
@@ -2625,6 +2763,33 @@ def fact_call_stage(authorities: FactCallAuthorities):
 
     def stage(conn: sqlite3.Connection, file_id: str,
               content_hash: str) -> "tuple[str, ...] | StageOutcome":
+        # `104` R-175: FIRST, BEFORE ANY WORK, and recorded rather than dropped.
+        # This is the second of the two turns one file gets -- site G's loop is the
+        # first -- and by the time the stage is reached the file may already have
+        # spent its whole budget there. Building the dossier for a call that is
+        # about to be abandoned costs the run the same minutes again.
+        #
+        # `open_turn` before `check`, so this stage's own seconds are charged to
+        # this file whatever the check decides: a file skipped here still cost the
+        # run the moment it took to skip it, and the previous file's turn ends here
+        # whether or not this one begins.
+        #
+        # `refusal_outcome` and not a quiet `return ()`: `104` R-04's failure is a
+        # starved site looking exactly like a site nobody wired, and a file skipped
+        # in silence looks exactly like a file the model had nothing to say about.
+        # The row is the same shape a `MalformedRequest` from the builder writes, so
+        # the screen and `tools.groundtruth` read it with what they already read.
+        if authorities.per_file_ceiling is not None:
+            authorities.per_file_ceiling.open_turn(file_id)
+            try:
+                authorities.per_file_ceiling.check(file_id)
+            except FileTookTooLong as over:
+                result = refusal_outcome(
+                    conn, call_site=A_FACT, subject_ref=file_id, error=over,
+                    observed_at=authorities.observed_at())
+                if authorities.on_result is not None:
+                    authorities.on_result(file_id, result)
+                return ()
         pending = pending_fields_for(
             conn, file_id=file_id, content_hash=content_hash,
             activation_signals=authorities.activation_signals)

@@ -40,20 +40,23 @@ from review_surface.progress import FileAbsentFromEveryEntry
 
 
 # =====================================================================
-# gap 9, first half: site G's six counters reach the screen
+# gap 9, first half: site G's seven counters reach the screen
 # =====================================================================
 
 def _a_pass(**over) -> cli.SituationPass:
     """A `SituationPass` with a different number in every counter.
 
     DIFFERENT NUMBERS ON PURPOSE. With `1` everywhere a test asserting "1 appears
-    six times" passes while five of the six lines are missing, which is the exact
-    defect these tests are about -- a count that reaches nobody.
+    seven times" passes while six of the seven lines are missing, which is the
+    exact defect these tests are about -- a count that reaches nobody.
     """
     return cli.SituationPass(**{
         "named": {"file-a": "academic.coursework", "file-b": "finance.records"},
         "settled": 22, "nothing_to_ask": 33, "nothing_to_read": 44,
-        "declined": 55, "no_route": 66, **over})
+        "declined": 55, "no_route": 66,
+        # `104` R-175's counter joined the partition: a file skipped because it had
+        # already held the run longer than one file may.
+        "over_ceiling": 77, **over})
 
 
 def _printed(situation: cli.SituationPass, *, files: int = 221) -> str:
@@ -63,14 +66,14 @@ def _printed(situation: cli.SituationPass, *, files: int = 221) -> str:
     return " ".join(out.getvalue().split())
 
 
-def test_all_six_of_site_gs_counters_reach_the_screen():
+def test_all_seven_of_site_gs_counters_reach_the_screen():
     """`104` §18.2 gap 9, the defect stated as an assertion.
 
     SABOTAGE: delete any one line of `_print_situation_pass`'s loop, or make it
     `if not count_: continue` the way `_print_fact_pass` skips its empty causes.
     The number for that counter disappears from the block and its assertion here
     goes red. Deleting the whole call at the `situation_cell` write -- which is
-    what the code did before this gap was closed -- takes all six.
+    what the code did before this gap was closed -- takes all seven.
     """
     said = _printed(_a_pass())
 
@@ -85,12 +88,13 @@ def test_all_six_of_site_gs_counters_reach_the_screen():
                           (33, "not asked, no candidate"),
                           (44, "not asked, nothing to read"),
                           (55, "asked and left alone"),
-                          (66, "no target")):
+                          (66, "no target"),
+                          (77, "out of time")):
         assert f"{count} {phrase}" in said, (count, phrase)
 
 
 def test_a_zero_counter_still_prints_its_line():
-    """The six numbers are an arithmetic a person checks the block with.
+    """The seven numbers are an arithmetic a person checks the block with.
 
     These counters PARTITION the roster -- every file the pass walked lands in
     exactly one of them -- so a line that disappears when it reads zero makes the
@@ -102,20 +106,21 @@ def test_a_zero_counter_still_prints_its_line():
     printer. Every assertion below goes red at once.
     """
     said = _printed(_a_pass(settled=0, nothing_to_ask=0, nothing_to_read=0,
-                            declined=0, no_route=0))
+                            declined=0, no_route=0, over_ceiling=0))
 
     assert "0 settled by rule" in said
     assert "0 not asked, no candidate" in said
     assert "0 not asked, nothing to read" in said
     assert "0 asked and left alone" in said
     assert "0 no target" in said
+    assert "0 out of time" in said
 
 
 def test_a_run_where_site_g_was_never_asked_prints_no_block_at_all():
     """`_NOTHING_ASKED`'s own ruling, one layer up, held to on the screen.
 
     "A run where site G was not asked and a run where it was asked and named
-    nothing must not read the same downstream." Six zeros under a header is
+    nothing must not read the same downstream." Seven zeros under a header is
     precisely how the two would come to read the same, and the person would be
     told a model considered their files and declined -- about a run where no model
     was consulted at all.
@@ -153,15 +158,16 @@ def test_every_counter_site_g_leaves_behind_earns_a_sentence():
     fields at import time, and this test says the same thing where a reader can
     see it fail.
 
-    SABOTAGE: add a seventh counter to `SituationPass` and no sentence for it.
+    SABOTAGE: add an eighth counter to `SituationPass` and no sentence for it.
     `cli` fails to import and every test in this file errors -- which is the point:
     it cannot go unprinted quietly.
     """
     fields = {field.name for field in dataclasses.fields(cli.SituationPass)}
     assert set(cli.SITUATION_SENTENCE) | {"named"} == fields
-    assert len(cli.SITUATION_SENTENCE) == 5, (
-        "five counted outcomes plus `named` in the header is the six `104` §18.2 "
-        "gap 9 asks for")
+    assert len(cli.SITUATION_SENTENCE) == 6, (
+        "six counted outcomes plus `named` in the header. Five when gap 9 was "
+        "closed; `104` R-175 added `over_ceiling`, because a file skipped for time "
+        "is a file this run did not decide about and the partition has to hold it")
 
 
 # =====================================================================

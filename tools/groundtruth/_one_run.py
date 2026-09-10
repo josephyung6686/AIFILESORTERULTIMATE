@@ -10,6 +10,14 @@ Usage: python3 -m tools.groundtruth._one_run CORPUS SITUATION LABEL DATABASE REP
 The last argument is the word `cloud` or nothing. Sending is OFF unless it is
 there, and the credential is unreadable unless it is there: turning the model on
 is one explicit word in one place, never a default and never inherited.
+
+`104` R-175: THIS RUNNER SETS A PER-FILE WALL-CLOCK CEILING AND A PERSON'S OWN RUN
+DOES NOT. The difference is who is watching. A person scanning their folder is at
+the screen and can stop a run that has stalled; this process walks 199 files for
+nine hours with nobody there, and on 10 Sep 2026 r19 spent twenty-six of its last
+minutes on one call to a server sitting at 0.4% CPU before the lead stopped it by
+hand (§18.22). The ceiling is what turns that into one recorded failure and 198
+files still measured.
 """
 from __future__ import annotations
 
@@ -17,6 +25,46 @@ import io
 import os
 import sys
 from pathlib import Path
+
+
+def file_ceiling_seconds(cli) -> float:
+    """How long one FILE may hold a scoreboard run. `104` R-175 part b.
+
+    **DERIVED FROM THE DEPLOYMENT'S OWN TWO NUMBERS, and it is not a minute count
+    somebody typed.** A number typed here would be a third opinion about how slow
+    this machine is, sitting beside the two that already exist, and it would go
+    quietly wrong the day either of them moved -- which is the whole class of defect
+    `104` calls hardcoding. The two it is built from:
+
+    * `cli.LOCAL_MODEL_TIMEOUT_SECONDS` -- how long ONE local call may take. Since
+      R-175 part a that is a deadline over the whole call rather than an idle timer,
+      so it is a real bound and not a hope.
+    * `cli.PER_FILE_LOCAL_CALL_SITES` -- the local call sites one FILE can be asked
+      at within a single pass, read off the code that makes the calls: site G in
+      `cli.ask_the_situation` and site A in `model_facts.fact_call_stage`. A tuple
+      of sites and not the number two, so the arithmetic follows the wiring.
+
+    The product is the longest a file's turn can honestly take when every call it
+    makes runs to its own deadline and none of them is stuck. A file past it is not
+    slow; it is a file this run has stopped waiting for.
+
+    **THE LOCAL NUMBER AND NOT THE CLOUD ONE**, on a run whose fact site routes per
+    file (`104` §17.13 ruling 3). A file may go to either, the cloud number is the
+    smaller of the two, and a ceiling built from it would cut off local files that
+    were answering. The ceiling is a bound on the worst honest case, so it takes the
+    larger patience.
+
+    **IT IS DELIBERATELY NOT TIGHT.** Too tight and the scoreboard records files as
+    failures that the model was busy answering, which is a measurement that lies
+    about the product; too loose and a stuck file costs the run its ceiling once
+    instead of for ever. Only one of those two errors is recoverable by reading the
+    report, so this errs long -- exactly as `LOCAL_MODEL_TIMEOUT_SECONDS` errs long
+    for the same asymmetry, in its own words.
+
+    The module is passed in rather than imported, because `cli` is importable only
+    after `main` has put `src` on the path.
+    """
+    return cli.LOCAL_MODEL_TIMEOUT_SECONDS * len(cli.PER_FILE_LOCAL_CALL_SITES)
 
 
 def main(argv: list[str]) -> int:
@@ -52,7 +100,11 @@ def main(argv: list[str]) -> int:
 
     out = io.StringIO()
     try:
-        code = cli.main(argv_for_cli, out=out)
+        # `104` R-175. A keyword and not a flag: the number is derived from the
+        # deployment's own two constants above, so there is nothing for a person to
+        # type and nothing they could type that would not be a third opinion.
+        code = cli.main(argv_for_cli, out=out,
+                        file_ceiling_seconds=file_ceiling_seconds(cli))
     finally:
         Path(report).write_text(out.getvalue(), encoding="utf-8")
     return code
