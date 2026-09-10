@@ -1720,6 +1720,16 @@ r19 (ee52769, cloud lane live) died on its first OCR file: gap 17d attached the 
 
 Verified on the merged head: 183 passed in 76.51s (0:01:16). Next wave dispatched into the freed slot: gaps 16 + 11b.
 
+### 18.30 The local call runs beside the cloud lane; r21 launched seeded from r20; R-176 dispatched (10 Sep 16:15-16:35)
+
+**Merged (a5de067).** `harness._settle` submits a batch's cloud sends to the pool, walks the batch's LOCAL sends on the calling thread inside that window, then gathers the cloud answers -- one thread performs every local send, so two local sends cannot overlap (r18's swap was two local calls), and a cloud socket waiting beside one costs the local server nothing. A local send joins a batch only when cloud work is already parked; with nothing in the air it settles inline, so a run with no cloud target is byte-identical. The batch width counts every parked send (a parked send is a spent release holding a budget slot). R-175's clock: pause before the window, resume per subject before its own send, pause after the last local one so the wait for cloud answers is billed to nobody. Verified on the merged head: 48 passed in 835.24s (0:13:55).
+
+**A lead error.** During the §18.29 cleanup the lead removed the cloud-lane agent's worktree while it was still building the follow-ons. Its first follow-on was already committed and survived on its branch (merged above); R-176 had been researched, not written. **R-176 dispatched fresh** with the research handed over: keep the SDK (the one-import-site pin, and no hand-rolled TLS on the key's path); the seam is `OpenAI(http_client=)` with a transport that sizes each phase's timeout from the remaining budget and checks between body chunks; the number stays `cli.MODEL_CALL_TIMEOUT_SECONDS`; the open question (whether httpcore binds the read timer once, making a trickle-then-stall overshoot by one budget) to be settled and documented before writing.
+
+**r20 stopped, r21 launched (16:17, 6511468).** r20 was serial at site A on the old head (two cloud dossiers in nine minutes); r21 runs the merged head (cloud lane, gaps 24/24b, R-175, 18/19) with `--reuse-answers-from` r20, whose 18 fact answers were copied in; the situation pass reruns (gap 24 changed held files' dossiers). Load at launch 142-183 with five agents' test sessions beside it; nothing more dispatched until reports land.
+
+**Gap 11b, the tree half (agent's question, lead's answer).** Minting a scoped General under every supported parent would answer a question `00`:99 leaves deliberately open (`cli.py:9927` passes `()` with the recorded argument "an unasked question answered by default is a folder nobody wanted"). The decision side is built (an offered ancestor chosen becomes a placement at that depth; an existing scoped-general child is on the menu). **Owed to the owner:** mint on demand, only under a parent that has a file whose facts support the parent and no leaf, which needs the tree pass to see placement outcomes -- a product ordering question.
+
 
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
