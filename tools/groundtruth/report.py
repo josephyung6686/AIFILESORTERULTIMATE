@@ -2,8 +2,8 @@
 
 Two rules about the shape. Protected comes first and is a verdict in words, not a
 percentage, because the one number nobody may average is whether a vaccination
-record was opened. And every rate is printed beside the count it came from, so a
-denominator of four can never read like a denominator of two hundred.
+record reached a cloud model. And every rate is printed beside the count it came
+from, so a denominator of four can never read like a denominator of two hundred.
 """
 from __future__ import annotations
 
@@ -22,6 +22,8 @@ from tools.groundtruth.score import (
     INVALID_OUTPUT,
     MISPLACED_BUCKETS,
     NO_OUTCOME,
+    BREACH_NOT_MARKED,
+    BREACH_RELEASED,
     OUTCOME_CLASSES,
     PLACED_BUCKETS,
     PLACED_EXACT,
@@ -545,7 +547,8 @@ def scorecard(runs: Sequence[RunObservation],
         for kind in sorted(kinds):
             w(f"              {len(kinds[kind]):3d}  {kind}")
     else:
-        w(f"PROTECTED   PASS -- all {protected} marked, counted, and never opened")
+        w(f"PROTECTED   PASS -- all {protected} marked, counted, kept off every "
+          f"cloud model, and never filed")
     if overmarks:
         w(f"            and {len(overmarks)} files were marked protected that are "
           f"not: {', '.join(overmarks[:3])}")
@@ -555,25 +558,30 @@ def scorecard(runs: Sequence[RunObservation],
     #
     # `not marked` can improve on its own as extraction improves: a detector
     # starved of body prose cannot recognise a vaccination record it was never
-    # shown. `opened` cannot, ever, by any amount of better classifying --
-    # extraction runs BEFORE classify in the same loop, so by the time a class
-    # exists the file has already been read. Only a guard that runs before the
-    # extractor, on the filename and the folder, can move that number.
-    #
-    # So the two numbers below answer different questions, and one of them is
-    # the experiment: if `not marked` falls once the extractors emit prose, the
-    # defect was upstream in extraction all along; if it does not move with a
+    # shown. So it is the experiment: if it falls once the extractors emit prose,
+    # the defect was upstream in extraction all along; if it does not move with a
     # hundred text units of medical record in front of the detector, the
     # corroboration diagnosis has survived a much harder test.
+    #
+    # `released` is the other half, and it is NOT the old `opened` line under a
+    # new word. `104` §18.7 amended the rule: protected material is opened on this
+    # machine for the local model, so reading one is the product working. What is
+    # unfixable is not the reading but the SENDING -- bytes on a provider's server
+    # cannot be recalled by any later release of this product, and every file this
+    # line counts is a file whose privacy was already spent. It is decided before
+    # the call, by the per-file route and the door, which is where a fix goes.
     if breaches:
-        w(f"            of these, {len(kinds.get('not marked', ())):2d} not marked "
-          f"-- CAN improve as extraction improves; the detector may simply")
-        w("                 never have been shown the prose it needed")
-        w(f"                  {len(kinds.get('opened', ())):2d} opened     -- CANNOT "
-          f"improve by classifying better. Extraction runs")
-        w("                 before classify, so the reading already happened. Only a "
-          "pre-extraction")
-        w("                 guard on the filename and folder can move this one.")
+        w(f"            of these, {len(kinds.get(BREACH_NOT_MARKED, ())):2d} "
+          f"not marked -- CAN improve as extraction improves; the detector")
+        w("                         may simply never have been shown the prose "
+          "it needed")
+        w(f"                      {len(kinds.get(BREACH_RELEASED, ())):2d} "
+          f"released   -- CANNOT be undone for the files it already names.")
+        w("                         The bytes are off the device. The route and "
+          "the door")
+        w("                         decide this before the call, and they are the "
+          "only")
+        w("                         place it can be fixed.")
     w("")
 
     # ---- sorting, in two blocks --------------------------------------------

@@ -2,10 +2,16 @@
 
 The database is the measurement surface, not the report on screen. The report is
 written for a person and changes as its sentences improve; `placement_decisions`,
-`tree_nodes`, `file_facts`, `extraction_runs` and `classifications` are the
-product's own record of what it concluded, and they say things the report does
-not -- including, on the day this was written, that three files were marked
-protected while the screen said none were.
+`tree_nodes`, `file_facts`, `extraction_runs`, `classifications` and
+`release_ledger` are the product's own record of what it concluded, and they say
+things the report does not -- including, on the day this was written, that three
+files were marked protected while the screen said none were.
+
+`release_ledger` joined that list on 10 Sep 2026 for `104` §18.7. The scorecard's
+protected verdict has to answer "did this file's bytes leave the device", and the
+only truthful answer is the one the gate WROTE when it minted the release: the
+ledger stores the whole `ModelTarget`, locality included, so the harness reads a
+recorded fact rather than guessing a destination from a model's name.
 
 Nothing here opens a file of the owner's. It reads a SQLite database the product
 wrote, and the one thing it deliberately does NOT read is `text_units.text`:
@@ -101,6 +107,48 @@ DECIDED_BY_USER = "user"
 DECIDERS = (DECIDED_BY_MODEL, DECIDED_BY_RULE, DECIDED_BY_USER)
 
 
+#: SPEC §6's locality that means the bytes LEFT THE DEVICE. `privacy.vocabulary`
+#: owns it; this is spelled here for the reason `C_PLACEMENT`, the review policies
+#: and the deciders are spelled here -- the harness reads a database an older build
+#: wrote, and importing the product's vocabulary would make the instrument agree
+#: with the product by construction. `test_groundtruth_protected_release.py` pins
+#: this spelling against `privacy.vocabulary.CLOUD_LOCALITY`, so a rename over
+#: there fails a test here instead of silently measuring nothing.
+CLOUD_LOCALITY = "cloud"
+
+#: What a target that cannot be read out of the ledger is called.
+#:
+#: NOT dropped, and that direction is the point. A `release_ledger` row was written
+#: by the gate itself, so a row whose `model_target` this cannot parse is a release
+#: that happened and whose destination is unknown -- and unknown is not "local". The
+#: harsher reading is `_placeable_chains`'s own ("a number that flatters the product
+#: on the strength of a missing column is the one failure this package exists to
+#: refuse"), and it can only ever fire on a defect: either the target's stored shape
+#: moved and this reader is stale, or the gate wrote something it should not have.
+UNREADABLE_TARGET = "unreadable_model_target"
+
+#: The tables that name a `release_id` beside the `dossier_id` it was spent on.
+#:
+#: `llm_call_failure` IS ONE OF THEM, deliberately, and `transport.issue` is why.
+#: It spends the release inside its transaction -- "before the spend, before the
+#: socket" -- and only then calls `model_client.invoke`; both `record_call_failure`
+#: arms sit past that call, one on the client raising and one on it returning bytes
+#: of the wrong type. So a row in this table is a call whose payload had already
+#: gone to the client. Reading only the successful two would let a provider's
+#: timeout launder a release nobody can recall, and "the answer was unusable" is
+#: not the same sentence as "nothing was sent".
+#:
+#: The weaker claim holds even where that ordering someday does not: the gate
+#: MINTED a cloud release for this file, so the per-file predicate had already let
+#: the door open cloud-ward on protected material. What the provider did afterwards
+#: is not what the ruling is about.
+#:
+#: Read defensively, one table at a time: a database written before any one of them
+#: existed still yields what the others hold, where a single joined SELECT naming a
+#: missing table would come back empty and report a clean run.
+RELEASE_BEARING_TABLES = ("llm_response", "llm_call_usage", "llm_call_failure")
+
+
 @dataclass(frozen=True)
 class Observation:
     """What the run concluded about one file."""
@@ -171,6 +219,36 @@ class Observation:
     #: prints these counts prints that remainder separately, exactly as
     #: `POLICY_NOT_RECORDED` is printed beneath the review policies.
     decided_by: str | None = None
+    #: Every CLOUD target this run released this file's dossier to, named
+    #: `provider/model_id` out of the release the gate minted. Empty means nothing
+    #: about this file left the device -- which is the ordinary case and, for a
+    #: protected file, the required one.
+    #:
+    #: `104` §18.7 (9 Sep 2026), the owner confirmed twice: protected material IS
+    #: opened on this machine and shown to the LOCAL model; what it may never do is
+    #: reach a cloud one. So "was it opened" stopped being the protected question
+    #: and "where did it go" became it, and this is the column that answers it.
+    #:
+    #: READ OFF THE LEDGER'S OWN `locality`, never off the model's name. `readers.
+    #: model_ollama` is the local provider on this machine today and the local model
+    #: is whatever `GRAPH_AGENT_LOCAL_MODEL` names, both of which change without the
+    #: meaning of this column changing; a harness that compared `model_id` against a
+    #: remembered name would report a breach the day the owner pulled a different
+    #: local model, and would report a clean run the day a cloud provider served one
+    #: with the same name. `privacy.binding` stores the whole `ModelTarget` beside
+    #: the release it minted, locality included, so the run has already written down
+    #: the answer and this only has to read it.
+    #:
+    #: Last and defaulted, like the two above, so every existing construction of this
+    #: class keeps working unchanged and a database with no `llm_*` tables leaves it
+    #: empty for every file -- the truth about such a run: nothing was released
+    #: because nothing was called.
+    cloud_releases: tuple[str, ...] = ()
+
+    @property
+    def released_to_cloud(self) -> bool:
+        """This file's dossier reached a target off this device."""
+        return bool(self.cloud_releases)
 
     @property
     def held(self) -> bool:
@@ -400,6 +478,101 @@ def _invalid_model_outputs(connection) -> set[str]:
     return {file_id for file_id, bad in failed.items() if bad}
 
 
+def _cloud_target_of(stored: str) -> str | None:
+    """The `provider/model_id` of a release that left the device, or `None`.
+
+    `stored` is `binding._target_form`'s output: `canonical_json` over
+    `ModelTarget.to_mapping()`, which is `{locality, model_id, provider}` and, for a
+    local target with a window of ours to state, `context_tokens` beside them.
+
+    THE `locality` KEY IS THE WHOLE READING. It is the run's own record of where the
+    bytes went, written by the gate at the moment it authorised them, and it is why
+    this module never needs to know what the local model is called.
+
+    A row this cannot parse comes back as `UNREADABLE_TARGET` rather than as `None`:
+    see that constant for why the unknown destination is counted and not dropped.
+    """
+    try:
+        loaded = json.loads(stored)
+    except (TypeError, ValueError):
+        return UNREADABLE_TARGET
+    if not isinstance(loaded, dict):
+        return UNREADABLE_TARGET
+    locality = loaded.get("locality")
+    if not isinstance(locality, str):
+        return UNREADABLE_TARGET
+    if locality != CLOUD_LOCALITY:
+        return None
+    provider, model = loaded.get("provider"), loaded.get("model_id")
+    named = "/".join(part for part in (provider, model) if isinstance(part, str) and part)
+    return named or UNREADABLE_TARGET
+
+
+def _cloud_releases(connection) -> dict[str, tuple[str, ...]]:
+    """File id -> every cloud target this run released that file's dossier to.
+
+    Three joins, each of them a table the product wrote:
+
+      1. `release_ledger` says WHERE. One row per release the gate minted, carrying
+         the whole `ModelTarget`; the cloud ones are kept and the local ones are
+         dropped here, so nothing downstream has to know a locality vocabulary.
+      2. `llm_dossier.subject_ref` says WHICH FILE, read back through
+         `_subject_file_id` -- the same narrow reading the rest of this module uses,
+         so a subject that is not a file of this corpus is not counted against one.
+      3. `RELEASE_BEARING_TABLES` say WHICH RELEASE PAID FOR WHICH DOSSIER. A
+         release is single-use and bound to one call, so the pair is the join.
+
+    A RELEASE THIS RUN'S LEDGER DOES NOT HOLD IS NOT THIS RUN'S RELEASE, and that is
+    a correctness requirement and not a leniency. `tools.groundtruth.reuse` copies
+    `llm_dossier` and `llm_response` forward under `--reuse-answers-from` and
+    deliberately does NOT copy the ledger -- "a single-use capability that paid for a
+    call in another run has not paid for anything in this one" -- so on every seeded
+    database the `release_id` columns dangle ON PURPOSE. Counting a dangling id as a
+    destination would report a cloud breach for every answer a prior run bought,
+    including answers it bought locally, and the number would grow with reuse rather
+    than with releases. What a prior run sent was measured when that run was scored.
+
+    A database with no ledger table at all yields nothing, and that is the honest
+    reading rather than a flattering one: `release_ledger` is created by
+    `privacy.schema.create_privacy_schema` and `llm_response.release_id` is NOT NULL
+    because the gate mints it, so a database that has responses and no ledger was
+    written by something with no door in it -- not by this product declining to use
+    one. An unreadable ROW, which is the case this instrument could actually meet, is
+    counted under `UNREADABLE_TARGET` instead.
+    """
+    try:
+        targets = {row["release_id"]: named
+                   for row in _rows(connection, "select release_id, model_target "
+                                                "from release_ledger")
+                   if (named := _cloud_target_of(row["model_target"])) is not None}
+    except sqlite3.Error:
+        return {}
+    if not targets:
+        return {}
+
+    try:
+        subjects = {}
+        for row in _rows(connection, "select dossier_id, subject_ref from llm_dossier"):
+            file_id = _subject_file_id(row["subject_ref"])
+            if file_id is not None:
+                subjects[row["dossier_id"]] = file_id
+    except sqlite3.Error:
+        return {}
+
+    reached: dict[str, set[str]] = {}
+    for table in RELEASE_BEARING_TABLES:
+        try:
+            rows = _rows(connection, f'select dossier_id, release_id from "{table}"')
+        except sqlite3.Error:
+            continue          # an older database without this table
+        for row in rows:
+            named = targets.get(row["release_id"])
+            file_id = subjects.get(row["dossier_id"])
+            if named is not None and file_id is not None:
+                reached.setdefault(file_id, set()).add(named)
+    return {file_id: tuple(sorted(named)) for file_id, named in reached.items()}
+
+
 def _placeable_chains(connection, nodes) -> tuple[tuple[str, ...], ...]:
     """Every folder chain a file could legally have been filed into, root first.
 
@@ -538,6 +711,7 @@ def _observe(connection, root, situation, label, promised_levels, report,
         routing[row["file_id"]] = row["unrouted_completeness"]
 
     invalid_outputs = _invalid_model_outputs(connection)
+    cloud_releases = _cloud_releases(connection)
 
     decisions: dict[str, sqlite3.Row] = {}
     for row in _rows(connection, "select subject_ref, outcome, node_id, payload from "
@@ -601,6 +775,7 @@ def _observe(connection, root, situation, label, promised_levels, report,
             invalid_model_output=file_id in invalid_outputs,
             review_policy=review_policy,
             decided_by=decided_by,
+            cloud_releases=cloud_releases.get(file_id, ()),
         )
 
     # A file the scan set aside never becomes a `files` row, and "never silently

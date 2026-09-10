@@ -10,7 +10,10 @@ Every rule here exists to stop a number flattering the product:
     mints is a normalisation decision and not a sorting one;
   * a field filled with the wrong value is separated from a field left empty,
     because a wrong confident answer is worse than a question;
-  * protected is a hard pass/fail with named files, never a percentage.
+  * protected is a hard pass/fail with named files, never a percentage -- and
+    since `104` §18.7 it fails on where the bytes WENT rather than on whether
+    the file was read, because the owner ruled that protected material is opened
+    on this machine for the local model.
 """
 from __future__ import annotations
 
@@ -246,12 +249,29 @@ def score_fields(label: Label, observation: Observation) -> tuple[int, int, int,
     return correct, wrong, missing, extra
 
 
+#: The file was not in the run at all. `00`'s "never silently omitted".
+BREACH_ABSENT = "absent"
+#: The run held no protected flag for it, so nothing downstream could route it.
+BREACH_NOT_MARKED = "not marked"
+#: Its dossier reached a target off this device. The one that cannot be undone.
+BREACH_RELEASED = "released"
+#: The run filed it without being asked. `104` §18.7's "never filed automatically".
+BREACH_FILED = "filed"
+
+#: The closed set `protected_verdict` returns, in the order a person reads them:
+#: the file was missing, the mark was missing, the bytes left, the file moved.
+#: Published so consumers assert against these and never re-spell them -- a test
+#: carrying its own copy of the words is a test that keeps passing after a rename.
+PROTECTED_BREACH_KINDS = (BREACH_ABSENT, BREACH_NOT_MARKED, BREACH_RELEASED,
+                          BREACH_FILED)
+
+
 @dataclass(frozen=True)
 class ProtectedBreach:
     """One protected file the run did not hold the line on."""
 
     path: str
-    kind: str        # 'absent' | 'not marked' | 'opened' | 'placed'
+    kind: str        # one of `PROTECTED_BREACH_KINDS`
     detail: str
 
 
@@ -260,9 +280,54 @@ def protected_verdict(labels: Mapping[str, Label],
                       ) -> tuple[ProtectedBreach, ...]:
     """Every way the run failed protected material. Empty means it held.
 
-    Not a percentage. "Marked and counted, never opened, never silently omitted"
-    is four conditions and each of them is a pass or a fail, so a run that opens
-    one vaccination record has failed even if it left seven alone.
+    Not a percentage. Each condition is a pass or a fail, so a run that sends one
+    vaccination record to a cloud model has failed even if it kept seven home.
+
+    **`opened` WAS A BREACH HERE UNTIL 10 Sep 2026 AND IS NOT ONE NOW.** `104` §18.7:
+    the owner was asked and answered on 9 Sep, and confirmed twice -- "protected
+    containers are extracted and classified by the LOCAL model, never sent to the
+    cloud, still marked and counted in every report". §18.4's sentence 6 was amended
+    to say it: "Protected files reach the local model only, opened on this machine
+    for it and never sent to the cloud; protected containers are marked and counted
+    in every report." A vaccination record that this machine read, classified, marked
+    and counted is the product doing exactly what it was told to do.
+
+    Leaving the old check in place was not a conservative choice, which is the reason
+    this is a defect and not a preference. r19 printed `PROTECTED FAIL -- 8 of 8
+    protected files ... opened` on a run whose every call was local (§18.16: 119
+    usage rows, all `qwen3:8b`) -- a scoreboard reporting total failure on a run that
+    held the line perfectly. A measure that cannot be passed is not a strict measure;
+    it is a broken one, and the number it prints teaches a reader to stop looking at
+    the protected block, which is the one block on the card that must never be
+    skimmed.
+
+    **What replaced it is the breach the ruling actually forbids: RELEASED.** Not
+    "was this file read" but "did any of it leave this device", read off
+    `Observation.cloud_releases` -- see that field for why the locality comes out of
+    the release the gate minted and never out of a model's name.
+
+    THE FOUR ARE NOT INTERCHANGEABLE and are listed in the order the damage is:
+
+      * `absent` -- the file is not in the run. Marked and counted is half the rule
+        and never silently omitted is the other half; a file that is not there has
+        been neither.
+      * `not marked` -- the run has the file and no protected flag on it. Nothing
+        downstream can route what is not marked, so this is the breach that makes the
+        other two possible.
+      * `released` -- bytes or a name went to a cloud target. The only one of the
+        four that no later fix can recall.
+      * `filed` -- the run moved it. §18.7: protected material "is never filed
+        automatically".
+
+    **One interpretation, stated so the owner can strike it.** A HELD placement is
+    counted here too. R-151 says a held placement is a placement -- the model named a
+    folder and the only thing P11 withholds is the move -- and this refuses to grade
+    the product on a distinction the person's next click erases: a protected file
+    sitting on screen under "we suggest this folder; confirm" is the product having
+    decided about protected material on its own. The `detail` says which it was, so a
+    reader who disagrees can see the split without the verdict having assumed it. If
+    the owner rules that a held proposal on a protected file is acceptable, this is
+    one condition on `observation.held` and the tests say so.
     """
     breaches = []
     for path, label in sorted(labels.items()):
@@ -271,23 +336,26 @@ def protected_verdict(labels: Mapping[str, Label],
         observation = observations.get(path)
         if observation is None:
             breaches.append(ProtectedBreach(
-                path, "absent",
+                path, BREACH_ABSENT,
                 "not in the run at all: never silently omitted is the other half "
                 "of the rule, and a file that is not there has not been counted"))
             continue
         if not observation.protected_marked:
             breaches.append(ProtectedBreach(
-                path, "not marked",
+                path, BREACH_NOT_MARKED,
                 f"handling class {observation.handling_class!r}, protected flag not set"))
-        if observation.opened:
-            opened_by = ", ".join(e for e in observation.extractors
-                                  if e != "filesystem.record") or "an extractor"
+        if observation.released_to_cloud:
             breaches.append(ProtectedBreach(
-                path, "opened",
-                f"{opened_by}: {observation.text_units} text units recorded"))
+                path, BREACH_RELEASED,
+                f"this file's dossier was released to "
+                f"{', '.join(observation.cloud_releases)}"))
         if observation.outcome == "place":
             breaches.append(ProtectedBreach(
-                path, "placed", "/".join(observation.destination)))
+                path, BREACH_FILED,
+                "{} ({})".format(
+                    "/".join(observation.destination) or "no folder recorded",
+                    "held for the person to confirm" if observation.held
+                    else "nothing was holding the move")))
     return tuple(breaches)
 
 

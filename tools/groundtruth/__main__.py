@@ -236,8 +236,9 @@ def main(argv: list[str] | None = None) -> int:
     scores = [score_situation(run, labels) for run in runs]
 
     # Protected is checked in EVERY run, not just the one whose situation the
-    # label names. A vaccination record that stays shut under `coursework` and is
-    # opened under `dataset-analysis` has still been opened.
+    # label names. A vaccination record that stayed on this machine under
+    # `coursework` and was released to a cloud model under `dataset-analysis` has
+    # still been released, and the run that did it is not the run being scored.
     breaches, overmarks = [], set()
     for run in runs:
         breaches.extend(protected_verdict(labels, run.files))

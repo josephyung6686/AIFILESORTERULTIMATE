@@ -33,6 +33,11 @@ from tools.groundtruth.score import (
     PLACED_WRONG,
     NOT_PLACED,
     NO_DECISION,
+    BREACH_ABSENT,
+    BREACH_FILED,
+    BREACH_NOT_MARKED,
+    BREACH_RELEASED,
+    PROTECTED_BREACH_KINDS,
     ProtectedBreach,
     protected_verdict,
     score_fields,
@@ -55,7 +60,8 @@ def _obs(**over):
                 content_recovered=True, protected_marked=False,
                 handling_class="personal_non_sensitive", fields={},
                 field_origins={}, unresolved_fields=(), outcome="place",
-                destination=("Coursework", "PHYS1403", "exam"), asked=False)
+                destination=("Coursework", "PHYS1403", "exam"), asked=False,
+                cloud_releases=())
     base.update(over)
     return Observation(**base)
 
@@ -141,40 +147,113 @@ def test_a_protected_file_that_was_marked_and_left_shut_passes():
     assert protected_verdict({label.path: label}, {label.path: obs}) == ()
 
 
+def test_a_protected_file_opened_on_this_machine_is_not_a_breach():
+    """`104` §18.7, confirmed twice: protected material IS opened here, for the
+    LOCAL model, and stays marked and counted.
+
+    SABOTAGE: restore the old `if observation.opened` arm. This file was read by
+    three extractors, holds 122 text units, was marked, went to no cloud target
+    and was not filed -- the ruling working exactly as written -- and the old
+    scorer called it `opened` and failed the run. That is the r19 line verbatim
+    (§18.16: `PROTECTED FAIL -- 8 of 8 protected files ... opened` on a run whose
+    119 usage rows were all local), and it is why the arm came out.
+    """
+    label = _label(protected=True, destination=None)
+    obs = _obs(protected_marked=True, opened=True, text_units=122,
+               extractors=("filesystem.record", "pdf.text", "ocr"),
+               outcome=None, destination=(), cloud_releases=())
+    assert protected_verdict({label.path: label}, {label.path: obs}) == ()
+
+
 def test_a_protected_file_that_was_never_marked_fails_outright():
+    """SABOTAGE: drop the `not marked` arm, or read the flag off the label
+    instead of off the observation. Nothing downstream can route what is not
+    marked, so this is the breach that makes the other two reachable -- and it is
+    the one §18.7 explicitly kept ("still marked and counted in every report")."""
     label = _label(protected=True, destination=None)
     obs = _obs(protected_marked=False, opened=False, text_units=0, evidence_rows=0, prose_evidence_rows=0,
                extractors=("filesystem.record",), outcome=None, destination=())
     breaches = protected_verdict({label.path: label}, {label.path: obs})
-    assert [b.kind for b in breaches] == ["not marked"]
+    assert [b.kind for b in breaches] == [BREACH_NOT_MARKED]
 
 
-def test_a_protected_file_that_was_opened_fails_outright():
-    # The rule is not "handled carefully". It is never opened, and a text unit
-    # is the product's own record that it read one.
+def test_a_protected_file_released_to_a_cloud_target_fails_outright():
+    """The breach the ruling actually forbids. §18.7: "never sent to the cloud".
+
+    SABOTAGE: drop the `released_to_cloud` arm, or -- the subtler one -- decide
+    locality by comparing the model's name against a remembered local one. This
+    file was marked, was never filed, and the only thing wrong with it is where
+    its dossier went; a scorer that only asks "was it opened" now passes it, and
+    a scorer that asks "is this model called qwen3:8b" passes it the day a cloud
+    provider serves a model by that name.
+    """
     label = _label(protected=True, destination=None)
     obs = _obs(protected_marked=True, opened=True, text_units=122,
-               extractors=("filesystem.record", "pdf.text"), outcome=None, destination=())
+               extractors=("filesystem.record", "pdf.text"), outcome=None,
+               destination=(), cloud_releases=("deepseek/deepseek-chat",))
     breaches = protected_verdict({label.path: label}, {label.path: obs})
-    assert [b.kind for b in breaches] == ["opened"]
-    assert breaches[0].detail.startswith("pdf.text")
+    assert [b.kind for b in breaches] == [BREACH_RELEASED]
+    # The line names the target, because "a breach happened" is not something a
+    # person can act on and "this provider has it" is.
+    assert "deepseek/deepseek-chat" in breaches[0].detail
 
 
-def test_a_protected_file_that_was_placed_fails_outright():
+def test_a_protected_file_the_run_filed_fails_however_the_move_was_policed():
+    """§18.7: protected material is "never filed automatically".
+
+    SABOTAGE: excuse the held half -- `if observation.outcome == "place" and not
+    observation.held`. Both files below were marked and neither left the device;
+    the only difference is P11's review policy, and R-151 says a held placement
+    IS a placement: the model named the folder and the person's next click is the
+    move. The verdict is the same for both and the detail is what differs, so a
+    reader can see the split without the score having assumed it.
+    """
     label = _label(protected=True, destination=None)
-    obs = _obs(protected_marked=True, opened=False, text_units=0, evidence_rows=0, prose_evidence_rows=0,
-               extractors=("filesystem.record",), outcome="place",
-               destination=("Coursework",))
-    breaches = protected_verdict({label.path: label}, {label.path: obs})
-    assert [b.kind for b in breaches] == ["placed"]
+    would_move = _obs(protected_marked=True, outcome="place",
+                      destination=("Coursework", "Medical"),
+                      review_policy="auto_eligible")
+    held = _obs(protected_marked=True, outcome="place",
+                destination=("Coursework", "Medical"),
+                review_policy="blocked_pending_user")
+
+    for observation in (would_move, held):
+        breaches = protected_verdict({label.path: label}, {label.path: observation})
+        assert [b.kind for b in breaches] == [BREACH_FILED]
+        assert "Coursework/Medical" in breaches[0].detail
+
+    moved_detail = protected_verdict({label.path: label},
+                                     {label.path: would_move})[0].detail
+    held_detail = protected_verdict({label.path: label},
+                                    {label.path: held})[0].detail
+    assert moved_detail != held_detail
+    assert "held" in held_detail
 
 
 def test_a_protected_file_missing_from_the_run_entirely_fails():
-    # "never silently omitted" is the other half of the rule. A protected file
-    # that simply is not there has not been counted.
+    """SABOTAGE: `for path, observation in observations.items()` instead of
+    walking the LABELS. "never silently omitted" is the other half of the rule,
+    and a scorer that iterates what the run recorded can never notice a file the
+    run did not record."""
     label = _label(protected=True, destination=None)
     breaches = protected_verdict({label.path: label}, {})
-    assert [b.kind for b in breaches] == ["absent"]
+    assert [b.kind for b in breaches] == [BREACH_ABSENT]
+
+
+def test_the_four_breach_kinds_are_the_closed_set_and_nothing_else_is_reported():
+    """SABOTAGE: add a fifth kind and forget to publish it. Every consumer -- the
+    scorecard's per-kind tally, `breach_detail`, the end-to-end pin -- reads the
+    words, so a kind outside this tuple prints under a heading nobody wrote."""
+    label = _label(protected=True, destination=None)
+    every = protected_verdict(
+        {label.path: label},
+        {label.path: _obs(protected_marked=False, opened=True, text_units=9,
+                          outcome="place", destination=("Coursework",),
+                          cloud_releases=("openai/gpt-x",))})
+    assert {b.kind for b in every} == {BREACH_NOT_MARKED, BREACH_RELEASED,
+                                       BREACH_FILED}
+    assert set(PROTECTED_BREACH_KINDS) == {BREACH_ABSENT, BREACH_NOT_MARKED,
+                                           BREACH_RELEASED, BREACH_FILED}
+    assert all(b.kind in PROTECTED_BREACH_KINDS for b in every)
 
 
 def test_every_breach_names_the_file_so_the_failure_is_actionable():
