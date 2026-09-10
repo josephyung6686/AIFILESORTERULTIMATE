@@ -744,7 +744,21 @@ LOCAL_MODEL_TIMEOUT_SECONDS: float = 600.0
 #: the ~4,200 prompt tokens and ~85 seconds of evaluation this smoke measured. The
 #: window is what makes the cache POSSIBLE by staying constant; the section order
 #: is what makes it PAY.
-LOCAL_CONTEXT_CEILING: int = 32768
+#:
+#: 24,576 SINCE 10 Sep 2026 (`104` §18.15, the owner's word at 00:05), AND THE
+#: ARITHMETIC IS THE REASON. 32,768 was sized when a dossier could be 96 KB;
+#: `104` R-174 bounds the released list in wire bytes, so the largest prompt the
+#: product can build is the largest template in the library (~11.6 KB) plus the
+#: dossier frame plus the released bound plus the evidence items that count bounds
+#: -- about 24 KB, ~12,400 tokens at `BYTES_PER_TOKEN_FLOOR`, ~8,700 measured on
+#: r18's 199 files -- and with `MAX_RESPONSE_TOKENS` on top it needs ~20,600. The
+#: window holds it with ~4,000 tokens to spare on the conservative bound; a prompt
+#: past it is REFUSED (`OllamaContextExceeded`), never truncated, so nothing is
+#: lost in silence -- and `tests/readers/test_local_window_holds_the_largest_
+#: prompt.py` builds that bound from the library and the limits and holds it. What
+#: the smaller window buys is ~1.2 GB of KV cache the server no longer reserves,
+#: which is the memory that pushed the machine into swap on 9 Sep.
+LOCAL_CONTEXT_CEILING: int = 24576
 
 #: Where this deployment keeps its own values. Read here and nowhere else in `src/`.
 ENV_FILE: Path = Path(__file__).resolve().parents[1] / ".env"
