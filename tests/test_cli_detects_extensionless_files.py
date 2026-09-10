@@ -178,17 +178,32 @@ def test_bytes_that_are_nothing_the_reader_knows_stay_honestly_unsupported(tmp_p
 def test_a_file_that_HAS_an_extension_is_never_renamed_by_this_table():
     """The table answers for extensionless files only. `license.py` is Python and
     `Makefile.md` is Markdown, and letting a stem override a real extension would
-    be the detector overruling the thing §2.9 calls the routing signal."""
-    assert cli._detect_format(Path("/x/license.py")) is None
-    assert cli._detect_format(Path("/x/Makefile.md")) == "md"
-    assert cli._detect_format(Path("/x/notice.pdf")) == "pdf"
-    # The hyphen rule is the one with teeth here. `license-loader.py` starts with a
-    # word the table knows, and without the `path.suffix` guard the split would hand
-    # a Python module back as `txt` -- the detector overruling a real extension on
-    # the strength of half a filename.
-    assert cli._detect_format(Path("/x/license-loader.py")) is None
-    assert cli._detect_format(Path("/x/readme-generator.sh")) is None
-    assert cli._detect_format(Path("/x/makefile-helper.js")) is None
+    be the detector overruling the thing §2.9 calls the routing signal.
+
+    THE ASSERTIONS CHANGED SHAPE AND THE QUESTION DID NOT. They used to read
+    `is None`, which was a PROXY for "the name table did not fire" that only held
+    while `_detect_format` returned None for every extension outside its five-entry
+    map. `104` §18.2 gap 21 deleted that map, so a missing file now falls through to
+    `signature_detector`'s own OSError arm, which answers with the extension the
+    router already knows. What this test is about is the word `txt`: none of these
+    six may come back as the licence convention's answer.
+
+    SABOTAGE: drop the `if not path.suffix` guard from `_detect_format` and
+    `license.py` comes back `txt` -- a Python module renamed by half its filename.
+    """
+    for name, token in (("license.py", "py"), ("Makefile.md", "md"),
+                        ("notice.pdf", "pdf"),
+                        # The hyphen rule is the one with teeth here.
+                        # `license-loader.py` starts with a word the table knows, and
+                        # without the `path.suffix` guard the split would hand a
+                        # Python module back as `txt`.
+                        ("license-loader.py", "py"),
+                        ("readme-generator.sh", "sh"),
+                        ("makefile-helper.js", "js")):
+        detected = cli._detect_format(Path("/x") / name)
+        assert detected == token, name
+        assert detected != cli._FORMAT_BY_EXTENSIONLESS_NAME.get(
+            name.split(".")[0].split("-")[0].lower()), name
 
 
 def test_a_file_that_cannot_be_opened_at_all_is_still_routed_by_its_path():
@@ -220,20 +235,29 @@ def test_a_file_that_cannot_be_opened_at_all_is_still_routed_by_its_path():
 # `readers/signatures.py` was written for exactly this and F22 records that it "is
 # not wired into `cli._detect_format`".
 #
-# THE SIGNATURE IS ASKED LAST AND ONLY WHERE THE OTHER TWO ANSWER NOTHING, and that
-# order is measured rather than aesthetic. Asking it FIRST, as §2.9's "the detected
-# format wins over the declared extension" reads on its own, was tried against the
-# owner's 21-file sample: seven files changed their operative format and every one of
-# the seven was a false disagreement. Five `.ipynb` and one `.code-workspace` are
-# JSON, so the sniffer answers `json` -- true, coarser than the extension, and
-# recorded as "this file is misnamed" in a column `router.py` keeps precisely so the
-# disagreement is not manufactured. A `.jpeg` answers `jpg`, which is one format
-# spelled two ways. None of the seven is a file anybody misnamed.
+# THE SIGNATURE IS NOW ASKED FOR EVERY FILE, AND `104` §18.2 GAP 21 IS WHY. What
+# stood here said it was "asked LAST and ONLY where the other two answer nothing",
+# on a measurement: asking it first changed seven operative formats on the owner's
+# 21-file sample, five `.ipynb` and a `.code-workspace` to `json` and a `.jpeg` to
+# `jpg`, and recorded seven disagreements in a column `router.py` keeps precisely so
+# the disagreement "is not manufactured".
 #
-# The name table is asked before the signature for the same kind of reason: a real
-# `Dockerfile` is text, so the sniffer's weak answer is `txt`, and taking it would
-# move every Dockerfile on a disk from `code_structured` to `text_document`. A file
-# named by a convention has said what it is.
+# THE MEASUREMENT SURVIVES AND THE CONCLUSION DOES NOT. Checked against the router's
+# tables rather than against the tokens: `ipynb`, `code-workspace` and `json` all
+# carry `code_structured` and `text.structured`; `jpeg` and `jpg` both carry `image`
+# and `image.metadata`. Not one of the seven changes where the file goes -- they gain
+# a true row saying the name and the bytes spell one format two ways.
+#
+# What the extension shortcut cost, on every OTHER file: `detected_format` NULL (the
+# map held five suffixes and the router knows sixty), a `disagree` column that could
+# not fire because a value read off the extension cannot contradict the extension,
+# and §2.9's indexed-but-unreadable `format` observation, which
+# `filesystem.unrouted_result` writes only `if detected:`.
+#
+# The name table is still asked before the signature, for an extensionless file: a
+# real `Dockerfile` is text, so the sniffer's weak answer is `txt`, and taking it
+# would move every Dockerfile on a disk from `code_structured` to `text_document`. A
+# file named by a convention has said what it is.
 
 _SYLLABUS = (
     "PHYS 1401 Syllabus",
@@ -381,18 +405,197 @@ def test_a_conventional_name_still_beats_the_bytes(tmp_path):
     assert cli._detect_format(tmp_path / "LICENSE") == "txt"
 
 
-def test_a_known_extension_is_still_answered_without_reading_the_file(tmp_path):
-    """The seven false disagreements, refused at the top of the function.
+# --------------------------------------------------------------------------- #
+# `104` §18.2 gap 21: the signature runs for every file
+# --------------------------------------------------------------------------- #
 
-    A notebook is JSON and a `.jpeg` is a `jpg`, and neither file is misnamed. The
-    extension the router knows is the answer, and the bytes are not consulted at
-    all -- which is also why this can be asserted about a path that does not exist.
+_PNG = (b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\rIHDR"
+        + b"\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00"
+        + b"\x1f\x15\xc4\x89")
+#: Photoshop's magic number (`8BPS`). §2.9 routes `psd` to `design_creative`, which
+#: has no extractor, which is the M3 "indexed-but-unreadable" case.
+_PSD = b"8BPS\x00\x01" + b"\x00" * 32
+
+
+def _minimal_docx(path: Path) -> Path:
+    """A ZIP holding `word/document.xml`, which is what OOXML says a `.docx` IS.
+
+    Built with `zipfile` rather than python-docx on purpose: the question here is
+    what `readers/signatures.py` reads out of the container, and a real library
+    would make the fixture depend on a package this test file does not otherwise
+    need.
+    """
+    import zipfile
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("[Content_Types].xml", "<Types/>")
+        archive.writestr("word/document.xml",
+                         "<w:document><w:body/></w:document>")
+    return path
+
+
+def test_a_pdf_named_txt_is_detected_by_its_bytes_and_the_lie_is_recorded(tmp_path):
+    """`104` §18.2 gap 21. A file whose extension lies, which is what §2.9 is for.
+
+    `readers/signatures.py` opens with the promise that "a PDF named `notes.txt` is
+    read as a PDF ... which is what makes `extraction_routing.disagree` mean
+    something", and until this it was false in the shipped product: `_detect_format`
+    returned `txt` from a five-entry extension map and the signature reader never
+    ran. The file was handed to the plain-text reader, agreed with itself, and the
+    person was never told.
+
+    SABOTAGE: put back `if declared in SOURCE_TYPE_BY_FORMAT: return
+    _FORMAT_BY_EXTENSION.get(...)` at the top of `_detect_format`. Every assertion
+    below goes red at once, and the routing one is the one that matters: the
+    document reaches `text.structured` and its pages are never read.
+    """
+    misnamed = tmp_path / "PHYS 1401 notes.txt"
+    misnamed.write_bytes(_one_page_pdf(_LECTURE_08))
+
+    assert cli._detect_format(misnamed) == "pdf"
+
+    decision = route(file_id="f1", content_hash=HASH, path=misnamed,
+                     extension=misnamed.suffix, detect_format=cli._detect_format)
+    assert decision.detected_format == "pdf"
+    # The extension is the HINT, recorded beside the detected format rather than
+    # instead of it. §2.9: "treat the file extension as a ROUTING SIGNAL."
+    assert decision.declared_extension == ".txt"
+    assert decision.disagree is True, (
+        "the bytes and the name spell different formats and the router's own record "
+        "is where §2.9 keeps that, 'rather than discarded'")
+    # And the consequence, which is the point of recording it at all.
+    assert decision.extractor_name == "pdf.text"
+
+
+def test_the_detected_format_is_written_for_a_pdf_a_docx_and_a_png(tmp_path):
+    """`104` §18.2 gap 21: "detected format null for most files".
+
+    Three real fixtures whose bytes identify them positively. Before the patch the
+    PDF and the DOCX answered from the extension map (the same token, never looked
+    at) and the PNG answered NOTHING -- `.png` is a format the router routes and was
+    not one of the map's five, so `.get()` missed and `detected_format` was NULL for
+    every image on the disk.
+
+    SABOTAGE: restore the extension shortcut and the PNG line goes red on its own,
+    which is the honest signal -- the two that pass either way are the two the old
+    map happened to name.
+    """
+    report = tmp_path / "report.pdf"
+    report.write_bytes(_one_page_pdf(_SYLLABUS))
+    document = _minimal_docx(tmp_path / "essay.docx")
+    image = tmp_path / "scan.png"
+    image.write_bytes(_PNG)
+
+    for path, token in ((report, "pdf"), (document, "docx"), (image, "png")):
+        decision = route(file_id="f1", content_hash=HASH, path=path,
+                         extension=path.suffix, detect_format=cli._detect_format)
+        assert decision.detected_format == token, path.name
+        assert decision.disagree is False, (
+            f"{path.name} is named exactly what it is; a disagreement here would be "
+            "manufactured")
+
+
+def test_a_plain_text_file_still_records_no_detected_format(tmp_path):
+    """The limit of gap 21's patch, asserted so it is not mistaken for a bug.
+
+    `signature_detector` returns None rather than its weak `txt` whenever the router
+    already knows the extension, and its own docstring gives the measured reason:
+    "these bytes are text" identifies no format, so returning `txt` "would override
+    the extension on every `.csv`, `.md` and `.ics` on the disk and route them all to
+    the plain-text handler ... `grades.csv` would stop reaching the spreadsheet
+    reader". A null here is the truthful answer -- nothing about these bytes named a
+    format -- and the file still routes on its extension.
+
+    SABOTAGE: drop the `declared in SOURCE_TYPE_BY_FORMAT` guard from
+    `signature_detector`'s final line and a spreadsheet becomes a text document.
+    """
+    notes = tmp_path / "notes.txt"
+    notes.write_text("Lecture 08 - Rotational Dynamics\n")
+    sheet = tmp_path / "grades.csv"
+    sheet.write_text("student,mark\nA,91\n")
+
+    for path, source_type in ((notes, "text_document"), (sheet, "spreadsheet")):
+        decision = route(file_id="f1", content_hash=HASH, path=path,
+                         extension=path.suffix, detect_format=cli._detect_format)
+        assert decision.detected_format is None, path.name
+        assert decision.disagree is False
+        assert decision.source_type == source_type
+
+
+def test_the_unreadable_files_format_observation_is_written(tmp_path):
+    """`104` §18.2 gap 21's third casualty: §2.9's M3 clause, dead on arrival.
+
+    "Unsupported proprietary formats should be recorded as indexed-but-unreadable
+    rather than silently treated as empty", and `filesystem.unrouted_result` spells
+    "indexed" as two metadata-level rows -- the filename and the FORMAT. The format
+    row is guarded by `if detected:`, and `.psd` was not one of the extension map's
+    five, so the one file class that clause exists for recorded its name and nothing
+    else. The `failure_reason` said "no extractor exists for THIS FORMAT" because
+    there was no format to name.
+
+    SABOTAGE: restore the extension shortcut. `detected_format` goes null, the
+    format observation disappears, and the sentence the person reads loses the only
+    word in it that says what the file is.
+    """
+    from extractors.filesystem import unrouted_result
+
+    artwork = tmp_path / "poster.psd"
+    artwork.write_bytes(_PSD)
+
+    decision = route(file_id="f1", content_hash=HASH, path=artwork,
+                     extension=artwork.suffix, detect_format=cli._detect_format)
+    assert decision.detected_format == "psd"
+    assert decision.unrouted_completeness == "unreadable"
+
+    result = unrouted_result(
+        file_row={"file_id": "f1", "content_hash": HASH, "filename": "poster.psd"},
+        decision=decision, now="2026-09-09T00:00:00Z")
+    formats = [o for o in result.observations
+               if o["location"]["container_path"]
+               and o["location"]["container_path"][-1].get("label") == "format"]
+    assert [o["raw_value"] for o in formats] == ["psd"]
+    assert "psd" in result.run["failure_reason"]
+
+
+def test_the_seven_spelling_variants_disagree_and_route_identically(tmp_path):
+    """The measurement that argued for the extension shortcut, now made a guard.
+
+    A notebook IS JSON and a `.jpeg` IS a `jpg`. The old function refused to look at
+    them because looking would record a disagreement, and the disagreement was
+    called false. It is not false -- the name and the bytes really do spell one
+    format two ways -- it is merely HARMLESS, and this is what "harmless" means
+    precisely: the same `source_type` and the same extractor either way, so the row
+    tells the owner about a spelling and changes nothing about the file.
+
+    SABOTAGE: give `route()` a precedence rule that prefers the extension. The
+    disagreement stops being recorded and gap 21 is back with a different shape.
     """
     notebook = tmp_path / "lecture01_introduction.ipynb"
     notebook.write_text('{"cells": [], "nbformat": 4}')
     photo = tmp_path / "booster.jpeg"
     photo.write_bytes(b"\xff\xd8\xff\xe0\x00\x10JFIF\x00")
 
-    assert cli._detect_format(notebook) is None
-    assert cli._detect_format(photo) is None
+    for path, detected, family, handler in (
+            (notebook, "json", "code_structured", "text.structured"),
+            (photo, "jpg", "image", "image.metadata")):
+        decision = route(file_id="f1", content_hash=HASH, path=path,
+                         extension=path.suffix, detect_format=cli._detect_format)
+        assert decision.detected_format == detected, path.name
+        assert decision.disagree is True, path.name
+        assert decision.source_type == family, path.name
+        assert decision.extractor_name == handler, path.name
+
+
+def test_a_known_extension_is_still_answered_when_the_file_cannot_be_opened():
+    """A missing, unreadable or gone-away file still reaches its extractor.
+
+    This is the half of the old `test_a_known_extension_is_still_answered_without_
+    reading_the_file` that survives gap 21. The bytes ARE consulted now, and when
+    there are none to consult `signature_detector` falls back to the extension the
+    router knows rather than to None -- its own comment says why: the file is
+    "unreadable for a reason that is not this module's to diagnose", and the
+    extractor that opens it will raise and record §2.4's `failed`, which is the
+    honest place for it.
+    """
     assert cli._detect_format(Path("/nowhere/at/all/thing.pdf")) == "pdf"
+    assert cli._detect_format(Path("/nowhere/at/all/sheet.csv")) == "csv"
+    assert cli._detect_format(Path("/nowhere/at/all/thing.wat")) is None

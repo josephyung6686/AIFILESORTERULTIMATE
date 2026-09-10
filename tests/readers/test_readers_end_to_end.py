@@ -303,6 +303,94 @@ def test_a_docx_bodys_prose_becomes_evidence_and_not_only_a_text_unit(db, tmp_pa
     assert body[0].get("text_span") is None, body[0]
 
 
+def test_a_docx_hyperlink_reaches_the_evidence_table(db, tmp_path):
+    """`104` §18.2 gap 17, loss (a): a reading the extractor knew and never got.
+
+    `extractors/docx.py` has emitted `zone="link"` at `reliability: direct` since it
+    was written, and `readers/docx_python_docx.py` said in its own docstring that
+    links and relationships were "the honest next increment". They stayed the next
+    increment: `DocxDocument.links` defaulted to `()` on every real document, so the
+    link arm was reachable code that no `.docx` on any disk could ever enter. §2.3
+    lists "hyperlinks, document relationships" beside the tables and headers this
+    reader already recovers, and a URL is often the most specific thing a document
+    contains -- an application portal, a course page, a journal article.
+
+    SABOTAGE: stop collecting `block.hyperlinks` in `_read`, or return
+    `DocxDocument(...)` without the `links=` keyword. The URL goes back to living
+    only inside the paragraph's prose, where it is `possible` body text rather than
+    a `direct` reading of what the document POINTS AT.
+    """
+    import json
+
+    docx_lib = pytest.importorskip("docx")
+    from docx.opc.constants import RELATIONSHIP_TYPE as RT
+    from docx.oxml.ns import qn
+
+    root = tmp_path / "Documents"
+    root.mkdir()
+    document = docx_lib.Document()
+    document.add_heading("Washington University", level=1)
+    paragraph = document.add_paragraph("Apply at ")
+    reference = document.part.relate_to("https://admissions.wustl.edu",
+                                        RT.HYPERLINK, is_external=True)
+    run = paragraph.add_run("the admissions page")
+    anchor = paragraph._p.makeelement(qn("w:hyperlink"), {qn("r:id"): reference})
+    run._r.addprevious(anchor)
+    anchor.append(run._r)
+    document.save(root / "application.docx")
+
+    go(db, root)
+    rows = [dict(row) for row in db.execute(
+        "SELECT raw_value, location, reliability FROM evidence "
+        "WHERE extractor_name = 'docx.structure'")]
+    links = [row for row in rows
+             if json.loads(row["location"])["zone"] == "link"]
+    assert [row["raw_value"] for row in links] == ["https://admissions.wustl.edu"], (
+        "the document's hyperlink never became evidence: "
+        f"{[(r['raw_value'], json.loads(r['location'])['zone']) for r in rows]}")
+    # DIRECT, because the document declared the target; nothing was inferred from
+    # the words around it.
+    assert links[0]["reliability"] == "direct"
+    # Located at the paragraph it sits in, which is what makes it citable.
+    anchored = json.loads(links[0]["location"])["container_path"][-1]
+    assert anchored["kind"] == "paragraph" and anchored["index"] == 2, anchored
+    # And NOT a second time as a bare relationship. One URL, one located reading.
+    assert not [row for row in rows
+                if row["raw_value"] == "https://admissions.wustl.edu"
+                and json.loads(row["location"])["zone"] == "metadata"]
+
+
+def test_a_docx_gains_no_relationship_rows_for_words_own_boilerplate(db, tmp_path):
+    """The guard on loss (a)'s fix. `104` §18.2 gap 17 asks for a reading, not noise.
+
+    An empty document python-docx writes declares eight INTERNAL relationships --
+    `styles.xml`, `settings.xml`, `fontTable.xml`, `theme/theme1.xml` and the rest --
+    and `extractors/docx.py` renders each as a `direct` metadata observation. Storing
+    them would put eight rows of Word's own plumbing into the evidence table for
+    every `.docx` on a disk, at the STRONGEST reliability the vocabulary has, for the
+    recogniser to be starved past.
+
+    SABOTAGE: drop the `is_external` filter in `_external_relationships`.
+    """
+    import json
+
+    docx_lib = pytest.importorskip("docx")
+    root = tmp_path / "Documents"
+    root.mkdir()
+    document = docx_lib.Document()
+    document.add_heading("Plain", level=1)
+    document.add_paragraph("Nothing points anywhere.")
+    document.save(root / "plain.docx")
+
+    go(db, root)
+    labels = [json.loads(row["location"])["container_path"][-1].get("label")
+              for row in db.execute(
+                  "SELECT location FROM evidence "
+                  "WHERE extractor_name = 'docx.structure'")
+              if json.loads(row["location"])["container_path"]]
+    assert "relationship" not in labels, labels
+
+
 def test_every_run_is_complete_and_the_status_column_agrees(db, corpus):
     """The join that four separate defects hid this week: a real extraction must
     leave `files.extraction_status_by_tier` describing what actually happened."""

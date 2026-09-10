@@ -132,6 +132,34 @@ def test_a_slide_keeps_its_title_body_and_notes_as_three_zones(sink):
                for o in sink.observations_for(run_id))
 
 
+def test_a_slides_body_is_a_unit_AND_a_whole_unit_observation(sink):
+    """`104` §18.2 gap 17, loss (b), on the presentation half.
+
+    `test_a_slide_keeps_its_title_body_and_notes_as_three_zones` above reads its
+    zones out of the observations, and the body was never in that dictionary -- the
+    test's own name says three zones and it could only ever check two. §2.9 asks a
+    presentation for "slide titles, TEXT BOXES, speaker notes", and a deck's text
+    boxes are where the argument of the deck lives; the title and the notes reached
+    the recogniser and the slide itself did not.
+
+    SABOTAGE: delete the `else` arm in `extract_long_tail`'s text loop.
+    """
+    result, _ = run_it(a_deck(), "presentation")
+    run_id = sink.write(result.extraction)
+    zones = {o["raw_value"]: o["location"]["zone"]
+             for o in sink.observations_for(run_id)}
+    assert zones["Two cohorts."] == "body", zones
+    body = [o for o in sink.observations_for(run_id)
+            if o["raw_value"] == "Two cohorts."][0]
+    assert body["location"]["text_span"] is None
+    assert "#" not in locator_for(body["location"])
+    # The unit stands at exactly the path the reading names (P4 rule 10), so §8.6's
+    # ceiling can measure this reading and SF-1's "whole document" arm can bound it.
+    units = {unit_locator_for(u["container_path"]): u["text"]
+             for u in sink.units_for(run_id)}
+    assert units[locator_for(body["location"]).split(":", 1)[1]] == "Two cohorts."
+
+
 def test_a_slides_three_texts_are_three_units(sink):
     result, _ = run_it(a_deck(), "presentation")
     run_id = sink.write(result.extraction)
@@ -150,25 +178,67 @@ def test_two_texts_at_one_container_path_are_refused():
         run_it(collide, "presentation")
 
 
-def test_a_message_body_is_a_unit_and_not_an_observation(sink):
-    # G1: "a page of text is not a located value". The same is true of a body.
+def test_a_message_body_is_a_unit_AND_a_whole_unit_observation(sink):
+    """`104` §18.2 gap 17, loss (b). THIS TEST USED TO ASSERT THE DEFECT.
+
+    It was `test_a_message_body_is_a_unit_and_not_an_observation` and its reason was
+    G1's "a page of text is not a located value" -- which says a body carries no
+    SPAN, and was read here as though it said a body carries no ROW. The difference
+    is everything: `recognition/detector.py` scans observations only, deliberately
+    ("a detector that pulled whole text units would be a second materialisation
+    locus"), so with no row the entire body of every `.eml` and every `.pptx` on a
+    disk was extracted, stored, and read by nothing. E1, E2, E3 and E6 all emit the
+    span-less whole-unit observation this asserted must not exist.
+
+    SABOTAGE: delete the `else` arm in `extract_long_tail`'s text loop, or move
+    `body` into `WHOLE_TEXT_ZONES` -- the first takes the row away again, the second
+    gives it a span, and the span assertion below is what catches the second.
+    """
     result, _ = run_it(an_email(), "email")
     run_id = sink.write(result.extraction)
     body = [u for u in sink.units_for(run_id)
             if u["text"] == "Please send your transcript."]
     assert len(body) == 1
-    assert not [o for o in sink.observations_for(run_id)
-                if o["raw_value"] == "Please send your transcript."]
+    rows = [o for o in sink.observations_for(run_id)
+            if o["raw_value"] == "Please send your transcript."]
+    assert len(rows) == 1, "the message body reaches the evidence table"
+    assert rows[0]["location"]["zone"] == "body"
+    # NO SPAN, and no `#` in the locator with it. A `body#0-27` locator is the space
+    # the shipped deployment's direct slot claims, so a span here would let a whole
+    # message become a `subject` fact -- which is to say a folder name.
+    assert rows[0]["location"]["text_span"] is None
+    assert "#" not in locator_for(rows[0]["location"])
+    # P4 rule 10: the unit stands at exactly the path the reading names, so
+    # `store.unit_length_for_observation` can measure the reading against it and
+    # §8.6's ceiling can bound it (SF-1). Compared as strings rather than spelled,
+    # because the locator's escaping is P4's and not this test's business.
+    assert (locator_for(rows[0]["location"])
+            == "body:" + unit_locator_for(body[0]["container_path"]))
 
 
 def test_email_addresses_and_message_content_carry_the_sensitivity_signal(sink):
+    """`104` §18.2 gap 17, loss (b), read through §2.9's privacy clause.
+
+    The title always said "and message content", and until the body had a row there
+    was nothing for that half of the sentence to land on -- §2.9 asks for email to be
+    handled "while treating addresses and message content as potentially sensitive",
+    and only the addresses were flagged because only the addresses were observed.
+
+    SABOTAGE: drop `sensitive_basis=body_basis` from the `else` arm and the body
+    arrives as an unflagged row, which is worse than the row not existing: P7
+    redacts against the signal, so an unflagged message body is one that has been
+    made reachable without being made handleable.
+    """
     result, _ = run_it(an_email(), "email",
                        finder=lambda text: ())
     run_id = sink.write(result.extraction)
     flagged = {result.extraction.observations[s.observation_index]["raw_value"]
                for s in result.sensitivity}
-    assert flagged == {"dean@wustl.edu"}
+    assert flagged == {"dean@wustl.edu", "Please send your transcript."}
     assert {s.signal for s in result.sensitivity} == {POTENTIALLY_SENSITIVE}
+    bases = {result.extraction.observations[s.observation_index]["raw_value"]: s.basis
+             for s in result.sensitivity}
+    assert "message content" in bases["Please send your transcript."]
     # The subject is neither an address nor message content, so it carries nothing.
     assert "Your application" not in flagged
 
@@ -197,20 +267,42 @@ def test_the_signal_is_stored_and_read_back(conn):
     record_sensitivity_signals(conn, run_id="run-1", signals=result.sensitivity,
                                observation_keys=keys, now=FIXED_CLOCK)
     rows = sensitivity_signals_for(conn, "run-1")
-    assert [r["signal"] for r in rows] == [POTENTIALLY_SENSITIVE]
-    assert rows[0]["basis"]
+    # TWO ROWS SINCE `104` §18.2 gap 17: the From address and the message body. It
+    # was one because the body had no observation to hang a signal on.
+    assert [r["signal"] for r in rows] == [POTENTIALLY_SENSITIVE] * 2
+    assert all(r["basis"] for r in rows)
     # keyed on P4's handle, which is what P7 redacts against and what survives a re-run
     assert rows[0]["observation_key"] in keys
 
 
 def test_audio_stops_at_container_metadata_without_the_policy(sink):
+    """B6 and NEEDS JOSEPH 7: no speech-to-text without P7's explicit policy.
+
+    THE CAPTION IS NOW EVIDENCE AND THE TRANSCRIPT STILL IS NOT, and that is the
+    distinction `104` §18.2 gap 17 restores rather than erases. §2.9 asks audio and
+    video for "subtitles or captions where present" UNCONDITIONALLY and gates only
+    the speech-to-text transcript, so an embedded caption track had a unit, no row,
+    and no reader -- the same silent loss as the message body. What the policy gates
+    is `from_speech`, which `UnauthorizedTranscription` still refuses outright, and
+    `test_speech_to_text_without_the_policy_is_refused` is that guard.
+
+    SABOTAGE: make the `else` arm skip `time_span` -- a caption addressed by a text
+    offset it does not have is a citation into the wrong medium (P4 publishes
+    `text_span` and `time_span` as alternatives, and §2.8's own audio example is a
+    time).
+    """
     result, seen = run_it(a_video(with_speech=False), "audio_video",
                           authorized=NEVER)
     run_id = sink.write(result.extraction)
     assert seen["transcribe"] is False          # no recognition was even attempted
-    assert [o["raw_value"] for o in sink.observations_for(run_id)] == ["00:41:12"]
+    assert [o["raw_value"] for o in sink.observations_for(run_id)] == ["00:41:12",
+                                                                      "[music]"]
     # Embedded captions are §2.9's unconditional half and are still extracted.
     assert [u["text"] for u in sink.units_for(run_id)] == ["[music]"]
+    caption = [o for o in sink.observations_for(run_id)
+               if o["raw_value"] == "[music]"][0]
+    assert caption["location"]["time_span"] == {"start_ms": 0, "end_ms": 2000}
+    assert caption["location"]["text_span"] is None
 
 
 def test_a_transcript_smuggled_past_the_policy_is_refused():

@@ -66,7 +66,10 @@ from extractors.archive import (
     LOCKED_REASON_PREFIX,
 )
 from extractors.image import PERCEPTUAL_HASH_FIELD
-from extractors.router import SOURCE_TYPE_BY_FORMAT
+# `SOURCE_TYPE_BY_FORMAT` was imported here for `_detect_format`'s extension
+# shortcut, which `104` §18.2 gap 21 deleted. `readers/signatures.py` imports it
+# directly -- it is the reader that needs to know which extensions the router
+# already understands, and this module no longer asks that question.
 from extractors.reading import StructuredString
 from extractors.structured_text import EXTRACTOR_NAME as STRUCTURED_EXTRACTOR
 from extractors.filesystem import SOURCE_TYPE as FILESYSTEM_SOURCE_TYPE
@@ -5856,11 +5859,21 @@ _FORMAT_BY_EXTENSIONLESS_NAME: dict[str, str] = {
 }
 
 
-#: `router` maps "zip" to the `archive` family, which yields the manifest without
-#: extracting anything (§2.5).
-_FORMAT_BY_EXTENSION: dict[str, str] = {
-    ".pdf": "pdf", ".txt": "txt", ".md": "md", ".docx": "docx", ".zip": "zip"}
-
+#: `_FORMAT_BY_EXTENSION` STOOD HERE AND IS DELETED BY `104` §18.2 GAP 21. It mapped
+#: five suffixes onto the five format tokens they already spell -- `.pdf` -> `pdf`,
+#: `.docx` -> `docx` -- and `_detect_format` RETURNED from it before the signature
+#: reader could run. Its two effects, measured against what `route()` does with the
+#: answer: for those five it returned the token `declared` already is, so the
+#: operative format was identical either way; for every OTHER extension the router
+#: knows -- `.png`, `.py`, `.csv`, `.psd`, `.jpg` -- `.get()` missed and it returned
+#: None, which is where "detected format null for most files" comes from.
+#:
+#: NOTHING READ IT AS A HINT, so nothing replaces it. The extension IS still the
+#: hint and two places still read it: `readers/signatures.py` defers its weak
+#: "these bytes are text" answer to any extension the router knows, and `route()`
+#: falls back to `declared` when the signature declines. `route()` records it in
+#: its own column (`extraction_routing.declared_extension`) beside the detected
+#: format, which is the record §2.9 asks for and this map was quietly emptying.
 #: §2.9's other half, wired here and nowhere else. Built once: `signature_detector`
 #: compiles nothing per call, and building it per file would put the protected-
 #: container predicate behind a fresh closure on every path this command touches.
@@ -5869,52 +5882,71 @@ _FORMAT_BY_SIGNATURE = signature_detector(
 
 
 def _detect_format(path: Path) -> str | None:
-    """Which extractor family the bytes belong to: extension, then name, then bytes.
+    """What the FILE ITSELF says it is: the naming convention, then the bytes.
 
-    THREE ANSWERS IN THAT ORDER, AND THE ORDER IS MEASURED. §2.9 reads, on its own,
-    as "the detected format wins over the declared extension", and asking the
-    signature FIRST is what that sentence says. It was tried against the owner's
-    21-file sample on 2026-09-06 and seven files changed their operative format,
-    every one of them a file nobody had misnamed:
+    **`104` §18.2 gap 21 deleted a third answer that came before both.** This
+    function used to open with `if declared in SOURCE_TYPE_BY_FORMAT: return
+    _FORMAT_BY_EXTENSION.get(...)`, so for every file with an extension the router
+    recognised -- which is nearly every file on a disk -- `readers/signatures.py`
+    never ran. §2.9 asks the engine to "INSPECT THE REAL MIME TYPE OR FILE SIGNATURE
+    WHERE POSSIBLE"; the module written to do that was reached by extensionless
+    files alone. Three things died with it, and none of them is the routing:
 
-        five `.ipynb` and one `.code-workspace`  ->  `json`   (they ARE JSON)
-        one `.jpeg`                              ->  `jpg`    (one format, two spellings)
+      * `extraction_routing.detected_format` was NULL for most files -- five
+        extensions got the token they already spelled and everything else got None;
+      * the disagreement column could not fire, because a value read off the
+        extension cannot contradict the extension. A PDF saved as `notes.txt` was
+        detected `txt`, agreed with itself, and was handed to the plain-text reader,
+        while `readers/signatures.py`'s own docstring promised it "is read as a PDF";
+      * `filesystem.unrouted_result` writes §2.9's indexed-but-unreadable `format`
+        observation only `if detected:`, so a `.psd` -- the M3 case that clause was
+        written for -- recorded the filename and no format.
 
-    `router.route` records `disagree` when a detected format contradicts a declared
-    one, and its own comment keeps that column honest precisely so the disagreement
-    "is not manufactured". Seven manufactured rows on twenty-one files is the price
-    of reading §2.9 that way, and the extension is the better answer in all seven:
-    `ipynb` and `code-workspace` are what those files ARE and `json` is merely what
-    they are written in.
+    **The measurement that argued for the old order is kept, and it does not argue
+    for it any more.** Tried on 2026-09-06 against the owner's 21-file sample, asking
+    the signature first changed seven operative formats: five `.ipynb` and one
+    `.code-workspace` to `json` (they ARE JSON) and one `.jpeg` to `jpg` (one format,
+    two spellings). The objection was that `route()` would then record seven
+    "manufactured" disagreements. Re-checked against the router's tables rather than
+    against the tokens: `ipynb`, `code-workspace` and `json` all carry
+    `code_structured` and `text.structured`; `jpeg` and `jpg` both carry `image` and
+    `image.metadata`. NOT ONE of the seven changes the family or the extractor -- the
+    routing is byte-identical and what they gain is a true row saying the name and
+    the bytes spell the format differently, which is a spelling variant for the owner
+    to read and not a claim that anybody misnamed a file.
 
-    So the extension answers whenever the ROUTER already knows it -- which is a
-    wider set than the five formats this deployment maps, and deliberately: a
-    `.jpeg` the router understands is not a file the bytes need to rescue.
+    Two files DO change where they go, and both move toward the truth. A camera raw
+    beginning `II*\\x00` now detects `tiff` and reaches the image family instead of
+    the spreadsheet one -- `router.py`'s `raw` key is annotated "RAISED FOR RULING:
+    on a photographer's disk this key would be wrong more often than right, and the
+    router cannot tell the two apart without opening the file", and it can now. A
+    `.numbers` export is a ZIP and detects as one, so it yields a manifest under
+    §2.5 where `readers/long_tail_stdlib` returned None and the run said
+    `unsupported`.
 
-    THE NAME COMES BEFORE THE BYTES for the same kind of reason. A real `Dockerfile`
-    decodes as text, so the signature's weak answer for it is `txt`, and taking that
-    would move every Dockerfile on a disk out of `code_structured`. A file named by
-    a convention a tool requires has already said what it is.
+    **THE NAME STILL COMES BEFORE THE BYTES, for a file that has no extension.** A
+    real `Dockerfile` decodes as text, so the signature's weak answer for it is
+    `txt`, and taking that would move every Dockerfile on a disk out of
+    `code_structured`. A file named by a convention a tool requires has already said
+    what it is. That table answers for extensionless files only; a `Makefile.md` is
+    Markdown.
 
-    THE BYTES ARE THE LAST ANSWER AND THE ONLY NEW ONE. `94` F22: a plain text file
-    called `noextension` was named in neither list of the freeze block, and the
-    omission half of that is fixed while the routing half was not -- the reason it
-    now gives is "nothing has looked inside this one yet", and nothing ever would.
-    An extensionless file declares nothing, so there is no routing signal to
-    overrule and no disagreement to manufacture. R-30, and the 1,057 extensionless
-    files `readers/signatures.py` counted on this disk.
+    **What stays null, said plainly.** `signature_detector` returns None rather than
+    its weak `txt` whenever the router already knows the extension -- deliberately,
+    because "these bytes are text" identifies nothing and returning `txt` would route
+    every `.csv`, `.md` and `.ics` to the plain-text handler. So a plain `.txt`,
+    `.md`, `.csv` or `.py` still records no detected format, and that is the honest
+    answer: nothing about those bytes identified a format. What changed is that the
+    files whose bytes DO identify one now say so.
 
-    OPENING A FILE IS NOW POSSIBLE HERE AND THE ONE RULE THAT FORBIDS IT IS OBEYED.
-    The older form of this function opened nothing at all and gave that as its
-    reason for answering from the path alone: the class of file that must never be
-    opened is decided by PATH, before any format question. `signature_detector`
-    takes that predicate as a REQUIRED argument and answers `None` for a protected
-    path without reading a byte, which is why the reason survives the change and the
-    behaviour does not.
+    **THE ONE RULE THAT FORBIDS OPENING A FILE IS STILL OBEYED, and it now covers
+    more files rather than fewer.** The class of file that must never be opened is
+    decided by PATH before any format question; `signature_detector` takes that
+    predicate as a REQUIRED argument and answers None for a protected path without
+    reading a byte. A file inside a protected container therefore records NO detected
+    format where the extension map used to supply one -- which is the truth, because
+    nothing looked.
     """
-    declared = path.suffix.lower().lstrip(".")
-    if declared in SOURCE_TYPE_BY_FORMAT:
-        return _FORMAT_BY_EXTENSION.get(path.suffix.lower())
     if not path.suffix:
         name = path.name.lower()
         # `LICENSE-CC-BY-NC-SA` is on this disk, and `LICENSE-APACHE` and

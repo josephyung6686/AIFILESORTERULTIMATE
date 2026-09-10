@@ -238,6 +238,95 @@ def test_several_lines_arrive_as_one_readable_passage(sink):
     assert "Vaccination\nRecord" in rows[0], rows
 
 
+def test_the_passage_carries_its_box_and_its_confidence(sink):
+    """`104` §18.2 gap 17, loss (d): §2.7's two fields reached one row and not the one.
+
+    §2.7's nine persisted fields include "locations or bounding boxes where
+    available" and "confidence information", and `FIELD_HOMES` maps both onto records
+    P4 already publishes -- `location.region` and `evidence.confidence`. They were
+    attached inside the structured-string loop alone, so the passage row R-171 added
+    -- the ONE row the recogniser actually scans, and the one §8.4 redacts against --
+    carried neither. A screenshot's whole reading had no location and no confidence
+    while every line it was built from had both.
+
+    THE BOX IS THE UNION AND THE CONFIDENCE IS THE MINIMUM, and both are statements
+    the regions support. `passage_region` and `passage_confidence` argue why; the
+    tests below are the two conditions.
+
+    SABOTAGE: drop `region=` and `confidence=` from the passage observation, or
+    change `min` to a mean -- the mean asserts a confidence no line reported.
+    """
+    output = an_output(regions=(
+        OcrRegion(page=1, region=1, text="COVID-19",
+                  box={"x": 0.1, "y": 0.8, "w": 0.3, "h": 0.05, "unit": "norm"},
+                  confidence=0.94),
+        OcrRegion(page=1, region=2, text="Vaccination Record",
+                  box={"x": 0.2, "y": 0.6, "w": 0.5, "h": 0.05, "unit": "norm"},
+                  confidence=0.61)))
+    result, _ = run_it(output=output, finder=lambda text: ())
+    run_id = sink.write(result)
+
+    rows = sink.observations_for(run_id)
+    assert len(rows) == 1
+    passage = rows[0]
+    assert passage["confidence"] == pytest.approx(0.61), (
+        "the minimum is the one aggregate every region asserts: no line in this "
+        "passage was read below it")
+    # The smallest rectangle containing both lines. x: 0.1..0.7, y: 0.6..0.85.
+    assert passage["location"]["region"] == {
+        "x": pytest.approx(0.1), "y": pytest.approx(0.6),
+        "w": pytest.approx(0.6), "h": pytest.approx(0.25), "unit": "norm"}
+
+
+def test_a_passage_spanning_pages_carries_no_box_and_keeps_its_confidence(sink):
+    """The structural condition on loss (d)'s box, and there is no number in it.
+
+    The passage is ONE string over the whole file. A rectangle unioned across pages 1
+    and 7 of a scanned book bounds nothing that exists, so it is not written -- and a
+    reading with no box is honest where a reading with a false box is not. The
+    confidence is unaffected: "no line was read below this" is true however many
+    pages the lines are spread over.
+
+    SABOTAGE: delete the `len(pages) != 1` guard in `passage_region`.
+    """
+    output = an_output(regions=(
+        OcrRegion(page=1, region=1, text="Chapter one",
+                  box={"x": 0.1, "y": 0.8, "w": 0.3, "h": 0.05, "unit": "norm"},
+                  confidence=0.9),
+        OcrRegion(page=7, region=1, text="Chapter seven",
+                  box={"x": 0.1, "y": 0.8, "w": 0.3, "h": 0.05, "unit": "norm"},
+                  confidence=0.8)),
+        pages_processed=7, pages_total=7)
+    result, _ = run_it(output=output, finder=lambda text: ())
+    passage = sink.observations_for(sink.write(result))[0]
+
+    assert passage["location"]["region"] is None
+    assert passage["confidence"] == pytest.approx(0.8)
+
+
+def test_a_passage_whose_engine_reported_neither_carries_neither(sink):
+    """An absent box and an absent confidence stay absent.
+
+    §2.7 asks for both "where available", and an engine that reports no confidence
+    gets none invented for it -- which is the opposite of recording what it said. One
+    region missing a box is enough to withhold the union: a union of the rest is
+    SMALLER than the text it claims to bound, which is a false location rather than a
+    partial one.
+
+    SABOTAGE: make `passage_region` skip the regions with no box and union the rest.
+    """
+    output = an_output(regions=(
+        OcrRegion(page=None, region=1, text="Receipt", box=None, confidence=None),
+        OcrRegion(page=None, region=2, text="Total 41.20",
+                  box={"x": 0.1, "y": 0.1, "w": 0.2, "h": 0.05, "unit": "norm"},
+                  confidence=None)))
+    result, _ = run_it(output=output, finder=lambda text: ())
+    passage = sink.observations_for(sink.write(result))[0]
+
+    assert passage["location"]["region"] is None
+    assert passage["confidence"] is None
+
+
 def test_an_engine_that_recognised_nothing_still_emits_nothing(sink):
     """§2.4: an empty result and a missing extractor are different facts. A photo of
     a wall has no text, and a row saying so would be an observation about an

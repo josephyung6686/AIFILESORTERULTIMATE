@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field as dataclass_field
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, Sequence
 
 from extractors.failure import unsupported_result
 from extractors.reading import StructuredString
@@ -118,6 +118,82 @@ class OcrOutput:
 #: The characters a provider may spell a word break with. Folded to `_` so that one
 #: engine has one name.
 _WORD_BREAKS = (" ", "-", ".")
+
+
+def passage_region(regions: Sequence[OcrRegion]) -> Mapping[str, Any] | None:
+    """The box the whole passage stands in, or None when there is no such box.
+
+    `104` §18.2 gap 17: §2.7's "locations or bounding boxes where available" reached
+    only the identifier rows below, so a screenshot's passage -- the one reading the
+    recogniser actually scans -- carried no location at all while every region it
+    was built from carried one. §8.4 redacts against `location.region`, which means
+    the field is not decoration: a row with no box is a row a redactor cannot reason
+    about.
+
+    THE CONDITIONS ARE STRUCTURAL AND THERE IS NO NUMBER IN THEM. A union is only a
+    true statement about the passage when every region it unions is IN the same
+    plane and measured the same way, so the box exists when, and only when:
+
+      * every region carries a box -- one missing box means the union is smaller
+        than the text it claims to bound, which is a false location rather than a
+        partial one;
+      * every box states the same `unit` -- P4 publishes `px` and `norm` and mixing
+        them would add a pixel to a fraction;
+      * every region reports the same `page` (or none does) -- the passage is ONE
+        string spanning the whole file, and a rectangle over pages 1 and 7 of a
+        scanned book bounds nothing that exists.
+
+    So a loose image and a one-page scan get a box, which is §2.7's own case ("the
+    main way screenshots and opaque loose images become understandable"), and a
+    400-page book does not. The union itself is the smallest rectangle containing
+    the regions -- one definition, no choice in it, and origin-agnostic, so it holds
+    whether the provider measures from the top-left or, like Apple Vision, the
+    bottom-left.
+    """
+    boxes = [region.box for region in regions]
+    if not boxes or any(box is None for box in boxes):
+        return None
+    units = {box["unit"] for box in boxes}
+    pages = {region.page for region in regions}
+    if len(units) != 1 or len(pages) != 1:
+        return None
+    left = min(box["x"] for box in boxes)
+    bottom = min(box["y"] for box in boxes)
+    right = max(box["x"] + box["w"] for box in boxes)
+    top = max(box["y"] + box["h"] for box in boxes)
+    return {"x": left, "y": bottom, "w": right - left, "h": top - bottom,
+            "unit": units.pop()}
+
+
+def passage_confidence(regions: Sequence[OcrRegion]) -> float | None:
+    """The passage's confidence: the LOWEST any of its regions reported.
+
+    `104` §18.2 gap 17 overrules what stood at the passage below, and the sentence
+    it overrules is quoted so the change is visible rather than buried: *"NO
+    CONFIDENCE. Every region carries its own and P4 publishes the field, but a
+    confidence for the whole passage would be an aggregate of them -- a mean, a
+    minimum, a weighting -- and choosing which is a policy with a number in it."*
+
+    The first half is right and the conclusion does not follow. Of the three named,
+    exactly ONE is a statement the regions themselves support: the minimum says *no
+    line in this passage was read below this*, and every region asserts it. A mean
+    asserts something no region said, and a weighting needs weights, which would be
+    the policy with a number in it. This function holds no number -- `min` is not a
+    threshold, nothing is compared against it here, and `test_p5_holds_no_dpi_no_
+    language_and_no_confidence_threshold` still walks this module and finds none.
+
+    NOT COMPARABLE ACROSS EXTRACTORS, and that limit is unchanged: §3.13 says so and
+    `evidence_shape/canonical.py` repeats it. Every region folded here came from ONE
+    engine in ONE run, so the scale is that engine's own, which is the only scope in
+    which a minimum means anything.
+
+    None when no region reported one -- an absent confidence stays absent, because
+    §2.7 asks for "confidence information" where the provider gives it and inventing
+    a number for a provider that gives none is the opposite of recording it.
+    """
+    reported = [region.confidence for region in regions
+                if region.confidence is not None]
+    return min(reported) if reported else None
 
 
 def extractor_name_for(provider: str) -> str:
@@ -262,11 +338,16 @@ def extract_ocr(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy
     # door that was already shut. The whole point of this row is to be READ BY THE
     # RECOGNISER ON THIS DEVICE, and `ocr` is the zone that says exactly that.
     #
-    # NO CONFIDENCE. Every region carries its own and P4 publishes the field, but a
-    # confidence for the whole passage would be an aggregate of them -- a mean, a
-    # minimum, a weighting -- and choosing which is a policy with a number in it. P5
-    # holds no number (`test_p5_holds_no_dpi_no_language_and_no_confidence_threshold`).
-    # The per-region rows above keep theirs.
+    # IT CARRIES A BOX AND A CONFIDENCE, AND THAT REVERSES WHAT STOOD HERE. The
+    # paragraph this replaces said "NO CONFIDENCE ... choosing which is a policy
+    # with a number in it", and `104` §18.2 gap 17 counts the result among four
+    # silent losses: §2.7 names "locations or bounding boxes where available" and
+    # "confidence information" among its nine persisted fields, `FIELD_HOMES` maps
+    # both onto records P4 already publishes, and both reached the identifier rows
+    # above and nothing else -- so the ONE row the recogniser actually scans was
+    # the row with no location and no confidence on it. `passage_region` and
+    # `passage_confidence` argue their own derivations; both answer None rather
+    # than invent, and neither holds a number.
     passage = "\n".join(recognized.text for recognized in output.regions)
     if passage.strip():
         # `104` R-171 (9 Sep 2026): THE PASSAGE'S OWN TEXT UNIT, at its own
@@ -284,9 +365,11 @@ def extract_ocr(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy
             extractor_name=name, extractor_version=output.provider_version,
             source_type=SOURCE_TYPE, raw_value=passage,
             normalized_value=normalize_mechanical(passage),
-            location=location(zone="ocr", container_path=(), text_span=None),
+            location=location(zone="ocr", container_path=(), text_span=None,
+                              region=passage_region(output.regions)),
             context_before="", context_after="", context_truncated=False,
             observed_at=now, reliability="possible",
+            confidence=passage_confidence(output.regions),
         ))
 
     return ExtractionResult(

@@ -29,7 +29,14 @@ from extractors.shape import (
 )
 from extractors.sink import ExtractionResult
 
-VERSION = "0.1.0"
+#: BUMPED 0.1.0 -> 0.2.0 BY `104` §18.2 GAP 17, on R-164's rule (stated in full in
+#: `structured_text.py`). Nothing in this module changed: the marker arm below was
+#: written with it and `recognize_markers` was wired to a lambda returning `()`, so
+#: every archive already scanned carries zero marker rows. §3.4's cache key cannot
+#: see which recognizer a deployment injected -- this extractor's `config` records
+#: none at all -- so the version string is the only thing that can say the same
+#: bytes now produce more evidence than they did.
+VERSION = "0.2.0"
 EXTRACTOR_NAME = "archive.manifest"
 SOURCE_TYPE = "archive"
 ANALYSIS_TIER = "native"

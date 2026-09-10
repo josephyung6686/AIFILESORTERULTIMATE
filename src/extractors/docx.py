@@ -40,7 +40,21 @@ from extractors.shape import (
 )
 from extractors.sink import ExtractionResult
 
-VERSION = "0.1.0"
+#: BUMPED 0.1.0 -> 0.2.0 BY `104` §18.2 GAP 17, ON R-164'S RULE AND FOR ITS REASON
+#: (`structured_text.py` states that rule at length). Not one line of THIS module
+#: changed: the `link` and `relationship` arms below were written with the
+#: extractor and `readers/docx_python_docx.py` never filled the slots they read, so
+#: the same bytes now produce strictly more evidence than they did.
+#:
+#: THE CACHE CANNOT SEE A READER. §3.4's key is content hash + extractor name +
+#: version + tier + `config_fingerprint`, and this extractor's config records the
+#: reader as the literal string `"injected"` -- one value for every reader that
+#: could ever be wired. So a deployment that starts supplying hyperlinks is
+#: invisible to the key, and leaving the version at 0.1.0 would let
+#: `--reuse-answers-from` answer from a run whose dossiers had no URLs in them and
+#: report it as a saving. `00`:44: the key exists so that "an upgraded reader
+#: invalidates the answers that rested on its output".
+VERSION = "0.2.0"
 EXTRACTOR_NAME = "docx.structure"
 SOURCE_TYPE = "text_document"
 ANALYSIS_TIER = "native"

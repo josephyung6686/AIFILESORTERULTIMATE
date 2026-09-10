@@ -20,7 +20,11 @@ import zipfile
 
 import pytest
 
-from readers.archive_zipfile import zipfile_reader
+from extractors.archive import MARKER_KINDS, extract_archive
+from extractors.safety import SafetyPolicy
+from readers.archive_zipfile import (
+    SOURCE_CODE_MANIFEST, manifest_marker_recognizer, zipfile_reader,
+)
 
 
 def make_zip(tmp_path, entries, name="bundle.zip"):
@@ -144,3 +148,99 @@ def test_an_archive_larger_than_the_ceiling_is_partial_and_says_so(tmp_path):
     assert manifest.inspected == 4
     assert manifest.total == 10
     assert manifest.partial_reason
+
+
+# --------------------------------------------------------------------------- #
+# `104` §18.2 gap 17, loss (c): the marker recognizer that returned nothing
+# --------------------------------------------------------------------------- #
+
+OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
+                           is_dataless=lambda path: False)
+ARCHIVE_ROW = {"file_id": "f-arc", "content_hash": "c" * 64,
+               "filename": "bundle.zip"}
+
+
+def extracted(path):
+    manifest = zipfile_reader(max_members=None)(path)
+    return extract_archive(
+        file_row=ARCHIVE_ROW, path=path, policy=OPEN_POLICY,
+        read_manifest=lambda _: manifest,
+        recognize_markers=manifest_marker_recognizer(),
+        now="2026-09-09T00:00:00Z", context_window=20)
+
+
+def test_a_source_code_manifest_inside_an_archive_is_recognized(tmp_path):
+    """`104` §18.2 gap 17, loss (c). `recognize_markers` was `lambda names: ()`.
+
+    §2.5: "A source-code archive may reveal a `README.md`, `package.json`, `src`
+    directory, or Python package layout and can be recognized as a code project."
+    `extract_archive` has taken a caller-supplied `recognize_markers` for exactly
+    that since it was written, and `readers/deployment.py` wired it to a lambda
+    returning `()`. Its stated reason -- §2.5's marker set is Deferred in P5's SPEC,
+    so a list invented in the deployment "would be this deployment authoring the open
+    half of somebody else's section" -- was true, and overlooked that the answer for
+    §2.5's FIRST class was already shipped one module away in
+    `text_documents._MARKERS_BY_FILENAME`.
+
+    SABOTAGE: put `lambda names: ()` back in `deployment.py`, or give
+    `manifest_marker_recognizer` a filename table of its own. The first makes the
+    marker arm dead again; the second is two lists that will drift, which is what
+    `filename_marker_kind` being ONE definition with two callers prevents.
+    """
+    recognize = manifest_marker_recognizer()
+    markers = recognize([
+        "project/package.json", "project/src/index.js",
+        "project/README.md", "project/.gitignore",
+        "project/notes.txt",            # not a marker of anything
+    ])
+    assert {marker.member_path for marker in markers} == {
+        "project/package.json", "project/README.md", "project/.gitignore"}
+    # §2.5 offers TWO classes where §2.4 offers four, and `MARKER_KINDS` is the
+    # vocabulary `extract_archive` validates against -- so a package manifest, a
+    # repository marker and a README all arrive re-kinded rather than as a third
+    # class, which would be `UnknownMarkerKind` at run time.
+    assert {marker.kind for marker in markers} == {SOURCE_CODE_MANIFEST}
+    assert SOURCE_CODE_MANIFEST in MARKER_KINDS
+
+
+def test_the_marker_reaches_the_evidence_table_as_the_member_path(tmp_path):
+    """The whole loss, end to end: reader to extractor to observation.
+
+    P5 PLAN Task 13 and catalogue 07 both say the `raw_value` is THE MEMBER PATH and
+    not the marker word -- "this is what keeps the observation a READING rather than
+    a conclusion" -- and the kind goes in the field label.
+
+    SABOTAGE: return `ArchiveMarker(member_path=basename, ...)` and the observation
+    stops naming where in the archive the marker sits.
+    """
+    path = make_zip(tmp_path, {"submission/pyproject.toml": "[project]\n",
+                               "submission/essay.docx": "x"})
+    marked = [observation for observation in extracted(path).observations
+              if observation["location"]["container_path"]
+              and observation["location"]["container_path"][-1].get("label")
+              == SOURCE_CODE_MANIFEST]
+    assert [observation["raw_value"] for observation in marked] == [
+        "submission/pyproject.toml"]
+    assert marked[0]["reliability"] == "direct"
+    assert marked[0]["location"]["zone"] == "metadata"
+
+
+def test_a_document_name_is_not_yet_a_marker_and_the_path_is_still_recorded(tmp_path):
+    """§2.5's SECOND class stays deferred, and the deferral costs no evidence.
+
+    `document name` would be §2.5's five English words -- transcript, personal
+    statement, resume, certificate, form -- matched against member basenames. That is
+    a word list deciding an outcome, and catalogue 07 rates the last of the five
+    `high` false-positive risk on its own (`form` is inside `format`, `formula`,
+    `information`, `transformation`). What §18.2 calls a silent loss is a READING
+    that never reaches the record; this is a LABEL that does not, while the member
+    path it would label is on the record either way -- which is what makes it a
+    deferral and not a loss.
+
+    SABOTAGE: add the five words to `manifest_marker_recognizer`.
+    """
+    path = make_zip(tmp_path, {"submission/transcript.pdf": "x"})
+    manifest = zipfile_reader(max_members=None)(path)
+    assert manifest_marker_recognizer()([m.path for m in manifest.members]) == ()
+    assert any(observation["raw_value"] == "submission/transcript.pdf"
+               for observation in extracted(path).observations)

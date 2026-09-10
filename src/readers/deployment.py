@@ -26,7 +26,7 @@ from typing import Any, Callable
 from extractors.dispatch import Readers
 from extractors.structured_text import TextDocument
 
-from readers.archive_zipfile import zipfile_reader
+from readers.archive_zipfile import manifest_marker_recognizer, zipfile_reader
 from readers.capture import make_dimension_signal, make_filename_pattern
 from readers.doc_cocoa import cocoa_doc_reader
 from readers.docx_python_docx import python_docx_reader
@@ -175,15 +175,18 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
         # This reader carries no EXIF, so §2.6's tier-1 band stays unavailable --
         # `readers/image_headers.py` says why that is a stated limit and not a trap.
         "read_image": header_image_reader(),
-        # REACHED NOW, and still empty -- for a reason that has changed. It used to
-        # be unreachable because `read_manifest` was unwired. It is now reached on
-        # every archive and answers `()` because §2.5's marker set is DEFERRED in
-        # P5's SPEC ("Archive recognizable markers beyond the above | The marker
-        # set"): which filenames count as a source-code manifest is unsettled, and
-        # a list invented here would be this deployment authoring the open half of
-        # somebody else's section. The member paths themselves are already recorded
-        # by `extract_archive`, so nothing is lost but the labelling.
-        "recognize_markers": lambda names: (),
+        # ANSWERS NOW, and `104` §18.2 gap 17 is why. It was `lambda names: ()` --
+        # reached on every archive, returning nothing on every archive -- and its
+        # stated reason was that §2.5's marker set is Deferred in P5's SPEC, so "a
+        # list invented here would be this deployment authoring the open half of
+        # somebody else's section". True, and it overlooked that no list needs
+        # inventing for §2.5's FIRST class: `text_documents.filename_marker_kind`
+        # is catalogue 05, already shipped, already deciding what a package
+        # manifest and a repository marker are for every loose file on the disk.
+        # `manifest_marker_recognizer` asks that same table about a member path and
+        # re-kinds its answer to §2.5's vocabulary; §2.5's `document name` class
+        # stays deferred, and that module says at length why and what it costs.
+        "recognize_markers": manifest_marker_recognizer(),
         # REACHED NOW. Both are catalogues 02, 03 and 04, finished on 2026-08-20 in
         # `planning/deferred-catalogues/` and read by nothing until 2026-08-31:
         # `grep -rn "deferred-catalogues" src` returned nothing at all, so a macOS

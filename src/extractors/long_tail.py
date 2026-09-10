@@ -302,9 +302,24 @@ def _text_path(document: LongTailFile, text: LongTailText) -> tuple:
     return path
 
 
-#: Zones whose whole text is itself a located value. A heading, a note and a cell are
-#: short labelled positions (sections 2.3 and 2.9); a body and a transcript are bulk
-#: text and G1 gives bulk text to `text_units`.
+#: Zones whose whole text is itself a located value CARRYING A SPAN. A heading, a
+#: note and a cell are short labelled positions (sections 2.3 and 2.9); a body and a
+#: transcript are bulk text and G1 gives bulk text to `text_units`.
+#:
+#: `104` §18.2 GAP 17 CORRECTED WHAT THIS TABLE WAS BEING USED FOR. It says which
+#: readings carry a SPAN, and it was also -- silently -- deciding which readings
+#: became evidence at all: a zone outside it got its `text_unit` and no observation,
+#: so a slide's body and an email's message body were stored and unreachable. The
+#: recogniser scans observations only, on purpose
+#: (`recognition/detector.py`: "a detector that pulled whole text units would be a
+#: second materialisation locus"), so every word of a deck and every word of a
+#: message was extracted, stored, and read by nothing.
+#:
+#: THE SAME DEFECT, FIXED FOUR TIMES ALREADY AND NEVER HERE: E1 (`pdf.py`, per
+#: page), E2 (`docx.py`, the whole body), E3 (`structured_text.py`, per paragraph,
+#: R-164) and E6 (`ocr.py`, the passage, R-171) each emit a span-less whole-unit
+#: observation beside the unit. The `else` arm below is that emission, for the long
+#: tail, and nothing else about this table changed.
 WHOLE_TEXT_ZONES: tuple[str, ...] = ("heading", "notes", "table")
 
 
@@ -412,6 +427,30 @@ def extract_long_tail(
             emit(zone=text.zone, raw=text.text, container_path=container,
                  span={"start": 0, "end": len(text.text)}, unit_text=text.text,
                  reliability="possible", sensitive_basis=body_basis)
+        else:
+            # `104` §18.2 gap 17: BULK TEXT IS EVIDENCE TOO, and this arm is the
+            # only thing that was missing. A slide's text boxes and a message's
+            # `text/plain` parts arrive here as `body`; before this they produced a
+            # `text_unit` and no row, so `.pptx` and `.eml` were the two families
+            # whose CONTENT the recogniser could not see at all.
+            #
+            # NO SPAN, and it is the same load-bearing omission `structured_text.py`
+            # and `docx.py` argue at length. A span serialises INTO the locator --
+            # `body#0-4120` -- and `body#` is the space the shipped deployment's
+            # direct slot claims, so a span here would let an entire slide deck
+            # become a `subject` fact, which is to say a FOLDER NAME. The container
+            # is the text's own (`slide=3/region=2`), which carries no `#`, and the
+            # unit standing at exactly that path is what `store.unit_length_for_
+            # observation` measures the reading against -- P4 rule 10 satisfied by
+            # construction, which is what makes the reading bounded by §8.6's
+            # ceiling rather than releasable as an "excerpt" of unknown size (SF-1).
+            #
+            # `time_span` passes through for the same reason the structured-string
+            # loop below passes it: a transcript is addressed by time, and P4
+            # publishes `text_span` and `time_span` as alternatives.
+            emit(zone=text.zone, raw=text.text, container_path=container,
+                 span=None, unit_text=None, reliability="possible",
+                 sensitive_basis=body_basis, time_span=text.time_span)
         for found in find_structured_strings(text.text):
             zone = ZONE_BY_STRUCTURED_KIND.get(found.kind, text.zone)
             found_basis = body_basis
