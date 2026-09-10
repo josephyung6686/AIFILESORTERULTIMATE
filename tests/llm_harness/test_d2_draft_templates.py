@@ -159,6 +159,17 @@ def _instantiate(candidate, case, shape: dict) -> bytes:
     # same payload shape; the case's own expected situation is the answer.
     if candidate.site in (F_ROLE_SHORTLIST, G_SITUATION_SENSITIVITY):
         payload["situation"] = case.expect.get("situation") or "none"
+        # `104` §18.7 S2: the v2 situation shape carries an OPTIONAL
+        # `restricted_kind`, an enum of `105` §13.3's ten. The example's
+        # placeholder is prose, so it is replaced by the case's own kind when the
+        # case names one and dropped when it does not -- which is what the
+        # template tells the model to do for a file that is none of the ten.
+        if "restricted_kind" in payload:
+            kind = case.expect.get("restricted_kind")
+            if kind:
+                payload["restricted_kind"] = kind
+            else:
+                payload.pop("restricted_kind")
         payload["alternatives"] = []
     if candidate.site == C_PLACEMENT:
         payload["destination"] = case.expect.get("destination", "none")

@@ -1,0 +1,139 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "situation_response_schema.unratified.2026-09-06",
+ "description": "UNRATIFIED DRAFT, 2026-09-06. The one JSON object a model may return at the per-branch situation call (104 R-37, 105 \u00a712), carried under F_role_shortlist until the owner names the site. One claim: a situation from allowed_vocabulary with citations, or none with an insufficiency statement.",
+ "type": "object",
+ "required": [
+  "claims"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "claims": {
+   "type": "array",
+   "minItems": 1,
+   "maxItems": 1,
+   "items": {
+    "type": "object",
+    "required": [
+     "payload"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "payload": {
+      "type": "object",
+      "required": [
+       "situation",
+       "alternatives"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "situation": {
+        "type": "string",
+        "minLength": 1
+       },
+       "alternatives": {
+        "type": "array",
+        "items": {
+         "type": "string",
+         "minLength": 1
+        }
+       },
+       "restricted_kind": {
+        "type": "string",
+        "enum": [
+         "receipt",
+         "order_confirmation",
+         "boarding_pass_or_ticket",
+         "own_account_or_message_screenshot",
+         "bank_or_card_notification",
+         "identity_document",
+         "medical_record",
+         "financial_statement_or_tax_return",
+         "credentials_or_password_vault",
+         "legal_document_naming_the_person"
+        ]
+       }
+      }
+     },
+     "citations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+       "type": "object",
+       "required": [
+        "evidence_ref",
+        "why_it_supports"
+       ],
+       "additionalProperties": false,
+       "properties": {
+        "evidence_ref": {
+         "type": "string",
+         "minLength": 1
+        },
+        "cited_span": {
+         "type": "string",
+         "minLength": 1
+        },
+        "metadata_field_name": {
+         "type": "string",
+         "minLength": 1
+        },
+        "why_it_supports": {
+         "type": "string",
+         "minLength": 1
+        }
+       },
+       "oneOf": [
+        {
+         "required": [
+          "cited_span"
+         ]
+        },
+        {
+         "required": [
+          "metadata_field_name"
+         ]
+        }
+       ]
+      }
+     },
+     "unknown": {
+      "type": "object",
+      "required": [
+       "insufficiency_statement"
+      ],
+      "additionalProperties": false,
+      "properties": {
+       "insufficiency_statement": {
+        "type": "string",
+        "minLength": 1
+       }
+      }
+     }
+    },
+    "oneOf": [
+     {
+      "required": [
+       "citations"
+      ],
+      "not": {
+       "required": [
+        "unknown"
+       ]
+      }
+     },
+     {
+      "required": [
+       "unknown"
+      ],
+      "not": {
+       "required": [
+        "citations"
+       ]
+      }
+     }
+    ]
+   }
+  }
+ }
+}

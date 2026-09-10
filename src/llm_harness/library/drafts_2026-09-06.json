@@ -235,6 +235,21 @@
    "glossary_file": "field_glossary.json",
    "ratified_by": "the lead, 7 Sep 2026, under the owner's delegation of prompt iteration as new versioned rows (14:15, 7 Sep: \"if it isn't perfect you can try editing prompt too\"); LOCAL only. The ratified text plus rule 12 (the school rule, 105 §14.4) and rule 13 (a context line is named as such; the value it supports is the course CODE it prints, never a title). Measured cause: r11, 21 code-shaped to 39 title answers with the code line in view (104 R-144). The owner ratifies or strikes this row; the glossary is the shipped one (a v2 glossary needs threading into the dossier body, out of scope). CLOUD OPENED 9 Sep 2026: the owner ruled the cloud run happens now (104 §17.13; R-82 signed there), local kept for protected and unclassified files by the per-file route (R-170); applied by the lead.",
    "note": "v2 of the A_fact text: rules 12 and 13 appended after rule 11; everything before THE RULES byte-identical to the ratified text."
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-safety-first-v2",
+   "status": "ratified_local",
+   "template_id": "situation.unratified.safety-first-v2.2026-09-09",
+   "template_file": "situation_template.safety-first.v2.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_shaping_policy.json",
+   "readings_rows": [
+    "@case"
+   ],
+   "layout": "frame-first",
+   "note": "v2 of the situation text: one sentence after the protected-kinds paragraph naming the ten restricted kinds by identifier and by the owner's words (RESTRICTED_KIND_LABELS verbatim), and the shape example gains the optional key; everything else byte-identical to situation-safety-first. The schema adds `restricted_kind` as an optional enum of the ten.",
+   "ratified_by": "the owner, 9 Sep 2026 (104 §18.7 S2 and §18.11): the local model names which of 105 §13.3's ten restricted kinds a file is, in one optional field beside the situation; the lead applied the word. LOCAL only, as the v1 row: site G's population is the unclassified files and no cloud release of one exists."
   }
  ],
  "digests": {
@@ -269,6 +284,8 @@
   "situation_template.safety-first.txt": "00eddb02d0e4e8e6df9215a8f2956961d1ea63b87a23d57a35bd0603fd7d908e",
   "situation_response_schema.json": "138306d24c564d0557cc84d12d0053806e14389b0e6a399b64f9375767845229",
   "situation_shaping_policy.json": "d3517b8f9f07b45799460a87bf881f1ad48e6c63a7dd6d3c5d58007dccaf72ad",
-  "a_fact_template_folder_levels.v2.txt": "5346d1b37d7373c52a6dd6801d98e1cf60a7f289f0e2393bdec84bb1e8eef929"
+  "a_fact_template_folder_levels.v2.txt": "5346d1b37d7373c52a6dd6801d98e1cf60a7f289f0e2393bdec84bb1e8eef929",
+  "situation_template.safety-first.v2.txt": "1b0a1077fc173e74dcf40d30e85b0e62b669ed2a818e0377230f6149ded98b0c",
+  "situation_response_schema.v2.json": "b7298255e89d026bc02c26cf6a5ad9c2ac306a1394642ee9820ecc45c351b583"
  }
 }

@@ -190,7 +190,8 @@ from model_facts import (
 # would be the same list written twice.
 import model_facts
 from privacy.classification import (
-    ClassificationRecord, UNREADABLE_UNCLASSIFIED, resolve_class,
+    ClassificationRecord, UNREADABLE_UNCLASSIFIED, privacy_class_for,
+    resolve_class,
 )
 from privacy.classification_store import ClassificationStore
 from privacy.learning_seam import assign
@@ -208,7 +209,7 @@ from privacy.resolve import (
 )
 from privacy.vocabulary import (
     ALWAYS_LOCAL_ZONES, CLOUD_LOCALITY, CONSENT_OPTIONS, LOCAL_MODEL_SITUATION,
-    MODE_SEMANTICS,
+    MODE_SEMANTICS, RESTRICTED_KINDS,
 )
 from questions.explanation import explain_question, render_explanation
 from questions.effects import changed_answer, diff_for_answer_change
@@ -858,8 +859,12 @@ A_FACT_ROW: tuple[str, str] = (
 #: and `privacy.denial.unclassified_denies` refuses every cloud release of one
 #: unconditionally -- so a `ratified` here would name a permission no file at this
 #: site could use.
+#: `104` §18.7 S2 and §18.11 (9 Sep 2026): the v2 row, ratified by the owner for
+#: local use, asks the same question plus one -- which of `105` §13.3's ten
+#: restricted kinds the file is, in `restricted_kind` -- so that the local model
+#: is the kind recogniser `privacy_class` has been waiting for.
 SITUATION_ROW: tuple[str, str] = (
-    "situation.unratified.safety-first.2026-09-06", "situation-safety-first")
+    "situation.unratified.safety-first-v2.2026-09-09", "situation-safety-first-v2")
 
 
 #: WHAT EACH STATUS WORD BUYS, and the two questions it answers are not one
@@ -5494,7 +5499,35 @@ def situation_named_by_verdict(conn: sqlite3.Connection, verdict,
     return situation if situation in set(allowed_vocabulary) else None
 
 
+def restricted_kind_named_by_verdict(conn: sqlite3.Connection, verdict) -> str | None:
+    """`104` §18.7 S2 / §18.11: the restricted document KIND the validated verdict
+    names, or `None` when it names none.
+
+    The second question site G's v2 text asks, read the way the first is: off the
+    payload of the claim the verdict judged, at the composition root, by whoever
+    supplied the prompt. `None` here means "the model named no restricted kind" --
+    the schema makes the field optional and the template says to leave it out for
+    a file that is none of the ten -- and it is `privacy_class_for`'s `()` (assessed,
+    ordinary), NOT its `None` (never assessed): the caller passes the empty tuple,
+    because a file the local model looked at and found to be no restricted kind is
+    §13.3's "on neither list is ordinary", and calling it pending would refuse the
+    cloud to every file the recogniser cleared.
+
+    The membership test is the vocabulary's own (`RESTRICTED_KINDS`) and it is not a
+    second opinion: the schema's enum is the same ten, so a value outside them is a
+    payload this deployment mis-addressed rather than a kind, and it names nothing.
+    """
+    if verdict is None or verdict.outcome not in ACCEPTING_OUTCOMES:
+        return None
+    payload = _validated_payload(conn, verdict)
+    kind = payload.get("restricted_kind") if payload else None
+    if not isinstance(kind, str) or kind not in RESTRICTED_KINDS:
+        return None
+    return kind
+
+
 def situation_classification(question, schema_id: str, *, observed_at: str,
+                             restricted_kind: str | None = None,
                              handling_for=HANDLING_POLICY) -> ClassificationRecord:
     """`104` §17.1's second wall, spent: one model verdict, written down truthfully.
 
@@ -5529,7 +5562,16 @@ def situation_classification(question, schema_id: str, *, observed_at: str,
         basis=LOCAL_MODEL_SITUATION,
         evidence_refs=tuple(question.evidence_refs),
         reliability_state=LLM_SUPPORTED,
-        observed_at=observed_at)
+        observed_at=observed_at,
+        # `104` §18.7 S2 / §18.11 (9 Sep 2026): THE KIND IS THE MODEL'S AND THE
+        # CLASS IS THE VOCABULARY'S, on the same terms as the two lines above it.
+        # The local model names which of `105` §13.3's ten restricted kinds the
+        # file is, or none; `privacy_class_for` turns that into the class with the
+        # owner's precedence (protected over always-local over ordinary). The
+        # empty tuple is deliberate: this file WAS assessed, so "no restricted
+        # kind" is ordinary and never pending -- §14.3's own distinction.
+        privacy_class=privacy_class_for(
+            () if restricted_kind is None else (restricted_kind,)))
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -5682,7 +5724,10 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             declined += 1
             continue
         assign(conn,
-               situation_classification(question, situation, observed_at=now()),
+               situation_classification(
+                   question, situation, observed_at=now(),
+                   # `104` §18.7 S2: the second answer of the same verdict.
+                   restricted_kind=restricted_kind_named_by_verdict(conn, verdict)),
                store=store, component_version=component_version)
         named[file_id] = situation
     return SituationPass(
