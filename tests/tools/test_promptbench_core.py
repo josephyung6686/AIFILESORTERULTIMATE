@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from llm_harness.records import PromptDefinition  # noqa: E402
 from llm_harness.vocabulary import (  # noqa: E402
-    ABSTAIN, ACCEPT_DIRECT, C_PLACEMENT, INVENTED_NODE, REJECT,
+    ABSTAIN, ACCEPT_DIRECT, C_PLACEMENT, INVENTED_NODE, NODE_NOT_IN_FROZEN_TREE, REJECT,
 )
 from llm_harness.wire_handles import wire_handle  # noqa: E402
 
@@ -130,7 +130,10 @@ def test_judge_records_an_invented_node_as_the_validators_reject():
                     schema={"type": "object"},
                     site_dependencies=site_dependencies_for(case))
     assert verdict.worst_outcome == REJECT
-    assert [INVENTED_NODE] in [v["reasons"] for v in verdict.verdicts]
+    # `104` §18.2 gap 2 (9 Sep 2026): a node that exists nowhere in the frozen
+    # tree is the STRUCTURAL rejection, asked first and by its own word; a real
+    # node off the shortlist is a flag now, not `INVENTED_NODE`.
+    assert [NODE_NOT_IN_FROZEN_TREE] in [v["reasons"] for v in verdict.verdicts]
     assert verdict.correct is False
 
 
