@@ -49,7 +49,7 @@ import sqlite3
 from pathlib import Path
 
 import cli
-from recognition.detector import Abstention
+from recognition.detector import Abstention, situation_outcome_of
 from model_situation import NONE_OF_THESE, _abstention_item, question_for
 from privacy.classification_store import ClassificationStore
 from privacy.learning_seam import reclassify
@@ -238,10 +238,11 @@ def test_a_file_the_rules_do_not_hold_carries_no_hold_in_its_dossier():
     """
     abstention = Abstention(
         "no_corroboration", ORDINARY_SITUATION,
-        "one authored term and every node row carries a `never_alone` rule")
-    question = question_for(abstention, file_id="f-1", content_hash="h-1",
-                            matched_terms=((ORDINARY_SITUATION, ("syllabus",)),),
-                            evidence_refs=("sha256:one",))
+        "one authored term and every node row carries a `never_alone` rule",
+        matched_terms=((ORDINARY_SITUATION, ("syllabus",)),),
+        evidence_refs=("sha256:one",))
+    question = question_for(situation_outcome_of(abstention),
+                            file_id="f-1", content_hash="h-1")
 
     assert question.precaution is None
     item = _abstention_item(question)
