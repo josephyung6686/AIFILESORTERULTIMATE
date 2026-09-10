@@ -39,6 +39,8 @@ from pathlib import Path
 import pytest
 
 import cli
+from facts.llm_seam import LLM_STATES
+from facts.states import POSSIBLE as POSSIBLE_STATE
 from llm_harness.value_grounding import grounding_tokens
 from privacy.vocabulary import (
     ALWAYS_LOCAL_ZONES, ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET,
@@ -439,21 +441,47 @@ def test_the_fact_pass_runs_and_writes_a_supported_fact(tmp_path, stub, monkeypa
     `_model_fact_pass` returned unless the operation mode was `hybrid`, and
     `hybrid` requires this folder's stored cloud consent. A model on the person's
     own machine needs none, and `00`:189-193 says so -- `offline` is "No content
-    leaves the device; only local rules and LOCAL MODELS may run"."""
+    leaves the device; only local rules and LOCAL MODELS may run".
+
+    **RE-ARGUED FOR `104` §18.2 GAP 1, AND THE STATE IS WHY.** This asserted
+    `reliability_state = 'llm_supported'` exactly. Gap 1 asks the fields the rules
+    already settled, flags them, and records a model answer that disagrees as a
+    `possible` proposal instead of discarding it -- and this stub answers ONE field
+    per call with the first span it can quote, so on a labelled corpus its claim
+    lands on a settled field and disagrees with it by construction (the run's own
+    report names both: `term` answered `BUSIB 4300` against the rules' `Fall2024`).
+    A pass that writes only proposals is the pass working, not the pass failing.
+
+    So the assertion is `facts.llm_seam.LLM_STATES` -- the two states §3.6 admits an
+    LLM-origin fact at, and the pair `require_llm_state` gates every route on -- and
+    the teeth are kept by the two lines under it: the fact names the local model, and
+    a `possible` one is a fact the review screen is showing somebody. Widening this to
+    "any fact" would pass on a `validated` row a regex wrote, which is what `103` §10
+    is asking about.
+    """
     database, report = _local_run(tmp_path, stub, monkeypatch)
 
     responses = _query(database, "SELECT COUNT(*) FROM llm_response")[0][0]
     verdicts = _query(database, "SELECT COUNT(*) FROM llm_verdict")[0][0]
     supported = _query(
         database,
-        "SELECT field_key, model_identifier FROM file_facts "
-        "WHERE reliability_state = 'llm_supported'")
+        "SELECT field_key, model_identifier, reliability_state FROM file_facts "
+        "WHERE origin = 'llm_interpretation'")
 
     assert responses >= 1, report
     assert verdicts >= 1, report
     assert supported, report
     assert all(row[1] == MODEL_ID for row in supported), (
         "a fact the local model supported has to name the local model", supported)
+    assert all(row[2] in LLM_STATES for row in supported), (
+        "§3.6 admits an LLM-origin fact at `llm_supported` or `possible` and at no "
+        "other state; anything else is a model conclusion with the standing of a "
+        "directly extracted or rule-validated one", supported)
+    # AND A PROPOSAL IS SHOWN. `104` §18.2 gap 1's last clause: the flagged answer
+    # reaches the person with the rules' own value beside it, or it is the silent
+    # loss the rejection was with a better state name.
+    if any(row[2] == POSSIBLE_STATE for row in supported):
+        assert "New values the model proposed, waiting on you:" in report, report
 
 
 def test_the_sent_line_is_true_and_names_the_local_model(tmp_path, stub, monkeypatch):
@@ -549,17 +577,47 @@ def test_site_a_is_never_asked_the_school_of_one_file(tmp_path, stub, monkeypatc
     and what the validator holds it to: a field absent from it is a question never
     asked, not an answer thrown away. `subject` and `work_type` are still there,
     which is what makes this a narrowing rather than an empty dossier.
+
+    **RE-ARGUED FOR `104` §18.2 GAP 1, AND THE RULING IT PINS IS UNCHANGED.** The
+    filter above -- "a call is an A_fact call if it offers `subject` or `work_type`"
+    -- used to exclude the SYLLABUS's call by accident: that file's subject, term and
+    kind were all settled by rules, so `105` §14.4 left it asked its `school` and
+    nothing else, and a vocabulary of `('school',)` matched neither word. Gap 1 asks
+    the settled level fields again, so the anchor's call now offers `subject` and
+    `work_type` beside its `school` and the filter catches a call it never used to
+    see. Nothing about who is asked the school moved: `model_facts.fact_call_stage`
+    passes only the RUN's own settled levels into `open_question`, so
+    `anchor_only_levels` can pick up nothing from gap 1, and
+    `tests/integration/test_the_school_is_asked_of_anchors.py` pins the positive half.
+
+    So the assertion is the one §11.2 step 2 actually makes -- `school` is asked ONLY
+    of a file whose KIND the rules settled, which is `anchor_only_levels`' own
+    precondition -- and it is read off the same bytes, using the dossier's own
+    `conflicts` to say which file that is. The five essays that were filed under a
+    high school were files with no settled kind at all, and this still fails if one
+    of them is asked.
     """
     _local_run(tmp_path, stub, monkeypatch)
 
-    asked = [dossier_in(prompt).get("allowed_vocabulary", ())
-             for prompt in stub.prompts() if DOSSIER_FOLLOWS in prompt]
-    a_site = [vocabulary for vocabulary in asked
-              if "subject" in vocabulary or "work_type" in vocabulary]
+    bodies = [dossier_in(prompt) for prompt in stub.prompts()
+              if DOSSIER_FOLLOWS in prompt]
+    a_site = [body for body in bodies
+              if "subject" in body.get("allowed_vocabulary", ())
+              or "work_type" in body.get("allowed_vocabulary", ())]
 
     assert a_site, "no A_fact call was made, so this proves nothing"
-    for vocabulary in a_site:
-        assert "school" not in vocabulary, vocabulary
+    asked_the_school = [body for body in a_site
+                        if "school" in body["allowed_vocabulary"]]
+    for body in asked_the_school:
+        kinds = {flag["kind"] for flag in body.get("conflicts", ())}
+        assert "work_type" in kinds, (
+            "only a file whose kind the rules already settled may be asked the "
+            "school (`105` §14.4: the anchor kind is what buys the right to be "
+            "asked), and this dossier carries no flag saying its kind is settled",
+            body["allowed_vocabulary"], sorted(kinds))
+    # AND THE NARROWING IS REAL: the ordinary files are still not asked it.
+    assert len(asked_the_school) < len(a_site), [
+        body["allowed_vocabulary"] for body in a_site]
 
 
 # --- the standing rule, under a model that is running -------------------------

@@ -64,29 +64,28 @@ from facts.file_facts import facts_for_file
 from facts.photo_event import EVENT_FIELD
 from facts.session import DOWNLOAD_SESSION_FIELD
 from facts import states as _states
-from facts.states import STRENGTH_ORDER, USER_CONFIRMED
+from facts.states import (
+    PROPOSAL_ELIGIBLE_STATES,
+    STRENGTH_ORDER,
+    USER_CONFIRMED,
+)
 from facts.supersede import fact_history, preferred_of_slot
 from facts.unresolved import unresolved_for_file
 from facts.values import values_in_field
 
-#: §3.6's two exclusions, DERIVED rather than spelled. Task 1 publishes the ladder
-#: WEAKEST FIRST -- `STRENGTH_ORDER[0]` is the weakest ranked state and
-#: `strength(state)` is `STRENGTH_ORDER.index(state)`, which is larger for stronger --
-#: so dropping the FIRST member drops the weakest. `rejected` is the one member of
-#: `STATES` that Task 1 gives no strength (it is `EXCLUDED_STATE`, an exclusion rather
-#: than a rank), so it is absent from `STRENGTH_ORDER` by construction. Slicing the
-#: first element off therefore drops both exclusions at once and no state name is
-#: written down in this module.
+#: RE-EXPORTED, NOT RE-DEFINED (`104` §18.2 gap 1). §3.6's two exclusions were
+#: derived here from `STRENGTH_ORDER`, and every argument for the derivation is
+#: unchanged and now lives beside the ladder it slices, in `facts.states`. The name
+#: stays bound in this module because this is where its readers import it from --
+#: `tree_design.upstream`, `cli` and P8's own docstrings all say
+#: `facts.read_surface.PROPOSAL_ELIGIBLE_STATES` -- and because gap 1 gave
+#: `facts.supersede` a reason to read the same tuple, which it cannot do through a
+#: module that imports it.
 #:
-#: `STATES` itself is reached through the MODULE (`_states.STATES`) and never imported
-#: by name: Task 1's guard forbids any other module from BINDING a collection whose
-#: members are the six, and `from facts.states import STATES` is such a binding.
-#:
-#: The plan's Task 24 body says `STRENGTH_ORDER[:-1]` and calls the last member the
-#: weakest. That is the opposite of the shipped ladder and would have excluded
-#: `user_confirmed` -- a user's own answer -- from every folder proposal while still
-#: excluding nothing weak. Shipped code outranks the task body; see the conflict report.
-PROPOSAL_ELIGIBLE_STATES: tuple[str, ...] = STRENGTH_ORDER[1:]
+#: `STATES` itself is still reached through the MODULE (`_states.STATES`) and never
+#: imported by name: Task 1's guard forbids any other module from BINDING a
+#: collection whose members are the six, and `from facts.states import STATES` is
+#: such a binding. This tuple is a four-member projection and not that collection.
 
 
 class DanglingCitation(LookupError):

@@ -415,12 +415,22 @@ def test_several_live_rows_have_no_preferred_row(scanned, p6_conn):
 
 
 def test_a_superseded_row_is_not_live_so_one_survivor_is_the_answer(scanned, p6_conn):
-    # Two chains, one of them retired: the retired chain's rows are not live, so the
-    # slot is answerable again and OQ6 is not reached.
+    """Two chains, one retired: the retired rows are not live, so the slot is
+    answerable again and OQ6 is not reached.
+
+    **RE-ARGUED FOR `104` §18.2 GAP 1, AND THE POINT IS UNCHANGED.** The old row was
+    written `possible`, which since gap 1 is a CLUE and no longer competes as a value
+    -- `facts.supersede.preferred_of_slot` sets it aside whenever the slot holds a
+    real answer -- so the first assertion would have passed for the new reason instead
+    of the one this test is about, and the supersession below would have proved
+    nothing. `llm_supported` is the weakest state that IS an answer, so the slot is
+    genuinely two-valued before the retirement and genuinely one-valued after it,
+    which is exactly what the test was written to show.
+    """
     file_id, content_hash, first, second = scanned
     old = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
                 field_key="subject", value="C0lumb1a", key=first,
-                state="possible", cache_key="sha256:one")
+                state="llm_supported", cache_key="sha256:one")
     new = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
                 field_key="subject", value="Columbia University", key=second,
                 state="validated", cache_key="sha256:two")
@@ -428,6 +438,58 @@ def test_a_superseded_row_is_not_live_so_one_survivor_is_the_answer(scanned, p6_
     supersede_fact(p6_conn, old_fact_id=old, new_fact_id=new, reason="pass two")
     assert preferred_fact(p6_conn, file_id=file_id,
                           field_key="subject")["fact_id"] == new
+
+
+def test_a_clue_does_not_out_vote_the_rules_fact_it_disagrees_with(scanned, p6_conn):
+    """`104` §18.2 gap 1: THE STORE'S PRECEDENCE, WITH THE DISAGREEMENT ON THE RECORD.
+
+    Gap 1 stops the validator vetoing a model answer that contradicts a stronger
+    fact: the answer is flagged and written `possible` beside the rule's `validated`
+    one, so a person can see the two. The slot must still MEAN the rule's value --
+    `00`:42's amendment gives the model the reconciliation, not the precedence.
+
+    SABOTAGE: delete the `PROPOSAL_ELIGIBLE_STATES` guard in
+    `facts.supersede.preferred_of_slot` and the clue counts as a second value again.
+    `preferred_fact` answers `None`, and a file that had a subject before the model
+    was asked has none after it -- the flag becomes a veto by the other door, which
+    is the defect gap 1 exists to remove wearing the opposite sign.
+    """
+    file_id, content_hash, first, second = scanned
+    rule = _fact(p6_conn, file_id=file_id, content_hash=content_hash,
+                 field_key="subject", value="PHYS 1401", key=first,
+                 state="validated", cache_key="sha256:the-rule")
+    _fact(p6_conn, file_id=file_id, content_hash=content_hash,
+          field_key="subject", value="Introduction to Mechanics", key=second,
+          state="possible", cache_key="sha256:the-model")
+    row = preferred_fact(p6_conn, file_id=file_id, field_key="subject")
+    assert row is not None
+    assert row["fact_id"] == rule
+    assert row["canonical_value"] == "PHYS 1401"
+    # AND THE DISAGREEMENT IS NOT DELETED TO GET THERE. §8.2 keeps both rows, and
+    # `cli._print_values_to_confirm` is what shows the person the one that lost.
+    assert len(fact_history(p6_conn, file_id=file_id, field_key="subject")) == 2
+
+
+def test_two_clues_that_disagree_with_nothing_stronger_are_still_unresolvable(
+        scanned, p6_conn):
+    """The falsifying twin: with no ANSWER in the slot, nothing is set aside.
+
+    `104` §18.2 gap 1 narrows the competition only when the slot holds a fact a
+    folder could rest on. Two clues and nothing else is a slot with no answer in it,
+    and picking one would be OQ6 closed by accident in the one place the guard is off.
+
+    SABOTAGE: narrow `live` unconditionally instead of behind the guard, and this
+    returns a row -- the product would then file under a value §3.6 says "must not
+    quietly become a folder proposal or an asserted file property".
+    """
+    file_id, content_hash, first, second = scanned
+    _fact(p6_conn, file_id=file_id, content_hash=content_hash, field_key="subject",
+          value="Introduction to Mechanics", key=first, state="possible",
+          cache_key="sha256:one")
+    _fact(p6_conn, file_id=file_id, content_hash=content_hash, field_key="subject",
+          value="Mechanics I", key=second, state="possible",
+          cache_key="sha256:two")
+    assert preferred_fact(p6_conn, file_id=file_id, field_key="subject") is None
 
 
 def test_an_empty_slot_has_no_preferred_row_and_no_history(scanned, p6_conn):
