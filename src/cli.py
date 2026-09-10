@@ -294,6 +294,7 @@ from readers.model_routing import (
 from facts.domains import SCHEMA_IDS
 from recognition.detector import (
     FIRST_PAGE, NAMING_ZONES, SAFETY_DOMAIN_HANDLING, Abstention, Detector, Handling,
+    Recognition,
 )
 from recognition.rules import load_rules
 from recognition.semantic import (
@@ -5791,9 +5792,13 @@ class PrecautionHolds:
     `still_held` partition `held`, and nothing else.
     """
 
-    #: Files this pass found under a `safety_domain` hold when it reached them.
-    #: The detector's precaution wrote the row; this is the count of the files it
-    #: wrote it for, over this run's roster.
+    #: Files this pass found under a `safety_domain` hold when it reached them,
+    #: over this run's roster. THREE WRITERS AND NOT ONE (`104` §18.26 gap 24b):
+    #: the detector's precaution on an abstention, a safety domain that won
+    #: outright, and the winning-schema branch where another schema won and a
+    #: safety domain still named the file. The last two sit on files the rules
+    #: RECOGNISED, they were 8 of r19's 11 false marks, and until the owner's
+    #: ruling of 10 Sep 13:10 they were counted `settled` and never asked.
     held: int
     #: Holds the local model LIFTED: it named an ordinary situation, its citations
     #: resolved, P8 accepted the claim, and it named no restricted kind. The row it
@@ -5822,7 +5827,13 @@ class SituationPass:
 
     #: file_id -> the schema id a model named for it, validated and recorded.
     named: dict
-    #: Files the recognisers settled without a model. Not asked, and rightly.
+    #: Files the recognisers settled without a model AND are not holding. Not
+    #: asked, and rightly. `104` §18.26 gap 24b, the owner's ruling of 10 Sep
+    #: 13:10: a file the rules recognised and ALSO hold is not settled and is not
+    #: counted here -- `00`:110 reserves the model for what the rules cannot
+    #: settle, and a hold is the rules saying they could not. It is asked like any
+    #: other held file and lands in whichever of the counters below its answer
+    #: earns, so the six still partition the roster.
     settled: int
     #: Files with an abstention and no candidate at all -- `no_evidence` with no
     #: semantic recogniser behind it. `NothingToAsk`, and 60 of the owner's 112
@@ -5933,6 +5944,33 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
       old row stays readable. Silence never lifts a hold: a decline, a refused
       claim, a failed call and a file that was never askable all leave the
       precaution row exactly as the detector wrote it.
+
+    **AND A HOLD OUTRANKS `00`:110 (`104` §18.26 gap 24b, the owner's ruling of
+    10 Sep 13:10).** Gap 24 reached only the holds the precaution takes on an
+    ABSTENTION. `basis='safety_domain'` has three writers and the other two -- a
+    safety domain winning outright, and the winning-schema branch where another
+    schema won and a safety domain still named the file -- sit on files `explain`
+    returns a `Recognition` for, which this pass counted `settled` and never
+    asked. On r19 that was 8 of the 11 ordinary files wrongly held. The ruling is
+    that a file the rules both RECOGNISED and HOLD is asked: `00`:110 reserves the
+    model for what the rules cannot settle, and a hold is the rules saying they
+    could not -- it is a word-list guess about what the file IS, taken on a term
+    that may be the modal verb "will" in the body of a datasheet, while the local
+    model reads the whole text. Three things follow and nothing else moves:
+
+    * the shortlist is the schema the rules RECOGNISED plus the safety domain(s)
+      the hold names, so the model can answer the ordinary situation the rules
+      read, or a protected one, or none of them. `question_for` builds it from
+      the outcome and the `Precaution` together, and offers no semantic candidate
+      on a recognised file: the question is whether the HOLD is right, not what
+      else the file might be.
+    * the report item says where the rules GOT TO rather than why they stopped --
+      "the rules recognised this file as X ... held: ... as Y ..." -- on the same
+      `recogniser_abstention` item, in the same register, still carrying nothing
+      out of the person's file.
+    * the lift rule is gap 24's, unchanged in every arm. A recognised file that is
+      NOT held is still `settled` and is still never asked, which is `00`:110
+      standing exactly where no hold exists.
     """
     named: dict = {}
     settled = nothing_to_ask = nothing_to_read = declined = no_route = 0
@@ -5980,15 +6018,20 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                 over_ceiling += 1
                 continue
         outcome = explain(conn, file_id, content_hash)
-        if not isinstance(outcome, Abstention):
-            # The rules settled it. `00`:110 sanctions exactly this: "The LLM should
-            # not be called for direct, unique matches."
-            settled += 1
-            continue
-        # THE HOLD, READ BEFORE THE QUESTION IS BUILT, because it is part of the
-        # question. `104` §18 gap 24: the precaution's own report -- which of
-        # `00`'s four safety domains, which of its work types, in which zones --
-        # is the one thing the model judging a held file was never shown.
+        # THE HOLD, READ BEFORE THE FILE IS EITHER ASKED OR SETTLED, because it
+        # is what decides which of the two happens. `104` §18 gap 24: the
+        # precaution's own report -- which of `00`'s four safety domains, which
+        # of its work types, in which zones -- is the one thing the model judging
+        # a held file was never shown.
+        #
+        # ONLY THE TWO OUTCOMES THIS DETECTOR'S RULES PRODUCE ARE PUT TO IT.
+        # `precaution_of` is the TERM detector's report and answers about an
+        # `Abstention` or a `Recognition`; under `--semantic-model` `explain` is
+        # the composed recogniser and returns neither, and those runs count every
+        # file `settled` today. That is a defect of its own -- `104` §18.26
+        # records it as an owed row -- and it is not this gap's to fix silently:
+        # asking the term detector to report on a record it did not write would
+        # be the wrapper answering for a decision it is not allowed to make.
         #
         # THE MARK IS THE ROW, AND THE ROW IS WHAT IS ASKED. The ruling names
         # "every file the precaution marked (`basis='safety_domain'`)", and
@@ -6004,11 +6047,27 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         # the one screen that is about somebody's protected files. So the store is
         # asked first, and only a live `safety_domain` row makes this a hold.
         current = store.current(file_id, content_hash)
-        precaution = (
-            precaution_of(conn, outcome, file_id=file_id,
-                          content_hash=content_hash)
-            if current is not None and current.basis in SAFETY_DOMAIN_BASES
-            else None)
+        precaution = None
+        if (isinstance(outcome, (Abstention, Recognition))
+                and current is not None
+                and current.basis in SAFETY_DOMAIN_BASES):
+            precaution = precaution_of(conn, outcome, file_id=file_id,
+                                       content_hash=content_hash)
+        if precaution is None and not isinstance(outcome, Abstention):
+            # THE RULES SETTLED IT AND ARE NOT HOLDING IT, which is the whole of
+            # what `00`:110 sanctions: "The LLM should not be called for direct,
+            # unique matches." A HELD file is not that. The owner's ruling of
+            # 10 Sep 13:10 (`104` §18.26 gap 24b) is that `00`:110 yields to a
+            # protected hold, and the reason is what the two sentences are ABOUT:
+            # a direct, unique match is the rules reading the file's own words and
+            # knowing what it is, while a hold is a word-list guess about what the
+            # file IS, taken on one term that may be the modal verb "will" in the
+            # body of a datasheet. Eight of r19's eleven wrongly-held ordinary
+            # files were recognised files, settled here, never asked, and routed
+            # local-only for no reason. The local model reads the whole text; the
+            # word list does not.
+            settled += 1
+            continue
         if precaution is not None:
             held += 1
         try:
@@ -6122,8 +6181,14 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             **({"supersede_reason": (
                 f"local model verdict {verdict.verdict_id} named {situation}"
                 f"{'' if restricted_kind is None else ' and kind ' + restricted_kind}"
-                f"; the rules held {precaution.schema_id} on "
-                f"{', '.join(precaution.terms)}")}
+                f"; the rules held {precaution.schema_id}"
+                # ON WHICH TERMS, WHERE THERE ARE ANY. A safety domain that won
+                # outright on its CONTEXT terms carries no work type to name
+                # (`104` §18.26 gap 24b), and "held finance on " is a reason that
+                # trails off in the one column that says why a protected row was
+                # retired.
+                + (f" on {', '.join(precaution.terms)}" if precaution.terms
+                   else ""))}
                if precaution is not None else {}))
         if precaution is not None and written is record:
             # WHICH WAY THE HOLD WENT, read off the record that actually
@@ -7703,7 +7768,10 @@ SITUATION_SENTENCE: Mapping[str, str] = MappingProxyType({
     "settled":
         "settled by rule: the recognisers named what they are from their own "
         "words, so no model was asked about them. `00`:110 reserves the model "
-        "for what the rules cannot settle, and this is that rule holding.",
+        "for what the rules cannot settle, and this is that rule holding. A file "
+        "the rules named AND are holding on a safety term is not among them: the "
+        "hold is a guess about what the file is, so it is asked like every other "
+        "held file and counted in the block below.",
     # TWO "NOT ASKED" LINES, AND EACH SAYS WHICH ONE IT IS IN ITS FIRST THREE
     # WORDS. A first version began both with the bare phrase, and the block then
     # printed two lines reading "0 not asked" with different paragraphs under

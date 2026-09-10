@@ -71,7 +71,7 @@ from llm_harness.vocabulary import (
 )
 from privacy.items import Excerpt
 from privacy.release import ModelCallRequest, Target
-from recognition.detector import Abstention, Precaution
+from recognition.detector import Abstention, Precaution, Recognition
 from recognition.vocabulary import SAFETY_DOMAIN_IDS
 
 #: P4's own word for a reading an extractor read explicitly, read off P4's tuple
@@ -147,8 +147,9 @@ class SituationQuestion:
     file_id: str
     content_hash: str
     #: The recogniser's own `ABSTENTION_REASONS` member -- `no_evidence`,
-    #: `no_corroboration` or `ambiguous` on the owner's corpus.
-    reason: str
+    #: `no_corroboration` or `ambiguous` on the owner's corpus -- or `None`
+    #: because the recogniser did not abstain at all. See `recognised_as`.
+    reason: str | None
     #: The closed list the model may answer from, `NONE_OF_THESE` last.
     allowed_situations: tuple[str, ...]
     #: What the file matched, per candidate. A candidate the file matched nothing
@@ -164,8 +165,32 @@ class SituationQuestion:
     #: P4 zones. The model is being asked to judge a file the rules are holding,
     #: and until now the one thing it was never shown was that.
     precaution: Precaution | None = None
+    #: `104` §18.26 gap 24b. The schema the rules RECOGNISED for this file, or
+    #: `None` because they abstained. A recognised file is asked about only when
+    #: the rules are ALSO holding it -- `00`:110 still reserves the model for what
+    #: the rules cannot settle, and `cli.ask_the_situation` is where that rule
+    #: lives -- so this is never set without `precaution`, and what it adds to the
+    #: question is the half the hold does not say: the rules named this file X and
+    #: are holding it as Y, and the model is being asked which of the two it is.
+    recognised_as: str | None = None
 
     def __post_init__(self) -> None:
+        # EXACTLY ONE, because the recogniser either stopped or it named the file
+        # and there is no third thing it can have done. Two nullable fields with
+        # no invariant would let a question say both, and `_abstention_item` would
+        # then have to choose which of two reports about one file to print.
+        if (self.reason is None) == (self.recognised_as is None):
+            raise ValueError(
+                "a situation question states the recogniser's abstention reason "
+                "or the schema it recognised, and exactly one of them: "
+                f"reason={self.reason!r}, recognised_as={self.recognised_as!r}")
+        if self.recognised_as is not None and self.precaution is None:
+            raise ValueError(
+                f"{self.file_id} was recognised as {self.recognised_as!r} and is "
+                "not held, so `00`:110 reserves it from the model entirely -- "
+                "\"the LLM should not be called for direct, unique matches\". "
+                "A recognised file becomes a question only through a hold "
+                "(`104` §18.26 gap 24b)")
         if self.allowed_situations[-1:] != (NONE_OF_THESE,):
             raise NothingToAsk(
                 f"the shortlist must end with {NONE_OF_THESE!r}; a closed list "
@@ -189,8 +214,9 @@ def _require_schema(schema_id: str) -> str:
     return schema_id
 
 
-def shortlist_for(abstention: Abstention,
-                  semantic: object | None = None) -> tuple[str, ...]:
+def shortlist_for(outcome: "Abstention | Recognition",
+                  semantic: object | None = None,
+                  precaution: Precaution | None = None) -> tuple[str, ...]:
     """The valid options for one file, from what the recognisers actually raised.
 
     **The order is `SCHEMA_IDS`', not the order the candidates arrived in.** Two
@@ -209,11 +235,22 @@ def shortlist_for(abstention: Abstention,
     when the semantic recogniser's nearest and runner-up are passed in, which is
     what `--semantic-model` turns on and what makes the two mechanisms partners
     rather than alternatives.
+
+    **THE HOLD IS AN OPTION TOO (`104` §18.26 gap 24b), and on an abstention it
+    is a no-op that is worth stating.** `Detector.precaution_report` reads an
+    abstention's hold off `(schema_id, *tied_schema_ids)` -- the very set the two
+    lines below raise -- so adding the held domain there can never widen the list
+    and the argument changes nothing for the files gap 24 already asked about. On
+    a `Recognition` it is the whole of what makes the question a question: the
+    rules named ONE schema, the hold names another, and a shortlist of the winner
+    alone would ask a model holding a passport whether it is coursework, with no
+    way to say that it is not.
     """
     raised: set[str] = set()
-    if abstention.schema_id is not None:
-        raised.add(_require_schema(abstention.schema_id))
-    for schema_id in abstention.tied_schema_ids:
+    schema_id = getattr(outcome, "schema_id", None)
+    if schema_id is not None:
+        raised.add(_require_schema(schema_id))
+    for schema_id in getattr(outcome, "tied_schema_ids", ()):
         raised.add(_require_schema(schema_id))
     for name in ("schema_id", "runner_up"):
         value = getattr(semantic, name, None)
@@ -222,12 +259,15 @@ def shortlist_for(abstention: Abstention,
     for schema_id in getattr(semantic, "tied_schema_ids", ()) or ():
         if isinstance(schema_id, str):
             raised.add(_require_schema(schema_id))
+    if precaution is not None:
+        raised.add(_require_schema(precaution.schema_id))
     return tuple(
         schema_id for schema_id in SCHEMA_IDS if schema_id in raised
     ) + (NONE_OF_THESE,)
 
 
-def question_for(abstention: Abstention, *, file_id: str, content_hash: str,
+def question_for(outcome: "Abstention | Recognition", *, file_id: str,
+                 content_hash: str,
                  matched_terms: Sequence[tuple[str, Sequence[str]]] = (),
                  evidence_refs: Sequence[str] = (),
                  semantic: object | None = None,
@@ -241,10 +281,28 @@ def question_for(abstention: Abstention, *, file_id: str, content_hash: str,
     `precaution` is SUPPLIED and never derived here. The hold is the detector's
     conclusion and this module reads no rules of its own -- the same discipline
     `matched_terms` and `evidence_refs` are passed under.
+
+    **A RECOGNITION IS A QUESTION ONLY BECAUSE OF THE HOLD (`104` §18.26 gap
+    24b).** WHICH files reach here is `cli.ask_the_situation`'s ruling and not
+    this module's; what this function owes such a file is the shortlist the
+    owner's ruling names -- the schema the rules recognised, and the safety
+    domain(s) the hold names -- so the model can answer the ordinary situation
+    the rules read, or a protected one, or none of them.
+
+    **THE SEMANTIC CANDIDATES ARE NOT OFFERED ON A RECOGNITION**, and that is the
+    ruling read literally rather than an oversight. The question on a held-and-
+    recognised file is whether the HOLD is right; the rules did name this file,
+    so a nearest-neighbour guess at a third schema would widen a closed list past
+    what the owner ruled and let a model move a file the rules understood onto a
+    reading nothing raised.
     """
+    recognised = isinstance(outcome, Recognition)
     return SituationQuestion(
-        file_id=file_id, content_hash=content_hash, reason=abstention.reason,
-        allowed_situations=shortlist_for(abstention, semantic),
+        file_id=file_id, content_hash=content_hash,
+        reason=None if recognised else outcome.reason,
+        recognised_as=outcome.schema_id if recognised else None,
+        allowed_situations=shortlist_for(
+            outcome, None if recognised else semantic, precaution),
         matched_terms=tuple(
             (schema_id, tuple(terms)) for schema_id, terms in matched_terms),
         evidence_refs=tuple(evidence_refs),
@@ -300,15 +358,42 @@ def _held_phrase(precaution: Precaution | None) -> str:
             + (f", found in {zones}" if zones else ""))
 
 
+def _stopped_phrase(question: SituationQuestion) -> str:
+    """WHERE THE RULES GOT TO on this file, in the rules' own words.
+
+    Two states and no third: the recogniser abstained and says why, or it
+    recognised the file and says as what. `104` §18.26 gap 24b added the second,
+    because a file that is recognised AND held is now asked and the report it
+    carries must not open with a word -- "abstention" -- that is not what
+    happened. The register is the one the first state already set: the
+    recogniser's own conclusion, its own schema ids, and no word out of the
+    person's file.
+
+    THE ITEM KIND DOES NOT MOVE and the phrase does. `recogniser_abstention` is
+    the address the ratified prompt describes -- *"the reason the rules stopped
+    ... a report, not a verdict: the rules aimed the question and you answer
+    it"* -- and a recognition under a hold IS the rules stopping: they named the
+    file and then held it as something else. A sibling kind would be an item the
+    approved text never describes, met on exactly the files where the stakes are
+    highest, which is `_abstention_item`'s own argument one function down.
+    """
+    if question.recognised_as is None:
+        return f"recogniser abstention | reason: {question.reason}"
+    return ("recogniser report | the rules recognised this file as "
+            f"{question.recognised_as}")
+
+
 def _abstention_item(question: SituationQuestion) -> EvidenceItem:
     """The recogniser's own report of why it stopped, as one reference item.
 
-    Every word of `location` comes from the recogniser: its reason, its near miss,
-    the ids it tied on, the terms each candidate matched, and -- since `104` §18
-    gap 24 -- the hold its precaution took and what raised it. Nothing is authored
-    here and nothing about the person's file beyond what the recogniser already
-    concluded reaches the bytes -- the matched terms are the LIBRARY's authored
-    words, which is what `test_a_tie_is_a_question_for_the_model` asserts of them.
+    Every word of `location` comes from the recogniser: where it got to
+    (`_stopped_phrase` -- its reason and near miss, or, since `104` §18.26 gap
+    24b, the schema it RECOGNISED where it did not abstain at all), the ids it
+    tied on, the terms each candidate matched, and -- since `104` §18 gap 24 --
+    the hold its precaution took and what raised it. Nothing is authored here and
+    nothing about the person's file beyond what the recogniser already concluded
+    reaches the bytes -- the matched terms are the LIBRARY's authored words,
+    which is what `test_a_tie_is_a_question_for_the_model` asserts of them.
 
     THE HOLD RIDES ON THIS ITEM RATHER THAN A NEW ONE, and that is a choice about
     what the ratified prompt already says. Its rule for this item is *"a
@@ -325,8 +410,8 @@ def _abstention_item(question: SituationQuestion) -> EvidenceItem:
         evidence_ref=ABSTENTION_REF,
         kind="recogniser_abstention",
         location=(
-            f"recogniser abstention | reason: {question.reason} | "
-            f"shortlist: {', '.join(question.allowed_situations)}"
+            _stopped_phrase(question)
+            + f" | shortlist: {', '.join(question.allowed_situations)}"
             + (f" | matched: {matched}" if matched else "")
             + _held_phrase(question.precaution)),
         excerpt_span=None,
