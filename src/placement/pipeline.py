@@ -82,7 +82,12 @@ from placement.index import (
 from placement.learning import basis_key_for, suppressed_nodes
 from placement.p8_seam import (
     ACCEPTED_GROUP_ITEM, BRANCH_ITEM, CANDIDATE_ITEM, RESIDUAL_AREA_ITEM,
-    call_placement, evidence_snapshot_id_for, placement_authorities,
+    # `104` §18.15: the driver for one call and the driver for many, taken
+    # from P11's own seam onto P8 rather than from P8 directly. The lane is
+    # P8's mechanism -- what it holds open is P8's round trip -- and this
+    # package reaches that mechanism through one module.
+    CallLane, drive_inline, in_walk_order,
+    call_placement_steps, evidence_snapshot_id_for, placement_authorities,
     residual_authorities, site_dependencies, snapshot_observation_keys,
     to_p8_conflicts, transcribe,
 )
@@ -729,6 +734,21 @@ class PipelineInputs:
     #: every field here: `None` is the deployment whose transport reports no
     #: usage, said by the caller and not assumed by P11.
     usage_recorder: object
+    #: `104` §18.15. HOW MANY OF THIS PASS'S CLOUD ROUND TRIPS MAY BE OPEN AT ONCE,
+    #: and the number is NOT CHOSEN HERE. The owner's direction is that the cloud
+    #: lane runs wide while the local lane stays serial; how much of this machine
+    #: one run may take at a time is a deployment fact the composition root already
+    #: answered once, when it chose how many processes read files at once
+    #: (`cli.EXTRACTION_WORKERS`), and that is the count it passes. A number P11
+    #: picked for itself would be a second answer to one question, invisible to
+    #: whoever changed their mind about the first.
+    #:
+    #: Required with no default like every field here, and
+    #: `test_no_unfinished_knowledge_source_gained_an_implementation_default` is
+    #: the guard. `1` is a real answer and means "one at a time", which is what
+    #: this pass did before the lane existed; a caller that has not thought about
+    #: it says so by saying one, rather than being given seven by P11.
+    calls_at_once: int
     #: The question to put to the person about ONE file, or `None` for the files
     #: there is nothing to ask about. Called with the subject; answered with a
     #: `(question, node ids)` PAIR and never with an `Ask`.
@@ -886,6 +906,15 @@ class PipelineInputs:
             )
         if self.p2 is not None and not isinstance(self.p2, P2Run):
             raise ValueError("`p2` is a P2Run or None; P11 assembles neither half")
+        if (not isinstance(self.calls_at_once, int)
+                or isinstance(self.calls_at_once, bool)
+                or self.calls_at_once < 1):
+            raise ValueError(
+                "`calls_at_once` is how many of this pass's cloud round trips may "
+                "be open at once, given by the composition root out of the count "
+                "it already chose for how much of this machine one run may take. "
+                "One is a real answer and means one at a time; zero is not a "
+                "narrow lane but a pass that prepares every call and sends none")
 
     def model_path_available(self) -> bool:
         """Whether step 7 can run at all. A deterministic-only run is legal.
@@ -1021,6 +1050,15 @@ class CorpusResult:
     #: members P9 supplied. `review_residual_sets` needs them and re-deriving a
     #: content hash from P1 afterwards would be a second copy of P1's identity.
     subjects: dict
+    #: `104` §18.15. THE MOST OF THIS PASS'S CLOUD ROUND TRIPS THAT WERE EVER
+    #: OPEN AT ONCE -- a MEASUREMENT of the run and never the setting, which is
+    #: `PipelineInputs.calls_at_once`. It is on the result for the reason this
+    #: whole record is: the report reads what the run did rather than running the
+    #: pipeline again to find out. A pass whose files never sat next to each
+    #: other on the cloud opens windows of one and this says one; a pass that
+    #: reached no model at all says nought. Both are the honest reading, and the
+    #: screen prints the number only when it is more than one.
+    calls_at_once: int
 
 
 # --- identity and the supersede link ----------------------------------------------
@@ -1071,6 +1109,23 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
                evidence, component_version: str, observed_at: str,
                group_plan_id: str | None = None,
                returned_from: str | None = None) -> PlacementDecision:
+    """One file placed here, on this thread, from step 3 to step 9.
+
+    `104` §18.15 split the body into `place_file_steps` so the corpus pass can hold
+    several files' round trips at once. This is that generator driven inline, and
+    it is what every caller that places one file at a time still gets -- the
+    multi-home branch of `run_corpus`, `review_residual_sets`, and P12's returns.
+    """
+    return drive_inline(place_file_steps(
+        conn, subject=subject, inputs=inputs, evidence=evidence,
+        component_version=component_version, observed_at=observed_at,
+        group_plan_id=group_plan_id, returned_from=returned_from))
+
+
+def place_file_steps(conn: sqlite3.Connection, *, subject,
+                     inputs: PipelineInputs, evidence, component_version: str,
+                     observed_at: str, group_plan_id: str | None = None,
+                     returned_from: str | None = None):
     """One file through steps 3-7 and 9. Step 8 runs inside P8 when it is needed.
 
     `group_plan_id` is passed in rather than patched on afterwards, because the
@@ -1080,6 +1135,11 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
 
     `returned_from` is §7.9's link: the residual decision that handed this file
     back. Without it `link_return` refuses, and §8.8's diff cannot walk the loop.
+
+    **`104` §18.15: A GENERATOR, AND THE ONE `yield` IS SITE C's SOCKET.** Every
+    statement here reads or writes the database and stays on the calling thread in
+    the order it is written; the round trip is the only thing that may run
+    elsewhere, and only when the route sent this file to the cloud.
     """
     subject_ref = subject_ref_of(subject)
 
@@ -1324,7 +1384,11 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
             # `104` R-O's wrapper around R-74's call: a refusal RAISED inside the
             # call comes back as a `CallRefused` rather than ending the run, and
             # everything R-74 does with a refusal the gate DECIDED is unchanged.
-            result = _judged_or_refused(
+            # `104` §18.15: `yield from`, so this file's round trip may be one of
+            # several the corpus pass holds open at once. What the wrapper does
+            # with a refusal, and what this branch does with the result, are
+            # unchanged.
+            result = yield from _judged_or_refused_steps(
                 conn, subject=subject, inputs=inputs, retrieval=retrieval,
                 evidence=evidence, call_site=C_PLACEMENT,
                 observed_at=observed_at,
@@ -2146,12 +2210,17 @@ def _accepted_group_items(group_ids) -> tuple[EvidenceItem, ...]:
     )
 
 
-def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
-                      evidence, call_site: str, observed_at: str,
-                      ranked: tuple[str, ...] = (),
-                      set_aside: tuple[SetAside, ...] = (),
-                      own_folder_node_id: str | None = None):
+def _judge_with_model_steps(conn, *, subject, inputs: PipelineInputs, retrieval,
+                            evidence, call_site: str, observed_at: str,
+                            ranked: tuple[str, ...] = (),
+                            set_aside: tuple[SetAside, ...] = (),
+                            own_folder_node_id: str | None = None):
     """§6.12 step 7, and step 8 with it. P11 assembles the REQUEST, never a check.
+
+    **`104` §18.15: A GENERATOR, AND THE ONE `yield` IS THE SOCKET.** Every line
+    below reads or writes the database and stays on the thread that owns it, in the
+    order it is written here; what the caller may run elsewhere is the round trip
+    `call_placement_steps` hands up. Read it as the straight line it still is.
 
     Everything here is either P11's own answer or a caller injection. The four
     Site C authorities come from `p8_seam.placement_authorities`; the fifteen Site
@@ -2494,15 +2563,25 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
             conn, call_site=call_site, subject=subject, observed_at=observed_at,
             because="no model in this run may be asked about this file, so "
                     "nothing about it was assembled and nothing was sent")
-    return _observed_only(call_placement(
+    return _observed_only((yield from call_placement_steps(
         conn, request, gate=inputs.gate, model_client=chosen[0],
         prompt=prompt, call_dependencies=dependencies,
         observed_at=lambda: observed_at,
         usage_recorder=inputs.usage_recorder,
-    ), prompt=prompt)
+    )), prompt=prompt)
 
 
 def _judged_or_refused(conn, **kwargs):
+    """One subject judged here, on this thread. `104` §18.15's serial form.
+
+    `place_group`'s member loop and every caller that walks one subject at a time
+    reach the model through this; `run_corpus`'s per-file pass drives
+    `_judged_or_refused_steps` on a lane instead.
+    """
+    return drive_inline(_judged_or_refused_steps(conn, **kwargs))
+
+
+def _judged_or_refused_steps(conn, **kwargs):
     """`_judge_with_model`, with `104` R-O's one difference: a refusal comes back.
 
     The `try` covers the REQUEST BUILD as well as the call, because a raise while
@@ -2531,7 +2610,11 @@ def _judged_or_refused(conn, **kwargs):
     writes, so one query over the run counts every refusal wherever it was raised.
     """
     try:
-        return _judge_with_model(conn, **kwargs)
+        # `104` §18.15: `yield from`, so a refusal raised on the far side of the
+        # socket still lands in this `try`. An exception carried back through a
+        # resume propagates out of the sub-generator exactly as one raised inside
+        # the call did, which is what keeps R-O's record intact.
+        return (yield from _judge_with_model_steps(conn, **kwargs))
     except REFUSAL_EXCEPTIONS as refusal:
         subject = kwargs["subject"]
         return refusal_outcome(
@@ -2546,7 +2629,13 @@ def _judged_or_refused(conn, **kwargs):
 def place_group(conn: sqlite3.Connection, *, group_id: str,
                 inputs: PipelineInputs, evidence_for,
                 component_version: str, observed_at: str,
-                skip_file_ids: frozenset[str] = frozenset()) -> GroupPlan:
+                skip_file_ids: frozenset[str] = frozenset(),
+                #: `104` §18.15: THE PASS'S OWN LANE, so the width the run
+                #: reports is the widest window the whole placement pass opened
+                #: and not one group's. A caller placing a group by itself is
+                #: given a lane of one, which is what this pass did before the
+                #: lane existed.
+                lane: CallLane | None = None) -> GroupPlan:
     """§6.8: confirm the shared parent FIRST, then classify members beneath it.
 
     The ordering is the whole of §6.8. A member classified before the parent is
@@ -2573,16 +2662,28 @@ def place_group(conn: sqlite3.Connection, *, group_id: str,
                         if m.file_id not in skip_file_ids)
 
     # Step one: the shared parent, from each member's own best destination.
+    #
+    # `104` §18.15: EACH MEMBER'S OWN CALL, SEVERAL CLOUD ROUND TRIPS AT A TIME.
+    # This loop is a member at a time and nothing in it reads an earlier member's
+    # answer -- `confirm_shared_parent` is asked once, below, over the whole map --
+    # so it is exactly the shape the lane is for, and it is where most of site C's
+    # calls are on a real corpus: a member's placement is a per-FILE question asked
+    # inside its group's plan. The members are walked in the order the accepted
+    # group lists them and every row is written on this thread in that order; a
+    # member routed local is settled by itself, because one Ollama server holds one
+    # model in memory.
     member_parents: dict[str, str | None] = {}
     provisional: dict[str, PlacementDecision] = {}
-    for membership in memberships:
-        decision = place_file(
-            conn, subject=_member_subject(membership), inputs=inputs,
-            evidence=evidence_for(membership.file_id),
-            group_plan_id=group_plan_id,
-            component_version=component_version, observed_at=observed_at)
-        provisional[membership.file_id] = decision
-        member_parents[membership.file_id] = (
+    asked = ((membership.file_id, place_file_steps(
+        conn, subject=_member_subject(membership), inputs=inputs,
+        evidence=evidence_for(membership.file_id),
+        group_plan_id=group_plan_id,
+        component_version=component_version, observed_at=observed_at))
+        for membership in memberships)
+    for file_id, decision in in_walk_order(
+            asked, lane=lane if lane is not None else CallLane(width=1)):
+        provisional[file_id] = decision
+        member_parents[file_id] = (
             decision.destination.node_id if decision.destination else None)
 
     shared_parent = confirm_shared_parent(
@@ -3218,11 +3319,13 @@ def run_corpus(conn: sqlite3.Connection, *, subjects, group_ids,
     # plan, and a file placed alone first would be placed against no shared
     # context. `place_group` writes the member decisions itself.
     covered: set[str] = set(multi_home)
+    lane = CallLane(width=inputs.calls_at_once)
     for group_id in group_ids:
         plan = place_group(conn, group_id=group_id, inputs=inputs,
                            evidence_for=evidence_for,
                            component_version=component_version,
-                           observed_at=observed_at, skip_file_ids=multi_home)
+                           observed_at=observed_at, skip_file_ids=multi_home,
+                           lane=lane)
         plans.append(plan)
         decisions.extend(plan.member_decisions)
         covered.update(d.subject.file_id for d in plan.member_decisions)
@@ -3269,13 +3372,26 @@ def run_corpus(conn: sqlite3.Connection, *, subjects, group_ids,
                 if privacy.protected else False),
             component_version=component_version, observed_at=observed_at))
 
-    for subject in subjects:
-        if subject.file_id in covered:
-            continue
-        decisions.append(place_file(
-            conn, subject=subject, inputs=inputs,
-            evidence=evidence_for(subject.file_id),
-            component_version=component_version, observed_at=observed_at))
+    # `104` §18.15: THE PER-FILE PASS, WITH ITS CLOUD ROUND TRIPS SEVERAL AT A
+    # TIME. The subjects are walked in the order they arrived and every statement
+    # that touches the database still runs on this thread in that order; what the
+    # lane holds open is the socket, and only for a file the route sent to the
+    # cloud. A file routed local -- protected, or unclassified (§17.13 ruling 3) --
+    # is settled by itself before the walk goes on, because one Ollama server
+    # holds one model in memory.
+    #
+    # THE GROUP PASS ABOVE HAS A LANE OF ITS OWN, over its members, for the same
+    # reason and in the same shape. THE MULTI-HOME LOOP STAYS SERIAL, and that is
+    # not an omission: §6.9 puts a question to the person's own selector between
+    # two parents, which is a question with somebody waiting on it, and a file with
+    # two homes is a handful of a corpus rather than most of it.
+    remaining = ((subject.file_id, place_file_steps(
+        conn, subject=subject, inputs=inputs,
+        evidence=evidence_for(subject.file_id),
+        component_version=component_version, observed_at=observed_at))
+        for subject in subjects if subject.file_id not in covered)
+    for _file_id, decision in in_walk_order(remaining, lane=lane):
+        decisions.append(decision)
 
     unplaced = tuple(d.subject.file_id for d in decisions
                      if d.outcome != PLACE and d.subject.file_id)
@@ -3316,7 +3432,11 @@ def run_corpus(conn: sqlite3.Connection, *, subjects, group_ids,
 
     return CorpusResult(
         decisions=tuple(decisions), group_plans=tuple(plans),
-        residual_sets=sets, unplaced_file_ids=unplaced, subjects=known)
+        residual_sets=sets, unplaced_file_ids=unplaced, subjects=known,
+        # `104` §18.15: WHAT THE LANE ACTUALLY DID, not what it was allowed to
+        # do. `calls_at_once` on the inputs is the setting; this is the
+        # measurement, and the report prints this one.
+        calls_at_once=lane.at_once)
 
 
 def review_residual_sets(conn: sqlite3.Connection, *, result: CorpusResult,

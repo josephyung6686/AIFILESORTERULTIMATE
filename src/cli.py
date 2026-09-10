@@ -44,6 +44,7 @@ import sqlite3
 import sys
 import uuid
 import textwrap
+import threading
 import unicodedata
 from collections import namedtuple
 from decimal import Decimal
@@ -148,7 +149,9 @@ from llm_harness.prompt_library import (
     a_fact_row as prompt_library_a_fact_row,
     a_fact_template_folder_levels_bytes, draft_bytes, draft_status,
 )
-from llm_harness.harness import CallDependencies, run_call
+from llm_harness.harness import (
+    CallDependencies, CallLane, in_walk_order, run_call,
+)
 from llm_harness.records import (
     CallRefused, FolderLevel, P8Verdict, PromptDefinition,
 )
@@ -2364,6 +2367,16 @@ class UsageMailbox:
     at the next `take` is better than a queue quietly pairing one call's tokens with
     another call's row.
 
+    **ONE SLOT PER THREAD, SINCE `104` §18.15.** The cloud lane now invokes several
+    clients at once, and one shared slot under that is the exact failure this class
+    was built to avoid, arrived at from the other side: the seventh call's tokens
+    would overwrite the first's before anything settled the first, and the row would
+    pair one call's bill with another call's dossier. A thread-local slot keeps the
+    rule the docstring already states -- the thread that made the call is the one
+    that empties the box -- which is why `transport.PendingSend.perform` takes on
+    the sending thread and carries the reading back with the outcome. It is STILL
+    one slot: no thread ever holds two, and the serial path is the slot it was.
+
     IT IS ALSO THE TRANSLATION. `llm_harness` may not import `readers`, so a
     provider's `Usage` type cannot cross that line; what crosses is a mapping whose
     keys `store.USAGE_COLUMNS` names, built here, where both sides are known. `{}`
@@ -2372,7 +2385,15 @@ class UsageMailbox:
     """
 
     def __init__(self) -> None:
-        self._held: dict | None = None
+        self._slots = threading.local()
+
+    @property
+    def _held(self) -> "dict | None":
+        return getattr(self._slots, "held", None)
+
+    @_held.setter
+    def _held(self, value: "dict | None") -> None:
+        self._slots.held = value
 
     def __call__(self, usage) -> None:
         self._held = {} if usage is None else {
@@ -7630,6 +7651,7 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
                      outcomes: Sequence[tuple[str, object]], model_id: str,
                      out, not_asked: Mapping[str, int] = MappingProxyType({}),
                      cut: "tuple[int, int, int]" = (0, 0, 0),
+                     at_once: int = 1,
                      ) -> None:
     """What the model pass actually did, in counts a person can check.
 
@@ -7667,8 +7689,17 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
     # RESPONSES, NOT OUTCOMES. `104` R-03: a gate refusal sends nothing, and this
     # line used to count one as a file sent.
     asked, abstained = _sent_and_abstained(outcomes)
+    # `104` §18.15: HOW MANY WENT AT ONCE, ON THE SENTENCE THAT ALREADY SAYS WHERE
+    # THEY WENT. The owner's direction was speed, and the one thing a person cannot
+    # see from any other line on this screen is whether the cloud lane was actually
+    # used -- 223 dossiers in nine hours (§18.22) and 223 dossiers in two look
+    # identical here otherwise. It is a MEASUREMENT of this pass and not the
+    # setting: a corpus whose cloud files never sit next to each other opens windows
+    # of one and this clause is absent, which is itself the honest reading.
+    together = (f", up to {at_once} at a time" if at_once > 1 else "")
     print(f"\nFacts from a model: {written} written, from {asked} "
-          f"{'file' if asked == 1 else 'files'} sent to {model_id}.", file=out)
+          f"{'file' if asked == 1 else 'files'} sent to {model_id}"
+          f"{together}.", file=out)
     if abstained:
         # THE STAGE THAT RECORDED ITSELF AND SAID NOTHING. `_persist_abstention`
         # writes an `llm_pre_call_abstention` row and mints an abstaining verdict,
@@ -10895,6 +10926,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # §6.9, when a file has two homes. `104` §18.2 gap 15.
             ask_or_abstain=_ask_when_there_are_two_homes_to_offer,
             max_return_cycles=1,
+            # `104` §18.15: HOW MANY OF SITE C's CLOUD ROUND TRIPS MAY BE OPEN AT
+            # ONCE, and it is the SAME count the fact pass uses and the same one
+            # this product already chose for how many processes read files at once.
+            # One question -- how much of this machine may one run take at a time --
+            # asked once, at `EXTRACTION_WORKERS`, and answered here for the second
+            # site that can spend a wait on a socket.
+            calls_at_once=EXTRACTION_WORKERS,
             # §6.12 step 7's model path, absent in every part. `model_path_available`
             # reads these as a set: with them `None`, a file that needs a judgement
             # abstains with a reason instead of being decided by nothing.
@@ -11318,12 +11356,47 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         #: line in the fact block, no line anywhere.
         settled_by_rule: list[str] = []
         deferred_by_budget: list[str] = []
-        for file_id, content_hash in roster:
-            asking = resolver_for(file_id)
-            if asking is None:
-                continue
-            result = asking.resolve(
-                conn, file_id=file_id, content_hash=content_hash)
+
+        def _walked():
+            """Every file this pass asks about, in roster order, undriven.
+
+            `104` §18.15. The generator each file's resolver hands back is its whole
+            resolve with one hole in it -- the socket. Handing them to
+            `in_walk_order` rather than running them here is what lets seven cloud
+            round trips be open at once while this thread, which owns the only
+            connection, is the only thing that ever writes a row.
+            """
+            for file_id, content_hash in roster:
+                asking = resolver_for(file_id)
+                if asking is None:
+                    continue
+                yield file_id, asking.resolve_steps(
+                    conn, file_id=file_id, content_hash=content_hash)
+
+        # `104` §18.15: HOW MANY CALLS MAY BE OPEN AT ONCE, AND WHERE THE NUMBER
+        # COMES FROM. It is `EXTRACTION_WORKERS` -- the count this product already
+        # chose for "how much of this machine may one run take at a time", picked
+        # once, for the reason written at its own definition and in the same words
+        # this lane needs: *"every database write stays on the calling thread in
+        # roster order, and sqlite is a serial writer anyway"*. That sentence was
+        # written about seven processes reading files; it is the licence for seven
+        # sockets waiting. A second number here would be a knob nobody could find
+        # and a second answer to one question.
+        lane = CallLane(width=EXTRACTION_WORKERS)
+        for file_id, result in in_walk_order(
+                _walked(), lane=lane,
+                # `104` R-175's clock, STOPPED BEFORE A SHARED WAIT AND STARTED
+                # AGAIN FOR A FILE THAT CALLS ALONE. A turn ends when the next
+                # file's begins, so without the pause the whole batch's round trip
+                # would be charged to whichever file happened to be prepared last
+                # -- one file billed for six others' network -- and without the
+                # resume the LOCAL call, the two-minute one this ceiling exists to
+                # bound, would be charged to nobody, because the pause closed the
+                # only turn there was.
+                on_pause=(None if authorities.per_file_ceiling is None
+                          else authorities.per_file_ceiling.close_turn),
+                on_resume=(None if authorities.per_file_ceiling is None
+                           else authorities.per_file_ceiling.open_turn)):
             written.extend(result.fact_ids)
             # `104` §18.2 GAP 4: THE FILE THE STAGE DECLINED TO ASK ABOUT, COUNTED
             # UNDER ITS OWN REASON. Before this the stage returned `()` at four
@@ -11376,7 +11449,10 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # in the loop above would be a second measurement of the same event and
             # would part company with the stored one the first time a refusal left
             # the loop early.
-            cut=_dossier_cut(conn, outcomes))
+            cut=_dossier_cut(conn, outcomes),
+            # `104` §18.15. The widest window the lane actually opened, read off
+            # the lane the loop above drove rather than counted a second time here.
+            at_once=lane.at_once)
         # `104` §18.2 gap 3. DIRECTLY UNDER THE COUNTS, because a proposal is what
         # some of those written facts ARE and a person reading "12 written" is owed
         # the ones that are questions rather than conclusions. Read from the
@@ -13536,8 +13612,21 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         print(_wrapped(again.format(first=first), indent="    "), file=out)
         return False
 
+    # `104` §18.15: HOW MANY OF THE CHECKS WENT AT ONCE, on the sentence that
+    # already counts what this pass decided. The owner's direction was speed and
+    # site C is the second site that spends a run's time waiting on a socket; a
+    # person cannot tell from any other line whether its cloud lane was used. A
+    # MEASUREMENT of this run -- `run_corpus` reports the widest window it opened
+    # -- and absent whenever it was one, which is a pass that asked one at a time
+    # or asked nothing. `getattr` for the reason `_is_move` reads a node that way
+    # one screen up: this function takes a finished run and READS it, and a
+    # fixture modelling a result with fewer fields must not turn a report into a
+    # traceback.
+    checked_together = getattr(result.placement, "calls_at_once", 1)
     print(f"\nFiles: {len(decisions)} decided, {placed} ready to file"
-          + (f", {awaiting} waiting for you to approve" if awaiting else ""),
+          + (f", {awaiting} waiting for you to approve" if awaiting else "")
+          + (f", checked {checked_together} at a time"
+             if checked_together > 1 else ""),
           file=out)
     for key in ordered:
         outcome, where, reason, review, policy, settled, same_folder, _, \

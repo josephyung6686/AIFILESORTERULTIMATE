@@ -205,14 +205,101 @@ def _client_exception_explanation(exc: BaseException) -> str:
     })
 
 
-def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
-          model_client: ModelClient) -> ModelResponse | CallFailed:
-    """Consume one live release, then invoke the bound client once.
+@dataclass(frozen=True)
+class SendResult:
+    """What one round trip came back with, carried rather than raised.
 
-    Binding, payload integrity and the released CONTENT are all checked before the
-    ledger spend. The client is invoked only after `consume_release` returns, and it
-    receives only `payload.model_visible_bytes` -- whose dossier half has been shown
-    to carry exactly what the gate released, in exactly the shape the builder writes.
+    `104` §18.15. The round trip is the one part of a call that may run off the
+    calling thread, so it is the one part that may not raise across it: an
+    exception crossing a thread boundary loses the `try` it was written for, and
+    `issue`'s `except Exception` is the writer of the `llm_call_failure` row. So
+    the send catches, puts the exception HERE, and the resumed generator runs the
+    same `except` branch on the thread that owns the database.
+
+    `usage` is `104` R-14's mailbox, EMPTIED ON THE SENDING THREAD. The mailbox is
+    one slot per thread; a value taken on the calling thread after a call another
+    thread made would be either empty or somebody else's tokens.
+    """
+
+    raw: object = None
+    error: BaseException | None = None
+    usage: dict | None = None
+
+
+@dataclass(frozen=True)
+class _PendingSend:
+    """One call's request bytes, with nothing left for this product to decide.
+
+    **PRIVATE, AND THAT IS P7's DONE-MEANS 3 AND NOT A NAMING PREFERENCE.**
+    `perform` IS the egress -- it is the line that touches the socket -- so a public
+    `PendingSend.perform` would be a second public door into this module, and
+    `privacy.transport_guard.assert_single_egress` counts exactly that: "two doors
+    is two places to audit". Worse than the count, it would be a door a caller could
+    walk through: anyone could build one of these out of a client and some bytes and
+    call it, with no release spent and no ledger row. There is one constructor of
+    this class in the product -- the `yield` inside `_issue_steps`, after
+    `consume_release` has returned -- and `issue` is the module's one public name.
+
+    `104` §18.15, the owner's direction that the cloud runs in parallel. Everything
+    that decides whether these bytes may exist -- the route, the gate, the release
+    ledger, the reservation -- has already happened, on the calling thread, in the
+    order it happens today; what is left is a socket. `perform` is therefore safe
+    to run anywhere, and touches no database at all: that is the whole property
+    that makes a lane of them legal.
+
+    **`locality` IS THE LANE.** It is `released.model_target.locality`, the same
+    value `Gate.release` decided by, and never a second reading of the routing: a
+    driver that guessed which lane a call belonged to could put a local call beside
+    another one, which is the state that filled the machine's swap in r18.
+    """
+
+    model_client: ModelClient
+    model_visible_bytes: bytes
+    locality: str
+    #: `104` R-14's sink, optional exactly as it is at `run_call`: a deployment
+    #: that records no usage supplies none.
+    usage_recorder: object | None = None
+
+    def perform(self) -> SendResult:
+        """The socket, and nothing else. No connection, no transaction, no row."""
+        try:
+            raw = self.model_client.invoke(self.model_visible_bytes)
+        except Exception as exc:  # noqa: BLE001 -- carried, then re-read by `issue`
+            return SendResult(error=exc, usage=self._usage())
+        return SendResult(raw=raw, usage=self._usage())
+
+    def _usage(self) -> dict | None:
+        if self.usage_recorder is None:
+            return None
+        return self.usage_recorder.take()
+
+
+def _issue_steps(conn: sqlite3.Connection, released: Released,
+                payload: CallPayload, *, model_client: ModelClient,
+                usage_recorder: object | None = None):
+    """`issue` with the round trip as a SUSPENSION POINT rather than a line.
+
+    Private for `_PendingSend`'s reason: this module publishes ONE name, and it is
+    `issue`. `llm_harness.harness` is this package's own driver and reaches it from
+    inside; nothing outside `llm_harness` does or may.
+
+    `104` §18.15. The owner's direction is that the cloud lane runs several calls
+    at once while the local lane stays serial, and the constraint that makes it
+    safe is that sqlite has one writer: every statement here must stay on the
+    thread that owns the connection, in the order it is in today. A generator is
+    the smallest thing that does that. Nothing above the `yield` moves and nothing
+    below it moves; what moves is the caller, who may go and prepare the next
+    file's call while this one's bytes are in the air.
+
+    It yields ONE `_PendingSend` and is resumed with the `SendResult` for it. The
+    driver decides where `perform` ran -- inline on this thread for a local target
+    or a lane of one, on a worker for a cloud lane of several -- and this function
+    cannot tell the difference, which is the point.
+
+    Returns `(outcome, usage)`: R-14's reading has to come back up with the
+    outcome because the thread that took it is not the thread that will write it,
+    and `ModelResponse` is P8's record of an answer rather than a place to put a
+    provider's bill.
     """
     _reject_open_transaction(conn)
     fingerprint = _require_sources(payload)
@@ -237,16 +324,24 @@ def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
             conn, released=released, payload=payload, fingerprint=fingerprint,
             observed_at=issued_at,
         )
-    try:
-        raw = model_client.invoke(payload.model_visible_bytes)
-    except Exception as exc:
-        explanation = _client_exception_explanation(exc)
+    sent = yield _PendingSend(
+        model_client=model_client,
+        model_visible_bytes=payload.model_visible_bytes,
+        # THE GATE'S OWN WORD FOR WHERE THIS IS GOING. `consume_release` above has
+        # just checked this same target against the ledger row P7 wrote, so by
+        # this line the locality is authorised and not merely asserted.
+        locality=released.model_target.locality,
+        usage_recorder=usage_recorder,
+    )
+    if sent.error is not None:
+        explanation = _client_exception_explanation(sent.error)
         record_call_failure(
             conn, dossier_id=payload.dossier_id, failure_class="client_raised",
             explanation=explanation, release_id=payload.release_id,
             observed_at=_now(),
         )
-        return _failed(released, payload, explanation=explanation)
+        return _failed(released, payload, explanation=explanation), sent.usage
+    raw = sent.raw
     if not isinstance(raw, (bytes, bytearray, memoryview)):
         explanation = (
             f"client returned {type(raw).__name__}; transport bytes must be bytes"
@@ -256,7 +351,7 @@ def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
             explanation=explanation, release_id=payload.release_id,
             observed_at=_now(),
         )
-        return _failed(released, payload, explanation=explanation)
+        return _failed(released, payload, explanation=explanation), sent.usage
     response_bytes = bytes(raw)
     response_id = record_response(
         conn,
@@ -275,4 +370,35 @@ def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
         release_audit_id=released.audit_id,
         release_id=released.release_id,
         response_id=response_id,
-    )
+    ), sent.usage
+
+
+def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
+          model_client: ModelClient) -> ModelResponse | CallFailed:
+    """Consume one live release, then invoke the bound client once.
+
+    Binding, payload integrity and the released CONTENT are all checked before the
+    ledger spend. The client is invoked only after `consume_release` returns, and it
+    receives only `payload.model_visible_bytes` -- whose dossier half has been shown
+    to carry exactly what the gate released, in exactly the shape the builder writes.
+
+    `104` §18.15: this is `_issue_steps` with the round trip performed where it has
+    always been performed, on this thread, between the same two statements. It is
+    kept as the module's own callable because P7's single-egress instrument scans
+    for it and because a caller who wants one call and one answer should not have
+    to own a driver to get one.
+
+    IT TAKES NO `usage_recorder`, and the omission is the shape of the seam: R-14's
+    reading has to come back with the outcome, and this function returns the
+    outcome alone. `run_call_steps` is what wants the pair and drives `_issue_steps`
+    for itself; a second way in here would be a second answer to which call a
+    provider's bill belongs to.
+    """
+    steps = _issue_steps(conn, released, payload, model_client=model_client)
+    try:
+        pending = next(steps)
+        while True:
+            pending = steps.send(pending.perform())
+    except StopIteration as done:
+        outcome, _usage = done.value
+        return outcome

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Callable, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, fields, replace
 from decimal import Decimal
 
@@ -48,7 +49,7 @@ from llm_harness.store import (
     record_refusal,
     record_verdict,
 )
-from llm_harness.transport import ModelClient, ModelResponse, issue
+from llm_harness.transport import ModelClient, ModelResponse, _issue_steps
 from llm_harness.validation import (
     report_for_refusal,
     DOSSIER_BUILDER,
@@ -78,6 +79,12 @@ from privacy.gate import Gate
 from privacy.release import (
     Denied, MalformedRequest, NeedsConsent, NoPolicyInForce, Released,
 )
+#: `104` §18.15: WHICH LANE A CALL BELONGS TO, in P7's own word for it. Read off
+#: `_PendingSend.locality`, which is `released.model_target.locality` -- the value
+#: `Gate.release` decided by and `consume_release` has already checked against the
+#: ledger row. A driver that decided the lane from anything else would be a second
+#: answer to "may this leave the device", and the two would drift.
+from privacy.vocabulary import CLOUD_LOCALITY
 _SCOPE_BY_SITE = {
     A_FACT: SCOPE_FILE,
     B_GROUP: SCOPE_GROUP,
@@ -313,7 +320,7 @@ def _record_verdicts(
             )
 
 
-def _issue_and_validate(
+def _issue_and_validate_steps(
     conn: sqlite3.Connection,
     request: DossierRequest,
     released: Released, *,
@@ -322,7 +329,11 @@ def _issue_and_validate(
     deps: CallDependencies,
     reduction_rung: str,
     observed_at: str,
-) -> P8Verdict | CallFailed | ValidationUnavailable:
+    usage_recorder: object | None = None,
+):
+    """`104` §18.15: the dossier, then the socket as a suspension point, then the
+    verdict. Returns `(outcome, usage)` for `_issue_steps`' own reason.
+    """
     dossier = build_dossier(
         request, released,
         reduction_rung=reduction_rung,
@@ -332,7 +343,7 @@ def _issue_and_validate(
         handle_key=deps.wire_handle_key,
     )
     if isinstance(dossier, ValidationUnavailable):
-        return dossier
+        return dossier, None
     payload = build_call_payload(
         prompt,
         canonical_dossier_bytes(dossier, prompt, handle_key=deps.wire_handle_key),
@@ -342,15 +353,17 @@ def _issue_and_validate(
         dossier_id=dossier.dossier_id,
     )
     record_dossier(conn, dossier, observed_at=observed_at)
-    result = issue(conn, released, payload, model_client=model_client)
+    result, usage = yield from _issue_steps(
+        conn, released, payload, model_client=model_client,
+        usage_recorder=usage_recorder)
     if isinstance(result, CallFailed):
         report = report_for_call_failure(
             request, result, validator_version=COMPONENT_VERSION,
         )
         record_grounding_report(conn, report, observed_at=observed_at)
-        return result
+        return result, usage
     if not isinstance(result, ModelResponse):
-        return ValidationUnavailable(missing=("model_response",))
+        return ValidationUnavailable(missing=("model_response",)), usage
     # One transaction spans the consequence and the verdict that justifies it.
     # Site A's dispatch writes P6's fact; `_record_verdicts` writes the P8 row
     # about it. Split, a failure between them leaves P6 holding an
@@ -359,7 +372,7 @@ def _issue_and_validate(
         return _validate_and_record(
             conn, request, dossier, result, released,
             deps=deps, observed_at=observed_at,
-        )
+        ), usage
 
 
 def worst_outcome(verdicts: Sequence[P8Verdict]) -> P8Verdict:
@@ -449,6 +462,30 @@ def run_call(
     P8Verdict | Refusal | NeedsConsent |
     ValidationUnavailable | CallFailed | CallRefused
 ):
+    """`run_call_steps` with the round trip where it has always been: right here.
+
+    `104` §18.15 split the body into a generator so the cloud lane could hold
+    several round trips at once. This is that generator driven to its end on this
+    thread, one call and one answer, and it is what every caller that does not own
+    a lane still gets. Sites B, D, E and G reach a model through this line and
+    through nothing else, and none of them changed.
+    """
+    return drive_inline(run_call_steps(
+        conn, request, gate=gate, model_client=model_client, prompt=prompt,
+        validation_dependencies=validation_dependencies,
+        observed_at=observed_at, usage_recorder=usage_recorder))
+
+
+def run_call_steps(
+    conn,
+    request: DossierRequest, *,
+    gate: Gate,
+    model_client: ModelClient,
+    prompt: PromptDefinition | None,
+    validation_dependencies,
+    observed_at: Callable[[], str],
+    usage_recorder: object | None = None,
+):
     """Evaluate one reference-only request. NeedsConsent is returned unchanged.
 
     `usage_recorder` is `104` R-14's one-slot mailbox and is OPTIONAL, unlike every
@@ -463,6 +500,21 @@ def run_call(
     is the only place that holds the reservation, the release and the dossier at one
     moment; `llm_harness` may not import `readers`, so what crosses this line is a
     mapping whose keys `store.record_call_usage` checks, never a provider's type.
+
+    **`104` §18.15: IT IS A GENERATOR, AND ONE `yield` IS THE WHOLE OF IT.** Every
+    statement below stays where it was and runs on the thread that owns `conn` --
+    the reservation, the release, the audit row, the dossier, the response, the
+    verdicts, the settlement, the usage row. The one thing that leaves is the
+    socket, and it leaves as a `_PendingSend` the driver may run wherever it likes.
+    Read this function as the straight line it still is; the suspension point is
+    inside `_issue_steps`, where the bytes are finished and there is nothing left to
+    decide.
+
+    R-14'S MAILBOX IS NOW READ OFF THE RESUME AND NOT OFF `take()`. The mailbox has
+    one slot per thread, so the thread that made the call is the only one that can
+    empty it honestly; `_PendingSend.perform` does that, and the reading comes back
+    here with the outcome. On the serial path this is the same value at the same
+    moment, taken one function deeper.
     """
     missing = _missing_configuration(
         conn, request=request, gate=gate, model_client=model_client, prompt=prompt,
@@ -572,13 +624,14 @@ def run_call(
             return ValidationUnavailable(missing=("release_decision",))
 
         try:
-            issued = _issue_and_validate(
+            issued, observed = yield from _issue_and_validate_steps(
                 conn, unit, decision,
                 prompt=prompt,
                 model_client=model_client,
                 deps=deps,
                 reduction_rung=reduction.rung,
                 observed_at=observed_at(),
+                usage_recorder=usage_recorder,
             )
         except REFUSAL_EXCEPTIONS as refusal:
             # `104` R-O on the far side of the release. `model_facts` records what
@@ -611,8 +664,11 @@ def run_call(
         # budget settled either way: an `issued` that is a `CallFailed` still cost a
         # call. `dossier_id` comes off whichever of the two carries it -- both name
         # the dossier, `CallFailed` under `request_identity`.
+        #
+        # `104` §18.15: `observed` came back from the resume rather than from a
+        # `take()` here, because the thread that made the call is the only one
+        # that can empty a one-slot-per-thread mailbox and have it mean this call.
         if usage_recorder is not None:
-            observed = usage_recorder.take()
             if observed is not None:
                 record_call_usage(
                     conn,
@@ -630,3 +686,234 @@ def run_call(
         return ValidationUnavailable(missing=("fitting_shard",))
     # One call, one returned verdict, chosen by severity and not by position.
     return worst_outcome(produced)
+
+
+# ======================================================================
+# `104` §18.15: HOW A RUN DRIVES ITS CALLS, and the only place a second
+# thread exists in this product's model path.
+#
+# The owner's direction of 9 and 10 September: local is too slow, the cloud
+# is what ships, run it in parallel. What that can mean here is bounded by
+# one fact -- sqlite has a single writer and a connection belongs to the
+# thread that made it -- so what runs at once is the round trip and nothing
+# else. `run_call_steps` hands out a `_PendingSend` when its bytes are
+# finished and every decision about them is already recorded; these two
+# functions are the two ways to run one.
+# ======================================================================
+
+
+def drive_inline(steps):
+    """Run one call's steps here, on this thread, to the end.
+
+    The serial path, unchanged in every observable way: the socket is invoked
+    between the same two statements it always was.
+    """
+    try:
+        pending = next(steps)
+        while True:
+            pending = steps.send(pending.perform())
+    except StopIteration as done:
+        return done.value
+
+
+@dataclass
+class CallLane:
+    """How many round trips a pass may hold at once, and how many it ever held.
+
+    **`width` IS NOT A NUMBER THIS MODULE CHOOSES.** `104` §18.15's direction is
+    to run the cloud lane wider, not to invent a second answer to "how much of
+    this machine may one run take": the composition root already picked that when
+    it chose how many processes read files at once, and it passes the same count
+    here. A lane this module sized for itself would be a knob nobody could find
+    and a second number to keep in step with the first.
+
+    `at_once` is the widest window this pass actually opened -- what the printed
+    sentence reports, and the only counter the lane keeps. It is a MEASUREMENT and
+    not a setting: a corpus whose cloud files never sit next to each other opens
+    windows of one and says so.
+    """
+
+    width: int
+    at_once: int = 0
+
+    def __post_init__(self) -> None:
+        if (not isinstance(self.width, int) or isinstance(self.width, bool)
+                or self.width < 1):
+            raise ValueError(
+                f"a lane holds at least one call at a time and {self.width!r} is "
+                f"not such a count. A width of zero is not a narrow lane; it is a "
+                f"pass that prepares every call and sends none.")
+
+
+@dataclass
+class _Slot:
+    """One walked subject's place in the batch, held so the order survives."""
+
+    key: object
+    steps: object = None
+    #: Whatever the steps handed up: a thing with a `locality` and a `perform`. It
+    #: is NOT named as a type, because the type is `transport._PendingSend` and that
+    #: class is private for P7's own reason -- the driver never builds one, it only
+    #: runs the one it was given.
+    pending: object = None
+    value: object = None
+
+
+def in_walk_order(started, *, lane: CallLane, on_pause=None, on_resume=None):
+    """Drive many calls, several cloud round trips at once, in WALK ORDER.
+
+    `started` is `(key, steps)` pairs in the order the run walked its subjects --
+    the roster order at site A, the subject order at site C. Yields
+    `(key, returned_value)` in that same order, whichever call came back first.
+
+    **THE SHAPE, and every rule of `104` §18.15's build is one of these lines.**
+
+    1. Each subject's steps are advanced HERE, on this thread, in walk order. That
+       advance is the whole of the call up to the socket: the dossier, the call
+       identity, the reuse lookup, the budget reservation, the gate's release and
+       its audit row. A subject that never reaches a socket -- a reuse, a decline,
+       a refusal, a file no route permits -- finishes inside that advance and is
+       held in the batch so that its result still leaves in turn.
+    2. A cloud send is PARKED. The loop moves on and prepares the next subject
+       while it waits, which is the whole gain: r19 spent nine hours on 223
+       dossiers with every call, cloud or local, one after another (§18.22).
+    3. A LOCAL send is never parked. The batch is settled first, then the local
+       call runs alone on this thread, then it is settled on its own. One Ollama
+       server holds one model in memory and a second concurrent local call is what
+       filled the machine's swap in r18 (§17.21), so the local lane is not merely
+       narrow here -- it is the only thing running.
+    4. The batch settles when it is full, before a local call, and at the end.
+       Settling performs the parked sends together, then resumes each generator IN
+       WALK ORDER, so every row after a response -- the verdict, the fact, the
+       supersession, the usage, the settlement -- is written in the order the files
+       were walked and not in the order the provider answered. Two runs over one
+       corpus write the same rows in the same order.
+
+    **WHAT THIS CHANGES ABOUT ORDER, STATED RATHER THAN BURIED.** Inside one batch
+    a later file's PREPARATION now precedes an earlier file's RESPONSE, because
+    that is what "several at once" means. Two consequences, both bounded: a
+    duplicate of a file in the same batch is asked rather than reusing its twin's
+    answer -- `llm_call_identity` is written after the call, and R-13's cache is
+    about a PRIOR RUN's answer, which is unaffected; and a per-file clock that is
+    charged by turns sees the batch's shared wait, which `on_pause` is for.
+
+    **`on_pause` AND `on_resume` ARE `104` R-175's CLOCK, AND THE PAIR IS WHAT
+    KEEPS IT HONEST.** That clock charges a file for the time the run spends with
+    it, by turns: a turn opens when the file is reached and ends when the next
+    file's opens. A batch breaks both halves of that. `on_pause` is called before a
+    shared window, so the wait for seven calls is not billed to whichever file
+    happened to be prepared last. `on_resume` is called with a subject's key just
+    before its own send is performed alone -- and without it that send is billed to
+    NOBODY, because the pause closed the only open turn. The send run alone is the
+    LOCAL one, which is the slow call R-175 exists to bound, so a driver that
+    paused and never resumed would quietly disable the backstop on exactly the
+    calls it was written for. Either may be absent; a caller with no such clock has
+    nothing to say here.
+    """
+    batch: list[_Slot] = []
+
+    def _holding() -> bool:
+        return any(slot.pending is not None for slot in batch)
+
+    for key, steps in started:
+        pending, value = _advance(steps)
+        if pending is None:
+            batch.append(_Slot(key=key, value=value))
+            continue
+        if pending.locality == CLOUD_LOCALITY and lane.width > 1:
+            batch.append(_Slot(key=key, steps=steps, pending=pending))
+            if sum(1 for slot in batch if slot.pending is not None) >= lane.width:
+                yield from _settle(batch, lane=lane, on_pause=on_pause)
+            continue
+        # A LOCAL TARGET, or a lane a person narrowed to one. Everything before it
+        # finishes first and it then runs by itself: `_settle` over a batch holding
+        # one send performs that send on this thread, which is exactly what the
+        # serial path has always done.
+        #
+        # THE CLOCK IS STOPPED AROUND WHAT IS SETTLED FIRST AND STARTED AGAIN FOR
+        # THIS FILE. The window being drained is other files' network and this
+        # file's turn is the one standing open, so without the pause it would be
+        # billed for their wait -- and without the resume its own call, the slow
+        # one, would be billed to nobody at all.
+        if _holding():
+            if on_pause is not None:
+                on_pause()
+            yield from _settle(batch, lane=lane, on_pause=None)
+            if on_resume is not None:
+                on_resume(key)
+        else:
+            yield from _settle(batch, lane=lane, on_pause=None)
+        batch.append(_Slot(key=key, steps=steps, pending=pending))
+        yield from _settle(batch, lane=lane, on_pause=None)
+    yield from _settle(batch, lane=lane, on_pause=on_pause)
+
+
+def _advance(steps):
+    """The call up to its socket, or its whole self if it never reaches one."""
+    try:
+        return steps.send(None), None
+    except StopIteration as done:
+        return None, done.value
+
+
+def _finish(steps, sent):
+    """The call from its socket onwards, on this thread and in its turn.
+
+    The `while` is for a call that asks for a SECOND round trip. Sites A and C
+    declare `split_shards=()`, so `_units` yields one unit and one send per call
+    and this loop turns once today. It is written rather than asserted because the
+    honest behaviour for a site that one day splits is serial and in turn, not a
+    raise; a second general-purpose lane for a case that cannot happen would be a
+    scheduler nobody could measure.
+    """
+    while True:
+        try:
+            pending = steps.send(sent)
+        except StopIteration as done:
+            return done.value
+        sent = pending.perform()
+
+
+def _settle(batch: "list[_Slot]", *, lane: CallLane, on_pause):
+    """Perform the parked sends together, then finish and yield in walk order."""
+    if not batch:
+        return
+    sends = [slot for slot in batch if slot.pending is not None]
+    if len(sends) > 1:
+        lane.at_once = max(lane.at_once, len(sends))
+        if on_pause is not None:
+            on_pause()
+        # `max_workers` is the window, never the lane's whole width: a batch of
+        # three asks for three threads and not for seven idle ones.
+        with ThreadPoolExecutor(max_workers=len(sends),
+                                thread_name_prefix="cloud-call") as pool:
+            futures = [pool.submit(slot.pending.perform) for slot in sends]
+            # GATHERED IN WALK ORDER, and `_PendingSend.perform` carries a failure
+            # rather than raising it, so one call that does not come back is one
+            # `llm_call_failure` row and not the end of the other six.
+            results = [future.result() for future in futures]
+    elif sends:
+        lane.at_once = max(lane.at_once, 1)
+        results = [sends[0].pending.perform()]
+    else:
+        results = []
+
+    # EVERY RESPONSE IS RECORDED BEFORE ANYTHING IS RE-RAISED. A raise out of one
+    # subject's post-call work used to end the run with the files behind it not yet
+    # walked, which cost nothing; here the files beside it have already spent a
+    # release and sent their bytes, and abandoning them would leave answers on the
+    # wire with no row naming them. So each is finished, the first raise is kept,
+    # and the run then stops the way it stops today.
+    raised: BaseException | None = None
+    for slot, sent in zip(sends, results):
+        try:
+            slot.value = _finish(slot.steps, sent)
+        except BaseException as problem:  # noqa: BLE001 -- re-raised below
+            if raised is None:
+                raised = problem
+    if raised is not None:
+        batch.clear()
+        raise raised
+    settled = [(slot.key, slot.value) for slot in batch]
+    batch.clear()
+    yield from settled

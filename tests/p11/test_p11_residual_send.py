@@ -43,6 +43,25 @@ from p11.p10_fixtures import FROZEN_TREE
 
 #: The residual node P10 froze into the fixture tree: `node_role = residual`,
 #: `disposition = review-only`, and the person's own existing folder.
+def _as_steps(answer):
+    """A stub for Site C's call, which since `104` §18.15 is a generator.
+
+    The round trip is a suspension point now -- `pipeline` reaches the seam with
+    `yield from`, so the cloud lane can hold several files' calls at once -- and a
+    stub that answers outright is not iterable. This makes one out of it: the
+    unreachable `yield` is what turns the function into a generator, and `return`
+    inside one is exactly what `yield from` hands back. Everything each stub below
+    says about the call it stands for is unchanged, including the ones that raise:
+    the raise happens on the first advance, which is where the call was made.
+    """
+
+    def steps(*args, **kwargs):
+        return answer(*args, **kwargs)
+        yield  # pragma: no cover - unreachable, and what makes this a generator
+
+    return steps
+
+
 REVIEW_LATER_ID = "n-review-later"
 REVIEW_LATER_LABEL = "To Sort"
 
@@ -112,6 +131,9 @@ def _inputs(conn, **overrides):
         model_call_request=None, chosen_node_of=None, residual_action_of=None,
         sensitivity_policy=None, model_target=None, route_for=None,
         usage_recorder=None,
+        # `104` §18.15: one at a time, which is what this pass did before the
+        # lane existed. Stated rather than defaulted, like every field here.
+        calls_at_once=1,
         # Nothing to ask about and nothing already answered. Both are
         # required with no default, so a fixture states its position
         # rather than inheriting one.
@@ -169,7 +191,7 @@ def _model_sites(monkeypatch):
         seen.append(request.call_site)
         raise AssertionError("no model call may be issued for a sent set")
 
-    monkeypatch.setattr(pipeline, "call_placement", _fake_call)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_fake_call))
     return seen
 
 

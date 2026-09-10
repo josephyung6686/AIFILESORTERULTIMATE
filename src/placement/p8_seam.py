@@ -24,7 +24,15 @@ from __future__ import annotations
 import hashlib
 import sqlite3
 
-from llm_harness.harness import run_call
+#: `104` §18.15: P8's two drivers, RE-EXPORTED HERE ON PURPOSE. P11 reaches
+#: P8's mechanism through this module and no other -- `tests/p11/
+#: test_p11_connections.py` walks the package and fails on a second importer --
+#: and the lane is P8's mechanism: what it holds open is `run_call_steps`'
+#: round trip. `pipeline` takes them from here, which is the same boundary the
+#: verdict and the validator already cross.
+from llm_harness.harness import (
+    CallLane, drive_inline, in_walk_order, run_call_steps,
+)
 from llm_harness.placement_validation import (
     PlacementDependencies, ResidualDependencies,
 )
@@ -266,6 +274,21 @@ def transcribe(verdict, *, assessment) -> tuple[str, str | None, str | None]:
 
 def call_placement(conn, request, *, gate, model_client, prompt,
                    call_dependencies, observed_at, usage_recorder=None):
+    """One Site C call, made here and answered here. `104` §18.15's serial form.
+
+    `call_placement_steps` is the same call with the round trip left for a driver
+    to run, and this is it driven inline: one call, one answer, on this thread.
+    Kept as the seam's own callable because a caller that walks one subject at a
+    time should not have to own a lane to ask a question.
+    """
+    return drive_inline(call_placement_steps(
+        conn, request, gate=gate, model_client=model_client, prompt=prompt,
+        call_dependencies=call_dependencies, observed_at=observed_at,
+        usage_recorder=usage_recorder))
+
+
+def call_placement_steps(conn, request, *, gate, model_client, prompt,
+                         call_dependencies, observed_at, usage_recorder=None):
     """One Site C call. Every argument `run_call` requires, and nothing more.
 
     P11 supplies `gate`, `model_client` and `prompt` because `run_call` requires
@@ -288,6 +311,12 @@ def call_placement(conn, request, *, gate, model_client, prompt,
         )
     # `usage_recorder` is optional here for `run_call`'s own reason: the mailbox
     # is `104` R-14's and a transport that reports no usage is a real deployment.
-    return run_call(conn, request, gate=gate, model_client=model_client,
-                    prompt=prompt, validation_dependencies=call_dependencies,
-                    observed_at=observed_at, usage_recorder=usage_recorder)
+    #
+    # `104` §18.15: `yield from`, so the round trip this call makes is one the
+    # caller may run beside its neighbours' on the cloud lane. Nothing else about
+    # the call moves -- the gate, the reservation, the ledger and the verdicts are
+    # all inside `run_call_steps`, on whichever thread asked.
+    return (yield from run_call_steps(
+        conn, request, gate=gate, model_client=model_client,
+        prompt=prompt, validation_dependencies=call_dependencies,
+        observed_at=observed_at, usage_recorder=usage_recorder))

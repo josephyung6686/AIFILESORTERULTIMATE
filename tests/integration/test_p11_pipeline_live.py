@@ -243,6 +243,9 @@ def _inputs(conn, **overrides):
         residual_action_of=None,
         sensitivity_policy=lambda *_a, **_k: True,
         route_for=None, usage_recorder=None,
+        # `104` §18.15: one at a time, which is what this pass did before the
+        # lane existed. Stated rather than defaulted, like every field here.
+        calls_at_once=1,
         # Nothing to ask about and nothing already answered. Both are
         # required with no default, so a fixture states its position
         # rather than inheriting one.
@@ -375,9 +378,11 @@ def test_the_whole_chain_runs_from_p11s_request_to_p8s_validator(live, tmp_path)
     _classify(live, file_id=file_id, content_hash=content_hash, obs=obs)
     _policy(live)
     seen = {}
-    real = pipeline.call_placement
+    real = pipeline.call_placement_steps
 
     def _observe(conn, request, **kwargs):
+        # `104` §18.15: `yield from`, so the REAL call still happens and its round
+        # trip is still the suspension point the pipeline drives.
         seen["allowed"] = kwargs["call_dependencies"].allowed_vocabulary
         seen["site"] = request.call_site
         seen["snapshot"] = request.evidence_snapshot_id
@@ -385,9 +390,9 @@ def test_the_whole_chain_runs_from_p11s_request_to_p8s_validator(live, tmp_path)
         seen["basis_key"] = kwargs["call_dependencies"].basis_key
         seen["sites"] = kwargs["call_dependencies"].site_dependencies
         seen["items"] = tuple(request.evidence_items)
-        return real(conn, request, **kwargs)      # the REAL call still happens
+        return (yield from real(conn, request, **kwargs))
 
-    pipeline.call_placement = _observe
+    pipeline.call_placement_steps = _observe
     try:
         decision = place_file(live,
                               subject=Subject(kind=v.FILE, file_id=file_id,
@@ -397,7 +402,7 @@ def test_the_whole_chain_runs_from_p11s_request_to_p8s_validator(live, tmp_path)
                               evidence=_evidence(obs), component_version="P11-live",
                               observed_at=FIXED_CLOCK)
     finally:
-        pipeline.call_placement = real
+        pipeline.call_placement_steps = real
 
     # The single most load-bearing value P11 hands P8: Site C rejects anything
     # outside it as INVENTED_NODE, and it is P11's own -- `_call_dependencies`
@@ -522,17 +527,24 @@ def test_a_refusal_is_the_privacy_answer_and_a_failed_call_falls_through(
     _policy(live)
     subject = Subject(kind=v.FILE, file_id=file_id, content_hash=content_hash,
                       group_id=None, member_file_ids=())
-    real = pipeline.call_placement
+    real = pipeline.call_placement_steps
 
     def placed_under(result):
-        pipeline.call_placement = lambda *_a, **_k: result
+        def _answers(*_a, **_k):
+            # `104` §18.15: a stub for a generator seam. The unreachable `yield`
+            # is what makes this one, and `return` inside a generator is what
+            # `yield from` hands back.
+            return result
+            yield  # pragma: no cover
+
+        pipeline.call_placement_steps = _answers
         try:
             return place_file(live, subject=subject,
                               inputs=_inputs(live, gate=_gate(live)),
                               evidence=_evidence(obs), component_version="P11-live",
                               observed_at=FIXED_CLOCK)
         finally:
-            pipeline.call_placement = real
+            pipeline.call_placement_steps = real
 
     # A failed call and an unjudgeable answer: no raise, a decision is written
     # the way a run with no model would write it, and nothing names a reason
@@ -661,13 +673,14 @@ def test_p2_a_ratified_c_places_the_file_at_the_node_the_model_named(live,
 
     subject, obs = _live_file(live, tmp_path)
     seen = {}
-    real = pipeline.call_placement
+    real = pipeline.call_placement_steps
 
     def _observe(conn, request, **kwargs):
+        # `104` §18.15: `yield from`, so the REAL call still happens.
         seen["shortlist"] = tuple(kwargs["call_dependencies"].allowed_vocabulary)
-        return real(conn, request, **kwargs)      # the REAL call still happens
+        return (yield from real(conn, request, **kwargs))
 
-    pipeline.call_placement = _observe
+    pipeline.call_placement_steps = _observe
     try:
         decision = place_file(
             live, subject=subject,
@@ -678,7 +691,7 @@ def test_p2_a_ratified_c_places_the_file_at_the_node_the_model_named(live,
             evidence=_ambiguous(obs), component_version="P11-live",
             observed_at=FIXED_CLOCK)
     finally:
-        pipeline.call_placement = real
+        pipeline.call_placement_steps = real
 
     verdict = live.execute("SELECT outcome FROM llm_verdict").fetchall()
     assert [row["outcome"] for row in verdict] == ["accept_direct"]

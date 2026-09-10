@@ -341,7 +341,10 @@ _PRODUCER_CONSUMER: tuple[tuple[str, str], ...] = (
     ("review_policy_for", "pipeline.py"),
     ("entry_for", "pipeline.py"),
     ("legal_node_ids", "pipeline.py"),
-    ("call_placement", "pipeline.py"),
+    # `104` §18.15: the seam's suspendable form, which is the one the
+    # per-file pass drives on a lane. `call_placement` is the same call
+    # driven inline and is what `place_group` still reaches.
+    ("call_placement_steps", "pipeline.py"),
     ("placement_authorities", "pipeline.py"),
     ("residual_authorities", "pipeline.py"),
     ("site_dependencies", "pipeline.py"),
@@ -476,6 +479,9 @@ def test_a_run_without_a_support_policy_or_limits_refuses(p11_conn):
         model_call_request=None, chosen_node_of=None, residual_action_of=None,
         sensitivity_policy=None, model_target=None, route_for=None,
         usage_recorder=None,
+        # `104` §18.15: one at a time, which is what this pass did before the
+        # lane existed. Stated rather than defaulted, like every field here.
+        calls_at_once=1,
         ask_about_file=lambda subject: None,
         chosen_by_user=lambda subject: None,
         fields_that_cannot_anchor_a_move=frozenset(),

@@ -92,7 +92,7 @@ from llm_harness.budgets import ScanBudget
 from llm_harness.dossier import dossier_address, released_item_wire_bytes
 from llm_harness.fact_validation import FactValidationDependencies, judgement_version
 from llm_harness.fingerprint import prompt_fingerprint
-from llm_harness.harness import CallDependencies, run_call
+from llm_harness.harness import CallDependencies, drive_inline, run_call_steps
 from llm_harness.records import (
     REFUSAL_EXCEPTIONS,
     Conflict, DossierRequest, EvidenceItem, FolderLevel, MalformedRecord, P8Verdict,
@@ -512,6 +512,17 @@ class PerFileCeiling:
     charge covers everything the turn does rather than only the call -- a dossier
     that takes minutes to assemble is exactly as much of a stuck file as a call that
     never returns.
+
+    **THE FACT PASS IS NO LONGER THAT LOOP (`104` §18.15), and the two callbacks
+    are how it stays honest.** Its cloud sends go out several at a time, so a batch
+    has one wait shared by seven files and then several files' rows written with no
+    call in flight at all. `harness.in_walk_order` is handed `close_turn` as its
+    `on_pause` and `open_turn` as its `on_resume`: the shared window is charged to
+    nobody, and a file whose own call runs alone -- which is every LOCAL file, the
+    slow ones this ceiling is for -- has its turn reopened before that call and
+    charged for it by the next file's arrival. Nothing about the measurement
+    changed; what changed is who is holding the run at each moment, and the pass
+    now says so.
 
     **Nothing is interrupted.** `check` is consulted at the top of each turn and
     raises before any of it is done, so a file already past its ceiling is skipped
@@ -2761,8 +2772,15 @@ def fact_call_stage(authorities: FactCallAuthorities):
     ceiling the ladder had already passed.
     """
 
-    def stage(conn: sqlite3.Connection, file_id: str,
-              content_hash: str) -> "tuple[str, ...] | StageOutcome":
+    def steps(conn: sqlite3.Connection, file_id: str, content_hash: str):
+        # `104` §18.15: A GENERATOR, AND THE ONE `yield` IS INSIDE `run_call_steps`.
+        # Everything in this function reads or writes the database and therefore
+        # stays on the thread that owns the connection, in the order it is written
+        # here; the suspension point is the socket and nothing else. Read it as the
+        # straight line it still is. `stage` below drives it inline for any caller
+        # that wants one file and one answer; `harness.in_walk_order` drives many,
+        # which is what lets the cloud lane hold several round trips at once.
+        #
         # `104` R-175: FIRST, BEFORE ANY WORK, and recorded rather than dropped.
         # This is the second of the two turns one file gets -- site G's loop is the
         # first -- and by the time the stage is reached the file may already have
@@ -3175,7 +3193,11 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # the next run asking again, because the identity below is recorded only
         # for a verdict.
         try:
-            result = run_call(
+            # `104` §18.15: `yield from`, so a refusal raised on the far side of
+            # the socket still lands in this `try`. An exception carried back
+            # through a resume propagates out of the sub-generator exactly as one
+            # raised inside a call did, which is what keeps R-O's record intact.
+            result = yield from run_call_steps(
                 conn,
                 build_fact_request(
                     request, observations,
@@ -3286,4 +3308,20 @@ def fact_call_stage(authorities: FactCallAuthorities):
         return tuple(row["fact_id"] for row in facts_for_file(
             conn, file_id, content_hash) if row["fact_id"] not in before)
 
+    def stage(conn: sqlite3.Connection, file_id: str,
+              content_hash: str) -> "tuple[str, ...] | StageOutcome":
+        """One file, asked and answered on this thread. `104` §18.15's serial form.
+
+        `FactResolver` reaches for `stage.steps` when it is driving a lane and
+        calls this when it is not, so a stage table wired anywhere else keeps
+        working with no knowledge of either.
+        """
+        return drive_inline(steps(conn, file_id, content_hash))
+
+    #: THE SAME STAGE, LEFT UNDRIVEN, for a caller that owns a lane. Hung off the
+    #: callable rather than returned beside it because `facts.resolver.Stage` is a
+    #: one-argument protocol every branch of `DEGRADATION_ORDER` is read through,
+    #: and widening that protocol for one producer would make every other stage
+    #: answer a question it has no round trip to have an opinion about.
+    stage.steps = steps
     return stage
