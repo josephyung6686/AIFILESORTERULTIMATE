@@ -48,6 +48,7 @@ import pytest
 import cli
 from llm_harness.harness import CallLane, in_walk_order
 from llm_harness.transport import SendResult
+from model_facts import PerFileCeiling
 from privacy import gate as gate_module
 from privacy.vocabulary import CLOUD_LOCALITY
 from readers import model_routing
@@ -87,27 +88,39 @@ ENV = {
 DOSSIER_FOLLOWS = "The dossier follows."
 
 
-def _corpus_bodies() -> dict[str, str]:
-    """One ordinary file per worker the run already spawns, and no more.
+#: The seven weeks, in walk order. One ordinary file per worker the run already
+#: spawns and no more, so a full batch is exactly the corpus: what the lane can
+#: hold and what the pass has to send are the same number, and the high-water mark
+#: below is an equality rather than an inequality.
+WEEKS = ("one", "two", "three", "four", "five", "six", "seven")
 
-    `cli.EXTRACTION_WORKERS` files, so a full batch is exactly the corpus: what the
-    lane can hold and what the pass has to send are the same number, and the
-    high-water mark below is therefore an equality rather than an inequality. The
-    bodies are `test_a_fact_call_cache.py`'s two, multiplied: releasable prose with
-    NO deterministic course code, because a file whose subject the rule stage
-    settles has no open field left and never reaches a model at all.
+
+def _corpus_bodies() -> dict[str, str]:
+    """Seven weeks of one course. `test_a_fact_call_cache.py`'s file, multiplied.
+
+    Releasable prose with NO deterministic course code, for that file's own
+    reason: a file whose subject the rule stage settles has no open field left and
+    never reaches a model at all, so a corpus of syllabi would measure nothing.
+
+    **They are seven weeks of ONE course and not seven unrelated readings, and
+    that is measured rather than decorative.** Seven files that share nothing are
+    grouped into nothing, no group is accepted, `design_tree` raises
+    `NothingToDesign`, and site C is never reached -- so the placement test below
+    would have had no calls to count. Seven weeks of one course group, get a
+    branch, and every one of them is put to site C.
     """
-    bodies = {}
-    for index in range(cli.EXTRACTION_WORKERS):
-        bodies[f"reading notes {index}.txt"] = (
-            f"Notes on the assigned reading for seminar {index}. The lecture "
-            f"covered the textbook chapters on momentum and energy, and the "
-            f"homework is due Thursday.\n")
+    bodies = {
+        f"week {week} notes.txt": (
+            f"Week {week} of the course. Notes from the tutorial on aggregate "
+            f"demand, with the problem set questions the instructor assigned in "
+            f"week {week}.\n")
+        for week in WEEKS
+    }
     # THE ONE THE FAILING-CALL TEST AIMS AT, and it is one of the same seven rather
     # than an eighth: a batch with a hole in it has to be a FULL batch, or the test
     # measures a lane of six that happened to work.
-    first = "reading notes 0.txt"
-    bodies[first] = bodies[first].replace("seminar 0", f"seminar {FAILING_WORD}")
+    first = f"week {WEEKS[0]} notes.txt"
+    bodies[first] = bodies[first].replace("tutorial", f"{FAILING_WORD} tutorial")
     return bodies
 
 
@@ -126,7 +139,12 @@ class _Lane:
     """
 
     def __init__(self, *, expected: int, reverse: bool = False,
-                 fail_on: str | None = None, witness=None):
+                 fail_on: str | None = None, witness=None,
+                 at_site: str = cli.A_FACT):
+        #: WHICH SITE'S LANE THIS INSTRUMENT IS ABOUT. Every other site is served
+        #: straight through, so a site making one call is neither counted in this
+        #: one's width nor made to wait for companions it will never have.
+        self.at_site = at_site
         self.expected = expected
         self.reverse = reverse
         self.fail_on = fail_on
@@ -157,9 +175,7 @@ class _Lane:
     def factory(self, **_unused):
         def invoke(payload: bytes) -> bytes:
             body = self._body(payload)
-            if body["call_site"] != cli.A_FACT:
-                # Every other site is served straight through. Only site A's lane
-                # is under test here and a site with one call cannot fill a batch.
+            if body["call_site"] != self.at_site:
                 self.payloads.append(payload)
                 return self._decline(body)
             subject = body["subject_ref"]
@@ -367,6 +383,54 @@ def test_a_local_target_is_never_sent_beside_anything_else(monkeypatch):
         "no two cloud sends were ever open together, so the lane did nothing")
 
 
+def test_the_slow_local_call_is_still_charged_to_the_file_that_made_it():
+    """`104` R-175's per-file ceiling, over a walk that has a batch in it.
+
+    That ceiling is a backstop against one file holding a 199-file run (§18.22:
+    r19 hung for 26 minutes on a local call with an idle server). It charges a
+    file the time the run spends WITH it, by turns -- and a batch breaks that in
+    two ways. The wait for seven cloud calls belongs to no single file, so the
+    driver stops the clock before it. Stopping it closes the only open turn, so a
+    file whose own call then runs alone -- every LOCAL file, which is the slow
+    one this ceiling is FOR -- would be charged nothing at all unless the clock is
+    started again for it. `on_pause` and `on_resume` are that pair.
+
+    **Measured on an injected clock, so the ceiling can be held against a
+    two-minute call without spending two minutes.** Two cloud sends, then a local
+    one that takes 120 seconds: the local file is charged for its call and the
+    cloud files are not.
+    """
+    ticks = [0.0]
+    ceiling = PerFileCeiling(seconds=600.0, clock=lambda: ticks[0])
+    watcher = _Overlaps()
+    walk = [("cloud-a", CLOUD_LOCALITY), ("cloud-b", CLOUD_LOCALITY),
+            ("local-a", LOCAL_LOCALITY)]
+
+    def _tick(key: str, seconds: float):
+        def moved():
+            ticks[0] += seconds
+        return moved
+
+    lane = CallLane(width=cli.EXTRACTION_WORKERS)
+    answered = list(in_walk_order(
+        ((key, _one_send(key, locality, watcher,
+                         opens_turn=ceiling.open_turn,
+                         costs=(120.0 if locality == LOCAL_LOCALITY else 3.0),
+                         tick=_tick))
+         for key, locality in walk),
+        lane=lane, on_pause=ceiling.close_turn, on_resume=ceiling.open_turn))
+    ceiling.close_turn()
+
+    assert [key for key, _value in answered] == [key for key, _ in walk]
+    assert ceiling.spent["local-a"] >= 120.0, (
+        f"the local call took 120 seconds and the file that made it was charged "
+        f"{ceiling.spent.get('local-a')}; R-175's backstop reads this number")
+    for key in ("cloud-a", "cloud-b"):
+        assert ceiling.spent[key] < 120.0, (
+            f"{key} was charged {ceiling.spent[key]} seconds -- a file billed for "
+            f"a wait it shared with six others is over any ceiling worth setting")
+
+
 def test_rows_are_written_in_walk_order_when_the_provider_answers_backwards(
         corpus, monkeypatch):
     """`104` §18.15 rule five. Two runs over one corpus must write the same rows in
@@ -440,6 +504,38 @@ def test_one_call_that_does_not_come_back_leaves_the_others_alone(
     assert "Facts from a model" in report, report
 
 
+def test_the_placement_pass_holds_its_cloud_calls_open_together_too(
+        corpus, monkeypatch):
+    """`104` §18.15 names two sites: *"the cloud sites A and C carry no serial
+    limit"*. Site C is the placement check -- one call per file P11 proposes a
+    folder for -- and r19 never reached it (§18.22), so r20 is the first run where
+    its wall-clock counts.
+
+    Measured the same way and through the same stub, with the barrier moved to
+    site C: the per-file placement pass holds all of them open at once. The lane's
+    width comes from `PipelineInputs.calls_at_once`, which `cli` fills from the
+    same `EXTRACTION_WORKERS` the fact pass uses -- one answer to "how much of
+    this machine may one run take", spent at both sites.
+
+    **The group pass and the multi-home branch stay serial and that is stated in
+    `run_corpus`.** A group plan's calls are one per GROUP, and the multi-home
+    branch puts a question to the person; neither is a lane's worth of waiting.
+    """
+    lane = _Lane(expected=cli.EXTRACTION_WORKERS, at_site=cli.C_PLACEMENT)
+    monkeypatch.setattr(model_routing, "deepseek_invoke", lane.factory)
+
+    report = _run(corpus, "--enable-cloud")
+
+    assert lane.calls_at(cli.C_PLACEMENT) == cli.EXTRACTION_WORKERS, (
+        f"one placement call per file is what site C makes: {report}")
+    assert lane.at_once == cli.EXTRACTION_WORKERS, (
+        f"{lane.at_once} of {cli.EXTRACTION_WORKERS} placement calls were ever in "
+        f"flight together")
+    # And the pass says so, on the sentence that already counts what it decided.
+    # `104` §18.15 rule six: no new counter in the prose.
+    assert f"checked {cli.EXTRACTION_WORKERS} at a time" in report, report
+
+
 # --- the driver's own instrument ----------------------------------------------
 
 
@@ -476,7 +572,8 @@ class _Overlaps:
             self._gathered.notify_all()
 
 
-def _one_send(key: str, locality: str, watcher: _Overlaps):
+def _one_send(key: str, locality: str, watcher: _Overlaps, *,
+              opens_turn=None, costs: float = 0.0, tick=None):
     """One subject's steps: nothing but a socket, so the driver is what is tested.
 
     **THE CARRIER IS A FAKE AND THAT IS DELIBERATE.** The real one is
@@ -493,6 +590,10 @@ def _one_send(key: str, locality: str, watcher: _Overlaps):
         def perform(self) -> SendResult:
             watcher.enter(key, self.locality)
             try:
+                if tick is not None:
+                    # THE CALL TAKING TIME, on the injected clock. A real one
+                    # spends it in a socket; here it is the only thing that moves.
+                    tick(key, costs)()
                 return SendResult(raw=key.encode("utf-8"))
             finally:
                 watcher.leave(self.locality)
@@ -501,6 +602,11 @@ def _one_send(key: str, locality: str, watcher: _Overlaps):
     carrier.locality = locality
 
     def steps():
+        # `104` R-175: the stage opens this file's turn before it does any work,
+        # which is where `fact_call_stage` opens it. Only the clock test asks for
+        # one; the driver itself never touches the ceiling.
+        if opens_turn is not None:
+            opens_turn(key)
         sent = yield carrier
         return sent.raw
 

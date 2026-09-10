@@ -374,8 +374,7 @@ def _issue_steps(conn: sqlite3.Connection, released: Released,
 
 
 def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
-          model_client: ModelClient,
-          usage_recorder: object | None = None) -> ModelResponse | CallFailed:
+          model_client: ModelClient) -> ModelResponse | CallFailed:
     """Consume one live release, then invoke the bound client once.
 
     Binding, payload integrity and the released CONTENT are all checked before the
@@ -388,9 +387,14 @@ def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
     kept as the module's own callable because P7's single-egress instrument scans
     for it and because a caller who wants one call and one answer should not have
     to own a driver to get one.
+
+    IT TAKES NO `usage_recorder`, and the omission is the shape of the seam: R-14's
+    reading has to come back with the outcome, and this function returns the
+    outcome alone. `run_call_steps` is what wants the pair and drives `_issue_steps`
+    for itself; a second way in here would be a second answer to which call a
+    provider's bill belongs to.
     """
-    steps = _issue_steps(conn, released, payload, model_client=model_client,
-                        usage_recorder=usage_recorder)
+    steps = _issue_steps(conn, released, payload, model_client=model_client)
     try:
         pending = next(steps)
         while True:

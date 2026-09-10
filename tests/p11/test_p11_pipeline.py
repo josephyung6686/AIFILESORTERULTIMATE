@@ -63,6 +63,25 @@ from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 #: an intention: the scorer divided by all four deciding weights while retrieval
 #: produced two of them, so facts alone could not place and `00`:110's unique
 #: direct match needed a group membership to be reachable at all.
+def _as_steps(answer):
+    """A stub for Site C's call, which since `104` §18.15 is a generator.
+
+    The round trip is a suspension point now -- `pipeline` reaches the seam with
+    `yield from`, so the cloud lane can hold several files' calls at once -- and a
+    stub that answers outright is not iterable. This makes one out of it: the
+    unreachable `yield` is what turns the function into a generator, and `return`
+    inside one is exactly what `yield from` hands back. Everything each stub below
+    says about the call it stands for is unchanged, including the ones that raise:
+    the raise happens on the first advance, which is where the call was made.
+    """
+
+    def steps(*args, **kwargs):
+        return answer(*args, **kwargs)
+        yield  # pragma: no cover - unreachable, and what makes this a generator
+
+    return steps
+
+
 POLICY = SupportPolicy(policy_id="skeleton-v2", support_scale_max=1.0,
                        minimum_support_threshold=0.5, margin_threshold=0.2)
 
@@ -168,6 +187,9 @@ def _inputs(conn, **overrides):
         call_dependencies=None, model_call_request=None, chosen_node_of=None,
         residual_action_of=None, sensitivity_policy=None, model_target=None,
         route_for=None, usage_recorder=None,
+        # `104` §18.15: one at a time, which is what this pass did before the
+        # lane existed. Stated rather than defaulted, like every field here.
+        calls_at_once=1,
         # Nothing to ask about and nothing already answered. Both are
         # required with no default, so a fixture states its position
         # rather than inheriting one.
@@ -252,7 +274,10 @@ def test_every_step_p11_owns_names_a_caller_that_is_actually_invoked():
             ("build_local_graph", "build_node_local_graph"),
             ("suppress_impossible_nodes", "suppressed_nodes"),
             ("identify_child_parent_fallback_or_none", "assess"),
-            ("judge_bounded_ambiguity", "call_placement"),
+            # `104` §18.15: the seam's suspendable form, which is what the
+            # per-file pass drives on the cloud lane; `call_placement` is the
+            # same call driven inline and is what `place_group` reaches.
+            ("judge_bounded_ambiguity", "call_placement_steps"),
             ("reviewable_plan_of_placements", "surface_residual_sets")):
         assert function in called, (step, function)
 
@@ -666,7 +691,7 @@ def test_the_model_path_is_reached_when_the_deterministic_one_is_ambiguous(
         seen["proposal_class"] = kwargs["call_dependencies"].proposal_class
         return _verdict()
 
-    monkeypatch.setattr(pipeline, "call_placement", _fake_call)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_fake_call))
     decision = _place(skeleton, inputs=_model_inputs(skeleton),
                       evidence=_evidence(**AMBIGUOUS))
 
@@ -724,7 +749,7 @@ def test_a_model_chosen_destination_is_recorded_as_the_models(skeleton,
     """
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement", lambda *_a, **_k: _verdict())
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(lambda *_a, **_k: _verdict()))
     decision = _place(skeleton, inputs=_model_inputs(skeleton),
                       evidence=_evidence(**AMBIGUOUS))
 
@@ -764,8 +789,8 @@ def test_a_model_choice_outside_the_frozen_tree_places_nothing(skeleton,
                                                                monkeypatch):
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: _verdict())
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: _verdict()))
     with pytest.raises(ValueError):
         _place(skeleton,
                inputs=_model_inputs(skeleton,
@@ -790,7 +815,7 @@ def test_a_local_only_file_abstains_before_any_dossier_is_assembled(skeleton,
     def _never(*_a, **_k):
         raise AssertionError("§8.4's gate must be asked BEFORE the dossier")
 
-    monkeypatch.setattr(pipeline, "call_placement", _never)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_never))
     file_id, content_hash = _real_file(skeleton, tmp_path / "corpus",
                                        name="secret.pdf", body=b"%PDF-1.4 s")
     _classify(skeleton, file_id=file_id, content_hash=content_hash,
@@ -828,8 +853,8 @@ def test_an_offline_install_says_so_rather_than_naming_the_file_sensitive(
     """
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: pytest.fail("§8.4 gates first")))
     file_id, content_hash = _real_file(skeleton, tmp_path / "corpus",
                                        name="budget.pdf", body=b"%PDF-1.4 b")
     _classify(skeleton, file_id=file_id, content_hash=content_hash,
@@ -881,7 +906,7 @@ def test_r118_a_local_model_is_asked_about_a_file_the_mode_alone_kept_local(
         seen["target"] = request.model_call_request.model_target.locality
         return _verdict()
 
-    monkeypatch.setattr(pipeline, "call_placement", _fake_call)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_fake_call))
     _policy(skeleton, mode="local_model")
     subject = _ordinary_subject(skeleton, tmp_path, name="notes.pdf")
     decision = _place(skeleton, subject=subject, inputs=_model_inputs(skeleton),
@@ -901,8 +926,8 @@ def test_r118_the_same_file_is_still_kept_from_a_cloud_target(
     before any dossier exists."""
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: pytest.fail("§8.4 gates first")))
     _policy(skeleton, mode="local_model")
     subject = _ordinary_subject(skeleton, tmp_path, name="notes-2.pdf")
     decision = _place(skeleton, subject=subject,
@@ -922,8 +947,8 @@ def test_r118_protected_material_is_shown_to_no_model_local_included(
     the local model only, and to no model off it."""
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: pytest.fail("§8.4 gates first")))
     _policy(skeleton, mode="local_model")
     subject = _protected_subject(skeleton, tmp_path, name="passport-r118.pdf")
     decision = _place(skeleton, subject=subject, inputs=_model_inputs(skeleton),
@@ -963,7 +988,7 @@ def test_r121_a_local_model_is_asked_about_an_unclassified_file(
         seen["target"] = request.model_call_request.model_target.locality
         return _verdict()
 
-    monkeypatch.setattr(pipeline, "call_placement", _fake_call)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_fake_call))
     _policy(skeleton, mode="local_model")
     subject = _ordinary_subject(skeleton, tmp_path, name="scan-r121.pdf",
                                 classify=False)
@@ -988,8 +1013,8 @@ def test_r121_the_same_unclassified_file_is_still_refused_a_cloud_target(
     """
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: pytest.fail("§8.4 gates first")))
     _policy(skeleton, mode="hybrid")
     subject = _ordinary_subject(skeleton, tmp_path, name="scan-r121-cloud.pdf",
                                 classify=False)
@@ -1067,8 +1092,8 @@ def test_an_unclassified_file_does_not_read_as_a_passport_or_as_thin_evidence(
     """
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: pytest.fail("§8.4 gates first")))
     file_id, content_hash = _real_file(skeleton, tmp_path / "corpus",
                                        name="scan.pdf", body=b"%PDF-1.4 u")
     # Deliberately NOT classified: P7's detector declined to say anything.
@@ -1200,7 +1225,7 @@ def _sites(monkeypatch, verdict):
                      kwargs["call_dependencies"].proposal_class))
         return verdict
 
-    monkeypatch.setattr(pipeline, "call_placement", _fake_call)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_fake_call))
     return seen
 
 
@@ -1906,7 +1931,7 @@ def _spend(skeleton, monkeypatch, *, calls_per_1000, cost, attempts=3):
     set_ceiling(skeleton, CEILINGS["max_llm_calls_per_thousand_files"],
                 calls_per_1000)
     set_ceiling(skeleton, CEILINGS["max_cost_per_scan"], cost)
-    monkeypatch.setattr(pipeline, "call_placement", _budgeted_call)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_budgeted_call))
     return [
         _place(skeleton, inputs=_model_inputs(skeleton),
                evidence=_evidence(**AMBIGUOUS))
@@ -1936,7 +1961,7 @@ def test_p11_puts_p1s_two_spend_ceilings_on_the_budget_p8_reserves_against(
         seen["budget"] = kwargs["call_dependencies"].scan_budget
         return _verdict()
 
-    monkeypatch.setattr(pipeline, "call_placement", _capture)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_capture))
     caller = _call_dependencies().scan_budget
     assert (caller.max_calls_per_1000_files, caller.max_estimated_cost) == (
         4, Decimal("10"))
@@ -2005,8 +2030,8 @@ def test_a_model_call_with_no_scan_to_charge_against_is_refused(skeleton,
     reserve against nothing and spend without a bound."""
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: _verdict())
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: _verdict()))
     deps = dataclasses.replace(_call_dependencies(), scan_budget=None)
     with pytest.raises(pipeline.ScanBudgetRequired):
         _place(skeleton, inputs=_model_inputs(skeleton, call_dependencies=deps),
@@ -2036,8 +2061,8 @@ def test_an_unclassified_file_is_not_told_that_nothing_could_read_it(
     """
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: pytest.fail("§8.4 gates first")))
     file_id, content_hash = _real_file(skeleton, tmp_path / "corpus",
                                        name="syllabus.pdf", body=b"%PDF-1.4 s")
     subject = Subject(kind=v.FILE, file_id=file_id, content_hash=content_hash,
@@ -2079,7 +2104,7 @@ def _asking(monkeypatch, verdict=None, seen=None):
             seen["allowed"] = kwargs["call_dependencies"].allowed_vocabulary
         return _verdict() if verdict is None else verdict
 
-    monkeypatch.setattr(pipeline, "call_placement", _fake_call)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_fake_call))
 
 
 def _accepts_directly():
@@ -2167,7 +2192,7 @@ def test_r19_an_unratified_prompt_leaves_the_deterministic_placement_alone(
         raise AssertionError("an unratified prompt decides nothing, so a file "
                              "the deterministic path settles is not sent")
 
-    monkeypatch.setattr(pipeline, "call_placement", _never)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_never))
     decision = _place(skeleton,
                       inputs=_model_inputs(skeleton,
                                            prompt=SimpleNamespace(ratified=False)))
@@ -2248,8 +2273,8 @@ def test_r74_a_protected_file_the_rules_could_place_keeps_its_home(
     """
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement", lambda *_a, **_k: pytest.fail(
-        "§8.4 gates before any dossier, and R-74 does not move that"))
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(lambda *_a, **_k: pytest.fail(
+        "§8.4 gates before any dossier, and R-74 does not move that")))
     subject = _protected_subject(skeleton, tmp_path)
     decision = _place(skeleton, subject=subject,
                       inputs=_model_inputs(skeleton))
@@ -2265,8 +2290,8 @@ def test_r74_the_record_says_the_rules_placed_it_and_names_neither_model_nor_per
     record that credited either would be claiming an act that never happened."""
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: pytest.fail("§8.4 gates first")))
     subject = _protected_subject(skeleton, tmp_path, name="passport-2.pdf")
     decision = _place(skeleton, subject=subject,
                       inputs=_model_inputs(skeleton))
@@ -2284,8 +2309,8 @@ def test_r74_a_protected_file_the_rules_could_not_place_still_abstains(
     on it too, so `privacy_blocked` is still what the record says."""
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail("§8.4 gates first"))
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: pytest.fail("§8.4 gates first")))
     subject = _protected_subject(skeleton, tmp_path, name="passport-3.pdf")
     decision = _place(skeleton, subject=subject,
                       inputs=_model_inputs(skeleton),
@@ -2310,8 +2335,8 @@ def test_r74_a_release_the_gate_denies_lands_in_the_same_place(
                   remedy_options=(RemedyOption(action="use_local_model",
                                                detail="ask a model on this device"),),
                   evidence_refs=())
-    monkeypatch.setattr(pipeline, "call_placement", lambda *_a, **_k: Refusal(
-        denied=denied, validator_version="vv", policy_version="pv"))
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(lambda *_a, **_k: Refusal(
+        denied=denied, validator_version="vv", policy_version="pv")))
     decision = _place(skeleton, inputs=_model_inputs(skeleton))
 
     assert decision.outcome == v.PLACE
@@ -2404,7 +2429,7 @@ def _asked(monkeypatch, verdict=None):
         seen["items"] = tuple(request.evidence_items)
         return _verdict() if verdict is None else verdict
 
-    monkeypatch.setattr(pipeline, "call_placement", _fake_call)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_fake_call))
     return seen
 
 
@@ -2713,7 +2738,7 @@ def test_a_refusal_at_site_c_leaves_the_deterministic_placement_standing(
         raise UnresolvableSpan(
             "observation 'sha256:3ea4' belongs to a file outside request.target")
 
-    monkeypatch.setattr(pipeline, "call_placement", _refuse)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_refuse))
     refused = _place(skeleton, inputs=_model_inputs(skeleton))
     offline = _place(skeleton)
 
@@ -2728,7 +2753,7 @@ def test_a_programming_error_at_site_c_still_surfaces(skeleton, monkeypatch):
     def _bug(conn, request, **kwargs):
         raise AttributeError("'NoneType' object has no attribute 'locality'")
 
-    monkeypatch.setattr(pipeline, "call_placement", _bug)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_bug))
     with pytest.raises(AttributeError):
         _place(skeleton, inputs=_model_inputs(skeleton))
 
@@ -2751,9 +2776,9 @@ def test_a_file_with_no_settled_fact_abstains_instead_of_ending_the_run(
     """
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail(
-                            "a file with nothing to send is not asked"))
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: pytest.fail(
+                            "a file with nothing to send is not asked")))
     decision = _place(skeleton, inputs=_model_inputs(skeleton),
                       evidence=_evidence(**AMBIGUOUS, evidence_items=()))
 
@@ -2773,8 +2798,8 @@ def test_the_file_that_is_not_asked_records_why_in_p8s_own_row(skeleton,
     """
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail("not asked"))
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: pytest.fail("not asked")))
     _place(skeleton, inputs=_model_inputs(skeleton),
            evidence=_evidence(**AMBIGUOUS, evidence_items=()))
 
@@ -2803,8 +2828,8 @@ def test_the_file_that_is_not_asked_reserves_no_budget(skeleton, monkeypatch):
     """
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail("not asked"))
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: pytest.fail("not asked")))
     _place(skeleton, inputs=_model_inputs(skeleton),
            evidence=_evidence(**AMBIGUOUS, evidence_items=()))
 
@@ -2829,7 +2854,7 @@ def test_the_next_file_is_still_judged_after_one_is_not_asked(skeleton,
         asked.append("call")
         return _verdict()
 
-    monkeypatch.setattr(pipeline, "call_placement", judge)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(judge))
     inputs = _model_inputs(skeleton)
 
     first = _place(skeleton, inputs=inputs, evidence=_evidence(**AMBIGUOUS))
@@ -2877,7 +2902,7 @@ def test_a_subject_with_no_matching_fact_is_asked_on_the_items_it_does_carry(
                              for item in request.evidence_items)
         return _verdict()
 
-    monkeypatch.setattr(pipeline, "call_placement", judge)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(judge))
     decision = _place(skeleton, inputs=_model_inputs(skeleton),
                       evidence=_evidence(**AMBIGUOUS))
 
@@ -2904,9 +2929,9 @@ def test_the_snapshot_addresses_the_items_and_not_the_facts(skeleton,
 
     minted: list[str] = []
     monkeypatch.setattr(
-        pipeline, "call_placement",
-        lambda _conn, request, **_kw: (
-            minted.append(request.evidence_snapshot_id), _verdict())[1])
+        pipeline, "call_placement_steps",
+        _as_steps(lambda _conn, request, **_kw: (
+            minted.append(request.evidence_snapshot_id), _verdict())[1]))
     inputs = _model_inputs(skeleton)
 
     _place(skeleton, inputs=inputs, evidence=_evidence(**AMBIGUOUS))
@@ -2926,8 +2951,8 @@ def test_the_next_file_is_judged_after_one_carries_no_matching_fact(
     import placement.pipeline as pipeline
 
     asked: list[str] = []
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: (asked.append("call"), _verdict())[1])
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: (asked.append("call"), _verdict())[1]))
     inputs = _model_inputs(skeleton)
     middle = _place(skeleton, inputs=inputs,
                     evidence=_evidence(**AMBIGUOUS))
@@ -2994,9 +3019,9 @@ def test_a_file_with_nothing_releasable_records_the_abstention_and_falls_back(
     """
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail(
-                            "a request that cannot be built is not sent"))
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: pytest.fail(
+                            "a request that cannot be built is not sent")))
     inputs = _model_inputs(skeleton,
                            model_call_request=_nothing_left_to_release)
 
@@ -3024,8 +3049,8 @@ def test_the_unbuildable_request_is_recorded_in_p8s_own_pre_call_row(
     """
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail("not asked"))
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: pytest.fail("not asked")))
     _place(skeleton,
            inputs=_model_inputs(skeleton,
                                 model_call_request=_nothing_left_to_release),
@@ -3056,8 +3081,8 @@ def test_the_unbuilt_call_is_an_abstention_and_not_a_refusal(skeleton,
     """
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail("not asked"))
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: pytest.fail("not asked")))
     _place(skeleton,
            inputs=_model_inputs(skeleton,
                                 model_call_request=_nothing_left_to_release),
@@ -3089,7 +3114,7 @@ def test_a_malformed_request_from_inside_the_call_is_still_a_refusal(
     def _refuse_inside_the_call(conn, request, **kwargs):
         raise MalformedRequest("the gate cannot evaluate this request")
 
-    monkeypatch.setattr(pipeline, "call_placement", _refuse_inside_the_call)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_refuse_inside_the_call))
     decision = _place(skeleton, inputs=_model_inputs(skeleton),
                       evidence=_evidence(**AMBIGUOUS))
 
@@ -3117,9 +3142,9 @@ def test_a_residual_file_the_model_is_not_asked_about_does_not_end_the_run(
     """
     import placement.pipeline as pipeline
 
-    monkeypatch.setattr(pipeline, "call_placement",
-                        lambda *_a, **_k: pytest.fail(
-                            "a file with nothing to send is not asked"))
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: pytest.fail(
+                            "a file with nothing to send is not asked")))
     result = _corpus(skeleton)
     assert result.residual_sets, "the file must reach §7 for this to test anything"
     _decide(skeleton, result.residual_sets[0].set_id)

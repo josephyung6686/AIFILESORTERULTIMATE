@@ -496,15 +496,27 @@ def _enclosing_function(tree: ast.AST, node: ast.AST) -> str | None:
 
 
 def _is_model_client_invoke(node: ast.AST) -> bool:
+    """`model_client.invoke(...)`, by whichever name the client is held under.
+
+    **THE RECEIVER MAY BE A FIELD SINCE `104` §18.15.** The round trip moved into
+    `transport._PendingSend.perform` so the cloud lane could hold several at once,
+    and there the client is `self.model_client` -- an Attribute, not a Name. A
+    scanner that only knew the bare local would have found NOTHING and reported a
+    clean single-egress module while the egress sat one line away. So the receiver
+    is accepted as either the local or the field, and it is still the NAME
+    `model_client` in both, which is what makes this a scan for the bound
+    capability rather than for any method spelled `invoke`.
+    """
     if not isinstance(node, ast.Call):
         return False
     func = node.func
-    return (
-        isinstance(func, ast.Attribute)
-        and func.attr == "invoke"
-        and isinstance(func.value, ast.Name)
-        and func.value.id == "model_client"
-    )
+    if not (isinstance(func, ast.Attribute) and func.attr == "invoke"):
+        return False
+    receiver = func.value
+    if isinstance(receiver, ast.Name):
+        return receiver.id == "model_client"
+    return (isinstance(receiver, ast.Attribute)
+            and receiver.attr == "model_client")
 
 
 def test_sole_invoke_site_is_transport_issue():
@@ -535,7 +547,10 @@ def test_sole_invoke_site_is_transport_issue():
                         isinstance(child, ast.Attribute) and child.attr == "invoke"
                     ):
                         aliases.append(f"{path.name}: lambda invoke")
-    assert sites == [("transport.py", "issue")], sites
+    # `104` §18.15: the same one site, in the carrier `_issue_steps` hands up.
+    # One module, one call, and the release is spent above the line that builds
+    # the only object that can reach it (`tests/p8/test_p8_architecture.py`).
+    assert sites == [("transport.py", "perform")], sites
     assert sdk_imports == []
     assert aliases == []
 

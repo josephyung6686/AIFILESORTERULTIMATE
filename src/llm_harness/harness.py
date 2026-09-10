@@ -759,7 +759,7 @@ class _Slot:
     value: object = None
 
 
-def in_walk_order(started, *, lane: CallLane, on_pause=None):
+def in_walk_order(started, *, lane: CallLane, on_pause=None, on_resume=None):
     """Drive many calls, several cloud round trips at once, in WALK ORDER.
 
     `started` is `(key, steps)` pairs in the order the run walked its subjects --
@@ -797,12 +797,23 @@ def in_walk_order(started, *, lane: CallLane, on_pause=None):
     about a PRIOR RUN's answer, which is unaffected; and a per-file clock that is
     charged by turns sees the batch's shared wait, which `on_pause` is for.
 
-    `on_pause` is called once, before a window of more than one opens, and is the
-    caller's chance to stop charging the wait to whoever happens to be last in the
-    batch. Absent, nothing is stopped -- a caller with no such clock has nothing to
-    say here.
+    **`on_pause` AND `on_resume` ARE `104` R-175's CLOCK, AND THE PAIR IS WHAT
+    KEEPS IT HONEST.** That clock charges a file for the time the run spends with
+    it, by turns: a turn opens when the file is reached and ends when the next
+    file's opens. A batch breaks both halves of that. `on_pause` is called before a
+    shared window, so the wait for seven calls is not billed to whichever file
+    happened to be prepared last. `on_resume` is called with a subject's key just
+    before its own send is performed alone -- and without it that send is billed to
+    NOBODY, because the pause closed the only open turn. The send run alone is the
+    LOCAL one, which is the slow call R-175 exists to bound, so a driver that
+    paused and never resumed would quietly disable the backstop on exactly the
+    calls it was written for. Either may be absent; a caller with no such clock has
+    nothing to say here.
     """
     batch: list[_Slot] = []
+
+    def _holding() -> bool:
+        return any(slot.pending is not None for slot in batch)
 
     for key, steps in started:
         pending, value = _advance(steps)
@@ -818,9 +829,22 @@ def in_walk_order(started, *, lane: CallLane, on_pause=None):
         # finishes first and it then runs by itself: `_settle` over a batch holding
         # one send performs that send on this thread, which is exactly what the
         # serial path has always done.
-        yield from _settle(batch, lane=lane, on_pause=on_pause)
+        #
+        # THE CLOCK IS STOPPED AROUND WHAT IS SETTLED FIRST AND STARTED AGAIN FOR
+        # THIS FILE. The window being drained is other files' network and this
+        # file's turn is the one standing open, so without the pause it would be
+        # billed for their wait -- and without the resume its own call, the slow
+        # one, would be billed to nobody at all.
+        if _holding():
+            if on_pause is not None:
+                on_pause()
+            yield from _settle(batch, lane=lane, on_pause=None)
+            if on_resume is not None:
+                on_resume(key)
+        else:
+            yield from _settle(batch, lane=lane, on_pause=None)
         batch.append(_Slot(key=key, steps=steps, pending=pending))
-        yield from _settle(batch, lane=lane, on_pause=on_pause)
+        yield from _settle(batch, lane=lane, on_pause=None)
     yield from _settle(batch, lane=lane, on_pause=on_pause)
 
 

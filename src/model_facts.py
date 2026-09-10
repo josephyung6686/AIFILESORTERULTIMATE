@@ -513,6 +513,17 @@ class PerFileCeiling:
     that takes minutes to assemble is exactly as much of a stuck file as a call that
     never returns.
 
+    **THE FACT PASS IS NO LONGER THAT LOOP (`104` §18.15), and the two callbacks
+    are how it stays honest.** Its cloud sends go out several at a time, so a batch
+    has one wait shared by seven files and then several files' rows written with no
+    call in flight at all. `harness.in_walk_order` is handed `close_turn` as its
+    `on_pause` and `open_turn` as its `on_resume`: the shared window is charged to
+    nobody, and a file whose own call runs alone -- which is every LOCAL file, the
+    slow ones this ceiling is for -- has its turn reopened before that call and
+    charged for it by the next file's arrival. Nothing about the measurement
+    changed; what changed is who is holding the run at each moment, and the pass
+    now says so.
+
     **Nothing is interrupted.** `check` is consulted at the top of each turn and
     raises before any of it is done, so a file already past its ceiling is skipped
     and the loop moves on. It does not cut a call that is in flight -- part (a) is

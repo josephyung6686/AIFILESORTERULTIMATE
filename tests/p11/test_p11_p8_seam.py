@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from llm_harness.fixtures import FIXTURE_HANDLE_KEY, SITE_C_OUTCOME_PAIRS, SITE_C_REASON_PAIRS
-from llm_harness.harness import CallDependencies, run_call
+from llm_harness.harness import CallDependencies, run_call_steps
 from llm_harness.placement_validation import (
     PlacementDependencies, ResidualDependencies, record_cd_verdict,
     revalidate_for_plan, validate_placement_response,
@@ -30,6 +30,7 @@ from placement.index import build_destination_index
 from placement.p8_seam import (
     ACCEPTED_GROUP_ITEM, CANDIDATE_ITEM, EvidenceSnapshotRequired,
     ModelPathUnavailable, UNCITABLE_ITEM_KINDS, call_placement,
+    call_placement_steps,
     evidence_snapshot_id_for, placement_authorities, residual_authorities,
     site_dependencies, snapshot_observation_keys, to_p8_conflicts, transcribe,
 )
@@ -531,12 +532,20 @@ def test_the_model_path_names_every_injection_it_is_missing(indexed):
 
 
 def test_call_placement_supplies_exactly_the_keywords_run_call_requires():
-    required = {name for name, p in inspect.signature(run_call).parameters.items()
+    """`104` §18.15: read over the suspendable form, which is the one that calls.
+
+    `call_placement` is `call_placement_steps` driven inline, so the statement
+    that names P8's keywords is in the generator. Same assertion, same required
+    set -- `run_call_steps` and `run_call` take the same parameters, which is what
+    makes the inline form a driving of the other and not a second call path.
+    """
+    required = {name
+                for name, p in inspect.signature(run_call_steps).parameters.items()
                 if p.kind is p.KEYWORD_ONLY and p.default is p.empty}
-    source = inspect.getsource(call_placement)
+    source = inspect.getsource(call_placement_steps)
     call = next(node for node in ast.walk(ast.parse(source.strip()))
                 if isinstance(node, ast.Call)
-                and getattr(node.func, "id", None) == "run_call")
+                and getattr(node.func, "id", None) == "run_call_steps")
     # Plus the ONE optional keyword P11 threads through (`104` R-145): `104`
     # R-14's usage mailbox, optional at `run_call` because a transport that
     # reports no usage is a real deployment, and passed here because site C's

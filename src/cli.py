@@ -10858,6 +10858,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # §6.9, when a file has two homes. `104` §18.2 gap 15.
             ask_or_abstain=_ask_when_there_are_two_homes_to_offer,
             max_return_cycles=1,
+            # `104` §18.15: HOW MANY OF SITE C's CLOUD ROUND TRIPS MAY BE OPEN AT
+            # ONCE, and it is the SAME count the fact pass uses and the same one
+            # this product already chose for how many processes read files at once.
+            # One question -- how much of this machine may one run take at a time --
+            # asked once, at `EXTRACTION_WORKERS`, and answered here for the second
+            # site that can spend a wait on a socket.
+            calls_at_once=EXTRACTION_WORKERS,
             # §6.12 step 7's model path, absent in every part. `model_path_available`
             # reads these as a set: with them `None`, a file that needs a judgement
             # abstains with a reason instead of being decided by nothing.
@@ -11310,14 +11317,18 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         lane = CallLane(width=EXTRACTION_WORKERS)
         for file_id, result in in_walk_order(
                 _walked(), lane=lane,
-                # `104` R-175's clock, STOPPED BEFORE A SHARED WAIT. A turn ends
-                # when the next file's begins, so without this the whole batch's
-                # round trip would be charged to whichever file happened to be
-                # prepared last -- one file billed for six others' network. The
-                # ceiling is a backstop against a file that will not finish, and a
-                # wait no single file owns is not that.
+                # `104` R-175's clock, STOPPED BEFORE A SHARED WAIT AND STARTED
+                # AGAIN FOR A FILE THAT CALLS ALONE. A turn ends when the next
+                # file's begins, so without the pause the whole batch's round trip
+                # would be charged to whichever file happened to be prepared last
+                # -- one file billed for six others' network -- and without the
+                # resume the LOCAL call, the two-minute one this ceiling exists to
+                # bound, would be charged to nobody, because the pause closed the
+                # only turn there was.
                 on_pause=(None if authorities.per_file_ceiling is None
-                          else authorities.per_file_ceiling.close_turn)):
+                          else authorities.per_file_ceiling.close_turn),
+                on_resume=(None if authorities.per_file_ceiling is None
+                           else authorities.per_file_ceiling.open_turn)):
             written.extend(result.fact_ids)
             # `104` §18.2 GAP 4: THE FILE THE STAGE DECLINED TO ASK ABOUT, COUNTED
             # UNDER ITS OWN REASON. Before this the stage returned `()` at four
@@ -13533,8 +13544,21 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         print(_wrapped(again.format(first=first), indent="    "), file=out)
         return False
 
+    # `104` §18.15: HOW MANY OF THE CHECKS WENT AT ONCE, on the sentence that
+    # already counts what this pass decided. The owner's direction was speed and
+    # site C is the second site that spends a run's time waiting on a socket; a
+    # person cannot tell from any other line whether its cloud lane was used. A
+    # MEASUREMENT of this run -- `run_corpus` reports the widest window it opened
+    # -- and absent whenever it was one, which is a pass that asked one at a time
+    # or asked nothing. `getattr` for the reason `_is_move` reads a node that way
+    # one screen up: this function takes a finished run and READS it, and a
+    # fixture modelling a result with fewer fields must not turn a report into a
+    # traceback.
+    checked_together = getattr(result.placement, "calls_at_once", 1)
     print(f"\nFiles: {len(decisions)} decided, {placed} ready to file"
-          + (f", {awaiting} waiting for you to approve" if awaiting else ""),
+          + (f", {awaiting} waiting for you to approve" if awaiting else "")
+          + (f", checked {checked_together} at a time"
+             if checked_together > 1 else ""),
           file=out)
     for key in ordered:
         outcome, where, reason, review, policy, settled, same_folder, _, \

@@ -243,6 +243,9 @@ def _inputs(conn, **overrides):
         residual_action_of=None,
         sensitivity_policy=lambda *_a, **_k: True,
         route_for=None, usage_recorder=None,
+        # `104` §18.15: one at a time, which is what this pass did before the
+        # lane existed. Stated rather than defaulted, like every field here.
+        calls_at_once=1,
         # Nothing to ask about and nothing already answered. Both are
         # required with no default, so a fixture states its position
         # rather than inheriting one.
