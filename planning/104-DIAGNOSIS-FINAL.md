@@ -1712,6 +1712,14 @@ r19 (ee52769, cloud lane live) died on its first OCR file: gap 17d attached the 
 
 **The outage (14:15-15:45).** The internet dropped for ~90 minutes: three agents died (one on DNS, two on the stream watchdog) and were resumed with their worktrees intact; r20 made seven site A dossiers in that window and recorded NO failure, because the cloud client has no whole-call deadline. **R-176 (open, dispatched with the follow-on):** `readers/model_deepseek` gets one deadline over the whole call, by phase, mirroring R-175, derived from the deployment's existing cloud timeout.
 
+### 18.29 Gaps 18 and 19 merged (10 Sep 16:40, 92be8f4)
+
+**Gap 18.** `readers/image_headers` reads §2.6's metadata slots through ImageIO via `Quartz`, which the deployment already ships for Vision (nothing added); properties only, no image decoded. HEIC/HEIF/AVIF/TIFF/BMP take their branch from the product's own signature table (`signatures.format_from_magic` publishes the byte half of `detect_format`; one implementation). Tag classification by Quartz's own constants, no tag table. Tier 1 is §2.6's five nouns only (make, model, lens, ISO, focal length): ranking the whole EXIF dict tier 1 would have made a macOS screenshot "strong photo evidence" beside its tier-3 PNG format, and §2.6's conflicting-signals rule would abstain on the very file `photos.screenshot-captures` exists for -- measured and pinned. Facts land as `metadata`-zone observations addressed `field/<tag>`, the `metadata_field_name` citation form; one name, one row. A BMP records no unread reason, honestly: the reader cannot tell a container with no EXIF box from a stripped photograph, and P4 forbids writing either as evidence. `image.metadata` 0.1.0 → 0.2.0.
+
+**Gap 19.** `VISION_CONFIG` no longer carries `["en-US"]`; `recognition_languages()` asks Vision for its published set at the configured level and `_recognise` enables the OS's language identification so the FILE decides. **The measurement that decided it:** on rendered CJK text, `en-US` reads nothing, the whole published set with detection OFF reads nothing, detection ON reads it at confidence 1.0 -- the detection flag is the load-bearing line, not a longer list. On an older macOS without that flag the gap stays open, said in code. Every stored OCR and image fingerprint changes, so the next run re-reads images (intended).
+
+Verified on the merged head: 183 passed in 76.51s (0:01:16). Next wave dispatched into the freed slot: gaps 16 + 11b.
+
 
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
