@@ -6113,8 +6113,18 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         # `supersedes`/`superseded_by`/`supersede_reason`, and leaves the old row
         # readable -- §8.2's "supersede, never overwrite". Nothing here edits or
         # deletes what the detector concluded.
-        written = assign(conn, record, store=store,
-                         component_version=component_version)
+        written = assign(
+            conn, record, store=store, component_version=component_version,
+            # The reason on the retired row says what retired it: the model's
+            # verdict, the situation it named, and what the rules had held the
+            # file as and on which authored terms. The library's words and the
+            # verdict's id; nothing from the person's file.
+            **({"supersede_reason": (
+                f"local model verdict {verdict.verdict_id} named {situation}"
+                f"{'' if restricted_kind is None else ' and kind ' + restricted_kind}"
+                f"; the rules held {precaution.schema_id} on "
+                f"{', '.join(precaution.terms)}")}
+               if precaution is not None else {}))
         if precaution is not None and written is record:
             # WHICH WAY THE HOLD WENT, read off the record that actually
             # superseded it rather than off the answer a second time: the flag on

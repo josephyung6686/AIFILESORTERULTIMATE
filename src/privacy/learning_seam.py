@@ -150,7 +150,8 @@ REASSIGNED_BY_SYSTEM: str = "reassigned_by_system"
 
 def assign(conn: sqlite3.Connection, record: ClassificationRecord, *,
            store: ClassificationStore,
-           component_version: str) -> ClassificationRecord | None:
+           component_version: str,
+           supersede_reason: str = REASSIGNED_BY_SYSTEM) -> ClassificationRecord | None:
     """The system-side write, guarded by §8.7. Returns None when suppressed.
 
     None is the zero re-emission 10-i4's Done-means requires: "a fixture with one
@@ -190,7 +191,12 @@ def assign(conn: sqlite3.Connection, record: ClassificationRecord, *,
         prior_fact_id = store.current_fact_id(record.file_id, record.content_hash)
         fact_id = store.write(record)
         if prior is not None and prior_fact_id is not None:
-            store.supersede(prior_fact_id, fact_id, REASSIGNED_BY_SYSTEM)
+            # `104` §18 gap 24: the caller may say WHY the prior row is retired --
+            # the local model's verdict lifting the term detector's hold names
+            # the domain, the terms and the verdict -- and the default is the
+            # generic reason every other system assignment has always written.
+            # The store still refuses a second reason on a row already retired.
+            store.supersede(prior_fact_id, fact_id, supersede_reason)
         authoritative = store.current(record.file_id, record.content_hash)
         assert authoritative is not None
         mirror(conn, authoritative, component_version=component_version)
