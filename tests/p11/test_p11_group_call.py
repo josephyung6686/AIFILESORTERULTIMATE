@@ -9,7 +9,7 @@ placements happened to land on.
 Every seam here is the live one: P1's `files` rows, P7's `ClassificationStore` and
 `current_policy`, P9's own group writers and acceptance read, P10's frozen tree,
 `placement.retrieval.retrieve`, `placement.scoring.assess`, and the real
-append-only decision table. The one fake is `call_placement`, monkeypatched so a
+append-only decision table. The one fake is `call_placement_steps`, monkeypatched so a
 site-C verdict can be forced without a live model -- the same fake and the same
 reason as `test_p11_pipeline.py`.
 
@@ -276,7 +276,7 @@ def _model_inputs(conn, **overrides):
 
 def _place_group(world, *, inputs=None, evidence_for=None, monkeypatch=None,
                  answers=None, verdict_for=None):
-    """`place_group` with `call_placement` faked. Returns (plan, calls).
+    """`place_group` with `call_placement_steps` faked. Returns (plan, calls).
 
     `answers` maps a `subject_ref` to the node its call names; anything unlisted
     gets `n-course`. `calls` is every request the fake saw, in order, so a test
@@ -288,12 +288,17 @@ def _place_group(world, *, inputs=None, evidence_for=None, monkeypatch=None,
     answers = answers or {}
 
     def _fake(conn_, request, **kwargs):
+        # `104` §18.15 made the placement call a generator whose one `yield` is
+        # the socket; `place_group` reaches it as `call_placement_steps`. The
+        # fake is a generator too -- it yields nothing (no socket) and RETURNS
+        # the verdict, which is what `drive_inline` and the lane both read.
         calls.append((request, kwargs))
         if verdict_for is not None:
             return verdict_for(request)
         return _verdict(answers.get(request.subject_ref, "n-course"))
+        yield  # pragma: no cover -- makes this a generator; never reached
 
-    monkeypatch.setattr(pipeline, "call_placement", _fake)
+    monkeypatch.setattr(pipeline, "call_placement_steps", _fake)
     plan = pipeline.place_group(
         world.conn, group_id=GROUP_ID,
         inputs=inputs if inputs is not None else _model_inputs(world.conn),
