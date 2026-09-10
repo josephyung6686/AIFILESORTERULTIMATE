@@ -142,14 +142,14 @@ from llm_harness.records import (
     CallRefused, FolderLevel, P8Verdict, PromptDefinition,
 )
 from llm_harness.situation_validation import is_decline
-from llm_harness.store import last_response_bytes
+from llm_harness.store import grounding_counters, last_response_bytes
 from llm_harness.sites import SiteDependencies
 from llm_harness.schema import create_llm_schema
 from llm_harness.vocabulary import (
     A_FACT, B_GROUP, C_PLACEMENT, CONTEXT_SUPPORTED, D_RESIDUAL, DIRECT_ANCHOR,
     ACCEPT_CONTEXT_SUPPORTED, ACCEPT_DIRECT,
     E_TEMPLATE, G_SITUATION_SENSITIVITY, LLM_SUPPORTED, PRE_CALL_NAMESPACE,
-    SCOPE_FILE, SCOPE_TEMPLATE as TEMPLATE_SCOPE,
+    SCOPE_FILE, SCOPE_TEMPLATE as TEMPLATE_SCOPE, pre_call_address,
 )
 
 #: The two outcomes that mean P8 accepted the answer. `OUTCOMES` also holds `weak`,
@@ -183,6 +183,10 @@ from model_facts import (
     measure_released_tokens, pending_fields_for, releasable_observations,
     releasable_readings, zone_rank,
 )
+# `104` §18.2 gap 4: the module and not its names, because `NOT_ASKED_SENTENCE`
+# below reads five of its constants and a five-name import line beside the one above
+# would be the same list written twice.
+import model_facts
 from privacy.classification import (
     ClassificationRecord, UNREADABLE_UNCLASSIFIED, resolve_class,
 )
@@ -6519,6 +6523,36 @@ NOT_ASKED_SENTENCE: Mapping[str, str] = MappingProxyType({
         "they sit under a folder you have not yet said the situation of, and a "
         "model is asked a folder's questions only once its situation is known. "
         "The question is printed below with the answers you can give.",
+    # `104` §18.2 GAP 4'S FIVE, AND THEY ARE THE HALF OF THIS SCREEN THAT WAS
+    # MISSING. The two rows above are about the FOLDER a file sits in; these are
+    # about the file itself, and until this ruling every one of them was reported
+    # as a file a model had been asked about and had had nothing to say. The words
+    # are `model_facts.NOT_ASKED_REASONS`' own -- one sentence per word, never a
+    # shared bucket, because the thing a person would DO about each is different:
+    # nothing (settled), change the policy (no route), install a reader (nothing
+    # read), nothing (every reading refused, which is the privacy rules working),
+    # choose a different situation (no field in schema).
+    model_facts.NOT_ASKED_SETTLED:
+        "every field this situation asks about them was already settled by what "
+        "this device could read on its own, so there was nothing left to ask a "
+        "model. Nothing about them is missing.",
+    model_facts.NOT_ASKED_NO_ROUTE:
+        "no model this run could reach is cleared to see them, so nothing about "
+        "them was assembled for one. Each open field has an `unresolved` row "
+        "saying `privacy_withheld`.",
+    model_facts.NOT_ASKED_NOTHING_READ:
+        "nothing could be read out of them, so there was no evidence to put in "
+        "front of a model. That is about this product's readers and the file's "
+        "format, not about what the file contains.",
+    model_facts.NOT_ASKED_ALL_REFUSED:
+        "everything this run read out of them is material that does not leave "
+        "this device -- a file path, an image's text, or a value something "
+        "recognised as personal -- so a model was shown none of it and was not "
+        "asked. The readings are still on this machine and are still yours.",
+    model_facts.NOT_ASKED_NO_SCHEMA:
+        "the situation this run is working under declares no field that could "
+        "hold an answer about them, so there was nothing to ask. A different "
+        "`--situation` asks a different set of questions.",
 })
 
 #: The sentence each cause earns. Written out rather than assembled, because a
@@ -6590,15 +6624,76 @@ COVERAGE_SENTENCE: Mapping[str, str] = MappingProxyType({
         "model is digested under one. There is no un-keyed form to fall back to.",
     NOT_ASKED_AMBIGUOUS: NOT_ASKED_SENTENCE[NOT_ASKED_AMBIGUOUS],
     NOT_ASKED_UNSETTLED: NOT_ASKED_SENTENCE[NOT_ASKED_UNSETTLED],
+    # `104` §18.2 gap 4's five: the stage's own reasons for declining to ask,
+    # each with the sentence `NOT_ASKED_SENTENCE` already gives it, so the
+    # coverage sum and the fact block say the same thing about one file.
+    **{reason: NOT_ASKED_SENTENCE[reason]
+       for reason in model_facts.NOT_ASKED_REASONS},
     WITHHELD_UNCLASSIFIED: WITHHELD_SENTENCE[WITHHELD_UNCLASSIFIED],
     WITHHELD_PRIVACY: WITHHELD_SENTENCE[WITHHELD_PRIVACY],
     WITHHELD_PROTECTED: WITHHELD_SENTENCE[WITHHELD_PROTECTED],
 })
 
 
+def _dossier_cut(conn: sqlite3.Connection,
+                 outcomes: Sequence[tuple[str, object]]) -> tuple[int, int, int]:
+    """What the dossier ceiling took from this pass's calls: calls, readings, bytes.
+
+    `104` §18.2 gap 5. `model_facts.within_dossier_budget` drops the readings that do
+    not fit and `GroundingReport.readings_dropped` / `readings_dropped_bytes` record
+    what it dropped; this sums those over the calls this pass made and hands
+    `_print_fact_pass` three numbers.
+
+    **Off the STORED reports, not off a counter in the loop.** The rule this screen
+    is built on is that a count a person reads is read back from the records -- the
+    same rule `ResolveResult.reason_counts` follows for the `unresolved` table -- so
+    that a number on the screen and a number in the database cannot disagree. The
+    address is the outcome's own `dossier_id`: a verdict carries the dossier it was
+    judged from, and a pre-call abstention carries `pre_call_address`, so a deferred
+    call whose evidence had already been trimmed is counted too. An outcome with no
+    address at all -- a `NeedsConsent`, a request that could not be described -- is
+    skipped rather than guessed at.
+
+    **A call is counted as trimmed once, however many readings it lost.** "Twelve
+    readings were dropped" is a different sentence when it is twelve calls losing one
+    each and when it is one spreadsheet losing twelve, and the call count is what
+    tells the two apart.
+
+    **AND A REFUSAL CARRIES NO ADDRESS OF ITS OWN, so one is derived.** `Refusal` is
+    built from P7's `Denied` and `CallRefused` from an exception's class name;
+    neither holds a `dossier_id`, because at the moment either is made no dossier has
+    been recorded. Their reports are still written -- `_zero_report` reads the cut
+    straight off the request -- and they are addressed by `pre_call_address`, which
+    this derives from the file id the outcome came in beside. Derived ONLY when the
+    outcome names no address itself: a file deferred on one pass and answered on the
+    next has a report at each address, and asking for both would count one file's cut
+    twice.
+    """
+    addresses: list[str] = []
+    for file_id, result in outcomes:
+        address = getattr(result, "dossier_id", None)
+        if not isinstance(address, str):
+            # A call that HAPPENED and failed carries its own request identity;
+            # anything else is a refusal at or before the door.
+            address = getattr(result, "request_identity", None)
+        if not isinstance(address, str):
+            address = pre_call_address(A_FACT, file_id)
+        addresses.append(address)
+    calls = readings = dropped_bytes = 0
+    for report in grounding_counters(conn, addresses):
+        dropped = report.get("readings_dropped") or 0
+        if not dropped:
+            continue
+        calls += 1
+        readings += dropped
+        dropped_bytes += report.get("readings_dropped_bytes") or 0
+    return calls, readings, dropped_bytes
+
+
 def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
                      outcomes: Sequence[tuple[str, object]], model_id: str,
                      out, not_asked: Mapping[str, int] = MappingProxyType({}),
+                     cut: "tuple[int, int, int]" = (0, 0, 0),
                      ) -> None:
     """What the model pass actually did, in counts a person can check.
 
@@ -6614,6 +6709,19 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
     call that failed, an abstention and a validation that could not run are four
     different things that all look like "no fact" from the outside, and collapsing
     them into one number is how a person reads a broken key as an unhelpful model.
+
+    **`cut` IS `104` §18.2 GAP 5'S LINE: what the dossier ceiling took (calls,
+    readings, bytes).** The ceiling has always dropped readings that would not fit
+    and until this ruling it dropped them in silence -- a bare `continue` in
+    `model_facts.within_dossier_budget` -- so a file whose whole evidence reached the
+    model and a file that offered forty readings and carried four produced the same
+    line on this screen. `00`:257 asks for the opposite: a prompt over its budget
+    "should not truncate silently in a way that removes the decisive evidence."
+    Three numbers because one cannot say it -- how many CALLS were trimmed is what
+    tells a person whether this is their whole folder or one spreadsheet, and the
+    readings and the bytes are how much. Summed by the caller off the stored
+    `GroundingReport`s of this pass's own calls, which is where the builder recorded
+    the cut.
     """
     if not files:
         return
@@ -6636,6 +6744,20 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
         for reason, count_ in sorted(abstained.items()):
             print(f"  {count_} not asked: {reason.replace('_', ' ')} "
                   f"({reason}), decided before any call was made.", file=out)
+    trimmed_calls, dropped_readings, dropped_bytes = cut
+    if trimmed_calls:
+        # `104` §18.2 gap 5. Printed whenever anything was cut, including on a run
+        # where every call was then refused: the builder had already spent the
+        # ceiling by then, and a person told nothing was cut because the call never
+        # went out would be told the wrong thing twice.
+        print(_wrapped(
+            f"{dropped_readings} "
+            f"{'reading' if dropped_readings == 1 else 'readings'} "
+            f"({dropped_bytes:,} bytes) did not fit in what one call may carry and "
+            f"were left out of {trimmed_calls} of them. The model was shown the "
+            f"rest, in the order the document is read in; nothing was deleted and "
+            f"nothing was refused -- what did not fit is still on this machine and "
+            f"is read again on the next run.", indent="  "), file=out)
     for cause, count_ in sorted(withheld.items()):
         print(_wrapped(
             f"{count_} of {files} files were not sent, and were not skipped "
@@ -10142,6 +10264,19 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             result = asking.resolve(
                 conn, file_id=file_id, content_hash=content_hash)
             written.extend(result.fact_ids)
+            # `104` §18.2 GAP 4: THE FILE THE STAGE DECLINED TO ASK ABOUT, COUNTED
+            # UNDER ITS OWN REASON. Before this the stage returned `()` at four
+            # points, the resolver recorded `llm` as having RUN, and the file left no
+            # trace anywhere on this screen -- so a person read the pass as a model
+            # having considered their file and found nothing worth saying. Counted
+            # here, where the file ids still are, on the same pattern as the withheld
+            # counts below (ids, so gap 10's sum can name the files): the loop
+            # tallies and `_print_fact_pass` prints what it is told. A declined
+            # file is not "settled by rule" either -- nothing settled its fields.
+            declined = result.stages_not_asked.get(LLM_ROUTE)
+            if declined is not None:
+                not_asked.setdefault(declined, []).append(file_id)
+                continue
             barred = result.stages_barred.get(LLM_ROUTE)
             if barred == BUDGET_BAR:
                 # A CEILING, NOT A REFUSAL, and `facts/resolver.py` keeps the two
@@ -10170,7 +10305,17 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # person one model was sent their files when the file they most care
             # about -- the one nothing has classified -- went to the other.
             model_id=_fact_pass_models(routing), out=out,
-            not_asked={reason: len(ids) for reason, ids in not_asked.items()})
+            not_asked={reason: len(ids) for reason, ids in not_asked.items()},
+            # `104` §18.2 gap 5: WHAT THE DOSSIER CEILING CUT, READ BACK FROM THE
+            # RECORDS. The dossier ids are this pass's own -- every outcome
+            # `on_result` collected carries the address of the call it is about, and
+            # a pre-call abstention carries `pre_call_address`, which is an address
+            # of exactly this shape -- so the reports summed here are the reports of
+            # the calls this pass made and no earlier run's. A counter incremented
+            # in the loop above would be a second measurement of the same event and
+            # would part company with the stored one the first time a refusal left
+            # the loop early.
+            cut=_dossier_cut(conn, outcomes))
         # `104` §18.2 gap 10. WHAT THE PASS SAW, HANDED OUT WHOLE. The
         # reconciliation runs whether or not this function reached this line, so
         # it cannot be written here; what it can be given is every verdict this

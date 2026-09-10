@@ -17,8 +17,12 @@ and they are different lists: P6's stage is `factual_validation`, P6's dimension
 else in `facts`.
 
 WHAT `result` IS. `facts.resolver.ResolveResult` (Task 20) is the only input, imported
-rather than re-described: this module reads exactly the eight fields that dataclass
-publishes and owns none of them.
+rather than re-described: this module reads exactly the fields that dataclass
+publishes and owns none of them. `104` §18.2 gap 4 added a ninth, `stages_not_asked`,
+and it goes into the payload beside `stages_run` for that gap's own reason: a replay
+that compared two runs by `stages_run` alone could not see the difference between a
+file a model answered about and a file the producer declined to ask about, because
+before the gap was closed both wrote the same name into the same list.
 """
 from __future__ import annotations
 
@@ -74,6 +78,10 @@ def fact_stage_output(*, result: ResolveResult) -> dict:
         "unresolved_reasons": dict(result.reason_counts),
         "stages_run": list(result.stages_run),
         "stages_barred": dict(result.stages_barred),
+        # `104` §18.2 gap 4: the producers that were reached and declined, with the
+        # word each gave. Sorted into a plain dict by `canonical_json` like the two
+        # above it, so the payload stays byte-stable across two identical runs.
+        "stages_not_asked": dict(result.stages_not_asked),
         "deferred_against": list(result.deferred_against),
         "error": result.error,
     })

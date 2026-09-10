@@ -413,7 +413,9 @@ def test_the_offer_carries_the_opening_of_a_unit_no_call_can_carry(conn, tmp_pat
                                                     ceiling=OVER_CEILING)
 
     offered = _offer(conn, file_id, content_hash, CLOUD_LOCALITY)
-    carried = within_dossier_budget(offered, ceiling=OVER_CEILING)
+    # `104` §18.2 gap 5: the fill answers what it took AND what it cut; what this
+    # test is about is the taken half, and the assertion it always made is unchanged.
+    carried = within_dossier_budget(offered, ceiling=OVER_CEILING).taken
     body = [one for one in carried if one.location.zone == "body"]
 
     assert body != [], (
@@ -619,14 +621,18 @@ def test_the_ceiling_is_the_one_bound_for_a_cloud_call_and_the_cap_only_cuts(con
     assert opening_excerpt_bound(conn, limit=CAP) is not None
 
     slack = [_Reading(f"r{n}", 10) for n in range(CAP * 2)]
-    assert within_dossier_budget(slack, ceiling=1_000_000) == tuple(slack)
+    # `104` §18.2 gap 5: `.taken` is what this test always asserted; the cut beside
+    # it is empty under a slack ceiling, which is the same claim said twice.
+    assert within_dossier_budget(slack, ceiling=1_000_000).taken == tuple(slack)
 
     # And the ceiling, the one bound left, still binds: five of these fit and the
     # sixth does not. `104` R-174 spends the ceiling in wire bytes, so the room for
     # five is five readings' cost, derived and one byte short of a sixth.
     hundreds = [_Reading(f"r{n}", 100) for n in range(20)]
     room = sum(released_wire_cost(one) for one in hundreds[:6]) - 1
-    assert within_dossier_budget(hundreds, ceiling=room) == tuple(hundreds[:5])
+    bound = within_dossier_budget(hundreds, ceiling=room)
+    assert bound.taken == tuple(hundreds[:5])
+    assert bound.dropped == tuple(hundreds[5:])
 
 
 class _Reading:

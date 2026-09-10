@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, replace
 from decimal import Decimal
 
 from database_agent.db import transaction
@@ -404,6 +404,24 @@ def _validate_and_record(
     if isinstance(checked, ValidationUnavailable):
         return checked
     verdicts, report = checked
+    # `104` §18.2 GAP 5: THE BUILDER'S CUT, STAMPED ONTO THE VALIDATOR'S REPORT.
+    #
+    # The count belongs on the report because that is where a call's counters live
+    # and where the scorecard reads them; it cannot be COMPUTED there because the cut
+    # happened in `model_facts`' fill, before a dossier existed, and the validator is
+    # shown only what was released. Threading it through `dispatch` and
+    # `validate_response` would hand every site's validator a number it must not use
+    # for anything, so it is copied here instead -- the one place in the harness that
+    # holds the request the builder wrote and the report that is about to be stored.
+    #
+    # `_zero_report` reads the same two fields off the same request directly, so a
+    # refused, deferred or failed call reports the cut too and the two paths cannot
+    # disagree about what the ceiling took.
+    report = replace(
+        report,
+        readings_dropped=request.readings_dropped,
+        readings_dropped_bytes=request.readings_dropped_bytes,
+    )
     _record_verdicts(
         conn, request, verdicts,
         model_id=result.model_id,

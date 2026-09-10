@@ -446,6 +446,17 @@ def _zero_report(
         reduction_rung=reduction_rung,
         release_audit_id=release_audit_id,
         dossier_builder=DOSSIER_BUILDER,
+        # `104` §18.2 GAP 5, AND IT IS THE ONE COUNT HERE THAT IS NOT ZERO. Every
+        # other number in this report is zero because nothing was validated -- the
+        # gate refused, the budget deferred, the call did not come back -- and zero
+        # is the measurement. The CUT is not like them: the builder had already
+        # spent the ceiling on this file's offer before any of those happened, so a
+        # zero here would tell a person that the file whose call was refused had all
+        # of its evidence assembled, which is the exact false impression `00`:257
+        # and the standing "counted and named, never silently omitted" rule forbid.
+        # Read off the request, which is where the builder recorded it.
+        readings_dropped=request.readings_dropped,
+        readings_dropped_bytes=request.readings_dropped_bytes,
         **_ZERO_COUNTS,
     )
 

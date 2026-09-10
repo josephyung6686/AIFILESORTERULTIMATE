@@ -8,9 +8,10 @@ refusal are "distinguishable from the records alone" — which is a claim about 
 not about a mapping table.
 
 Nor is `ResolveResult` reconstructed. Task 20's real dataclass is imported, and
-`test_the_envelope_reads_only_task_20s_published_fields` pins the eight fields this
-module reads, so a change on Task 20's side breaks this test rather than silently
-changing what P6 reports to P2.
+`test_the_envelope_reads_only_task_20s_published_fields` pins the fields this module
+reads, so a change on Task 20's side breaks this test rather than silently changing
+what P6 reports to P2. `104` §18.2 gap 4 added the eleventh, `stages_not_asked`, and
+the pin caught it, which is what the pin is for.
 """
 from __future__ import annotations
 
@@ -54,11 +55,19 @@ CONTENT_HASH_B = "b" * 64
 CONTENT_HASH_C = "c" * 64
 CONTENT_HASH_D = "d" * 64
 
-#: The eight fields Task 20 publishes on `ResolveResult`, which are exactly the
-#: attributes `facts.stage_output` reads off a result and the whole of its input.
+#: The fields Task 20 publishes on `ResolveResult`, which are exactly the attributes
+#: `facts.stage_output` reads off a result and the whole of its input.
+#:
+#: `stages_not_asked` is `104` §18.2 gap 4's, and it sits between
+#: `version_has_unresolved` and `error` because that is where the dataclass declares
+#: it. It is the complement of `stages_run`: a producer that was reached and declined
+#: to do its work is named here with its reason, and is absent from `stages_run`,
+#: which until the gap was closed recorded a stage's INVOCATION and so told P2 that a
+#: model had been asked about a file no call was ever built for.
 RESULT_FIELDS = ("file_id", "content_hash", "fact_ids", "reason_counts",
                  "stages_run", "stages_barred", "deferred_against",
-                 "unresolved_ids", "version_has_unresolved", "error")
+                 "unresolved_ids", "version_has_unresolved", "stages_not_asked",
+                 "error")
 
 
 def a_result(**overrides) -> ResolveResult:
@@ -295,8 +304,14 @@ def test_the_payload_is_p6s_own_and_carries_no_fact_id():
     payload = json.loads(fact_stage_output(result=PRODUCED)["payload"])
     assert payload["fact_count"] == 1
     assert "fact-1" not in fact_stage_output(result=PRODUCED)["payload"]
+    # `104` §18.2 gap 4 added `stages_not_asked` beside `stages_run`, and it belongs
+    # in the payload for the gap's own reason: a replay comparing two runs by
+    # `stages_run` alone could not tell a file a model answered about from a file the
+    # producer declined to ask about, because both used to write the same name into
+    # the same list.
     assert set(payload) == {"fact_count", "unresolved_reasons", "stages_run",
-                            "stages_barred", "deferred_against", "error"}
+                            "stages_barred", "stages_not_asked",
+                            "deferred_against", "error"}
 
 
 def test_the_payload_is_byte_stable_for_the_same_result():

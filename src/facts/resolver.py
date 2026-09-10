@@ -29,9 +29,68 @@ from facts.unresolved import (
     BUDGET_DEFERRED, PRIVACY_WITHHELD, unresolved_for_file, write_unresolved,
 )
 
+@dataclass(frozen=True)
+class StageOutcome:
+    """What one producer DID, for a producer that can decline to run at all.
+
+    `104` §18.2 gap 4 (9 Sep 2026). A stage used to answer one thing -- the fact ids
+    it wrote -- and `resolve` recorded its INVOCATION: it appended the name to
+    `stages_run` whether or not anything had happened inside. That is true of the two
+    deterministic producers, which always look, and false of the model producer,
+    which returns `()` at four different points before a call is built: every field is
+    already settled, no model may see this file, nothing about it is releasable, or
+    the schema left no field to ask about. In all four the run said the stage had run,
+    the payload said `stages_run: ["llm"]`, and a person reading the report was told
+    the file had been asked and the model had had nothing to say. `00`'s standing rule
+    is the opposite -- what was skipped is counted and named, never silently omitted --
+    and constitution rule two says any successfully-read file must reach the model or
+    the reason must be recorded.
+
+    So a stage MAY answer this record instead of a bare tuple. Three fields:
+    `fact_ids` is exactly what the tuple was; `not_asked` is the outcome word, `None`
+    for a producer that did its work; `unresolved_reason` is P6's own published reason
+    for the row `resolve` then writes per open field, `None` when there is no field to
+    name (nothing was pending) or when the rows are already on disk.
+
+    **The stage does not write the rows and that is deliberate.** `write_unresolved`
+    needs the §3.4 cache key and the pending field list, both of which `FactResolver`
+    already holds -- `_write_bars` has written "one row per pending field" for the two
+    bars since Task 20 -- and a second writer inside the stage would need a second
+    answer to "what is still open on this file" and a cache key invented at a point
+    where no model and no prompt have been chosen. One writer, two callers.
+
+    A bare tuple still means what it always meant: the stage ran and this is what it
+    produced. Nothing that returns one changes.
+    """
+    fact_ids: tuple[str, ...] = ()
+    not_asked: str | None = None
+    unresolved_reason: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.not_asked is None and self.unresolved_reason is not None:
+            raise ValueError(
+                "a stage that ran needs no not-asked reason: an `unresolved_reason` "
+                "without a `not_asked` word would have `resolve` write refusal rows "
+                "for a producer it also records as having run"
+            )
+
+    @classmethod
+    def of(cls, produced) -> "StageOutcome":
+        """Normalise what a `Stage` returned. A tuple is a stage that ran."""
+        if isinstance(produced, StageOutcome):
+            return produced
+        return cls(fact_ids=tuple(produced))
+
+
 #: One producer, one shape. The caller binds every strategy and every threshold into
 #: the callable before handing it over, so this module sees neither.
-Stage = Callable[[sqlite3.Connection, str, str], "tuple[str, ...]"]
+#:
+#: **TWO SHAPES SINCE `104` §18.2 gap 4**, and the second is a widening rather than a
+#: replacement: a stage returns the fact ids it wrote, or a `StageOutcome` when it can
+#: also decline to run and owes the record a reason. `StageOutcome.of` normalises, so
+#: `facts.direct` and `facts.rules` are untouched.
+Stage = Callable[[sqlite3.Connection, str, str],
+                 "tuple[str, ...] | StageOutcome"]
 
 #: `facts.usable.record_pass`, bound by the caller to supply the tier set it needs.
 #: Injected rather than imported because `resolve`'s signature is fixed by the
@@ -65,6 +124,13 @@ class ResolveResult:
     `unresolved` table rather than accumulated in memory, so Done-means 20's "the two
     are distinguishable from the records alone" is true by construction rather than
     by care.
+
+    **`stages_run` MEANS RAN, SINCE `104` §18.2 gap 4.** It used to mean "was
+    invoked", which was the same thing while every producer always did its work and
+    stopped being the same thing when the model producer learned four ways to decline
+    before a call is built. A stage that declined is in `stages_not_asked` with its
+    reason and is absent from `stages_run`, so a reader can no longer take a name in
+    that tuple as evidence that a model was asked about this file.
     """
     file_id: str
     content_hash: str
@@ -84,6 +150,16 @@ class ResolveResult:
     #: version", which is what §8.5's outcome reports. Scoping both to the pass made a
     #: re-resolve that wrote nothing new accuse B7 of a missing row that was on disk.
     version_has_unresolved: bool = False
+    #: WHICH PRODUCERS DECLINED TO RUN, and the word each gave for it (`104` §18.2
+    #: gap 4). `stages_run` is now what its name says -- the producers that DID the
+    #: work -- and this is its complement for the producers that were reached and
+    #: answered "not this file, because...". It is not `stages_barred`: a bar is the
+    #: sequencer's own decision taken BEFORE the stage is called, for a privacy class
+    #: or a spent ceiling, and this is the stage's own answer from inside. Both are
+    #: published because the screen says different sentences about them -- a withheld
+    #: file is about the person's policy, a file with nothing releasable is about what
+    #: this run could read.
+    stages_not_asked: Mapping[str, str] = field(default_factory=dict)
     error: str | None = None
 
     def __post_init__(self) -> None:
@@ -91,6 +167,8 @@ class ResolveResult:
                            MappingProxyType(dict(self.reason_counts)))
         object.__setattr__(self, "stages_barred",
                            MappingProxyType(dict(self.stages_barred)))
+        object.__setattr__(self, "stages_not_asked",
+                           MappingProxyType(dict(self.stages_not_asked)))
 
     @classmethod
     def errored(cls, *, file_id: str, content_hash: str,
@@ -155,6 +233,17 @@ class FactResolver:
                 content_hash: str) -> ResolveResult:
         stages_run: list[str] = []
         barred: dict[str, str] = {}
+        # `104` §18.2 gap 4: the producers that were REACHED and declined, and the
+        # reason each gave. Kept apart from `barred` because the two are decided in
+        # different places -- a bar is this sequencer's, before the call; a decline is
+        # the producer's, from inside -- and a report that merged them would tell a
+        # person their privacy policy withheld a file whose evidence was simply all
+        # in an always-local zone.
+        not_asked: dict[str, str] = {}
+        # The `unresolved` reason each decline owes a row under, or `None` where there
+        # is no open field to name one for. Collected here and written once below,
+        # beside the bars, through the one writer that holds the cache key.
+        decline_reasons: dict[str, str] = {}
         deferred_against: tuple[str, ...] = ()
         fact_ids: list[str] = []
 
@@ -199,12 +288,25 @@ class FactResolver:
                     barred[name] = BUDGET_BAR
                     deferred_against = exhausted
                     continue
-            fact_ids.extend(stage(conn, file_id, content_hash))
-            stages_run.append(name)
+            # `104` §18.2 gap 4: THE STAGE'S OUTCOME, NOT ITS INVOCATION. This line
+            # was `fact_ids.extend(stage(...)); stages_run.append(name)` -- the name
+            # was appended whether or not anything had happened inside, so a file the
+            # model producer declined before building a call was reported as a file
+            # the model was asked about and had nothing to say. `StageOutcome.of`
+            # keeps a bare tuple meaning what it always meant.
+            outcome = StageOutcome.of(stage(conn, file_id, content_hash))
+            fact_ids.extend(outcome.fact_ids)
+            if outcome.not_asked is None:
+                stages_run.append(name)
+                continue
+            not_asked[name] = outcome.not_asked
+            if outcome.unresolved_reason is not None:
+                decline_reasons[name] = outcome.unresolved_reason
 
-        if barred:
+        if barred or decline_reasons:
             self._write_bars(conn, file_id=file_id, content_hash=content_hash,
-                             barred=barred, attempted=tuple(stages_run))
+                             barred=barred, attempted=tuple(stages_run),
+                             declined=decline_reasons)
 
         # Only now: preamble rule 5's recorded pass means a pass that COMPLETED. A
         # producer that raised skipped this line, so `no_usable_facts` still raises
@@ -228,11 +330,13 @@ class FactResolver:
             deferred_against=deferred_against,
             unresolved_ids=tuple(written),
             version_has_unresolved=bool(rows),
+            stages_not_asked=not_asked,
         )
 
     def _write_bars(self, conn: sqlite3.Connection, *, file_id: str,
                     content_hash: str, barred: Mapping[str, str],
-                    attempted: "tuple[str, ...]") -> None:
+                    attempted: "tuple[str, ...]",
+                    declined: Mapping[str, str] = MappingProxyType({})) -> None:
         """The unfinished work, recorded AS unfinished.
 
         §00: the product must avoid "the false impression that an unprocessed file
@@ -245,10 +349,27 @@ class FactResolver:
         empty)". The extracted evidence is retained where it always was — in P4's
         `evidence` table, which P6 never writes and which P4's
         `evidence_never_overwritten` trigger makes unfalsifiable.
+
+        **`declined` IS THE SECOND CALLER, AND IT IS THE SAME OBLIGATION (`104` §18.2
+        gap 4).** A bar is decided here and a decline is decided inside the producer,
+        but the row a person is owed is identical: this field is still open, and here
+        is the reason nobody answered it. `barred` names the bar and the mapping
+        turns it into a reason; `declined` carries the reason already, because it is
+        the PRODUCER's word about its own evidence and only the producer can know
+        whether nothing was releasable or everything was refused. Both go through this
+        one writer because the §3.4 cache key and the pending field list live here and
+        nowhere else -- a producer writing its own rows would need a cache key at a
+        point where no model and no prompt have been chosen.
+
+        A decline for which the producer named no reason writes nothing, and that is
+        the case where there IS no open field: every one was already settled, so
+        `self._pending_fields` is empty and a row would have no field to name.
         """
         cache_key = self._cache_key_for(file_id, content_hash)
-        for stage_name, bar in barred.items():
-            reason = REASON_BY_BAR[bar]
+        reasons = {stage_name: REASON_BY_BAR[bar]
+                   for stage_name, bar in barred.items()}
+        reasons.update(declined)
+        for stage_name, reason in reasons.items():
             for field_key in self._pending_fields(conn, file_id, content_hash):
                 write_unresolved(
                     conn, file_id=file_id, content_hash=content_hash,

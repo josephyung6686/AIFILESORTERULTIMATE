@@ -179,7 +179,8 @@ def _reading(raw: str, index: int) -> Observation:
                           TextSpan(0, len(raw))))
 
 
-def _dependencies(conn, observations, anchors=None, name_characters=0):
+def _dependencies(conn, observations, anchors=None, name_characters=0,
+                  unreduced=None):
     from facts.llm_seam import FactRequest
     from model_facts import _call_dependencies
 
@@ -191,11 +192,17 @@ def _dependencies(conn, observations, anchors=None, name_characters=0):
     # `104` R-159: `name_characters` defaults to 0 HERE and nowhere in the product.
     # A call that offers no `Filename` item releases no name, and every test above
     # this line predates the third term and is about the other two.
+    #
+    # `104` §18.2 gap 5: `unreduced` defaults to `None`, which is the spelling for a
+    # caller that never filled -- there the built list IS the whole offer and the two
+    # questions have one answer, so every test above this line keeps the meaning it
+    # was written with.
     return _call_dependencies(
         request, ("work_type",), folder_levels=(),
         authorities=_authorities(conn), observations=tuple(observations),
         name_characters=name_characters,
-        anchor_observations=None if anchors is None else tuple(anchors))
+        anchor_observations=None if anchors is None else tuple(anchors),
+        unreduced_observations=None if unreduced is None else tuple(unreduced))
 
 
 def test_a_dossier_inside_the_ceiling_still_fits(conn):
@@ -283,6 +290,115 @@ def test_without_a_second_shape_the_ladder_is_what_it_was(conn):
     assert deps.anchors_fit is False
 
 
+# --- `104` §18.2 gap 5: the cut is measured, and it refuses nothing --------
+
+def test_a_trimmed_offer_is_not_unreduced_and_the_ladder_says_so(conn):
+    """`104` §18.2 gap 5: "unreduced fits" was measured over the ALREADY-TRIMMED set.
+
+    `model_facts.within_dossier_budget` drops the readings that do not fit and hands
+    back the ones that do; `_call_dependencies` then asked whether THOSE fit, which
+    is "does what fits fit" and could only ever answer yes. So every dossier this
+    product has ever built recorded `reduction_rung = none`, including the ones that
+    reached a model carrying a handful of a spreadsheet's readings, and §8.6's ladder
+    was a decoration over a measurement that could not fail. The rung on the record
+    was the one thing telling a person a reduction had happened, and it said none.
+
+    Measured here as the stage measures it: forty readings offered, the ceiling
+    admits some, and the first rung is asked about the OFFER rather than about the
+    fill's output.
+
+    SABOTAGE: pass `unreduced_observations=None` (which restores the old spelling --
+    the first rung measured over `observations`) and `unreduced_fits` goes back to
+    `True` beside a fill that dropped thirty-odd readings. Every other assertion in
+    this file still passes, which is exactly why the defect survived R-159 and R-174.
+    """
+    from model_facts import within_dossier_budget
+
+    offer = [_reading("y" * 300, index) for index in range(40)]
+    fill = within_dossier_budget(offer, ceiling=cli.GROUPING_LIMITS.max_dossier_tokens)
+    assert fill.dropped, "this fixture is only about a ceiling that actually cuts"
+
+    deps = _dependencies(conn, fill.taken, unreduced=offer)
+    assert deps.unreduced_fits is False
+    # And the OLD spelling, side by side, so the claim is about the difference: the
+    # built list fits, which is what the first rung used to be asked and is the
+    # tautology the gap names.
+    assert _dependencies(conn, fill.taken).unreduced_fits is True
+
+
+def test_a_trimmed_offer_still_goes_out_at_the_preserved_anchors_rung(conn):
+    """The owner's word on 9 Sep 2026: "files should not be refused; make sure all
+    necessary information is processed and used."
+
+    Making the first rung honest moves the ladder down one, and the rung below it
+    must therefore be TRUE or the honest measurement would turn into a refusal --
+    `plan_reduction`'s last rung is `DEFERRED`, a `PreCallAbstention` that sends
+    nothing. `00`:257's second remedy is "preserve anchor excerpts", and preserving
+    the readings that fit while dropping the rest is that remedy applied to the
+    file's own evidence, so `PRESERVED_ANCHORS` is the rung the built shape earns.
+
+    The call goes out. What changed is that the record now says a reduction happened.
+
+    SABOTAGE: drop the `built_fits or` from `anchors_fit` in `_call_dependencies` and
+    this rung becomes `DEFERRED` -- the file is refused for the sake of an honest
+    number, which is the one outcome the owner's ruling forbids.
+    """
+    from llm_harness.budgets import plan_reduction
+    from llm_harness.vocabulary import PRESERVED_ANCHORS
+    from model_facts import within_dossier_budget
+
+    offer = [_reading("y" * 300, index) for index in range(40)]
+    fill = within_dossier_budget(offer, ceiling=cli.GROUPING_LIMITS.max_dossier_tokens)
+    deps = _dependencies(conn, fill.taken, unreduced=offer)
+
+    decision = plan_reduction(
+        unreduced_fits=deps.unreduced_fits,
+        summarized_fits=deps.summarized_fits,
+        anchors_fit=deps.anchors_fit,
+        split_shard_fits=deps.split_shard_fits,
+        call_site="A_fact", subject_ref="file-1")
+    assert decision.rung == PRESERVED_ANCHORS
+    assert decision.abstention is None, (
+        "a cut that is merely RECORDED must not become a cut that is refused")
+
+
+def test_the_deferred_rung_is_reached_by_exactly_the_state_it_always_was(conn):
+    """The safety half of gap 5, asserted as the boundary rather than as a rung.
+
+    DEFERRED sends nothing, so the question the patch has to answer is not "is the
+    rung honest" but "does any file reach DEFERRED that did not before". It does not.
+    The fill's own ceiling is the dossier ceiling less the context and the name, so
+    the built shape fits by construction whenever that remainder is not negative --
+    which leaves one state where it does not fit: the context and the filename alone
+    exceed the ceiling, so nothing of the file's own can travel. That is the state
+    that reached DEFERRED before this patch, for the same arithmetic.
+
+    Both halves are asserted here: the context-heavy file with no second shape still
+    defers, and it defers whether the first rung is measured the old way or the new,
+    which is what "the deferred set is unchanged" means.
+    """
+    from llm_harness.budgets import plan_reduction
+    from llm_harness.vocabulary import BUDGET_EXHAUSTED, DEFERRED
+
+    # A context reading alone over the ceiling, and no fill behind it: this is the
+    # remainder-of-zero state, and no reading of the file's own is in the built list.
+    paragraph = [_reading("x" * 5000, 1)]
+
+    def rung(**extra):
+        deps = _dependencies(conn, paragraph, **extra)
+        return plan_reduction(
+            unreduced_fits=deps.unreduced_fits,
+            summarized_fits=deps.summarized_fits,
+            anchors_fit=deps.anchors_fit,
+            split_shard_fits=deps.split_shard_fits,
+            call_site="A_fact", subject_ref="file-1")
+
+    old_spelling = rung()
+    new_spelling = rung(unreduced=paragraph)
+    assert old_spelling.rung == new_spelling.rung == DEFERRED
+    assert new_spelling.abstention.reason == BUDGET_EXHAUSTED
+
+
 def test_the_stage_hands_the_ladder_the_observations_it_is_about_to_send():
     """The call site, pinned, for `test_the_stage_asks_open_question_about_pending
     and_not_the_whole_allowlist`'s reason: measuring the wrong list is invisible to
@@ -349,6 +465,20 @@ def test_the_stage_hands_the_ladder_the_observations_it_is_about_to_send():
     assert {named(anchors.orelse.left), named(anchors.orelse.right)} == {
         "own_excerpts", "excerpts"}, (
         "the preserved-anchors rung is measured over the fill THAT shape leaves")
+
+    # `104` §18.2 gap 5's fourth term, pinned at the same call site and for this
+    # file's own reason: measuring the wrong list is invisible to every assertion
+    # about a rung, because a first rung asked about the trimmed set is never FALSE
+    # and so never disagrees with anything. `offered` is what
+    # `ordered_releasable_observations` returned before the fill spent the ceiling on
+    # it; passing `lines_readings` here would restore the tautology with a new
+    # keyword's name on it.
+    assert "unreduced_observations" in passed, (
+        "the first rung means UNREDUCED, which is a question about the offer and "
+        "not about what survived the fill")
+    unreduced = passed["unreduced_observations"]
+    assert isinstance(unreduced, ast.BinOp) and isinstance(unreduced.op, ast.Add)
+    assert {named(unreduced.left), named(unreduced.right)} == {"offered", "context"}
 
 
 # --- the door's own backstop ------------------------------------------------

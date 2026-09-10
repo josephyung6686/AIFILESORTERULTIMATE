@@ -25,7 +25,9 @@ from facts.budgets import (
     CEILING_GATED_STAGES, DEGRADATION_ORDER, P6_CEILING_KEYS, UnknownCeiling,
     ceiling_values, deferred_counts, exhausted_ceilings,
 )
-from facts.resolver import REASON_BY_BAR, FactResolver, ResolveResult, StageSetInvalid
+from facts.resolver import (
+    REASON_BY_BAR, FactResolver, ResolveResult, StageOutcome, StageSetInvalid,
+)
 from facts.unresolved import (
     ATTEMPTED_PRODUCERS, BUDGET_DEFERRED, NOT_ABSTENTIONS, NO_CANDIDATE_EVIDENCE,
     PRIVACY_WITHHELD, unresolved_for_file, write_unresolved,
@@ -639,3 +641,146 @@ def test_a_pass_with_no_row_anywhere_still_accuses_b7(p6_conn):
     assert not result.version_has_unresolved
     with pytest.raises(ValueError, match="B7"):
         fact_stage_output(result=result)
+
+
+# --- `104` §18.2 gap 4: the stage's OUTCOME, not its invocation --------------
+
+def test_a_stage_that_declined_is_not_reported_as_having_run(p6_conn):
+    """`104` §18.2 gap 4: `resolve` recorded that a producer was CALLED, not what it
+    did.
+
+    `stages_run.append(name)` ran unconditionally beside `fact_ids.extend(stage(...))`,
+    which is true of the two deterministic producers -- they always look -- and false
+    of the model producer, which returns before building a call in four different
+    states. On the owner's corpus that meant a file nothing about which was ever sent
+    to a model was reported as a file a model had been asked about and had had
+    nothing to say. §13.1's bar and the constitution's second rule both forbid it:
+    what is skipped is counted and NAMED.
+
+    SABOTAGE: move `stages_run.append(name)` back above the `not_asked` branch in
+    `FactResolver.resolve` and the first two assertions go red -- the run reports the
+    stage as having run while the rows on disk say nobody answered.
+    """
+    recorder = Recorder()
+
+    def declined(conn, file_id, content_hash):
+        return StageOutcome(not_asked="nothing_was_read",
+                            unresolved_reason=NO_CANDIDATE_EVIDENCE)
+
+    result = resolve(a_resolver(recorder, llm=declined), p6_conn)
+
+    assert "llm" not in result.stages_run
+    assert result.stages_not_asked == {"llm": "nothing_was_read"}
+    # The producer WAS reached -- this is not a bar, and the two are published apart
+    # because the screen says different sentences about them.
+    assert result.stages_barred == {}
+    assert result.stages_run == ("direct", "rule")
+
+
+def test_a_decline_writes_one_row_per_pending_field_under_its_own_reason(p6_conn):
+    """The other half of gap 4, and the half a person actually reads.
+
+    `00`: the product must avoid "the false impression that an unprocessed file was
+    understood and found unimportant", and an ABSENT row is exactly that impression.
+    The producer names the state; the resolver writes the row, because
+    `write_unresolved` needs the §3.4 cache key and the pending field list and both
+    live here -- a producer writing its own rows would need a cache key at a point
+    where no model and no prompt have been chosen.
+
+    SABOTAGE: drop `reasons.update(declined)` from `_write_bars` and this goes red
+    while the test above it still passes -- the outcome is named on the result and
+    the record on disk still says nothing about the file.
+    """
+    recorder = Recorder()
+
+    def declined(conn, file_id, content_hash):
+        return StageOutcome(not_asked="no_model_route",
+                            unresolved_reason=PRIVACY_WITHHELD)
+
+    result = resolve(
+        a_resolver(recorder, llm=declined, pending=(FIELD, "target_school")),
+        p6_conn)
+
+    rows = unresolved_for_file(p6_conn, FILE_ID, CONTENT_HASH)
+    assert {row["field_key"] for row in rows} == {FIELD, "target_school"}
+    assert {row["reason"] for row in rows} == {PRIVACY_WITHHELD}
+    assert result.reason_counts == {PRIVACY_WITHHELD: 2}
+    # The route that did not run is named on the row, so a reader can see WHICH
+    # producer owes the field an answer it never gave.
+    assert all("llm" in row["attempted_producers"] for row in rows)
+
+
+def test_a_decline_with_no_open_field_names_the_state_and_writes_no_row(p6_conn):
+    """The one decline that is not a gap in coverage: every field is already settled.
+
+    There is no pending field for a row to name, so a row would have no subject --
+    `model_facts.NOT_ASKED_REASONS` maps this state to `None` for that reason. It is
+    still recorded, because "asked and the model said nothing" and "there was nothing
+    left to ask" are the two sentences gap 4 exists to keep apart.
+
+    SABOTAGE: make `resolve` treat a `None` reason as a decline that still writes,
+    and this stays green only because `pending_fields` is empty here -- so the
+    assertion below is paired with the one above it, where a decline WITH open fields
+    writes one row each.
+    """
+    recorder = Recorder()
+
+    def settled(conn, file_id, content_hash):
+        return StageOutcome(not_asked="every_field_already_settled")
+
+    result = resolve(a_resolver(recorder, llm=settled, pending=()), p6_conn)
+
+    assert result.stages_not_asked == {"llm": "every_field_already_settled"}
+    assert unresolved_for_file(p6_conn, FILE_ID, CONTENT_HASH) == []
+
+
+def test_a_bare_tuple_still_means_the_stage_ran(p6_conn):
+    """The widening is a widening and not a replacement. `facts.direct` and
+    `facts.rules` return tuples and are untouched by gap 4; `StageOutcome.of`
+    normalises, so a producer that did its work is recorded exactly as before."""
+    recorder = Recorder()
+    result = resolve(
+        a_resolver(recorder, llm=recorder.stage("llm", produces=("fact-llm",))),
+        p6_conn)
+
+    assert result.stages_run == ("direct", "rule", "llm")
+    assert result.stages_not_asked == {}
+    assert "fact-llm" in result.fact_ids
+
+
+def test_a_stage_outcome_refuses_a_reason_without_a_state():
+    """A reason with no `not_asked` word would have `resolve` write refusal rows for
+    a producer it also records as having RUN -- the two halves of gap 4 pointing in
+    opposite directions on one file."""
+    with pytest.raises(ValueError, match="not-asked reason"):
+        StageOutcome(unresolved_reason=NO_CANDIDATE_EVIDENCE)
+
+
+def test_every_state_the_fact_stage_can_decline_in_has_a_reason_and_a_sentence():
+    """`104` §18.2 gap 4's vocabulary, joined up across the three modules that own a
+    piece of it, because a word missing from any one of them is a live failure.
+
+    `model_facts.NOT_ASKED_REASONS` names the states and the P6 reason each owes a
+    row under; `facts.vocabulary.UNRESOLVED_REASONS` is the closed set those reasons
+    must come from -- this stage names a state and mints no reason; and
+    `cli.NOT_ASKED_SENTENCE` is what a person reads. `_print_fact_pass` indexes that
+    mapping DIRECTLY, so a state with no sentence is a `KeyError` on the report of a
+    run that has already finished its work.
+
+    SABOTAGE: add a sixth state to `NOT_ASKED_REASONS` and leave `NOT_ASKED_SENTENCE`
+    alone; this goes red where the run would otherwise crash while printing.
+    """
+    import cli
+    import model_facts
+    from facts.vocabulary import UNRESOLVED_REASONS
+
+    states = set(model_facts.NOT_ASKED_REASONS)
+    assert states <= set(cli.NOT_ASKED_SENTENCE), (
+        "a not-asked state with no sentence is a KeyError in `_print_fact_pass`")
+    named = {reason for reason in model_facts.NOT_ASKED_REASONS.values()
+             if reason is not None}
+    assert named <= set(UNRESOLVED_REASONS), (
+        "the fact stage names a state; the reason vocabulary is P6's own")
+    # And the four states that DO owe a row owe one, so a coverage gap cannot be
+    # recorded as a state with no record behind it.
+    assert len(named) == 3 and len(states) == 5

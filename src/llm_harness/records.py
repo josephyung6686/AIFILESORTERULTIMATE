@@ -205,6 +205,34 @@ class DossierRequest:
     model_call_request: ModelCallRequest
     plan_version: str | None
     evidence_snapshot_id: str | None
+    #: `104` §18.2 GAP 5'S CUT, AND IT IS A COUNT AND NOT CONTENT. The builder offers
+    #: a file's readings in its own order and the dossier ceiling takes the ones that
+    #: fit; the rest were dropped with a bare `continue` and existed nowhere
+    #: afterwards, so a file whose whole evidence reached the model and a file that
+    #: offered forty readings and carried four produced the same record. `00`:257 --
+    #: a prompt over its budget "should not truncate silently in a way that removes
+    #: the decisive evidence" -- had nothing behind it to be judged against.
+    #:
+    #: HERE rather than on `Dossier`, and the reason is the content address.
+    #: `record_dossier` refuses a `dossier_id` whose stored payload differs from the
+    #: one offered under it, and `dossier_id` addresses the MODEL-VISIBLE bytes: two
+    #: builds that took the same readings out of different offers write identical
+    #: bytes and different cuts, so a cut on the dossier would make one of them a
+    #: `MalformedRecord` in the middle of a live run. The request is the record of
+    #: what the BUILDER did, which is whose measurement this is; the harness copies
+    #: it onto `GroundingReport`, which is where the call's counters live.
+    #:
+    #: Two numbers because one cannot answer both questions: `readings_dropped` is
+    #: how many readings the ceiling took and `readings_dropped_bytes` is how much,
+    #: measured in the wire bytes the ceiling itself is spent in (`104` R-174). A
+    #: file that lost one page and a file that lost thirty cells are different
+    #: sentences to a person and the count alone tells them apart the wrong way
+    #: round. Defaulted, like `GroundingReport`'s exposure counters and for the same
+    #: reason: a site that has not been taught to count reports zero rather than
+    #: failing to construct, so P9's group request and P10's template request are
+    #: untouched.
+    readings_dropped: int = 0
+    readings_dropped_bytes: int = 0
 
     def __post_init__(self) -> None:
         _require(self.call_site, CALL_SITES, name="call_site")
@@ -216,6 +244,20 @@ class DossierRequest:
         _require_plan_version(self.call_site, self.plan_version)
         if not self.subject_ref:
             raise MalformedRecord("DossierRequest.subject_ref is required")
+        for name in ("readings_dropped", "readings_dropped_bytes"):
+            value = getattr(self, name)
+            if type(value) is not int or value < 0:
+                raise MalformedRecord(
+                    f"{name} is a count of what the ceiling cut, and a count is "
+                    "never negative"
+                )
+        if bool(self.readings_dropped) != bool(self.readings_dropped_bytes):
+            raise MalformedRecord(
+                "a cut is a count AND its bytes: `readings_dropped` without "
+                "`readings_dropped_bytes` (or the reverse) is half a measurement, "
+                "and a report that prints one of them would say a file lost nothing "
+                "while the other number says it lost a page"
+            )
         if not isinstance(self.model_call_request, ModelCallRequest):
             raise MalformedRecord(
                 "DossierRequest.model_call_request must be the live "
@@ -672,6 +714,23 @@ class GroundingReport:
     #: this predicate's. One merged count would hide each behind the other.
     line_units_released: int = 0
     longest_line_unit_length: int = 0
+    #: `104` §18.2 GAP 5'S CUT, AND IT IS THE OPPOSITE MEASUREMENT TO THE FOUR ABOVE.
+    #: Those count what LEFT the device and this counts what never did: how many of
+    #: the file's own readings the dossier ceiling dropped, and their bytes on the
+    #: wire had they been carried. They belong beside each other because a person
+    #: reading one number without the other cannot tell a model that was shown
+    #: everything and said little from a model that was shown a quarter of the file.
+    #:
+    #: COPIED, NEVER COMPUTED HERE. The cut happens in `model_facts`' fill, before a
+    #: dossier or a verdict exists, and it travels on `DossierRequest`; the harness
+    #: stamps it onto this record at the one place that holds the request and the
+    #: report together. A validator that re-derived it would be measuring the offer
+    #: it was never shown.
+    #:
+    #: Defaulted for the exposure pairs' own reason: a call site that has not been
+    #: taught to count reports zero rather than failing to construct.
+    readings_dropped: int = 0
+    readings_dropped_bytes: int = 0
 
     def __post_init__(self) -> None:
         _require(self.call_site, CALL_SITES, name="call_site")
@@ -684,7 +743,8 @@ class GroundingReport:
         if not self.validator_version or not self.dossier_builder:
             raise MalformedRecord("validator_version and dossier_builder are required")
         for name in ("heading_units_released", "longest_heading_unit_length",
-                     "line_units_released", "longest_line_unit_length"):
+                     "line_units_released", "longest_line_unit_length",
+                     "readings_dropped", "readings_dropped_bytes"):
             value = getattr(self, name)
             if type(value) is not int or value < 0:
                 raise MalformedRecord(f"{name} is a count, and a count is never negative")
