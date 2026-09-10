@@ -30,10 +30,12 @@ runs the indexer; this dispatches what the ROUTER decided.
 """
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+from extractors import budgets
 from extractors.archive import extract_archive
 from extractors.docx import extract_docx
 from extractors.failure import ContractViolation, failed_result
@@ -96,6 +98,22 @@ class Dispatched:
     #: assumed, so nothing changes for E3; what changes is that it is now written
     #: down and checked.
     sensitivity_target: int = 0
+    #: HOW LONG THE OCR ENGINE ACTUALLY RAN, in seconds, or 0.0 when it did not.
+    #:
+    #: §8.6's `ocr.max_time_per_scan` is a budget in seconds and something has to
+    #: measure the seconds. It is measured HERE, around the engine call, and not
+    #: read off the run's own `started_at`/`finished_at`: `orchestrator._landed`
+    #: sets that pair to submission-to-landing and says so ("honest about
+    #: including queue time because the file really was outstanding for all of
+    #: it"), which is the right number for what a person waits and the wrong one
+    #: for a budget -- seven workers make it about seven times the OCR that ran.
+    #:
+    #: It rides on `Dispatched` and NOT on the run, because P4's
+    #: `extraction_runs` has the columns it has and a per-run seconds field would
+    #: be P5 adding one. Nothing writes it to the database; the caller adds it to
+    #: a scan-level total and forgets it, so two runs of one corpus still produce
+    #: byte-identical rows (`test_p1_p7_parallel` compares them row for row).
+    ocr_seconds: float = 0.0
 
     def __post_init__(self) -> None:
         """A signal indexes into ONE batch, so it may only ride with one.
@@ -122,53 +140,107 @@ class Dispatched:
                 "counts in has to exist")
 
 
-def _ocr(*, file_row, path, policy, readers, now,
-         context_window) -> ExtractionResult | None:
-    """The OCR run, the run its failure is, or None when no engine is wired.
+def _ocr(*, file_row, path, policy, readers, now, context_window,
+         budget_spent: bool, alongside: ExtractionResult | None
+         ) -> tuple[ExtractionResult | None, float]:
+    """The OCR run and the seconds it took; or the run its failure is; or the run
+    the scan's OCR budget stopped before it started; or None when no engine is
+    wired.
 
-    The three outcomes are different facts and only two of them existed. No engine is
-    a DEPLOYMENT state, known before the call, and §2.2's and §2.7's routes simply
-    stop -- no run, by design. An engine that RAISES is a runtime event, and letting
-    it propagate from here discarded the finished native result that `extract()` was
-    holding: a completed extraction thrown away because a second, optional pass
-    failed. Executed 2026-08-21 against a `pages=()` PDF with a raising engine --
-    the database kept a `pdf.text failed` row and no native run at all, for a file
-    whose native pass had already returned.
+    The first three outcomes are different facts and only two of them existed. No
+    engine is a DEPLOYMENT state, known before the call, and §2.2's and §2.7's routes
+    simply stop -- no run, by design. An engine that RAISES is a runtime event, and
+    letting it propagate from here discarded the finished native result that
+    `extract()` was holding: a completed extraction thrown away because a second,
+    optional pass failed. Executed 2026-08-21 against a `pages=()` PDF with a raising
+    engine -- the database kept a `pdf.text failed` row and no native run at all, for
+    a file whose native pass had already returned.
 
     The refusals and contract violations still propagate: they are not this file's
     failure.
+
+    **`budget_spent` IS `104` §18.2 GAP 22, AND P5 STILL HOLDS NO THRESHOLD.** §8.6
+    declares `ocr.max_time_per_scan` and until now nothing in `src/` obeyed it; the
+    ceiling and the running total both live with the caller, which is the only place
+    that can see a whole scan, and what arrives here is the answer rather than the
+    question. So this module still "holds no number", exactly as its docstring says.
+
+    A spent budget produces `budgets.deferred_result` -- P4's `completeness:
+    deferred`, which §8.6 calls the mark for work a budget stopped -- and NOT a
+    truncated read and NOT silence. `00`:258: *"If the budget is exhausted, the
+    product should retain extracted evidence, mark the deferred stage, and leave the
+    file or group in review rather than guessing."* The native result the caller
+    already holds is untouched; only the second, optional pass is refused.
+
+    `alongside` is the result OCR would have run beside, and it supplies the
+    deferred run's coverage UNITS AND TOTAL rather than a unit invented here: a
+    nine-page PDF's deferred OCR reads `0 of 9 pages` and an image's reads
+    `0 of 1 images`, because those are the words those two extractors already use
+    for the thing OCR would have processed. A total of the ceiling wearing a full
+    count is exactly what `coverage`'s own docstring refuses.
     """
     if readers.ocr_engine is None:
-        return None
+        return None, 0.0
+    if budget_spent:
+        # `alongside is None` is the TARGETED pass, which by design carries no
+        # prior result across the process boundary (`TargetedOcrRequest`: "it
+        # carries no prior result and no version table, and both absences are the
+        # point"). So nothing here knows the file's page count, and the coverage
+        # says `0 of 0 pages` rather than guessing a total -- which is what
+        # `runs.coverage` refuses in its own words: "a run may not claim more
+        # progress than the work it was given."
+        units, total = (("pages", 0) if alongside is None else
+                        (alongside.run["coverage"]["units"],
+                         alongside.run["coverage"]["total"]))
+        return budgets.deferred_result(
+            file_row=file_row, source_type=ocr.SOURCE_TYPE,
+            extractor_name=ocr.UNREPORTED_PROVIDER_NAME,
+            extractor_version=ocr.VERSION,
+            analysis_tier=ocr.ANALYSIS_TIER,
+            units=units, total=total, now=now), 0.0
+    started = time.monotonic()
     try:
         return extract_ocr(
             file_row=file_row, path=path, policy=policy,
             ocr_engine=readers.ocr_engine,
             config=dict(readers.ocr_config or {}),
             find_structured_strings=readers.find_structured_strings,
-            now=now, context_window=context_window)
+            now=now, context_window=context_window), time.monotonic() - started
     except ContractViolation:
         raise
     except (ProtectedContainerRefused, DatalessRefused):
         raise
     except Exception as error:                       # noqa: BLE001 -- see docstring
+        # THE SECONDS COUNT EVEN THOUGH THE RUN FAILED. An engine that spent four
+        # minutes and then raised spent four minutes of the scan's OCR budget, and
+        # a budget that only charged for successes would let a failing engine run
+        # for ever.
         return failed_result(
             file_row=file_row, error=error,
             extractor_name=ocr.UNREPORTED_PROVIDER_NAME,
             extractor_version=ocr.VERSION,
             source_type=ocr.SOURCE_TYPE, now=now,
-            analysis_tier=ocr.ANALYSIS_TIER)
+            analysis_tier=ocr.ANALYSIS_TIER), time.monotonic() - started
 
 
 def extract_initial(*, file_row: Mapping[str, Any], decision, path: Path, policy,
                     readers: Readers, now: str, context_window: int,
-                    transcription_authorized: Callable[[], bool]) -> Dispatched:
+                    transcription_authorized: Callable[[], bool],
+                    ocr_budget_spent: bool = False) -> Dispatched:
     """Run P5 extraction that is knowable before P6 evaluates stored evidence.
 
     A refusal from `admit()` -- `ProtectedContainerRefused` or `DatalessRefused` --
     propagates unchanged. The gate keeps one job (C4) and the catcher is the caller's:
     one of the two produces a `dataless` run and the other produces nothing at all,
     and that asymmetry is the orchestrator's contract, not this function's.
+
+    `ocr_budget_spent` is the caller's answer to §8.6's `ocr.max_time_per_scan` --
+    see `_ocr`, which says why the question is asked there and not here, and why P5
+    still holds no number. It DEFAULTS to False so that every existing caller,
+    including every test in `tests/p5/`, means exactly what it meant before: a
+    deployment that never mentions the ceiling is a deployment with no ceiling, and
+    §8.6's own words are that a published number nothing obeys is worse than an
+    absent one.
     """
     if decision.extractor_name is None:
         return Dispatched((unrouted_result(file_row=file_row, decision=decision,
@@ -189,9 +261,10 @@ def extract_initial(*, file_row: Mapping[str, Any], decision, path: Path, policy
         # Before P6, only an absent text layer authorizes OCR. A non-empty layer is
         # persisted first so P6 can evaluate the evidence rather than a preview.
         if direct_document_ocr_needed(result=first):
-            second = _ocr(readers=readers, **common)
+            second, seconds = _ocr(readers=readers, budget_spent=ocr_budget_spent,
+                                   alongside=first, **common)
             if second is not None:
-                return Dispatched((first, second), signals, 0)
+                return Dispatched((first, second), signals, 0, seconds)
         return Dispatched((first,), signals, 0)
 
     if decision.extractor_name == docx.EXTRACTOR_NAME:
@@ -214,14 +287,15 @@ def extract_initial(*, file_row: Mapping[str, Any], decision, path: Path, policy
         first = produced.extraction
         # §2.7's trigger: no usable text AND no usable metadata.
         if image_ocr_decision(result=first).run_ocr:
-            second = _ocr(readers=readers, **common)
+            second, seconds = _ocr(readers=readers, budget_spent=ocr_budget_spent,
+                                   alongside=first, **common)
             if second is not None:
                 # The signals index into the IMAGE batch, which is result 0. An
                 # image with no usable metadata rarely carries EXIF, so this pairing
                 # is uncommon -- and dropping the signals here rather than naming
                 # the batch is exactly how a GPS tag would go unmarked on the one
                 # file that had both.
-                return Dispatched((first, second), produced.sensitivity, 0)
+                return Dispatched((first, second), produced.sensitivity, 0, seconds)
         return Dispatched((first,), produced.sensitivity, 0)
 
     if decision.extractor_name == structured_text.EXTRACTOR_NAME:
@@ -301,7 +375,8 @@ def targeted_ocr_wanted(
 
 def perform_targeted_ocr(*, file_row: Mapping[str, Any], path: Path, policy,
                          readers: Readers, now: str,
-                         context_window: int) -> Dispatched:
+                         context_window: int,
+                         ocr_budget_spent: bool = False) -> Dispatched:
     """The OCR pass `targeted_ocr_wanted` authorized. Reads; decides nothing.
 
     Every reason not to run is already spent by the time this is called, which is
@@ -310,10 +385,12 @@ def perform_targeted_ocr(*, file_row: Mapping[str, Any], path: Path, policy,
     deployment state and produces no run at all, and an engine that RAISES becomes
     the `failed` OCR run rather than the end of the file.
     """
-    produced = _ocr(
+    produced, seconds = _ocr(
         file_row=file_row, path=path, policy=policy, readers=readers, now=now,
-        context_window=context_window)
-    return Dispatched((produced,)) if produced is not None else Dispatched(())
+        context_window=context_window, budget_spent=ocr_budget_spent,
+        alongside=None)
+    return (Dispatched((produced,), (), 0, seconds) if produced is not None
+            else Dispatched(()))
 
 
 def extract_targeted_ocr(

@@ -47,7 +47,11 @@ from evidence_shape.store import (
 )
 
 from extractors.authorship import COMPONENT_VERSION, SUBSYSTEM
-from extractors import ocr, pdf
+from extractors import image, ocr, pdf
+from extractors.budgets import (
+    DEFERRED_COMPLETENESS as _P5_DEFERRED_COMPLETENESS,
+    deferred_result, p5_ceilings,
+)
 from extractors.dispatch import (
     current_versions, extract, extract_initial, extract_targeted_ocr,
     targeted_ocr_wanted,
@@ -72,6 +76,21 @@ from privacy.classification_store import ClassificationStore
 from privacy.learning_seam import assign
 
 _add_file_entry = add_file_entry
+
+#: P4's word for a run a budget stopped, spelled ONCE here. This module "spells no
+#: `completeness`" by its own docstring, so it does not author this one either --
+#: `extractors/budgets.DEFERRED_COMPLETENESS` is P5's published pair of the two
+#: states §8.6 counts as deferred, and `deferred` is the member of it that means
+#: "stopped before it started" rather than "read something and stopped". The
+#: membership check below fails at import if P5 ever renames it.
+DEFERRED_COMPLETENESS: str = "deferred"
+if DEFERRED_COMPLETENESS not in _P5_DEFERRED_COMPLETENESS:
+    raise ImportError(
+        f"P5 no longer counts {DEFERRED_COMPLETENESS!r} among its deferred states "
+        f"({_P5_DEFERRED_COMPLETENESS}); §8.6's per-scan ceilings write that word "
+        "and this module reads it back, so a rename has to break here rather than "
+        "silently stop every deferral being recognised as one."
+    )
 
 
 def TARGETED_OCR_UNAVAILABLE(file_id: str, content_hash: str) -> bool:
@@ -192,11 +211,22 @@ def _already_extracted(conn: sqlite3.Connection, content_hash: str,
     A file the router names no extractor for is owed nothing further -- §2.4's
     `unsupported` is its terminal answer -- so any run at all settles it, and the
     filesystem record is the one it will have.
+
+    **A `deferred` RUN DOES NOT SETTLE ANYTHING, and `104` §18.2 gap 22 is why.**
+    A deferral is the record that the work did NOT happen: P4 lists `deferred` in
+    `ZERO_OBSERVATION_COMPLETENESS`, and §8.6's whole purpose is that "unfinished
+    work must stay visible AS unfinished". Counting one as the run this file is
+    owed would make a scan's own budget a permanent verdict -- the file would be
+    `reused` on every later scan, including the one with the ceiling raised or
+    removed, and nobody would ever be told why their images were never read. So a
+    ceiling costs a file this scan and never the next one.
     """
     runs = runs_for_content(conn, content_hash)
+    settled = [run for run in runs
+               if run.completeness != DEFERRED_COMPLETENESS]
     if extractor_name is None:
-        return bool(runs)
-    return any(run.extractor_name == extractor_name for run in runs)
+        return bool(settled)
+    return any(run.extractor_name == extractor_name for run in settled)
 
 
 def _has_successful_ocr_coverage(
@@ -206,12 +236,17 @@ def _has_successful_ocr_coverage(
     This is a coverage membership test, not an authoritative-result selector: no
     run is chosen and chronology is irrelevant. Any exact-hash OCR run completed
     without failure means P6's first pass must include OCR and OCR must not rerun.
+
+    A run §8.6's budget DEFERRED is not coverage and is excluded: it has no
+    observations by construction, so "OCR evidence exists for this file version"
+    would be false, and the word this function's own name uses is `successful`.
     """
     return any(
         run.content_hash == content_hash
         and run.analysis_tier == ocr.ANALYSIS_TIER
         and run.finished_at is not None
         and run.failure_reason is None
+        and run.completeness != DEFERRED_COMPLETENESS
         for run in runs_for_file(conn, file_id))
 
 
@@ -701,6 +736,52 @@ def run_p1_p7(
     reused: set[str] = set()
     evicted = {row["path"] for row in dataless_detections(conn, scan_run_id)}
 
+    # --- §8.6's TWO PER-SCAN CEILINGS, and their one enforcement point ---------
+    #
+    # `104` §18.2 gap 22: "Two declared ceilings have no enforcement point and the
+    # deferral rung is dead." `00`:243-258 declares `Maximum OCR time per scan` and
+    # `Maximum image-analysis operations per scan`; P1 published the keys, P5 named
+    # them in `extractors/budgets.py`, and nothing anywhere in `src/` obeyed either.
+    # `cli.py` said so in a comment beside the two `set_ceiling` calls it does make.
+    #
+    # **HERE, BECAUSE HERE IS WHERE A SCAN EXISTS.** Both are per-SCAN totals. A
+    # worker sees one file; an extractor sees one file; this loop is the only place
+    # that sees all of them, and it is also where the text units are produced -- the
+    # runs, the units and the observations are all written on this thread, in roster
+    # order. So the running total lives here and the workers are handed the answer.
+    #
+    # **NEITHER VALUE IS CHOSEN HERE OR ANYWHERE ELSE IN `src/`.** `None` from P1
+    # means no ceiling and the scan is unbounded, which is what every run this
+    # product has ever made did and what every run still does until an owner stores
+    # a number. `00`:243 calls these "configurable ceilings"; gap 22 is about the
+    # enforcement point, not about the numbers.
+    ceilings = p5_ceilings(conn)
+    ocr_seconds_ceiling = ceilings["ocr.max_time_per_scan"]
+    image_ops_ceiling = ceilings["image.max_analysis_ops_per_scan"]
+    #: What the scan has spent, counted from what actually happened rather than
+    #: estimated: OCR seconds measured around the engine call (`Dispatched.
+    #: ocr_seconds`), image operations counted one per image extraction performed.
+    #: `00`:248 names the unit "image-analysis operations" and §2.6 gives an image
+    #: exactly one analysis, so one file analysed is one operation.
+    ocr_seconds_spent = 0.0
+    image_ops_spent = 0
+    #: The files whose OCR a ceiling stopped. Deliberately NOT `initial_ocr_
+    #: completed`: that set means "this file has real OCR evidence", it is what
+    #: `_has_successful_ocr_coverage` and P6's second pass read, and a deferred run
+    #: carries no observations at all (P4's `ZERO_OBSERVATION_COMPLETENESS` lists
+    #: `deferred`). A deferred file is not covered and is not owed a retry inside
+    #: the same scan either, so the targeted pass skips it rather than spending the
+    #: ceiling it just refused.
+    initial_ocr_deferred: set[str] = set()
+
+    def _ocr_budget_spent() -> bool:
+        return (ocr_seconds_ceiling is not None
+                and ocr_seconds_spent >= ocr_seconds_ceiling)
+
+    def _image_budget_spent() -> bool:
+        return (image_ops_ceiling is not None
+                and image_ops_spent >= image_ops_ceiling)
+
     def _consume(entry: _Submitted) -> None:
         """Write one file's extraction, in the order the roster asked for it.
 
@@ -721,6 +802,14 @@ def run_p1_p7(
             # is the `dataless` run.
             results = [dataless_result(file_row=file_row, error=refusal,
                                        source_type=decision.source_type, now=stamp)]
+        elif handle is None:
+            # NOTHING WAS SUBMITTED, and the whole batch is already in hand. This
+            # is §8.6's per-scan image ceiling: the loop below built the deferred
+            # run on this thread beside the filesystem one and queued the pair, so
+            # that a deferred file is still written in ROSTER order among the files
+            # that were read. A ceiling that reordered the database would make
+            # §3.4's caching and §8.5's replay depend on how full a budget was.
+            results = list(filesystem)
         else:
             outcome = pool.result(handle)
             if outcome.kind == PROTECTED:
@@ -750,14 +839,37 @@ def run_p1_p7(
                 signal_target = (routed[outcome.dispatched.sensitivity_target]
                                  if routed else None)
                 results = list(filesystem) + routed
+                # §8.6's OCR clock, charged with what the engine actually spent.
+                # `nonlocal` because this closure is the only writer and the
+                # submission loop below is the only reader.
+                nonlocal ocr_seconds_spent, image_ops_spent
+                ocr_seconds_spent += outcome.dispatched.ocr_seconds
                 for result in routed:
                     tier = result.run["analysis_tier"]
+                    completeness = result.run["completeness"]
                     if tier == pdf.ANALYSIS_TIER:
                         native_results[file_id] = (decision, result)
                     elif (tier == ocr.ANALYSIS_TIER
                           and result.run.get("finished_at") is not None
                           and result.run.get("failure_reason") is None):
-                        initial_ocr_completed.add(file_id)
+                        # A DEFERRED OCR RUN IS NOT COVERAGE, and without this
+                        # clause it would read as some: `deferred_result` stamps
+                        # `finished_at` and carries no `failure_reason` -- both
+                        # deliberately, because a deferral is not a failure -- so
+                        # the two tests above pass for a run that read nothing.
+                        # The file would then be marked OCR-complete, P6's second
+                        # pass would be told OCR evidence exists, and the targeted
+                        # retry would be skipped for a file that never ran.
+                        if completeness == DEFERRED_COMPLETENESS:
+                            initial_ocr_deferred.add(file_id)
+                        else:
+                            initial_ocr_completed.add(file_id)
+                    if (result.run["extractor_name"] == image.EXTRACTOR_NAME
+                            and completeness != DEFERRED_COMPLETENESS):
+                        # `00`:248's unit, counted after the fact: an operation
+                        # this scan actually performed. A deferred image run
+                        # performed none and is not charged for one.
+                        image_ops_spent += 1
 
         record_routing_decision(conn, decision)
         for result in results:
@@ -826,13 +938,52 @@ def run_p1_p7(
                 window.append(_Submitted(file_id, file_row, decision, stamp,
                                          (), None, refusal))
                 continue
-            window.append(_Submitted(
-                file_id, file_row, decision, stamp, filesystem,
-                pool.submit(ExtractionRequest(
-                    file_id=file_id, file_row=dict(file_row), decision=decision,
-                    path=path, now=stamp, context_window=context_window,
-                    versions=versions)),
-                None))
+            if (decision.extractor_name == image.EXTRACTOR_NAME
+                    and _image_budget_spent()):
+                # §8.6's `image.max_analysis_ops_per_scan`, enforced BEFORE the
+                # operation rather than after it -- which is what makes
+                # `budgets.deferred_result` the right record: "the run for an
+                # extractor the budget stopped before it started".
+                #
+                # DECIDED HERE AND NOT IN THE WORKER, unlike the OCR ceiling,
+                # because this one can be: the router names `image.metadata`
+                # before anything is submitted, so the operation is knowable in
+                # advance. OCR is not -- whether a PDF runs OCR is decided inside
+                # `extract_initial` by `direct_document_ocr_needed` -- which is
+                # why that ceiling travels as a flag and this one does not.
+                #
+                # NOTHING ALREADY READ IS DELETED: `filesystem` was extracted on
+                # this thread a few lines up and is written beside the deferral,
+                # so the file stays indexed, named and citable. `00`:258: "the
+                # product should retain extracted evidence, mark the deferred
+                # stage, and leave the file or group in review rather than
+                # guessing."
+                window.append(_Submitted(
+                    file_id, file_row, decision, stamp,
+                    filesystem + (deferred_result(
+                        file_row=file_row, source_type=image.SOURCE_TYPE,
+                        extractor_name=image.EXTRACTOR_NAME,
+                        extractor_version=image.VERSION,
+                        analysis_tier=image.ANALYSIS_TIER,
+                        # `extract_image`'s own coverage unit, so the deferred run
+                        # and the run it replaces count the same thing.
+                        units="images", total=1, now=stamp),),
+                    None, None))
+            else:
+                window.append(_Submitted(
+                    file_id, file_row, decision, stamp, filesystem,
+                    pool.submit(ExtractionRequest(
+                        file_id=file_id, file_row=dict(file_row),
+                        decision=decision, path=path, now=stamp,
+                        context_window=context_window, versions=versions,
+                        # READ AT SUBMISSION, which is the latest this thread can
+                        # answer for a file it is about to hand away. The window
+                        # is bounded (`pool.lookahead`), so the total this is
+                        # measured against lags by at most that many files -- an
+                        # honest accumulate-as-you-go rather than a promise of
+                        # exactness a parallel pool cannot keep.
+                        ocr_budget_spent=_ocr_budget_spent())),
+                    None))
             # A bounded look-ahead, not an unbounded one: a 5,760-file run holds a
             # handful of extraction batches in memory rather than all of them.
             while len(window) >= pool.lookahead:
@@ -900,7 +1051,15 @@ def run_p1_p7(
                         native = (decision, persisted)
             targeted_completed = False
             targeted_results: tuple = ()
-            if native is not None and file_id not in initial_ocr_completed:
+            # `initial_ocr_deferred` bars the retry for the reason its own comment
+            # gives: this scan's OCR ceiling already refused this file once, and a
+            # pass that ran anyway would spend past a budget the product had just
+            # told the person it stopped at. It is a separate set from
+            # `initial_ocr_completed` because the two mean opposite things --
+            # covered, and refused for cost -- and folding them would tell P6 that
+            # OCR evidence exists for a file that has none.
+            if (native is not None and file_id not in initial_ocr_completed
+                    and file_id not in initial_ocr_deferred):
                 decision, native_result = native
                 # THE DECISION HERE AND THE READING SOMEWHERE KILLABLE, which is
                 # R-138 and the reason `extract_targeted_ocr` was split. This half
@@ -927,21 +1086,39 @@ def run_p1_p7(
                     # had been built and closed, so this was the only Vision call
                     # left on the calling thread. One request, consumed immediately:
                     # the pass is per file and there is nothing to read ahead of.
-                    targeted_results = _targeted(pool.result(pool.submit(
+                    targeted_outcome = pool.result(pool.submit(
                         TargetedOcrRequest(
                             file_id=file_id, file_row=dict(file_row),
                             path=Path(file_row["current_path"]), now=now(),
-                            context_window=context_window))))
+                            context_window=context_window,
+                            # ASKED AGAIN, HERE. The initial loop may have spent
+                            # the rest of §8.6's OCR clock after this file went
+                            # through it, and this pass is the more expensive of
+                            # the two.
+                            ocr_budget_spent=_ocr_budget_spent())))
+                    if targeted_outcome.dispatched is not None:
+                        # The same clock the initial pass charges. A targeted read
+                        # that spends four minutes has spent four minutes of the
+                        # scan's OCR budget, whichever loop asked for it.
+                        ocr_seconds_spent += targeted_outcome.dispatched.ocr_seconds
+                    targeted_results = _targeted(targeted_outcome)
                 for result in targeted_results:
                     _write(sink, result, written)
                     # A successful OCR run completes the second P6 pass even when its
                     # finder emits zero structured observations: the persisted OCR-tier
                     # pass is also the termination record. A failed OCR run is persisted
                     # but must not pretend that OCR evidence was successfully covered.
+                    # ... and neither must a run a ceiling deferred, for the reason
+                    # the initial loop's own clause gives: `deferred_result` stamps
+                    # `finished_at` and carries no failure reason, so both tests
+                    # below pass for a run that read nothing and P6 would be sent
+                    # to resolve OCR evidence that does not exist.
                     targeted_completed = (
                         targeted_completed
                         or (result.run.get("finished_at") is not None
-                            and result.run.get("failure_reason") is None))
+                            and result.run.get("failure_reason") is None
+                            and result.run["completeness"]
+                            != DEFERRED_COMPLETENESS))
                 if targeted_results:
                     prior = json.loads(
                         get_file(conn, file_id)["extraction_status_by_tier"] or "{}")

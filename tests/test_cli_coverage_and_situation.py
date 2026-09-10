@@ -410,9 +410,19 @@ def _roster(monkeypatch, rows, *, protected=(), runs=(), unread=()):
                             run for run in runs if run.hash == content_hash))
 
 
-def _p4_run(file_id: str, content_hash: str, completeness: str):
+def _p4_run(file_id: str, content_hash: str, completeness: str,
+            extractor_name: str = "pdf.text"):
+    """One P4 run, as much of it as the reconciliation reads.
+
+    `extractor_name` arrived with `104` §18.2 gap 22: `_runs_that_still_stand`
+    drops a `deferred` run once the SAME extractor has produced a real one, so
+    the double has to carry the field the rule keys on. It is defaulted because
+    every test above this line is about one run per file, where the name cannot
+    matter; the deferral tests below pass it explicitly.
+    """
     return SimpleNamespace(file_id=file_id, hash=content_hash,
-                           completeness=completeness)
+                           completeness=completeness,
+                           extractor_name=extractor_name)
 
 
 def _reconciled(monkeypatch, rows, *, verdicts=None, not_run=None,
@@ -554,6 +564,87 @@ def test_a_run_with_no_model_says_so_instead_of_calling_the_files_settled(
     assert counts[cli.COVERAGE_SETTLED] == 0
     assert "no model is configured for this run" in " ".join(printed.split())
     assert cli.NOT_RUN_NO_MODEL in printed
+
+
+def test_a_file_a_per_scan_ceiling_deferred_is_deferred_and_not_unreadable(
+        monkeypatch):
+    """`104` §18.2 gap 22, on the line a person actually reads.
+
+    `00`:259 asks the interface to keep two sentences apart: *"89 scanned PDFs
+    deferred after the OCR limit; 18 files remain unreadable."* One says a budget
+    ran out. The other says the product tried and could not.
+
+    §8.6's per-scan ceilings produce a file whose only routed run is the
+    deferral, and a deferral carries no observations at all (P4's
+    `ZERO_OBSERVATION_COMPLETENESS`). So the reconciliation's "was anything read
+    out of it" test finds nothing for it -- `unread` below -- and before this
+    patch it would have landed on the unreadable line. That tells a person their
+    photo is corrupt when it was never opened, which is the precise false
+    impression `00`:259 exists to prevent.
+
+    SABOTAGE: drop the `_budget_deferred` half of the `file_id not in read`
+    clause. The deferred count goes to zero, the unreadable count goes to one,
+    and the sum still closes -- which is why this needs its own test rather than
+    resting on the closed-sum check.
+    """
+    printed = _reconciled(
+        monkeypatch, [("f0", "h0")], not_run=None, unread=("f0",),
+        runs=(_p4_run("f0", "h0", "complete", extractor_name="filesystem"),
+              _p4_run("f0", "h0", "deferred", extractor_name="image.metadata")))
+
+    counts = _counts(printed)
+    assert counts[cli.DEFERRED] == 1
+    assert counts[cli.UNREADABLE] == 0
+
+
+def test_a_deferral_a_later_scan_answered_stops_speaking_for_the_file(
+        monkeypatch):
+    """The same line, one scan later, and the false sentence in the other
+    direction.
+
+    P4 supersedes runs and never deletes them, so the ceiling's `deferred` row is
+    still there after a scan with the ceiling lifted reads the file in full. And
+    `WORST_FIRST` ranks `deferred` above `complete`, so without
+    `_runs_that_still_stand` the coverage line would call a fully-read file
+    deferred for the rest of the database's life. `00`:259's buckets describe
+    what is true now.
+
+    The pairing with `orchestrator._already_extracted` is the point: that
+    function refuses to let a deferral settle a file, precisely so the next scan
+    re-reads it. If the report then kept saying "deferred", the product would be
+    doing the work and denying it.
+
+    SABOTAGE: have `_runs_that_still_stand` return `mine` unfiltered. The
+    deferred count goes to one and the settled line loses the file.
+    """
+    printed = _reconciled(
+        monkeypatch, [("f0", "h0")], not_run=cli.NOT_RUN_NO_MODEL,
+        runs=(_p4_run("f0", "h0", "deferred", extractor_name="image.metadata"),
+              _p4_run("f0", "h0", "complete", extractor_name="image.metadata")))
+
+    counts = _counts(printed)
+    assert counts[cli.DEFERRED] == 0
+    assert counts[cli.COVERAGE_NOT_ASKED] == 1
+
+
+def test_a_deferral_by_one_extractor_is_not_answered_by_another(monkeypatch):
+    """Per `extractor_name`, and that is the whole restraint on the rule above.
+
+    An OCR deferral says nothing about whether the IMAGE extractor ran, and a
+    completed image run cannot speak to it. Folding the two would let any file
+    with one successful extractor hide every ceiling that ever stopped a
+    different one -- which is the silence §8.6 exists to break.
+
+    SABOTAGE: drop the `extractor_name` condition from `_runs_that_still_stand`
+    and answer a deferral with any non-deferred run. This test's deferred count
+    goes to zero and the file's OCR ceiling vanishes from the report.
+    """
+    printed = _reconciled(
+        monkeypatch, [("f0", "h0")], not_run=None, unread=("f0",),
+        runs=(_p4_run("f0", "h0", "complete", extractor_name="image.metadata"),
+              _p4_run("f0", "h0", "deferred", extractor_name="ocr")))
+
+    assert _counts(printed)[cli.DEFERRED] == 1
 
 
 def test_a_file_that_reaches_no_bucket_refuses_the_report(monkeypatch):

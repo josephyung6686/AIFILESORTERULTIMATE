@@ -70,7 +70,7 @@ from extractors.image import PERCEPTUAL_HASH_FIELD
 # shortcut, which `104` §18.2 gap 21 deleted. `readers/signatures.py` imports it
 # directly -- it is the reader that needs to know which extensions the router
 # already understands, and this module no longer asks that question.
-from extractors.reading import StructuredString
+from extractors.reading import ZONE_BY_STRUCTURED_KIND, StructuredString
 from extractors.structured_text import EXTRACTOR_NAME as STRUCTURED_EXTRACTOR
 from extractors.filesystem import SOURCE_TYPE as FILESYSTEM_SOURCE_TYPE
 from extractors.safety import SafetyPolicy
@@ -3262,6 +3262,169 @@ _TERM = re.compile("|".join(
      _SEASON_YEAR_SOURCE, _ACADEMIC_YEAR_SOURCE, _NAMED_TERM_SOURCE)),
     re.IGNORECASE)
 
+# --- §2.2's OTHER FOUR STRUCTURED-STRING CLASSES ------------------------------
+#
+# `104` §18.2 gap 20: "Four promised evidence kinds do not exist (URLs, emails,
+# DOIs, citations; `00`:28): only `identifier` from two regexes; the kind-to-zone
+# map (`extractors/reading.py:56-61`) is dead."
+#
+# `00`:28 names six classes -- "headings, URLs, email addresses, DOI values,
+# citations, identifiers, and other structured strings" -- and this deployment
+# produced exactly one of them. A paper's DOI, a syllabus's URL, an instructor's
+# address and a reference could not be cited by a model or matched by a rule,
+# because no observation carrying one was ever written.
+#
+# **NOTHING BELOW IS AUTHORED HERE.** P5's SPEC puts these patterns in its
+# Deferred table, and the missing column was written and left in the repository:
+# `planning/deferred-catalogues/06-citation-identifier-patterns.json`, "06 --
+# Citation and identifier patterns (P5's `find_structured_strings`)", authored
+# 2026-08-20, whose `consumer` field names this exact function. Each constant
+# below is one `entries[]` row, copied verbatim, and carries its `id`. The
+# catalogue's own rules are why the file is short: no dates (§3.10 is P6's), no
+# gazetteers (§3.7's, P6's), no personal-data patterns (§8.4's, P7's), and a bare
+# number is never an identifier.
+#
+# **FIVE PATTERNS FOR FOUR KINDS, and the four are `00`:28's own words.** The
+# catalogue ships 22 entries; the twelve scholarly identifier rows (`isbn`,
+# `issn`, `arxiv`, `orcid`, `pmid`, `ror`, ...) are NOT here. Every one of them
+# would emit a kind `ZONE_BY_STRUCTURED_KIND` does not map, which is the
+# catalogue's "falls back to the region's zone" -- a real behaviour, but a wider
+# reading of somebody's disk than the gap asks for, and four of those rows are
+# gated on checksum algorithms this deployment would have to implement before the
+# row is safe to ship. The four mapped kinds are the gap.
+
+#: `cid-doi`. Crossref's own recommended expression, which the registry reports
+#: matches 74.4M of the 74.9M DOIs in their database and names as the one to use
+#: if you use only one. Unanchored -- Crossref publish it anchored because they
+#: VALIDATE a string already known to be a DOI, and this has to FIND one inside
+#: running text, which is a different job and is what `_trimmed` below exists for.
+#: A DOI is its registered prefix (`10.` and the registrant's four-to-nine digits)
+#: then `/` then the suffix, so `10.5 mg twice daily` is not one.
+_DOI = re.compile(r"\b10\.\d{4,9}/[-._;()/:A-Za-z0-9]+")
+
+#: `cid-url-http`. A URL by its scheme and host. The excluded character set is
+#: RFC 3986's -- the characters that cannot appear unescaped in a URI -- plus the
+#: ASCII whitespace that terminates one in running text.
+#:
+#: The catalogue's schemeless `cid-url-www` row is deliberately absent: `00`:28
+#: names URLs and `104` §18.2 gap 20 names the shape as "its scheme and host", and
+#: the `www.` row is the catalogue's own medium-risk entry. Adding it is one line.
+#:
+#: `re.IGNORECASE` because the catalogue row says `case_sensitive: false` and the
+#: scheme is the only part of this pattern with letters in it: RFC 3986 §3.1 makes
+#: a scheme case-insensitive, and a PDF that prints `HTTPS://EXAMPLE.EDU/APPLY` in
+#: a heading is a URL. The other four patterns need no flag -- their character
+#: classes already name both cases where both are legal, and
+#: `_CITATION_AUTHOR_YEAR` is case-SENSITIVE on purpose (the catalogue says so:
+#: the capital is what makes a surname a surname).
+_URL = re.compile(r"\bhttps?://[^\s<>\"'\]\[{}|\\^`]+", re.IGNORECASE)
+
+#: `cid-email`. RFC 5321 §4.1.2's local-part and domain, in the pragmatic subset
+#: that covers real addresses in documents -- quoted local parts and address
+#: literals are out, and the catalogue states that limitation rather than hiding
+#: it.
+#:
+#: `(?!\d+x\b)` is the catalogue's own guard and it is not decoration: `logo@2x.png`
+#: and `icon@3x.png` are the standard retina asset convention, both match a plain
+#: address pattern, and in a design or app archive that manufactures a PII finding
+#: out of a filename.
+_EMAIL = re.compile(
+    r"\b[A-Za-z0-9._%+-]+@(?!\d+x\b)[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*"
+    r"\.[A-Za-z]{2,}\b")
+
+#: `cid-citation-numeric`. The IEEE/Vancouver in-text marker, including ranges and
+#: lists: `[3]`, `[3, 7]`, `[3-5]`.
+_CITATION_NUMERIC = re.compile(r"\[\d{1,3}(?:\s*[,–-]\s*\d{1,3})*\]")
+
+#: `cid-citation-authoryear`. The APA/Harvard parenthetical marker --
+#: `(Smith, 2020)`, `(Smith & Jones, 2020)`, `(Smith et al., 2020a)`.
+#:
+#: **THE FOUR DIGITS ARE NOT A DATE AND THIS IS THE CATALOGUE'S OWN WORDING.**
+#: They are "a required structural component of the citation marker's shape", the
+#: emitted span is the WHOLE marker, and the kind is `citation`, never `date`. No
+#: year is captured, parsed, validated or emitted. If a publication year is ever
+#: wanted as a fact that is §3.10's pattern set, which is P6's and deferred
+#: separately, reading the same text independently. The surname is likewise not an
+#: entity lookup: no name list is consulted, which would be §3.7's gazetteer work.
+#:
+#: Case-sensitive, which is what keeps `(Chicago, 2021 edition)` out: the marker
+#: has to END after the year (or continue with `;`), so a parenthesis that goes on
+#: saying something else is not a citation.
+_CITATION_AUTHOR_YEAR = re.compile(
+    r"\((?:[A-Z][A-Za-z'’-]+)(?:\s+(?:and|&)\s+[A-Z][A-Za-z'’-]+)*"
+    r"(?:\s+et\s+al\.?)?,\s*\d{4}[a-z]?(?:;\s*[^)]+)?\)")
+
+#: WHICH PATTERN CARRIES WHICH OF `00`:28'S KINDS. DOI BEFORE URL, and the trade
+#: is stated rather than left to the order: `https://doi.org/10.1038/s41586-...`
+#: is one span that is truthfully both, the span guard admits one reading of it,
+#: and the DOI is the reading worth keeping -- it is the stable identifier a
+#: person or a model would cite, where the resolver URL is one of several ways to
+#: write it. A URL with no DOI in it is untouched by this ordering.
+_STRUCTURED_STRING_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (_DOI, "doi"),
+    (_URL, "url"),
+    (_EMAIL, "email"),
+    (_CITATION_NUMERIC, "citation"),
+    (_CITATION_AUTHOR_YEAR, "citation"),
+)
+
+#: THE TWO THIS DEPLOYMENT SHIPPED BEFORE GAP 20, unchanged in order and in kind.
+#: `find_structured_strings` says why the term pattern leads and why both carry
+#: `identifier`; they are named here so the two groups are visibly two.
+_IDENTIFIER_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (_TERM, "identifier"),
+    (_STRUCTURED, "identifier"),
+)
+
+#: THE ZONES `00`:28'S FOUR MAPPED KINDS LAND IN, derived from the design's own
+#: map rather than restated: `ZONE_BY_STRUCTURED_KIND` is `extractors/reading.py`'s
+#: and is P4's table, so a kind that moves zones moves here with it. An
+#: `identifier` is absent from that map by design ("a kind not listed here takes
+#: the zone of the region it was found in"), which is exactly what makes this set
+#: able to tell the two groups apart on the stored locator.
+_MAPPED_KIND_ZONES: frozenset[str] = frozenset(
+    ZONE_BY_STRUCTURED_KIND[kind] for _pattern, kind in _STRUCTURED_STRING_PATTERNS)
+
+#: WHICH KINDS TAKE THE TRAILING-PUNCTUATION TRIM. The two whose own syntax admits
+#: a character that also ends an English sentence, which is the catalogue's stated
+#: reason for the rule. A citation marker's closing bracket is part of the marker,
+#: and an identifier's shape ends in a digit.
+_TRIMMED_KINDS: frozenset[str] = frozenset({"doi", "url"})
+
+#: The catalogue's settled trailing-punctuation rule, from the `cid-doi` row: "a
+#: DOI at the end of a sentence absorbs the full stop, because `.` is legal in a
+#: DOI suffix; the finder must trim a single trailing `.`, `,`, `;` or `)` that
+#: has no opening mate, and that trim adjusts the OFFSETS so RAW-1 still holds."
+#: The `cid-url-http` row cites RFC 3986 Appendix C for the same problem and
+#: takes the same trim.
+#:
+#: SINGLE, and only for those two kinds. It is not applied to the citation rows,
+#: whose closing bracket and parenthesis are part of the marker.
+_TRAILING_PUNCTUATION: str = ".,;"
+
+
+def _trimmed(text: str, start: int, end: int) -> int:
+    """The end offset after the catalogue's single trailing-punctuation trim.
+
+    RAW-1 makes `raw_value` the source substring the offsets name, so a trim that
+    did not move the offsets would store a broken DOI verbatim and call it the
+    document's own words. Offsets are what move; the text is never rewritten.
+
+    `)` is trimmed only when it has no opening mate inside the span, because a DOI
+    suffix legitimately contains balanced parentheses -- Crossref's own example is
+    `10.1002/(SICI)1097-0258(19980815)17:15<1661::AID-SIM968>3.0.CO;2-2`.
+    """
+    if end <= start:
+        return end
+    last = text[end - 1]
+    if last in _TRAILING_PUNCTUATION:
+        return end - 1
+    if last == ")":
+        span = text[start:end]
+        if span.count(")") > span.count("("):
+            return end - 1
+    return end
+
 
 def _is_term(raw: str) -> bool:
     """Whether a reading is a term rather than an identifier.
@@ -3865,14 +4028,20 @@ class AcceptedGroupEnumeration:
 
 
 def find_structured_strings(text: str) -> tuple[StructuredString, ...]:
-    """Both patterns this deployment ships, as §2.2 `identifier` readings.
+    """§2.2's structured strings, in the four mapped kinds plus `identifier`.
 
-    ONE `kind` for both. §2.2's classes are "URLs, email addresses, DOI values,
-    citations, identifiers" -- a closed list with no member for a term, and
-    `ZONE_BY_STRUCTURED_KIND` maps a kind to a P4 ZONE. Inventing a kind here
-    would be this file adding to P4's vocabulary, and calling a term a `citation`
-    to borrow its zone would be worse. So both arrive as identifiers and
-    `DIRECT_SLOTS` tells them apart by VALUE through `matches`.
+    **THE IDENTIFIER HALF IS UNCHANGED, and that is deliberate.** `_TERM` and
+    `_STRUCTURED` run over their OWN span set, in their own order, producing
+    byte-identical output to what this function produced before `104` §18.2 gap 20
+    -- see `_IDENTIFIER_PATTERNS` below for why they share a kind and why the term
+    pattern leads.
+
+    ONE `kind` for both of those two. §2.2's classes are "URLs, email addresses,
+    DOI values, citations, identifiers" -- a closed list with no member for a
+    term, and `ZONE_BY_STRUCTURED_KIND` maps a kind to a P4 ZONE. Inventing a kind
+    here would be this file adding to P4's vocabulary, and calling a term a
+    `citation` to borrow its zone would be worse. So both arrive as identifiers
+    and `DIRECT_SLOTS` tells them apart by VALUE through `matches`.
 
     The term pattern runs FIRST and its spans are taken: `SPRING2026` matches both
     patterns, and two observations of one span would become two facts about one
@@ -3890,17 +4059,44 @@ def find_structured_strings(text: str) -> tuple[StructuredString, ...]:
     (`_STRUCTURED` alone would have claimed `AY 2024` out of it, which is `65` §2.1's
     recorded incident). Swapping the two lines would file a person's essays under a
     course named after their semester.
+
+    **TWO SPAN SETS AND NOT ONE, and this is the decision most worth reading.** The
+    guard above exists for a stated reason -- "a term and a course code, from the
+    same characters" -- and that reason is about two rival readings of ONE kind:
+    both would land in the same DIRECT slot family and one file would grow two
+    contradictory facts from one string. Across kinds nothing of the sort happens.
+    A URL and the course code inside it are two true statements about the same
+    characters in two different zones (`link` and the region's own), answering two
+    different questions, and P6 reads them through different slots.
+
+    Sharing one set was measured and rejected: `courseworks.columbia.edu/PHYS1401`
+    is read as an identifier today, and a single set with the URL pattern ahead of
+    `_STRUCTURED` would silently stop that -- a lost anchor on the one reading this
+    product's placement actually turns on (`104` R-146 is the row about exactly
+    that class of loss). A single set with `_STRUCTURED` ahead would be worse: it
+    would claim fragments out of the middle of DOIs and URLs and leave the rest of
+    the string unreadable. So the two groups do not compete, and `104` §18.2 gap
+    20's "the `identifier` kind stays" is true in the strong sense -- not one
+    identifier reading this deployment made yesterday is lost today.
+
+    Both groups keep their own internal guard, because within a group the original
+    reason still holds.
     """
     found: list[StructuredString] = []
-    taken: set[int] = set()
-    for pattern in (_TERM, _STRUCTURED):
-        for match in pattern.finditer(text):
-            span = range(match.start(), match.end())
-            if any(position in taken for position in span):
-                continue
-            taken.update(span)
-            found.append(StructuredString(
-                kind="identifier", start=match.start(), end=match.end()))
+    for patterns in (_STRUCTURED_STRING_PATTERNS, _IDENTIFIER_PATTERNS):
+        taken: set[int] = set()
+        for pattern, kind in patterns:
+            for match in pattern.finditer(text):
+                end = (_trimmed(text, match.start(), match.end())
+                       if kind in _TRIMMED_KINDS else match.end())
+                if end <= match.start():
+                    continue
+                span = range(match.start(), end)
+                if any(position in taken for position in span):
+                    continue
+                taken.update(span)
+                found.append(StructuredString(
+                    kind=kind, start=match.start(), end=end))
     return tuple(sorted(found, key=lambda one: one.start))
 
 
@@ -7285,13 +7481,25 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
         set_ceiling(conn, key, value)
     # §8.6's two per-file OCR ceilings, published because something obeys them.
     #
-    # THE OTHER TWO P5 KEYS ARE LEFT UNSET ON PURPOSE. `ocr.max_time_per_scan` and
-    # `image.max_analysis_ops_per_scan` have no enforcement point anywhere in `src/`:
-    # nothing accumulates a per-scan OCR clock and nothing counts image operations.
-    # `database_agent/budget.py` opens by saying "P1 holds and publishes values; P1
-    # enforces none of them. Reading a ceiling is not enforcing it", and a published
-    # number nothing obeys is worse than an absent one, because it reads as a bound
-    # somebody chose. They stay absent until there is something to obey them.
+    # THE OTHER TWO P5 KEYS ARE LEFT UNSET, AND THE REASON CHANGED ON 2026-09-10.
+    # It used to be that `ocr.max_time_per_scan` and `image.max_analysis_ops_per_scan`
+    # "have no enforcement point anywhere in `src/`: nothing accumulates a per-scan
+    # OCR clock and nothing counts image operations". That was `104` §18.2 gap 22 and
+    # it is closed: `orchestrator.run_p1_p7` now keeps both totals -- OCR seconds
+    # measured around the engine call (`dispatch.Dispatched.ocr_seconds`), image
+    # operations counted one per image extraction performed -- and a file that
+    # arrives past either ceiling is recorded `deferred` rather than read short.
+    #
+    # THEY STAY UNSET BECAUSE THE VALUES ARE THE OWNER'S AND NOBODY HAS CHOSEN THEM.
+    # `00`:243 calls these "configurable ceilings" and states no numbers, and the two
+    # that ARE set below carry measurements underneath them -- 20 pages and its
+    # seconds were fitted to the owner's corpus and the runs are in this file. There
+    # is no such measurement for a whole-scan OCR clock or an image-operation count,
+    # and a number invented here would read as a bound somebody chose. `None` from
+    # `get_ceiling` means no ceiling, the scan is unbounded, and the run behaves
+    # exactly as every run this product has made.
+    #
+    # Setting either is now one `set_ceiling` call and needs no other change.
     set_ceiling(conn, "ocr.max_pages_per_file", OCR_PAGE_CEILING)
     set_ceiling(conn, "ocr.max_time_per_file", OCR_SECONDS_PER_FILE)
 
@@ -7380,6 +7588,24 @@ def _identifier_observations(conn: sqlite3.Connection, file_id: str,
     inside the body, beside the span-less whole-body observation that is the
     document's own text. A locator test rather than a re-run of the regex, so
     this cannot disagree with what P4 actually recorded.
+
+    **AND BY THE ZONE, SINCE `104` §18.2 gap 20.** That locator test was the whole
+    test while `find_structured_strings` produced one kind. It now produces five,
+    and the four new ones are spanned in exactly the same way -- so without this
+    filter a URL, an email address, a DOI and a citation marker would all arrive
+    at the recogniser as course-code identifiers, and `00`'s rule ("a course-code
+    pattern TOGETHER WITH academic context") would be satisfied by a link in a
+    syllabus's footer. A file could be recognised as coursework on the strength of
+    its web address.
+
+    The zone is what tells them apart, because the zone is where the kind lands:
+    `ZONE_BY_STRUCTURED_KIND` sends `url`, `email` and `doi` to `link` and
+    `citation` to `reference_list`, and an `identifier` -- which the map names no
+    zone for -- keeps the zone of the region it was found in. So excluding those
+    two zones is exactly excluding the four mapped kinds, and it is read off P4's
+    own recorded locator rather than re-derived. It is also the same judgement
+    `recognition.detector.NAMING_ZONES` already makes for the same reason:
+    `reference_list` is "where a document mentions OTHER documents".
     """
     return frozenset(
         row[0] for row in conn.execute(
@@ -7387,7 +7613,8 @@ def _identifier_observations(conn: sqlite3.Connection, file_id: str,
             "WHERE file_id = ? AND content_hash = ? "
             "AND extractor_name = ? AND superseded_by IS NULL",
             (file_id, content_hash, STRUCTURED_EXTRACTOR))
-        if json.loads(row[1]).get("text_span") is not None)
+        if json.loads(row[1]).get("text_span") is not None
+        and json.loads(row[1]).get("zone") not in _MAPPED_KIND_ZONES)
 
 
 def _sent_and_abstained(
@@ -8074,6 +8301,57 @@ _COVERAGE_STATE: Mapping[str, str] = MappingProxyType({
 })
 
 
+def _runs_that_still_stand(conn: sqlite3.Connection, file_id: str,
+                           content_hash: str) -> list:
+    """This file version's runs, with every ANSWERED deferral dropped.
+
+    **Why a deferral needs answering at all.** P4 supersedes runs and never
+    deletes them (`evidence_no_delete`, and `extraction_runs` keeps its history
+    for §8.5's cross-version diff), so a run §8.6's budget deferred on Monday is
+    still in `runs_for_content` on Tuesday. `WORST_FIRST` ranks `deferred` above
+    `complete`, so without this the coverage line would call a fully-read file
+    deferred for the rest of the database's life -- and `00`:259's whole demand
+    is that the line describe what is TRUE NOW, not the worst thing that was ever
+    true.
+
+    That is not hypothetical: `orchestrator._already_extracted` deliberately does
+    not let a deferral settle a file, precisely so the next scan re-reads it. The
+    two rules are the same rule seen from both ends -- a ceiling costs a file one
+    scan -- and this is the reporting half.
+
+    **Answered means: the same extractor produced a run that is not a deferral.**
+    Per `extractor_name`, because that is the unit a deferral is about -- an OCR
+    deferral says nothing about whether the image extractor ran, and a later OCR
+    run is the only thing that can speak to it. Nothing else is filtered: a
+    `failed` or `capped` run answers a deferral just as a `complete` one does,
+    because all three mean the extractor was given its turn.
+    """
+    mine = [run for run in runs_for_content(conn, content_hash)
+            if run.file_id == file_id]
+    answered = {run.extractor_name for run in mine
+                if run.completeness != DEFERRED}
+    return [run for run in mine
+            if not (run.completeness == DEFERRED
+                    and run.extractor_name in answered)]
+
+
+def _budget_deferred(conn: sqlite3.Connection, file_id: str,
+                     content_hash: str) -> bool:
+    """Does this file version carry a STANDING run §8.6's budget stopped?
+
+    Asked of P4's records directly rather than through `bucket_for`, because the
+    caller needs the answer BEFORE it decides whether the file was readable --
+    and `bucket_for`'s worst-first tie-break is a different question, about which
+    of several states to SHOW for a file that has more than one.
+
+    `deferred` only, not `capped`. A capped file was read and its evidence is in
+    the store, so the ordinary path finds it; a deferred one has none, which is
+    the whole reason this predicate exists.
+    """
+    return any(run.completeness == DEFERRED
+               for run in _runs_that_still_stand(conn, file_id, content_hash))
+
+
 class FileInTwoBuckets(RuntimeError):
     """One indexed file reached two of the six buckets. The sum does not close.
 
@@ -8170,11 +8448,34 @@ def _reconcile_the_roster(conn: sqlite3.Connection, *, run_id: str,
             label, cause = verdicts[file_id]
         elif file_id in protected:
             label, cause = WITHHELD_PROTECTED, None
-        elif file_id not in read:
+        elif file_id not in read and not _budget_deferred(conn, file_id,
+                                                          content_hash):
+            # A BUDGET DEFERRAL OUTRANKS "UNREADABLE", and `104` §18.2 gap 22 is
+            # the reason this clause has a second half at all.
+            #
+            # The precedence above ranks unreadable before deferred, and the
+            # reason it gives is right for the case it was written for: a file
+            # several extractors read and one `capped` HAS been read, so
+            # `_files_something_was_read_out_of` finds evidence for it and the
+            # deferred branch below takes it. But §8.6's per-scan ceilings, which
+            # nothing enforced when that precedence was written, produce a file
+            # whose ONLY run is the deferral -- no observations at all, by P4's
+            # `ZERO_OBSERVATION_COMPLETENESS` -- so it is absent from `read` and
+            # would land here.
+            #
+            # "Unreadable" would then be a false sentence in front of a person:
+            # it says the product tried to read the file and could not, when what
+            # happened is that the product declined to try because a budget was
+            # spent. `00`:259 exists to keep exactly those two apart -- "89
+            # scanned PDFs deferred after the OCR limit; 18 files remain
+            # unreadable" -- and a file in the wrong one of them is a person
+            # deleting a photo they think is corrupt.
             label, cause = UNREADABLE, None
         else:
-            mine = [run for run in runs_for_content(conn, content_hash)
-                    if run.file_id == file_id]
+            # ANSWERED DEFERRALS DROPPED, and `_runs_that_still_stand` says why:
+            # `deferred` outranks `complete` in `WORST_FIRST`, so a file the next
+            # scan read in full would keep reporting as deferred forever.
+            mine = _runs_that_still_stand(conn, file_id, content_hash)
             state = bucket_for(mine, precedence=WORST_FIRST)
             if state in (CAPPED, DEFERRED):
                 # A CEILING, AND P4'S OWN WORD FOR WHICH ONE. `capped` read
@@ -12009,6 +12310,24 @@ _CAPPED_BY_SOURCE_TYPE: Mapping[str, str] = MappingProxyType({
 })
 
 
+#: WHICH PER-SCAN CEILING WROTE A `deferred` RUN, by the source type the run
+#: carries. `104` §18.2 gap 22 asks for the deferral recorded "with the ceiling
+#: named", and this is where the name reaches a person: `_CAPPED_BY_SOURCE_TYPE`
+#: above does the same job for the per-FILE ceilings and this is its twin.
+#:
+#: The two entries are the two ceilings `_bootstrap` leaves unset and
+#: `orchestrator.run_p1_p7` enforces. Neither sentence states a NUMBER, unlike the
+#: capped ones, and that is not an omission: these two ceilings have no value in
+#: this deployment, so a sentence quoting one would be quoting nothing. A person
+#: who has set one knows what they set.
+_DEFERRED_BY_SOURCE_TYPE: Mapping[str, str] = MappingProxyType({
+    "ocr": ("OCR did not run on them: this scan had already spent its whole-scan "
+            "OCR time ceiling"),
+    "image": ("image analysis did not run on them: this scan had already spent "
+              "its image-analysis ceiling"),
+})
+
+
 def _no_extractor_cause(conn: sqlite3.Connection):
     """P13's `cause_for`, answered where this run actually knows the answer.
 
@@ -12051,16 +12370,124 @@ def _no_extractor_cause(conn: sqlite3.Connection):
         if label == DEFERRED:
             # A budget stopped this extractor BEFORE it started, so nothing about
             # it is a routing failure and the sentence below would misattribute it.
-            # This build records no deferral -- `extractors/budgets.deferred_result`
-            # has no caller -- and P13's own "no ceiling is recorded" is the honest
-            # answer for one until something records which budget fired.
-            return None
+            #
+            # `104` §18.2 gap 22: this build DOES record deferrals now, so the
+            # bucket has a cause and P13's "no ceiling is recorded" is no longer
+            # the honest answer for one. Asked the same way the CAPPED branch is
+            # asked, and for the same reason -- two per-scan ceilings can write
+            # this bucket and a sentence naming one for the whole bucket would be
+            # a wrong cause printed with confidence -- so the run is asked which
+            # ceilings actually fired.
+            fired = sorted(row[0] for row in conn.execute(
+                "SELECT DISTINCT source_type FROM extraction_runs "
+                "WHERE completeness = ?", (DEFERRED,)))
+            named = [_DEFERRED_BY_SOURCE_TYPE[source] for source in fired
+                     if source in _DEFERRED_BY_SOURCE_TYPE]
+            if not named:
+                # A ceiling this file does not hold, which is the state a
+                # deployment that stores neither of these two numbers is in.
+                return None
+            return ("; ".join(named)
+                    + " -- what had already been read out of them was kept")
         if routed or not unrouted:
             return None
         return ("no reader in this deployment handles these files' format, so "
                 "what the filesystem records about them is all there is")
 
     return cause_for
+
+
+#: THE SPELLING A SYNC CLIENT LEAVES ON A CONFLICTED COPY, and the only one this
+#: deployment claims to know. `00`:174 names the four services -- "iCloud Drive,
+#: Dropbox, Google Drive, and OneDrive introduce additional race conditions because
+#: a sync agent can rename, replace, or create conflict copies while a plan is
+#: active" -- and names no spelling for any of them, so there is no design list to
+#: read off.
+#:
+#: This is the one spelling this repository already writes down: `tests/p12/
+#: test_p12_special.py:311` uses `Syllabus (conflicted copy 2026-08-29).pdf` and
+#: `test_p12_events.py:263` uses `Syncing (conflicted copy).pdf`. It is Dropbox's,
+#: and it is matched case-folded and as a SUBSTRING because the marker carries a
+#: machine name and a date that vary per copy.
+#:
+#: WHAT IS DELIBERATELY NOT HERE. iCloud's ` 2`, OneDrive's `-DESKTOP-XXXX` and
+#: Google Drive's ` (1)` are not matched. Each would be a word this file invented
+#: on the design's behalf, and each is a shape ordinary filenames genuinely have --
+#: `Report 2.pdf` is a second report far more often than it is a conflicted copy.
+#: A pause on an ordinary duplicate is a person told to wait for a sync that is not
+#: running, which is worse than the gap it would close. Widening this is one line
+#: and one owner's word.
+_CONFLICT_COPY_MARKER: str = "conflicted copy"
+
+
+def _conflict_copies(conn: sqlite3.Connection):
+    """`00`:174's "pause when sync conflicts appear", from what P1 already recorded.
+
+    **The check, stated as the two conditions it is.** A path is a conflicted copy
+    of the file being moved when it is (a) a DIFFERENT file row carrying the SAME
+    `content_hash` -- P1's own identity for a file version (R1), recorded beside
+    `st_dev` and `st_ino` on the same table -- and (b) sitting in the SAME directory
+    under a name carrying `_CONFLICT_COPY_MARKER`. Both, never either: a byte-
+    identical duplicate somewhere else on the disk is an ordinary duplicate and is
+    P9's business, and a conflict-marked name with different content is a file whose
+    contents this run cannot vouch for.
+
+    **IT READS THE DATABASE AND NOT THE DISK, and `mutation/special.py` is why.**
+    `inspect_objects` promises "no mutation, and no read of content", so this
+    predicate may not hash a sibling to find out whether it matches -- and without a
+    hash a directory listing can only compare names, which is the half of the test
+    that produces false pauses. P1 hashed every file in the corpus during the scan
+    and stored the answer, so the hash is already on hand for exactly the files a
+    plan can move.
+
+    **WHAT THAT COSTS, stated rather than hidden.** A conflicted copy a sync agent
+    creates AFTER the scan has no `files` row and is invisible here. `00`:174 asks
+    for verification "immediately before and after action" and this is the before
+    half only, answered from the last thing the product actually observed. Closing
+    the rest needs a re-stat of the directory at move time, which is §8.3's
+    staleness question and belongs to `preconditions.py`, not to this predicate.
+    """
+    def conflict_copies(path: Path) -> tuple[str, ...]:
+        row = conn.execute(
+            "SELECT content_hash FROM files WHERE current_path = ?",
+            (str(path),)).fetchone()
+        if row is None:
+            # Not a file this scan recorded, so there is nothing to compare a
+            # sibling against. An empty answer here says "none was found", which
+            # is now true of a check that ran rather than of one that does not
+            # exist.
+            return ()
+        parent = str(path.parent)
+        return tuple(sorted(
+            Path(other["current_path"]).name
+            for other in conn.execute(
+                "SELECT current_path FROM files "
+                "WHERE content_hash = ? AND current_path != ?",
+                (row["content_hash"], str(path)))
+            if Path(other["current_path"]).parent == Path(parent)
+            and _CONFLICT_COPY_MARKER in Path(other["current_path"]).name.casefold()))
+
+    return conflict_copies
+
+
+def _dataless(path: Path) -> bool:
+    """`11-ops-runtime.md` §5's dataless item, asked of the path about to be moved.
+
+    P3's own predicate over P3's own `lstat`, imported rather than respelled --
+    `scan_agent/dataless.py` holds `SF_DATALESS` and the reason Python does not
+    publish it. `lstat`, never `stat`: a symlink's own flags, so this cannot follow
+    a link into a bundle before `inspect_objects` has refused it.
+
+    An `OSError` reads as NOT dataless, which is the honest answer and not a
+    fail-open: a path that cannot be stat'd at all is refused one line later by
+    `inspect_objects`' own source-unavailable check, and answering `True` here
+    would tell a person their file is in iCloud when what happened is that it is
+    gone.
+    """
+    try:
+        return is_dataless(os.lstat(path))
+    except OSError:
+        return False
 
 
 def _relative_to_any(path: str, roots: Sequence[Path]) -> str:
@@ -14123,12 +14550,14 @@ def _move_frozen_files(args, *, moving: bool, branches: Sequence[str],
                             if plan.plan_id not in filed),
                 legal_destination_ids=legal,
                 source_root=directory, destination_root=directory,
-                # No cloud-sync conflict detection is built, so none is claimed:
-                # `conflict_copies` returning nothing says "none was found", and
-                # `00`:174's sync-conflict pause is a NAMED GAP, not a check
-                # that ran and passed.
-                extra_protected=None, conflict_copies=lambda path: (),
-                dataless_of=lambda path: False,
+                # `104` §18.2 gap 23. Both predicates were `lambda: ()` and
+                # `lambda: False` -- an honest gap, and honestly commented, but a
+                # gap: `00`:174's sync-conflict pause and `11` §5's dataless
+                # refusal are two of the four things `inspect_objects` exists to
+                # do, and neither could fire on a real run. They are real checks
+                # now; see each function for what it does and does not cover.
+                extra_protected=None, conflict_copies=_conflict_copies(conn),
+                dataless_of=_dataless,
                 # `mutation.approval`: absence of a `ReviewApproval` IS the
                 # refusal. The record now exists -- `--freeze` is the surface
                 # that collects it (the owner's ruling, 2026-09-02) -- so this
