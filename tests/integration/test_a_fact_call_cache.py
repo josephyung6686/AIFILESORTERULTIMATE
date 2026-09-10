@@ -19,7 +19,19 @@ is the documented deployment seam and the stub is bound in its place, so the gat
 release ledger, the transport, the validator, `apply_verdict` and the whole of
 `cli.run` are the production path. Counting `invoke` calls counts model calls exactly:
 `transport.issue` consumes one release per invoke and `harness.run_call` reserves one
-budget slot per invoke.
+budget slot per invoke -- but it counts EVERY site's, and since `104` §17.13 ruling 3
+and R-170 that is no longer site A's alone. Every count below is taken at one call
+site, and the argument for that is in `_Socket`.
+
+**R-109 came back once, through the cache's own door, and this file is where it would
+be caught.** `104` R-172a: `cli.standing_consent_grants` recorded §18.7's protected-
+files ruling as a grant over the scan run id -- a fresh uuid every run -- and `policy`
+is one of `store.CALL_IDENTITY_DIMENSIONS`, so every identity digest moved on every
+run and no answer was ever reused again. It is fixed (`model_facts.
+_consent_grants_content` records a standing grant under a stable scope), and the
+evidence that it is fixed is `test_the_reuse_is_recorded_and_names_the_prior_dossier`
+below: two identities on run 1 and two reuse rows on run 2, over a corpus nothing
+about which changed.
 """
 from __future__ import annotations
 
@@ -65,13 +77,42 @@ ENV = {
 
 
 class _Socket:
-    """Every model call this run makes, and the dossier each one carried."""
+    """Every model call this run makes, and the dossier each one carried.
+
+    **COUNTED PER CALL SITE, `104` §17.13 ruling 3 and R-170.** When R-13 was measured
+    this corpus produced one model call per file and nothing else, so a bare
+    `len(self)` was a site-A total. §17.13 moved site C's `eliminate-v2` from
+    `ratified_local` to `ratified` and R-170 made the route a per-FILE question, so a
+    run now also sends a `C_placement` dossier for each file P11 proposes a folder
+    for -- through this same stubbed `deepseek_invoke`, on the cloud run and on the
+    plain one alike, because the route decides WHERE a call goes and not WHETHER
+    there is one.
+
+    R-13 is about a QUESTION ALREADY ANSWERED not being asked again, and the thing an
+    answer is looked up by is an identity: `llm_call_identity` is written at site A and
+    site C records none, so there is nothing of C's for `_reuse_is_current` to find and
+    C repeats itself on every run by construction. Folding C into the totals would
+    report this file's own defect -- a second run buying answers it already had -- when
+    what moved was a site that was never given one. So every pin states site A's cache
+    at `calls_at(A_FACT)` and site C's repetition on its own line: a placement that
+    starts reusing, or stops calling, turns a line red instead of quietly moving a
+    number the assertion above it reads as site A's.
+    """
 
     def __init__(self) -> None:
         self.payloads: list[bytes] = []
 
     def __len__(self) -> int:
         return len(self.payloads)
+
+    def calls_at(self, call_site: str) -> int:
+        """How many calls this run made at ONE site."""
+        return sum(1 for payload in self.payloads
+                   if self._body(payload)["call_site"] == call_site)
+
+    def subjects_at(self, call_site: str) -> list[str]:
+        return [self._body(payload)["subject_ref"] for payload in self.payloads
+                if self._body(payload)["call_site"] == call_site]
 
     def subjects(self) -> list[str]:
         return [self._body(payload)["subject_ref"] for payload in self.payloads]
@@ -142,20 +183,59 @@ def _count(corpus, table) -> int:
     return _rows(corpus, f"SELECT count(*) AS n FROM {table}")[0]["n"]
 
 
+def _a_fact_abstentions(corpus) -> list[dict]:
+    """The declined questions of the pass this file is about, and no other site's.
+
+    `104` §17.13 ruling 3: `llm_verdict` carries every site's judgements and the
+    dossier is where the site is written down, so the join is what makes "a declined
+    FIELD" mean a field and not a placement that found no supported destination.
+    """
+    return _rows(
+        corpus,
+        "SELECT v.dossier_id AS dossier_id, v.claim_ref AS claim_ref "
+        "FROM llm_verdict v JOIN llm_dossier d ON d.dossier_id = v.dossier_id "
+        "WHERE v.outcome = 'abstain' AND d.call_site = ?", cli.A_FACT)
+
+
+def _a_fact_policy_versions(corpus) -> set[str]:
+    """The policy versions site A's dossiers were built under, and no other site's.
+
+    Same reason and the same join. A second run that reuses every one of site A's
+    answers builds no site-A dossier at all, so this set stays at one member -- while
+    site C, which has no identity to reuse from, builds one under that run's own
+    freshly minted `policy-{uuid4}` and would put a second member in an unscoped read.
+    """
+    return {row["policy_version"] for row in _rows(
+        corpus,
+        "SELECT DISTINCT policy_version FROM llm_dossier WHERE call_site = ?",
+        cli.A_FACT)}
+
+
 # --- the four the register asks for ---------------------------------------------
 
 
 def test_an_unchanged_second_run_asks_no_model_at_all(corpus, socket):
-    """The whole of R-13, in one number. Measured before the fix: 2, then 2 more."""
+    """The whole of R-13, in one number. Measured before the fix: 2, then 2 more.
+
+    The number is site A's, per `_Socket`. Site C's placement is asked on both runs
+    and is stated on its own line below.
+    """
     _run(corpus, "--enable-cloud")
-    first = len(socket)
-    assert first == 2, socket.subjects()
+    first = socket.calls_at(cli.A_FACT)
+    placements = socket.calls_at(cli.C_PLACEMENT)
+    assert first == len(CORPUS), socket.subjects_at(cli.A_FACT)
 
     _run(corpus)
 
-    assert len(socket) == first, (
-        f"the second run asked {len(socket) - first} more questions it already had "
-        f"answers to: {socket.subjects()[first:]}")
+    assert socket.calls_at(cli.A_FACT) == first, (
+        f"the second run asked {socket.calls_at(cli.A_FACT) - first} more questions "
+        f"it already had answers to: {socket.subjects_at(cli.A_FACT)[first:]}")
+    # Site C's own line. C records no `llm_call_identity`, so it has no prior answer
+    # to be found and repeats what it did on run 1. If it ever stops, the line above
+    # keeps its meaning and this one says the corpus changed under it.
+    assert socket.calls_at(cli.C_PLACEMENT) == placements * 2, (
+        "site C is no longer asked once per run and the count above is measuring "
+        "something other than the fact pass")
 
 
 def test_changing_only_the_prompt_re_asks_every_file(corpus, socket, monkeypatch):
@@ -165,31 +245,52 @@ def test_changing_only_the_prompt_re_asks_every_file(corpus, socket, monkeypatch
     Only `template_id` moves, so the ratified bytes and their digest are untouched
     and this changes nothing but the fingerprint -- which is exactly the dimension
     under test.
+
+    And only site A's prompt moves, which is what makes the site split visible here
+    rather than merely tidy: a second revision of A's text is no reason to buy a
+    placement again, and site C is asked on the second run for its own reason (it has
+    no identity to reuse) and not for this one. Both are stated (`104` §17.13 ruling
+    3, and see `_Socket`).
     """
     _run(corpus, "--enable-cloud")
-    first = len(socket)
+    first = socket.calls_at(cli.A_FACT)
+    placements = socket.calls_at(cli.C_PLACEMENT)
 
     real = cli.a_fact_prompt()
     monkeypatch.setattr(cli, "a_fact_prompt", lambda: dataclasses.replace(
         real, template_id=f"{real.template_id}.a-second-revision"))
     _run(corpus)
 
-    assert len(socket) - first == 2
+    assert socket.calls_at(cli.A_FACT) - first == len(CORPUS), \
+        socket.subjects_at(cli.A_FACT)[first:]
+    assert socket.calls_at(cli.C_PLACEMENT) == placements * 2, (
+        "site C is no longer asked once per run and the count above is measuring "
+        "something other than the fact pass")
 
 
 def test_changing_one_files_content_re_asks_that_file_alone(corpus, socket):
     """Invalidation is per dimension AND per subject: one file's hash is not the
-    other's, so one edit costs one call and not a whole corpus."""
+    other's, so one edit costs one call and not a whole corpus.
+
+    One call at site A, per `_Socket` -- and site C's placement is asked for both
+    files again either way, which is exactly the repetition that would have been read
+    as the untouched file being re-asked.
+    """
     _run(corpus, "--enable-cloud")
-    first = len(socket)
+    first = socket.calls_at(cli.A_FACT)
+    placements = socket.calls_at(cli.C_PLACEMENT)
 
     (corpus / "reading notes.txt").write_text(
         "Rewritten notes for this seminar. The lecture now covers rotational "
         "motion, and the problem set is due the following Tuesday.\n")
     _run(corpus)
 
-    assert len(socket) - first == 1
-    asked = socket.subjects()[first:]
+    assert socket.calls_at(cli.A_FACT) - first == 1, \
+        socket.subjects_at(cli.A_FACT)[first:]
+    assert socket.calls_at(cli.C_PLACEMENT) == placements * 2, (
+        "site C is no longer asked once per run and the count above is measuring "
+        "something other than the fact pass")
+    asked = socket.subjects_at(cli.A_FACT)[first:]
     unchanged = _rows(
         corpus, "SELECT file_id FROM files WHERE current_path LIKE '%week two%'")
     assert asked[0] not in {row["file_id"] for row in unchanged}
@@ -200,19 +301,27 @@ def test_a_declined_field_is_not_re_asked_under_the_same_identity(corpus, socket
 
     Before the fix this corpus produced 14 verdict rows over two runs, every one an
     `abstain`, and 6 of them were the same field being asked a second time.
+
+    **Read at site A, `104` §17.13 ruling 3.** `llm_verdict` holds every site's
+    judgements, and since C's `eliminate-v2` was ratified a run of this corpus writes
+    `C_placement` abstentions beside site A's -- a placement with no supported
+    destination abstains exactly as a declined field does, under a `claim-N` ref
+    rather than a field name. An unscoped read would let the second run's placement
+    look like a field being bought twice, which is the defect this pin exists to
+    catch. Joined on `llm_dossier.call_site`, the record of which site asked.
     """
     _run(corpus, "--enable-cloud")
-    after_first = _rows(
-        corpus,
-        "SELECT dossier_id, claim_ref FROM llm_verdict WHERE outcome = 'abstain'")
+    after_first = _a_fact_abstentions(corpus)
+    placements = socket.calls_at(cli.C_PLACEMENT)
     _run(corpus)
-    after_second = _rows(
-        corpus,
-        "SELECT dossier_id, claim_ref FROM llm_verdict WHERE outcome = 'abstain'")
+    after_second = _a_fact_abstentions(corpus)
 
     assert after_second == after_first
     assert len({(row["dossier_id"], row["claim_ref"]) for row in after_first}) == \
         len(after_first)
+    assert socket.calls_at(cli.C_PLACEMENT) == placements * 2, (
+        "site C is no longer asked once per run and the rows above are measuring "
+        "something other than the fact pass")
 
 
 # --- and the row that says a reuse happened --------------------------------------
@@ -222,7 +331,14 @@ def test_the_reuse_is_recorded_and_names_the_prior_dossier(corpus, socket):
     """"A recorded row that names the prior." Not an event: `events.EVENT_TYPES` is
     a closed set and `database_agent/events.py` says registration "is a spec-level
     act ... There is no run-time registration call", so a `model_call_reused` name
-    is the owner's to approve. The row carries the provenance in the meantime."""
+    is the owner's to approve. The row carries the provenance in the meantime.
+
+    The rows read here need no call-site clause even though this run also asks site C
+    (`104` §17.13 ruling 3): `llm_call_identity` and `llm_call_reuse` are written where
+    an answer CAN be reused from, and site C records none. That is why the count is one
+    per file and not one per call -- and why this pin is the evidence R-172a is fixed:
+    a dimension that carried the run id would leave both tables empty on run 2.
+    """
     _run(corpus, "--enable-cloud")
     assert _count(corpus, "llm_call_reuse") == 0
     identities = _rows(corpus, "SELECT * FROM llm_call_identity")
@@ -274,13 +390,27 @@ def test_the_policy_dimension_is_the_policys_content_and_not_its_version(
     policy carry two version strings. Keyed on the string, the cache could never hit
     once; keyed on the policy's CONTENT, it hits exactly when the policy has not
     changed. Both runs below are under one unchanged policy and two version ids.
+
+    The dossier count is read at site A (`104` §17.13 ruling 3, see
+    `_a_fact_policy_versions`); the digests need no clause, because
+    `llm_call_identity` is written where an answer can be reused from and site C
+    records none. That asymmetry is what the middle assertion now rests on: the second
+    run DID mint a second `policy-{uuid4}` and site C's dossier is built under it, so
+    the string moved exactly as this pin says it does -- and site A's cache did not
+    notice, which is the claim.
     """
     _run(corpus, "--enable-cloud")
     _run(corpus)
 
-    versions = {row["policy_version"] for row in _rows(
+    assert len(_a_fact_policy_versions(corpus)) == 1, \
+        "only the first run built a site-A dossier"
+    # And the second run's own version DID reach a dossier, so the line above is a
+    # cache hit and not a run that built nothing: site C has no identity to reuse
+    # from, so it builds one under the freshly minted id every time. Two versions
+    # over both sites, one over site A.
+    every_version = {row["policy_version"] for row in _rows(
         corpus, "SELECT DISTINCT policy_version FROM llm_dossier")}
-    assert len(versions) == 1, "only the first run built a dossier"
+    assert len(every_version) == 2, every_version
 
     policies = _rows(corpus, "SELECT policy_version FROM privacy_policies")
     assert len({row["policy_version"] for row in policies}) > 1, policies

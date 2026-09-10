@@ -17,7 +17,7 @@ from facts.domains import ActivationSignal, ActivationSignals
 from facts.fields import create_fields
 from facts.file_facts import LLM_INTERPRETATION, facts_for_file, write_fact
 from facts.llm_seam import FOUR_CHECKS, Proposal, Verdict, build_request
-from facts.states import LLM_SUPPORTED, VALIDATED
+from facts.states import LLM_SUPPORTED, POSSIBLE, VALIDATED
 from facts.unresolved import unresolved_for_file
 from facts.values import VALUE_ORIGINS, ensure_value
 from llm_harness.fact_validation import (
@@ -26,7 +26,7 @@ from llm_harness.fact_validation import (
     validate_fact_proposal,
 )
 from llm_harness.records import P8Verdict, ValidationUnavailable
-from llm_harness.vocabulary import ACCEPT_DIRECT
+from llm_harness.vocabulary import ACCEPT_DIRECT, CONTRADICTED_BY_STRONGER
 
 CLOCK = "2026-08-19T12:00:00+00:00"
 MODEL = "test-model-1"
@@ -267,6 +267,34 @@ def test_four_failures_use_p6_unresolved_reasons_not_p8_spellings(
 
 
 def test_stronger_fact_contradiction_keeps_the_existing_row(subject_file, seam_conn):
+    """The rule's row is kept AND the model's disagreement is written beside it.
+
+    **Re-argued to `104` §18.2 gap 1 (merged dcda7d0, §18.14).** This pin asserted
+    `reject` / `contradicted_by_stronger_fact` and one surviving row. `00`:42's
+    amendment of 2026-09-05 is that every contradiction check *including the
+    precedence of rule facts over model facts* "is shown to the model as a flag with
+    its evidence, and the model reconciles", so a check that ANSWERS that question by
+    discarding the claim is code overruling the model on a question the ruling gives
+    it. Measured on r15: 16 `subject` and 17 `work_type` facts on labelled coursework
+    were written by a regex, shown to no model, three of them disagreeing with the
+    label.
+
+    **What this pin was really buying is unchanged, and it is the first half of the
+    name.** Precedence did not move: the rule's `validated` row is still the file's
+    subject, still active, still ahead of anything a model says on §3.13's ladder,
+    and `facts.supersede.preferred_of_slot` does not let the proposal out-vote it.
+    What moved is that the disagreement is no longer thrown away with the claim --
+    it is written `possible`, which is below `read_surface.PROPOSAL_ELIGIBLE_STATES`
+    so no folder can rest on it, and a person is shown it.
+
+    SABOTAGE: asserting only the outcome would pass on a build that accepted the
+    claim and dropped the flag, and asserting only the flag would pass on one that
+    let the model's spelling supersede the rule's. Both are asserted, on both sides:
+    the verdict carries `CONTRADICTED_BY_STRONGER` and `requires_review`, P6 is told
+    it PASSED, the rule's row is untouched at `validated`/`rule`, the model's row is
+    beside it at `possible`/`llm_interpretation`, and no `unresolved` row is written
+    -- a rejection's record must not survive a build that stopped rejecting.
+    """
     file_id, content_hash, key = subject_file
     value_id = ensure_value(
         seam_conn, field_key="subject", canonical_value="BUSIB 4300",
@@ -283,13 +311,24 @@ def test_stronger_fact_contradiction_keeps_the_existing_row(subject_file, seam_c
     proposal = Proposal(
         field_key="subject", value="BUSIB4300", citations=(key,), unknown=False)
     result = _validate(seam_conn, request, proposal)
-    assert result.outcome == "reject"
-    subjects = [
-        row for row in facts_for_file(seam_conn, file_id, content_hash)
+    assert result.outcome == ACCEPT_DIRECT
+    assert result.reasons == (CONTRADICTED_BY_STRONGER,)
+    assert result.requires_review is True
+    # P6's `Verdict` is two-valued and a flag is not one of its four checks, so the
+    # claim reaches `apply_verdict` rather than an unresolved row.
+    assert p6_verdict_from_p8(result).passed is True
+    assert p6_verdict_from_p8(result).failed_check is None
+
+    subjects = {
+        (row["canonical_value"], row["reliability_state"], row["origin"])
+        for row in facts_for_file(seam_conn, file_id, content_hash)
         if row["field_key"] == "subject"
-    ]
-    assert [row["canonical_value"] for row in subjects] == ["BUSIB 4300"]
-    assert _reasons(seam_conn, request) == ["contradicted_by_stronger_fact"]
+    }
+    assert subjects == {
+        ("BUSIB 4300", VALIDATED, "rule"),
+        ("BUSIB4300", POSSIBLE, LLM_INTERPRETATION),
+    }
+    assert _reasons(seam_conn, request) == []
 
 
 def test_unknown_is_p6_model_returned_unknown(subject_file, seam_conn):

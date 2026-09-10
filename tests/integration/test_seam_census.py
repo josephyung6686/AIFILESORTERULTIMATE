@@ -389,13 +389,36 @@ def test_the_only_thing_a_live_run_asks_of_p8_p12_and_p13_is_a_table(_census):
     parts whose ONLY contact with a person's run is `CREATE TABLE`. `85` §3
     reaches the same conclusion by counting unreachable mechanisms; this reaches
     it by watching a run.
+
+    **The expected sets GROW, one named symbol at a time, and each carries the
+    ruling that put it there.** That is what keeps this from becoming a number
+    somebody raises: `source_high_level_folder` (P12, `104` R-N) and
+    `released_item_wire_bytes` (P8, `104` R-174) are both predicates or measures
+    that compose nothing and write nothing, and both are named below with the
+    reason they cannot be respelled outside the part that owns them.
     """
     _edges, symbols, _text, _database = _census
     assert symbols.get((ROOT, "P8")) is not None, (
         "P8 is not reached at all -- even its schema. That is a different "
         "defect from the one this guards.")
     for part, expected in ((("P8"), {"create_llm_schema", "create_budget_schema",
-                                     "__post_init__"}),
+                                     "__post_init__",
+                                     # `released_item_wire_bytes` since `104`
+                                     # R-174: the dossier fill bounds what one
+                                     # released reading costs ON THE WIRE, not
+                                     # what its value costs in characters -- r18
+                                     # measured 509 readings of ~30 characters
+                                     # occupying ~250 bytes each, so a ceiling
+                                     # counting characters admitted 129 KB under a
+                                     # 4,000-character bound. The measure MUST be
+                                     # P8's own, because it is taken off
+                                     # `_released_body`, the same function that
+                                     # writes the envelope; a second spelling in
+                                     # the composition root would be a bound that
+                                     # drifts from the bytes it claims to bound.
+                                     # A pure function: no schema, no store, no
+                                     # call, and no dossier is sent by it.
+                                     "released_item_wire_bytes"}),
                            # `source_high_level_folder` since `104` R-N: the
                            # proposal screen asks P12 the same question the
                            # freeze asks, so it cannot offer a move the plan
@@ -404,7 +427,21 @@ def test_the_only_thing_a_live_run_asks_of_p8_p12_and_p13_is_a_table(_census):
                            # nothing on a run without `--freeze`.
                            (("P12"), {"create_mutation_schema",
                                       "source_high_level_folder"}),
-                           (("P13"), {"create_review_schema"})):
+                           # `bucket_for` and `assert_every_file_accounted` since
+                           # `104` §18.2 gap 10 (merged §18.10): an ordinary run
+                           # closed no sum over the roster, so a file the
+                           # deterministic pass settled got no line anywhere and a
+                           # person could not tell "nothing to say about it" from
+                           # "lost". The reconciliation printed after every fact
+                           # pass is P13's own rule -- §8.6's, with `bucket_for`
+                           # deciding the one bucket a file falls in and
+                           # `assert_every_file_accounted` refusing a roster that
+                           # does not add up, naming the files it cannot account
+                           # for. Both are pure functions over rows the root
+                           # already holds: no review screen is composed, no
+                           # question is recorded, and P13 still writes nothing.
+                           (("P13"), {"create_review_schema", "bucket_for",
+                                      "assert_every_file_accounted"})):
         reached = symbols.get((ROOT, part), set())
         assert reached <= expected, (
             f"{part} now does something on a live run beyond creating its "
