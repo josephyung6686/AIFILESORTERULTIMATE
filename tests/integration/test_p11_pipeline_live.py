@@ -799,3 +799,274 @@ def test_p2_an_unratified_site_applies_a_flagged_answer_to_nothing(live, tmp_pat
 
     assert decision.outcome == v.ABSTAIN
     assert decision.destination is None
+
+
+# --- `104` §18.2 gap 14: ONE call takes the GROUP, on the same real chain ---------
+#
+# `00`:112 asks for group-level placement as a first-class capability, and the
+# gap measured its absence: `place_group` placed every member singly and read the
+# parent off the results, so no model call ever took a group. These pins drive the
+# rewritten `place_group` through the SAME real chain the file above uses -- P7's
+# gate, P8's `run_call`, P8's fifteen Site C checks -- so the rows a run
+# inspection reads are the rows this asserts.
+
+GROUP_ID = "g-live-packet"
+MEMBER_NAMES = ("essay", "transcript", "scan")
+
+
+def _group_member(live, tmp_path, name):
+    """A real P1 row, a real P4 observation and a real P7 classification, per
+    member. `_corpus_file` writes one fixed filename, and a packet needs three."""
+    directory = tmp_path / "corpus"
+    directory.mkdir(parents=True, exist_ok=True)
+    document = directory / f"{name}.pdf"
+    document.write_bytes(b"%PDF-1.4 " + name.encode())
+    file_id = record_file(
+        live, document, filename=document.name,
+        normalized_filename=document.name.lower(), extension=".pdf",
+        observed_size=document.stat().st_size,
+        observed_timestamps=json.dumps({"mtime": 1.0}),
+        parent_folder_context=str(directory), mime_type="application/pdf",
+        detected_format="pdf", scan_state="included", materialized=True)
+    content_hash = get_file(live, file_id)["content_hash"]
+    obs = _observation(live, file_id=file_id, content_hash=content_hash)
+    _classify(live, file_id=file_id, content_hash=content_hash, obs=obs)
+    return file_id, content_hash, obs
+
+
+def _live_packet(live, tmp_path):
+    """Three related files, accepted as one group through P9's own writers.
+
+    `p11/p9_fixtures.py` seeds a packet of synthesised ids; this needs REAL ones,
+    because §8.4's gate resolves each member's content hash by file id and the
+    group's release names every member.
+    """
+    from facts.states import VALIDATED
+    from grouping.acceptance import record_acceptance
+    from grouping.records import (
+        AnchorFact, Group, GroupAcceptance, Membership, Support,
+    )
+    from grouping.store import record_group, record_membership
+    from grouping.vocabulary import (
+        ACCEPTED, COHERENT, DIRECT_ANCHOR, ENGINE, INCLUDED, NOT_FLAGGED,
+        NO_SENSITIVITY, PENDING_REVIEW, RULES, SHARED_VALIDATED_FACT,
+        STRONGLY_IDENTIFIED_FILE, SUPPORTED, USER,
+    )
+
+    members = {name: _group_member(live, tmp_path, name)
+               for name in MEMBER_NAMES}
+    _policy(live)
+    ids = tuple(members[name][0] for name in MEMBER_NAMES)
+    keys = tuple(members[name][2] for name in MEMBER_NAMES)
+    record_group(live, Group(
+        group_id=GROUP_ID, seed_ref="seed-live",
+        seed_kind=STRONGLY_IDENTIFIED_FILE, proposed_basis="subject = PHYS1401",
+        anchor_facts=(AnchorFact(
+            field="subject", value="PHYS1401", file_ids=ids[:2],
+            reliability_state=VALIDATED, observation_key=keys[0],
+            observation_keys=keys[:2]),),
+        pre_model_signals={}, anchor_count=2, coherence_verdict=COHERENT,
+        coherence_citations=(keys[0],), group_category="college_applications",
+        display_label="PHYS1401 packet", label_source=ENGINE, conflicts=(),
+        stop_rule_hits=(), state=SUPPORTED, sensitivity_state=NO_SENSITIVITY,
+        dossier_id=None, llm_response_ref=None, validation_verdict_ref=None,
+        created_by=RULES, created_at=FIXED_CLOCK))
+    for name in MEMBER_NAMES:
+        file_id, content_hash, obs = members[name]
+        record_membership(live, Membership(
+            membership_id=f"m-{file_id}", group_id=GROUP_ID, file_id=file_id,
+            content_hash=content_hash, basis=DIRECT_ANCHOR, decision=INCLUDED,
+            decision_source=RULES,
+            support=(Support(support_kind=SHARED_VALIDATED_FACT,
+                             observation_key=obs, quote_or_field="subject",
+                             location="body", edge_ref=None),),
+            insufficient_evidence=False, insufficiency_statement=None,
+            conflicts=(), outlier_flag=NOT_FLAGGED,
+            validation_verdict_ref=None, created_at=FIXED_CLOCK))
+    record_acceptance(live, GroupAcceptance(
+        acceptance_id="acc-live", plan_version_id="plan-1", group_id=GROUP_ID,
+        membership_id=None, acceptance=ACCEPTED, review_state=PENDING_REVIEW,
+        user_edited_label=None, aliases=(), review_decision_ref=None,
+        decided_by=USER, created_at=FIXED_CLOCK))
+    return members
+
+
+def _group_request_builder(*, subject_ref, evidence_items, max_dossier_tokens,
+                           member_file_ids=(), model_target=None):
+    """`_model_call_request`, with `104` §18.2 gap 14's group arm.
+
+    The group's release names every member and takes the target P11's own gate
+    already admitted for all of them -- it re-derives no second destination, which
+    is the whole reason the pipeline hands one over.
+    """
+    from llm_harness.fingerprint import prompt_fingerprint
+
+    if member_file_ids:
+        files = tuple(member_file_ids)
+        group_id = subject_ref.partition(":")[2]
+    else:
+        files, group_id = (subject_ref.split(":")[1],), None
+    return ModelCallRequest(
+        stage="placement", target=Target(file_ids=files, group_id=group_id),
+        model_target=model_target or ModelTarget(
+            locality="local", model_id="llama-local", provider="on-device"),
+        requested_items=tuple(
+            Excerpt(observation_key=item.evidence_ref,
+                    span=TextSpan(start=0, end=8), reason="anchor excerpt")
+            for item in evidence_items),
+        prompt_template_id="template.placement",
+        prompt_fingerprint=prompt_fingerprint(_prompt()),
+        max_dossier_tokens=max_dossier_tokens)
+
+
+def _group_inputs(live, **overrides):
+    import cli
+
+    values = dict(gate=_gate(live), model_call_request=_group_request_builder,
+                  chosen_node_of=cli._chosen_node_of(live))
+    values.update(overrides)
+    return _inputs(live, **values)
+
+
+def _evidence_for_packet(members):
+    """Each member's own accepted fact, keyed by its real file id."""
+    by_file = {file_id: obs for file_id, _hash, obs in members.values()}
+
+    def evidence_for(file_id: str) -> dict:
+        return _evidence(by_file[file_id], group_ids=(GROUP_ID,),
+                         semantic_neighbours=())
+    return evidence_for
+
+
+def _placed_packet(live, tmp_path):
+    from placement.pipeline import place_group
+
+    members = _live_packet(live, tmp_path)
+    return place_group(
+        live, group_id=GROUP_ID,
+        inputs=_group_inputs(live, model_client=_scripted_client(
+            _places_at(lambda shortlist: shortlist[0]))),
+        evidence_for=_evidence_for_packet(members),
+        component_version="P11-live", observed_at=FIXED_CLOCK)
+
+
+def test_gap14_the_group_call_lands_in_the_same_tables_as_every_other_call(
+        live, tmp_path):
+    """`00`'s record, and `104` §18.27's own complaint: the inspection of a run
+    has to SHOW the group call. Nothing is faked here -- P7 releases, the model
+    answers out of the dossier it was shown, P8 validates -- so what this asserts
+    is the row a person's run inspection would open.
+
+    MEASURED: one `llm_dossier` row whose subject is the GROUP, at site C and at
+    this plan version; the `llm_response` and `llm_verdict` rows beside it; and
+    the identity row that says which plan and which evidence snapshot the verdict
+    judged. Before gap 14 the count of every one of these was zero for every
+    group in every run.
+    """
+    plan = _placed_packet(live, tmp_path)
+
+    dossier = live.execute(
+        "SELECT dossier_id, call_site, plan_version FROM llm_dossier "
+        "WHERE subject_ref = ?", (f"{v.GROUP}:{GROUP_ID}",)).fetchall()
+    assert len(dossier) == 1, [dict(row) for row in dossier]
+    assert dossier[0]["call_site"] == C_PLACEMENT
+    assert dossier[0]["plan_version"] == "plan-1"
+    dossier_id = dossier[0]["dossier_id"]
+    assert live.execute(
+        "SELECT count(*) AS c FROM llm_response WHERE dossier_id = ?",
+        (dossier_id,)).fetchone()["c"] == 1
+    verdict = live.execute(
+        "SELECT verdict_id, outcome FROM llm_verdict WHERE dossier_id = ?",
+        (dossier_id,)).fetchone()
+    assert verdict is not None
+    assert verdict["outcome"] == "accept_direct"
+    identity = live.execute(
+        "SELECT plan_version, evidence_snapshot_id FROM llm_cd_plan_identity "
+        "WHERE verdict_id = ?", (verdict["verdict_id"],)).fetchone()
+    assert identity["plan_version"] == "plan-1"
+    assert identity["evidence_snapshot_id"].startswith("snap-")
+    # And the answer reached the files: three members, one folder, one plan.
+    assert plan.shared_parent_node_id is not None
+    assert len(plan.member_decisions) == len(MEMBER_NAMES)
+    for decision in plan.member_decisions:
+        assert decision.destination.node_id == plan.shared_parent_node_id
+        assert decision.decided_by == v.DECIDED_BY_MODEL
+        assert decision.group_support.group_id == GROUP_ID
+
+
+def test_gap14_the_group_dossier_names_every_member_and_carries_their_evidence(
+        live, tmp_path):
+    """`00`:112's premise, on the wire: the model is shown the packet.
+
+    MEASURED off the STORED dossier body, because that is what a run inspection
+    reads and what a replay re-validates against: one released row per member,
+    each addressing that member's own observation.
+    """
+    members = _live_packet(live, tmp_path)
+    from placement.pipeline import place_group
+
+    place_group(
+        live, group_id=GROUP_ID,
+        inputs=_group_inputs(live, model_client=_scripted_client(
+            _places_at(lambda shortlist: shortlist[0]))),
+        evidence_for=_evidence_for_packet(members),
+        component_version="P11-live", observed_at=FIXED_CLOCK)
+
+    body = json.loads(live.execute(
+        "SELECT payload FROM llm_dossier WHERE subject_ref = ?",
+        (f"{v.GROUP}:{GROUP_ID}",)).fetchone()["payload"])
+    released = {row["observation_key"] for row in body["released_evidence"]}
+    for name in MEMBER_NAMES:
+        assert members[name][2] in released, name
+
+
+def test_gap14_the_run_says_how_many_groups_were_asked_answered_and_followed(
+        live, tmp_path):
+    """`104` §18.2 gap 14's last requirement: the printed sentences.
+
+    `00`:112 -- "The engine should show this as one coherent group plan rather
+    than as several unrelated file moves." A person cannot tell one from the
+    other by looking at the file list, so the plan says which it was. The counts
+    are READ FROM THE RUN'S OWN RECORDS by `cli.group_pass_counts` -- the dossier
+    row is the call and the verdict beside it is the answer -- rather than taken
+    from what the pipeline believed it did.
+    """
+    import io
+
+    import cli
+
+    plan = _placed_packet(live, tmp_path)
+    counts = cli.group_pass_counts(live, plan_version="plan-1",
+                                   decisions=plan.member_decisions)
+    assert counts.asked == 1
+    assert counts.answered == 1
+    assert counts.abstained == 0
+    assert counts.with_their_group == len(MEMBER_NAMES)
+    assert counts.singly == 0
+
+    out = io.StringIO()
+    cli._print_group_pass(counts, out=out)
+    said = out.getvalue()
+    assert "Groups put to a model as groups: 1" in said
+    assert "1 answered with a folder." in said
+    assert "0 left to the person's files one at a time" in said
+    assert f"{len(MEMBER_NAMES)} files went where their group went" in said
+    assert "0 were decided one at a time" in said
+
+
+def test_gap14_a_run_that_asked_no_group_says_nothing_about_groups(live):
+    """`_NOTHING_ASKED`'s own ruling, one site over: an absent pass and an
+    unproductive one must not read the same. An offline run, a run with no
+    accepted group and a run whose site-C text is not ratified all reach the
+    report with nothing asked, and none of them has anything to say about group
+    judgement -- so the block is silent rather than printing five zeros.
+    """
+    import io
+
+    import cli
+
+    counts = cli.group_pass_counts(live, plan_version="plan-1", decisions=())
+    assert counts == cli.NO_GROUP_CALLS
+    out = io.StringIO()
+    cli._print_group_pass(counts, out=out)
+    assert out.getvalue() == ""
