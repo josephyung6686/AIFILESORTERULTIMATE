@@ -32,14 +32,19 @@ file was understood and found unimportant". A stage that has no rows says so and
 says what the absence means, because a heading followed by nothing reads as a
 product that forgot rather than one that never ran.
 
-**A reason that is not in the database is not printed.** The fact pass counts a
-file with no route (`cli._model_situation_pass`'s `no_route`) and prints the
-count, but writes no per-file row for it -- so this module cannot say "no site
-had a model to ask" about a particular file without inventing it. Where the four
+**A reason that is not in the database is not printed.** Where the four
 model-call sources are all empty the sentence says exactly that: the database
 records no reason. `104` §17.2 is what a number with no provenance costs, and a
 made-up reason on a trail is that cost paid where a person is least able to
 check it.
+
+**SITE G'S NO-ROUTE FILE NOW HAS ONE (`104` §18.33 gap 25).** This paragraph used
+to end "so this module cannot say 'no site had a model to ask' about a particular
+file without inventing it", and that was true of a counter that existed only in
+memory. `cli.ask_the_situation` writes one `llm_pre_call_abstention` row per file
+it could route nowhere, so the reason is a row and the ASKED stage prints it
+beside every other call that did not happen. What still has no row is site E's own
+`no_route` count, and this module still invents nothing for it.
 """
 from __future__ import annotations
 

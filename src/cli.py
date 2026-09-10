@@ -86,6 +86,11 @@ from facts.families import (
     shared_family_field,
 )
 from facts.discount import MetadataScreen
+# `104` §18.31: which reader produced each of the readings a site-E call carries.
+# `00`:44's "exact process that produced it" term of the cache key, read off the
+# evidence rather than off a constant, exactly as `model_facts.
+# call_identity_dimensions` reads it at site A.
+from facts.evidence import observations_for_version
 from facts.learning import NoSuchClaim, reject_claim
 from facts.domains import ActivationSignal, ActivationSignals
 from branch_situation import (
@@ -153,11 +158,22 @@ from llm_harness.harness import (
     CallDependencies, CallLane, in_walk_order, run_call,
 )
 from llm_harness.records import (
-    CallRefused, FolderLevel, P8Verdict, PromptDefinition,
+    CallRefused, FolderLevel, P8Verdict, PreCallAbstention, PromptDefinition,
 )
 from llm_harness.situation_validation import is_decline
 from llm_harness.store import (
     grounding_counters, last_response_bytes,
+    # `104` §18.31: site E's reuse, and every name here is site A's own. One
+    # identity function, one prior lookup, one reuse row -- `model_facts` reaches
+    # for the same six at site A, and a second cache written beside them would be a
+    # second answer to "has this question been asked before".
+    call_identity, prior_call, record_call_identity, record_call_reuse,
+    standing_verdicts,
+    # `104` §18.33 gap 25: how a call that was never BUILT is recorded. The writer
+    # `placement.pipeline._not_asked` already uses for one file the model is not
+    # asked about, so site G's no-route file lands in the row a reader already
+    # reads rather than in a table nobody has authorised.
+    record_unbuilt_call_abstention,
     # `104` R-175: how site G records a file it skipped past its ceiling. The same
     # reduction `model_facts.fact_call_stage` uses at site A, so one skipped file is
     # recorded one way wherever the loop that skipped it lives.
@@ -165,10 +181,18 @@ from llm_harness.store import (
 )
 from llm_harness.sites import SiteDependencies
 from llm_harness.schema import create_llm_schema
+# `104` §18.31: THE MODULE AND NOT THE NAME. `validation._make_verdict` stamps
+# every site-E verdict with this module's own `COMPONENT_VERSION`, read at call
+# time; `template_named_before` compares a stored verdict against it and must read
+# THE SAME name at call time, or the stamp and the comparison can disagree about
+# what the current validator is. `test_a_fact_revalidates_under_a_new_validator._
+# bump` states the rule one site over: patching only one of them tests a fixture.
+from llm_harness import validation as p8_validation
 from llm_harness.vocabulary import (
     A_FACT, B_GROUP, C_PLACEMENT, CONTEXT_SUPPORTED, D_RESIDUAL, DIRECT_ANCHOR,
     ACCEPT_CONTEXT_SUPPORTED, ACCEPT_DIRECT,
-    E_TEMPLATE, G_SITUATION_SENSITIVITY, LLM_SUPPORTED, PRE_CALL_NAMESPACE,
+    E_TEMPLATE, G_SITUATION_SENSITIVITY, LLM_SUPPORTED, NOT_ELIGIBLE_FOR_MODEL,
+    PRE_CALL_NAMESPACE,
     SCOPE_FILE, SCOPE_TEMPLATE as TEMPLATE_SCOPE, pre_call_address,
 )
 
@@ -1589,7 +1613,21 @@ def _validated_payload(conn: sqlite3.Connection, verdict) -> dict | None:
     allows two. The effective ref is `validation._validate_claim`'s own rule: the
     claim's own `claim_ref` when it has one, `claim-<index>` otherwise.
     """
-    raw = last_response_bytes(conn, verdict.dossier_id)
+    return _claim_payload(conn, verdict.dossier_id, verdict.claim_ref)
+
+
+def _claim_payload(conn: sqlite3.Connection, dossier_id: str,
+                   claim_ref: str) -> dict | None:
+    """The same read, addressed by the two things a verdict ROW also carries.
+
+    Lifted out of `_validated_payload` for `104` §18.31: site E's reuse reads a
+    verdict recorded by an EARLIER RUN, which arrives as a `llm_verdict` row and
+    not as a `P8Verdict`, and reading it a second way here would be a second
+    definition of "what did the model answer for this claim" -- free to disagree
+    with the one every live call is read through. One reader, two callers, which
+    is the rule `facts.resolver._write_bars` states for its own two.
+    """
+    raw = last_response_bytes(conn, dossier_id)
     if raw is None:
         return None
     try:
@@ -1607,7 +1645,7 @@ def _validated_payload(conn: sqlite3.Connection, verdict) -> dict | None:
             continue
         ref = (str(claim["claim_ref"]) if claim.get("claim_ref")
                else f"claim-{index}")
-        if ref != verdict.claim_ref:
+        if ref != claim_ref:
             continue
         payload = claim.get("payload")
         return payload if isinstance(payload, dict) else None
@@ -6034,11 +6072,74 @@ def template_named_by_verdict(conn: sqlite3.Connection, verdict) -> str | None:
     """
     if verdict is None or verdict.outcome not in ACCEPTING_OUTCOMES:
         return None
-    payload = _validated_payload(conn, verdict)
+    return _template_name_in(_validated_payload(conn, verdict))
+
+
+def _template_name_in(payload: dict | None) -> str | None:
+    """WHICH TEMPLATE an accepted site-E payload names, and nothing else.
+
+    One spelling for one question, because since `104` §18.31 there are two
+    callers: the answer this run's call just produced, and the answer an earlier
+    run's call left in the store. A template read one way live and another way on
+    reuse would be two answers to "what is this file held under", and the gate's
+    §7.3 arm reads whichever it is handed.
+    """
     name = payload.get("domain") if payload else None
     if not isinstance(name, str) or not name.strip():
         return None
     return name.strip()
+
+
+def template_named_before(conn: sqlite3.Connection,
+                          dossier_id: str) -> tuple[str, str] | None:
+    """The template an EARLIER call at this identity designed, or `None`.
+
+    `104` §18.31: *"the store is run-local; nothing reads the E verdict rows back,
+    so a second run re-asks"*. The rows were always durable -- `llm_verdict` beside
+    the `llm_response` the answer is in -- and `template_named_by_verdict` read
+    them only for the verdict the call in hand had just produced. This is the same
+    read addressed to a dossier a PRIOR run wrote, and it returns the claim the
+    answer was judged under beside the name, because `record_call_reuse` records
+    WHICH question was not asked again and "the template claim" is that question.
+
+    **SUPERSEDED VERDICTS ARE NOT ANSWERS**, and `standing_verdicts` is where that
+    is decided rather than here: a re-judgement replaces the conclusion it
+    supersedes, and a retired verdict that went on suppressing the ask would be
+    §8.2's replaced conclusion acting after it was replaced.
+
+    **A VERDICT ANOTHER VALIDATOR WROTE IS NOT THIS VALIDATOR'S JUDGEMENT.** `104`
+    R-127 / `105` §14.7: *"validator or normalisation changes must re-evaluate
+    cached responses rather than retain obsolete verdicts"*. Site A can honour that
+    by RE-JUDGING, because `model_facts._reuse_is_current` has the request, the
+    dependencies and the vocabulary of the question in hand and can re-read the
+    stored bytes. This site has no such second reading to make -- E's verdict is
+    the shape P10 published, judged whole -- so it takes the same rule's other
+    arm, the one `_reuse_is_current` itself takes whenever a re-judgement cannot be
+    made: **ask again**. It costs a call and tells the truth; retaining the
+    obsolete verdict is the thing R-127 forbids.
+
+    **KNOWN AND OWED, so it is not mistaken for a decision nobody noticed.** Site A
+    reuses an ABSTENTION and a REJECT as answers (`104` R-109: re-asking buys the
+    identical silence). Here only an ACCEPTED answer is reused, which is the
+    owner's own wording for this row -- so a file site E was asked about and
+    designed nothing for is asked again on the next run. Widening it is a decision
+    about what an unratified site's silence means and is the owner's, not this
+    function's.
+    """
+    standing = standing_verdicts(conn, dossier_id)
+    if not standing:
+        return None
+    if any(row["validator_version"] != p8_validation.COMPONENT_VERSION
+           for row in standing):
+        return None
+    for row in reversed(standing):
+        if row["outcome"] not in ACCEPTING_OUTCOMES:
+            continue
+        name = _template_name_in(
+            _claim_payload(conn, dossier_id, row["claim_ref"]))
+        if name is not None:
+            return row["claim_ref"], name
+    return None
 
 
 def situation_named_by_verdict(conn: sqlite3.Connection, verdict,
@@ -6402,8 +6503,16 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
       standing exactly where no hold exists.
     """
     named: dict = {}
-    settled = nothing_to_ask = nothing_to_read = declined = no_route = 0
+    settled = nothing_to_ask = nothing_to_read = declined = 0
     over_ceiling = 0
+    #: `104` §18.33 gap 25: THE ROWS, AND THE COUNT IS TAKEN OFF THEM. `no_route`
+    #: was `+= 1` and nothing else, so `--trail FILE` could not say why a file was
+    #: never asked -- the surface's own words: *"this module cannot say 'no site had
+    #: a model to ask' about a particular file without inventing it"*. Each id here
+    #: is one row this pass wrote; the count below is `len` of them, so a `continue`
+    #: added without a row lowers the number a person reads instead of leaving the
+    #: number right and the file unaccounted for.
+    no_route_rows: list[str] = []
     # `104` R-175. THE SAME OBJECT SITE A'S STAGE CONSULTS, taken off the bundle
     # both are handed rather than built here: one ceiling with one set of first
     # sightings is what makes this a bound on the FILE's turn. Two would let a file
@@ -6519,7 +6628,30 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             # site asked about protected material, or no target wired). It is
             # counted here, on its own line, so the report cannot read it as a
             # file with nothing to say.
-            no_route += 1
+            #
+            # AND SINCE `104` §18.33 gap 25 IT HAS A ROW OF ITS OWN, because a
+            # count is not something a person can open their file and read. Site A
+            # already records its no-route file per file -- `model_facts.
+            # NOT_ASKED_NO_ROUTE`, one `unresolved` row per pending field -- and
+            # this is that record in the shape THIS site can honestly write: site G
+            # asks about a file's situation and not about P6 fields, so there is no
+            # pending field to write a row about, and `record_unbuilt_call_
+            # abstention` is P8's own record of a call whose request was never
+            # built. `placement.pipeline._not_asked` writes exactly this for exactly
+            # this reason -- "one file the model is not asked about, recorded and
+            # handed back" -- and `NOT_ELIGIBLE_FOR_MODEL` is the word it uses:
+            # `PRE_CALL_REASON_CODES` is a closed set of three, none of the other
+            # two is true here, and minting a fourth is a P8 vocabulary widening and
+            # the owner's (`store.record_call_refusal` says so in its own words).
+            # The finer sentence -- WHICH of protected-and-cloud-only or nothing-
+            # wired this file hit -- stays out of the row for `_not_asked`'s reason:
+            # `PreCallAbstention` is P8's closed three-field shape and widening it
+            # here would be this file authoring another part's record.
+            no_route_rows.append(record_unbuilt_call_abstention(
+                conn, PreCallAbstention(
+                    reason=NOT_ELIGIBLE_FOR_MODEL,
+                    call_site=G_SITUATION_SENSITIVITY, subject_ref=file_id),
+                observed_at=now()))
             continue
         client, target = chosen
         if precaution is not None and target.locality != LOCAL:
@@ -6641,7 +6773,12 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         ceiling.close_turn()
     return SituationPass(
         named=named, settled=settled, nothing_to_ask=nothing_to_ask,
-        nothing_to_read=nothing_to_read, declined=declined, no_route=no_route,
+        nothing_to_read=nothing_to_read, declined=declined,
+        # `104` §18.33 gap 25: THE NUMBER IS THE ROWS. Not a tally kept beside them
+        # -- a counter and a table are two accounts of one fact and the day they
+        # disagree the screen is the one a person believes. One row was written for
+        # each of these files above and this is how many there are.
+        no_route=len(no_route_rows),
         over_ceiling=over_ceiling,
         # `still_held` IS DERIVED AND IS NOT A SEVENTH TALLY. A hold that was
         # neither released nor confirmed is standing, whichever of the pass's six
@@ -6673,7 +6810,9 @@ class TemplatePass:
 
     **THE SIX COUNTERS PARTITION THE ROSTER.** Every file this pass walked lands in
     exactly one of them and `_print_template_pass` prints an arithmetic a person can
-    check against the total.
+    check against the total. `reused` is the one field that is not among the six and
+    the comment on it says why: it counts files that are already in `chosen`, so it
+    divides the answers rather than the roster.
     """
 
     #: file_id -> the template a model named for it, validated and stored. What
@@ -6705,6 +6844,14 @@ class TemplatePass:
     #: pass could reach the rest. Its own count for `no_route`'s reason. Zero on
     #: every run that sets no ceiling, which is every run a person is watching.
     over_ceiling: int = 0
+    #: `104` §18.31: files whose template is in `chosen` because an EARLIER RUN
+    #: asked and this one did not. A SUB-COUNT OF `chosen` AND NOT A SIXTH BUCKET,
+    #: exactly as `PrecautionHolds.still_held` is not a seventh tally: the file was
+    #: answered, so it belongs where every other answered file is, and what this
+    #: adds is whether the answer was bought again. It is named in the block's
+    #: HEADER for that reason -- the five sentences below partition the roster and a
+    #: sixth line here would be counting one file twice.
+    reused: int = 0
 
 
 #: THE PASS THAT DID NOT RUN, and it is a value rather than a `None` for
@@ -6713,6 +6860,69 @@ class TemplatePass:
 #: every file under the template its situation names; only one of them means a
 #: model was consulted.
 _NO_TEMPLATE_ASKED: "TemplatePass"
+
+
+def template_call_identity(conn: sqlite3.Connection, *, file_id: str,
+                           content_hash: str, request, schema_id: str,
+                           policy_version: str) -> dict[str, object]:
+    """`00`:44's cache key for one site-E call, term by term. `104` §18.31.
+
+    **THE SAME TEN TERMS SITE A KEYS ON, and not a set of this site's own.**
+    `store.call_identity` refuses a mapping that is missing one or carries an
+    eleventh, in its own words: *"A digest over a different set of terms is a
+    different cache, and one that silently accepted fewer terms would reuse an
+    answer across a change nobody saw."* So the question this function answers is
+    what each of those ten IS at this site, and `model_facts.
+    call_identity_dimensions` is the argument for every one of them:
+
+      * `content_hash` is the file VERSION -- the term the E rows never carried.
+        A site-E `subject_ref` is the bare file id (`review_surface.trail._subject
+        _refs`), so before this row nothing in the database tied an E answer to
+        the bytes it was about, and a reuse keyed on the id alone would hand a
+        rewritten file the template designed for what it used to say.
+      * `extractor_versions` is the `(name, version)` of the readings THIS call
+        carries, read off the released items rather than off a constant, so an
+        upgraded reader invalidates the templates that rested on its output.
+      * `model_id`, `prompt_fingerprint` and `plan_version` are read off the
+        request the call is about to be built from, never off the arguments beside
+        it: a dimension that says one thing while the call does another is a cache
+        key that is right about a call nobody made.
+      * `schema_id` is the situation's own domain, which is what
+        `allowed_vocabulary_for` closes the dimension names against -- the same
+        role the activation signals' schemas play at site A.
+      * `policy` is the policy's CONTENT and not its version id, and it is
+        `model_facts._policy_content` itself rather than a copy: that function's
+        docstring is the measurement (`policy-{uuid4}` is minted per run, so a
+        version id would miss the cache on every run), and a second spelling of
+        "what the policy says" beside it is a second thing that can disagree.
+      * `context_refs` is `[]`, which is the truth about this site rather than a
+        filler: site E shows the model no neighbour's readings at all
+        (`file_template_request_for` builds from this file's own accepted facts),
+        and `[]` is exactly what `store.EMPTY_DIMENSION_VALUES` says a call with
+        nothing to say there carries.
+    """
+    released = {item.observation_key
+                for item in request.model_call_request.requested_items}
+    return {
+        "call_site": E_TEMPLATE,
+        "content_hash": content_hash,
+        "context_refs": [],
+        "extractor_versions": sorted(
+            {(observation.extractor_name, observation.extractor_version)
+             for observation in observations_for_version(
+                 conn, file_id, content_hash)
+             if observation.observation_key in released}),
+        "model_id": request.model_call_request.model_target.model_id,
+        # E's request carries one, and `tree_design.template_schema.build_template_
+        # request` says why: `E_template` is in P8's `SITES_REQUIRING_PLAN_VERSION`
+        # because §8.8 captures template versions per plan version. Read off the
+        # request so the row and the identity cannot name two different plans.
+        "plan_version": request.plan_version,
+        "policy": model_facts._policy_content(conn, policy_version),
+        "prompt_fingerprint": request.model_call_request.prompt_fingerprint,
+        "schema_id": [schema_id],
+        "subject_ref": file_id,
+    }
 
 
 def ask_for_a_template(conn: sqlite3.Connection, *, roster, fact_authorities,
@@ -6753,9 +6963,24 @@ def ask_for_a_template(conn: sqlite3.Connection, *, roster, fact_authorities,
 
     **A FILE THIS PASS DOES NOT ANSWER FOR KEEPS THE TEMPLATE ITS SITUATION NAMES**,
     exactly as it did before this pass existed. Silence changes nothing.
+
+    **AND SINCE `104` §18.31 IT DOES NOT BUY THE SAME ANSWER TWICE.** The register's
+    words: *"the E store is run-local (a second run re-asks)"*. The verdict rows
+    were always durable and nothing read them back, so a second run over one
+    database asked a local model to design a template again for every file it had
+    already designed one for -- one call per unfitting file, and on a real corpus
+    most files lack `work_type`, so that is most of the roster. The reuse is site
+    A's own and not a second one: `template_call_identity` keys on the ten terms
+    `store.CALL_IDENTITY_DIMENSIONS` fixes, `prior_call` finds the dossier that
+    identity last reached, `template_named_before` reads the answer off the verdict
+    standing on it, and `record_call_reuse` writes the row that says a question was
+    not asked again. A changed prompt row, a changed schema, a changed model, a
+    changed policy or a rewritten file all move the digest and buy the call again;
+    a changed validator is refused by the version check rather than the digest,
+    which is R-127's rule and `template_named_before` carries the argument.
     """
     chosen: dict = {}
-    fits = nothing_to_read = abstained = no_route = over_ceiling = 0
+    fits = nothing_to_read = abstained = no_route = over_ceiling = reused = 0
     ceiling = fact_authorities.per_file_ceiling
     # `104` §17.13 ruling 3: PER FILE, not per site. Site E's text is unratified, so
     # `target_for` drops the cloud candidate for every file and everything this pass
@@ -6806,6 +7031,42 @@ def ask_for_a_template(conn: sqlite3.Connection, *, roster, fact_authorities,
         if request is None:
             nothing_to_read += 1
             continue
+        schema_id = schema_for_situation(catalogue, situation)
+        # `104` §18.31, AND IT IS HERE FOR `104` R-13'S REASON ONE SITE OVER:
+        # everything after this line costs. `run_call` reserves a budget slot,
+        # `gate.release` mints an audit row and a single-use capability, and the
+        # transport spends it -- so the last thing done for free is asking whether
+        # this exact question already has an answer. It cannot be asked earlier
+        # either: the identity's terms are read off the request, which is what
+        # `file_template_request_for` has just built.
+        identity = template_call_identity(
+            conn, file_id=file_id, content_hash=content_hash, request=request,
+            schema_id=schema_id, policy_version=fact_authorities.policy_version)
+        identity_id = call_identity(identity)
+        prior = prior_call(conn, identity_id)
+        answered = (None if prior is None
+                    else template_named_before(conn, prior["dossier_id"]))
+        if answered is not None:
+            claim_ref, named = answered
+            # THE ANSWER IS THE ANSWER, WHICHEVER RUN BOUGHT IT. It goes into
+            # `chosen` beside the templates this run designed, because that is what
+            # `template_for` reads and the gate's §7.3 arm asks about a file, not
+            # about which run answered for it. `reused` is what keeps the two
+            # readable apart on the screen.
+            chosen[file_id] = named
+            reused += 1
+            # ONE ROW PER QUESTION NOT ASKED, and it is the row site A writes for
+            # the same event: *"a run that quietly makes fewer calls than the last
+            # one is indistinguishable from a run that silently dropped files"*.
+            # The reused field is the CLAIM the template was judged under -- what
+            # this site asks one question about -- where site A names the fact
+            # fields it did not re-ask.
+            record_call_reuse(
+                conn, identity_id=identity_id,
+                prior_dossier_id=prior["dossier_id"], call_site=E_TEMPLATE,
+                subject_ref=file_id, reused_fields=(claim_ref,),
+                observed_at=now())
+            continue
         verdict = run_call(
             conn, request,
             gate=fact_authorities.gate,
@@ -6818,8 +7079,7 @@ def ask_for_a_template(conn: sqlite3.Connection, *, roster, fact_authorities,
                 file_template_call_dependencies(
                     fact_authorities, catalogue,
                     allowed_vocabulary=allowed_vocabulary_for(
-                        catalogue,
-                        uses_schema=schema_for_situation(catalogue, situation)),
+                        catalogue, uses_schema=schema_id),
                     folder_levels=folder_levels,
                     placeable_file_count=len(roster)),
                 basis_key=file_id, learning_subject_id=file_id),
@@ -6828,6 +7088,19 @@ def ask_for_a_template(conn: sqlite3.Connection, *, roster, fact_authorities,
             # response with no `llm_call_usage` row beside it is indistinguishable
             # from a call that spent nothing, and this site spends one per file.
             usage_recorder=fact_authorities.usage_recorder)
+        if isinstance(verdict, P8Verdict):
+            # ONLY ON A VERDICT, and site A's exclusions are the reason: a refusal,
+            # a call failure and a `ValidationUnavailable` are states where no model
+            # answered, and remembering one as an answer would turn a denied
+            # release or a provider that hung up into a permanent silence about the
+            # file. A PRE-CALL ABSTENTION slips through this test and is excluded a
+            # step later instead -- it is addressed to `pre_call_address` and
+            # carries no `llm_verdict` row, so `template_named_before` reads no
+            # standing verdict off it and the next run asks.
+            record_call_identity(
+                conn, identity_id=identity_id, dossier_id=verdict.dossier_id,
+                call_site=E_TEMPLATE, subject_ref=file_id, dimensions=identity,
+                observed_at=now())
         named = (template_named_by_verdict(conn, verdict)
                  if isinstance(verdict, P8Verdict) else None)
         if named is None:
@@ -6840,7 +7113,8 @@ def ask_for_a_template(conn: sqlite3.Connection, *, roster, fact_authorities,
         ceiling.close_turn()
     return TemplatePass(
         chosen=chosen, fits=fits, nothing_to_read=nothing_to_read,
-        abstained=abstained, no_route=no_route, over_ceiling=over_ceiling)
+        abstained=abstained, no_route=no_route, over_ceiling=over_ceiling,
+        reused=reused)
 
 
 _NO_TEMPLATE_ASKED = TemplatePass(
@@ -8583,12 +8857,21 @@ TEMPLATE_SENTENCE: Mapping[str, str] = MappingProxyType({
         "decided -- what is open is open, and the next run asks again.",
 })
 
-assert set(TEMPLATE_SENTENCE) | {"chosen"} == {
+#: The two fields the block prints in its HEADER rather than as one of the lines
+#: that divide the roster. `chosen` is what the pass exists to produce and heads the
+#: block the way `named` heads site G's; `reused` is a sub-count of `chosen` (`104`
+#: §18.31) and a line of its own would count one file in two places and make the
+#: arithmetic under the header stop adding up -- which is the one thing these blocks
+#: are for. Named here rather than spelled at the assert so the exemption has a
+#: reason beside it and a third name cannot be added silently.
+TEMPLATE_HEADER_FIELDS: frozenset[str] = frozenset({"chosen", "reused"})
+
+assert set(TEMPLATE_SENTENCE) | TEMPLATE_HEADER_FIELDS == {
     field.name for field in dataclasses.fields(TemplatePass)}, (
     "every counter the per-file template site leaves behind earns a sentence on "
     "the screen, on `SITUATION_SENTENCE`'s rule: a counter with no sentence is a "
     "number this report silently drops, so a new one fails to import rather than "
-    "going unprinted. `chosen` is the block's own header")
+    "going unprinted. `chosen` and `reused` are the block's own header")
 
 
 def _print_template_pass(pass_: TemplatePass, *, files: int,
@@ -8598,6 +8881,12 @@ def _print_template_pass(pass_: TemplatePass, *, files: int,
     **ONE SHAPE ON ONE SCREEN.** A header naming what was decided and for how many
     of how many files, then one indented line per outcome carrying its own count
     and its own reason. Three blocks in three shapes would read as three products.
+
+    **THE REUSE IS PART OF THE HEADER (`104` §18.31).** It is a sub-count of the
+    answers and not a sixth outcome, so it is said where the answers are counted;
+    it prints only when there is one, because "0 answers were not bought again" is
+    a sentence about a run that had nothing to reuse and the five lines below are
+    where a zero has to survive.
 
     **ALL FIVE, INCLUDING THE ZEROS**, for `_print_situation_pass`' reason: these
     counters partition the roster, so the five numbers are an arithmetic a person
@@ -8615,7 +8904,11 @@ def _print_template_pass(pass_: TemplatePass, *, files: int,
     """
     if pass_ is _NO_TEMPLATE_ASKED or not files:
         return
-    asked = len(pass_.chosen) + pass_.abstained
+    # THE FILES THIS RUN ACTUALLY ASKED ABOUT, which since `104` §18.31 is not
+    # every file that has an answer: a reused answer is in `chosen` and no call was
+    # made for it. Counting it as asked would tell a person this run spent a call
+    # per template when the whole point of the row is that it did not.
+    asked = len(pass_.chosen) - pass_.reused + pass_.abstained
     named = len(pass_.chosen)
     print("", file=out)
     print(_wrapped(
@@ -8628,8 +8921,21 @@ def _print_template_pass(pass_: TemplatePass, *, files: int,
         f"answers is still a draft: no folder is created from them, and what one "
         f"decides is whether the file may be shown to a model at all. Nothing "
         f"about any of them left the device.", indent=""), file=out)
+    if pass_.reused:
+        # `104` §18.31, IN THE HEADER AND NOT AS A SIXTH LINE. A person reading
+        # "3 of 6 files were asked" needs to know that 2 more were answered
+        # without being asked, or the two numbers in the sentence above look
+        # wrong; and the lines below divide the roster, so a reused file -- which
+        # is already inside `chosen` -- cannot take one of its own.
+        print(_wrapped(
+            f"{pass_.reused} of those answers "
+            f"{'was' if pass_.reused == 1 else 'were'} "
+            f"not bought again: an earlier run over this plan asked the same "
+            f"question about the same file, under the same prompt, schema, model "
+            f"and policy, and its answer still stands. No call was made for "
+            f"{'it' if pass_.reused == 1 else 'them'}.", indent=""), file=out)
     for field in dataclasses.fields(TemplatePass):
-        if field.name == "chosen":
+        if field.name in TEMPLATE_HEADER_FIELDS:
             continue
         print(_wrapped(f"{getattr(pass_, field.name)} "
                        f"{TEMPLATE_SENTENCE[field.name]}", indent="  "),
