@@ -40,7 +40,7 @@ def _answer_naming(kind: str):
     return answer
 
 
-def test_site_g_runs_under_the_v2_row_and_its_enum_is_the_vocabulary():
+def test_site_g_runs_under_the_ratified_row_and_its_enum_is_the_vocabulary():
     """The row the owner ratified is the row the site reads, and the schema's ten
     are `RESTRICTED_KINDS` in the vocabulary's order -- one list, not two.
 
@@ -48,7 +48,8 @@ def test_site_g_runs_under_the_v2_row_and_its_enum_is_the_vocabulary():
     the v2 schema, and this goes red.
     """
     template_id, candidate = cli.SITUATION_ROW
-    assert candidate == "situation-safety-first-v2"
+    # v2 added the field; v3 (gap 8) carries the same template and schema.
+    assert candidate.startswith("situation-safety-first-v")
     template, schema, _policy = draft_bytes(template_id)
     payload = json.loads(schema)["properties"]["claims"]["items"]["properties"]["payload"]
     assert tuple(payload["properties"]["restricted_kind"]["enum"]) == RESTRICTED_KINDS

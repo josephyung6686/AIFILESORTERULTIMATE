@@ -22,6 +22,7 @@ import cli
 from llm_harness import prompt_library
 from llm_harness.fingerprint import prompt_fingerprint
 from llm_harness.prompt_library import (
+    draft_bytes,
     RATIFIED, RATIFIED_LOCAL, UNRATIFIED, a_fact_response_schema_bytes,
     a_fact_shaping_policy_bytes, a_fact_template_folder_levels_bytes,
 )
@@ -33,7 +34,7 @@ from readers.model_routing import CLOUD, LOCAL
 def _as_composed_before_r144() -> PromptDefinition:
     """`a_fact_prompt` as it read before the row: the library files by digest."""
     return PromptDefinition(
-        template_id="a_fact.unratified.folder-levels.2026-09-04",
+        template_id="a_fact.unratified.folder-levels-v3.2026-09-09",
         template_bytes=a_fact_template_folder_levels_bytes(),
         response_schema_bytes=a_fact_response_schema_bytes(),
         call_site=A_FACT, call_site_version="1", ratified=True,
@@ -44,11 +45,21 @@ def test_the_real_manifest_resolves_a_to_the_same_bytes_and_fingerprint():
     before = _as_composed_before_r144()
     now = cli.a_fact_prompt()
 
-    assert now.template_id == before.template_id
-    assert now.template_bytes == before.template_bytes
-    assert now.response_schema_bytes == before.response_schema_bytes
-    assert now.shaping_policy_bytes == before.shaping_policy_bytes
-    assert prompt_fingerprint(now) == prompt_fingerprint(before)
+    # `104` §18.13 (9 Sep 2026): the row site A runs under is v3 -- the v2 text
+    # plus the owner's two sentences, with A's policy v2 -- so the row no longer
+    # resolves to the pre-R-144 composition of the v1 files. What it resolves to
+    # is exactly the bytes the manifest verifies by digest, which is R-144's
+    # claim in its current form; the v1 composition is a different text now and
+    # is asserted different, so this pin cannot pass by the row silently falling
+    # back to the old files.
+    template, schema, policy = draft_bytes(cli.A_FACT_ROW[0])
+    assert now.template_id == cli.A_FACT_ROW[0]
+    assert now.template_bytes == template
+    assert now.response_schema_bytes == schema == before.response_schema_bytes
+    assert now.shaping_policy_bytes == policy
+    assert now.template_bytes != before.template_bytes
+    assert now.shaping_policy_bytes != before.shaping_policy_bytes
+    assert prompt_fingerprint(now) != prompt_fingerprint(before)
     assert now.ratified is True
 
 
@@ -60,7 +71,7 @@ def test_the_row_a_runs_under_is_ratified_and_names_the_shipped_glossary():
 
 
 def _pointed_at(monkeypatch, *, status: str | None, candidate: str = "r144-test",
-                template_id: str = "a_fact.unratified.folder-levels.2026-09-04",
+                template_id: str = "a_fact.unratified.folder-levels-v3.2026-09-09",
                 glossary: str = "field_glossary.json"):
     """Select a row that exists only in this test's copy of the manifest."""
     manifest = {key: (list(value) if isinstance(value, list) else value)
@@ -131,4 +142,4 @@ def test_a_row_nobody_published_is_refused_and_names_the_candidates(monkeypatch)
     monkeypatch.setattr(cli, "A_FACT_ROW", (cli.A_FACT_ROW[0], "no-such-arm"))
     with pytest.raises(prompt_library.DraftNotInManifest) as refused:
         cli.a_fact_prompt()
-    assert "ratified-folder-levels" in str(refused.value)
+    assert "v3-conflicts-open-values" in str(refused.value)

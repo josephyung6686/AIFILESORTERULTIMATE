@@ -389,6 +389,11 @@ SENSITIVITY_POLICY_VIOLATION: str = "SENSITIVITY_POLICY_VIOLATION"
 BELOW_SUPPORT_THRESHOLD: str = "BELOW_SUPPORT_THRESHOLD"
 INSUFFICIENT_MARGIN: str = "INSUFFICIENT_MARGIN"
 GENERIC_HUB_ONLY: str = "GENERIC_HUB_ONLY"
+#: WITH THE OWNER'S APPROVAL, RECORDED HERE (9 Sep 2026, `104` §18.2 gap 2's
+#: leftover (a), ratified in session): the word for the review flag a placement
+#: carries when the model reported its retrieval weak. It had no word -- the arm
+#: set `reasons=()` -- so nothing it fired on could be counted or explained.
+WEAK_RETRIEVAL_REPORTED: str = "WEAK_RETRIEVAL_REPORTED"
 
 SITE_C_REASON_CODES: tuple[str, ...] = (
     NODE_NOT_IN_FROZEN_TREE,
@@ -402,6 +407,7 @@ SITE_C_REASON_CODES: tuple[str, ...] = (
     BELOW_SUPPORT_THRESHOLD,
     INSUFFICIENT_MARGIN,
     GENERIC_HUB_ONLY,
+    WEAK_RETRIEVAL_REPORTED,
 )
 
 ACTION_NOT_IN_CONTROLLED_SET: str = "ACTION_NOT_IN_CONTROLLED_SET"

@@ -48,6 +48,7 @@ from llm_harness.vocabulary import (
     EVIDENCE_NOT_IN_FILE_RECORD,
     GENERIC_HUB_ONLY,
     INSUFFICIENT_MARGIN,
+    WEAK_RETRIEVAL_REPORTED,
     INVENTED_DATE,
     INVENTED_FOLDER,
     INVENTED_INSTITUTION,
@@ -540,8 +541,10 @@ def _placement_site(
         # name is in the report. `c_placement_response_schema.json` forbids the
         # key outright (`additionalProperties: false`), so in the product this
         # arm is reachable only through `llm_harness.fixtures`' bench payloads.
-        return _flagged(verdict, tuple(flags)) or _rewrite(
-            verdict, requires_review=True)
+        # THE WORD, since 9 Sep 2026: `WEAK_RETRIEVAL_REPORTED`, the owner's
+        # approval recorded beside the constant in `vocabulary`. The flag now
+        # counts in a histogram and explains itself like its siblings.
+        flags.append(WEAK_RETRIEVAL_REPORTED)
     return _flagged(verdict, tuple(flags))
 
 

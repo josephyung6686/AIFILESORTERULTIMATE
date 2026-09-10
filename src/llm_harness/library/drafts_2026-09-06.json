@@ -250,6 +250,44 @@
    "layout": "frame-first",
    "note": "v2 of the situation text: one sentence after the protected-kinds paragraph naming the ten restricted kinds by identifier and by the owner's words (RESTRICTED_KIND_LABELS verbatim), and the shape example gains the optional key; everything else byte-identical to situation-safety-first. The schema adds `restricted_kind` as an optional enum of the ten.",
    "ratified_by": "the owner, 9 Sep 2026 (104 §18.7 S2 and §18.11): the local model names which of 105 §13.3's ten restricted kinds a file is, in one optional field beside the situation; the lead applied the word. LOCAL only, as the v1 row: site G's population is the unclassified files and no cloud release of one exists."
+  },
+  {
+   "site": "A_fact",
+   "candidate": "v3-conflicts-open-values",
+   "status": "ratified",
+   "template_id": "a_fact.unratified.folder-levels-v3.2026-09-09",
+   "template_file": "a_fact_template_folder_levels.v3.txt",
+   "response_schema_file": "a_fact_response_schema.json",
+   "shaping_policy_file": "a_fact_shaping_policy.v2.json",
+   "glossary_file": "field_glossary.json",
+   "ratified_by": "the owner, 9 Sep 2026, in session (104 §18.13 and the four ratifications that followed); applied by the lead as a new row, never an edit to a recorded one. Cloud stays open as the v2 row's.",
+   "note": "v3 of the A_fact text: the bookkeeping paragraph explains a conflicts flag (104 §18.2 gap 1) and rule 5 says an unseen value may be proposed (gap 3); everything else byte-identical to v2. Policy v2: a disagreement with a stronger local fact is a proposal, not a refusal; an uncanonicalisable value is shown to the person."
+  },
+  {
+   "site": "C_placement",
+   "candidate": "eliminate-v2r",
+   "template_id": "c_placement.unratified.eliminate-v2r.2026-09-09",
+   "template_file": "c_placement_template.eliminate-v2r.txt",
+   "response_schema_file": "c_placement_response_schema.json",
+   "shaping_policy_file": "c_placement_shaping_policy.v2.json",
+   "status": "ratified",
+   "ratified_by": "the owner, 9 Sep 2026, in session (104 §18.13 and the four ratifications that followed); applied by the lead as a new row, never an edit to a recorded one. Cloud stays open as the v2 row's.",
+   "note": "v2r (v2 with the 9 Sep rulings; `v3` is reserved for 105 §14's amendments, which tests/llm_harness/test_c_v3_bundle.py holds unapplied): rule 6's tie sentence keeps the destination and lists the other (gap 7); the candidate paragraph says a set-aside reason is not a verdict (gap 2); everything else byte-identical to v2. Policy v2: a populated alternatives list is a review flag, not a loss."
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-safety-first-v3",
+   "status": "ratified_local",
+   "template_id": "situation.unratified.safety-first-v3.2026-09-09",
+   "template_file": "situation_template.safety-first.v2.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_shaping_policy.v2.json",
+   "readings_rows": [
+    "@case"
+   ],
+   "layout": "frame-first",
+   "note": "v3 of the situation row: the v2 template and schema unchanged; the shaping policy is site G's own (gap 8) -- what is offered, the order, and what is done with the answer, including restricted_kind becoming the privacy class.",
+   "ratified_by": "the owner, 9 Sep 2026, in session (104 §18.13 and the four ratifications that followed); applied by the lead as a new row, never an edit to a recorded one. LOCAL only, as the v2 row."
   }
  ],
  "digests": {
@@ -286,6 +324,11 @@
   "situation_shaping_policy.json": "d3517b8f9f07b45799460a87bf881f1ad48e6c63a7dd6d3c5d58007dccaf72ad",
   "a_fact_template_folder_levels.v2.txt": "5346d1b37d7373c52a6dd6801d98e1cf60a7f289f0e2393bdec84bb1e8eef929",
   "situation_template.safety-first.v2.txt": "1b0a1077fc173e74dcf40d30e85b0e62b669ed2a818e0377230f6149ded98b0c",
-  "situation_response_schema.v2.json": "b7298255e89d026bc02c26cf6a5ad9c2ac306a1394642ee9820ecc45c351b583"
+  "situation_response_schema.v2.json": "b7298255e89d026bc02c26cf6a5ad9c2ac306a1394642ee9820ecc45c351b583",
+  "c_placement_shaping_policy.v2.json": "8589788b8aee539e7748947e0f58b5d913903aa8b3a0d2b9f356224229fce89d",
+  "situation_shaping_policy.v2.json": "babca9d89ce25487757dd3a59a380bcb8f21823312175df46fd582aaf36ac074",
+  "a_fact_template_folder_levels.v3.txt": "25d9415b5179afbbb28d556c09c23a92aeff88204c9799bdaf5aec35ca5858f1",
+  "a_fact_shaping_policy.v2.json": "0c3d3a4d5c7e5fc1099e32aa9a84008d022cc4665e1c63c9c5c039dc80679669",
+  "c_placement_template.eliminate-v2r.txt": "0b3816e142fa0b2a17def7f9059cf693c0a42f27110005b8c6f32333b406385e"
  }
 }

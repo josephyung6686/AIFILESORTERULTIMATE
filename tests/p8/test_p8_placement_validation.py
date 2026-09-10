@@ -39,6 +39,7 @@ from llm_harness.vocabulary import (
     EVIDENCE_NOT_IN_FILE_RECORD,
     GENERIC_HUB_ONLY,
     INSUFFICIENT_MARGIN,
+    WEAK_RETRIEVAL_REPORTED,
     INVENTED_DATE,
     INVENTED_FOLDER,
     INVENTED_INSTITUTION,
@@ -305,14 +306,14 @@ def test_site_c_outcome_pairs():
     assert context.requires_review is True
 
     # `104` §18.2 gap 2: the model's own "my retrieval was weak" is a flag on the
-    # answer, not a reason to discard the answer. It still carries no site-C code
-    # -- the closed set has no member for it and adding one is the owner's -- and
-    # what it now carries instead is the review that sends the file to a person.
+    # answer, not a reason to discard the answer. Since 9 Sep 2026 it carries the
+    # word the owner approved for it, `WEAK_RETRIEVAL_REPORTED`, beside the
+    # review that sends the file to a person.
     weak = _validate_c(by_name["weak"])[0][0]
     assert weak.outcome == ACCEPT_DIRECT
     assert weak.disposition == VALID_REVIEW_REQUIRED
     assert weak.requires_review is True
-    assert not set(weak.reasons) & set(SITE_C_REASON_CODES)
+    assert set(weak.reasons) & set(SITE_C_REASON_CODES) == {WEAK_RETRIEVAL_REPORTED}
 
     reject = _validate_c(by_name["reject"])[0][0]
     assert reject.outcome == REJECT

@@ -819,7 +819,10 @@ assert not (WIRED_CALL_SITES & OBSERVE_CALL_SITES)
 #: nothing under it.
 OBSERVE_TEMPLATE_ID: Mapping[str, str] = MappingProxyType({
     B_GROUP: "b_group.unratified.anchors-first-v3.2026-09-06",
-    C_PLACEMENT: "c_placement.unratified.eliminate-v2.2026-09-06",
+    # `104` §18.13 (9 Sep 2026): eliminate-v2r -- v2 with the owner's tie sentence
+    # (gap 7) and the set-aside sentence (gap 2), C's policy v2; ratified, cloud
+    # open. `v3` stays reserved for 105 §14's amendments.
+    C_PLACEMENT: "c_placement.unratified.eliminate-v2r.2026-09-09",
     D_RESIDUAL: "d_residual.unratified.ladder.2026-09-06",
     E_TEMPLATE: "e_template.unratified.what-a-person-opens-v2.2026-09-06",
 })
@@ -842,8 +845,13 @@ assert set(OBSERVE_TEMPLATE_ID) == OBSERVE_CALL_SITES
 # `104` R-144: the ratified row is the deployment default; the v2 row
 # (`a_fact.unratified.folder-levels-v2.2026-09-07`, `v2-code-subject`, `ratified_local`)
 # is selected for a measurement run by pointing this pair at it in that run's checkout.
+#: `104` §18.13 (9 Sep 2026): v3 -- the v2 text (R-144, the code-subject rules,
+#: ratified for the cloud on 9 Sep) plus the owner's two sentences: the conflicts
+#: flag explained (gap 1) and an unseen value may be proposed (gap 3), with A's
+#: policy v2. The scoreboard scripts that patched this constant to v2 in a
+#: worktree are superseded by the row itself.
 A_FACT_ROW: tuple[str, str] = (
-    "a_fact.unratified.folder-levels.2026-09-04", "ratified-folder-levels")
+    "a_fact.unratified.folder-levels-v3.2026-09-09", "v3-conflicts-open-values")
 
 
 #: `104` §17.1's THIRD WALL: THE MANIFEST ROW SITE G RUNS UNDER, `(template_id,
@@ -876,8 +884,10 @@ A_FACT_ROW: tuple[str, str] = (
 #: local use, asks the same question plus one -- which of `105` §13.3's ten
 #: restricted kinds the file is, in `restricted_kind` -- so that the local model
 #: is the kind recogniser `privacy_class` has been waiting for.
+#: v3 (`104` §18.13, gap 8): the v2 text and schema with site G's OWN shaping
+#: policy, so the model-visible description of the call is true of the call.
 SITUATION_ROW: tuple[str, str] = (
-    "situation.unratified.safety-first-v2.2026-09-09", "situation-safety-first-v2")
+    "situation.unratified.safety-first-v3.2026-09-09", "situation-safety-first-v3")
 
 
 #: WHAT EACH STATUS WORD BUYS, and the two questions it answers are not one

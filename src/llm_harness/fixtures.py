@@ -35,6 +35,7 @@ from llm_harness.vocabulary import (
     GENERIC_HUB_ONLY,
     GENERIC_SIMILARITY_ONLY,
     INSUFFICIENT_MARGIN,
+    WEAK_RETRIEVAL_REPORTED,
     INVENTED_DATE,
     INVENTED_FOLDER,
     INVENTED_INSTITUTION,
@@ -500,6 +501,16 @@ SITE_C_REASON_PAIRS: tuple[RecordedPair, ...] = (
         **_C_FLAG_BASE, name=GENERIC_HUB_ONLY, dossier=_c_dossier("c-hub"),
         payload=_c_payload(destination="node-hub", generic_hub=True),
         outcome=ACCEPT_DIRECT, reasons=(GENERIC_HUB_ONLY,),
+        disposition=VALID_REVIEW_REQUIRED,
+    ),
+    # `104` §18.2 gap 2's leftover (a), the owner's word of 9 Sep 2026: the model's
+    # own "my retrieval was weak" carries a code now. The key is not in C's response
+    # schema (`additionalProperties: false`), so this pair reaches the arm the way
+    # the bench does, past the schema, which is what makes it a registry entry.
+    _pair(
+        **_C_FLAG_BASE, name=WEAK_RETRIEVAL_REPORTED, dossier=_c_dossier("c-weak-word"),
+        payload=_c_payload(weak_retrieval=True),
+        outcome=ACCEPT_DIRECT, reasons=(WEAK_RETRIEVAL_REPORTED,),
         disposition=VALID_REVIEW_REQUIRED,
     ),
 )
