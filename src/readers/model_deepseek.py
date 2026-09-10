@@ -97,6 +97,18 @@ else raises, including a reason DeepSeek publishes and this module has never see
 `transport.issue` catches what `invoke` raises and records a `client_raised`
 failure, which says what actually happened.
 
+**ONE DEADLINE OVER THE WHOLE CALL (`104` R-176).** `timeout_seconds` used to
+become the SDK's own timeout, which is four per-operation timers: each bounds one
+connect, one write or one read and restarts on the next, so a call could legally
+take several of them and a reply that kept trickling could take all of them for
+ever. On 10 Sep 2026 the internet went for ninety minutes, this client sat on dead
+connections, and the run recorded NO failure for seven files it never got an answer
+about (§18.28). `_under_one_deadline` now spends ONE budget across the four phases
+of a call -- connecting, sending the request, waiting for the first byte, reading
+the body -- and a call that runs out raises the phase's own class, so
+`transport.issue` records an `llm_call_failure` naming the phase and the run goes on
+to the next file. The number is still the deployment's and still `cli.py`'s to pick.
+
 **On retries.** The SDK retries 429s and 5xx by default. Those responses are not
 billed and are not answers, so they are not a second call in anything this product
 measures: `harness.run_call` reserves one budget call and `transport.issue`
@@ -106,6 +118,7 @@ answer.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from time import monotonic
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Callable, Mapping
 
@@ -146,6 +159,56 @@ JSON_MODE: Mapping[str, str] = MappingProxyType({"type": "json_object"})
 #: looks for the word, not the capitalisation.
 JSON_WORD: str = "json"
 
+#: THE FOUR PHASES OF ONE CLOUD CALL, IN ORDER, and between them the whole of what
+#: `timeout_seconds` has to cover (`104` R-176). They are named rather than left
+#: implicit for the reason `model_ollama` names its own four: the failure record has
+#: to be able to SAY which one a call died in.
+#:
+#: WHAT THIS IS FILED AGAINST (`104` §18.28, 10 Sep 2026). The internet dropped for
+#: about ninety minutes. This client sat on dead connections and r20 made seven site
+#: A dossiers in that window with NO failure recorded, because the number it was
+#: given was an inactivity timer and there was no deadline for a call to miss. A run
+#: that records nothing is worse than a run that records failures: the person is
+#: shown a corpus that was judged when part of it was never asked.
+#:
+#: The order is also the argument for one deadline over four. Each phase can be the
+#: one that never ends, and each can end normally while the next hangs: a provider
+#: that accepts the connection and sends nothing hangs the third; one that sends
+#: headers and stalls hangs the fourth; one that trickles a byte at a time hangs the
+#: fourth while satisfying any per-read timer for ever. A budget that is SPENT across
+#: all four is the only shape that bounds the call itself.
+#:
+#: THE SAME FOUR WORDS AS `model_ollama`, COPIED AND NOT IMPORTED. The two transports
+#: share no module -- one speaks `http.client` to loopback, one speaks an SDK to the
+#: internet -- and a reader importing another reader would make the local client's
+#: vocabulary a run-time dependency of the cloud client's. What R-176 asks them to
+#: share is the CONTRACT, and the contract is these four names and one spent budget.
+CONNECTING: str = "connecting"
+SENDING_THE_REQUEST: str = "sending the request"
+WAITING_FOR_THE_FIRST_BYTE: str = "waiting for the first byte"
+READING_THE_BODY: str = "reading the body"
+CALL_PHASES: tuple[str, ...] = (
+    CONNECTING, SENDING_THE_REQUEST, WAITING_FOR_THE_FIRST_BYTE,
+    READING_THE_BODY)
+
+#: WHICH PHASE EACH OF THE TRANSPORT LIBRARY'S PER-OPERATION TIMERS IS SPENDING.
+#: `httpx` hands a transport a `request.extensions["timeout"]` mapping and httpcore
+#: asks it for one number per operation: `pool` before a connection is taken,
+#: `connect` around the socket and the TLS handshake, `write` for the request, and
+#: `read` for the response headers AND for the body. `read` is therefore the one key
+#: that names two phases, and `_Budget` tells them apart by WHEN it is asked: the
+#: headers are in by the time the body's timer is armed, and `the_headers_are_in` is
+#: called at exactly that point.
+#:
+#: Spelled as data so the two vocabularies cannot drift apart in silence -- the
+#: assertion below refuses to import a mapping naming a phase with no class.
+TIMER_PHASE: Mapping[str, str] = MappingProxyType({
+    "pool": CONNECTING,
+    "connect": CONNECTING,
+    "write": SENDING_THE_REQUEST,
+    "read": WAITING_FOR_THE_FIRST_BYTE,
+})
+
 
 class ModelCredentialMissing(RuntimeError):
     """No API key was injected, so no call can be made and none was."""
@@ -169,6 +232,201 @@ class NoAnswerFromModel(RuntimeError):
 
 class PromptDoesNotAskForJson(RuntimeError):
     """`JSON_MODE` is set and the prompt never says the word the provider needs."""
+
+
+class ModelRanOutOfTime(RuntimeError):
+    """The provider was asked and the whole call did not finish inside our patience.
+
+    A `RuntimeError` like every other refusal in this module, so `transport.issue`
+    records it as `client_raised` and the run goes on to the next file. That is the
+    whole of what `104` R-176 asks for beyond the deadline itself: the outage of 10
+    Sep 2026 produced no failure rows at all, and a file nobody asked about must be
+    a file the record NAMES rather than one that quietly reads as judged.
+
+    "No call was made" is FALSE here, exactly as it is for the local twin: the
+    request left this device, or was about to. Telling a person their key or their
+    endpoint is wrong would send them to fix the thing that is not broken.
+    """
+
+
+class ModelRanOutOfTimeConnecting(ModelRanOutOfTime):
+    """The deadline expired before the socket to the provider was open."""
+
+
+class ModelRanOutOfTimeSendingTheRequest(ModelRanOutOfTime):
+    """The deadline expired while the dossier was still going out."""
+
+
+class ModelRanOutOfTimeWaitingForTheFirstByte(ModelRanOutOfTime):
+    """The deadline expired with the request sent and not one byte back.
+
+    THE SHAPE THE OUTAGE MADE (`104` §18.28). A connection opened before the
+    internet went and still ESTABLISHED after it went is a socket nothing will ever
+    answer on, and until R-176 there was no deadline for it to miss.
+    """
+
+
+class ModelRanOutOfTimeReadingTheBody(ModelRanOutOfTime):
+    """The deadline expired part-way through an answer that never finished.
+
+    A reply that stalls and a reply that trickles land here alike, and both are
+    invisible to a per-read timer: the trickle satisfies it for ever.
+    """
+
+
+#: PHASE TO THE CLASS THAT NAMES IT, and the reason it is a class per phase rather
+#: than a field is the one place the phase has to survive to.
+#: `llm_harness.transport._client_exception_explanation` reduces a client exception
+#: to `type(exc).__qualname__` and a status code, deliberately -- §8.4's property 4
+#: says no credential may reach a durable record and there is no way to enumerate
+#: every string an SDK might put in a message, so the MESSAGE IS DROPPED. A phase
+#: carried only in the message would therefore be a phase nobody can read back,
+#: which is the defect R-176 is about wearing a fix's clothes.
+#:
+#: Subclasses and not four unrelated errors: every `except ModelRanOutOfTime` and
+#: every `isinstance` upstream still catches them, and a `send` a caller injected
+#: that raises the plain `TimeoutError` still gets the base class -- which is the
+#: honest record when the phase is unknown.
+RAN_OUT_OF_TIME_IN: "MappingProxyType[str, type[ModelRanOutOfTime]]" = (
+    MappingProxyType({
+        CONNECTING: ModelRanOutOfTimeConnecting,
+        SENDING_THE_REQUEST: ModelRanOutOfTimeSendingTheRequest,
+        WAITING_FOR_THE_FIRST_BYTE: ModelRanOutOfTimeWaitingForTheFirstByte,
+        READING_THE_BODY: ModelRanOutOfTimeReadingTheBody,
+    }))
+
+assert tuple(RAN_OUT_OF_TIME_IN) == CALL_PHASES, (
+    "every phase of a call earns a class, because the class name is the whole of "
+    "what the durable failure record keeps. A phase with no class fails to import "
+    "rather than being recorded as an unattributed timeout, which is `104` R-176's "
+    "own defect")
+
+assert set(TIMER_PHASE.values()) <= set(CALL_PHASES), (
+    "every per-operation timer this transport sizes has to be spent under a phase "
+    "the record can name, or a timeout arrives with a phase nothing above can read")
+
+
+class _OutOfTimeInPhase(TimeoutError):
+    """The one deadline expired, and this is the phase of the call it expired in.
+
+    A `TimeoutError` SUBCLASS AND NOT A NEW KIND, for the reason its local twin is
+    one: `deepseek_invoke` turns a `TimeoutError` into `ModelRanOutOfTime`, and a
+    caller who replaced `send` with a fake that raises the plain one must keep
+    working. It is private for the same reason the phases are public: nothing
+    outside this module handles it, and everything outside this module reads the
+    sentence it produced.
+
+    `phase` is carried as an ATTRIBUTE rather than only in the message so
+    `deepseek_invoke` can compose its own sentence around it -- a phase that only
+    ever appears inside a formatted string is one the next reader has to parse back
+    out.
+    """
+
+    def __init__(self, phase: str, *, timeout: float, elapsed: float):
+        super().__init__(
+            f"the deadline of {timeout:g} seconds for the whole call expired "
+            f"while {phase}, {elapsed:.1f} seconds in")
+        self.phase = phase
+        self.timeout = timeout
+        self.elapsed = elapsed
+
+
+class _Budget:
+    """ONE BUDGET, SPENT ACROSS THE WHOLE CALL, and the phase now spending it.
+
+    This is what `httpx` is handed as `request.extensions["timeout"]`, and it is a
+    live object rather than the dict of four numbers httpx would have put there.
+    That dict is the mechanism `104` R-175 indicts: each entry bounds ONE operation
+    and restarts on the next, so `connect`, `write` and `read` each get the whole
+    patience and a call can legally take three of them -- or, with a body that keeps
+    arriving, all of them for ever. Here `get` computes what is LEFT of one budget
+    taken once at the top of the call, so every operation httpcore arms is armed
+    with the remainder and never with the whole.
+
+    A phase that begins with nothing left raises before it blocks, exactly as
+    `model_ollama._post`'s `left()` does.
+    """
+
+    def __init__(self, timeout: float) -> None:
+        self._timeout = float(timeout)
+        self._started = monotonic()
+        #: The phase now spending the budget. Kept because the exception raised by
+        #: the SOCKET's own timer has to say which phase that timer belonged to,
+        #: and it arrives from a library that knows nothing about phases.
+        self.phase = CONNECTING
+        self._reads_are_the_body = False
+
+    def left(self, phase: str) -> float:
+        """What is left of the one budget, and the phase about to spend it."""
+        self.phase = phase
+        remaining = self._timeout - (monotonic() - self._started)
+        if remaining <= 0:
+            raise self.expired(phase)
+        return remaining
+
+    def expired(self, phase: str | None = None) -> _OutOfTimeInPhase:
+        """The deadline, as the exception the record can read the phase off."""
+        return _OutOfTimeInPhase(phase or self.phase, timeout=self._timeout,
+                                 elapsed=monotonic() - self._started)
+
+    def the_headers_are_in(self) -> None:
+        """From here a `read` is the body and no longer the wait for its first byte.
+
+        Called by the transport at the ONE moment that distinction is a fact: when
+        `handle_request` has returned, the status line and the headers have arrived
+        and the body's own timer has not been armed yet. Reading the two `read`s
+        apart by their order rather than by their key is the only seam the library
+        offers, and doing it here keeps the guess out of `get`.
+        """
+        self._reads_are_the_body = True
+
+    def get(self, timer: str, default: float | None = None) -> float:
+        """httpcore asking for one operation's timeout, answered with the remainder.
+
+        The signature is `Mapping.get`'s because that is how httpcore asks --
+        `request.extensions.get("timeout", {}).get("write", None)` -- and `default`
+        is accepted and ignored on purpose: a default here would be a patience this
+        module invented, and every operation is spending the one budget.
+
+        A timer this module has no phase for still gets the remainder, under the
+        phase already running: an unbounded operation would be the R-176 defect
+        returning, and a wrong NAME is a smaller failure than no deadline. The
+        import-time assertion above is what keeps the names honest.
+        """
+        if timer == "read":
+            return self.left(READING_THE_BODY if self._reads_are_the_body
+                             else WAITING_FOR_THE_FIRST_BYTE)
+        return self.left(TIMER_PHASE.get(timer, self.phase))
+
+
+#: What a timeout says when it cannot say which phase it died in. A `send` a caller
+#: injected -- every test fake, and any other transport somebody wires -- raises a
+#: plain `TimeoutError`, and the honest sentence about one of those is that the
+#: phase is unknown, not a guess at the likeliest one.
+PHASE_UNKNOWN: str = "waiting on the call"
+
+#: Where `_out_of_time` writes the phase into the sentence its caller wrote, so the
+#: timeout branch below reads as the one sentence it is and does not have to know
+#: how a phase is spelled.
+PHASE_SLOT: str = "<phase>"
+
+
+def _out_of_time(problem: BaseException, sentence: str) -> ModelRanOutOfTime:
+    """The phase's own class, carrying the phase's own sentence. `104` R-176.
+
+    TWO CHANNELS FOR ONE FACT, AND THE CLASS IS THE ONE THAT SURVIVES.
+    `llm_harness.transport._client_exception_explanation` keeps `type(exc).
+    __qualname__` and DROPS THE MESSAGE (§8.4 property 4), and that column is what a
+    person reads a run's failures out of. The class name carries the phase; the
+    sentence carries the seconds and the advice, for the person at the screen.
+
+    `getattr` and not `isinstance`: an injected `send` may raise the plain
+    `TimeoutError`, and the base class plus "waiting on the call" is the honest
+    record for one of those rather than a guess at the likeliest phase.
+    """
+    phase = getattr(problem, "phase", None)
+    return RAN_OUT_OF_TIME_IN.get(phase, ModelRanOutOfTime)(
+        sentence.replace(PHASE_SLOT, f"died while {phase or PHASE_UNKNOWN}"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -253,13 +511,148 @@ def usage_of(response: object, *, model_id: str) -> Usage | None:
     )
 
 
+def _under_one_deadline(timeout_seconds: float):
+    """An HTTP client whose WHOLE call is bounded by one budget. `104` R-176.
+
+    **WHY THE SEAM IS HERE AND NOT IN A HAND-ROLLED SOCKET.** `model_ollama._post`
+    answered R-175 by dropping to `http.client`, because loopback HTTP with no
+    credential is a request a reader can honestly build by hand. This path is not
+    that: it carries the owner's API key over TLS to another company, and
+    hand-rolling that would mean this module authoring its own authentication and
+    its own certificate handling on the one line where a mistake is a leaked key.
+    So R-176 mirrors R-175's CONTRACT and not its mechanism -- one spent budget,
+    four named phases, a class per phase, no leaked socket -- through the seam the
+    SDK offers: `OpenAI(http_client=...)` takes any `httpx.Client`, and an
+    `httpx.Client` takes any transport.
+
+    **WHAT THE LIBRARY'S OWN TIMEOUT IS, AND WHY IT IS NOT THIS.** `httpx.Timeout`
+    is four numbers -- connect, write, read, pool -- and each bounds ONE operation
+    and restarts on the next. It bounds a SILENT socket and it does not bound a slow
+    one, which is the distinction `cli.MODEL_CALL_TIMEOUT_SECONDS` used to record in
+    its own docstring and which the outage turned from a note into seven unrecorded
+    files. `_Budget` replaces those four numbers with one budget: httpcore asks it
+    for each operation's patience and is answered with what is LEFT.
+
+    **THE BOUND THIS ACTUALLY BUYS, stated exactly, because a bound overstated is
+    worse than a bound.** httpcore arms each phase's socket timer ONCE, from the
+    number it is handed at the moment that phase begins -- `connect` once for the
+    TCP connect and the TLS handshake together, `write` once, `read` once for the
+    headers and once for the whole body loop. So:
+
+    * **Silence is bounded by the budget.** Whichever phase goes quiet, its timer
+      was armed with the remainder, so the call ends at the deadline. This is the
+      outage's own shape and the one that mattered.
+    * **A body that keeps arriving is cut BETWEEN chunks.** `_BodyUnderTheDeadline`
+      consults the budget before each piece, so a trickle cannot satisfy a per-read
+      timer for ever the way `104` §18.22 measured at twenty-six minutes.
+    * **The one shape that can overshoot is trickle-then-stall**, and it overshoots
+      by at most ONE armed window: the last byte arrives just before the body's read
+      timer would have fired, the check passes, and the next read waits out a timer
+      that was armed with the remainder at the START of the body. Worst case is
+      therefore under twice the deadline, and it is never unbounded.
+    * **Name resolution is outside every timer**, here and in any client built on
+      `socket.create_connection`: `getaddrinfo` runs before the timeout applies, so
+      a dead resolver adds the operating system's own patience to the connecting
+      phase. The outage killed one agent on exactly that.
+
+    A tighter bound is reachable only by re-implementing the body reader -- which
+    means leaving the SDK, and the key and the TLS with it -- or by a watchdog
+    thread per call, which is a second timing mechanism to keep true. Neither is
+    worth what it buys over "never unbounded, and silence exact", so the bound above
+    is the one this module promises and `tests/readers/test_model_deepseek_deadline`
+    is the one that measures it.
+    """
+    import httpx
+
+    class _BodyUnderTheDeadline(httpx.SyncByteStream):
+        """The response body, with the budget consulted between the pieces.
+
+        The check has to be HERE and not only in the timers: httpcore arms the
+        body's read timer once, before its loop, so a body that keeps producing
+        bytes satisfies that timer for as long as the bytes keep coming. Checking
+        between chunks is what turns "no read waited too long" into "the call did
+        not outlive its deadline".
+
+        Consulted BEFORE each piece rather than after it, the way `_post`'s
+        `read1` loop is written. The one difference from that loop, stated because
+        a bound overstated is worse than a bound: `_post` asks whether the response
+        is closed before it spends any budget, and this cannot -- there is no way
+        to know whether the next piece will read the socket or come out of what h11
+        already holds. So the check runs once more after the last piece, at
+        effectively the instant the stream reports its end, and a body that
+        completed inside the deadline is an answer UNLESS the deadline falls in
+        that instant.
+        """
+
+        def __init__(self, inner, budget: _Budget) -> None:
+            self._inner = inner
+            self._budget = budget
+
+        def __iter__(self):
+            pieces = iter(self._inner)
+            while True:
+                self._budget.left(READING_THE_BODY)
+                try:
+                    piece = next(pieces)
+                except StopIteration:
+                    return
+                except _OutOfTimeInPhase:
+                    raise
+                except httpx.TimeoutException as expiry:
+                    # The socket's own timer fired inside the phase's remainder,
+                    # which is the same deadline arriving by a different route.
+                    raise self._budget.expired(READING_THE_BODY) from expiry
+                yield piece
+
+        def close(self) -> None:
+            # A call that ran out of time leaves no socket behind. httpx closes a
+            # response whose read raised, and this is the line that carries that
+            # through to the connection underneath.
+            self._inner.close()
+
+    class _OneBudgetForTheWholeCall(httpx.HTTPTransport):
+        """The stock transport, with one budget substituted for its four timers."""
+
+        def handle_request(self, request):
+            budget = _Budget(timeout_seconds)
+            # The mapping httpx built from its own `Timeout` is REPLACED, not
+            # amended: leaving any of its four numbers in place would leave one
+            # operation bounded by a patience nobody spent.
+            request.extensions["timeout"] = budget
+            try:
+                response = super().handle_request(request)
+            except _OutOfTimeInPhase:
+                raise
+            except httpx.TimeoutException as expiry:
+                raise budget.expired() from expiry
+            # The status line and the headers are in and the body's own timer has
+            # not been armed yet, which is the one moment a `read` changes meaning.
+            budget.the_headers_are_in()
+            response.stream = _BodyUnderTheDeadline(response.stream, budget)
+            return response
+
+    # `trust_env` is left at its default so a deployment's certificate bundle is
+    # still honoured. THE ONE BEHAVIOUR THIS COSTS: httpx reads `HTTPS_PROXY` from
+    # the environment only when it builds the transport itself, so a deployment
+    # behind an environment-configured proxy now reaches the provider directly.
+    # Recorded rather than worked around: nothing in this product sets a proxy, and
+    # a proxy option here would be a deployment fact this module invented.
+    return httpx.Client(transport=_OneBudgetForTheWholeCall(),
+                        timeout=timeout_seconds)
+
+
 def _send(*, api_key: str, base_url: str, model_id: str, max_tokens: int,
           prompt: str, timeout_seconds: float) -> object:
     """The one place this module touches a socket, so a test can replace it.
 
-    Two statements, and they are the two this project cannot exercise without
-    spending money and holding a key. Everything the module does with what comes
-    back is `response_text`, which is pure.
+    Everything the module does with what comes back is `response_text`, which is
+    pure. What this function itself does -- open a socket, spend a budget across
+    the four phases of one call, and close what it opened -- is measured against a
+    real loopback server in `tests/readers/test_model_deepseek_deadline.py`, which
+    is `104` R-176's own answer to the sentence this docstring used to carry: that
+    these were statements the project could not exercise. It cannot exercise them
+    against the PROVIDER without a key and a bill; it can exercise them against a
+    socket, and the defect R-176 records lived in the socket.
     """
     import openai
 
@@ -276,14 +669,29 @@ def _send(*, api_key: str, base_url: str, model_id: str, max_tokens: int,
     # never chose, and because P8 already owns what happens to a failed call --
     # retrying inside the transport would spend a second call the budget never
     # reserved.
-    return openai.OpenAI(
-        api_key=api_key, base_url=base_url,
-        timeout=timeout_seconds, max_retries=0,
-    ).chat.completions.create(
-        # Every term of the request, built and checked by a pure function so this
-        # stays the one statement here nothing can exercise (`104` R-14).
-        **request_body(model_id=model_id, max_tokens=max_tokens, prompt=prompt),
-    )
+    #
+    # THE SAME NUMBER TWICE, AND ONLY ONE OF THEM IS READ BY A SOCKET (`104`
+    # R-176). `timeout` is what the SDK puts in the request it builds; the client
+    # below replaces it with `_Budget` before any operation is armed, so the number
+    # that bounds the call is the budget's. It is still passed because it is the
+    # deployment's patience and this is where the SDK asks for it -- a client built
+    # with none would be a client whose own defaults are back.
+    #
+    # BOTH ARE CLOSED, and that is the "no leaked socket" half of R-176. The
+    # ESTABLISHED connections the outage left behind outlived the calls they
+    # belonged to because nothing closed them when the wait was abandoned.
+    with _under_one_deadline(timeout_seconds) as http:
+        with openai.OpenAI(
+            api_key=api_key, base_url=base_url,
+            timeout=timeout_seconds, max_retries=0, http_client=http,
+        ) as client:
+            return client.chat.completions.create(
+                # Every term of the request, built and checked by a pure function
+                # so this stays the one statement here that reaches the provider
+                # (`104` R-14).
+                **request_body(model_id=model_id, max_tokens=max_tokens,
+                               prompt=prompt),
+            )
 
 
 def response_text(response: object) -> str:
@@ -329,6 +737,26 @@ def response_text(response: object) -> str:
             f"model that spent the ceiling on `reasoning_content` arrives here."
         )
     return text
+
+
+#: WHAT A PERSON IS TOLD WHEN THE DEADLINE EXPIRED. `104` R-176.
+#:
+#: The ENDPOINT IS NOT IN IT, and that is the one difference from the local twin's
+#: sentence. `model_ollama` names its endpoint because that endpoint is loopback and
+#: was typed by the person reading the message; this one is whatever
+#: `DEEPSEEK_BASE_URL` holds, it is on the path that carries a credential, and §8.4's
+#: property 4 is that no credential reaches the screen, a log, an audit record or an
+#: exception message. The provider's name says everything the person can act on.
+#:
+#: `PHASE_SLOT` is filled by `_out_of_time` with the phase the call died in.
+_RAN_OUT_OF_TIME: str = (
+    "the {provider} model was asked and had not answered after {seconds} seconds, "
+    "so this run stopped waiting ({phase}). The call HAPPENED -- the request left "
+    "this device -- and no answer came back, so nothing was decided on the strength "
+    "of a judgement that was never finished. A network that has gone is the "
+    "ordinary cause; the file is recorded as one the model did not answer, and the "
+    "run goes on to the next one."
+).replace("{phase}", PHASE_SLOT)
 
 
 def _require_credential(api_key: str | None) -> str:
@@ -431,11 +859,32 @@ def deepseek_invoke(*, api_key: str | None, base_url: str | None,
                 "the released bytes are not UTF-8. Repairing them here would send "
                 "the model something the stored fingerprint does not describe."
             ) from problem
-        response = send(
-            api_key=key, base_url=endpoint, model_id=model_id,
-            max_tokens=max_response_tokens, prompt=prompt,
-            timeout_seconds=timeout_seconds,
-        )
+        try:
+            response = send(
+                api_key=key, base_url=endpoint, model_id=model_id,
+                max_tokens=max_response_tokens, prompt=prompt,
+                timeout_seconds=timeout_seconds,
+            )
+        except TimeoutError as problem:
+            # THE MODEL WAS ASKED AND DID NOT FINISH, which is not the same as a
+            # provider that is not there. `104` R-176: until this branch existed
+            # there was no branch at all -- the local twin had one and this one
+            # did not, so a cloud call that ran out of time arrived upstream as
+            # whatever the SDK happened to raise.
+            raise _out_of_time(problem, _RAN_OUT_OF_TIME.format(
+                provider=PROVIDER, seconds=f"{timeout_seconds:g}")) from problem
+        except Exception as problem:
+            # THE SAME DEADLINE, ARRIVING WRAPPED. The SDK turns anything the
+            # transport raises into its own connection error with the original as
+            # `__cause__`, and what a timeout MEANS does not change with the
+            # wrapper it arrived in. Anything else is re-raised exactly as it was:
+            # this branch adds a reading, it does not add a handler.
+            expiry = problem.__cause__
+            if isinstance(expiry, TimeoutError):
+                raise _out_of_time(expiry, _RAN_OUT_OF_TIME.format(
+                    provider=PROVIDER,
+                    seconds=f"{timeout_seconds:g}")) from problem
+            raise
         # AFTER `response_text`, so a refusal is a refusal and not a cost. A
         # `content_filter`, a `length` cut-off or an unreadable finish reason all
         # raise there, and none of them is an answer this run may bill itself for.

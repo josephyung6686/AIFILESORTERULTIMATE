@@ -692,23 +692,31 @@ MAX_RESPONSE_TOKENS: int = 8192
 #: healthy call is never cut off, short enough that a dead socket is not mistaken
 #: for patience.
 #:
-#: **IT IS NOT A DEADLINE, AND THE DIFFERENCE IS MEASURED.** `httpx` applies this
-#: per read, not to the call as a whole, so a request that keeps trickling bytes
-#: outlives it: one observed call ran 109 seconds under this ninety. It bounds a
-#: SILENT socket, which is the failure that stopped the suite dead for ten minutes,
-#: and it does not bound a slow one. A total deadline is a different mechanism and
-#: is not built here. §8.6 bounds model SPEND and says nothing about a call that never
-#: returns, so this is not a budget ceiling and a call that hits it is not
-#: `budget_deferred`; it is a failed call, and P8 records it as one.
+#: **SINCE `104` R-176 IT IS A DEADLINE OVER THE WHOLE CALL, and the difference is
+#: what the outage measured.** It used to reach `httpx` as four per-operation timers
+#: -- one for the connect, one for the write, one for each read -- each of which
+#: bounds one operation and restarts on the next. That bounds a SILENT socket, which
+#: is the failure that stopped the suite dead for ten minutes, and it does not bound
+#: a slow one: one observed call ran 109 seconds under this ninety, and on 10 Sep
+#: 2026 the internet went for ninety minutes while r20 made seven site A dossiers
+#: and recorded no failure at all (§18.28). `readers.model_deepseek` now spends this
+#: number as ONE budget across connecting, sending the request, waiting for the first
+#: byte and reading the body, and names the phase it died in, so the sentence this
+#: number makes is the strong one: no cloud call outlives it, and a call that does
+#: not finish is a row a person can read rather than a file that quietly reads as
+#: judged.
 #:
-#: **`104` R-175 BUILT THAT MECHANISM FOR THE LOCAL CLIENT AND NOT FOR THIS ONE.**
-#: `readers.model_ollama._post` now spends one budget across connect, request,
-#: first byte and every read of the body, so `LOCAL_MODEL_TIMEOUT_SECONDS` below is
-#: a deadline and this number is still the idle timer described above. The two are
-#: not made the same here because `model_deepseek` reaches a provider that closes
-#: its own idle sockets and bills what it answered, and because the failure R-175
-#: measured was a local one; the paragraph stands as the record of what this number
-#: does and does not promise.
+#: §8.6 bounds model SPEND and says nothing about a call that never returns, so this
+#: is not a budget ceiling and a call that hits it is not `budget_deferred`; it is a
+#: failed call, and P8 records it as one.
+#:
+#: **THE ONE THING IT DOES NOT PROMISE.** The transport library arms each phase's
+#: socket timer once, so a reply that trickles and then stalls is cut at the first
+#: piece after the deadline plus the window already armed -- under twice this number,
+#: never unbounded -- and name resolution runs before any timer applies, so a dead
+#: resolver adds the operating system's own patience to the connecting phase.
+#: `readers.model_deepseek._under_one_deadline` states that bound where it is built
+#: and `tests/readers/test_model_deepseek_deadline.py` measures it.
 MODEL_CALL_TIMEOUT_SECONDS: float = 90.0
 
 #: HOW LONG ONE LOCAL CALL MAY TAKE, and it is not the cloud number. A provider
