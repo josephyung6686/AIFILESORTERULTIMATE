@@ -44,6 +44,7 @@ from placement.index import (
 from placement.schema import create_placement_schema
 
 from p10.seam_corpus import ORDINARY_CLASS, seed_seam_corpus, two_dimension_catalogue
+from p11.conftest import NO_CANONICAL_RULE
 from p10.test_p10_pipeline import authorities, decisions
 
 T0 = "2026-08-27T00:00:00Z"
@@ -107,7 +108,8 @@ def index(corpus, result):
         component_version="seam", user_id="jy",
         reason="P10-P11 live seam fixture")
     return build_destination_index(corpus.conn, result.tree,
-                                   component_version="seam", observed_at=T0)
+                                   component_version="seam", observed_at=T0,
+                                   canonical=NO_CANONICAL_RULE)
 
 
 def entry_labelled(entries, label: str):
@@ -135,7 +137,7 @@ def test_p10s_published_frozen_tree_fixture_is_one_p11_can_index(corpus):
 
     tree = frozen_tree_fixture()
     entries = build_destination_index(corpus.conn, tree, component_version="seam",
-                                      observed_at=T0)
+                                      observed_at=T0, canonical=NO_CANONICAL_RULE)
     assert {e.node_id for e in entries} == set(
         tree.freeze_record.legal_destination_ids)
 
@@ -156,7 +158,8 @@ def test_p10s_walking_skeleton_is_one_p11_can_index(corpus):
         shared_material_policy=SHARED_MATERIAL_POLICY,
         shared_material_policy_scope=None)
     assert len(build_destination_index(
-        corpus.conn, tree, component_version="seam", observed_at=T0)) == 2
+        corpus.conn, tree, component_version="seam", observed_at=T0,
+        canonical=NO_CANONICAL_RULE)) == 2
 
 
 # --- the backbone: a real file placed into a real P10-built node -------------------
@@ -215,6 +218,7 @@ def _inputs(corpus, result, **over):
         # reason as the two above it.
         fields_that_cannot_anchor_a_move=frozenset({"work_type", "term"}),
         their_own_folder_made_for_what_it_holds={},
+        canonical_value=NO_CANONICAL_RULE,
         the_folder_each_file_is_in={},
         a_move_the_person_has_not_permitted=None,
         p2=None)
@@ -788,12 +792,26 @@ def test_parent_concepts_is_computed_by_the_chain_and_reaches_no_p11_reader(corp
         "decide deliberately whether the index should project it, and update "
         "this guard either way")
 
-    # And the guard on the CONSUMER, so the two cannot drift apart quietly:
-    # §6.7's broad-parent case is the only P11 question about which ancestor
-    # levels the evidence supports, and P11 does not produce it. Every
-    # `DecisionDepth` the pipeline builds passes `unsupported_levels=()`. The day
-    # one does not, §6.7 is live and the ancestors' dimensions become a question
-    # P11 asks — which is exactly when wiring `parent_concepts` is worth deciding.
+    # And the guard on the CONSUMER, which asked to be re-decided on the day
+    # §6.7 went live. That day is `104` §18.2 gap 11b (10 Sep 2026): exactly one
+    # `DecisionDepth` in the pipeline now fills `unsupported_levels`, so P11 does
+    # produce the broad-parent case and the question this guard reserved is a
+    # real one.
+    #
+    # **RE-DECIDED, AND THE ANSWER IS STILL NO.** `parent_concepts_for` maps a
+    # node to the dimensions its ANCESTORS express, and the question P11 asks is
+    # the mirror of that: which levels BELOW the node the model chose went
+    # unfilled -- the term on a `PHYS1401` a file could not be dated into.
+    # `_levels_not_filled` reads them off the chain between the chosen node and
+    # the leaf the rules built, out of the `dimension_of` and `parent_of` maps
+    # `place_file_steps` already builds in its ONE walk of the tree per file.
+    # Wiring §5.9's map would answer the other direction, and it would cost a
+    # second whole-tree walk per file to do it -- the O(files x nodes) shape
+    # `planning/58-SCALE-STRESS.md` §2 measured.
+    #
+    # So the guard above stands unchanged (no placement module names it), and
+    # this half now pins the shape rather than the absence: ONE producer, and a
+    # second would be a second answer to "which levels were left unfilled".
     import ast
 
     pipeline_src = placement_src / "pipeline.py"
@@ -806,10 +824,11 @@ def test_parent_concepts_is_computed_by_the_chain_and_reaches_no_p11_reader(corp
                         isinstance(keyword.value, ast.Tuple)
                         and not keyword.value.elts):
                     filled.append(node.lineno)
-    assert filled == [], (
-        f"pipeline.py:{filled} now fills §6.7's `unsupported_levels`. P11 has "
-        "started producing the broad-parent case; re-decide whether the index "
-        "should carry §5.9's parent concepts")
+    assert len(filled) == 1, (
+        f"pipeline.py:{filled} fills §6.7's `unsupported_levels` at "
+        f"{len(filled)} sites. One producer answers 'which levels were left "
+        "unfilled'; two would drift, and either way the parent-concepts "
+        "decision above is worth re-reading")
 
 
 def test_a_tree_that_repeats_a_parent_dimension_fires_59s_warning(corpus):
@@ -904,7 +923,7 @@ def test_a_placement_carries_across_a_re_version_because_reproject_uses_lineage(
 
     after = _re_version(corpus, result, new_label="Physics 1401")
     build_destination_index(corpus.conn, after, component_version="seam",
-                            observed_at=T0)
+                            observed_at=T0, canonical=NO_CANONICAL_RULE)
     # The rename really happened, so "carried unchanged" is not trivially true
     # of a version identical to its predecessor.
     assert "Physics 1401" in {n.display_label for n in after.nodes}
@@ -947,7 +966,7 @@ def test_a_decision_whose_node_is_really_gone_is_marked_for_renewed_review(corpu
 
     after = _re_version(corpus, result, ignore_label="PHYS1401")
     build_destination_index(corpus.conn, after, component_version="seam",
-                            observed_at=T0)
+                            observed_at=T0, canonical=NO_CANONICAL_RULE)
     diff = reproject(corpus.conn,
                      from_plan_version=result.tree.plan_version_id,
                      to_plan_version=after.plan_version_id)
@@ -970,7 +989,7 @@ def test_learned_preferences_survive_a_re_version_on_lineage_too(corpus):
     node = node_labelled(result.tree, "PHYS1401")
     after = _re_version(corpus, result, new_label="Physics 1401")
     build_destination_index(corpus.conn, after, component_version="seam",
-                            observed_at=T0)
+                            observed_at=T0, canonical=NO_CANONICAL_RULE)
 
     class _Suppression:
         def __init__(self, node_id):
@@ -990,7 +1009,7 @@ def test_learned_preferences_survive_a_re_version_on_lineage_too(corpus):
     dropped = node_labelled(gone_result.tree, "PHYS1401")
     gone_after = _re_version(gone, gone_result, ignore_label="PHYS1401")
     build_destination_index(gone.conn, gone_after, component_version="seam",
-                            observed_at=T0)
+                            observed_at=T0, canonical=NO_CANONICAL_RULE)
     assert learned_preferences_still_applicable(
         gone.conn, plan_version=gone_after.plan_version_id,
         suppressions=(_Suppression(dropped.node_id),)) == ()

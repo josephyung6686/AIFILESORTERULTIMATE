@@ -25,6 +25,7 @@ from placement.privacy import (
     is_unclassified, may_assemble_dossier, privacy_state_for, review_policy_for,
 )
 from placement.records import GroupSupport, TwoCondition
+from p11.conftest import NO_CANONICAL_RULE
 from p11.p10_fixtures import FROZEN_TREE as FROZEN_TREE_FOR_LEGALITY
 
 T0 = "2026-08-27T00:00:00Z"
@@ -623,7 +624,7 @@ def test_the_disposition_the_index_carries_is_the_one_the_policy_reads(p11_conn)
     _classify(p11_conn)
     _policy(p11_conn)
     build_destination_index(p11_conn, FROZEN_TREE, component_version="P11-test",
-                            observed_at=T0)
+                            observed_at=T0, canonical=NO_CANONICAL_RULE)
     entry = entry_for(p11_conn, plan_version="plan-1", node_id="n-review-later")
     assert entry.disposition == v.REVIEW_ONLY
     assert review_policy_for(
@@ -640,7 +641,8 @@ def test_a_review_only_node_is_still_a_legal_destination(p11_conn):
     from placement.index import build_destination_index, legal_node_ids
 
     build_destination_index(p11_conn, FROZEN_TREE_FOR_LEGALITY,
-                            component_version="P11-test", observed_at=T0)
+                            component_version="P11-test", observed_at=T0,
+                            canonical=NO_CANONICAL_RULE)
     assert "n-review-later" in legal_node_ids(p11_conn, plan_version="plan-1")
 
 

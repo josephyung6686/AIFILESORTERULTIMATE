@@ -48,7 +48,7 @@ from placement.p8_seam import (
 )
 from placement.schema import create_placement_schema
 from placement.vocabulary import DIRECT
-from p11.conftest import FIXED_CLOCK
+from p11.conftest import FIXED_CLOCK, NO_CANONICAL_RULE
 from p11.p10_fixtures import FROZEN_TREE, next_version
 from p11.test_p11_records import _decision
 
@@ -75,7 +75,7 @@ def p11_conn(conn):
 def indexed(p11_conn):
     build_destination_index(p11_conn, FROZEN_TREE,
                             component_version="P11-integration",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     return p11_conn
 
 
@@ -364,7 +364,7 @@ def test_p11_reuses_p8s_revalidation_rather_than_remapping_a_decision(indexed):
     node_id = pair.dossier.allowed_vocabulary[0]
     build_destination_index(indexed, _v2_tree(rename_course_to=node_id),
                             component_version="P11-integration",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     before = indexed.execute(
         "SELECT count(*) AS c FROM llm_verdict").fetchone()["c"]
     diff = reproject(
@@ -398,7 +398,7 @@ def test_a_surviving_node_whose_verdict_no_longer_holds_goes_back_to_the_user(
     _place_d1(indexed)
     build_destination_index(indexed, _v2_tree(),
                             component_version="P11-integration",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     assert pair.dossier.allowed_vocabulary[0] not in legal_node_ids(
         indexed, plan_version="plan-2")
     diff = reproject(
@@ -423,7 +423,7 @@ def test_a_decision_with_no_model_verdict_needs_no_revalidation(indexed):
     _place_d1(indexed)
     build_destination_index(indexed, _v2_tree(),
                             component_version="P11-integration",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     diff = reproject(indexed, from_plan_version="plan-1",
                      to_plan_version="plan-2")
     assert diff.carried_unchanged == ("d1",)
@@ -476,7 +476,7 @@ def test_the_revalidation_snapshot_addresses_the_items_and_not_the_facts(indexed
     build_destination_index(indexed,
                             _v2_tree(rename_course_to=pair.dossier.allowed_vocabulary[0]),
                             component_version="P11-integration",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     diff = reproject(
         indexed, from_plan_version="plan-1", to_plan_version="plan-2",
         revalidation_inputs={"d1": _revalidation_inputs(
@@ -511,7 +511,8 @@ def _index_the_dossiers_own_version(conn, pair) -> str:
     build_destination_index(
         conn, _v2_tree(rename_course_to=pair.dossier.allowed_vocabulary[0],
                        plan_version_id=plan, suffix="@v1"),
-        component_version="P11-integration", observed_at=FIXED_CLOCK)
+        component_version="P11-integration", observed_at=FIXED_CLOCK,
+        canonical=NO_CANONICAL_RULE)
     return plan
 
 

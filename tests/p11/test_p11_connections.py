@@ -486,6 +486,7 @@ def test_a_run_without_a_support_policy_or_limits_refuses(p11_conn):
         chosen_by_user=lambda subject: None,
         fields_that_cannot_anchor_a_move=frozenset(),
         their_own_folder_made_for_what_it_holds={}, p2=None,
+        canonical_value=lambda field_key, value: None,
         the_folder_each_file_is_in={},
         a_move_the_person_has_not_permitted=None)
     PipelineInputs(**good)                     # the control: this one builds
@@ -503,45 +504,59 @@ def test_a_run_without_a_support_policy_or_limits_refuses(p11_conn):
 # --- what §6.12's pipeline still does NOT reach -----------------------------------
 
 
-def test_the_scoped_general_role_is_described_to_the_model_and_branched_on_by_nobody():
-    """§5.9's scoped fallback is TOLD to the model and still decides nothing here.
+def test_the_scoped_general_role_is_described_to_the_model_and_offered_to_it():
+    """§5.9's scoped fallback is told to the model AND put on its menu.
 
-    This asserted `readers == set()` and was named as a known gap: `SCOPED_GENERAL`
-    was carried from P10 and no module in `src/placement/` treated a
-    `scoped-general` node differently from an ordinary one, so §6.7's "scoped
-    fallback under a meaningful parent" had no expression at all.
+    This asserted `readers == set()`, then `{"index.py"}`, and each step was a
+    known gap closing. `SCOPED_GENERAL` was carried from P10 and no module in
+    `src/placement/` treated a `scoped-general` node differently from an ordinary
+    one, so §6.7's "scoped fallback under a meaningful parent" had no expression
+    at all. `index.node_profile` closed R-17's half: the C draft's own HOW TO
+    DECIDE says "a candidate described as a scoped fallback under a parent stands
+    when the parent's levels are supported and no child's deeper level is", and a
+    model shown an opaque id cannot tell which candidate that is.
 
-    The reader that appeared is `index.node_profile`, and it is the half R-17
-    closes: the C draft's own HOW TO DECIDE says "a candidate described as a scoped
-    fallback under a parent stands when the parent's levels are supported and no
-    child's deeper level is", and a model shown an opaque id cannot tell which
-    candidate that is. So the role is now a SENTENCE IN THE DOSSIER.
+    **`pipeline.py` IS THE READER THAT APPEARED, AND `104` §18.2 GAP 11 IS THE
+    RULING THAT PUT IT THERE.** The sentence this test used to end on -- "the day
+    a decision branches on the role, this fails and somebody decides whether the
+    branch is the right one" -- is that day, and the owner ruled it on 10 Sep. A
+    folder the prompt describes and no shortlist can contain is an option the
+    model cannot take: `00`:110 lists "an approved scoped fallback such as
+    General" among the four answers the judge chooses between, and `00`:111 says
+    when it is the right one. So `_the_parents_own_general_is_offered` puts a
+    contender's own General on the menu as a set-aside candidate.
 
-    It is still not a BRANCH. `pipeline.py` writes the same decision for a
-    scoped-general destination as for any other, and §6.7's broad-parent case
-    (`unsupported_levels`, below) still has no writer. Both halves are asserted so
-    the day a decision branches on the role, this fails and somebody decides
-    whether the branch is the right one.
+    **It is still not a RULE.** Nothing here places a file in a General; the
+    engine offers it with a sentence and the model decides, which is §13.5's
+    "model decides, rules validate" and the reason it arrives as a `SetAside`
+    rather than as a contender -- a General scored as a rival would win every tie
+    on an offline run and file the corpus into catch-alls.
     """
     readers = {name for name, tree in _modules().items()
                if name != "vocabulary.py"
                and "SCOPED_GENERAL" in {node.id for node in ast.walk(tree)
                                         if isinstance(node, ast.Name)}}
-    assert readers == {"index.py"}
+    assert readers == {"index.py", "pipeline.py"}
 
 
-def test_no_producer_fills_decision_depths_unsupported_levels():
-    """§6.7's broad-parent case has no writer.
+def test_one_producer_fills_decision_depths_unsupported_levels():
+    """§6.7's broad-parent case has a writer, and exactly one.
 
     `DecisionDepth.unsupported_levels` is "the broad-parent case's whole
     expression" (SPEC:401-404): a decision whose evidence reaches deeper than the
-    node chosen names the levels it deliberately left unfilled. Every decision the
-    pipeline writes sets `supported_depth == node_depth` and an EMPTY tuple, so
-    the field is validated and never populated.
+    node chosen names the levels it deliberately left unfilled. This asserted
+    `filled == set()` and said so as a known gap -- every decision the pipeline
+    wrote set `supported_depth == node_depth` and an EMPTY tuple, so a placement
+    on a shallower approved parent was byte-identical to one on a fully-supported
+    child, which is `104` §18.2 gap 11's own sentence: "the shallow-decision
+    fields are identical at all six writers".
 
-    A known gap, and the record already refuses the wrong shape -- a
-    `supported_depth` greater than `node_depth` with an empty tuple raises -- so
-    the day a producer appears it must fill this or fail at construction.
+    `place_file_steps` is the producer, through `_levels_not_filled`, and the
+    other five writers are unchanged: an abstention, a residual decision and a
+    decision the person made are none of them a file filed short of the chain the
+    rules built. ONE is asserted rather than merely non-zero, because a second
+    writer would be a second answer to "which levels were left unfilled" and the
+    two would drift.
     """
     from placement.records import DecisionDepth
 
@@ -554,8 +569,10 @@ def test_no_producer_fills_decision_depths_unsupported_levels():
                     and not (isinstance(node.value, ast.Tuple)
                              and not node.value.elts)):
                 filled.add(name)
-    assert filled == set()
-    # The record's own refusal, so the gap cannot be closed by filling one half.
+    assert filled == {"pipeline.py"}
+    # The record's own refusal, unchanged and still asserted: the producer fills
+    # the levels WITHOUT moving `supported_depth` past `node_depth`, so the shape
+    # the record calls malformed stays malformed.
     with pytest.raises(Exception):
         DecisionDepth(node_depth=1, supported_depth=2, unsupported_levels=())
 

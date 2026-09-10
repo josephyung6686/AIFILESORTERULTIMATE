@@ -252,11 +252,46 @@ class ConflictConsidered:
     suppressed_node_ids: tuple[str, ...]
     evidence_ref: str
     suppressed_node_count: int | None = None
+    #: `(ruled-out node, the node the ruling value was found on)`, for as many of
+    #: the named nodes as the retrieval had an answer for.
+    #:
+    #: **`104` §18.2 GAP 16 IS WHY A SECOND ID IS ON THIS RECORD.** §6.3 used to
+    #: ask each node about its own expected values alone, so the two were always
+    #: the same node and the field would have been noise. Suppression now walks
+    #: the chain -- `00`:107's "should not be SENT TO a Spring 2026 node", and a
+    #: file filed in `Spring2026/Homework` is in `Spring2026` -- and the folder
+    #: the person is told about is no longer the folder the value is written on.
+    #: A record naming only the loss would leave them looking for a term on a
+    #: `Homework` folder that does not state one.
+    #:
+    #: The pair is equal for a node ruled out by its own value, which is every
+    #: conflict this record could carry before the walk existed. DEFAULTED for
+    #: the same reason `suppressed_node_count` is: a conflict built from a list
+    #: alone is still a true record, and it says nothing here rather than
+    #: guessing.
+    found_on: tuple[tuple[str, str], ...] = ()
 
     def __post_init__(self) -> None:
         for name in ("kind", "conflicting_value", "evidence_ref"):
             _require(getattr(self, name), name=name)
         _freeze(self, "suppressed_node_ids")
+        object.__setattr__(self, "found_on",
+                           tuple(tuple(pair) for pair in self.found_on))
+        named = set(self.suppressed_node_ids)
+        for pair in self.found_on:
+            if len(pair) != 2 or not all(
+                    isinstance(one, str) and one for one in pair):
+                raise MalformedPlacementRecord(
+                    f"{pair!r} is not a (ruled-out node, where the value was "
+                    "found) pair; the second id is the whole point of the field "
+                    "and a half-written one names no folder"
+                )
+            if pair[0] not in named:
+                raise MalformedPlacementRecord(
+                    f"{pair[0]!r} carries a reason and is not in this conflict's "
+                    "suppressed nodes; a reason for a loss the record does not "
+                    "claim is a sentence about a folder nobody was shown"
+                )
         if self.suppressed_node_count is None:
             object.__setattr__(self, "suppressed_node_count",
                                len(self.suppressed_node_ids))

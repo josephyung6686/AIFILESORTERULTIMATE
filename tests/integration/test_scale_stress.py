@@ -51,6 +51,7 @@ from placement.index import build_destination_index, entries_for_plan
 from placement.records import MatchingFact, Subject
 from placement.retrieval import retrieve
 from placement.schema import create_placement_schema
+from p11.conftest import NO_CANONICAL_RULE
 from privacy.schema import create_privacy_schema
 from scan_agent.corpus_source import FilesystemCorpusSource
 from scan_agent.scan import scan
@@ -959,7 +960,8 @@ def test_retrieval_does_not_read_every_legal_node_for_every_file(p11_scale_conn)
             create_privacy_schema(conn)
             create_placement_schema(conn)
             build_destination_index(conn, _scaled_frozen_tree(node_count),
-                                    component_version="scale", observed_at=CLOCK)
+                                    component_version="scale", observed_at=CLOCK,
+                                    canonical=NO_CANONICAL_RULE)
             fact = MatchingFact(file_fact_id="ff-1", field="subject",
                                 value="COURSE00007", reliability=pv.DIRECT,
                                 evidence_ref="obs-1")
@@ -968,7 +970,7 @@ def test_retrieval_does_not_read_every_legal_node_for_every_file(p11_scale_conn)
             retrieve(conn, subject=warm, plan_version="plan-1", limits=LIMITS,
                      facts=(fact,), group_ids=(), curated_folder_labels=(),
                      semantic_neighbours=(), component_version="scale",
-                     observed_at=CLOCK)
+                     observed_at=CLOCK, canonical=NO_CANONICAL_RULE)
             repeats = 20
             started = time.perf_counter()
             for index in range(repeats):
@@ -978,7 +980,8 @@ def test_retrieval_does_not_read_every_legal_node_for_every_file(p11_scale_conn)
                 retrieve(conn, subject=subject, plan_version="plan-1",
                          limits=LIMITS, facts=(fact,), group_ids=(),
                          curated_folder_labels=(), semantic_neighbours=(),
-                         component_version="scale", observed_at=CLOCK)
+                         component_version="scale", observed_at=CLOCK,
+                         canonical=NO_CANONICAL_RULE)
             timings[node_count] = (time.perf_counter() - started) / repeats
             assert len(entries_for_plan(conn, plan_version="plan-1")) == node_count
             conn.close()
@@ -1017,7 +1020,7 @@ def test_building_the_destination_index_scales_with_the_tree(p11_scale_conn):
             tree = _scaled_frozen_tree(node_count)
             started = time.perf_counter()
             build_destination_index(conn, tree, component_version="scale",
-                                    observed_at=CLOCK)
+                                    observed_at=CLOCK, canonical=NO_CANONICAL_RULE)
             timings[node_count] = time.perf_counter() - started
             conn.close()
         finally:

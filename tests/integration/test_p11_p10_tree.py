@@ -17,7 +17,7 @@ import pytest
 from database_agent.db import create_schema
 from placement.index import build_destination_index, legal_node_ids
 from placement.schema import create_placement_schema
-from p11.conftest import FIXED_CLOCK
+from p11.conftest import FIXED_CLOCK, NO_CANONICAL_RULE
 
 
 @pytest.fixture()
@@ -121,7 +121,7 @@ def test_p11_indexes_p10s_live_frozen_tree(p11_conn):
     tree = frozen_tree(p11_conn, plan_version="plan-1")
     entries = build_destination_index(
         p11_conn, tree, component_version="P11-integration",
-        observed_at=FIXED_CLOCK,
+        observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE
     )
     assert entries
     assert all(entry.plan_version == "plan-1" for entry in entries)
@@ -167,14 +167,14 @@ def test_freeze_and_the_index_refuse_the_same_missing_policy(p11_conn):
     assert accepted.shared_material_policy
     assert build_destination_index(
         p11_conn, accepted, component_version="P11-agreement",
-        observed_at=FIXED_CLOCK)
+        observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
 
     # The SAME bundle with the policy removed is what the index refuses...
     without = dataclasses.replace(accepted, shared_material_policy=None)
     with pytest.raises(FrozenTreeRequired) as index_refusal:
         build_destination_index(p11_conn, without,
                                 component_version="P11-agreement",
-                                observed_at=FIXED_CLOCK)
+                                observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     assert "shared-material policy" in str(index_refusal.value)
 
     # ...and freeze refuses a version in that state before it can ever get there.

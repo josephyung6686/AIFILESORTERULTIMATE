@@ -80,7 +80,7 @@ from tree_design.vocabulary import (
     MANDATORY_REVIEW, REFINED, SHALLOW_BY_CHOICE, SURFACE_UNATTENDED,
 )
 
-from cli import AcceptedGroupEnumeration
+from cli import AcceptedGroupEnumeration, normalize_for_model
 from extraction_pool import ExtractionContext, InlinePool
 from production import (
     LIBRARY_FILES,
@@ -540,7 +540,8 @@ def run_corpus_through(conn, tmp_path, *, fields=FIELDS, names=CORPUS,
             chosen_by_user=lambda subject: None,
             fields_that_cannot_anchor_a_move=frozenset({"work_type", "term"}),
             their_own_folder_made_for_what_it_holds={},
-            the_folder_each_file_is_in={},
+            canonical_value=normalize_for_model,
+        the_folder_each_file_is_in={},
             a_move_the_person_has_not_permitted=None,
             p2=None)
 

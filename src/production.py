@@ -998,9 +998,16 @@ def run_production_p8_p11(
     plan_version = tree.tree.plan_version_id
     decisions.approve_plan(conn, accepted, plan_version)
     decisions.set_privacy_policy(conn, plan_version)
+    # `104` §18.2 gap 16. The index is canonicalised by THE SAME callable the
+    # retrieval that reads it will canonicalise the subject's facts with, and the
+    # way to be sure of that is to take it off the inputs rather than to be handed
+    # it twice: two arguments could arrive different, and the symptom would be a
+    # folder ruled out by the spelling of the course it was built for. So the
+    # placement inputs are built first and `canonical_value` is read off them.
+    placement_inputs = authorities.placement_inputs(tree)
     destinations = build_destination_index(
         conn, tree.tree, component_version=authorities.component_version,
-        observed_at=observed_at)
+        observed_at=observed_at, canonical=placement_inputs.canonical_value)
 
     # The groups that BECAME branches, read off the design rather than off P9's
     # output. A group the user accepted and then did not keep as a branch has no
@@ -1016,7 +1023,7 @@ def run_production_p8_p11(
                     group_id=None, member_file_ids=())
             for file_id, content_hash in roster),
         group_ids=group_ids,
-        inputs=authorities.placement_inputs(tree),
+        inputs=placement_inputs,
         evidence_for=authorities.evidence_for,
         component_version=authorities.component_version,
         observed_at=observed_at)

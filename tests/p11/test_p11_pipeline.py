@@ -50,7 +50,7 @@ from placement.learning import basis_key_for, record_correction
 from placement.records import MatchingFact, Subject
 from placement.residual import ResidualSetDecision, record_set_decision
 from placement.store import current_decision
-from p11.conftest import FIXED_CLOCK
+from p11.conftest import FIXED_CLOCK, NO_CANONICAL_RULE
 from p11.p10_fixtures import FROZEN_TREE
 from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
@@ -168,7 +168,7 @@ def skeleton(p11_conn):
     _policy(p11_conn)
     build_destination_index(p11_conn, FROZEN_TREE,
                             component_version="P11-test",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     return p11_conn
 
 
@@ -201,6 +201,7 @@ def _inputs(conn, **overrides):
         # `_without_kind_only_moves` refuses to move a file on.
         fields_that_cannot_anchor_a_move=frozenset({"work_type", "term"}),
         their_own_folder_made_for_what_it_holds={},
+        canonical_value=NO_CANONICAL_RULE,
         the_folder_each_file_is_in={},
         a_move_the_person_has_not_permitted=None,
         p2=None,
@@ -465,7 +466,7 @@ def test_an_unclassified_file_is_blocked_and_not_placed(p11_conn):
         set_ceiling(p11_conn, key, 8)
     _policy(p11_conn)
     build_destination_index(p11_conn, FROZEN_TREE, component_version="P11-test",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     decision = _place(p11_conn)
     assert decision.privacy.handling_class == UNREADABLE_UNCLASSIFIED
     assert decision.review_policy == v.BLOCKED_PENDING_USER
@@ -1859,7 +1860,7 @@ def review_only(p11_conn):
     _policy(p11_conn)
     build_destination_index(p11_conn, _review_only_tree(),
                             component_version="P11-test",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     return p11_conn
 
 

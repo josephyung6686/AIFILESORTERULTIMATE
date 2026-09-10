@@ -10,10 +10,11 @@ from placement.index import (
     FrozenTreeRequired, build_destination_index, entries_for_plan, entry_for,
     legal_node_ids, node_exists, node_profile,
 )
-from p11.conftest import FIXED_CLOCK
+from p11.conftest import FIXED_CLOCK, NO_CANONICAL_RULE
 from p11.p10_fixtures import FROZEN_TREE, tree_with
 
-BUILD = dict(component_version="P11-test", observed_at=FIXED_CLOCK)
+BUILD = dict(component_version="P11-test", observed_at=FIXED_CLOCK,
+             canonical=NO_CANONICAL_RULE)
 
 
 def test_an_ignored_node_is_never_retrievable(p11_conn):

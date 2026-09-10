@@ -14,7 +14,7 @@ from placement.retrieval import (
     retrieve,
 )
 from placement.scoring import assess, needs_model_call
-from p11.conftest import FIXED_CLOCK
+from p11.conftest import FIXED_CLOCK, NO_CANONICAL_RULE
 from p11.p10_fixtures import FROZEN_TREE
 
 LIMITS = PlacementLimits(
@@ -352,7 +352,7 @@ def test_the_three_stages_bind_end_to_end_against_the_frozen_tree(p11_conn):
     against a signature that moved.
     """
     build_destination_index(p11_conn, FROZEN_TREE, component_version="P11-test",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     subject = Subject(kind=v.FILE, file_id="f1", content_hash="h1",
                       group_id=None, member_file_ids=())
     retrieval = retrieve(
@@ -360,7 +360,8 @@ def test_the_three_stages_bind_end_to_end_against_the_frozen_tree(p11_conn):
         facts=(MatchingFact(file_fact_id="ff1", field="subject", value="PHYS1401",
                             reliability=v.DIRECT, evidence_ref="obs-1"),),
         group_ids=(), curated_folder_labels=(), semantic_neighbours=(),
-        component_version="P11-test", observed_at=FIXED_CLOCK)
+        component_version="P11-test", observed_at=FIXED_CLOCK,
+        canonical=NO_CANONICAL_RULE)
     graphs = {
         candidate.node_id: build_node_local_graph(
             subject=subject, candidate=candidate,

@@ -49,6 +49,7 @@ from llm_harness.vocabulary import (
 )
 from privacy.release import ModelTarget
 
+from p11.conftest import FIXED_CLOCK, NO_CANONICAL_RULE
 from placement import vocabulary as v
 from placement.config import CEILINGS
 from placement.index import build_destination_index
@@ -163,7 +164,7 @@ def seed(p11_conn, tmp_path):
         _policy(p11_conn)
         build_destination_index(p11_conn, FROZEN_TREE,
                                 component_version="P11-test",
-                                observed_at=FIXED_CLOCK)
+                                observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
         _seed_group(p11_conn, ids)
         return SimpleNamespace(
             conn=p11_conn, ids=ids,

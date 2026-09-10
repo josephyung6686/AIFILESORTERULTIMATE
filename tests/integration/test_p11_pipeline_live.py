@@ -55,7 +55,7 @@ from placement.index import build_destination_index
 from placement.pipeline import PipelineInputs, place_file
 from placement.records import MatchingFact, Subject
 from placement.schema import create_placement_schema
-from p11.conftest import FIXED_CLOCK
+from p11.conftest import FIXED_CLOCK, NO_CANONICAL_RULE
 from p11.p10_fixtures import FROZEN_TREE
 from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
@@ -83,7 +83,7 @@ def live(conn, tmp_path):
     for key in CEILINGS.values():
         set_ceiling(conn, key, 8)
     build_destination_index(conn, FROZEN_TREE, component_version="P11-live",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     return conn
 
 
@@ -255,6 +255,7 @@ def _inputs(conn, **overrides):
         # reason as the two above it.
         fields_that_cannot_anchor_a_move=frozenset({"work_type", "term"}),
         their_own_folder_made_for_what_it_holds={},
+        canonical_value=NO_CANONICAL_RULE,
         the_folder_each_file_is_in={},
         a_move_the_person_has_not_permitted=None,
         p2=None)

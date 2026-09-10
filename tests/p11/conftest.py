@@ -17,6 +17,19 @@ from placement.schema import create_placement_schema
 FIXED_CLOCK = "2026-08-27T00:00:00Z"
 
 
+def NO_CANONICAL_RULE(field_key: str, value: str) -> str | None:
+    """The canonicaliser of a deployment that holds no rule for any field.
+
+    `104` §18.2 gap 16 makes `build_destination_index` and `retrieve` take the
+    deployment's canonicaliser with no default, because what counts as the same
+    value is `00`:298's question and not P11's. This is the honest answer for a
+    fixture that is not asking it: every value keeps the spelling it was written
+    in, which is exactly the comparison these tests were green against before the
+    gap was closed. A test ABOUT canonicalisation passes its own.
+    """
+    return None
+
+
 @pytest.fixture()
 def p11_conn(conn):
     # P9's tables are created because P11 reads them for real (G-P9 is closed):

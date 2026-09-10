@@ -35,7 +35,7 @@ from placement.p8_seam import (
     site_dependencies, snapshot_observation_keys, to_p8_conflicts, transcribe,
 )
 from placement.records import ConflictConsidered
-from p11.conftest import FIXED_CLOCK
+from p11.conftest import FIXED_CLOCK, NO_CANONICAL_RULE
 from p11.p10_fixtures import FROZEN_TREE
 
 POLICY = SupportPolicy(policy_id="fixture-v1", support_scale_max=1.0,
@@ -46,7 +46,8 @@ PLACEMENT_SOURCES = Path(__file__).resolve().parents[2] / "src" / "placement"
 @pytest.fixture()
 def indexed(p11_conn):
     build_destination_index(p11_conn, FROZEN_TREE,
-                            component_version="P11-test", observed_at=FIXED_CLOCK)
+                            component_version="P11-test", observed_at=FIXED_CLOCK,
+                            canonical=NO_CANONICAL_RULE)
     return p11_conn
 
 
