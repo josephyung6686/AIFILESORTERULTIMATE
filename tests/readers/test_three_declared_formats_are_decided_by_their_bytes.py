@@ -68,8 +68,11 @@ def test_a_camera_raw_names_no_format_and_falls_to_its_declared_extension(tmp_pa
     (`test_a_camera_raw_is_still_not_a_spreadsheet`): the file is recorded
     unsupported, never a sheet of its own bytes and never an image the product
     cannot decode. No disagreement is recorded, because nothing was detected."""
+    # Sensor bytes: control characters that decode as UTF-8 and open with no
+    # signature this reader knows. (A `FF D8 FF` opening would be a JPEG, and
+    # the reader would rightly say so.)
     path = tmp_path / "IMG_0001.raw"
-    path.write_bytes(b"\xff\xd8\xff\xe0" + bytes(range(256)) * 4)
+    path.write_bytes((b"\x00\x01\x02rawsensor\x03" + bytes(range(4, 32))) * 64)
     assert _detect()(path) is None
     decision = _route(path)
     assert decision.detected_format is None
