@@ -442,11 +442,22 @@ def test_the_stage_hands_the_ladder_the_observations_it_is_about_to_send():
     # the anchors rung over `own_excerpts`. Passing the chosen shape's fill to both
     # would report a total for a dossier that was never built, which is the same
     # class of defect this pin exists for.
+    #
+    # `104` §18.2 GAP 6 RENAMED THE RIGHT HALF, for that same reason one term over.
+    # The reserve can trim the anchor context so the file's own strongest reading has
+    # room, and the shape that goes out is the trimmed one -- `lines_context`, not
+    # the `context` the neighbour rule handed the stage. Measuring the rung against
+    # the untrimmed context would report a dossier over the ceiling for a call whose
+    # bytes are under it, `anchors_fit` would answer False, and `plan_reduction`
+    # would DEFER a call that fits. `context` is still the right name in
+    # `unreduced_observations` below, and that difference is the whole point: the
+    # first rung asks what would have gone out had nothing needed reducing, and this
+    # one asks what did.
     measured = passed["observations"]
     if isinstance(measured, ast.BinOp):
         assert isinstance(measured.op, ast.Add)
         assert {named(measured.left), named(measured.right)} == {
-            "lines_readings", "context"}
+            "lines_readings", "lines_context"}
     else:
         assert named(measured) == "lines_readings"
 
@@ -462,8 +473,12 @@ def test_the_stage_hands_the_ladder_the_observations_it_is_about_to_send():
 
     anchors = passed["anchor_observations"]
     assert isinstance(anchors, ast.IfExp), ast.dump(anchors)
+    # `104` §18.2 gap 6: `excerpts_context` for the same reason `lines_context`
+    # replaced `context` above -- the excerpts shape has its own reserve and
+    # therefore its own trimmed context, and a rung measured over the untrimmed one
+    # is a rung about a dossier nobody built.
     assert {named(anchors.orelse.left), named(anchors.orelse.right)} == {
-        "own_excerpts", "excerpts"}, (
+        "own_excerpts", "excerpts_context"}, (
         "the preserved-anchors rung is measured over the fill THAT shape leaves")
 
     # `104` §18.2 gap 5's fourth term, pinned at the same call site and for this

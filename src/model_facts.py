@@ -72,7 +72,7 @@ from evidence_shape.store import (
     unit_length_for_observation,
 )
 from facts.domains import ActivationSignals, active_field_allowlist
-from facts.file_facts import facts_for_file
+from facts.file_facts import LLM_INTERPRETATION, facts_for_file
 from facts.evidence import observations_for_version
 from facts.llm_seam import FactRequest, build_request
 from facts.resolver import StageOutcome
@@ -188,15 +188,6 @@ def _not_asked(word: str) -> StageOutcome:
     of the rows: the word and the `unresolved` reason are read from one mapping.
     """
     return StageOutcome(not_asked=word, unresolved_reason=NOT_ASKED_REASONS[word])
-
-#: The zones §2.2 ranks as meaningful evidence, most placed first. A dossier is
-#: capped, so WHICH observations survive the cap is a real choice: a title or a
-#: page-one heading carries more meaning than a late body reference, which is §3.7's
-#: own sentence. Zones outside this list keep their stored order behind it.
-_ZONE_PREFERENCE: tuple[str, ...] = (
-    "title", "heading", "metadata", "body", "table", "notes",
-)
-
 
 def require_folder_levels(
         folder_levels: Sequence[FolderLevel]) -> tuple[FolderLevel, ...]:
@@ -749,9 +740,11 @@ def document_order(observation) -> tuple[int, ...]:
     sheet, a `field` name) carries no index and contributes `0`.
 
     THIS IS NOT A PREFERENCE, and the distinction is the whole reason it is written
-    down. `_ZONE_PREFERENCE` above IS a preference -- §3.7's own sentence that a
-    title carries more meaning than a late body reference -- and it still runs first.
-    What this replaces is the `observation_key` tie-break that used to break ties
+    down. What runs before it is `zone_evidence_counts` -- a MEASUREMENT of where
+    this corpus's recognisers have cited the fields being asked, since `104` §18.2
+    gap 6 replaced the six typed zone names that used to stand there -- and this term
+    decides every tie that measurement leaves, which on a cold run is every tie there
+    is. What this replaces is the `observation_key` tie-break that used to break ties
     WITHIN a zone: a content-addressed SHA-256, so among a PDF's forty body pages the
     twelve that reached a dossier were the twelve whose digests happened to sort
     lowest. That is not a reading of the document; it is a reading of a hash. The
@@ -935,7 +928,8 @@ def mint_opening_excerpts(conn: sqlite3.Connection, observations: Sequence, *,
 
 def ordered_releasable_observations(conn: sqlite3.Connection, *, file_id: str,
                                     content_hash: str, locality: str,
-                                    limit: int) -> tuple:
+                                    limit: int,
+                                    fields: Sequence[str] = ()) -> tuple:
     """Every reading of this file the gate would release, in the order it offers
     them. NO cap and no fill -- `within_dossier_budget` below spends the budget.
 
@@ -945,8 +939,16 @@ def ordered_releasable_observations(conn: sqlite3.Connection, *, file_id: str,
     own is not asked is about the file, not about what fits -- and asks the budget
     function once per context shape, over one database read.
 
-    The order is `(zone_rank, document order, span start, observation_key)`; the
-    exclusions are `may_be_released`'s, asked of every reading.
+    The order is `(-cited readings in this zone, document order, span start,
+    observation_key)`; the exclusions are `may_be_released`'s, asked of every reading.
+
+    **`fields` IS THE ORDER'S ONLY INPUT, and it is measured (`104` §18.2 gap 6).**
+    `zone_evidence_counts` carries the argument in full: the first term used to be
+    `zone_rank`, a six-name table typed in this file, and it is now the count of
+    readings this corpus's own recognisers have cited for the fields THIS call is
+    asking. A caller that names no field measures nothing and gets the document's own
+    order, which is also what the first file of a cold run gets -- and is the answer
+    `104` §18.2 gap 6 asks for where no measurement exists.
 
     **`limit` is here for the EXCERPT and for nothing else (`104` R-164).** This
     function still caps nothing -- `within_dossier_budget` below spends the budget and
@@ -968,8 +970,17 @@ def ordered_releasable_observations(conn: sqlite3.Connection, *, file_id: str,
                           bound=opening_excerpt_bound(conn, limit=limit),
                           ceiling=None if ceiling is None else int(ceiling))
 
+    # ONE READ FOR THE WHOLE OFFER, not one per reading: the counts are a property of
+    # the fields being asked, not of any reading, so they are measured once here and
+    # the sort key only looks a zone up in them.
+    cited = zone_evidence_counts(conn, fields=fields)
+
     def placed(observation) -> tuple:
-        return (zone_rank(observation.location.zone),
+        # NEGATED, so that MORE citations sort FIRST, and a zone this corpus has
+        # never stated these fields in scores 0 -- tying with every other unmeasured
+        # zone and leaving `document_order` to decide, rather than being sent behind
+        # them all the way `zone_rank` sent `ocr` and `path`.
+        return (-cited.get(observation.location.zone, 0),
                 document_order(observation), _span_start(observation),
                 observation.observation_key)
 
@@ -1137,9 +1148,72 @@ def within_dossier_budget(observations: Sequence, *, ceiling: int) -> DossierFil
     return DossierFill(taken=tuple(taken), dropped=tuple(dropped))
 
 
+def fill_reserving_top_reading(offered: Sequence, context: Sequence, *,
+                               ceiling: int) -> tuple[Sequence, DossierFill]:
+    """The file's own readings AND the context they travel beside, under one ceiling
+    -- with the file's own strongest reading admitted before the context spends it.
+
+    `ceiling` is what the dossier ceiling has left after the FILENAME, because the
+    name is the one released value neither half of this can bargain with: it is a
+    single item, §7.7 puts it through its own door, and there is nothing to trim off
+    it. What this function divides is the rest, between the file and its neighbours.
+
+    **`104` §18.2 gap 6 (9 Sep 2026), and it is a coverage defect with a measured
+    shape.** The order used to be: the anchor context takes what it wants, the name
+    takes its bytes, the file's own readings fill the remainder. `104` R-135 gathers
+    the context from a NEIGHBOUR under a rule that knows nothing about how much room
+    is left, so a folder holding one long syllabus produced a remainder of zero and
+    the file reached the model carrying not one word of its own. The model was then
+    asked what THIS file is and shown only what the file next door says -- and an
+    answer built that way is a fact about the syllabus, which is exactly the failure
+    `_within_ceiling`'s own comment describes from the other end.
+
+    **So the top reading is reserved, and only the top reading.** `offered[0]` is the
+    strongest reading of the file's own offer under `ordered_releasable_observations`'
+    measured order; it is admitted whenever it fits under this ceiling AT ALL, and
+    the context fills what is left. Reserving more than one would be this function
+    choosing how much of a file is enough, which is the model's question; reserving
+    none is the state above. "At least its own strongest reading when one fits
+    alone" is the whole promise, and it is the smallest one that makes the call be
+    about the file it names.
+
+    **The context yields by the same rule the file's readings yield by, and its cut
+    is recorded rather than silent.** `within_dossier_budget` does the trimming --
+    the same walk, the same `released_wire_cost`, the same skip-and-continue -- and
+    the readings it dropped come back in the SAME `DossierFill.dropped` as the file's
+    own, so `GroundingReport.readings_dropped` still counts every reading this
+    ceiling took and `104` §18.2 gap 5's promise is not re-broken one object over.
+    Two lists would be two numbers for one question.
+
+    **NOTHING MOVES ON THE ORDINARY PATH, and that is asserted by identity rather
+    than by equality.** When the context already leaves the top reading room, the
+    context comes back as the SAME OBJECT -- `fact_call_stage` decides whether to pay
+    for a second `build_request` by asking `shown is not context` -- and the fill is
+    byte-for-byte the one this stage built before the reserve existed.
+
+    An EMPTY offer is a state this function is never asked about: `fact_call_stage`
+    returns `not_asked` for a file with no readings of its own before the fill is
+    reached, because a file that has nothing to say is not asked at all.
+    """
+    spent_on_context = sum(released_wire_cost(one) for one in context)
+    kept, cut = context, ()
+    head = released_wire_cost(offered[0])
+    if head <= ceiling and head > ceiling - spent_on_context:
+        # THE ONE STATE THE RESERVE CHANGES, and neither half of the condition is a
+        # default. A top reading that cannot travel even alone is not rescued by
+        # taking the context away -- there is no room to give it -- and a top reading
+        # the context already left room for needs no rescue, so the context keeps
+        # every line it had.
+        context_fill = within_dossier_budget(context, ceiling=ceiling - head)
+        kept, cut = context_fill.taken, context_fill.dropped
+        spent_on_context = sum(released_wire_cost(one) for one in kept)
+    own = within_dossier_budget(offered, ceiling=ceiling - spent_on_context)
+    return kept, DossierFill(taken=own.taken, dropped=tuple(cut) + own.dropped)
+
+
 def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
                             content_hash: str, limit: int, locality: str,
-                            ceiling: int) -> tuple:
+                            ceiling: int, fields: Sequence[str] = ()) -> tuple:
     """The observations this file may offer a model, most placed first, bounded.
 
     The two halves above, composed: `ordered_releasable_observations` for what may be
@@ -1194,24 +1268,110 @@ def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
     recorded on. A caller of this function is asking "what may this file offer,
     bounded" and has no call to record anything against. If one ever does, it takes
     the `DossierFill` rather than this, and the record goes with it.
+
+    **`fields` PASSES STRAIGHT THROUGH AND DEFAULTS TO NONE (`104` §18.2 gap 6).**
+    The order is measured off the fields a call is asking about, and the three cli
+    sites that compose this one -- site B's excerpt read, site C's remainder fill,
+    the review surface's -- are not asking a field question at all. They measure
+    nothing and get the document's own order, which is what they had before any
+    preference existed; a field invented for them here would be this module deciding
+    what they are asking.
     """
     return within_dossier_budget(
         ordered_releasable_observations(
             conn, file_id=file_id, content_hash=content_hash, locality=locality,
-            limit=limit),
+            limit=limit, fields=fields),
         ceiling=ceiling).taken
 
 
-def zone_rank(zone: str) -> int:
-    """`releasable_observations`' own ordering term, published rather than copied.
+#: The origin whose citations are NOT counted below, and the one exclusion in the
+#: measurement (`104` §18.2 gap 6). A model's own fact cites the reading the model was
+#: shown, so counting `llm_interpretation` would make the next dossier's order an echo
+#: of the last dossier's order: the zone a reading happened to be offered in becomes
+#: the reason the next file's reading of that zone is offered first, and the
+#: measurement stops being about where the CORPUS states a field. Rule one is that the
+#: LLM decides; it is not that the LLM's answers silently re-rank the evidence the
+#: next call is shown. Every other origin -- the deterministic extractor, the rules,
+#: the person's own correction, an approved folder -- is a recogniser or a human
+#: saying "the value is here", and all four are counted.
+_ECHOED_ORIGIN: str = LLM_INTERPRETATION
 
-    A caller that assembles a set of readings ITSELF -- `104` R-135's context builder
-    gathers lines from several neighbouring files -- has to order them before it caps
-    them, and ordering them by a second spelling of this table would be two answers to
-    "which reading does this product prefer to send".
+
+def zone_evidence_counts(conn: sqlite3.Connection, *,
+                         fields: Sequence[str]) -> Mapping[str, int]:
+    """WHERE THIS CORPUS HAS ACTUALLY STATED THESE FIELDS, per zone, measured.
+
+    **`104` §18.2 gap 6 (9 Sep 2026), and it is constitution rule one.** What stood
+    here was `_ZONE_PREFERENCE`, six zone names typed in this file's own order --
+    title, heading, metadata, body, table, notes -- with `zone_rank` sending every
+    zone outside the six behind all six. Two consequences, both of them the rule's
+    own subject. A hand-typed table decided which readings survived a capped dossier,
+    which is domain knowledge deciding what the model sees. And it disagreed with the
+    product's other table: `cli.ZONE_WEIGHT` weighs metadata, body, ocr and path
+    equally, while this one ranked metadata third, body fourth, and `ocr` and `path`
+    -- the two zones §17.13 had just opened to every target -- dead last, behind
+    zones no reader in this deployment produces. A page of OCR text, the only reading
+    a scanned syllabus has, queued behind an empty `notes`.
+
+    **What replaces it is a count, not a better table.** For the fields this call is
+    about to ask, every fact the store already holds is read, every `evidence_refs`
+    entry on it is resolved to the reading it cites, and the zones those readings
+    stand in are counted. A field whose values this corpus states in `ocr` scores
+    `ocr` highest for that field; a field stated in headings scores `heading`
+    highest. Nothing is named here and nothing is ranked here: the corpus is asked
+    where its own answers to this question have been found, and the answer is
+    whatever it is.
+
+    **A zone with no measurement is not sent last.** It scores zero, ties with every
+    other unmeasured zone, and the sort's next term -- `document_order`, the
+    document's own order -- decides between them. That is the whole of the "unlisted
+    zone" defect: `zone_rank` gave an unmeasured zone a rank WORSE than every named
+    one, which is a judgement about a zone nobody had measured. Zero is the honest
+    score for "this corpus has not yet stated this field here", and it is the score
+    every zone carries on the first file of a cold run -- where the order is then the
+    document's own, alone, which is what `104` §18.2 gap 6 asks for.
+
+    **`fields` is required and empty is meaningful.** A caller that is not asking
+    about a field -- `cli`'s site B and site C reads of `releasable_observations` --
+    passes nothing, measures nothing, and gets the document's own order. Guessing a
+    field for them would be this module deciding what they are asking.
+
+    **One GROUP BY and not a resolve per citation.** `facts.evidence`'s own docstring
+    records what a per-observation Python loop cost this package once
+    (`analysis_tier_for_observation`: 441,386 calls on one 413-file folder). The join
+    is `json_each` over the stored refs into `evidence` by `observation_key`, which
+    is the indexed column, and the count is over DISTINCT `(fact, key)` pairs because
+    a key carries one row per extractor version (`evidence_key` is deliberately not
+    unique, MINOR 8) and a version bump is not a second statement.
+
+    **The order this makes depends on the corpus, and that is the point.** A file
+    asked early in a cold run is ordered by its own document order and a file asked
+    late by what the run has learned, so two runs over the same corpus in the same
+    roster order agree, and a run over half a corpus orders differently from a run
+    over all of it. Nothing here DECIDES anything -- the model reads every reading in
+    the dossier and the order says only which one the ceiling keeps when it cannot
+    keep them all -- which is why this is the one place a corpus-derived answer is
+    better than a stable table, and why `cli.ZONE_WEIGHT`, which decides a stored
+    fact, is deliberately not derived this way (its own comment carries that).
     """
-    return (_ZONE_PREFERENCE.index(zone) if zone in _ZONE_PREFERENCE
-            else len(_ZONE_PREFERENCE))
+    named = tuple(sorted({field for field in fields if field}))
+    if not named:
+        return MappingProxyType({})
+    placeholders = ", ".join("?" * len(named))
+    rows = conn.execute(
+        "SELECT json_extract(e.location, '$.zone') AS zone, "
+        "       COUNT(DISTINCT f.fact_id || ' ' || r.value) AS citations "
+        "FROM file_facts AS f "
+        "JOIN json_each(f.evidence_refs) AS r "
+        "JOIN evidence AS e ON e.observation_key = r.value "
+        f"WHERE f.field_key IN ({placeholders}) "
+        "  AND f.active = 1 "
+        "  AND f.origin <> ? "
+        "  AND e.superseded_by IS NULL "
+        "GROUP BY zone",
+        (*named, _ECHOED_ORIGIN)).fetchall()
+    return MappingProxyType({row["zone"]: int(row["citations"])
+                             for row in rows if row["zone"]})
 
 
 def may_be_released(conn: sqlite3.Connection, observation, *,
@@ -1681,6 +1841,16 @@ def _call_dependencies(
     A file that was asked before is asked now; what changed is that its record says
     `preserved_anchors` instead of `none` when the ceiling took part of its evidence,
     and `GroundingReport.readings_dropped` says how much.
+
+    **`104` §18.2 GAP 6 NARROWED THAT LAST STATE FURTHER, AND THE ARITHMETIC HERE IS
+    UNTOUCHED.** This function still answers DEFERRED for a shape that does not fit;
+    what changed is upstream, in what `fact_call_stage` BUILDS. Since the reserve,
+    the context yields room to the file's own strongest reading instead of consuming
+    the whole ceiling, so the "no reading of the file's own fits" state is no longer
+    produced by a large context -- only by a FILENAME whose own bytes exceed the
+    ceiling, which leaves no room to reserve. The state above is still the state this
+    ladder defers; the stage simply stops manufacturing it out of a neighbour's
+    words, which is the half of it that ever cost a file its call.
     """
     built_fits = sum(
         released_wire_cost(observation) for observation in observations
@@ -2179,7 +2349,13 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # to say", which is a different question and is the one the guard asks.
         offered = ordered_releasable_observations(
             conn, file_id=file_id, content_hash=content_hash, locality=locality,
-            limit=authorities.max_released_observations)
+            limit=authorities.max_released_observations,
+            # `104` §18.2 gap 6: THE PENDING FIELDS ARE WHAT THE ORDER IS MEASURED
+            # OFF. The offer is ordered for the question this call is about to ask,
+            # and the question is `pending` -- not the whole allowlist, which
+            # includes fields this file has already settled and whose evidence would
+            # then be ordering the readings for fields nobody is asking.
+            fields=pending)
         if not offered:
             # A file with no readings of its own is not asked, and context does not
             # change that. `104` R-135 carries a NEIGHBOUR's words to a file that has
@@ -2293,6 +2469,12 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # vocabulary is. So the order is: context, then vocabulary, then the name's
         # cost, then whatever room is left goes to the file's own readings.
         #
+        # `104` §18.2 GAP 6 PUT ONE READING AHEAD OF THE CONTEXT IN THAT ORDER. The
+        # file's own strongest reading is admitted before the context spends the
+        # ceiling, because the call is about this file and a dossier carrying only a
+        # neighbour's words answers a question about the neighbour. `own_readings`
+        # carries the whole argument and the two states it distinguishes.
+        #
         # For a CLOUD target this changes nothing measurable: `within_dossier_budget`
         # returns the same first `max_released_observations` readings it always did,
         # and the remainder below is only a ceiling the count cap almost never
@@ -2304,22 +2486,19 @@ def fact_call_stage(authorities: FactCallAuthorities):
                     if name_may_be_cited else None)
         name_characters = filename_characters(conn, filename)
 
-        def own_readings(shown_context: Sequence) -> DossierFill:
-            """The file's own readings that fit beside THIS context and the name.
+        def own_readings(shown_context: Sequence) -> tuple[Sequence, DossierFill]:
+            """`fill_reserving_top_reading` with this call's three terms bound.
 
-            A `DossierFill` since `104` §18.2 gap 5: what fits AND what the ceiling
-            cut. The cut of the fill that is actually BUILT is recorded on the call
-            below -- the two shapes leave different remainders and therefore drop
-            different readings, so reporting the lines shape's cut for a call built
-            in the excerpts shape would be a number about a dossier nobody sent.
+            The closure exists to carry `offered` and the name's cost, which do not
+            change between the two context shapes; the arithmetic and the argument
+            for it are the published function's, so a test can drive the reserve
+            without building a stage around it.
             """
-            return within_dossier_budget(
-                offered,
-                ceiling=(authorities.max_dossier_tokens
-                         - sum(released_wire_cost(one) for one in shown_context)
-                         - name_characters))
+            return fill_reserving_top_reading(
+                offered, shown_context,
+                ceiling=authorities.max_dossier_tokens - name_characters)
 
-        lines_fill = own_readings(context)
+        lines_context, lines_fill = own_readings(context)
         lines_readings = lines_fill.taken
         fill = lines_fill
         observations = lines_readings
@@ -2336,6 +2515,16 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # exceeds the ceiling on its own leaves a remainder of zero and no reading
         # fits. That is exactly the state R-145 built the second shape for, and it is
         # now reached by measuring rather than by counting readings.
+        #
+        # **THE TRIGGER IS MEASURED AGAINST THE WHOLE CONTEXT, AND THAT IS THE POINT
+        # AFTER `104` §18.2 gap 6's RESERVE.** The reserve makes the LINES shape fit
+        # by taking context lines away, so asking this question about the trimmed
+        # context would answer yes every time and R-145's shape would never be built
+        # again. It is asked about the context as it arrived: "does the anchor
+        # context fit whole beside this file's own readings", and when it does not,
+        # the anchors' own spans are tried BEFORE any line is dropped. Dropping whole
+        # lines is the blunter remedy of the two -- it can take the very line that
+        # names the course -- so it stays the last one.
         excerpts = None
         own_excerpts = None
         if (authorities.anchor_excerpts_for is not None
@@ -2344,19 +2533,27 @@ def fact_call_stage(authorities: FactCallAuthorities):
                                         authorities)):
             excerpts = tuple(authorities.anchor_excerpts_for(
                 conn, file_id=file_id, content_hash=content_hash, fields=pending))
-            excerpts_fill = own_readings(excerpts)
+            excerpts_context, excerpts_fill = own_readings(excerpts)
             own_excerpts = excerpts_fill.taken
         if (excerpts is not None
                 and _within_ceiling(own_excerpts, excerpts, name_characters,
                                     authorities)):
-            shown, observations = excerpts, own_excerpts
+            shown, observations = excerpts_context, own_excerpts
             # THE CUT OF THE SHAPE THAT WAS BUILT (`104` §18.2 gap 5). The excerpts
             # shape leaves a different remainder than the lines shape, so it drops a
             # different set; the call carries this one and the record must be about
             # the call.
             fill = excerpts_fill
         else:
-            shown = context
+            # THE LINES, TRIMMED ONLY IF THE RESERVE HAD TO TRIM THEM, and otherwise
+            # `context` itself. Reaching here with a trimmed shape is the state that
+            # used to send the file's own evidence as nothing and let §8.6's ladder
+            # fall to DEFERRED: the context and the name alone over the ceiling. It
+            # now sends the file's strongest reading and as much of the neighbour's
+            # words as the ceiling leaves, which is `104` §18.7's ruling in the
+            # owner's own words -- "files should not be refused at all" -- and the
+            # trim is on the record rather than silent.
+            shown = lines_context
         if shown is not context:
             # The ONLY field that changes is the context, and `build_request` is
             # asked again rather than the tuple being patched onto the record it
@@ -2483,10 +2680,22 @@ def fact_call_stage(authorities: FactCallAuthorities):
                     # fill to both would report a total for a dossier that was never
                     # built. `name_characters` is added to both by
                     # `_call_dependencies`, because the name travels in either.
-                    observations=tuple(lines_readings) + context,
+                    #
+                    # `104` §18.2 GAP 6: EACH RUNG TAKES ITS SHAPE'S OWN CONTEXT,
+                    # `lines_context` and `excerpts_context`, and that is not
+                    # tidiness. The reserve can trim a context to leave the file's
+                    # own strongest reading room, and the shape that goes out is the
+                    # trimmed one -- so measuring the rung against the context AS IT
+                    # ARRIVED would report a dossier over the ceiling for a call that
+                    # fits, `anchors_fit` would answer False, and `plan_reduction`
+                    # would DEFER a call whose bytes were already under the bound.
+                    # The rung is about the dossier that was built, which is the
+                    # rule the two `_within_ceiling` calls above already follow.
+                    observations=tuple(lines_readings) + tuple(lines_context),
                     name_characters=name_characters,
-                    anchor_observations=(None if excerpts is None
-                                         else tuple(own_excerpts) + excerpts),
+                    anchor_observations=(
+                        None if excerpts is None
+                        else tuple(own_excerpts) + tuple(excerpts_context)),
                     # `104` §18.2 gap 5: THE OFFER BEFORE THE FILL SPENT THE CEILING
                     # ON IT, which is what "unreduced" has to mean for the word to
                     # be worth recording. `offered` is what

@@ -254,6 +254,15 @@ def test_the_always_local_zones_split_and_the_filename_stays_behind(evidence):
     So the one assertion becomes two, and the pair is what keeps this discriminating:
     a seam that had simply stopped asking about zones would pass the first and fail
     the second.
+
+    **THE PAIR'S ORDER IS THE DOCUMENT'S OWN SINCE `104` §18.2 gap 6.** The first
+    assertion used to read `[body, folder]` because `model_facts.zone_rank` ranked
+    `body` fourth of six typed zone names and sent `path` behind all six. There is no
+    table now: the order's first term counts where this corpus's recognisers have
+    cited the fields being asked, this seam asks about no field and this fixture
+    holds no facts, so both readings score zero and `document_order` decides -- the
+    folder's label-only address stands at 0 and the body's page at 1. What the test
+    is FOR is unmoved: both always-local-for-cloud zones travel, the name does not.
     """
     _indexed(evidence)
     body = _observation(evidence, zone="body", span=TextSpan(10, 21),
@@ -269,7 +278,7 @@ def test_the_always_local_zones_split_and_the_filename_stays_behind(evidence):
                                   locality=CLOUD_LOCALITY, ceiling=A_CEILING)
 
     refs = [ref for ref, _location, _reliability in offered]
-    assert refs == [body, folder]
+    assert refs == [folder, body]
     assert named not in refs
 
 

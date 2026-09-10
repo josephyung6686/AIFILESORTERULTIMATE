@@ -217,6 +217,16 @@ def test_a_deployment_that_stores_no_ceiling_mints_nothing(conn, tmp_path):
     refusal, both stored readings travel. Inferring "nothing was minted" from an
     empty offer was only ever safe while everything else was refused, so the claim is
     read off the evidence table instead, which is where a minted row actually goes.
+
+    **THE TWO READINGS SWAPPED PLACES AT `104` §18.2 gap 6, and that is the whole of
+    the change here.** `zone_rank` ranked `body` fourth of six and sent `path` behind
+    all six, so the page led whatever the corpus said. There is no table now: the
+    order's first term is what this corpus's recognisers have cited for the fields
+    being asked, this fixture asks about no field and has no facts, so the term is
+    zero for both readings and the document's own order decides -- and the folder
+    path, a label segment carrying no index, stands at position 0 ahead of page 1.
+    Nothing about MINTING moved; the offer is asserted whole because a test that
+    read only its first member would not notice an order change at all.
     """
     file_id, content_hash, folder, page = _corpus(conn, tmp_path, ceiling=None)
 
@@ -225,7 +235,7 @@ def test_a_deployment_that_stores_no_ceiling_mints_nothing(conn, tmp_path):
 
     assert _minted(conn) == []
     assert [one.observation_key for one in offered] == [
-        page.observation_key, folder.observation_key]
+        folder.observation_key, page.observation_key]
 
 
 # --------------------------------------------------------------------------
@@ -251,6 +261,13 @@ def test_a_page_that_fits_the_ceiling_is_offered_whole_and_nothing_is_minted(
     The two targets are WALKED rather than asserted once, because "the cloud is shown
     what the local model is shown" is a claim about their agreeing and an assertion
     about one of them would not make it.
+
+    **`104` §18.2 gap 6 moved the page to second and left the claim intact.** With
+    no table ranking `body` above `path` and no measurement in this store, the offer
+    is in the document's own order and the folder path leads it. What this test is
+    about -- the page travelling WHOLE, with its sentences in it, and no excerpt
+    minted beside it -- is asserted about the page itself rather than about whichever
+    reading happens to be first, which is what it should always have done.
     """
     file_id, content_hash, folder, page = _corpus(conn, tmp_path)
 
@@ -258,11 +275,12 @@ def test_a_page_that_fits_the_ceiling_is_offered_whole_and_nothing_is_minted(
         offered = _offer(conn, file_id, content_hash, locality)
 
         assert [one.observation_key for one in offered] == [
-            page.observation_key, folder.observation_key], locality
-        assert offered[0].raw_value == PAGE, locality
+            folder.observation_key, page.observation_key], locality
+        carried, = [one for one in offered if one.location.zone == "body"]
+        assert carried.raw_value == PAGE, locality
         # And the sentences are actually there, which is the whole reason this file
         # exists -- they simply arrive in the page now instead of in a copy of it.
-        assert "PHYS 1401" in offered[0].raw_value, locality
+        assert "PHYS 1401" in carried.raw_value, locality
     assert _minted(conn) == []
 
 
@@ -408,6 +426,20 @@ def test_the_offer_carries_the_opening_of_a_unit_no_call_can_carry(conn, tmp_pat
     page was offered, the opening yielded to it, the fill dropped the page);
     9753023 withholds the over-ceiling page from the offer, and this went from a
     strict xfail to the assertion it always meant.
+
+    **THE FILL'S CEILING IS THE OFFER'S OWN COST SINCE `104` §18.2 gap 6, and that
+    is a correction to this test rather than a weakening of it.** It passed
+    `OVER_CEILING` twice, to two different questions: it is the STORED ceiling, the
+    length at which this page becomes a whole document and leaves the offer, and it
+    was also handed to the fill as the room a call had left. Those are different
+    numbers in every real call, and while `zone_rank` put `body` fourth and `path`
+    last the coincidence was invisible -- the opening was taken first and the folder
+    path was what the arithmetic dropped. Under the measured order the folder leads,
+    and the test began asserting that a 21-character opening plus a folder path do
+    not both fit inside half a page. That is not what it is named for. The fill is
+    given the offer's own cost, so nothing is dropped for room and the assertion is
+    about WHAT THE OFFER CARRIES: the over-ceiling unit reaching the call as its
+    opening rather than as nothing.
     """
     file_id, content_hash, _folder, _page = _corpus(conn, tmp_path,
                                                     ceiling=OVER_CEILING)
@@ -415,7 +447,9 @@ def test_the_offer_carries_the_opening_of_a_unit_no_call_can_carry(conn, tmp_pat
     offered = _offer(conn, file_id, content_hash, CLOUD_LOCALITY)
     # `104` §18.2 gap 5: the fill answers what it took AND what it cut; what this
     # test is about is the taken half, and the assertion it always made is unchanged.
-    carried = within_dossier_budget(offered, ceiling=OVER_CEILING).taken
+    carried = within_dossier_budget(
+        offered,
+        ceiling=sum(released_wire_cost(one) for one in offered)).taken
     body = [one for one in carried if one.location.zone == "body"]
 
     assert body != [], (
@@ -575,6 +609,10 @@ def test_a_unit_no_longer_than_the_bound_gets_no_excerpt_and_keeps_its_answer(
     the reason it always gave -- the opening would BE the unit -- and that reason
     outlived the refusal it was written beside. The assertion is now that the page is
     offered and no row was minted, on both targets.
+
+    The order of the two is the document's own since `104` §18.2 gap 6, which put a
+    measurement where `zone_rank`'s six typed names were; this fixture measures
+    nothing, so the folder path's position-0 address leads page 1's.
     """
     file_id, content_hash, folder, page = _corpus(
         conn, tmp_path, text="Homework 3 for PHYS 1401")
@@ -583,7 +621,7 @@ def test_a_unit_no_longer_than_the_bound_gets_no_excerpt_and_keeps_its_answer(
         offered = _offer(conn, file_id, content_hash, locality)
 
         assert [one.observation_key for one in offered] == [
-            page.observation_key, folder.observation_key], locality
+            folder.observation_key, page.observation_key], locality
         assert may_be_released(conn, page, sensitive=frozenset(),
                                locality=locality), locality
     assert _minted(conn) == []
