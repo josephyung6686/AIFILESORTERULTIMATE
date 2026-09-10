@@ -330,6 +330,43 @@
    "glossary_file": "field_glossary.json",
    "ratified_by": "nobody -- a candidate authored by the lead under the owner's 7 Sep delegation of prompt iteration as new versioned rows; the owner ratifies or strikes it.",
    "note": "v4 of the A_fact text: rule 14 tells the model what a term IS and that a year alone, a range alone, a month-year or a date is not one, so it declines instead of answering. Measured on r19 (104 §18.24): 136 claims died at the validator as VALUE_NOT_NORMALIZABLE, 104 of them a bare year, a bare range or a season initial for \"term\" -- refusals 105 §14.2 ruled and the ratified text never tells the model about. Everything else byte-identical to v3."
+  },
+  {
+   "site": "C_placement",
+   "candidate": "eliminate-v2r-group",
+   "template_id": "c_placement.unratified.eliminate-v2r-group.2026-09-10",
+   "template_file": "c_placement_template.eliminate-v2r-group.txt",
+   "response_schema_file": "c_placement_response_schema.json",
+   "shaping_policy_file": "c_placement_shaping_policy.v2.json",
+   "status": "unratified",
+   "ratified_by": "nobody -- authored by the lead from the gap 14 agent's report under the owner's 7 Sep delegation; the owner ratifies or strikes it.",
+   "note": "v2r plus one sentence for the group subject (104 §18.2 gap 14, merged 10 Sep): when subject_ref names a group the dossier is a packet the person accepted together and the model decides the packet's one folder. Everything else byte-identical to v2r. Written because the ratified text says \"about one file\" in three places that are false for a group call."
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-safety-first-v6",
+   "status": "unratified",
+   "template_id": "situation.unratified.safety-first-v6.2026-09-10",
+   "template_file": "situation_template.safety-first.v6.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_shaping_policy.v2.json",
+   "readings_rows": [
+    "@case"
+   ],
+   "layout": "frame-first",
+   "note": "v5 plus one paragraph explaining the held phrase gap 24 and 24b put on the recogniser_abstention item (104 §18.26-27): the rules' hold is a report, a discussed term is not what the document is, an ordinary answer releases the hold, a protected one keeps it, declining leaves it. Everything else byte-identical to v5.",
+   "ratified_by": "nobody -- authored by the lead from the gap 24 agent's draft under the owner's 7 Sep delegation; the owner ratifies or strikes it."
+  },
+  {
+   "site": "E_template",
+   "candidate": "what-a-person-opens-v3",
+   "template_id": "e_template.unratified.what-a-person-opens-v3.2026-09-10",
+   "template_file": "e_template_template.what-a-person-opens-v3.txt",
+   "response_schema_file": "e_template_response_schema.json",
+   "shaping_policy_file": "e_template_shaping_policy.json",
+   "note": "v2 plus two paragraphs for the per-file subject site E now has (104 §18.1 S6, merged 10 Sep): the subject may be one file, and why it is here; folder_levels is what the subject does not fit. Everything else byte-identical to v2. The eligibility word for a file (a P8 vocabulary widening, the agent's candidate file_fits_no_situation_template) is the owner's and is not written here.",
+   "status": "unratified",
+   "ratified_by": "nobody -- authored by the lead from the site E agent's report under the owner's 7 Sep delegation; the owner ratifies or strikes it."
   }
  ],
  "digests": {
@@ -374,6 +411,9 @@
   "c_placement_template.eliminate-v2r.txt": "0b3816e142fa0b2a17def7f9059cf693c0a42f27110005b8c6f32333b406385e",
   "situation_template.safety-first.v4.txt": "afc24f64ebf5410cf96eb7d4183ad3e7740a4a7b7e9a138fb5aa2de4828725d4",
   "situation_template.safety-first.v5.txt": "214cccca857246cdfea8621560ccfca07437537269dc70b66edc55a707a5462c",
-  "a_fact_template_folder_levels.v4.txt": "618d1202fbbd2928af6ca3212f92839d927a56a311b1e84ca563a96a235e4774"
+  "a_fact_template_folder_levels.v4.txt": "618d1202fbbd2928af6ca3212f92839d927a56a311b1e84ca563a96a235e4774",
+  "c_placement_template.eliminate-v2r-group.txt": "af73ab657452e2d2e86e7cbffd478ad3fd9f545f3659c38948bd67aaaf71aeed",
+  "situation_template.safety-first.v6.txt": "e468a41cb21ed722342db4af67debf27b191039b09a0afe3d1c0d3e6753368c6",
+  "e_template_template.what-a-person-opens-v3.txt": "25a98f48313a1252dfabcc57f45605bf3ae6387124b4d145aa60952af0d1d7eb"
  }
 }
