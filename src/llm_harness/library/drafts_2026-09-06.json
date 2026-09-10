@@ -340,7 +340,7 @@
    "shaping_policy_file": "c_placement_shaping_policy.v2.json",
    "status": "unratified",
    "ratified_by": "nobody -- authored by the lead from the gap 14 agent's report under the owner's 7 Sep delegation; the owner ratifies or strikes it.",
-   "note": "v2r plus one sentence for the group subject (104 §18.2 gap 14, merged 10 Sep): when subject_ref names a group the dossier is a packet the person accepted together and the model decides the packet's one folder. Everything else byte-identical to v2r. Written because the ratified text says \"about one file\" in three places that are false for a group call. Its own schema file (10 Sep; the name \"v2 schema\" is reserved for 105 §14's bundle and pinned absent): a per_dimension_support item may carry context_group, the key the validator REQUIRES for context support and the ratified schema forbade (additionalProperties false) -- a contradiction that made every context level schema-invalid one way or validator-rejected the other; found by the gap 14 agent, 104 §18.34. The product keeps observing the ratified v2r: site C acts only on a ratified row (test_cli_observe_sites pins it), so observing this row unratified would place nothing. The owner ratifies this row to close the contradiction."
+   "note": "v2r plus one sentence for the group subject (104 §18.2 gap 14, merged 10 Sep): when subject_ref names a group the dossier is a packet the person accepted together and the model decides the packet's one folder. Everything else byte-identical to v2r. Written because the ratified text says \"about one file\" in three places that are false for a group call. Its own schema file (10 Sep; the name \"v2 schema\" is reserved for 105 §14's bundle and pinned absent): a per_dimension_support item may carry context_group, the key the validator REQUIRES for context support and the ratified schema forbade (additionalProperties false) -- a contradiction that made every context level schema-invalid one way or validator-rejected the other; found by the gap 14 agent, 104 §18.34. The product keeps observing the ratified v2r: site C acts only on a ratified row (test_cli_observe_sites pins it), so observing this row unratified would place nothing. The owner ratifies this row to close the contradiction. Also carries the graph_edge sentence gap 12 (merged 10 Sep) owes: a relationship item is support for a level and never a citation."
   },
   {
    "site": "G_situation_sensitivity",
@@ -412,7 +412,7 @@
   "situation_template.safety-first.v4.txt": "afc24f64ebf5410cf96eb7d4183ad3e7740a4a7b7e9a138fb5aa2de4828725d4",
   "situation_template.safety-first.v5.txt": "214cccca857246cdfea8621560ccfca07437537269dc70b66edc55a707a5462c",
   "a_fact_template_folder_levels.v4.txt": "618d1202fbbd2928af6ca3212f92839d927a56a311b1e84ca563a96a235e4774",
-  "c_placement_template.eliminate-v2r-group.txt": "af73ab657452e2d2e86e7cbffd478ad3fd9f545f3659c38948bd67aaaf71aeed",
+  "c_placement_template.eliminate-v2r-group.txt": "6981415a361e7fd62cddd17e209280090123943ad0025be79ff55f6ff2799256",
   "situation_template.safety-first.v6.txt": "e468a41cb21ed722342db4af67debf27b191039b09a0afe3d1c0d3e6753368c6",
   "e_template_template.what-a-person-opens-v3.txt": "25a98f48313a1252dfabcc57f45605bf3ae6387124b4d145aa60952af0d1d7eb",
   "c_placement_response_schema.eliminate-v2r-group.json": "4c6eb9ad4e7b0e7006dd1432f53e4d1c5878e24f2ec4a97e4a1fa9d194082a78"

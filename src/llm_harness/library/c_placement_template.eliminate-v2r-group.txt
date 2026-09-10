@@ -18,11 +18,13 @@ Five of them are yours.
 
 "allowed_vocabulary" is the complete list of folder identifiers you may answer with. Each is an opaque identifier; what it names is described in "evidence_items". There are no others, and "none" is always available.
 
-"evidence_items" is a list of references. Each has "kind". Three kinds matter to you.
+"evidence_items" is a list of references. Each has "kind". Four kinds matter to you.
 A "candidate" item is one approved folder: its "evidence_ref" is an identifier from "allowed_vocabulary", and its "location" describes that folder, from the top of the tree down to the folder itself, with the values a file in it is expected to carry, and sometimes what it holds. When a candidate's description says the file sits in that folder now, that is the folder the person currently keeps this file in. When a candidate's description says the engine ranked it below another folder, that is the engine's reason for placing it lower on its list and nothing more: the folder is still on "allowed_vocabulary", the reason is not a verdict, and you decide whether it holds against the evidence.
 An "accepted_group" item names a group the person has already accepted this file into, or retrieved it as a candidate member of. Its "location" says which, and that is context that can support a folder even when the file's own text does not name the course, project, application or event. A group is support for a level and never a citation: you mark the level "context", and you cite only text of the file, or cite nothing for that level. A citation whose "evidence_ref" is a group's identifier destroys the whole answer.
 An "excerpt" item is a reference to text of the file. It carries no text; the text is in "released_evidence".
 The order of the items carries no meaning.
+
+A "graph_edge" item names a relationship between this file and another file the person has already filed. Its "location" gives the relationship, that file's accepted facts, the folders on your list it is already accepted in, and what found the relationship. Like a group, it is support for a level and never a citation.
 
 "released_evidence" is a list of objects, each with "observation_key", "address", "value" and "zone". The "value" strings are the only text of the file you have been given. There is no document, no page, no filename, no path, no rest of the file. Text that is not inside one of those "value" strings does not exist for you.
 
