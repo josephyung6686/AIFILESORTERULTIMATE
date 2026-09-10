@@ -52,7 +52,14 @@ from extractors.sink import ExtractionResult
 #: after R-164 would have let `--reuse-answers-from` answer from a prior run's
 #: cache for files whose evidence had completely changed, and report it as a
 #: saving. `104` §17.11 records the trap in full.
-VERSION = "0.2.0"
+#:
+#: BUMPED 0.2.0 -> 0.3.0 BY `104` §18.2 GAP 17, under the same rule. E3 IS TWO
+#: HALVES AND ONE VERSION -- `long_tail.py` imports this name, because the router
+#: dispatches both halves to `text.structured` and one extractor may not have two
+#: numbers -- and the long-tail half now emits a span-less whole-unit observation
+#: for every bulk-text zone. A `.pptx` and an `.eml` extracted before this carry no
+#: row for their own content; the number is what says so.
+VERSION = "0.3.0"
 
 #: One family name for both halves of E3: the router dispatches eight `source_type`s
 #: here and `runs.ANALYSIS_TIER_BY_EXTRACTOR` keys the tier on the family.

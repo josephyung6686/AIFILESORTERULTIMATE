@@ -18,11 +18,39 @@ with it. So the zone here is read from the style, never guessed from the text --
 no "short line in title case is probably a heading", which would be exactly the
 structural judgement P4 forbids a reader to invent.
 
-**What this reader does not claim.** No links and no document relationships.
-`DocxDocument` has slots for both and they stay empty, because an empty tuple from
-a reader that never looked and an empty tuple from a document that has none are the
-same value and this module will not pretend otherwise by filling them badly. They
-are the honest next increment, not a gap hidden behind a default.
+**LINKS AND RELATIONSHIPS ARE NOW READ, and that paragraph is `104` §18.2 gap 17.**
+What stood here said they were *"the honest next increment, not a gap hidden behind
+a default"*, and it stayed the next increment while `extractors/docx.py` carried two
+`emit` arms for them -- `zone="link"` at `reliability: direct` and a
+`relationship`-labelled metadata field -- that no document could ever reach. That is
+the shape §18.2 calls a SILENT LOSS: not a feature nobody built, but a reading the
+extractor already knows how to record and the reader never hands it. §2.3 lists
+*"hyperlinks, document relationships"* in the same sentence as the tables and the
+headers this module already recovers, and the URL a `.docx` points at is often the
+most specific thing in it -- an application portal, a course page, a journal article.
+
+**The two are DIFFERENT READINGS and the split is the document's own.** A
+`w:hyperlink` sits INSIDE a paragraph, so it has an address in P4's sense and travels
+as a `DocxLink` carrying that paragraph's ordinal. A relationship is declared by the
+document PART and anchored to nothing, so it travels as a bare target. A URL that is
+both -- and every paragraph hyperlink is, because the anchor is a relationship
+reference -- is reported ONCE, as the link, because the link is the more located of
+the two readings and G1 keys a citation by where it stands.
+
+**Only EXTERNAL relationships, and `is_external` is python-docx's own reading of
+OOXML's `TargetMode` rather than a judgement here.** An internal relationship names a
+part every Word document has: an empty one this module just wrote declares eight of
+them -- `styles.xml`, `stylesWithEffects.xml`, `settings.xml`, `webSettings.xml`,
+`fontTable.xml`, `theme/theme1.xml`, `numbering.xml`, `customXml/item1.xml` -- and
+storing those would put eight rows of Word's own boilerplate into the evidence table
+for every `.docx` on a person's disk, at `reliability: direct`, for the recogniser to
+be starved past. What §2.3 asks to preserve is what the document POINTS AT.
+
+**The limit that remains, stated rather than silent.** Only the document part's own
+relationships are read. A hyperlink that lives in a header, a footer or a comment is
+declared by THAT part and does not appear here -- the same boundary
+`_running_paragraphs` crosses for text and this does not, because reaching a header
+part's rels is a second walk and P4 would have no ordinal to address it by.
 
 **Headers, footers and comments WERE on that list and are now read.** §2.3 asks for
 *"headers and footers where feasible ... and available revision or comment
@@ -47,7 +75,7 @@ from docx.table import Table
 from docx.text.paragraph import Paragraph
 
 from extractors.docx import (
-    DocxAnnotation, DocxCell, DocxDocument, DocxParagraph,
+    DocxAnnotation, DocxCell, DocxDocument, DocxLink, DocxParagraph,
 )
 
 #: The core properties P4 keeps as strings. `title` is its own zone (P5
@@ -172,6 +200,36 @@ def _annotations(document: _Document) -> list[DocxAnnotation]:
     return found
 
 
+def _external_relationships(document: _Document) -> list[str]:
+    """Every target the document part points OUT of itself at, in the part's order.
+
+    `104` §18.2 gap 17. `rel.is_external` is python-docx's reading of the
+    relationship's `TargetMode="External"` attribute -- OOXML's own statement that
+    the target is a URI and not a part of this package -- so nothing here inspects
+    the string to decide what kind of thing it is. See the module docstring for why
+    the internal ones are left out: eight of Word's own part names, on every
+    document, at `reliability: direct`.
+
+    ORDER IS THE PART'S OWN and duplicates collapse to the first occurrence. The
+    relationship table is keyed by `rId`, and one URL may be referenced twice (a
+    heading and a footer citing the same portal); two rows would be one located
+    value stored twice, which is the collision G1's uniqueness rule exists to
+    prevent -- and it is the same argument `_running_paragraphs` makes about an
+    inherited header, made about a target instead of a line.
+    """
+    seen: set[str] = set()
+    targets: list[str] = []
+    for relationship in document.part.rels.values():
+        if not relationship.is_external:
+            continue
+        target = str(relationship.target_ref or "").strip()
+        if not target or target in seen:
+            continue
+        seen.add(target)
+        targets.append(target)
+    return targets
+
+
 def _body_blocks(document: _Document):
     """Paragraphs and tables in the order the document lays them out.
 
@@ -206,6 +264,7 @@ def _read(path: Path) -> DocxDocument | None:
 
     paragraphs: list[DocxParagraph] = []
     cells: list[DocxCell] = []
+    links: list[DocxLink] = []
     #: The heading ancestry as (ordinal, label) pairs, outermost first. A heading
     #: at level N replaces everything from N down, which is what nesting means.
     ancestry: list[tuple[int, int, str]] = []  # (level, ordinal, label)
@@ -254,6 +313,20 @@ def _read(path: Path) -> DocxDocument | None:
             index=index, text=text, zone=zone,
             heading_path=tuple((ordinal, label)
                                for _, ordinal, label in ancestry)))
+        # `104` §18.2 gap 17, ANCHORED TO THE ORDINAL THIS PARAGRAPH JUST TOOK.
+        # Collected here rather than from a second pass over `document.paragraphs`
+        # for the reason `_body_blocks` exists at all: that property skips
+        # everything inside a table and loses the layout order, so a second walk
+        # would hand P4 an ordinal that addresses a different paragraph.
+        #
+        # `address` is the external URI; an anchor into the same document (a
+        # cross-reference, a bookmark) has none and is skipped, because P4 would
+        # store an empty `raw_value` for it and an observation records presence,
+        # never absence.
+        for hyperlink in block.hyperlinks:
+            target = (hyperlink.address or "").strip()
+            if target:
+                links.append(DocxLink(target=target, paragraph=index))
         index += 1
 
     #: AFTER the body, and that ordering is load-bearing. A paragraph ordinal is an
@@ -265,10 +338,18 @@ def _read(path: Path) -> DocxDocument | None:
                                         zone="header_footer"))
         index += 1
 
+    # The relationships a paragraph already claimed are NOT repeated here. Every
+    # `w:hyperlink` is a relationship reference, so an unfiltered list would report
+    # each linked URL twice -- once located at its paragraph and once at no
+    # address -- and the unlocated copy is the strictly worse of the two readings.
+    linked = {link.target for link in links}
+    relationships = tuple(target for target in _external_relationships(document)
+                          if target not in linked)
+
     return DocxDocument(
         core_properties=properties, paragraphs=tuple(paragraphs),
-        cells=tuple(cells), annotations=tuple(_annotations(document)),
-        iso_dates=iso_dates)
+        cells=tuple(cells), links=tuple(links), relationships=relationships,
+        annotations=tuple(_annotations(document)), iso_dates=iso_dates)
 
 
 def python_docx_reader() -> Callable[[Path], DocxDocument | None]:

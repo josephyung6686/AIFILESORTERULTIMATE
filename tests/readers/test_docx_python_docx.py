@@ -12,6 +12,8 @@ import pytest
 
 docx_lib = pytest.importorskip("docx")
 
+from docx.oxml.ns import qn
+
 from readers.docx_python_docx import python_docx_reader
 
 
@@ -195,11 +197,94 @@ def test_the_annotation_name_is_a_slot_word_and_never_the_authors_name():
     silence: `DocxAnnotation` has three fields and none of them is an author, so
     carrying one would mean changing an extractor contract, which is not a reader's
     to change. §2.3's clause is served in part -- the comment TEXT arrives -- and the
-    rest is the honest next increment, exactly as links and relationships are.
+    author, along with the tracked insertions and deletions the library does not
+    surface, is what remains of it. (This sentence used to say "exactly as links and
+    relationships are"; `104` §18.2 gap 17 built those, so the comparison would now
+    point at work that is done.)
     """
     from readers.docx_python_docx import _ANNOTATION_SLOT
 
     assert _ANNOTATION_SLOT == "comment"
+
+
+# --------------------------------------------------------------------------- #
+# `104` §18.2 gap 17, loss (a): hyperlinks and document relationships
+# --------------------------------------------------------------------------- #
+#
+# §2.3 asks for them by name and `extractors/docx.py` has carried `zone="link"` and a
+# `relationship`-labelled metadata field since it was written. `DocxDocument.links`
+# and `.relationships` defaulted to `()` on every real document, so both arms were
+# reachable code no `.docx` could enter -- §18.2's definition of a SILENT LOSS: not a
+# feature nobody built, but a reading the extractor already knows how to record and
+# the reader never hands it.
+
+
+@pytest.fixture
+def with_a_hyperlink(tmp_path):
+    """A document that points at a URL from inside a paragraph.
+
+    Built through the OOXML element because python-docx 1.2 READS `w:hyperlink` and
+    offers no API to write one. `part.relate_to(..., is_external=True)` is the
+    library's own way to declare the relationship, so the fixture exercises exactly
+    the two structures the reader reads.
+    """
+    from docx.opc.constants import RELATIONSHIP_TYPE as RT
+
+    document = docx_lib.Document()
+    document.add_heading("Washington University", level=1)
+    paragraph = document.add_paragraph("Apply at ")
+    reference = document.part.relate_to("https://admissions.wustl.edu",
+                                        RT.HYPERLINK, is_external=True)
+    run = paragraph.add_run("the admissions page")
+    anchor = paragraph._p.makeelement(qn("w:hyperlink"), {qn("r:id"): reference})
+    run._r.addprevious(anchor)
+    anchor.append(run._r)
+    document.add_paragraph("Body text about the essay prompt.")
+    path = tmp_path / "application.docx"
+    document.save(path)
+    return path
+
+
+def test_a_hyperlink_arrives_with_the_paragraph_it_sits_in(with_a_hyperlink):
+    """SABOTAGE: collect the hyperlinks from `document.paragraphs` in a second pass
+    instead of inside the `_body_blocks` loop. That property skips everything inside
+    a table and loses the layout order, so the ordinal would address a different
+    paragraph -- and P4 D3 makes a paragraph ordinal an ADDRESS that stored citations
+    already name."""
+    document = python_docx_reader()(with_a_hyperlink)
+    assert [(link.target, link.paragraph) for link in document.links] == [
+        ("https://admissions.wustl.edu", 2)]
+
+
+def test_a_linked_url_is_not_also_reported_as_a_bare_relationship(with_a_hyperlink):
+    """One located value, one reading. Every `w:hyperlink` IS a relationship
+    reference, so an unfiltered relationship list reports each linked URL twice --
+    once at its paragraph and once at no address at all -- and the unlocated copy is
+    strictly the worse of the two.
+
+    SABOTAGE: drop the `linked` set difference in `_read`."""
+    document = python_docx_reader()(with_a_hyperlink)
+    assert "https://admissions.wustl.edu" not in document.relationships
+
+
+def test_words_own_internal_parts_are_not_relationships(written):
+    """The one that keeps this fix from being noise.
+
+    An empty document python-docx writes declares eight INTERNAL relationships --
+    `styles.xml`, `stylesWithEffects.xml`, `settings.xml`, `webSettings.xml`,
+    `fontTable.xml`, `theme/theme1.xml`, `numbering.xml`, `customXml/item1.xml`.
+    `extractors/docx.py` renders each as a `direct` metadata observation, so keeping
+    them would mean eight rows of Word's own plumbing in the evidence table for every
+    `.docx` on a person's disk, at the strongest reliability the vocabulary has.
+    What §2.3 asks to preserve is what the document POINTS AT.
+
+    SABOTAGE: drop the `is_external` check in `_external_relationships`. `is_external`
+    is python-docx's reading of OOXML's `TargetMode`, so nothing here inspects the
+    string to decide what kind of thing it names.
+    """
+    document = python_docx_reader()(written)
+    assert document.relationships == ()
+    assert document.links == ()
 
 
 def test_a_document_with_no_running_matter_gains_nothing(written):

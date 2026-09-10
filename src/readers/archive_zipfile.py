@@ -26,11 +26,13 @@ from __future__ import annotations
 
 import zipfile
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Sequence
 
 from extractors.archive import (
-    LOCKED_REASON_PREFIX, ArchiveManifest, ArchiveMember,
+    LOCKED_REASON_PREFIX, MARKER_KINDS, ArchiveManifest, ArchiveMarker,
+    ArchiveMember,
 )
+from readers.text_documents import filename_marker_kind
 
 #: §2.5's own word for the format, and the key `extractors.router` maps to the
 #: `archive` family. Named rather than spelled twice.
@@ -108,3 +110,80 @@ def zipfile_reader(*, max_members: int | None = None,
             unreadable_reason=locked, partial_reason=partial)
 
     return read_manifest
+
+
+#: §2.5's two marker classes are `extractors/archive.py`'s (`MARKER_KINDS`); this is
+#: the first of them, named rather than spelled here, so a rename over there is an
+#: ImportError and not a silently unrecognised kind.
+SOURCE_CODE_MANIFEST: str = MARKER_KINDS[0]
+
+
+def manifest_marker_recognizer(
+) -> Callable[[Sequence[str]], tuple[ArchiveMarker, ...]]:
+    """`extract_archive`'s `recognize_markers`, from the manifest alone.
+
+    **What was here before was `lambda names: ()`, and `104` §18.2 gap 17 counts it
+    among four silent losses.** The reason it gave was true when it was written:
+    §2.5's marker set is Deferred in P5's SPEC, and "a list invented here would be
+    this deployment authoring the open half of somebody else's section". What it
+    missed is that this deployment ALREADY HOLDS the answer for one of §2.5's two
+    classes -- `readers/text_documents._MARKERS_BY_FILENAME` is catalogue 05, the
+    package manifests and repository markers a tool requires by exact spelling --
+    so the marker arm of `extract_archive` sat reachable and permanently empty over
+    a table standing one module away. §2.5's own sentence is the one this answers:
+    *"A source-code archive may reveal a `README.md`, `package.json`, `src`
+    directory, or Python package layout and can be recognized as a code project."*
+
+    **NOT A NEW LIST.** `filename_marker_kind` is one definition with two callers,
+    which is what keeps a `package.json` on the disk and a `package.json` inside
+    `submission.zip` from being two different opinions about the same tool. The
+    re-kinding to `source-code manifest` is forced rather than chosen: §2.4 names
+    four classes and §2.5 offers two, `MARKER_KINDS` is the vocabulary
+    `extract_archive` validates against, and inventing a third is
+    `UnknownMarkerKind` at run time. Catalogue 07 makes exactly this move and calls
+    it "a naming stretch worth flagging" -- §2.5's README and `src` directory are
+    not literally manifests -- and the flag is repeated here rather than quietly
+    inherited.
+
+    **WHAT §2.5's OWN SENTENCE NAMES AND THIS DOES NOT ANSWER: `src`, and "Python
+    package layout".** Neither `src` nor `__init__.py` is in catalogue 05, so neither
+    is recognised here, and `test_a_source_code_manifest_inside_an_archive_is_
+    recognized` pins `project/src/index.js` as unrecognised on purpose. Adding them
+    would be the second list the paragraph above has just refused, and it would be a
+    claim about DIRECTORY SHAPE rather than about filenames a tool requires by exact
+    spelling -- a different kind of statement, which is why catalogue 05 does not
+    carry it either. Open with a reason beats closed by invention.
+
+    **§2.5's SECOND CLASS IS DEFERRED AND STAYS DEFERRED, WITH ITS REASON.**
+    `document name` would be §2.5's five English words -- transcript, personal
+    statement, resume, certificate, form -- matched against member basenames. That
+    is a word list deciding an outcome, which this build does not write, and
+    catalogue 07 itself rates the last of the five `high` false-positive risk
+    (`form` is inside `format`, `formula`, `information`, `transformation`).
+    Nothing is lost SILENTLY by the deferral, which is the distinction §18.2 draws:
+    every member path is already stored as its own observation by
+    `extract_archive`'s manifest arm, so a `transcript.pdf` inside a zip is on the
+    record either way. What the missing class would add is a LABEL, and §2.5's own
+    worked example turns on five documents CO-OCCURRING, which is a purpose fact
+    (§3.9) and P6's to reach, not a marker's.
+
+    **Manifest only, never extraction.** Every path here comes from the central
+    directory `read_manifest` already read; nothing is decompressed, so §2.5's
+    absolute prohibition is not touched by a line of this.
+    """
+
+    def recognize_markers(member_paths: Sequence[str]) -> tuple[ArchiveMarker, ...]:
+        found: list[ArchiveMarker] = []
+        for member_path in member_paths:
+            # The member's own basename. A directory entry ends in a separator and
+            # the `rstrip` is what removes it -- `PurePosixPath("src/").name` is
+            # the empty string, so `src/` would silently never be looked at.
+            basename = str(member_path).rstrip("/").rsplit("/", 1)[-1]
+            if not basename:
+                continue
+            if filename_marker_kind(basename) is not None:
+                found.append(ArchiveMarker(member_path=member_path,
+                                           kind=SOURCE_CODE_MANIFEST))
+        return tuple(found)
+
+    return recognize_markers

@@ -603,21 +603,47 @@ def _read_epub(path: Path) -> TextDocument:
 # §2.4's structural indicators
 # --------------------------------------------------------------------------- #
 
-def _markers_for(path: Path, text: str) -> tuple[StructuralMarker, ...]:
-    """§2.4's four classes, for the file in hand. The value is the marker itself.
+def filename_marker_kind(filename: str) -> str | None:
+    """Which of §2.4's by-name classes this FILENAME is, or None. Published.
 
     A README is recognised by STEM, because `README`, `README.md` and `README.rst`
     are the same convention; a manifest and a repository marker are recognised by
-    the whole filename, because those tools require that exact spelling. Notebook
-    metadata is read out of the notebook, which is where it is.
+    the whole filename, because those tools require that exact spelling.
+
+    **Published for a second caller, and that is `104` §18.2 gap 17.** §2.5 asks an
+    archive for *"recognizable markers such as source-code manifests or document
+    names"* and `extractors/archive.py` takes a caller-supplied `recognize_markers`
+    for them -- wired to `lambda names: ()` since the day it was reached, so the
+    marker arm has never once produced a row. The question that arm asks about a
+    member path is the question this function already answers about a filename, and
+    catalogue 07 says so itself: its source-code-manifest side is *"derived
+    mechanically from catalogue 05 ... so the two catalogues cannot disagree about
+    what a project marker is"*, and catalogue 05 is the table above.
+
+    ONE DEFINITION, TWO CALLERS -- never a second table. A `package.json` loose on
+    the disk and a `package.json` inside `submission.zip` are the same statement
+    about the same tool, and two lists saying it would be two lists to keep in step
+    (`tests/p5/test_p5_one_definition.py` exists for that failure mode). The archive
+    side re-KINDS the answer, because §2.5 offers two classes where §2.4 offers
+    four; it does not re-decide it.
     """
-    name = path.name.lower()
-    markers: list[StructuralMarker] = []
+    name = filename.lower()
     kind = _MARKERS_BY_FILENAME.get(name)
     if kind is not None:
+        return kind
+    return "README file" if Path(filename).stem.lower() == "readme" else None
+
+
+def _markers_for(path: Path, text: str) -> tuple[StructuralMarker, ...]:
+    """§2.4's four classes, for the file in hand. The value is the marker itself.
+
+    The by-name classes are `filename_marker_kind`'s, which the archive reader also
+    asks. Notebook metadata is read out of the notebook, which is where it is.
+    """
+    markers: list[StructuralMarker] = []
+    kind = filename_marker_kind(path.name)
+    if kind is not None:
         markers.append(StructuralMarker(kind=kind, value=path.name))
-    elif path.stem.lower() == "readme":
-        markers.append(StructuralMarker(kind="README file", value=path.name))
 
     if path.suffix.lower() == ".ipynb":
         try:

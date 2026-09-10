@@ -31,7 +31,18 @@ from typing import Callable
 #: tables both stamping "0.1.0" into `extraction_routing.router_version` is exactly the
 #: ambiguity section 3.4's cache key exists to prevent. 0.3.0 adds the seven formats
 #: that recovered no text at all on the owner's measured corpus.
-VERSION = "0.3.0"
+#:
+#: 0.4.0 IS THE FIRST BUMP THAT IS NOT A TABLE CHANGE, and `104` §18.2 gap 21 is why
+#: it is one anyway. The header sentence above says what this column is: part of the
+#: ROUTING DECISION'S identity, not a checksum of this file. `detect_format` is
+#: injected, and the deployment's (`cli._detect_format`) stopped answering from a
+#: five-entry extension map and started running `readers/signatures.py` on every
+#: file -- so the same file, unchanged, produces a different `detected_format` and a
+#: different `disagree` than it did yesterday. `extraction_routing` is append-only
+#: and carries no other version, so without this bump a person reading two rows for
+#: one file could not tell whether the FILE changed or the product did, which is the
+#: §3.4 ambiguity the paragraph above already refuses.
+VERSION = "0.4.0"
 
 #: Section 2.9's eleven bullets and section 2.6's images, as (format token ->
 #: source_type candidates). The value is a TUPLE because section 2.9 lists two
