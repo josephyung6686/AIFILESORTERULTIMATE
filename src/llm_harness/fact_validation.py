@@ -78,6 +78,13 @@ _REASON_TO_CHECK = {
     CITATION_SPAN_MISMATCH: FOUR_CHECKS[1],
     VALUE_NOT_NORMALIZABLE: FOUR_CHECKS[2],
     VALUE_NOT_IN_CITED_TEXT: FOUR_CHECKS[1],
+    # KEPT, AND NO LONGER REACHED FROM THIS MODULE (`104` §18.2 gap 1). Check 4 flags
+    # instead of rejecting, and `p6_verdict_from_p8` reads this table only for a
+    # `REJECT`, so nothing site A produces looks the fourth check up any more. The row
+    # stays because the MAPPING is still true -- `CONTRADICTED_BY_STRONGER` is check 4
+    # and P6's `contradicted_by_stronger_fact` is its consequence -- and deleting a
+    # true row would make a verdict some older stored response carries unreadable, or
+    # a `KeyError` the day the owner rules the check hard again.
     CONTRADICTED_BY_STRONGER: FOUR_CHECKS[3],
 }
 
@@ -285,7 +292,16 @@ def version_address(version: str) -> str:
 
 
 def p6_verdict_from_p8(verdict: P8Verdict) -> Verdict:
-    """Map a Site A `P8Verdict` onto the distinct live P6 `Verdict`."""
+    """Map a Site A `P8Verdict` onto the distinct live P6 `Verdict`.
+
+    **A FLAGGED VERDICT PASSES (`104` §18.2 gap 1).** P6's `Verdict` is two-valued --
+    it passed, or it names which of §3.6's four checks failed -- and a claim a
+    stronger fact contradicts no longer fails one. It passes, `apply_verdict` writes
+    the value, and `proposal_state_from_p8` decides what state it is written at:
+    `possible`, which is the state §3.6 reserves for a clue somebody still has to
+    look at. The disagreement itself lives on the `P8Verdict` -- in `reasons` and in
+    `requires_review` -- which is the record P6 does not carry and does not need to.
+    """
     if verdict.outcome != REJECT:
         return Verdict(passed=True, failed_check=None)
     reason = verdict.reasons[0]
@@ -305,8 +321,23 @@ def proposal_state_from_p8(verdict: P8Verdict) -> str:
     remain a possible clue for review; it must not quietly become a folder proposal
     or an asserted file property". Confirming the value is what raises it, and
     confirming is the person's.
+
+    **AND SO DOES ANY VERDICT THAT `requires_review` (`104` §18.2 gap 1).** Check 4
+    no longer rejects a claim a stronger fact contradicts; it keeps the outcome check
+    3 reached and sets the review flag. Read off the OUTCOME alone, that claim would
+    have written `llm_supported` -- proposal-eligible -- so the model's disagreement
+    with the rules would have become a folder while the rule's own value sat beside
+    it, which is the precedence inversion the amendment does not ask for and §3.6
+    forbids in the sentence above. `requires_review` is the term that makes a flag
+    mean something here, exactly as `placement_validation._placement_disposition`
+    reads it rather than the outcome for the same reason (`104` R-75: nothing read
+    the flag, so nothing acted on it).
+
+    A superset and never a narrowing: `accept_context_supported` always carries
+    `requires_review` (`records.P8Verdict` refuses the pair any other way) and `weak`
+    is unchanged, so the two states that wrote `possible` before still write it.
     """
-    if verdict.outcome in (WEAK, ACCEPT_CONTEXT_SUPPORTED):
+    if verdict.outcome in (WEAK, ACCEPT_CONTEXT_SUPPORTED) or verdict.requires_review:
         return POSSIBLE
     return LLM_SUPPORTED
 
@@ -321,16 +352,37 @@ def _verdict(
     policy_version: str,
     dossier_id: str,
     compatibility: CompatibilityConversion | None = None,
+    flagged: bool = False,
 ) -> P8Verdict:
+    """One verdict. `flagged` is `104` §18.2 gap 1's non-structural objection.
+
+    A flagged verdict keeps the outcome its checks reached and carries the review
+    obligation instead of a rejection: `requires_review` is set, the disposition
+    becomes `llm_supported_review`, and `proposal_state_from_p8` therefore writes
+    `possible`. `may_propose` is untouched -- the claim IS a proposal, and a
+    proposal a person still has to look at is what §3.6's "possible clue for
+    review" is.
+    """
+    review = flagged or outcome == ACCEPT_CONTEXT_SUPPORTED
     return P8Verdict(
         verdict_id=f"{dossier_id}:{proposal.field_key}",
         dossier_id=dossier_id,
         claim_ref=proposal.field_key,
         outcome=outcome,
-        disposition=_DISPOSITION[outcome],
+        # THE DISPOSITION FOLLOWS THE FLAG AND NOT ONLY THE OUTCOME (`104` §18.2
+        # gap 1). `_DISPOSITION` maps `accept_direct` to `llm_supported`, which is
+        # what P6 writes and what a folder may rest on; a flagged direct acceptance
+        # would then say `llm_supported` in the record while `proposal_state_from_p8`
+        # wrote `possible` in the fact table, and a reader could not tell which was
+        # the product's answer. `llm_supported_review` is the published disposition
+        # for exactly this state and it already means what is meant here.
+        disposition=(LLM_SUPPORTED_REVIEW
+                     if review and outcome in (ACCEPT_DIRECT,
+                                               ACCEPT_CONTEXT_SUPPORTED)
+                     else _DISPOSITION[outcome]),
         reasons=tuple(reasons),
         may_propose=outcome in (ACCEPT_DIRECT, ACCEPT_CONTEXT_SUPPORTED),
-        requires_review=outcome == ACCEPT_CONTEXT_SUPPORTED,
+        requires_review=review,
         citations_checked=tuple(citations_checked),
         scope=SCOPE_FILE,
         validator_version=COMPONENT_VERSION,
@@ -547,18 +599,47 @@ def _run_checks(
             citations_checked=checked, policy_version=policy_version,
             dossier_id=dossier_id,
         )
+    # CHECK 4 IS A FLAG AND NO LONGER A REJECTION (`104` §18.2 gap 1).
+    #
+    # `00`:42's amendment of 2026-09-05, in the owner's own words: the validator's
+    # hard checks are grounding and schema, and "every other contradiction check,
+    # INCLUDING THE PRECEDENCE OF RULE FACTS OVER MODEL FACTS, is shown to the model
+    # as a flag with its evidence, and the model reconciles". This returned
+    # `REJECT CONTRADICTED_BY_STRONGER`, which is code overruling the model on a
+    # question the amendment gives the model -- and it did so about a value the model
+    # had never been shown disagreeing with anything, because `model_facts` withheld
+    # both the settled field and its flag. Measured on r15: 16 `subject` and 17
+    # `work_type` facts on labelled coursework were written by a regex and shown to no
+    # model, three of them disagreeing with the label.
+    #
+    # WHAT SURVIVES OF THE CHECK, WHICH IS EVERYTHING IT WAS REALLY BUYING. The
+    # claim keeps the outcome check 3 gave it and carries `requires_review`, so
+    # `proposal_state_from_p8` writes `possible` -- below
+    # `facts.read_surface.PROPOSAL_ELIGIBLE_STATES`, so no folder can rest on it --
+    # and `facts.supersede.preferred_of_slot` does not let it out-vote the rule's
+    # fact. The rule's value still outranks in the store on §3.13's ladder; what
+    # changes is that the disagreement is recorded and shown to a person
+    # (`cli._print_values_to_confirm`) instead of being discarded with the claim.
+    #
+    # THE REASONS ACCUMULATE AND THE LOOP STILL STOPS. `placement_validation._flagged`
+    # makes the same move for site C and says why a flag cannot return at the first
+    # thing it finds: several flags would tell the person one. Here there is only ONE
+    # code to record however many stronger facts disagree -- `CONTRADICTED_BY_STRONGER`
+    # is the whole vocabulary check 4 has -- so the loop breaks once it has it, and a
+    # second row would append the same word twice into the reasons histogram.
+    flagged = False
     for row in existing:
         conflict = _require_bool(
             dependencies.contradicts(proposal, row), name="contradicts")
         if isinstance(conflict, ValidationUnavailable):
             return conflict
         if conflict is True:
-            return _verdict(
-                request, proposal, outcome=REJECT,
-                reasons=(CONTRADICTED_BY_STRONGER,),
-                citations_checked=checked, policy_version=policy_version,
-                dossier_id=dossier_id,
-            )
+            flagged = True
+            break
+    if flagged:
+        reasons = (CONTRADICTED_BY_STRONGER,)
+    else:
+        reasons = ()
     if outcome == ACCEPT_DIRECT:
         # `104` R-135. Check 3 has already had its say -- its own
         # `accept_context_supported` is R-98's review normaliser and stands -- and this
@@ -571,8 +652,8 @@ def _run_checks(
         outcome = acceptance_outcome(dossier, rich)
     return _verdict(
         request, proposal, outcome=outcome,
-        reasons=(), citations_checked=checked, policy_version=policy_version,
-        dossier_id=dossier_id,
+        reasons=reasons, citations_checked=checked, policy_version=policy_version,
+        dossier_id=dossier_id, flagged=flagged,
     )
 
 

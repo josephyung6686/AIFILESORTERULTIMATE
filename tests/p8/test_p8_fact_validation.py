@@ -482,7 +482,29 @@ def test_normalization_none_fails_check_three_and_skips_contradicts(
     assert _reasons(p6_conn, request) == ["normalization_failed"]
 
 
-def test_contradiction_oracle_fails_check_four(subject_file, p6_conn):
+def test_contradiction_oracle_flags_check_four_and_does_not_reject(
+        subject_file, p6_conn):
+    """`104` §18.2 gap 1: CHECK 4 IS A FLAG, and the model's answer is kept.
+
+    RE-ARGUED, AND THE RULING IS THE REASON. `00`:42's amendment of 2026-09-05:
+    the validator's hard checks are grounding and schema, and "every other
+    contradiction check, INCLUDING THE PRECEDENCE OF RULE FACTS OVER MODEL FACTS, is
+    shown to the model as a flag with its evidence, and the model reconciles". This
+    test used to assert the opposite -- `REJECT`, the claim discarded, one value left
+    in the slot -- which is code overruling the model on the one question the
+    amendment hands it. On r15 that veto threw away 16 `subject` and 17 `work_type`
+    answers on labelled coursework, three of them disagreeing with a regex that was
+    wrong.
+
+    What the check still buys is asserted below and it is all of it: the reason is on
+    the record, the verdict says a person must look, the fact is written `possible`
+    -- below `facts.read_surface.PROPOSAL_ELIGIBLE_STATES`, so no folder rests on it
+    -- and the rule's own fact is untouched.
+
+    SABOTAGE: return `REJECT` from check 4 again and the model's value has no row, no
+    reason a person can read, and no line on the review screen. The run then reports
+    a file as asked and answered while the answer is gone.
+    """
     file_id, content_hash, key = subject_file
     value_id = ensure_value(
         p6_conn, field_key="subject", canonical_value="BUSIB 4300",
@@ -506,15 +528,98 @@ def test_contradiction_oracle_fails_check_four(subject_file, p6_conn):
         p6_conn, request, proposal,
         dependencies=_deps(contradicts=contradicts),
     )
-    assert result.outcome == REJECT
+    assert result.outcome != REJECT
     assert result.reasons == (CONTRADICTED_BY_STRONGER,)
+    assert result.requires_review is True
+    assert result.may_propose is True
+    assert result.disposition == "llm_supported_review"
     assert len(seen_rows) == 1
-    assert _reasons(p6_conn, request) == ["contradicted_by_stronger_fact"]
+    # NO `unresolved` ROW. The claim did not fail a check, so there is nothing for
+    # `write_unresolved` to record; the disagreement lives on the verdict.
+    assert _reasons(p6_conn, request) == []
+    assert p6_verdict_from_p8(result) == Verdict(passed=True, failed_check=None)
     subjects = [
         row for row in facts_for_file(p6_conn, file_id, content_hash)
         if row["field_key"] == "subject"
     ]
-    assert [row["canonical_value"] for row in subjects] == ["BUSIB 4300"]
+    # BOTH ROWS, AND THE MODEL'S IS THE WEAK ONE. `facts_for_file` orders by
+    # canonical value, so this pairs the value with the state it was written at.
+    assert {(row["canonical_value"], row["reliability_state"])
+            for row in subjects} == {
+        ("BUSIB 4300", VALIDATED), ("BUSIB4300", POSSIBLE)}
+
+
+def test_a_contradicting_answer_is_a_proposal_and_never_a_folder(
+        subject_file, p6_conn):
+    """`104` §18.2 gap 1: the flagged value is stored where §3.6 puts a clue.
+
+    `00`:42: a model output "useful but too weak to establish a fact may remain a
+    possible clue for review; it must not quietly become a folder proposal or an
+    asserted file property". Gap 1 keeps the answer; this is the line that keeps it
+    from being acted on.
+
+    SABOTAGE: make `proposal_state_from_p8` read the OUTCOME alone. The claim reached
+    `accept_direct`, so it would be written `llm_supported` -- inside
+    `PROPOSAL_ELIGIBLE_STATES` -- and the model's disagreement with the rules would
+    build a folder while the rules' own value sat beside it doing nothing.
+    """
+    file_id, content_hash, key = subject_file
+    value_id = ensure_value(
+        p6_conn, field_key="subject", canonical_value="BUSIB 4300",
+        first_evidence_ref=key, origin=VALUE_ORIGINS[0])
+    write_fact(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        field_key="subject", value_id=value_id,
+        reliability_state=VALIDATED, origin="rule",
+        evidence_refs=(key,), cache_key="sha256:the-rule-said-so", active=True)
+    request = _request(p6_conn, subject_file)
+    result = _validate(
+        p6_conn, request, _proposal(subject_file, value="BUSIB4300"),
+        dependencies=_deps(contradicts=lambda proposal, row: True),
+    )
+    assert proposal_state_from_p8(result) == POSSIBLE
+    from facts.read_surface import PROPOSAL_ELIGIBLE_STATES, proposal_eligible
+    assert POSSIBLE not in PROPOSAL_ELIGIBLE_STATES
+    eligible = [row["canonical_value"] for row in proposal_eligible(
+        p6_conn, file_id=file_id, content_hash=content_hash)
+        if row["field_key"] == "subject"]
+    assert eligible == ["BUSIB 4300"]
+
+
+def test_an_agreeing_answer_about_a_settled_field_is_not_flagged(
+        subject_file, p6_conn):
+    """The twin of the flag: re-asking a settled field must cost a confirmation
+    nothing.
+
+    `104` §18.2 gap 1 asks the settled fields again so the model may CONFIRM or
+    contradict. A confirmation runs the same check 4, the oracle answers `False`, and
+    the claim has to come out exactly as it did before gap 1 existed -- no flag, no
+    review obligation, `llm_supported`, which a folder may rest on.
+
+    SABOTAGE: set `flagged` from the loop having RUN rather than from what it found,
+    and every confirmation is demoted to a clue: the file's own agreement with itself
+    would take its value out of every folder proposal.
+    """
+    file_id, content_hash, key = subject_file
+    value_id = ensure_value(
+        p6_conn, field_key="subject", canonical_value="BUSIB 4300",
+        first_evidence_ref=key, origin=VALUE_ORIGINS[0])
+    write_fact(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        field_key="subject", value_id=value_id,
+        reliability_state=VALIDATED, origin="rule",
+        evidence_refs=(key,), cache_key="sha256:the-rule-agreed", active=True)
+    request = _request(p6_conn, subject_file)
+    assert request.existing_facts
+    result = _validate(
+        p6_conn, request, _proposal(subject_file, value="BUSIB4300"),
+        dependencies=_deps(contradicts=lambda proposal, row: False),
+    )
+    assert result.outcome == ACCEPT_DIRECT
+    assert result.reasons == ()
+    assert result.requires_review is False
+    assert result.disposition == LLM_SUPPORTED
+    assert proposal_state_from_p8(result) == LLM_SUPPORTED
 
 
 def test_passing_proposal_writes_llm_supported_via_apply_verdict(

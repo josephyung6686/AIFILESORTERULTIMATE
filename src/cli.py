@@ -103,7 +103,13 @@ from facts.read_surface import (
     DanglingCitation, confirmed_spellings, evidence_chain, versions_in_fields,
 )
 from facts.file_facts import facts_for_file
-from facts.states import POSSIBLE, VALIDATED, strength
+from facts.states import (
+    LLM_SUPPORTED as LLM_SUPPORTED_STATE,
+    POSSIBLE,
+    REJECTED as REJECTED_STATE,
+    VALIDATED,
+    strength,
+)
 from facts.kind import tokens as kind_tokens
 from facts.kind import compile_vocabulary, kind_facts
 from grouping.acceptance import group_state_as_of, record_acceptance
@@ -4434,6 +4440,23 @@ def _cited_line(conn: sqlite3.Connection, fact_id: str, value: str) -> str | Non
 def _print_values_to_confirm(conn: sqlite3.Connection, out) -> None:
     """`104` §18.2 gap 3's last clause: *a proposal the person SEES*.
 
+    **AND SINCE GAP 1, THE SCREEN WHERE A DISAGREEMENT LANDS.** Gap 1 stops check 4
+    rejecting a model answer that contradicts a rule's fact: the answer is flagged
+    `requires_review` and written `possible` beside the rule's, so it arrives in
+    exactly the state this block already reads. What it needed was a second sentence
+    -- the rules' own value, and which of the two is in force -- because the heading
+    said every proposal here was a value the shipped vocabulary had not seen, and a
+    contradicting value usually IS in the vocabulary. `84` §6: what the screen tells
+    a person has to be true.
+
+    **THE BOUND, AND IT IS `REVIEW_NORMALISED_FIELDS`.** This block reads three
+    fields, and gap 1 can flag any field the situation builds a folder from. The
+    three are where every measured contradiction was -- `104` §18.2 gap 1 counts 16
+    `subject` and 17 `work_type` facts on r15 -- and widening the read is the confirm
+    gesture's question rather than this one's, because a field with no review path
+    has nothing for the person to answer with. Stated here so the absence is a
+    decision and not an oversight.
+
     **The screen this block ends the absence of.** `normalize_for_review` has turned
     an unseen value into a `possible` fact since R-98, and `possible` is below
     `PROPOSAL_ELIGIBLE_STATES` -- so from the day it shipped, the product's answer to
@@ -4474,24 +4497,50 @@ def _print_values_to_confirm(conn: sqlite3.Connection, out) -> None:
     shown an open question on a run that asked nothing needs a way to answer it.
     """
     proposals: dict[tuple[str, str], list[sqlite3.Row]] = {}
+    # `104` §18.2 GAP 1: WHAT THE RULES ALREADY SAID ABOUT THE SAME SLOT. Free, and
+    # that is why it is gathered here rather than queried: `versions_in_fields` is
+    # UNFILTERED by state -- its own docstring says so -- so the `validated` row the
+    # regex wrote is already in `rows` beside the `possible` row the model wrote, and
+    # a second read would be a second answer to one question.
+    #
+    # Keyed by FILE and field rather than by file version, because that is the key the
+    # print loop below has: `versions` carries `(file_id, fact_id)` pairs and adding a
+    # content hash to them would change what `files` counts. A file with two live
+    # versions carrying two different rule values would show both, which is more than
+    # a person needs and never less.
+    settled: dict[tuple[str, str], set[str]] = {}
     for rows in versions_in_fields(
             conn, field_keys=REVIEW_NORMALISED_FIELDS).values():
         for row in rows:
+            if not row["active"] or row["superseded_by"] is not None:
+                continue
             # `possible` AND LIVE. A superseded or deactivated proposal is a
             # readable old row (§8.2) and not a question still open, and asking a
             # person about one would be re-asking something they have answered.
-            if row["reliability_state"] != POSSIBLE:
+            if row["reliability_state"] == POSSIBLE:
+                proposals.setdefault(
+                    (row["field_key"], row["canonical_value"]), []).append(row)
                 continue
-            if not row["active"] or row["superseded_by"] is not None:
+            # STRONGER THAN AN LLM CONCLUSION, which is §3.13's own comparison and
+            # the same one `facts.llm_seam.build_request` uses to decide which facts
+            # check 4 is run against. `strength` raises for `rejected`, so membership
+            # is tested before the ladder is: a rejected fact is an exclusion, not a
+            # weaker answer, and it is not what the rules say about the file.
+            if row["reliability_state"] == REJECTED_STATE:
                 continue
-            proposals.setdefault(
-                (row["field_key"], row["canonical_value"]), []).append(row)
+            if strength(row["reliability_state"]) > strength(LLM_SUPPORTED_STATE):
+                settled.setdefault(
+                    (row["file_id"], row["field_key"]), set()).add(
+                        row["canonical_value"])
     if not proposals:
         return
     print("\nNew values the model proposed, waiting on you:", file=out)
     print(_wrapped(
-        "None of these is in the vocabulary this product ships, so none of them is "
-        "filing anything: nothing is placed under a value until it is confirmed. "
+        "None of these is filing anything: nothing is placed under a value until it "
+        "is confirmed. Most are values this product's own vocabulary has not seen. "
+        "Where a line below says the rules read something else, the model was shown "
+        "what the rules had already decided and disagreed with it -- the rules' "
+        "value is the one still in force, and yours is the answer that settles it. "
         "Each is proposed once, with the line the model was reading beside it.",
         indent="  "), file=out)
     for (field_key, value), rows in sorted(proposals.items()):
@@ -4511,6 +4560,29 @@ def _print_values_to_confirm(conn: sqlite3.Connection, out) -> None:
         if line is not None:
             print(_wrapped(f"The model was reading: {line!r}", indent="    "),
                   file=out)
+        # `104` §18.2 GAP 1: THE DISAGREEMENT, IN FRONT OF THE PERSON. Until tonight
+        # this value could not exist -- check 4 rejected a model answer a stronger
+        # fact contradicted, and the claim was discarded with no row and no line. It
+        # is now written `possible` beside the rule's fact, which is `00`:42's
+        # "possible clue for review", and this is the sentence that makes it one: a
+        # proposal nobody is shown is not a proposal.
+        #
+        # THE RULES' VALUE IS NAMED AND THE ORDER IS STATED. `possible` is below
+        # `PROPOSAL_ELIGIBLE_STATES` and `facts.supersede.preferred_of_slot` does not
+        # let it out-vote a `validated` row, so the rules' value is what the product
+        # is still acting on -- and a screen that showed the model's value alone
+        # would read as if it had won.
+        rules_said = sorted({
+            other
+            for file_id, _fact in versions
+            for other in settled.get((file_id, field_key), ())
+            if other != value})
+        if rules_said:
+            spelled = ", ".join(repr(other) for other in rules_said)
+            print(_wrapped(
+                f"The rules read {spelled} for this field and that is what is "
+                f"still in force; the model was shown so and answered {value!r} "
+                "anyway.", indent="    "), file=out)
         # PRINTED RAW, NEVER WRAPPED. `_role_lines` states the rule and `84` §6 is
         # the defect behind it: "textwrap breaking a command across two lines
         # produces a command that does not work". A filename with a space in it is

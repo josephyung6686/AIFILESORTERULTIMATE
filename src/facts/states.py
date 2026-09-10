@@ -82,3 +82,26 @@ def strength(state: str) -> int:
 def is_stronger(a: str, b: str) -> bool:
     """Strictly stronger on §3.13's ladder. Both arguments must be ranked states."""
     return strength(a) > strength(b)
+
+
+#: §3.6'S TWO EXCLUSIONS, AND THE FLOOR UNDER EVERY FOLDER PROPOSAL. DERIVED, NEVER
+#: SPELLED: the ladder above is weakest first, `rejected` is absent from it by
+#: construction (it is `EXCLUDED_STATE`, an exclusion rather than a rank), and
+#: dropping the first member drops `possible` -- so one slice removes both states
+#: §3.6 keeps out of a proposal and no state name is written down a second time.
+#:
+#: **HERE SINCE `104` §18.2 GAP 1, AND IT MOVED RATHER THAN BEING COPIED.** It was
+#: defined in `facts.read_surface`, which imports `facts.supersede`; gap 1 makes
+#: `supersede.preferred_of_slot` read this same line -- a `possible` clue is not one
+#: of OQ6's several ANSWERS -- and `supersede` importing it back off `read_surface`
+#: is an import cycle that fails at load. The constant is a projection of
+#: `STRENGTH_ORDER`, `STRENGTH_ORDER` lives here, so this is where the projection
+#: belongs. `read_surface` re-exports it under the same name, so every existing
+#: `from facts.read_surface import PROPOSAL_ELIGIBLE_STATES` still resolves and there
+#: is still exactly ONE home for the tuple rather than two that may drift.
+#:
+#: The plan's Task 24 body says `STRENGTH_ORDER[:-1]` and calls the last member the
+#: weakest. That is the opposite of the shipped ladder and would have excluded
+#: `user_confirmed` -- a user's own answer -- from every folder proposal while still
+#: excluding nothing weak. Shipped code outranks the task body; see the conflict report.
+PROPOSAL_ELIGIBLE_STATES: tuple[str, ...] = STRENGTH_ORDER[1:]

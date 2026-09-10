@@ -52,7 +52,13 @@ from collections.abc import Sequence
 from database_agent.supersede import chain, mark_superseded
 
 from facts.file_facts import facts_for_file
-from facts.states import REJECTED, USER_CONFIRMED, strength
+from facts.states import (
+    POSSIBLE,
+    PROPOSAL_ELIGIBLE_STATES,
+    REJECTED,
+    USER_CONFIRMED,
+    strength,
+)
 
 #: The table P1's `mark_superseded` and `chain` are addressed by. Task 4 owns the DDL,
 #: including the VIRTUAL `record_id` projection of `fact_id` that P1 requires and the
@@ -214,11 +220,56 @@ def preferred_of_slot(rows: Sequence[sqlite3.Row]) -> sqlite3.Row | None:
 
     It takes no connection, so it can reach no second answer: everything the
     decision rests on is in the rows.
+
+    **A CLUE IS NOT ONE OF OQ6'S SEVERAL ANSWERS (`104` §18.2 gap 1).** The slot is
+    now a place where a rule's fact and a model's disagreement sit side by side:
+    gap 1 stops the validator vetoing a model answer that contradicts a stronger
+    fact, and writes that answer `possible` beside the rule's `validated` one so the
+    person can see the two. Counting the `possible` row as a competing VALUE turned
+    that flag into a veto by the other door -- two values, no pointer, `None`, and a
+    file that had a subject before the model was asked has none after it. The gap's
+    own sentence is that precedence is preserved in the store and the rule's fact
+    still outranks; a slot that answers `None` preserves nothing.
+
+    **AND OQ6 IS UNTOUCHED, which is the line this filter is drawn on.** §3.6:
+    a model output too weak to establish a fact "may remain a possible clue for
+    review; it must not quietly become a folder proposal or an asserted file
+    property". A row that voids the slot IS asserting a property -- that the slot is
+    contested -- so excluding it is that sentence applied here rather than a new
+    rule. `read_surface.proposal_eligible` and `read_surface.values_with_counts`
+    already draw exactly this line off exactly this tuple, for exactly this
+    sentence; this is the third read in the family agreeing with the other two
+    instead of the one that disagrees.
+    OQ6 asks which of several simultaneous ANSWERS is preferred, and among rows in
+    `PROPOSAL_ELIGIBLE_STATES` the three cases below are character for character
+    what they were: `test_two_producers_that_disagree_are_still_unresolvable`
+    (`direct` against `validated`) and `test_several_live_rows_have_no_preferred_row`
+    (`validated` against `validated`) both still answer `None`. Nothing here returns
+    the strongest row; it declines to let a non-answer vote.
+
+    **`rejected` IS NOT TOUCHED, AND THAT IS A DECISION.** `PROPOSAL_ELIGIBLE_STATES`
+    excludes it too, so the obvious edit was to keep only its members -- and a live
+    `rejected` row beside a live `validated` one answers `None` today, which
+    `tests/p6/test_p6_read_surface.py`'s `refused` slot pins by name. Whether a value
+    somebody said No to should still void the slot is a real question and it is not
+    gap 1's; the tuple decides only WHEN a clue may be set aside, and the row that is
+    then set aside is a `possible` one. So the two reads differ deliberately:
+    `proposal_eligible` asks what a folder may rest on, and this asks which live value
+    the slot means -- a rejected row is an answer that was given and refused, while a
+    `possible` row was never an answer at all.
+
+    **THE GUARD IS DELIBERATE, AND IT IS TWO-SIDED.** A slot whose live rows are ALL
+    clues keeps the answer it had, so a lone `possible` fact is still returned to
+    whoever reads it today, and a `possible` row beside nothing but a `rejected` one
+    still answers `None`. Narrowing unconditionally would be this function deciding
+    that such a slot is unreadable, which is a different question and not gap 1's.
     """
     live = [row for row in rows if row["superseded_by"] is None]
     confirmed = [row for row in live if row["reliability_state"] == USER_CONFIRMED]
     if confirmed:
         live = confirmed
+    if any(row["reliability_state"] in PROPOSAL_ELIGIBLE_STATES for row in live):
+        live = [row for row in live if row["reliability_state"] != POSSIBLE]
     if len({row["value_id"] for row in live}) == 1:
         return _best_cited(live)
     pointed = [row for row in live if row["preferred"]]

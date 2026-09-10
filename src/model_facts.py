@@ -76,7 +76,11 @@ from facts.file_facts import LLM_INTERPRETATION, facts_for_file
 from facts.evidence import observations_for_version
 from facts.llm_seam import FactRequest, build_request
 from facts.resolver import StageOutcome
-from facts.states import EXCLUDED_STATE
+from facts.states import (
+    EXCLUDED_STATE,
+    LLM_SUPPORTED as LLM_SUPPORTED_STATE,
+    is_stronger,
+)
 from facts.unresolved import (
     FIELD_NOT_IN_ACTIVE_SCHEMA, NO_CANDIDATE_EVIDENCE, PRIVACY_WITHHELD,
 )
@@ -87,7 +91,7 @@ from llm_harness.fingerprint import prompt_fingerprint
 from llm_harness.harness import CallDependencies, run_call
 from llm_harness.records import (
     REFUSAL_EXCEPTIONS,
-    DossierRequest, EvidenceItem, FolderLevel, MalformedRecord, P8Verdict,
+    Conflict, DossierRequest, EvidenceItem, FolderLevel, MalformedRecord, P8Verdict,
     PromptDefinition, ValidationUnavailable,
 )
 from llm_harness.sites import FactSiteDependencies, SiteDependencies, dispatch
@@ -257,34 +261,66 @@ def order_vocabulary_by_levels(
 
 
 def open_question(pending: Sequence[str],
-                  folder_levels: Sequence[FolderLevel]
+                  folder_levels: Sequence[FolderLevel],
+                  settled: Sequence[str] = (),
                   ) -> tuple[tuple[str, ...], tuple[FolderLevel, ...]]:
-    """What is still OPEN on this file: the vocabulary to offer, and the levels to show.
+    """What this file is ASKED: the vocabulary to offer, and the levels to show.
 
-    **Why the dossier asks about pending rather than about the whole schema.** A
-    field a stronger fact already settled is not a question. §3.13 ranks `validated`
-    and `user_confirmed` above `llm_supported`, so check 4 rejects a model answer
-    there before it can become a fact -- the claim was spent to be thrown away.
-    Measured on a real run: of the 27 files the model answered about, 8 already
-    carried a rule-written `work_type` at `validated`, and `work_type` is the field
-    that decides where the file goes.
+    **THE SETTLED LEVEL FIELDS ARE ASKED TOO, AND THAT IS `104` §18.2 GAP 1.**
+    `00`:42's amendment of 2026-09-05 rules that every contradiction check *including
+    the precedence of rule facts over model facts* "is shown to the model as a flag
+    with its evidence, and the model reconciles". This function used to do the
+    opposite: it dropped a field a rule had settled out of the question entirely, so
+    the model was never given the chance the ruling reserves for it. Measured on r15:
+    16 `subject` facts and 17 `work_type` facts on labelled coursework were written by
+    a regex and shown to no model, and three of them disagreed with the label. The
+    field that decides where the file goes was decided by a pattern, silently.
 
-    It costs more than the wasted claim. One malformed claim destroys every claim in
-    the answer (the ratified rule 11), so every question that cannot pay is another
-    chance to lose the ones that can. Claims per response measured 7.0 before the
-    template link and 9.0 after it; this is the half of that increase nobody wanted.
+    So a settled level field is offered again, and it is offered WITH ITS FLAG:
+    `rule_conflicts` builds one `Conflict` per settled field naming the field and the
+    reading the rules settled it from, and the model may confirm it or contradict it
+    with evidence of its own. A contradiction is no longer a rejection either --
+    `llm_harness.fact_validation` records it `requires_review` and the resolver writes
+    it `possible` beside the rule's fact, which is `00`:42's other half.
 
-    **The subset direction is the safe one and it is the only one taken.** Check 1
-    measures a proposal against `FactRequest.allowlist`, the full active schema.
-    Everything offered here is inside that, so nothing the model is told it may
-    propose can be rejected for not being in the active schema -- which is the
-    failure `pending_fields_for` warns about, and it happens in the other direction.
+    **What the OLD argument was, and what is left of it.** It was that a claim spent
+    on a settled field is a claim thrown away, because check 4 rejected it; and that
+    one malformed claim destroys every claim in the answer (the ratified rule 11), so
+    every question that cannot pay is another chance to lose the ones that can. The
+    first half is now false by construction: check 4 no longer rejects, so the claim
+    is not thrown away -- it becomes a proposal beside the rule's value or a
+    confirmation of it. The second half stands and is the cost this gap accepts on the
+    owner's ruling: a longer question is a larger surface for rule 11. It is bounded
+    the same way the rest of the question is, by the situation's own folder levels --
+    a settled field that is not a LEVEL is still not asked, because it decides no
+    folder and would buy nothing for the risk.
 
-    A settled LEVEL is dropped from the shown list too, and that keeps the
-    projection exact: `dossier._folder_levels_body` refuses a level naming a field
-    the vocabulary does not carry. `()` here is truthful -- this file has no folder
-    level still open -- and it is not the empty list `require_folder_levels` refuses,
-    which is about a deployment that never read the library at all.
+    **The subset direction is the safe one and it is still the only one taken.** Check
+    1 measures a proposal against `FactRequest.allowlist`, the full active schema.
+    `settled` comes from `settled_fields_for`, which reads the same
+    `active_field_allowlist` `pending_fields_for` reads, so everything offered here is
+    inside that and nothing the model is told it may propose can be rejected for not
+    being in the active schema -- which is the failure `pending_fields_for` warns
+    about, and it happens in the other direction.
+
+    **The two halves do not cover the allowlist, and the hole is deliberate.** A field
+    held only by a `possible` or `llm_supported` fact is in neither: it is a model's
+    own earlier answer, or gap 3's proposal standing in front of a PERSON, and
+    `00`:298's *"proposed once"* is only true while the field stays closed to this
+    question. `settled_fields_for` says why in full. Nothing here has to know: it
+    offers what it is given.
+
+    A level whose field is neither pending nor settled is dropped from the shown list,
+    and that keeps the projection exact: `dossier._folder_levels_body` refuses a level
+    naming a field the vocabulary does not carry. `()` here is truthful -- this file
+    has no folder level to ask about -- and it is not the empty list
+    `require_folder_levels` refuses, which is about a deployment that never read the
+    library at all.
+
+    **`settled` DEFAULTS TO EMPTY, and that is a caller stating a fact rather than a
+    shape appearing.** A caller that passes none is asking only what is open, which is
+    exactly what this function did before gap 1; the production stage passes the
+    settled set, and a test that wants the old question can still ask it.
     """
     #: CONSTITUTION 3, AND IT REPLACES ORDERING WITH EXCLUSION. This used to offer
     #: everything pending and merely sort the levels to the front, which does not
@@ -302,8 +338,18 @@ def open_question(pending: Sequence[str],
     #: Still a SUBSET of `FactRequest.allowlist`, which is the direction that keeps
     #: check 1 from rejecting something the model was invited to say.
     level_fields = {level.field for level in folder_levels}
-    open_fields = set(pending) & level_fields
-    offered = tuple(field for field in pending if field in open_fields)
+    # PENDING FIRST, THEN SETTLED, and the order is not decoration. A field nothing
+    # holds is the question the call exists for; a field the rules already answered is
+    # the one being re-opened. `order_vocabulary_by_levels` re-orders this by the
+    # tree's nesting anyway, so the concatenation decides only what happens to two
+    # fields at the same level -- and asking the open one first is the honest shape of
+    # the question. `dict.fromkeys` keeps a field that is somehow in both lists once:
+    # `pending_fields_for` and `settled_fields_for` partition the allowlist, so it
+    # cannot happen from the production caller and a duplicate from any other would be
+    # a field asked twice in one vocabulary.
+    asked = tuple(dict.fromkeys(tuple(pending) + tuple(settled)))
+    open_fields = set(asked) & level_fields
+    offered = tuple(field for field in asked if field in open_fields)
     visible = tuple(level for level in folder_levels if level.field in open_fields)
     return order_vocabulary_by_levels(offered, visible), visible
 
@@ -627,9 +673,181 @@ def pending_fields_for(conn: sqlite3.Connection, *, file_id: str,
     allowed = active_field_allowlist(
         conn, file_id=file_id, content_hash=content_hash,
         activation_signals=activation_signals)
-    settled = {row["field_key"] for row in facts_for_file(conn, file_id, content_hash)
-               if row["active"] and row["reliability_state"] != EXCLUDED_STATE}
-    return tuple(field for field in allowed if field not in settled)
+    held = _held_field_keys(conn, file_id=file_id, content_hash=content_hash)
+    return tuple(field for field in allowed if field not in held)
+
+
+def _held_field_keys(conn: sqlite3.Connection, *, file_id: str,
+                     content_hash: str) -> set[str]:
+    """The field keys this file version holds ANY active, unexcluded fact for.
+
+    `pending_fields_for` subtracts this from the allowlist, which is what "pending"
+    has always meant: a field something already answered is not open, whoever
+    answered it. A `rejected` fact is not an answer (§3.13 makes it an exclusion),
+    so the field stays open.
+    """
+    return {row["field_key"] for row in facts_for_file(conn, file_id, content_hash)
+            if row["active"] and row["reliability_state"] != EXCLUDED_STATE}
+
+
+def _rule_settled_field_keys(conn: sqlite3.Connection, *, file_id: str,
+                             content_hash: str) -> set[str]:
+    """The field keys a fact STRONGER than an LLM conclusion holds. `104` §18.2 gap 1.
+
+    **THE SAME PREDICATE `facts.llm_seam.build_request` BUILDS `existing_facts` FROM,
+    and it has to be, or the question and the flag disagree about the same file.**
+    `build_request` supplies check 4 with "every ACTIVE fact stronger than an LLM
+    conclusion -- `user_confirmed`, `direct`, `validated` -- derived through
+    `is_stronger` rather than listed", and `rule_conflicts` builds the flags off
+    exactly those rows. A field this said was settled but that set did not carry
+    would be a field gap 1 re-opened with NO flag beside it: the model would be asked
+    to reconcile a disagreement it was never shown, which is the state r15 measured
+    and the state this gap exists to end.
+
+    **AND IT IS WHY A `possible` OR `llm_supported` FIELD IS NOT RE-OPENED.** Those
+    are a model's own earlier answers, not the rules', and gap 1 is about the rules
+    deciding a level behind the model's back. Re-asking one would also break
+    `00`:298's *"proposed once"*: gap 3 writes an unseen value `possible` and
+    `cli._print_values_to_confirm` asks the person about it, and a field held by that
+    proposal is excluded from `pending` -- which is the ONLY thing that stopped the
+    next run proposing it again. It stays excluded from both halves of the question:
+    `pending ∪ settled` is a SUBSET of the allowlist and the remainder is exactly the
+    LLM-held fields, which are open questions in front of a person rather than in
+    front of a model.
+    """
+    return {row["field_key"] for row in facts_for_file(conn, file_id, content_hash)
+            if row["active"] and row["reliability_state"] != EXCLUDED_STATE
+            and is_stronger(row["reliability_state"], LLM_SUPPORTED_STATE)}
+
+
+def settled_fields_for(conn: sqlite3.Connection, *, file_id: str,
+                       content_hash: str,
+                       activation_signals: ActivationSignals) -> tuple[str, ...]:
+    """The allowed fields A RULE settled: the ones asked again WITH A FLAG.
+
+    `104` §18.2 gap 1. `00`:42's amendment of 2026-09-05 rules that the precedence of
+    a rule fact over a model fact "is shown to the model as a flag with its evidence,
+    and the model reconciles" -- so a field the deterministic pass answered is no
+    longer a field that is not asked, it is a field that is asked with the rules'
+    answer beside it. This names them.
+
+    **THE SAME ALLOWLIST, WHICH IS HALF THE POINT OF THE FUNCTION EXISTING.** It is
+    one computation over `active_field_allowlist`, the same one `pending_fields_for`
+    reads and the same one the dossier's `allowed_vocabulary` is built from. A settled
+    field read from anywhere else could name a key outside §3.5's closed vocabulary,
+    and `open_question` would then offer the model a field check 1 rejects it for
+    proposing -- "a model measured against one list and validated against another can
+    be rejected for obeying its instructions", which is the sentence
+    `pending_fields_for` above is written against.
+
+    **A SUBSET AND NOT A COMPLEMENT, AND THE REMAINDER IS NAMED.** `pending_fields_for`
+    excludes every field ANY active fact holds; this includes only the fields a fact
+    STRONGER than an LLM conclusion holds (`_rule_settled_field_keys`, the predicate
+    `facts.llm_seam.build_request` builds check 4's `existing_facts` from). So
+    `pending ∪ settled` is a subset of `allowed`, and what is in neither is exactly
+    the fields held by a `possible` or `llm_supported` fact -- a model's own earlier
+    answer, or gap 3's proposal waiting on the person. Those are deliberately asked of
+    nobody again: `00`:298 says an unseen value is *"proposed once"*, and the field
+    being closed to the question is the only thing that makes "once" true.
+
+    Making the two an exact partition would have been the tidier arithmetic and it is
+    the wrong one: `rule_conflicts` reads `existing_facts`, so a field called settled
+    here that `build_request` does not carry is a field re-opened with no flag beside
+    it -- the model asked to reconcile a disagreement it was never shown, which is the
+    defect gap 1 exists to remove.
+
+    **ORDER IS THE ALLOWLIST'S**, not the fact table's, for the first reason again:
+    the vocabulary the model is shown is ordered by `order_vocabulary_by_levels` off
+    this list, and a list ordered by whatever SQLite returned would put a different
+    question in front of two models for one file.
+
+    A field whose only fact is `rejected` is settled for nobody: §3.13 makes
+    `rejected` an exclusion rather than a value, so nothing holds the field, there is
+    no rule's answer to flag, and `pending_fields_for` leaves it open.
+    """
+    allowed = active_field_allowlist(
+        conn, file_id=file_id, content_hash=content_hash,
+        activation_signals=activation_signals)
+    settled = _rule_settled_field_keys(
+        conn, file_id=file_id, content_hash=content_hash)
+    return tuple(field for field in allowed if field in settled)
+
+
+def rule_conflicts(existing_facts: Sequence, *, file_id: str,
+                   fields: Sequence[str]) -> tuple[Conflict, ...]:
+    """The flags `00`:42 requires: what the rules settled, beside the readings.
+
+    `104` §18.2 gap 1. `model_facts` hardcoded `conflicts=()` on every site-A request
+    with the comment that "P6 holds no conflict record of its own; §3.7's
+    competing-value case is settled by the ranking before a model is asked, so a file
+    that reaches here has none to declare". That was true only because the settled
+    fields were not asked. Now that they are, the ranking is exactly what the model
+    has to be told about, and the amendment names the shape: "shown to the model as a
+    flag WITH ITS EVIDENCE, and the model reconciles".
+
+    **REFERENCE-ONLY, AND THREE SEPARATE THINGS SAY IT MUST BE.** `DossierRequest` is
+    documented "Reference-only. No materialised content, excerpts, or observation
+    bodies"; `llm_harness.dossier` says in its own first paragraph that it "authors no
+    content" and that every value it serialises came from P7's release, the builder's
+    reference metadata, the injected prompt or the shipped glossary; and the ratified
+    A_fact template tells the model "You cannot see this file's existing facts" and
+    "You may be judged against facts you were never shown". Writing a fact's VALUE
+    into a flag would break all three at once -- and it would put a `school`, an
+    `instructor` or an `authored_by` on the wire through no gate, which is the release
+    path's whole reason for existing. So the flag names the field and POINTS at the
+    reading; the value the model reads is the one P7 released and redacted.
+
+    **THE SHAPE IS P9'S, WITH NO NEW KEY.** `records.Conflict` carries `conflict_id`
+    and `kind` and `dossier._body` writes exactly those two, keying every
+    `conflict_id` through `wire_handles.wire_handle`. So:
+
+      * `kind` is THE FIELD KEY the rules settled. It is already in the dossier --
+        `allowed_vocabulary` carries it and `field_glossary` defines it -- so the flag
+        adds no word the model was not already shown, and it is the same register B
+        and C use, where a `kind` is the dimension the disagreement is about.
+      * `conflict_id` is THE OBSERVATION KEY the rule's fact cites. `_released_body`
+        keys `observation_key` with the same function and the same run key, so the
+        two strings are equal in the bytes the model reads: the flag and the reading
+        it points at are joinable by the model without either being printed in the
+        clear. That is "because of Y" said in the one language the dossier has.
+
+    One flag per (field, cited observation), because a rule fact may cite several and
+    a flag that named one of them would be evidence half-shown. `facts_for_file`
+    orders its rows and `file_facts._checked_refs` sorts every fact's citations, so
+    the list this returns is deterministic -- which `dossier_id` depends on, since it
+    is the content address of these bytes and a replay is recognised by it.
+
+    **THE FALLBACK, AND THE ONE STATE THAT NEEDS IT.** `_checked_refs` lets only a
+    `user_confirmed` fact stand without a citation (§3.1: "Every fact preserves where
+    it came from"). A person's own answer therefore has no reading to point at, and a
+    settled field with no flag at all would be the gap re-opened for the one value the
+    person cared most about. Such a flag carries P9's own id shape,
+    `f"{subject}:{kind}"` -- `grouping.p8_seam` writes `f"{group_id}:{kind}"` -- so it
+    is still an id this product spells somewhere, and it still keys to something the
+    model cannot reverse.
+
+    **THE BOUND, STATED RATHER THAN HIDDEN.** A flag resolves for the model only when
+    the reading it names survived into `released_evidence`: R-159's fill spends the
+    ceiling on the context and the filename first, and `may_be_released` may refuse
+    the reading outright. Nothing here forces it in -- doing so would let a flag
+    reorder a dossier that three separate measurements agree about -- so a flag whose
+    reading was cut is a field the model is told the rules answered without being
+    shown from where. That is strictly more than it was told before, and it is less
+    than the amendment asks for; closing it is the fill's question, not this one.
+
+    `fields` is the vocabulary this call actually offers. A flag about a field the
+    model may not propose is a flag it can do nothing with, and rule 11 makes every
+    unusable line in a dossier a cost.
+    """
+    wanted = set(fields)
+    flags: list[Conflict] = []
+    for row in existing_facts:
+        field_key = row["field_key"]
+        if field_key not in wanted:
+            continue
+        refs = json.loads(row["evidence_refs"]) or [f"{file_id}:{field_key}"]
+        flags.extend(Conflict(conflict_id=ref, kind=field_key) for ref in refs)
+    return tuple(flags)
 
 
 def dossier_tokens(values: Iterable[str]) -> int:
@@ -1630,8 +1848,20 @@ def build_fact_request(
     prompt: PromptDefinition,
     max_dossier_tokens: int,
     fill: "DossierFill | None" = None,
+    asked_fields: Sequence[str] = (),
 ) -> DossierRequest:
     """A reference-shape conversion and nothing else. No text crosses this line.
+
+    **`asked_fields` IS THE QUESTION, AND IT IS WHAT THE FLAGS ARE ABOUT (`104` §18.2
+    gap 1).** It is `open_question`'s vocabulary -- the field keys this call actually
+    offers -- and the only thing done with it is to decide which of the file's already
+    settled facts become `Conflict` flags. `rule_conflicts` reads them off
+    `request.existing_facts`, which P6 already built as every ACTIVE fact stronger
+    than an LLM conclusion, so nothing is queried here and nothing is authored: this
+    function stays the reference-shape conversion its first line says it is. `()` is a
+    caller that offers no vocabulary and therefore has nothing to flag -- the shape
+    every hand-built test request had before this field existed, and the same empty
+    tuple that used to be hardcoded.
 
     **`fill` IS THE CUT THIS REQUEST WAS BUILT UNDER (`104` §18.2 gap 5).** It is the
     `DossierFill` whose `taken` half is the `observations` above, and the only thing
@@ -1676,10 +1906,17 @@ def build_fact_request(
         # `104` R-135, LAST rather than first, and for `filename`'s reason read the
         # other way: R-58's shared prefix is the frame, and these vary per file.
         + _context_items(context),
-        # P6 holds no conflict record of its own; §3.7's competing-value case is
-        # settled by the ranking before a model is asked, so a file that reaches
-        # here has none to declare.
-        conflicts=(),
+        # `104` §18.2 GAP 1. This read `conflicts=()` with the note that "P6 holds no
+        # conflict record of its own; §3.7's competing-value case is settled by the
+        # ranking before a model is asked, so a file that reaches here has none to
+        # declare". The ranking is still what settles it -- and `00`:42's amendment
+        # rules that the ranking is a thing the model is SHOWN and reconciles, not a
+        # thing decided behind it. `rule_conflicts` names the fields the rules already
+        # answered and points each at the reading they answered it from; it carries no
+        # value, because a `DossierRequest` is reference-only and a fact's value has
+        # no door through the gate.
+        conflicts=rule_conflicts(
+            request.existing_facts, file_id=request.file_id, fields=asked_fields),
         model_call_request=ModelCallRequest(
             stage=FACT_STAGE,
             # `104` R-135: THE SUBJECT FILE FIRST, and every file a context reading
@@ -2317,13 +2554,48 @@ def fact_call_stage(authorities: FactCallAuthorities):
         pending = pending_fields_for(
             conn, file_id=file_id, content_hash=content_hash,
             activation_signals=authorities.activation_signals)
-        if not pending:
+        # `104` §18.2 GAP 1: the fields the rules already answered. They are asked
+        # too, with the rule's answer beside them as a flag, because `00`:42's
+        # amendment gives the model the reconciliation and not the code.
+        settled = settled_fields_for(
+            conn, file_id=file_id, content_hash=content_hash,
+            activation_signals=authorities.activation_signals)
+        # THE LEVELS THIS RUN'S SITUATION BUILDS, read here only to decide whether a
+        # settled field is worth re-opening. `open_question` applies the same set
+        # further down, over `authorities.folder_levels + anchor_levels`; the anchor's
+        # own levels are deliberately NOT consulted here, because reaching them needs
+        # the `FactRequest` this stage has not built yet and because a settled
+        # anchor-only field re-opened on its own would send a call whose entire
+        # question is one flag. That narrowness is stated rather than hidden: a file
+        # whose every ordinary level is settled and whose only re-openable field is
+        # the anchor's `school` is still declined here, exactly as before gap 1.
+        run_level_fields = {level.field for level in authorities.folder_levels}
+        # THE SETTLED HALF OF THE QUESTION, COMPUTED ONCE. It is the settled fields
+        # the RUN's own situation builds folders from, and it is deliberately not
+        # every settled field the file carries: `anchor_only_levels` adds `school` to
+        # an anchor's levels under `105` §14.4, and a settled `school` re-opened here
+        # would put back the per-file school question `104` §11.2 step 2 withdrew --
+        # the one twenty files answered with whatever institution each of them
+        # mentioned, filing five university essays under a high school (`104` §11.1).
+        # R-131 restored that question to the files that can answer it and left it
+        # withdrawn everywhere else; gap 1 is about the rules deciding a level behind
+        # the model's back, and it has no business widening a different ruling.
+        settled_levels = tuple(
+            field for field in settled if field in run_level_fields)
+        if not pending and not settled_levels:
             # THE ONE DECLINE THAT IS NOT A GAP IN COVERAGE. Every field the schema
-            # allows is settled, so the question has no content; there is no pending
-            # field for a row to name and `NOT_ASKED_REASONS` says so with a `None`.
-            # It is still named rather than returned silently, because "asked and the
-            # model said nothing" and "there was nothing left to ask" are the two
-            # sentences `104` §18.2 gap 4 exists to keep apart.
+            # allows is settled AND none of the settled ones is a folder level this
+            # situation builds, so the question has no content: there is nothing open
+            # to ask and nothing settled worth re-opening. `NOT_ASKED_REASONS` says so
+            # with a `None`. It is still named rather than returned silently, because
+            # "asked and the model said nothing" and "there was nothing left to ask"
+            # are the two sentences `104` §18.2 gap 4 exists to keep apart.
+            #
+            # `104` §18.2 GAP 1 NARROWED THIS ROW AND DID NOT REMOVE IT. It used to
+            # fire on `not pending` alone, and that is what the gap is about: a file
+            # whose `subject` and `work_type` a regex had written reached no model at
+            # all, and the run recorded it as settled rather than as unasked. A file
+            # that still reaches this line is one no model could contribute to.
             return _not_asked(NOT_ASKED_SETTLED)
         # WHICH MODEL ANSWERS ABOUT THIS FILE, before a dossier exists, because
         # the locality is what decides what may go into one (`104` §17.13 ruling
@@ -2396,10 +2668,23 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # what fills whatever remains. Doing it the other way round -- twelve of the
         # file's own pages first -- is how a dossier came to exceed the ceiling that
         # the ladder had already passed.
+        # `104` §18.2 GAP 1: THE FIELDS THIS CALL IS ABOUT, which since gap 1 is not
+        # the pending ones alone. The neighbour rule is asked which anchor headings
+        # answer these fields, and a `subject` the rules settled and the model is now
+        # being asked to reconcile is exactly the field a syllabus beside the file
+        # speaks to -- withholding the context for it would flag the disagreement and
+        # then take away the one reading that could settle it. The set is `pending`
+        # plus the settled fields this situation builds folders from, which is the
+        # same set the decline above tests and a superset of what `open_question`
+        # finally offers; a neighbour rule that is asked about one field too many
+        # returns readings the fill may drop, and one asked about one too few returns
+        # nothing that could be dropped back in.
+        answerable = tuple(pending) + settled_levels
         context = ()
         if authorities.anchor_context_for is not None:
             context = tuple(authorities.anchor_context_for(
-                conn, file_id=file_id, content_hash=content_hash, fields=pending))
+                conn, file_id=file_id, content_hash=content_hash,
+                fields=answerable))
         request = build_request(
             conn, file_id=file_id, content_hash=content_hash,
             activation_signals=authorities.activation_signals,
@@ -2432,7 +2717,15 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # `dossier._folder_levels_body` refuses.
         anchor_levels = anchor_only_levels(request, authorities.anchor_only)
         vocabulary, visible_levels = open_question(
-            pending, authorities.folder_levels + anchor_levels)
+            pending, authorities.folder_levels + anchor_levels,
+            # `104` §18.2 GAP 1. A settled level field is a question again, flagged
+            # with what the rules answered -- and it is `settled_levels` and not the
+            # whole settled set, so the ANCHOR-ONLY levels added above can pick up
+            # nothing from it. `open_question` intersects with the levels it is given
+            # exactly as it does for the pending half; passing everything settled
+            # would let `105` §14.4's `school` back into a per-file question through
+            # a door gap 1 did not open.
+            settled_levels)
         # A FILENAME IS NEVER A SOURCE FOR AN ANCHOR-ONLY FIELD (`105` §14.4), and
         # the only way to say that to a model is not to show it the name. A call
         # whose whole question is the anchor's own -- the syllabus whose subject,
@@ -2532,7 +2825,12 @@ def fact_call_stage(authorities: FactCallAuthorities):
                 and not _within_ceiling(observations, context, name_characters,
                                         authorities)):
             excerpts = tuple(authorities.anchor_excerpts_for(
-                conn, file_id=file_id, content_hash=content_hash, fields=pending))
+                conn, file_id=file_id, content_hash=content_hash,
+                # THE SAME SET THE LINES SHAPE WAS GATHERED FOR (`104` §18.2 gap 1).
+                # R-145's two shapes are two renderings of ONE neighbourhood, and a
+                # second shape gathered for a different question would make the
+                # ladder's two measurements about two different dossiers.
+                fields=answerable))
             excerpts_context, excerpts_fill = own_readings(excerpts)
             own_excerpts = excerpts_fill.taken
         if (excerpts is not None
@@ -2658,7 +2956,13 @@ def fact_call_stage(authorities: FactCallAuthorities):
                     # took. `fill` is `lines_fill` or `excerpts_fill` above, chosen
                     # by the same branch that chose `shown` -- the cut recorded is
                     # the cut of the dossier that is about to be sent.
-                    fill=fill),
+                    fill=fill,
+                    # `104` §18.2 gap 1: THE VOCABULARY, not the pending set. The
+                    # flags are about the fields this call OFFERS, and the offer is
+                    # `open_question`'s answer -- a flag about a field the model may
+                    # not propose is a line it can do nothing with, and rule 11 makes
+                    # every unusable line a cost.
+                    asked_fields=vocabulary),
                 gate=authorities.gate,
                 model_client=model_client,
                 prompt=authorities.prompt,

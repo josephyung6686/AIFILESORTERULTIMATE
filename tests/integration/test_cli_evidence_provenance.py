@@ -315,9 +315,14 @@ def test_a_whole_document_reading_is_not_offered(evidence):
     whole = _observation(evidence, zone="body", span=TextSpan(0, len(document)),
                          value=document, container=page_three)
 
+    # `104` R-174: the ceiling is spent in wire bytes, so "the document does not
+    # fit" is one byte short of the document's own wire cost, read off the offer.
+    by_key = {one.observation_key: one for one in ordered_releasable_observations(
+        evidence, file_id="file-1", content_hash=CONTENT_HASH,
+        locality=CLOUD_LOCALITY, limit=12)}
     offered = cli.reading_citations(evidence, "file-1", limit=12,
                                   locality=CLOUD_LOCALITY,
-                                  ceiling=len(document) - 1)
+                                  ceiling=released_wire_cost(by_key[whole]) - 1)
 
     assert [ref for ref, _location, _reliability in offered] == [short]
     # And it is the LENGTH and not the coverage: raise the ceiling over the unit and
@@ -363,7 +368,12 @@ def test_the_bound_is_the_callers_and_this_function_states_no_number(evidence):
     assert len(offered(limit=2, ceiling=A_CEILING)) == len(values)
     assert len(offered(limit=6, ceiling=A_CEILING)) == len(values)
     # The ceiling is what the caller bounds the call with, and it does move.
-    assert len(offered(limit=6, ceiling=sum(len(one) for one in values[:2]))) == 2
+    # `104` R-174: room for two is two readings' wire cost, read off the offer.
+    in_order = ordered_releasable_observations(
+        evidence, file_id="file-1", content_hash=CONTENT_HASH,
+        locality=CLOUD_LOCALITY, limit=6)
+    two = sum(released_wire_cost(one) for one in in_order[:2])
+    assert len(offered(limit=6, ceiling=two)) == 2
 
 
 def test_a_file_this_run_has_no_version_for_offers_nothing(evidence):
