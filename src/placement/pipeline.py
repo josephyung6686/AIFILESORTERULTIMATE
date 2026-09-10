@@ -106,7 +106,6 @@ from placement.residual import (
     record_set_decision, require_model_call_permitted, require_set_actionable,
     require_set_decision, surface_residual_sets,
 )
-from llm_harness.placement_validation import ACCEPTED_MEMBERSHIP_STATE
 from placement.retrieval import (
     CURATED_FOLDER, GRAPH_RELATIONSHIP, NON_DECIDING_CHANNELS, Candidate,
     Retrieval, SetAside, retrieve,
@@ -2742,10 +2741,10 @@ def _accepted_group_items(group_ids) -> tuple[EvidenceItem, ...]:
             location="a group the person accepted this file into",
             # `104` §18.34: every id here IS accepted (the docstring above), and
             # the validator admits a context level only for a group whose item
-            # carries the accepted-membership state. `POSSIBLE` here made every
+            # carries the accepted-membership state, P6's `user_confirmed`. `POSSIBLE` here made every
             # accepted group read as merely retrieved and every context level
             # SLOT_FILLED_WITHOUT_EVIDENCE.
-            excerpt_span=None, reliability_state=ACCEPTED_MEMBERSHIP_STATE,
+            excerpt_span=None, reliability_state=USER_CONFIRMED,
             basis=P8_CONTEXT_SUPPORTED)
         for group_id in group_ids
     )
@@ -2845,7 +2844,7 @@ def _graph_items(conn, *, subject, plan_version: str, graphs, related_files,
             evidence_ref=f"edge:{edge_type}:{anchor_file_id}:{other}",
             kind=GRAPH_EDGE_ITEM,
             location=" | ".join((
-                f"a {edge_type.replace('_', ' ')} relationship to another file",
+                f"a {' '.join(edge_type.split('_'))} relationship to another file",
                 f"that file's accepted facts: {summary}",
                 where,
                 f"found by {EDGE_PRODUCER[edge_type]}")),

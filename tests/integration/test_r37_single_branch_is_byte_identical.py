@@ -36,6 +36,16 @@ chain conflict to find, because P10 gives each node its whole chain's expected
 values, so every pair here reads `(node, that same node)` -- which is what a
 conflict on a node's own value has always meant.
 
+**Recaptured again on 10 Sep 2026 for `104` §18.2 gap 12, and the diff was read
+before it was taken.** The gap declares the graph channel producible on a
+retrieval whose candidate a typed edge supports, so a node reached by an accepted
+group AND a typed edge scores 3 of 6 instead of 2 of 5. Structurally the
+recapture differs from its predecessor in exactly two rows, the two
+`privacy_blocked` abstentions: their `alternatives` support scores read 0.5 for
+0.4 and `two_condition.meets_threshold` reads true for false; the outcome,
+`privacy_blocked`, the placements, the counts and the sentences are unchanged.
+That is `00`:109's arithmetic reaching the record and nothing else.
+
 The corpus is `test_local_model_fact_pass._corpus`'s six files: a syllabus, a
 lecture, a homework, a problem set, an application essay and a passport scan. The
 anchors the work-type rule finds on it are all academic's, so it is one branch.
