@@ -25,6 +25,14 @@ answer reaches P6 as `possible` -- below `facts.read_surface.PROPOSAL_ELIGIBLE_S
 so it is a candidate and never a folder until somebody says yes. The deterministic
 `subject` rule is untouched, which is why every value
 `tests/p6/test_p6_subject_slot.py` measured off a real disk is still refused here.
+
+**`work_type` AND `term` JOINED `subject` HERE ON 2026-09-09 (`104` §18.2 gap 3).**
+The scope line this file used to draw -- "only `subject` has a review normaliser
+today" -- was the other half of G15 left standing, and `104` measured what it cost:
+`VALUE_NOT_NORMALIZABLE` was r15's LARGEST rejection class and those two fields were
+most of it. `00`:298 covers all three by name. The closed sets in code did not go
+away; they became the seed the review path starts from, which is what `00`:298 means
+by "the ratified library is the vocabulary the model is shown first".
 """
 from __future__ import annotations
 
@@ -42,11 +50,15 @@ from evidence_shape.schema import create_evidence_schema
 from evidence_shape.store import record_observation, record_run
 from facts.domains import ActivationSignal, ActivationSignals
 from facts.fields import create_fields
-from facts.file_facts import DETERMINISTIC_EXTRACTOR, facts_for_file, write_fact
+from facts.file_facts import (
+    DETERMINISTIC_EXTRACTOR, USER_CORRECTION, facts_for_file, write_fact,
+)
 from facts.llm_seam import build_request
 from facts.read_surface import PROPOSAL_ELIGIBLE_STATES
-from facts.states import LLM_SUPPORTED, POSSIBLE, VALIDATED
-from facts.values import VALUE_ORIGINS, ensure_value, values_in_field
+from facts.states import LLM_SUPPORTED, POSSIBLE, USER_CONFIRMED, VALIDATED
+from facts.values import (
+    VALUE_ORIGINS, ensure_value, merge_values, values_in_field,
+)
 from llm_harness.fact_validation import FactValidationDependencies
 from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 from llm_harness.records import Dossier, EvidenceItem, ReleasedEvidence
@@ -209,17 +221,87 @@ def test_the_canonical_form_of_a_title_is_whitespace_collapsed_and_case_preserve
     assert normalize_for_review("subject", "aP wORLD hISTORY") == "aP wORLD hISTORY"
 
 
-@pytest.mark.parametrize("field_key", ["work_type", "term", "instructor", "school"])
-def test_only_subject_has_a_review_normaliser_today(field_key):
-    """R-98 is the `subject` half of G15 and this test is the scope line.
+@pytest.mark.parametrize("field_key", ["instructor", "school"])
+def test_a_field_nobody_opened_still_has_no_review_normaliser(field_key):
+    """THE SCOPE LINE, MOVED BY `104` §18.2 GAP 3 AND STILL A LINE.
 
-    `work_type` was refused on seven of eight coursework files in the same run, for
-    the same reason in a different vocabulary (the library's 942 terms). That is the
-    other half of §13.7 and it is not this change: `work_type`'s members are the
-    ratified library's, and a value the library has not seen becomes a folder NAME
-    from a closed list, which is a different question from a course's own title.
+    **SABOTAGE:** widen `normalize_for_review`'s branch to every field, or drop the
+    `return None` at the foot of it, so a model's answer about a PERSON or an
+    INSTITUTION becomes a proposal on the person's screen. Nothing rules that: `00`:298
+    names *"`work_type`, `subject`, `term` and user labels"* and gap 3 names two of the
+    three; `instructor` and `school` were refused on the same run for the same reason
+    and neither the owner nor the design has opened them. A file opening a field on its
+    own authority is the file deciding, which is the constitution's first rule read
+    backwards.
+
+    This test used to read `test_only_subject_has_a_review_normaliser_today` and used
+    to hold `work_type` and `term` too. Its old docstring argued that a value the
+    library has not seen "becomes a folder NAME from a closed list, which is a
+    different question from a course's own title" -- and `104` §18.2 gap 3 rules that
+    reasoning wrong: the closed list was code deciding, `VALUE_NOT_NORMALIZABLE` was
+    r15's largest rejection class, and `term` and `work_type` were most of it. The two
+    fields moved to `test_a_value_the_library_has_not_seen_is_proposed_not_rejected`
+    below; the scope line itself did not move, it narrowed.
     """
     assert normalize_for_review(field_key, "Some Words Here") is None
+
+
+@pytest.mark.parametrize("field_key, unseen, refused", [
+    # The library ships 942 `work_type` terms and has never seen either of these.
+    # Both are values a real cloud run produced (`tests/p6/test_p6_kind.py` records
+    # the measurement); `.pdf`, from the same run, is the one that became the folder
+    # `Coursework/Daniel Lacker/IEOR3658/.pdf` and must still not come back.
+    ("work_type", "Proposed Scope", ".pdf"),
+    ("work_type", "Abstract", "GRC Proposed Scope V2.1"),
+    # `105` §14.2 ruled in five term forms and ruled OUT three shapes by hand. A
+    # sixth form nobody has met is a proposal; a shape the owner refused stays
+    # refused, because that is an answer already given and not a value unseen.
+    ("term", "Trimester 2 2025", "2023-2024"),
+    ("term", "2023-24 Term 1", "S2026"),
+])
+def test_a_value_the_library_has_not_seen_is_proposed_not_rejected(
+        field_key, unseen, refused):
+    """`104` §18.2 gap 3, and `00`:298 in one assertion each way.
+
+    **SABOTAGE:** restore the closed-vocabulary gate -- put `work_type` and `term`
+    back behind `WORK_TYPE_VOCABULARY.terms` and `DATE_PATTERNS` alone, so a value
+    neither knows dies at `VALUE_NOT_NORMALIZABLE` instead of reaching a person.
+    `00`:298: *"A value the shipped library has not seen is proposed once; the user
+    confirms or renames it."* On r15 that gate was the largest rejection class there
+    was, `term` and `work_type` most of it, and the model was never told the fields
+    were closed -- so it answered honestly and was refused for it.
+
+    The second half of each row is what makes this a change of one thing rather than
+    an opening of everything: a value the SHAPE refuses, or a shape the OWNER refused,
+    is still `None`. Deleting either refusal is the other half of the sabotage.
+    """
+    assert normalize_for_review(field_key, unseen) == unseen
+    assert normalize_for_review(field_key, refused) is None
+
+
+def test_the_library_still_answers_first_and_in_its_own_spelling():
+    """The seed did not move, and `104` §18.2 gap 3 says it must not.
+
+    **SABOTAGE:** route a value the library DOES know through the review path -- have
+    `normalize_for_model` return `None` for `Lecture` so it arrives as a proposal, or
+    return the model's casing instead of the library's. `00`:298's own last clause is
+    *"the ratified library is the vocabulary the model is shown first"*, and
+    `facts.kind.KindVocabulary` gives the casing reason: that spelling becomes a
+    folder name and the document's casing must not. A known term reaching the person
+    as a question would ask them to ratify what the library already ratified, and
+    `LECTURE SLIDES week 1.pdf` and `Lecture Slides Week 2.pdf` would become two
+    folders -- `65` §4.2's recorded failure.
+    """
+    assert normalize_for_model("work_type", "Lecture") == "lecture"
+    assert normalize_for_model("work_type", "  HOMEWORK  ") == "homework"
+    assert normalize_for_model("term", "Spring-2026") == "Spring2026"
+    # AND THE REVIEW HALF IS NEVER REACHED FOR THEM, which is
+    # `fact_validation._check_three`'s order and not this function's: the
+    # deployment's normaliser is asked first and its answer ends check 3. Asserted
+    # here as the pair it is, so a reader can see that "the seed answers first"
+    # means the person is not asked about `Lecture`.
+    assert normalize_for_model("work_type", "Lecture") is not None
+    assert normalize_for_model("term", "Fall 2023") is not None
 
 
 def test_the_review_normaliser_refuses_a_non_string():
@@ -251,7 +333,8 @@ def site_a_conn(conn):
 
 
 def _world(conn, tmp_path, *, released: str, review: bool = True,
-           stronger: tuple[str, str] | None = None) -> World:
+           stronger: tuple[str, str] | None = None,
+           normalize=None) -> World:
     path = tmp_path / "Essay 2 Final Draft.pdf"
     path.write_bytes(b"a university writing essay")
     file_id = record_file(
@@ -303,13 +386,19 @@ def _world(conn, tmp_path, *, released: str, review: bool = True,
             observation_key=released_key, address=ADDRESS, value=released,
             zone="body"),),
         max_dossier_tokens=4000, reduction_rung=REDUCTION_NONE, release_id="rel-1")
+    # THE DEPLOYMENT'S NORMALISER, WHICH IS THE COMPOSITION ROOT'S TO CHOOSE.
+    # `src/cli.py` binds `normalize_with_the_persons_own_values(conn)` at the live
+    # seam; the default here is the pure function, so every test written before
+    # `104` §18.2 gap 3 asks exactly what it asked, and a test about the person's
+    # own vocabulary passes the closure the run would.
+    chosen = normalize_for_model if normalize is None else normalize
     fact_dependencies = (
         FactValidationDependencies(
-            normalize=normalize_for_model, contradicts=contradicts_stronger,
+            normalize=chosen, contradicts=contradicts_stronger,
             normalize_for_review=normalize_for_review)
         if review else
         FactValidationDependencies(
-            normalize=normalize_for_model, contradicts=contradicts_stronger,
+            normalize=chosen, contradicts=contradicts_stronger,
             normalize_for_review=None))
     return World(
         conn=conn, file_id=file_id, content_hash=content_hash, dossier=dossier,
@@ -343,12 +432,16 @@ def _verdicts(world: World, response_bytes: bytes, *, apply: bool = False):
     return verdicts[0]
 
 
-def _subject_rows(world: World):
+def _rows_in(world: World, field_key: str):
     by_id = {row["value_id"]: row["canonical_value"]
-             for row in values_in_field(world.conn, "subject")}
+             for row in values_in_field(world.conn, field_key)}
     return [(row["reliability_state"], by_id[row["value_id"]])
             for row in facts_for_file(world.conn, world.file_id, world.content_hash)
-            if row["field_key"] == "subject"]
+            if row["field_key"] == field_key]
+
+
+def _subject_rows(world: World):
+    return _rows_in(world, "subject")
 
 
 # --- the seam ---------------------------------------------------------------------
@@ -424,6 +517,137 @@ def test_a_title_the_cited_text_does_not_carry_is_still_refused(
                          span="Essay 2"))
 
     assert (verdict.outcome, verdict.reasons) == (REJECT, (VALUE_NOT_IN_CITED_TEXT,))
+
+
+def test_an_unseen_term_reaches_the_person_instead_of_the_rejection_pile(
+        site_a_conn, tmp_path):
+    """`104` §18.2 gap 3, at the seam, for `term`.
+
+    **SABOTAGE:** put `DATE_PATTERNS` back in front of the review path -- let
+    `normalize_for_model`'s `None` end check 3 for this field -- and this claim is
+    `reject VALUE_NOT_NORMALIZABLE` again, which is where r15's largest rejection
+    class came from. `105` §14.2 ruled in five term forms and a person's university
+    writes a sixth; under the closed catalogue they got no term folder at all and no
+    sentence saying why.
+
+    `2023-2024 Term 1` is a form the owner DID rule in, so the shape used here is one
+    nobody has ruled on at all: `Trimester 2 2025`. It comes back
+    `accept_context_supported` and is written `possible`, which is the same seam
+    `subject`'s titles pass through six tests above -- not a copy of it, the same
+    `_check_three`.
+    """
+    world = _world(
+        site_a_conn, tmp_path, released="Trimester 2 2025 reading list")
+    verdict = _verdicts(
+        world, _response("term", "Trimester 2 2025", key=world.released_key,
+                         span="Trimester 2 2025"), apply=True)
+
+    assert (verdict.outcome, verdict.reasons) == (ACCEPT_CONTEXT_SUPPORTED, ())
+    assert verdict.disposition == LLM_SUPPORTED_REVIEW
+    assert verdict.requires_review is True
+    assert _rows_in(world, "term") == [(POSSIBLE, "Trimester 2 2025")]
+    # AND IT IS STILL NOT A FOLDER. `possible` is the one ranked state below the
+    # floor a proposal rests on, so opening the field cost the tree nothing.
+    assert POSSIBLE not in PROPOSAL_ELIGIBLE_STATES
+
+
+def test_an_unseen_work_type_reaches_the_person_instead_of_the_rejection_pile(
+        site_a_conn, tmp_path):
+    """`104` §18.2 gap 3, at the seam, for `work_type`.
+
+    **SABOTAGE:** restore the 942-term vocabulary as a gate. `Proposed Scope` is a
+    value a real cloud run produced and the library has never seen; under the gate it
+    was `VALUE_NOT_NORMALIZABLE`, and `work_type` was refused on seven of eight
+    coursework files in that run. `00`:298: the value is proposed once and the user
+    confirms or renames it.
+
+    The pair that must NOT move is asserted one test down: `.pdf`, from the same run,
+    is still refused, and it is the value that became the folder
+    `Coursework/Daniel Lacker/IEOR3658/.pdf`.
+    """
+    world = _world(
+        site_a_conn, tmp_path, released="Proposed Scope of the module")
+    verdict = _verdicts(
+        world, _response("work_type", "Proposed Scope", key=world.released_key,
+                         span="Proposed Scope"), apply=True)
+
+    assert (verdict.outcome, verdict.reasons) == (ACCEPT_CONTEXT_SUPPORTED, ())
+    assert verdict.requires_review is True
+    assert _rows_in(world, "work_type") == [(POSSIBLE, "Proposed Scope")]
+
+
+def test_a_renamed_proposal_is_accepted_direct_on_the_next_run_at_the_seam(
+        site_a_conn, tmp_path):
+    """The rename, proved through `dispatch` and not only through the closure.
+
+    **SABOTAGE:** believe that a rename that maps in `normalize` maps in the product.
+    Check 3 is not the last check: `value_is_grounded` runs after it, and the person's
+    word for the thing -- `scope note` -- appears NOWHERE in the file. If grounding
+    tested only the canonical form, every renamed value would map at check 3 and die
+    at `VALUE_NOT_IN_CITED_TEXT`, and "the user renames it" would be true of a
+    function and false of the product. It survives because `value_is_grounded` tries
+    BOTH spellings and its own docstring says why -- "the canonical form need not
+    resemble the text". This test is what stops that permissiveness being narrowed
+    without anyone noticing it was load-bearing for renames.
+
+    The two runs are the point. Run one is the closure with an empty database: the
+    library has never seen `Proposed Scope`, so it arrives `possible` and waits. The
+    person answers between them, the way the missing gesture would. Run two is the
+    same claim, the same evidence, the same model -- and now `accept_direct`, written
+    `llm_supported` under the word THEY chose.
+    """
+    conn = site_a_conn
+    world = _world(
+        conn, tmp_path, released="Proposed Scope of the module",
+        normalize=cli.normalize_with_the_persons_own_values(conn))
+    answer = _response("work_type", "Proposed Scope", key=world.released_key,
+                       span="Proposed Scope")
+
+    first = _verdicts(world, answer, apply=True)
+    assert first.outcome == ACCEPT_CONTEXT_SUPPORTED
+    assert _rows_in(world, "work_type") == [(POSSIBLE, "Proposed Scope")]
+
+    # The person renames it. `merge_values` records the alias and deletes nothing.
+    proposed = next(row["value_id"] for row in values_in_field(conn, "work_type")
+                    if row["canonical_value"] == "Proposed Scope")
+    kept = ensure_value(conn, field_key="work_type", canonical_value="scope note",
+                        first_evidence_ref=None, origin=VALUE_ORIGINS[1])
+    write_fact(
+        conn, file_id=world.file_id, content_hash=world.content_hash,
+        field_key="work_type", value_id=kept, reliability_state=USER_CONFIRMED,
+        origin=USER_CORRECTION, evidence_refs=(),
+        cache_key="sha256:the-person-renamed-it", active=True)
+    merge_values(conn, keep=kept, merged=proposed, reason="the person renamed it")
+
+    second = _verdicts(world, answer, apply=True)
+    assert (second.outcome, second.reasons) == (ACCEPT_DIRECT, ())
+    assert second.requires_review is False
+    assert (LLM_SUPPORTED, "scope note") in _rows_in(world, "work_type")
+
+
+@pytest.mark.parametrize("field_key, value", [
+    ("work_type", ".pdf"),
+    ("work_type", "GRC Proposed Scope V2.1"),
+    ("term", "2023-2024"),
+])
+def test_the_measured_bad_values_are_still_refused_at_the_seam(
+        site_a_conn, tmp_path, field_key, value):
+    """The teeth of the two tests above.
+
+    **SABOTAGE:** open the fields by deleting the refusals as well as the closed sets
+    -- drop `_TITLE_SHAPE` from the shared preamble, or stop asking `term_refusal`.
+    Then `.pdf` is a proposal on the person's screen and `2023-2024` is offered as a
+    semester, which `105` §14.2 ruled it is not. Opening a field is not the same as
+    admitting everything, and §13.5 draws the line where this test does: a rule may
+    reject only a STRUCTURALLY INVALID answer, and these three are that.
+    """
+    world = _world(site_a_conn, tmp_path, released=f"heading: {value} here")
+    verdict = _verdicts(
+        world, _response(field_key, value, key=world.released_key, span=value),
+        apply=True)
+
+    assert (verdict.outcome, verdict.reasons) == (REJECT, (VALUE_NOT_NORMALIZABLE,))
+    assert _rows_in(world, field_key) == []
 
 
 @pytest.mark.parametrize("value", ["Spring 2026", "PHYS", "report.pdf"])
