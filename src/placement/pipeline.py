@@ -1112,6 +1112,18 @@ def _learning_subject_id(subject) -> str:
     return subject.file_id if subject.kind == FILE else subject.group_id
 
 
+#: `104` §18.2 gap 14 × §8.6: THE GROUP'S CALL SPENDS FROM ITS OWN LEDGER. The
+#: per-file placement purse is sized per file, and a packet's one question is not
+#: one of those files: measured on the six-file corpus of
+#: `tests/integration/test_local_model_fact_pass.py`, the group's call plus a
+#: template call emptied the observe purse and the last file -- the factless one
+#: site C exists for -- recorded `BUDGET_EXHAUSTED` with nothing in the run saying
+#: why. `cli.situation_scan_budget` and `cli.template_scan_budget` make the same
+#: argument for sites G and E: the rate, floor and ceiling are the per-file ones
+#: and are not new numbers; what the group's call owns is the `scan_id`.
+GROUP_BUDGET_SUFFIX: str = ":group"
+
+
 @dataclass(frozen=True)
 class GroupAnswer:
     """What the model said about the GROUP, carried to the member it decides.
@@ -3067,6 +3079,14 @@ def _the_groups_own_answer(conn, *, accepted: AcceptedGroup, memberships,
                         their_own_folder_node_ids=frozenset(),
                         refinements=frozenset())
     set_aside = _ranked_set_aside(retrieval, graphs, policy=inputs.policy)
+    # THE GROUP'S OWN LEDGER (`GROUP_BUDGET_SUFFIX`), so this one question is
+    # never the call that empties a member's per-file purse.
+    budget = inputs.call_dependencies.scan_budget
+    inputs = inputs if budget is None else dataclasses.replace(
+        inputs, call_dependencies=dataclasses.replace(
+            inputs.call_dependencies,
+            scan_budget=dataclasses.replace(
+                budget, scan_id=budget.scan_id + GROUP_BUDGET_SUFFIX)))
     result = _judged_or_refused(
         conn, subject=subject, inputs=inputs, retrieval=retrieval,
         evidence=evidence, call_site=C_PLACEMENT, observed_at=observed_at,
