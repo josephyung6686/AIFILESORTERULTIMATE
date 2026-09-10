@@ -5814,7 +5814,19 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                 fact_authorities,
                 allowed_vocabulary=question.allowed_situations,
                 placeable_file_count=len(roster)),
-            observed_at=now)
+            observed_at=now,
+            # `104` R-172: THE SAME MAILBOX EVERY OTHER SITE IS HANDED. R-14 says
+            # what each call consumed is recorded beside what was reserved, and
+            # R-71 closed the gap for site B by binding the sink at the composition
+            # root; site G was built after both and was never handed one, so every
+            # file this pass asked about wrote an `llm_response` with no
+            # `llm_call_usage` row beside it -- three of fourteen on the local
+            # deployment, which is what `len(usage) == responses` was failing on.
+            # A response with no usage row is indistinguishable from a call that
+            # spent nothing, and G spends a call per file like every other site.
+            # Taken from A's authorities for R-71's own reason: the mailbox is a
+            # fact about this run and this transport, not about which site asks.
+            usage_recorder=fact_authorities.usage_recorder)
         situation = None
         if isinstance(verdict, P8Verdict):
             situation = situation_named_by_verdict(

@@ -2167,6 +2167,77 @@ def _call_dependencies(
     )
 
 
+#: What a grant made over THIS RUN'S OWN SCAN is called in `00`:44's cache key.
+#: Not a scope anything looks up -- `privacy.gate` matches the raw scope and never
+#: reads this string -- and not a value any real scope can collide with: every
+#: scope a run mints is a `uuid4` hex id.
+STANDING_GRANT_SCOPE: str = "the run's own scan"
+
+
+def _scan_run_ids(conn: sqlite3.Connection) -> frozenset[str]:
+    """Every scan this database has recorded, or nothing if it has recorded none.
+
+    Read through `sqlite_master` rather than caught as an `OperationalError`,
+    because a database with no P3 scan is the ordinary case for the harness's own
+    fixtures and a swallowed exception here would also swallow a real fault in the
+    table. The read is one scan of a table with one row per run.
+    """
+    if not conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+            ("scan_runs",)).fetchone():
+        return frozenset()
+    return frozenset(
+        row[0] for row in conn.execute("SELECT scan_run_id FROM scan_runs"))
+
+
+def _consent_grants_content(conn: sqlite3.Connection,
+                            grants: Sequence) -> list[list[str]]:
+    """The grants a policy carries, with no run id among them.
+
+    **`R-172a` is a PROPOSED row and not one `104` carries.** It is written here as
+    the shortest handle for what follows, and the register entry -- or a different
+    number -- is the lead's; every reference to it in this checkout is a reference
+    to the argument below and to nothing filed anywhere else.
+
+    **R-109's own closing sentence is the invariant this keeps**: *"No dimension
+    carries a run id, a timestamp or a path (two runs of one checkout over
+    unchanged files: two identity ids, both stable)."* `policy` is one of the
+    dimensions that sentence covers, and `104` §18.7 broke it without anyone
+    measuring the cost. The owner's ruling -- protected material reaches the LOCAL
+    model -- is recorded by `cli.standing_consent_grants` as the real §8.4 grant it
+    is, and the only scope the run has to make it over is the scan: `Gate`'s
+    `scope_for` is `lambda file_id: scan_run_id`, which `privacy/gate.py` calls
+    "Open question 3's placeholder rather than a root". A scan run id is a fresh
+    `uuid4` on every run. So the policy CONTENT moved on every run although the
+    policy said the identical thing, every `llm_call_identity` digest moved with
+    it, and R-109's reuse and R-123's `--reuse-answers-from` both bought every
+    answer again -- measured as a second run of one unchanged database making all
+    of its fact calls a second time, and a seeded run reusing nothing at all.
+
+    The remedy is the one `_policy_content` already applies to `policy_version` and
+    `set_at`: a term that moves without the policy changing is not the policy. A
+    grant made over the scan this run happens to be is the deployment's standing
+    permission and says nothing a person decided about a durable corpus area, so it
+    is recorded under `STANDING_GRANT_SCOPE` -- the OPTION verbatim, because the
+    option is the whole of what was authorised and `local_model` and `cloud` are
+    two different policies.
+
+    **The scope is canonicalised HERE and nowhere else.** `standing_consent_grants`
+    must keep minting the scan's own id: `Gate.release` matches
+    `policy.consent_grants` against `self._scope_for(file_id)`, so a grant under any
+    other name answers `NeedsConsent` for every protected file and §18.7's ruling
+    stops holding. What changes is what the CACHE KEY remembers about it, which is
+    what `00`:44 asks for -- "the exact process that produced it", not the label the
+    process was filed under.
+
+    A grant over a scope this database has no scan for is left exactly as it is: it
+    names something outside this run, and the identity must move when it moves.
+    """
+    scans = _scan_run_ids(conn)
+    return [[STANDING_GRANT_SCOPE if scope in scans else scope, option]
+            for scope, option in grants]
+
+
 def _policy_content(conn: sqlite3.Connection, policy_version: str) -> str:
     """The policy IN FORCE, by what it says rather than by which row it is.
 
@@ -2181,14 +2252,17 @@ def _policy_content(conn: sqlite3.Connection, policy_version: str) -> str:
     So the dimension is the CONTENT: mode, grants, redaction settings, move
     permissions, suspended kinds and the plan the policy belongs to. `policy_version`
     and `set_at` are left out because they are the two that move without the policy
-    changing. A policy that really does change -- consent withdrawn, a redaction
+    changing -- and the grants are read through `_consent_grants_content` for the
+    THIRD one, `104` §18.7's standing grant, whose scope is the run's own scan id. A policy that really does change -- consent withdrawn, a redaction
     setting raised -- changes this string and invalidates every answer under it,
     which is the half of `00`:44 that matters.
     """
     policy = policy_at(conn, policy_version)
     return canonical_json({
         "automatic_move_permissions": dict(policy.automatic_move_permissions),
-        "consent_grants": [list(pair) for pair in policy.consent_grants],
+        # `104` R-172a: the grants, with the run's own scan named as the standing
+        # scope it is. `_consent_grants_content` carries the whole argument.
+        "consent_grants": _consent_grants_content(conn, policy.consent_grants),
         "operation_mode": policy.operation_mode,
         "plan_version": policy.plan_version,
         "redaction_settings": dict(policy.redaction_settings),
