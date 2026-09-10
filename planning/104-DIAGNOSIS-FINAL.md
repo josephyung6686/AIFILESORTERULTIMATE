@@ -1645,6 +1645,17 @@ Labelled coursework files, 41: 0 exact, 16 right parent / wrong leaf (39%), 5 to
 
 9,808 passed, 10 failed, 20 skipped, 21 xfailed in 13:21. The ten are pins of tonight's rulings, not defects in the product: five in `test_a_fact_call_cache.py` (site C's per-file call and R-172a's stable grant scope), `test_two_courses_keep_two_terms` (gap 3/gap 1 proposals), `test_seam_census` (gap 3/5's two new reads from `cli.py`), `test_p8_p6_fact_seam` (gap 1's proposal beside the kept row), `test_p8_a_fact_prompt_folder_levels` (A_FACT_ROW is v3), `test_p8_vocabulary` (`WEAK_RETRIEVAL_REPORTED`). Dispatched to one agent at 04:40 with the judgement rule (design → code fix; superseded ruling → re-argued pin). The offline scoreboard half of the chain is unchanged in shape (no model, nothing placed). The bakeoff and r19 follow in the chain.
 
+### 18.20 Site G bakeoff (10 Sep 04:35-05:05; 14 synthetic bench cases; the two local models; v3 ratified vs v4 candidate)
+
+| model | text | correct | abstained | wrong | avg s/call |
+|---|---|---|---|---|---|
+| qwen3:8b | v3 (ratified) | 5 | 8 | 1 | 31.0 |
+| qwen3:8b | v4 (candidate) | 8 | 1 | 5 | 39.7 |
+| qwen2.5:3b | v3 | 5 | 8 | 1 | 29.2 |
+| qwen2.5:3b | v4 | 8 | 1 | 5 | 37.6 |
+
+**Decisions (lead, under the 00:05 standing order).** (1) The smaller model matches the larger's accuracy exactly and is ~5% faster on these cases: the ruling's condition is met but the gain is not worth a model change on the night, and r19 was already running on qwen3:8b; site G stays on qwen3:8b, the owner may switch on these numbers. (2) v4 does what it was written to do -- abstention 8 → 1 -- and it does it by answering, so wrong answers go 1 → 5 on a site that decides which questions a file is asked. Prompt text is the owner's; v4 stays an unratified candidate, and the morning's first question is whether 5 wrong of 14 is a price worth 7 more files answered, or whether a v5 should keep v4's default and ask for the cited sentence that STATES the situation before naming it. The per-case verdicts are in `~/.graph-agent/lead/g-bakeoff-2-*`.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
