@@ -671,7 +671,9 @@ def test_the_word_documents_body_is_offered_only_when_it_fits_the_ceiling(whole_
     is `within_dossier_budget`'s own rule that an over-long reading costs its file
     only itself.
     """
-    from model_facts import releasable_observations
+    from model_facts import (
+        ordered_releasable_observations, releasable_observations, released_wire_cost,
+    )
 
     file_id, digest, _key = _write_the_word_document(
         whole_conn, "Wash U 2.docx", b"docx-2")
@@ -687,7 +689,13 @@ def test_the_word_documents_body_is_offered_only_when_it_fits_the_ceiling(whole_
         "cannot tell the ceiling from a builder that dropped body readings; `104` "
         f"§17.13 offers it -- got {[value[:30] for value in fits]}")
 
-    over = offer(len(DOCX_BODY) - 1)
+    # `104` R-174: the ceiling is spent in wire bytes, so the bound the body does
+    # not fit is one byte short of its own wire cost, read off the offer.
+    body = [observation for observation in ordered_releasable_observations(
+        whole_conn, file_id=file_id, content_hash=digest,
+        locality=CLOUD_LOCALITY, limit=12) if DOCX_CANARY in observation.raw_value]
+    assert len(body) == 1, body
+    over = offer(released_wire_cost(body[0]) - 1)
     assert over, "the headings and cells beside the body are still offered"
     assert not [value for value in over if DOCX_CANARY in value], over
     assert set(over) < set(fits), (

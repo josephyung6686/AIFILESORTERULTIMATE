@@ -216,24 +216,32 @@ def test_site_a_takes_the_same_ruling_for_the_same_reason(conn, tmp_path):
     at the first over-long reading would cost this file everything after the page,
     which is the state R-159 was ruled to end.
     """
-    from model_facts import releasable_observations
+    from model_facts import releasable_observations, released_wire_cost
 
     file_id, content_hash, line, page, inner = _corpus(conn, tmp_path)
 
+    # `104` R-174: the ceiling is spent in wire bytes, so "the page does not fit"
+    # is one byte short of the page's own wire cost, derived and never typed.
     offered = releasable_observations(
         conn, file_id=file_id, content_hash=content_hash, limit=10,
-        locality=CLOUD_LOCALITY, ceiling=len(A_PAGE) - 1)
+        locality=CLOUD_LOCALITY, ceiling=released_wire_cost(page) - 1)
     keys = [one.observation_key for one in offered]
 
+    # `104` R-174: under a ceiling one byte short of the page's wire cost, the line
+    # (first in document order) is carried and the page is not. The span inside the
+    # page is not asserted HERE any more: two envelopes cost more than one page's
+    # worth, so the ceiling that excludes the page has room for one reading, and
+    # the second is the fill's ordinary skip, not this ruling.
     assert line.observation_key in keys
-    assert inner.observation_key in keys
     assert page.observation_key not in keys
-    # And under a ceiling it fits, the same page comes back -- which is the ruling
-    # rather than a coincidence of this fixture's lengths.
-    assert page.observation_key in [
-        one.observation_key for one in releasable_observations(
-            conn, file_id=file_id, content_hash=content_hash, limit=10,
-            locality=CLOUD_LOCALITY, ceiling=A_CEILING)]
+    # And under a ceiling it fits, the same page comes back, and the span inside
+    # it beside it -- which is the ruling rather than a coincidence of this
+    # fixture's lengths.
+    slack = [one.observation_key for one in releasable_observations(
+        conn, file_id=file_id, content_hash=content_hash, limit=10,
+        locality=CLOUD_LOCALITY, ceiling=A_CEILING)]
+    assert page.observation_key in slack
+    assert inner.observation_key in slack
 
 
 def test_the_named_readings_builder_takes_it_too(conn, tmp_path):
