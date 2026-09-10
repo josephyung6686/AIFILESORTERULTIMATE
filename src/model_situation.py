@@ -71,7 +71,7 @@ from llm_harness.vocabulary import (
 )
 from privacy.items import Excerpt
 from privacy.release import ModelCallRequest, Target
-from recognition.detector import Abstention
+from recognition.detector import Abstention, Precaution
 from recognition.vocabulary import SAFETY_DOMAIN_IDS
 
 #: P4's own word for a reading an extractor read explicitly, read off P4's tuple
@@ -157,6 +157,13 @@ class SituationQuestion:
     matched_terms: tuple[tuple[str, tuple[str, ...]], ...]
     #: The observation keys the candidates rest on, for the citation check.
     evidence_refs: tuple[str, ...]
+    #: `104` §18 gap 24. THE HOLD THE RULES HAVE ALREADY TAKEN on this file, or
+    #: `None` because they have taken none. `Detector.precaution_report`'s own
+    #: answer, carried rather than re-derived: which of `00`'s four safety domains
+    #: was read, which of its work types the file's evidence carries, and in which
+    #: P4 zones. The model is being asked to judge a file the rules are holding,
+    #: and until now the one thing it was never shown was that.
+    precaution: Precaution | None = None
 
     def __post_init__(self) -> None:
         if self.allowed_situations[-1:] != (NONE_OF_THESE,):
@@ -223,12 +230,17 @@ def shortlist_for(abstention: Abstention,
 def question_for(abstention: Abstention, *, file_id: str, content_hash: str,
                  matched_terms: Sequence[tuple[str, Sequence[str]]] = (),
                  evidence_refs: Sequence[str] = (),
-                 semantic: object | None = None) -> SituationQuestion:
+                 semantic: object | None = None,
+                 precaution: Precaution | None = None) -> SituationQuestion:
     """One file's question, or `NothingToAsk`.
 
     Refusing is a real outcome and the common one today: a file the recognisers
     raised no candidate for has no question with valid options, and `00`:259's
     "mark the deferred stage ... rather than guessing" is what happens to it.
+
+    `precaution` is SUPPLIED and never derived here. The hold is the detector's
+    conclusion and this module reads no rules of its own -- the same discipline
+    `matched_terms` and `evidence_refs` are passed under.
     """
     return SituationQuestion(
         file_id=file_id, content_hash=content_hash, reason=abstention.reason,
@@ -236,6 +248,7 @@ def question_for(abstention: Abstention, *, file_id: str, content_hash: str,
         matched_terms=tuple(
             (schema_id, tuple(terms)) for schema_id, terms in matched_terms),
         evidence_refs=tuple(evidence_refs),
+        precaution=precaution,
     )
 
 
@@ -261,14 +274,49 @@ ABSTENTION_REF: str = "abstention"
 _REFERENCE_ONLY_KINDS: tuple[str, ...] = ("recogniser_abstention", "candidate_schema")
 
 
+def _held_phrase(precaution: Precaution | None) -> str:
+    """What the rules are holding this file as, in the rules' own words.
+
+    **`104` §18 gap 24, and it goes through the DOSSIER rather than the prompt.**
+    The owner's constraint is exact: the term list never appears in the template
+    text -- it is this file's evidence, addressed like every other authority, and
+    the model reads it where it reads the abstention report it already gets.
+
+    Empty for a file the rules are not holding, which is most of them: an item
+    that said "held: no" on every ordinary file would spend the shared prefix
+    `104` R-58 exists to protect on a fact that is the absence of a fact.
+
+    The terms are the LIBRARY's authored words and the zones are P4's own zone
+    names -- the same class of value `matched` above already carries, and neither
+    is a word out of the person's file.
+    """
+    if precaution is None:
+        return ""
+    terms = ", ".join(precaution.terms)
+    zones = ", ".join(precaution.zones)
+    return (f" | held: the rules are holding this file as "
+            f"{precaution.schema_id} material"
+            + (f", on the work type {terms}" if terms else "")
+            + (f", found in {zones}" if zones else ""))
+
+
 def _abstention_item(question: SituationQuestion) -> EvidenceItem:
     """The recogniser's own report of why it stopped, as one reference item.
 
     Every word of `location` comes from the recogniser: its reason, its near miss,
-    the ids it tied on, and the terms each candidate matched. Nothing is authored
+    the ids it tied on, the terms each candidate matched, and -- since `104` §18
+    gap 24 -- the hold its precaution took and what raised it. Nothing is authored
     here and nothing about the person's file beyond what the recogniser already
     concluded reaches the bytes -- the matched terms are the LIBRARY's authored
     words, which is what `test_a_tie_is_a_question_for_the_model` asserts of them.
+
+    THE HOLD RIDES ON THIS ITEM RATHER THAN A NEW ONE, and that is a choice about
+    what the ratified prompt already says. Its rule for this item is *"a
+    `recogniser_abstention` item is the reason the rules stopped ... It is a
+    report, not a verdict: the rules aimed the question and you answer it"* -- and
+    a precaution IS the rules stopping, in the strongest form they have. A sibling
+    kind would be an item the approved text never describes, so the model would
+    meet an unexplained kind on exactly the files where the stakes are highest.
     """
     matched = "; ".join(
         f"{schema_id}: {', '.join(terms)}" if terms else f"{schema_id}: no term"
@@ -279,7 +327,8 @@ def _abstention_item(question: SituationQuestion) -> EvidenceItem:
         location=(
             f"recogniser abstention | reason: {question.reason} | "
             f"shortlist: {', '.join(question.allowed_situations)}"
-            + (f" | matched: {matched}" if matched else "")),
+            + (f" | matched: {matched}" if matched else "")
+            + _held_phrase(question.precaution)),
         excerpt_span=None,
         reliability_state=DIRECT,
         basis=DIRECT_ANCHOR,
