@@ -1742,6 +1742,12 @@ Verified on the merged head: 183 passed in 76.51s (0:01:16). Next wave dispatche
 
 **Pins re-argued by the lead:** the group-call fake targets the lane's generator (`call_placement_steps`); the stage pin reads `steps` beside `stage` inside `fact_call_stage` and counts six arms, R-175's over-ceiling arm naming its state through `refusal_outcome`.
 
+### 18.32 The machine rebooted; r21 lost; r22 launched seeded from r21 (10 Sep 18:55-19:05)
+
+At ~18:52 the machine rebooted (every system daemon three minutes old at 18:55; the owner's word at 19:00: "we just restarted, we have so much free memory"). The harness restarted with it: three agents (gaps 16+11b, gap 25, site G semantic) stopped mid-work with their worktrees intact and were resumed; r21's process died at G=17, A=18 (seeded), 9 call failures, no done-file; the model server was down and was restarted. **r22 launched at 19:00 on 092d604** (every merge of the day: cloud lane 7-wide with the local call beside it, gaps 14/18/19/20/22/23/24/24b, site E + S6, R-175, R-176) with `--reuse-answers-from` r21, which carried r20's answers. Gap 12 dispatched into the fourth slot. **Owner's order (19:00):** run everything full scale on the fresh machine, finish everything unfinished, a full report in ten hours.
+
+Plan to 05:00: merge the four agents as they report; resume the G bakeoff (v3/v4/v5 × two local models) once r22's situation pass frees the local model; run the FULL suite on the merged head (not run since ec3e349); judge r22 as a person would; author the candidate rows the agents left (A v4 stands; C group sentence; E's three; G's held sentence) as unratified rows for the owner; the morning report.
+
 
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
