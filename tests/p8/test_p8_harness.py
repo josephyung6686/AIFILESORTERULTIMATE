@@ -27,7 +27,7 @@ from llm_harness.budgets import ScanBudget, create_budget_schema
 from llm_harness.eligibility import Eligible
 from llm_harness.fingerprint import prompt_fingerprint
 from llm_harness.dossier import build_dossier, canonical_dossier_bytes
-from llm_harness.harness import run_call
+from llm_harness.harness import run_call, run_call_steps
 from llm_harness.records import (
     CallFailed,
     DossierRequest,
@@ -1028,7 +1028,11 @@ def test_d14_links_events_with_released_audit_id_and_spends_released_release_id(
 def test_exactly_three_p7_branches_and_needs_consent_has_no_conversion_path():
     assert DECISION_TYPES == (Released, Denied, NeedsConsent)
     assert not issubclass(NoPolicyInForce, tuple(DECISION_TYPES))
-    source = inspect.getsource(run_call)
+    # `104` §18.15: the three branches are in `run_call_steps`, which is `run_call`
+    # with the round trip left for the caller to run; `run_call` is that generator
+    # driven inline. The branches did not move relative to each other and none was
+    # added, so the assertion is the same assertion over the body that has them.
+    source = inspect.getsource(run_call_steps)
     assert "NeedsConsent" in source
     assert "NoPolicyInForce" in source
     tree = ast.parse(SRC_HARNESS.read_text())
@@ -1078,7 +1082,10 @@ def test_harness_does_not_invoke_the_client_itself():
     assert invokes == []
     source = SRC_HARNESS.read_text()
     assert "from llm_harness.transport import" in source
-    assert "issue(" in source
+    # `104` §18.15: the harness reaches the transport through its suspendable form,
+    # which is the same door with the socket left for the driver. It still calls
+    # the transport and still never touches the client.
+    assert "_issue_steps(" in source
     assert "def normalize(" not in source
     assert "def contradicts(" not in source
 

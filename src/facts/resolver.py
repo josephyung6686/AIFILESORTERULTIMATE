@@ -231,6 +231,42 @@ class FactResolver:
 
     def resolve(self, conn: sqlite3.Connection, *, file_id: str,
                 content_hash: str) -> ResolveResult:
+        """One file, resolved on this thread, every stage run to its end.
+
+        `104` §18.15 split the body into `resolve_steps` so a pass that drives a
+        cloud lane can hold several files' round trips at once. This is that
+        generator driven inline, and it is what every caller that walks one file at
+        a time still gets.
+
+        **IT DRIVES ITSELF RATHER THAN CALLING `harness.drive_inline`, AND THAT IS
+        THE LAYERING AND NOT AN OVERSIGHT.** P8 imports P6 -- `llm_harness.sites`
+        reads `facts.llm_seam` -- so a P6 module importing P8 would make the two
+        packages mutually dependent for four lines of generator plumbing. What is
+        yielded here is a thing that knows how to perform itself and this sequencer
+        needs to know nothing else about it, which is why it can be driven without
+        naming what it is.
+        """
+        steps = self.resolve_steps(
+            conn, file_id=file_id, content_hash=content_hash)
+        try:
+            pending = next(steps)
+            while True:
+                pending = steps.send(pending.perform())
+        except StopIteration as done:
+            return done.value
+
+    def resolve_steps(self, conn: sqlite3.Connection, *, file_id: str,
+                      content_hash: str):
+        """`resolve`, with a model stage's socket left for the caller to run.
+
+        `104` §18.15. Every statement here reads or writes the database and stays
+        on the thread that owns the connection; the one thing that may leave is a
+        `PendingSend` a producer hands up, and only the `llm` producer has one.
+        Every other stage is called exactly as it was, because `getattr(stage,
+        "steps", None)` is the whole of the protocol widening: a producer with a
+        round trip says so by carrying one, and the fifteen that have none say
+        nothing and are not asked.
+        """
         stages_run: list[str] = []
         barred: dict[str, str] = {}
         # `104` §18.2 gap 4: the producers that were REACHED and declined, and the
@@ -294,7 +330,14 @@ class FactResolver:
             # model producer declined before building a call was reported as a file
             # the model was asked about and had nothing to say. `StageOutcome.of`
             # keeps a bare tuple meaning what it always meant.
-            outcome = StageOutcome.of(stage(conn, file_id, content_hash))
+            # `104` §18.15: THE PRODUCER'S OWN SUSPENDABLE FORM WHEN IT HAS ONE.
+            # `yield from` runs it here, statement for statement, until it reaches
+            # a socket -- and a socket is the only thing it can hand up, so this
+            # line is the same line for every stage that has none.
+            producing = getattr(stage, "steps", None)
+            produced = (stage(conn, file_id, content_hash) if producing is None
+                        else (yield from producing(conn, file_id, content_hash)))
+            outcome = StageOutcome.of(produced)
             fact_ids.extend(outcome.fact_ids)
             if outcome.not_asked is None:
                 stages_run.append(name)

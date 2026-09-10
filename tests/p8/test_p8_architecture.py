@@ -285,6 +285,48 @@ def consume_precedes_every_invoke(fn: ast.FunctionDef) -> bool:
     return all(node.lineno > consume.lineno for node in invokes)
 
 
+#: `104` §18.15: THE NAME OF THE THING THAT CAN REACH THE SOCKET. The round trip
+#: moved off the calling thread so the cloud lane could hold several at once, and
+#: what crosses that boundary is a carrier holding the finished bytes and the
+#: client. It is the transport's own private class, and the property Done-means 3
+#: is about now reads: nothing can be sent that was not carried, and nothing is
+#: carried until the release has been spent.
+CARRIER = "_PendingSend"
+
+
+def carrier_builds(path: pathlib.Path) -> list[tuple[str, str | None]]:
+    """Every construction of the carrier, with the function that built it."""
+    tree = ast.parse(path.read_text(), filename=str(path))
+    found: list[tuple[str, str | None]] = []
+
+    class Visitor(ast.NodeVisitor):
+        def __init__(self) -> None:
+            self.stack: list[str] = []
+
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            self.stack.append(node.name)
+            self.generic_visit(node)
+            self.stack.pop()
+
+        visit_AsyncFunctionDef = visit_FunctionDef
+
+        def visit_Call(self, node: ast.Call) -> None:
+            if isinstance(node.func, ast.Name) and node.func.id == CARRIER:
+                found.append((source_label(path), self.stack[-1] if self.stack
+                              else None))
+            self.generic_visit(node)
+
+    Visitor().visit(tree)
+    return found
+
+
+def carriers_in_own_body(fn: ast.FunctionDef) -> list[ast.Call]:
+    """Carrier constructions that are statements in `fn`'s own body."""
+    return [node for node in nodes_in_own_body(fn)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+            and node.func.id == CARRIER]
+
+
 def code_strings(path: pathlib.Path) -> set[str]:
     tree = ast.parse(path.read_text(), filename=str(path))
     skip = _docstrings(tree)
@@ -359,8 +401,14 @@ def test_run_call_accepts_model_client_but_does_not_invoke_it():
 
     harness = HARNESS_ROOT / "harness.py"
     assert invoke_sites(harness) == []
-    issue_calls = calls_named(function_def(harness, "_issue_and_validate"), "issue")
-    assert issue_calls, "run_call must forward the client to issue"
+    # `104` §18.15: the forwarding statement is in `_issue_and_validate_steps`,
+    # which is `_issue_and_validate` with the round trip left for the caller to
+    # run. What is asserted is unchanged and is the whole point of the assertion:
+    # the harness hands the transport the SAME client object it was given and
+    # never touches it itself.
+    issue_calls = calls_named(
+        function_def(harness, "_issue_and_validate_steps"), "_issue_steps")
+    assert issue_calls, "run_call must forward the client to the transport"
     forwarded = False
     for call in issue_calls:
         for keyword in call.keywords:
@@ -368,17 +416,41 @@ def test_run_call_accepts_model_client_but_does_not_invoke_it():
                 assert isinstance(keyword.value, ast.Name)
                 assert keyword.value.id == "model_client"
                 forwarded = True
-    assert forwarded, "issue must be called with the same model_client object"
+    assert forwarded, "the transport must be called with the same model_client"
 
 
 def test_only_transport_issue_invokes_the_model_client_product_wide():
+    """One invoke in the whole product, and it is in `llm_harness/transport.py`.
+
+    `104` §18.15 moved the round trip off the calling thread so the cloud lane
+    could hold several at once, and moved the LINE from `issue`'s own body into
+    the private carrier's `perform` -- the same module, the same one call. The
+    module is what Done-means 3 is about ("`transport.issue` is the sole egress"),
+    and the count is what this guard is about, so this is the same assertion with
+    the function's new name in it.
+    """
     sites: list[tuple[str, str | None]] = []
     for path in production_modules():
         sites.extend(invoke_sites(path))
-    assert sites == [("llm_harness/transport.py", "issue")], sites
+    assert sites == [("llm_harness/transport.py", "perform")], sites
 
 
 def test_transport_issue_requires_live_released_and_calls_consume_release():
+    """A call is not constructible without spending the live `Released`.
+
+    **`104` §18.15 CHANGED THE PROOF AND NOT THE PROPERTY.** Before the cloud lane
+    the socket was a statement in `issue`'s own body, so "consume_release comes
+    first" was a question about two lines of one function. The round trip now runs
+    on whichever thread the driver chooses, and what crosses that boundary is a
+    carrier holding the finished bytes and the client. So the property is stated
+    over the carrier instead: nothing can reach the socket that was not carried;
+    the carrier is built in exactly one place in the product; and in that place
+    `consume_release` is a statement of the same body, above it.
+
+    That is stronger in one respect and equal in the rest: a second construction of
+    the carrier anywhere in `src/` now fails this test, where a second module-level
+    helper calling `invoke` was already caught by the count above.
+    """
     hints = get_type_hints(issue)
     assert hints["released"] is Released
     parameters = inspect.signature(issue).parameters
@@ -386,16 +458,27 @@ def test_transport_issue_requires_live_released_and_calls_consume_release():
     assert "Denied" not in str(hints["released"])
     assert "NeedsConsent" not in str(hints["released"])
 
-    fn = function_def(HARNESS_ROOT / "transport.py", "issue")
+    transport = HARNESS_ROOT / "transport.py"
+    # ONE PLACE IN THE PRODUCT BUILDS THE THING THAT CAN SEND.
+    built: list[tuple[str, str | None]] = []
+    for path in production_modules():
+        built.extend(carrier_builds(path))
+    assert built == [("llm_harness/transport.py", "_issue_steps")], built
+
+    fn = function_def(transport, "_issue_steps")
     consume = consume_release_in_own_body(fn)
-    assert consume is not None, "issue must spend the live P7 release before egress"
-    invokes = invokes_in_own_body(fn)
-    assert invokes, "issue is the invoke site"
-    assert consume_precedes_every_invoke(fn), (
-        "consume_release must be a statement in issue's own body, before every "
-        "invoke, so a call is not constructible without spending the live Released"
-    )
-    imported = imports_of(HARNESS_ROOT / "transport.py")
+    assert consume is not None, (
+        "the release must be spent in the same body that builds the carrier")
+    carriers = carriers_in_own_body(fn)
+    assert carriers, "the carrier is built in this body and nowhere else"
+    assert all(node.lineno > consume.lineno for node in carriers), (
+        "consume_release must be a statement above every carrier, so bytes cannot "
+        "leave the device without the live Released having been spent first")
+    # AND `issue` IS STILL THE MODULE'S ONE PUBLIC DOOR, which is P7's own guard
+    # (`privacy.transport_guard.assert_single_egress`, run by tests/p7) and is what
+    # keeps the carrier and its `perform` unreachable from outside this package.
+    assert consume_release_in_own_body(function_def(transport, "issue")) is None
+    imported = imports_of(transport)
     assert "privacy.release" in imported
     assert "Released" in imported or "privacy.release.Released" in imported
     assert "privacy.binding" in imported
