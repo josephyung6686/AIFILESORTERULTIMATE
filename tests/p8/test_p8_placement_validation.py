@@ -198,7 +198,21 @@ def test_site_d_reason_registry_exercises_each_code_exactly_once():
     assert Counter(seen) == Counter(SITE_D_REASON_CODES)
 
 
-def test_site_c_two_condition_codes_are_weak_and_isolated():
+def test_site_c_two_condition_codes_are_flags_and_isolated():
+    """SABOTAGE: the three non-structural codes go back to being `weak`.
+
+    `104` §18.2 gap 2, under `00`'s amendment of 2026-09-05: "deterministic
+    validation rejects only a structurally invalid answer". `weak` forbids
+    `may_propose`, so each of these three took a destination the model had chosen
+    and a reason a person could have read, and threw both away -- a placement with
+    no supported level, a placement beside a second candidate the model itself
+    listed, a generic hub. None of the three is the tree, the grounding or the
+    shape.
+
+    The isolation half is unchanged and still matters: each pair fires its own
+    code and not its neighbour's, which is what makes the reason a person reads
+    the reason the check actually found.
+    """
     below = next(
         p for p in SITE_C_REASON_PAIRS if p.expected_reasons == (BELOW_SUPPORT_THRESHOLD,)
     )
@@ -208,9 +222,10 @@ def test_site_c_two_condition_codes_are_weak_and_isolated():
     hub = next(p for p in SITE_C_REASON_PAIRS if p.expected_reasons == (GENERIC_HUB_ONLY,))
     for pair in (below, margin, hub):
         verdict = _validate_c(pair)[0][0]
-        assert verdict.outcome == WEAK
-        assert verdict.may_propose is False
-        assert verdict.disposition == UNRESOLVED
+        assert verdict.outcome != WEAK
+        assert verdict.may_propose is True
+        assert verdict.requires_review is True
+        assert verdict.disposition == VALID_REVIEW_REQUIRED
         assert INSUFFICIENT_MARGIN not in verdict.reasons or pair is margin
         assert BELOW_SUPPORT_THRESHOLD not in verdict.reasons or pair is below
 
@@ -289,10 +304,14 @@ def test_site_c_outcome_pairs():
     assert context.disposition == VALID_REVIEW_REQUIRED
     assert context.requires_review is True
 
+    # `104` §18.2 gap 2: the model's own "my retrieval was weak" is a flag on the
+    # answer, not a reason to discard the answer. It still carries no site-C code
+    # -- the closed set has no member for it and adding one is the owner's -- and
+    # what it now carries instead is the review that sends the file to a person.
     weak = _validate_c(by_name["weak"])[0][0]
-    assert weak.outcome == WEAK
-    assert weak.disposition == UNRESOLVED
-    assert weak.may_propose is False
+    assert weak.outcome == ACCEPT_DIRECT
+    assert weak.disposition == VALID_REVIEW_REQUIRED
+    assert weak.requires_review is True
     assert not set(weak.reasons) & set(SITE_C_REASON_CODES)
 
     reject = _validate_c(by_name["reject"])[0][0]
@@ -349,13 +368,24 @@ def test_r157_site_c_every_conflict_named_by_its_wire_handle_is_considered():
 
 
 def test_r157_site_c_a_subset_of_the_handles_is_still_conflict_ignored():
+    """R-157's finding stands; `104` §18.2 gap 2 changes only what follows it.
+
+    SABOTAGE: an unechoed conflict destroys the answer again. The prompt asks for
+    the echo "so that it is on record that you saw it", and `00`:42's amendment
+    for the same shape at site A is explicit that a contradiction "is shown to the
+    model as a flag with its evidence, and the model reconciles" -- so a missing
+    echo is bookkeeping about a flag the model was given and not a fact about the
+    destination. The code is still raised, on a placement that now reaches a
+    person instead of reaching nobody.
+    """
     pair = _two_conflict_pair()
     subset = _with_payload_fields(
         pair, conflicts_considered=_shown(pair.dossier)[:1])
     verdict = _validate_c(subset)[0][0]
     assert verdict.reasons == (CONFLICT_IGNORED,)
-    assert verdict.outcome == REJECT
-    assert verdict.disposition == NO_DESTINATION
+    assert verdict.outcome != REJECT
+    assert verdict.requires_review is True
+    assert verdict.disposition == VALID_REVIEW_REQUIRED
 
 
 def test_r157_site_d_a_stronger_relationship_named_by_handle_is_considered():
@@ -983,31 +1013,77 @@ def test_a_context_level_that_names_no_accepted_group_is_a_slot_filled_without_e
 
 
 def test_r15_a_destination_outside_the_frozen_tree_is_still_rejected():
-    """The two checks that sit ABOVE the dimension check do not move: a
-    destination that is not a legal node id, and one the tree no longer has."""
-    invented = _with_payload_fields(_c_direct_pair(), destination="node-hallucinated")
-    assert _validate_c(invented)[0][0].reasons == (INVENTED_NODE,)
-    assert _validate_c(invented)[0][0].outcome == REJECT
+    """The STRUCTURAL wall, and after `104` §18.2 gap 2 there is one of it.
+
+    SABOTAGE: the tree stops being asked, or stops being asked FIRST. `00`'s
+    amendment of 2026-09-05 names exactly two things a placement may be rejected
+    for and the first is "a node that is not in the frozen tree", so this is the
+    check that has to survive every other one becoming a flag -- and it has to run
+    ahead of the vocabulary flag, or a destination that is neither on the
+    shortlist nor in the tree would be sent to a person as a folder they might
+    want rather than refused as the invention it is.
+
+    The second half of the old pin has moved to
+    `test_a_real_folder_off_the_shortlist_is_a_flag_and_not_an_invention`:
+    `node-hallucinated` under a `node_exists` that says yes is a REAL folder, and
+    calling it invented was the gap.
+    """
     absent = dataclasses.replace(_c_direct_pair(), frozen_absent_nodes=("node-legal",))
     assert _validate_c(absent)[0][0].reasons == (NODE_NOT_IN_FROZEN_TREE,)
     assert _validate_c(absent)[0][0].outcome == REJECT
+    # AND FIRST. The tree does not hold it and the shortlist does not carry it;
+    # one answer, and it is the tree's.
+    both = dataclasses.replace(
+        _with_payload_fields(_c_direct_pair(), destination="node-hallucinated"),
+        frozen_absent_nodes=("node-hallucinated",))
+    verdict = _validate_c(both)[0][0]
+    assert verdict.reasons == (NODE_NOT_IN_FROZEN_TREE,)
+    assert verdict.outcome == REJECT
 
 
-def test_r56_a_real_folder_the_model_was_not_shown_is_refused_by_the_shortlist():
-    """`104` R-56's second abstention mechanism, now that R-17 has a shortlist.
+def test_a_real_folder_off_the_shortlist_is_a_flag_and_not_an_invention():
+    """SABOTAGE: `104` §18.2 gap 2's headline, restored.
 
-    R-56: "an abstention mechanism ... that does not depend on the model
-    volunteering one (a structural 'none of these' option scored by the validator,
-    OR THE DETERMINISTIC SHORTLIST REFUSING AN UNGROUNDED CHOICE)". Measured there:
+    "The survivors become the allowed vocabulary, so a real node off the shortlist
+    is `INVENTED_NODE`" -- the product telling a person that a folder they
+    approved and froze themselves was invented, because six retrieval channels
+    happened not to reach it. `node_exists` says the tree holds this node, which
+    is `00`'s own structural test and the only one it names for a destination.
+
+    What survives of R-56's "deterministic shortlist refusing an ungrounded
+    choice" is the flag and the review: the file does not move on its own, and the
+    person is told the engine had not thought of this folder.
+    """
+    invented = _with_payload_fields(_c_direct_pair(), destination="node-hallucinated")
+    assert _placement_deps(invented).node_exists("node-hallucinated", "plan-1") is True
+    verdict = _validate_c(invented)[0][0]
+    assert verdict.reasons == (INVENTED_NODE,)
+    assert verdict.outcome == ACCEPT_DIRECT
+    assert verdict.requires_review is True
+    assert verdict.disposition == VALID_REVIEW_REQUIRED
+
+
+def test_r56_a_real_folder_the_model_was_not_shown_reaches_a_person():
+    """`104` R-56's second mechanism, NARROWED by `104` §18.2 gap 2.
+
+    SABOTAGE: the shortlist goes back to being a wall. R-56 asked for "an
+    abstention mechanism ... that does not depend on the model volunteering one (a
+    structural 'none of these' option scored by the validator, OR THE
+    DETERMINISTIC SHORTLIST REFUSING AN UNGROUNDED CHOICE)", and it was measured:
     `qwen3:8b` produced zero abstentions on six should-abstain cases and the
     validator accepted two of its wrong placements.
 
     `node-legal-elsewhere` is a folder the frozen tree really has -- `node_exists`
-    says so, which is what makes this different from
-    `test_r15_a_destination_outside_the_frozen_tree_is_still_rejected` -- and it is
-    not on the list this file's evidence reached. Before R-17 the vocabulary was
-    every legal node, so this answer was ACCEPTED and the file moved into a folder
-    no channel had connected it to.
+    says so -- and is not on the list this file's evidence reached. Under R-17's
+    shortlist that answer was REJECTED as an invention, which is the half of R-56
+    that §18.2 gap 2 takes back: the folder is real, approved and frozen, and the
+    only thing wrong with it is that P11 did not think of it. So what is left of
+    the mechanism is that the file does not move by itself -- `requires_review`,
+    the reason recorded, a person looking -- and what is gone is a correct answer
+    being called an invention.
+
+    The other half of R-56, the drafts' own `none`, is untouched:
+    `test_r56_the_other_mechanism_is_none_and_it_costs_the_model_nothing`.
     """
     elsewhere = _with_payload_fields(_c_direct_pair(),
                                      destination="node-legal-elsewhere")
@@ -1016,8 +1092,9 @@ def test_r56_a_real_folder_the_model_was_not_shown_is_refused_by_the_shortlist()
     assert "node-legal-elsewhere" not in elsewhere.dossier.allowed_vocabulary
     verdict = _validate_c(elsewhere)[0][0]
     assert verdict.reasons == (INVENTED_NODE,)
-    assert verdict.outcome == REJECT
-    assert verdict.may_propose is False
+    assert verdict.outcome != REJECT
+    assert verdict.requires_review is True
+    assert verdict.disposition == VALID_REVIEW_REQUIRED
 
 
 def test_r56_the_other_mechanism_is_none_and_it_costs_the_model_nothing():

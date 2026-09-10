@@ -27,7 +27,8 @@ from llm_harness.vocabulary import (  # noqa: E402
     ACCEPT_DIRECT, BELOW_SUPPORT_THRESHOLD, C_PLACEMENT, CHOOSE_BROAD_PARENT,
     SCHEMA_INVALID,
     CONFLICT_IGNORED, D_RESIDUAL, EVIDENCE_NOT_IN_FILE_RECORD, INVENTED_PROJECT,
-    REJECT, RETURN_ACCEPTED_PACKET, STRONGER_RELATIONSHIP_OVERLOOKED, WEAK,
+    REJECT, RETURN_ACCEPTED_PACKET, STRONGER_RELATIONSHIP_OVERLOOKED,
+    VALID_REVIEW_REQUIRED, WEAK,
 )
 from llm_harness.wire_handles import wire_handle  # noqa: E402
 
@@ -156,7 +157,20 @@ def test_g1_both_spellings_of_the_one_conflict_are_considered():
 
 
 def test_g1_a_handle_that_names_no_conflict_leaves_it_unconsidered():
-    """An invented handle resolves to nothing, so the conflict is still ignored."""
+    """An invented handle resolves to nothing, so the conflict is still ignored.
+
+    SABOTAGE: the un-digested handle starts matching, and a conflict the model
+    never looked at reads as considered. `local_ref` hands an unissued string back
+    unchanged, so an invented handle names no conflict and `CONFLICT_IGNORED` is
+    raised -- that half is G1's and does not move.
+
+    What moved is what follows the code. `104` §18.2 gap 2: the echo is
+    bookkeeping about a flag the model was already shown, not a structural fault
+    in the answer, and `00`'s amendment of 2026-09-05 leaves site C rejecting only
+    "a node that is not in the frozen tree, or a cited fact that is not in the
+    evidence". So the code is recorded on a placement that survives and asks for a
+    person.
+    """
     case = _c_case(conflicts=(("conflict-abc123", "target_university"),))
     dossier = dossier_of(case)
     shown = [c["conflict_id"] for c in _handles_in(case, dossier)["conflicts"]]
@@ -166,8 +180,10 @@ def test_g1_a_handle_that_names_no_conflict_leaves_it_unconsidered():
                     _c_response(case, conflicts_considered=invented),
                     schema={"type": "object"},
                     site_dependencies=site_dependencies_for(case))
-    assert verdict.worst_outcome == REJECT
+    assert verdict.worst_outcome != REJECT
     assert [CONFLICT_IGNORED] in [v["reasons"] for v in verdict.verdicts]
+    assert all(v["disposition"] == VALID_REVIEW_REQUIRED
+               for v in verdict.verdicts if CONFLICT_IGNORED in v["reasons"])
 
 
 def test_g1_site_d_a_model_that_echoes_the_shown_relationship_did_consider_it():

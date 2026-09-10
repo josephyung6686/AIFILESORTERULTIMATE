@@ -403,6 +403,17 @@ def _c_payload(destination: str | None = "node-legal", **extra: object) -> dict:
 
 _C_SNAP = dict(evidence_snapshot_id=SNAP_1)
 _C_BASE = dict(site=C_PLACEMENT, may_propose=False, requires_review=False, **_C_SNAP)
+#: THE BASE FOR A CODE THAT IS NOW A FLAG (`104` §18.2 gap 2). `00`'s amendment
+#: of 2026-09-05 leaves site C three things it may reject for -- the frozen tree,
+#: grounding, and shape -- plus the person's own privacy policy. Every other code
+#: below is recorded on an answer that SURVIVES: the outcome the claim earned, the
+#: reason beside it, `requires_review` set and `valid_review_required` as the
+#: disposition, so the file reaches a person instead of reaching nobody. That is
+#: why `may_propose` is True here and False in `_C_BASE`: a rejection has nothing
+#: to propose and a flagged placement has a destination and a reason to read it
+#: with.
+_C_FLAG_BASE = dict(site=C_PLACEMENT, may_propose=True, requires_review=True,
+                    **_C_SNAP)
 
 SITE_C_REASON_PAIRS: tuple[RecordedPair, ...] = (
     _pair(
@@ -432,10 +443,17 @@ SITE_C_REASON_PAIRS: tuple[RecordedPair, ...] = (
         ]),
         outcome=REJECT, reasons=(INVENTED_PROJECT,), disposition=NO_DESTINATION,
     ),
+    # INVENTED_NODE IS A FLAG NOW, AND THE FIXTURE SAYS WHY IN ITS OWN SHAPE:
+    # `frozen_absent_nodes` is empty, so this deployment's tree DOES hold
+    # `node-hallucinated` -- it is a real approved folder that P11's shortlist did
+    # not happen to carry. `104` §18.2 gap 2: "a real node off the shortlist is
+    # `INVENTED_NODE`", which told a person their own folder was invented. The
+    # destination the tree does not hold is the pair above.
     _pair(
-        **_C_BASE, name=INVENTED_NODE, dossier=_c_dossier("c-node"),
+        **_C_FLAG_BASE, name=INVENTED_NODE, dossier=_c_dossier("c-node"),
         payload=_c_payload(destination="node-hallucinated"),
-        outcome=REJECT, reasons=(INVENTED_NODE,), disposition=NO_DESTINATION,
+        outcome=ACCEPT_DIRECT, reasons=(INVENTED_NODE,),
+        disposition=VALID_REVIEW_REQUIRED,
     ),
     _pair(
         **_C_BASE, name=SLOT_FILLED_WITHOUT_EVIDENCE, dossier=_c_dossier("c-slot"),
@@ -446,10 +464,11 @@ SITE_C_REASON_PAIRS: tuple[RecordedPair, ...] = (
         disposition=NO_DESTINATION,
     ),
     _pair(
-        **_C_BASE, name=CONFLICT_IGNORED,
+        **_C_FLAG_BASE, name=CONFLICT_IGNORED,
         dossier=_c_dossier("c-conflict", conflicts=(Conflict("c1", "stronger_fact"),)),
         payload=_c_payload(conflicts_considered=[]),
-        outcome=REJECT, reasons=(CONFLICT_IGNORED,), disposition=NO_DESTINATION,
+        outcome=ACCEPT_DIRECT, reasons=(CONFLICT_IGNORED,),
+        disposition=VALID_REVIEW_REQUIRED,
     ),
     _pair(
         **_C_BASE, name=SENSITIVITY_POLICY_VIOLATION,
@@ -461,20 +480,27 @@ SITE_C_REASON_PAIRS: tuple[RecordedPair, ...] = (
     # any more. Threshold: the model placed the file and listed no supported
     # level. Margin: the model placed the file and reported another fully
     # supported candidate still standing in `alternatives`.
+    # AND NEITHER IS `weak` ANY MORE (`104` §18.2 gap 2). `weak` forbids
+    # `may_propose`, which is the product holding an answer it has and saying
+    # nothing about the file; a flag says the same thing to a person with the
+    # destination still attached.
     _pair(
-        **_C_BASE, name=BELOW_SUPPORT_THRESHOLD, dossier=_c_dossier("c-below"),
+        **_C_FLAG_BASE, name=BELOW_SUPPORT_THRESHOLD, dossier=_c_dossier("c-below"),
         payload=_c_payload(per_dimension_support=[]),
-        outcome=WEAK, reasons=(BELOW_SUPPORT_THRESHOLD,), disposition=UNRESOLVED,
+        outcome=ACCEPT_DIRECT, reasons=(BELOW_SUPPORT_THRESHOLD,),
+        disposition=VALID_REVIEW_REQUIRED,
     ),
     _pair(
-        **_C_BASE, name=INSUFFICIENT_MARGIN, dossier=_c_dossier("c-margin"),
+        **_C_FLAG_BASE, name=INSUFFICIENT_MARGIN, dossier=_c_dossier("c-margin"),
         payload=_c_payload(alternatives=["node-alt"]),
-        outcome=WEAK, reasons=(INSUFFICIENT_MARGIN,), disposition=UNRESOLVED,
+        outcome=ACCEPT_DIRECT, reasons=(INSUFFICIENT_MARGIN,),
+        disposition=VALID_REVIEW_REQUIRED,
     ),
     _pair(
-        **_C_BASE, name=GENERIC_HUB_ONLY, dossier=_c_dossier("c-hub"),
+        **_C_FLAG_BASE, name=GENERIC_HUB_ONLY, dossier=_c_dossier("c-hub"),
         payload=_c_payload(destination="node-hub", generic_hub=True),
-        outcome=WEAK, reasons=(GENERIC_HUB_ONLY,), disposition=UNRESOLVED,
+        outcome=ACCEPT_DIRECT, reasons=(GENERIC_HUB_ONLY,),
+        disposition=VALID_REVIEW_REQUIRED,
     ),
 )
 
@@ -490,11 +516,18 @@ SITE_C_OUTCOME_PAIRS: tuple[RecordedPair, ...] = (
         outcome=ACCEPT_CONTEXT_SUPPORTED, disposition=VALID_REVIEW_REQUIRED,
         may_propose=True, requires_review=True, **_C_SNAP,
     ),
+    # `104` §18.2 gap 2. The model's own report that its retrieval was weak is a
+    # flag on the answer it gave, not a reason to discard it: this pair keeps the
+    # outcome the claim earned and carries `requires_review`, which is what
+    # `weak` was really buying. It carries no reason CODE, because the site-C set
+    # is closed and adding a member to it is the owner's call -- the proposed name
+    # is in the patch report. `c_placement_response_schema.json` forbids the key
+    # outright, so this bench payload is the only thing that reaches the arm.
     _pair(
         C_PLACEMENT, "weak", _c_dossier("c-weak"),
         _c_payload(weak_retrieval=True),
-        outcome=WEAK, disposition=UNRESOLVED,
-        may_propose=False, requires_review=False, **_C_SNAP,
+        outcome=ACCEPT_DIRECT, disposition=VALID_REVIEW_REQUIRED,
+        may_propose=True, requires_review=True, **_C_SNAP,
     ),
     _pair(
         C_PLACEMENT, "reject", _c_dossier("c-reject"), _c_payload(),

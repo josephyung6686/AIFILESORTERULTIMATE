@@ -2448,6 +2448,133 @@ def test_r17_every_node_the_model_may_answer_with_arrives_with_its_profile(
     assert "shared branch" in candidates["n-course-shared"]
 
 
+# --- `104` §18.2 gaps 2 and 11: the rules rank, and the shortlist says so --------
+
+
+#: `n-academics` is `n-course`'s parent in `FROZEN_TREE` and carries no expected
+#: value, so nothing but a semantic neighbour reaches it. That is what makes it the
+#: ancestor case: two candidates on one chain, and the shallower one is the option
+#: `00`:111 and the prompt both offer.
+ANCESTOR_TOO = dict(semantic_neighbours=("n-academics",))
+
+
+def test_gap11_the_shallower_approved_parent_reaches_the_shortlist(
+        skeleton, monkeypatch):
+    """SABOTAGE: the ancestor is deleted again and the parent cannot be chosen.
+
+    `104` §18.2 gap 11's first half. `_without_superseded_ancestors` dropped every
+    strict ancestor of a candidate, so `00`:111's own instruction -- "if the system
+    cannot distinguish Spring 2025 from Spring 2026 but a parent path such as
+    `Academics/Columbia/PHYS1401/Homework` exists, the model should choose the
+    approved shallower path" -- named an option the menu could not contain, and so
+    did the prompt: "if a shallower candidate on the same chain has all its levels
+    supported, that shallower one stands"
+    (`c_placement_template.eliminate-v2.txt`:43).
+
+    The parent is on `allowed_vocabulary`, it is described like any other folder,
+    and the deepest node is still FIRST -- the rule kept its ordering and lost only
+    its veto.
+    """
+    seen = _asked(monkeypatch)
+    _place(skeleton, inputs=_model_inputs(skeleton),
+           evidence=_evidence(**ANCESTOR_TOO))
+
+    assert "n-academics" in seen["allowed"], (
+        "the shallower approved parent was struck before the model could choose "
+        "it, which is the option `00`:111 and the prompt both offer")
+    allowed = list(seen["allowed"])
+    assert allowed.index("n-course") < allowed.index("n-academics")
+    assert seen["basis_key"].endswith("n-course")
+
+
+def test_gap2_a_folder_the_rules_ranked_below_carries_its_reason_to_the_model(
+        skeleton, monkeypatch):
+    """SABOTAGE: the folder is offered with nothing said about why it is last.
+
+    `104` §18.2 gap 2's channel. The C template's key inventory is closed ("the
+    dossier has these keys and no others"), so the reason cannot be a new key and
+    it cannot be a new field on a `candidate` item; it goes inside `location`,
+    which is the same string that already tells the model "the file sits in this
+    folder now". Order carries no meaning in the dossier by the template's own
+    words, so this sentence is the ENTIRE flag -- offering the folder silently
+    would tell the model the engine had no opinion, which is false.
+    """
+    seen = _asked(monkeypatch)
+    _place(skeleton, inputs=_model_inputs(skeleton),
+           evidence=_evidence(**ANCESTOR_TOO))
+
+    candidates = _items_of(seen, "candidate")
+    assert set(candidates) == set(seen["allowed"])
+    assert "further down this same chain" in candidates["n-academics"]
+    # And the profile is still a profile: the reason is added to the description,
+    # never in place of it.
+    assert candidates["n-academics"].startswith("Academics")
+    # A contender says nothing of the kind.
+    assert "ranked this folder below" not in candidates["n-course"]
+
+
+def test_gap2_a_file_whose_every_candidate_was_ranked_below_still_reaches_the_model(
+        skeleton, monkeypatch):
+    """SABOTAGE: the rules answer for the model when they disagree with everything.
+
+    THE CASE `104` §18.2 GAP 2 IS OPENED FOR, in its purest form. When step 6
+    refused every candidate the assessment was empty, `needs_model_call`'s first
+    clause turned the file away ("nothing for a model to CHOOSE between"), and the
+    file abstained on the rules' say-so without anybody being asked. There IS
+    something to choose between -- frozen, approved destinations, each with the
+    engine's reason attached -- and `00`'s amendment gives that choice to the
+    model.
+
+    `subject` is declared un-anchoring here and the file's own folder is one the
+    person made for what it holds, so `_a_folder_made_for_this_keeps_it` sets the
+    only candidate aside. Nothing about the OFFLINE path moves: `model_decides` is
+    what opens this door, and `test_gap2_an_offline_run_still_abstains_...` below
+    is the other side of it.
+    """
+    seen = _asked(monkeypatch)
+    decision = _place(
+        skeleton,
+        inputs=_model_inputs(
+            skeleton,
+            fields_that_cannot_anchor_a_move=frozenset({"subject"}),
+            their_own_folder_made_for_what_it_holds={"f1": "n-review-later"},
+            chosen_node_of=lambda _verdict: "n-course"),
+        evidence=_evidence())
+
+    assert list(seen["allowed"]) == ["n-course"]
+    assert "n-course" in _items_of(seen, "candidate")
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-course"
+    # A folder the rules ranked below is never `scored[0]`, so the placement
+    # cannot be `auto_eligible` and the reason the rules gave is in the record a
+    # person reads.
+    assert decision.review_policy != v.AUTO_ELIGIBLE
+    assert "ranked this folder below the others" in decision.explanation
+
+
+def test_gap2_an_offline_run_still_abstains_when_every_candidate_was_ranked_below(
+        skeleton):
+    """The other side of the door, and it is what keeps the change safe.
+
+    SABOTAGE: the set-aside shortlist starts placing files with no model in the
+    run. `00`'s amendment ends "with no model configured, the deterministic path
+    remains the fallback and PLACES ONLY WHAT IT CAN VALIDATE" -- and what it can
+    validate is `assess`, which never sees a folder step 6 ranked below. So an
+    offline install gets exactly the routing, the abstention and the reason it had
+    before gap 2 was built.
+    """
+    decision = _place(
+        skeleton,
+        inputs=_inputs(
+            skeleton,
+            fields_that_cannot_anchor_a_move=frozenset({"subject"}),
+            their_own_folder_made_for_what_it_holds={"f1": "n-review-later"}),
+        evidence=_evidence())
+
+    assert decision.outcome == v.ABSTAIN
+    assert decision.destination is None
+
+
 def test_r17_a_candidate_item_is_reference_only_and_names_no_span(
         skeleton, monkeypatch):
     # `records.py`: "P8 does not synthesise kind, location, reliability or basis".

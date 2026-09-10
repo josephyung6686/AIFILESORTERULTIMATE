@@ -727,34 +727,62 @@ def test_p2_an_unratified_c_records_the_verdict_and_applies_nothing(live,
     assert decision.destination is None
 
 
-@pytest.mark.parametrize("ratified", [True, False])
-def test_p2_a_node_outside_the_shortlist_is_refused_by_the_seam(live, tmp_path,
-                                                                ratified):
-    """The wall the resolver rests on, and it is P8's rather than P11's.
+def test_p2_a_node_outside_the_shortlist_is_flagged_and_placed_for_review(
+        live, tmp_path):
+    """SABOTAGE: the shortlist goes back to being a wall on the live chain.
 
-    `allowed_vocabulary` is the ranked shortlist P11 showed the model, and
-    `_placement_site` refuses anything outside it as `INVENTED_NODE` before a
-    verdict is accepted. So a scripted answer naming a real node of this plan that
-    this file's evidence never reached is rejected, `transcribe` abstains, and the
-    resolver is not reached whether the text is ratified or not.
+    `104` §18.2 gap 2. `allowed_vocabulary` is the ranked shortlist P11 showed the
+    model, and `_placement_site` used to refuse anything outside it as
+    `INVENTED_NODE` -- so a scripted answer naming `n-review-later`, a REAL node
+    of this frozen plan that this file's six retrieval channels never reached, lost
+    the file. `00`'s amendment of 2026-09-05 makes the frozen tree the structural
+    test and the tree holds this node, so the placement stands, the code is
+    recorded on the verdict, and `requires_review` puts it in front of a person.
+
+    `place_file`'s own guard is what makes that safe and it is asserted here: the
+    resolved node is re-checked against `legal_node_ids` before anything is
+    written, so a shortlist that no longer refuses has not become a plan that
+    accepts anything.
     """
-    import cli
-
     from llm_harness.vocabulary import INVENTED_NODE
 
     subject, obs = _live_file(live, tmp_path)
-    prompt = _prompt() if ratified else _unratified()
     decision = place_file(
         live, subject=subject,
-        inputs=_inputs(live, gate=_gate(live), prompt=prompt,
+        inputs=_inputs(live, gate=_gate(live), prompt=_prompt(),
+                       model_client=_scripted_client(
+                           _places_at(lambda _shortlist: "n-review-later")),
+                       chosen_node_of=lambda _verdict: "n-review-later"),
+        evidence=_ambiguous(obs), component_version="P11-live",
+        observed_at=FIXED_CLOCK)
+
+    recorded = live.execute("SELECT payload FROM llm_verdict").fetchone()
+    assert json.loads(recorded["payload"])["reasons"] == [INVENTED_NODE]
+    assert json.loads(recorded["payload"])["requires_review"] is True
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-review-later"
+    assert decision.review_policy != v.AUTO_ELIGIBLE
+
+
+def test_p2_an_unratified_site_applies_a_flagged_answer_to_nothing(live, tmp_path):
+    """The observe half of the pin above, which `104` §18.2 gap 2 does not move.
+
+    SABOTAGE: an unratified site starts applying answers once the vocabulary check
+    stops rejecting them. `_observed_only` rewrites the verdict to an abstention
+    before `transcribe` reads it, so the resolver is never consulted -- asserted by
+    injecting the raising stub the composition root injects for an unratified site.
+    """
+    import cli
+
+    subject, obs = _live_file(live, tmp_path)
+    decision = place_file(
+        live, subject=subject,
+        inputs=_inputs(live, gate=_gate(live), prompt=_unratified(),
                        model_client=_scripted_client(
                            _places_at(lambda _shortlist: "n-review-later")),
                        chosen_node_of=cli._must_not_apply(C_PLACEMENT)),
         evidence=_ambiguous(obs), component_version="P11-live",
         observed_at=FIXED_CLOCK)
 
-    recorded = live.execute("SELECT payload FROM llm_verdict").fetchone()
-    if ratified:
-        assert json.loads(recorded["payload"])["reasons"] == [INVENTED_NODE]
     assert decision.outcome == v.ABSTAIN
     assert decision.destination is None
