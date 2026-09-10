@@ -1682,6 +1682,12 @@ r19 (ee52769, cloud lane live) died on its first OCR file: gap 17d attached the 
 
 **Gap 21 locked in (owner: "lock in and figure it out").** The three behaviours, pinned in `tests/readers/test_three_declared_formats_are_decided_by_their_bytes.py`: a `.numbers` document is the ZIP its bytes say (archive family, manifest read, disagreement recorded); a `.ai` that opens `%PDF-` is read as the PDF it is (disagreement recorded, declared extension kept); a camera `.raw` names no format, falls to its declared extension and is recorded unsupported -- never a sheet of its own bytes, never an image the product cannot decode. Correction to the morning summary: `.raw` was said to route to image; it routes to the long-tail reader, which refuses binary.
 
+### 18.25 R-175 merged (10 Sep 11:50, b32f198); three agents stalled on the machine, not their work
+
+**R-175 closed.** `readers/model_ollama` carries one deadline over the whole call, named by phase (connecting, sending, waiting for the first byte, reading the body), so a stuck call raises with the phase it died in instead of holding a run; `tools/groundtruth/_one_run` holds a per-file ceiling DERIVED from the deployment's own two numbers (`cli.LOCAL_MODEL_TIMEOUT_SECONDS` × the local call sites one file can be asked at in a pass, read off the wiring as a tuple, not typed as a count), and a file past it is recorded as `FileTookTooLong` and the run goes on. Verified on the merged head: 96 passed across the deadline, ollama, usage, ceiling, coverage and local-fact-pass files (the lead's first attempt named a test file that does not exist and pytest's usage error was misread as a pass; corrected and rerun).
+
+**The stall.** At 11:35 all three agents (R-175, gap 24, per-file parallel cloud calls) stopped at once with "no progress for 600s": load average 46-108, swap full, the 8B model resident for the bakeoff beside three test sessions. R-175 had already committed; gap 24 was resumed in its worktree with its edits intact; the parallel-cloud agent had only oriented and is held until the bakeoff ends. Lesson for the register: one local model in memory is the machine's whole budget; agents' test sessions must not run beside a bakeoff or a scoreboard run.
+
 
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
