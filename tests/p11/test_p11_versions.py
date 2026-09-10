@@ -20,7 +20,7 @@ from placement.store import record_decision
 from placement.versions import (
     VersionDiff, learned_preferences_still_applicable, reproject,
 )
-from p11.conftest import FIXED_CLOCK
+from p11.conftest import FIXED_CLOCK, NO_CANONICAL_RULE
 from p11.p10_fixtures import FROZEN_TREE, next_version
 from p11.test_p11_records import _decision
 
@@ -51,7 +51,7 @@ def _renamed(node):
 
 def _indexed(conn, tree):
     build_destination_index(conn, tree, component_version="P11-test",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
 
 
 def _record(conn, decision):

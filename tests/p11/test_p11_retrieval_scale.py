@@ -40,7 +40,7 @@ from placement.retrieval import (
 )
 from placement.scoring import assess
 from placement.store import subject_ref_of
-from p11.conftest import FIXED_CLOCK
+from p11.conftest import FIXED_CLOCK, NO_CANONICAL_RULE
 from p11.p10_fixtures import FREEZE_RECORD, FROZEN_TREE, ExpectedValue, tree_with
 
 LIMITS = PlacementLimits(
@@ -103,7 +103,8 @@ def _counted_retrieve(conn, node_count, monkeypatch):
     import placement.index as index_module
 
     build_destination_index(conn, _wide_tree(node_count),
-                            component_version="scale", observed_at=FIXED_CLOCK)
+                            component_version="scale", observed_at=FIXED_CLOCK,
+                            canonical=NO_CANONICAL_RULE)
     loads = {"n": 0}
     real_loads = json.loads
 
@@ -120,7 +121,8 @@ def _counted_retrieve(conn, node_count, monkeypatch):
             conn, subject=SUBJECT, plan_version="plan-1", limits=LIMITS,
             facts=(_fact(value="COURSE00007"),), group_ids=(),
             curated_folder_labels=(), semantic_neighbours=(),
-            component_version="scale", observed_at=FIXED_CLOCK)
+            component_version="scale", observed_at=FIXED_CLOCK,
+            canonical=NO_CANONICAL_RULE)
     finally:
         conn.set_trace_callback(None)
     return result, statements["n"], loads["n"]
@@ -161,7 +163,8 @@ def test_the_payload_counter_would_notice_a_whole_tree_read(p11_conn, monkeypatc
     import placement.index as index_module
 
     build_destination_index(p11_conn, _wide_tree(200),
-                            component_version="scale", observed_at=FIXED_CLOCK)
+                            component_version="scale", observed_at=FIXED_CLOCK,
+                            canonical=NO_CANONICAL_RULE)
     loads = {"n": 0}
     real_loads = json.loads
     monkeypatch.setattr(index_module.json, "loads",
@@ -429,14 +432,14 @@ def test_the_narrowed_read_agrees_with_a_full_scan_on_every_shape(
     values somebody wrote down.
     """
     build_destination_index(p11_conn, FROZEN_TREE, component_version="scale",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     kwargs = dict(subject=SUBJECT, plan_version="plan-1", limits=LIMITS,
                   facts=(_fact(),), group_ids=(), curated_folder_labels=(),
                   semantic_neighbours=())
     kwargs.update(overrides)
     expected = _retrieve_by_full_scan(p11_conn, **kwargs)
     actual = retrieve(p11_conn, component_version="scale",
-                      observed_at=FIXED_CLOCK, **kwargs)
+                      observed_at=FIXED_CLOCK, **kwargs, canonical=NO_CANONICAL_RULE)
     reached = _reached_by_full_scan(
         p11_conn, plan_version="plan-1",
         **{key: kwargs[key] for key in ("facts", "group_ids",
@@ -453,7 +456,7 @@ def test_the_two_condition_rule_reaches_the_same_verdict_on_every_shape(
     # verdict, the margin and the abstention reason are compared too -- the
     # retrieval equality above does not by itself say the decision survived.
     build_destination_index(p11_conn, FROZEN_TREE, component_version="scale",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     kwargs = dict(subject=SUBJECT, plan_version="plan-1", limits=LIMITS,
                   facts=(_fact(),), group_ids=(), curated_folder_labels=(),
                   semantic_neighbours=())
@@ -461,7 +464,8 @@ def test_the_two_condition_rule_reaches_the_same_verdict_on_every_shape(
     expected = assess(_retrieve_by_full_scan(p11_conn, **kwargs), {},
                       policy=POLICY)
     actual = assess(retrieve(p11_conn, component_version="scale",
-                             observed_at=FIXED_CLOCK, **kwargs), {},
+                             observed_at=FIXED_CLOCK, **kwargs,
+                             canonical=NO_CANONICAL_RULE), {},
                     policy=POLICY)
     assert actual.scored == expected.scored, name
     assert actual.two_condition == expected.two_condition, name
@@ -498,13 +502,13 @@ def test_a_node_carrying_two_values_for_one_field_is_suppressed_once_per_value(
             legal_destination_ids=frozenset(
                 n.node_id for n in nodes if n.accepts_placement)))
     build_destination_index(p11_conn, tree, component_version="scale",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     kwargs = dict(subject=SUBJECT, plan_version="plan-1", limits=LIMITS,
                   facts=(_fact(),), group_ids=(), curated_folder_labels=(),
                   semantic_neighbours=())
     expected = _retrieve_by_full_scan(p11_conn, **kwargs)
     actual = retrieve(p11_conn, component_version="scale",
-                      observed_at=FIXED_CLOCK, **kwargs)
+                      observed_at=FIXED_CLOCK, **kwargs, canonical=NO_CANONICAL_RULE)
     reached = _reached_by_full_scan(
         p11_conn, plan_version="plan-1",
         **{key: kwargs[key] for key in ("facts", "group_ids",
@@ -530,7 +534,7 @@ def test_a_node_carrying_two_values_for_one_field_is_suppressed_once_per_value(
     both_facts = (_fact(value="PHYS2001"), _fact(value="PHYS2002", ref="obs-2"))
     live = retrieve(p11_conn, component_version="scale",
                     observed_at=FIXED_CLOCK,
-                    **{**kwargs, "facts": both_facts})
+                    **{**kwargs, "facts": both_facts}, canonical=NO_CANONICAL_RULE)
     _assert_same_decision(
         live, both, "both values held",
         reached=_reached_by_full_scan(
@@ -545,7 +549,7 @@ def test_reachable_entries_reads_nothing_when_the_subject_states_nothing(p11_con
     # query has anything to look up, and the answer is empty rather than the
     # whole tree.
     build_destination_index(p11_conn, _wide_tree(50), component_version="scale",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     reachable = reachable_entries(
         p11_conn, plan_version="plan-1", pairs=frozenset(),
         group_ids=frozenset(), labels=frozenset(), node_ids=frozenset(),
@@ -571,7 +575,7 @@ def test_the_stored_term_counts_equal_a_live_count_of_the_table(p11_conn):
     exists to prevent.
     """
     build_destination_index(p11_conn, _wide_tree(120), component_version="scale",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     stored = {
         (row["source_field"], row["term_key"]): row["row_count"]
         for row in p11_conn.execute(
@@ -599,12 +603,12 @@ def test_a_wrong_stored_count_is_a_wrong_suppression_count(p11_conn):
     what says the count is served from the aggregate and not recomputed.
     """
     build_destination_index(p11_conn, _wide_tree(120), component_version="scale",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     honest = retrieve(
         p11_conn, subject=SUBJECT, plan_version="plan-1", limits=LIMITS,
         facts=(_fact(value="COURSE00007"),), group_ids=(),
         curated_folder_labels=(), semantic_neighbours=(),
-        component_version="scale", observed_at=FIXED_CLOCK)
+        component_version="scale", observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     assert honest.conflicts[0].suppressed_node_count == 119
     p11_conn.execute(
         "UPDATE placement_index_term_counts SET superseded_by = 'gone' "
@@ -618,7 +622,8 @@ def test_a_wrong_stored_count_is_a_wrong_suppression_count(p11_conn):
         retrieve(p11_conn, subject=SUBJECT, plan_version="plan-1", limits=LIMITS,
                  facts=(_fact(value="COURSE00007"),), group_ids=(),
                  curated_folder_labels=(), semantic_neighbours=(),
-                 component_version="scale", observed_at=FIXED_CLOCK)
+                 component_version="scale", observed_at=FIXED_CLOCK,
+                 canonical=NO_CANONICAL_RULE)
     assert "subject" in str(raised.value)
 
 
@@ -639,7 +644,7 @@ def test_the_index_build_leaves_no_log_for_the_next_writer_to_pay_for(
         conn = p11_databases(f"wal-{node_count}")
         build_destination_index(conn, _wide_tree(node_count),
                                 component_version="scale",
-                                observed_at=FIXED_CLOCK)
+                                observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
         conn.execute(
             "INSERT INTO placement_index_term_counts (record_id, plan_version, "
             "source_field, term_key, row_count, created_at) "

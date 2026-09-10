@@ -158,35 +158,83 @@ def _entry(node, profile, by_id) -> IndexEntry:
     )
 
 
-#: The three `IndexEntry` fields §6.3 can reach a node THROUGH, and the whole set
-#: of them. `retrieve` reads a subject's stated fields, its accepted group ids,
-#: its curated folder labels and a list of semantic node ids; the fourth is a
-#: list of node ids and needs no term. Anything else on the entry -- the ancestor
-#: labels, the representative files, the document types -- is read AFTER a node
-#: is already a candidate, so indexing it would build a term nothing queries.
+#: The `IndexEntry` fields §6.3 can reach a node THROUGH, plus the one it walks
+#: the tree BY, and the whole set of them. `retrieve` reads a subject's stated
+#: fields, its accepted group ids, its curated folder labels and a list of
+#: semantic node ids; the fourth is a list of node ids and needs no term.
+#:
+#: **`parent_node_id` IS THE FOURTH, AND IT IS NOT A RETRIEVAL CHANNEL.** Nothing
+#: retrieves a node by its parent. It is indexed because `104` §18.2 gap 16 makes
+#: §6.3's suppression a question about the CHAIN -- `00`:107's "a file with a
+#: direct PHYS1401 term fact for Spring 2025 should not be SENT TO a Spring 2026
+#: node", and filing into `Spring2026/Homework` sends the file to `Spring2026` --
+#: and the chain cannot be walked from `placement_index_entries`. That table
+#: answers "who is the parent of X" one deserialised payload at a time and cannot
+#: answer "who are the children of X" at all without reading every node, which is
+#: the O(files x nodes) scan `reachable_entries` exists to have stopped. One row
+#: per node here answers both directions off the two indexes the schema already
+#: declares: `placement_index_terms_by_node` for the walk up,
+#: `placement_index_terms_lookup` for the walk down.
+#:
+#: Anything else on the entry -- the ancestor labels, the representative files,
+#: the document types -- is read AFTER a node is already a candidate, so indexing
+#: it would build a term nothing queries.
 TERM_SOURCES: tuple[str, ...] = (
-    "expected_values", "accepted_group_ids", "display_label",
+    "expected_values", "accepted_group_ids", "display_label", "parent_node_id",
 )
 assert set(TERM_SOURCES) <= {field.name for field in _dataclass_fields(IndexEntry)}
 
+#: The one source whose `term_value` is a VALUE the subject's facts are compared
+#: against, and therefore the one that is canonicalised on the way in.
+_COMPARED_SOURCE: str = "expected_values"
 
-def _terms_of(entry: IndexEntry) -> tuple[tuple[str, str, str, int], ...]:
+
+def _terms_of(entry: IndexEntry, *,
+              canonical) -> tuple[tuple[str, str, str, int], ...]:
     """`(source_field, term_key, term_value, ordinal)` for one entry.
 
     `ordinal` exists for `expected_values` alone and is load-bearing there:
     `retrieve` walks a node's expected values IN ORDER and the facts it collects
-    keep that order on the record. The other two sources are read as sets.
+    keep that order on the record. The other three sources are read as sets.
 
     The label is folded once here rather than per subject, which is the point of
     an index: `retrieve` casefolds the SUBJECT's labels, which are few, and never
     the tree's, which are many.
+
+    **AND THE EXPECTED VALUE IS CANONICALISED ONCE HERE, FOR THE SAME REASON.**
+    `104` §18.2 gap 16: §6.3 compared `CS 1006` against `CS1006` as a string and
+    made two courses out of one, so a node stating the same course the subject
+    states was RULED OUT by it. The identity is decided here rather than at query
+    time because this module's three reads are SQL equalities -- the match's
+    `IN (VALUES ...)`, the fill's `NOT IN`, and the count's subtrahend -- and a
+    comparison made in Python after the rows come back would leave all three
+    asking the old question. Canonicalising the tree once per build and the
+    subject's few facts once per file is the same identity in both.
+
+    `canonical` is the deployment's own canonicaliser -- the ONE the validator
+    already compares by (`cli.contradicts_stronger` reads it through
+    `normalize_for_model`) -- injected because P11 authors no rule about what a
+    course code or a term IS. A value it declines is kept AS WRITTEN: that is
+    what the review path already does with a value the library has not seen, and
+    dropping it or inventing a form for it would be P11 authoring the rule it
+    just refused to hold.
+
+    The PAYLOAD keeps the person's spelling. `IndexEntry.expected_values` is what
+    `node_profile` describes to the model and what the review surface prints, and
+    the canonical form belongs to the comparison, not to the folder.
     """
-    rows = [("expected_values", field, value, ordinal)
+    rows = [(_COMPARED_SOURCE, field, canonical(field, value) or value, ordinal)
             for ordinal, (field, value) in enumerate(entry.expected_values)]
     rows += [("accepted_group_ids", group_id, "", ordinal)
              for ordinal, group_id in enumerate(entry.accepted_group_ids)]
     rows.append(("display_label", entry.display_label.casefold(),
                  entry.display_label, 0))
+    if entry.parent_node_id is not None:
+        # `term_key` is the PARENT and `node_id` the child, so one row serves
+        # both walks: the children of X select on `term_key = X`, the parent of Y
+        # selects on `node_id = Y`. A root node emits nothing, and the walk up
+        # stops on the row it does not find.
+        rows.append(("parent_node_id", entry.parent_node_id, "", 0))
     return tuple(rows)
 
 
@@ -226,8 +274,11 @@ class Reachable:
     go first, always -- they are the ones §6.3's own sentence is about
     (`00`:107's Columbia branches, pulled at by the essays and ruled out by the
     Duke fact), and they are the ones the user is about to ask "why not that
-    one?". The remainder of the budget is filled from the field's own index order,
-    which is stable across runs and therefore replayable.
+    one?". Then the nodes on THEIR CHAINS -- the ancestor whose value ruled a
+    reached node out and the descendant the same value rules out -- because a
+    conflict one level up is the one a person cannot see for themselves. The
+    remainder of the budget is filled from the field's own index order, which is
+    stable across runs and therefore replayable.
 
     The budget is `max_retrieved_neighbors`, and reusing it is deliberate rather
     than convenient. `planning/58-SCALE-STRESS.md` item 9 is a complaint about one
@@ -239,9 +290,9 @@ class Reachable:
     #: node_id -> the `(field, value)` pairs the subject's facts MATCH, in the
     #: entry's own order, which is the order the facts land on the record in.
     matched_pairs: dict[str, tuple[tuple[str, str], ...]]
-    #: field -> the NAMED node ids that carry that field with a value the subject
-    #: contradicts, one entry per contradicting value, exactly as §6.3's loop
-    #: appended them. Reached nodes first, then the field's index order, bounded.
+    #: field -> the NAMED node ids that field ruled out, one entry per ruling
+    #: value. Reached nodes first, then the nodes on their chains, then the
+    #: field's index order, bounded.
     contradicted: dict[str, tuple[str, ...]]
     #: field -> how many `(node, value)` rows in the whole plan that field ruled
     #: out, named or not. Always >= `len(contradicted[field])`.
@@ -250,6 +301,22 @@ class Reachable:
     accepted_groups: dict[str, frozenset[str]]
     label_matches: frozenset[str]
     semantic_matches: frozenset[str]
+    #: field -> `(ruled-out node, the node the ruling value was found on)` for
+    #: every entry of `contradicted[field]`, in the same order and the same
+    #: length. The two are equal for a node ruled out by its OWN value, which is
+    #: every conflict §6.3 could see before `104` §18.2 gap 16; they differ when
+    #: the value sits on an ancestor, and that difference is the whole of what
+    #: the person could not see. DEFAULTED to `()`, unlike the fields above,
+    #: because a `Reachable` built by hand for a test that asks nothing about
+    #: where a value sits is a truthful record with nothing to say here.
+    found_on: dict[str, tuple[tuple[str, str], ...]] = None  # type: ignore[assignment]
+
+    def __post_init__(self) -> None:
+        if self.found_on is None:
+            object.__setattr__(self, "found_on", {
+                field: tuple((node_id, node_id) for node_id in named)
+                for field, named in self.contradicted.items()
+            })
 
     @property
     def candidate_node_ids(self) -> tuple[str, ...]:
@@ -293,6 +360,62 @@ def _chunks(conn: sqlite3.Connection, node_ids: list[str], *, reserved: int):
         yield node_ids[start:start + width]
 
 
+def _chain_around(conn: sqlite3.Connection, *, plan_version: str,
+                  reached: list[str]) -> tuple[dict[str, str], set[str]]:
+    """Every node above and below the reached ones, and each one's parent.
+
+    `104` §18.2 gap 16's mechanism. §6.3's suppression used to ask each reached
+    node about its OWN expected values, which cannot see the conflict `00`:107
+    states: "a file with a direct PHYS1401 term fact for Spring 2025 should not be
+    SENT TO a Spring 2026 node". Filing into `Spring2026/Homework` sends the file
+    to `Spring2026`; the leaf states a work type and nothing about a term, so the
+    old read found nothing to disagree with and the file went in.
+
+    Both directions, and they answer different questions. UP is what suppresses:
+    a value on an ancestor is a value the file acquires by being filed in the
+    descendant. DOWN is what EXPLAINS: a conflicting value below a reached node
+    rules that descendant out and leaves the reached node standing -- `PHYS1401`
+    is a perfectly good home for a Spring 2026 file even with a `Spring2025`
+    folder inside it -- and naming it is how the person learns which branch under
+    the folder they were offered is not the one for this file.
+
+    **The read is the size of the CHAINS, not of the tree.** One statement per
+    level in each direction, however many nodes each level holds, off the two
+    indexes `placement/schema.py` already declares. A tree of eight hundred
+    courses under one root costs the walk up one statement per level and the walk
+    down one statement per level; what it does not cost is a row per node, which
+    is the O(files x nodes) read this module exists to have stopped.
+
+    Cycles cannot loop it: a node already in `related` is never expanded twice,
+    and `build_destination_index` refuses a tree whose ancestry cycles anyway.
+    """
+    parent_of: dict[str, str] = {}
+    related: set[str] = set(reached)
+
+    def _walk(frontier: list[str], *, column: str, learns: str) -> None:
+        while frontier:
+            found: list[str] = []
+            for chunk in _chunks(conn, frontier, reserved=1):
+                for row in conn.execute(
+                        "SELECT node_id, term_key FROM placement_index_terms "
+                        "WHERE plan_version = ? AND "
+                        "source_field = 'parent_node_id' AND "
+                        f"{column} IN ({_in_clause(len(chunk))}) AND "
+                        "superseded_by IS NULL", (plan_version, *chunk)):
+                    parent_of[row["node_id"]] = row["term_key"]
+                    learned = row[learns]
+                    if learned not in related:
+                        related.add(learned)
+                        found.append(learned)
+            frontier = found
+
+    # Up: the row whose CHILD is in the frontier teaches its parent.
+    _walk(list(reached), column="node_id", learns="term_key")
+    # Down: the row whose PARENT is in the frontier teaches its child.
+    _walk(list(reached), column="term_key", learns="node_id")
+    return parent_of, related
+
+
 def reachable_entries(conn: sqlite3.Connection, *, plan_version: str,
                       pairs: frozenset[tuple[str, str]],
                       group_ids: frozenset[str], labels: frozenset[str],
@@ -303,13 +426,22 @@ def reachable_entries(conn: sqlite3.Connection, *, plan_version: str,
     deserialising each one -- `planning/58-SCALE-STRESS.md` §2 measured x4.2 per
     file for a four-fold tree, which makes total placement cost files x nodes.
 
-    Four reads find what the subject's own evidence reaches. A fifth asks those
-    nodes -- and only those -- which of the subject's stated fields they state
+    Four reads find what the subject's own evidence reaches. `_chain_around` then
+    walks up and down from those nodes, one statement per level in each
+    direction, and the next read asks THAT SET -- the reached nodes and their
+    chains, and nothing else -- which of the subject's stated fields they state
     differently, which is §6.3's suppression over the set it can actually apply
-    to. A sixth reads `name_limit` more of the ruled-out nodes per stated field,
-    so a small tree still says WHICH branch it rejected. A seventh reads one
-    integer per stated field, so the conflict can say how many it ruled out in
-    total without visiting them.
+    to (`104` §18.2 gap 16). A further read takes `name_limit` more of the
+    ruled-out nodes per stated field, so a small tree still says WHICH branch it
+    rejected. The last reads one integer per stated field, so the conflict can
+    say how many it ruled out in total without visiting them.
+
+    **`pairs` ARRIVE CANONICAL.** `retrieval.retrieve` canonicalises the
+    subject's few facts through the deployment's own canonicaliser, and
+    `_terms_of` canonicalised the tree's values through the SAME one when the
+    index was built, so both sides of every comparison below were normalised by
+    one rule. That is the whole of gap 16's second half: `CS 1006` and `CS1006`
+    are one value, and this function needs no opinion about why.
 
     `name_limit` is §8.6's `max_retrieved_neighbors`, passed in rather than known
     here: P11 reads no ceiling of its own (`config.py`).
@@ -371,7 +503,10 @@ def reachable_entries(conn: sqlite3.Connection, *, plan_version: str,
         }
 
     reached = sorted(set(matched) | set(groups) | matched_labels | semantic)
-    contradicted: dict[str, list[str]] = {}
+    #: field -> `(ruled-out node, the node holding the ruling value)`, in naming
+    #: order. ONE list, from which both `contradicted` and `found_on` are cut, so
+    #: the two cannot disagree about which node a reason belongs to.
+    ruled_out: dict[str, list[tuple[str, str]]] = {}
     #: The REACHED nodes a conflict removed. This is the suppression set and it is
     #: kept apart from the naming list on purpose: the list is bounded and the
     #: exclusion is not, so a node the sample had no room to name is still barred
@@ -383,10 +518,16 @@ def reachable_entries(conn: sqlite3.Connection, *, plan_version: str,
     #: loop did when it appended inside the per-expected-value iteration.
     named_rows: set[tuple[str, str, str]] = set()
     if fields and reached:
-        # The reached nodes' own rows for the stated fields. One index seek per
-        # chunk, and every row it returns belongs to a node a channel already
-        # named -- so this read is the size of the CANDIDATE set, not of the tree.
-        for chunk in _chunks(conn, reached, reserved=len(fields) + 1):
+        # `104` §18.2 gap 16: the reached nodes AND THEIR CHAINS. One index seek
+        # per chunk, and every row it returns belongs to a node on the chain of
+        # one a channel already named -- so this read is the size of the
+        # CANDIDATE BRANCHES, not of the tree.
+        parent_of, related = _chain_around(
+            conn, plan_version=plan_version, reached=reached)
+        #: node -> the stated-field values it holds that the subject contradicts,
+        #: in `(field, value)` order.
+        holds: dict[str, list[tuple[str, str]]] = {}
+        for chunk in _chunks(conn, sorted(related), reserved=len(fields) + 1):
             rows = [tuple(row) for row in conn.execute(
                     "SELECT node_id, term_key, term_value FROM "
                     "placement_index_terms WHERE plan_version = ? AND "
@@ -396,11 +537,49 @@ def reachable_entries(conn: sqlite3.Connection, *, plan_version: str,
                     "superseded_by IS NULL",
                     (plan_version, *chunk, *fields))]
             for node_id, field, value in sorted(rows):
+                # Compared as stored, and both sides were canonicalised by the
+                # SAME callable: the tree's once per build (`_terms_of`) and the
+                # subject's once per file (`retrieval.retrieve`). `CS 1006` and
+                # `CS1006` are therefore one value here, and a value that differs
+                # after canonicalisation is a real disagreement.
                 if (field, value) in pairs:
                     continue
-                contradicted.setdefault(field, []).append(node_id)
+                holds.setdefault(node_id, []).append((field, value))
+
+        def _ruling(node_id: str):
+            """The nearest node at or above `node_id` holding a ruling value.
+
+            NEAREST, and the walk stops at the first one: a node ruled out twice
+            over by two levels of its own chain is one folder the person cannot
+            use, and naming it twice would spend the budget saying so.
+            """
+            cursor: str | None = node_id
+            seen: set[str] = set()
+            while cursor is not None and cursor not in seen:
+                seen.add(cursor)
+                if cursor in holds:
+                    return cursor
+                cursor = parent_of.get(cursor)
+            return None
+
+        # Reached nodes first -- §6.3's own sentence is about them -- then the
+        # rest of the chains. A DESCENDANT ruled out does not rule out the
+        # reached node above it (`_chain_around` argues why); it is named on its
+        # own account, because "which folder under this one is not for this file"
+        # is the other half of the answer the person is owed.
+        was_reached = set(reached)
+        for node_id in sorted(related,
+                              key=lambda one: (one not in was_reached, one)):
+            holder = _ruling(node_id)
+            if holder is None:
+                continue
+            for field, value in holds[holder]:
+                if (field, node_id, value) in named_rows:
+                    continue
+                ruled_out.setdefault(field, []).append((node_id, holder))
                 named_rows.add((field, node_id, value))
-                suppressed.add(node_id)
+                if node_id in was_reached:
+                    suppressed.add(node_id)
 
     # The rest of the naming budget, filled from the field's own index order.
     # `LIMIT` is what makes this affordable: the read stops after `name_limit`
@@ -408,7 +587,7 @@ def reachable_entries(conn: sqlite3.Connection, *, plan_version: str,
     # costs the same as a tree of four. The subject's own values are excluded in
     # SQL so a matched row can never be named as a rejection.
     for field in fields:
-        if len(contradicted.get(field, ())) >= name_limit:
+        if len(ruled_out.get(field, ())) >= name_limit:
             continue
         held = sorted(value for key, value in pairs if key == field)
         for node_id, value in conn.execute(
@@ -419,9 +598,11 @@ def reachable_entries(conn: sqlite3.Connection, *, plan_version: str,
                 (plan_version, field, *held, name_limit)):
             if (field, node_id, value) in named_rows:
                 continue
-            contradicted.setdefault(field, []).append(node_id)
+            # Its OWN value, which is why the pair names it twice: the fill
+            # reads the field's index order and knows nothing of any chain.
+            ruled_out.setdefault(field, []).append((node_id, node_id))
             named_rows.add((field, node_id, value))
-            if len(contradicted[field]) >= name_limit:
+            if len(ruled_out[field]) >= name_limit:
                 break
 
     counts: dict[str, int] = {}
@@ -448,7 +629,7 @@ def reachable_entries(conn: sqlite3.Connection, *, plan_version: str,
         # ruled out where the plan ruled out eight hundred. Under-reporting a
         # suppression is the omission the count exists to prevent, so it raises.
         unanswered = sorted(
-            {*(field for field in contradicted), *matched_per_field} - answered)
+            {*(field for field in ruled_out), *matched_per_field} - answered)
         if unanswered:
             raise IndexCountsUnavailable(
                 f"{unanswered} match or contradict rows in "
@@ -460,7 +641,7 @@ def reachable_entries(conn: sqlite3.Connection, *, plan_version: str,
             )
     # The named ones are always a subset of the counted ones, so no caller can
     # read a count smaller than the list beside it.
-    for field, found in contradicted.items():
+    for field, found in ruled_out.items():
         counts[field] = max(counts.get(field, 0), len(found))
 
     return Reachable(
@@ -468,21 +649,36 @@ def reachable_entries(conn: sqlite3.Connection, *, plan_version: str,
             node_id: tuple((field, value) for _, field, value in sorted(rows))
             for node_id, rows in matched.items()
         },
-        contradicted={field: tuple(found[:name_limit])
-                      for field, found in sorted(contradicted.items())},
+        contradicted={field: tuple(node_id for node_id, _ in found[:name_limit])
+                      for field, found in sorted(ruled_out.items())},
         contradicted_counts=counts,
         contradicted_node_ids=frozenset(suppressed),
         accepted_groups={node_id: frozenset(found)
                          for node_id, found in groups.items()},
         label_matches=frozenset(matched_labels),
         semantic_matches=frozenset(semantic),
+        # CUT FROM THE SAME LIST as `contradicted` above, at the same bound, so
+        # the two are the same length and the reason at index i belongs to the
+        # node at index i. Two comprehensions over one list rather than two
+        # lists, because two lists is where they come to disagree.
+        found_on={field: tuple(found[:name_limit])
+                  for field, found in sorted(ruled_out.items())},
     )
 
 
 def build_destination_index(conn: sqlite3.Connection, tree, *,
-                            component_version: str,
-                            observed_at: str) -> tuple[IndexEntry, ...]:
-    """Build one entry per legal node. Nothing partial reaches the table."""
+                            component_version: str, observed_at: str,
+                            canonical) -> tuple[IndexEntry, ...]:
+    """Build one entry per legal node. Nothing partial reaches the table.
+
+    `canonical` is `callable(field_key, value)` returning the deployment's one
+    canonical form of that value, or `None` where it holds no rule for it.
+    Required with no default, exactly as `component_version` is: an index built
+    against a different notion of "the same value" from the one the subject's
+    facts are canonicalised by would answer §6.3's suppression with two
+    vocabularies, which is the defect `104` §18.2 gap 16 names. `_terms_of` says
+    what is done with it and why the payload keeps the person's spelling.
+    """
     if not getattr(tree, "plan_version_id", ""):
         raise FrozenTreeRequired("an index projects one frozen plan version")
     if not getattr(tree, "shared_material_policy", ""):
@@ -536,7 +732,8 @@ def build_destination_index(conn: sqlite3.Connection, tree, *,
                  entry.node_id, json.dumps(asdict(entry), sort_keys=True),
                  observed_at),
             )
-            for source_field, term_key, term_value, ordinal in _terms_of(entry):
+            for source_field, term_key, term_value, ordinal in _terms_of(
+                    entry, canonical=canonical):
                 conn.execute(
                     "INSERT INTO placement_index_terms (record_id, plan_version, "
                     "node_id, source_field, term_key, term_value, ordinal, "

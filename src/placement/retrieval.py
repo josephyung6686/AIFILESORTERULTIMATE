@@ -170,10 +170,29 @@ def _eligible_facts(conn: sqlite3.Connection, facts) -> tuple[MatchingFact, ...]
 
 def retrieve(conn: sqlite3.Connection, *, subject, plan_version, limits,
              facts, group_ids, curated_folder_labels, semantic_neighbours,
-             component_version: str, observed_at: str) -> Retrieval:
+             canonical, component_version: str, observed_at: str) -> Retrieval:
+    """§6.3, for one subject.
+
+    `canonical` is `callable(field_key, value)` -- the deployment's ONE
+    canonicaliser, the same one `build_destination_index` normalised the tree
+    with and the same one the validator compares by. Required with no default,
+    because a retrieval run against a different notion of "the same value" from
+    the index it reads would rule out the folder that states the subject's own
+    course under another spelling, which is `104` §18.2 gap 16.
+    """
     subject_ref = subject_ref_of(subject)
     usable = _eligible_facts(conn, facts)
-    by_field = {(fact.field, fact.value): fact for fact in usable}
+    # KEYED CANONICAL, HOLDING THE RAW FACT. The key is what the index is keyed
+    # by, so `CS 1006` off a heading finds the node built from `CS1006`; the
+    # VALUE is the fact as the file states it, because `MatchingFact` is the
+    # evidence the record shows the person and a canonical form there would be
+    # this package rewriting what their file says. `setdefault` keeps the first
+    # of two spellings of one value rather than the last, so the record does not
+    # depend on the order the facts happened to arrive in.
+    by_field: dict[tuple[str, str], object] = {}
+    for fact in usable:
+        by_field.setdefault(
+            (fact.field, canonical(fact.field, fact.value) or fact.value), fact)
     wanted_groups = frozenset(group_ids)
     wanted_labels = frozenset(label.casefold() for label in curated_folder_labels)
     semantic = frozenset(semantic_neighbours)
@@ -200,11 +219,17 @@ def retrieve(conn: sqlite3.Connection, *, subject, plan_version, limits,
     # record per stated value, naming the branches it pulled the file away from
     # and counting every branch it ruled out.
     suppressed_counts: dict[tuple[str, str], int] = {}
+    #: `(field, the subject's value)` -> `(ruled-out node, where the ruling value
+    #: was found)`, carried through from the index unchanged. `104` §18.2 gap 16:
+    #: a conflict the person cannot see is one that sits a level up, so the
+    #: record says which node held it rather than only which node it cost.
+    found_on: dict[tuple[str, str], list[tuple[str, str]]] = {}
     for field, total in reachable.contradicted_counts.items():
         held = next(fact for fact in usable if fact.field == field)
         key = (field, held.value)
         suppressed_by_value.setdefault(key, []).extend(
             reachable.contradicted.get(field, ()))
+        found_on.setdefault(key, []).extend(reachable.found_on.get(field, ()))
         suppressed_counts[key] = suppressed_counts.get(key, 0) + total
 
     for node_id in reachable.candidate_node_ids:
@@ -239,6 +264,7 @@ def retrieve(conn: sqlite3.Connection, *, subject, plan_version, limits,
             suppressed_node_ids=tuple(sorted(node_ids)),
             evidence_ref=held.evidence_ref,
             suppressed_node_count=suppressed_counts[(field, value)],
+            found_on=tuple(sorted(set(found_on.get((field, value), ())))),
         ))
 
     def _rank(item):

@@ -14,7 +14,7 @@ from placement.graph import (
 from placement.index import build_destination_index, entry_for
 from placement.records import MatchingFact, Subject
 from placement.retrieval import Candidate, DIRECT_FACT, SEMANTIC_NEIGHBOUR
-from p11.conftest import FIXED_CLOCK
+from p11.conftest import FIXED_CLOCK, NO_CANONICAL_RULE
 from p11.p10_fixtures import FROZEN_TREE
 
 LIMITS = PlacementLimits(
@@ -30,7 +30,8 @@ SUBJECT = Subject(kind=v.FILE, file_id="f1", content_hash="h1",
 @pytest.fixture()
 def entry(p11_conn):
     build_destination_index(p11_conn, FROZEN_TREE,
-                            component_version="P11-test", observed_at=FIXED_CLOCK)
+                            component_version="P11-test", observed_at=FIXED_CLOCK,
+                            canonical=NO_CANONICAL_RULE)
     return entry_for(p11_conn, plan_version="plan-1", node_id="n-course")
 
 

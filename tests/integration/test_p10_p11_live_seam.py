@@ -44,6 +44,7 @@ from placement.index import (
 from placement.schema import create_placement_schema
 
 from p10.seam_corpus import ORDINARY_CLASS, seed_seam_corpus, two_dimension_catalogue
+from p11.conftest import NO_CANONICAL_RULE
 from p10.test_p10_pipeline import authorities, decisions
 
 T0 = "2026-08-27T00:00:00Z"
@@ -107,7 +108,8 @@ def index(corpus, result):
         component_version="seam", user_id="jy",
         reason="P10-P11 live seam fixture")
     return build_destination_index(corpus.conn, result.tree,
-                                   component_version="seam", observed_at=T0)
+                                   component_version="seam", observed_at=T0,
+                                   canonical=NO_CANONICAL_RULE)
 
 
 def entry_labelled(entries, label: str):
@@ -135,7 +137,7 @@ def test_p10s_published_frozen_tree_fixture_is_one_p11_can_index(corpus):
 
     tree = frozen_tree_fixture()
     entries = build_destination_index(corpus.conn, tree, component_version="seam",
-                                      observed_at=T0)
+                                      observed_at=T0, canonical=NO_CANONICAL_RULE)
     assert {e.node_id for e in entries} == set(
         tree.freeze_record.legal_destination_ids)
 
@@ -156,7 +158,8 @@ def test_p10s_walking_skeleton_is_one_p11_can_index(corpus):
         shared_material_policy=SHARED_MATERIAL_POLICY,
         shared_material_policy_scope=None)
     assert len(build_destination_index(
-        corpus.conn, tree, component_version="seam", observed_at=T0)) == 2
+        corpus.conn, tree, component_version="seam", observed_at=T0,
+        canonical=NO_CANONICAL_RULE)) == 2
 
 
 # --- the backbone: a real file placed into a real P10-built node -------------------
@@ -215,6 +218,7 @@ def _inputs(corpus, result, **over):
         # reason as the two above it.
         fields_that_cannot_anchor_a_move=frozenset({"work_type", "term"}),
         their_own_folder_made_for_what_it_holds={},
+        canonical_value=NO_CANONICAL_RULE,
         the_folder_each_file_is_in={},
         a_move_the_person_has_not_permitted=None,
         p2=None)
@@ -904,7 +908,7 @@ def test_a_placement_carries_across_a_re_version_because_reproject_uses_lineage(
 
     after = _re_version(corpus, result, new_label="Physics 1401")
     build_destination_index(corpus.conn, after, component_version="seam",
-                            observed_at=T0)
+                            observed_at=T0, canonical=NO_CANONICAL_RULE)
     # The rename really happened, so "carried unchanged" is not trivially true
     # of a version identical to its predecessor.
     assert "Physics 1401" in {n.display_label for n in after.nodes}
@@ -947,7 +951,7 @@ def test_a_decision_whose_node_is_really_gone_is_marked_for_renewed_review(corpu
 
     after = _re_version(corpus, result, ignore_label="PHYS1401")
     build_destination_index(corpus.conn, after, component_version="seam",
-                            observed_at=T0)
+                            observed_at=T0, canonical=NO_CANONICAL_RULE)
     diff = reproject(corpus.conn,
                      from_plan_version=result.tree.plan_version_id,
                      to_plan_version=after.plan_version_id)
@@ -970,7 +974,7 @@ def test_learned_preferences_survive_a_re_version_on_lineage_too(corpus):
     node = node_labelled(result.tree, "PHYS1401")
     after = _re_version(corpus, result, new_label="Physics 1401")
     build_destination_index(corpus.conn, after, component_version="seam",
-                            observed_at=T0)
+                            observed_at=T0, canonical=NO_CANONICAL_RULE)
 
     class _Suppression:
         def __init__(self, node_id):
@@ -990,7 +994,7 @@ def test_learned_preferences_survive_a_re_version_on_lineage_too(corpus):
     dropped = node_labelled(gone_result.tree, "PHYS1401")
     gone_after = _re_version(gone, gone_result, ignore_label="PHYS1401")
     build_destination_index(gone.conn, gone_after, component_version="seam",
-                            observed_at=T0)
+                            observed_at=T0, canonical=NO_CANONICAL_RULE)
     assert learned_preferences_still_applicable(
         gone.conn, plan_version=gone_after.plan_version_id,
         suppressions=(_Suppression(dropped.node_id),)) == ()

@@ -38,7 +38,7 @@ from placement.residual import (
     ProtectedSetNotReadable, ResidualSetDecision, SetDecisionRequired,
     record_set_decision, require_set_decision,
 )
-from p11.conftest import FIXED_CLOCK
+from p11.conftest import FIXED_CLOCK, NO_CANONICAL_RULE
 from p11.p10_fixtures import FROZEN_TREE
 
 #: The residual node P10 froze into the fixture tree: `node_role = residual`,
@@ -100,7 +100,7 @@ def skeleton(p11_conn):
     _classify(p11_conn)
     _policy(p11_conn)
     build_destination_index(p11_conn, FROZEN_TREE, component_version="P11-test",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     return p11_conn
 
 
@@ -143,6 +143,7 @@ def _inputs(conn, **overrides):
         # reason as the two above it.
         fields_that_cannot_anchor_a_move=frozenset({"work_type", "term"}),
         their_own_folder_made_for_what_it_holds={},
+        canonical_value=NO_CANONICAL_RULE,
         the_folder_each_file_is_in={},
         a_move_the_person_has_not_permitted=None,
         p2=None)
@@ -286,7 +287,7 @@ def test_a_second_run_does_not_inherit_the_first_runs_set_answer(skeleton):
                                suffix="-2")
     _policy(skeleton, plan_version="plan-2")
     build_destination_index(skeleton, second_tree, component_version="P11-test",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     again = _corpus(skeleton,
                     inputs=_inputs(skeleton, plan_version="plan-2",
                                    tree=second_tree))
@@ -394,7 +395,7 @@ def test_a_sent_set_never_makes_a_file_movable_without_a_look(p11_conn):
     _classify(p11_conn)
     _policy(p11_conn)
     build_destination_index(p11_conn, tree, component_version="P11-test",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     result = _corpus(p11_conn, inputs=_inputs(p11_conn, tree=tree))
     after = _act(p11_conn, result, {"Not yet placed": REVIEW_LATER_LABEL},
                  inputs=_inputs(p11_conn, tree=tree))

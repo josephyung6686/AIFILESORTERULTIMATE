@@ -53,6 +53,7 @@ from placement.index import build_destination_index, entry_for
 from placement.records import MatchingFact, Subject
 from placement.retrieval import ACCEPTED_GROUP, DIRECT_FACT, retrieve
 from placement.scoring import assess
+from p11.conftest import NO_CANONICAL_RULE
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 SRC = REPO / "src"
@@ -228,14 +229,14 @@ def test_two_packets_claim_one_transcript_and_the_shared_branch_ranks_last(p11_c
     """
     tree = _application_tree()
     build_destination_index(p11_conn, tree, component_version="ambiguity",
-                            observed_at=CLOCK)
+                            observed_at=CLOCK, canonical=NO_CANONICAL_RULE)
     subject = Subject(kind=pv.FILE, file_id="f-transcript", content_hash="h1",
                       group_id=None, member_file_ids=())
     retrieval = retrieve(
         p11_conn, subject=subject, plan_version="plan-1", limits=LIMITS,
         facts=_transcript_facts(), group_ids=("g-shared",),
         curated_folder_labels=(), semantic_neighbours=(),
-        component_version="ambiguity", observed_at=CLOCK)
+        component_version="ambiguity", observed_at=CLOCK, canonical=NO_CANONICAL_RULE)
 
     by_id = {c.node_id: c for c in retrieval.candidates}
     assert set(by_id) == {"n-columbia", "n-duke", "n-shared"}
@@ -275,14 +276,14 @@ def test_the_transcript_names_two_homes_now_but_still_asks_nothing(p11_conn):
     """
     tree = _application_tree()
     build_destination_index(p11_conn, tree, component_version="ambiguity",
-                            observed_at=CLOCK)
+                            observed_at=CLOCK, canonical=NO_CANONICAL_RULE)
     subject = Subject(kind=pv.FILE, file_id="f-transcript", content_hash="h1",
                       group_id=None, member_file_ids=())
     retrieval = retrieve(
         p11_conn, subject=subject, plan_version="plan-1", limits=LIMITS,
         facts=_transcript_facts(), group_ids=("g-shared",),
         curated_folder_labels=(), semantic_neighbours=(),
-        component_version="ambiguity", observed_at=CLOCK)
+        component_version="ambiguity", observed_at=CLOCK, canonical=NO_CANONICAL_RULE)
     result = assess(retrieval, {}, policy=POLICY)
 
     assert result.two_condition.meets_margin == pv.MARGIN_FALSE
@@ -458,7 +459,8 @@ def test_the_policy_survives_freeze_and_stops_at_the_index(full_conn):
     assert bundle.shared_material_policy == "primary-home"
 
     entries = build_destination_index(
-        full_conn, bundle, component_version="ambiguity", observed_at=CLOCK)
+        full_conn, bundle, component_version="ambiguity", observed_at=CLOCK,
+        canonical=NO_CANONICAL_RULE)
     assert entries
     assert not any(hasattr(entry, "shared_material_policy") for entry in entries)
     # Nor does any node in the frozen tree carry the shared-material role, so a
@@ -1096,7 +1098,7 @@ def test_two_opposite_side_folders_tie_and_every_such_file_abstains(p11_conn):
             legal_destination_ids=frozenset(
                 n.node_id for n in nodes if n.accepts_placement)))
     build_destination_index(p11_conn, tree, component_version="ambiguity",
-                            observed_at=CLOCK)
+                            observed_at=CLOCK, canonical=NO_CANONICAL_RULE)
 
     subject = Subject(kind=pv.FILE, file_id="f-invoice", content_hash="h1",
                       group_id=None, member_file_ids=())
@@ -1105,7 +1107,7 @@ def test_two_opposite_side_folders_tie_and_every_such_file_abstains(p11_conn):
         facts=(MatchingFact(file_fact_id="ff-1", field="client", value="Acme",
                             reliability=pv.DIRECT, evidence_ref="obs-1"),),
         group_ids=(), curated_folder_labels=(), semantic_neighbours=(),
-        component_version="ambiguity", observed_at=CLOCK)
+        component_version="ambiguity", observed_at=CLOCK, canonical=NO_CANONICAL_RULE)
     assert {c.node_id for c in retrieval.candidates} == {"n-sent", "n-received"}
 
     result = assess(retrieval, {}, policy=POLICY)

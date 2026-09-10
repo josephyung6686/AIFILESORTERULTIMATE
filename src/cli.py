@@ -10961,6 +10961,12 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             their_own_folder_made_for_what_it_holds=(
                 _their_own_folder_made_for_what_it_holds(tree.tree)),
             p2=None,
+            # `104` §18.2 gap 16. THE SAME CANONICALISER THE VALIDATOR COMPARES
+            # BY -- `contradicts_stronger` reads this one -- so §6.3's suppression
+            # and §3.6's check 4 hold one opinion about when two values are one
+            # value. A second one here would be `65` §4.2's four one-file groups
+            # rebuilt at the placement boundary.
+            canonical_value=normalize_for_model,
             the_folder_each_file_is_in=_the_folder_each_file_is_in(tree.tree))
 
     #: `104` R-175. ONE CEILING FOR THE WHOLE RUN, built here from the seconds the

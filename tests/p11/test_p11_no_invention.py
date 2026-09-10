@@ -521,7 +521,7 @@ def a_real_run(p11_conn):
     from llm_harness.schema import create_llm_schema
     from placement.config import CEILINGS
     from placement.index import build_destination_index
-    from p11.conftest import FIXED_CLOCK
+    from p11.conftest import FIXED_CLOCK, NO_CANONICAL_RULE
     from p11.p10_fixtures import FROZEN_TREE
 
     create_llm_schema(p11_conn)
@@ -531,7 +531,7 @@ def a_real_run(p11_conn):
     _classify(p11_conn)
     _policy(p11_conn)
     build_destination_index(p11_conn, FROZEN_TREE, component_version="P11-test",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     _seeded(p11_conn)
     _corpus(p11_conn, group_ids=("g-columbia",),
             evidence_for=lambda file_id: _evidence())

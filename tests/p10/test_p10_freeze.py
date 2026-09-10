@@ -435,7 +435,8 @@ def test_the_freeze_gate_and_p11s_index_state_one_precondition_between_them(seed
     create_schema(seeded)
     create_placement_schema(seeded)
     entries = build_destination_index(seeded, tree, component_version="p10-freeze",
-                                      observed_at=T1)
+                                      observed_at=T1,
+                                      canonical=lambda field_key, value: None)
     assert {e.node_id for e in entries} == set(tree.freeze_record.legal_destination_ids)
     assert all(e.refinement_disposition for e in entries)
 

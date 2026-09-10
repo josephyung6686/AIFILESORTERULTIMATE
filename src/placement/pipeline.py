@@ -105,7 +105,9 @@ from placement.residual import (
     record_set_decision, require_model_call_permitted, require_set_actionable,
     require_set_decision, surface_residual_sets,
 )
-from placement.retrieval import CURATED_FOLDER, Retrieval, SetAside, retrieve
+from placement.retrieval import (
+    Candidate, CURATED_FOLDER, Retrieval, SetAside, retrieve,
+)
 from placement.scoring import assess, needs_model_call, score_candidates
 from placement.stage_output import emit_retrieval_stage, emit_scoring_stage
 from placement.store import current_decision, record_decision, subject_ref_of
@@ -118,8 +120,9 @@ from placement.vocabulary import (
     MARGIN_TRUE_VACUOUS, MARK_STATE, NO_SHARED_BRANCH, SEMANTIC_ONLY,
     MULTIPLE_SUPPORTED_HOMES, NO_SUPPORTED_DESTINATION, PLACE, PLACEMENT,
     POSSIBLE, PRIVACY_BLOCKED, RESIDUAL, RESIDUAL_ROLE, REVIEW_WITH_MODEL,
-    RETURN_TO_PLACEMENT, SEND_TO_APPROVED_NODE, SHARED_MATERIAL,
-    SHARED_MATERIAL_DECISION, USER_CHOSE_DESTINATION, USER_CONFIRMED, WEAK,
+    RETURN_TO_PLACEMENT, SCOPED_GENERAL, SEND_TO_APPROVED_NODE,
+    SHARED_MATERIAL, SHARED_MATERIAL_DECISION, USER_CHOSE_DESTINATION,
+    USER_CONFIRMED, WEAK,
 )
 
 #: §6.12's nine, in §6.12's order. Steps 1-2 are P10's and step 8 is P8's; naming
@@ -180,6 +183,20 @@ _RANKED_BELOW_COVERED_FOLDER: str = (
     "and this folder's only agreement with the file is what kind of thing it is, "
     "or when it was made"
 )
+#: `104` §18.2 gap 11's second half, and it is NOT one of the four sentences
+#: above: nothing ranked this folder below anything. It is on the list because
+#: `00`:111 puts it there -- "if the only available deeper path would require
+#: inventing a term, it should choose an approved General fallback under the
+#: meaningful parent or abstain" -- and a menu without it is a menu that cannot
+#: contain the answer the design asks the model for.
+#:
+#: Written like the four above and for the same reason: what the engine noticed,
+#: no instruction. The model is not told to take it.
+_OFFERED_AS_THE_PARENTS_GENERAL: str = (
+    "this folder is the catch-all inside the folder above it, which is on this "
+    "list too: it expects nothing of its own, so it holds what belongs in that "
+    "folder and in none of the folders beside it"
+)
 
 
 def _ranked_below(retrieval: Retrieval, node_ids, because: str) -> Retrieval:
@@ -207,6 +224,122 @@ def _ranked_below(retrieval: Retrieval, node_ids, because: str) -> Retrieval:
         set_aside=retrieval.set_aside + tuple(
             SetAside(candidate=candidate, because=because) for candidate in moved),
     )
+
+
+def _the_parents_own_general_is_offered(retrieval: Retrieval, *,
+                                        general_child_of) -> Retrieval:
+    """`104` §18.2 gap 11's second half: `00`:111's General reaches the menu.
+
+    **The design asks the model for an answer P11 could not contain.** `00`:110
+    lists what the judge decides between -- "one approved child node, one approved
+    parent node, an approved scoped fallback such as General, or no destination at
+    all" -- and `00`:111 says when the third one is right: "if the only available
+    deeper path would require inventing a term, it should choose an approved
+    General fallback under the meaningful parent or abstain". A scoped-general
+    node states no expected value, belongs to no group and wears a label nothing
+    matches, so not one of §6.3's six channels can reach it: the option existed in
+    the tree, was described in the prompt, and was absent from every shortlist
+    ever sent. Gap 11's `index.py:655` is that absence measured -- the role was a
+    display string with no reader that could act on it.
+
+    **UNDER A CONTENDER, AND THAT IS THE CONDITION RATHER THAN A NARROWING.**
+    `00`:111's own case is a file whose evidence supports the parent and no deeper
+    level. A contender is exactly that node: the step-6 collapse has already
+    ranked every candidate that has a deeper candidate on its own chain BELOW that
+    deeper one, so a node still contending is the deepest thing this file's
+    evidence reached on its branch. Where a leaf IS supported the leaf is the
+    contender, its parent is set aside, and the parent's General is not offered --
+    which is `00`'s "the model should never fill a missing slot" read from the
+    other side: a General offered under a branch whose leaf fits would be an
+    invitation to file the file one level short of its home.
+
+    **OFFERED, NEVER SCORED.** It arrives as a `SetAside` for the reason that
+    class exists: `Retrieval.candidates` is §6.10's DETERMINISTIC path, the
+    fallback `00` keeps "with no model configured", and a General on it would win
+    every tie it entered -- a run with no model would quietly file the corpus into
+    catch-alls. The model reads the sentence and decides; nothing here does.
+
+    It carries no channel and no matching fact, which is the truth: no evidence
+    reached it. `score_candidates` gives it 0 in `_ranked_set_aside`'s ordering,
+    so it sits at the tail of the tail, which is where an option nothing pulled
+    towards belongs.
+    """
+    if not retrieval.candidates:
+        return retrieval
+    already = {candidate.node_id for candidate in retrieval.candidates} | {
+        item.candidate.node_id for item in retrieval.set_aside}
+    offered = tuple(
+        SetAside(candidate=Candidate(node_id=general, channels=(),
+                                     matching_facts=(), group_ids=()),
+                 because=_OFFERED_AS_THE_PARENTS_GENERAL)
+        # Sorted by the PARENT's id, so two contenders whose branches both carry
+        # a General reach the dossier in an order two runs agree on.
+        for general in dict.fromkeys(
+            general_child_of[candidate.node_id]
+            for candidate in sorted(retrieval.candidates,
+                                    key=lambda one: one.node_id)
+            if candidate.node_id in general_child_of)
+        if general not in already
+    )
+    if not offered:
+        return retrieval
+    return dataclasses.replace(retrieval,
+                               set_aside=retrieval.set_aside + offered)
+
+
+def _levels_not_filled(node_id: str, *, deepest: str | None, parent_of,
+                       dimension_of, levels_beside) -> tuple[str, ...]:
+    """The levels this decision deliberately left unfilled, or `()`.
+
+    `104` §18.2 gap 11's decision half, and SPEC:401-404's field finally written.
+    `DecisionDepth.unsupported_levels` is "the broad-parent case's whole
+    expression": without it a decision on a shallower node is byte-identical to a
+    decision on a fully-supported child, and §6.7's whole distinction -- the node
+    the evidence reaches versus the node it was filed on -- is unrecorded.
+
+    Two shapes reach here and they are `00`:111's two sentences.
+
+    **The shallower approved path.** "If the system cannot distinguish Spring 2025
+    from Spring 2026 but a parent path such as `Academics/Columbia/PHYS1401/
+    Homework` exists, the model should choose the approved shallower path." The
+    rules built a deeper leaf and offered its ancestors beside it (gap 11a); the
+    model struck the leaf and took the ancestor. The levels not filled are the
+    dimensions of the chain BETWEEN them -- the term, in `00`'s own example.
+
+    **The scoped General.** "If the only available deeper path would require
+    inventing a term, it should choose an approved General fallback under the
+    meaningful parent." The General node is not on the chain to anything; what was
+    not filled is what its SIBLINGS bind, which is the same question asked of the
+    branch instead of of a candidate.
+
+    Empty for every other placement, which is what an empty tuple has always
+    meant here: this node is as deep as the evidence goes and nothing was skipped.
+    """
+    # The General case first, because it is decided by the node itself: a
+    # scoped-general node is on the chain to nothing, so the walk below would
+    # find no levels and report a fully-supported child.
+    beside = levels_beside.get(node_id)
+    if beside is not None:
+        return beside
+    if deepest is None or deepest == node_id:
+        return ()
+    levels: list[str] = []
+    cursor: str | None = deepest
+    seen: set[str] = set()
+    while cursor is not None and cursor != node_id and cursor not in seen:
+        seen.add(cursor)
+        dimension = dimension_of.get(cursor)
+        if dimension is not None and dimension not in levels:
+            levels.append(dimension)
+        cursor = parent_of.get(cursor)
+    # Only when the chosen node really is on the chain above the leaf. A model
+    # that named a node on another branch entirely has not made a shallow
+    # decision, and levels read off a chain it is not on would be a sentence
+    # about folders this file was never between.
+    if cursor != node_id:
+        return ()
+    # Root-first, which is the order the person reads a path in.
+    return tuple(reversed(levels))
 
 
 def _ranked_set_aside(retrieval: Retrieval, graphs, *, policy) -> tuple[SetAside, ...]:
@@ -872,6 +1005,29 @@ class PipelineInputs:
     #: is held". A run that holds no move passes `None`, which is the same answer
     #: `--may-cross-folders` gives, and it is a position that caller has taken.
     a_move_the_person_has_not_permitted: object
+    #: `104` §18.2 gap 16. `callable(field_key, value)` -> the deployment's one
+    #: canonical form of that value, or `None` where it holds no rule for it.
+    #: `retrieve` canonicalises the subject's facts through it and
+    #: `build_destination_index` canonicalised the tree through it, so §6.3's
+    #: suppression asks ONE question about identity: `CS 1006` and `CS1006` are
+    #: one course, and a folder that expects the course this file states is not
+    #: ruled out by the way the file spells it.
+    #:
+    #: INJECTED, and it is the same callable the VALIDATOR compares by
+    #: (`cli.contradicts_stronger` reads it through `normalize_for_model`). That
+    #: is the point rather than a convenience: two canonicalisers is how one
+    #: course became four one-file groups on this project's own record (`65`
+    #: §4.2), and P11 authoring a second one at the retrieval boundary would be
+    #: that failure moved rather than fixed.
+    #:
+    #: REQUIRED, WITH NO DEFAULT, exactly as the authorities above it are, and
+    #: `test_no_unfinished_knowledge_source_gained_an_implementation_default` is
+    #: the guard. What counts as the same value is a deployment's answer -- it is
+    #: the one `00`:298 gives to the person's own vocabulary -- and a P11 that
+    #: quietly fell back to string equality would be answering it with the
+    #: defect. A deployment with no rule for any field passes a callable that
+    #: answers `None`, which is a position it has taken.
+    canonical_value: object
 
     def __post_init__(self) -> None:
         require_policy(self.policy)
@@ -1186,6 +1342,7 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
         group_ids=evidence["group_ids"],
         curated_folder_labels=evidence["curated_folder_labels"],
         semantic_neighbours=evidence["semantic_neighbours"],
+        canonical=inputs.canonical_value,
         component_version=component_version, observed_at=observed_at,
     )
 
@@ -1263,14 +1420,44 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
     # `parent_of` joins them, in the same walk and for the same reason: telling
     # refinement from removal is a question about the CHAIN, and a third
     # comprehension over the tree per file is the O(files x nodes) shape again.
+    #
+    # `104` §18.2 gap 11's two maps join them, in the same walk and for the same
+    # reason: WHICH node is a branch's own General (`00`:110's "approved scoped
+    # fallback"), and WHICH levels the folders beside it bind. Both are facts
+    # about the same nodes, and both are read once per file rather than by a
+    # fourth and fifth comprehension over the tree.
     dimension_of: dict[str, str | None] = {}
     parent_of: dict[str, str | None] = {}
     their_own_folders: set[str] = set()
+    general_child_of: dict[str, str] = {}
+    #: parent -> the dimensions its ORDINARY children bind, which is what a file
+    #: filed in that parent's General deliberately did not fill.
+    levels_under: dict[str, list[str]] = {}
     for node in getattr(inputs.tree, "nodes"):
-        dimension_of[node.node_id] = getattr(node, "dimension", None)
-        parent_of[node.node_id] = getattr(node, "parent_node_id", None)
+        dimension = getattr(node, "dimension", None)
+        parent = getattr(node, "parent_node_id", None)
+        dimension_of[node.node_id] = dimension
+        parent_of[node.node_id] = parent
         if getattr(node, "existing_path", None) is not None:
             their_own_folders.add(node.node_id)
+        if parent is None or not getattr(node, "accepts_placement", False):
+            # A node nothing may be placed in is not an option, so it is neither
+            # a General to offer nor a level anybody failed to fill.
+            continue
+        if getattr(node, "node_role", None) == SCOPED_GENERAL:
+            # `setdefault`: a branch the person gave two catch-alls has one on
+            # the menu, chosen by node id rather than by the order P10 emitted.
+            if general_child_of.get(parent, node.node_id) >= node.node_id:
+                general_child_of[parent] = node.node_id
+        elif dimension is not None and dimension not in levels_under.setdefault(
+                parent, []):
+            levels_under[parent].append(dimension)
+    #: The General node itself -> the levels its siblings bind, which is the
+    #: shape `_levels_not_filled` asks for.
+    levels_beside = {
+        general: tuple(sorted(levels_under.get(parent, ())))
+        for parent, general in general_child_of.items()
+    }
 
     # WHICH CANDIDATES ARE INSIDE THE FOLDER THIS FILE IS ALREADY IN. `00`'s
     # amendment of line 22: a move deeper inside the branch the file already sits
@@ -1288,6 +1475,13 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
         retrieval, dimension_of=dimension_of,
         fields_that_cannot_anchor_a_move=inputs.fields_that_cannot_anchor_a_move,
         refinements=refinements)
+    # `104` §18.2 gap 11's second half, and LAST, after every rule that changes
+    # who the contenders are. The condition is "a contender's own General", so it
+    # has to be asked of the final contender list: run before the collapses it
+    # would offer the General of a parent that is about to be superseded by its
+    # own child, which is the one shape `00`:111 rules out.
+    retrieval = _the_parents_own_general_is_offered(
+        retrieval, general_child_of=general_child_of)
     # THE SET-ASIDE NODES KEEP THEIR GRAPHS (`104` §18.2 gap 2). They were built
     # one step above, over every retrieved candidate, before any step-6 rule ran;
     # throwing them away now would mean a file the MODEL places on a set-aside
@@ -1476,6 +1670,29 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
 
     node_id = chosen_node_id or assessment.scored[0].node_id
     entry = entry_for(conn, plan_version=inputs.plan_version, node_id=node_id)
+    # `104` §18.2 GAP 11's DECISION HALF. Gap 11a put the shallower approved
+    # parent on the menu; this is what happens when the model TAKES it.
+    #
+    # It is a placement, at that node's own depth, and not an abstention: `00`:111
+    # says "the model should choose the approved shallower path", and a run that
+    # answered the model's choice with `no_supported_destination` would be the
+    # rules overruling the judgement they asked for. What the record has to carry
+    # instead is WHY the node is shallower than the chain the rules built, and
+    # that is `unsupported_levels` -- the field SPEC:401-404 defines and nothing
+    # in this package has ever written (`104` §18.2 gap 11: "the shallow-decision
+    # fields are identical at all six writers").
+    #
+    # `supported_depth` STAYS AT THE NODE'S OWN DEPTH, and that is the honest
+    # answer rather than a way past the record's invariant. The model was shown
+    # the deeper folder and struck it: it judged the deeper level UNSUPPORTED, so
+    # the evidence does not reach past the node it chose. `supported_depth` above
+    # `node_depth` would say the opposite -- that the file had what the deeper
+    # folder needed and was filed short of it anyway.
+    unsupported_levels = _levels_not_filled(
+        entry.node_id,
+        deepest=assessment.scored[0].node_id if assessment.scored else None,
+        parent_of=parent_of, dimension_of=dimension_of,
+        levels_beside=levels_beside)
     # WHAT THE PLACED NODE ACTUALLY IS, asked once and read four times below.
     #
     # This used to be `chosen_node_id is not None` and it rested on a sentence
@@ -1531,7 +1748,7 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
         return_target=None, marked_state=None, ask=None,
         decision_depth=DecisionDepth(node_depth=entry.depth,
                                      supported_depth=entry.depth,
-                                     unsupported_levels=()),
+                                     unsupported_levels=unsupported_levels),
         evidence_type=DIRECT if direct else CONTEXT_SUPPORTED,
         confidence_class=confidence,
         matching_facts=_facts_of(retrieval, entry.node_id),
@@ -1567,7 +1784,8 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
         explanation=_explain(entry, assessment, retrieval,
                              model_decided=chosen_node_id is not None,
                              gate_refused=gate_refused,
-                             refinements=refinements),
+                             refinements=refinements,
+                             unsupported_levels=unsupported_levels),
         residual=None,
         # `104` R-165. THE SAME PREDICATE THE SENTENCE ABOVE IS BUILT FROM, on a
         # field something can count. `chosen_node_id` is not None exactly when a
@@ -1624,7 +1842,8 @@ def _facts_of(retrieval, node_id: str) -> tuple:
 
 def _explain(entry, assessment, retrieval, *, model_decided: bool = False,
              gate_refused: bool = False,
-             refinements: frozenset[str] = frozenset()) -> str:
+             refinements: frozenset[str] = frozenset(),
+             unsupported_levels: tuple[str, ...] = ()) -> str:
     """§6.4 and §6.11: state the actual basis, claim no evidence the file lacks.
 
     `gate_refused` is `104` R-74's half of §6.4, and it is the ACTOR that has to be
@@ -1653,6 +1872,19 @@ def _explain(entry, assessment, retrieval, *, model_decided: bool = False,
         if item.candidate.node_id == entry.node_id:
             parts.append(item.because)
             break
+    if unsupported_levels:
+        # `104` §18.2 gap 11's reason, in the person's words. `00`:111's own case
+        # is a file that cannot be told from one term to the next: the deeper
+        # folder was on the list, the judge struck it, and the record says which
+        # level went unfilled rather than presenting a shallower home as though it
+        # were the deepest one that fits. No section number and no field word --
+        # `84` §6 -- so what is named is the level itself.
+        parts.append(
+            "as deep as this file's evidence goes: nothing in it settles "
+            + " or ".join(unsupported_levels)
+            + ", so the folders below this one that expect "
+            + ("it" if len(unsupported_levels) == 1 else "those")
+            + " were not filled in on a guess")
     if entry.node_id in refinements:
         # `00`'s amendment of line 22 separates refinement from removal, and a
         # person reading the plan is owed the same distinction: nothing is being
@@ -3188,6 +3420,7 @@ def _review_set_with_model(conn, *, item: ResidualSet, inputs: PipelineInputs,
             group_ids=evidence["group_ids"],
             curated_folder_labels=evidence["curated_folder_labels"],
             semantic_neighbours=evidence["semantic_neighbours"],
+            canonical=inputs.canonical_value,
             component_version=component_version, observed_at=observed_at)
         result = _judged_or_refused(
             conn, subject=subject, inputs=inputs, retrieval=retrieval,

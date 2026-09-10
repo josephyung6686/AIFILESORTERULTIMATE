@@ -10,7 +10,7 @@ from placement.config import PlacementLimits
 from placement.index import build_destination_index
 from placement.records import MatchingFact, Subject
 from placement.retrieval import CHANNELS, retrieve
-from p11.conftest import FIXED_CLOCK
+from p11.conftest import FIXED_CLOCK, NO_CANONICAL_RULE
 from p11.p10_fixtures import FROZEN_TREE, ExpectedValue, tree_with
 
 LIMITS = PlacementLimits(
@@ -36,13 +36,14 @@ def _retrieve(conn, **overrides):
         observed_at=FIXED_CLOCK,
     )
     values.update(overrides)
-    return retrieve(conn, **values)
+    return retrieve(conn, **values, canonical=NO_CANONICAL_RULE)
 
 
 @pytest.fixture()
 def indexed(p11_conn):
     build_destination_index(p11_conn, FROZEN_TREE,
-                            component_version="P11-test", observed_at=FIXED_CLOCK)
+                            component_version="P11-test", observed_at=FIXED_CLOCK,
+                            canonical=NO_CANONICAL_RULE)
     return p11_conn
 
 
@@ -83,7 +84,7 @@ def indexed_with_an_ineligible_dimension(p11_conn):
                 n.node_id for n in nodes if n.accepts_placement)),
     )
     build_destination_index(p11_conn, tree, component_version="P11-test",
-                            observed_at=FIXED_CLOCK)
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
     return p11_conn
 
 
