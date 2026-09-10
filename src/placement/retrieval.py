@@ -69,15 +69,30 @@ NON_DECIDING_CHANNELS: tuple[str, ...] = (SEMANTIC_NEIGHBOUR, CURATED_FOLDER)
 #: commit, and a channel that loses one stops counting without anybody editing a
 #: number in `scoring.py`.
 #:
-#: **The two absentees are Release-2 items and not oversights.** §18.2 gap 12 is
-#: the node-local typed graph, which is built and contributes nothing -- five of
-#: nine edge types, never entering the dossier -- and it is what would produce
-#: `GRAPH_RELATIONSHIP`. §18.2 gap 14 is group placement as a first-class
-#: capability, which today is post-hoc aggregation over single-file decisions,
-#: and the version family / duplicate family / photo event links it would carry
-#: are what would produce `STRUCTURAL_RELATIONSHIP`. Both are ranked **L**.
-#: Adding either name here without its producer would restore exactly the gap
-#: this constant closes.
+#: **`GRAPH_RELATIONSHIP` HAS A PRODUCER SINCE §18.2 GAP 12, AND IT IS STILL NOT
+#: ON THIS LIST.** The producer is not `retrieve`: the node-local graph is built
+#: at §6.12 step 4, after this function has returned, so it is
+#: `pipeline._with_the_graphs_own_channel` that puts the channel on a candidate
+#: and -- on the SAME `Retrieval` object, in the same expression -- declares it
+#: producible. That is what `producible_channels` being a per-retrieval field
+#: with no default is for, and it keeps the invariant `score_candidates` checks
+#: exact: the object that produced the channel is the object that declares it.
+#:
+#: It is not declared here for a second, measured reason. Adding it to this
+#: constant declares it for EVERY file, moving the denominator from 5 to 6 for a
+#: file that has no typed edge at all -- and `(3 - 2) / 6 = 0.1667` is under the
+#: wired 0.20 margin, so a file whose direct facts match one node against a rival
+#: reached by an accepted group alone would abstain `low_margin`. That pair is
+#: `scoring._exact_margin`'s own worked example and gap 13's headline; no
+#: positive weight avoids it, because `(3 - 2) / (5 + w) >= 0.20` has no solution
+#: for `w > 0`. The run-wide declaration therefore waits on `cli-support-v2`'s
+#: margin, which is the owner's number.
+#:
+#: **`STRUCTURAL_RELATIONSHIP` still has no producer anywhere.** §18.2 gap 14
+#: made group placement first-class, but the version family / duplicate family /
+#: photo event links that would carry this channel still attach to nothing at
+#: retrieval: `retrieve`'s loop below appends exactly four. Adding the name here
+#: without its producer would restore exactly the gap this constant closes.
 PRODUCED_CHANNELS: tuple[str, ...] = (
     DIRECT_FACT, ACCEPTED_GROUP, CURATED_FOLDER, SEMANTIC_NEIGHBOUR,
 )

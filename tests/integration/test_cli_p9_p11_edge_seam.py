@@ -33,8 +33,24 @@ def test_every_p9_edge_type_is_either_translated_or_named_as_dropped():
 
 def test_every_translation_lands_on_a_type_p11_actually_publishes():
     """The other direction: a value here that `placement.graph` does not carry would
-    raise `ValueError` inside `build_node_local_graph` on the first real corpus."""
-    assert set(cli.P9_TO_P11_EDGE_TYPE.values()) == set(P11_EDGE_TYPES)
+    raise `ValueError` inside `build_node_local_graph` on the first real corpus.
+
+    **AND EVERY P11 TYPE IS ACCOUNTED FOR THE SAME WAY** (`104` §18.2 gap 12).
+    This was an equality until P11 gained two edge types P9 does not draw --
+    `attachment_of` and `direct_reference`, which are not groupings but two
+    files' own observations agreeing about a third thing, produced at the
+    composition root by `observation_edges_of`. An equality would have forced
+    either a P9 producer that does not exist or a silent hole in the mapping;
+    `NOT_A_P9_EDGE` names them, so a THIRD P11 type still fails here.
+    """
+    assert set(cli.P9_TO_P11_EDGE_TYPE.values()) <= set(P11_EDGE_TYPES)
+    assert (set(cli.P9_TO_P11_EDGE_TYPE.values()) | set(cli.NOT_A_P9_EDGE)
+            == set(P11_EDGE_TYPES)), (
+        "a P11 edge type is neither P9's translated nor named as one P9 does not "
+        "draw. Decide which it is -- an unaccounted type is a relationship that "
+        "reaches the graph from nowhere or reaches it from nothing")
+    # The two are disjoint: a type P9 draws is not one P9 does not draw.
+    assert not set(cli.P9_TO_P11_EDGE_TYPE.values()) & set(cli.NOT_A_P9_EDGE)
 
 
 def test_the_two_dropped_types_are_the_two_the_design_excludes():
