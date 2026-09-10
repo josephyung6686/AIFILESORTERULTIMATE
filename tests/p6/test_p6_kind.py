@@ -664,7 +664,26 @@ def test_the_producer_and_the_detector_differ_only_at_the_digit_boundary():
 
 
 def test_a_model_work_type_outside_the_librarys_vocabulary_is_not_normalizable():
-    """CONSTITUTION 3, applied to VALUES: `work_type` is a closed vocabulary field.
+    """`work_type`'s DIRECT half: the library's terms, in the library's spelling.
+
+    **SABOTAGE:** make `normalize_for_model` accept a value the library has never
+    shipped -- return `text` for `work_type` instead of the vocabulary's answer, or
+    return the MODEL's casing instead of the library's. Then `.pdf` is a canonical
+    `work_type` again and four files land in `Coursework/Daniel Lacker/IEOR3658/.pdf`,
+    and `LECTURE SLIDES week 1.pdf` and `Lecture Slides Week 2.pdf` become two folders
+    for one kind of work (`65` §4.2).
+
+    **WHAT `104` §18.2 GAP 3 CHANGED, AND WHY NOT ONE ASSERTION BELOW MOVED.** This
+    test used to be argued as "CONSTITUTION 3, applied to VALUES: `work_type` is a
+    closed vocabulary field", and the closed set was a GATE: a value outside it was
+    rejected `VALUE_NOT_NORMALIZABLE` and the person never heard of it. `104` §18.2
+    gap 3 rules that wrong -- on r15 it was the largest rejection class there was --
+    and `00`:298 says what happens instead: *"A value the shipped library has not seen
+    is proposed once; the user confirms or renames it."* So the closed set is now the
+    SEED rather than the gate, and `cli.normalize_for_review` is where a miss goes.
+    The lookup here is unchanged in every respect, which is why the four assertions
+    stand as written: what moved is what a `None` from this function MEANS downstream.
+    `tests/p8/test_p8_subject_title_to_review.py` holds the other half.
 
     **Measured, cloud run with retrieval on, 2026-09-05.** The rule producer wrote
     `lecture`, `homework`, `exam`, `essay`, `resume` -- every one a member of the

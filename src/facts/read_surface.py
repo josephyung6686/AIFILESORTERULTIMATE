@@ -64,7 +64,7 @@ from facts.file_facts import facts_for_file
 from facts.photo_event import EVENT_FIELD
 from facts.session import DOWNLOAD_SESSION_FIELD
 from facts import states as _states
-from facts.states import STRENGTH_ORDER
+from facts.states import STRENGTH_ORDER, USER_CONFIRMED
 from facts.supersede import fact_history, preferred_of_slot
 from facts.unresolved import unresolved_for_file
 from facts.values import values_in_field
@@ -330,6 +330,72 @@ def versions_in_fields(
         grouped.setdefault((row["file_id"], row["content_hash"]), []).append(row)
     return {version: sorted(found, key=_version_order)
             for version, found in grouped.items()}
+
+
+def confirmed_spellings(conn: sqlite3.Connection, *,
+                        field_key: str) -> dict[str, str]:
+    """THE PERSON'S OWN VOCABULARY FOR ONE FIELD: spelling -> the value it reaches.
+
+    `00`:298, the sentence this read exists to make true: *"A value the shipped
+    library has not seen is proposed once; the user confirms or renames it; IT THEN
+    BELONGS TO THAT USER'S VOCABULARY IN THE DATABASE. There are no alias tables or
+    equivalence maps in code."* The database is `values` and `file_facts`, and this is
+    the read that lets a caller ask them what the person has answered. `104` §18.2
+    gap 3 is what asked for it: with the closed sets in code opened into proposals,
+    something has to remember the answer, and the only honest home for a user-specific
+    vocabulary is the user's own database.
+
+    **A VALUE IS THE PERSON'S WHEN A `user_confirmed` FACT STANDS ON IT.** That is
+    §3.13's strongest state and P6 already protects it -- `supersede` refuses to
+    demote one, `PROPOSAL_ELIGIBLE_STATES` includes it -- so no new marker is coined
+    here. Live rows only: `active` truthy and `superseded_by IS NULL`, which is
+    `versions_proposing`'s filter and `proposal_eligible`'s, because a confirmation
+    the person has since replaced is a readable old row and not a standing answer.
+
+    **THE SPELLINGS ARE THE VALUE ROW'S OWN, AND THAT IS WHAT MAKES A RENAME WORK.**
+    A confirmed value answers to its canonical wording and to its `aliases`, and
+    `facts.values.merge_values` is the one writer of that column: it absorbs the
+    merged value's canonical wording into the survivor's aliases and points the merged
+    row at the survivor. So the person who is shown `Reading Response Draft` and
+    renames it `reading response` leaves exactly one row that answers to both, and a
+    model proposing either spelling next run reaches the spelling they chose. Nothing
+    here compares case-insensitively or by tokens: an equivalence this module invented
+    would be the "equivalence map in code" the sentence above forbids, and a person
+    who wants a second spelling to map says so once, as a rename.
+
+    `raw_variants` is deliberately NOT a spelling. §2.8 keeps it as "exactly that
+    wording" a DOCUMENT used, which is a reading rather than an answer; matching a
+    model's proposal against it would let one document's phrasing decide what another
+    file's value is, with nobody having confirmed anything.
+
+    **AN AMBIGUOUS SPELLING IS DROPPED RATHER THAN GUESSED AT.** Two confirmed values
+    can end up sharing a spelling -- the person renames A into B after B already
+    carried that alias -- and answering with whichever row sorted first would make the
+    canonical form depend on a sort. It is left out, so the value is proposed again
+    and the person is asked rather than told.
+
+    Empty for a field the catalogue does not hold, and it never raises for one: the
+    fact read is keyed on `field_key` alone, so a field with no facts returns nothing
+    before `values_in_field`'s catalogue check is ever reached.
+    """
+    confirmed = {
+        row["value_id"]
+        for rows in versions_in_fields(conn, field_keys=(field_key,)).values()
+        for row in rows
+        if row["reliability_state"] == USER_CONFIRMED and row["active"]
+        and row["superseded_by"] is None
+    }
+    if not confirmed:
+        return {}
+    reached: dict[str, set[str]] = {}
+    for row in values_in_field(conn, field_key):
+        if row["value_id"] not in confirmed:
+            continue
+        canonical = row["canonical_value"]
+        for spelling in (canonical, *json.loads(row["aliases"] or "[]")):
+            reached.setdefault(spelling, set()).add(canonical)
+    return {spelling: next(iter(found))
+            for spelling, found in reached.items() if len(found) == 1}
 
 
 def preferred_in_field(conn: sqlite3.Connection, *,

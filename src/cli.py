@@ -99,9 +99,11 @@ from facts.rules import ACADEMIC_CONTEXT_TERMS, Rule, apply_rules
 from facts.unresolved import BUDGET_DEFERRED, NO_CANDIDATE_EVIDENCE
 from facts.usable import record_pass
 from facts.fields import DOMAIN_FIELDS
-from facts.read_surface import DanglingCitation, evidence_chain
+from facts.read_surface import (
+    DanglingCitation, confirmed_spellings, evidence_chain, versions_in_fields,
+)
 from facts.file_facts import facts_for_file
-from facts.states import VALIDATED, strength
+from facts.states import POSSIBLE, VALIDATED, strength
 from facts.kind import tokens as kind_tokens
 from facts.kind import compile_vocabulary, kind_facts
 from grouping.acceptance import group_state_as_of, record_acceptance
@@ -3907,6 +3909,14 @@ def normalize_for_model(field_key: str, raw_value: str) -> str | None:
             # 114 refusals nobody could sort. `term_refusal` runs on the whole value
             # and none of its three shapes is also an accepted form, so asking it
             # first admits nothing and refuses nothing new -- it only says WHICH.
+            #
+            # **AND `104` §18.2 GAP 3 CHANGED WHAT THE SECOND `None` MEANS.** A
+            # value no pattern claims is no longer refused outright: it falls
+            # through to `normalize_for_review`, which offers it to the person as
+            # a term the catalogue has not seen. The FIRST `None` -- the three
+            # shapes `term_refusal` names -- is refused there too, because those
+            # are shapes the owner ruled against rather than shapes nobody has met
+            # (`105` §14.2). The five patterns are now the seed, not the gate.
             refused = term_refusal(text)
             if refused is not None:
                 return None
@@ -3914,7 +3924,7 @@ def normalize_for_model(field_key: str, raw_value: str) -> str | None:
                             if one.pattern.fullmatch(text)), None)
             return None if claimed is None else claimed.canonical(text)
         if field_key == WORK_TYPE_FIELD:
-            # `work_type` IS A CLOSED VOCABULARY AND HAD NO BRANCH HERE. Measured
+            # `work_type` IS THE LIBRARY'S SEED AND HAD NO BRANCH HERE. Measured
             # on a cloud run with retrieval on: the rule wrote `lecture`,
             # `homework`, `exam` -- all members of the 942 terms the library ships
             # -- and the model wrote `.pdf`, `Proposed Scope` and
@@ -3932,6 +3942,18 @@ def normalize_for_model(field_key: str, raw_value: str) -> str | None:
             # The LIBRARY's spelling is returned rather than the model's, for the
             # reason `KindVocabulary` states: that spelling becomes a folder name
             # and the document's casing must not.
+            #
+            # **WHAT THIS `None` MEANS CHANGED ON 2026-09-09 AND THE LOOKUP DID
+            # NOT.** Until `104` §18.2 gap 3 a miss here ended the value's life at
+            # `VALUE_NOT_NORMALIZABLE`; it now falls through to
+            # `normalize_for_review`, which turns it into a proposal the person is
+            # shown. So this line stopped being a gate and became what `00`:298
+            # calls "the vocabulary the model is shown first" -- the seed the
+            # review path starts from. The paragraph above still holds in every
+            # word: `.pdf` must not become a folder, and it does not, because a
+            # proposal is written `possible` and `PROPOSAL_ELIGIBLE_STATES` keeps
+            # a `possible` fact out of every folder proposal until somebody says
+            # yes.
             return WORK_TYPE_VOCABULARY.terms.get(kind_tokens(text))
         if field_key == SUBJECT_RULE.field_key:
             # AND NEITHER HAS `subject`, SINCE 2026-09-04. It moved from a slot to
@@ -3978,6 +4000,102 @@ SUBJECT_TITLE_MAX_CHARACTERS: int = 64
 _TITLE_SHAPE = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9 '&-]*[A-Za-z0-9])?")
 
 
+def _a_title_a_person_could_confirm(text: str) -> str | None:
+    """`subject`'s three refusals beyond the shared shape, unchanged since R-98.
+
+    1. *A code, or a line containing one.* `_STRUCTURED` is the one definition of an
+       identifier this file authors; if it fires anywhere in the value, the direct
+       path owns the value and the phrase around it is what A_fact rule 4 refuses
+       ("the smallest run of characters that identifies the thing, not the phrase that
+       contains it"). This is what keeps `PHYS1401 Problem Set 4` -- stress case S1 --
+       refused.
+    2. *A term.* `_is_term` is the same test the `subject` rule holds itself off with,
+       so `Spring 2026` proposed as a subject is refused here for the reason it is
+       refused there and not for a second one.
+    3. *Nothing lower-case anywhere.* A course code and its fragments are written in
+       capitals and digits; a name is written in words. This is what keeps `PHYS` --
+       stress case S6's control, "a bare uppercase token ... a fragment of something
+       longer" -- and the measured whole headings `AUDIENCES IN GA4` and `ADVERTISING
+       REPORTS` out. It is also the honest limit of the rule: a title a document
+       prints in capitals is refused with them, and the person is not asked.
+
+    THE TWO LENGTH BOUNDS ARE SUBJECT'S ALONE and stay in this function rather than
+    moving up to the shared shape. `105` §1.3-§1.4 measured them on COURSE NAMES; the
+    library's own `work_type` terms run to a 77-word editorial aside
+    (`facts.kind.KindVocabulary` records it), so a bound measured on titles applied to
+    another field's values would be a number this file authored for a vocabulary it
+    does not own -- which is exactly what `00`:298 forbids.
+    """
+    if len(text) > SUBJECT_TITLE_MAX_CHARACTERS:
+        return None
+    if len(text.split(" ")) > SUBJECT_TITLE_MAX_WORDS:
+        return None
+    if not any(character.islower() for character in text):
+        return None
+    if _is_term(text) or _STRUCTURED.search(text) is not None:
+        return None
+    return text
+
+
+def _a_kind_of_work_a_person_could_confirm(text: str) -> str | None:
+    """`work_type`'s two refusals: it must not be a WHEN, and it must not be a WHO-or-WHAT.
+
+    Both are the same refusal in two spellings -- *this value is another field's
+    answer with words around it* -- and neither is a vocabulary. `_is_term` is asked
+    first so a refusal can say WHICH: `FIELDS_THAT_CANNOT_ANCHOR_A_MOVE` holds
+    `work_type` and `term` as the two fields that can say "what, or when", and a
+    proposal that says when is the other one of the pair. `_STRUCTURED` is refusal 1
+    above, unchanged in its reasoning: `Homework PHYS1401` proposed as a kind of work
+    is a course code with a word in front of it, and a folder named after both is the
+    `65` §4.2 failure with a longer label.
+
+    **NOTHING ELSE IS REFUSED, AND THAT IS THE WHOLE OF `104` §18.2 GAP 3 FOR THIS
+    FIELD.** `Proposed Scope` and `Abstract` -- two of the four values a real cloud
+    run produced that the 942-term library has never seen -- come back from here and
+    become proposals the person is shown. Under the closed vocabulary they were
+    `VALUE_NOT_NORMALIZABLE`, which on r15 was the largest rejection class. The two
+    measured values that must NOT come back, `.pdf` and `GRC Proposed Scope V2.1`, are
+    refused by the shared shape one level up because both carry a dot; `.pdf` is the
+    one that became the folder `Coursework/Daniel Lacker/IEOR3658/.pdf`.
+    """
+    if _is_term(text):
+        return None
+    if _STRUCTURED.search(text) is not None:
+        return None
+    return text
+
+
+def _a_term_a_person_could_confirm(text: str) -> str | None:
+    """`term`'s one refusal: the three shapes the owner ruled are NOT terms.
+
+    `term_refusal` already names them -- a bare year, a bare range, a season initial
+    -- and `105` §14.2 ruled each one out by hand. They are not values the library has
+    not seen; they are values the owner has seen and decided against, on stated
+    grounds: `2019` says which year and not which semester, `2023-2024` is an academic
+    year and §14.2 rules that even `AY 2024-25` "does not identify a semester", and
+    `S2026` is genuinely two answers because Spring and Summer share an initial.
+    Proposing one of those to a person would be asking them to ratify an ambiguity the
+    owner has already resolved, so the ruling survives the opening of the field.
+
+    **`_STRUCTURED` IS DELIBERATELY NOT ASKED HERE, and the asymmetry with `work_type`
+    one function up is the point.** Every term names a year, and `_STRUCTURED` reads
+    `<capitalised word><optional separator><three or more digits>` -- so it matches
+    `Trimester 2025` and `Semester 2024` exactly as it matches `PHYS 1401`. That is
+    not a new observation: `find_structured_strings` runs `_TERM` FIRST for this
+    reason, and its docstring records that swapping the two lines "would file a
+    person's essays under a course named after their semester". Asking `_STRUCTURED`
+    here would refuse the very shape this change exists to propose.
+
+    The whitespace-collapsed value comes back as it was written. There is no library
+    spelling to prefer -- that is what "a value the library has not seen" means -- and
+    `DATE_PATTERNS`' per-pattern canonicalisers each belong to a pattern that did not
+    match, so borrowing one would be canonicalising by a rule that does not apply.
+    """
+    if term_refusal(text) is not None:
+        return None
+    return text
+
+
 def normalize_for_review(field_key: str, raw_value: object) -> str | None:
     """§3.6 check 3's SECOND question: is this a value a person could confirm?
 
@@ -3999,45 +4117,60 @@ def normalize_for_review(field_key: str, raw_value: object) -> str | None:
     `facts.read_surface.PROPOSAL_ELIGIBLE_STATES` keeps out of every folder proposal.
     So a title is offered to the person and cannot become a level until they answer.
 
-    **Four refusals, each one a value this deployment has already met.**
+    **`work_type` AND `term` ARRIVED HERE ON 2026-09-09, AND THE SENTENCE THIS
+    DOCSTRING USED TO END ON IS WITHDRAWN.** It read: *"Only `subject` has one ...
+    answering it here would be authoring a vocabulary."* `104` §18.2 gap 3 measures
+    what that cost -- `VALUE_NOT_NORMALIZABLE` was r15's largest rejection class and
+    `term` and `work_type` were most of it -- and rules the reasoning wrong end up.
+    `00`:298 is the amendment the old sentence was arguing against without saying so:
+    *"`work_type`, `subject`, `term` and user labels are model decisions grounded in
+    the file's evidence. A value the shipped library has not seen is proposed once;
+    the user confirms or renames it; it then belongs to that user's vocabulary in the
+    database."* A closed set in code that turns an unseen value into a rejection is
+    the code deciding, which is the one thing the constitution's first rule forbids.
 
-    1. *A code, or a line containing one.* `_STRUCTURED` is the one definition of an
-       identifier this file authors; if it fires anywhere in the value, the direct
-       path owns the value and the phrase around it is what A_fact rule 4 refuses
-       ("the smallest run of characters that identifies the thing, not the phrase that
-       contains it"). This is what keeps `PHYS1401 Problem Set 4` -- stress case S1 --
-       refused.
-    2. *A term.* `_is_term` is the same test the `subject` rule holds itself off with,
-       so `Spring 2026` proposed as a subject is refused here for the reason it is
-       refused there and not for a second one.
-    3. *Nothing lower-case anywhere.* A course code and its fragments are written in
-       capitals and digits; a name is written in words. This is what keeps `PHYS` --
-       stress case S6's control, "a bare uppercase token ... a fragment of something
-       longer" -- and the measured whole headings `AUDIENCES IN GA4` and `ADVERTISING
-       REPORTS` out. It is also the honest limit of the rule: a title a document
-       prints in capitals is refused with them, and the person is not asked.
-    4. *A shape or a length no name has*, which is `_TITLE_SHAPE` and the two bounds
-       above.
+    **THE CLOSED SETS ARE NOT DELETED. THEY BECOME THE SEED.** `WORK_TYPE_VOCABULARY`
+    and `DATE_PATTERNS` still answer FIRST, in `normalize_for_model` above, and a
+    value either of them knows is still `accept_direct` in the library's own spelling
+    -- which is what `00`:298's last clause means by *"the ratified library is the
+    vocabulary the model is shown first"*. What changed is only what happens to a
+    value they do not know: it used to be a rejection and it is now a proposal. Not
+    one assertion in
+    `tests/p6/test_p6_kind.py::test_a_model_work_type_outside_the_librarys_vocabulary_
+    is_not_normalizable` moved, because that test pins the seed.
 
-    Only `subject` has one. `work_type` was refused on seven of eight coursework files
-    in the same run and is the other half of G15; its members are the ratified
-    library's, so a value it has not seen is a different question -- a folder name
-    from a closed list -- and answering it here would be authoring a vocabulary.
+    **THE SHARED SHAPE, AND WHY ONE SHAPE SERVES THREE FIELDS.** `_TITLE_SHAPE` was
+    written for course titles and its content is not about courses: letters, digits,
+    single spaces, an apostrophe, an ampersand, an internal hyphen, beginning and
+    ending on a letter or a digit. That is the shape of a LEVEL'S LABEL, and all three
+    of these fields bind to levels -- so the values it refuses are refused for the
+    same reason at each of them. It is §13.5's bar and no more than that: *a rule may
+    reject only a structurally invalid answer*. What it keeps out is what this
+    deployment has actually measured -- `report.pdf` and `.pdf` carry a dot, `(i)`
+    carries brackets, `* DIEI ==outcomes in E` and `#corre 1 . 4 - 1 : 4 . 10 - 4`
+    carry marks no label has, `Addition principle-` ends on a hyphen because it is
+    half of a heading, and `GRC Proposed Scope V2.1` carries a dot for the same reason
+    a version string does.
+
+    A field with no review normaliser still returns `None` and is still
+    `VALUE_NOT_NORMALIZABLE`: `instructor` and `school` name PEOPLE and INSTITUTIONS,
+    and neither `00`:298's sentence nor gap 3 opens them. That is a scope line and not
+    a ruling -- when the owner opens one, it is one more branch here.
     """
-    if field_key != SUBJECT_RULE.field_key or not isinstance(raw_value, str):
+    if not isinstance(raw_value, str):
         return None
     text = " ".join(raw_value.split())
-    if not text or len(text) > SUBJECT_TITLE_MAX_CHARACTERS:
-        return None
-    if len(text.split(" ")) > SUBJECT_TITLE_MAX_WORDS:
+    if not text:
         return None
     if _TITLE_SHAPE.fullmatch(text) is None:
         return None
-    if not any(character.islower() for character in text):
-        return None
-    if _is_term(text) or _STRUCTURED.search(text) is not None:
-        return None
-    return text
+    if field_key == SUBJECT_RULE.field_key:
+        return _a_title_a_person_could_confirm(text)
+    if field_key == WORK_TYPE_FIELD:
+        return _a_kind_of_work_a_person_could_confirm(text)
+    if field_key == TERM_FIELD:
+        return _a_term_a_person_could_confirm(text)
+    return None
 
 
 def contradicts_stronger(proposal, existing_fact) -> bool:
@@ -4156,6 +4289,217 @@ def _work_type_vocabulary():
 
 
 WORK_TYPE_VOCABULARY = _work_type_vocabulary()
+
+#: THE THREE FIELDS `normalize_for_review` ANSWERS FOR, spelled once because two
+#: readers need the set and neither may re-spell it: the normaliser branches on it,
+#: and `_print_values_to_confirm` prints exactly the proposals it produced. `00`:298
+#: names these three and one more class -- *"`work_type`, `subject`, `term` and user
+#: labels"* -- and user labels are P10's renamed levels, which have their own gesture
+#: and never pass through §3.6 check 3, so three is the whole of it here.
+#:
+#: `instructor` and `school` are the omission that shows the shape of the decision.
+#: Both were refused on the same run for the same reason, and both name a PERSON or an
+#: INSTITUTION rather than a property of the work; neither `00`:298 nor `104` §18.2
+#: gap 3 opens them, and opening a field nobody ruled on would be this file deciding
+#: which of a person's values are theirs to name.
+REVIEW_NORMALISED_FIELDS: tuple[str, ...] = (
+    SUBJECT_FIELD, WORK_TYPE_FIELD, TERM_FIELD)
+
+assert SUBJECT_RULE.field_key == SUBJECT_FIELD, (
+    "the review normaliser branches on `SUBJECT_RULE.field_key` and this set is "
+    "spelled from `SUBJECT_FIELD`; two spellings of one field key is how a screen "
+    "comes to print a set the normaliser never filled")
+
+
+def normalize_with_the_persons_own_values(
+        conn: sqlite3.Connection) -> Callable[[str, str], str | None]:
+    """§3.6 check 3, asked of the LIBRARY first and of the PERSON'S ANSWERS second.
+
+    **This is the second half of `104` §18.2 gap 3, and without it the first half
+    asks the same question forever.** `normalize_for_review` turns a value the shipped
+    library has not seen into a proposal instead of a rejection; `00`:298 says what
+    happens after the person answers it -- *"the user confirms or renames it; IT THEN
+    BELONGS TO THAT USER'S VOCABULARY IN THE DATABASE"*. Until this closure existed
+    nothing read that vocabulary back, so a value confirmed on Monday was proposed
+    again on Tuesday, and `possible` is below `PROPOSAL_ELIGIBLE_STATES`, so it could
+    never become a folder however many times the person said yes.
+
+    **THE ORDER IS THE RULING.** The pure `normalize_for_model` answers first, so the
+    ratified library is still *"the vocabulary the model is shown first"* and its
+    spelling still wins for a term it ships -- `Lecture` is still `lecture`, in the
+    library's casing, exactly as before. Only where the library has nothing to say is
+    the person's own vocabulary consulted, which is the only place their answer could
+    be about.
+
+    **NO ALIAS TABLE, NO EQUIVALENCE MAP, NO LIST.** `00`:298 forbids all three by
+    name and this closure holds none: it reads
+    `facts.read_surface.confirmed_spellings`, which is a query over the `values` and
+    `file_facts` rows the person's own answers wrote. The equivalences are DATA in
+    their database, put there by `facts.values.merge_values` when they rename
+    something -- so two people who answer differently get different normalisers out of
+    the same code, which is what "that user's vocabulary" means.
+
+    **THE PURE FUNCTION IS NOT TOUCHED, and that is deliberate rather than shy.**
+    `normalize_for_model(field_key, raw_value)` keeps its exact signature and its
+    exact answers; dozens of pins call it bare and P6's own tests read it as a
+    deployment's rule. What is injected at the seam is a normaliser that knows a
+    database, because a database is the one thing a pure canonicaliser cannot have and
+    the one thing a user-specific vocabulary must be.
+
+    A confirmed value comes back as `accept_direct` and therefore as `llm_supported`,
+    which IS proposal-eligible -- the person said yes, so a folder may rest on it. That
+    is the whole point of asking them, and it is why nothing here shortcuts to the
+    review half.
+    """
+
+    def normalize(field_key: str, raw_value: str) -> str | None:
+        seeded = normalize_for_model(field_key, raw_value)
+        if seeded is not None:
+            return seeded
+        if not isinstance(raw_value, str):
+            return None
+        # THE SAME COLLAPSE BOTH NORMALISERS ALREADY APPLY, so `PHYS  1401` off a
+        # two-column page and the person's stored answer are compared as one string
+        # rather than as one string and its whitespace.
+        text = " ".join(raw_value.split())
+        if not text:
+            return None
+        return confirmed_spellings(conn, field_key=field_key).get(text)
+
+    return normalize
+
+
+def _cited_line(conn: sqlite3.Connection, fact_id: str, value: str) -> str | None:
+    """The line of a cited reading that carries the value, or `None`.
+
+    §3.1 is unconditional -- "Every fact preserves where it came from" -- so a
+    proposal always cites something; the two `except` arms below are for a database
+    whose evidence a later pass retired, and they answer `None` rather than raising,
+    because a report that dies on one missing observation tells the person nothing
+    about the other twenty.
+
+    **THE LINE CARRYING THE VALUE, AND ONLY THEN THE FIRST LINE.** A citation can be
+    a whole-zone reading -- a whole page, a whole document -- and its first line is
+    then a sentence about something else entirely, printed under a question about a
+    value that does not appear in it. §3.6 check 2 has already established that the
+    value occurs in the released text, so the line that carries it exists whenever
+    the reading is the one the model quoted; the fallback covers a citation whose
+    text was normalised between the claim and this read.
+
+    A LINE AND NOT THE FIRST N CHARACTERS. A truncation length here would be a number
+    this file authored to decide what a person sees; a line is the document's own
+    unit.
+    """
+    try:
+        chain = evidence_chain(conn, fact_id=fact_id)
+    except (LookupError, DanglingCitation):
+        return None
+    first: str | None = None
+    for observation in chain:
+        for line in observation.raw_value.splitlines():
+            collapsed = " ".join(line.split())
+            if not collapsed:
+                continue
+            if value in collapsed:
+                return collapsed
+            if first is None:
+                first = collapsed
+    return first
+
+
+def _print_values_to_confirm(conn: sqlite3.Connection, out) -> None:
+    """`104` §18.2 gap 3's last clause: *a proposal the person SEES*.
+
+    **The screen this block ends the absence of.** `normalize_for_review` has turned
+    an unseen value into a `possible` fact since R-98, and `possible` is below
+    `PROPOSAL_ELIGIBLE_STATES` -- so from the day it shipped, the product's answer to
+    "the model names, the user confirms" was a row in a table with no line anywhere
+    on the report and no way for a person to know it existed. `00`:298 says the value
+    *"is proposed once"*, and a proposal nobody is shown is not a proposal; it is the
+    same silent loss the rejection was, with a better state name. Gap 3 says it in as
+    many words: *"A rejected value must become a proposal the person sees, with the
+    model's evidence beside it."*
+
+    **IT PRINTS ALL THREE FIELDS, INCLUDING `subject`.** The gap is filed against
+    `work_type` and `term`, and the screen it asks for was missing for `subject` too;
+    a block that showed the two new fields and not the one whose review path they were
+    given would put a person's course titles back in the dark to keep a diff small.
+
+    **THE EVIDENCE IS THE MODEL'S OWN CITATION**, walked back through
+    `facts.read_surface.evidence_chain` to the P4 observation the claim cited. §3.6
+    check 2 has already established that the value occurs in that released text, so
+    the line printed is where the model got it -- which is what makes the question
+    answerable rather than a request to trust a machine.
+
+    **WHAT THIS SCREEN DOES NOT YET OFFER, SAID HERE AND ON THE SCREEN ITSELF.** There
+    is no confirm gesture and no rename gesture in this command. `--reject` exists and
+    is printed because it is TRUE and typeable; confirming writes a `user_confirmed`
+    fact and renaming calls `facts.values.merge_values`, and neither has a flag. The
+    read side is built and tested (`normalize_with_the_persons_own_values` above), so
+    the day the owner shapes those two gestures the vocabulary they write is already
+    consulted. Printing a gesture that does not exist would break `84` §6 -- what the
+    screen tells a person to type has to be true -- so the block says plainly that the
+    answer is not typeable yet rather than inventing a flag to look finished.
+
+    **AND IT PRINTS WITH THE FACT PASS, WHICH IS A BOUND WORTH NAMING.** The call site
+    is inside `_model_fact_pass`, so a run that reaches none of its four early returns
+    prints this and a run that reaches one of them does not -- even though a standing
+    proposal from an earlier run is still open. The reconciliation `104` §18.2 gap 10
+    built has the same shape of answer for coverage and solved it by printing outside
+    the pass; doing the same here belongs with the confirm gesture, because a person
+    shown an open question on a run that asked nothing needs a way to answer it.
+    """
+    proposals: dict[tuple[str, str], list[sqlite3.Row]] = {}
+    for rows in versions_in_fields(
+            conn, field_keys=REVIEW_NORMALISED_FIELDS).values():
+        for row in rows:
+            # `possible` AND LIVE. A superseded or deactivated proposal is a
+            # readable old row (§8.2) and not a question still open, and asking a
+            # person about one would be re-asking something they have answered.
+            if row["reliability_state"] != POSSIBLE:
+                continue
+            if not row["active"] or row["superseded_by"] is not None:
+                continue
+            proposals.setdefault(
+                (row["field_key"], row["canonical_value"]), []).append(row)
+    if not proposals:
+        return
+    print("\nNew values the model proposed, waiting on you:", file=out)
+    print(_wrapped(
+        "None of these is in the vocabulary this product ships, so none of them is "
+        "filing anything: nothing is placed under a value until it is confirmed. "
+        "Each is proposed once, with the line the model was reading beside it.",
+        indent="  "), file=out)
+    for (field_key, value), rows in sorted(proposals.items()):
+        # ONE ROW PER FILE VERSION, so a value read from six files says six and not
+        # however many facts those six files carry.
+        versions = sorted({(row["file_id"], row["fact_id"]) for row in rows})
+        files = len({file_id for file_id, _fact in versions})
+        named = get_file(conn, versions[0][0])
+        # `--reject` TAKES A FILENAME AND NOTHING ELSE, and refuses one that names
+        # two files. Printing a path or a file id here would tell the person to type
+        # something the gesture rejects, which is `84` §6's own failure.
+        filename = "<no name on record>" if named is None else named["filename"]
+        print(f"\n  {field_key.replace('_', ' ')}: {value!r} "
+              f"-- on {files} {'file' if files == 1 else 'files'}, "
+              f"first {filename!r}.", file=out)
+        line = _cited_line(conn, versions[0][1], value)
+        if line is not None:
+            print(_wrapped(f"The model was reading: {line!r}", indent="    "),
+                  file=out)
+        # PRINTED RAW, NEVER WRAPPED. `_role_lines` states the rule and `84` §6 is
+        # the defect behind it: "textwrap breaking a command across two lines
+        # produces a command that does not work". A filename with a space in it is
+        # exactly where `_wrapped` would break this one.
+        print(f"    --reject {shlex.quote(f'{filename}:{field_key}={value}')}"
+              f"   No, that is not right", file=out)
+    print("", file=out)
+    print(_wrapped(
+        "Saying YES to one of these is not a gesture this command has yet: the "
+        "product can store your answer and will use it on every later run, and "
+        "there is no flag to type it with. Until there is, a proposal stays a "
+        "proposal and files nothing.", indent="  "), file=out)
+
 
 #: The field the coursework `holder_institution` role resolves to, spelled here for
 #: the same reason `TERM_FIELD` and `WORK_TYPE_FIELD` are: the composition root is
@@ -4949,10 +5293,17 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
         # `FactRequest` carries it and a caller that skipped it would be choosing
         # for P6.
         normalizers={},
-        normalize=normalize_for_model,
-        # Check 3's second question (`104` R-98). Without it, a course that names
-        # itself in words instead of a code is refused rather than offered: ten of
-        # ten `subject` answers on the owner's coursework files were.
+        # THE LIBRARY'S SEED, THEN THIS PERSON'S OWN ANSWERS (`104` §18.2 gap 3).
+        # `normalize_for_model` is still what canonicalises and is still asked
+        # first; what the closure adds is the vocabulary the person built by
+        # confirming and renaming proposals, which lives in their database and
+        # nowhere in this file. `00`:298 is the sentence it pays.
+        normalize=normalize_with_the_persons_own_values(conn),
+        # Check 3's second question (`104` R-98, widened by `104` §18.2 gap 3).
+        # Without it, a course that names itself in words instead of a code is
+        # refused rather than offered: ten of ten `subject` answers on the owner's
+        # coursework files were, and on r15 `term` and `work_type` were most of the
+        # largest rejection class there was.
         normalize_for_review=normalize_for_review,
         contradicts=contradicts_stronger,
         evidence_resolver=_stored_value_of(conn),
@@ -10316,6 +10667,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # would part company with the stored one the first time a refusal left
             # the loop early.
             cut=_dossier_cut(conn, outcomes))
+        # `104` §18.2 gap 3. DIRECTLY UNDER THE COUNTS, because a proposal is what
+        # some of those written facts ARE and a person reading "12 written" is owed
+        # the ones that are questions rather than conclusions. Read from the
+        # database and not from `outcomes`: a `P8Verdict` carries no field and no
+        # value (`llm_harness.records.P8Verdict`), so the only place the pair the
+        # person must judge exists is the row the pass just wrote.
+        _print_values_to_confirm(conn, out)
         # `104` §18.2 gap 10. WHAT THE PASS SAW, HANDED OUT WHOLE. The
         # reconciliation runs whether or not this function reached this line, so
         # it cannot be written here; what it can be given is every verdict this
