@@ -310,26 +310,58 @@ def _model_call_request_builder(conn: sqlite3.Connection, *,
     prompt = authorities.prompt
 
     def build(*, subject_ref: str, evidence_items: Sequence[EvidenceItem],
-              max_dossier_tokens: int) -> ModelCallRequest:
+              max_dossier_tokens: int,
+              member_file_ids: Sequence[str] = (),
+              model_target: ModelTarget | None = None) -> ModelCallRequest:
+        """`104` §18.2 gap 14 added the last two, and only a GROUP passes them.
+
+        `member_file_ids` is the group's members, so the release names every file
+        the dossier is about; `model_target` is the destination P11's gate has
+        already proved every one of them may use. Both absent is one file, and
+        that path is byte-identical to what it was -- which is also why they are
+        defaulted rather than required: a composition root that predates groups
+        builds a file's request unchanged.
+
+        The target is TAKEN and not re-derived for a group. `authorities.route`
+        answers about ONE file, and picking one member's answer for the whole
+        packet -- or re-running the weakest-member rule here -- would be a second
+        answer to "where may this call go", reached after §8.4's gate had given
+        the first.
+        """
         file_id = file_id_of(subject_ref)
-        # `104` §17.13 ruling 3: THIS FILE's destination, asked once and used for
-        # both the address and the release rules below. A protected or unclassified
-        # file goes to the local model where the cloud may not see it, so a target
-        # read off a field would address one destination for every file in the run.
-        chosen = authorities.route(file_id)
-        if chosen is None:
-            raise MalformedRequest(
-                f"file {file_id!r} may reach no model in this run, so there is no "
-                f"target to address a placement request to. `may_assemble_dossier` "
-                f"answers the same question before a dossier is built and this is "
-                f"the backstop behind it")
-        model_target = chosen[1]
-        return ModelCallRequest(
-            stage=PLACEMENT_STAGE,
+        if member_file_ids:
+            if model_target is None:
+                raise MalformedRequest(
+                    "a group placement request names the destination its own "
+                    "gate admitted for every member; without it this builder "
+                    "would have to choose one member's route for the packet")
+            files = tuple(member_file_ids)
+            group_id = subject_ref.partition(":")[2] or subject_ref
+        else:
+            # `104` §17.13 ruling 3: THIS FILE's destination, asked once and used
+            # for both the address and the release rules below. A protected or
+            # unclassified file goes to the local model where the cloud may not
+            # see it, so a target read off a field would address one destination
+            # for every file in the run.
+            chosen = authorities.route(file_id)
+            if chosen is None:
+                raise MalformedRequest(
+                    f"file {file_id!r} may reach no model in this run, so there "
+                    f"is no target to address a placement request to. "
+                    f"`may_assemble_dossier` answers the same question before a "
+                    f"dossier is built and this is the backstop behind it")
+            model_target = chosen[1]
             # ONE file. A placement call decides where one subject goes, and a
             # target naming more would authorise a release about files the judge
             # was never asked about.
-            target=Target(file_ids=(file_id,), group_id=None),
+            files, group_id = (file_id,), None
+        return ModelCallRequest(
+            stage=PLACEMENT_STAGE,
+            # THE FILES THIS CALL IS ABOUT, and for a group that is every member:
+            # the dossier carries their evidence, so the release has to name them
+            # or it would authorise less than it sends. The same shape P9's own
+            # group call builds (`grouping/p8_seam.py`).
+            target=Target(file_ids=files, group_id=group_id),
             model_target=model_target,
             requested_items=releasable_excerpts(
                 conn,

@@ -5876,6 +5876,48 @@ class SituationPass:
 _NOTHING_ASKED: "SituationPass"
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
+class GroupPass:
+    """What the GROUP placement calls left behind, counted (`104` §18.2 gap 14).
+
+    `00`:112 asks for one coherent group plan rather than several unrelated file
+    moves, and the person reading the plan is owed the arithmetic behind it: how
+    many packets were put to the judge as packets, how many it answered, and how
+    many of their files then followed the answer rather than being decided one at
+    a time. Without these numbers a group plan and a coincidence look identical on
+    the screen -- which is exactly what the run WAS before this gap was closed.
+
+    `asked`, `answered` and `abstained` are read off the run's own records, so
+    they say what happened rather than what the pipeline believed: a dossier whose
+    subject is a group, and the verdict beside it.
+
+    `with_their_group` and `singly` partition the members of every group the run
+    planned, so the two numbers sum to the members and a person can check them.
+    """
+
+    #: Groups a site-C dossier was built for, one call each.
+    asked: int
+    #: Of those, the ones whose answer named a destination P8 accepted.
+    answered: int
+    #: Of those, the ones the model answered "none" for, or whose answer P8 did
+    #: not accept. `00`: correct abstention is a successful outcome -- the members
+    #: are placed one at a time, exactly as they were before this call existed.
+    abstained: int
+    #: Members placed BY their group's answer: their own stated values did not
+    #: rule the folder out, so no second question was asked about them.
+    with_their_group: int
+    #: Members of a planned group placed by their own per-file call: the group
+    #: abstained or was never asked, or this file's own values contradicted the
+    #: group's folder and it was judged alone with that folder offered.
+    singly: int
+
+
+#: NO GROUP WAS PUT TO A MODEL, which is not the same as a run with no groups and
+#: not the same as a run whose groups all abstained. Same argument as
+#: `_NOTHING_ASKED`: an absent pass and an unproductive one must not read alike.
+NO_GROUP_CALLS: "GroupPass"
+
+
 class ProtectedFileOfferedACloudTarget(RuntimeError):
     """A file the rules are holding was routed somewhere off this device.
 
@@ -6227,6 +6269,9 @@ _NOTHING_ASKED = SituationPass(
     named={}, settled=0, nothing_to_ask=0, nothing_to_read=0, declined=0,
     no_route=0,
     holds=PrecautionHolds(held=0, released=0, confirmed=0, still_held=0))
+
+NO_GROUP_CALLS = GroupPass(asked=0, answered=0, abstained=0,
+                           with_their_group=0, singly=0)
 
 
 def model_fact_resolver(conn: sqlite3.Connection, *,
@@ -7915,6 +7960,49 @@ def _print_situation_pass(situation: SituationPass, *, files: int,
                        f"{SITUATION_SENTENCE[field.name]}", indent="  "),
               file=out)
     _print_the_holds(situation.holds, out=out)
+
+
+def _print_group_pass(groups: GroupPass, *, out) -> None:
+    """`104` §18.2 gap 14's block, in the shape the fact and situation passes print.
+
+    `00`:112: *"The engine should show this as one coherent group plan rather than
+    as several unrelated file moves."* A person cannot tell the two apart from the
+    file list alone -- four files going to one folder look the same whether they
+    were judged together or four times over -- so the plan says which it was, and
+    with what result.
+
+    **A RUN THAT ASKED NO GROUP PRINTS NOTHING**, which is `_NOTHING_ASKED`'s own
+    ruling: an absent pass and an unproductive one must not read the same. A run
+    with no accepted groups, an offline run and a run whose text is not ratified to
+    act all reach here with `asked == 0`, and none of them has anything to say
+    about group judgement.
+
+    The last line is printed whenever any member was placed, including when every
+    group abstained: "0 with their group, 6 one at a time" is the sentence that
+    tells a person the packet they can see on the screen was not judged as one.
+    """
+    if groups is NO_GROUP_CALLS or not groups.asked:
+        return
+    print("", file=out)
+    print(_wrapped(
+        f"Groups put to a model as groups: {groups.asked} "
+        f"{'packet was' if groups.asked == 1 else 'packets were'} judged as a "
+        f"whole rather than a file at a time, so the files in them explained one "
+        f"another instead of being read alone.", indent=""), file=out)
+    print(_wrapped(
+        f"{groups.answered} answered with a folder.", indent="  "), file=out)
+    print(_wrapped(
+        f"{groups.abstained} left to the person's files one at a time: the "
+        f"model named no folder for the packet, so every file in it was asked "
+        f"its own question, exactly as it would have been.", indent="  "),
+        file=out)
+    print(_wrapped(
+        f"{groups.with_their_group} "
+        f"{'file went' if groups.with_their_group == 1 else 'files went'} "
+        f"where their group went; {groups.singly} "
+        f"{'was' if groups.singly == 1 else 'were'} decided one at a time, "
+        f"either because the group had no answer or because what the file itself "
+        f"says rules that folder out.", indent="  "), file=out)
 
 
 def _print_the_holds(holds: PrecautionHolds, *, out) -> None:
@@ -13192,6 +13280,56 @@ def _crossing_moves(conn: sqlite3.Connection, result: ProductionRun, *,
     return crossing
 
 
+def group_pass_counts(conn: sqlite3.Connection, *, plan_version: str,
+                      decisions: Sequence) -> GroupPass:
+    """`104` §18.2 gap 14's five numbers, read off the run's own records.
+
+    Read HERE and passed into `report`, for the reason `report`'s own docstring
+    gives about `questions`: it takes a finished run and a naming table and holds
+    no connection, and giving it one so it could ask a second part a question
+    would make the report a place where new facts are discovered.
+
+    **THE FIRST THREE ARE THE TABLES', not the pipeline's.** `place_group` knows
+    what it did; a screen that took its word for it would say a call happened
+    whenever the code meant to make one. The dossier row is the call, and the
+    verdict beside it is the answer -- the same two rows `104` §18.27's run
+    inspection walks, asked here about a subject that is a group. A group whose
+    dossier was built and whose verdict was never written counts as asked and not
+    answered, which is the truth about it.
+
+    Superseded verdicts are excluded because a re-validation writes a new row for
+    the same dossier (`versions.revalidate_for_plan`), and counting both would
+    make one answered group look like two.
+
+    **THE LAST TWO ARE THE DECISIONS', and they partition the members.** A member
+    row carries `group_support` exactly when the group's answer placed it, and
+    `group_plan_id` whenever it belongs to a planned group at all -- so the
+    difference between the two is the members that went alone: the ones whose
+    group abstained or was never asked, and the ones whose own values contradicted
+    the group's folder and were judged singly with it offered.
+    """
+    asked = {row["subject_ref"] for row in conn.execute(
+        "SELECT DISTINCT subject_ref FROM llm_dossier WHERE call_site = ? "
+        "AND plan_version = ? AND subject_ref LIKE ?",
+        (C_PLACEMENT, plan_version, f"{GROUP}:%"))}
+    accepted = {row["subject_ref"] for row in conn.execute(
+        "SELECT DISTINCT d.subject_ref FROM llm_dossier d "
+        "JOIN llm_verdict v ON v.dossier_id = d.dossier_id "
+        "WHERE d.call_site = ? AND d.plan_version = ? AND d.subject_ref LIKE ? "
+        "AND v.superseded_by IS NULL AND v.outcome IN (?, ?)",
+        (C_PLACEMENT, plan_version, f"{GROUP}:%",
+         ACCEPT_DIRECT, ACCEPT_CONTEXT_SUPPORTED))}
+    planned = [decision for decision in decisions
+               if decision.group_plan_id is not None]
+    with_their_group = sum(1 for decision in planned
+                           if decision.group_support is not None)
+    return GroupPass(
+        asked=len(asked), answered=len(accepted),
+        abstained=len(asked) - len(accepted),
+        with_their_group=with_their_group,
+        singly=len(planned) - with_their_group)
+
+
 def duplicate_families(conn: sqlite3.Connection,
                        scan_run_id: str) -> dict[str, tuple[str, ...]]:
     """§3.11's `duplicate_family`, as families rather than as per-file facts.
@@ -13234,7 +13372,8 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
            duplicates: Mapping[str, tuple[str, ...]] = MappingProxyType({}),
            reading_family: Sequence[str] = (),
            reaching: Mapping[str, tuple[str, ...]] = MappingProxyType({}),
-           not_carried: Sequence = ()) -> tuple[str, ...]:
+           not_carried: Sequence = (),
+           groups: "GroupPass | None" = None) -> tuple[str, ...]:
     """The run, in the order a person would ask about it.
 
     Four questions, in this order: what was left alone, what folders are being
@@ -13277,6 +13416,11 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
     whether a blocked group's heading may promise "once you say what these are"
     and what is printed under it, and an empty one means no group can claim a
     gesture -- the safe direction, because the defect was claiming one.
+
+    `groups` is `104` §18.2 gap 14's five counts, read from the run's records by
+    `group_pass_counts` and arriving the same way for the same sentence. `None`
+    means the caller did not ask -- every test and every caller that predates the
+    group call -- and reads as `NO_GROUP_CALLS`, which prints nothing.
     """
     out = out if out is not None else sys.stdout
     tree = result.tree.tree
@@ -13536,6 +13680,10 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         print(_wrapped(again.format(first=first), indent="    "), file=out)
         return False
 
+    # `104` §18.2 gap 14, ABOVE the file list and not under it. It says HOW the
+    # lines below were decided, and a person reads that before the lines rather
+    # than after forty of them.
+    _print_group_pass(groups if groups is not None else NO_GROUP_CALLS, out=out)
     print(f"\nFiles: {len(decisions)} decided, {placed} ready to file"
           + (f", {awaiting} waiting for you to approve" if awaiting else ""),
           file=out)
@@ -14880,6 +15028,12 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                    # of files asks "which question settles me". Inverted here,
                    # once, rather than in the loop that groups the decisions.
                    reaching=_questions_by_file(questions_reach),
+                   # `104` §18.2 gap 14, read here and passed IN like the rest:
+                   # the dossier and verdict rows the group calls wrote, and the
+                   # member decisions that followed them.
+                   groups=group_pass_counts(
+                       conn, plan_version=result.tree.tree.plan_version_id,
+                       decisions=result.placement.decisions),
                    # A §7.6 set answer belongs to the plan version it was given
                    # in, and every run mints a new one, so an answer given
                    # yesterday is not applied today. That is

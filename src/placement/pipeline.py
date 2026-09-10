@@ -87,12 +87,12 @@ from placement.p8_seam import (
     to_p8_conflicts, transcribe,
 )
 from placement.privacy import (
-    automatic_move_permitted_for, is_unclassified, may_assemble_dossier,
+    LOCAL, automatic_move_permitted_for, is_unclassified, may_assemble_dossier,
     privacy_state_for, review_policy_for,
 )
 from placement.records import (
-    Ask, DecisionDepth, Destination, PlacementDecision, ResidualContext,
-    ReturnTarget, Subject, TwoCondition,
+    Ask, DecisionDepth, Destination, GroupSupport, PlacementDecision,
+    ResidualContext, ReturnTarget, Subject, TwoCondition,
 )
 from placement.residual import (
     ACTION_OUTCOME, ResidualSet, ResidualSetDecision, SetDecisionRequired,
@@ -100,7 +100,9 @@ from placement.residual import (
     record_set_decision, require_model_call_permitted, require_set_actionable,
     require_set_decision, surface_residual_sets,
 )
-from placement.retrieval import CURATED_FOLDER, Retrieval, SetAside, retrieve
+from placement.retrieval import (
+    CURATED_FOLDER, Candidate, Retrieval, SetAside, retrieve,
+)
 from placement.scoring import assess, needs_model_call, score_candidates
 from placement.stage_output import emit_retrieval_stage, emit_scoring_stage
 from placement.store import current_decision, record_decision, subject_ref_of
@@ -109,7 +111,7 @@ from placement.vocabulary import (
     BLOCKED_PENDING_USER, BUDGET_DEFERRED,
     CONFLICTING_FACTS, CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH,
     DECIDED_BY_MODEL, DECIDED_BY_RULE, DECIDED_BY_USER, DIRECT,
-    EXISTING, FILE, GENERIC_HUB_ONLY, LOW_MARGIN,
+    EXISTING, FILE, GENERIC_HUB_ONLY, GROUP, LOW_MARGIN,
     MARGIN_TRUE_VACUOUS, MARK_STATE, NO_SHARED_BRANCH, SEMANTIC_ONLY,
     MULTIPLE_SUPPORTED_HOMES, NO_SUPPORTED_DESTINATION, PLACE, PLACEMENT,
     POSSIBLE, PRIVACY_BLOCKED, RESIDUAL, RESIDUAL_ROLE, REVIEW_WITH_MODEL,
@@ -1067,10 +1069,73 @@ def _write(conn: sqlite3.Connection, decision: PlacementDecision, *, inputs,
 # --- §6.12 steps 3 to 9, for one subject -------------------------------------------
 
 
+def _learning_subject_id(subject) -> str:
+    """§8.7's subject id for the scope its kind names. One read, two kinds."""
+    return subject.file_id if subject.kind == FILE else subject.group_id
+
+
+@dataclass(frozen=True)
+class GroupAnswer:
+    """What the model said about the GROUP, carried to the member it decides.
+
+    `104` §18.2 gap 14, `00`:112: *"The placement engine should FIRST confirm the
+    shared parent branch ... It can then classify members within that branch."*
+    One call took the whole group; this is that call's answer, handed to
+    `place_file` so that a member placed by it is written by the one function that
+    writes every placement row -- same privacy state, same review policy, same
+    supersession, same table.
+
+    `membership` is P9's own decision word for this file's membership, copied onto
+    `GroupSupport` rather than minted here: whether the file is IN the group is
+    P9's finding and P11 does not re-decide belonging.
+
+    `sits_apart` is P9's OUTLIER FLAG, carried for the same reason and doing the
+    same work one step later. A member P9 flagged sits apart from the group, so
+    the group's answer is not its answer -- and a row that claimed `group_support`
+    for a file the plan then EXCLUDES as an outlier would be one record saying
+    both things at once. It is judged on its own with the group's folder offered,
+    which is what happens to a member that contradicts the answer, because it is
+    the same situation reached from P9's evidence rather than from this file's.
+
+    There is no `contradicted` field, and the absence is the point. Whether a
+    member's own evidence rules the group's folder out is answered from the
+    member's OWN retrieval, inside `place_file`, off §6.3's suppression -- the
+    check that already exists and already records what it suppressed and why.
+    Carrying a flag computed elsewhere would be a second opinion about the same
+    file, reached from a second retrieval, free to disagree with the one on the
+    record. `sits_apart` is not that: it is a finding P9 already made and already
+    published, copied and never re-derived.
+    """
+
+    group_id: str
+    node_id: str
+    membership: str
+    sits_apart: bool = False
+
+
+#: The sentence a contradicting member's dossier carries beside the group's folder
+#: (`104` §18.2 gap 2's channel: the rule's own words inside the candidate's
+#: `location`, never a sixteenth dossier key). It says what was noticed and not
+#: what to conclude -- the folder is on `allowed_vocabulary` and the model may
+#: still answer with it.
+RANKED_BELOW_BECAUSE_THE_FILE_DISAGREES: str = (
+    "the group this file was accepted into was placed here, and this file's own "
+    "stated values rule that folder out"
+)
+
+#: The same channel for the other way a member sits apart from its group's answer:
+#: the grouping stage itself flagged this file as an outlier of the packet.
+RANKED_BELOW_BECAUSE_THE_GROUPING_SET_IT_APART: str = (
+    "the group this file was accepted into was placed here, and the grouping "
+    "stage set this file apart from that group"
+)
+
+
 def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
                evidence, component_version: str, observed_at: str,
                group_plan_id: str | None = None,
-               returned_from: str | None = None) -> PlacementDecision:
+               returned_from: str | None = None,
+               group_answer: GroupAnswer | None = None) -> PlacementDecision:
     """One file through steps 3-7 and 9. Step 8 runs inside P8 when it is needed.
 
     `group_plan_id` is passed in rather than patched on afterwards, because the
@@ -1080,6 +1145,25 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
 
     `returned_from` is §7.9's link: the residual decision that handed this file
     back. Without it `link_return` refuses, and §8.8's diff cannot walk the loop.
+
+    `group_answer` is `104` §18.2 gap 14's whole direction of travel: the model
+    was asked about this file's GROUP, and this file is being placed FROM that
+    answer rather than the answer being read back off this file. Two outcomes, and
+    the member's own evidence decides which:
+
+    * its stated values do NOT rule the group's folder out -- it goes with the
+      group. No second call is made about it: the model has already answered about
+      this file, as one of the files it was shown, and asking again would be
+      paying twice for one question and inviting two answers to it. The row says
+      `decided_by=model`, because the group's answer IS the model's, and carries
+      `group_support` naming the group and P9's membership word.
+    * its stated values DO rule it out -- §6.3 suppressed that folder for this
+      file. It is an outlier of the group's answer, it is placed singly by the
+      ordinary per-file call, and the group's folder is OFFERED to that call on
+      the shortlist's tail with the disagreement as its reason. `00`:112's own
+      worked example is this: *"It can identify that a Duke essay is an outlier
+      because of its conflicting target-institution fact, exclude it from the
+      Columbia packet, and route it to a separate legal branch or review queue."*
     """
     subject_ref = subject_ref_of(subject)
 
@@ -1276,8 +1360,57 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
     # step 6 ranked below the contenders still has a shortlist, and the model is
     # the one `00`'s amendment gives that question to.
     set_aside = _ranked_set_aside(retrieval, graphs, policy=inputs.policy)
-    if needs_model_call(assessment, model_decides=inputs.model_decides(),
-                        set_aside_candidates=bool(set_aside)):
+    #: `104` §18.2 GAP 14. DOES THIS MEMBER'S OWN EVIDENCE RULE THE GROUP'S FOLDER
+    #: OUT? Asked of §6.3's suppression and of nothing else: `retrieve` records one
+    #: `ConflictConsidered` per value this file states, naming the branches that
+    #: value pulled it away from, and a folder among them is a folder this file
+    #: contradicts. P11 writes no second comparison of facts against a node -- one
+    #: would be free to disagree with the one already on the record, and `104`
+    #: §18.2 gap 16 is what that comparison is; inherited here, not re-opened.
+    #:
+    #: P9'S FLAG IS THE OTHER WAY TO SIT APART FROM THE ANSWER, and it is read
+    #: rather than re-derived. A member P9 called an outlier is excluded from the
+    #: plan (`place_group` step three), so placing it BY the group's answer would
+    #: write `group_support` on a file the same plan says the group left out.
+    contradicts_the_group = group_answer is not None and (
+        group_answer.sits_apart or group_answer.node_id in {
+            node_id for conflict in retrieval.conflicts
+            for node_id in conflict.suppressed_node_ids
+        })
+    if group_answer is not None and not contradicts_the_group:
+        # THE GROUP'S ANSWER IS THIS FILE'S ANSWER, and no second call is made.
+        # Checked against the index for the reason a model-chosen node is checked
+        # three steps below: `legal_node_ids` is the one authority on what this
+        # plan version contains, and P11 places nothing on a disagreement with it.
+        if group_answer.node_id not in legal_node_ids(
+                conn, plan_version=inputs.plan_version):
+            raise ValueError(
+                f"{group_answer.node_id!r} is not a legal destination of "
+                f"{inputs.plan_version!r}. The group's own call already had its "
+                "answer checked against the index; reaching here means the tree "
+                "changed underneath the plan, and P11 places nothing on that"
+            )
+        chosen_node_id = group_answer.node_id
+    elif contradicts_the_group:
+        # OFFERED, NOT FORCED (`00`:112's outlier, and gap 2's channel). The folder
+        # §6.3 suppressed for this file goes back on the shortlist's TAIL, carrying
+        # the disagreement as its reason, and the model decides what the
+        # disagreement means. It cannot already be a contender -- retrieval
+        # suppressed it -- and the guard is here for the day some other rule puts
+        # it back rather than for a state that exists.
+        already = ({candidate.node_id for candidate in retrieval.candidates}
+                   | {item.candidate.node_id for item in set_aside})
+        if group_answer.node_id not in already:
+            set_aside = set_aside + (SetAside(
+                candidate=Candidate(node_id=group_answer.node_id, channels=(),
+                                    matching_facts=(),
+                                    group_ids=(group_answer.group_id,)),
+                because=(RANKED_BELOW_BECAUSE_THE_GROUPING_SET_IT_APART
+                         if group_answer.sits_apart
+                         else RANKED_BELOW_BECAUSE_THE_FILE_DISAGREES)),)
+    if chosen_node_id is None and needs_model_call(
+            assessment, model_decides=inputs.model_decides(),
+            set_aside_candidates=bool(set_aside)):
         # `104` R-74. WHETHER THE DETERMINISTIC PATH WOULD HAVE PLACED THIS FILE,
         # asked of the same function with the model taken out of it. R-19 sends
         # every placeable file to site C, so a protected file with a unique direct
@@ -1432,6 +1565,19 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
               and node_id == assessment.scored[0].node_id)
     confidence = (assessment.confidence_class if direct
                   else CONTEXT_SUPPORTED_GROUP_MATCH)
+    #: `00`:112'S SUPPORT, ON THE FIELD `00`:114 MADE FOR IT. `104` §18.2 gap 14:
+    #: "group support null at every writer". This is the writer -- the file went
+    #: where it went because the group it belongs to went there -- and P9's own
+    #: membership word is copied rather than re-derived. `None` when the file was
+    #: not placed by its group's answer, including the member that contradicted it
+    #: and was placed singly: that file's home is its own evidence's, and saying
+    #: the group supported it would be the post-hoc aggregation this gap closes,
+    #: written the other way round.
+    group_support = (
+        None if chosen_node_id is None or group_answer is None
+        or chosen_node_id != group_answer.node_id or contradicts_the_group
+        else GroupSupport(group_id=group_answer.group_id,
+                          membership=group_answer.membership))
     two = (assessment.two_condition if direct
            else dataclasses.replace(assessment.two_condition,
                                     requires_review=True))
@@ -1471,7 +1617,7 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         evidence_type=DIRECT if direct else CONTEXT_SUPPORTED,
         confidence_class=confidence,
         matching_facts=_facts_of(retrieval, entry.node_id),
-        group_support=None,
+        group_support=group_support,
         # A model-chosen node need not be one P11 CONTENDED, so the node-local
         # graph may not exist, and claiming anchors it does not have would be
         # evidence the file was never shown to carry.
@@ -1496,14 +1642,24 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         two_condition=two, abstention_reason=None,
         deferred_stage=None, privacy=privacy,
         review_policy=review_policy_for(
-            privacy_state=privacy, two_condition=two, group_support=None,
+            privacy_state=privacy, two_condition=two,
+            group_support=group_support,
             unique_direct_match=direct,
             destination_disposition=entry.disposition,
             automatic_move_permitted=automatic_move_permitted),
         explanation=_explain(entry, assessment, retrieval,
                              model_decided=chosen_node_id is not None,
                              gate_refused=gate_refused,
-                             refinements=refinements),
+                             refinements=refinements,
+                             group_support=group_support,
+                             disagreed_with_group=(
+                                 group_answer.group_id
+                                 if contradicts_the_group
+                                 and not group_answer.sits_apart else None),
+                             flagged_out_of_group=(
+                                 group_answer.group_id
+                                 if contradicts_the_group
+                                 and group_answer.sits_apart else None)),
         residual=None,
         # `104` R-165. THE SAME PREDICATE THE SENTENCE ABOVE IS BUILT FROM, on a
         # field something can count. `chosen_node_id` is not None exactly when a
@@ -1512,6 +1668,12 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         # arithmetic and nobody's judgement. That covers the deterministic path,
         # the offline install, R-74's gate refusal and R-O's refused call alike --
         # four routes to one fact, which is that the rules decided.
+        #
+        # **AND `104` §18.2 GAP 14 IS A FIFTH ROUTE TO THE FIRST ANSWER.** A member
+        # placed by its group's answer has `chosen_node_id` set and made no call of
+        # its own: the model decided, in the one call that took the group, and a
+        # row that said `rule` about it would credit §6.10's arithmetic with a
+        # judgement no arithmetic reached.
         decided_by=DECIDED_BY_MODEL if chosen_node_id is not None
         else DECIDED_BY_RULE,
     )
@@ -1560,8 +1722,19 @@ def _facts_of(retrieval, node_id: str) -> tuple:
 
 def _explain(entry, assessment, retrieval, *, model_decided: bool = False,
              gate_refused: bool = False,
-             refinements: frozenset[str] = frozenset()) -> str:
+             refinements: frozenset[str] = frozenset(),
+             group_support=None,
+             disagreed_with_group: str | None = None,
+             flagged_out_of_group: str | None = None) -> str:
     """§6.4 and §6.11: state the actual basis, claim no evidence the file lacks.
+
+    **AND WHICH SUBJECT THE JUDGE WAS ACTUALLY ASKED ABOUT** (`104` §18.2 gap 14).
+    A member placed by its group's answer was never asked about on its own, and a
+    record that said only "chosen by the hierarchical destination judge" would let
+    a person read that as a judgement about this file's own evidence. So the
+    sentence says the group decided it; and where the file DISAGREED with its
+    group and was placed singly, it says that too, because a plan that quietly
+    filed one file of a packet somewhere else owes the person the reason.
 
     `gate_refused` is `104` R-74's half of §6.4, and it is the ACTOR that has to be
     right. Nothing was sent about this file, no model saw it and nobody was asked;
@@ -1596,7 +1769,23 @@ def _explain(entry, assessment, retrieval, *, model_decided: bool = False,
         # deeper inside it. Said in their words, not "refinement" -- `84` §6.
         parts.append("inside the folder this file is already in, so nothing "
                      "leaves the arrangement you have")
-    if model_decided:
+    if flagged_out_of_group is not None:
+        # P9's finding, said in the person's words. Not "outlier_flag": `84` §6.
+        parts.append(
+            f"this file was set apart from the {flagged_out_of_group} group when "
+            f"the group was formed, so it was judged on its own with the folder "
+            f"that group went to offered and the disagreement on the record")
+    elif disagreed_with_group is not None:
+        parts.append(
+            f"this file's own stated values rule out the folder its group "
+            f"({disagreed_with_group}) was placed in, so it was judged on its "
+            f"own with that folder offered and the disagreement on the record")
+    if model_decided and group_support is not None:
+        parts.append(
+            f"chosen by the hierarchical destination judge for the whole of "
+            f"{group_support.group_id}, which this file belongs to, and "
+            f"validated by P8")
+    elif model_decided:
         # The user is entitled to know a model was involved: §6.11 says a direct
         # and a context-supported placement "should not demand the same level of
         # trust", which a reviewer can only apply if the record says which it is.
@@ -2150,8 +2339,20 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
                       evidence, call_site: str, observed_at: str,
                       ranked: tuple[str, ...] = (),
                       set_aside: tuple[SetAside, ...] = (),
-                      own_folder_node_id: str | None = None):
+                      own_folder_node_id: str | None = None,
+                      route_pair: object | None = None):
     """§6.12 step 7, and step 8 with it. P11 assembles the REQUEST, never a check.
+
+    **THE SUBJECT MAY BE A GROUP** (`104` §18.2 gap 14, `00`:112). Everything below
+    is about "the subject", and three lines used to read `subject.file_id` as
+    though there were always one: the learning pair, the `basis_key` a past
+    rejection is filed against, and the route. A group subject carries no
+    `file_id`, so each of them now asks the subject what it is -- `learning_scope`
+    is `group` beside the group id exactly as site B's own `CallDependencies`
+    spells it, and the route is the one destination `place_group` has already
+    proved every member may use, handed over in `route_pair` rather than looked up
+    a second time. A second lookup would be a second answer to "where may this
+    call go", asked after §8.4's gate had answered the first.
 
     Everything here is either P11's own answer or a caller injection. The four
     Site C authorities come from `p8_seam.placement_authorities`; the fifteen Site
@@ -2401,9 +2602,18 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
         # channels happened to answer in; `_staying_put_wins_a_tie` and §6.10's
         # arithmetic can both put a different node first, and when they do, the
         # rejection was being filed against a node nobody proposed.
-        basis_key=basis_key_for(subject_id=subject.file_id,
+        #
+        # AND THE SUBJECT SAYS WHICH IT IS. §8.7's scope vocabulary is closed --
+        # file, group, node, template, domain, corpus -- and the convention both
+        # other sites keep is that the scope names the KIND of subject and
+        # `learning_subject_id` is that subject's id. A group verdict is about a
+        # group, so the pair is `group` beside the group id, which is also what
+        # keeps a rejection of one group from suppressing another (site B's own
+        # sentence, `cli.observe_group_authorities`).
+        basis_key=basis_key_for(subject_id=_learning_subject_id(subject),
                                 node_id=offered[0]),
-        learning_scope=FILE, learning_subject_id=subject.file_id,
+        learning_scope=FILE if subject.kind == FILE else GROUP,
+        learning_subject_id=_learning_subject_id(subject),
     )
     # `104` R-149. THE BUILDER'S RAISE, CAUGHT WHERE IT IS STILL A PRE-CALL STATE.
     #
@@ -2439,11 +2649,34 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
     # `record_unbuilt_call_abstention` states the rest -- "nothing was ever grounded,
     # and nothing refused a call that was never built" -- so no `call_refused` event
     # is appended beside the row and a reader counting refusals counts this once.
+    # THE CLIENT THIS SUBJECT WAS ROUTED TO. `may_assemble_dossier` has already
+    # answered about the same subject's target, so a pair is here; a second read of
+    # a single field would send to a destination the gate never decided about. A
+    # GROUP's pair is `place_group`'s, resolved once over every member and handed
+    # in, for that same sentence read over a subject that is not one file.
+    chosen = route_pair if route_pair is not None else inputs.route(subject.file_id)
+    if chosen is None:
+        return _not_asked(
+            conn, call_site=call_site, subject=subject, observed_at=observed_at,
+            because="no model in this run may be asked about this subject, so "
+                    "nothing about it was assembled and nothing was sent")
+    # THE MEMBERS AND THE TARGET THE GATE ALREADY DECIDED ABOUT, for a group and
+    # only for a group. A placement release names the files it is about, and a
+    # group's request names every member (`Target(file_ids=..., group_id=...)`,
+    # the shape site B has always built); the target is the one this call was
+    # routed to above, so the builder resolves no second destination of its own.
+    # Absent for a file, so the file path builds byte-identically to before and a
+    # caller-supplied builder that predates groups keeps working unchanged.
+    group_release = (
+        {} if subject.kind == FILE
+        else {"member_file_ids": tuple(subject.member_file_ids),
+              "model_target": chosen[1]})
     try:
         release_request = inputs.model_call_request(
             subject_ref=subject_ref,
             evidence_items=tuple(evidence["evidence_items"]),
-            max_dossier_tokens=inputs.limits.max_dossier_tokens)
+            max_dossier_tokens=inputs.limits.max_dossier_tokens,
+            **group_release)
     except MalformedRequest:
         return _not_asked(
             conn, call_site=call_site, subject=subject, observed_at=observed_at,
@@ -2485,15 +2718,6 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
     # C's prompt and then checking C's `ratified` for a D call would have been two
     # wrong answers agreeing with each other.
     prompt = inputs.prompt_for(call_site)
-    # THE CLIENT THIS FILE WAS ROUTED TO. `may_assemble_dossier` has already
-    # answered about the same file's target, so a pair is here; a second read of a
-    # single field would send to a destination the gate never decided about.
-    chosen = inputs.route(subject.file_id)
-    if chosen is None:
-        return _not_asked(
-            conn, call_site=call_site, subject=subject, observed_at=observed_at,
-            because="no model in this run may be asked about this file, so "
-                    "nothing about it was assembled and nothing was sent")
     return _observed_only(call_placement(
         conn, request, gate=inputs.gate, model_client=chosen[0],
         prompt=prompt, call_dependencies=dependencies,
@@ -2543,15 +2767,280 @@ def _judged_or_refused(conn, **kwargs):
 # --- §6.8 and §6.9: the group plan -------------------------------------------------
 
 
+def _group_subject(accepted: AcceptedGroup, memberships) -> Subject:
+    """The group, as the one subject a placement call is about."""
+    return Subject(kind=GROUP, file_id=None, content_hash=None,
+                   group_id=accepted.group_id,
+                   member_file_ids=tuple(m.file_id for m in memberships))
+
+
+def _one_destination_every_member_may_use(conn, *, memberships,
+                                          inputs: PipelineInputs):
+    """§8.4's gate, asked of a subject that is not one file. The pair, or `None`.
+
+    **THE RULE IS THE WEAKEST MEMBER'S, AND IT IS NOT NEW.** A group dossier
+    carries evidence from every member, so a destination it may be sent to is one
+    that EVERY member may be sent to -- site B says the same sentence about the
+    same shape ("cloud only if every member is cloud-permitted, else local"), and
+    `may_assemble_dossier` is the same per-file predicate asked once per member
+    rather than a group-shaped question added to `src/privacy/`.
+
+    Three answers, in order:
+
+    * a member this run may ask no model about at all -- no group call. Not "ask
+      about the rest": the group's question is about these files together, and a
+      dossier that quietly left one out would be a call about a different group
+      than the one the plan names.
+    * ANY member routed to a local model -- the whole call is local. One protected
+      or unclassified member makes the group call local-only exactly as that
+      member alone would be, and a member that may not be described to a cloud
+      target is never described to one.
+    * every member routed to the cloud -- the cloud, and then only if the gate
+      admits every one of them for it.
+
+    A protected member fails the last check for BOTH localities
+    (`may_assemble_dossier` refuses `protected` whatever the target), so a group
+    holding one is WITHHELD rather than downgraded -- again exactly as that member
+    alone would be. The members are still placed: `place_group` falls back to the
+    per-file pass, where each file meets the same gate on its own.
+    """
+    routes = {}
+    for membership in memberships:
+        chosen = inputs.route(membership.file_id)
+        if chosen is None:
+            return None
+        routes[membership.file_id] = chosen
+    local = [pair for pair in routes.values()
+             if getattr(pair[1], "locality", None) == LOCAL]
+    pair = local[0] if local else next(iter(routes.values()))
+    locality = getattr(pair[1], "locality", None)
+    for membership in memberships:
+        state = privacy_state_for(conn, file_id=membership.file_id,
+                                  content_hash=membership.content_hash,
+                                  plan_version=inputs.plan_version)
+        if not may_assemble_dossier(state, target_locality=locality):
+            return None
+    return pair
+
+
+def _group_evidence(evidence_for, memberships, *, group_id: str) -> dict:
+    """§6.3's evidence for a GROUP: each member's ACCEPTED FACTS, and nothing else.
+
+    `104` §18.2 gap 14 and `00`:112. The subject is the packet, so the evidence is
+    the packet's -- but a dossier that carried every member's readings would be one
+    file's dossier multiplied by the size of the group, and §8.6's ceiling would
+    cut it somewhere nobody chose. So the cut is made HERE and it is made by kind
+    rather than by length: an item is carried when an accepted fact of that member
+    cites it, and not otherwise. The member's anchor lines and its body readings --
+    the two producers `cli.evidence_for` adds beneath the facts -- stay with the
+    member's own call, where they are what that one file is judged on.
+
+    Nothing is widened by this. Every item here is one the SAME member's own
+    site-C call would have carried, already passed through the door's own
+    predicate by `cli.evidence_for`, and the gate is asked again per item at the
+    door. The group call sees a subset of the union, never a byte the per-file
+    calls could not have sent.
+
+    **WHAT IS NOT HERE, AND IT IS OWED RATHER THAN OMITTED.** The brief asks for
+    each member's released FILENAME row beside its facts, and site C releases no
+    filename today: `model_facts.may_be_released` refuses a `filename`-zone
+    reading to BOTH localities (`ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET`) because the
+    name has its own door -- §7.7's `Filename` item, which site A's request builds
+    and site C's does not. Opening that door at C would send a name where none
+    goes today, which is a release decision and the owner's. Recorded in the
+    report; not taken here.
+
+    The frequencies are the corpus's, not the subject's, so the first member's are
+    the group's; `entity_frequency` is merged by the larger count, because a fact
+    §4.3 would call a hub for one member is a hub for the group that holds it.
+    """
+    facts: list = []
+    items: list = []
+    group_ids: list[str] = [group_id]
+    labels: list[str] = []
+    neighbours: list[str] = []
+    related: list = []
+    entity_frequency: dict = {}
+    generic = 0
+    seen_facts: set = set()
+    seen_items: set = set()
+    for membership in memberships:
+        evidence = evidence_for(membership.file_id)
+        cited = set()
+        for fact in evidence["facts"]:
+            cited.add(fact.evidence_ref)
+            key = (fact.field, fact.value, fact.evidence_ref)
+            if key in seen_facts:
+                continue
+            seen_facts.add(key)
+            facts.append(fact)
+        for item in evidence["evidence_items"]:
+            if item.evidence_ref not in cited:
+                continue
+            key = (item.evidence_ref, item.kind, item.excerpt_span)
+            if key in seen_items:
+                continue
+            seen_items.add(key)
+            items.append(item)
+        group_ids.extend(evidence.get("group_ids", ()))
+        labels.extend(evidence.get("curated_folder_labels", ()))
+        neighbours.extend(evidence.get("semantic_neighbours", ()))
+        related.extend(evidence.get("related_files", ()))
+        for name, count in (evidence.get("entity_frequency") or {}).items():
+            entity_frequency[name] = max(entity_frequency.get(name, 0), count)
+        generic = max(generic, evidence.get("generic_entity_frequency") or 0)
+    return dict(
+        facts=tuple(facts), evidence_items=tuple(items),
+        group_ids=tuple(dict.fromkeys(group_ids)),
+        curated_folder_labels=tuple(dict.fromkeys(labels)),
+        semantic_neighbours=tuple(dict.fromkeys(neighbours)),
+        related_files=tuple(related), entity_frequency=entity_frequency,
+        generic_entity_frequency=generic,
+    )
+
+
+def _the_groups_own_answer(conn, *, accepted: AcceptedGroup, memberships,
+                           inputs: PipelineInputs, evidence_for,
+                           component_version: str,
+                           observed_at: str) -> str | None:
+    """ONE site-C call whose subject is the GROUP. The node it chose, or `None`.
+
+    `104` §18.2 gap 14, closing `00`:112: *"Group-level placement should be a
+    first-class capability. Related files often explain one another more
+    accurately when considered together than when classified independently ...
+    The placement engine should FIRST confirm the shared parent branch."*
+
+    `None` is every way this call does not produce an answer, and each of them
+    leaves the members to the per-file pass exactly as a run with no model
+    configured would (§13.5's own fallback, and the shape `place_file` already
+    keeps for R-O, R-136 and R-173):
+
+    * no model path, or a run whose site-C text is not ratified to act on
+      (`model_decides`);
+    * §8.4 admitting no one destination every member may use;
+    * nothing retrievable to choose between -- asking then would be inviting an
+      invention (§6.6);
+    * a refusal, an unbuilt call, a failed call or an unjudgeable answer;
+    * the model's own "none". An abstention about the group is not an abstention
+      about its members: each still gets its own question, which is what the
+      product did for all of them before this call existed.
+
+    `00`:110 makes a group its own reason to ask -- the LLM is invoked "when a
+    group may need to be placed together" -- so this is not gated on
+    `needs_model_call`, which asks whether ONE file's candidates are ambiguous. A
+    group with one legal candidate still has the question `00`:112 poses: does
+    this packet belong there TOGETHER.
+    """
+    if not memberships:
+        return None
+    if not inputs.model_path_available() or not inputs.model_decides():
+        return None
+    route_pair = _one_destination_every_member_may_use(
+        conn, memberships=memberships, inputs=inputs)
+    if route_pair is None:
+        return None
+    subject = _group_subject(accepted, memberships)
+    evidence = _group_evidence(evidence_for, memberships,
+                               group_id=accepted.group_id)
+    # Steps 3 to 6, over the group's own evidence: the union of the members'
+    # legal candidates, because a node any member's fact reaches is a node the
+    # union reaches, and §6.10's arithmetic over the group's accepted facts.
+    retrieval = retrieve(
+        conn, subject=subject, plan_version=inputs.plan_version,
+        limits=inputs.limits, facts=evidence["facts"],
+        group_ids=evidence["group_ids"],
+        curated_folder_labels=evidence["curated_folder_labels"],
+        semantic_neighbours=evidence["semantic_neighbours"],
+        component_version=component_version, observed_at=observed_at)
+    # The two collapses that are questions about the TREE rather than about one
+    # file's own folder. The other two step-6 rules are per-file by construction
+    # -- the folder this file sits in, and the refinement exemption that reads it
+    # -- and a group has no such folder, so they are not asked rather than asked
+    # with a `None` that would answer them by accident.
+    retrieval = _without_superseded_ancestors(
+        conn, retrieval, plan_version=inputs.plan_version)
+    retrieval = _without_duplicated_proposals(
+        conn, retrieval, plan_version=inputs.plan_version)
+    graphs = {
+        candidate.node_id: build_node_local_graph(
+            subject=subject, candidate=candidate,
+            entry=entry_for(conn, plan_version=inputs.plan_version,
+                            node_id=candidate.node_id),
+            related_files=evidence["related_files"], limits=inputs.limits,
+            entity_frequency=evidence["entity_frequency"],
+            generic_entity_frequency=evidence["generic_entity_frequency"],
+        )
+        for candidate in retrieval.candidates
+    }
+    assessment = assess(retrieval, graphs, policy=inputs.policy,
+                        their_own_folder_node_ids=frozenset(),
+                        refinements=frozenset())
+    set_aside = _ranked_set_aside(retrieval, graphs, policy=inputs.policy)
+    result = _judged_or_refused(
+        conn, subject=subject, inputs=inputs, retrieval=retrieval,
+        evidence=evidence, call_site=C_PLACEMENT, observed_at=observed_at,
+        ranked=tuple(item.node_id for item in assessment.scored),
+        set_aside=set_aside, own_folder_node_id=None, route_pair=route_pair)
+    if isinstance(result, (Refusal, CallRefused, PreCallAbstention, CallFailed,
+                           ValidationUnavailable)):
+        return None
+    verdict = _require_verdict(result, call_site=C_PLACEMENT)
+    outcome, _reason, _deferred = transcribe(verdict, assessment=assessment)
+    if outcome != PLACE:
+        return None
+    node_id = inputs.chosen_node_of(verdict)
+    if node_id not in legal_node_ids(conn, plan_version=inputs.plan_version):
+        raise ValueError(
+            f"{node_id!r} is not a legal destination of {inputs.plan_version!r}. "
+            "P8 already refuses an invented node; reaching here means the "
+            "resolver disagreed with the index, and P11 places no group on a "
+            "disagreement"
+        )
+    return node_id
+
+
 def place_group(conn: sqlite3.Connection, *, group_id: str,
                 inputs: PipelineInputs, evidence_for,
                 component_version: str, observed_at: str,
                 skip_file_ids: frozenset[str] = frozenset()) -> GroupPlan:
-    """§6.8: confirm the shared parent FIRST, then classify members beneath it.
+    """§6.8 and `00`:112: ONE call takes the group, then the members follow it.
 
-    The ordering is the whole of §6.8. A member classified before the parent is
-    classified against no shared context, and the result is several unrelated file
-    moves presented as a plan.
+    **THIS COMMENT USED TO SAY THE OPPOSITE OF WHAT THE CODE DID, AND `104` §18.2
+    GAP 14 IS THAT SENTENCE.** It read "confirm the shared parent FIRST, then
+    classify members beneath it ... a member classified before the parent is
+    classified against no shared context" -- and the code placed every member
+    singly and then read the parent off the results, which is precisely a member
+    classified against no shared context. `confirm_shared_parent` returned a
+    parent only when every single placement happened to agree, no model call ever
+    took a group, and `00`:112's *"related files often explain one another more
+    accurately when considered together"* had no implementation at all.
+
+    The order is now the order the sentence claims:
+
+    1. ONE site-C dossier whose subject is the group -- the members' accepted
+       facts, the union of their legal candidates scored over those facts, the
+       same folder levels, vocabulary and shaping policy one file's call has --
+       and the model answers the group's destination with citations, or abstains.
+       §8.4 is asked first, over every member, and one member it refuses withholds
+       the whole call rather than describing that member to a target it may not
+       reach (`_one_destination_every_member_may_use`).
+    2. Every member is then placed FROM that answer: a member whose own stated
+       values do not rule the folder out goes with the group and its row says the
+       MODEL decided, because the group's answer is the model's; a member that
+       contradicts it is an outlier of the answer and is placed by its own
+       per-file call, with the group's folder offered on the shortlist and the
+       disagreement recorded (`place_file`'s `group_answer`).
+    3. Where the group produced no answer -- no model path, a gate refusal, a
+       refused or failed call, or the model's own "none" -- every member is placed
+       exactly as it is today, singly, and `confirm_shared_parent` reads the
+       parent off those results. That is the fallback and it is unchanged: nothing
+       here makes a run WITHOUT a model worse than it was.
+
+    P9's outlier flags are a different thing from step 2's contradiction and both
+    survive. `outlier_flag` is P9's finding that the file sits apart from the
+    GROUP; step 2's is this file's own evidence against the folder the model
+    chose. A member P9 flagged is excluded from the plan whatever the model said,
+    because P11 does not re-decide belonging.
 
     Acceptance is read through P9 as of P10's frozen version
     (`accepted_group_as_of`), never off `Group.state`.
@@ -2572,29 +3061,47 @@ def place_group(conn: sqlite3.Connection, *, group_id: str,
     memberships = tuple(m for m in accepted.memberships
                         if m.file_id not in skip_file_ids)
 
-    # Step one: the shared parent, from each member's own best destination.
+    # Step one: the group's own question, asked of the model as one subject.
+    answered = _the_groups_own_answer(
+        conn, accepted=accepted, memberships=memberships, inputs=inputs,
+        evidence_for=evidence_for, component_version=component_version,
+        observed_at=observed_at)
+
+    # Step two: every member, FROM that answer. `place_file` writes the row --
+    # one writer for every placement, so a member of a group meets the same
+    # privacy state, the same review policy and the same supersession as any
+    # other file.
     member_parents: dict[str, str | None] = {}
-    provisional: dict[str, PlacementDecision] = {}
+    placed: dict[str, PlacementDecision] = {}
     for membership in memberships:
         decision = place_file(
             conn, subject=_member_subject(membership), inputs=inputs,
             evidence=evidence_for(membership.file_id),
             group_plan_id=group_plan_id,
+            group_answer=(None if answered is None else GroupAnswer(
+                group_id=group_id, node_id=answered,
+                membership=membership.decision,
+                sits_apart=membership.outlier_flag != NOT_FLAGGED)),
             component_version=component_version, observed_at=observed_at)
-        provisional[membership.file_id] = decision
+        placed[membership.file_id] = decision
         member_parents[membership.file_id] = (
             decision.destination.node_id if decision.destination else None)
 
-    shared_parent = confirm_shared_parent(
+    # THE RULES' ANSWER IS STILL COMPUTED, and it is still the one used when the
+    # model produced none. `confirm_shared_parent` also carries §6.9's refusal of
+    # a tree with no shared-material policy, which must fire whether or not a
+    # model answered -- a plan built on an unstated policy is refused either way.
+    by_the_rules = confirm_shared_parent(
         member_parents, policy=inputs.tree.shared_material_policy)
+    shared_parent = answered if answered is not None else by_the_rules
 
-    # Step two: outliers are excluded and explained, never forced in. P9 already
+    # Step three: outliers are excluded and explained, never forced in. P9 already
     # flagged them and already holds the competing values; P11 records what P9
     # found and routes the file (§6.8).
     outliers: list[ExcludedOutlier] = []
     members: list[PlacementDecision] = []
     for membership in memberships:
-        decision = provisional[membership.file_id]
+        decision = placed[membership.file_id]
         if membership.outlier_flag != NOT_FLAGGED:
             outliers.append(excluded_outlier_for(
                 membership,
