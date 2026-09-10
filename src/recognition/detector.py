@@ -208,6 +208,49 @@ class TermMatch:
 
 
 @dataclass(frozen=True, slots=True)
+class Precaution:
+    """WHAT THE RULES THOUGHT WHEN THEY HELD A FILE, in the rules' own words.
+
+    `104` §18 gap 24. `_precaution` marks a file `sensitive_personal,
+    protected=True, basis='safety_domain'` and the record that reaches the store
+    carries the CLASS and the observation keys -- not which safety domain was
+    read, not which of its work types was found, and not where. Measured on r19:
+    16 marks, 5 of them on hand-labelled protected files and 11 on ordinary ones,
+    the false ones fired by `will`, `statement`, `receipt`, `consent form`,
+    `medical record`, `visa`, `credit card` and `endorsement` in BODY prose. A
+    person reading the report, and a model asked to judge the same file, could
+    see the hold and not one word of the reason for it.
+
+    So the reason is projected, and it is a PROJECTION of the matches
+    `_precaution` already had in hand -- nothing here reads the file a second
+    time and nothing here is a new rule. `_protect_as` produces the RECORD; this
+    produces the REPORT, and they are computed from the one set of matches so
+    the two can never say different things about the same file.
+
+    `zones` is P4's own zone per match, deduplicated in the order the terms were
+    found. It is REPORTED and never TESTED: `_names_the_file` is the winning
+    schema branch's rule and applying it here was measured on r19 as dropping 7
+    of the 11 false marks AND 2 of the 5 true ones (see `_precaution`, which
+    records why the precaution deliberately skips that test). Saying where the
+    term sits is what lets the local model weigh it; deciding on it here is what
+    the measurement forbids.
+    """
+
+    #: The safety domain the file was held as -- `_protect_as`'s own choice, in
+    #: `SCHEMA_IDS` order, so a file with two safety readings reports the one it
+    #: was actually classified under rather than whichever was found first.
+    schema_id: str
+    #: The WORK TYPES of that domain the file's evidence carries, found-order,
+    #: deduplicated. Never its context terms: `_safety_readings_in_evidence` is
+    #: what refuses those and this reads its answer rather than a wider one.
+    terms: tuple[str, ...]
+    #: P4's zone for each of those matches, found-order, deduplicated. A zoneless
+    #: match contributes nothing rather than a placeholder -- an absent zone is a
+    #: format that does not zone, not a zone called "none".
+    zones: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class Recognition:
     """One schema this file version's own evidence makes plausible."""
 
@@ -895,8 +938,39 @@ class Detector:
         not tell" stay different answers.
 
         The protected-container refusal is never overridden: `explain` returns
-        that abstention before reading any evidence, so `_matches` below is
-        reached only for a file that was already open to being read.
+        that abstention before reading any evidence, so the matches this rests on
+        are read only for a file that was already open to being read.
+
+        **THE DECISION MOVED AND THE RULE DID NOT (`104` §18 gap 24).** Everything
+        this method used to work out now lives in `precaution_report`, because the
+        hold has a second reader -- `cli.ask_the_situation`, which puts every held
+        file to the local model and needs to know WHY it is held to say so in the
+        dossier. What is left here is the record: the report says which safety
+        domain, and `_protect_as` writes the handling for it. Two answers computed
+        apart would be the two-homed rule this package has paid for before.
+        """
+        report = self.precaution_report(conn, outcome, file_id=file_id,
+                                        content_hash=content_hash)
+        if report is None:
+            return None
+        return self._protect_as(conn, (report.schema_id,), file_id=file_id,
+                                content_hash=content_hash)
+
+    def precaution_report(self, conn: sqlite3.Connection, outcome: "Abstention", *,
+                          file_id: str, content_hash: str) -> "Precaution | None":
+        """WHY the precaution holds this file, or `None` because it does not.
+
+        THE RULE HAS ONE HOME AND TWO READERS. `_precaution` used to hold this
+        arithmetic and return only a record; `104` §18 gap 24 asks for the same
+        conclusion in a form a dossier and a report can carry, and a second copy
+        of "which safety domain is a tied leader and names the file" is exactly
+        the two-homed rule this package has paid for before. So the decision is
+        made here, `_precaution` reads the schema off it, and a `None` here and a
+        `None` there are the same `None`.
+
+        `precaution_report(...) is not None` is therefore the exact predicate for
+        "the rules are holding this file" -- which is what `cli.ask_the_situation`
+        needs to make the mark itself a reason to ask.
         """
         if outcome.reason == "protected_container":
             return None
@@ -905,17 +979,49 @@ class Detector:
         # belongs to both, because a tie is not evidence about which KIND of term
         # matched. Without it `finance`'s context term `statement` tied on a college
         # personal statement and marked it `sensitive_personal, protected=1`.
-        says_what_it_is = set(self._safety_readings_in_evidence(
-            conn, file_id, content_hash))
+        says_what_it_is = self._safety_work_type_matches(
+            conn, file_id, content_hash)
         readings = [schema_id for schema_id
                     in (outcome.schema_id, *outcome.tied_schema_ids)
                     if schema_id in SAFETY_DOMAIN_IDS and schema_id in says_what_it_is]
         if not readings:
             return None
         # `SCHEMA_IDS` order, so two safety readings resolve the same way twice
-        # rather than by whichever the abstention happened to name first.
-        return self._protect_as(conn, readings, file_id=file_id,
-                                content_hash=content_hash)
+        # rather than by whichever the abstention happened to name first. The same
+        # choice `_protect_as` makes, made once and handed to it.
+        schema_id = min(readings, key=SCHEMA_IDS.index)
+        if self._handling.get(schema_id) is None:
+            # The caller's policy states no class for this domain, so `_protect_as`
+            # holds nothing -- and a report of a hold that was never taken would be
+            # a screen saying a file is held when it is not.
+            return None
+        found = says_what_it_is[schema_id]
+        return Precaution(
+            schema_id=schema_id,
+            terms=tuple(dict.fromkeys(match.term for match in found)),
+            zones=tuple(dict.fromkeys(match.zone for match in found
+                                      if match.zone is not None)))
+
+    def _safety_work_type_matches(
+            self, conn: sqlite3.Connection, file_id: str,
+            content_hash: str) -> dict[str, tuple["TermMatch", ...]]:
+        """The same question `_safety_readings_in_evidence` asks, with its WORKING.
+
+        Split out for `104` §18 gap 24: two callers want the schema ids and one
+        wants the matches those ids were read off, and computing them apart would
+        be two answers to "does this file's own words name it as one of `00`'s
+        four" -- the shape that let a MENTION become a claim in the first place.
+        Keyed in `sorted` order so the mapping's own iteration order is the tuple
+        the readings method used to return.
+        """
+        matches, _ = self._matches(conn, file_id, content_hash)
+        found: dict[str, list["TermMatch"]] = {}
+        for match in matches:
+            if (match.schema_id in SAFETY_DOMAIN_IDS
+                    and match.term in self._work_types.get(match.schema_id,
+                                                           frozenset())):
+                found.setdefault(match.schema_id, []).append(match)
+        return {schema_id: tuple(found[schema_id]) for schema_id in sorted(found)}
 
     def _safety_readings_in_evidence(
             self, conn: sqlite3.Connection, file_id: str,
@@ -956,14 +1062,7 @@ class Detector:
         in `_matches`, which is what these matches come from, because the same
         hole was open at the door where a schema WINS and one rule wants one home.
         """
-        matches, _ = self._matches(conn, file_id, content_hash)
-
-        def says_what_the_file_is(match: "TermMatch") -> bool:
-            return match.term in self._work_types.get(match.schema_id, frozenset())
-
-        return tuple(sorted({match.schema_id for match in matches
-                             if match.schema_id in SAFETY_DOMAIN_IDS
-                             and says_what_the_file_is(match)}))
+        return tuple(self._safety_work_type_matches(conn, file_id, content_hash))
 
     def _safety_readings_naming_the_file(
             self, conn: sqlite3.Connection, file_id: str, content_hash: str, *,

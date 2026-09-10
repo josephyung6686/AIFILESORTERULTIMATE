@@ -2977,6 +2977,17 @@ HANDLING_POLICY: Mapping[str, Handling] = MappingProxyType({
     **SAFETY_DOMAIN_HANDLING,
 })
 
+#: THE BASIS A PRECAUTION'S ROW CARRIES, derived from the policy that writes it
+#: rather than spelled (`104` §18 gap 24). `privacy.vocabulary` publishes the five
+#: bases as a tuple and names no constant for this one, and a literal here would
+#: be a second home for a word `SAFETY_DOMAIN_HANDLING` already states four times.
+#:
+#: A SET, because `Handling` carries the basis PER SCHEMA and nothing says the four
+#: safety domains must always agree on it. Reading whatever they actually say keeps
+#: this true if one of them ever differs, and `in` is the same question either way.
+SAFETY_DOMAIN_BASES: frozenset[str] = frozenset(
+    handling.basis for handling in SAFETY_DOMAIN_HANDLING.values())
+
 # --- RECOGNITION BY MEANING: every number the similarity path decides with -----
 #
 # `recognition/semantic.py` authors none of these and refuses to default one. They
@@ -5699,6 +5710,7 @@ def restricted_kind_named_by_verdict(conn: sqlite3.Connection, verdict) -> str |
 
 def situation_classification(question, schema_id: str, *, observed_at: str,
                              restricted_kind: str | None = None,
+                             held: bool = False,
                              handling_for=HANDLING_POLICY) -> ClassificationRecord:
     """`104` §17.1's second wall, spent: one model verdict, written down truthfully.
 
@@ -5723,13 +5735,27 @@ def situation_classification(question, schema_id: str, *, observed_at: str,
     below `user_confirmed`, `direct` and `validated` -- so a later record from the
     person, or from an extractor reading the file's own words, supersedes this one
     rather than being refused by it.
+
+    **`held` IS THE HOLD THE RULES HAD ALREADY TAKEN, and it only ever ADDS
+    protection (`104` §18 gap 24, the owner's ruling of 10 Sep).** `llm_supported`
+    outranks `possible`, so this record supersedes the detector's own the moment
+    it is assigned -- which means a verdict naming an ORDINARY situation lifts a
+    `safety_domain` hold, and that is exactly what the ruling asks for. What it
+    must NOT do is lift a hold the verdict did not contradict: a model that names
+    an ordinary situation AND one of `105` §13.3's ten restricted kinds has said
+    the file is a passport in a coursework folder, and `privacy_class_for`'s
+    precedence already says such a file is protected. `HANDLING_POLICY` answers
+    for the SITUATION and knows nothing about the kind, so it would drop the flag
+    to `False` and the file would be released to placement -- the one direction
+    this is not allowed to move. The hold therefore stands wherever a kind is
+    named, and a file this pass was never holding is untouched by the argument.
     """
     handling = handling_for[schema_id]
     return ClassificationRecord(
         file_id=question.file_id,
         content_hash=question.content_hash,
         handling_class=handling.handling_class,
-        protected=handling.protected,
+        protected=handling.protected or (held and restricted_kind is not None),
         basis=LOCAL_MODEL_SITUATION,
         evidence_refs=tuple(question.evidence_refs),
         reliability_state=LLM_SUPPORTED,
@@ -5743,6 +5769,46 @@ def situation_classification(question, schema_id: str, *, observed_at: str,
         # kind" is ordinary and never pending -- §14.3's own distinction.
         privacy_class=privacy_class_for(
             () if restricted_kind is None else (restricted_kind,)))
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class PrecautionHolds:
+    """WHAT BECAME OF THE HOLDS THE RULES TOOK, over the files site G walked.
+
+    `104` §18 gap 24 and the owner's ruling of 10 Sep: the protected hold must be
+    "a little more sure than now". Site G is the product's kind recogniser, so the
+    files the term detector's precaution marked are exactly the files whose hold
+    the local model is asked to confirm or release -- and a person is owed the
+    four numbers that say what happened, because on r19 the answer was 16 marks,
+    5 of them right, and no line on any screen said so.
+
+    **THESE DO NOT PARTITION THE ROSTER, and that is why they are their own
+    record.** `SituationPass`'s six counters do: every file the pass walked lands
+    in exactly one of them, and `_print_situation_pass` prints an arithmetic a
+    person can check against the total. A held file is ALSO in one of those six --
+    it was asked, or it was not, for one of the six reasons -- so adding these
+    beside them would break the sum on the screen. `released`, `confirmed` and
+    `still_held` partition `held`, and nothing else.
+    """
+
+    #: Files this pass found under a `safety_domain` hold when it reached them.
+    #: The detector's precaution wrote the row; this is the count of the files it
+    #: wrote it for, over this run's roster.
+    held: int
+    #: Holds the local model LIFTED: it named an ordinary situation, its citations
+    #: resolved, P8 accepted the claim, and it named no restricted kind. The row it
+    #: wrote supersedes the precaution's, so the file is ordinary for every later
+    #: pass of this run -- site A's route and placement included.
+    released: int
+    #: Holds the local model AGREED WITH: it named one of `00`'s four safety
+    #: domains, or it named one of `105` §13.3's ten restricted kinds. G's own
+    #: protected row supersedes the precaution's, so the record shows the model
+    #: agreed rather than showing only that the rules had guessed.
+    confirmed: int
+    #: Holds that STAND because nothing lifted them: the model declined, or the
+    #: check refused its answer, or the call failed, or the file was never askable
+    #: at all. Silence never lifts a hold, and this is the count of the silences.
+    still_held: int
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -5776,6 +5842,12 @@ class SituationPass:
     #: and the standing rule is that protected material is marked and counted,
     #: never silently omitted.
     no_route: int
+    #: `104` §18 gap 24. What became of the holds the rules had taken, over the
+    #: same walk. A RECORD and not four more counters, because the six above
+    #: partition the roster and these three partition `held` -- see
+    #: `PrecautionHolds`, and `_print_situation_pass`, which prints them as their
+    #: own block so the arithmetic on the screen stays checkable.
+    holds: PrecautionHolds
     #: `104` R-175: files past the run's per-file wall-clock ceiling, skipped so the
     #: pass could reach the rest. Its own count for `no_route`'s reason -- a file
     #: nobody could ask, a file with nothing to read and a file that ate its budget
@@ -5793,9 +5865,22 @@ class SituationPass:
 _NOTHING_ASKED: "SituationPass"
 
 
+class ProtectedFileOfferedACloudTarget(RuntimeError):
+    """A file the rules are holding was routed somewhere off this device.
+
+    `104` §18.7 and the standing rule: protected material reaches the LOCAL model
+    only, opened on this machine for it and never sent to the cloud. `target_for`
+    already asks `model_route_permitted`, which asks the gate's own
+    `protected_cloud_denies`, so this is unreachable through a correctly built
+    routing -- and it RAISES rather than asserts for §18 S5's reason: an invariant
+    that disappears under `-O` is an invariant that is not enforced. The bytes of
+    somebody's passport are what is on the other side of it.
+    """
+
+
 def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
-                      fact_authorities, routing: TierRouting, prompt,
-                      now, user_id: str,
+                      precaution_of, fact_authorities, routing: TierRouting,
+                      prompt, now, user_id: str,
                       component_version: str = COMPONENT_VERSION,
                       semantic_of=None) -> SituationPass:
     """`104` §17.9's defect, addressed: each file asked about ITS OWN situation.
@@ -5820,6 +5905,34 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     a wrong "ordinary" is what sends somebody\'s medical record away, and every
     outcome here that is not one accepted, cited, on-the-list answer leads to the
     same place.
+
+    **AND SINCE `104` §18 gap 24, THE HOLD THE RULES TOOK IS PART OF THE
+    QUESTION.** `precaution_of` is `Detector.precaution_report` -- INJECTED, on
+    `explain`'s own terms, because the rules are another part's and this pass
+    re-derives none of them. Where it answers, three things follow, and each is
+    the owner's ruling of 10 Sep read literally:
+
+    * the file is ASKED, and the hold is what makes the asking accountable. A
+      hold is a reason to put the question, never a reason to skip it: the whole
+      point of asking is that the rules were only a little sure. Three doors can
+      still turn a file away here and only two of them can turn a HELD one away --
+      no releasable reading (`00`:42 permits no answer to a question with no
+      evidence) and no local target -- and both must stay shut, so a held file
+      that goes through either is counted as a hold that STANDS and is said out
+      loud rather than disappearing into a bucket shared with ordinary files. It
+      is asked on the LOCAL route and there is no other: `route_for` refuses a
+      cloud target for a protected file and `ProtectedFileOfferedACloudTarget`
+      above is what says so if a routing ever stops refusing.
+    * the hold's own REPORT rides in the dossier, on the `recogniser_abstention`
+      item the ratified text already describes: which safety domain, which of its
+      work types, in which zones. The model was being asked to judge a file the
+      rules were holding and was never shown the hold.
+    * the verdict SUPERSEDES the hold or leaves it standing, and `assign` is what
+      writes the supersession -- `llm_supported` outranks `possible`, so the row
+      G writes retires the precaution's through the store's own columns and the
+      old row stays readable. Silence never lifts a hold: a decline, a refused
+      claim, a failed call and a file that was never askable all leave the
+      precaution row exactly as the detector wrote it.
     """
     named: dict = {}
     settled = nothing_to_ask = nothing_to_read = declined = no_route = 0
@@ -5829,6 +5942,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     # sightings is what makes this a bound on the FILE's turn. Two would let a file
     # spend the whole budget here and the whole budget again at site A.
     ceiling = fact_authorities.per_file_ceiling
+    held = released = confirmed = 0
     dependencies_for = situation_call_dependencies
     store = ClassificationStore(conn)
     # `104` §17.13 ruling 3: PER FILE, not per site. Site G's own text is
@@ -5871,12 +5985,39 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             # not be called for direct, unique matches."
             settled += 1
             continue
+        # THE HOLD, READ BEFORE THE QUESTION IS BUILT, because it is part of the
+        # question. `104` §18 gap 24: the precaution's own report -- which of
+        # `00`'s four safety domains, which of its work types, in which zones --
+        # is the one thing the model judging a held file was never shown.
+        #
+        # THE MARK IS THE ROW, AND THE ROW IS WHAT IS ASKED. The ruling names
+        # "every file the precaution marked (`basis='safety_domain'`)", and
+        # `precaution_report` answers a different question -- would the rules hold
+        # this file -- which is the same answer only while the precaution's row is
+        # still the live one. It stops being live the moment anything stronger
+        # supersedes it: a person's own `user_confirmed` correction through P15,
+        # or an earlier run of this pass over the same database. On the next run
+        # the detector still reads the same terms, so a report taken on its word
+        # alone would tell the model "the rules are holding this file" about a
+        # file the person had already released, count it as held, and -- because
+        # `assign` is outranked and writes nothing -- print it as STILL HELD on
+        # the one screen that is about somebody's protected files. So the store is
+        # asked first, and only a live `safety_domain` row makes this a hold.
+        current = store.current(file_id, content_hash)
+        precaution = (
+            precaution_of(conn, outcome, file_id=file_id,
+                          content_hash=content_hash)
+            if current is not None and current.basis in SAFETY_DOMAIN_BASES
+            else None)
+        if precaution is not None:
+            held += 1
         try:
             question = question_for(
                 outcome, file_id=file_id, content_hash=content_hash,
                 matched_terms=getattr(outcome, "matched_terms", ()),
                 evidence_refs=getattr(outcome, "evidence_refs", ()),
-                semantic=None if semantic_of is None else semantic_of(file_id))
+                semantic=None if semantic_of is None else semantic_of(file_id),
+                precaution=precaution)
         except NothingToAsk:
             nothing_to_ask += 1
             continue
@@ -5893,6 +6034,18 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             no_route += 1
             continue
         client, target = chosen
+        if precaution is not None and target.locality != LOCAL:
+            # `104` §18.7, as an invariant rather than a hope. The route already
+            # refuses it -- `model_route_permitted` asks the gate's own
+            # `protected_cloud_denies` for the protected record the precaution
+            # wrote -- so reaching here means the record and the route disagree
+            # about the same file, and the next line would assemble a held file's
+            # readings for a destination off this device.
+            raise ProtectedFileOfferedACloudTarget(
+                f"{file_id} is held {precaution.schema_id} by the rules and was "
+                f"routed to a {target.locality} target "
+                f"({target.provider}/{target.model_id}); protected material "
+                "reaches the local model only, opened on this machine for it")
         observations = releasable_observations(
             conn, file_id=file_id, content_hash=content_hash,
             limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
@@ -5946,12 +6099,35 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             # is an act on the answer.
             declined += 1
             continue
-        assign(conn,
-               situation_classification(
-                   question, situation, observed_at=now(),
-                   # `104` §18.7 S2: the second answer of the same verdict.
-                   restricted_kind=restricted_kind_named_by_verdict(conn, verdict)),
-               store=store, component_version=component_version)
+        # `104` §18.7 S2: the second answer of the same verdict.
+        restricted_kind = restricted_kind_named_by_verdict(conn, verdict)
+        record = situation_classification(
+            question, situation, observed_at=now(),
+            restricted_kind=restricted_kind,
+            # `104` §18 gap 24: G's answer may not lift a hold it did not
+            # contradict. `situation_classification` carries the argument.
+            held=precaution is not None)
+        # THE SUPERSESSION IS `assign`'S AND IS NOT SPELLED AGAIN HERE. This
+        # record is `llm_supported` and the precaution's is `possible`, so
+        # `assign` writes it, retires the precaution row through
+        # `supersedes`/`superseded_by`/`supersede_reason`, and leaves the old row
+        # readable -- §8.2's "supersede, never overwrite". Nothing here edits or
+        # deletes what the detector concluded.
+        written = assign(conn, record, store=store,
+                         component_version=component_version)
+        if precaution is not None and written is record:
+            # WHICH WAY THE HOLD WENT, read off the record that actually
+            # superseded it rather than off the answer a second time: the flag on
+            # the row IS what every later pass reads, so counting anything else
+            # would be a screen that could disagree with the store. `assign`
+            # returns something OTHER than this record when it wrote none of it --
+            # the person has rejected this class for this file, or a stronger
+            # record already stands -- and in both cases the precaution row was
+            # never retired, so the hold is standing and is counted as standing.
+            if record.protected:
+                confirmed += 1
+            else:
+                released += 1
         named[file_id] = situation
     # `104` R-175: the last file's turn ends with the loop and not with the next
     # file, because there is no next file. Leaving it open would under-charge one
@@ -5962,12 +6138,20 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     return SituationPass(
         named=named, settled=settled, nothing_to_ask=nothing_to_ask,
         nothing_to_read=nothing_to_read, declined=declined, no_route=no_route,
-        over_ceiling=over_ceiling)
+        over_ceiling=over_ceiling,
+        # `still_held` IS DERIVED AND IS NOT A SEVENTH TALLY. A hold that was
+        # neither released nor confirmed is standing, whichever of the pass's six
+        # buckets its file fell into -- and deriving it is what makes "these three
+        # partition `held`" true by construction rather than by six `+= 1`s
+        # staying in step with each other.
+        holds=PrecautionHolds(held=held, released=released, confirmed=confirmed,
+                              still_held=held - released - confirmed))
 
 
 _NOTHING_ASKED = SituationPass(
     named={}, settled=0, nothing_to_ask=0, nothing_to_read=0, declined=0,
-    no_route=0)
+    no_route=0,
+    holds=PrecautionHolds(held=0, released=0, confirmed=0, still_held=0))
 
 
 def model_fact_resolver(conn: sqlite3.Connection, *,
@@ -7549,12 +7733,48 @@ SITUATION_SENTENCE: Mapping[str, str] = MappingProxyType({
         "was decided -- what is open is open, and the next run asks again.",
 })
 
-assert set(SITUATION_SENTENCE) | {"named"} == {
+assert set(SITUATION_SENTENCE) | {"named", "holds"} == {
     field.name for field in dataclasses.fields(SituationPass)}, (
     "every counter site G leaves behind earns a sentence on the screen. A "
     "counter with no sentence would be a number this report silently drops, "
     "which is the defect `104` §18.2 gap 9 is about -- so a new one fails to "
     "import rather than going unprinted")
+
+#: `104` §18 gap 24: WHAT BECAME OF THE HOLDS, in the person's words.
+#:
+#: A block of its own and not four more lines under the six above, because these
+#: do not partition the roster -- see `PrecautionHolds`. `held` is the
+#: denominator and is stated once in the block's header, exactly as `named` heads
+#: the block above; the three sentences here divide it, so the numbers under the
+#: header add up to it. Same arithmetic, same reason for offering it.
+#:
+#: The word "the rules" and the word "the model on this device" are the two
+#: actors a person has to be able to tell apart here. A hold the rules took and a
+#: hold the model agreed with are different facts about their file, and until
+#: this block existed both read as "protected" with nothing saying which.
+HOLD_SENTENCE: Mapping[str, str] = MappingProxyType({
+    "released":
+        "released by the model: it named an ordinary situation, cited it, the "
+        "check accepted the answer, and it named no restricted kind. The hold "
+        "is superseded -- not deleted -- and those files are ordinary for the "
+        "rest of this run.",
+    "confirmed":
+        "confirmed by the model: it agreed the file is one of the four "
+        "protected kinds, or it named a restricted document kind. The hold "
+        "stands and the record now shows the model agreed rather than showing "
+        "only that the rules had guessed.",
+    "still_held":
+        "still held because nothing could say: the model declined, or the "
+        "check refused its answer, or the call did not come back, or there was "
+        "nothing releasable to ask from. Silence never lifts a hold, so they "
+        "stay protected and stay on this device.",
+})
+
+assert set(HOLD_SENTENCE) | {"held"} == {
+    field.name for field in dataclasses.fields(PrecautionHolds)}, (
+    "the same rule one record along: a hold count with no sentence is a number "
+    "about somebody's protected file that no screen says out loud. `held` is "
+    "the block's own header, exactly as `named` is the block above's")
 
 
 def _print_situation_pass(situation: SituationPass, *, files: int,
@@ -7611,11 +7831,48 @@ def _print_situation_pass(situation: SituationPass, *, files: int,
         f"may be sent at all, so it is never asked anywhere else.", indent=""),
         file=out)
     for field in dataclasses.fields(SituationPass):
-        if field.name == "named":
+        if field.name in ("named", "holds"):
             continue
         print(_wrapped(f"{getattr(situation, field.name)} "
                        f"{SITUATION_SENTENCE[field.name]}", indent="  "),
               file=out)
+    _print_the_holds(situation.holds, out=out)
+
+
+def _print_the_holds(holds: PrecautionHolds, *, out) -> None:
+    """`104` §18 gap 24: what became of the holds the rules had taken.
+
+    **A BLOCK OF ITS OWN, and the reason is arithmetic.** The six lines above
+    partition the roster and their sum is the total a person can check. These
+    three partition `held` instead -- a released file is also one of the six --
+    so printing them in that loop would give a reader six numbers that no longer
+    add up and no way to know which of them to distrust.
+
+    **NOTHING IS PRINTED WHERE THE RULES HELD NOTHING**, on the same rule
+    `_print_situation_pass` applies to a pass that did not run: a heading over
+    four zeros invites a person to wonder which of their files it is about, and
+    the answer is none of them. A run with no held file has nothing to say here
+    and says nothing.
+
+    The header names the denominator once, so the three lines under it are a sum
+    a person can check against it -- and `still_held` is derived from the other
+    two, so the check cannot fail for a reason that is this screen's fault.
+    """
+    if not holds.held:
+        return
+    print("", file=out)
+    print(_wrapped(
+        f"Protected holds the model looked at: the rules were holding "
+        f"{holds.held} {'file' if holds.held == 1 else 'files'} on a safety "
+        f"term, and every one of them was put to the model on this device -- "
+        f"never anywhere else. A hold is only ever lifted by an answer; nothing "
+        f"here is lifted by silence, and no hold was deleted.", indent=""),
+        file=out)
+    for field in dataclasses.fields(PrecautionHolds):
+        if field.name == "held":
+            continue
+        print(_wrapped(f"{getattr(holds, field.name)} "
+                       f"{HOLD_SENTENCE[field.name]}", indent="  "), file=out)
 
 
 def _protected_file_ids(conn: sqlite3.Connection) -> set[str]:
@@ -10871,6 +11128,16 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 # with it -- and the composed one is what raises a candidate for
                 # the 60 `no_evidence` files that have no lexical one.
                 explain=classify_producer.explain,
+                # THE TERM DETECTOR'S OWN, and deliberately not the composed
+                # recogniser's (`104` §18 gap 24). The precaution is
+                # `Detector._precaution` and nothing else writes it:
+                # `SemanticRecogniser.__call__` runs the term detector FIRST and
+                # returns its record untouched, and the similarity path is
+                # forbidden to protect or release one of `00`'s four domains at
+                # all. So the hold has one author, and this is that author --
+                # asking the composed object would be asking a wrapper about a
+                # decision it is not allowed to make.
+                precaution_of=detector.precaution_report,
                 fact_authorities=authorities, routing=routing,
                 prompt=situation_prompt_in_force, now=now, user_id=user_id)
             # LOCAL ONLY, and the check is `observe_locality_permits` rather than a

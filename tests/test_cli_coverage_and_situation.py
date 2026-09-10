@@ -56,7 +56,13 @@ def _a_pass(**over) -> cli.SituationPass:
         "declined": 55, "no_route": 66,
         # `104` R-175's counter joined the partition: a file skipped because it had
         # already held the run longer than one file may.
-        "over_ceiling": 77, **over})
+        "over_ceiling": 77,
+        # `104` §18 gap 24. The rules held none of these files, which is what
+        # every test in this section is about -- the six counters. The hold block
+        # has its own tests below and its own numbers there.
+        "holds": cli.PrecautionHolds(held=0, released=0, confirmed=0,
+                                     still_held=0),
+        **over})
 
 
 def _printed(situation: cli.SituationPass, *, files: int = 221) -> str:
@@ -116,6 +122,71 @@ def test_a_zero_counter_still_prints_its_line():
     assert "0 out of time" in said
 
 
+def test_the_four_hold_counts_reach_the_screen():
+    """`104` §18 gap 24, point 3, stated as an assertion.
+
+    The owner's ruling: "the posture sentences and the coverage table must tell
+    the person: how many files the rules held, how many the local model released,
+    how many it confirmed, how many it left held because it could not say."
+    Measured on r19, the rules held 16 files, 5 of them rightly, and no line of
+    any report said so -- a person read one word, "protected", and could not tell
+    a hold the model had agreed with from a hold nothing had ever looked at.
+
+    DIFFERENT NUMBERS ON PURPOSE, for `_a_pass`'s own reason: with `1` everywhere
+    a test asserting "1 appears four times" passes while three lines are missing.
+
+    SABOTAGE: delete the `_print_the_holds` call at the end of
+    `_print_situation_pass`, or any one line of its loop.
+    """
+    said = _printed(_a_pass(holds=cli.PrecautionHolds(
+        held=16, released=11, confirmed=2, still_held=3)))
+
+    assert "the rules were holding 16 files on a safety term" in said
+    assert "put to the model on this device" in said
+    for count, phrase in ((11, "released by the model"),
+                          (2, "confirmed by the model"),
+                          (3, "still held because nothing could say")):
+        assert f"{count} {phrase}" in said, (count, phrase)
+
+
+def test_a_zero_hold_count_still_prints_its_line_where_anything_was_held():
+    """The three divide `held`, so a line that vanishes at zero breaks the sum.
+
+    The same argument as the six counters above, and it matters more here: "0
+    released" and "0 confirmed" are what a person needs to see to know that every
+    one of their held files is still held, rather than being left to infer it
+    from a heading and two missing rows.
+
+    SABOTAGE: add `if not count_: continue` to `_print_the_holds`' loop.
+    """
+    said = _printed(_a_pass(holds=cli.PrecautionHolds(
+        held=4, released=0, confirmed=0, still_held=4)))
+
+    assert "0 released by the model" in said
+    assert "0 confirmed by the model" in said
+    assert "4 still held because nothing could say" in said
+
+
+def test_a_run_where_the_rules_held_nothing_prints_no_hold_block():
+    """`_NOTHING_ASKED`'s rule, applied to this block: a heading over four zeros
+    invites a person to wonder which of their files it is about, and the answer is
+    none of them.
+
+    The six counters above still print, because they are about every file the pass
+    walked; this block is about a set that is empty.
+
+    SABOTAGE: drop the `if not holds.held: return` guard, and every ordinary run
+    gains a protected-holds heading about no file at all.
+    """
+    said = _printed(_a_pass())
+
+    assert "Protected holds the model looked at" not in said
+    assert "released by the model" not in said
+    # And the block it sits under is untouched -- this is an addition, not a
+    # replacement.
+    assert "22 settled by rule" in said
+
+
 def test_a_run_where_site_g_was_never_asked_prints_no_block_at_all():
     """`_NOTHING_ASKED`'s own ruling, one layer up, held to on the screen.
 
@@ -163,11 +234,33 @@ def test_every_counter_site_g_leaves_behind_earns_a_sentence():
     it cannot go unprinted quietly.
     """
     fields = {field.name for field in dataclasses.fields(cli.SituationPass)}
-    assert set(cli.SITUATION_SENTENCE) | {"named"} == fields
+    # `104` §18 gap 24 added `holds`, a RECORD, not a counter: it does not
+    # partition the roster the way the six do, so it is excused here and pinned
+    # against its own sentences one test down.
+    assert set(cli.SITUATION_SENTENCE) | {"named", "holds"} == fields
     assert len(cli.SITUATION_SENTENCE) == 6, (
         "six counted outcomes plus `named` in the header. Five when gap 9 was "
         "closed; `104` R-175 added `over_ceiling`, because a file skipped for time "
         "is a file this run did not decide about and the partition has to hold it")
+
+
+def test_every_hold_the_rules_took_earns_a_sentence_too():
+    """`104` §18 gap 24: the same rule, one record along.
+
+    The owner's ruling is that the posture must tell a person how many files the
+    rules held, how many the local model released, how many it confirmed and how
+    many it left held because it could not say. A count with no sentence is the
+    gap 9 defect wearing a protected file's clothes -- worse, because these four
+    are the numbers that say whether somebody's medical record was let go.
+
+    SABOTAGE: add a field to `PrecautionHolds` with no sentence for it. `cli`
+    fails to import and every test in this file errors.
+    """
+    fields = {field.name for field in dataclasses.fields(cli.PrecautionHolds)}
+    assert set(cli.HOLD_SENTENCE) | {"held"} == fields
+    assert len(cli.HOLD_SENTENCE) == 3, (
+        "three outcomes that partition `held`, with `held` itself in the block's "
+        "own header -- exactly as `named` heads the block above")
 
 
 # =====================================================================
