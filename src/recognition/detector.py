@@ -183,6 +183,25 @@ def _names_the_file(match: "TermMatch") -> bool:
     return match.page is None or match.page == FIRST_PAGE
 
 
+def _reported(schema_id: str, found: "tuple[TermMatch, ...]") -> "Precaution":
+    """`Precaution`'s three fields, projected from the matches a writer held.
+
+    ONE PROJECTION FOR EVERY WRITER (`104` §18.26 gap 24b). Three arms of this
+    detector hold a file and each of them now says why; the arithmetic that turns
+    matches into terms and zones is the same arithmetic for all three, and three
+    copies of "found-order, deduplicated, a zoneless match contributes nothing"
+    is how one of them would come to report a zone called "none".
+
+    Nothing here reads the file: `found` is already the writer's own matches,
+    narrowed by the writer's own rule.
+    """
+    return Precaution(
+        schema_id=schema_id,
+        terms=tuple(dict.fromkeys(match.term for match in found)),
+        zones=tuple(dict.fromkeys(match.zone for match in found
+                                  if match.zone is not None)))
+
+
 @dataclass(frozen=True, slots=True)
 class TermMatch:
     """One authored term, found in one observation, owned by one schema."""
@@ -956,9 +975,10 @@ class Detector:
         return self._protect_as(conn, (report.schema_id,), file_id=file_id,
                                 content_hash=content_hash)
 
-    def precaution_report(self, conn: sqlite3.Connection, outcome: "Abstention", *,
+    def precaution_report(self, conn: sqlite3.Connection,
+                          outcome: "Recognition | Abstention", *,
                           file_id: str, content_hash: str) -> "Precaution | None":
-        """WHY the precaution holds this file, or `None` because it does not.
+        """WHY this file is held, or `None` because it is not.
 
         THE RULE HAS ONE HOME AND TWO READERS. `_precaution` used to hold this
         arithmetic and return only a record; `104` §18 gap 24 asks for the same
@@ -971,7 +991,21 @@ class Detector:
         `precaution_report(...) is not None` is therefore the exact predicate for
         "the rules are holding this file" -- which is what `cli.ask_the_situation`
         needs to make the mark itself a reason to ask.
+
+        **AND A RECOGNITION IS HELD TOO (`104` §18.26 gap 24b, the owner's ruling
+        of 10 Sep 13:10).** `basis='safety_domain'` has THREE writers and gap 24
+        could report only one of them. The other two sit on files this detector
+        RECOGNISES -- the winning-schema branch in `__call__`, and a safety domain
+        winning outright -- and on r19 eight of the eleven ordinary files wrongly
+        held were of that kind, never asked because `00`:110 counts a recognised
+        file settled. The predicate above is the same predicate for them: what
+        changes is only which of `__call__`'s arms is asked, never a vocabulary, a
+        floor or a zone rule. `_recognised_hold` is that arm and `__call__` reads
+        it, so a hold and its report still cannot disagree about one file.
         """
+        if isinstance(outcome, Recognition):
+            return self._recognised_hold(conn, outcome, file_id=file_id,
+                                         content_hash=content_hash)
         if outcome.reason == "protected_container":
             return None
         # A tied LEADER, and a term that says what the file IS. The leader test was
@@ -995,12 +1029,66 @@ class Detector:
             # holds nothing -- and a report of a hold that was never taken would be
             # a screen saying a file is held when it is not.
             return None
-        found = says_what_it_is[schema_id]
-        return Precaution(
-            schema_id=schema_id,
-            terms=tuple(dict.fromkeys(match.term for match in found)),
-            zones=tuple(dict.fromkeys(match.zone for match in found
-                                      if match.zone is not None)))
+        return _reported(schema_id, says_what_it_is[schema_id])
+
+    def _recognised_hold(self, conn: sqlite3.Connection, outcome: "Recognition",
+                         *, file_id: str, content_hash: str
+                         ) -> "Precaution | None":
+        """The hold on a file the rules RECOGNISED, in that hold's own terms.
+
+        `104` §18.26 gap 24b. Two of the three writers of `basis='safety_domain'`
+        run on a `Recognition`, and this reports each of them in ITS OWN words --
+        it decides nothing the writer did not already decide, and every rule the
+        writers stand on is untouched:
+
+        * **A safety domain WON.** The record `__call__` returns is the winner's
+          own handling and its basis is `safety_domain`, so the hold IS the
+          recognition: the domain is `outcome.schema_id` and the terms are the
+          WORK TYPES among the matches the recognition was built from.
+          `Precaution.terms` is "the work types of that domain the file's
+          evidence carries", and a domain that won on its CONTEXT terms alone --
+          `finance` ships 216 of them -- reports an empty tuple rather than
+          calling a word that merely accompanies such a document a work type.
+          Empty and not `None`: the row says `safety_domain`, so a report of
+          nothing would be a hold no screen counts, which is gap 24's own defect.
+        * **Another schema won and a safety domain named the file anyway.** That
+          is the winning-schema branch, and its rule is
+          `_safety_readings_naming_the_file`: a work type of one of `00`'s four,
+          in one of SPEC 2.2's naming zones. The terms and zones reported are
+          exactly the matches that rule passed -- not the wider set `_precaution`
+          reads on an abstention, because this is the OTHER writer and reporting
+          its neighbour's working would describe a hold nobody took.
+
+        `min(readings, key=SCHEMA_IDS.index)` is `_protect_as`'s own choice, made
+        here once and handed to it, on the same terms as the abstention arm.
+        """
+        if outcome.schema_id in SAFETY_DOMAIN_IDS:
+            # The winner is the hold. `explain` returns `unassigned_handling`
+            # rather than a `Recognition` where the policy states no class, so a
+            # recognised schema always has one and there is nothing to check.
+            return _reported(outcome.schema_id, tuple(
+                match for match in outcome.matches
+                if match.term in self._work_types.get(outcome.schema_id,
+                                                      frozenset())))
+        readings = self._safety_readings_naming_the_file(
+            conn, file_id, content_hash,
+            in_evidence=self._safety_readings_in_evidence(
+                conn, file_id, content_hash))
+        if not readings:
+            return None
+        schema_id = min(readings, key=SCHEMA_IDS.index)
+        if self._handling.get(schema_id) is None:
+            # The caller's policy states no class for this domain, so `_protect_as`
+            # holds nothing -- and a report of a hold that was never taken would be
+            # a screen saying a file is held when it is not. The abstention arm
+            # refuses on the same line for the same reason.
+            return None
+        work_types = self._work_types.get(schema_id, frozenset())
+        matches, _ = self._matches(conn, file_id, content_hash)
+        return _reported(schema_id, tuple(
+            match for match in matches
+            if match.schema_id == schema_id and match.term in work_types
+            and _names_the_file(match)))
 
     def _safety_work_type_matches(
             self, conn: sqlite3.Connection, file_id: str,
@@ -1198,10 +1286,16 @@ class Detector:
         if outcome.schema_id not in SAFETY_DOMAIN_IDS:
             in_evidence = self._safety_readings_in_evidence(
                 conn, file_id, content_hash)
-            protection = self._protect_as(
-                conn,
-                self._safety_readings_naming_the_file(
-                    conn, file_id, content_hash, in_evidence=in_evidence),
+            # THE REPORT DECIDES AND THIS WRITES THE RECORD, which is the shape
+            # `_precaution` has had since `104` §18 gap 24 and is now this arm's
+            # too (§18.26 gap 24b). The rule -- a work type of one of `00`'s four
+            # in a naming zone -- did not move and is not spelled twice; what
+            # moved is that `cli.ask_the_situation` can ask the same question of
+            # the same file and be told the same answer.
+            report = self.precaution_report(conn, outcome, file_id=file_id,
+                                            content_hash=content_hash)
+            protection = None if report is None else self._protect_as(
+                conn, (report.schema_id,),
                 file_id=file_id, content_hash=content_hash)
             if protection is not None:
                 return protection
