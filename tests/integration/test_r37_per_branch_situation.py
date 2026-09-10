@@ -254,7 +254,10 @@ def test_an_unsettled_branch_is_proposed_asked_about_and_asked_nothing(
                      r"a folder you have not yet said the situation of", _flat(report))
     # The branch is proposed beside the typed one, so the cover letters are no
     # longer under Coursework and the résumé is under no course.
-    folders = report.split("Folders in this plan:", 1)[1].split("Files:", 1)[0]
+    # `104` §18.2 gap 14 prints the group block between the folder list and
+    # "Files:"; the folder list ends at whichever of the two comes first.
+    folders = report.split("Folders in this plan:", 1)[1]
+    folders = folders.split("Groups put to a model as groups:", 1)[0].split("Files:", 1)[0]
     roots = [line.strip() for line in folders.splitlines()
              if line.startswith("  ") and not line.startswith("    ")]
     assert roots == ["career", "Coursework"], roots
@@ -418,7 +421,10 @@ def test_the_default_branch_keeps_its_course_and_term_levels_beside_a_second_bra
     coursework = {chain: count for chain, count in chains.items()
                   if chain.startswith("Coursework")}
     assert coursework == COURSEWORK_CHAINS_BEFORE, (chains, report)
-    folders = report.split("Folders in this plan:", 1)[1].split("Files:", 1)[0]
+    # `104` §18.2 gap 14 prints the group block between the folder list and
+    # "Files:"; the folder list ends at whichever of the two comes first.
+    folders = report.split("Folders in this plan:", 1)[1]
+    folders = folders.split("Groups put to a model as groups:", 1)[0].split("Files:", 1)[0]
     roots = [line.strip() for line in folders.splitlines()
              if line.startswith("  ") and not line.startswith("    ")]
     assert roots == ["Coursework", "career"] or roots == ["career", "Coursework"], roots
