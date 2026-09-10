@@ -33,7 +33,7 @@ from facts.llm_seam import (
 )
 from facts.states import DIRECT, POSSIBLE, REJECTED, VALIDATED
 from facts.unresolved import UNRESOLVED_REASONS, unresolved_for_file
-from facts.values import VALUE_ORIGINS, ensure_value
+from facts.values import VALUE_ORIGINS, ensure_value, values_in_field
 
 CLOCK = "2026-08-19T12:00:00+00:00"
 MODEL = "test-model-1"
@@ -351,6 +351,56 @@ def test_a_value_that_cannot_be_normalized_produces_no_fact(subject_file, p6_con
     assert _apply(p6_conn, request, proposal, verdict) is None
     assert facts_for_file(p6_conn, request.file_id, request.content_hash) == []
     assert _reasons(p6_conn, request) == ["normalization_failed"]
+
+
+def test_a_value_check_three_flagged_instead_of_refusing_is_written_for_the_person(
+        subject_file, p6_conn):
+    """`104` §18.2 gap 3b, at the P6 half of the seam: the flag is P8's alone.
+
+    **SABOTAGE:** let check 3's flag reach P6 the way its rejection does -- hand this
+    claim `Verdict(passed=False, failed_check=FOUR_CHECKS[2])`, as the test directly
+    above does. Then the proposal is destroyed at the seam, the fact table gets
+    nothing, `normalization_failed` is written where the person would have looked,
+    and `00`:298's *"a value the shipped library has not seen is proposed once"* has
+    no row to be proposed from. That is the r19 shape `104` §18.22 measured from the
+    other side: 125 claims carrying check 3's word and no way to tell a value that
+    was put to a person from one that was thrown away.
+
+    P6's `Verdict` is two-valued by construction -- it passed, or it names which of
+    §3.6's four checks it failed -- and it has NOWHERE to carry a reason on a claim
+    that passed. That is the C-5 line working, not a shortcoming: the flag is a fact
+    about the judgement and P8 keeps the judgement's record, while P6 keeps the
+    consequence. So the whole of gap 3b's arrival here is `passed=True` at
+    `possible` with check 3's own canonical form, and this test is what says the
+    three of them travel together.
+
+    The canonical value is DELIBERATELY not the model's spelling. The review
+    normaliser collapses whitespace and returns the value as a person would confirm
+    it, and it is that form -- not the raw answer -- that P6 must store, or one
+    course arrives from two producers as two folders (`65` §4.2).
+    """
+    request = _request(p6_conn, subject_file)
+    proposal = Proposal(field_key="subject", value="University  Writing",
+                        citations=(subject_file[2],), unknown=False)
+    fact_id = _apply(p6_conn, request, proposal, Verdict(passed=True),
+                     state=LLM_STATES[1], canonical_value="University Writing")
+
+    assert fact_id is not None
+    rows = [r for r in facts_for_file(p6_conn, request.file_id,
+                                      request.content_hash)
+            if r["field_key"] == "subject"]
+    assert [r["reliability_state"] for r in rows] == [POSSIBLE]
+    values = [r["canonical_value"] for r in values_in_field(p6_conn, "subject")]
+    assert values == ["University Writing"]
+    # NOTHING TO ANSWER AND NOTHING TO FILE. A flagged accept writes no unresolved
+    # row -- the claim was not lost, it is waiting on a person -- and `possible` is
+    # the one ranked state below the floor a folder proposal rests on, so the
+    # product asks without having filed anything.
+    assert _reasons(p6_conn, request) == []
+    read_surface = pytest.importorskip("facts.read_surface")
+    assert read_surface.proposal_eligible(
+        p6_conn, file_id=request.file_id,
+        content_hash=request.content_hash) == []
 
 
 def test_an_explicit_unknown_is_the_model_declining_and_not_a_failed_check(

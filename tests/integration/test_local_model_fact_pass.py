@@ -42,6 +42,9 @@ import cli
 from facts.llm_seam import LLM_STATES
 from facts.states import POSSIBLE as POSSIBLE_STATE
 from llm_harness.value_grounding import grounding_tokens
+from llm_harness.vocabulary import (
+    ACCEPT_CONTEXT_SUPPORTED, REJECT, VALUE_NOT_NORMALIZABLE,
+)
 from privacy.vocabulary import (
     ALWAYS_LOCAL_ZONES, ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET,
 )
@@ -429,6 +432,142 @@ def test_a_course_printed_as_a_word_becomes_a_validated_subject_on_a_real_run(
         "SELECT DISTINCT a.canonical_code FROM anchor_statements a "
         "JOIN files f ON f.file_id = a.stating_file_id WHERE f.filename = ?",
         "PHYS 1401 syllabus.txt") == [("PHYS1401",)], report
+
+
+# --- `104` §18.2 gap 3b: an unseen term, end to end, onto the person's screen ---
+
+#: The file whose term this deployment's date rules have never seen.
+UNSEEN_TERM_NAME = "MATH 2010 Problem Set 7.txt"
+
+#: The value on it. `105` §14.2 ruled in five term forms and this is none of them:
+#: `DATE_PATTERNS` reads season-and-year and academic-year shapes, and a trimester
+#: numbered inside a calendar year is a real university's spelling that the shipped
+#: library simply does not carry. `cli.term_refusal` does not name it either -- it is
+#: not a bare year, a bare range or a season initial -- so the review shape accepts
+#: it as a value a person could confirm, which is the whole of gap 3.
+UNSEEN_TERM = "Trimester 2 2025"
+
+
+def _corpus_with_an_unseen_term(root: Path) -> Path:
+    """`_corpus`, plus one file stating a term no rule in this deployment reads.
+
+    A SEVENTH file rather than an edit to the six, on the precedent
+    `_corpus_with_a_paragraph_neighbour` set: every test in this module runs the
+    whole corpus and the six keep their counts exactly. The line is unique in the
+    corpus on purpose -- an observation key is content-addressed, and `_corpus`
+    records above what happened the last time two files shared one.
+    """
+    corpus = _corpus(root)
+    (corpus / UNSEEN_TERM_NAME).write_text(
+        f"Problem Set 7\n{UNSEEN_TERM}\n\nProblem 1. Compute the eigenvalues.\n")
+    return corpus
+
+
+def _proposing_the_unseen_term(payload: str) -> str:
+    """The stub's answer: propose `UNSEEN_TERM` where the dossier released it.
+
+    Copied, never invented -- the value is a whole-token run of a released value and
+    the claim cites the item it was copied from, so `value_grounding` accepts it for
+    the reason a real model's correct answer is accepted. Every other dossier gets
+    `_answer_for`, so the rest of the run is the run every other test here sees.
+    """
+    dossier = dossier_in(payload)
+    fields = [field for field in dossier.get("allowed_vocabulary", ())
+              if isinstance(field, str)]
+    if "term" not in fields:
+        return _answer_for(payload)
+    for item in dossier.get("released_evidence", ()):
+        if not isinstance(item, dict) or not isinstance(item.get("value"), str):
+            continue
+        if UNSEEN_TERM not in item["value"]:
+            continue
+        claims = [{
+            "payload": {"field": "term", "value": UNSEEN_TERM},
+            "citations": [{"evidence_ref": item["observation_key"],
+                           "cited_span": UNSEEN_TERM,
+                           "why_it_supports": "the document states its term here"}],
+        }]
+        claims.extend(
+            {"payload": {"field": field},
+             "unknown": {"insufficiency_statement":
+                         "no released evidence carries this field"}}
+            for field in fields if field != "term")
+        return json.dumps({"claims": claims})
+    return _answer_for(payload)
+
+
+def test_an_unseen_term_is_proposed_to_the_person_instead_of_dying_at_the_validator(
+        tmp_path, monkeypatch):
+    """`104` §18.2 gap 3b, driven through `cli.main` to the screen it ends on.
+
+    **SABOTAGE:** make check 3 refuse again what its review half accepts -- delete
+    the `normalize_for_review` branch from `fact_validation._check_three`, or unwire
+    the callback at `cli.py`'s composition root. The term below then comes back
+    `reject value_not_normalizable`, no fact is written, `_print_values_to_confirm`
+    finds no `possible` row, and the report prints no proposals block at all. That is
+    what `104` §18.22 measured on r19: 125 of the local model's claims carried check
+    3's word, `term` was the field it answered 109 times, and the run could not say
+    which of them a person had been asked about -- because a proposal recorded
+    nothing to be counted by.
+
+    **AND THE SECOND SABOTAGE, WHICH IS GAP 3b'S OWN:** keep the review path and take
+    `VALUE_NOT_NORMALIZABLE` back off the accepted verdict. The screen still prints
+    -- gap 3 built that -- but the verdict row is then indistinguishable from R-135's
+    neighbour-grounded acceptance, and the last assertion here is the only place that
+    would notice.
+
+    THE THREE OUTCOMES ARE ALL VISIBLE IN ONE RUN, which is why this is an end-to-end
+    test and not three unit tests. The term is PROPOSED; the fields the stub declines
+    are ABSTENTIONS and write no fact; and nothing in the corpus is filed under any
+    of it, because `possible` is below `facts.read_surface.PROPOSAL_ELIGIBLE_STATES`.
+    """
+    with StubOllama(answer=_proposing_the_unseen_term) as stub:
+        monkeypatch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
+        monkeypatch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)
+        corpus = _corpus_with_an_unseen_term(tmp_path)
+        database = tmp_path / "holder" / "plan.sqlite"
+        code, report = _run(corpus, database)
+    assert code == 0, report
+
+    # 1. THE SCREEN. `84` §6: what the product tells a person has to be true, and
+    # until gap 3 the true thing was never printed anywhere.
+    assert "New values the model proposed, waiting on you:" in report, report
+    assert f"term: {UNSEEN_TERM!r}" in report, report
+    assert "--reject" in report, report
+
+    # 2. THE FACT, at the one state a folder cannot rest on.
+    rows = _query(
+        database,
+        "SELECT v.canonical_value, ff.reliability_state FROM file_facts ff "
+        'JOIN "values" v USING (value_id) '
+        "JOIN files f ON f.file_id = ff.file_id "
+        "WHERE ff.field_key = 'term' AND f.filename = ?", UNSEEN_TERM_NAME)
+    assert rows == [(UNSEEN_TERM, POSSIBLE_STATE)], (rows, report)
+
+    # 3. THE RECORD, which is what gap 3b adds to the two above. The verdict
+    # ACCEPTED the claim and NAMES check 3 while doing it, so a reader of
+    # `llm_verdict` can count what the run put to the person instead of inferring it.
+    verdicts = _query(
+        database,
+        "SELECT lv.outcome, lv.payload FROM llm_verdict lv "
+        "JOIN llm_dossier ld USING (dossier_id) "
+        "JOIN files f ON f.file_id = ld.subject_ref "
+        "WHERE lv.claim_ref = 'term' AND f.filename = ?", UNSEEN_TERM_NAME)
+    assert [outcome for outcome, _ in verdicts] == [
+        ACCEPT_CONTEXT_SUPPORTED], (verdicts, report)
+    assert [json.loads(payload)["reasons"] for _, payload in verdicts] == [
+        [VALUE_NOT_NORMALIZABLE]], (verdicts, report)
+
+    # AND THE SAME WORD UNDER THE OTHER OUTCOME, in the same run. The corpus's other
+    # files answer `term` with spans no rule and no review shape will take, and those
+    # are `reject` -- so the run holds both halves of check 3 and the OUTCOME is what
+    # separates them, which is the argument for reusing the code rather than minting
+    # a second one.
+    refused = _query(
+        database,
+        "SELECT DISTINCT outcome FROM llm_verdict "
+        "WHERE claim_ref = 'term' AND outcome = ?", REJECT)
+    assert refused == [(REJECT,)], (refused, report)
 
 
 # --- `103` §10's pass test, on a local model ----------------------------------

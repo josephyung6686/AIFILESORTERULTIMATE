@@ -76,6 +76,12 @@ _REASON_TO_CHECK = {
     CITATION_NOT_FOUND: FOUR_CHECKS[1],
     CITATION_NOT_IN_DOSSIER: FOUR_CHECKS[1],
     CITATION_SPAN_MISMATCH: FOUR_CHECKS[1],
+    # STILL TRUE, AND NOW READ FOR ONLY HALF THE VERDICTS THAT CARRY THE WORD
+    # (`104` §18.2 gap 3b). `VALUE_NOT_NORMALIZABLE` names check 3 whether the
+    # check rejected the claim or flagged it as a value the person is asked to
+    # confirm; this table is consulted by `p6_verdict_from_p8` for a `REJECT`
+    # alone, so the flagged half never looks it up. Same argument as check 4's row
+    # below: the MAPPING is what is recorded here, not the consequence.
     VALUE_NOT_NORMALIZABLE: FOUR_CHECKS[2],
     VALUE_NOT_IN_CITED_TEXT: FOUR_CHECKS[1],
     # KEPT, AND NO LONGER REACHED FROM THIS MODULE (`104` §18.2 gap 1). Check 4 flags
@@ -451,6 +457,15 @@ def _check_three(
     the review normaliser, whose answer is `accept_context_supported`. `(None, ...)`
     is `VALUE_NOT_NORMALIZABLE` as before.
 
+    **THE SECOND HALF'S `accept_context_supported` IS ALSO WHAT SAYS SO ON THE
+    RECORD (`104` §18.2 gap 3b).** `_run_checks` reads this outcome as "the review
+    predicate answered, not the canonicaliser" and carries
+    `VALUE_NOT_NORMALIZABLE` onto the accepted verdict as a flag. It is the only
+    signal there is: this function's two halves return the same word, and the
+    caller cannot ask a second time without asking the deployment's normaliser
+    twice for one claim -- `65` §4.2's failure waiting on a seam, which is the
+    reason both halves live here in the first place.
+
     Called from `_run_checks` to decide and from `validate_fact_proposal` to write,
     because a canonical form computed twice by two routes is `65` §4.2's failure
     waiting on a seam.
@@ -590,6 +605,53 @@ def _run_checks(
             citations_checked=checked, policy_version=policy_version,
             dossier_id=dossier_id,
         )
+    # CHECK 3 IS A FLAG WHEN THE REVIEW HALF ANSWERED IT (`104` §18.2 gap 3b).
+    #
+    # `_check_three` returns `accept_context_supported` for exactly one thing: the
+    # deployment's canonicaliser declined the value and the review-shape predicate
+    # -- the third injected callback, `normalize_for_review`, which P8 no more
+    # authors than it authors the other two (C-5) -- said it is nonetheless a value
+    # a PERSON could confirm. That is `00`:298's "a value the shipped library has
+    # not seen is proposed once", and gap 3 (0944801) built the whole of it: the
+    # claim is accepted, `proposal_state_from_p8` writes `possible`, and
+    # `cli._print_values_to_confirm` prints it under "New values the model
+    # proposed". What gap 3 did NOT do is say so ON THE RECORD.
+    #
+    # WHY THE SILENCE WAS ITSELF THE DEFECT. `accept_context_supported` has a
+    # second, unrelated producer -- `104` R-135's `acceptance_outcome`, for a claim
+    # grounded only in a reading of a NEIGHBOURING file -- and until this line the
+    # two arrived at `llm_verdict` byte-identical: same outcome, same
+    # `llm_supported_review` disposition, same `requires_review`, same empty
+    # `reasons`. So "this is a value nobody has ever seen, please confirm it" and
+    # "this was read off the syllabus next door" were one row, and no reader could
+    # separate them. `104` §18.22 is that blindness measured: on r19 the local
+    # model answered `term` 109 times, 125 claims came back `value_not_normalizable`,
+    # and the run could not say which of them had become proposals and which had
+    # died -- because a proposal recorded nothing to be counted by. `104` §18.3
+    # files that class of defect under the record's honesty, and it is the same
+    # sentence `84` §6 makes about the screen: what the record says has to be true,
+    # and saying nothing about a decision the validator made is not neutral.
+    #
+    # THE SHAPE IS GAP 1'S, DELIBERATELY. Check 4 stopped rejecting a claim a
+    # stronger fact contradicts and became a FLAGGED accept carrying
+    # `CONTRADICTED_BY_STRONGER` (ca60987/dcda7d0); this is the same move one check
+    # earlier, and it reuses the rejection's own word rather than minting a second
+    # one, because `VALUE_NOT_NORMALIZABLE` is still exactly what happened -- the
+    # value is not normalizable, and that is now a reason to ASK rather than a
+    # reason to discard. `_REASON_TO_CHECK` keeps mapping it to check 3 and is still
+    # read only for a `REJECT` (`p6_verdict_from_p8` branches on the outcome), so a
+    # flagged accept passes at the seam and P6 writes the fact.
+    #
+    # WHAT DOES NOT MOVE. A value the review predicate REFUSES is still
+    # `reject VALUE_NOT_NORMALIZABLE` above -- the measured bad ones are a bare
+    # `.pdf`, a version string and a bare year range, and `105` §14.2 ruled the last
+    # of those out by hand. An EMPTY value is still an abstention (`104` R-119),
+    # settled before check 3 runs at all. And the scoreboard's "why not" tally reads
+    # reasons only for an outcome outside `ACCEPTING`, so nothing here inflates a
+    # rejection count; what gains a row is `GroundingReport.reasons_histogram`,
+    # which counts every verdict's reasons and is where a run can now see how many
+    # values it put to the person.
+    proposed_as_new = outcome == ACCEPT_CONTEXT_SUPPORTED
     if not value_is_grounded(
             raw_value, normalized,
             citations=rich, released_evidence=dossier.released_evidence):
@@ -627,6 +689,19 @@ def _run_checks(
     # code to record however many stronger facts disagree -- `CONTRADICTED_BY_STRONGER`
     # is the whole vocabulary check 4 has -- so the loop breaks once it has it, and a
     # second row would append the same word twice into the reasons histogram.
+    #
+    # AND THE TWO FLAGS ACCUMULATE, which is why this is a list and no longer a
+    # two-armed assignment. Check 3's flag and check 4's answer two different
+    # questions about one claim -- "nobody has seen this value" and "something
+    # better supported says otherwise" -- and a claim can be both. Overwriting
+    # would make the second finding erase the first, which is
+    # `placement_validation._flagged`'s own argument for composing rather than
+    # returning at the first thing it finds. Check 3's word comes first because
+    # check 3 ran first; nothing reads the order, and a stable one is what keeps a
+    # pin from depending on a dict's mood.
+    reasons: list[str] = []
+    if proposed_as_new:
+        reasons.append(VALUE_NOT_NORMALIZABLE)
     flagged = False
     for row in existing:
         conflict = _require_bool(
@@ -637,9 +712,7 @@ def _run_checks(
             flagged = True
             break
     if flagged:
-        reasons = (CONTRADICTED_BY_STRONGER,)
-    else:
-        reasons = ()
+        reasons.append(CONTRADICTED_BY_STRONGER)
     if outcome == ACCEPT_DIRECT:
         # `104` R-135. Check 3 has already had its say -- its own
         # `accept_context_supported` is R-98's review normaliser and stands -- and this
@@ -652,8 +725,15 @@ def _run_checks(
         outcome = acceptance_outcome(dossier, rich)
     return _verdict(
         request, proposal, outcome=outcome,
-        reasons=reasons, citations_checked=checked, policy_version=policy_version,
-        dossier_id=dossier_id, flagged=flagged,
+        reasons=tuple(reasons), citations_checked=checked,
+        policy_version=policy_version, dossier_id=dossier_id,
+        # `flagged` COVERS CHECK 3'S OBJECTION TOO (`104` §18.2 gap 3b). It reaches
+        # `requires_review` and the disposition, both of which a review acceptance
+        # already earns from its outcome alone -- so this changes no field today.
+        # It is passed because the parameter means "a non-structural objection was
+        # recorded", and leaving it False while `reasons` names one would make the
+        # argument a lie the day some later reader trusts it.
+        flagged=flagged or proposed_as_new,
     )
 
 
