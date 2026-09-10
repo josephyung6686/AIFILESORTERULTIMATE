@@ -59,7 +59,7 @@ from model_situation import (
 )
 from privacy.classification_store import ClassificationStore
 from questions.store import activated_schemas
-from recognition.detector import Abstention, Detector
+from recognition.detector import Abstention, Detector, situation_outcome_of
 from recognition.rules import load_rules
 
 RESUME = "Jane Doe resume.txt"
@@ -217,9 +217,8 @@ def test_the_tie_becomes_a_question_with_valid_options_and_a_way_out(measured):
     outcome = _verdict(measured)
     file_id, content_hash = _version(measured)
 
-    question = question_for(
-        outcome, file_id=file_id, content_hash=content_hash,
-        matched_terms=outcome.matched_terms, evidence_refs=outcome.evidence_refs)
+    question = question_for(situation_outcome_of(outcome),
+                            file_id=file_id, content_hash=content_hash)
 
     assert question.allowed_situations[-1] == NONE_OF_THESE
     assert set(question.allowed_situations[:-1]) == set(TIED)
@@ -238,9 +237,8 @@ def test_nothing_in_the_question_is_authored_by_the_code_that_builds_it(measured
     """
     outcome = _verdict(measured)
     file_id, content_hash = _version(measured)
-    question = question_for(
-        outcome, file_id=file_id, content_hash=content_hash,
-        matched_terms=outcome.matched_terms, evidence_refs=outcome.evidence_refs)
+    question = question_for(situation_outcome_of(outcome),
+                            file_id=file_id, content_hash=content_hash)
 
     for option in question.allowed_situations:
         assert option in SCHEMA_IDS or option == NONE_OF_THESE, option
@@ -326,9 +324,8 @@ def test_the_question_is_asked_now_and_the_request_is_built_from_the_real_run(
     """
     outcome = _verdict(measured)
     file_id, content_hash = _version(measured)
-    question = question_for(
-        outcome, file_id=file_id, content_hash=content_hash,
-        matched_terms=outcome.matched_terms, evidence_refs=outcome.evidence_refs)
+    question = question_for(situation_outcome_of(outcome),
+                            file_id=file_id, content_hash=content_hash)
 
     from llm_harness.vocabulary import CALL_SITES
     assert SITUATION_SENSITIVITY in CALL_SITES
@@ -366,9 +363,8 @@ def test_every_reading_the_request_asks_for_is_this_files_own(measured):
     this site asks for, so the two can never disagree."""
     outcome = _verdict(measured)
     file_id, content_hash = _version(measured)
-    question = question_for(
-        outcome, file_id=file_id, content_hash=content_hash,
-        matched_terms=outcome.matched_terms, evidence_refs=outcome.evidence_refs)
+    question = question_for(situation_outcome_of(outcome),
+                            file_id=file_id, content_hash=content_hash)
     observations = cli.releasable_observations(
         measured, file_id=file_id, content_hash=content_hash,
         limit=cli.FACT_CALL_MAX_RELEASED_OBSERVATIONS, locality=cli.LOCAL,

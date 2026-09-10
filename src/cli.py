@@ -296,8 +296,7 @@ from readers.model_routing import (
 )
 from facts.domains import SCHEMA_IDS
 from recognition.detector import (
-    FIRST_PAGE, NAMING_ZONES, SAFETY_DOMAIN_HANDLING, Abstention, Detector, Handling,
-    Recognition,
+    FIRST_PAGE, NAMING_ZONES, SAFETY_DOMAIN_HANDLING, Detector, Handling,
 )
 from recognition.rules import load_rules
 from recognition.semantic import (
@@ -6089,7 +6088,7 @@ def restricted_kind_named_by_verdict(conn: sqlite3.Connection, verdict) -> str |
 
 def situation_classification(question, schema_id: str, *, observed_at: str,
                              restricted_kind: str | None = None,
-                             held: bool = False,
+                             precaution=None,
                              handling_for=HANDLING_POLICY) -> ClassificationRecord:
     """`104` §17.1's second wall, spent: one model verdict, written down truthfully.
 
@@ -6110,13 +6109,38 @@ def situation_classification(question, schema_id: str, *, observed_at: str,
     that. The model's own citation is checked by P8 and recorded on the verdict;
     what this record cites is what the CLASSIFICATION rests on.
 
+    **EXCEPT ON A CONFIRMED HOLD, WHERE THEY ARE THE HOLD'S (`104` §18.27, the
+    owed row).** A record cites what raised IT. When the model AGREES with a
+    protected hold -- it named one of `00`'s four, or one of `105` §13.3's ten
+    restricted kinds -- what this row records is that hold, confirmed, and what
+    raised the hold is the observations the safety domain's own work types were
+    found in. It was citing `question.evidence_refs`, which on a recognised file
+    are the `Recognition`'s keys: a passport confirmed as an identity document was
+    filed protected on the observations that made it look like coursework, and a
+    person opening the row to ask why their file is protected was shown the
+    evidence for the wrong claim. `Precaution.evidence_refs` is the right one and
+    is the same projection the hold's terms and zones already come from.
+
+    A hold that names no work type at all -- a safety domain that won outright on
+    its context terms (`104` §18.26 gap 24b) -- has no observation of its own, and
+    there the recognition IS the hold, so its citations are the hold's already.
+
+    **A LIFTED HOLD KEEPS CITING THE RECOGNISER'S.** The row then says this file
+    is the ordinary situation the model named, and what raised THAT is what the
+    shortlist was built from. Nothing about the hold survives into a claim the
+    hold contradicts.
+
     `llm_supported` is P4's own word for a fact a model supported, and it ranks
     below `user_confirmed`, `direct` and `validated` -- so a later record from the
     person, or from an extractor reading the file's own words, supersedes this one
     rather than being refused by it.
 
-    **`held` IS THE HOLD THE RULES HAD ALREADY TAKEN, and it only ever ADDS
-    protection (`104` §18 gap 24, the owner's ruling of 10 Sep).** `llm_supported`
+    **`precaution` IS THE HOLD THE RULES HAD ALREADY TAKEN, and it only ever ADDS
+    protection (`104` §18 gap 24, the owner's ruling of 10 Sep).** The hold itself
+    and not a flag saying one exists, since `104` §18.27: the same argument that
+    makes the flag decide `protected` makes the hold's own citations decide what
+    the row rests on, and two arguments carrying one fact are how the row and its
+    evidence come to disagree. `llm_supported`
     outranks `possible`, so this record supersedes the detector's own the moment
     it is assigned -- which means a verdict naming an ORDINARY situation lifts a
     `safety_domain` hold, and that is exactly what the ruling asks for. What it
@@ -6130,13 +6154,18 @@ def situation_classification(question, schema_id: str, *, observed_at: str,
     named, and a file this pass was never holding is untouched by the argument.
     """
     handling = handling_for[schema_id]
+    protected = handling.protected or (precaution is not None
+                                       and restricted_kind is not None)
+    confirmed = protected and precaution is not None
     return ClassificationRecord(
         file_id=question.file_id,
         content_hash=question.content_hash,
         handling_class=handling.handling_class,
-        protected=handling.protected or (held and restricted_kind is not None),
+        protected=protected,
         basis=LOCAL_MODEL_SITUATION,
-        evidence_refs=tuple(question.evidence_refs),
+        evidence_refs=(precaution.evidence_refs
+                       if confirmed and precaution.evidence_refs
+                       else tuple(question.evidence_refs)),
         reliability_state=LLM_SUPPORTED,
         observed_at=observed_at,
         # `104` §18.7 S2 / §18.11 (9 Sep 2026): THE KIND IS THE MODEL'S AND THE
@@ -6312,8 +6341,7 @@ class ProtectedFileOfferedACloudTarget(RuntimeError):
 def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                       precaution_of, fact_authorities, routing: TierRouting,
                       prompt, now, user_id: str,
-                      component_version: str = COMPONENT_VERSION,
-                      semantic_of=None) -> SituationPass:
+                      component_version: str = COMPONENT_VERSION) -> SituationPass:
     """`104` §17.9's defect, addressed: each file asked about ITS OWN situation.
 
     **WHAT THIS IS FOR, and the register got it wrong once.** The earlier account
@@ -6337,11 +6365,22 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     outcome here that is not one accepted, cited, on-the-list answer leads to the
     same place.
 
+    **ONE ANSWER SHAPE, AND THIS PASS READS NO OTHER (`104` §18.26's owed row).**
+    `explain` returns a `recognition.SituationOutcome`: where the recogniser got
+    to, the schema it named or the reason it stopped, the candidates it raised,
+    and -- under `by_the_rules` -- the TERM detector's own record, which is the
+    only thing `precaution_of` may be asked about. Both recognisers project into
+    it, so a run with `--semantic-model` puts the same kind of question as a run
+    without, and a semantic proposal is a recognition here exactly as a term match
+    is. This pass names no record class: it used to, and under the weights every
+    file failed every test it made and was reported as settled by rules that had
+    settled nothing.
+
     **AND SINCE `104` §18 gap 24, THE HOLD THE RULES TOOK IS PART OF THE
     QUESTION.** `precaution_of` is `Detector.precaution_report` -- INJECTED, on
-    `explain`'s own terms, because the rules are another part's and this pass
-    re-derives none of them. Where it answers, three things follow, and each is
-    the owner's ruling of 10 Sep read literally:
+    the term detector's own terms, because the rules are another part's and this
+    pass re-derives none of them. Where it answers, three things follow, and each
+    is the owner's ruling of 10 Sep read literally:
 
     * the file is ASKED, and the hold is what makes the asking accountable. A
       hold is a reason to put the question, never a reason to skip it: the whole
@@ -6381,9 +6420,9 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     * the shortlist is the schema the rules RECOGNISED plus the safety domain(s)
       the hold names, so the model can answer the ordinary situation the rules
       read, or a protected one, or none of them. `question_for` builds it from
-      the outcome and the `Precaution` together, and offers no semantic candidate
-      on a recognised file: the question is whether the HOLD is right, not what
-      else the file might be.
+      the outcome and the `Precaution` together, and a recognised file raises
+      only the schema it was recognised as: the question is whether the HOLD is
+      right, not what else the file might be.
     * the report item says where the rules GOT TO rather than why they stopped --
       "the rules recognised this file as X ... held: ... as Y ..." -- on the same
       `recogniser_abstention` item, in the same register, still carrying nothing
@@ -6444,14 +6483,17 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         # of its work types, in which zones -- is the one thing the model judging
         # a held file was never shown.
         #
-        # ONLY THE TWO OUTCOMES THIS DETECTOR'S RULES PRODUCE ARE PUT TO IT.
-        # `precaution_of` is the TERM detector's report and answers about an
-        # `Abstention` or a `Recognition`; under `--semantic-model` `explain` is
-        # the composed recogniser and returns neither, and those runs count every
-        # file `settled` today. That is a defect of its own -- `104` §18.26
-        # records it as an owed row -- and it is not this gap's to fix silently:
-        # asking the term detector to report on a record it did not write would
-        # be the wrapper answering for a decision it is not allowed to make.
+        # AND IT IS ASKED ABOUT `by_the_rules` (`104` §18.26's owed row, closed).
+        # This used to test the outcome with `isinstance` for the term detector's
+        # two record classes, so under `--semantic-model` -- where `explain` is
+        # the composed recogniser and answers in records of its own -- every file
+        # failed both tests, was counted `settled`, and this site asked nothing at
+        # all. What replaces the test is not a third one: both recognisers project
+        # into `SituationOutcome`, and the term detector's OWN outcome rides on it
+        # under `by_the_rules` for exactly this line. `precaution_of` may only be
+        # asked about the record its own author wrote -- a wrapper answering for a
+        # decision it is not allowed to make is how a vector's nearest neighbour
+        # would come to raise one of `00`'s four.
         #
         # THE MARK IS THE ROW, AND THE ROW IS WHAT IS ASKED. The ruling names
         # "every file the precaution marked (`basis='safety_domain'`)", and
@@ -6468,12 +6510,11 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         # asked first, and only a live `safety_domain` row makes this a hold.
         current = store.current(file_id, content_hash)
         precaution = None
-        if (isinstance(outcome, (Abstention, Recognition))
-                and current is not None
-                and current.basis in SAFETY_DOMAIN_BASES):
-            precaution = precaution_of(conn, outcome, file_id=file_id,
+        if current is not None and current.basis in SAFETY_DOMAIN_BASES:
+            precaution = precaution_of(conn, outcome.by_the_rules,
+                                       file_id=file_id,
                                        content_hash=content_hash)
-        if precaution is None and not isinstance(outcome, Abstention):
+        if precaution is None and outcome.recognised is not None:
             # THE RULES SETTLED IT AND ARE NOT HOLDING IT, which is the whole of
             # what `00`:110 sanctions: "The LLM should not be called for direct,
             # unique matches." A HELD file is not that. The owner's ruling of
@@ -6493,9 +6534,6 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         try:
             question = question_for(
                 outcome, file_id=file_id, content_hash=content_hash,
-                matched_terms=getattr(outcome, "matched_terms", ()),
-                evidence_refs=getattr(outcome, "evidence_refs", ()),
-                semantic=None if semantic_of is None else semantic_of(file_id),
                 precaution=precaution)
         except NothingToAsk:
             nothing_to_ask += 1
@@ -6584,8 +6622,10 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             question, situation, observed_at=now(),
             restricted_kind=restricted_kind,
             # `104` §18 gap 24: G's answer may not lift a hold it did not
-            # contradict. `situation_classification` carries the argument.
-            held=precaution is not None)
+            # contradict, and since §18.27 a hold the answer CONFIRMS is what the
+            # row cites. `situation_classification` carries both arguments off the
+            # one object rather than off a flag beside it.
+            precaution=precaution)
         # THE SUPERSESSION IS `assign`'S AND IS NOT SPELLED AGAIN HERE. This
         # record is `llm_supported` and the precaution's is `possible`, so
         # `assign` writes it, retires the precaution row through
@@ -6598,8 +6638,19 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             # verdict, the situation it named, and what the rules had held the
             # file as and on which authored terms. The library's words and the
             # verdict's id; nothing from the person's file.
+            #
+            # AND WHICH WAY IT WENT, since `104` §18.27. A retired row's reason is
+            # the only place a person reads what happened to a hold, and "named
+            # academic" reads the same on the file the model RELEASED and on the
+            # passport it CONFIRMED -- two opposite outcomes wearing one sentence,
+            # in the column that exists to tell them apart. Read off the record
+            # that is about to supersede, not off the answer a second time, so the
+            # sentence and the row's own flag cannot disagree.
             **({"supersede_reason": (
-                f"local model verdict {verdict.verdict_id} named {situation}"
+                f"local model verdict {verdict.verdict_id} "
+                + ("confirmed the rules' hold and named "
+                   if record.protected else "named ")
+                + f"{situation}"
                 f"{'' if restricted_kind is None else ' and kind ' + restricted_kind}"
                 f"; the rules held {precaution.schema_id}"
                 # ON WHICH TERMS, WHERE THERE ARE ANY. A safety domain that won
@@ -12143,7 +12194,17 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 # detector on a run without `--semantic-model` and the composed one
                 # with it -- and the composed one is what raises a candidate for
                 # the 60 `no_evidence` files that have no lexical one.
-                explain=classify_producer.explain,
+                #
+                # `situation_outcome` AND NOT `explain` (`104` §18.26's owed row).
+                # The two recognisers' `explain` methods answer in two different
+                # pairs of record classes, and this pass tested for the term
+                # detector's pair -- so under `--semantic-model` every file failed
+                # both tests, was counted `settled`, and this site asked nothing at
+                # all while the screen reported the rules had settled the corpus.
+                # The sentence above was written of a path that could not reach the
+                # pass. `situation_outcome` is the ONE shape both project into, and
+                # it is what makes that sentence true.
+                explain=classify_producer.situation_outcome,
                 # THE TERM DETECTOR'S OWN, and deliberately not the composed
                 # recogniser's (`104` §18 gap 24). The precaution is
                 # `Detector._precaution` and nothing else writes it:

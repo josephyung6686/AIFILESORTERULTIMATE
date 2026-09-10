@@ -199,7 +199,9 @@ def _reported(schema_id: str, found: "tuple[TermMatch, ...]") -> "Precaution":
         schema_id=schema_id,
         terms=tuple(dict.fromkeys(match.term for match in found)),
         zones=tuple(dict.fromkeys(match.zone for match in found
-                                  if match.zone is not None)))
+                                  if match.zone is not None)),
+        evidence_refs=tuple(dict.fromkeys(match.observation_key
+                                          for match in found)))
 
 
 @dataclass(frozen=True, slots=True)
@@ -267,6 +269,24 @@ class Precaution:
     #: match contributes nothing rather than a placeholder -- an absent zone is a
     #: format that does not zone, not a zone called "none".
     zones: tuple[str, ...]
+    #: THE OBSERVATIONS THOSE TERMS WERE FOUND IN (`104` §18.27, the owed row).
+    #: Every `TermMatch` already knows its `observation_key`, so this is the same
+    #: projection as `terms` one field along and reads the file no more than that
+    #: one does.
+    #:
+    #: It exists because the hold's own citations are what G's row must carry when
+    #: the local model CONFIRMS the hold. Until now that row cited
+    #: `question.evidence_refs` -- which on a recognised file are the
+    #: `Recognition`'s keys, the ordinary schema's evidence -- so a passport
+    #: confirmed as an identity document was filed protected on the observations
+    #: that made it look like coursework. A record cites what raised IT (§8.4),
+    #: and what raised a confirmed hold is the hold.
+    #:
+    #: Empty exactly where `terms` is empty: a safety domain that won outright on
+    #: its context terms alone names no work type, so it has no observation of its
+    #: own to cite, and `104` §18.26 gap 24b's own reading applies -- there the
+    #: hold IS the recognition and the recognition's citations are the hold's.
+    evidence_refs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -342,6 +362,121 @@ def _named(cited: tuple[tuple[tuple[str, tuple[str, ...]], ...], tuple[str, ...]
     """
     matched_terms, evidence_refs = cited
     return {"matched_terms": matched_terms, "evidence_refs": evidence_refs}
+
+
+@dataclass(frozen=True, slots=True)
+class SituationOutcome:
+    """WHERE A RECOGNISER GOT TO on one file, in the ONE shape site G reads.
+
+    **`104` §18.26's owed row.** Two recognisers can answer about a file and until
+    now they answered in two vocabularies. The term detector returns an
+    `Abstention` or a `Recognition`; under `--semantic-model` the composed
+    recogniser's `explain` returns a `SemanticAbstention` or a `SemanticProposal`,
+    and `cli.ask_the_situation` tested for the first pair -- so on every run with
+    the weights named, every file failed both tests, was counted `settled`, and
+    site G asked nothing at all. The screen said the rules had settled 199 files
+    they had settled nothing about.
+
+    The fix is not a third test in the pass. A pass that names the record classes
+    it will accept is a pass that must be edited every time a recogniser is added,
+    and the edit that is forgotten is the one that silently turns a site off. So
+    both recognisers project their own answer into this, and the pass reads this
+    and nothing else.
+
+    **`by_the_rules` IS WHY THIS IS A RECORD AND NOT A PROTOCOL.** The hold has
+    exactly one author -- `Detector._precaution` and the two recognition arms
+    beside it -- and `Detector.precaution_report` answers about the record that
+    author wrote. Handing it a projection, or a semantic answer, would be a
+    wrapper answering for a decision it is not allowed to make; handing it a
+    synthesised `Abstention` whose `tied_schema_ids` carried semantic candidates
+    would let a vector's nearest neighbour raise one of `00`'s four safety
+    domains. So the term detector's own outcome rides here untouched, and it is
+    what the hold is read off.
+
+    Nothing in this record is authored: the schema ids are the library's, the
+    terms are what the file's own evidence matched, and the reason is the
+    recogniser's own word for why it could not settle the case.
+    """
+
+    #: The TERM DETECTOR's own answer about this file, always present and never a
+    #: projection: the composed recogniser runs it first and carries it here. It
+    #: is what `Detector.precaution_report` is asked about, and the only thing
+    #: that may be.
+    by_the_rules: "Abstention | Recognition"
+    #: The recogniser's own reason for stopping, or `None` because it did not stop
+    #: -- exactly one of this and `recognised`, on `SituationQuestion`'s own
+    #: invariant, because a recogniser either named the file or said why it could
+    #: not and there is no third thing it can have done.
+    reason: str | None
+    #: The schema this file was recognised as, or `None` because it was not. On
+    #: the composed path this is the term detector's recognition where it made
+    #: one and the semantic proposal where the rules abstained -- which is
+    #: `SemanticRecogniser.__call__`'s own order of speaking, in the shape the
+    #: question is put rather than the shape the record is written.
+    recognised: str | None
+    #: EVERY SCHEMA A RECOGNISER RAISED for this file: the tied leaders, the near
+    #: miss, the nearest and the runner-up. Not a shortlist yet --
+    #: `model_situation.shortlist_for` adds the held domain and the decline and
+    #: puts them in `SCHEMA_IDS` order, because a question's options are that
+    #: module's to shape and a recogniser's candidates are this one's to raise.
+    candidates: tuple[str, ...] = ()
+    #: `(schema_id, terms)` per candidate, in `SCHEMA_IDS` order. A candidate with
+    #: an EMPTY term tuple is one no term raised -- the semantic recogniser's
+    #: nearest neighbour -- and saying so is what keeps "near in vector space"
+    #: from reaching the model as "said this word".
+    matched_terms: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    #: The observation keys the candidates rest on. `00`:42 requires the answer to
+    #: cite, and `privacy.classification` refuses a `local_model_situation` record
+    #: that carries none, so a candidate raised from nothing citable is a question
+    #: whose answer could not be written down.
+    evidence_refs: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.by_the_rules, (Abstention, Recognition)):
+            raise TypeError(
+                "by_the_rules is the TERM detector's own outcome and nothing "
+                f"else; {self.by_the_rules!r} is not an Abstention or a "
+                "Recognition, and `precaution_report` may only be asked about "
+                "the record its own author wrote")
+        if (self.reason is None) == (self.recognised is None):
+            raise ValueError(
+                "a recogniser states why it stopped or the schema it recognised, "
+                f"and exactly one of them: reason={self.reason!r}, "
+                f"recognised={self.recognised!r}")
+        for schema_id in (*self.candidates,
+                          *(() if self.recognised is None else (self.recognised,))):
+            if schema_id not in SCHEMA_IDS:
+                raise UnknownSchema(schema_id)
+
+
+def situation_outcome_of(outcome: "Abstention | Recognition") -> SituationOutcome:
+    """The term detector's own answer, projected into the shape site G reads.
+
+    THE PROJECTION IS PUBLIC because two callers need the same one: this
+    detector's `situation_outcome`, and `SemanticRecogniser`'s, which starts from
+    it and speaks only where the rules stopped. A second copy would be a second
+    answer to "what did the rules raise for this file", which is the shape
+    `precaution_report` was split out to avoid one paragraph up.
+
+    A RECOGNITION RAISES ITSELF AND NOTHING ELSE, and it carries no matched terms.
+    That is `00`:110 read literally: the rules made a direct, unique match, so
+    what would be reported is not a list of things the file might be. Its
+    `evidence_refs` are its own -- what the recognition rests on -- which is what
+    the pass has always passed on for such a file.
+    """
+    if isinstance(outcome, Recognition):
+        return SituationOutcome(
+            by_the_rules=outcome, reason=None, recognised=outcome.schema_id,
+            candidates=(outcome.schema_id,),
+            evidence_refs=outcome.evidence_refs)
+    return SituationOutcome(
+        by_the_rules=outcome, reason=outcome.reason, recognised=None,
+        candidates=tuple(
+            schema_id for schema_id
+            in (outcome.schema_id, *outcome.tied_schema_ids)
+            if schema_id is not None),
+        matched_terms=outcome.matched_terms,
+        evidence_refs=outcome.evidence_refs)
 
 
 def _tokens(text: str) -> tuple[str, ...]:
@@ -922,6 +1057,19 @@ class Detector:
                 refs.append(match.observation_key)
         return Recognition(schema_id=schema_id, matches=found,
                            evidence_refs=tuple(refs))
+
+    def situation_outcome(self, conn: sqlite3.Connection, file_id: str,
+                          content_hash: str) -> SituationOutcome:
+        """This file, as site G's pass reads it (`104` §18.26's owed row).
+
+        `explain` and nothing more: this recogniser has one answer about a file
+        and this is that answer wearing the shape a second recogniser can also
+        wear. `SemanticRecogniser` implements the same method, calls this one
+        first, and speaks only where these rules stopped -- which is the
+        composition `__call__` already runs, put where the QUESTION is shaped
+        rather than only where the record is written.
+        """
+        return situation_outcome_of(self.explain(conn, file_id, content_hash))
 
     def _precaution(self, conn: sqlite3.Connection, outcome: "Abstention", *,
                     file_id: str, content_hash: str

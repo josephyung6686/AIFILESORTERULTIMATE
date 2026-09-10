@@ -25,6 +25,7 @@ signal to wire the next piece rather than a reminder to.
 """
 from __future__ import annotations
 
+import dataclasses
 import pathlib
 import sqlite3
 import sys
@@ -42,22 +43,42 @@ from model_situation import (  # noqa: E402
     question_for,
     shortlist_for,
 )
-from recognition.detector import Abstention  # noqa: E402
+from recognition.detector import (  # noqa: E402
+    Abstention, Precaution, situation_outcome_of,
+)
 
 
-def _abstention(reason: str, schema_id=None, tied=()) -> Abstention:
-    return Abstention(reason, schema_id, f"a {reason} case", tuple(tied))
+def _abstention(reason: str, schema_id=None, tied=(), terms=(), refs=(),
+                semantic=()):
+    """One recogniser's answer about one file, in the shape site G reads.
 
+    **`104` §18.26's owed row changed what this helper returns.** These functions
+    took a `Recognition` or an `Abstention` and asked `isinstance` which they had,
+    so under `--semantic-model` -- where the composed recogniser answers in
+    records of its own -- both tests were false and site G asked nothing at all.
+    What they take now is `SituationOutcome`, the ONE shape both recognisers
+    project into, and `situation_outcome_of` is the real projection rather than a
+    hand-built record: a field the detector stops filling fails here.
 
-class _Semantic:
-    """The shape `SemanticProposal` and `SemanticAbstention` share: a nearest, and
-    something beside it. Read by attribute, never imported as a type -- this module
-    must not care which of the two it was handed."""
-
-    def __init__(self, schema_id=None, runner_up=None, tied=()):
-        self.schema_id = schema_id
-        self.runner_up = runner_up
-        self.tied_schema_ids = tuple(tied)
+    `semantic` is what the composed recogniser ADDS where the rules raised
+    nothing: candidates carrying no term, because a vector matched no authored
+    word. The merge itself is pinned over the real `SemanticRecogniser` in
+    `tests/recognition/test_recognition_situation_outcome.py`; what this file
+    measures is the SHAPE the question is built from.
+    """
+    outcome = situation_outcome_of(Abstention(
+        reason, schema_id, f"a {reason} case", tuple(tied),
+        matched_terms=tuple(terms), evidence_refs=tuple(refs)))
+    if not semantic:
+        return outcome
+    terms_of = dict(outcome.matched_terms)
+    for schema_id in semantic:
+        terms_of.setdefault(schema_id, ())
+    raised = set(outcome.candidates) | set(semantic)
+    return dataclasses.replace(
+        outcome,
+        candidates=tuple(s for s in SCHEMA_IDS if s in raised),
+        matched_terms=tuple((s, terms_of[s]) for s in SCHEMA_IDS if s in terms_of))
 
 
 class _Observation:
@@ -128,28 +149,33 @@ def test_the_biggest_bucket_has_nothing_to_ask_without_the_semantic_recogniser()
 
     60 of the owner's 112 abstentions are `no_evidence` -- no term any schema
     authored -- so the lexical side raises no candidate at all and there is no
-    question with valid options. Those 60 become askable only when the semantic
-    recogniser's nearest and runner-up are passed in, which is what makes the two
+    question with valid options. Those 60 become askable only through the
+    candidates the composed recogniser raises, which is what makes the two
     mechanisms partners rather than alternatives.
+
+    **AND THE SECOND ARGUMENT IS GONE (`104` §18.26's owed row).** The semantic
+    candidates used to arrive as a separate object a caller passed beside the
+    outcome -- and `cli.ask_the_situation` passed `None` for it on every run, so
+    the 60 were never askable in the product however the weights were configured.
+    They arrive on the outcome now, raised by whichever recogniser raised them.
     """
     empty = _abstention("no_evidence")
     assert shortlist_for(empty) == (NONE_OF_THESE,)
     with pytest.raises(NothingToAsk):
         question_for(empty, file_id="f", content_hash="a" * 64)
 
-    with_semantic = shortlist_for(
-        empty, _Semantic(schema_id="research", runner_up="academic"))
-    assert with_semantic == ("academic", "research", NONE_OF_THESE)
-    assert question_for(empty, file_id="f", content_hash="a" * 64,
-                        semantic=_Semantic(schema_id="research")).allowed_situations
+    with_semantic = _abstention("no_evidence", semantic=("research", "academic"))
+    assert shortlist_for(with_semantic) == ("academic", "research", NONE_OF_THESE)
+    assert question_for(with_semantic, file_id="f",
+                        content_hash="a" * 64).allowed_situations
 
 
 def test_both_recognisers_contribute_and_neither_orders_the_list():
     """The order is `SCHEMA_IDS`', so the same file gets the same prompt however the
     candidates arrived. `104` R-58 is the same argument about the dossier's bytes."""
     merged = shortlist_for(
-        _abstention("ambiguous", schema_id="career", tied=("career", "photos")),
-        _Semantic(schema_id="academic", runner_up="photos"))
+        _abstention("ambiguous", schema_id="career", tied=("career", "photos"),
+                    semantic=("academic", "photos")))
 
     assert merged == ("academic", "career", "photos", NONE_OF_THESE)
     assert list(merged[:-1]) == [s for s in SCHEMA_IDS if s in set(merged[:-1])]
@@ -158,10 +184,25 @@ def test_both_recognisers_contribute_and_neither_orders_the_list():
 def test_a_shortlist_never_carries_a_name_the_library_does_not(monkeypatch):
     """`recognition/_CONTRACT.md` rule 5 forbids inventing a class to let the
     pipeline continue. A candidate from outside the library would be that invention
-    arriving through the back door."""
+    arriving through the back door.
+
+    TWO DOORS AND BOTH SHUT, since `104` §18.26's owed row moved the candidates
+    onto the outcome. A name outside the library cannot be RAISED at all --
+    `SituationOutcome` checks every candidate against `SCHEMA_IDS`, one step
+    earlier than the shortlist -- and the hold, which is the other thing that puts
+    a schema on this list, is still checked here.
+    """
+    from recognition.detector import SituationOutcome
+    from facts.domains import UnknownSchema
+
+    with pytest.raises(UnknownSchema):
+        SituationOutcome(
+            by_the_rules=Abstention("ambiguous", "academic", "d"),
+            reason="ambiguous", recognised=None,
+            candidates=("academic", "not_a_schema"))
     with pytest.raises(ValueError):
         shortlist_for(_abstention("ambiguous", tied=("academic",)),
-                      _Semantic(schema_id="not_a_schema"))
+                      Precaution(schema_id="not_a_schema", terms=(), zones=()))
 
 
 def test_declining_is_always_available_and_always_last():
@@ -242,10 +283,10 @@ def test_wall_one_a_question_now_becomes_a_request_at_the_seventh_site():
     for those keys at the door, and nothing here can widen it.
     """
     question = question_for(
-        _abstention("ambiguous", tied=("academic", "career")),
-        file_id="file-1", content_hash="b" * 64,
-        matched_terms=(("academic", ("syllabus",)), ("career", ("resume",))),
-        evidence_refs=("sha256:" + "c" * 64,))
+        _abstention("ambiguous", tied=("academic", "career"),
+                    terms=(("academic", ("syllabus",)), ("career", ("resume",))),
+                    refs=("sha256:" + "c" * 64,)),
+        file_id="file-1", content_hash="b" * 64)
 
     request = build_situation_request(
         question, (_observation("sha256:" + "c" * 64, "heading"),),
@@ -280,9 +321,9 @@ def test_wall_one_the_abstention_report_carries_the_recognisers_own_words():
     person's file reaches these bytes that the recogniser had not already concluded.
     """
     question = question_for(
-        _abstention("no_corroboration", schema_id="medical"),
-        file_id="file-2", content_hash="b" * 64,
-        matched_terms=(("medical", ("diagnosis",)),))
+        _abstention("no_corroboration", schema_id="medical",
+                    terms=(("medical", ("diagnosis",)),)),
+        file_id="file-2", content_hash="b" * 64)
 
     request = build_situation_request(
         question, (_observation("sha256:" + "d" * 64, "body"),),
@@ -438,10 +479,10 @@ def test_the_question_carries_the_recognisers_own_reason_and_evidence():
     """Nothing here is authored: the reason is the recogniser's word, the ids are the
     library's, and the refs are the observations the candidates rest on."""
     question = question_for(
-        _abstention("ambiguous", tied=("academic", "career")),
-        file_id="file-1", content_hash="b" * 64,
-        matched_terms=(("academic", ("syllabus",)), ("career", ("resume",))),
-        evidence_refs=("sha256:" + "c" * 64,))
+        _abstention("ambiguous", tied=("academic", "career"),
+                    terms=(("academic", ("syllabus",)), ("career", ("resume",))),
+                    refs=("sha256:" + "c" * 64,)),
+        file_id="file-1", content_hash="b" * 64)
 
     assert question.reason == "ambiguous"
     assert question.file_id == "file-1"

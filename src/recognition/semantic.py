@@ -93,7 +93,7 @@ from privacy.classification import ClassificationRecord
 
 from scan_agent.exclusion import is_protected_container
 
-from recognition.detector import RELIABILITY, Handling
+from recognition.detector import RELIABILITY, Handling, SituationOutcome
 from recognition.rules import RecognitionRules
 from recognition.vocabulary import (
     ABSTENTION_REASONS, SAFETY_DOMAIN_IDS, UnknownAbstentionReason,
@@ -244,6 +244,18 @@ class SemanticAbstention:
     schema_id: str | None
     detail: str
     tied_schema_ids: tuple[str, ...] = ()
+    #: The observation keys the vector was computed over, where one was computed.
+    #: `104` §18.26's owed row and `Abstention.evidence_refs`' own argument, one
+    #: recogniser along: a near miss that names no observation is a candidate site
+    #: G cannot put a question about, because `00`:42 requires the answer to cite
+    #: and `privacy.classification` refuses a `local_model_situation` record that
+    #: carries nothing.
+    #:
+    #: Empty where there was no reading to cite, and those cases are exactly the
+    #: two that must stay empty: a file with no P1 row or no text in the
+    #: configured zones, and a PROTECTED CONTAINER, which is marked, counted and
+    #: never opened -- no vector of it exists and none of its keys may travel.
+    evidence_refs: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         check_semantic_abstention_reason(self.reason)
@@ -523,7 +535,8 @@ class SemanticRecogniser:
                 "too_little_text", None,
                 f"{file_id} carries {reading.chars} characters of its own text and "
                 f"the caller requires {self._min_chars}; a vector over a filename "
-                "is one signal wearing a whole document's confidence")
+                "is one signal wearing a whole document's confidence",
+                evidence_refs=reading.evidence_refs)
 
         ranked = sorted(reading.scores.items(), key=lambda item: (-item[1], item[0]))
         leader, best = ranked[0]
@@ -549,14 +562,16 @@ class SemanticRecogniser:
                 + "; this path can neither protect nor release one of `00`'s four "
                 "domains and says nothing rather than guessing",
                 tied_schema_ids=tuple(schema_id for schema_id in self._safety
-                                      if reading.scores.get(schema_id, 0.0) >= safety))
+                                      if reading.scores.get(schema_id, 0.0) >= safety),
+                evidence_refs=reading.evidence_refs)
 
         if best < self._floors.release:
             return SemanticAbstention(
                 "below_similarity_floor", leader,
                 f"{leader} is the nearest schema at {best:.3f} and the caller's "
                 f"release floor is {self._floors.release:.3f}; the file's words "
-                "resemble it and do not resemble it enough to be filed as it")
+                "resemble it and do not resemble it enough to be filed as it",
+                evidence_refs=reading.evidence_refs)
         if best - second < self._floors.margin:
             tied = tuple(schema_id for schema_id, score in ranked
                          if best - score < self._floors.margin)
@@ -565,11 +580,118 @@ class SemanticRecogniser:
                 f"{leader} at {best:.3f} stands {best - second:.3f} clear of "
                 f"{runner_up} and the caller's margin is {self._floors.margin:.3f}; "
                 "`00` requires abstention where two readings are both supported",
-                tied_schema_ids=tied)
+                tied_schema_ids=tied, evidence_refs=reading.evidence_refs)
         return SemanticProposal(
             schema_id=leader, similarity=float(best), runner_up=runner_up,
             runner_up_similarity=float(second), safety_similarity=float(safety),
             evidence_refs=reading.evidence_refs, scope=reading.scope)
+
+    def situation_outcome(self, conn: sqlite3.Connection, file_id: str,
+                          content_hash: str) -> SituationOutcome:
+        """This file, as site G's pass reads it -- and the defect this closes.
+
+        **`104` §18.26's owed row, measured.** Site G tested `explain`'s answer
+        for the term detector's two record classes. Under `--semantic-model`
+        `explain` is this object's and returns neither, so every file failed both
+        tests and was counted `settled`: on a run with the weights named, the site
+        that decides which situation a file is asked under, and whether it may
+        leave the device at all, asked NOTHING, and the screen reported 199 files
+        the rules had settled. The comment at the call site said the opposite --
+        that the composed recogniser is what raises a candidate for the 60
+        `no_evidence` files -- which is what this method finally makes true.
+
+        **THE TERM DETECTOR SPEAKS FIRST AND IS NEVER OVERRULED**, which is
+        `__call__`'s one line of composition, applied where the QUESTION is
+        shaped. Where the rules recognised the file, their answer is returned
+        untouched and the vector is not consulted at all. Where the rules
+        stopped, the vector speaks -- and it is the only thing here that is new,
+        because a lexical abstention with no candidate was a file site G could
+        put no question about: 60 of the owner's 112 abstentions are
+        `no_evidence`, carrying no term any schema authored.
+
+        **AND IT MAY NOT NAME ONE OF `00`'s FOUR.** `SemanticFloors` is measured
+        on the ground truth and the measurement is that this path can neither
+        protect nor release a safety domain -- a Red Cross certificate outscores
+        an HKID. So the veto in `explain` refuses to PROPOSE one, and this refuses
+        to put one on a shortlist even as a near miss: the only thing that raises
+        finance, identity, medical or legal at site G is the term detector's own
+        hold, which the pass reads off `by_the_rules` and nothing else. A
+        `safety_domain_uncertain` abstention names them in `tied_schema_ids`
+        precisely because it is refusing to judge them, and offering a model a
+        domain the recogniser has just said it cannot judge would be the guess
+        the whole veto exists to refuse.
+
+        **A PROPOSAL IS A RECOGNITION AND CARRIES NO TERMS.** The file matched no
+        authored word for it -- that is what "nearest in vector space" means --
+        and `SituationOutcome.matched_terms` states an empty tuple for exactly
+        this, so the model is told a candidate was raised by a vector rather than
+        being left to read a silent shortlist as evidence. It is a recognition the
+        situation pass may SETTLE on, which is `__call__`'s own reading of the
+        same proposal one seam along: where the rules wrote no record, the
+        vector's is the record this run recorded.
+
+        **AND IT ADDS TO THE RULES' CANDIDATES RATHER THAN REPLACING THEM.** A
+        proposal on a file the rules had two readings of does not delete those
+        readings from the shortlist: turning the weights on may never NARROW what
+        a model is offered, or a held file the rules read as `academic` would be
+        put to the model as the vector's third schema with the rules' own reading
+        missing from the list.
+        """
+        by_the_rules = self._lexical.situation_outcome(conn, file_id, content_hash)
+        if by_the_rules.recognised is not None:
+            return by_the_rules
+        outcome = self.explain(conn, file_id, content_hash)
+        proposed = (outcome.schema_id
+                    if isinstance(outcome, SemanticProposal) else None)
+        if proposed is not None and proposed in self._safety:
+            # Unreachable through `explain`, which vetoes a safety leader. Stated
+            # anyway and RAISED rather than asserted, on `__call__`'s own
+            # precedent and `104` §18 S5's: the invariant a reviewer needs is
+            # "nothing this path raises is one of `00`'s four", and an invariant
+            # that disappears under `-O` is not enforced.
+            raise AssertionError(
+                f"{proposed} is one of `00`'s four safety domains and this path "
+                "neither protects nor releases them")
+        # THE VECTOR ADDS AND NEVER EDITS, which is `__call__`'s one line of
+        # composition stated about CANDIDATES. A file the rules already had
+        # readings for keeps every one of them: a proposal that replaced them
+        # would mean turning the weights on NARROWED a shortlist, so a held file
+        # the rules read two ways would be offered one of them and the vector's
+        # third, with the reading the rules actually took missing from the list.
+        raised = tuple(
+            schema_id for schema_id
+            in (proposed, *(() if proposed is not None
+                            else (outcome.schema_id, *outcome.tied_schema_ids)))
+            if schema_id is not None and schema_id not in self._safety
+            and schema_id not in by_the_rules.candidates)
+        if not raised and proposed is None:
+            return by_the_rules
+        # A CANDIDATE WITH NO TERMS IS A CANDIDATE A VECTOR RAISED. The file
+        # matched no authored word for it -- that is what "nearest in vector
+        # space" means -- and the empty tuple is how the model is told so rather
+        # than being left to read a silent shortlist as evidence.
+        terms_of = dict(by_the_rules.matched_terms)
+        for schema_id in raised:
+            terms_of.setdefault(schema_id, ())
+        candidates = set(by_the_rules.candidates) | set(raised)
+        return SituationOutcome(
+            by_the_rules=by_the_rules.by_the_rules,
+            # THE REASON STAYS THE RULES' WHERE NOTHING WAS PROPOSED, and that is
+            # not an oversight. The item the model reads says why the recogniser
+            # stopped, and what stopped this file is the rules: they found no
+            # term, or one term, or two readings they could not choose between.
+            # The vector did not stop the file; it failed to settle it.
+            reason=None if proposed is not None else by_the_rules.reason,
+            recognised=proposed,
+            # `SCHEMA_IDS` order for `shortlist_for`'s own reason: two recognisers
+            # contribute and their orders are their own, so the same file must put
+            # the same question however the candidates arrived.
+            candidates=tuple(schema_id for schema_id in SCHEMA_IDS
+                             if schema_id in candidates),
+            matched_terms=tuple((schema_id, terms_of[schema_id])
+                                for schema_id in SCHEMA_IDS if schema_id in terms_of),
+            evidence_refs=tuple(dict.fromkeys(
+                by_the_rules.evidence_refs + outcome.evidence_refs)))
 
     # --- the seam ----------------------------------------------------------------
 

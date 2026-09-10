@@ -314,6 +314,89 @@ def test_a_named_restricted_kind_keeps_a_recognised_hold(
     assert held in cli._protected_file_ids(conn)
 
 
+def test_a_confirmed_hold_is_filed_on_the_holds_own_observations(
+        tmp_path_factory, monkeypatch):
+    """`104` §18.27's owed row: A RECORD CITES WHAT RAISED IT.
+
+    The model agreed with the hold -- it named a passport -- so what this row
+    records is the rules' hold, confirmed. What raised that hold is the word
+    `passport` in the FILENAME. What the row was citing instead was
+    `question.evidence_refs`, which on a recognised file are the `Recognition`'s
+    own keys: the syllabus body that made the file look like coursework. A person
+    opening the row to ask why their file is protected was shown the evidence for
+    the opposite claim, and every later reader -- the review sets, the report --
+    reads the same column.
+
+    `Precaution` carried no refs at all before this, which is why the row had
+    nothing truer to cite. It carries the observations its work types were found
+    in now, projected from the same matches its terms and zones already come from.
+
+    SABOTAGE: return `evidence_refs=()` from `_reported`, or cite
+    `question.evidence_refs` unconditionally. The confirmed row is filed on the
+    body prose and the last two assertions go red.
+    """
+    database, _said, _stub = _run(
+        "kind", _naming(RECOGNISED_AS, kind=PROTECTED_KIND_IDENTITY_DOCUMENT),
+        tmp_path_factory, monkeypatch)
+    conn = _read(database)
+    held = _file_id(conn, HELD_NAME)
+    rows = _classifications(conn, held)
+    hold = _the_hold(rows)
+    (agreed,) = [row for row in rows if row["fact_id"] == hold["superseded_by"]]
+
+    said_by = {row["observation_key"]: (row["raw_value"] or "").casefold()
+               for row in conn.execute(
+                   "SELECT observation_key, raw_value FROM evidence "
+                   "WHERE file_id = ? AND superseded_by IS NULL", (held,))}
+    cited = json.loads(agreed["evidence_refs"])
+
+    assert agreed["protected"] == 1, "this is the confirmed arm or it measures nothing"
+    assert cited, "§8.4: the classification is itself evidence-backed"
+    assert set(cited) == set(json.loads(hold["evidence_refs"])), (
+        "the confirmed row rests on what the hold rested on")
+    assert all("passport" in said_by[ref] for ref in cited), (
+        "the observations the hold's own work type was found in, and no other")
+    assert [ref for ref, value in said_by.items()
+            if "grading policy" in value and ref not in cited], (
+        "the readings that made this file look like coursework are still in the "
+        "file and are no longer what its protection is filed on")
+
+
+def test_a_confirmed_holds_retired_row_says_the_model_agreed(
+        tmp_path_factory, monkeypatch):
+    """WHICH WAY THE HOLD WENT, in the one column that says why it was retired.
+
+    §8.2 keeps the old row and the reason it was superseded, and that reason is
+    where a person reads what happened. "named academic" reads exactly the same on
+    the file the model RELEASED and on the passport it CONFIRMED -- two opposite
+    outcomes wearing one sentence. The verb is read off the record that is about
+    to supersede, so the sentence and the row's own flag cannot disagree.
+
+    SABOTAGE: drop the `record.protected` branch from the reason. Both runs write
+    "named", and the retired row of a confirmed hold is indistinguishable from the
+    retired row of a lifted one.
+    """
+    database, _said, _stub = _run(
+        "kind", _naming(RECOGNISED_AS, kind=PROTECTED_KIND_IDENTITY_DOCUMENT),
+        tmp_path_factory, monkeypatch)
+    confirmed = _the_hold(_classifications(_read(database),
+                                           _file_id(_read(database), HELD_NAME)))
+
+    database, _said, _stub = _run("released", _naming(RECOGNISED_AS),
+                                  tmp_path_factory, monkeypatch)
+    lifted = _the_hold(_classifications(_read(database),
+                                        _file_id(_read(database), HELD_NAME)))
+
+    assert "confirmed the rules' hold" in confirmed["supersede_reason"], (
+        confirmed["supersede_reason"])
+    assert "confirmed the rules' hold" not in lifted["supersede_reason"], (
+        lifted["supersede_reason"])
+    # And both still say what the rules had held the file as, and on which
+    # authored term -- the half `104` §18 gap 24 put there, unchanged.
+    for reason in (confirmed["supersede_reason"], lifted["supersede_reason"]):
+        assert HELD_DOMAIN in reason and "passport" in reason, reason
+
+
 def test_none_leaves_a_recognised_hold_exactly_as_the_rules_wrote_it(
         tmp_path_factory, monkeypatch):
     """SILENCE NEVER LIFTS A HOLD, on this arm too.
