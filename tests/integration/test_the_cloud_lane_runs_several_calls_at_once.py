@@ -354,19 +354,27 @@ def test_every_cloud_call_of_a_batch_is_on_the_wire_at_the_same_moment(
         f"first call left, and the batch is {cli.EXTRACTION_WORKERS} calls")
 
 
-def test_a_local_target_is_never_sent_beside_anything_else(monkeypatch):
-    """`104` §18.15 rule three and §17.21's cost. One Ollama server holds one model
-    in memory; the second concurrent local call is what filled the machine's swap
-    in r18 and made the OS kill the run. So the driver settles everything it is
-    holding BEFORE a local send, runs that send by itself on the calling thread,
-    and settles it before walking on.
+def test_two_local_sends_never_overlap_but_a_local_send_runs_beside_the_cloud():
+    """`104` §18.15's local rule, stated over the two things it is about.
 
-    Measured here over a walk that alternates the two localities, which is the
-    shape a real corpus has (§18.22: site A's cloud share was 47%, the rest local):
-    the local sends never overlap each other and never overlap a cloud send, while
-    the cloud sends of one batch do overlap.
+    **What must never happen** is a second concurrent LOCAL call: one Ollama
+    server holds one model in memory, and the second one is what filled the
+    machine's swap in r18 and made the OS kill the run (§17.21). The driver needs
+    no counter for that -- the local sends are performed on the calling thread, and
+    one thread cannot be in two places.
+
+    **What must happen** is a local send running WHILE the cloud sends of its batch
+    are in the air. The first build settled the batch before every local call and
+    ran it alone, which is stricter than the direction ("the local lane stays
+    serial") and cost the whole gain: site A's cloud share was 47% (§18.22), so a
+    walk that alternates would settle a batch of one or two over and over. A cloud
+    socket waiting beside a local call costs the server nothing.
+
+    Measured here over a walk that alternates the two localities, which is that
+    corpus's shape: no local send is ever beside another, every local send is
+    beside a cloud one, and the cloud sends of one batch overlap each other.
     """
-    watcher = _Overlaps()
+    watcher = _Overlaps(hold_until_locals=2)
     walk = [("cloud-a", CLOUD_LOCALITY), ("cloud-b", CLOUD_LOCALITY),
             ("local-a", LOCAL_LOCALITY), ("cloud-c", CLOUD_LOCALITY),
             ("cloud-d", CLOUD_LOCALITY), ("local-b", LOCAL_LOCALITY)]
@@ -376,11 +384,44 @@ def test_a_local_target_is_never_sent_beside_anything_else(monkeypatch):
         lane=lane))
 
     assert [key for key, _value in answered] == [key for key, _ in walk]
-    assert watcher.local_beside_anything == [], (
-        f"a local send overlapped {watcher.local_beside_anything}, and one local "
-        f"model in memory is the machine's whole budget")
+    assert watcher.local_beside_local == [], (
+        f"a local send overlapped another local send ({watcher.local_beside_local})"
+        f", and one local model in memory is the machine's whole budget")
+    assert sorted(watcher.local_beside_cloud) == ["local-a", "local-b"], (
+        f"only {watcher.local_beside_cloud} ran beside the cloud lane; a local "
+        f"call that stops the world is the lane the first build shipped and the "
+        f"one this test exists to keep")
     assert watcher.widest_cloud > 1, (
         "no two cloud sends were ever open together, so the lane did nothing")
+
+
+def test_a_local_send_with_nothing_to_be_beside_is_settled_at_once():
+    """`104` §18.15: a local call joins a batch only to overlap cloud work.
+
+    A run with no cloud target -- every file local, which is what
+    `tests/integration/test_local_model_fact_pass.py` drives end to end -- has
+    nothing for a local send to be beside, so holding it back would mint its
+    release and reserve its budget slot early and buy nothing. Measured: over a
+    walk of local sends alone, the cloud lane never opens and each call is
+    performed and finished before the next file's is prepared.
+    """
+    watcher = _Overlaps()
+    prepared: list[str] = []
+    walk = [("local-a", LOCAL_LOCALITY), ("local-b", LOCAL_LOCALITY),
+            ("local-c", LOCAL_LOCALITY)]
+    lane = CallLane(width=cli.EXTRACTION_WORKERS)
+    answered = list(in_walk_order(
+        ((key, _one_send(key, locality, watcher, prepared=prepared))
+         for key, locality in walk),
+        lane=lane))
+
+    assert [key for key, _value in answered] == [key for key, _ in walk]
+    assert watcher.local_beside_local == []
+    assert watcher.local_beside_cloud == []
+    assert lane.at_once <= 1, (
+        f"{lane.at_once} calls were open at once on a walk with no cloud target")
+    # PREPARED, SENT, FINISHED, then the next one -- the serial path, unchanged.
+    assert prepared == ["local-a", "local-b", "local-c"]
 
 
 def test_the_slow_local_call_is_still_charged_to_the_file_that_made_it():
@@ -395,40 +436,60 @@ def test_the_slow_local_call_is_still_charged_to_the_file_that_made_it():
     one this ceiling is FOR -- would be charged nothing at all unless the clock is
     started again for it. `on_pause` and `on_resume` are that pair.
 
+    **AND THE LOCAL SEND NOW RUNS INSIDE THE SHARED WINDOW, which is what makes
+    the pair load-bearing rather than tidy.** The cloud sends of the batch are in
+    the air while this thread spends the two minutes, so the clock is reopened for
+    the file about to spend them and closed again the moment it is done -- the
+    gather that follows is nobody's.
+
     **Measured on an injected clock, so the ceiling can be held against a
-    two-minute call without spending two minutes.** Two cloud sends, then a local
-    one that takes 120 seconds: the local file is charged for its call and the
-    cloud files are not.
+    two-minute call without spending two minutes.** Two cloud sends and two local
+    ones in one batch, each local taking 120 seconds: each is charged for its OWN
+    call, neither is charged for the other's, and the cloud files are charged for
+    neither.
     """
     ticks = [0.0]
+    moving = threading.Lock()
     ceiling = PerFileCeiling(seconds=600.0, clock=lambda: ticks[0])
-    watcher = _Overlaps()
+    # The cloud stubs hold until both local sends have entered, so the window this
+    # measures is genuinely shared and not two windows in a row.
+    watcher = _Overlaps(hold_until_locals=2)
     walk = [("cloud-a", CLOUD_LOCALITY), ("cloud-b", CLOUD_LOCALITY),
-            ("local-a", LOCAL_LOCALITY)]
+            ("local-a", LOCAL_LOCALITY), ("local-b", LOCAL_LOCALITY)]
 
     def _tick(key: str, seconds: float):
         def moved():
-            ticks[0] += seconds
+            # UNDER A LOCK. The clock is now advanced from the pool's threads and
+            # from this one at the same time, and `+=` on a shared cell is a read
+            # and a write with a gap between them.
+            with moving:
+                ticks[0] += seconds
         return moved
 
     lane = CallLane(width=cli.EXTRACTION_WORKERS)
     answered = list(in_walk_order(
         ((key, _one_send(key, locality, watcher,
                          opens_turn=ceiling.open_turn,
-                         costs=(120.0 if locality == LOCAL_LOCALITY else 3.0),
+                         # A CLOUD CALL COSTS NOTHING ON THIS CLOCK. Its wait is
+                         # real and belongs to no file, and giving it seconds here
+                         # would only measure how the two localities interleave.
+                         costs=(120.0 if locality == LOCAL_LOCALITY else 0.0),
                          tick=_tick))
          for key, locality in walk),
         lane=lane, on_pause=ceiling.close_turn, on_resume=ceiling.open_turn))
     ceiling.close_turn()
 
     assert [key for key, _value in answered] == [key for key, _ in walk]
-    assert ceiling.spent["local-a"] >= 120.0, (
-        f"the local call took 120 seconds and the file that made it was charged "
-        f"{ceiling.spent.get('local-a')}; R-175's backstop reads this number")
+    for key in ("local-a", "local-b"):
+        assert 120.0 <= ceiling.spent[key] < 240.0, (
+            f"{key}'s call took 120 seconds and its file was charged "
+            f"{ceiling.spent[key]}; R-175's backstop reads this number, and a "
+            f"file billed for its neighbour's call is over any ceiling worth "
+            f"setting")
     for key in ("cloud-a", "cloud-b"):
         assert ceiling.spent[key] < 120.0, (
             f"{key} was charged {ceiling.spent[key]} seconds -- a file billed for "
-            f"a wait it shared with six others is over any ceiling worth setting")
+            f"a wait it shared with three others is over any ceiling worth setting")
 
 
 def test_rows_are_written_in_walk_order_when_the_provider_answers_backwards(
@@ -540,31 +601,52 @@ def test_the_placement_pass_holds_its_cloud_calls_open_together_too(
 
 
 class _Overlaps:
-    """Which sends were open at the same moment, by locality."""
+    """Which sends were open at the same moment, by locality.
 
-    def __init__(self):
+    Two readings, and `104` §18.15's local rule is the difference between them.
+    `local_beside_local` is the one that must stay empty: one Ollama server holds
+    one model in memory and a second concurrent local call is what filled the
+    machine's swap in r18 (§17.21). `local_beside_cloud` is the one that must NOT
+    be empty on a mixed walk -- a cloud socket waiting beside a local call costs
+    the server nothing, and a driver that stopped the world for every local file
+    would settle batches of one or two on a corpus that is 47% cloud and the lane
+    would be a lane in name.
+    """
+
+    def __init__(self, *, hold_until_locals: int = 0):
+        #: HOW MANY LOCAL SENDS A CLOUD SEND WAITS FOR before it answers. A stub
+        #: that returns the moment its companions arrive is gone again before the
+        #: calling thread reaches the local half of the batch, and "they
+        #: overlapped" would then be a fact about scheduling luck. Zero for a walk
+        #: with no local send in it.
+        self.hold_until_locals = hold_until_locals
         self.open: dict[str, int] = {CLOUD_LOCALITY: 0, LOCAL_LOCALITY: 0}
         self.widest_cloud = 0
-        self.local_beside_anything: list[str] = []
+        self.locals_seen = 0
+        self.local_beside_local: list[str] = []
+        self.local_beside_cloud: list[str] = []
         self._lock = threading.Lock()
         self._gathered = threading.Condition(self._lock)
 
     def enter(self, key: str, locality: str) -> None:
         with self._gathered:
             self.open[locality] += 1
-            if locality == LOCAL_LOCALITY and (
-                    self.open[LOCAL_LOCALITY] > 1 or self.open[CLOUD_LOCALITY]):
-                self.local_beside_anything.append(key)
-            if self.open[CLOUD_LOCALITY] and self.open[LOCAL_LOCALITY]:
-                self.local_beside_anything.append(key)
+            if locality == LOCAL_LOCALITY:
+                self.locals_seen += 1
+                if self.open[LOCAL_LOCALITY] > 1:
+                    self.local_beside_local.append(key)
+                if self.open[CLOUD_LOCALITY]:
+                    self.local_beside_cloud.append(key)
             self.widest_cloud = max(self.widest_cloud, self.open[CLOUD_LOCALITY])
             self._gathered.notify_all()
             if locality == CLOUD_LOCALITY:
                 # Hold until the rest of this batch has arrived, so "they overlap"
                 # is a fact about the driver and not about how fast a list append
                 # happens to be.
-                self._gathered.wait_for(lambda: self.widest_cloud > 1,
-                                        timeout=PATIENCE)
+                self._gathered.wait_for(
+                    lambda: (self.widest_cloud > 1
+                             and self.locals_seen >= self.hold_until_locals),
+                    timeout=PATIENCE)
 
     def leave(self, locality: str) -> None:
         with self._gathered:
@@ -573,7 +655,7 @@ class _Overlaps:
 
 
 def _one_send(key: str, locality: str, watcher: _Overlaps, *,
-              opens_turn=None, costs: float = 0.0, tick=None):
+              opens_turn=None, costs: float = 0.0, tick=None, prepared=None):
     """One subject's steps: nothing but a socket, so the driver is what is tested.
 
     **THE CARRIER IS A FAKE AND THAT IS DELIBERATE.** The real one is
@@ -607,6 +689,11 @@ def _one_send(key: str, locality: str, watcher: _Overlaps, *,
         # one; the driver itself never touches the ceiling.
         if opens_turn is not None:
             opens_turn(key)
+        # WHEN THIS SUBJECT'S CALL WAS PREPARED, for the test that asks whether a
+        # local send with nothing to be beside was held back: a preparation that
+        # arrives before an earlier subject's answer is a release minted early.
+        if prepared is not None:
+            prepared.append(key)
         sent = yield carrier
         return sent.raw
 
