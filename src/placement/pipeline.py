@@ -1403,6 +1403,11 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
         )
         for candidate in retrieval.candidates
     }
+    # AFTER `emit_retrieval_stage`, deliberately. §6.2's stage is what RETRIEVAL
+    # answered, and its `semantic_only` is retrieval's own; the graph is step 4's
+    # and can only be known once the entries are read. What the SCORE used is on
+    # every `Scored` row (`producible_weight`), so a P2 replay reads the scale
+    # from the thing that was scored rather than from the stage before it.
     retrieval = _with_the_graphs_own_channel(retrieval, graphs)
 
     # Step 6. FIRST, BEFORE THE COLLAPSES, AND THE ORDER IS THE RULE. A folder
@@ -2554,6 +2559,12 @@ def _graph_items(conn, *, subject, plan_version: str, graphs, related_files,
     built from `NodeLocalGraph.anchors`, which is what survived
     `max_candidate_cluster_size` and `max_local_graph_neighborhood`. No count of
     its own is invented here.
+
+    The `evidence_ref` carries two `file_id`s in the clear, and that is
+    `wire_handles.wire_ref`'s own rule rather than an oversight: it keys a
+    reference only when it is a P4 `observation_key`, because "a `file_id` is
+    `uuid.uuid4()` ... derived from nothing, inverting to nothing", and a node id
+    already crosses the same way on every `candidate` item.
     """
     described = {edge["to_file_id"]: edge.get("to_describes")
                  for edge in related_files or ()}

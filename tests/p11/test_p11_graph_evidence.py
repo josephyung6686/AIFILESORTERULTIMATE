@@ -178,6 +178,45 @@ def test_the_graph_channel_carries_a_group_supported_node_over_the_bar():
     assert only.two_condition.meets_threshold is False
 
 
+def test_an_edge_reaching_only_a_third_folder_turns_a_placement_into_a_question():
+    """THE ONE COST OF THE GRAPH CHANNEL, measured rather than argued away.
+
+    Direct fact reaches A, an accepted group reaches B, and the typed edge
+    reaches neither -- it reaches C. Before the channel: A = 3/5, B = 2/5, margin
+    exactly 0.2, a deterministic placement at A. After: the subject HAS a typed
+    edge, so its denominator is 6, A = 3/6, B = 2/6, C = 1/6, and the margin is
+    1/6 -- under `cli-support-v2`'s 0.20, so `low_margin`.
+
+    Both readings are true and the owner is owed both. With a model configured
+    this is a site-C call with the edge in the dossier, which is `00`:110's own
+    trigger ("several legal nodes remain plausible") and the graph is WHY a third
+    folder is plausible. With no model configured (§6.6's legal run) it is an
+    abstention where there used to be a placement, and the file goes to review.
+
+    The run-wide alternative is worse and `test_a_subject_with_no_typed_edge_...`
+    is the pin for it: it does this to every file in the corpus, including the
+    ones with no relationship at all. The number that would remove the cost
+    entirely is `cli-support-v2`'s margin, and it is the owner's.
+
+    SABOTAGE: assert `MARGIN_TRUE` here -- the assertion passes the day somebody
+    declares the channel run-wide, and gap 13's headline pair goes red instead
+    with nothing left saying the two are the same trade.
+    """
+    from p11.test_p11_pipeline import POLICY
+
+    three = (_candidate(node_id="n-a", channels=(DIRECT_FACT,)),
+             _candidate(node_id="n-b", channels=(ACCEPTED_GROUP,)),
+             _candidate(node_id="n-c", channels=()))
+    graphs = {"n-c": _Graph()}
+    result = assess(_with_the_graphs_own_channel(_retrieval(three), graphs),
+                    graphs, policy=POLICY)
+
+    assert result.two_condition.meets_threshold is True
+    assert result.two_condition.margin_over_next == pytest.approx(1 / 6)
+    assert result.two_condition.meets_margin == v.MARGIN_FALSE
+    assert result.abstention_reason == v.LOW_MARGIN
+
+
 # --- the dossier: `00`:110's graph anchor evidence -------------------------------
 
 

@@ -102,8 +102,13 @@ DESIGN_RELATIONSHIPS: tuple[Relationship, ...] = (
         # files by one author are already related by this edge. A `same_author`
         # type would be a second name for one relationship, and the graph would
         # count it twice.
+        # CHECKED, not assumed: `grouping.seeds._anchor_rows` reads P6's
+        # `proposal_eligible`, `event_facts` and `family_facts` with NO field
+        # allow-list, so any field at P9's anchor bar can seed this channel --
+        # `authored_by` included, though §3.8 makes it no destination dimension.
         "carries a shared author, a shared institution and a shared course "
-        "alike; the bridge names which"),
+        "alike; the bridge names which, and a `same_author` type would be a "
+        "second name for one relationship the graph would then count twice"),
     Relationship(
         "accepted group membership", ("retrieval.accepted_group",),
         "cli.accepted_memberships_of, as a RETRIEVAL CHANNEL",
@@ -126,6 +131,9 @@ DESIGN_RELATIONSHIPS: tuple[Relationship, ...] = (
     Relationship(
         "matching time period", (SHARED_VALIDATED_FACT,),
         "grouping.graph, when the shared fact IS the period",
+        # Same check: `term` and `capture_event` reach `_anchor_rows` like any
+        # other field at the anchor bar, so the edge exists today and the entry
+        # is not an overclaim.
         "no type of its own: a term or a capture date is a P6 field, so two "
         "files sharing one are already related by the shared-fact edge and a "
         "second type would double-count the one relationship"),

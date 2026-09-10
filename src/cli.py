@@ -10194,6 +10194,16 @@ def observation_edge_index(conn: sqlite3.Connection) -> tuple[dict, dict]:
     `observation_edges_of`'s argument: it recovers the KIND gap 20 could not
     store, using the same pattern that put the value there. A `link` reading that
     is a URL or an email address fails it and draws no edge.
+
+    TWO ZONE-FILTERED SCANS of `evidence` and one of `files`, once per run. There
+    is no index on the location's zone -- `evidence_key`, `evidence_run`,
+    `evidence_file` and `evidence_content` are the four the schema declares -- so
+    each is a table scan with a `json_extract` per row. Measured against the
+    alternative rather than against nothing: a per-file build is one scan per
+    file placed, which is `planning/58-SCALE-STRESS.md` §2's O(files x files).
+    At the owner's 199 files it is imperceptible; at 10,000 it is one scan of a
+    table that already carries every reading, and an index on the zone is the fix
+    if it ever shows -- a P4 schema change, not this function's.
     """
     hashes: dict[str, str] = {}
     by_name: dict[str, list[str]] = {}
@@ -11183,6 +11193,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         `None` for a neighbour with nothing describable, and the item is not
         written: an item naming a file the dossier may not describe would be a
         reference to nothing.
+
+        `is_destination_eligible` RAISES for a field the catalogue does not carry,
+        and it is left to raise here for `retrieval._eligible_facts`' reason -- "a
+        typo must not read as a policy". The blast radius is wider: that field on
+        that neighbour would already have ended the neighbour's own placement, and
+        now it ends the placement of every file related to it. Recorded rather
+        than caught, because catching it would answer "is this a destination
+        dimension?" with a silent no for a field nobody has classified.
         """
         if other_file_id in _described:
             return _described[other_file_id]
