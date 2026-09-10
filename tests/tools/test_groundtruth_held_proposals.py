@@ -79,6 +79,7 @@ from tools.groundtruth.score import (
     PLACED_PARENT,
     PLACED_WRONG,
     UNNECESSARY_ABSTENTION,
+    BREACH_FILED,
     protected_verdict,
     score_sorting,
 )
@@ -543,11 +544,23 @@ def test_the_three_decider_words_are_the_ones_the_product_writes():
 # --- protected is the protected block's business, not this one --------------
 
 def test_a_held_placement_on_a_protected_file_is_still_a_breach(built):
-    """R-151 changes nothing here. A protected file the run proposed to move has
-    failed the hard pass/fail, and "the person will confirm" is not a defence:
-    the proposal is on screen either way."""
+    """R-151 changes nothing here, and neither does `104` §18.7. A protected file
+    the run proposed to move has failed the hard pass/fail, and "the person will
+    confirm" is not a defence: the proposal is on screen either way.
+
+    SABOTAGE: `if observation.outcome == "place" and not observation.held`. §18.7
+    forbids filing protected material AUTOMATICALLY, and a reading that let a
+    held proposal through would excuse exactly the case this fixture builds --
+    the run named a folder for a vaccination record on its own.
+
+    The kind is `filed` since §18.7 and was `placed` before it; the word moved
+    with the ruling and the verdict did not.
+    """
     breaches = protected_verdict(built["labels"], built["run"].files)
-    assert [(b.path, b.kind) for b in breaches] == [(PROTECTED, "placed")]
+    assert [(b.path, b.kind) for b in breaches] == [(PROTECTED, BREACH_FILED)]
+    # The detail is where the hold survives, so a reader sees the split the
+    # verdict deliberately does not make.
+    assert "held" in breaches[0].detail
 
 
 # --- the shadow row ---------------------------------------------------------

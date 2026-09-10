@@ -34,7 +34,11 @@ import pytest
 from tools.groundtruth.labels import load_labels
 from tools.groundtruth.measure import observe_run
 from tools.groundtruth.run import label_for, run_situations
-from tools.groundtruth.score import protected_verdict, score_situation
+from tools.groundtruth.score import (
+    PROTECTED_BREACH_KINDS,
+    protected_verdict,
+    score_situation,
+)
 
 CORPUS = Path(__file__).resolve().parent / "fixture_corpus"
 ROOT = Path(__file__).resolve().parents[2]
@@ -155,11 +159,21 @@ def test_the_situation_scores_against_only_its_own_labelled_files(run, labels):
 
 
 def test_the_protected_verdict_names_the_file_when_it_fails(run, labels):
+    """SABOTAGE: re-spell the kinds here instead of importing them. This pin held
+    a literal `{"absent", "not marked", "opened", "placed"}` and would have gone
+    on passing after `104` §18.7 renamed two of them -- an empty breach list
+    satisfies `all(...)`, so a scorer that reported nothing at all read as clean.
+    The kinds come from the module that mints them."""
     breaches = protected_verdict(labels, run.files)
     # Whatever today's product does, the verdict is about ONE named file and is
     # a list of breaches rather than a rate.
     assert all(b.path == "Loose/vaccination record.txt" for b in breaches)
-    assert all(b.kind in {"absent", "not marked", "opened", "placed"} for b in breaches)
+    assert all(b.kind in PROTECTED_BREACH_KINDS for b in breaches)
+    # And reading this file on this machine is not one of them: §18.7 rules that
+    # protected material is opened locally for the local model.
+    observation = run.files["Loose/vaccination record.txt"]
+    assert not observation.released_to_cloud
+    assert not any(b.kind == "opened" for b in breaches)
 
 
 def test_the_command_a_person_types_produces_a_scorecard(tmp_path):
