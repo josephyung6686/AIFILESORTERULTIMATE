@@ -271,7 +271,7 @@ from production import (
     bootstrap_p1_p7, corpus_roster, folder_levels_for, group_level_fields_for,
     GROUP_LEVEL_ROLES, load_shipped_catalogue,
     nearest_situations, read_packaged_library_file, schema_for_situation,
-    shipped_situations, situation_schema_family,
+    shipped_situations, situation_schema_family, template_id_for_situation,
     run_production_corpus,
 )
 from readers.deployment import macos_readers
@@ -335,7 +335,9 @@ from tree_design.store import ReviewActionRefused
 from tree_design.template_schema import (
     allowed_vocabulary_for, template_dependencies,
 )
-from model_template import template_request_for
+from model_template import (
+    file_fits_its_situation, file_template_request_for, template_request_for,
+)
 from tree_design.templates import CompositionConflict
 from scan_agent.selection import selection_candidate_roots
 from tree_design.upstream import (
@@ -1124,6 +1126,35 @@ def situation_scan_budget(fact_budget: ScanBudget, *,
     """
     return ScanBudget(
         scan_id=fact_budget.scan_id + SITUATION_BUDGET_SUFFIX,
+        corpus_file_count=corpus_file_count,
+        max_calls_per_1000_files=OBSERVE_CALLS_PER_1000_FILES,
+        max_estimated_cost=OBSERVE_CALLS_PER_SCAN_CEILING,
+        min_calls_per_scan=OBSERVE_MIN_CALLS_PER_SCAN)
+
+
+def template_scan_budget(fact_budget: ScanBudget, *,
+                         corpus_file_count: int) -> ScanBudget:
+    """`104` §18.1 S6's per-file site E, spending from a FOURTH ledger.
+
+    `situation_scan_budget`'s whole argument one site further along. The per-file
+    template pass asks one call per file whose accepted facts fit no level of its
+    situation, and it runs after the fact pass and BEFORE site B, C and D -- so
+    pointing it at the observe purse would reproduce `104` R-131 exactly: on the
+    six-file corpus of `tests/integration/test_local_model_fact_pass.py` a handful
+    of template calls empties the observe ledger and site C records
+    `BUDGET_EXHAUSTED` for tests that were green, with nothing in the run saying so.
+
+    **The rate, the floor and the ceiling are the observe ones and are not new
+    numbers**, on `situation_scan_budget`'s own rule: a fifth set of constants would
+    be a second answer to a question nobody asked again. What is site E's own is the
+    `scan_id`, and a separate ledger is the entire fix.
+
+    THE GROUP-SCOPED SITE E IS UNTOUCHED and stays on the observe purse:
+    `observe_template_call` asks once per ACCEPTED GROUP, which is the grain
+    `observe_scan_budget` was sized for and is a handful of calls per run.
+    """
+    return ScanBudget(
+        scan_id=fact_budget.scan_id + TEMPLATE_BUDGET_SUFFIX,
         corpus_file_count=corpus_file_count,
         max_calls_per_1000_files=OBSERVE_CALLS_PER_1000_FILES,
         max_estimated_cost=OBSERVE_CALLS_PER_SCAN_CEILING,
@@ -2016,6 +2047,16 @@ OBSERVE_BUDGET_SUFFIX: str = ":observe"
 #: five tests that had been green. A starved site looks exactly like a site nobody
 #: wired (`104` R-04), which is why this is a third id and not a bigger second one.
 SITUATION_BUDGET_SUFFIX: str = ":situation"
+
+#: THE PER-FILE TEMPLATE SITE'S OWN LEDGER, and it is a fourth id for exactly the
+#: reason the third one exists. `104` §18.1 S6 puts site E on a file whose accepted
+#: facts fit no level of its situation; that is one call per such file, and the pass
+#: runs AFTER the fact pass and BEFORE site B, C and D -- the same position in the
+#: run that starved those three when site G was pointed at their purse. No new rate,
+#: floor or ceiling: "how many model calls may one scan make about one corpus" is a
+#: deployment answer this deployment has given once, and what is site E's own is the
+#: `scan_id`, which is the whole of the separation.
+TEMPLATE_BUDGET_SUFFIX: str = ":template"
 
 #: What one A_fact call is charged, and what it settles for. THIS DEPLOYMENT
 #: MEASURES NEITHER A TOKEN NOR A PRICE: `readers.model_deepseek` returns no usage
@@ -5353,6 +5394,14 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
                           # built from one number would give a file its whole budget
                           # twice. `None` is the shipped default -- see the field.
                           per_file_ceiling: PerFileCeiling | None = None,
+                          # `104` §18.1 S6. WHICH TEMPLATE A FILE IS HELD UNDER,
+                          # answered per file, handed to the one `Gate` this run
+                          # has. See the keyword at the gate below for the whole
+                          # of it. `None` keeps `Gate`'s own default -- no file is
+                          # under a residual template -- which is what every
+                          # caller had before this parameter existed and is a
+                          # truthful state for a deployment with no template pass.
+                          template_for: Callable[[str], str | None] | None = None,
                           on_result=None) -> FactCallAuthorities:
     """Everything one A_fact call needs, chosen here and nowhere else.
 
@@ -5459,6 +5508,24 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
             # are context, and `scan.py` writes no `files` row from one, so a root
             # here would be a prefix no released value can carry.
             corpus_roots=corpus_roots,
+            # `104` §18.1 S6, AND THIS IS THE ARM GOING LIVE. The §7.3 denial --
+            # "Protected Records ... should normally remain local-only and must not
+            # cause filenames or content to be exposed in model prompts" -- was
+            # unreachable because `Gate` takes this resolver with a `None` default
+            # and the composition root never passed one. §18.6 deferred the wiring
+            # with its reason: the per-file template is site E's answer and site E
+            # had no per-file caller, so a resolver passed then would have returned
+            # `None` for every file, "which is the same dead arm with a different
+            # spelling". `ask_for_a_template` is that caller, and this is the
+            # resolver reading its answers.
+            #
+            # A FILE WITH NO ANSWER IS UNDER ITS SITUATION'S TEMPLATE, not under
+            # none: `template_id_for_situation` reads the name off the same
+            # applicability row `folder_levels_for` reads the levels off, so the
+            # answer is the library's rather than this file's invention, and the arm
+            # is inert for it because no shipped situation is named "Protected
+            # Records". That is the honest inert state and it is pinned as one.
+            template_for=template_for,
             component_version=COMPONENT_VERSION, now=now, user_id=user_id),
         # NO SINGLE PAIR, because site A no longer has one destination
         # (`104` §17.13 ruling 3). `target_for` answers per file -- the cloud model
@@ -5652,6 +5719,100 @@ def situation_call_dependencies(fact_authorities, *, allowed_vocabulary,
         folder_levels=(),
         policy_version=fact_authorities.policy_version,
         wire_handle_key=fact_authorities.wire_handle_key)
+
+
+def file_template_call_dependencies(fact_authorities, catalogue, *,
+                                    allowed_vocabulary,
+                                    folder_levels: tuple[FolderLevel, ...],
+                                    placeable_file_count: int
+                                    ) -> CallDependencies:
+    """The per-file site-E call's authorities. `_template_dependencies`, per file.
+
+    Everything shared with site A is TAKEN from A's authorities, on the rule
+    `observe_group_authorities` states at length: the gate, the costs, the policy
+    version, the handle key and `104` R-14's mailbox are facts about this deployment
+    and this run, not about which site is asking. A second `Gate` here would be a
+    second answer to what may leave this device.
+
+    **`allowed_vocabulary` is P10's own closure and is not extendable.**
+    `allowed_vocabulary_for` closes over ONE schema's allowed fields, and P8's site
+    E classifies every proposed dimension name against exactly it: a name inside it
+    is fact-backed, a name outside it is a template-local label (Contract W2). That
+    IS the closed vocabulary of level names this answer is validated against, and
+    nothing here adds a second check beside it.
+
+    **`folder_levels` IS THE SITUATION'S WHOLE SET, and this is the site where that
+    key earns its keep.** The model is being asked to design a template for a file
+    the situation's own folders do not fit; it cannot say what is missing without
+    being shown what is there. It is the library's own `(field, label, requirement)`
+    in the library's order, nothing about the file is on it -- a level is the same
+    for every file of the situation, which is what makes it safe to send -- and
+    `dossier._folder_levels_body` refuses a level outside the vocabulary above, so
+    the two are one computation here as everywhere else.
+
+    **THE PURSE IS SITE E'S OWN**, for `template_scan_budget`'s measured reason: one
+    call per unfitting file, spent from B's, C's and D's ledger, is `104` R-131
+    happening a third time.
+    """
+    return CallDependencies(
+        proposal_class=TEMPLATE_PROPOSAL_CLASS,
+        # §8.7's closed scope vocabulary. The subject of a PER-FILE template
+        # proposal is one file -- site G's answer at the site whose subject has the
+        # same grain. `SCOPE_TEMPLATE` is the group call's and stays the group
+        # call's: a scope is what the answer is ABOUT.
+        learning_scope=SCOPE_FILE,
+        # Both replaced per call from the request, exactly as site G does it.
+        # Present because `run_call` reads the whole bundle before the first call
+        # and a `None` in either refuses every one of them.
+        basis_key=SCOPE_FILE,
+        learning_subject_id=SCOPE_FILE,
+        evidence_resolver=fact_authorities.evidence_resolver,
+        site_dependencies=SiteDependencies(
+            fact=None, placement=None, residual=None,
+            template=template_dependencies(catalogue)),
+        # A template proposal names no per-file field VALUE -- it names dimensions
+        # and levels -- so there is no stronger fact for one to contradict. The
+        # group call's answer at the same site, and site B's argument for it.
+        contradicts=_no_group_contradiction,
+        unreduced_fits=True, summarized_fits=False, anchors_fit=False,
+        split_shard_fits=(), split_shards=(),
+        scan_budget=template_scan_budget(
+            fact_authorities.scan_budget,
+            corpus_file_count=placeable_file_count),
+        estimated_cost=fact_authorities.estimated_cost,
+        actual_cost=fact_authorities.actual_cost,
+        allowed_vocabulary=tuple(allowed_vocabulary),
+        folder_levels=folder_levels,
+        policy_version=fact_authorities.policy_version,
+        wire_handle_key=fact_authorities.wire_handle_key)
+
+
+def template_named_by_verdict(conn: sqlite3.Connection, verdict) -> str | None:
+    """The template a VALIDATED site-E verdict chose, read at the call boundary.
+
+    `situation_named_by_verdict`'s restraint one site over and for its reason. P8
+    has already checked the shape against P10's strict schema, the fragment
+    boundary, the dimension-name closure, the citation of every dimension and the
+    retrieval justification of every level (`llm_harness.template_validation`). A
+    second opinion here would be a rule with no way to be reconciled with the first,
+    so this reads the answer and judges nothing.
+
+    `domain` is the name, and it is §5.7's own first key: "a domain name, allowed
+    fields, recommended folder dimensions...". It is what the file is held under and
+    therefore what `template_for` answers with.
+
+    `None` for every answer that is not one named template -- an abstention, an
+    outcome that did not accept, an unreadable payload, a blank name. All of them
+    mean the same thing to the caller: this file stays under the template its
+    situation names, which is where it already was.
+    """
+    if verdict is None or verdict.outcome not in ACCEPTING_OUTCOMES:
+        return None
+    payload = _validated_payload(conn, verdict)
+    name = payload.get("domain") if payload else None
+    if not isinstance(name, str) or not name.strip():
+        return None
+    return name.strip()
 
 
 def situation_named_by_verdict(conn: sqlite3.Connection, verdict,
@@ -6227,6 +6388,228 @@ _NOTHING_ASKED = SituationPass(
     named={}, settled=0, nothing_to_ask=0, nothing_to_read=0, declined=0,
     no_route=0,
     holds=PrecautionHolds(held=0, released=0, confirmed=0, still_held=0))
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class TemplatePass:
+    """What the per-file site E left behind, counted. `104` §18.1 S6.
+
+    `chosen` is the answer this pass exists to produce: the template a model
+    designed for ONE FILE, where the file's own accepted facts fit no level of the
+    folders its situation would build. Everything else says what happened to the
+    files it did not answer for, on `SituationPass`' rule -- `104` §17.2 is what a
+    number with no provenance costs.
+
+    **THE SIX COUNTERS PARTITION THE ROSTER.** Every file this pass walked lands in
+    exactly one of them and `_print_template_pass` prints an arithmetic a person can
+    check against the total.
+    """
+
+    #: file_id -> the template a model named for it, validated and stored. What
+    #: `Gate._template_for` answers with for that file, and nothing else reads it.
+    chosen: dict
+    #: Files whose accepted facts FIT their situation's folders: every required
+    #: level the product asks them has a fact, and no fact of theirs would divide a
+    #: branch the situation has no folder for. Not asked, and rightly -- the
+    #: situation's own template is the answer for them, and `00`:110 reserves the
+    #: model for what the rules cannot settle.
+    fits: int
+    #: Files that do not fit and whose accepted facts cite nothing P7 may release to
+    #: this target. A template designed from no evidence is `00`:97's "cannot invent
+    #: unsupported facts" at the one site whose whole output is structure, so
+    #: nothing is assembled and nothing is sent.
+    nothing_to_read: int
+    #: Files a model was asked about and did not design a template for, or whose
+    #: answer P8 did not accept. `00`: correct abstention is a successful outcome,
+    #: and either way the file keeps the template its situation names.
+    abstained: int
+    #: Files no model in this run may be asked about at all. Protected material
+    #: where the only destination is a cloud one, or no model wired. COUNTED and not
+    #: folded into `nothing_to_read`, because the two are different facts about a
+    #: file -- one had nothing to say, the other was never allowed to be asked --
+    #: and the standing rule is that protected material is marked and counted, never
+    #: silently omitted.
+    no_route: int
+    #: `104` R-175: files past the run's per-file wall-clock ceiling, skipped so the
+    #: pass could reach the rest. Its own count for `no_route`'s reason. Zero on
+    #: every run that sets no ceiling, which is every run a person is watching.
+    over_ceiling: int = 0
+
+
+#: THE PASS THAT DID NOT RUN, and it is a value rather than a `None` for
+#: `_NOTHING_ASKED`'s reason: a run where site E was not asked and a run where it
+#: was asked and designed nothing must not read the same downstream. Both leave
+#: every file under the template its situation names; only one of them means a
+#: model was consulted.
+_NO_TEMPLATE_ASKED: "TemplatePass"
+
+
+def ask_for_a_template(conn: sqlite3.Connection, *, roster, fact_authorities,
+                       routing: TierRouting, prompt, catalogue,
+                       situation_of, plan_version: str, now) -> TemplatePass:
+    """`00`:97 per file: a file the situation's one folder template does not fit
+    gets a template of its own.
+
+    **WHY THIS EXISTS AT ALL, and `104` §18.6 is the record of it not existing.**
+    S6 -- "the protected-records template denial is unreachable: `template_for`
+    defaults `None` and the composition root never passes it" -- was deferred with a
+    reason, and the reason was that `template_for` had no producer anywhere, because
+    the per-file template is site E's answer and site E had no per-file caller. The
+    owner's ruling of 10 Sep 14:00 is to build it now, on the row the product
+    observes today, and S6 goes live with it.
+
+    **THE SHAPE IS `ask_the_situation`'S**, one site along, and every part of it is
+    that function's for that function's reasons: the file's own route rather than
+    the site's (`104` §17.13 ruling 3, so a protected file is asked on this machine
+    or not at all), the per-file wall-clock ceiling opened and closed per turn
+    (`104` R-175, ONE ceiling shared with site A so a file cannot spend the whole
+    budget twice), `refusal_outcome` for every pre-call refusal so a skipped file
+    has a row and is never a silent omission, and counters that partition the
+    roster.
+
+    **WHAT IT APPLIES, AND WHAT IT DOES NOT.** The accepted answer is stored and
+    `template_for` returns it; nothing else reads it. No folder is created, no
+    branch is designed, no destination is chosen and no tree changes -- `00`:97's
+    "valid shape is not activation -- the person reviews, edits and accepts or
+    discards" is about the canvas, and the canvas is Release 2 (`104` §13.3). The
+    ONE consumer is `privacy.gate`'s §7.3 arm, which can only REFUSE a release that
+    would otherwise have happened. That is why the store is not conditioned on
+    `prompt.ratified` the way site B's answer is: gating it would leave
+    `template_for` answering the situation's template for every file on every real
+    run, which is `104` §18.6's "the same dead arm with a different spelling" and is
+    the state the owner's ruling overturned. An unratified answer here can narrow
+    what leaves the device and can do nothing else.
+
+    **A FILE THIS PASS DOES NOT ANSWER FOR KEEPS THE TEMPLATE ITS SITUATION NAMES**,
+    exactly as it did before this pass existed. Silence changes nothing.
+    """
+    chosen: dict = {}
+    fits = nothing_to_read = abstained = no_route = over_ceiling = 0
+    ceiling = fact_authorities.per_file_ceiling
+    # `104` §17.13 ruling 3: PER FILE, not per site. Site E's text is unratified, so
+    # `target_for` drops the cloud candidate for every file and everything this pass
+    # asks about goes to the model on this machine -- which `require_observe_locality`
+    # says in words and this makes mechanical.
+    route_for = target_for(conn, routing, E_TEMPLATE)
+    for file_id, content_hash in roster:
+        if ceiling is not None:
+            ceiling.open_turn(file_id)
+            try:
+                ceiling.check(file_id)
+            except FileTookTooLong as over:
+                refusal_outcome(conn, call_site=E_TEMPLATE, subject_ref=file_id,
+                                error=over, observed_at=now())
+                over_ceiling += 1
+                continue
+        situation = situation_of(file_id)
+        folder_levels = folder_levels_for(catalogue, situation)
+        if file_fits_its_situation(
+                conn, file_id=file_id, content_hash=content_hash,
+                folder_levels=folder_levels,
+                group_level_fields=group_level_fields_for(catalogue, situation)):
+            # THE SITUATION'S TEMPLATE IS THE ANSWER FOR THIS FILE, and asking a
+            # model to design a second one for material the first one already
+            # expresses is exactly the level `00`:99 warns about -- a dimension that
+            # does not materially improve retrieval -- bought with a model call.
+            fits += 1
+            continue
+        chosen_target = route_for(file_id)
+        if chosen_target is None:
+            no_route += 1
+            continue
+        client, target = chosen_target
+        # THE DESTINATION THIS FILE WAS ROUTED TO, ASKED AGAIN AT THE DOOR, exactly
+        # as `observe_template_call` asks it once for the group call. Site E's text
+        # is a draft, so this raises for any target off this device and the whole
+        # pass is local -- which is the same answer `target_for` already gave, said
+        # where the bytes are about to be assembled rather than only where the route
+        # was chosen. The PROTECTED half is `target_for`'s own: `104` §18.7 routes a
+        # protected file to the local model and `model_route_permitted` asks the
+        # gate's `protected_cloud_denies` for it, so a protected file is asked here
+        # or counted `no_route` above and is never assembled for anywhere else.
+        require_observe_locality(E_TEMPLATE, target.locality)
+        request = file_template_request_for(
+            conn, file_id=file_id, content_hash=content_hash,
+            plan_version=plan_version, model_target=target, prompt=prompt,
+            max_dossier_tokens=GROUPING_LIMITS.max_dossier_tokens)
+        if request is None:
+            nothing_to_read += 1
+            continue
+        verdict = run_call(
+            conn, request,
+            gate=fact_authorities.gate,
+            # THE CLIENT THIS FILE WAS ROUTED TO, and the same object the target
+            # above was read off: two reads would let the gate decide about one
+            # destination while the bytes went to another.
+            model_client=client,
+            prompt=prompt,
+            validation_dependencies=dataclasses.replace(
+                file_template_call_dependencies(
+                    fact_authorities, catalogue,
+                    allowed_vocabulary=allowed_vocabulary_for(
+                        catalogue,
+                        uses_schema=schema_for_situation(catalogue, situation)),
+                    folder_levels=folder_levels,
+                    placeable_file_count=len(roster)),
+                basis_key=file_id, learning_subject_id=file_id),
+            observed_at=now,
+            # `104` R-172's mailbox, the same one every other site is handed. A
+            # response with no `llm_call_usage` row beside it is indistinguishable
+            # from a call that spent nothing, and this site spends one per file.
+            usage_recorder=fact_authorities.usage_recorder)
+        named = (template_named_by_verdict(conn, verdict)
+                 if isinstance(verdict, P8Verdict) else None)
+        if named is None:
+            abstained += 1
+            continue
+        chosen[file_id] = named
+    # `104` R-175: the last file's turn ends with the loop and not with the next
+    # file, because there is no next file.
+    if ceiling is not None:
+        ceiling.close_turn()
+    return TemplatePass(
+        chosen=chosen, fits=fits, nothing_to_read=nothing_to_read,
+        abstained=abstained, no_route=no_route, over_ceiling=over_ceiling)
+
+
+_NO_TEMPLATE_ASKED = TemplatePass(
+    chosen={}, fits=0, nothing_to_read=0, abstained=0, no_route=0)
+
+
+def template_resolver(catalogue, *, pass_of, situation_of
+                      ) -> Callable[[str], str | None]:
+    """`104` §18.1 S6's producer: WHICH TEMPLATE IS THIS FILE HELD UNDER?
+
+    The one thing `privacy.gate`'s §7.3 arm needs and never had. `Gate` takes
+    `template_for` with a `None` default -- "§7.3's residual-template library is
+    P10's and P11's and is unbuilt. With no mapping, no file is under a residual
+    template" -- and the composition root passed nothing, so the arm was
+    unreachable. §18.6 declined to wire it while the answer had no producer,
+    because a resolver that returns `None` for every file is the same dead arm
+    respelled. This returns the per-file answer where site E designed one and the
+    template the file's OWN situation names otherwise, so the arm is LIVE for a file
+    with an answer and INERT -- reading a real name, not a `None` -- for every other
+    file.
+
+    **BOTH HALVES ARE ANSWERS AND NEITHER IS A FALLBACK.** A file no model designed
+    a template for is not a file with no template: it is a file under the one the
+    person's situation builds, read off the same applicability row
+    `folder_levels_for` reads its levels off. No shipped situation is named
+    "Protected Records", so the arm cannot fire on that half -- which is what makes
+    it inert rather than merely quiet.
+
+    **`pass_of` IS A CALLABLE AND NOT A DICT.** The `Gate` is built inside the fact
+    pass and the template pass runs after it, so a mapping captured here would be
+    empty for the life of the run. It is read at CALL TIME, which is when the
+    question is actually being asked.
+    """
+    def template_for(file_id: str) -> str | None:
+        chosen = pass_of().chosen.get(file_id)
+        if chosen is not None:
+            return chosen
+        return template_id_for_situation(catalogue, situation_of(file_id))
+
+    return template_for
 
 
 def model_fact_resolver(conn: sqlite3.Connection, *,
@@ -7853,6 +8236,92 @@ assert set(HOLD_SENTENCE) | {"held"} == {
     "the same rule one record along: a hold count with no sentence is a number "
     "about somebody's protected file that no screen says out loud. `held` is "
     "the block's own header, exactly as `named` is the block above's")
+
+#: `104` §18.1 S6: what became of every file the per-file template site walked, in
+#: the person's words. `SITUATION_SENTENCE`'s rule at the site one along -- every
+#: counter earns a sentence, the five here partition the roster, and the sum is an
+#: arithmetic a person can check against the total the header names.
+#:
+#: The word a person needs out of this block is not "template". It is whether the
+#: folders this run is about to build have a place for their file: `fits` is the
+#: files the situation already has a home for, and everything else is a file that
+#: was asked for one of its own or a reason it could not be.
+TEMPLATE_SENTENCE: Mapping[str, str] = MappingProxyType({
+    "fits":
+        "already fit: every folder level their situation cannot be built without "
+        "has a fact on these files, and nothing they state would need a folder "
+        "the situation does not have. No model was asked about them, because the "
+        "template the situation names is already their answer.",
+    "nothing_to_read":
+        "not asked, nothing to read: their facts fit no level and nothing that "
+        "could be read out of them may be released to this model, so there was "
+        "nothing to design a template FROM. Nothing about them was assembled and "
+        "nothing was sent.",
+    "abstained":
+        "asked and left alone: a model was asked and designed no template it "
+        "could cite, or the check did not accept the one it designed. They keep "
+        "the template their situation names, which is where they already were.",
+    "no_route":
+        "no target: no model this site may use could take them -- protected "
+        "material where the only destination was a cloud one, or no model wired "
+        "at all. Nothing about them was assembled and nothing was sent.",
+    "over_ceiling":
+        "out of time: they had already held this run longer than one file may, so "
+        "the run stopped waiting and went on to the rest. Nothing about them was "
+        "decided -- what is open is open, and the next run asks again.",
+})
+
+assert set(TEMPLATE_SENTENCE) | {"chosen"} == {
+    field.name for field in dataclasses.fields(TemplatePass)}, (
+    "every counter the per-file template site leaves behind earns a sentence on "
+    "the screen, on `SITUATION_SENTENCE`'s rule: a counter with no sentence is a "
+    "number this report silently drops, so a new one fails to import rather than "
+    "going unprinted. `chosen` is the block's own header")
+
+
+def _print_template_pass(pass_: TemplatePass, *, files: int,
+                         model_id: str, out) -> None:
+    """Site E's five counters, in the shape site G and the fact pass print theirs.
+
+    **ONE SHAPE ON ONE SCREEN.** A header naming what was decided and for how many
+    of how many files, then one indented line per outcome carrying its own count
+    and its own reason. Three blocks in three shapes would read as three products.
+
+    **ALL FIVE, INCLUDING THE ZEROS**, for `_print_situation_pass`' reason: these
+    counters partition the roster, so the five numbers are an arithmetic a person
+    can check against the total and a zero that disappears makes it unreadable.
+
+    **A PASS THAT DID NOT RUN PRINTS NOTHING**, which is `_NO_TEMPLATE_ASKED`'s own
+    ruling one layer up: a run where site E was not asked and a run where it was
+    asked and designed nothing must not read the same.
+
+    The header says the text behind these answers is a draft, because it is: site
+    E's row is unratified, so what a person is reading is what the site WOULD have
+    designed. What the answer is used for is the one thing it IS used for -- which
+    folders may be released about that file -- and the sentence says so rather than
+    promising a folder nobody has approved.
+    """
+    if pass_ is _NO_TEMPLATE_ASKED or not files:
+        return
+    asked = len(pass_.chosen) + pass_.abstained
+    named = len(pass_.chosen)
+    print("", file=out)
+    print(_wrapped(
+        f"Templates of their own: {asked} of {files} "
+        f"{'file was' if files == 1 else 'files were'} asked for a folder "
+        f"template of {'its' if asked == 1 else 'their'} own by {model_id} on this "
+        f"device, because the folders this run's situation builds have no place "
+        f"for what they say, and {named} "
+        f"{'was' if named == 1 else 'were'} given one. The text behind these "
+        f"answers is still a draft: no folder is created from them, and what one "
+        f"decides is whether the file may be shown to a model at all. Nothing "
+        f"about any of them left the device.", indent=""), file=out)
+    for field in dataclasses.fields(TemplatePass):
+        if field.name == "chosen":
+            continue
+        print(_wrapped(f"{getattr(pass_, field.name)} "
+                       f"{TEMPLATE_SENTENCE[field.name]}", indent="  "),
+              file=out)
 
 
 def _print_situation_pass(situation: SituationPass, *, files: int,
@@ -10947,6 +11416,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     #: it say what happened to every file that is not in it.
     situation_cell: list = [_NOTHING_ASKED]
 
+    #: `104` §18.1 S6: what the per-file template site answered, filled by
+    #: `downstream` and read by `_template_for` below, by the report, and -- through
+    #: the gate this run's authorities are built with -- by every release after the
+    #: pass. One slot for `situation_cell`'s reason, and READ AT CALL TIME rather
+    #: than captured, because the `Gate` is built inside the fact pass and the
+    #: answers arrive after it.
+    template_cell: list = [_NO_TEMPLATE_ASKED]
+
     #: `104` §18.2 gap 10: file_id -> (bucket, cause), what the fact pass decided
     #: about each file it walked. Filled by `_model_fact_pass` and read by
     #: `_reconcile_the_roster`, which runs whether or not the pass reached its end.
@@ -10987,6 +11464,34 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     def _situations_of(schema_id: str) -> tuple[str, ...]:
         return tuple(row.name for row in shipped_situations(catalogue)
                      if row.schema == schema_id)
+
+    def _situation_of(file_id: str) -> str:
+        """THE SITUATION THIS FILE IS UNDER: its own where site G named one.
+
+        The same lookup `_model_fact_pass`'s `resolver_for` makes and deliberately
+        the same one -- a file whose questions came from its own situation and a
+        file whose template comes from the run's would be two answers to "what kind
+        of material is this", and the second would be read by the privacy gate.
+
+        The run's own `--situation` for every file site G did not name, and for a
+        schema no shipped situation resolves to, which is `resolver_for`'s own
+        fallback and `104` §17.9's rule: `--situation` is the person's answer for
+        the corpus and the model's is a refinement of it, never a replacement.
+        """
+        answered = situation_cell[0].named.get(file_id)
+        if answered and answered != schema:
+            found = _situations_of(answered)
+            if found:
+                return found[0]
+        return situation
+
+    #: `104` §18.1 S6's producer, built once here and handed to the one `Gate` this
+    #: run has. A MODULE-LEVEL factory rather than a closure of its own, so the two
+    #: answers it gives -- the per-file template and the situation's -- are pinnable
+    #: without a corpus, which is what "the arm is live for one and inert for the
+    #: other, and both pinned" asks for.
+    _template_for = template_resolver(
+        catalogue, pass_of=lambda: template_cell[0], situation_of=_situation_of)
 
     def _partition_branches(run_id: str) -> BranchPartition:
         """`104` R-37. Which branch each file is under, from the facts P6 wrote.
@@ -11124,6 +11629,12 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # else. Empty when this situation binds no such role, which is every
             # situation but coursework's today.
             anchor_levels=anchor_level_fields,
+            # `104` §18.1 S6. The one `Gate` this run builds is built here, so
+            # this is where the §7.3 arm is given something to read. The resolver
+            # is the closure above and not a dict, because the per-file template
+            # site runs after this pass and its answers have to reach a gate that
+            # already exists.
+            template_for=_template_for,
             # `104` R-08, off the release `rules` above already loaded rather than a
             # second read of the library. Direct indexing and not `.get`: every one
             # of the nineteen schemas a `--situation` can resolve to is in the
@@ -11605,6 +12116,30 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         _reconcile_the_roster(
             conn, run_id=p1_p7.scan_run_id, verdicts=fact_pass_verdicts,
             not_run=fact_pass_not_run[0], out=out)
+        # `104` §18.1 S6 AND THE OWNER'S RULING OF 10 SEP: the per-file template
+        # site, HERE and nowhere else in the run. AFTER the fact pass, because the
+        # question it asks is about a file's ACCEPTED facts and the fact pass is
+        # what writes them -- a fit test run before them would find every file
+        # unfitting and buy a call for each. BEFORE site B, C and D, because the
+        # answer decides which folders may be released about a file and those three
+        # release about it.
+        #
+        # Guarded on `fact_authorities` for `observe_b`'s reason one line down: the
+        # fact pass has four early returns, all of them ordinary ways for a run to
+        # go, and every authority this pass borrows is built inside it. No model, no
+        # authorities, no pass -- and `_NO_TEMPLATE_ASKED` then keeps every file
+        # under the template its situation names, which is where it was.
+        if fact_authorities and site_has_a_destination(
+                conn, routing, E_TEMPLATE, operation_mode=operation_mode):
+            roster = corpus_roster(conn, p1_p7.scan_run_id)
+            template_cell[:] = [ask_for_a_template(
+                conn, roster=roster, fact_authorities=fact_authorities[0],
+                routing=routing, prompt=prompt_for(E_TEMPLATE),
+                catalogue=catalogue, situation_of=_situation_of,
+                plan_version=PLAN_VERSION, now=now)]
+            _print_template_pass(
+                template_cell[0], files=len(roster),
+                model_id=_local_model_id(routing, E_TEMPLATE), out=out)
         # AFTER the fact pass, because that is what builds the authorities these
         # borrow, and BEFORE P9 groups, because that is what asks site B.
         observe_b = (observe_group_authorities(
