@@ -161,6 +161,9 @@ GATE_ARGUMENTS: tuple[str, ...] = (
     "unclassified_permits_local", "scope_for", "files_in_scope",
     "component_version", "now", "user_id",
     "measure_tokens", "template_for",
+    # `104` §18.7 (9 Sep 2026): the folders this run scanned, so a `path`-zone
+    # value released to a cloud target can be made relative to one of them.
+    "corpus_roots",
 )
 
 
@@ -361,6 +364,9 @@ def gate_arguments(fixture: "GateFixture", *, store: object) -> dict[str, object
         "user_id": FIXTURE_USER_ID,
         "measure_tokens": _measure_tokens,
         "template_for": lambda _file_id: fixture.residual_template,
+        # `104` §18.7: no fixture releases a `path`-zone value to a cloud target,
+        # so no root is needed; empty is the door's refusal, never a release.
+        "corpus_roots": (),
     }
 
 
