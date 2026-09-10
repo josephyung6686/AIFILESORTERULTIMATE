@@ -440,6 +440,42 @@ def group_level_fields_for(catalogue: TemplateCatalogue,
         if item.role_ref in roles and item.field_ref)
 
 
+def template_id_for_situation(catalogue: TemplateCatalogue,
+                             situation: str) -> str:
+    """WHICH TEMPLATE this situation builds its folders from, ASKED of the library.
+
+    `folder_levels_for` below reads the LEVELS off this row and this reads the name
+    of the template those levels are the shape of. One row, two questions, and the
+    refusals are the same because the row is the same.
+
+    **`104` §18.1 S6 is what wanted it.** The gate's `template_for` answers "which
+    template is this file held under", and until now nothing could answer it for any
+    file at all -- the composition root passed no resolver and §7.3's residual
+    library is P10's and P11's and unbuilt, so the protected-records denial had no
+    reachable input. A file the per-file template site has not answered about is
+    under the template its own situation names, and this is that name.
+
+    Refused rather than resolved when no row carries the situation and when two do,
+    which is `schema_for_situation`'s posture and `folder_levels_for`'s, for their
+    reason: picking between two rows would be this module deciding what kind of
+    material somebody's files are.
+    """
+    ref = f"recognition:{situation}"
+    rows = [row for row in catalogue.applicabilities.values()
+            if ref in row.detection_signal_refs]
+    if not rows:
+        raise ConfigurationRequired(
+            f"{situation!r} names no situation in template release "
+            f"{catalogue.release_id}, so there is no row to read a template name "
+            f"from")
+    if len(rows) > 1:
+        raise ConfigurationRequired(
+            f"{situation!r} is carried by {len(rows)} applicability rows, and which "
+            "template these files are held under is the person's answer to give "
+            "rather than this module's to pick")
+    return rows[0].template_id
+
+
 def folder_levels_for(catalogue: TemplateCatalogue,
                       situation: str) -> tuple[FolderLevel, ...]:
     """The folder levels this situation would build, ASKED of the library.

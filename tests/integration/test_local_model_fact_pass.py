@@ -735,14 +735,24 @@ def test_site_a_is_never_asked_the_school_of_one_file(tmp_path, stub, monkeypatc
     `conflicts` to say which file that is. The five essays that were filed under a
     high school were files with no settled kind at all, and this still fails if one
     of them is asked.
+
+    **THE SITE IS NAMED AND NO LONGER GUESSED AT (`104` §18.1 S6).** The filter was
+    "a call is an A_fact call if it offers `subject` or `work_type`", and it stopped
+    being true the day a second site's vocabulary contained those words: P10's
+    template closure for `academic` is exactly `school, subject, term, work_type`,
+    so every per-file site-E call matched the filter and was read as a fact call
+    asked its school -- which it is not. `allowed_vocabulary` means two different
+    things at the two sites: at A it is the fields this file is asked to fill, and
+    at E it is the names a proposed folder DIMENSION may take. `104` §17.1 put
+    `call_site` into the model-visible bytes for this reason, and this file already
+    reads it that way at `_calls_at`; the guess was the last one left.
     """
     _local_run(tmp_path, stub, monkeypatch)
 
     bodies = [dossier_in(prompt) for prompt in stub.prompts()
               if DOSSIER_FOLLOWS in prompt]
     a_site = [body for body in bodies
-              if "subject" in body.get("allowed_vocabulary", ())
-              or "work_type" in body.get("allowed_vocabulary", ())]
+              if body.get("call_site") == cli.A_FACT]
 
     assert a_site, "no A_fact call was made, so this proves nothing"
     asked_the_school = [body for body in a_site
