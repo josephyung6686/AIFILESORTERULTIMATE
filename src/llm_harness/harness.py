@@ -777,17 +777,33 @@ def in_walk_order(started, *, lane: CallLane, on_pause=None, on_resume=None):
     2. A cloud send is PARKED. The loop moves on and prepares the next subject
        while it waits, which is the whole gain: r19 spent nine hours on 223
        dossiers with every call, cloud or local, one after another (§18.22).
-    3. A LOCAL send is never parked. The batch is settled first, then the local
-       call runs alone on this thread, then it is settled on its own. One Ollama
-       server holds one model in memory and a second concurrent local call is what
-       filled the machine's swap in r18 (§17.21), so the local lane is not merely
-       narrow here -- it is the only thing running.
-    4. The batch settles when it is full, before a local call, and at the end.
-       Settling performs the parked sends together, then resumes each generator IN
-       WALK ORDER, so every row after a response -- the verdict, the fact, the
-       supersession, the usage, the settlement -- is written in the order the files
-       were walked and not in the order the provider answered. Two runs over one
-       corpus write the same rows in the same order.
+    3. A LOCAL send joins the batch too, and is performed ON THIS THREAD while the
+       cloud sends of the same batch are in the air. That is the whole of the local
+       rule and it is narrower than "the local call runs alone": there is ONE local
+       lane and this thread is it, so two local sends can no more overlap than one
+       thread can be in two places. One Ollama server holds one model in memory and
+       a second concurrent local call is what filled the machine's swap in r18
+       (§17.21) -- that is a statement about two LOCAL calls, and a cloud socket
+       waiting beside one costs the server nothing.
+
+       **IT JOINS ONLY WHEN THERE IS CLOUD WORK TO OVERLAP.** With nothing parked
+       there is nothing to be beside, and holding a local call back would mint its
+       release early for no gain, so it is settled at once -- a batch of one send,
+       performed inline, which is the path this driver has always had. A run with
+       no cloud target therefore behaves exactly as it did before the lane existed.
+
+       The first draft settled the batch BEFORE every local send and ran it by
+       itself. That is stricter than `104` §18.15 asks -- the direction is that the
+       local lane stays serial, not that it stops the world -- and it cost the
+       whole gain on the corpus the direction is about: site A's cloud share was
+       47% (§18.22), so a walk that alternates would have settled a batch of one or
+       two, over and over, and the lane would have been a lane in name.
+    4. The batch settles when it is full and at the end. Settling submits the cloud
+       sends, runs the local ones here in turn, gathers the cloud answers, and then
+       resumes each generator IN WALK ORDER -- so every row after a response, the
+       verdict, the fact, the supersession, the usage, the settlement, is written
+       in the order the files were walked and not in the order the provider
+       answered. Two runs over one corpus write the same rows in the same order.
 
     **WHAT THIS CHANGES ABOUT ORDER, STATED RATHER THAN BURIED.** Inside one batch
     a later file's PREPARATION now precedes an earlier file's RESPONSE, because
@@ -801,51 +817,54 @@ def in_walk_order(started, *, lane: CallLane, on_pause=None, on_resume=None):
     KEEPS IT HONEST.** That clock charges a file for the time the run spends with
     it, by turns: a turn opens when the file is reached and ends when the next
     file's opens. A batch breaks both halves of that. `on_pause` is called before a
-    shared window, so the wait for seven calls is not billed to whichever file
+    shared window, so the wait for several calls is not billed to whichever file
     happened to be prepared last. `on_resume` is called with a subject's key just
-    before its own send is performed alone -- and without it that send is billed to
-    NOBODY, because the pause closed the only open turn. The send run alone is the
-    LOCAL one, which is the slow call R-175 exists to bound, so a driver that
-    paused and never resumed would quietly disable the backstop on exactly the
-    calls it was written for. Either may be absent; a caller with no such clock has
-    nothing to say here.
+    before ITS OWN send is performed on this thread -- which is every local send in
+    the batch -- and without it that send is billed to NOBODY, because the pause
+    closed the only open turn. The send this thread performs is the LOCAL one,
+    which is the slow call R-175 exists to bound, so a driver that paused and never
+    resumed would quietly disable the backstop on exactly the calls it was written
+    for. Either may be absent; a caller with no such clock has nothing to say here.
     """
     batch: list[_Slot] = []
 
-    def _holding() -> bool:
-        return any(slot.pending is not None for slot in batch)
+    def _cloud_parked() -> bool:
+        return any(slot.pending is not None
+                   and slot.pending.locality == CLOUD_LOCALITY
+                   for slot in batch)
+
+    def _sends() -> int:
+        return sum(1 for slot in batch if slot.pending is not None)
 
     for key, steps in started:
         pending, value = _advance(steps)
         if pending is None:
             batch.append(_Slot(key=key, value=value))
             continue
-        if pending.locality == CLOUD_LOCALITY and lane.width > 1:
+        if lane.width > 1 and (pending.locality == CLOUD_LOCALITY
+                               or _cloud_parked()):
+            # A cloud send, or a local one with cloud work already in the air for
+            # it to run beside. Either way it waits for the batch.
+            #
+            # THE BOUND IS OVER EVERY PARKED SEND AND NOT OVER THE CLOUD ONES
+            # ALONE. What `width` limits is how much of this run is outstanding at
+            # a time -- a parked send is a spent release and a reserved budget slot
+            # with no answer against it yet -- and a batch that counted only the
+            # cloud half could hold any number of those.
             batch.append(_Slot(key=key, steps=steps, pending=pending))
-            if sum(1 for slot in batch if slot.pending is not None) >= lane.width:
-                yield from _settle(batch, lane=lane, on_pause=on_pause)
+            if _sends() >= lane.width:
+                yield from _settle(batch, lane=lane, on_pause=on_pause,
+                                   on_resume=on_resume)
             continue
-        # A LOCAL TARGET, or a lane a person narrowed to one. Everything before it
-        # finishes first and it then runs by itself: `_settle` over a batch holding
-        # one send performs that send on this thread, which is exactly what the
-        # serial path has always done.
-        #
-        # THE CLOCK IS STOPPED AROUND WHAT IS SETTLED FIRST AND STARTED AGAIN FOR
-        # THIS FILE. The window being drained is other files' network and this
-        # file's turn is the one standing open, so without the pause it would be
-        # billed for their wait -- and without the resume its own call, the slow
-        # one, would be billed to nobody at all.
-        if _holding():
-            if on_pause is not None:
-                on_pause()
-            yield from _settle(batch, lane=lane, on_pause=None)
-            if on_resume is not None:
-                on_resume(key)
-        else:
-            yield from _settle(batch, lane=lane, on_pause=None)
+        # A LOCAL SEND WITH NOTHING TO BE BESIDE, or a lane a person narrowed to
+        # one. There is no window to overlap, so holding it back would only mint
+        # its release early: it is settled at once, in a batch of one send,
+        # performed inline. That is the path this driver has always had, and it is
+        # the whole of a run with no cloud target.
         batch.append(_Slot(key=key, steps=steps, pending=pending))
-        yield from _settle(batch, lane=lane, on_pause=None)
-    yield from _settle(batch, lane=lane, on_pause=on_pause)
+        yield from _settle(batch, lane=lane, on_pause=on_pause,
+                           on_resume=on_resume)
+    yield from _settle(batch, lane=lane, on_pause=on_pause, on_resume=on_resume)
 
 
 def _advance(steps):
@@ -874,29 +893,58 @@ def _finish(steps, sent):
         sent = pending.perform()
 
 
-def _settle(batch: "list[_Slot]", *, lane: CallLane, on_pause):
-    """Perform the parked sends together, then finish and yield in walk order."""
+def _settle(batch: "list[_Slot]", *, lane: CallLane, on_pause, on_resume=None):
+    """Perform the parked sends, then finish and yield the batch in walk order.
+
+    **THE CLOUD SENDS GO TO A POOL; THE LOCAL ONES RUN HERE, ONE AFTER ANOTHER.**
+    That asymmetry is the whole of `104` §18.15's local rule and it needs no
+    counter to enforce: this is one thread, so the local sends it performs are
+    serial by construction, and a cloud socket waiting beside one costs the Ollama
+    server nothing. The local sends are performed INSIDE the pool's window rather
+    than before or after it, which is the point -- on a corpus that alternates
+    (site A's cloud share was 47%, §18.22) the local call is where the minutes are,
+    and the cloud lane should be draining while it runs.
+    """
     if not batch:
         return
     sends = [slot for slot in batch if slot.pending is not None]
+    away = [slot for slot in sends
+            if slot.pending.locality == CLOUD_LOCALITY]
+    # BY IDENTITY. `_Slot` is a plain dataclass, so `in` would compare it field by
+    # field and two subjects that happened to match would collapse into one.
+    gone = {id(slot) for slot in away}
+    here = [slot for slot in sends if id(slot) not in gone]
+    results: dict[int, object] = {}
     if len(sends) > 1:
-        lane.at_once = max(lane.at_once, len(sends))
+        # THE MEASUREMENT IS THE CLOUD WINDOW, because that is what the lane is and
+        # what the printed sentence names. The local send beside it is not a second
+        # lane; it is this thread.
+        lane.at_once = max(lane.at_once, len(away))
         if on_pause is not None:
             on_pause()
         # `max_workers` is the window, never the lane's whole width: a batch of
         # three asks for three threads and not for seven idle ones.
-        with ThreadPoolExecutor(max_workers=len(sends),
+        with ThreadPoolExecutor(max_workers=max(len(away), 1),
                                 thread_name_prefix="cloud-call") as pool:
-            futures = [pool.submit(slot.pending.perform) for slot in sends]
+            futures = [pool.submit(slot.pending.perform) for slot in away]
+            # THE LOCAL LANE, WHILE THE CLOUD ONES ARE IN THE AIR. In walk order,
+            # one at a time, each with `104` R-175's clock reopened for the file
+            # that is about to spend the minutes -- and closed again after the last
+            # of them, so the wait for the cloud answers is charged to nobody.
+            for slot in here:
+                if on_resume is not None:
+                    on_resume(slot.key)
+                results[id(slot)] = slot.pending.perform()
+            if here and on_pause is not None:
+                on_pause()
             # GATHERED IN WALK ORDER, and `_PendingSend.perform` carries a failure
             # rather than raising it, so one call that does not come back is one
             # `llm_call_failure` row and not the end of the other six.
-            results = [future.result() for future in futures]
+            for slot, future in zip(away, futures):
+                results[id(slot)] = future.result()
     elif sends:
         lane.at_once = max(lane.at_once, 1)
-        results = [sends[0].pending.perform()]
-    else:
-        results = []
+        results[id(sends[0])] = sends[0].pending.perform()
 
     # EVERY RESPONSE IS RECORDED BEFORE ANYTHING IS RE-RAISED. A raise out of one
     # subject's post-call work used to end the run with the files behind it not yet
@@ -905,9 +953,9 @@ def _settle(batch: "list[_Slot]", *, lane: CallLane, on_pause):
     # wire with no row naming them. So each is finished, the first raise is kept,
     # and the run then stops the way it stops today.
     raised: BaseException | None = None
-    for slot, sent in zip(sends, results):
+    for slot in sends:
         try:
-            slot.value = _finish(slot.steps, sent)
+            slot.value = _finish(slot.steps, results[id(slot)])
         except BaseException as problem:  # noqa: BLE001 -- re-raised below
             if raised is None:
                 raised = problem
