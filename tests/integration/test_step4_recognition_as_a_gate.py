@@ -267,9 +267,14 @@ def test_every_term_behind_the_notebooks_verdict_is_one_the_document_carries(
         assert match.zone != "metadata", (
             "a term behind this verdict came out of the metadata zone, which is "
             "where the container describes itself: " + repr(match))
-    assert {match.term for match in outcome.matches} == {"lecture"}, (
-        "the only word of this notebook that any schema authored is `lecture`, in "
-        "its markdown heading: " + repr(outcome.matches))
+    # `104` R-160 (cluster D, 10 Sep): a notebook's markdown cells are body units,
+    # so the cell's second line -- "... lecture notes." -- is now the document's
+    # own text too, and `notes` is a word a schema authored. Both terms are words
+    # the document carries, which is what this test's name asserts; the term that
+    # must NOT appear is still the reader's word for the format, `code`.
+    assert {match.term for match in outcome.matches} == {"lecture", "notes"}, (
+        "the words of this notebook that any schema authored are `lecture` and "
+        "`notes`, both in its markdown cell: " + repr(outcome.matches))
 
 
 def test_a_lecture_in_prose_is_recognised_academic_and_the_guard_would_agree(

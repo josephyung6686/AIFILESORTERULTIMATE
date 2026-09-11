@@ -44,6 +44,8 @@ from pathlib import Path
 
 import pytest
 
+from database_agent.budget import set_ceiling
+
 import cli
 from database_agent.db import create_schema
 from database_agent.files_table import record_file
@@ -216,6 +218,12 @@ def test_a_file_carrying_a_signalled_field_still_gets_its_call(
     assertion is `Released`, and it is over the offer the builder actually makes.
     """
     file_id, _by_value = _scanned_lecture(person_conn)
+    # `104` §18.1 S3 residue (10 Sep): a whole text unit asked for a CLOUD target
+    # with no dossier ceiling stored is refused, because P7 invents no number.
+    # A deployment stores one at start-up (`cli.CEILINGS`, seeded equal to the
+    # request's), and this pin is about a signalled field, not about the
+    # ceiling, so the fixture stores what the product stores.
+    set_ceiling(person_conn, "model.max_dossier_tokens_per_call", MAX_DOSSIER_TOKENS)
     offered = releasable_observations(
         person_conn, file_id=file_id, content_hash=CONTENT_HASH, limit=12,
         locality=locality, ceiling=MAX_DOSSIER_TOKENS)
