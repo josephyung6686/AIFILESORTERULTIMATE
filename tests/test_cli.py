@@ -9,6 +9,7 @@ whole purpose is to tell you what to pass to `--situation` cannot itself require
 from __future__ import annotations
 
 import io
+import json
 import shlex
 import sqlite3
 import pathlib
@@ -1250,6 +1251,29 @@ def test_the_frozen_tree_says_who_decided_how_deep_each_branch_goes(tmp_path):
         assert "help you find" not in row["refinement_reason"], (
             "the reason still reads as the person's own judgement: "
             f"{row['refinement_reason']!r}")
+
+
+def test_a_template_with_max_depth_authored_builds_to_that_depth(tmp_path, monkeypatch):
+    """`104` §18.2 gap 14. `_residual_library` used to write `dict(values,
+    max_permitted_depth=RESIDUAL_MAX_DEPTH)` over every one of the nine, so a
+    template `01-nine-templates.json` authored a real number for could never see
+    it -- 00:119 states the slot per template and the constant made the slot
+    unreachable. `residuals.json` ships none of the nine with a number today, so
+    this test is the only place the authored path is exercised: a fixture copy of
+    the shipped file with one template's slot filled in.
+    """
+    raw = json.loads(cli._RESIDUAL_SLOTS_FILE.read_text(encoding="utf-8"))
+    raw["Reading Inbox"] = dict(raw["Reading Inbox"], max_permitted_depth=2)
+    fixture = tmp_path / "residuals-with-one-authored-depth.json"
+    fixture.write_text(json.dumps(raw), encoding="utf-8")
+    monkeypatch.setattr(cli, "_RESIDUAL_SLOTS_FILE", fixture)
+
+    library = cli._residual_library()
+
+    assert library["Reading Inbox"].max_permitted_depth == 2
+    # The eight the fixture did not touch keep today's floor -- nothing about an
+    # authored neighbour changes a template that authored none of its own.
+    assert library["Review Later"].max_permitted_depth == cli.RESIDUAL_MAX_DEPTH
 
 
 def test_the_residual_home_says_who_keeps_it_flat(tmp_path):

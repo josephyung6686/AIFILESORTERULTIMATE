@@ -4142,12 +4142,19 @@ METADATA_SCREEN = MetadataScreen(tool_producer_strings=make_tool_producer_string
 _RESIDUAL_SLOTS_FILE = (
     Path(__file__).resolve().parent / "tree_design" / "library" / "residuals.json")
 
-#: The one slot the catalogue deliberately leaves unvalued: "`00` defines the
-#: slot and states no number; every threshold in this product is injected." This
-#: is the injection site, and the number is `RESEARCH.md` §4's recommendation --
-#: zero for eight of the nine, and zero for Reference Clips too because its
-#: optional clip-kind subfolders did not ship (NJ-R3-2: "if they are dropped, 0
-#: there too"), which `residuals.json` confirms by carrying none.
+#: The FALLBACK for a template whose own slot carries no number: "`00` defines the
+#: slot and states no number; every threshold in this product is injected." The
+#: floor is `RESEARCH.md` §4's recommendation -- zero for eight of the nine.
+#:
+#: **NOT ZERO FOR REFERENCE CLIPS, and the comment that used to say otherwise was
+#: wrong about the file it cited.** It read "zero for Reference Clips too because
+#: its optional clip-kind subfolders did not ship (NJ-R3-2: 'if they are dropped,
+#: 0 there too')" -- but `residuals.json`'s `Reference Clips` entry carries six
+#: subfolder names (`Recipes`, `Products`, `Quotes`, `Inspiration`, `Articles`,
+#: `Code Snippets`), so NJ-R3-2's own condition for the floor did not hold. §4's
+#: recommendation for that case is `1`, "if its optional clip-kind subfolders
+#: ship" -- and RESEARCH.md is a proposal this deployment has not injected.
+#: NEEDS-JOSEPH: `residual_max_depth.reference_clips` wants `1`, not this floor.
 #:
 #: Zero means the home is flat. §7.3's homes are "safe, intentionally broad
 #: destinations" and `00` holds that "an isolated file should normally remain
@@ -4159,14 +4166,25 @@ RESIDUAL_MAX_DEPTH: int = 0
 
 
 def _residual_library() -> Mapping[str, ResidualTemplate]:
-    """The nine, with this deployment's one injected number.
+    """The nine, each at ITS OWN authored depth where the catalogue states one.
 
     Built, not enabled. §7.4: "These templates are not automatically created."
     Enabling one is `--residual`, and a run that names none gets none.
+
+    `104` §18.2 gap 14: this used to overwrite EVERY template's `max_permitted_
+    depth` with `RESIDUAL_MAX_DEPTH`, so a template `01-nine-templates.json`
+    authors a real number for would never see it -- 00:119 states the slot per
+    template, and `dict(values, max_permitted_depth=RESIDUAL_MAX_DEPTH)` made the
+    per-template slot unreachable by construction. Reading `values.get(...)`
+    first, with `RESIDUAL_MAX_DEPTH` only as the floor for a template that
+    authors none, is what `residuals.json` shipping none for any of the nine
+    today keeps byte-identical -- the fallback is exercised by all nine and
+    nothing changes until the catalogue ships a number.
     """
     raw = json.loads(_RESIDUAL_SLOTS_FILE.read_text(encoding="utf-8"))
     slot_values = {
-        name: dict(values, max_permitted_depth=RESIDUAL_MAX_DEPTH)
+        name: dict(values, max_permitted_depth=values.get(
+            "max_permitted_depth", RESIDUAL_MAX_DEPTH))
         for name, values in raw.items() if name in RESIDUAL_TEMPLATE_NAMES
     }
     return build_library(slot_values)
