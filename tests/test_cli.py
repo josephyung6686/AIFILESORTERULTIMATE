@@ -1406,6 +1406,38 @@ def test_the_residual_home_says_who_keeps_it_flat(tmp_path):
             f"record does not say whose it is: {home['refinement_reason']!r}")
 
 
+def test_the_protected_records_residual_home_carries_the_protected_class(tmp_path):
+    """`104` §18.2 gap 14, register R-89. `design_decisions` named
+    `residual_handling_class=lambda name: ORDINARY_CLASS` for every one of the
+    nine templates, so `--residual "Protected Records"` built its node under the
+    same ordinary class as `--residual "Review Later"` -- catalogue 09 authors
+    Protected Records to hold ONLY P7-protected material and P10 said otherwise
+    on its own frozen node. Read off `tree_nodes.handling_class`, which is what
+    §5.2's privacy ordering and §8.4's placement floor actually consult, not the
+    tuple `design_decisions` builds.
+    """
+    import sqlite3
+
+    corpus = _uneven_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    code, printed = _run([str(corpus), "--situation", "academic.coursework",
+                          "--label", "Coursework", "--user", "jy",
+                          "--residual", "Protected Records",
+                          "--database", str(database)])
+    assert code == 0, printed
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    homes = [dict(r) for r in conn.execute(
+        "SELECT display_label, handling_class "
+        "FROM tree_nodes WHERE display_label = 'Protected Records'")]
+    conn.close()
+
+    assert homes, "the residual home this run enabled is not in the frozen tree"
+    for home in homes:
+        assert home["handling_class"] == cli.PROTECTED_CLASS, home
+
+
 def test_the_tree_record_does_not_claim_a_person_saw_a_canvas(tmp_path):
     """The same overclaim as the group record above, one part further downstream.
 

@@ -444,7 +444,7 @@ from tree_design.user_edits import (
 )
 from tree_design.vocabulary import (
     ACTION_RENAMED, ENABLE, MANDATORY_REVIEW, PHYSICAL_DESTINATION,
-    REFINE_LATER, REFINED,
+    PROTECTED_RECORDS, REFINE_LATER, REFINED,
     RESIDUAL_TEMPLATE_NAMES, SHALLOW_BY_CHOICE, SURFACE_UNATTENDED,
 )
 
@@ -11958,7 +11958,20 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             residual_library=residual_library,
             residual_choices=residual_choices,
             residual_configuration=residual_configuration,
-            residual_handling_class=lambda name: ORDINARY_CLASS,
+            # `104` §18.2 gap 14, register R-89. This named `ORDINARY_CLASS` for
+            # every one of the nine, so Protected Records -- the one template
+            # catalogue 09 authors to hold ONLY P7-protected files
+            # (`accepted_evidence_patterns`: "p7-protected-state", "required-
+            # isolation", "deterministic-only" -- no dossier is ever built to
+            # decide membership here, it is decided off P7's flag alone) -- built
+            # under the same ordinary class as every other residual home.
+            # `PROTECTED_RECORDS` is §7.3's own fixed name for it, published
+            # by `tree_design.vocabulary` and not invented here; no OTHER
+            # template's membership rule makes this promise, so name equality
+            # against the one template the catalogue defines this way is the
+            # producer, not a shortcut around one.
+            residual_handling_class=lambda name: (
+                PROTECTED_CLASS if name == PROTECTED_RECORDS else ORDINARY_CLASS),
             # §5.8, for a residual home. `shallow-by-choice` is the truthful
             # answer and not a convenience: `RESIDUAL_MAX_DEPTH` is zero, so
             # the home is flat DELIBERATELY, and `refine-later` would say the
