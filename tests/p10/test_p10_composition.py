@@ -81,7 +81,11 @@ test_the_bootstrap_writes_every_ceiling_p10_declares_it_reads = pytest.mark.xfai
     reason="`src/cli.py:_bootstrap` seeds `placement.config.CEILINGS` only, so "
            "`tree.max_folder_proposals` and `tree.max_depth` are written by nothing "
            "a person runs. XPASSes -- and fails the suite, forcing this marker off "
-           "-- the day the composition root seeds P10's two keys.",
+           "-- the day the composition root seeds P10's two keys. LEFT MARKED by "
+           "`104` R-35's build (2026-09-10): R-35 made the model pass's budget "
+           "predicate real and gave the deferral its sentence, and seeding P10's "
+           "two keys is a separate act -- `00`:256 names the two numbers and states "
+           "neither, so both values are the owner's and none is typed here.",
 )(test_the_bootstrap_writes_every_ceiling_p10_declares_it_reads)
 
 
@@ -104,7 +108,9 @@ test_p10_can_read_its_own_limits_after_a_real_bootstrap = pytest.mark.xfail(
     reason="`tree_limits` refuses on every database a person's run produces, "
            "because the run writes neither of P10's two ceilings. XPASSes the day "
            "the composition root calls this reader instead of building `TreeLimits` "
-           "by hand.",
+           "by hand. LEFT MARKED by `104` R-35's build (2026-09-10), for the reason "
+           "on the marker above: the values P10 would be read under are the "
+           "owner's, and R-35 types no number.",
 )(test_p10_can_read_its_own_limits_after_a_real_bootstrap)
 
 
