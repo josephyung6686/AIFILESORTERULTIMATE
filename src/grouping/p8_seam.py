@@ -62,11 +62,12 @@ from llm_harness.vocabulary import (
 from privacy.items import Excerpt as ReleaseExcerpt
 from privacy.release import ModelCallRequest, NeedsConsent, Target
 
-from grouping.acceptance import record_context_review_pending
+from grouping.acceptance import record_acceptance, record_context_review_pending
 from grouping.records import (
     CandidateGroupDossier,
     FailurePoint,
     Group,
+    GroupAcceptance,
     Membership,
     StopRuleOutcome,
     Support,
@@ -86,9 +87,11 @@ from grouping.vocabulary import (
     MEMBERSHIP_DECISIONS,
     NO_GROUP,
     NOT_FLAGGED,
+    PENDING_REVIEW,
     SHARED_VALIDATED_FACT,
     SR5,
     UNCERTAIN,
+    USER,
     VALIDATION,
     VALIDATOR,
 )
@@ -468,12 +471,24 @@ def _head_of(conn: sqlite3.Connection, group_id: str) -> Group | None:
 def _a_person_accepted(conn: sqlite3.Connection, group_id: str) -> bool:
     """Is there a standing acceptance of this group as a whole?
 
-    `104` R-80: a person's acceptance outranks both model answers. The row is the
-    person's word however the command carried it -- `review_and_accept` records
-    `decided_by=RULES` because the FILE SET was nobody's judgement, while the
-    label and the situation on it are what the person typed and are the reason the
-    group is accepted at all. Reading `decided_by` here would let a model overrule
-    `--label` on a technicality about who held the pen.
+    `104` R-80: a person's acceptance outranks both model answers.
+
+    **`decided_by` IS NOW READ, AND `104` SF-3 IS WHY IT CAN BE.** This clause
+    used to take ANY standing `accepted` row as the person's word, and it said so:
+    *"the row is the person's word however the command carried it --
+    `review_and_accept` records `decided_by=RULES` because the FILE SET was nobody's
+    judgement, while the label and the situation on it are what the person typed"*.
+    That reading was only available while the rules wrote an acceptance nobody had
+    made. They no longer do: a merged draft is `pending-review` until a person's
+    gesture or a ratified B verdict decides it, so the only thing an `accepted` row
+    with `decided_by=USER` can be is a decision somebody made.
+
+    Reading the column is now what keeps the sentence true in the other direction
+    as well. `_record_the_models_acceptance` below writes an `accepted` row with
+    `decided_by=VALIDATOR` when B is ratified, and a clause that counted every
+    `accepted` row would let B's own answer from the last run stand as "a person
+    accepted it" and silence B's next one -- the model overruling itself through a
+    door built for the person.
 
     Group-level only. A `membership_id` row is one file's review obligation, which
     `record_context_review_pending` writes below and which says nothing about
@@ -481,8 +496,9 @@ def _a_person_accepted(conn: sqlite3.Connection, group_id: str) -> bool:
     """
     return conn.execute(
         "SELECT acceptance_id FROM group_acceptance WHERE group_id = ? "
-        "AND membership_id IS NULL AND acceptance = ? AND superseded_by IS NULL",
-        (group_id, ACCEPTED),
+        "AND membership_id IS NULL AND acceptance = ? AND decided_by = ? "
+        "AND superseded_by IS NULL",
+        (group_id, ACCEPTED, USER),
     ).fetchone() is not None
 
 
@@ -965,7 +981,88 @@ def apply_p8_verdict(
                         group_id=row.group_id,
                         membership_id=carried.membership_id,
                         created_at=created_at)
+    _record_the_models_acceptance(
+        conn, group_id=row.group_id, plan_version_id=plan_version_id,
+        verdict_id=result.verdict_id, created_at=created_at)
     return _decision(row, dossier, membership_ids=tuple(written))
+
+
+def _record_the_models_acceptance(conn: sqlite3.Connection, *, group_id: str,
+                                  plan_version_id: str | None, verdict_id: str,
+                                  created_at: str) -> None:
+    """`104` SF-3: B's ACCEPTING verdict is what decides this group's plan opinion.
+
+    **Reached only from the accepting branch, and only when B is ratified.** The
+    one gate on "may B act" is `prompt.ratified`, read at `cli.observed_run_call`
+    and nowhere else: an unratified site returns `ObservedOnly` and this function
+    is unreachable from it. Nothing here ratifies anything -- that is the owner's
+    act -- and nothing here reads the flag a second time, because a second reading
+    is a second answer to the same question.
+
+    **This is the row `review_and_accept` used to write with nobody's judgement
+    behind it.** SF-3 measured the old one: every group P9 proposed was recorded
+    `accepted`, `coherent`, `decided_by=RULES`, on a screen nobody saw. The rules
+    now DRAFT (`cli.draft_for_review`), and the draft is decided by one of exactly
+    two things -- a person's gesture, or this.
+
+    `decided_by=VALIDATOR` and not `LLM`: `DECIDED_BY` has three members and the
+    model is not one of them, and the honest one of the three is the one that is
+    true. `ACCEPT_DIRECT` and `ACCEPT_CONTEXT_SUPPORTED` are P8's VALIDATOR's
+    outcomes over the model's claim -- the claim is only accepted once every
+    citation resolved, every field belonged to the schema and no stronger fact
+    contradicted it -- so the decider named here is the part that did the deciding.
+
+    `review_state=PENDING_REVIEW` beside `acceptance=ACCEPTED`, because both are
+    true and they are about different questions: this plan version accepts the
+    group, and no person has reviewed it yet. §4.9's whole design is that the user
+    makes the final call, and a `not-required` here would say they never need to.
+
+    **Silent without a plan version.** An acceptance is the ONE plan-versioned
+    record P9 publishes, so a caller with no version has nowhere to record one --
+    and the uncertain-member refusal above has already raised for the case where
+    that absence costs something.
+
+    **A SECOND ANSWER SUPERSEDES THE FIRST BY NAME**, which is the same rule
+    `_the_answers_row` applies to the group row one call up and is enforced here by
+    `one_current_group_acceptance`: the index is over unsuperseded rows, so a
+    second run answering the same group under a new verdict id would be refused by
+    the database rather than by a check. The standing row is read and named, and
+    the same verdict answering twice writes nothing new -- `record_acceptance`
+    returns the id it already holds.
+
+    **A PERSON'S ROW IS NEVER SUPERSEDED HERE.** It cannot be: `_the_answers_row`
+    returns `None` above when a person has accepted, so this function is
+    unreachable for that group at all. The guard is restated as a refusal rather
+    than trusted, because the cost of being wrong is the model quietly overwriting
+    the one decision the product exists to keep.
+    """
+    if not plan_version_id:
+        return
+    standing = conn.execute(
+        "SELECT acceptance_id, decided_by FROM group_acceptance "
+        "WHERE plan_version_id = ? AND group_id = ? AND membership_id IS NULL "
+        "AND superseded_by IS NULL",
+        (plan_version_id, group_id)).fetchone()
+    if standing is not None and standing["decided_by"] == USER:
+        raise ValueError(
+            f"group {group_id!r} carries a standing acceptance decided by the "
+            f"person in {plan_version_id!r}; a model answer does not supersede "
+            "one. `_the_answers_row` returns None for this case and this branch "
+            "should not have been reached"
+        )
+    acceptance_id = f"acc:{plan_version_id}:{group_id}:{verdict_id}"
+    supersedes = (standing["acceptance_id"]
+                  if standing is not None
+                  and standing["acceptance_id"] != acceptance_id else None)
+    record_acceptance(conn, GroupAcceptance(
+        acceptance_id=acceptance_id,
+        plan_version_id=plan_version_id, group_id=group_id,
+        membership_id=None, acceptance=ACCEPTED,
+        review_state=PENDING_REVIEW, user_edited_label=None, aliases=(),
+        review_decision_ref=verdict_id, decided_by=VALIDATOR,
+        created_at=created_at, supersedes=supersedes,
+        supersede_reason=(None if supersedes is None else
+                          "site B answered this group again")))
 
 
 # --- `104` R-O: a refusal is an outcome here too -------------------------------

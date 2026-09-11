@@ -148,8 +148,8 @@ from grouping.vocabulary import (
     ABSTAINED, ACCEPTED, BOUNDED_SESSION, COHERENT, COMPATIBLE_DOCUMENT_TYPE,
     DUPLICATE, EDGE_TYPES as P9_EDGE_TYPES, EXCLUDED, EXISTING_RELATED_FOLDER,
     INCLUDED, MUTUAL_SEMANTIC_RETRIEVAL, NOT_COHERENT, P1_INCLUDED_SCAN_STATE,
-    PENDING_REVIEW, RULES, SHARED_VALIDATED_FACT, UNCERTAIN, USER_EDITED,
-    VERSION_FAMILY, fact_bridge_ref,
+    PENDING_REVIEW, RULES, SHARED_VALIDATED_FACT, UNCERTAIN, USER as USER_DECIDED,
+    USER_ACCEPTED, USER_EDITED, VALIDATOR, VERSION_FAMILY, fact_bridge_ref,
 )
 from llm_harness.budgets import ScanBudget, allowed_calls, create_budget_schema
 from llm_harness.prompt_library import (
@@ -308,7 +308,8 @@ from questions.vocabulary import (
     STRUCTURAL,
 )
 from production import (
-    CorpusAuthorities, CorpusDecisions, P1P7Authorities, ProductionRun,
+    CorpusAuthorities, CorpusDecisions, InvalidCorpusAuthority,
+    P1P7Authorities, ProductionRun,
     bootstrap_p1_p7, corpus_roster, folder_levels_for, group_level_fields_for,
     GROUP_LEVEL_ROLES, load_shipped_catalogue,
     nearest_situations, read_packaged_library_file, schema_for_situation,
@@ -415,10 +416,13 @@ from review_gestures import (
     LEVEL_KEY_SEPARATOR, LevelOnScreen, collect_level_relabel, collect_set_sends,
     record_level_presentations, record_set_presentations,
 )
+from review_surface.bulk import collect_bulk, expand
 from review_surface.collect import (
     BulkMembersRequired, PresentationRequired, ProtectedContainerHasNoAction,
     ScopeNotPresented,
 )
+from review_surface.presentation import record_presentation
+from review_surface.store import record_action
 from review_surface.progress import (
     UNREADABLE, assert_every_file_accounted, bucket_for,
 )
@@ -427,8 +431,9 @@ from review_surface.schema import create_review_schema
 from review_surface.trail import file_trail
 from review_surface.vocabulary import (
     ACTION_ACCEPT, ACTION_REJECT, ACTION_RENAME, SOURCE_P4_RUNS, SOURCE_P8,
-    STATE_BLOCKED, STATE_COMPLETED, STATE_DEFERRED,
+    STATE_BLOCKED, STATE_COMPLETED, STATE_DEFERRED, SURFACE_GROUP_PLAN,
 )
+from grouping.learning import apply_review_action as record_group_review
 # `104` §18.2 gap 10: P4's own extraction record, for the files the fact pass
 # never reached. Read through P4's published reader rather than a query of this
 # file's own, so "this file could not be read" means here exactly what it means on
@@ -7976,15 +7981,49 @@ def sensitivity_policy_for(conn: sqlite3.Connection):
 # ======================================================================================
 
 
-def review_and_accept(conn: sqlite3.Connection,
-                      results: Sequence[GroupingResult], *,
-                      group_category: str, label: str,
-                      created_at: str,
-                      branch_for: Callable[[str], Branch | None] | None = None,
-                      default_branch: Branch | None = None,
-                      on_accepted: Callable[[str, Branch | None], None] | None = None,
-                      ) -> tuple[str, ...]:
-    """The review screen, non-interactively: keep everything, as one named group.
+def draft_for_review(conn: sqlite3.Connection,
+                     results: Sequence[GroupingResult], *,
+                     group_category: str, label: str,
+                     created_at: str,
+                     branch_for: Callable[[str], Branch | None] | None = None,
+                     default_branch: Branch | None = None,
+                     on_accepted: Callable[[str, Branch | None], None] | None = None,
+                     ) -> tuple[str, ...]:
+    """The review screen, non-interactively: keep everything, as one named DRAFT.
+
+    **`104` SF-3, AND THE RENAME IS THE FIX.** This was `review_and_accept`, and
+    the second half of that name was the defect: it recorded `acceptance=accepted`,
+    `review_state=pending-review`, `decided_by=RULES` for every group P9 proposed,
+    on a screen nobody had seen. SF-3's own evidence line is those three values
+    together. `00` puts the user's decision in the middle of the pipeline -- *"the
+    LLM evaluates coherence ... deterministic validation checks every cited
+    conclusion; and the user makes the final high-leverage decision"* -- and §5.3
+    builds the top level out of ACCEPTED groups, so writing the acceptance here
+    made every run skip the one step the design calls the most important
+    user-facing stage.
+
+    What this function does now is everything it did except decide. It still merges,
+    still carries the memberships, still records the merged group and still records
+    the supersession; what it no longer writes is a `group_acceptance` row. **No row
+    at all, rather than a `pending-review` one:** `group_state_as_of` falls back to
+    the group's own shared state when a version holds no opinion, and P9's own
+    vocabulary says of `accepted` and `rejected` that they are "resolved as of a
+    plan version from `group_acceptance` and are never stored on a group". The
+    truthful record of "the rules have no opinion about whether you accept this" is
+    the absence of an opinion, and it is also what leaves the row free for the
+    gesture that will decide it -- `one_current_group_acceptance` allows exactly one
+    standing opinion per version and group, so a placeholder here would have to be
+    superseded by the person's own accept before it could be recorded.
+
+    **Two things decide a draft, and they are the two `00` names.** A person's
+    gesture (`cli.accept_drafted_groups`, through P13's `accept_bulk` collector and
+    P9's own `apply_review_action` receiver), or site B's verdict once the owner has
+    ratified B's text (`grouping.p8_seam._record_the_models_acceptance`). Nothing
+    else writes one, and `decided_by=RULES` is written for a group's acceptance
+    nowhere in this file any more.
+
+    The returned ids are the DRAFTS, not the acceptances. `accept_groups` below
+    resolves which of them this plan version actually accepts.
 
     **`104` R-37: one named group PER BRANCH, when the run proposes more than
     one.** `branch_for(file_id)` is `BranchPartition.branch_of` bound to this
@@ -8060,15 +8099,15 @@ def review_and_accept(conn: sqlite3.Connection,
             raise ValueError("accepting per branch needs the default branch to "
                              "accept the rest under")
         buckets = _grouped_by_branch(conn, grouped, branch_for, default_branch)
-    accepted: list[str] = []
+    drafted: list[str] = []
     for branch, category, branch_label, bucket in buckets:
-        merged_id = _accept_as_one(
+        merged_id = _draft_as_one(
             conn, bucket, group_category=category, label=branch_label,
             created_at=created_at)
         if on_accepted is not None:
             on_accepted(merged_id, branch)
-        accepted.append(merged_id)
-    return tuple(accepted)
+        drafted.append(merged_id)
+    return tuple(drafted)
 
 
 def _grouped_by_branch(conn: sqlite3.Connection,
@@ -8080,7 +8119,7 @@ def _grouped_by_branch(conn: sqlite3.Connection,
     In BRANCH order, the default first, and within a bucket in P9's own order, so
     two runs over one folder accept the same groups under the same addresses.
     A group with no member under any branch, or with two branches tied for its
-    members, is the DEFAULT's -- see `review_and_accept` for why it is not
+    members, is the DEFAULT's -- see `draft_for_review` for why it is not
     dropped.
 
     **The vote is over the group's STORED members, not over `result.memberships`.**
@@ -8089,7 +8128,7 @@ def _grouped_by_branch(conn: sqlite3.Connection,
     group whose seed happened to be a held file was dropped whole, and on the
     owner's corpus that emptied the coursework branch of its courses and left it
     built flat by kind (the reverted merge 8b9280d). `memberships_for_group` is
-    what `_accept_as_one` carries into the merged group, so the vote and the
+    what `_draft_as_one` carries into the merged group, so the vote and the
     merge read the same members.
     """
     buckets: dict[str, tuple[Branch, list[GroupingResult]]] = {}
@@ -8115,10 +8154,13 @@ def _grouped_by_branch(conn: sqlite3.Connection,
             for branch, bucket in ordered]
 
 
-def _accept_as_one(conn: sqlite3.Connection, grouped: Sequence[GroupingResult],
-                   *, group_category: str, label: str, created_at: str) -> str:
-    """One merged, accepted group over these formed groups. `review_and_accept`'s
-    body, unchanged, so the single-branch run writes the records it always wrote."""
+def _draft_as_one(conn: sqlite3.Connection, grouped: Sequence[GroupingResult],
+                  *, group_category: str, label: str, created_at: str) -> str:
+    """One merged, DRAFT group over these formed groups. `draft_for_review`'s body.
+
+    Every record it wrote it still writes, with one taken away: the
+    `group_acceptance` row. `draft_for_review` says at length why.
+    """
     first = grouped[0].group
     # DERIVED FROM WHAT IT MERGES, which is P9's own rule for its own ids:
     # "a group id derived from its seed is an address, so a rerun over unchanged
@@ -8152,7 +8194,8 @@ def _accept_as_one(conn: sqlite3.Connection, grouped: Sequence[GroupingResult],
         # back, about an act nobody performed.
         proposed_basis=(
             f"the rules kept every group P9 proposed and the user named them "
-            f"{label!r}; nobody was shown which files went into this one"),
+            f"{label!r}; nobody was shown which files went into this one, so it "
+            f"is a draft until somebody decides"),
         anchor_facts=tuple(
             fact for result in grouped for fact in result.group.anchor_facts),
         pre_model_signals={"reviewed_proposals": len(grouped)},
@@ -8177,12 +8220,210 @@ def _accept_as_one(conn: sqlite3.Connection, grouped: Sequence[GroupingResult],
         # to drift. The comment that used to be here is on the transform.
         carry_memberships(conn, from_group_id=result.group.group_id,
                           into_group_id=merged_id)
-    record_acceptance(conn, GroupAcceptance(
-        acceptance_id=f"acc:{merged_id}", plan_version_id=PLAN_VERSION,
-        group_id=merged_id, membership_id=None, acceptance=ACCEPTED,
-        review_state=PENDING_REVIEW, user_edited_label=label, aliases=(),
-        review_decision_ref=None, decided_by=RULES, created_at=created_at))
+    # `104` SF-3: AND HERE IS WHERE THE ACCEPTANCE USED TO BE.
+    #
+    #     record_acceptance(conn, GroupAcceptance(
+    #         acceptance_id=f"acc:{merged_id}", ..., acceptance=ACCEPTED,
+    #         review_state=PENDING_REVIEW, decided_by=RULES, ...))
+    #
+    # Four lines, and they were the whole of the bypass: §5.3 builds the top level
+    # out of accepted groups, so every run that reached this line had already made
+    # the decision `00` reserves for the person -- *"let them decide the major
+    # branches first"* -- and the screen that would have asked was never drawn.
+    # The absence is the record now: `group_state_as_of` answers the group's own
+    # shared state for a version that holds no opinion, and `supported` is not
+    # `accepted`, so nothing downstream reads a decision nobody made.
+    _carry_site_bs_acceptance(
+        conn, merged_id=merged_id,
+        parts=tuple(result.group.group_id for result in grouped),
+        created_at=created_at)
     return merged_id
+
+
+def _carry_site_bs_acceptance(conn: sqlite3.Connection, *, merged_id: str,
+                              parts: Sequence[str], created_at: str) -> None:
+    """The merged draft is accepted when site B accepted every group inside it.
+
+    **`104` SF-3's second decider, and it is the one the owner has not switched on
+    yet.** B judges the groups P9 proposed; this merge is a group P9 never
+    proposed, so B has no verdict about it and never will. What B does have is a
+    verdict about each PART, and `p8_seam._record_the_models_acceptance` records it
+    -- but only on a run where the owner has ratified B's text, because an
+    unratified site returns `ObservedOnly` and never reaches that branch. So on
+    every run today this function finds nothing and writes nothing, and the day the
+    owner ratifies `anchors-first-v3` it begins carrying B's answer without anyone
+    editing this file. That is the seam the packet asked for: wired, and inert
+    until the ratification it waits on.
+
+    **UNANIMITY, and it is not a threshold.** A merge is one group to the person:
+    one card, one label, one branch. If B accepted three of its four parts then B
+    has not said that THIS group holds together, and accepting it anyway would put
+    the fourth part's files into a branch on a judgement nobody made about them --
+    which is the defect SF-3 names, arriving through a different door. There is no
+    proportion here to tune and no number to pick: every part, or none.
+
+    **B's own word, checked on the row rather than inferred from the state.**
+    `group_state_as_of` answers `accepted` for a row a PERSON wrote too, and a
+    person's acceptance of one P9 group is not B saying the merge is coherent.
+
+    **A group the person has already decided is left exactly as it is**, whichever
+    way they decided it: `00`'s order is that the user makes the final call, and a
+    model answer that overwrote it would make the record unreadable in the one
+    direction that matters.
+    """
+    if not parts:
+        return
+    standing = conn.execute(
+        "SELECT acceptance_id FROM group_acceptance WHERE plan_version_id = ? "
+        "AND group_id = ? AND membership_id IS NULL AND superseded_by IS NULL",
+        (PLAN_VERSION, merged_id)).fetchone()
+    if standing is not None:
+        return
+    for part in parts:
+        row = conn.execute(
+            "SELECT acceptance, decided_by FROM group_acceptance "
+            "WHERE plan_version_id = ? AND group_id = ? AND membership_id IS NULL "
+            "AND superseded_by IS NULL", (PLAN_VERSION, part)).fetchone()
+        if row is None or row["acceptance"] != ACCEPTED or (
+                row["decided_by"] != VALIDATOR):
+            return
+    record_acceptance(conn, GroupAcceptance(
+        acceptance_id=f"acc:site-b:{PLAN_VERSION}:{merged_id}",
+        plan_version_id=PLAN_VERSION, group_id=merged_id, membership_id=None,
+        acceptance=ACCEPTED, review_state=PENDING_REVIEW,
+        user_edited_label=None, aliases=(), review_decision_ref=None,
+        decided_by=VALIDATOR, created_at=created_at))
+
+
+#: §8.7's scope for the `--accept-groups` gesture, chosen by the composition root
+#: for `RESIDUAL_SEND_SCOPE`'s reason: `review_surface.collect` refuses to supply
+#: one and `grouping.learning` refuses to default one, each citing §8.7's example
+#: of not inferring a scope. What the person says is *"these proposed groups are
+#: real"* -- a sentence about the GROUPS and about nothing else, which is the word
+#: `group` in `CORRECTION_SCOPES` and the same word site B's own learning key is
+#: scoped by (`observe_group_authorities`: *"a group verdict is about a group"*).
+#:
+#: NOT `branch`, which `--send-set` uses and which the owner ratified for THAT
+#: gesture on 11 Sep: a residual send is about a folder and everything under it,
+#: and a group has no folder yet -- accepting it is what makes one possible.
+#: NOT `corpus`, which would say the person accepts groups like these in every run
+#: they ever make, which is the §8.7 failure the six scopes exist to prevent.
+GROUP_ACCEPT_SCOPE: str = GROUP
+assert GROUP_ACCEPT_SCOPE in CORRECTION_SCOPES
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class DraftAccepted:
+    """One accepted draft, in the shape `grouping.learning` declares it needs.
+
+    P9's receiver "takes any value carrying the published fields" and deliberately
+    imports no record type to check against -- Option G, so that P13 owns the
+    gesture's NAME and P9 owns what it does with it. The adapter is the
+    composition root's because the composition root is where both contracts are
+    known: P13's `BulkMemberView` carries the batch's scope, basis and presentation
+    and knows nothing about groups; P9's receiver wants a group id and a decider.
+    """
+
+    surface: str
+    action: str
+    correction_scope: str
+    user_id: str
+    presented_state_ref: str
+    plan_version_id: str
+    group_id: str
+    decided_at: str
+    basis: str
+    membership_id: str | None = None
+    user_edited_label: str | None = None
+
+
+def accept_drafted_groups(conn: sqlite3.Connection, drafted: Sequence[str], *,
+                          label: str, session_id: str, user_id: str,
+                          acted_at: str, mint_action_id,
+                          component_version: str) -> tuple[str, ...]:
+    """`--accept-groups`: the person's accept, through the path a gesture takes.
+
+    **`104` SF-3's first decider.** A draft is a proposal and nothing else until
+    somebody decides it; this is the somebody. `00` puts the decision here in as
+    many words -- *"the user makes the final high-leverage decision"*, and, of the
+    canvas, *"let them decide the major branches first"* -- and until this function
+    existed the product made it for them on every run.
+
+    **THE PATH IS CLUSTER F's, NOT A SHORTER ONE.** The gesture goes
+    `record_presentation` -> `collect_bulk` -> `record_action` -> `expand` ->
+    `grouping.learning.apply_review_action`, which is exactly the chain
+    `--send-set` walks, for the reason `collect_set_sends` states: P13 "is the one
+    function in the product that turns a person's gesture into a stored
+    `review_action`", and a gesture that wrote P9's acceptance row directly would
+    leave the audit trail with a decision in it and no record of anyone making one.
+    `apply_review_action` is P9's own receiver for this gesture and has had no
+    caller in `src/` since it was written; this is it.
+
+    **`accept_bulk` and not `accept`, and the members are why.** P13's rule for the
+    bulk action is that it enumerates every member -- "a filter expression cannot be
+    re-read later to say which files a reversal applies to" -- and one
+    `--accept-groups` is one sentence about every draft this run holds. The
+    PER-GROUP word is still `ACTION_ACCEPT`, and it is what each member is applied
+    under: the batch says how the gesture was made, and the row P9 writes says what
+    was decided about each group, so a person who later changes their mind about
+    one group has a row that is theirs alone.
+
+    **The presentation is recorded a moment before the gesture rather than by the
+    screen that drew it**, which is the limitation `record_set_presentations` and
+    `levels_on_screen` already carry and name: the report that shows a person their
+    drafts is printed by `main` at the end of a run, and the gesture they type is
+    read at the start of the next one. What makes the record true rather than
+    decorative is that §8.7's refusal is REACHED -- a `presented_state_ref` no row
+    carries is refused by `collect` by name -- and the honest fix is the same one
+    owed there.
+
+    **A draft the person has already accepted is not asked about again**, and this
+    is not an optimisation. `one_current_group_acceptance` allows one standing
+    opinion per version and group; re-collecting would mint a second
+    `presented_state_ref` (its digest carries the moment it was rendered) and P9
+    would refuse the row as "already recorded with a different opinion". More to
+    the point, a person who typed the flag twice made one decision, not two.
+    """
+    fresh = tuple(group_id for group_id in drafted
+                  if group_state_as_of(conn, group_id=group_id,
+                                       plan_version_id=PLAN_VERSION) != ACCEPTED)
+    if not fresh:
+        return ()
+    basis = (f"you accepted every group this run proposed under {label!r}, "
+             f"as one gesture")
+    presented = record_presentation(
+        conn, surface=SURFACE_GROUP_PLAN, subject_ref=PLAN_VERSION,
+        plan_version=PLAN_VERSION, session_id=session_id,
+        settings=display_policy(conn, plan_version=PLAN_VERSION),
+        # §7.5's card shows a count, a label and a reason and no observation key,
+        # and `record_presentation` says an empty tuple is a real answer rather
+        # than a missing one. The group cards are the same shape.
+        evidence_refs=(), user_id=user_id, component_version=component_version,
+        rendered_at=acted_at)
+    action = collect_bulk(
+        conn, action_id=mint_action_id(), surface=SURFACE_GROUP_PLAN,
+        subject_ref=PLAN_VERSION, plan_version=PLAN_VERSION,
+        session_id=session_id, correction_scope=GROUP_ACCEPT_SCOPE,
+        presented_state_ref=presented.presented_state_ref, user_id=user_id,
+        acted_at=acted_at, component_version=component_version,
+        members=fresh, bulk_basis=basis)
+    record_action(conn, action)
+    accepted: list[str] = []
+    for view in expand(conn, action):
+        record_group_review(conn, DraftAccepted(
+            surface=SURFACE_GROUP_PLAN, action=ACTION_ACCEPT,
+            correction_scope=view.correction_scope, user_id=user_id,
+            presented_state_ref=view.presented_state_ref,
+            plan_version_id=PLAN_VERSION, group_id=view.member_ref,
+            decided_at=acted_at, basis=view.bulk_basis,
+            # The label the person typed, carried onto the acceptance because
+            # `tree_design.upstream._label` prefers it to the group's own and it
+            # IS their word -- `--label` is a required flag this command refuses
+            # to guess.
+            user_edited_label=label))
+        accepted.append(view.member_ref)
+    conn.commit()
+    return tuple(accepted)
 
 
 def choose_option(candidate, options) -> str:
@@ -10197,7 +10438,7 @@ def accepted_memberships_of(conn: sqlite3.Connection, file_id: str, *,
     of_file`'s own rule and P9's: a membership belongs to a file VERSION, so a
     file edited between runs does not inherit the memberships of its old bytes.
 
-    `decision` is checked, not assumed. `review_and_accept` writes `included`
+    `decision` is checked, not assumed. `draft_for_review` writes `included`
     for everything today (`104` R-16 is that defect), and the day it writes
     `excluded` or `uncertain` this must not go on reading them as membership.
     """
@@ -11567,6 +11808,15 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # watching it has a person who can stop it, and every existing caller
         # composes exactly the run it composed before.
         file_ceiling_seconds: float | None = None,
+        # `104` SF-3's gesture, and the mailbox that lets the screen name what is
+        # waiting on it. `accept_drafts` is `--accept-groups`: the person's accept,
+        # collected through P13 and applied through P9's receiver. `drafts` is
+        # `questions_reach`'s shape and is there for `questions_reach`'s reason --
+        # a run with nothing accepted raises `NothingToDesign` before there is a
+        # `ProductionRun` to read, and the screen that then prints the proposal
+        # needs to know which drafts this run made.
+        accept_drafts: bool = False,
+        drafts: list[str] | None = None,
         wire_handle_key: bytes | None = None) -> ProductionRun:
     """One corpus, end to end. Assembles the authorities and calls the composition.
 
@@ -11932,23 +12182,61 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             created_at=clock, user_id=user_id,
             component_version=COMPONENT_VERSION)
 
+    accept_actions = count()
+
+    def mint_accept_action_id() -> str:
+        # Prefixed for `mint_send_action_id`'s reason: an action id, an approval
+        # id and a plan id are three different things a person may be asked about
+        # later, and a bare uuid says which by where it was found.
+        return f"accept-{uuid.uuid4().hex}:{next(accept_actions)}"
+
     def accept_groups(db: sqlite3.Connection,
                       results: Sequence[GroupingResult]) -> tuple[str, ...]:
+        """`104` SF-3: DRAFT, then ask who decided, then answer P10.
+
+        `CorpusDecisions.accept_groups` is documented as "the review screen ...
+        Returns the ids of the groups NOW ACCEPTED in this plan version", and the
+        run has always returned everything P9 proposed. The three steps are now
+        separate, and each of them is somebody's:
+
+        1. the rules DRAFT (`draft_for_review`) -- a merge, a label, and no opinion
+           about whether the person wants it;
+        2. the person's gesture decides, if this invocation carries one
+           (`--accept-groups`), and site B's ratified verdict decides otherwise
+           (`_carry_site_bs_acceptance`, inside the draft);
+        3. this returns the drafts that are ACCEPTED as of the review version --
+           P9's own read, asked rather than assumed.
+
+        A run where nobody decided returns `()`, `design_tree` refuses, and `main`
+        prints the proposal instead of a plan. That is the fix working.
+        """
         partition = partition_cell[0] if partition_cell else None
         if partition is None or partition.single:
-            # ONE branch: the acceptance the run has always made, unchanged.
-            return review_and_accept(db, results, group_category=schema,
-                                     label=label, created_at=clock)
+            # ONE branch: the merge the run has always made, unchanged.
+            drafted = draft_for_review(db, results, group_category=schema,
+                                       label=label, created_at=clock)
+        else:
+            def remember(merged_id: str, branch: Branch | None) -> None:
+                if branch is not None:
+                    branch_of_group[merged_id] = branch
 
-        def remember(merged_id: str, branch: Branch | None) -> None:
-            if branch is not None:
-                branch_of_group[merged_id] = branch
-
-        return review_and_accept(db, results, group_category=schema, label=label,
-                                 created_at=clock,
-                                 branch_for=partition.branch_of,
-                                 default_branch=partition.default,
-                                 on_accepted=remember)
+            drafted = draft_for_review(db, results, group_category=schema,
+                                       label=label, created_at=clock,
+                                       branch_for=partition.branch_of,
+                                       default_branch=partition.default,
+                                       on_accepted=remember)
+        if drafts is not None:
+            drafts.extend(drafted)
+        if accept_drafts:
+            accept_drafted_groups(
+                db, drafted, label=label, session_id=PLAN_VERSION,
+                user_id=user_id, acted_at=clock,
+                mint_action_id=mint_accept_action_id,
+                component_version=COMPONENT_VERSION)
+        return tuple(
+            group_id for group_id in drafted
+            if group_state_as_of(db, group_id=group_id,
+                                 plan_version_id=PLAN_VERSION) == ACCEPTED)
 
     def approve_plan(db: sqlite3.Connection, accepted: Sequence[str],
                      plan_version: str) -> None:
@@ -11958,14 +12246,42 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         carries forward exactly the acceptance the review already recorded and
         adds none. Written through P9's own `record_acceptance` against the FROZEN
         version, because that is the version P11 asks about.
+
+        **`104` SF-3: "exactly the acceptance the review already recorded" is now
+        true of this function, and it was not.** It wrote `acceptance=ACCEPTED,
+        decided_by=RULES` for every id it was handed, which is a decision and not a
+        carry -- so even after the review stopped accepting, this would have put the
+        acceptance straight back on the version P11 reads. What it carries now is
+        the STANDING ROW: its acceptance, its review state, its label and its
+        decider, with `review_decision_ref` naming the row it came from, so the
+        frozen version says who decided and does not claim it was this command.
+
+        Every id reaching here is one `accept_groups` resolved as accepted, so the
+        standing row exists; a missing one is a contract failure and says so rather
+        than being filled in with a default, which is the shape of the defect being
+        removed.
         """
         for group_id in accepted:
+            standing = db.execute(
+                "SELECT acceptance_id, acceptance, review_state, "
+                "user_edited_label, decided_by FROM group_acceptance "
+                "WHERE plan_version_id = ? AND group_id = ? "
+                "AND membership_id IS NULL AND superseded_by IS NULL",
+                (PLAN_VERSION, group_id)).fetchone()
+            if standing is None:
+                raise InvalidCorpusAuthority(
+                    f"group {group_id!r} is accepted as of {PLAN_VERSION!r} and "
+                    "carries no standing acceptance row to carry forward; the "
+                    "approval of a frozen plan repeats a decision, it does not "
+                    "make one")
             record_acceptance(db, GroupAcceptance(
                 acceptance_id=f"acc:{plan_version}:{group_id}",
                 plan_version_id=plan_version, group_id=group_id,
-                membership_id=None, acceptance=ACCEPTED,
-                review_state=PENDING_REVIEW, user_edited_label=label, aliases=(),
-                review_decision_ref=None, decided_by=RULES, created_at=clock))
+                membership_id=None, acceptance=standing["acceptance"],
+                review_state=standing["review_state"],
+                user_edited_label=standing["user_edited_label"], aliases=(),
+                review_decision_ref=standing["acceptance_id"],
+                decided_by=standing["decided_by"], created_at=clock))
 
     def set_privacy_policy(db: sqlite3.Connection, plan_version: str) -> None:
         set_policy(db, Policy(
@@ -14225,6 +14541,59 @@ def _files_something_was_read_out_of(conn: sqlite3.Connection) -> set[str]:
         "SELECT DISTINCT file_id FROM evidence "
         "WHERE superseded_by IS NULL AND source_type <> ?",
         (FILESYSTEM_SOURCE_TYPE,))}
+
+
+def _draft_proposal_report(conn: sqlite3.Connection, *,
+                           drafted: Sequence[str]) -> tuple[str, ...] | None:
+    """`104` SF-3: the screen for a run whose groups nobody has accepted yet.
+
+    Returns the lines, or `None` when this run drafted nothing -- and the caller
+    then prints the refusal it always printed, because a tree with no branch and
+    no proposal behind it is a failure rather than a question.
+
+    **THIS IS THE SCREEN SF-3 SAYS WAS NEVER DRAWN.** `00` calls the tree-design
+    stage "the most important user-facing stage of the pre-sorting system" and
+    describes what a card on it says -- *"a file count, representative groups,
+    existing related folders, and a concise explanation rather than a technical
+    confidence score"*. This is the smallest true version of that card: what the
+    run found, how many files it holds, and the one thing to type. It is not the
+    canvas; the canvas is a later release, and a command line is not one.
+
+    **The count is of INCLUDED members and the group's own label is its name.** A
+    merge carries every membership of every group it merged, and `EXCLUDED` rows
+    are kept on purpose -- §8.7 stores a withdrawn membership with the evidence
+    that produced it -- so counting rows rather than decisions would tell the
+    person a group holds files the engine had already taken out of it.
+
+    **No filenames.** A group's files may include protected ones, and `00`:201's
+    rule about a screen somebody else can see does not have an exception for a
+    proposal. The card says how many; the report a run prints once its groups are
+    accepted is where the files are named, under the protections that screen has.
+    """
+    cards: list[str] = []
+    for group_id in dict.fromkeys(drafted):
+        group = current_group(conn, group_id)
+        held = sum(1 for membership in memberships_for_group(conn, group_id)
+                   if membership.decision == INCLUDED)
+        name = group.display_label or group_id
+        cards.append(f"  {name} -- {held} file(s)"
+                     + (f", read as {group.group_category}"
+                        if group.group_category else ""))
+    if not cards:
+        return None
+    return (
+        "",
+        "These groups are proposed, and nothing has been filed:",
+        *cards,
+        "",
+        _wrapped(
+            "A group says these files belong together, and that is your call to "
+            "make rather than ours. Nothing was placed and no folder was built "
+            "from any of them. Read the list above; if it is right, run the same "
+            "command again with --accept-groups and this run will build the "
+            "folders and show you where each file would go. Nothing moves until "
+            "you ask for that separately.", indent="  "),
+    )
 
 
 def _nothing_could_be_read_report(
@@ -17591,6 +17960,15 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "your shoulder. It does not widen what any gesture may move: a "
              "freeze still cannot approve a protected file.")
     parser.add_argument(
+        "--accept-groups", action="store_true",
+        help="accept the groups this run proposes, so the next run can build "
+             "folders from them. Without it they stay drafts: the report names "
+             "them and nothing is filed into a folder built from one. A group "
+             "is a claim that these files belong together, and the product does "
+             "not make that claim on your behalf -- read the proposal first, "
+             "then run the same command again with this flag. It accepts every "
+             "group the run proposes, under the label you typed.")
+    parser.add_argument(
         "--send-set", action="append", default=[], metavar="SET=AREA",
         help="file a whole review set into one of the residual areas this plan "
              "has, e.g. --send-set \"Not yet placed=Review Later\". Name the "
@@ -17982,6 +18360,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                     "after it lists every recording this plan database has.",
                     indent="  "), file=out)
                 return 2
+        drafted: list[str] = []
         result = run(conn, directory, situation=args.situation, label=args.label,
                      user_id=args.user, now=now, out=out,
                      also_read=also_read, candidate_roots=candidate_roots,
@@ -18002,6 +18381,10 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                      # `104` R-175, straight through from whoever composed this
                      # run. `None` on the command line, always.
                      file_ceiling_seconds=file_ceiling_seconds,
+                     # `104` SF-3. The flag is the person's accept; the list is
+                     # filled with what the run drafted, and is read below when
+                     # `design_tree` refuses because nobody accepted anything.
+                     accept_drafts=args.accept_groups, drafts=drafted,
                      wire_handle_key=wire_handle_key_for(database))
     except RecordingNameTaken as refusal:
         # Belt and braces behind hunk 13. The name is checked before the scan, so
@@ -18028,6 +18411,16 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                 conn, directory=directory, also_read=also_read, now=now)
             if said is not None:
                 for line in said:
+                    print(line, file=out)
+                return 0
+            # `104` SF-3, and SECOND because R-24's corpus has no proposal to
+            # print: a folder nothing could be read from drafts no group either,
+            # and telling that person to accept something would name nothing.
+            # This case is the opposite one -- the run understood the corpus,
+            # proposed groups, and is waiting to be told they are right.
+            proposal = _draft_proposal_report(conn, drafted=drafted)
+            if proposal is not None:
+                for line in proposal:
                     print(line, file=out)
                 return 0
         # A NAMED refusal, printed rather than raised. §5's chain refuses by name
