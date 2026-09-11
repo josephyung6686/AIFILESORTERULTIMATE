@@ -17225,7 +17225,8 @@ RESIDUAL_CARD_WORDS: Mapping[str, str] = MappingProxyType({
 assert set(RESIDUAL_CARD_WORDS) == set(SEVEN_ATTRIBUTES)
 
 
-def _set_card_lines(item, names: Mapping[str, str]) -> tuple[str, ...]:
+def _set_card_lines(item, names: Mapping[str, str], *,
+                    under: Sequence[str] = ()) -> tuple[str, ...]:
     """§7.5's card for one review set, as lines the report wraps.
 
     `104` R-42 item 1. `review_surface.residual.residual_card` is the renderer and
@@ -17271,10 +17272,19 @@ def _set_card_lines(item, names: Mapping[str, str]) -> tuple[str, ...]:
                 + " of this set: nothing this run read filled them.",)
     facts = []
     if not card.protected:
-        facts.append(
-            f"{RESIDUAL_CARD_WORDS['representative_examples']}: "
-            + ", ".join(names.get(file_id, file_id)
-                        for file_id in card.representative_examples))
+        # A SET spans headings (§8.6's batches do not respect the report's
+        # groups), and this card prints under ONE heading. An example is a file
+        # the person can find under the heading they are reading: a file the set
+        # holds under another heading is that heading's example, and naming it
+        # here put a file no question reaches under a heading that promises one
+        # (measured 11 Sep, the residual merge; the p15 pin said so). `under` is
+        # that heading's own files; empty means the caller has no heading.
+        examples = [file_id for file_id in card.representative_examples
+                    if not under or file_id in under]
+        if examples:
+            facts.append(
+                f"{RESIDUAL_CARD_WORDS['representative_examples']}: "
+                + ", ".join(names.get(file_id, file_id) for file_id in examples))
     facts.append(f"{RESIDUAL_CARD_WORDS['file_type_distribution']}: "
                  + ", ".join(f"{extension} ({count})"
                              for extension, count in card.file_type_distribution))
@@ -17298,7 +17308,8 @@ def _review_note(items: Sequence, areas: Sequence[str], *,
                  names: Mapping[str, str] = MappingProxyType({}),
                  slots: Mapping[str, tuple[tuple[str, ...], tuple[str, ...]]]
                  = MappingProxyType({}),
-                 reason_already_said: bool = False
+                 reason_already_said: bool = False,
+                 under: Sequence[str] = ()
                  ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Why these sets are being held, and what a person can type about each one.
 
@@ -17408,7 +17419,7 @@ def _review_note(items: Sequence, areas: Sequence[str], *,
         for item in shown:
             if len(held) > 1:
                 lines.append(f'"{item.label}" -- {item.file_count} file(s)')
-            lines.extend(_set_card_lines(item, names))
+            lines.extend(_set_card_lines(item, names, under=under))
             if protected:
                 # No command, because there is no command. `--send-set` files a
                 # set in one gesture with no per-file look, and P11 refuses that
@@ -18488,7 +18499,8 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # screen's own record of whether the reason has been said.
         note, closing = _review_note(held_sets.get(key, ()), areas, names=names,
                                      slots=residual_slots,
-                                     reason_already_said=bool(reason))
+                                     reason_already_said=bool(reason),
+                                     under=tuple(files))
         said_in_full = say(note, handle=handle,
             again=("Held for review; the set and the command are under the "
                    "{first}." if under_here < 2 else
