@@ -341,6 +341,24 @@ def test_unknown_is_p6_model_returned_unknown(subject_file, seam_conn):
     assert _reasons(seam_conn, request) == ["model_returned_unknown"]
 
 
+def test_unknown_on_a_field_the_catalogue_lacks_is_refused_without_a_row_and_without_a_crash(
+        subject_file, seam_conn):
+    """`104` §18.37: the cloud model answered `unknown` for a field it named
+    `terminus`. The `unknown` branch runs before any check reads the verdict, so the
+    refusal reached `write_unresolved`, whose key resolves through the closed
+    catalogue and raised `FieldNotInCatalogue` -- a refusal that crashed, and it
+    ended the fact pass 192 files into the run. An unresolved row is about a field
+    the schema has; an invented field gets no row and no exception. The verdict
+    still says what the model said."""
+    request = _request(seam_conn, subject_file)
+    proposal = Proposal(
+        field_key="terminus", value=None, citations=(), unknown=True)
+    result = _validate(seam_conn, request, proposal)
+    assert result.outcome == "abstain"
+    assert facts_for_file(seam_conn, request.file_id, request.content_hash) == []
+    assert _reasons(seam_conn, request) == []
+
+
 def test_p8_does_not_write_facts_itself(subject_file, seam_conn):
     request = _request(seam_conn, subject_file)
     proposal = Proposal(

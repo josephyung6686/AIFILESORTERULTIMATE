@@ -70,6 +70,7 @@ from evidence_shape.vocabulary import ANALYSIS_TIERS, check
 from facts.cache import llm_pass_cache_key
 from facts.domains import active_field_allowlist
 from facts.evidence import cite, observations_for_version
+from facts.fields import FieldNotInCatalogue, get_field
 from facts.file_facts import LLM_INTERPRETATION, facts_for_file, write_fact
 from facts.states import EXCLUDED_STATE, LLM_SUPPORTED, POSSIBLE, is_stronger
 from facts.unresolved import ATTEMPTED_PRODUCERS, LLM_ROUTE, write_unresolved
@@ -334,6 +335,22 @@ def apply_verdict(conn: sqlite3.Connection, *, request: FactRequest,
         cited = tuple(ref for ref in proposal.citations if is_observation_key(ref))
         if len(cited) != len(proposal.citations):
             reason = CHECK_REASONS[FOUR_CHECKS[1]]
+        # The FIELD is the model's word too, and it is not always a field. `104`
+        # §18.37: on the first run of A v4 over the owner's corpus the cloud model
+        # answered `unknown` for a field it had named `terminus`; the `unknown`
+        # branch is taken before any check reads the verdict, so the refusal
+        # reached `write_unresolved`, which resolves its key through the closed
+        # catalogue (§3.12: no invented fields) and raised `FieldNotInCatalogue`
+        # -- the same shape as the `ValueError` above, one row down: a refusal
+        # that crashed, 192 files in. An unresolved row is a statement about a
+        # field the schema has; a field it does not have gets no row, because
+        # there is nothing for the row to be about. What the model said is still
+        # on the `P8Verdict` (`field_key`, `citations_checked`), which is where a
+        # reader finds it; nothing is written and nothing raises.
+        try:
+            get_field(conn, proposal.field_key)
+        except FieldNotInCatalogue:
+            return
         write_unresolved(
             conn, file_id=request.file_id, content_hash=request.content_hash,
             field_key=proposal.field_key, reason=reason,
