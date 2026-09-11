@@ -99,7 +99,7 @@ from branch_situation import (
 # `MEDIA_TYPE_FIELD` left this import with `104` R-09: the retired
 # `active_schema_for` literal was the only line in this file that named it.
 from facts.photo_event import media_type
-from facts.budgets import LLM_ROUTE
+from facts.budgets import LLM_ROUTE, P6_CEILING_KEYS, UnknownCeiling
 from facts.resolver import BUDGET_BAR, PRIVACY_BAR, FactResolver
 from facts.anchor_statements import (
     anchor_statements_for, record_anchor_statements,
@@ -147,7 +147,7 @@ from grouping.vocabulary import (
     PENDING_REVIEW, RULES, SHARED_VALIDATED_FACT, UNCERTAIN, USER_EDITED,
     VERSION_FAMILY, fact_bridge_ref,
 )
-from llm_harness.budgets import ScanBudget, create_budget_schema
+from llm_harness.budgets import ScanBudget, allowed_calls, create_budget_schema
 from llm_harness.prompt_library import (
     a_fact_response_schema_bytes, a_fact_shaping_policy_bytes,
     DRAFT_STATUS_WORDS, RATIFIED, RATIFIED_LOCAL,
@@ -230,7 +230,7 @@ from model_facts import (
     AnchorOnlyLevels, FactCallAuthorities, FileTookTooLong, PerFileCeiling,
     dossier_tokens, fact_call_stage,
     measure_released_tokens, pending_fields_for, releasable_observations,
-    releasable_readings, zone_evidence_counts,
+    releasable_readings, released_wire_cost, zone_evidence_counts,
 )
 # `104` §18.2 gap 4: the module and not its names, because `NOT_ASKED_SENTENCE`
 # below reads five of its constants and a five-name import line beside the one above
@@ -414,7 +414,7 @@ from review_surface.vocabulary import (
 # never reached. Read through P4's published reader rather than a query of this
 # file's own, so "this file could not be read" means here exactly what it means on
 # §8.6's line and the two screens cannot disagree about one file.
-from evidence_shape.store import runs_for_content
+from evidence_shape.store import get_observation, runs_for_content
 from tree_design.residuals import (
     ResidualChoice, ResidualTemplate, build_library,
 )
@@ -7212,6 +7212,81 @@ def template_resolver(catalogue, *, pass_of, situation_of
     return template_for
 
 
+#: §8.6's three model ceilings, UNPACKED FROM P6'S OWN TUPLE rather than respelled
+#: here. The unpack is the check: `facts.budgets` publishes exactly three and holds
+#: an import-time guard that a P1 rename is a startup failure, so the day P6
+#: publishes a fourth this line raises at import instead of letting a ceiling
+#: nothing here answers for be asked in silence.
+P6_CALLS_CEILING, P6_COST_CEILING, P6_DOSSIER_CEILING = P6_CEILING_KEYS
+
+
+def budget_exhausted_for(conn: sqlite3.Connection, *, budget: ScanBudget,
+                         estimated_cost: Decimal) -> Callable[[str], bool]:
+    """Whether P8 would refuse the next call, asked per §8.6 ceiling. `104` R-35.
+
+    **It reads the ledger, not a ceiling.** `llm_scan_budget` is the row
+    `reserve_call` writes and refuses past, and this asks that row the same two
+    questions `_RESERVE_COUNTER_SQL` asks it, against the same injected
+    `ScanBudget` and with the same next call's `estimated_cost`. There is one
+    authority on whether this scan may make another call and this is not a second
+    one -- it is the first one, consulted a step earlier.
+
+    That distinction is the whole reason this is not `get_ceiling`. The purse P8
+    spends from is the `ScanBudget` the composition root injects; P1's stored
+    numbers are what `_bootstrap` publishes, and the two are seeded from different
+    constants at different sites. A predicate that compared this ledger against a
+    STORED ceiling would be the two-answers-to-one-question defect `104` R-145
+    already paid for, one layer further in: it would defer files P8 was happy to
+    pay for, or pass files P8 was about to refuse.
+
+    **The two arms, and why they are `+ 1` and `+ estimated_cost`.** Exhausted
+    means the NEXT call cannot be reserved, not that the last one could not be, so
+    each arm adds what that call would take and compares exactly as the reserve's
+    own `WHERE` does. A scan with no row yet has reserved nothing, which is the
+    reserve's INSERT arm and is `0` here -- not an error and not an exhaustion.
+
+    **The per-call ceiling answers `False`, and that is not a stub.**
+    `model.max_dossier_tokens_per_call` bounds ONE call's dossier; it is not a
+    purse a scan can spend down, so there is no state under which a scan has used
+    it up. §8.6's ladder is what enforces it, per call, in
+    `model_facts.fact_call_stage`, and a file whose dossier will not fit is
+    deferred there with its own reason. Reporting it here would attribute a
+    per-call refusal to a scan-wide limit and promise a person that waiting or
+    raising a budget would free it.
+
+    A ceiling outside P6's three raises rather than answering: `exhausted_ceilings`
+    asks these three and only these three, so a fourth key arriving means a
+    contract moved, and a `False` would record that move as "not exhausted".
+
+    **One difference from the reserve, recorded rather than hidden.** The cost arm
+    compares exact `Decimal`s over the stored text; `_RESERVE_COUNTER_SQL` compares
+    `CAST(... AS NUMERIC)`, which is sqlite's REAL. The two agree on every integer,
+    and every cost this product has is one -- `FACT_CALL_COST` is `Decimal("1")`,
+    which is `104` R-14's own open row. They could part at a float boundary the day
+    a real per-token cost lands, and the direction to fix it then is to move this
+    arm, not the reserve: `Decimal` is the honest reading of a TEXT column.
+    """
+    def exhausted(ceiling: str) -> bool:
+        if ceiling == P6_DOSSIER_CEILING:
+            return False
+        if ceiling not in (P6_CALLS_CEILING, P6_COST_CEILING):
+            raise UnknownCeiling(
+                f"{ceiling!r} is not one of P6's three model ceilings "
+                f"{P6_CEILING_KEYS}; this predicate answers off the scan ledger "
+                f"and does not guess for a key P8 keeps no counter for")
+        row = conn.execute(
+            "SELECT calls_reserved, estimated_cost_reserved FROM llm_scan_budget "
+            "WHERE scan_id = ?", (budget.scan_id,)).fetchone()
+        if ceiling == P6_CALLS_CEILING:
+            reserved = 0 if row is None else row["calls_reserved"]
+            return reserved + 1 > allowed_calls(budget)
+        spent = (Decimal(0) if row is None
+                 else Decimal(str(row["estimated_cost_reserved"])))
+        return spent + estimated_cost > budget.max_estimated_cost
+
+    return exhausted
+
+
 def model_fact_resolver(conn: sqlite3.Connection, *,
                         authorities: FactCallAuthorities) -> FactResolver:
     """P6 again, with ONLY the model producer. A second pass, and deliberately so.
@@ -7247,12 +7322,28 @@ def model_fact_resolver(conn: sqlite3.Connection, *,
         pending_fields=lambda db, file_id, content_hash: pending_fields_for(
             db, file_id=file_id, content_hash=content_hash,
             activation_signals=authorities.activation_signals),
-        # `ScanBudget` is P8's ceiling and `reserve_call` enforces it inside
-        # `run_call`, which is where the reservation and the settlement live. A
-        # second budget read here would be a second answer to one question, and the
-        # bar it writes -- `budget_deferred` -- would then describe a deferral P8
-        # never made.
-        budget_exhausted=lambda ceiling: False,
+        # `104` R-35: THE LEDGER P8 ALREADY REFUSES PAST, ASKED ONE STEP EARLIER.
+        # This was `lambda ceiling: False` under the argument that "`ScanBudget` is
+        # P8's ceiling and `reserve_call` enforces it inside `run_call`... a second
+        # budget read here would be a second answer to one question". The danger
+        # was named correctly and the reader was not: `budget_exhausted_for` reads
+        # `reserve_call`'s OWN row -- the same `llm_scan_budget` counters, the same
+        # injected `ScanBudget`, the same next call's `estimated_cost` -- so the
+        # two cannot come to different answers, and the `budget_deferred` bar it
+        # writes describes the refusal P8 is about to make rather than one it never
+        # made.
+        #
+        # ASKING EARLY IS §8.6'S SENTENCE. Left to `reserve_call`, an exhausted
+        # scan still assembles the file's dossier, opens the door, and takes a
+        # `BUDGET_EXHAUSTED` pre-call abstention that names no ceiling --
+        # `deferred_against` stays empty on every result, `facts.budgets.
+        # deferred_counts` reports zero against all three, and nothing on the
+        # screen says which limit stopped the work. Asked here, the file keeps its
+        # evidence, gets an `unresolved` row per open field saying
+        # `budget_deferred`, and `_print_fact_pass` has a ceiling to name.
+        budget_exhausted=budget_exhausted_for(
+            conn, budget=authorities.scan_budget,
+            estimated_cost=authorities.estimated_cost),
         # R-02: the route is asked the same question the gate will answer -- and
         # since `104` §17.13 ruling 3 it is the SAME CALLABLE rather than a second
         # predicate built on the same locality. The stage asks `authorities.route`
@@ -8521,6 +8612,29 @@ WITHHELD_SENTENCE: Mapping[str, str] = MappingProxyType({
         "run would ask.",
 })
 
+#: `104` R-35: WHICH §8.6 CEILING DEFERRED THE WORK, in words rather than in a key.
+#: `_DEFERRED_BY_SOURCE_TYPE` does this job for P5's two per-scan ceilings and this
+#: is its twin for P6's; a person reads one screen and the two halves of one rule
+#: should not speak in two voices.
+#:
+#: **No sentence quotes a NUMBER,** for `_DEFERRED_BY_SOURCE_TYPE`'s reason widened
+#: by one. The purse a fact call spends from is the `ScanBudget` the composition
+#: root injects and P1 stores its own value for the same key; printing one of them
+#: beside a deferral would be picking which of two answers the person is shown, and
+#: `104` R-145 is what two answers to one ceiling already cost. A person who set a
+#: budget knows what they set, and `--replay`'s manifest carries the stored set.
+#:
+#: The third key, `model.max_dossier_tokens_per_call`, is absent and stays absent:
+#: it is a per-CALL bound and no scan can spend it down, so `budget_exhausted_for`
+#: never reports it exhausted and nothing can reach this map under it. §8.6's ladder
+#: refuses an over-ceiling dossier per call, with its own reason, one site over.
+DEFERRED_CEILING_SENTENCE: Mapping[str, str] = MappingProxyType({
+    P6_CALLS_CEILING:
+        "this scan had already reserved every model call its budget allows",
+    P6_COST_CEILING:
+        "this scan had already reserved its whole estimated model spend",
+})
+
 #: `104` §18.2 gap 10, and the constitution's "coverage is sacred". THE SIX
 #: BUCKETS EVERY INDEXED FILE FALLS IN, exactly one each.
 #:
@@ -8645,6 +8759,7 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
                      out, not_asked: Mapping[str, int] = MappingProxyType({}),
                      cut: "tuple[int, int, int]" = (0, 0, 0),
                      at_once: int = 1,
+                     deferred: Mapping[str, int] = MappingProxyType({}),
                      ) -> None:
     """What the model pass actually did, in counts a person can check.
 
@@ -8673,6 +8788,22 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
     readings and the bytes are how much. Summed by the caller off the stored
     `GroundingReport`s of this pass's own calls, which is where the builder recorded
     the cut.
+
+    **`deferred` IS `104` R-35'S LINE: the files a §8.6 ceiling stopped, by which
+    ceiling.** The bucket has been tallied in the pass loop since gap 10 and written
+    into the run's verdicts, and it has never had a sentence -- so a scan that spent
+    its budget printed the same block as a scan that had budget to spare, and the
+    one question a person can actually act on, *did this stop early and on what*,
+    had no answer anywhere on the screen. `00`:257's promise is what the sentence
+    carries: the evidence already extracted is KEPT, each file holds an `unresolved`
+    row per open field, and the file is left in review rather than classified from
+    something cheaper. Counted in FILES, like every other count in this block, and
+    printed in `facts.budgets`' published order so two ceilings that both fired read
+    in one order every run.
+
+    Empty until `104` R-35 made the predicate real: while `budget_exhausted` was
+    `lambda ceiling: False`, no resolve could reach `BUDGET_BAR` and this mapping
+    could not be non-empty on any run.
     """
     if not files:
         return
@@ -8724,6 +8855,23 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
             f"quietly: {WITHHELD_SENTENCE[cause]} Each one has an `unresolved` "
             f"row per open field saying `privacy_withheld`, so none of them is "
             f"recorded as a file with nothing to say.", indent="  "), file=out)
+    # `104` R-35. In `P6_CEILING_KEYS`' order and not in the mapping's, so a run
+    # that spent both ceilings reads the same way every time. A ceiling that
+    # deferred nothing prints nothing: this block names what happened, and "0 files
+    # were deferred against a limit you may not have set" is a statistics line
+    # nobody asked for.
+    for ceiling in P6_CEILING_KEYS:
+        count_ = deferred.get(ceiling, 0)
+        if not count_:
+            continue
+        print(_wrapped(
+            f"{count_} of {files} files were deferred, not skipped: "
+            f"{DEFERRED_CEILING_SENTENCE[ceiling]} ({ceiling}). What had already "
+            f"been extracted from them is kept, each one has an `unresolved` row "
+            f"per open field saying `budget_deferred`, and they are left for you "
+            f"to review rather than filed from a cheaper guess. The ledger is this "
+            f"scan's, so they are asked again on the next run.", indent="  "),
+            file=out)
     # `104` R-37. A file two of the run's branches reach, or a file under a
     # branch whose situation the person has not yet said, was not shown to a
     # model under a question that does not apply to it. Named by its own reason,
@@ -10072,8 +10220,27 @@ def reading_citations(conn: sqlite3.Connection, file_id: str, *,
             locality=locality, ceiling=ceiling))
 
 
-def released_characters(conn: sqlite3.Connection, items) -> int:
-    """How many characters the gate will release for these evidence items. `104` R-159.
+def released_wire_bytes(conn: sqlite3.Connection, items) -> int:
+    """What these evidence items cost the dossier on the wire. `104` R-159, R-174 (b).
+
+    **This counted CHARACTERS until R-174 row (b), and that was the last fill-side
+    count that did.** R-174 moved every other one -- `within_dossier_budget`, the
+    offer's over-ceiling withholding, `mint_opening_excerpts`' excerpt condition,
+    the ladder's three measurements, `own_readings`' remainder, `filename_characters`
+    -- onto `released_item_wire_bytes`, measured off `dossier._released_body`, the
+    same function that writes the wire. This one site kept the old measure, so site
+    C's remainder below was computed in one unit and spent in another: the citations
+    already built were charged their VALUES while the readings that fill what is left
+    are charged their values PLUS their envelopes. Every envelope the committed items
+    did not pay for is room the fill believed it had, which is the arithmetic R-174
+    exists to close, and a ~148-byte envelope per item is not a rounding difference
+    when the ceiling is 4,000.
+
+    Row (a) is a different question and is unchanged by this: the GATE still measures
+    the released values' characters, on §18.7's ruling that the door refuses no more
+    than it did. A wire cost is never less than its value's characters, so tightening
+    the fill can only admit less than the door would, and nothing this reserves can
+    turn into a `dossier_over_budget` refusal that did not happen before.
 
     Site C's half of the same arithmetic site A does in `model_facts.fact_call_stage`:
     before the file's own readings are filled in, the items already built have to be
@@ -10082,17 +10249,23 @@ def released_characters(conn: sqlite3.Connection, items) -> int:
     citations of the facts P6 settled, and R-135's anchor lines -- and this is what
     they cost.
 
-    **Measured PER ITEM and not per distinct ref**, because that is what the gate
-    measures. `model_placement._model_call_request_builder` turns every item with a
+    **Measured PER ITEM and not per distinct ref**, because that is what the dossier
+    carries. `model_placement._model_call_request_builder` turns every item with a
     ref into a requested `Excerpt` without de-duplicating, so an address carried by
-    two items under two reliabilities is resolved twice and counted twice by
-    `measure_released_tokens`. Counting it once here would leave a remainder larger
-    than the room actually left. If the door ever did de-duplicate, this errs by
-    reserving space it did not need, which is the direction a ceiling has to err in.
+    two items under two reliabilities is resolved twice and travels twice. Counting
+    it once here would leave a remainder larger than the room actually left. If the
+    door ever did de-duplicate, this errs by reserving space it did not need, which
+    is the direction a ceiling has to err in.
 
-    **On the RAW value**, the same measurement `model_facts._call_dependencies` and
+    **On the RAW value**, the same measurement `model_facts.released_wire_cost` and
     `_within_ceiling` take, and for the same reason: this runs before `gate.release`,
     the redacted text does not exist yet, and redaction only ever shortens.
+
+    **The observation, not the raw value alone**, because the envelope is what
+    changed: `released_wire_cost` needs the item's address and zone as well as its
+    text, so the live row is loaded through `evidence_shape.store.get_observation`
+    rather than assembled from a widened `SELECT` here. One loader, one measure, and
+    neither of them respelled at this seam.
 
     A ref with no live row costs nothing, which is exact rather than a fallback:
     `releasable_excerpts` drops it and the door releases nothing for it.
@@ -10105,9 +10278,10 @@ def released_characters(conn: sqlite3.Connection, items) -> int:
             continue
         if ref not in lengths:
             row = conn.execute(
-                "SELECT raw_value FROM evidence WHERE observation_key = ? "
+                "SELECT observation_id FROM evidence WHERE observation_key = ? "
                 "AND superseded_by IS NULL LIMIT 1", (ref,)).fetchone()
-            lengths[ref] = 0 if row is None else dossier_tokens((row["raw_value"],))
+            lengths[ref] = (0 if row is None else released_wire_cost(
+                get_observation(conn, row["observation_id"])))
         total += lengths[ref]
     return total
 
@@ -11901,7 +12075,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # they left. `GROUPING_LIMITS.max_dossier_tokens` is the same number the
         # request below is built with and the same one the door measures against.
         remainder = (GROUPING_LIMITS.max_dossier_tokens
-                     - released_characters(conn, items))
+                     - released_wire_bytes(conn, items))
         for ref, location, reliability in reading_citations(
                 conn, file_id, limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
                 # The PLACEMENT destination for THIS FILE, not site A's and no
@@ -13027,6 +13201,12 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         #: line in the fact block, no line anywhere.
         settled_by_rule: list[str] = []
         deferred_by_budget: list[str] = []
+        #: `104` R-35: THE SAME FILES, BY WHICH CEILING DEFERRED THEM. Not derived
+        #: from the list above, because one file can be deferred against two
+        #: ceilings at once -- `exhausted_ceilings` asks all three and never
+        #: short-circuits, for §8.6's own reason -- so the sum of these counts is
+        #: not `len(deferred_by_budget)` and neither number is the other's total.
+        deferred_by_ceiling: dict[str, int] = {}
 
         def _walked():
             """Every file this pass asks about, in roster order, undriven.
@@ -13090,6 +13270,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 # reporting one as the other "would promise work that will never
                 # be done". The same separation has to survive into the sum.
                 deferred_by_budget.append(file_id)
+                # WHICH CEILING, from the resolver's own answer rather than from a
+                # second read of the ledger here: `deferred_against` is the tuple
+                # `exhausted_ceilings` returned at the moment the stage was barred,
+                # so the name on the screen is the name that actually stopped the
+                # work and not the state of the purse by the end of the pass.
+                for ceiling in result.deferred_against:
+                    deferred_by_ceiling[ceiling] = (
+                        deferred_by_ceiling.get(ceiling, 0) + 1)
                 continue
             if barred != PRIVACY_BAR:
                 settled_by_rule.append(file_id)
@@ -13111,6 +13299,10 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # about -- the one nothing has classified -- went to the other.
             model_id=_fact_pass_models(routing), out=out,
             not_asked={reason: len(ids) for reason, ids in not_asked.items()},
+            # `104` R-35: the ceiling that deferred each file, so the block can
+            # say which limit stopped the work instead of leaving the bucket
+            # counted in the verdicts and unnamed on the screen.
+            deferred=deferred_by_ceiling,
             # `104` §18.2 gap 5: WHAT THE DOSSIER CEILING CUT, READ BACK FROM THE
             # RECORDS. The dossier ids are this pass's own -- every outcome
             # `on_result` collected carries the address of the call it is about, and

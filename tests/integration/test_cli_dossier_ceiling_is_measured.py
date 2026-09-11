@@ -508,3 +508,106 @@ def test_the_gate_denies_a_released_dossier_over_the_stored_ceiling(conn):
     ceiling = get_ceiling(conn, "model.max_dossier_tokens_per_call")
     assert over_dossier_ceiling(conn, measured_tokens=ceiling) is False
     assert over_dossier_ceiling(conn, measured_tokens=ceiling + 1) is True
+
+
+# --- `104` R-174 row (b): site C reserves in the unit the fill spends -------------
+#
+# R-174 moved every fill-side count onto `released_item_wire_bytes`, measured off
+# `dossier._released_body` -- the function that writes the wire -- and left one
+# behind: `cli.released_characters`, which reserved site C's already-built citations
+# and anchor lines in CHARACTERS. The remainder handed to `releasable_observations`
+# was therefore computed in one unit and spent in another, so every envelope the
+# committed items did not pay for was room the fill believed it had.
+#
+# Row (a) is the GATE and is deliberately untouched: §18.7 ruled the door keeps
+# counting characters and refuses no more than it did. A wire cost is never less
+# than its value's characters, so a tighter fill can only admit less than the door
+# would -- which is why closing (b) cannot turn into a new `dossier_over_budget`.
+
+
+def _one_stored_reading(conn, tmp_path, raw: str):
+    """A file, a run and one reading of it, in the smallest state the FKs accept.
+
+    Built rather than faked because `released_wire_bytes` reads the live row back
+    through `evidence_shape.store.get_observation` -- an observation that is not in
+    the table is not an observation the fill would ever be charged for.
+    """
+    import json
+
+    from database_agent.files_table import get_file, record_file
+    from evidence_shape.runs import ExtractionRun
+    from evidence_shape.store import record_observation, record_run
+
+    cli._bootstrap(conn)
+    path = tmp_path / "HW 3.pdf"
+    path.write_bytes(b"a page")
+    file_id = record_file(
+        conn, path, filename="HW 3.pdf", normalized_filename="hw 3.pdf",
+        extension=".pdf", observed_size=6,
+        observed_timestamps=json.dumps({"mtime": 1_700_000_000.0}),
+        parent_folder_context="Courses", mime_type="application/pdf",
+        detected_format="pdf", scan_state="included", materialized=True)
+    content_hash = get_file(conn, file_id)["content_hash"]
+    record_run(conn, ExtractionRun(
+        run_id="run-hw", file_id=file_id, content_hash=content_hash,
+        extractor_name="pdf.text", extractor_version="1.0.0",
+        source_type="text_document", analysis_tier="native", config={},
+        completeness="complete", started_at="2026-09-05T00:00:00Z",
+        finished_at="2026-09-05T00:00:00Z"))
+    observation = Observation(
+        file_id=file_id, content_hash=content_hash, extractor_name="pdf.text",
+        extractor_version="1.0.0", source_type="text_document", raw_value=raw,
+        location=Location("heading", (Segment("page", 1),), TextSpan(0, len(raw))),
+        occurrence_count=1, observed_at="2026-09-05T00:00:00Z",
+        reliability="possible", run_id="run-hw")
+    record_observation(conn, observation)
+    return observation
+
+
+def test_site_cs_reservation_is_measured_on_the_wire_not_on_the_characters(
+        conn, tmp_path):
+    """`104` R-174 (b). One reading, reserved by C and measured by the fill.
+
+    The two assertions are the row: the number is the FILL's own measure of that
+    observation, and it is larger than the value's characters -- which is the
+    envelope that was going unreserved.
+    """
+    from types import SimpleNamespace
+
+    from model_facts import released_wire_cost
+
+    observation = _one_stored_reading(conn, tmp_path, "x")
+    item = SimpleNamespace(evidence_ref=observation.observation_key)
+
+    reserved = cli.released_wire_bytes(conn, [item])
+    assert reserved == released_wire_cost(observation)
+    assert reserved > dossier_tokens((observation.raw_value,))
+
+
+def test_two_items_on_one_address_are_reserved_twice(conn, tmp_path):
+    """Unchanged by R-174 (b), and load-bearing.
+
+    `model_placement._model_call_request_builder` turns every item with a ref into
+    a requested `Excerpt` without de-duplicating, so an address carried by two items
+    under two reliabilities travels twice. Counting it once would leave a remainder
+    larger than the room actually left.
+    """
+    from types import SimpleNamespace
+
+    observation = _one_stored_reading(conn, tmp_path, "x")
+    item = SimpleNamespace(evidence_ref=observation.observation_key)
+
+    one = cli.released_wire_bytes(conn, [item])
+    assert cli.released_wire_bytes(conn, [item, item]) == 2 * one
+
+
+def test_an_item_with_no_live_row_reserves_nothing(conn):
+    """Exact rather than a fallback: `releasable_excerpts` drops it and the door
+    releases nothing for it."""
+    from types import SimpleNamespace
+
+    cli._bootstrap(conn)
+    assert cli.released_wire_bytes(
+        conn, [SimpleNamespace(evidence_ref="no-such-observation")]) == 0
+    # An item with no ref at all is not an item the request builder asks about.
+    assert cli.released_wire_bytes(conn, [SimpleNamespace(evidence_ref=None)]) == 0
