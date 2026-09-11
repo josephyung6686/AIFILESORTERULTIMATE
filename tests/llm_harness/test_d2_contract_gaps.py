@@ -15,6 +15,8 @@ from __future__ import annotations
 import ast
 import json
 import sys
+
+import pytest
 from pathlib import Path
 
 
@@ -434,3 +436,99 @@ def test_g7_site_d_broad_parent_and_residual_destination_are_one_disposition():
                     site_dependencies=site_dependencies_for(case))
     assert verdict.worst_outcome == ACCEPT_DIRECT
     assert verdict.verdicts[0]["disposition"] == "residual_destination"
+
+
+# --- G8: the mark's two state words have no P8 home, so P8 cannot refuse a third --
+#
+# `104` R-104's second half, and the half this change could NOT close. The
+# ratified D text tells the model that `mark_protected_or_unsupported`'s
+# `"target" is the word "protected" or the word "unsupported"`
+# (`d_residual_template.ladder.txt`:41), and P11 enforces exactly that: the two
+# words are `placement.vocabulary.MARKED_STATES` and
+# `PlacementDecision.marked_state` refuses a third by name.
+#
+# P8 cannot. `llm_harness.vocabulary` carries the ACTION and neither of its
+# states, and `tests/p8/test_p8_architecture.py`'s `NEIGHBOUR_PRODUCERS` forbids
+# every P8 module from importing `placement`. So a third word is ACCEPTED here,
+# reaches `_residual_action_of` (`cli.py`:1710) as raw payload, and ends the run
+# inside `placement.residual.outcome_for_action` -- a set the person was in the
+# middle of answering dies on one bad word in one answer about one file.
+#
+# The unblock is one line outside this half of the repo: either the two words get
+# a P8 home in `llm_harness/vocabulary.py` (a mirror of P11's `MARKED_STATES`,
+# pinned equal by test -- a closed-vocabulary placement and so the owner's), or
+# `ResidualDependencies` grows a `marked_states` injection wired at the
+# composition root. Once either lands, `_residual_site` refuses the word with
+# `ACTION_NOT_IN_CONTROLLED_SET` and `placement/pipeline.py`:4226 already routes
+# a rejected D verdict to the abstention record, so the run continues and nothing
+# downstream changes.
+
+
+@pytest.mark.xfail(strict=True, reason="`104` R-104: P8 has no home for the two "
+                                       "marked-state words, so it cannot refuse "
+                                       "a third; the run ends in P11 instead")
+def test_g8_a_mark_whose_state_is_neither_word_is_refused_by_p8():
+    """DESIGN: a word the ratified D text did not offer is a rejected claim
+    recorded on the set, not a `ValueError` that ends the run.
+
+    MEASUREMENT: a site D answer marking the file `"archived"` -- a word neither
+    `protected` nor `unsupported` -- comes back REJECT. Today it comes back
+    `accept_direct`, and the word travels to `outcome_for_action`, which raises.
+    """
+    case = _d_case()
+    response = json.dumps({"claims": [{
+        "payload": {"action": "mark_protected_or_unsupported",
+                    "target": "archived",
+                    "stop_reason": "cannot be read",
+                    "relationships_considered": []},
+        "citations": _cite(case, "Columbia University application")}]}).encode()
+    verdict = judge(case, dossier_of(case), response, schema={"type": "object"},
+                    site_dependencies=site_dependencies_for(case))
+
+    assert verdict.worst_outcome == REJECT
+
+
+# --- G9: §13.6's schema half still has no channel at site C -------------------
+#
+# `104` R-77. §13.6 makes a hard veto of two things, and only one of them is
+# buildable here today: a model fact "not grounded in the file's own evidence"
+# (built -- `_invented_dimension` now grounds every non-`context` level whatever
+# the model calls it) "or FALLS OUTSIDE THE DERIVED SCHEMA" (not built). At site
+# A the derived schema is the dossier's own field keys, so "the field exists" is
+# a lookup. At C the schema is the frozen tree's levels and nothing in the
+# dossier names them: `Dossier.folder_levels` is `()` at C by design
+# (`model_placement.py`:448, "C and D place a file inside a tree that is already
+# designed"), `allowed_vocabulary` is node ids, and R-17's node profiles reach
+# the dossier as one free-text `location` string per candidate rather than as an
+# enumeration. The wired C schema constrains `dimension` to any non-empty string.
+#
+# So a level the tree does not have, whose value the file DOES state, is admitted
+# -- grounded, and about a level that does not exist. The unblock is a channel,
+# not a check: `folder_levels` filled at C, or a node-profile field that names
+# the levels. Inventing the list inside the validator would be a rule guessing at
+# the tree, which is the one thing `_invented_dimension` is written not to do.
+
+
+@pytest.mark.xfail(strict=True, reason="`104` R-77: nothing in the C dossier "
+                                       "names the tree's levels, so the schema "
+                                       "half of 13.6 has no channel")
+def test_g9_a_level_the_tree_does_not_have_is_refused_at_site_c():
+    """DESIGN: 13.6 hard-vetoes a fact that falls outside the derived schema,
+    and at site C the derived schema is the frozen tree's own levels.
+
+    MEASUREMENT: a placement whose level is named `sabbatical` -- no such level
+    exists in any tree this product designs -- comes back REJECT even though the
+    value it carries is stated by the file. Today it is accepted, because
+    grounding is all the validator can ask.
+    """
+    case = _c_case()
+    response = _c_response(case, support=1, next_support=0)
+    parsed = json.loads(response)
+    parsed["claims"][0]["payload"]["per_dimension_support"] = [
+        {"dimension": "sabbatical",
+         "value": "PHYS 1401", "support": "direct"}]
+    verdict = judge(case, dossier_of(case), json.dumps(parsed).encode(),
+                    schema={"type": "object"},
+                    site_dependencies=site_dependencies_for(case))
+
+    assert verdict.worst_outcome == REJECT
