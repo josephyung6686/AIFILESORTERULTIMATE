@@ -339,6 +339,44 @@ def test_only_the_decision_the_pass_ended_on_is_carried(placed):
         == {generals[0].node_id}
 
 
+def test_a_record_naming_a_node_that_is_not_a_destination_still_carries(placed):
+    """The crash this would have been, and it would have cost a whole run.
+
+    A decision's node ids are not all LEGAL ids. `index._terms_of` writes a
+    `parent_node_id` term whose key is the parent of a legal node, so
+    `_chain_around`'s walk up can name a node that accepts no placement -- and gap
+    16's `found_on` carries exactly that node into a conflict, because "where the
+    ruling value was found" is usually an ancestor. The seam corpus has one:
+    `Numbers.app`, marked and not a destination, is in the tree and in no index.
+
+    Looked up in the index it has no successor, so the carry would have raised
+    AFTER every model call in the run was spent, with the new version frozen and
+    half the decisions moved -- the split the re-projection exists to prevent,
+    arriving as a traceback. The lineage is read off the frozen trees instead,
+    which carry every node P10 wrote and are the same set a draft copies.
+    """
+    corpus, _auth, _dec, tree, (short, deep) = placed
+    from placement.records import ConflictConsidered
+
+    marked = node_labelled(tree.tree, "Numbers.app")
+    assert marked.accepts_placement is False
+    assert marked.node_id not in {
+        e.node_id for e in entries_for_plan(
+            corpus.conn, plan_version=tree.tree.plan_version_id)}
+    ruled = dataclasses.replace(deep, conflicts_considered=(ConflictConsidered(
+        kind="expected-value", conflicting_value="BUSIB 4300",
+        suppressed_node_ids=(marked.node_id,), evidence_ref="ff-1",
+        found_on=((marked.node_id, marked.node_id),)),))
+
+    result = _mint(placed, run=_run(tree, (short, ruled)))
+
+    carried = _for(result, deep.subject.file_id)
+    now = node_labelled(result.tree.tree, "Numbers.app")
+    assert now.node_id != marked.node_id
+    assert carried.conflicts_considered[0].suppressed_node_ids == (now.node_id,)
+    assert carried.conflicts_considered[0].found_on == ((now.node_id,) * 2,)
+
+
 def test_the_report_names_the_minted_general_and_the_file_it_was_minted_for(
         placed):
     """`00`:100 -- the person sees the proposal, and this folder owes them a why.
@@ -356,7 +394,7 @@ def test_the_report_names_the_minted_general_and_the_file_it_was_minted_for(
     cli.report(result, names, out=out)
     printed = out.getvalue()
 
-    assert "General   [created for hw3.txt]" in printed
+    assert "General   [for hw3.txt]" in printed
     # Under the course, which is what "scoped" means on a screen with no styles:
     # the General is indented one level deeper than the folder it belongs to.
     lines = printed.splitlines()

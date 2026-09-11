@@ -10458,7 +10458,7 @@ def mint_generals_on_demand(conn: sqlite3.Connection, finished, *,
                                    tree=finished.tree.tree)
     if not demand:
         return finished
-    before = finished.tree.tree.plan_version_id
+    before = finished.tree.tree
     tree = mint_scoped_generals(
         conn, authorities=authorities,
         decisions=dataclasses.replace(
@@ -10491,8 +10491,7 @@ def mint_generals_on_demand(conn: sqlite3.Connection, finished, *,
             finished.placement,
             decisions=carry_onto(
                 conn, decisions=finished.placement.decisions,
-                from_plan_version=before,
-                to_plan_version=tree.tree.plan_version_id,
+                from_tree=before, to_tree=tree.tree,
                 into_general={file_id: general_of[parent]
                               for parent, files in demand.items()
                               for file_id in files},
@@ -14598,12 +14597,17 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
     by_parent: dict[str | None, list] = {}
     for node in tree.nodes:
         by_parent.setdefault(node.parent_node_id, []).append(node)
-    # `104` §18.2 gap 11c. WHICH FILES A CATCH-ALL WAS CREATED FOR. A scoped
-    # General is in this plan only because a file belongs in the folder above it
-    # and in none of the folders beside it (`00`:99), and it is minted on demand
-    # -- so it is the one folder here whose whole reason for existing is a
-    # particular file. A person reading a new folder in their own tree is owed
-    # that reason in the only form they can check it, which is the names.
+    # `104` §18.2 gap 11c. WHICH FILES A CATCH-ALL IS FOR. A scoped General is in
+    # this plan because a file belongs in the folder above it and in none of the
+    # folders beside it (`00`:99), and on an unattended run it is minted on demand
+    # -- so it is the one folder here whose reason for existing is a particular
+    # file, and a person reading a new folder in their own tree is owed that
+    # reason in the only form they can check it, which is the names.
+    #
+    # "for", not "created for", and that is R-28 rather than brevity: a person may
+    # also have added a General at the canvas, and a folder they made themselves
+    # described as one the engine created for them would credit the run with their
+    # own gesture. The sentence is true of both.
     minted_for: dict[str, list[str]] = {}
     for decision in result.placement.decisions:
         if decision.destination is not None:
@@ -14620,7 +14624,7 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             if getattr(node, "node_role", None) == pv.SCOPED_GENERAL:
                 held = sorted(minted_for.get(node.node_id, ()))
                 if held:
-                    mark = f"   [created for {', '.join(held)}]{mark}"
+                    mark = f"   [for {', '.join(held)}]{mark}"
             print(f"  {'  ' * depth}{node.display_label}{mark}", file=out)
             draw(node.node_id, depth + 1)
 

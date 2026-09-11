@@ -311,7 +311,7 @@ def scoped_general_demand(decisions: Sequence[PlacementDecision], *,
 
 def carry_onto(conn: sqlite3.Connection, *,
                decisions: Sequence[PlacementDecision],
-               from_plan_version: str, to_plan_version: str,
+               from_tree, to_tree,
                into_general: Mapping[str, IndexEntry],
                component_version: str,
                observed_at: str) -> tuple[PlacementDecision, ...]:
@@ -346,34 +346,44 @@ def carry_onto(conn: sqlite3.Connection, *,
     `unsupported_levels` is carried untouched: the levels this file did not settle
     are the same levels, whichever side of the branch's catch-all it is filed on.
 
-    Raises rather than guessing when a node has no successor. Nothing is REMOVED
-    by minting a General, so a missing successor means the two versions disagree
-    about the tree, and a decision quietly dropped or matched onto a plausible
-    neighbour is §8.8's "silent reclassification" by name.
+    **THE LINEAGE IS READ OFF THE TWO FROZEN TREES AND NOT OFF THE INDEX**, which
+    is the one place this differs from `reproject` above and it is not a
+    preference. The index holds LEGAL nodes only, and a record's node ids are not
+    all legal ones: `index._terms_of` writes a `parent_node_id` term whose key is
+    the PARENT of a legal node, so `_chain_around`'s walk up can name an ancestor
+    that accepts no placement, and gap 16's `found_on` can carry it into a
+    conflict. Looked up in the index that id has no successor -- and raising here
+    would end a run AFTER every model call in it was spent, with the new version
+    frozen and half the decisions carried. A frozen tree carries every node P10
+    wrote, legal or not, which is the same set `open_draft` copies, so every id a
+    record can hold has an answer.
+
+    Raises rather than guessing when a node has no successor even so. Nothing is
+    REMOVED by minting a General, so a missing successor means the two versions
+    disagree about the tree, and a decision quietly dropped or matched onto a
+    plausible neighbour is §8.8's "silent reclassification" by name.
 
     **ONE ROW PER SUBJECT, AND IT IS THE ONE THE PASS ENDED ON** -- `_current`,
     the same reading `scoped_general_demand` takes, so the folder that was minted
     and the decision that lands in it can never be answering two different states
     of the same run.
     """
-    origin_of = {entry.node_id: entry.origin_node_id
-                 for entry in entries_for_plan(conn,
-                                               plan_version=from_plan_version)}
-    successors = {entry.origin_node_id: entry
-                  for entry in entries_for_plan(conn,
-                                                plan_version=to_plan_version)}
+    to_plan_version = to_tree.plan_version_id
+    origin_of = {node.node_id: node.origin_node_id for node in from_tree.nodes}
+    successors = {node.origin_node_id: node for node in to_tree.nodes}
 
-    def _successor(node_id: str) -> IndexEntry:
-        entry = successors.get(origin_of.get(node_id, ""))
-        if entry is None:
+    def _successor(node_id: str):
+        node = successors.get(origin_of.get(node_id, ""))
+        if node is None:
             raise NodeHasNoSuccessor(
-                f"{node_id!r} is named by a decision in {from_plan_version!r} and "
-                f"{to_plan_version!r} carries no node with its lineage. A plan "
-                "that gained a folder removed none, so the two versions disagree "
-                "about the tree -- and carrying the decision onto a plausible "
-                "survivor is the silent reclassification §8.8 forbids"
+                f"{node_id!r} is named by a decision in "
+                f"{from_tree.plan_version_id!r} and {to_plan_version!r} carries "
+                "no node with its lineage. A plan that gained a folder removed "
+                "none, so the two versions disagree about the tree -- and "
+                "carrying the decision onto a plausible survivor is the silent "
+                "reclassification §8.8 forbids"
             )
-        return entry
+        return node
 
     carried: list[PlacementDecision] = []
     for decision in _current(decisions):
