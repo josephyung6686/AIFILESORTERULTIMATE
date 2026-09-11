@@ -48,7 +48,7 @@ from database_agent.db import open_database
 from database_agent.files_table import record_file
 from llm_harness.vocabulary import G_SITUATION_SENSITIVITY, NOT_ELIGIBLE_FOR_MODEL
 from p1_contract import p3_basic_record
-from recognition.detector import Abstention
+from recognition.detector import Abstention, situation_outcome_of
 from review_surface.trail import file_trail
 from test_per_file_model_route import _both, _cloud_only
 
@@ -63,8 +63,11 @@ AMBIGUOUS = Abstention(reason="ambiguous", schema_id="academic",
                        tied_schema_ids=("finance",))
 
 
-def _explain(_conn, _file_id: str, _content_hash: str) -> Abstention:
-    return AMBIGUOUS
+def _explain(_conn, _file_id: str, _content_hash: str):
+    """The pass reads the projected `SituationOutcome` (104 §18.26-27: both
+    recognisers project into one shape), so the stub projects its abstention
+    exactly as `Detector.situation_outcome` would."""
+    return situation_outcome_of(AMBIGUOUS)
 
 
 def _never_held(*_args, **_kwargs):
