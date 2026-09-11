@@ -368,6 +368,7 @@ from scan_agent.exclusion import is_protected_container
 from scan_agent.dataless import is_dataless
 from scan_agent.selection import record_selection
 from scan_agent.summary import scan_run_summary, set_aside_paths
+from tree_design.candidates import EXISTING_FOLDER_SOURCES
 from tree_design.catalogue import TemplateCatalogue
 from tree_design.config import ConfigurationRequired, TreeLimits
 from tree_design.freeze import FreezeRefused
@@ -8515,11 +8516,25 @@ def choose_option(candidate, options) -> str:
     so and the question is still printed.
     """
     for option in options:
-        report = option.validation
-        if ((option.total_child_branches or option.branch_expectations)
-                and (report is None or report.accepted)):
+        if would_build(option):
             return option.option_id
     return options[-1].option_id
+
+
+def would_build(option) -> bool:
+    """Whether this option is a SHAPE, as `choose_option`'s docstring defines it.
+
+    Lifted out of the loop above and given a name because `nesting_chooser` needs
+    the same number: how many shapes a branch's own facts support is what decides
+    whether there is anything to ask the person (`104` R-92), and the option
+    COUNT is not that number -- `vertical_options` appends `opt_no_split` to
+    every branch, so every branch has two. One reading, two readers; a second
+    copy of the test is a second answer to "is this a choice" the day either
+    moves.
+    """
+    report = option.validation
+    return bool((option.total_child_branches or option.branch_expectations)
+                and (report is None or report.accepted))
 
 
 #: `opt_no_split`'s key. `00`:99 offers "keep this branch as it is" beside every
@@ -8594,31 +8609,67 @@ def nesting_chooser(conn: sqlite3.Connection, *, asked_at: str):
     took `options[0]` and disclosed that it had. The disclosure was honest and is
     not the same as asking.
 
-    **Asking costs the person nothing, which is what makes it safe to ask here.**
-    An unanswered question does not stop the run: the default is taken exactly as
-    before, the tree is the tree they would have got, and the question is printed
-    beside it. So the first run is no worse than it was, and the second run --
-    `--answer branch:Coursework=subject` -- is theirs.
-
     One question per BRANCH, scoped to it, because §13 forbids reusing an answer
     "outside its stated scope" and how somebody wants their coursework shaped says
     nothing about how they want their legal matters shaped.
+
+    **`104` §18.42 item 1 and R-92: THE QUESTION NOW WAITS FOR ITS ANSWER.** It
+    used to be asked and answered in the same breath -- `options[0]` was taken,
+    the disclosure said so, and the alternatives printed underneath were
+    answerable only on the next run, by which time the tree they would have
+    changed was already frozen. The disclosure was honest and was never the same
+    thing as asking. So where the answer is the person's, this returns `None`:
+    the branch keeps its top-level node, nothing is built inside it, and the
+    options stay on the screen with their counts until they say which.
+
+    **Two cases where it is theirs, and one where it is not.**
+
+    1. TWO SHAPES THE FACTS SUPPORT. Not "two options": `vertical_options`
+       appends `opt_no_split` to every branch, so a rule keyed on the option
+       count would stop every ordinary run. `choose_option`'s own test for
+       whether an option "would build something" is the one used here, so the
+       number this waits on and the number the fallback acts on cannot come to
+       mean two different things.
+    2. A FOLDER THE PERSON ALREADY MADE, whatever the count. `00`:100:
+       "Existing folders must not be automatically flattened, renamed, or
+       reorganized simply because a template would produce a different
+       structure." `--accept-groups` accepts GROUPS, and an adopted directory is
+       not one -- which is the audit's finding in one line: `design_decisions`
+       adopted every non-root directory and designed levels inside all of them
+       with nobody asked. One buildable shape is still a proposal to build
+       folders inside somebody's own folder, and `keep-as-it-is` beside it is a
+       real answer rather than a formality.
+    3. Anything else proceeds exactly as it did. A proposed branch with one
+       shape has nothing to decide, and stopping there would ask a person to
+       confirm the only thing that could happen.
     """
 
-    def choose(candidate, options) -> str:
+    def choose(candidate, options) -> str | None:
         scope = f"{SCOPE_BRANCH}:{candidate.display_label}"
         by_key = {_nesting_key(option): option for option in options}
         answered = gated_template(conn, scope=scope)
         if answered is not None and answered in by_key:
             return by_key[answered].option_id
-        # Two shapes or more is a decision; one is not, and §12 permits a question
-        # only where "a specific decision is blocked".
+        theirs = (candidate.source in EXISTING_FOLDER_SOURCES
+                  or sum(1 for option in options if would_build(option)) > 1)
+        # ASKED EXACTLY WHERE IT WAS ASKED BEFORE. Two entries or more is
+        # something to choose BETWEEN, and §12 permits a question only where "a
+        # specific decision is blocked". Narrowing this to the cases that WAIT
+        # would take `keep-as-it-is` away from every branch with one shape, and
+        # that is a real answer a person may want to give -- what changed here is
+        # what the run does while it waits, not what it asks.
         if len(by_key) > 1:
             record_question(conn, question_for_nesting(
                 branch_label=candidate.display_label,
                 choices=_nesting_choices(options),
-                file_count=candidate.supporting_file_count), asked_at=asked_at)
-        return choose_option(candidate, options)
+                file_count=candidate.supporting_file_count,
+                # WHICH OF TWO TRUE SENTENCES the question carries, and this is
+                # the only part that knows. The old one -- "the first shape that
+                # passed every check is used" -- is a false statement about a
+                # branch nothing was built inside, and it is false in exactly the
+                # case where the person most needs to act.
+                waits_for_the_answer=theirs), asked_at=asked_at)
+        return None if theirs else choose_option(candidate, options)
 
     return choose
 

@@ -225,7 +225,9 @@ class NestingChoice:
 
 def question_for_nesting(*, branch_label: str,
                          choices: Iterable[NestingChoice],
-                         file_count: int) -> StructuralQuestion:
+                         file_count: int,
+                         waits_for_the_answer: bool = False,
+                         ) -> StructuralQuestion:
     """`00`:78's own moment: the engine proposes shapes and the person picks one.
 
     §5.5 already builds these options and shows what each would create. The
@@ -235,6 +237,13 @@ def question_for_nesting(*, branch_label: str,
 
     Structural, not contextual, and the records enforce it: the answer decides
     which folders the branch has, which §13 forbids a contextual answer to touch.
+
+    `waits_for_the_answer` says which of two true things `unlocks` should say,
+    and the caller is the only part that knows: the run either builds the first
+    shape meanwhile or builds nothing inside the branch at all (`104` §18.42
+    item 1, R-92). It defaults to `False` because that is what every caller
+    written before the wait existed does, so the sentence they produce stays the
+    sentence that is true of them.
     """
     offered = tuple(choices)
     if len(offered) < 2:
@@ -250,6 +259,10 @@ def question_for_nesting(*, branch_label: str,
             f"{file_count} {files} sit under {branch_label}, and their own facts "
             f"support {len(offered)} different shapes."),
         unlocks=(
+            f"This decides the folders inside {branch_label}. No folder is built "
+            "inside it until you answer, so the files that would go there wait "
+            "with it."
+            if waits_for_the_answer else
             f"This decides the folders inside {branch_label}. Until it is "
             "answered the first shape that passed every check is used, which may "
             "not be the one you would pick."),

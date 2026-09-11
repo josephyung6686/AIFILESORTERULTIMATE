@@ -4273,3 +4273,136 @@ def test_the_composition_root_builds_a_process_pool_at_every_worker_count():
                 "the calling thread where no ceiling can reach a wedged reader")
         finally:
             pool.close()
+
+
+# ======================================================================================
+# `104` §18.42 item 1 and R-92: the branch is asked before its levels are built
+# ======================================================================================
+
+
+def _questions_conn():
+    from questions.schema import create_questions_schema
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    create_questions_schema(conn)
+    return conn
+
+
+def _candidate(label: str, *, source: str):
+    from tree_design.candidates import BranchCandidate
+
+    return BranchCandidate(
+        subject_id=label, display_label=label,
+        why_suggested="four files name one course.",
+        supporting_file_count=4, accepted_group_ids=(),
+        representative_group_labels=(), resembling_existing_folders=(),
+        sensitive_content_present=False, source=source,
+        available_actions=())
+
+
+def _option(option_id: str, chain: tuple[str, ...]):
+    from tree_design.candidates import VerticalOption
+
+    return VerticalOption(
+        option_id=option_id, kind="fragment-composition",
+        resulting_child_counts={role: 2 for role in chain},
+        total_child_branches=2 * len(chain), example_members=(),
+        member_count=4, unresolved_file_ids=(),
+        summary=f"This option would create {2 * len(chain)} folder(s).",
+        validation=None, children=(), protected_file_ids=(), warnings=())
+
+
+def _no_split():
+    from tree_design.candidates import VerticalOption
+
+    return VerticalOption(
+        option_id="opt_no_split", kind="no-split", resulting_child_counts={},
+        total_child_branches=0, example_members=(), member_count=4,
+        unresolved_file_ids=(), summary="Keep this branch as it is.",
+        validation=None, children=(), protected_file_ids=(), warnings=())
+
+
+def test_one_buildable_shape_for_a_proposed_branch_proceeds_as_it_did():
+    """`104` R-92, the half that does NOT change.
+
+    `vertical_options` appends `opt_no_split` to every branch, so "more than one
+    option" is true of every branch that can be split at all -- and a rule keyed
+    on that number would stop every ordinary run. The number that matters is how
+    many SHAPES the branch's own facts support, which `cli.choose_option` already
+    tells apart: an option "would build something" when it makes a child or
+    records a value on the branch and its checks passed. With one, there is
+    nothing to decide and the run proceeds.
+    """
+    conn = _questions_conn()
+    choose = cli.nesting_chooser(conn, asked_at="2026-09-11T00:00:00Z")
+    options = (_option("opt_0", ("subject", "work_type")), _no_split())
+
+    assert choose(_candidate("Coursework", source="accepted-group"),
+                  options) == "opt_0"
+
+
+def test_two_buildable_shapes_and_no_answer_builds_no_level(capsys):
+    """`104` R-92. Two shapes the facts support is a decision, and the run takes
+    it no longer.
+
+    `None` is not `opt_no_split`: nothing is recorded as the person's, the
+    options stay on the screen with their counts, and the answer they give lands
+    on the next run -- which is the shape every other gesture in this command
+    already has.
+    """
+    from questions.store import open_questions
+
+    conn = _questions_conn()
+    choose = cli.nesting_chooser(conn, asked_at="2026-09-11T00:00:00Z")
+    options = (_option("opt_0", ("subject", "work_type")),
+               _option("opt_1", ("work_type", "subject")), _no_split())
+
+    assert choose(_candidate("Coursework", source="accepted-group"),
+                  options) is None
+    assert [question.question_id for question in open_questions(conn)] == [
+        "branch:Coursework"]
+
+
+def test_a_folder_the_person_made_is_not_split_until_they_say_so():
+    """`00`:100: "Existing folders must not be automatically flattened, renamed,
+    or reorganized simply because a template would produce a different
+    structure."
+
+    `--accept-groups` accepts GROUPS, and an adopted directory is not one -- the
+    audit's finding is that `design_decisions` adopted every non-root directory
+    and designed levels inside all of them with nobody asked. So an adopted
+    folder waits even where a proposal would proceed: one buildable shape is
+    still a proposal to build folders inside somebody's own folder, and
+    `keep-as-it-is` beside it is a real answer rather than a formality.
+    """
+    from tree_design.candidates import EXISTING_FOLDER
+
+    conn = _questions_conn()
+    choose = cli.nesting_chooser(conn, asked_at="2026-09-11T00:00:00Z")
+    options = (_option("opt_0", ("subject", "work_type")), _no_split())
+
+    assert choose(_candidate("Desktop/Python 1006", source=EXISTING_FOLDER),
+                  options) is None
+
+
+def test_the_answer_the_person_gave_is_the_shape_that_is_built():
+    """The other end of both rules: once it is answered, the branch is designed.
+    The answer is recorded against the CHAIN rather than `opt_1`, so it survives
+    a corpus that renumbers the options."""
+    from questions.store import open_questions, record_answer, StructuralAnswer
+
+    conn = _questions_conn()
+    choose = cli.nesting_chooser(conn, asked_at="2026-09-11T00:00:00Z")
+    options = (_option("opt_0", ("subject", "work_type")),
+               _option("opt_1", ("work_type", "subject")), _no_split())
+    candidate = _candidate("Coursework", source="accepted-group")
+
+    assert choose(candidate, options) is None            # asked, not taken
+    assert open_questions(conn)
+    record_answer(conn, StructuralAnswer(
+        question_id="branch:Coursework", option_id="work_type>subject",
+        state="confirmed", scope="branch:Coursework", user_id="jy",
+        recorded_at="2026-09-11T00:01:00Z", supersedes=None))
+
+    assert choose(candidate, options) == "opt_1"
