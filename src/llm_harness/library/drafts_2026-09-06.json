@@ -401,6 +401,17 @@
    "status": "unratified",
    "ratified_by": "nobody -- authored by the lead on 11 Sep 2026 after the owner answered 'Yes, change it' to R-77's line 33 (asked in session: the ratified C text says folder_levels is empty at this site, so C cannot be told which levels the tree has); the owner reads the amended sentence and ratifies or strikes it.",
    "note": "eliminate-v2r-group with ONE sentence changed (104 R-77, §18.39): line 33 no longer says folder_levels is empty; it says what the projection carries -- per candidate node, the levels it sits under by name and folder value -- and that a level named for a file must be one of them. Every other sentence is byte-identical to eliminate-v2r-group. The projection itself is the R-77 agent's build; site C observes this row only once the owner ratifies it."
+  },
+  {
+   "site": "C_placement",
+   "candidate": "eliminate-v2r-group-levels-scores",
+   "template_id": "c_placement.unratified.eliminate-v2r-group-levels-scores.2026-09-11",
+   "template_file": "c_placement_template.eliminate-v2r-group-levels-scores.txt",
+   "response_schema_file": "c_placement_response_schema.eliminate-v2r-group.json",
+   "shaping_policy_file": "c_placement_shaping_policy.v2.json",
+   "status": "unratified",
+   "ratified_by": "nobody -- authored by the lead on 11 Sep 2026 from the placement-judge agent's owed sentence (104 §18.42 finding 3); the owner reads it and ratifies or strikes it.",
+   "note": "eliminate-v2r-group-levels plus ONE paragraph, before the subject_ref paragraph: each candidate may carry missing_fields, score and margin -- the engine's measurements of the tree and its ranking, never quotations. Sent only under a row whose `lists_candidate_scores` flag is true (the dossier builder's gate, R-77's mechanism); every other sentence byte-identical to -levels."
   }
  ],
  "digests": {
@@ -450,6 +461,7 @@
   "situation_template.safety-first.v6.txt": "e468a41cb21ed722342db4af67debf27b191039b09a0afe3d1c0d3e6753368c6",
   "e_template_template.what-a-person-opens-v3.txt": "25a98f48313a1252dfabcc57f45605bf3ae6387124b4d145aa60952af0d1d7eb",
   "c_placement_response_schema.eliminate-v2r-group.json": "4c6eb9ad4e7b0e7006dd1432f53e4d1c5878e24f2ec4a97e4a1fa9d194082a78",
-  "c_placement_template.eliminate-v2r-group-levels.txt": "929f281c5583b317ca92f8c37e7f91bd1a0318c2af695571d0e2e2f0c3bc0a48"
+  "c_placement_template.eliminate-v2r-group-levels.txt": "929f281c5583b317ca92f8c37e7f91bd1a0318c2af695571d0e2e2f0c3bc0a48",
+  "c_placement_template.eliminate-v2r-group-levels-scores.txt": "4454838b11402cdfd74945e642a9aa0bc4f176ffefa106dc913fe024d7e2baf5"
  }
 }
