@@ -84,8 +84,23 @@ def test_every_section_2_6_signal_carries_its_own_tier(sink):
 
 
 def test_the_perceptual_hash_is_emitted_and_the_content_hash_is_not(sink):
-    # G5 gives duplicate and version families to P6, "from P1's content hashes and
-    # P5's perceptual hashes". P5 supplies the second and recomputes the first never.
+    """E5 emits the hash its reader supplies, and never the content hash.
+
+    G5 gives duplicate and version families to P6, "from P1's content hashes and
+    P5's perceptual hashes". P5 supplies the second and recomputes the first never.
+
+    **RE-ARGUED AGAINST THE DEPLOYMENT (`104` §18.43, the audit's item 10).** This
+    passes against `a_photo_heic()`, which is a FIXTURE: the test writes
+    `perceptual_hash="phash:8f3a"` into the `ImageRecord` itself. That is the right
+    test of the half it owns -- given a hash, E5 emits it under P5's own label --
+    and it is not weakened here. What it cannot see is one layer out: the reader
+    this deployment actually wires, `readers.image_headers.header_image_reader`,
+    builds no such record, so no corpus ever carries the observation and
+    `facts.families._near_families` returns before its loop with 0 carriers.
+    `tests/readers/test_readers_image_headers.py::test_the_reader_supplies_the_
+    perceptual_hash_section_2_6_names` is that half, and it is a strict xfail
+    naming the two words `98` leaves to the owner.
+    """
     run_id = sink.write(run_it())
     rows = slots(sink.observations_for(run_id))
     assert rows[PERCEPTUAL_HASH_FIELD]["raw_value"] == "phash:8f3a"

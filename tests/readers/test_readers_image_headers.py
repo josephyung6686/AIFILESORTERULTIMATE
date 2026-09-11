@@ -491,3 +491,55 @@ def test_a_pdf_and_a_psd_are_not_claimed_by_the_image_reader():
     from readers.image_headers import _image_format
     assert _image_format(b"%PDF-1.7\n%\xe2\xe3\xcf\xd3") is None
     assert _image_format(b"8BPS\x00\x01" + b"\x00" * 20) is None
+
+
+# --------------------------------------------------------------------------- #
+# §2.6's other hash -- `104` §18.43, the audit's item 10
+#
+# "Exact hashes and perceptual hashes can identify duplicates and near-duplicates."
+# The exact half is P1's and needs nobody. The other half has no carrier anywhere in
+# the deployment: this reader supplies no `perceptual_hash`, so `extract_image` emits
+# no `perceptual hash` observation, so `facts.families._near_families` counts fewer
+# than two carriers and returns before its loop on every corpus -- measured at 0 on
+# both real corpora (`cli.py`'s `_family_pass`).
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "The deployment's image reader supplies no perceptual hash, so §2.6's "
+    "near-duplicate half has no carrier and `_near_families` returns before its "
+    "loop on every corpus -- 0 carriers measured on both real corpora. WHAT IS "
+    "MISSING IS THE OWNER'S WORD AND NOT THE CODE. `98` was ratified as written "
+    "on 2026-09-11 (`00`, Amendments of 2026-09-11, item 4; `104` §18.43) and as "
+    "written it authors nothing. `98` §3.1: `00` 'names no algorithm', and "
+    "'whatever ships must be stated together with the hash it assumes'. `98` "
+    "§3.2: the threshold 'is a judgement about the owner's tolerance, not a "
+    "technical constant', and 'the number is the owner's'. `98` §3 closes the "
+    "escape hatch in advance: 'Equality is not a way out ... it is a threshold of "
+    "zero, and zero is a number nobody ruled.' So TWO WORDS ARE OWED -- which "
+    "hash, and the distance at which two of them are one photograph -- and "
+    "choosing either here is `98` §5's own refusal case: 'a threshold invented in "
+    "an implementation is a policy with no reviewer, and this one is directly "
+    "visible to the owner as a deletion suggestion about their own photographs.' "
+    "NOTHING ELSE BLOCKS IT. `CGImageSourceCreateThumbnailAtIndex` decodes a "
+    "small raster through the ImageIO this reader already holds, so no dependency "
+    "question arrives with the answer -- that is a fact about the toolchain, not a "
+    "choice about the metric. It does reverse one standing decision, which is why "
+    "it is named here rather than discovered later: this module reads 'Properties "
+    "only, never `CGImageSourceCreateImageAtIndex`', because decoding pixels to "
+    "read a camera's `Make` would spend a 50-megapixel decode on a string. A "
+    "perceptual hash is the one slot that genuinely needs the pixels, and the "
+    "thumbnail route is what keeps that argument true for the others. Strict, so "
+    "the suite turns red the day the hash ships."))
+def test_the_reader_supplies_the_perceptual_hash_section_2_6_names(tmp_path):
+    """A real photograph through the real reader, not an `ImageRecord` fixture.
+
+    `tests/p5/test_p5_image.py::test_the_perceptual_hash_is_emitted_and_the_content
+    _hash_is_not` passes today and is not wrong: it pins `extract_image`'s side of
+    the contract by handing it a record that carries `phash:8f3a`. What it cannot
+    see is that nothing in the deployment ever builds such a record. This is that
+    half.
+    """
+    record = header_image_reader()(written(tmp_path, *WRITABLE["JPEG"]))
+    assert record is not None, "the JPEG fixture was not read at all"
+    assert record.perceptual_hash is not None
