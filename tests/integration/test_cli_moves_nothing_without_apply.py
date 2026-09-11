@@ -70,6 +70,7 @@ def test_a_whole_run_leaves_every_file_exactly_where_it_was(tmp_path):
     out = io.StringIO()
     cli.main(["--situation", "academic.coursework", "--label", "Coursework",
               "--user", "jy", "--database", str(tmp_path / "plan.sqlite"),
+              "--accept-groups",
               str(corpus)], out=out)
 
     assert _tree(corpus) == before
@@ -92,6 +93,7 @@ def test_a_freeze_moves_nothing_even_when_a_frozen_plan_is_already_there(tmp_pat
     corpus = _corpus(tmp_path)
     shared = ["--situation", "academic.coursework", "--label", "Coursework",
               "--user", "jy", "--database", str(tmp_path / "plan.sqlite"),
+              "--accept-groups",
               "--freeze", str(corpus)]
 
     cli.main(shared, out=io.StringIO())          # a frozen plan now exists

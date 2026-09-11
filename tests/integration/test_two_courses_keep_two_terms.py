@@ -99,6 +99,7 @@ def run(tmp_path):
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
+              "--accept-groups",
               "--database", str(database)], out=out)
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
@@ -231,6 +232,7 @@ def sectioned_run(tmp_path):
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
+              "--accept-groups",
               "--database", str(database)], out=out)
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
@@ -403,6 +405,7 @@ def test_with_a_model_answering_the_declined_field_the_course_folder_comes_back(
         out = io.StringIO()
         cli.main([str(corpus), "--situation", "academic.coursework",
                   "--label", "Coursework", "--user", "jy",
+                  "--accept-groups",
                   "--database", str(database)], out=out)
 
     # `104` §18.2 gap 1, read off the question the run actually asked. A settled

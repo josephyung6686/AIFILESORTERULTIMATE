@@ -103,6 +103,7 @@ def _run(*argv: str, database: Path) -> str:
     out = io.StringIO()
     cli.main([*argv, "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
+              "--accept-groups",
               "--database", str(database)], out=out)
     return out.getvalue()
 
@@ -371,6 +372,7 @@ def test_a_second_source_that_is_not_a_folder_is_refused_in_a_sentence(tmp_path)
     out = io.StringIO()
     code = cli.main([str(downloads), "--also-read", str(missing),
                      "--situation", "academic.coursework", "--label", "C",
+                     "--accept-groups",
                      "--user", "jy",
                      "--database", str(tmp_path / "holder" / "plan.sqlite")],
                     out=out)
@@ -390,6 +392,7 @@ def test_a_root_inside_a_folder_being_read_is_refused_rather_than_guessed(
     out = io.StringIO()
     code = cli.main([str(downloads), "--could-live-in", str(inside),
                      "--situation", "academic.coursework", "--label", "C",
+                     "--accept-groups",
                      "--user", "jy",
                      "--database", str(tmp_path / "holder" / "plan.sqlite")],
                     out=out)

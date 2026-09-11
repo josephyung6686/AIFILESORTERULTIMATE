@@ -95,6 +95,7 @@ def _run(corpus: Path) -> str:
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
+              "--accept-groups",
               "--database", str(corpus.parent / "plan.sqlite")], out=out)
     return out.getvalue()
 

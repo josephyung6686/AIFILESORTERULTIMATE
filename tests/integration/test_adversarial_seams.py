@@ -44,6 +44,7 @@ def _three_courses(tmp_path: Path) -> Path:
 def _run(tmp_path: Path, corpus: Path, **overrides) -> str:
     argv = [str(corpus), "--situation", "academic.coursework",
             "--label", "Coursework", "--user", "jy",
+            "--accept-groups",
             "--database", str(tmp_path / "plan.sqlite")]
     for flag, value in overrides.items():
         argv += [f"--{flag.replace('_', '-')}", value]

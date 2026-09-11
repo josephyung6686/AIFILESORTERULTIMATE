@@ -260,7 +260,8 @@ def stub():
 def _run(corpus: Path, database: Path, *extra: str) -> tuple[int, str]:
     out = io.StringIO()
     code = cli.main([str(corpus), "--situation", SITUATION, "--label", LABEL,
-                     "--user", "t", "--database", str(database), *extra], out=out)
+                     "--user", "t", "--database", str(database),
+                     "--accept-groups", *extra], out=out)
     return code, out.getvalue()
 
 

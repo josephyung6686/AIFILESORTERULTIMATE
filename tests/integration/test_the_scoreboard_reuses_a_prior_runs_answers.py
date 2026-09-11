@@ -184,7 +184,7 @@ def _run(corpus, database) -> None:
     """
     out = io.StringIO()
     cli.main([str(corpus), "--situation", SITUATION, "--label", "Coursework",
-              "--user", "groundtruth", "--database", str(database),
+              "--user", "groundtruth", "--database", str(database), "--accept-groups",
               "--enable-cloud"], out=out)
 
 

@@ -138,6 +138,7 @@ def _run(corpus: Path, *extra: str) -> tuple[int, str]:
     code = cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
                      "--database", str(corpus.parent / "plan.sqlite"),
+                     "--accept-groups",
                      "--residual", "Review Later", *extra], out=out)
     # The `Plan database:` line carries the full tmp_path, and pytest names
     # tmp_path after the test function -- so a test whose own name contains
@@ -324,6 +325,7 @@ def test_an_unenabled_area_still_gets_the_paste_able_command_and_a_plan(
     code = cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
                      "--database", str(corpus.parent / "plan.sqlite"),
+                     "--accept-groups",
                      "--send-set", FIRST_SET], out=out)
     printed = "\n".join(line for line in out.getvalue().splitlines()
                         if not line.startswith("Plan database:"))

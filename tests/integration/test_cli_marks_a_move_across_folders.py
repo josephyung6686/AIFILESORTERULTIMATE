@@ -45,7 +45,7 @@ def _run(downloads: Path, desktop: Path, database: Path,
     out = io.StringIO()
     code = cli.main([str(downloads), "--situation", SITUATION, "--label", LABEL,
                      "--user", "jy", "--also-read", str(desktop),
-                     "--database", str(database), *extra], out=out)
+                     "--database", str(database), "--accept-groups", *extra], out=out)
     return code, out.getvalue()
 
 

@@ -8416,11 +8416,22 @@ def accept_drafted_groups(conn: sqlite3.Connection, drafted: Sequence[str], *,
             presented_state_ref=view.presented_state_ref,
             plan_version_id=PLAN_VERSION, group_id=view.member_ref,
             decided_at=acted_at, basis=view.bulk_basis,
-            # The label the person typed, carried onto the acceptance because
-            # `tree_design.upstream._label` prefers it to the group's own and it
-            # IS their word -- `--label` is a required flag this command refuses
-            # to guess.
-            user_edited_label=label))
+            # THE GROUP'S OWN LABEL, NOT `--label`, and the difference is a whole
+            # branch. `tree_design.upstream._label` PREFERS the acceptance's
+            # `user_edited_label` to the group's `display_label`, so writing the
+            # run-wide label here renames every draft to it -- and on a corpus
+            # with more than one life that is exactly the flattening `104` R-37
+            # exists to undo. Measured: `test_r37_per_branch_situation` proposes
+            # `Coursework` and `career` as two roots and got `Coursework` twice.
+            #
+            # `draft_for_review` already put the right name on the row: one
+            # branch, and it is `--label`; several, and each bucket carries the
+            # branch's own label, which is what `_grouped_by_branch` computed.
+            # Read back rather than threaded through, because the gesture is
+            # collected over ids and a per-id label would be a second copy of
+            # something the row already holds.
+            user_edited_label=current_group(
+                conn, view.member_ref).display_label))
         accepted.append(view.member_ref)
     conn.commit()
     return tuple(accepted)
