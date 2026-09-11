@@ -390,6 +390,17 @@
    "status": "ratified",
    "ratified_by": "the owner, 10 Sep 2026 (local evening), in session: asked 'ratify eliminate-v2r-group (the packet sentence, the graph_edge sentence, its own schema allowing context_group)?' and answered 'Ratify it now'; applied by the lead as a new row, never an edit to the candidate row of 2026-09-10.",
    "note": "v2r plus one sentence for the group subject (104 §18.2 gap 14, merged 10 Sep): when subject_ref names a group the dossier is a packet the person accepted together and the model decides the packet's one folder. Everything else byte-identical to v2r. Written because the ratified text says \"about one file\" in three places that are false for a group call. Its own schema file (10 Sep; the name \"v2 schema\" is reserved for 105 §14's bundle and pinned absent): a per_dimension_support item may carry context_group, the key the validator REQUIRES for context support and the ratified schema forbade (additionalProperties false) -- a contradiction that made every context level schema-invalid one way or validator-rejected the other; found by the gap 14 agent, 104 §18.34. The product keeps observing the ratified v2r: site C acts only on a ratified row (test_cli_observe_sites pins it), so observing this row unratified would place nothing. The owner ratifies this row to close the contradiction. Also carries the graph_edge sentence gap 12 (merged 10 Sep) owes: a relationship item is support for a level and never a citation. Ratified copy of the 2026-09-10 candidate: same files, same digests; only the status and the ratifier differ. Site C observes this row from 11 Sep; v2r of 2026-09-09 stays recorded."
+  },
+  {
+   "site": "C_placement",
+   "candidate": "eliminate-v2r-group-levels",
+   "template_id": "c_placement.unratified.eliminate-v2r-group-levels.2026-09-11",
+   "template_file": "c_placement_template.eliminate-v2r-group-levels.txt",
+   "response_schema_file": "c_placement_response_schema.eliminate-v2r-group.json",
+   "shaping_policy_file": "c_placement_shaping_policy.v2.json",
+   "status": "unratified",
+   "ratified_by": "nobody -- authored by the lead on 11 Sep 2026 after the owner answered 'Yes, change it' to R-77's line 33 (asked in session: the ratified C text says folder_levels is empty at this site, so C cannot be told which levels the tree has); the owner reads the amended sentence and ratifies or strikes it.",
+   "note": "eliminate-v2r-group with ONE sentence changed (104 R-77, §18.39): line 33 no longer says folder_levels is empty; it says what the projection carries -- per candidate node, the levels it sits under by name and folder value -- and that a level named for a file must be one of them. Every other sentence is byte-identical to eliminate-v2r-group. The projection itself is the R-77 agent's build; site C observes this row only once the owner ratifies it."
   }
  ],
  "digests": {
@@ -438,6 +449,7 @@
   "c_placement_template.eliminate-v2r-group.txt": "6981415a361e7fd62cddd17e209280090123943ad0025be79ff55f6ff2799256",
   "situation_template.safety-first.v6.txt": "e468a41cb21ed722342db4af67debf27b191039b09a0afe3d1c0d3e6753368c6",
   "e_template_template.what-a-person-opens-v3.txt": "25a98f48313a1252dfabcc57f45605bf3ae6387124b4d145aa60952af0d1d7eb",
-  "c_placement_response_schema.eliminate-v2r-group.json": "4c6eb9ad4e7b0e7006dd1432f53e4d1c5878e24f2ec4a97e4a1fa9d194082a78"
+  "c_placement_response_schema.eliminate-v2r-group.json": "4c6eb9ad4e7b0e7006dd1432f53e4d1c5878e24f2ec4a97e4a1fa9d194082a78",
+  "c_placement_template.eliminate-v2r-group-levels.txt": "929f281c5583b317ca92f8c37e7f91bd1a0318c2af695571d0e2e2f0c3bc0a48"
  }
 }
