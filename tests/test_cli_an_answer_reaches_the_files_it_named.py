@@ -240,11 +240,21 @@ def test_the_freeze_plans_the_other_files_into_the_folders_the_run_chose(
     on, where the group ran past the report's naming cap, the freeze could
     approve nothing at all.
 
-    After it, the freeze plans exactly the tree the run built. The two scans are
-    not in it, and the reason is not scope: `review_policy_for` puts a
-    destination named for a file NOTHING has classified into
-    `blocked_pending_user`, and the freeze holds it -- so they are named, with
-    that reason, and left where they are.
+    After it, the freeze plans exactly the tree the run built, and the two scans
+    go where the person put them and nowhere else. Thirty-one files keep the two
+    courses the run sorted them into; the two the question named join
+    `Coursework`, which is the whole of what was answered.
+
+    **`104` R-40 CHANGED THE SECOND HALF OF THIS TEST AND NOT THE FIRST.** Until
+    it landed, this asserted thirty-one and named the two scans as HELD:
+    `review_policy_for` returned `blocked_pending_user` for a subject nothing had
+    classified before it asked anything else, so a destination the person had
+    typed was carried onto the record and then refused by the freeze. That is the
+    question failing to deliver, not scope working -- R-86's ruling is about WHICH
+    files an answer reaches, and it is measured by the thirty-one that keep their
+    own folders, which is unchanged here. The two scans are now planned, and
+    `review_required` rather than `auto_eligible` is what keeps naming a home
+    apart from authorising the move.
     """
     database = tmp_path / "plan.sqlite"
     _, chosen, _ = _asked(tmp_path, database)
@@ -274,13 +284,19 @@ def test_the_freeze_plans_the_other_files_into_the_folders_the_run_chose(
 
     names = _names(database)
     where = {names[file_id]: chain_of(node_id) for file_id, node_id in planned}
-    assert len(where) == READABLE, (
+    assert len(where) == READABLE + len(UNREADABLE), (
         f"the freeze planned {sorted(where)}:\n{printed}")
-    assert set(where.values()) == {"Coursework/ECON2010", "Coursework/PHYS1401"}, (
+    # THE THIRTY-ONE ARE THE MEASUREMENT, and they are read separately from the
+    # two so that the count above cannot be satisfied by the answer spreading.
+    # `home:.=Coursework` said Coursework about two scans; a run that filed the
+    # other thirty-one there too would have the same total and the wrong plan.
+    assert {chain for name, chain in where.items()
+            if name not in UNREADABLE} == {"Coursework/ECON2010",
+                                           "Coursework/PHYS1401"}, (
         "the answer about two scans was applied to the whole folder and the "
         f"freeze planned {sorted(set(where.values()))}:\n{printed}")
-    # And the two the answer DID reach are named on the screen with their own
-    # reason, rather than disappearing from it.
-    assert "Not frozen" in printed, printed
+    # And the two the answer DID reach went where it said, which is `104` R-40:
+    # the one question the product asks about an unreadable file now delivers.
     for name in UNREADABLE:
+        assert where.get(name) == chosen, (name, where, printed)
         assert name in printed, printed

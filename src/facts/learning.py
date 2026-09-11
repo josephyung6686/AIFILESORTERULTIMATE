@@ -79,8 +79,9 @@ from database_agent.learning import learning_records
 from evidence_shape.canonical import canonical_json
 from facts.authorship import AUTHORED_EVENT_TYPES, event_defaults
 from facts.file_facts import USER_CORRECTION, facts_for_file, write_fact
-from facts.states import REJECTED
+from facts.states import REJECTED, USER_CONFIRMED
 from facts.supersede import supersede_fact
+from facts.values import VALUE_ORIGINS, ensure_value, merge_values
 
 #: I4's equivalence table. P6 owns proposal class `fact`; its basis is the claim.
 #: `group`, `membership`, `branch`, `placement`, `residual` and `privacy` belong to
@@ -355,5 +356,168 @@ def reject_claim(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
             conn, action=action, scope=FILE_SCOPE, subject=file_id,
             polarity=REJECT, file_id=file_id, field_key=field_key,
             value_id=standing[0]["value_id"],
+            evidence_refs=json.loads(standing[0]["evidence_refs"]),
+            user_id=user_id, observed_at=observed_at)
+
+
+def _standing(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
+              field_key: str, value: str) -> list:
+    """Every live row of this version that carries this (field, value).
+
+    `reject_claim` derives the same list inline and keeps doing so: its refusals
+    are about a rejection and are worded for one, and a shared refusal message
+    would be a paraphrase of two different sentences. What is shared is the READ,
+    because a second spelling of "which rows does this gesture name" is how two
+    gestures come to disagree about the same claim.
+
+    A row already `rejected` is not standing. §8.7 stores a rejection so the
+    conclusion is not resurfaced, and confirming a value the person has just
+    rejected through the same screen would resurface it by their own hand --
+    `confirm_claim` refuses rather than silently reviving it.
+    """
+    named = [row for row in facts_for_file(conn, file_id, content_hash)
+             if row["field_key"] == field_key and row["canonical_value"] == value]
+    return [row for row in named
+            if row["superseded_by"] is None
+            and row["reliability_state"] != REJECTED]
+
+
+def confirm_claim(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
+                  field_key: str, value: str, action: str, user_id: str,
+                  observed_at: str) -> int:
+    """"The model names, the user confirms" -- the confirming half. §18.2 gap 3.
+
+    `reject_claim` above is the same gesture with the other polarity and is the
+    worked example this follows line for line: the lookup is here because P6's
+    schema is here, the caller passes the three words a person actually has, and
+    the evidence is taken from the row rather than from the caller.
+
+    WHAT IT WRITES IS `user_confirmed`, WHICH IS A STATE P6 ALREADY HAD AND HAD NO
+    PRODUCER FOR. §3.13 makes it the strongest state; `supersede.preferred_of_slot`
+    lets it win outright; `read_surface.confirmed_spellings` reads it back and is
+    what `cli.normalize_for_review` consults before proposing a value again. Every
+    one of those was built and tested and could not be reached: `normalize_for_review`
+    turned an unseen value into a `possible` fact, the screen printed it, and the
+    only gesture on that screen was `--reject`. A person could say no and could not
+    say yes.
+
+    SAYING YES IS NOT A SECOND READING OF THE FILE. The confirmed row carries the
+    SAME evidence refs and the SAME cache key as the proposal it replaces, for
+    `reject_claim`'s reason: §3.4's key identifies a computation and a person's
+    answer is not one, so minting a key here would claim a pass that never ran.
+    What changes is who stands behind the value.
+
+    REPEATABLE, because a person re-runs this command by pressing up-arrow. A
+    second confirmation of a value already confirmed on this version is the same
+    correction, not a new one, and returns the first one's event id -- exactly as
+    a repeated rejection does.
+    """
+    standing = _standing(conn, file_id=file_id, content_hash=content_hash,
+                         field_key=field_key, value=value)
+    if not standing:
+        raise NoSuchClaim(
+            f"this version of {file_id!r} carries no standing {field_key} of "
+            f"{value!r} to confirm. A confirmation names something the product "
+            "actually proposed and has not already retracted; refusing is the "
+            "only answer that does not leave you believing you were heard.")
+    already = [row for row in standing
+               if row["reliability_state"] == USER_CONFIRMED]
+    if already:
+        for record in learning_records(conn, FILE_SCOPE, file_id):
+            if record["proposal_class"] != PROPOSAL_CLASS:
+                continue
+            if record["basis_key"] != basis_key(file_id=file_id,
+                                                field_key=field_key,
+                                                value_id=already[0]["value_id"]):
+                continue
+            if record["polarity"] == ACCEPT:
+                return record["event_id"]
+    with transaction(conn):
+        for row in standing:
+            if row["reliability_state"] == USER_CONFIRMED:
+                continue
+            refs = json.loads(row["evidence_refs"])
+            confirmation = write_fact(
+                conn, file_id=file_id, content_hash=content_hash,
+                field_key=field_key, value_id=row["value_id"],
+                reliability_state=USER_CONFIRMED, origin=USER_CORRECTION,
+                evidence_refs=refs, cache_key=row["cache_key"], active=True)
+            supersede_fact(
+                conn, old_fact_id=row["fact_id"], new_fact_id=confirmation,
+                reason=f"{user_id} confirmed this claim ({action})")
+        return record_correction(
+            conn, action=action, scope=FILE_SCOPE, subject=file_id,
+            polarity=ACCEPT, file_id=file_id, field_key=field_key,
+            value_id=standing[0]["value_id"],
+            evidence_refs=json.loads(standing[0]["evidence_refs"]),
+            user_id=user_id, observed_at=observed_at)
+
+
+def rename_claim(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
+                 field_key: str, old: str, new: str, action: str, user_id: str,
+                 observed_at: str) -> int:
+    """The person keeps the value and changes its wording. §18.2 gap 3's other half.
+
+    A rename is a CONFIRMATION OF A DIFFERENT SPELLING, and writing it as anything
+    else would need a fourth polarity §8.7 does not have. Two things happen and
+    they are one transaction, because half of this gesture is worse than none:
+
+    * the two value rows are merged, `new` surviving. `values.merge_values` is the
+      one writer of the `aliases` column and `read_surface.confirmed_spellings`
+      says in its own docstring what that buys: "the person who is shown `Reading
+      Response Draft` and renames it `reading response` leaves exactly one row
+      that answers to both, and a model proposing either spelling next run reaches
+      the spelling they chose". Nothing here compares spellings; the person said
+      once that these are one value, which is the only equivalence this product
+      keeps.
+    * the claim on THIS file is confirmed at the surviving value. A merge alone
+      would leave the file's fact pointing at a row that still reads `old` as its
+      canonical wording, so the folder the person renamed would keep the name they
+      renamed away from.
+
+    `new` is created if the field has never seen it, with origin `user` -- which is
+    what `VALUE_ORIGINS`'s second member is for, and it is the only origin that
+    does not require a P4 observation key, because there is no observation: the
+    person typed it.
+
+    RENAMING TO WHAT IT ALREADY SAYS IS REFUSED. `merge_values` raises on a value
+    merged into itself and it is refused here first, in the person's own words,
+    because the merge's message is about value ids they have never seen.
+    """
+    if old == new:
+        raise MalformedCorrection(
+            f"{old!r} and the new wording are the same, so there is nothing to "
+            "rename. A rename says two spellings are one value; this one says a "
+            "spelling is itself.")
+    standing = _standing(conn, file_id=file_id, content_hash=content_hash,
+                         field_key=field_key, value=old)
+    if not standing:
+        raise NoSuchClaim(
+            f"this version of {file_id!r} carries no standing {field_key} of "
+            f"{old!r} to rename. A rename names something the product actually "
+            "proposed; refusing is the only answer that does not leave you "
+            "believing you were heard.")
+    with transaction(conn):
+        survivor = ensure_value(
+            conn, field_key=field_key, canonical_value=new,
+            first_evidence_ref=None, origin=VALUE_ORIGINS[1])
+        merged = standing[0]["value_id"]
+        if merged != survivor:
+            merge_values(conn, keep=survivor, merged=merged,
+                         reason=f"{user_id} renamed {old!r} to {new!r} ({action})")
+        for row in standing:
+            refs = json.loads(row["evidence_refs"])
+            renamed = write_fact(
+                conn, file_id=file_id, content_hash=content_hash,
+                field_key=field_key, value_id=survivor,
+                reliability_state=USER_CONFIRMED, origin=USER_CORRECTION,
+                evidence_refs=refs, cache_key=row["cache_key"], active=True)
+            supersede_fact(
+                conn, old_fact_id=row["fact_id"], new_fact_id=renamed,
+                reason=f"{user_id} renamed this value to {new!r} ({action})")
+        return record_correction(
+            conn, action=action, scope=FILE_SCOPE, subject=file_id,
+            polarity=ACCEPT, file_id=file_id, field_key=field_key,
+            value_id=survivor,
             evidence_refs=json.loads(standing[0]["evidence_refs"]),
             user_id=user_id, observed_at=observed_at)

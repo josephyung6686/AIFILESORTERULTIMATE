@@ -91,7 +91,10 @@ from facts.discount import MetadataScreen
 # evidence rather than off a constant, exactly as `model_facts.
 # call_identity_dimensions` reads it at site A.
 from facts.evidence import observations_for_version
-from facts.learning import NoSuchClaim, reject_claim
+from facts.learning import (
+    MalformedCorrection, NoSuchClaim, confirm_claim, reject_claim,
+    rename_claim,
+)
 from facts.domains import ActivationSignal, ActivationSignals
 from branch_situation import (
     Branch, BranchPartition, partition_by_branch, single_owner_terms,
@@ -259,7 +262,9 @@ from privacy.vocabulary import (
     MODE_SEMANTICS, RESTRICTED_KINDS,
 )
 from questions.explanation import explain_question, render_explanation
-from questions.effects import changed_answer, diff_for_answer_change
+from questions.effects import (
+    changed_answer, diff_for_answer_change, draft_for_answer_change,
+)
 from questions.explanation import explain_question, render_explanation
 from questions.proposal import propose_roles
 # TWO `questions.records` LINES, DELIBERATELY, AND THIS IS THE WHOLE REASON.
@@ -385,7 +390,7 @@ from mutation.schema import create_mutation_schema
 from mutation import vocabulary as mv
 from mutation.constraints import FilesystemConstraints
 from mutation.resolution import source_high_level_folder
-from tree_design.store import nodes_for_version
+from tree_design.store import latest_plan_version, nodes_for_version, open_draft
 from apply_run.approval import approval_reader, approval_writer
 from apply_run.branches import BranchRefused, branches_named
 from apply_run.freeze import freeze, frozen_plans
@@ -400,6 +405,12 @@ from review_run.progress import progress_lines
 # through P13's own §8.6 line, which is a different question over P4's extraction
 # states; this run needs the rule over a set of buckets P13 knows nothing about, so
 # the function is imported directly and nothing in P13 is widened to hold them.
+from database_agent.events import CORRECTION_SCOPES
+from review_gestures import collect_set_sends, record_set_presentations
+from review_surface.collect import (
+    BulkMembersRequired, PresentationRequired, ProtectedContainerHasNoAction,
+    ScopeNotPresented,
+)
 from review_surface.progress import (
     UNREADABLE, assert_every_file_accounted, bucket_for,
 )
@@ -407,8 +418,8 @@ from review_surface.records import ProgressEntry
 from review_surface.schema import create_review_schema
 from review_surface.trail import file_trail
 from review_surface.vocabulary import (
-    ACTION_REJECT, SOURCE_P4_RUNS, SOURCE_P8, STATE_BLOCKED, STATE_COMPLETED,
-    STATE_DEFERRED,
+    ACTION_ACCEPT, ACTION_REJECT, ACTION_RENAME, SOURCE_P4_RUNS, SOURCE_P8,
+    STATE_BLOCKED, STATE_COMPLETED, STATE_DEFERRED,
 )
 # `104` §18.2 gap 10: P4's own extraction record, for the files the fact pass
 # never reached. Read through P4's published reader rather than a query of this
@@ -4859,10 +4870,13 @@ def _print_values_to_confirm(conn: sqlite3.Connection, out) -> None:
     **THE BOUND, AND IT IS `REVIEW_NORMALISED_FIELDS`.** This block reads three
     fields, and gap 1 can flag any field the situation builds a folder from. The
     three are where every measured contradiction was -- `104` §18.2 gap 1 counts 16
-    `subject` and 17 `work_type` facts on r15 -- and widening the read is the confirm
-    gesture's question rather than this one's, because a field with no review path
-    has nothing for the person to answer with. Stated here so the absence is a
-    decision and not an oversight.
+    `subject` and 17 `work_type` facts on r15 -- and widening the read is a separate
+    question from this block's. It used to belong to the confirm gesture, on the
+    ground that a field with no review path has nothing for the person to answer
+    with; the gesture exists now and every field has one, so what is left is whether
+    a person should be asked about fields no folder is built from. That is a
+    question about the screen's length, not about its honesty, and it is stated here
+    so the bound is a decision and not an oversight.
 
     **The screen this block ends the absence of.** `normalize_for_review` has turned
     an unseen value into a `possible` fact since R-98, and `possible` is below
@@ -4885,15 +4899,18 @@ def _print_values_to_confirm(conn: sqlite3.Connection, out) -> None:
     the line printed is where the model got it -- which is what makes the question
     answerable rather than a request to trust a machine.
 
-    **WHAT THIS SCREEN DOES NOT YET OFFER, SAID HERE AND ON THE SCREEN ITSELF.** There
-    is no confirm gesture and no rename gesture in this command. `--reject` exists and
-    is printed because it is TRUE and typeable; confirming writes a `user_confirmed`
-    fact and renaming calls `facts.values.merge_values`, and neither has a flag. The
-    read side is built and tested (`normalize_with_the_persons_own_values` above), so
-    the day the owner shapes those two gestures the vocabulary they write is already
-    consulted. Printing a gesture that does not exist would break `84` §6 -- what the
-    screen tells a person to type has to be true -- so the block says plainly that the
-    answer is not typeable yet rather than inventing a flag to look finished.
+    **ALL THREE ANSWERS ARE NOW TYPEABLE** (`104` §18.2 gap 3's owed gestures).
+    `--confirm` writes the `user_confirmed` fact and `--rename` calls
+    `facts.values.merge_values` and then confirms at the survivor; both go through
+    `facts.learning`, where `--reject` already went, so the lookup stays in the part
+    that owns the schema. The read side was built and tested first
+    (`normalize_with_the_persons_own_values` above), which is why the vocabulary
+    these two write is consulted on the very next run.
+
+    Until they existed this block ended by saying that saying YES was not a gesture
+    this command had, and that was the honest thing to print -- `84` §6, what the
+    screen tells a person to type has to be true, so a flag was not invented to look
+    finished. The same rule is what took the sentence out: it is no longer true.
 
     **AND IT PRINTS WITH THE FACT PASS, WHICH IS A BOUND WORTH NAMING.** The call site
     is inside `_model_fact_pass`, so a run that reaches none of its four early returns
@@ -4996,12 +5013,24 @@ def _print_values_to_confirm(conn: sqlite3.Connection, out) -> None:
         # exactly where `_wrapped` would break this one.
         print(f"    --reject {shlex.quote(f'{filename}:{field_key}={value}')}"
               f"   No, that is not right", file=out)
+        # PRINTED RAW for the line above's reason, and all three together because
+        # they are one question with three answers. The rename line carries the
+        # value twice on purpose: the person edits the half after `>` and pastes
+        # it, so the wording they are changing FROM is in front of them and they
+        # never have to retype the half the product already knows.
+        print(f"    --confirm {shlex.quote(f'{filename}:{field_key}={value}')}"
+              f"   Yes, that is right", file=out)
+        print(f"    --rename "
+              f"{shlex.quote(f'{filename}:{field_key}={value}>{value}')}"
+              f"   Yes, but I call it something else -- edit the second half",
+              file=out)
     print("", file=out)
     print(_wrapped(
-        "Saying YES to one of these is not a gesture this command has yet: the "
-        "product can store your answer and will use it on every later run, and "
-        "there is no flag to type it with. Until there is, a proposal stays a "
-        "proposal and files nothing.", indent="  "), file=out)
+        "Confirming a value makes it yours: it outranks anything the rules or a "
+        "model say about that file, and the product uses your spelling on every "
+        "later run instead of asking again. Until you answer, a proposal stays a "
+        "proposal and files nothing. None of these three moves a file.",
+        indent="  "), file=out)
 
 
 #: The field the coursework `holder_institution` role resolves to, spelled here for
@@ -8415,6 +8444,18 @@ def _validate_residuals(names: Sequence[str]) -> tuple[str, ...]:
     # Order is §7.3's, not the order they were typed, so two runs that enable
     # the same areas produce the same plan.
     return tuple(name for name in RESIDUAL_TEMPLATE_NAMES if name in set(names))
+
+
+#: §8.7's scope for the `--send-set` gesture, chosen by the composition root
+#: because `review_surface.collect` refuses to supply one and `review_gestures`
+#: refuses to default one -- §8.7's whole example is about not inferring a scope
+#: (`104` R-26). What the gesture says is that files like these belong at one
+#: residual AREA, and an area is a node of this plan version:
+#: `approved_residual_area` is what resolves the words the person typed to its
+#: `node_id`. `file` would claim they judged each member, which is the one thing
+#: a bulk send does not do; `corpus` would claim they said it about every run.
+RESIDUAL_SEND_SCOPE: str = "node"
+assert RESIDUAL_SEND_SCOPE in CORRECTION_SCOPES
 
 
 def _parse_sends(raw: Sequence[str]) -> Mapping[str, str]:
@@ -13792,6 +13833,70 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     # is not remembered between runs: the run that files the files is the run the
     # person named them in.
     if sends:
+        # `104` R-26. THE GESTURE IS RECORDED BEFORE THE PART THAT ACTS ON IT IS
+        # CALLED, which is the order `review_gestures` was written for and could
+        # not have until something called it. `review_surface.collect` is the one
+        # function in the product that turns a person's gesture into a stored
+        # `review_action`, and until this line nothing in `src/` reached it: the
+        # screen offered `--send-set "SET=AREA"`, a person typed it,
+        # `residual_set_decisions` got a row and `review_actions` stayed empty on
+        # every real run. The audit trail of the one bulk gesture this command
+        # has did not exist.
+        #
+        # BEFORE, and the reason is P13's own refusal. A protected set carries no
+        # action; `act_on_residual_sets` writes its decision row first and
+        # `review_residual_sets` only then raises `ProtectedSetNotReadable`, so
+        # the run ended with a decision standing that said protected material was
+        # to be filed in bulk. Collecting first puts P13's paragraph in front of
+        # that write.
+        #
+        # `session_id` IS THE PLAN VERSION, for `approval_writer`'s reason one
+        # gesture along: `run_token` mints a fresh one per run, so it names this
+        # sitting and nothing else in this process has a truer claim to being it.
+        # `settings` is read from P7 at the moment of display rather than
+        # assumed, for the same reason the freeze reads it.
+        plan_version = result.tree.tree.plan_version_id
+        send_actions = count()
+
+        def mint_send_action_id() -> str:
+            # Prefixed for `mint_approval_id`'s reason: an action id, an approval
+            # id and a plan id are three different things a person may be asked
+            # about later, and a bare uuid says which by where it was found.
+            return f"send-{uuid.uuid4().hex}:{next(send_actions)}"
+
+        presented = record_set_presentations(
+            conn, sets=result.placement.residual_sets,
+            plan_version=plan_version, session_id=plan_version,
+            settings=display_policy(conn, plan_version=plan_version),
+            user_id=user_id, component_version=COMPONENT_VERSION,
+            rendered_at=now())
+        try:
+            # THE SCOPE IS `node`, CHOSEN HERE AND NOT INFERRED ANYWHERE BELOW.
+            # `collect` refuses to supply one and `review_gestures` refuses to
+            # default one, both citing §8.7's example of not inferring a scope,
+            # so the composition root answers it. What `--send-set` says is that
+            # files like these belong at one residual AREA, and an area is a node
+            # of this plan version -- `approved_residual_area` resolves the typed
+            # words to its `node_id`. `file` would claim the person judged each
+            # member, which is exactly what a bulk send does not do; `corpus`
+            # would claim they said it about every run.
+            collect_set_sends(
+                conn, sends=sends, sets=result.placement.residual_sets,
+                presented=presented, mint_action_id=mint_send_action_id,
+                plan_version=plan_version, session_id=plan_version,
+                correction_scope=RESIDUAL_SEND_SCOPE, user_id=user_id,
+                component_version=COMPONENT_VERSION, acted_at=now())
+        except (ProtectedContainerHasNoAction, PresentationRequired,
+                BulkMembersRequired, ScopeNotPresented) as refusal:
+            # P13's OWN SENTENCE, printed and not paraphrased, and the plan
+            # survives exactly as it does for `ResidualSendRefused` below: the
+            # run is already computed and a refused gesture is not a reason to
+            # throw it away. Nothing was filed, because nothing downstream ran.
+            print(f"\nThat send was refused, and the plan below is unaffected:"
+                  f"\n  {refusal}\n  Nothing was filed in bulk, and the plan "
+                  "below is the run that was already computed.", file=out)
+            sends = {}
+    if sends:
         try:
             result = dataclasses.replace(result, placement=act_on_residual_sets(
                 conn, result=result.placement,
@@ -14431,6 +14536,134 @@ def apply_rejections(conn: sqlite3.Connection, rejections: Sequence[str], *,
             ) from refusal
 
 
+class ConfirmationRefused(NotConfigured):
+    """`--confirm` or `--rename` named something this plan has never proposed."""
+
+
+def _named_file(conn: sqlite3.Connection, filename: str, gesture: str):
+    """The one file row this gesture names, or a refusal that says which to type.
+
+    `apply_rejections` states the rule and this is the same rule, read once
+    instead of twice: `notes.txt` in two course folders is the most ordinary
+    thing on a real disk, and taking the first match would act on a file the
+    person did not name while the screen said it worked. EVERY row P1 has not
+    retired, because two versions of one file are not two files and the refusal
+    below could not tell them apart -- it offered the identical path twice as the
+    way to say which one was meant (`104` R-25).
+
+    `gesture` is the flag in the person's own words, so the refusal names the
+    thing they typed rather than a word this function chose.
+    """
+    rows = conn.execute(
+        "SELECT file_id, content_hash, current_path FROM files "
+        "WHERE filename = ? AND scan_state NOT IN (?, ?) "
+        "ORDER BY current_path",
+        (filename, SUPERSEDED_CONTENT, PATH_NO_LONGER_EXISTS)).fetchall()
+    if not rows:
+        raise ConfirmationRefused(
+            f"{filename!r} is not a file in this plan. Run the command without "
+            f"`{gesture}` first: there is nothing to answer about until the "
+            "product has proposed something.")
+    if len(rows) > 1:
+        paths = "\n    ".join(row["current_path"] for row in rows)
+        raise ConfirmationRefused(
+            f"{filename!r} names {len(rows)} files in this plan, and this "
+            f"{gesture} would only reach one of them. Name the one you mean by "
+            f"its path:\n    {paths}")
+    return rows[0]
+
+
+def apply_confirmations(conn: sqlite3.Connection, confirmations: Sequence[str], *,
+                        user_id: str, observed_at: str) -> None:
+    """`--confirm FILE:FIELD=VALUE`, the yes `--reject` was shipped without.
+
+    `104` §18.2 gap 3 asked for "a proposal the person SEES"; `_print_values_to_confirm`
+    built the screen and had to end by saying that saying YES was not a gesture
+    this command had. The read side was already there and reachable by nothing:
+    `normalize_for_review` writes the unseen value as `possible`,
+    `facts.read_surface.confirmed_spellings` reads back what the person confirmed,
+    and `normalize_with_the_persons_own_values` tests that the second consults the
+    first. Only the writer was missing.
+
+    Applied where `--reject` is applied, before the run reads anything and for its
+    reason: a person who has just been shown a proposal and said yes should see
+    the difference on this invocation, not the next one.
+
+    The lookup and the writes belong to P6 (`facts.learning.confirm_claim`), not
+    here. This turns one typed string into three words and hands them over; a
+    SELECT over `file_facts` written in this file would be a second home for P6's
+    schema in the one module that is supposed to hold none.
+    """
+    for raw in confirmations:
+        target, _, value = raw.partition("=")
+        filename, _, field_key = target.rpartition(":")
+        if not filename or not field_key or not value:
+            raise ConfirmationRefused(
+                f"{raw!r} is not a confirmation. The form is "
+                "`--confirm <file>:<field>=<value>`, naming something this plan "
+                "proposed -- for example "
+                "`--confirm 'week 3.pdf:work_type=reading response'`.")
+        row = _named_file(conn, filename, "--confirm")
+        try:
+            confirm_claim(conn, file_id=row["file_id"],
+                          content_hash=row["content_hash"], field_key=field_key,
+                          value=value, action=ACTION_ACCEPT, user_id=user_id,
+                          observed_at=observed_at)
+        except NoSuchClaim as refusal:
+            # P6 names the file by its id, which is the right word inside P6 and
+            # the wrong one on a screen: the person typed a filename and has
+            # never seen a uuid. Re-said in their words, with P6's reason kept.
+            raise ConfirmationRefused(
+                str(refusal).replace(repr(row["file_id"]), repr(filename))
+            ) from refusal
+
+
+def apply_renames(conn: sqlite3.Connection, renames: Sequence[str], *,
+                  user_id: str, observed_at: str) -> None:
+    """`--rename FILE:FIELD=OLD>NEW`: yes, and this is what I call it.
+
+    `>` and not a second `=`, because a value may contain an `=` and every one of
+    these fields is free text the model read out of a document. The separator has
+    to be something the form does not already spend, and the screen prints the
+    whole line for the person to paste.
+
+    `facts.learning.rename_claim` does both halves in one transaction -- merging
+    the two value rows so the survivor answers to both spellings, and confirming
+    this file's claim at the survivor. `confirmed_spellings` is what then reaches
+    a later run's proposal, so the spelling the person chose is the one the
+    product uses from here on.
+    """
+    for raw in renames:
+        target, _, wording = raw.partition("=")
+        filename, _, field_key = target.rpartition(":")
+        old, sep, new = wording.partition(">")
+        if not filename or not field_key or not sep or not old or not new:
+            raise ConfirmationRefused(
+                f"{raw!r} is not a rename. The form is "
+                "`--rename <file>:<field>=<what it says>><what to call it>`, "
+                "naming something this plan proposed -- for example "
+                "`--rename 'week 3.pdf:work_type=Reading Response Draft>reading "
+                "response'`.")
+        row = _named_file(conn, filename, "--rename")
+        try:
+            rename_claim(conn, file_id=row["file_id"],
+                         content_hash=row["content_hash"], field_key=field_key,
+                         old=old, new=new, action=ACTION_RENAME,
+                         user_id=user_id, observed_at=observed_at)
+        except (NoSuchClaim, MalformedCorrection, ValueError) as refusal:
+            # `ValueError` is `merge_values`'s own refusal and is caught here
+            # rather than left to traceback: one proposed value can sit on two
+            # files, and a person who renames it one way on the first and another
+            # way on the second meets "already merged into ..." -- a real answer
+            # (§8.2 never overwrites the first merge reason) reaching them as a
+            # crash. P6's own two are named first and `ValueError` last, so the
+            # tuple reads as "the refusals this gesture expects, and then P1's
+            # value-level ones" rather than as a bare catch-all.
+            raise ConfirmationRefused(
+                str(refusal).replace(repr(row["file_id"]), repr(filename))
+            ) from refusal
+
+
 class AnswerRefused(NotConfigured):
     """`--answer` named something this database has never asked about."""
 
@@ -14505,7 +14738,8 @@ def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
     return tuple(settled)
 
 
-def _print_answer_effects(conn: sqlite3.Connection, settled, out) -> None:
+def _print_answer_effects(conn: sqlite3.Connection, settled, out, *,
+                          created_at: str) -> None:
     """§17:577's diff, for the answers this invocation actually changed.
 
     `changed_answer` returns `None` for a FIRST answer, which is why this prints
@@ -14519,6 +14753,8 @@ def _print_answer_effects(conn: sqlite3.Connection, settled, out) -> None:
     the same reason, in its own docstring.
     """
     out = out if out is not None else sys.stdout
+    draft_token = uuid.uuid4().hex[:8]
+    draft_ids = count()
     for question_id, scope in settled:
         change = changed_answer(conn, question_id=question_id, scope=scope)
         if change is None:
@@ -14544,6 +14780,39 @@ def _print_answer_effects(conn: sqlite3.Connection, settled, out) -> None:
         print("  Not worked out here, and why:", file=out)
         for name, reason in diff.why_not_computed.items():
             print(f"    {name}: {reason}", file=out)
+        # `104` R-38. §17:576's DRAFT, opened here because this is where the
+        # policy lives. `draft_for_answer_change`'s own docstring says whether to
+        # call it at all "IS NOT DECIDED HERE ... The composition root holds that
+        # policy, as it holds every other one" -- and until this line the
+        # composition root held no policy, so the function had no caller and an
+        # edited answer opened nothing. §17:576 reads "the product creates a draft
+        # plan version"; this deployment reads that as automatic, which is the
+        # sentence taken at its word, and `75` §6 Q5's offered-instead reading
+        # stays the owner's to rule.
+        #
+        # It returns `None` when the change changed nothing, so a person who
+        # re-types the answer they already gave finds no draft waiting -- the
+        # guard is P15's and is not repeated here.
+        #
+        # FROM the version the person last saw, and never from nothing: before any
+        # run there is no tree to copy and the answer simply takes effect on the
+        # run that follows. The ids are minted off this invocation's own token for
+        # the same reason `run` mints its own -- two drafts opened in one session
+        # must not collide, and a uuid per node would make the draft unreadable
+        # beside the version it came from.
+        from_version = latest_plan_version(conn)
+        if from_version is None:
+            continue
+        draft = draft_for_answer_change(
+            conn, change=change, from_version=from_version,
+            new_version_id=f"version_{draft_token}_{next(draft_ids)}",
+            created_at=created_at, open_draft=open_draft,
+            mint_node_id=lambda: f"node_{draft_token}_{next(draft_ids)}")
+        if draft is not None:
+            conn.commit()
+            print(f"  A draft plan version was opened from {from_version} so "
+                  "you can see this against what you had. Nothing is frozen and "
+                  "nothing has moved.", file=out)
 
 
 # ======================================================================================
@@ -16737,6 +17006,22 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "Nothing is deleted -- the old conclusion and its evidence stay "
              "readable. Can be given more than once.")
     parser.add_argument(
+        "--confirm", action="append", default=[], metavar="FILE:FIELD=VALUE",
+        help="say yes to a value the product proposed, e.g. --confirm "
+             "'week 3.pdf:work_type=reading response'. The value becomes yours: "
+             "it outranks anything the rules or a model say about that file, and "
+             "the product uses that spelling on later runs instead of asking "
+             "again. Nothing moves -- --freeze and --apply are what move files. "
+             "Can be given more than once.")
+    parser.add_argument(
+        "--rename", action="append", default=[], metavar="FILE:FIELD=OLD>NEW",
+        help="say yes to a value and give it your own wording, e.g. --rename "
+             "'week 3.pdf:work_type=Reading Response Draft>reading response'. "
+             "The two spellings become one value answering to both, so the "
+             "product recognises either next time and uses yours. `>` separates "
+             "them because a value may contain an `=`. Can be given more than "
+             "once.")
+    parser.add_argument(
         "--residual", action="append", default=[], metavar="NAME",
         help="enable one of §7.3's residual areas as a destination in this "
              "plan, e.g. --residual \"Reading Inbox\". These are the homes for "
@@ -17031,10 +17316,16 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         # should not have to run the command a third time to see what it did.
         if args.answer:
             _bootstrap(conn)
+            # ONE timestamp for the gesture and its consequence. `now()` is a
+            # fresh reading per call, and an answer recorded a millisecond before
+            # the draft it opened would sort after it on a `created_at DESC` read
+            # -- which is exactly the read `latest_plan_version` makes.
+            recorded_at = now()
             _print_answer_effects(
                 conn,
                 apply_answers(conn, args.answer, user_id=args.user,
-                              recorded_at=now()), out)
+                              recorded_at=recorded_at), out,
+                created_at=recorded_at)
         # After the answers and before the run, for the same reason, and in
         # this order: describing then confirming under one name is a correction
         # that supersedes, so the confirmation must be the later write.
@@ -17061,6 +17352,18 @@ def main(argv: Sequence[str] | None = None, *, out=None,
             _bootstrap(conn)
             apply_rejections(conn, args.reject, user_id=args.user,
                              observed_at=now())
+        # `104` §18.2 gap 3's two owed gestures, applied beside the rejection and
+        # for its reason: all three are answers to the same screen, and a person
+        # who says "that one is wrong, that one is right, and call that one this"
+        # in one command should see all three on this run.
+        if args.confirm:
+            _bootstrap(conn)
+            apply_confirmations(conn, args.confirm, user_id=args.user,
+                                observed_at=now())
+        if args.rename:
+            _bootstrap(conn)
+            apply_renames(conn, args.rename, user_id=args.user,
+                          observed_at=now())
         if args.explain:
             _bootstrap(conn)
             for question_id in args.explain:

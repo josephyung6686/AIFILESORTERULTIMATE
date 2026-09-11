@@ -488,9 +488,26 @@ def role_declaration_is_due(*, blocked: Iterable[StructuralQuestion],
     is settled, R1 puts the moment at "the first genuinely AMBIGUOUS file", and an
     offer is not one. Discriminated on the scope kind, which already carries the
     distinction, rather than on a second list somebody has to keep in step.
+
+    **AND NEITHER IS A FILE NOBODY COULD READ** (`104` R-39). A `home:` question is
+    raised when every text-producing extractor opened the files in one folder and
+    recovered nothing from any of them -- `question_for_unreadable_folder` says so
+    in its own evidence sentence: "nothing readable came out of them, so nothing
+    but you can say what they are". A role is what a person IS, and R1 puts the
+    moment at the first genuinely ambiguous file because knowing the person is a
+    student narrows what an ambiguous file might be. It narrows nothing about a
+    file with no words in it: the answer to a `home:` question is a destination,
+    typed, and no declaration on any corpus could supply it.
+
+    So the moment fired on the one question a role cannot help with, and told the
+    person that the decisions above were waiting on a declaration that would
+    unblock none of them -- the same defect the nesting offer had, one kind along.
+    Discriminated on the KIND, beside `ROLE_KIND`, and not on the scope: `folder:`
+    is `HOME_KIND`'s scope and a second kind could take it, which is the corner
+    `branch` painted itself into and `SITUATION_KIND` had to climb out of.
     """
     if tuple(already_declared):
         return False
-    return any(kind_of(question.question_id) is not ROLE_KIND
+    return any(kind_of(question.question_id) not in (ROLE_KIND, HOME_KIND)
                and not question.scope.startswith(f"{SCOPE_BRANCH}:")
                for question in blocked)

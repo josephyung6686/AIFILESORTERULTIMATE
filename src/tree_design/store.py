@@ -249,6 +249,26 @@ def nodes_for_version(conn: sqlite3.Connection,
     return tuple(_row_to_node(conn, row) for row in rows)
 
 
+def latest_plan_version(conn: sqlite3.Connection) -> str | None:
+    """The newest version this database holds, or `None` before the first run.
+
+    Published here rather than queried by the composition root, for the reason
+    `facts.learning.reject_claim` gives about its own lookup: a SELECT over
+    `plan_versions` written in `src/cli.py` would be a second home for P10's
+    schema in the file whose own docstring says it holds none.
+
+    Ordered by `created_at` with the id breaking the tie, because a run that
+    opens a draft in the same second as the version it was opened from would
+    otherwise be ordered by a row order. `104` R-38 is the caller: §17:576's
+    draft is opened FROM something, and what it is opened from is whatever the
+    person last saw.
+    """
+    row = conn.execute(
+        "SELECT plan_version_id FROM plan_versions "
+        "ORDER BY created_at DESC, plan_version_id DESC LIMIT 1").fetchone()
+    return None if row is None else row["plan_version_id"]
+
+
 def freeze_version(conn: sqlite3.Connection, plan_version_id: str) -> None:
     """Mark a version frozen. Task 16 owns the validation that precedes this."""
     _require_version(conn, plan_version_id)

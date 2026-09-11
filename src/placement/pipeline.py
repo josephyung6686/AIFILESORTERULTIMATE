@@ -3979,7 +3979,19 @@ def _user_chose(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
             privacy_state=privacy, two_condition=two, group_support=None,
             unique_direct_match=False,
             destination_disposition=entry.disposition,
-            automatic_move_permitted=automatic_move_permitted),
+            automatic_move_permitted=automatic_move_permitted,
+            # `104` R-40. THE ONE CALL SITE WHERE THE DESTINATION IS THE PERSON'S
+            # OWN WORD, and the only one that may pass this. `review_policy_for`
+            # blocks an unclassified subject before every other test, and the
+            # file this path carries is USUALLY unclassified -- the `home:`
+            # question is asked precisely about files no extractor could read.
+            # Without this the answer wrote a `place` decision the freeze then
+            # held as `awaiting_classification`, so the one question the product
+            # asks about an unreadable file could not deliver. It lifts the
+            # review policy and nothing else: the handling class is untouched,
+            # no model becomes reachable, and `unique_direct_match=False` above
+            # keeps the answer at `review_required`.
+            destination_named_by_user=True),
         explanation=(
             "You said where this file goes. Nothing this run could read said what "
             "it is, so this destination is yours and not a judgement the engine "

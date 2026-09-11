@@ -31,7 +31,7 @@ from questions.schema import create_questions_schema
 from questions.store import record_question
 from questions.triggers import (
     NestingChoice, question_for_nesting, question_for_tied_reading,
-    role_declaration_is_due,
+    question_for_unreadable_folder, role_declaration_is_due,
 )
 
 T0 = "2026-08-31T10:00:00+00:00"
@@ -263,3 +263,44 @@ def test_a_blocked_reading_alongside_an_offer_still_makes_the_moment_due():
     asking."""
     assert role_declaration_is_due(blocked=(AN_OFFER, AMBIGUOUS),
                                    already_declared=()) is True
+
+
+#: `104` R-39's question, built the way `cli._home_questions` builds it: a folder
+#: whose files every text-producing extractor opened and recovered nothing from.
+#: The destinations are the shape `DestinationChoice` presents, which is all
+#: `question_for_unreadable_folder` reads off them.
+class _Choice:
+    def __init__(self, option_id, label):
+        self.option_id = option_id
+        self.display_path = option_id
+        self.label = label
+
+
+NOTHING_COULD_BE_READ = question_for_unreadable_folder(
+    folder="scans",
+    choices=(_Choice("Coursework", "Coursework"),
+             _Choice("Coursework/lecture", "Coursework/lecture")),
+    file_count=2, protected_count=0, shown_as=None)
+
+
+def test_a_file_nobody_could_read_does_not_make_the_moment_due():
+    """`104` R-39. A role narrows what an AMBIGUOUS file might be; it narrows
+    nothing about a file with no words in it.
+
+    `question_for_unreadable_folder` states the condition in its own evidence
+    sentence -- "nothing readable came out of them, so nothing but you can say
+    what they are" -- and the answer is a destination, typed. No declaration on
+    any corpus could supply it, so the moment was telling the person that the
+    decisions above were waiting on something that would unblock none of them.
+    `84` §6 again, the same defect the nesting offer had one kind along.
+    """
+    assert role_declaration_is_due(
+        blocked=(NOTHING_COULD_BE_READ,), already_declared=()) is False
+
+
+def test_a_blocked_reading_alongside_an_unreadable_folder_still_makes_it_due():
+    """The other direction, so this is a distinction and not a way of never
+    asking -- the same pair the nesting offer is tested with."""
+    assert role_declaration_is_due(
+        blocked=(NOTHING_COULD_BE_READ, AMBIGUOUS),
+        already_declared=()) is True

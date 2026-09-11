@@ -614,13 +614,34 @@ def vertical_options(
             branch_expectations=stated,
         ))
 
+    # `104` R-27. WHAT THIS OPTION COSTS, SAID ON THE OPTION. "Nothing moves and
+    # nothing is created" was true and was not the whole truth: a branch with no
+    # `branch_expectations` states no values, so P11's direct-fact channel reaches
+    # nothing and every file in it goes from ready-to-file to held. Measured on a
+    # four-file corpus, `--answer branch:Coursework=keep-as-it-is` took three
+    # placements to nothing while the option text named only the two things that
+    # did not happen. `84` §6: what the screen tells a person has to be true, and
+    # a sentence that names only the harmless half of an outcome is the same
+    # defect as one that is wrong.
+    #
+    # The phrasing is the one the splitting options above already use -- "so
+    # these files can be filed into it" -- negated, so a person reading the list
+    # is comparing one sentence against its opposite rather than two vocabularies.
+    #
+    # WHETHER IT SHOULD STILL FILE is a different question and not this one. `104`
+    # Q-H asks whether `keep-as-it-is` files into the kept branch, and it is the
+    # owner's; until it is ruled, the option says what the product does.
     no_split_summary = (
-        "Keep this branch as it is. Nothing moves and nothing is created."
+        "Keep this branch as it is. Nothing moves and nothing is created -- and "
+        "the branch records no values either, so these files cannot be filed "
+        "into it and stay where they are, held for review."
     )
     if not report.candidates:
         no_split_summary = (
             "Keep this branch as it is: no applicable recipe resolved against "
-            "this branch's evidence, and nothing is invented to fill the gap."
+            "this branch's evidence, and nothing is invented to fill the gap. "
+            "The branch records no values, so these files cannot be filed into "
+            "it and stay where they are, held for review."
         )
     if report.deferred:
         no_split_summary += (
