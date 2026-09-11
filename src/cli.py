@@ -71,6 +71,13 @@ from extractors.image import PERCEPTUAL_HASH_FIELD
 # shortcut, which `104` §18.2 gap 21 deleted. `readers/signatures.py` imports it
 # directly -- it is the reader that needs to know which extensions the router
 # already understands, and this module no longer asks that question.
+#
+# `104` R-42 item 2 imports it BACK, and for a different question: not "what does
+# this extension mean" -- that is still the reader's -- but "is `pdf` a format this
+# router has a row for", asked once, at import, as the assert beside
+# `PDF_FORMAT`. A review set named after a format token the table does not carry
+# would silently hold nothing.
+from extractors.router import SOURCE_TYPE_BY_FORMAT
 from extractors.reading import ZONE_BY_STRUCTURED_KIND, StructuredString
 from extractors.structured_text import EXTRACTOR_NAME as STRUCTURED_EXTRACTOR
 from extractors.filesystem import SOURCE_TYPE as FILESYSTEM_SOURCE_TYPE
@@ -104,7 +111,7 @@ from branch_situation import (
 )
 # `MEDIA_TYPE_FIELD` left this import with `104` R-09: the retired
 # `active_schema_for` literal was the only line in this file that named it.
-from facts.photo_event import media_type
+from facts.photo_event import MEDIA_TYPES, MEDIA_TYPE_FIELD, media_type
 from facts.budgets import LLM_ROUTE, P6_CEILING_KEYS, UnknownCeiling
 from facts.resolver import BUDGET_BAR, PRIVACY_BAR, FactResolver
 from facts.anchor_statements import (
@@ -444,6 +451,9 @@ from grouping.learning import apply_review_action as record_group_review
 # file's own, so "this file could not be read" means here exactly what it means on
 # §8.6's line and the two screens cannot disagree about one file.
 from evidence_shape.store import get_observation, runs_for_content
+#: P4's closed `source_type` vocabulary, imported for the assert beside
+#: `SPREADSHEET_FAMILIES` and for nothing else (`104` R-42 item 2).
+from evidence_shape.vocabulary import SOURCE_TYPES
 from tree_design.residuals import (
     ResidualChoice, ResidualTemplate, build_library,
 )
@@ -11767,10 +11777,84 @@ PROTECTED_REVIEW_SET_WORDS: tuple[str, str] = (
     "everything else; each one is yours to decide.",
 )
 
+#: `104` R-42 item 2. THE CHARACTERISTIC, WHERE THE ENGINE ALREADY HAS ONE.
+#:
+#: R-115 divided the residual screen by the reason the decision recorded, which is
+#: a reliable characteristic and is not the one `00` §residual names. Its eight
+#: example sets are named by what their files SHARE -- "58 screenshots with no
+#: accepted project or event", "21 standalone PDFs and forms", "14 spreadsheets
+#: and presentations with unclear purpose" -- and all three of those files stop
+#: for ONE reason, so R-115 put them under one heading called "No folder matched".
+#:
+#: **These refine that heading and no other.** `REFINED_BY_CHARACTERISTIC` below
+#: is the one reason a characteristic may divide: the reason that says the product
+#: LOOKED and nothing matched. Every other row of `REVIEW_SET_REASONS` says what
+#: is BLOCKING the file -- a model was not allowed to look, you have been asked a
+#: question, this run stopped before reaching them -- and dividing one of those by
+#: file type would tell somebody the product looked at their spreadsheet and could
+#: not tell, when what happened is that it never looked. `66` §4 forbids those two
+#: sharing a message, so they do not share a set either.
+#:
+#: **Each sentence is `NO_SUPPORTED_DESTINATION`'s, unchanged**, and that is what
+#: makes this a division rather than new copy: every member of these sets stopped
+#: for that reason and its sentence is true of each of them word for word. What
+#: the characteristic adds is the NAME, which is `00`'s own.
+#:
+#: **The signals are read, never derived.** Screenshots come from §2.6's
+#: `media_type` fact, which `facts.photo_event.media_type` writes off the EXIF
+#: bands or refuses to write at all; PDFs and spreadsheets come from §2.9's
+#: router, whose `extraction_routing` row already carries the detected format and
+#: the source-type family. `00`'s fourth named set -- "17 receipts, tickets, and
+#: confirmations" -- is NOT here, and `test_a_receipt_set_needs_a_fact_that_names_
+#: one` is the strict xfail that says why: nothing in this product concludes that a
+#: file is a receipt, and dividing a review set on a word found in a filename is
+#: the invention `00` §7.2 exists to refuse.
+SCREENSHOT_REVIEW_SET: str = "screenshots-with-no-accepted-project-or-event"
+STANDALONE_PDF_REVIEW_SET: str = "standalone-pdfs-and-forms"
+SPREADSHEET_REVIEW_SET: str = "spreadsheets-and-presentations"
+
+#: The two signals, NAMED out of the vocabularies that publish them rather than
+#: spelled here. `SCREENSHOT_MEDIA_TYPE` is §2.6's second hypothesis, in the order
+#: `facts.photo_event` publishes the pair; `PDF_FORMAT` is a key of §2.9's own
+#: routing table and `SPREADSHEET_FAMILIES` are two members of P4's closed
+#: `source_type` vocabulary. The asserts are what makes this a selection from
+#: somebody else's list rather than a copy of part of it: a rename upstream fails
+#: here instead of quietly emptying a review set.
+SCREENSHOT_MEDIA_TYPE: str = MEDIA_TYPES[1]
+PDF_FORMAT: str = "pdf"
+assert PDF_FORMAT in SOURCE_TYPE_BY_FORMAT
+#: `00` names one set "spreadsheets and presentations with unclear purpose", so the
+#: set is the two families that sentence names and neither is here on its own.
+SPREADSHEET_FAMILIES: tuple[str, ...] = ("spreadsheet", "presentation")
+assert set(SPREADSHEET_FAMILIES) <= set(SOURCE_TYPES)
+
+#: The reasons a characteristic may divide. One member, and the docstring above is
+#: the argument for its being one.
+REFINED_BY_CHARACTERISTIC: frozenset[str] = frozenset({pv.NO_SUPPORTED_DESTINATION})
+
+REVIEW_SET_CHARACTERISTICS: tuple[tuple[str, str, str], ...] = tuple(
+    (key, label, dict(
+        (row[0], row[2]) for row in REVIEW_SET_REASONS)[pv.NO_SUPPORTED_DESTINATION])
+    for key, label in (
+        (SCREENSHOT_REVIEW_SET, "Screenshots with no accepted project or event"),
+        (STANDALONE_PDF_REVIEW_SET, "Standalone PDFs and forms"),
+        (SPREADSHEET_REVIEW_SET,
+         "Spreadsheets and presentations with unclear purpose"),
+    ))
+
 REVIEW_SET_WORDS: Mapping[str, tuple[str, str]] = MappingProxyType({
     **{key: (label, reason) for key, label, reason in REVIEW_SET_REASONS},
+    **{key: (label, reason) for key, label, reason in REVIEW_SET_CHARACTERISTICS},
     PROTECTED_REVIEW_SET: PROTECTED_REVIEW_SET_WORDS,
 })
+
+#: The order the screen names its sets in, protected last. A characteristic sits
+#: where the reason it divides sits, so the three named sets are read together and
+#: the remainder of that reason keeps its own place immediately before them.
+REVIEW_SET_ORDER: tuple[str, ...] = tuple(
+    key for row in REVIEW_SET_REASONS
+    for key in ((row[0], *(name for name, _, _ in REVIEW_SET_CHARACTERISTICS))
+                if row[0] in REFINED_BY_CHARACTERISTIC else (row[0],)))
 
 #: The rows a decision's own reason may name, and the protected key is NOT in it.
 #: `PROTECTED_REVIEW_SET` is the string `"protected"`, which is also
@@ -11781,6 +11865,63 @@ REVIEW_SET_WORDS: Mapping[str, tuple[str, str]] = MappingProxyType({
 #: decided by `_protected_among` and by nothing else.
 ORDINARY_REVIEW_SET_KEYS: frozenset[str] = frozenset(
     key for key, _, _ in REVIEW_SET_REASONS)
+
+
+def residual_characteristics(conn: sqlite3.Connection,
+                             file_ids: Sequence[str]) -> dict[str, str]:
+    """Which of `00` §residual's named characteristics each file HAS, read back.
+
+    `104` R-42 item 2. Two readers, both of records this run already wrote, and
+    no third derivation of either:
+
+    * a screenshot is §2.6's `media_type` fact. `facts.photo_event.media_type`
+      ranks the EXIF bands and either writes `screenshot` or refuses to write
+      anything -- "the system must not mistake the absence of EXIF for proof that
+      an image is a screenshot" -- so a file with no row here has no
+      characteristic rather than being guessed at from its name or its extension.
+    * a PDF and a spreadsheet are §2.9's router. `extraction_routing` carries the
+      DETECTED format and the source-type family it chose, which is the same
+      reading `00` calls "the file extension as a routing signal rather than an
+      assumption about meaning". Reading the extension off `files` instead would
+      be a second answer free to disagree with the router's, on the one axis the
+      router exists to settle.
+
+    A file with more than one signal takes the image reader's first: `media_type`
+    is a conclusion about the file's CONTENT and a routing family is a conclusion
+    about its container, and §2.6's question is asked of images alone, so the two
+    overlap only where the narrower one has already answered.
+
+    The latest routing row wins. `extraction_routing` is append-only and a
+    re-scan writes another row for the same version; the newest is the one whose
+    reading the rest of this run used.
+    """
+    if not file_ids:
+        return {}
+    marks = ",".join("?" * len(file_ids))
+    found: dict[str, str] = {}
+    for row in conn.execute(
+            "SELECT r.file_id AS file_id, r.detected_format AS detected_format, "
+            "r.source_type AS source_type FROM extraction_routing AS r "
+            "JOIN files AS f ON f.file_id = r.file_id "
+            "AND f.content_hash = r.content_hash "
+            f"WHERE r.file_id IN ({marks}) ORDER BY r.routing_id",
+            tuple(file_ids)):
+        if row["detected_format"] == PDF_FORMAT:
+            found[row["file_id"]] = STANDALONE_PDF_REVIEW_SET
+        elif row["source_type"] in SPREADSHEET_FAMILIES:
+            found[row["file_id"]] = SPREADSHEET_REVIEW_SET
+        else:
+            found.pop(row["file_id"], None)
+    for row in conn.execute(
+            'SELECT ff.file_id AS file_id FROM file_facts AS ff '
+            'JOIN "values" AS v ON v.value_id = ff.value_id '
+            "JOIN files AS f ON f.file_id = ff.file_id "
+            "AND f.content_hash = ff.content_hash "
+            f"WHERE ff.file_id IN ({marks}) AND ff.field_key = ? "
+            "AND v.canonical_value = ? AND ff.active = 1",
+            (*file_ids, MEDIA_TYPE_FIELD, SCREENSHOT_MEDIA_TYPE)):
+        found[row["file_id"]] = SCREENSHOT_REVIEW_SET
+    return found
 
 
 def _ask_when_there_are_two_homes_to_offer(node_ids) -> str:
@@ -13160,6 +13301,19 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         follow the order files were decided in, so the same corpus would name its
         sets differently between runs and the `--send-set` lines beneath them
         would move -- which is a person's typed command changing under them.
+
+        **AND `00`'s OWN NAMED SETS DIVIDE THE ONE REASON THAT SAYS "NOTHING
+        MATCHED" (`104` R-42 item 2).** The reason code is a reliable
+        characteristic and is not the one `00` §residual names: its eight example
+        sets are named by what their files SHARE -- screenshots, standalone PDFs
+        and forms, spreadsheets and presentations -- and all three of those stop
+        for `no_supported_destination`, so R-115 gathered them under one heading.
+        `residual_characteristics` reads the signals this run already recorded and
+        `REFINED_BY_CHARACTERISTIC` says which reason they may divide: exactly the
+        one that means the product looked and nothing matched. A reason that says
+        what is BLOCKING a file keeps its own set, because "we looked and could
+        not tell" and "we were not allowed to look" are the two sentences `66` §4
+        forbids sharing a message.
         """
         if not unplaced:
             return ()
@@ -13170,6 +13324,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
 
         protected = _protected_among(unplaced)
         records = _file_records(unplaced)
+        characteristic = residual_characteristics(conn, tuple(unplaced))
         decided = {decision.subject.file_id: decision
                    for decision in decisions_for_plan(conn,
                                                       plan_version=plan_version)
@@ -13218,6 +13373,12 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 return (NOT_YET_CLASSIFIED if is_unclassified(decision.privacy)
                         else NO_MODEL_ALLOWED)
             if reason in ORDINARY_REVIEW_SET_KEYS:
+                # `104` R-42 item 2, and ONLY over the reason that means the
+                # product looked and nothing matched. The characteristic is what
+                # `00` names its sets by; the reason stays the sentence under
+                # them, word for word, because it is still true of each one.
+                if reason in REFINED_BY_CHARACTERISTIC:
+                    return characteristic.get(file_id, reason)
                 return reason
             if decision.outcome == pv.ASK_USER:
                 # Not an abstention: the run turned it into a question the report
@@ -13276,8 +13437,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
 
         return tuple(
             _set(key, tuple(held[key]))
-            for key in (*(row[0] for row in REVIEW_SET_REASONS),
-                        PROTECTED_REVIEW_SET)
+            for key in (*REVIEW_SET_ORDER, PROTECTED_REVIEW_SET)
             if held.get(key))
 
     def _destinations_to_offer(frozen):

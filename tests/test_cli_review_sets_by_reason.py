@@ -460,3 +460,154 @@ def test_protected_files_are_their_own_set_named_counted_and_never_opened(
             "a decision row was written for a set P13 carries no action for")
     finally:
         sent.close()
+
+
+# ======================================================================================
+# `104` R-42, item 2: the design's own named sets
+#
+# `00` §residual names its review sets by what their files SHARE -- "58 screenshots
+# with no accepted project or event", "21 standalone PDFs and forms", "14
+# spreadsheets and presentations with unclear purpose". R-115 divided by the reason
+# code, which is a reliable characteristic and is not that one: every one of those
+# three files stops for the same reason ("no folder matched") and lands under one
+# heading. The characteristic REFINES that pile and only that pile -- a reason that
+# says what is BLOCKING a file (a model was not allowed to look, you have been asked
+# a question) is a set of its own and stays one.
+# ======================================================================================
+
+def test_spreadsheets_that_no_folder_matched_are_the_design_s_own_set(tmp_path):
+    """The router already knows: `source_type` is `spreadsheet` for a `.csv`.
+
+    Before this the person read "No folder matched -- 4 files" over a mixture of
+    a spreadsheet and three notes, which is `00`'s "single intimidating pile"
+    one level down.
+    """
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "syllabus.txt").write_text(
+        "PHYS 1401 Syllabus\n\nSpring 2026. Instructor: Dr Lee. Credits: 3.\n")
+    (corpus / "misc.txt").write_text("Nothing in particular about anything.\n")
+    (corpus / "unclear.csv").write_text("a,b,c\n1,2,3\n")
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database)
+
+    surfaced = dict(_surfaced(database))
+    assert "Spreadsheets and presentations with unclear purpose" in surfaced, (
+        f"the spreadsheet is still inside the reason pile {sorted(surfaced)}")
+    spreadsheets = surfaced["Spreadsheets and presentations with unclear purpose"]
+    assert len(spreadsheets) == 1, surfaced
+    assert "Spreadsheets and presentations with unclear purpose" in printed, printed
+    # And the notes it was gathered with are still their own set, under the
+    # reason both stopped for. A division that swallowed the remainder would be
+    # a set of everything the characteristic happened to recognise.
+    assert "No folder matched" in surfaced, sorted(surfaced)
+
+
+def _write_a_screenshot_fact(conn, file_id: str) -> None:
+    """One `media_type = screenshot` row, written the way P6 writes one.
+
+    Written here rather than produced by the run because producing one needs a
+    real photograph's EXIF beside a real screenshot's: `media_type` refuses a
+    file whose only tiered observations are in the screenshot band, which is
+    §2.6's "the absence of EXIF is not proof". What is under test is the READ.
+    """
+    row = conn.execute(
+        "SELECT content_hash FROM files WHERE file_id = ?", (file_id,)).fetchone()
+    conn.execute(
+        'INSERT OR IGNORE INTO "values" (value_id, field_key, canonical_value, '
+        'raw_variants, display_label, aliases, origin) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?)',
+        ("value-screenshot-pin", "media_type", "screenshot", "[]", "screenshot",
+         "[]", "found"))
+    conn.execute(
+        "INSERT INTO file_facts (fact_id, file_id, content_hash, field_key, "
+        "value_id, reliability_state, origin, evidence_refs, cited_quote_refs, "
+        "cache_key, active, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ("fact-screenshot-pin", file_id, row["content_hash"], "media_type",
+         "value-screenshot-pin", "validated", "rule", "[]", "[]",
+         "cache-screenshot-pin", 1, "2026-09-11T00:00:00+00:00"))
+    conn.commit()
+
+
+def test_a_screenshot_is_read_off_the_image_reader_s_own_signal(tmp_path):
+    """§2.6's `media_type`, and nothing that guesses from a filename.
+
+    The fact is the image reader's: `facts.photo_event.media_type` ranks the
+    EXIF bands and writes `screenshot` or refuses. This reads that row back. A
+    file with no such fact has no characteristic and keeps its reason's set,
+    which is what stops this from being a detector.
+    """
+    import sqlite3
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "syllabus.txt").write_text(
+        "PHYS 1401 Syllabus\n\nSpring 2026. Instructor: Dr Lee. Credits: 3.\n")
+    (corpus / "misc.txt").write_text("Nothing in particular about anything.\n")
+    database = tmp_path / "plan.sqlite"
+    _report(corpus, database)
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    try:
+        held = [row["file_id"] for row in conn.execute(
+            "SELECT file_id, filename FROM files WHERE filename = 'misc.txt'")]
+        assert held, "the corpus changed shape"
+        assert cli.residual_characteristics(conn, held) == {}, (
+            "a file with no media_type fact was given a characteristic")
+        _write_a_screenshot_fact(conn, held[0])
+        assert cli.residual_characteristics(conn, held) == {
+            held[0]: cli.SCREENSHOT_REVIEW_SET}, (
+            "the image reader's own screenshot signal is not read")
+    finally:
+        conn.close()
+
+
+def test_a_blocking_reason_is_still_a_set_of_its_own():
+    """The characteristic refines "no folder matched" and nothing else.
+
+    A spreadsheet a model was not allowed to look at has not been matched
+    against anything; calling it "a spreadsheet with unclear purpose" would
+    tell somebody the product looked and could not tell, when what happened is
+    that it was not allowed to look. `66` §4 forbids the two sharing a message.
+    """
+    assert cli.NO_MODEL_ALLOWED not in cli.REFINED_BY_CHARACTERISTIC
+    assert cli.NOT_YET_CLASSIFIED not in cli.REFINED_BY_CHARACTERISTIC
+    assert cli.WAITING_ON_AN_ANSWER not in cli.REFINED_BY_CHARACTERISTIC
+    assert cli.NOT_ALLOWED_TO_CROSS not in cli.REFINED_BY_CHARACTERISTIC
+    assert pv.NO_SUPPORTED_DESTINATION in cli.REFINED_BY_CHARACTERISTIC
+
+
+def test_no_two_review_sets_share_a_name():
+    """`--send-set` addresses a set by the name printed beside it.
+
+    The characteristics are a second table of set names, so the uniqueness the
+    reason table already holds for itself has to hold ACROSS the two.
+    """
+    labels = ([label for _, label, _ in cli.REVIEW_SET_REASONS]
+              + [label for _, label, _ in cli.REVIEW_SET_CHARACTERISTICS]
+              + [cli.PROTECTED_REVIEW_SET_WORDS[0]])
+    assert len(labels) == len(set(labels)), labels
+    keys = ([key for key, _, _ in cli.REVIEW_SET_REASONS]
+            + [key for key, _, _ in cli.REVIEW_SET_CHARACTERISTICS]
+            + [cli.PROTECTED_REVIEW_SET])
+    assert len(keys) == len(set(keys)), keys
+
+
+def test_a_receipt_set_needs_a_fact_that_names_one():
+    """§7.3's `Receipts and Confirmations` has a residual TEMPLATE and no producer.
+
+    `00` names "17 receipts, tickets, and confirmations" as a review set, and
+    nothing in this product concludes that a file is a receipt: `privacy/
+    vocabulary.py` publishes `ALWAYS_LOCAL_KIND_RECEIPT` as *a name a detector
+    writes* and says in as many words that "how a receipt is recognised as a
+    receipt is hand-authored elsewhere". Dividing a review set on a word found
+    in a filename is the invention this whole file exists to refuse, so the set
+    waits for the fact.
+    """
+    import pytest
+    pytest.xfail(
+        "no producer writes a receipt fact: the word owed is a `file_facts` "
+        "field naming a transactional document, and `privacy.vocabulary."
+        "ALWAYS_LOCAL_KIND_RECEIPT` is a detector's output name, not one")
