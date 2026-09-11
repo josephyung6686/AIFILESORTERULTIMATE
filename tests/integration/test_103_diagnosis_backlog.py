@@ -405,10 +405,7 @@ def test_re_typing_the_same_answer_opens_nothing(tmp_path):
                         "branch:Coursework=keep-as-it-is")
     assert code == 0, report
     assert "A draft plan version was opened" not in report, report
-    drafted = [name for name, state in _versions(database).items()
-               if name not in before and state == "draft"]
-    # The run itself mints drafts on its way to a frozen version; what must not
-    # appear is one opened BEFORE the run, from the answer. The screen line is
-    # the honest test of that and the count is its corroboration: the answer
-    # opened none of these, because it changed nothing.
+    # The run itself mints drafts on its way to a frozen version, so a COUNT of
+    # drafts cannot tell the two apart. The screen line is the honest test: the
+    # answer opened nothing, because it changed nothing.
     assert "What changing" not in report or "Nothing this can see" in report, report

@@ -4854,10 +4854,13 @@ def _print_values_to_confirm(conn: sqlite3.Connection, out) -> None:
     **THE BOUND, AND IT IS `REVIEW_NORMALISED_FIELDS`.** This block reads three
     fields, and gap 1 can flag any field the situation builds a folder from. The
     three are where every measured contradiction was -- `104` §18.2 gap 1 counts 16
-    `subject` and 17 `work_type` facts on r15 -- and widening the read is the confirm
-    gesture's question rather than this one's, because a field with no review path
-    has nothing for the person to answer with. Stated here so the absence is a
-    decision and not an oversight.
+    `subject` and 17 `work_type` facts on r15 -- and widening the read is a separate
+    question from this block's. It used to belong to the confirm gesture, on the
+    ground that a field with no review path has nothing for the person to answer
+    with; the gesture exists now and every field has one, so what is left is whether
+    a person should be asked about fields no folder is built from. That is a
+    question about the screen's length, not about its honesty, and it is stated here
+    so the bound is a decision and not an oversight.
 
     **The screen this block ends the absence of.** `normalize_for_review` has turned
     an unseen value into a `possible` fact since R-98, and `possible` is below
@@ -14408,7 +14411,15 @@ def apply_renames(conn: sqlite3.Connection, renames: Sequence[str], *,
                          content_hash=row["content_hash"], field_key=field_key,
                          old=old, new=new, action=ACTION_RENAME,
                          user_id=user_id, observed_at=observed_at)
-        except (NoSuchClaim, MalformedCorrection) as refusal:
+        except (NoSuchClaim, MalformedCorrection, ValueError) as refusal:
+            # `ValueError` is `merge_values`'s own refusal and is caught here
+            # rather than left to traceback: one proposed value can sit on two
+            # files, and a person who renames it one way on the first and another
+            # way on the second meets "already merged into ..." -- a real answer
+            # (§8.2 never overwrites the first merge reason) reaching them as a
+            # crash. P6's own two are named first and `ValueError` last, so the
+            # tuple reads as "the refusals this gesture expects, and then P1's
+            # value-level ones" rather than as a bare catch-all.
             raise ConfirmationRefused(
                 str(refusal).replace(repr(row["file_id"]), repr(filename))
             ) from refusal

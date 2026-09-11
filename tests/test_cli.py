@@ -3110,6 +3110,16 @@ def test_a_protected_review_set_refuses_to_be_filed_in_one_gesture(tmp_path):
     protected set, this refusal is unreachable from anything a person runs, and
     asserting it only in `tests/p11` would keep passing while the product
     shipped the opposite.
+
+    **`104` R-26 MOVED THE REFUSAL EARLIER AND THE PLAN NOW SURVIVES IT.** This
+    asserted a non-zero exit, which is what the run did when `review_residual_sets`
+    raised `ProtectedSetNotReadable` and nothing caught it: the person lost the
+    whole proposal, and the `residual_set_decisions` row saying their protected
+    material was to be filed in bulk -- written by `act_on_residual_sets` a moment
+    earlier -- outlived it. `review_gestures.collect_set_sends` now collects the
+    gesture before P11 is called at all, so P13's own `ProtectedContainerHasNoAction`
+    fires first: nothing is decided, nothing is recorded, and the plan is printed.
+    What is refused is unchanged and is what this test is about.
     """
     corpus = _mixed_sensitivity_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
@@ -3127,8 +3137,19 @@ def test_a_protected_review_set_refuses_to_be_filed_in_one_gesture(tmp_path):
     code = cli.main(argv + ["--residual", "Review Later",
                             "--send-set", f"{label}=Review Later"], out=out)
     printed = out.getvalue()
-    assert code != 0, printed
+    assert code == 0, printed
+    assert "That send was refused" in printed, printed
+    assert "Nothing was filed in bulk" in printed, printed
     assert "Passport scan.txt" not in printed.split("refused", 1)[-1][:200], printed
+    # AND NOTHING WAS RECORDED. The exit code says the plan survived; this says
+    # the gesture did not half happen, which is the half `104` R-26 is about.
+    read = sqlite3.connect(database)
+    try:
+        assert read.execute(
+            "SELECT COUNT(*) FROM residual_set_decisions").fetchone()[0] == 0, (
+            "a decision row was written for a set P13 carries no action for")
+    finally:
+        read.close()
 
 
 def test_a_protected_set_is_not_offered_a_command_that_would_refuse(tmp_path):
