@@ -608,18 +608,28 @@ def test_every_public_mechanism_in_the_source_is_reachable_from_the_entry_point(
 test_every_public_mechanism_in_the_source_is_reachable_from_the_entry_point = (
     pytest.mark.xfail(
         strict=True,
-        reason="measured 2026-08-30: 261 of 1,226 public mechanisms in src/ are "
-               "unreachable from cli.main. 26 are explained by EXEMPT; the other 235, "
-               "across 97 modules, are not, and they are not a whitelist -- whole "
-               "parts are wired to nothing. §8.4's local-first default posture "
-               "(privacy/defaults.py, all 4), P7's consent path (4), P11's residual "
-               "return cycle (13), P10's freeze, diff, health and template schema, "
-               "the stage_output emitter of EVERY part, the eval harness's shadow and "
-               "adversarial gates, P5's date grammar, P6's rule stage, and P12/P13's "
-               "in-flight modules. 23 modules have no reached mechanism at all. The "
-               "count moves as parts land; the assertion prints the live list. "
-               "XPASSes -- and fails the suite, forcing this marker off -- the day "
-               "the last one is wired, so shrink it here as they are.",
+        reason="RE-MEASURED 2026-09-10 (104 R-45), on the change that wired R-41: 306 "
+               "of 1,939 public mechanisms in src/ are unreachable from cli.main. 29 "
+               "are explained by EXEMPT; the other 277, across 108 modules, are not, "
+               "and they are not a whitelist -- whole parts are wired to nothing. "
+               "P13's review surface is 102 of the 277 and 14 of the 28 modules with "
+               "no reached mechanism AT ALL, which is one finding rather than "
+               "fourteen: tests/p13/test_p13_gesture_census.py measures why, gesture "
+               "by gesture. P10 is 19 (freeze, diff, health, stage_output, and five "
+               "upstream readers), the eval harness 22 (shadow and adversarial "
+               "gates), P12 27, and §8.4's local-first default posture "
+               "(privacy/defaults.py, all 4) and P7's consent path (4) are still "
+               "whole. The stage_output emitter of five parts is still unreached. "
+               "WHAT MOVED SINCE 2026-08-30, and both directions are the instrument "
+               "working: the population grew 1,226 -> 1,939 as parts landed, P11's "
+               "residual return cycle came off the list entirely (placement/ is down "
+               "to 4), and tree_design.user_edits left it because R-41 gave "
+               "record_user_level_edit its first caller -- the only symbol this "
+               "change removed, and 9 of 9 public mechanisms it ADDED are reachable, "
+               "so the net is 278 -> 277. The count moves as parts land; the "
+               "assertion prints the live list. XPASSes -- and fails the suite, "
+               "forcing this marker off -- the day the last one is wired, so shrink "
+               "it here as they are.",
     )(test_every_public_mechanism_in_the_source_is_reachable_from_the_entry_point))
 
 
