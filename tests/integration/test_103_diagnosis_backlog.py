@@ -42,7 +42,13 @@ def _corpus(root: Path) -> Path:
 def _run(corpus: Path, database: Path, *extra: str) -> tuple[int, str]:
     out = io.StringIO()
     code = cli.main([str(corpus), "--situation", SITUATION, "--label", LABEL,
-                     "--user", "t", "--database", str(database), *extra], out=out)
+                     "--user", "t", "--database", str(database),
+                     # `104` SF-3: a group is a draft until somebody accepts it, and
+                     # a run that accepts nothing designs no tree, raises no branch
+                     # question and freezes nothing. Every backlog item below is
+                     # about what happens AFTER a plan exists, so the accept is part
+                     # of the run they all share -- typed, as a person types it.
+                     "--accept-groups", *extra], out=out)
     return code, out.getvalue()
 
 
