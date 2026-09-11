@@ -879,3 +879,27 @@ def test_a_placement_onto_an_area_that_never_moves_files_has_no_sentence():
     pytest.xfail(
         "no sentence exists for a placement onto a residual area that never "
         "moves files; the three `PLACEMENT_WORDS` readings all promise filing")
+
+
+def test_the_screen_says_what_the_area_it_offers_is_for(tmp_path):
+    """`104` R-42 item 4's last half: two authored slots, read at last.
+
+    §7.2 makes "accepted evidence patterns" and "expected file types" two of a
+    residual template's eight slots and `01-nine-templates.json` authors both for
+    all nine. Nothing read either, so the screen asked a person to send a whole
+    set into `Review Later` and said nothing at all about what `Review Later` is
+    for.
+
+    ONCE, in the block about the plan rather than under each set: what an area
+    accepts is one fact about the plan however many sets are offered it, which is
+    `104` R-122's own split.
+    """
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database)
+
+    assert f'"{AREA}" holds ' in printed, printed
+    assert "spreadsheet" in printed.split(f'"{AREA}" holds ', 1)[1], printed
+    assert printed.count(f'"{AREA}" holds ') == 1, (
+        "the area's slots are printed once per set rather than once per plan:\n"
+        + printed)

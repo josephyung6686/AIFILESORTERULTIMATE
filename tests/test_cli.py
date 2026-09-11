@@ -4004,7 +4004,7 @@ def test_a_folder_holding_one_of_a_kind_gains_nothing(tmp_path):
 
 def _course_corpus(tmp_path):
     corpus = tmp_path / "corpus"
-    corpus.mkdir()
+    corpus.mkdir(exist_ok=True)
     (corpus / "PHYS 1401 syllabus.txt").write_text(
         "PHYS 1401 Syllabus\n\nSpring 2026. Instructor office hours.\n")
     (corpus / "PHYS 1401 homework 3.txt").write_text(
@@ -4312,3 +4312,158 @@ def test_the_composition_root_builds_a_process_pool_at_every_worker_count():
                 "the calling thread where no ceiling can reach a wedged reader")
         finally:
             pool.close()
+
+
+# ======================================================================================
+# `104` R-42, item 3: the residual library's own actions, and areas a person names
+#
+# §7.4: "the product should show the residual library as an optional set of
+# controlled branches that the user can enable, disable, rename, relocate, merge,
+# or replace with existing folders", and "the library must support user-defined
+# residual areas such as Things to Read, Ideas, Shopping Research, Memes, Travel,
+# Receipts to Process, Clips, or Stuff to Sort". All six actions are implemented
+# and tested in `tree_design/residuals.py`, `build_library` accepts user-defined
+# templates -- and no gesture in this product constructed a `ResidualChoice` that
+# was anything but `enable`, while `_validate_residuals` refused every name that
+# was not one of §7.3's nine.
+# ======================================================================================
+
+def _residual_corpus(tmp_path):
+    corpus = tmp_path / "corpus"
+    corpus.mkdir(exist_ok=True)
+    (corpus / "PHYS 1401 syllabus.txt").write_text(
+        "PHYS 1401 Syllabus\n\nSpring 2026. Instructor: Dr Lee. Credits: 3.\n")
+    (corpus / "misc.txt").write_text("Nothing in particular about anything.\n")
+    return corpus
+
+
+def _residual_nodes(database):
+    import sqlite3
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    try:
+        return [(row["display_label"], row["disposition"]) for row in conn.execute(
+            "SELECT display_label, disposition FROM tree_nodes "
+            "WHERE node_role = 'residual' ORDER BY display_label")]
+    finally:
+        conn.close()
+
+
+def _residual_run(tmp_path, *extra, database="plan.sqlite"):
+    corpus = _residual_corpus(tmp_path)
+    database = tmp_path / database
+    out = io.StringIO()
+    code = cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Papers", "--user", "jy", "--accept-groups",
+                     "--database", str(database), *extra], out=out)
+    return code, out.getvalue(), database
+
+
+def test_a_residual_area_can_be_renamed_by_the_person_who_enables_it(tmp_path):
+    """§7.4's `rename`, which had no gesture at all.
+
+    The rename IS the enablement: `project_residual_nodes` treats it as one of
+    the five actions that put a node in the tree, carrying the person's own
+    display label instead of the template's.
+    """
+    code, printed, database = _residual_run(
+        tmp_path, "--residual-library", "rename:Review Later=To Sort")
+    assert code == 0, printed
+    assert [label for label, _ in _residual_nodes(database)] == ["To Sort"], (
+        _residual_nodes(database))
+
+
+def test_a_residual_area_can_be_disabled_and_then_has_no_node(tmp_path):
+    """§7.4's whole enforcement mechanism, said by a person for the first time.
+
+    "A template the user did not enable has no node", so no placement decision
+    can name it and no model can return it.
+    """
+    code, printed, database = _residual_run(
+        tmp_path, "--residual-library", "disable:Review Later")
+    assert code == 0, printed
+    assert _residual_nodes(database) == []
+
+
+def test_two_residual_areas_can_be_merged_into_one(tmp_path):
+    """§7.4's `merge`: two templates, one branch.
+
+    The target has to be an enabled branch of this plan, which is what
+    `project_residual_nodes` refuses a merge without -- so the order the choices
+    are handed over in is part of the gesture and not an accident of typing.
+    """
+    code, printed, database = _residual_run(
+        tmp_path, "--residual-library", "merge:Reading Inbox=Review Later",
+        "--residual", "Review Later")
+    assert code == 0, printed
+    assert [label for label, _ in _residual_nodes(database)] == ["Review Later"], (
+        _residual_nodes(database))
+
+
+def test_one_template_cannot_carry_two_decisions_in_one_command(tmp_path):
+    """§7.4 asks one question per template and P10 refuses two answers.
+
+    Refused HERE, by name, rather than reaching `project_residual_nodes` and
+    ending the run on a `ConfigurationRequired` that names no flag.
+    """
+    code, printed, _ = _residual_run(
+        tmp_path, "--residual", "Review Later",
+        "--residual-library", "disable:Review Later")
+    assert code != 0, printed
+    assert "Review Later" in printed, printed
+
+
+def test_an_area_the_person_defines_is_enabled_end_to_end(tmp_path):
+    """§7.4's "the library must support user-defined residual areas".
+
+    `build_library` has accepted them since it was written and
+    `_validate_residuals` refused every name that was not one of §7.3's nine, so
+    the two halves could not meet. The treatment is the person's because
+    `ResidualTemplate` requires one and P10 invents no slot value.
+    """
+    code, printed, database = _residual_run(
+        tmp_path, "--define-residual", "Stuff to Sort=retained",
+        "--residual", "Stuff to Sort")
+    assert code == 0, printed
+    assert _residual_nodes(database) == [("Stuff to Sort", "physical-destination")], (
+        _residual_nodes(database))
+
+
+def test_a_name_that_is_neither_a_template_s_nor_the_person_s_is_still_refused(
+        tmp_path):
+    """The other half of the same rule, and the reason it is not simply relaxed.
+
+    A misspelling that quietly enabled nothing would be the run reporting
+    success for work it did not do.
+    """
+    code, printed, _ = _residual_run(tmp_path, "--residual", "Random PDF Things")
+    assert code != 0, printed
+    assert "Random PDF Things" in printed, printed
+    # And a defined area does not open the door for every other name either.
+    code, printed, _ = _residual_run(
+        tmp_path, "--define-residual", "Stuff to Sort=retained",
+        "--residual", "Random PDF Things", database="second.sqlite")
+    assert code != 0, printed
+
+
+def test_replace_with_existing_needs_a_node_id_this_command_cannot_name(tmp_path):
+    """§7.4's sixth action, and the seam that stops it here.
+
+    `ResidualChoice.replaces_node_id` names a node of the plan version being
+    designed, and `tree_design.pipeline._enable_residual_library` is where the
+    draft's nodes first exist -- after this command has composed its decisions.
+    A person can name their folder by PATH, and nothing on this side of that seam
+    can turn a path into the id the choice needs. The other five actions need no
+    id and are built.
+    """
+    import pytest
+
+    code, printed, _ = _residual_run(
+        tmp_path, "--residual-library", "replace-with-existing:Review Later=Inbox")
+    assert code != 0, printed
+    pytest.xfail(
+        "`replace-with-existing` needs a node id minted inside "
+        "`tree_design.pipeline._enable_residual_library`; the gesture can only "
+        "name a path, and the path-to-id resolution lives on the other side of "
+        "that seam")

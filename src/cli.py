@@ -468,9 +468,11 @@ from tree_design.user_edits import (
     UserEditRefused, UserLevelEdit, record_user_level_edit,
 )
 from tree_design.vocabulary import (
-    ACTION_RENAMED, ENABLE, MANDATORY_REVIEW, PHYSICAL_DESTINATION,
-    PROTECTED_RECORDS, REFINE_LATER, REFINED,
-    RESIDUAL_TEMPLATE_NAMES, SHALLOW_BY_CHOICE, SURFACE_UNATTENDED,
+    ACTION_RENAMED, DISABLE, ENABLE, MANDATORY_REVIEW, MERGE_RESIDUAL,
+    PHYSICAL_DESTINATION, PROTECTED_RECORDS, REFINE_LATER, REFINED, RELOCATE,
+    RENAME_RESIDUAL, REPLACE_WITH_EXISTING, RESIDUAL_LIBRARY_ACTIONS,
+    RESIDUAL_TEMPLATE_NAMES, RESIDUAL_TREATMENTS, SHALLOW_BY_CHOICE,
+    SURFACE_UNATTENDED,
 )
 
 # ======================================================================================
@@ -4190,7 +4192,8 @@ _RESIDUAL_SLOTS_FILE = (
 RESIDUAL_MAX_DEPTH: int = 0
 
 
-def _residual_library() -> Mapping[str, ResidualTemplate]:
+def _residual_library(defined: Mapping[str, str] | None = None
+                      ) -> Mapping[str, ResidualTemplate]:
     """The nine, each at ITS OWN authored depth where the catalogue states one.
 
     Built, not enabled. §7.4: "These templates are not automatically created."
@@ -4212,45 +4215,120 @@ def _residual_library() -> Mapping[str, ResidualTemplate]:
             "max_permitted_depth", RESIDUAL_MAX_DEPTH))
         for name, values in raw.items() if name in RESIDUAL_TEMPLATE_NAMES
     }
-    return build_library(slot_values)
+    return build_library(slot_values, user_defined=tuple(
+        ResidualTemplate(
+            template_name=name, display_name=name,
+            # §7.3 leaves five of the nine shipped defaults unstated and P10
+            # refuses to invent one; a person's own area has none by the same
+            # rule, and `_enable_residual_library` puts a parentless residual
+            # branch under this run's top-level branch.
+            default_parent_location=None,
+            # EMPTY, and that is a value. A person who has just named an area has
+            # stated no evidence pattern and no expected file type; filling
+            # either would be P10 authoring a template it was asked to carry.
+            accepted_evidence_patterns=(), expected_file_types=(),
+            sensitivity_restrictions=(), optional_shallow_subfolders=(),
+            max_permitted_depth=RESIDUAL_MAX_DEPTH, treatment=treatment,
+            user_defined=True)
+        for name, treatment in (defined or {}).items()))
 
 
 def residual_library_choices(library: Mapping[str, ResidualTemplate],
-                             enabled: Sequence[str]) -> tuple[ResidualChoice, ...]:
+                             enabled: Sequence[str],
+                             actions: Sequence[tuple[str, str, str | None]] = (),
+                             landscape: Sequence[str] = (),
+                             ) -> tuple[ResidualChoice, ...]:
     """§7.4's decisions, one per template the person named.
 
-    **THE DISPOSITION IS THE TEMPLATE'S OWN ANSWER (`104` R-42 item 4).** This
-    said `PHYSICAL_DESTINATION` for every one of the nine, under a comment
-    reading "the other two dispositions are real §7.4 choices with no flag yet,
-    and inventing a way to say them here would be guessing at a gesture nobody
-    designed". The first half was right and the second overlooked that the
-    template ALREADY ANSWERS: §7.2's `treatment` slot is "whether the file should
-    be reviewed, retained, or merely kept searchable", `01-nine-templates.json`
-    authors it for all nine, and six of the nine say something other than
-    "retained". So the authored slot was unreachable by construction and the one
-    value a composition root guessed for all of them was the one that moves
-    files. `tree_design.residuals.disposition_for_treatment` is the join and
-    carries the design sentence behind each arrow.
+    **`104` R-42 item 3: `--residual-library` is the other five actions.** §7.4
+    lets a person "enable, disable, rename, relocate, merge, or replace with
+    existing folders"; five of the six were implemented in
+    `project_residual_nodes`, tested there, and reachable by nothing, because the
+    only `ResidualChoice` this product ever constructed said `enable`.
 
-    It is still not a gesture, and §7.4 still leaves the disposition the person's
-    to change; what it stops being is a guess. A flag that says "make this one a
-    physical destination after all" is owed and is not invented here.
+    **A LIBRARY ACTION IS THAT TEMPLATE'S WHOLE DECISION.** `rename`, `relocate`,
+    `merge` and `replace-with-existing` all put a node in the tree, so each of
+    them IS the enablement rather than a modifier on one -- and §7.4 asks one
+    question per template, which `project_residual_nodes` refuses two answers to.
+    A template named by `--residual` and by `--residual-library` in one command is
+    refused HERE, by name and by flag, rather than reaching P10 and ending the run
+    on a sentence that names neither.
 
-    **The anchor is this run's own root anchor** -- §7.3 leaves five of the nine
-    default parents unstated and P10 refuses to invent one, and the top of the
-    tree the plan is written against is the one place that is not an invention.
-    `_enable_residual_library` then puts a branch that named no parent inside this
-    run's top-level branch rather than at the root, which is `00`:99's rule that a
-    catch-all must not become the product's default answer to ambiguity.
+    **The merges come last.** `project_residual_nodes` resolves a merge against
+    the branches it has already built, so a merge typed before its target would be
+    refused for a target that is about to exist. Ordering them here is the
+    composition root arranging its own decisions, not P10 relaxing a rule.
     """
+    named: dict[str, ResidualChoice] = {}
+
+    def _decide(name: str, choice: ResidualChoice) -> None:
+        if name in named:
+            raise NotConfigured(
+                f"{name!r} was given two decisions in one command. §7.4 asks one "
+                "question per residual area, and two answers would build two "
+                "branches with the same name and nothing to say which one your "
+                "files went into. `--residual` enables an area; "
+                "`--residual-library` does everything else to it, enabling "
+                "included.")
+        if name not in library:
+            raise NotConfigured(
+                f"{name!r} names no residual area. §7.3 fixes nine and this "
+                f"product invents none: {', '.join(RESIDUAL_TEMPLATE_NAMES)}. "
+                f"`--list-residuals` prints them, and `--define-residual` is how "
+                f"you name one of your own.")
+        named[name] = choice
+
+    for action, name, argument in actions:
+        if action == RENAME_RESIDUAL and not argument:
+            raise NotConfigured(
+                f"`rename:{name}` says nothing to call it. Write "
+                f'--residual-library "rename:{name}=<your name for it>".')
+        if action == MERGE_RESIDUAL and not argument:
+            raise NotConfigured(
+                f"`merge:{name}` says nothing to merge it into. Write "
+                f'--residual-library "merge:{name}=<the area it joins>".')
+        if action == RELOCATE and argument not in tuple(landscape):
+            # The anchors are the top-level folders THIS RUN is looking at, which
+            # is the same landscape the freeze checks a move against. A name
+            # outside it is a folder this plan has no picture of, and a residual
+            # home anchored there would be refused later by something that cannot
+            # say which flag was wrong.
+            raise NotConfigured(
+                f"`relocate:{name}` names {argument!r}, which is not one of the "
+                f"top-level folders this run is looking at: "
+                f"{', '.join(sorted(landscape))}. `--also-read` is how another "
+                "one joins the picture.")
+        if action == REPLACE_WITH_EXISTING:
+            raise NotConfigured(
+                f"`replace-with-existing:{name}` cannot be answered from here "
+                "yet. §7.4 lets you map a residual area onto a folder you "
+                "already have, and the record of that choice names the folder by "
+                "the id this plan version mints for it -- which does not exist "
+                "until the tree is being designed, after this command has "
+                "composed its decisions. The other five actions need no id: "
+                f"{', '.join(a for a in RESIDUAL_LIBRARY_ACTIONS if a != action)}.")
+        _decide(name, ResidualChoice(
+            template_name=name, action=action,
+            # §7.4 makes the disposition meaningless on a `disable`, which builds
+            # no node at all, and P10 refuses one that is enabled without it.
+            disposition=(None if action == DISABLE else
+                         disposition_for_treatment(library[name].treatment)
+                         if name in library else None),
+            display_label=argument if action == RENAME_RESIDUAL else None,
+            parent_node_id=None,
+            root_anchor=(argument if action == RELOCATE else ROOT_ANCHOR),
+            merge_into=argument if action == MERGE_RESIDUAL else None,
+            replaces_node_id=None))
+    for name in enabled:
+        _decide(name, ResidualChoice(
+            template_name=name, action=ENABLE,
+            disposition=(disposition_for_treatment(library[name].treatment)
+                         if name in library else None),
+            display_label=None, parent_node_id=None, root_anchor=ROOT_ANCHOR,
+            merge_into=None, replaces_node_id=None))
     return tuple(
-        ResidualChoice(template_name=name, action=ENABLE,
-                       disposition=disposition_for_treatment(
-                           library[name].treatment),
-                       display_label=None, parent_node_id=None,
-                       root_anchor=ROOT_ANCHOR, merge_into=None,
-                       replaces_node_id=None)
-        for name in enabled)
+        sorted(named.values(), key=lambda one: one.action == MERGE_RESIDUAL))
+
 
 _RECOGNITION_MANIFEST = (
     Path(__file__).resolve().parent / "recognition" / "library" / "recognition.json")
@@ -8941,23 +9019,36 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
     set_ceiling(conn, "ocr.max_time_per_file", OCR_SECONDS_PER_FILE)
 
 
-def _validate_residuals(names: Sequence[str]) -> tuple[str, ...]:
-    """Each name is one of §7.3's nine, spelled as §7.3 spells it.
+def _validate_residuals(names: Sequence[str],
+                        defined: Sequence[str] = ()) -> tuple[str, ...]:
+    """Each name is one of §7.3's nine, or one the person defined in this command.
 
     A misspelling that quietly enabled nothing would be the run reporting
     success for work it did not do, and the person would find out by looking for
     a folder that is not there. So it refuses, and it prints the nine -- a
     refusal that does not say what to type is half a refusal.
+
+    **`104` R-42 item 3 widened it by exactly one thing and no more.** §7.4 says
+    "the library must support user-defined residual areas ... because residual
+    organization is highly personal and should not be dictated by a universal
+    taxonomy", and until now this function was the reason it could not:
+    `build_library` accepted an authored template and nothing could name one. A
+    name the person DEFINED in this command is admitted; a name that is neither
+    a template's nor theirs is refused exactly as it was, which is what keeps
+    this a widening rather than the removal of the check.
+
+    Order is §7.3's for the shipped nine, then the person's own in the order they
+    defined them, so two runs given the same command produce the same plan.
     """
-    unknown = [name for name in names if name not in RESIDUAL_TEMPLATE_NAMES]
+    known = tuple(RESIDUAL_TEMPLATE_NAMES) + tuple(defined)
+    unknown = [name for name in names if name not in known]
     if unknown:
         raise NotConfigured(
             f"{unknown[0]!r} names no residual area. §7.3 fixes nine and this "
             f"product invents none: {', '.join(RESIDUAL_TEMPLATE_NAMES)}. "
-            f"`--list-residuals` prints them.")
-    # Order is §7.3's, not the order they were typed, so two runs that enable
-    # the same areas produce the same plan.
-    return tuple(name for name in RESIDUAL_TEMPLATE_NAMES if name in set(names))
+            f"`--list-residuals` prints them, and `--define-residual` is how you "
+            f"name one of your own.")
+    return tuple(name for name in known if name in set(names))
 
 
 #: §8.7's scope for the `--send-set` gesture, chosen by the composition root
@@ -9038,6 +9129,93 @@ def _parse_set_names(raw: Sequence[str], *, flag: str) -> tuple[str, ...]:
         if label not in names:
             names.append(label)
     return tuple(names)
+
+
+def _parse_library_actions(raw: Sequence[str]) -> tuple[tuple[str, str, str | None], ...]:
+    """`--residual-library ACTION:NAME[=ARG]`, as (action, template, argument).
+
+    `104` R-42 item 3. §7.4 lets a person "enable, disable, rename, relocate,
+    merge, or replace with existing folders", `RESIDUAL_LIBRARY_ACTIONS` has
+    carried all six since P10 was written, and no gesture in this product ever
+    constructed a `ResidualChoice` that was anything but `enable`.
+
+    THE ACTION COMES FIRST because it is what the rest of the line means. `rename`
+    takes a new label and `merge` takes the template to merge INTO, and the two
+    would be indistinguishable written `NAME=ARG`. `:` separates the action from
+    the template and `=` the template from the argument, which is the split
+    `--rename-level` already uses for the same reason.
+
+    Only the SHAPE and the ACTION WORD are checked here, as for `--send-set`:
+    whether that template exists and whether the argument names anything is a
+    question about the library this run loads, and `residual_library_choices`
+    answers both by name once it has one.
+    """
+    parsed: list[tuple[str, str, str | None]] = []
+    for item in raw:
+        action, sep, rest = item.partition(":")
+        name, has_arg, argument = rest.partition("=")
+        if not sep or not action.strip() or not name.strip():
+            raise NotConfigured(
+                f"{item!r} is not an action and a residual area. Write it as "
+                '--residual-library "<action>:<area>" or '
+                '--residual-library "<action>:<area>=<what the action needs>", '
+                f"e.g. --residual-library \"rename:Review Later=To Sort\". The "
+                f"actions are {', '.join(RESIDUAL_LIBRARY_ACTIONS)}.")
+        if action.strip() not in RESIDUAL_LIBRARY_ACTIONS:
+            raise NotConfigured(
+                f"{action.strip()!r} is not something you can do to a residual "
+                f"area. §7.4 fixes six and this product invents none: "
+                f"{', '.join(RESIDUAL_LIBRARY_ACTIONS)}.")
+        if has_arg and not argument.strip():
+            raise NotConfigured(
+                f"{item!r} ends in `=` and says nothing after it. Either name "
+                "what the action needs or leave the `=` off.")
+        parsed.append((action.strip(), name.strip(),
+                       argument.strip() if has_arg else None))
+    return tuple(parsed)
+
+
+def _parse_defined_residuals(raw: Sequence[str]) -> Mapping[str, str]:
+    """`--define-residual "NAME=TREATMENT"`, the person's own residual area.
+
+    `104` R-42 item 3. §7.4: "the library must support user-defined residual
+    areas such as Things to Read, Ideas, Shopping Research, Memes, Travel,
+    Receipts to Process, Clips, or Stuff to Sort, because residual organization
+    is highly personal and should not be dictated by a universal taxonomy."
+    `build_library` has accepted them since it was written and
+    `_validate_residuals` refused every name that was not one of §7.3's nine, so
+    the two halves could never meet.
+
+    THE TREATMENT IS ASKED FOR AND NOT ASSUMED. `ResidualTemplate` requires
+    §7.2's eight slots and `treatment` is the one of them with no honest default:
+    it decides whether the area holds files, reviews them or leaves them where
+    they are (`104` R-42 item 4), and choosing one on the person's behalf would
+    be this product deciding what their own folder is for. The other seven slots
+    are EMPTY here, which is a value rather than a gap -- a person who has just
+    named an area has stated no evidence pattern and no expected file type, and
+    inventing either would be P10 authoring a template it was asked to carry.
+    """
+    defined: dict[str, str] = {}
+    for item in raw:
+        name, sep, treatment = item.partition("=")
+        if not sep or not name.strip() or not treatment.strip():
+            raise NotConfigured(
+                f"{item!r} is not an area and what it is for. Write it as "
+                '--define-residual "<your name for it>=<what it does>", where '
+                f"what it does is one of {', '.join(RESIDUAL_TREATMENTS)}, e.g. "
+                '--define-residual "Stuff to Sort=retained".')
+        if treatment.strip() not in RESIDUAL_TREATMENTS:
+            raise NotConfigured(
+                f"{treatment.strip()!r} is not what a residual area can do with "
+                f"a file. §7.2 states three: {', '.join(RESIDUAL_TREATMENTS)}.")
+        if name.strip() in RESIDUAL_TEMPLATE_NAMES:
+            raise NotConfigured(
+                f"{name.strip()!r} is already one of the areas this product "
+                "ships, and `--define-residual` is for the ones it does not. "
+                "`--residual-library rename:` is how a shipped area gets your "
+                "own name.")
+        defined[name.strip()] = treatment.strip()
+    return defined
 
 
 def _validate_situation(catalogue: TemplateCatalogue, situation: str) -> str:
@@ -12307,6 +12485,12 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         candidate_roots: Sequence[Path] = (),
         cross_folder_moves: bool = False,
         residuals: Sequence[str] = (),
+        #: `104` R-42 item 3. §7.4's other five library actions, as
+        #: `_parse_library_actions` parsed them, and the residual areas the
+        #: person named for themselves. Defaulted empty, so every caller that
+        #: predates them composes the run it composed before.
+        library_actions: Sequence[tuple[str, str, str | None]] = (),
+        defined_residuals: Mapping[str, str] = MappingProxyType({}),
         sends: Mapping[str, str] = MappingProxyType({}),
         #: `104` R-42 item 1. §7.6's other two set answers, each a bare label:
         #: `leave_in_place` and `review_with_model_against_approved_residual_
@@ -12607,8 +12791,12 @@ def run(conn: sqlite3.Connection, directory: Path, *,
     # are not automatically created", so a run that names none passes an empty
     # library and the tree is exactly the tree it was. `residual_library_choices`
     # is where the shape of each decision is argued.
-    residual_library = _residual_library() if residuals else {}
-    residual_choices = residual_library_choices(residual_library, residuals)
+    residual_library = (_residual_library(defined_residuals)
+                        if residuals or library_actions else {})
+    residual_choices = residual_library_choices(
+        residual_library, residuals, library_actions,
+        landscape=tuple(high_level_folders(directory, also_read,
+                                           candidate_roots)))
     residual_configuration = {choice.template_name: choice.action
                               for choice in residual_choices}
 
@@ -17040,6 +17228,8 @@ def _set_card_lines(item, names: Mapping[str, str]) -> tuple[str, ...]:
 
 def _review_note(items: Sequence, areas: Sequence[str], *,
                  names: Mapping[str, str] = MappingProxyType({}),
+                 slots: Mapping[str, tuple[tuple[str, ...], tuple[str, ...]]]
+                 = MappingProxyType({}),
                  reason_already_said: bool = False
                  ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Why these sets are being held, and what a person can type about each one.
@@ -17201,6 +17391,26 @@ def _review_note(items: Sequence, areas: Sequence[str], *,
                 "This plan has nowhere to put them yet: enable an area with "
                 '`--residual "Review Later"` and each of these sets can be sent '
                 "there with one command.",)
+        # `104` R-42 item 4's last half. WHAT EACH AREA IS FOR, said ONCE.
+        #
+        # §7.2 makes "accepted evidence patterns" and "expected file types" two
+        # of a residual template's eight slots, `01-nine-templates.json` authors
+        # both for all nine, and nothing read either: the person was asked to
+        # send a whole set somewhere and told nothing about the somewhere.
+        #
+        # In the CLOSING block and not on the card, which is the R-122 split
+        # applied to the same kind of fact: what a set holds is the set's, and
+        # what an area accepts is one fact about the PLAN however many sets are
+        # offered it. Printed under each set it would be R-122 again with a new
+        # sentence in it. These slots are not read into PLACEMENT: nothing in
+        # this build decides membership from an evidence pattern, and a screen
+        # that described them as a rule would be promising a check nobody makes.
+        closing += tuple(
+            f'"{area}" holds '
+            + ", ".join(slots[area][0])
+            + (f"; the evidence it is for is {', '.join(slots[area][1])}."
+               if slots[area][1] else ".")
+            for area in areas if slots.get(area) and slots[area][0])
     return tuple(lines), closing
 
 
@@ -17431,6 +17641,12 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
            reading_family: Sequence[str] = (),
            reaching: Mapping[str, tuple[str, ...]] = MappingProxyType({}),
            not_carried: Sequence = (),
+           #: `104` R-42 item 4's last half: §7.2's `expected file types` and
+           #: `accepted evidence patterns`, by the display label of the area that
+           #: authors them. Read and passed IN for `questions`' reason -- this
+           #: function takes a finished run and holds no library.
+           residual_slots: Mapping[str, tuple[tuple[str, ...], tuple[str, ...]]]
+           = MappingProxyType({}),
            groups: "GroupPass | None" = None) -> tuple[str, ...]:
     """The run, in the order a person would ask about it.
 
@@ -18020,6 +18236,7 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # is empty exactly where that line was not printed, so the flag is the
         # screen's own record of whether the reason has been said.
         note, closing = _review_note(held_sets.get(key, ()), areas, names=names,
+                                     slots=residual_slots,
                                      reason_already_said=bool(reason))
         said_in_full = say(note, handle=handle,
             again=("Held for review; the set and the command are under the "
@@ -18796,6 +19013,24 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "created unless you name it, and it can be given more than once. "
              "`--list-residuals` prints them.")
     parser.add_argument(
+        "--residual-library", action="append", default=[], metavar="ACTION:NAME",
+        help="do something other than enable to one of the residual areas, e.g. "
+             "--residual-library \"rename:Review Later=To Sort\". The actions "
+             "are disable, rename, relocate and merge, each written "
+             "<action>:<area> with what it needs after an `=`: a name for "
+             "rename, the top-level folder for relocate, the area it joins for "
+             "merge. Each of these is that area's whole decision, so it is not "
+             "given `--residual` as well.")
+    parser.add_argument(
+        "--define-residual", action="append", default=[], metavar="NAME=DOES",
+        help="name a residual area of your own, e.g. --define-residual "
+             "\"Stuff to Sort=retained\". Residual organisation is personal "
+             "and the nine this product ships are not a taxonomy you have to "
+             "accept. What it does with a file is yours to say: `retained` "
+             "holds them, `reviewed` keeps them for you to look at and moves "
+             "nothing, `merely kept searchable` leaves them where they are. "
+             "Name it and it can then be enabled with `--residual`.")
+    parser.add_argument(
         "--show-protected", action="store_true",
         help="print the name of every protected file, instead of the count. "
              "They are counted and named as a group on every run. A protected "
@@ -19235,7 +19470,13 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                      user_id=args.user, now=now, out=out,
                      also_read=also_read, candidate_roots=candidate_roots,
                      cross_folder_moves=args.may_cross_folders,
-                     residuals=_validate_residuals(args.residual),
+                     residuals=_validate_residuals(
+                         args.residual,
+                         tuple(_parse_defined_residuals(args.define_residual))),
+                     library_actions=_parse_library_actions(
+                         args.residual_library),
+                     defined_residuals=_parse_defined_residuals(
+                         args.define_residual),
                      sends=_parse_sends(args.send_set),
                      leaves=_parse_set_names(args.leave_set,
                                              flag="--leave-set"),
@@ -19353,6 +19594,19 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                    invite_freeze=not args.freeze,
                    list_every_name=args.freeze,
                    show_protected=args.show_protected,
+                   # `104` R-42 item 4. §7.2's two authored slots, by the label
+                   # of the area that carries them, read HERE because `report`
+                   # takes a finished run and holds no library. Only the areas
+                   # this command enabled, which is the set `--send-set` offers.
+                   residual_slots={
+                       template.display_name: (
+                           template.expected_file_types,
+                           template.accepted_evidence_patterns)
+                       for name, template in (
+                           _residual_library(
+                               _parse_defined_residuals(args.define_residual))
+                           if args.residual or args.residual_library else {}
+                       ).items()},
                    # Read here and passed IN, for the reason `report`'s own
                    # docstring gives about `questions`: it takes a finished run
                    # and a naming table and holds no connection.
