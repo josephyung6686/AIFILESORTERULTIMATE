@@ -260,10 +260,13 @@ def test_an_unsettled_branch_is_proposed_asked_about_and_asked_nothing(
     # indented, so a line of either reads as a root. The folder list ends at
     # whichever of the three comes first.
     folders = report.split("Folders in this plan:", 1)[1]
+    # `104` §18.42 items 1-2 (11 Sep): the tree health block follows the folder
+    # list, and every tree line carries its node-type mark (`[proposed]`, ...).
     for heading in ("What each level of this plan is called:",
-                    "Groups put to a model as groups:", "Files:"):
+                    "Groups put to a model as groups:", "Tree health:", "Files:"):
         folders = folders.split(heading, 1)[0]
-    roots = [line.strip() for line in folders.splitlines()
+    roots = [re.sub(r"\s+\[[^\]]+\]$", "", line.strip())
+             for line in folders.splitlines()
              if line.startswith("  ") and not line.startswith("    ")]
     assert roots == ["career", "Coursework"], roots
     assert "Coursework/cover letter" not in report
@@ -431,10 +434,13 @@ def test_the_default_branch_keeps_its_course_and_term_levels_beside_a_second_bra
     # indented, so a line of either reads as a root. The folder list ends at
     # whichever of the three comes first.
     folders = report.split("Folders in this plan:", 1)[1]
+    # `104` §18.42 items 1-2 (11 Sep): the tree health block follows the folder
+    # list, and every tree line carries its node-type mark (`[proposed]`, ...).
     for heading in ("What each level of this plan is called:",
-                    "Groups put to a model as groups:", "Files:"):
+                    "Groups put to a model as groups:", "Tree health:", "Files:"):
         folders = folders.split(heading, 1)[0]
-    roots = [line.strip() for line in folders.splitlines()
+    roots = [re.sub(r"\s+\[[^\]]+\]$", "", line.strip())
+             for line in folders.splitlines()
              if line.startswith("  ") and not line.startswith("    ")]
     assert roots == ["Coursework", "career"] or roots == ["career", "Coursework"], roots
     assert not any(chain.startswith("Coursework") and
