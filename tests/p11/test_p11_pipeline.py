@@ -3361,3 +3361,34 @@ def test_under_the_amended_row_a_candidate_names_the_levels_this_file_has_no_fac
     # And a node the tree fixes no level on says nothing, which is what P10 gave
     # it to say -- the same silence `_candidate_levels` keeps.
     assert seen["items"]["n-course-shared"].missing_fields == ()
+
+
+# --- the C dossier's `conflicts` key, measured end to end ------------------------
+
+
+def test_the_c_dossier_carries_the_conflicts_this_files_own_values_caused(
+        skeleton, monkeypatch):
+    """The ratified C text's line 31: *"each is a disagreement the engine found
+    between something this file states and a folder it was being pulled towards."*
+
+    MEASURED at the request: this file states `subject = PHYS1401`, `n-course-alt`
+    expects `PHYS1402`, §6.3 suppresses it, and the suppression reaches the judge
+    as a `conflicts` entry whose kind is the field. Nothing here was injected --
+    `retrieve` reads the frozen tree through the deployment's own canonicaliser and
+    `to_p8_conflicts` addresses the result by content.
+    """
+    import placement.pipeline as pipeline
+
+    seen = {}
+
+    def _fake_call(conn, request, **kwargs):
+        seen["conflicts"] = request.conflicts
+        return _verdict()
+
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_fake_call))
+    decision = _place(skeleton,
+                      inputs=_model_inputs(skeleton,
+                                           prompt=SimpleNamespace(ratified=True)),
+                      evidence=_evidence(group_ids=PLACING_GROUPS))
+    assert decision is not None
+    assert [c.kind for c in seen["conflicts"]] == ["subject"]
