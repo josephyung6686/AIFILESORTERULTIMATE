@@ -225,11 +225,14 @@ def test_a_file_with_nothing_releasable_still_cannot_reach_a_cloud_model():
 
 @pytest.mark.xfail(
     strict=True,
-    reason="103 C17: answering `branch:Coursework=keep-as-it-is` leaves the branch "
-           "stating no values, so P11's direct-fact channel reaches nothing and "
-           "three files that were ready to file become 'waiting for you'. The option "
-           "text says only 'Nothing moves and nothing is created'. `00`:111 places at "
-           "the accepted parent when the deeper level is unavailable.")
+    reason="103 C17, HALF CLOSED. Answering `branch:Coursework=keep-as-it-is` "
+           "leaves the branch stating no values, so P11's direct-fact channel "
+           "reaches nothing and three files that were ready to file become "
+           "'waiting for you'. `104` R-27's text half landed: the option now says "
+           "the branch records no values and its files cannot be filed into it, so "
+           "the screen is true. Whether the answer should still file at the "
+           "accepted parent (`00`:111) is `104` Q-H and is the OWNER's -- this "
+           "marker stays until that is ruled.")
 def test_keeping_a_branch_as_it_is_does_not_unfile_its_members(tmp_path):
     corpus = _corpus(tmp_path)
     database = tmp_path / "holder" / "plan.sqlite"

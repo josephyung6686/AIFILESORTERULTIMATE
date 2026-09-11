@@ -93,7 +93,7 @@
   "    4 files sit under Coursework, and their own facts support 2 different",
   "    shapes.",
   "      --answer 'branch:Coursework=school>term>subject>work_type'   This option would create 2 term, and 4 work_type. 2 file(s) would stay unresolved and visible. -- builds Coursework/Fall2024 (1), Coursework/Fall2024/problem set (1), Coursework/Spring2026 (1), Coursework/Spring2026/syllabus (1) -- warning: \"2 of this level's children hold 1 file(s) or fewer\" -- warning: \"this level produces one child, 'problem set', and nothing below it divides the files either: 1 level(s) open onto a single folder each, so none of them separates anything\" -- warning: \"this level produces one child, 'syllabus', and nothing below it divides the files either: 1 level(s) open onto a single folder each, so none of them separates anything\"",
-  "      --answer branch:Coursework=keep-as-it-is   Keep this branch as it is. Nothing moves and nothing is created.",
+  "      --answer branch:Coursework=keep-as-it-is   Keep this branch as it is. Nothing moves and nothing is created -- and the branch records no values either, so these files cannot be filed into it and stay where they are, held for review.",
   "      --answer branch:Coursework=skip   Skip for now",
   "    This decides the folders inside Coursework. Until it is answered the first",
   "    shape that passed every check is used, which may not be the one you would",
