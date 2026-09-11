@@ -138,6 +138,42 @@ def test_a_run_that_accepts_nothing_places_nothing_and_prints_the_proposal(
     assert _count(database, "placement_group_plans") == 0
 
 
+def test_a_draft_keeps_everything_the_engine_concluded_about_it(tmp_path):
+    """What a draft group still IS, which is everything except decided.
+
+    Not accepted is not discarded, and the difference matters in three places.
+    The person is shown a card, so the LABEL and the CATEGORY the engine concluded
+    have to survive. They type the gesture at the next invocation, so the group has
+    to be on disk under the id that run will re-derive. And the typed graph P9 drew
+    is the material site C's dossier carries as reference-only, uncitable evidence
+    (`placement.pipeline._graph_items`) -- a channel that reads P9's edges and not
+    P9's acceptance, so a relationship between two files is shown to the model
+    whether or not the group holding them has been agreed to.
+
+    What a draft does NOT get is in the test above: no branch, no packet. The one
+    thing it also does not get is an `accepted_group` dossier item, because that
+    item asserts `user_confirmed` -- `_accepted_group_items`' own docstring says
+    the merely-retrieved case "has no producer at this seam and no item is written
+    claiming otherwise", and SF-3 does not add one.
+    """
+    _, screen, database = _run(tmp_path)
+
+    group = _rows(database,
+                  "SELECT group_id, display_label, group_category, "
+                  "coherence_verdict FROM groups WHERE display_label = ?",
+                  LABEL)
+    assert group, screen
+    assert group[0]["group_category"], "the card says what kind of material"
+
+    members = _rows(database, "SELECT group_id FROM memberships "
+                              "WHERE group_id = ? AND superseded_by IS NULL",
+                    group[0]["group_id"])
+    assert members, "a draft holds its members; it is a proposal, not a blank"
+    assert _count(database, "group_edges") > 0, (
+        "P9's typed graph is drawn for a draft, which is what site C's dossier "
+        "carries as reference-only material")
+
+
 def test_the_rules_never_write_a_groups_acceptance_however_the_run_ends(tmp_path):
     """SF-3's literal measurement, asserted over both endings of a run.
 
