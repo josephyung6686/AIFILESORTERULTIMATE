@@ -34,6 +34,7 @@ from llm_harness.records import (
     EvidenceItem,
     FolderLevel,
     MalformedRecord,
+    NodeFolderLevel,
     PromptDefinition,
     ReleasedEvidence,
     ValidationUnavailable,
@@ -219,8 +220,53 @@ def released_item_wire_bytes(*, observation_key: str, address: str, value: str,
     return len(canonical_json(body).encode("utf-8")) + len(",")
 
 
+def _node_folder_levels_body(
+    folder_levels: Sequence[NodeFolderLevel],
+    allowed_vocabulary: Sequence[str],
+) -> list[dict]:
+    """The levels each CANDIDATE NODE sits under. `104` R-77, §13.6's schema half.
+
+    The C shape of the key above, and the check that it is a projection of the
+    same list. At site A `allowed_vocabulary` is the domain's field keys, so the
+    projection check is "the level's field is one of them"; at C the vocabulary is
+    the shortlist's NODE IDS, so it is "the node these levels belong to is one of
+    them". Same sentence, same failure it prevents: a candidate described here and
+    absent from the list the model may answer with is the model told about a
+    folder it cannot choose, and one on the list with levels attributed to another
+    node is the model told to spell a level that folder does not have.
+
+    **This is what unblocked the second of R-77's three blockers.** The old check
+    refused ANY level whose `field` was outside `allowed_vocabulary`, and at C
+    every level field is outside it by construction -- so filling the key did not
+    produce a stricter validator, it produced a run that could not assemble a C
+    dossier at all (`tests/llm_harness/test_d2_contract_gaps.py`'s G9 comment,
+    blocker 2). A site whose vocabulary is node ids projects its levels against
+    that list by NODE, which is the sentence the amended row actually makes.
+
+    **Every value is the frozen tree's, and nothing about the file reaches this.**
+    `level` is `Node.dimension` -- the P6 field P10 wrote onto the level -- and
+    `value` is the `ExpectedValue` P10 wrote beside it, both carried down the
+    chain by `materialise._project`. The composition root's placement pass reads
+    them off the index; P8 derives none of them. Two files offered the same
+    shortlist get the same list here, which is the same bound `field_glossary`
+    and the A-shape above stand on.
+    """
+    allowed = set(allowed_vocabulary)
+    outside = sorted({level.node for level in folder_levels
+                      if level.node not in allowed})
+    if outside:
+        raise MalformedRecord(
+            f"folder levels describe nodes {outside}, which this call's "
+            "allowed_vocabulary does not carry. The vocabulary and the levels are "
+            "one computation: levels attributed to a folder the model may not "
+            "answer with are levels no answer of its own can ever spell"
+        )
+    return [{"level": level.level, "node": level.node, "value": level.value}
+            for level in folder_levels]
+
+
 def _folder_levels_body(
-    folder_levels: Sequence[FolderLevel],
+    folder_levels: Sequence[FolderLevel | NodeFolderLevel],
     allowed_vocabulary: Sequence[str],
 ) -> list[dict]:
     """The situation's own folder levels, and the check that they are a projection.
@@ -251,7 +297,31 @@ def _folder_levels_body(
     constant and a closed vocabulary, so no entry can differ between two files in
     one corpus and §8.4's always-local set has no route in -- the same bound
     `field_glossary` above stands on.
+
+    **TWO SHAPES, ONE KEY, AND THE RECORD SAYS WHICH (`104` R-77).** Site C's
+    entries are `NodeFolderLevel`s and go to `_node_folder_levels_body` above;
+    `Dossier` refuses a list that mixes the two, so the dispatch reads the first
+    entry and is not a guess. An empty list is the A shape's answer and the C
+    shape's answer alike -- the same `[]` this function has always emitted at
+    every site that lists no levels -- which is why a dossier assembled under a
+    row that describes no projection is byte-identical to one assembled before
+    this existed.
     """
+    shapes = {type(level) for level in folder_levels}
+    if len(shapes) > 1:
+        # `Dossier.__post_init__` says the same thing about the RECORD; this says
+        # it about the BYTES, and the bytes are built first (`build_dossier` calls
+        # `_body` before it constructs the record), so without this a mixed list
+        # reached the A branch and died on a missing attribute instead of being
+        # refused for what it was.
+        raise MalformedRecord(
+            "folder_levels mixes level shapes. The ratified text describes this "
+            "key with one sentence per site -- the levels a situation would build, "
+            "or the levels each candidate node sits under -- and a list carrying "
+            "both is a dossier no sentence is true of"
+        )
+    if folder_levels and isinstance(folder_levels[0], NodeFolderLevel):
+        return _node_folder_levels_body(folder_levels, allowed_vocabulary)
     allowed = set(allowed_vocabulary)
     outside = [level.field for level in folder_levels if level.field not in allowed]
     if outside:
@@ -348,7 +418,7 @@ def _body(
     max_dossier_tokens: int,
     reduction_rung: str,
     allowed_vocabulary: Sequence[str],
-    folder_levels: Sequence[FolderLevel],
+    folder_levels: Sequence[FolderLevel | NodeFolderLevel],
     evidence_items: Sequence[EvidenceItem],
     conflicts: Sequence,
     released_evidence: Sequence[ReleasedEvidence],
@@ -527,7 +597,16 @@ def dossier_from_stored_body(body: Mapping[str, object], *,
         max_dossier_tokens=body["max_dossier_tokens"],
         reduction_rung=body["reduction_rung"],
         release_id=release_id,
+        # `104` R-77: the entry's own keys say which record wrote it, read the
+        # way `_folder_levels_body` dispatches and for the same reason. A rebuild
+        # that assumed the A shape would raise `KeyError` on a stored C dossier --
+        # and `store.load_dossier` compares the rebuilt record against the row key
+        # by key, so a rebuild short of a field the row holds is `MalformedRecord`
+        # out of a reuse decision, which is what R-135's note above records.
         folder_levels=tuple(
+            NodeFolderLevel(node=item["node"], level=item["level"],
+                            value=item["value"])
+            if "node" in item else
             FolderLevel(
                 field=item["field"], label=item["label"],
                 requirement=item["requirement"],
@@ -541,7 +620,7 @@ def build_dossier(
     *,
     reduction_rung: str,
     allowed_vocabulary: Sequence[str],
-    folder_levels: Sequence[FolderLevel],
+    folder_levels: Sequence[FolderLevel | NodeFolderLevel],
     prompt: PromptDefinition,
     handle_key: bytes,
 ) -> Dossier | ValidationUnavailable:

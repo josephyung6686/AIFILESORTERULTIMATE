@@ -9,13 +9,16 @@ fully supported destination after resolving ancestors and shared branches.
 marked `context` is verified against the dossier's accepted groups; a placement
 every level of which is `context` may carry no citation at all.
 
-**Site C rejects on three things and flags the rest** (`104` §18.2 gap 2, under
+**Site C rejects on four things and flags the rest** (`104` §18.2 gap 2, under
 `00`'s amendment of 2026-09-05: "deterministic validation rejects only a
-structurally invalid answer"). The three are the frozen tree (`node_exists`),
+structurally invalid answer"). The four are the frozen tree (`node_exists`),
 grounding (a level whose value the file's own released text does not state, and a
-`context` level whose group the dossier does not say the person accepted), and
-shape (a required key absent or not a number) -- plus the person's own privacy
-policy, which is theirs and not this module's opinion. Everything else --
+`context` level whose group the dossier does not say the person accepted), shape
+(a required key absent or not a number), and -- since `104` R-77 -- the derived
+schema (a level the dossier's own projection does not list for the folder the
+model chose, which fires only once a row that carries that projection is
+observed) -- plus the person's own privacy policy, which is theirs and not this
+module's opinion. Everything else --
 a destination P11's shortlist did not happen to contain, an unechoed conflict id,
 a generic hub, a placement with no supported level, a populated `alternatives`
 list -- is recorded on the verdict and sent to a person by `requires_review`.
@@ -290,32 +293,25 @@ def _invented_dimension(payload: Mapping[str, object], dossier: Dossier) -> str 
     model's own "unsupported" keeps its more precise reason because
     `SLOT_FILLED_WITHOUT_EVIDENCE` is asked first, above.
 
-    **The schema half of §13.6 has no channel at C, and is not faked here.** At
-    site A the schema check is real: the dossier's vocabulary IS the domain's
-    field keys, so "the field exists" is a lookup. At C the dimensions a model
-    may name are the frozen tree's own levels; `Dossier.folder_levels` is empty
-    at C by design ("empty at B, C and D, which design no tree") and
-    `allowed_vocabulary` is node ids, so nothing in the dossier says which levels
-    exist. The response schema constrains `dimension` to a non-empty string and
-    `SCHEMA_INVALID` carries that much. Naming the levels is the node-profile
-    change R-17 makes; a check invented here would be a rule guessing at the
-    tree.
+    **The schema half of §13.6 is now `_level_the_node_does_not_have` below, and
+    the two stay separate.** It used to have no channel at all: at site A the
+    schema check is a lookup, because the dossier's vocabulary IS the domain's
+    field keys, while at C `Dossier.folder_levels` was empty by design ("empty at
+    B, C and D, which design no tree") and `allowed_vocabulary` is node ids, so
+    nothing in the dossier said which levels exist. `104` R-77 closed that by
+    changing what the dossier carries -- which was always the shape of the fix --
+    rather than by inventing a rule here that guessed at the tree.
 
-    **WHAT THAT MISSING CHANNEL IS AND IS NOT AN EXCUSE FOR (`104` R-77).** It
-    excuses the SCHEMA half -- "this level does not exist in the tree" cannot be
-    asked without a list of the tree's levels, and R-17's node profiles reach the
-    dossier as one free-text `location` string per candidate
-    (`placement/index.py`'s `node_profile`), which is prose and not an
-    enumeration, so the list still is not here. It never excused the GROUNDING
+    **WHAT THAT MISSING CHANNEL WAS AND WAS NOT AN EXCUSE FOR (`104` R-77).** It
+    excused the SCHEMA half -- "this level does not exist in the tree" cannot be
+    asked without a list of the tree's levels. It never excused the GROUNDING
     half, which asks only whether the file's own released text states the value
     and needs no list at all. Those two were tangled: the grounding loop reached
     for `_DIMENSION_REASON` to get a reason code and treated a miss as "not my
     business", so an unrecognised level name skipped the check that did not
-    depend on recognising it. Untangled above. The schema half stays owed and
-    stays outside this module: it wants `Dossier.folder_levels` filled at C
-    (`model_placement.py`:448 sets `()` for C and D alike) or a node-profile
-    field that names the levels, either of which is a change to what the dossier
-    carries and not a check this file may invent.
+    depend on recognising it. Untangled above, and that untangling is why this
+    function still asks its own question of every non-`context` level whatever
+    the schema check concludes about the level's name.
     """
     for item in _dimensions(payload):
         if item.get("support") == "context":
@@ -345,6 +341,64 @@ def _invented_dimension(payload: Mapping[str, object], dossier: Dossier) -> str 
         return _DIMENSION_REASON.get(item.get("dimension"),
                                      SLOT_FILLED_WITHOUT_EVIDENCE)
     return None
+
+
+def _level_the_node_does_not_have(payload: Mapping[str, object],
+                                  dossier: Dossier) -> bool:
+    """§13.6's SCHEMA half at site C, and `104` R-77's other half.
+
+    §13.6 hard-vetoes a model fact that is "not grounded in the file's own
+    evidence ... or falls outside the derived schema". `_invented_dimension` above
+    is the first clause. This is the second, and until the owner answered "Yes,
+    change it" to line 33 of the C text on 11 Sep 2026 it had no channel: the
+    ratified row said `folder_levels` was EMPTY at this site, so nothing in the
+    dossier said which levels the tree has, and a check invented here would have
+    been a rule guessing at the tree.
+
+    **THE PROJECTION IS THE SCHEMA, AND IT ARRIVES IN THE DOSSIER.** The amended
+    row's own sentence is the whole rule: *"folder_levels lists, for each
+    candidate node, the levels of the tree that node sits under, each by its name
+    and the value that names its folder; a level you assign a file to must be one
+    of these, spelled as listed, and a level that is not listed for a node does
+    not exist there."* So the check is a set membership against the list the model
+    was shown, exactly as site A's is against `allowed_vocabulary` -- the model is
+    measured against the list it was given and never against a second one this
+    module holds.
+
+    **EMPTY MEANS THIS DOES NOTHING, which is what keeps the product correct under
+    BOTH rows.** Site C still observes the ratified `eliminate-v2r-group` row,
+    whose line 33 says the key is empty; under it `dossier.folder_levels` is `()`,
+    no node is described, and every answer passes here exactly as it did before
+    this function existed. The day the owner ratifies the amended row, the same
+    code starts refusing, because the dossier started carrying the list its own
+    text describes. Nothing keys off the row here: what the model was SHOWN is
+    what it is held to.
+
+    **A NODE THE PROJECTION IS SILENT ABOUT IS NOT A NODE WITH NO LEVELS, and this
+    is what R-17 still leaves open.** A level with no P6 field behind it writes no
+    `ExpectedValue` (tree Contract W4.3: its children are accepted group labels,
+    not fact values), and a branch node whose values went to its children keeps
+    none of its own -- so for those nodes the projection lists nothing, and it
+    lists nothing for the same reason whether the node has no levels or has levels
+    the tree could not name. Reading the silence as "this node has no levels"
+    would refuse every placement under such a folder: `00`:111's own example, a
+    file placed under a course it never names, lives exactly there. Coverage is
+    not traded for a check on a list that is not there, so the check asks only
+    about nodes the projection actually describes, and the open half is R-17's
+    node profiles -- free text today, so a level name they carry and the frozen
+    tree does not is still invisible here.
+
+    **The value is not this check's business.** Grounding above already asks
+    whether the file states it; this asks only whether the level exists on the
+    folder the model chose. A `context` level is asked too, and deliberately: the
+    grounding exemption is about where a VALUE may come from, and a level's NAME
+    is the tree's either way.
+    """
+    listed = {level.level for level in dossier.folder_levels
+              if getattr(level, "node", None) == payload.get("destination")}
+    if not listed:
+        return False
+    return any(item.get("dimension") not in listed for item in _dimensions(payload))
 
 
 #: An `accepted_group` evidence item in this reliability state is a group the
@@ -511,6 +565,27 @@ def _placement_site(
     for key in ("support", "next_support"):
         if key not in payload or not _real_number(payload[key]):
             return _reject(verdict, SCHEMA_INVALID, NO_DESTINATION)
+    # §13.6's OTHER hard veto, `104` R-77: a level that falls outside the derived
+    # schema, which at site C is the frozen tree's own levels for the folder the
+    # model chose. Asked LAST of the refusals so that every reason already
+    # reported keeps its priority: an answer that is unreadable, forbidden by the
+    # person's policy, or ungrounded still says so in its own words, and this
+    # names only what none of them could.
+    #
+    # **THE WORD IS THE NEAREST ONE IN THE CLOSED SET AND A BETTER ONE IS THE
+    # OWNER'S.** `SITE_C_REASON_CODES` has no member for "the tree has no such
+    # level": the four `INVENTED_*` words are `00`:114's four things a model must
+    # not invent and a level name is not among them, and `NODE_NOT_IN_FROZEN_TREE`
+    # is about the destination, which `node_exists` above has already confirmed is
+    # real. `SLOT_FILLED_WITHOUT_EVIDENCE` is C's existing word for a slot filled
+    # with something the dossier cannot support -- it is what the model's own
+    # `unsupported`, an unverifiable `context` level and `_invented_dimension`'s
+    # fallback all get -- and a level the projection does not list is a slot
+    # nothing in the dossier could ever support. Minting a fifth C code is a
+    # closed-vocabulary addition and a spec-level act; it is reported as owed
+    # rather than taken here.
+    if _level_the_node_does_not_have(payload, dossier):
+        return _reject(verdict, SLOT_FILLED_WITHOUT_EVIDENCE, NO_DESTINATION)
     # ----------------------------------------------------------------------
     # EVERYTHING BELOW IS A FLAG (`104` §18.2 gap 2). Five checks that used to
     # destroy or downgrade the answer, each now recorded on a verdict that

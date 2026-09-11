@@ -710,6 +710,82 @@ def test_the_model_path_is_reached_when_the_deterministic_one_is_ambiguous(
     assert decision.review_policy == v.REVIEW_REQUIRED
 
 
+# --- `104` R-77: §13.6's schema half, the projection half ------------------------
+#
+# The amended C row's line 33: *"folder_levels lists, for each candidate node, the
+# levels of the tree that node sits under, each by its name and the value that
+# names its folder."* The projection is a read of the frozen tree's index entries
+# and is set beside `allowed_vocabulary`, because it is a projection OF it.
+
+
+def _folder_levels_seen(skeleton, monkeypatch, *, prompt):
+    import placement.pipeline as pipeline
+
+    seen = {}
+
+    def _fake_call(conn, request, **kwargs):
+        seen["allowed"] = kwargs["call_dependencies"].allowed_vocabulary
+        seen["levels"] = kwargs["call_dependencies"].folder_levels
+        return _verdict()
+
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_fake_call))
+    _place(skeleton, inputs=_model_inputs(skeleton, prompt=prompt),
+           evidence=_evidence(**AMBIGUOUS))
+    return seen
+
+
+def test_under_a_row_that_lists_no_levels_the_c_call_projects_nothing(
+        skeleton, monkeypatch):
+    """The row site C observes today says `folder_levels` is EMPTY at this site,
+    and the builder is told so by `PromptDefinition.lists_folder_levels`. This is
+    why `tests/integration/test_r37_single_branch_is_byte_identical.py` needs no
+    recapture: the dossier this call assembles is the one it always assembled."""
+    seen = _folder_levels_seen(skeleton, monkeypatch,
+                               prompt=SimpleNamespace(ratified=True))
+
+    assert seen["levels"] == ()
+
+
+def test_under_the_amended_row_each_candidate_carries_its_own_levels(
+        skeleton, monkeypatch):
+    """MEASURED: every offered node's chain, by the level's own field key and the
+    value that named the folder, read off the frozen tree and nothing else.
+
+    SABOTAGE: point the projection at anything but `IndexEntry.expected_values`
+    and these pairs stop being P10's. `n-course` is `subject=PHYS1401` because
+    `p10_fixtures` wrote that `ExpectedValue` on it; no line of P11 composes it.
+    """
+    seen = _folder_levels_seen(
+        skeleton, monkeypatch,
+        prompt=SimpleNamespace(ratified=True, lists_folder_levels=True))
+    levels = seen["levels"]
+
+    assert levels
+    # Every level belongs to a node the model may actually answer with: the two
+    # are one computation, and `dossier._folder_levels_body` refuses the call
+    # outright when they disagree.
+    assert {level.node for level in levels} <= set(seen["allowed"])
+    assert ("n-course", "subject", "PHYS1401") in {
+        (level.node, level.level, level.value) for level in levels}
+
+
+def test_a_node_the_tree_named_no_level_for_is_listed_with_no_levels(
+        skeleton, monkeypatch):
+    """R-17's still-open half, pinned as the silence it is rather than as an
+    assertion. `n-general` is a scoped fallback and `n-academics` is a root
+    branch; `p10_fixtures` gives each of them `expected_values=()`, because a
+    level with no P6 field behind it writes no `ExpectedValue` (Contract W4.3)
+    and a branch whose values went to its children keeps none of its own. The
+    projection says nothing about such a node, which is what P10 gave it to say.
+    """
+    seen = _folder_levels_seen(
+        skeleton, monkeypatch,
+        prompt=SimpleNamespace(ratified=True, lists_folder_levels=True))
+
+    assert "n-general" in seen["allowed"]
+    assert not [level for level in seen["levels"] if level.node == "n-general"]
+
+
 # --- `104` R-165: the record says WHO chose the destination ----------------------
 #
 # READ OFF THE STORED BODY AND NOT THE RETURNED OBJECT, in every one of these. The

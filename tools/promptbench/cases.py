@@ -80,6 +80,13 @@ class Case:
     conflicts: tuple[tuple[str, str], ...] = ()
     plan_version: str | None = None
     folder_levels: tuple[tuple[str, str, str], ...] = ()
+    #: Site C only (`104` R-77): `(node, level, value)` per entry -- the levels
+    #: one candidate node sits under, by the level's own name and the value that
+    #: names its folder. The C shape of `folder_levels`, which the amended row
+    #: describes and which every earlier row says is empty at this site. A case
+    #: leaving it empty is a case under one of those earlier rows, which is what
+    #: site C still observes.
+    node_levels: tuple[tuple[str, str, str], ...] = ()
     authorities: dict = field(default_factory=dict)
     #: Site A only: the schema the activation signal turns on, and the
     #: situation whose folder levels the dossier shows.

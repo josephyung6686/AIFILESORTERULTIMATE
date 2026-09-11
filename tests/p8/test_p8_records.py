@@ -242,7 +242,17 @@ def test_prompt_definition_is_frozen_and_carries_exact_bytes():
         # finish line's invariant -- no verdict produced under an unratified
         # prompt is ever applied -- must not depend on a naming habit.
         "ratified",
+        # `104` R-77: whether this row's text describes a FILLED `folder_levels`,
+        # set by the loader from the manifest row on `ratified`'s own terms. A
+        # field and not a reading of `template_bytes` for `ratified`'s own reason:
+        # the builder's behaviour must not depend on a sentence the owner may
+        # reword. `False` is the truthful answer for every row ratified so far --
+        # their line 33 says the key is empty at site C.
+        "lists_folder_levels",
     )
+    assert prompt.lists_folder_levels is False
+    with pytest.raises(MalformedRecord):
+        dataclasses.replace(prompt, lists_folder_levels="yes")
     assert prompt.template_bytes == b"TEMPLATE"
     assert prompt.response_schema_bytes == b'{"type":"object"}'
     assert prompt.shaping_policy_bytes == b'{"policy":"authored"}'

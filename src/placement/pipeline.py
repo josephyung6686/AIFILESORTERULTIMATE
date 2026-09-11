@@ -56,6 +56,11 @@ from llm_harness.records import (
     # re-exported one line below for that same reason: "the records module is the
     # surface every one of them already reads".
     MalformedRequest,
+    # `104` R-77: the C shape of the dossier's `folder_levels` key. Built here for
+    # `EvidenceItem`'s reason and on its terms -- P8 owns what a dossier carries
+    # and P11 owns what the frozen tree says, and a candidate's levels are the
+    # second put into the first's shape, exactly as a candidate's profile is.
+    NodeFolderLevel,
     PreCallAbstention,
     ValidationUnavailable,
 )
@@ -2744,6 +2749,50 @@ def _offered_items(conn, *, plan_version: str, node_ids, call_site: str,
     return tuple(items)
 
 
+def _candidate_levels(conn, *, plan_version: str, node_ids) -> tuple:
+    """§13.6's schema half at site C: the levels each offered node sits under.
+
+    `104` R-77, and the amended C row is the contract: *"folder_levels lists, for
+    each candidate node, the levels of the tree that node sits under, each by its
+    name and the value that names its folder; a level you assign a file to must be
+    one of these, spelled as listed, and a level that is not listed for a node does
+    not exist there."*
+
+    **NO SECOND ENGINE, AND THAT IS THE WHOLE OF THIS FUNCTION.** A node's chain of
+    levels is already a field of the node: `tree_design.materialise._project`
+    builds each child's `expected_values` as `chain + ExpectedValue(field, value)`,
+    where `field` is the P6 field that level divides on (`Node.dimension`) and
+    `value` is the value that named the folder. The index carries the pairs over
+    verbatim (`index._entry`), and `node_profile` already prints the same pairs to
+    the model as prose -- *"expects course=PHYS 1401"*. This is that list as an
+    enumeration instead of a sentence. P11 derives nothing, names nothing, and
+    orders nothing: the nodes come in the ranking's order and each node's levels
+    come in the tree's own root-to-leaf order.
+
+    **R-17's node profiles are why this is not read back out of the prose**, which
+    was the third of the three blockers G9 priced: the profile reaches the dossier
+    as one free-text `location` string per candidate, and parsing it would be the
+    rule guessing at the tree that `_invented_dimension` is written not to do. The
+    levels are read from the index rows the profile is built from instead.
+
+    **A NODE THE TREE NAMED NO LEVEL FOR CONTRIBUTES NOTHING, and that silence is
+    not an assertion.** Contract W4.3's template-local level writes NO
+    `ExpectedValue` -- its children are accepted group labels rather than fact
+    values, so there is no field to name -- and a branch node whose values went to
+    a child carries none of its own. For those nodes this list says nothing, which
+    is what P10 gave it to say; the validator's own docstring carries what that
+    costs.
+    """
+    entries = {entry.node_id: entry
+               for entry in entries_for_plan(conn, plan_version=plan_version)}
+    return tuple(
+        NodeFolderLevel(node=node_id, level=field, value=value)
+        for node_id in node_ids
+        if node_id in entries
+        for field, value in entries[node_id].expected_values
+    )
+
+
 def _residual_areas(conn, *, plan_version: str) -> tuple[str, ...]:
     """`00`:120's approved residual library, in the index's own order.
 
@@ -3101,6 +3150,22 @@ def _judge_with_model_steps(conn, *, subject, inputs: PipelineInputs, retrieval,
         sites = site_dependencies(placement=placement_authorities(
             conn, plan_version=inputs.plan_version, policy=inputs.policy,
             sensitivity_policy=inputs.sensitivity_policy))
+        # `104` R-77. THE PROJECTION, AND ONLY UNDER THE ROW THAT DESCRIBES IT.
+        # `PromptDefinition.lists_folder_levels` is the composition root's answer,
+        # set from the manifest row the way `ratified` is, and it is read off the
+        # object rather than parsed out of the text for `ratified`'s own reason.
+        # Under every row ratified so far it is false, the tuple stays empty, and
+        # this call's dossier is byte-identical to the one built before this
+        # existed -- which is exactly what those rows' line 33 tells the model.
+        #
+        # The read is `getattr` with the safe answer as its default because a
+        # deployment may hand this pass a prompt object of its own: a caller that
+        # has said nothing about what its text describes gets the empty list,
+        # which is the only answer that cannot make its prompt untrue.
+        node_levels = (
+            _candidate_levels(conn, plan_version=inputs.plan_version,
+                              node_ids=offered)
+            if getattr(inputs.prompt, "lists_folder_levels", False) else ())
     else:
         # §7.7's own answer space, and the D draft's two item kinds: "the approved
         # homes it may go to" (`00`:120's residual library, every residual node of
@@ -3113,6 +3178,10 @@ def _judge_with_model_steps(conn, *, subject, inputs: PipelineInputs, retrieval,
         sites = site_dependencies(residual=residual_authorities(
             conn, plan_version=inputs.plan_version, approved_target_ids=legal,
             sensitivity_policy=inputs.sensitivity_policy))
+        # Site D designs no tree and places into the approved residual set, and
+        # its ratified text says the key is empty at that site. R-77 amends C's
+        # line 33 and nobody's else, so D's answer is the one it always gave.
+        node_levels = ()
     profiles = _offered_items(
         conn, plan_version=inputs.plan_version, node_ids=offered,
         call_site=call_site, own_folder_node_id=own_folder_node_id,
@@ -3154,6 +3223,13 @@ def _judge_with_model_steps(conn, *, subject, inputs: PipelineInputs, retrieval,
             max_calls_per_1000_files=inputs.limits.max_llm_calls_per_thousand_files,
             max_estimated_cost=Decimal(inputs.limits.max_cost_per_scan)),
         allowed_vocabulary=list(offered),
+        # `104` R-77. SET BESIDE THE VOCABULARY BECAUSE IT IS A PROJECTION OF IT:
+        # `dossier._folder_levels_body` refuses a level attributed to a node this
+        # list does not carry, so the two are one computation and are replaced in
+        # one place. Empty under every row the owner has ratified so far, which is
+        # the value `model_placement.placement_call_dependencies` already put here
+        # and the value this line leaves untouched on that path.
+        folder_levels=node_levels,
         proposal_class=PLACEMENT if call_site == C_PLACEMENT else RESIDUAL,
         # THE RANKED WINNER, not `retrieval.candidates[0]`. `basis_key` is what a
         # past rejection is keyed on (`learning.basis_key_for`), so it has to name

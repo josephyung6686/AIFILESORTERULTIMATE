@@ -90,6 +90,7 @@ from llm_harness.records import (
     EvidenceItem,
     FolderLevel,
     MalformedRecord,
+    NodeFolderLevel,
     PromptDefinition,
 )
 from llm_harness.vocabulary import (
@@ -121,6 +122,12 @@ DOSSIER_BODY_KEYS: frozenset[str] = frozenset({
 #: a library constant.
 FOLDER_LEVEL_FIELDS: frozenset[str] = frozenset(
     f.name for f in dataclasses.fields(FolderLevel))
+
+#: And the three site C's entries carry (`104` R-77), read off `NodeFolderLevel`
+#: for the same reason and refused for the same one: a fourth key is how an
+#: example drawn from the person's corpus would travel beside a tree constant.
+NODE_FOLDER_LEVEL_FIELDS: frozenset[str] = frozenset(
+    f.name for f in dataclasses.fields(NodeFolderLevel))
 
 #: The one key inside it the release authorized.
 RELEASED_EVIDENCE_KEY: str = "released_evidence"
@@ -242,16 +249,34 @@ def released_content_digest(canonical_dossier_bytes: bytes, *,
     # model instructed to fill a key its answer will be rejected for proposing, and
     # the ledger should refuse those bytes rather than pay for them.
     vocabulary = set(body["allowed_vocabulary"])
-    for level in _require_entries(body["folder_levels"], FOLDER_LEVEL_FIELDS,
-                                  slot="folder_levels"):
-        _require_member(level["requirement"], LEVEL_REQUIREMENTS,
-                        slot="folder_levels[].requirement")
-        if level["field"] not in vocabulary:
-            _refuse(
-                f"folder level {level['field']!r} is not in this call's "
-                "allowed_vocabulary. The two are one computation, and a model told "
-                "to fill a field outside the closed vocabulary is rejected under "
-                "check 1 for obeying its instructions")
+    levels = body["folder_levels"]
+    # `104` R-77. WHICH SHAPE THIS SITE'S KEY WEARS, read off the entry and not off
+    # the call site: `dossier._folder_levels_body` dispatches on the record and
+    # `Dossier` refuses a list that mixes the two, so the first entry's keys are
+    # the whole answer. An empty list is both shapes' answer and neither branch's
+    # business, which is why every site that lists no levels reaches this door
+    # exactly as it always did.
+    if (isinstance(levels, list) and levels and isinstance(levels[0], dict)
+            and set(levels[0]) == NODE_FOLDER_LEVEL_FIELDS):
+        for level in _require_entries(levels, NODE_FOLDER_LEVEL_FIELDS,
+                                      slot="folder_levels"):
+            if level["node"] not in vocabulary:
+                _refuse(
+                    f"folder levels describe node {level['node']!r}, which is not "
+                    "in this call's allowed_vocabulary. The two are one "
+                    "computation, and levels attributed to a folder the model may "
+                    "not answer with are levels no answer of its own can spell")
+    else:
+        for level in _require_entries(levels, FOLDER_LEVEL_FIELDS,
+                                      slot="folder_levels"):
+            _require_member(level["requirement"], LEVEL_REQUIREMENTS,
+                            slot="folder_levels[].requirement")
+            if level["field"] not in vocabulary:
+                _refuse(
+                    f"folder level {level['field']!r} is not in this call's "
+                    "allowed_vocabulary. The two are one computation, and a model "
+                    "told to fill a field outside the closed vocabulary is "
+                    "rejected under check 1 for obeying its instructions")
 
     for item in _require_entries(body["evidence_items"], EVIDENCE_ITEM_FIELDS,
                                  slot="evidence_items"):

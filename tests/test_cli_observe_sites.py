@@ -16,7 +16,7 @@ import dataclasses
 import json
 import sys
 from pathlib import Path
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 
 import pytest
 
@@ -180,6 +180,53 @@ def test_the_prompt_table_names_every_observe_site_and_no_other():
     """A site with no text would refuse at the first call rather than at the
     composition root, which is the half-injection the product refuses elsewhere."""
     assert set(cli.OBSERVE_TEMPLATE_ID) == cli.OBSERVE_CALL_SITES
+
+
+# --- `104` R-77: which C row describes a filled `folder_levels` ----------------
+
+
+def test_the_levels_row_is_a_real_manifest_row_and_is_not_the_one_c_observes():
+    """The owner answered "Yes, change it" to line 33 on 11 Sep 2026 and the lead
+    wrote the amended candidate row. Site C keeps observing the RATIFIED row until
+    the owner ratifies this one, so the two ids must be two rows and both must
+    resolve to bytes the manifest has a digest for -- a constant naming a row
+    nobody published would be a projection that could never turn on."""
+    assert cli.C_LEVELS_TEMPLATE_ID != cli.OBSERVE_TEMPLATE_ID[C_PLACEMENT]
+    assert draft_bytes(cli.C_LEVELS_TEMPLATE_ID)
+    assert draft_status(cli.C_LEVELS_TEMPLATE_ID) == UNRATIFIED
+    assert draft_status(cli.OBSERVE_TEMPLATE_ID[C_PLACEMENT]) in cli.STATUS_APPLIES
+
+
+def test_under_the_row_c_observes_today_the_prompt_lists_no_folder_levels():
+    """The compatibility half, and the reason `test_r37_single_branch_is_byte_
+    identical` needs no recapture: `eliminate-v2r-group`'s line 33 says the key is
+    EMPTY at this site, so the builder is told to project nothing and the C
+    dossier is the one it always built."""
+    assert cli.observe_prompt(C_PLACEMENT).lists_folder_levels is False
+
+
+def test_the_flag_follows_the_row_and_not_the_site(monkeypatch):
+    """Re-pointing site C at the amended row is an edit to `OBSERVE_TEMPLATE_ID`
+    and to nothing else. This is that edit, made for the length of one test: the
+    same function, the same site, and the projection turns on because the ROW
+    changed -- which is what "detect it by the row" has to mean if ratification is
+    going to be one line."""
+    monkeypatch.setattr(cli, "OBSERVE_TEMPLATE_ID", MappingProxyType(
+        {**cli.OBSERVE_TEMPLATE_ID, C_PLACEMENT: cli.C_LEVELS_TEMPLATE_ID}))
+    prompt = cli.observe_prompt(C_PLACEMENT)
+
+    assert prompt.template_id == cli.C_LEVELS_TEMPLATE_ID
+    assert prompt.lists_folder_levels is True
+
+
+@pytest.mark.parametrize("site", sorted(cli.OBSERVE_TEMPLATE_ID))
+def test_no_other_site_claims_to_list_folder_levels(site):
+    """R-77 amends site C's line 33 and nobody else's. B, D and E design no tree
+    and their ratified texts say the key is empty; a flag true at one of them
+    would be a builder promising a list their text never mentions."""
+    if site == C_PLACEMENT:
+        return
+    assert cli.observe_prompt(site).lists_folder_levels is False
 
 
 # --- C and D: the seven injections, and the resolvers that must not be reached -
