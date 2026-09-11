@@ -297,6 +297,10 @@ def test_p11_adds_no_second_learning_store(p11_conn):
             assert "INSERT INTO" not in node.value.upper()
 
 
-def test_the_six_scopes_are_p1s_six():
-    assert CORRECTION_SCOPES == ("file", "group", "node", "template", "domain",
-                                 "corpus")
+def test_the_seven_scopes_are_p1s_six_and_the_owners_branch():
+    """P1's six, and `branch` -- a node and everything under it -- ratified by
+    the owner on 11 Sep 2026 as the scope of the `--send-set` gesture (`104`
+    R-26, §18.39). A closed vocabulary grows by the owner's word only, which is
+    why this pin names every member rather than counting them."""
+    assert CORRECTION_SCOPES == ("file", "group", "node", "branch", "template",
+                                 "domain", "corpus")

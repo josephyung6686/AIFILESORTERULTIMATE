@@ -126,7 +126,14 @@ class MalformedEvent(Exception):
 #: scope one accepted that the other rejected would be storable and permanently
 #: unreadable.
 CORRECTION_SCOPES: tuple[str, ...] = (
-    "file", "group", "node", "template", "domain", "corpus",
+    "file", "group", "node",
+    # `branch`: a node AND everything under it. Ratified by the owner on 11 Sep
+    # 2026 (in session, asked as "R-26: keep 'node' or use 'branch'?"; answered
+    # "Use 'branch'") as the scope of the `--send-set` gesture -- one acceptance
+    # covers the folder and its sub-folders. A member of a closed vocabulary,
+    # added on the owner's word and on nothing else.
+    "branch",
+    "template", "domain", "corpus",
 )
 
 _REQUIRED = ("event_type", "subsystem", "component_version", "observed_at", "explanation")

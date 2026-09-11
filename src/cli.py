@@ -8466,7 +8466,12 @@ def _validate_residuals(names: Sequence[str]) -> tuple[str, ...]:
 #: `approved_residual_area` is what resolves the words the person typed to its
 #: `node_id`. `file` would claim they judged each member, which is the one thing
 #: a bulk send does not do; `corpus` would claim they said it about every run.
-RESIDUAL_SEND_SCOPE: str = "node"
+#: The agent that built R-26 chose `node` (that folder alone); THE OWNER RULED
+#: `branch` on 11 Sep 2026 (in session, with the two words and their reach put
+#: to them): one acceptance covers the area and everything under it. The word is
+#: `questions.vocabulary.SCOPE_BRANCH`, the same word a branch question is
+#: scoped by, and it is a member of `CORRECTION_SCOPES` by the same ruling.
+RESIDUAL_SEND_SCOPE: str = SCOPE_BRANCH
 assert RESIDUAL_SEND_SCOPE in CORRECTION_SCOPES
 
 #: §8.7's scope for the `--rename-level` gesture, chosen here for the same reason

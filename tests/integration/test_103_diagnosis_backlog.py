@@ -138,7 +138,9 @@ def test_a_residual_send_is_recorded_as_a_review_action(tmp_path):
     # The gesture P13 already had a name for, at the scope the composition root
     # chose: one `--send-set` files a whole set into one area without a per-file
     # look, which is `accept_bulk`, and the area is a node of this plan version.
-    assert ("accept_bulk", "node") in {tuple(row) for row in actions}, actions
+    # The owner ruled the send scope `branch` on 11 Sep 2026 (104 §18.39): one
+    # acceptance covers the area and everything under it.
+    assert ("accept_bulk", "branch") in {tuple(row) for row in actions}, actions
 
 
 # --- 103 §18 C7: the dossier token cap is asserted, never measured ------------------
