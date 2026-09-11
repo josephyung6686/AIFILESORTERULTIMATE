@@ -638,3 +638,73 @@ def test_the_unsupported_run_names_no_provider_it_never_heard_from():
     assert result.run["extractor_version"] == VERSION
     assert "." not in UNREPORTED_PROVIDER_NAME, (
         "the family name must not collide with any real `ocr.<provider>`")
+
+
+def test_the_adapter_version_moved_when_what_it_emits_moved():
+    """`104` NEW-4, on R-164's rule: the number states what the code emits.
+
+    Under `0.1.0` this extractor wrote no passage unit at all. R-171 gave the passage
+    its own `text_units` row, §18.2 gap 17d gave that row's reading a bounding box,
+    and r19's crash on a box with no span gave it the unit's own span beside the box.
+    Three changes to the shape of what a person and a model are shown, under one
+    number -- §17.11's defect exactly, found once already in `structured_text.py`.
+
+    THE ASSERTION IS THE PAIRING, not the string: the passage's reading carries a box
+    and a span TODAY, so a version that still said `0.1.0` would be describing a
+    build that did neither. `extract_ocr` stamps a successful run with the PROVIDER's
+    version, so this constant reaches only the rows where the engine reported none --
+    which is why the row above is where it is asserted and why NEW-4 calls the
+    exposure smaller than `structured_text`'s was.
+    """
+    from extractors.ocr import VERSION
+
+    result, _ = run_it(finder=lambda text: ())
+    passage = [o for o in result.observations
+               if not o["location"]["container_path"]]
+    assert len(passage) == 1
+    assert passage[0]["location"]["region"] is not None
+    assert passage[0]["location"]["text_span"] is not None
+    assert VERSION != "0.1.0", (
+        "the passage gained a unit, a box and a span under this number, so a cache "
+        "keyed on it cannot tell the two builds apart")
+
+
+def test_a_recogniser_that_cannot_detect_language_says_so_on_the_run():
+    """`104` §18.2 gap 19's open half, recorded instead of lost.
+
+    Gap 19 replaced the `en-US` default with the recogniser's own published set and
+    turned its language identification ON, and the measurement that decided it is
+    that the flag, not the list, is load-bearing: on a rendered `会计学原理` the whole
+    published set with detection OFF reads nothing, and detection ON reads it at
+    confidence 1.0. An older macOS's Vision has no such flag, so on that machine the
+    fix does nothing -- and did nothing SILENTLY. The run said `complete`, the
+    coverage said every page, and the only thing missing was the text, which is
+    indistinguishable in the record from a genuinely blank scan.
+
+    §2.7's "languages" and "configuration" both live in `config` (`FIELD_HOMES`), so
+    that is where the caveat goes: the same place a person and `tools/groundtruth`
+    already look to see what the recognition was asked for.
+    """
+    result, _ = run_it(output=an_output(detects_language=False))
+
+    assert result.run["config"]["language_detection"] is False
+    assert result.run["completeness"] == "complete", (
+        "the run is not a failure -- it read what this machine can read")
+
+
+def test_a_capable_recogniser_writes_no_caveat_and_moves_no_fingerprint():
+    """The caveat is the EXCEPTION being reported, and the asymmetry is the point.
+
+    A deployment whose recogniser detects language gets the config it passed in and
+    nothing added, so no stored fingerprint moves for it. On the machine that IS
+    missing the flag the key sits INSIDE `config_fingerprint`, which is §3.4's cache
+    key -- so the day that machine's macOS offers detection, the key disappears, the
+    fingerprint changes, the cache misses, and every image it read as blank is read
+    again. The caveat expires by itself on the run that no longer needs it.
+    """
+    capable, _ = run_it()
+    older, _ = run_it(output=an_output(detects_language=False))
+
+    assert "language_detection" not in capable.run["config"]
+    assert capable.run["config_fingerprint"] != older.run["config_fingerprint"], (
+        "a machine that gains language detection would keep reading its cache")

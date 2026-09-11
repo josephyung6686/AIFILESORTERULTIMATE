@@ -35,7 +35,25 @@ from extractors.shape import (
 )
 from extractors.sink import ExtractionResult
 
-VERSION = "0.1.0"
+#: `104` NEW-4, on R-164's rule: WHAT THIS EXTRACTOR EMITS CHANGED, SO THE NUMBER
+#: MOVES. R-171 gave the whole passage its own `text_units` row, and §18.2 gap 17d
+#: then gave that row's reading a bounding box and, after r19 crashed on a box with
+#: no span, the unit's own span beside it. Three changes to the shape of what a
+#: person and a model are shown, and the version stayed where it was -- which is
+#: §17.11's defect exactly, found and fixed once already in `structured_text.py` and
+#: repeating here.
+#:
+#: WHAT THE BUMP ACTUALLY REACHES, stated because the honest half is smaller than
+#: the rule: `extract_ocr` stamps a SUCCESSFUL run with `output.provider_version` --
+#: the OS the recogniser shipped with -- so this constant reaches only the rows
+#: where the engine reported no provider of its own: the `unsupported` run above and
+#: the failure `dispatch._ocr` writes for an engine that raised. Successful OCR runs
+#: cached before R-171 are therefore NOT re-read by this bump and still carry no
+#: passage unit; they are re-read when the machine's macOS version moves, or by a
+#: change that puts this constant into the run's `config` and so into
+#: `config_fingerprint`. That is a decision about every stored fingerprint at once
+#: and is not taken here.
+VERSION = "0.2.0"
 
 #: `runs.analysis_tier_for` keys the `ocr` tier on this prefix rather than on a name,
 #: so a second provider needs no edit there and P5 spells no provider.
@@ -106,6 +124,17 @@ class OcrOutput:
 
     `capped` is section 2.7's partial-read state: the engine was given section 8.6's
     page cap and run-time limits and reports that it reached one.
+
+    `detects_language` is `104` §18.2 gap 19's caveat, reported rather than assumed.
+    Gap 19's measurement is that on rendered CJK the language LIST decides nothing
+    and the recogniser's own language identification decides everything: with
+    detection off, the whole published set reads no text at all; with it on, the same
+    image reads at confidence 1.0. An engine on a machine whose recogniser does not
+    offer that flag therefore reads a Chinese-titled document as EMPTY, and says so
+    here so the run can say it too. It is a CAPABILITY the engine reports, not a
+    setting a caller chooses -- there is no knob for it, and the default is True
+    because a recogniser that cannot detect language is the exception a deployment
+    has to report, not the rule every engine has to declare.
     """
     provider: str
     provider_version: str
@@ -113,6 +142,7 @@ class OcrOutput:
     pages_processed: int = 0
     pages_total: int = 0
     capped: bool = False
+    detects_language: bool = True
 
 
 #: The characters a provider may spell a word break with. Folded to `_` so that one
@@ -381,11 +411,31 @@ def extract_ocr(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy
             confidence=passage_confidence(output.regions),
         ))
 
+    # `104` §18.2 gap 19's CAVEAT, ON THE RUN. Gap 19 closed the English-only default
+    # by asking the recogniser for its own published set and turning its language
+    # identification ON -- and the detection flag is the load-bearing half: measured
+    # on a rendered `会计学原理`, the whole published set with detection off reads
+    # NOTHING and detection on reads it at confidence 1.0. A machine whose recogniser
+    # offers no such flag therefore still reads a CJK document as empty, and it did
+    # so silently: the run said `complete`, the coverage said every page, and the
+    # only thing missing was the text. This key is the difference between a run that
+    # read nothing and a run that could not have read it, and §2.7's "languages" and
+    # "configuration" already live in `config` (`FIELD_HOMES`), which is where a
+    # person and `tools/groundtruth` both already look.
+    #
+    # WRITTEN ONLY WHEN IT IS FALSE, and the asymmetry is the point twice over. It is
+    # the exception being reported, so a capable deployment's runs are untouched and
+    # no stored fingerprint moves for them; and on the machine that IS missing the
+    # flag, the key sits inside `config_fingerprint`, so when that machine's OS
+    # finally offers detection the key disappears, the fingerprint changes, §3.4's
+    # cache misses and every image it read as blank is read again. The caveat expires
+    # by itself on the run that no longer needs it.
+    caveat = {} if output.detects_language else {"language_detection": False}
     return ExtractionResult(
         run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],
                 extractor_name=name, extractor_version=output.provider_version,
                 source_type=SOURCE_TYPE, analysis_tier=ANALYSIS_TIER,
-                config={**config, "context_window": context_window},
+                config={**config, "context_window": context_window, **caveat},
                 completeness="capped" if output.capped else "complete",
                 coverage=coverage("pages", output.pages_processed,
                                   output.pages_total),

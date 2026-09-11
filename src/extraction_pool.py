@@ -678,6 +678,36 @@ class ProcessPool:
                 # handle whose future was cancelled and the run stops on the next
                 # file rather than on this one.
                 self._release()
+                if ends:
+                    # R-120's residue, closed here on the rule the two named
+                    # branches above already keep. The sentence above is the whole
+                    # reason this branch can be a SECOND end: the isolated suspect's
+                    # own result is exactly the thing that may not pickle, so a file
+                    # that wedged and was rebuilt around can arrive here having
+                    # spent both of its attempts -- and reporting only this error
+                    # told a person the file had done one thing when it had done
+                    # two, which is the half-false row `_both_attempts_failed`
+                    # exists to end.
+                    #
+                    # `ends` IS THE TEST, not `attempts`. `ends` holds one entry per
+                    # attempt that has already FINISHED, so it is empty on a first
+                    # attempt -- where this error is the whole and honest story and
+                    # `_failure_outcome` keeps it verbatim -- and non-empty exactly
+                    # when there is an earlier end to lose. `attempts` counts the
+                    # attempt now ending as well and would be one too many here.
+                    #
+                    # `RuntimeError`, for `_both_attempts_failed`'s own reason:
+                    # `failed_result` writes `failure_reason` as
+                    # `f"{type(error).__name__}: {error}"`, so keeping this branch's
+                    # type would put the last attempt's mode back at the front of
+                    # the row the sentence exists to keep honest. Nothing is lost by
+                    # it -- unlike the two branches above, the error's type AND its
+                    # message ride inside the end this attempt is named by, because
+                    # here the message is the information: it names what would not
+                    # pickle.
+                    ended = f"nothing was delivered ({type(error).__name__}: {error})"
+                    return _failure_outcome(request, RuntimeError(
+                        _both_attempts_failed(request, ends + (ended,))))
                 return _failure_outcome(request, error)
             self._outstanding.pop(current, None)
             self._release()

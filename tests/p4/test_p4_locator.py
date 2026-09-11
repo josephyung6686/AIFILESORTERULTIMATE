@@ -39,6 +39,7 @@ GOLDEN_LOCATORS = (
     "annotation:page=2#0-18",                   # §2.3 comments and revision metadata
     "header_footer:page=1#0-24",                # §2.3, §3.7 "a footer"
     "reference_list:page=18#12000-12100",       # §2.2's reference list
+    "body:cell=4",                              # `104` R-160, a notebook's own cell
 )
 
 

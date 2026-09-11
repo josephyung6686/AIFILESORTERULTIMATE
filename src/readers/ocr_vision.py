@@ -222,6 +222,24 @@ def recognition_languages(*, recognition_level: str) -> tuple[str, ...]:
     return tuple(str(language) for language in published)
 
 
+def _detects_language(request) -> bool:
+    """Whether THIS machine's recogniser can identify a language at all.
+
+    `104` §18.2 gap 19 left exactly one thing open and said so: the automatic
+    detection that makes CJK readable is a flag an older macOS's Vision does not
+    have, and on such a machine the fix silently does nothing -- the published set is
+    still asked for and still handed over, and a Chinese-titled document still comes
+    back as no text at all. One question, asked in one place, so `_recognise` (which
+    must ask it of the request it is about to run) and the engine below (which must
+    report it on the run) cannot drift into disagreeing about the same machine.
+
+    Asked of a REQUEST rather than of the class: the selector is an instance method,
+    and a capability answered off the class object would be a guess about PyObjC's
+    bridging rather than a statement about the object that will actually recognise.
+    """
+    return hasattr(request, "setAutomaticallyDetectsLanguage_")
+
+
 def _recognise(image, *, languages, level) -> list[tuple[str, float, Any]]:
     handler = Vision.VNImageRequestHandler.alloc().initWithCGImage_options_(image, {})
     request = Vision.VNRecognizeTextRequest.alloc().init()
@@ -237,7 +255,7 @@ def _recognise(image, *, languages, level) -> list[tuple[str, float, Any]]:
     # set and no automatic detection recognises NOTHING, while automatic detection
     # recognises it at confidence 1.0 with or without the list. So the detection
     # flag is the load-bearing line and the list is the prior beside it.
-    if hasattr(request, "setAutomaticallyDetectsLanguage_"):
+    if _detects_language(request):
         request.setAutomaticallyDetectsLanguage_(True)
     if languages:
         request.setRecognitionLanguages_(list(languages))
@@ -308,6 +326,12 @@ def vision_ocr() -> Callable[..., OcrOutput]:
         # field) because `readers/deployment.py` puts it there before the call.
         languages = settings.get("languages") or recognition_languages(
             recognition_level=level_name)
+        # `104` §18.2 gap 19's open half, now REPORTED instead of left in a comment.
+        # Asked once, of a request built the way the ones below are built, so the run
+        # records the capability the recognition actually had. `extract_ocr` writes
+        # it onto the run only when it is False, and its comment says why.
+        detects_language = _detects_language(
+            Vision.VNRecognizeTextRequest.alloc().init())
         page_cap = settings.get("page_cap")
         time_limit = settings.get("time_limit_seconds")
 
@@ -337,7 +361,7 @@ def vision_ocr() -> Callable[..., OcrOutput]:
                                          box=_box(rect), confidence=confidence))
             return OcrOutput(provider=PROVIDER, provider_version=_provider_version(),
                              regions=tuple(regions), pages_processed=1, pages_total=1,
-                             capped=False)
+                             capped=False, detects_language=detects_language)
 
         started = time.monotonic()
         processed = 0
@@ -368,6 +392,6 @@ def vision_ocr() -> Callable[..., OcrOutput]:
             # §2.7's partial-read state. True only when a limit stopped the run --
             # a document that simply ended is not a partial read, and §8.6 needs the
             # two distinguishable so unfinished work stays visible as unfinished.
-            capped=stopped_early)
+            capped=stopped_early, detects_language=detects_language)
 
     return ocr_engine
