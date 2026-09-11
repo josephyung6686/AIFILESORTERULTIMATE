@@ -58,6 +58,11 @@ from privacy.items import (
     sensitive_observation_keys,
 )
 from privacy.release import CLOUD_LOCALITY
+from privacy.vocabulary import LOCALITIES
+
+# The local locality has no named constant of its own: it is the one member of
+# SPEC §6's localities that is not the cloud, derived rather than typed.
+(LOCAL_LOCALITY,) = tuple(l for l in LOCALITIES if l != CLOUD_LOCALITY)
 from privacy.vocabulary import (
     ALWAYS_LOCAL, ITEM_KINDS, OPEN_QUESTIONS, OutOfVocabulary,
     RELEASED_TO_EVERY_TARGET,
@@ -343,19 +348,23 @@ def test_a_whole_unit_that_fits_under_the_stored_ceiling_is_admitted():
     admit(whole, unit_length=BODY_LENGTH, ceiling=BODY_LENGTH)
 
 
-def test_with_no_ceiling_stored_no_whole_unit_is_refused():
-    """`ceiling=None` means P1 has stored no ceiling, and P7 invents no number.
+def test_with_no_ceiling_stored_a_whole_unit_is_refused_for_the_cloud_and_admitted_locally():
+    """`ceiling=None` means P1 has stored no ceiling, and P7 still invents no number.
 
-    `check_item`'s own docstring: "`None` means no ceiling is stored, and then
-    nothing is refused as a whole document". This is the fail-OPEN direction and it is
-    deliberate rather than overlooked, so it is run rather than left implied -- the
-    SPEC's *Deferred* section forbids this module a number of its own, and a P7 that
-    picked one when P1 had not would be the "hand-authored threshold" §8.6 puts
-    outside it.
+    Until `104` §18.1 S3's residue was closed (10 Sep 2026) this was the fail-OPEN
+    direction: "then nothing is refused as a whole document", so an unseeded
+    database sent whole units to a cloud target unbounded. P7 still picks no
+    number -- the SPEC's *Deferred* section forbids it one -- but a refusal is not
+    a number: with no bound stored, a whole unit is refused for a CLOUD target
+    (§8.4's sentence sits under "when a cloud model is used"), and a LOCAL target
+    is shown it and bounded by the stage as before (`104` R-159, §17.13).
+    Production seeds the ceiling, so this arm bites only an unseeded database.
     """
     whole = Excerpt(observation_key=KEY, span=TextSpan(0, BODY_LENGTH),
                     reason="all of it")
-    admit(whole, unit_length=BODY_LENGTH, ceiling=None)
+    with pytest.raises(WholeDocumentRequested):
+        admit(whole, unit_length=BODY_LENGTH, ceiling=None)
+    admit(whole, unit_length=BODY_LENGTH, ceiling=None, locality=LOCAL_LOCALITY)
 
 
 def test_a_span_that_over_covers_the_unit_is_still_a_whole_document():

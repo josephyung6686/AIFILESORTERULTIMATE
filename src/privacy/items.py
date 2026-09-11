@@ -556,7 +556,12 @@ def check_item(item: object, *, unit_length: int | None, zone: str | None,
             f"NeedsConsent."
         )
 
-    if kind == _KIND_BY_TYPE[Excerpt] and item.observation_key in sensitive_keys:
+    # `104` §18.1 S4 (residue closed 10 Sep): EVERY kind that carries the
+    # observation's own value, not the excerpt alone. A metadata field or a
+    # self-description over a key P5 marked potentially sensitive is the raw
+    # value by another route; the one kind §8.4 permits is the redacted one.
+    if (kind != _KIND_BY_TYPE[RedactedIdentifier]
+            and getattr(item, "observation_key", None) in sensitive_keys):
         raise AlwaysLocalRequested(
             f"observation {item.observation_key!r} was marked "
             f"{POTENTIALLY_SENSITIVE!r} at emission, and §8.4 places "
@@ -592,6 +597,20 @@ def check_item(item: object, *, unit_length: int | None, zone: str | None,
     # carries no observation and is untouched, which is the same line §4 already
     # draws.
 
+    # `104` §18.1 S3 residue (closed 10 Sep): with NO stored ceiling this arm
+    # used to refuse nothing, so an unseeded database sent whole units to a cloud
+    # target unbounded. P7 still invents no number: a whole unit is refused for
+    # a CLOUD target until a ceiling is stored (§8.4's sentence sits under "when
+    # a cloud model is used"); a local target is bounded by the stage as before.
+    if (ceiling is None and locality == CLOUD_LOCALITY
+            and is_whole_document(item, unit_length=unit_length)):
+        raise WholeDocumentRequested(
+            "a whole text unit was asked for a cloud target and no dossier "
+            "ceiling is stored (`model.max_dossier_tokens_per_call`); with no "
+            "bound P7 refuses the whole unit rather than invent one. §8.4: the "
+            "engine 'should not send full documents where a short heading or "
+            "OCR excerpt is enough to resolve the question.'"
+        )
     if (ceiling is not None and unit_length is not None
             and unit_length > ceiling
             and is_whole_document(item, unit_length=unit_length)):
