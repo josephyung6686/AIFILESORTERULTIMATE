@@ -14739,16 +14739,36 @@ def apply_level_relabels(conn: sqlite3.Connection, relabels: Sequence[str], *,
                 "naming a level exactly as the report printed it -- for example "
                 "`--rename-level 'academic:subject_anchor:subject=Class'`.")
         try:
+            # BUILT FIRST, COLLECTED SECOND, STORED THIRD, and the first two are
+            # in that order for one refusal: `UserLevelEdit.__post_init__` rejects
+            # a label carrying a path separator -- "a renamed level is a display
+            # label, never a path fragment" -- and constructing the record after
+            # the gesture was collected would leave a `review_action` row saying
+            # the person renamed something the very next line told them they had
+            # not. Building it costs nothing and writes nothing; P10's shape
+            # refusals therefore land in front of P13's write, exactly as P13's
+            # refusals land in front of P10's.
+            edit = UserLevelEdit(
+                uses_schema=schema, role_ref=role_ref, field_ref=field_ref,
+                action=ACTION_RENAMED, display_label=label,
+                # `None`, and it is a KNOWN LIMIT rather than an unfilled field.
+                # `UserLevelEdit` wants "what the library called the level at the
+                # moment the user overrode it", and nothing durable holds the
+                # last label a screen showed -- the presentation row records the
+                # policy and the subject, not the words. What IS recorded is the
+                # other half of the same sentence: `apply_user_level_edits` fills
+                # `proposed_label` per release from the dimension the rename
+                # lands on, so an upgrade can still say "it now calls it Module".
+                # Copying the label off this run's screen would be a second and
+                # staler answer to the same question.
+                proposed_label=None, user_id=user_id,
+                recorded_at=observed_at)
             collect_level_relabel(
                 conn, level_key=level_key, display_label=label,
                 action_id=mint_action_id(),
                 correction_scope=LEVEL_RELABEL_SCOPE, user_id=user_id,
                 component_version=COMPONENT_VERSION, acted_at=observed_at)
-            record_user_level_edit(conn, UserLevelEdit(
-                uses_schema=schema, role_ref=role_ref, field_ref=field_ref,
-                action=ACTION_RENAMED, display_label=label,
-                proposed_label=None, user_id=user_id,
-                recorded_at=observed_at))
+            record_user_level_edit(conn, edit)
         except (PresentationRequired, ProtectedContainerHasNoAction,
                 ScopeNotPresented, BulkMembersRequired, UserEditRefused,
                 MalformedTemplateRecord) as refusal:

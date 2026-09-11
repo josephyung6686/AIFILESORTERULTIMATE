@@ -201,3 +201,34 @@ def test_the_form_of_the_gesture_is_refused_before_anything_is_written(tmp_path)
             "SELECT count(*) AS n FROM review_actions").fetchone()["n"] == 0
     finally:
         conn.close()
+
+
+def test_a_label_that_is_a_path_fragment_leaves_no_record_of_having_been_typed(
+        tmp_path):
+    """P10's refusal has to land in FRONT of P13's write, not behind it.
+
+    "A renamed level is a display label, never a path fragment" is
+    `templates.py`'s rule and `UserLevelEdit` enforces it at construction. If the
+    gesture were collected first, a label with a separator in it would leave a
+    stored `review_action` saying the person renamed the level, and the screen
+    immediately telling them they had not -- the same split record the
+    collect-before-the-receiver order exists to prevent, arriving from the other
+    side. So the record is BUILT first, collected second and stored third.
+
+    The level is one this run really shows, so the refusal cannot be the
+    no-presentation one standing in for the one under test.
+    """
+    corpus = _corpus(tmp_path)
+    _run(corpus)
+    refused = _run(corpus, "--rename-level", f"{LEVEL}=Class/2026")
+    assert "This run was refused" in refused, refused
+    assert "path separator" in refused, refused
+
+    conn = _conn(corpus)
+    try:
+        assert conn.execute(
+            "SELECT count(*) AS n FROM review_actions").fetchone()["n"] == 0
+        assert conn.execute(
+            "SELECT count(*) AS n FROM user_level_edits").fetchone()["n"] == 0
+    finally:
+        conn.close()
