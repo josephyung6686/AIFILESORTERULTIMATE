@@ -223,7 +223,25 @@ def _make_verdict(
         dossier_id=dossier.dossier_id,
         claim_ref=claim_ref,
         outcome=outcome,
-        disposition=_DISPOSITION_BY_OUTCOME[outcome],
+        # THE DISPOSITION FOLLOWS THE REVIEW OBLIGATION AND NOT ONLY THE OUTCOME
+        # (`104` R-20's residual, `104` §18.2 gap 1 on the generic path). This is
+        # `fact_validation._verdict`'s own line, spelled here for the sites that
+        # do not go through site A's validator. `_DISPOSITION_BY_OUTCOME` maps
+        # `accept_direct` to `llm_supported`, which is what a consumer may rest
+        # on; a flagged acceptance would then say `llm_supported` in the one
+        # column `llm_verdict` indexes while carrying `requires_review=True` in
+        # the payload beside it, and a reader could not tell which was the
+        # product's answer. `llm_supported_review` is the published disposition
+        # for exactly this state and it already means what is meant here.
+        #
+        # NOTHING ELSE MOVES TODAY. Before the flag existed `requires_review`
+        # rode only on `accept_context_supported`, which `_DISPOSITION_BY_OUTCOME`
+        # already sends to `llm_supported_review` -- so every verdict this module
+        # built yesterday keeps the disposition it had.
+        disposition=(LLM_SUPPORTED_REVIEW
+                     if requires_review and outcome in (ACCEPT_DIRECT,
+                                                        ACCEPT_CONTEXT_SUPPORTED)
+                     else _DISPOSITION_BY_OUTCOME[outcome]),
         reasons=tuple(reasons),
         may_propose=may_propose,
         requires_review=requires_review,
@@ -556,23 +574,20 @@ def _validate_claim(
             )
         if oracle is None:
             return ValidationUnavailable(missing=("contradicts",))
-        if oracle(payload, dossier):
-            return _make_verdict(
-                dossier=dossier,
-                claim_ref=claim_ref,
-                outcome=REJECT,
-                reasons=(CONTRADICTED_BY_STRONGER,),
-                may_propose=False,
-                requires_review=False,
-                citations_checked=(),
-            )
+        # THE ADMITTED CLAIM IS FLAGGED AND NOT VETOED, for the reason the cited
+        # path below spells in full. The site admitted this claim with no
+        # citation at all; a rule disagreeing with it is still a disagreement,
+        # and the site validator below is where the group support that admitted
+        # it is actually verified.
+        contradicted = bool(oracle(payload, dossier))
         verdict = _make_verdict(
             dossier=dossier,
             claim_ref=claim_ref,
             outcome=admitted,
-            reasons=(),
+            reasons=(CONTRADICTED_BY_STRONGER,) if contradicted else (),
             may_propose=True,
-            requires_review=admitted == ACCEPT_CONTEXT_SUPPORTED,
+            requires_review=(contradicted
+                             or admitted == ACCEPT_CONTEXT_SUPPORTED),
             citations_checked=(),
         )
         replacement = site_validator(dossier, raw, verdict)
@@ -622,25 +637,58 @@ def _validate_claim(
 
     if oracle is None:
         return ValidationUnavailable(missing=("contradicts",))
-    if oracle(payload, dossier):
-        return _make_verdict(
-            dossier=dossier,
-            claim_ref=claim_ref,
-            outcome=REJECT,
-            reasons=(CONTRADICTED_BY_STRONGER,),
-            may_propose=False,
-            requires_review=False,
-            citations_checked=checked,
-        )
+    # THE STRONGER FACT IS A FLAG AND NO LONGER A REJECTION (`104` R-20's
+    # residual, `104` §18.2 gap 1's second half).
+    #
+    # `00`:42's amendment of 2026-09-05 says the validator's hard checks are
+    # grounding and schema, and that "every other contradiction check, INCLUDING
+    # THE PRECEDENCE OF RULE FACTS OVER MODEL FACTS, is shown to the model as a
+    # flag with its evidence, and the model reconciles". Site A honoured that at
+    # `fact_validation.py`'s check 4; sites B, C, D and E did not, because this
+    # line returned `REJECT CONTRADICTED_BY_STRONGER` -- code overruling the
+    # model on the one question the amendment gives the model, and doing it to an
+    # answer the model was never shown disagreeing with anything.
+    #
+    # WHAT SURVIVES OF THE CHECK IS WHAT IT WAS REALLY BUYING. The claim keeps
+    # the outcome the grounding checks reached and carries `requires_review`, so
+    # `_make_verdict` writes the `llm_supported_review` disposition, each site's
+    # own disposition turns the flag into its own review word
+    # (`_placement_disposition`, `_residual_disposition`, `_group_disposition`),
+    # and at the placement sites `p8_seam.transcribe` -- which gates
+    # `review_policy` on `requires_review` and not on the outcome -- puts the
+    # answer in front of a person with the code beside it. Nothing auto-moves on
+    # a flagged verdict, which is the property the rejection was buying.
+    #
+    # WHAT B AND E DO WITH THE FLAG IS NOT YET A GATE. `grouping/p8_seam.py`
+    # reads neither `requires_review` nor the disposition, and
+    # `cli.template_named_by_verdict` reads `ACCEPTING_OUTCOMES` alone, so at
+    # those two sites the flag is recorded and not yet acted on. It costs
+    # nothing today: every site on this path wires an oracle that always answers
+    # no (`cli._no_group_contradiction`, `cli._no_placement_contradiction`),
+    # so the flag cannot be raised in the product as it is composed. Recorded
+    # here rather than built, because a gate at B or E is a decision about what
+    # a person is shown and is the owner's.
+    #
+    # STRUCTURE STILL REJECTS, and the ORDER above is what says so: a schema
+    # failure, an unresolvable citation and a span mismatch have each had their
+    # say and returned before the oracle is asked. What is flagged here is an
+    # answer that is well formed and grounded in what the model was shown.
+    #
+    # THE REASONS ACCUMULATE (`104` §18.2 gap 3b). The flag rides on the verdict
+    # the site validator then sees, and `placement_validation._flagged` appends
+    # to `verdict.reasons`, so a claim that is both contradicted and flagged by
+    # its own site tells a person both things instead of one.
+    contradicted = bool(oracle(payload, dossier))
 
     outcome = acceptance_outcome(dossier, citations)
     verdict = _make_verdict(
         dossier=dossier,
         claim_ref=claim_ref,
         outcome=outcome,
-        reasons=(),
+        reasons=(CONTRADICTED_BY_STRONGER,) if contradicted else (),
         may_propose=True,
-        requires_review=outcome == ACCEPT_CONTEXT_SUPPORTED,
+        requires_review=(contradicted
+                         or outcome == ACCEPT_CONTEXT_SUPPORTED),
         citations_checked=checked,
     )
     replacement = site_validator(dossier, raw, verdict)

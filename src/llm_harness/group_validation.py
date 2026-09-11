@@ -31,6 +31,7 @@ from llm_harness.vocabulary import (
     SCHEMA_INVALID,
     TERM_MERGE_UNSUPPORTED,
     UNRESOLVED,
+    VALID_REVIEW_REQUIRED,
     WEAK,
 )
 
@@ -160,7 +161,16 @@ def _group_site(dossier: Dossier, raw: object, verdict: P8Verdict) -> P8Verdict 
             verdict,
             outcome=ACCEPT_CONTEXT_SUPPORTED,
             disposition=CONTEXT_SUPPORTED_MEMBERSHIP,
-            reasons=(CONTEXT_ONLY_SUPPORT,),
+            # THE REASONS ACCUMULATE (`104` §18.2 gap 3b, `104` R-20's residual).
+            # This wrote a fresh one-word tuple, which was safe while the only
+            # thing upstream could put in `reasons` was a rejection that never
+            # reached here. `validation._validate_claim` can now hand this site
+            # an ACCEPTED verdict already carrying `CONTRADICTED_BY_STRONGER`,
+            # and overwriting would tell a person "supported only by context"
+            # while silently dropping "and something better supported says
+            # otherwise" -- two different things about one membership, and a
+            # person needs both.
+            reasons=verdict.reasons + (CONTEXT_ONLY_SUPPORT,),
             may_propose=True,
             requires_review=True,
         )
@@ -182,7 +192,19 @@ def _group_disposition(verdict: P8Verdict) -> P8Verdict:
     elif CONTEXT_ONLY_SUPPORT in verdict.reasons:
         disposition = CONTEXT_SUPPORTED_MEMBERSHIP
     elif verdict.outcome == ACCEPT_DIRECT:
-        disposition = DIRECT_MEMBERSHIP
+        # `ACCEPT_DIRECT` READS `requires_review` (`104` R-20's residual), which
+        # is `_placement_disposition`'s own move for `104` §18.2 gap 2 and made
+        # here for gap 1's half. Nothing could set the flag on a direct
+        # acceptance at this site before, so the outcome alone decided and
+        # `direct_membership` was safe. `validation._validate_claim` can now,
+        # and without this line a membership a stronger fact contradicts would
+        # be stored as `direct_membership` -- the flag written into the payload
+        # and the group formed anyway, which is a worse product than the
+        # rejection it replaced. Read off `requires_review` and not off
+        # `reasons`, for the reason `_placement_disposition` gives: a second
+        # predicate over one question is how the two come to disagree.
+        disposition = (VALID_REVIEW_REQUIRED if verdict.requires_review
+                       else DIRECT_MEMBERSHIP)
     elif verdict.outcome == ACCEPT_CONTEXT_SUPPORTED:
         disposition = CONTEXT_SUPPORTED_MEMBERSHIP
     elif verdict.outcome == WEAK:

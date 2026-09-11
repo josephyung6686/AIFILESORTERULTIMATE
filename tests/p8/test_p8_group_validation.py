@@ -16,6 +16,7 @@ from llm_harness.vocabulary import (
     B_GROUP,
     CONTEXT_ONLY_SUPPORT,
     CONTEXT_SUPPORTED_MEMBERSHIP,
+    CONTRADICTED_BY_STRONGER,
     DIRECT_MEMBERSHIP,
     FOLDER_HIERARCHY_PROPOSED,
     GENERIC_SIMILARITY_ONLY,
@@ -29,6 +30,7 @@ from llm_harness.vocabulary import (
     SCOPE_GROUP,
     SITE_B_REASON_CODES,
     UNRESOLVED,
+    VALID_REVIEW_REQUIRED,
     WEAK,
 )
 
@@ -183,6 +185,53 @@ def test_context_only_support_reason_pair_is_distinct_from_outcome_context():
     verdict = _validate(pair)[0][0]
     assert verdict.outcome == ACCEPT_CONTEXT_SUPPORTED
     assert verdict.reasons == (CONTEXT_ONLY_SUPPORT,)
+    assert verdict.requires_review is True
+    assert verdict.disposition == CONTEXT_SUPPORTED_MEMBERSHIP
+
+
+def test_site_b_stronger_contradiction_is_a_flagged_membership():
+    """A membership a stronger fact contradicts is proposed, not vetoed.
+
+    `00`:42's amendment of 2026-09-05: the validator's hard checks are grounding
+    and schema, and "every other contradiction check, INCLUDING THE PRECEDENCE OF
+    RULE FACTS OVER MODEL FACTS, is shown to the model as a flag with its
+    evidence, and the model reconciles". Site A honoured it at
+    `fact_validation.py`'s check 4 (`104` §18.2 gap 1); this site reaches the
+    same check through `validation._validate_claim`, which went on rejecting
+    until `104` R-20's residual was closed.
+
+    `valid_review_required` is the word, and `_group_disposition` picks it
+    off `requires_review` for the reason `_placement_disposition` gives one site
+    over: without it a contradicted membership would be stored
+    `direct_membership` -- the flag in the payload and the group formed anyway,
+    which is a worse product than the rejection it replaced. There is no
+    `possible` row at this site; this disposition plus `requires_review` is
+    site B's spelling of it.
+    """
+    by_name = {pair.name: pair for pair in SITE_B_OUTCOME_PAIRS}
+    verdict = _validate(
+        by_name["direct_accept"], contradicts=lambda *_a, **_k: True)[0][0]
+    assert verdict.outcome == ACCEPT_DIRECT
+    assert verdict.may_propose is True
+    assert verdict.requires_review is True
+    assert verdict.disposition == VALID_REVIEW_REQUIRED
+    assert CONTRADICTED_BY_STRONGER in verdict.reasons
+
+
+def test_site_b_context_arm_appends_the_contradiction_rather_than_erasing_it():
+    """`104` §18.2 gap 3b at site B: two findings are two sentences.
+
+    `_group_site`'s context arm wrote a fresh one-word `reasons` tuple, which
+    was safe only while nothing upstream could hand it an ACCEPTED verdict
+    carrying a reason. It can now. Overwriting would tell a person "supported
+    only by context" and silently drop "and something better supported says
+    otherwise" -- two different things about one membership.
+    """
+    pair = next(
+        p for p in SITE_B_REASON_PAIRS if p.expected_reasons == (CONTEXT_ONLY_SUPPORT,))
+    verdict = _validate(pair, contradicts=lambda *_a, **_k: True)[0][0]
+    assert verdict.reasons == (CONTRADICTED_BY_STRONGER, CONTEXT_ONLY_SUPPORT)
+    assert verdict.outcome == ACCEPT_CONTEXT_SUPPORTED
     assert verdict.requires_review is True
     assert verdict.disposition == CONTEXT_SUPPORTED_MEMBERSHIP
 

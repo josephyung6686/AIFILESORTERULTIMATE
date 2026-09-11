@@ -29,6 +29,8 @@ from llm_harness.vocabulary import (
     CONTEXT_SUPPORTED,
     CONTRADICTED_BY_STRONGER,
     DIRECT_ANCHOR,
+    LLM_SUPPORTED,
+    LLM_SUPPORTED_REVIEW,
     REDUCTION_NONE,
     REMAINS_AMBIGUOUS,
     SCHEMA_INVALID,
@@ -262,14 +264,150 @@ def test_citations_resolve_by_p4_observation_key():
     assert report.citations_resolved == 1
 
 
-def test_stronger_contradiction_from_injected_oracle():
+def test_stronger_contradiction_from_injected_oracle_is_a_flag_not_a_veto():
+    """`00`:42's amendment of 2026-09-05, on the path sites B, C, D and E take.
+
+    THE AMENDMENT, in the owner's own words: the validator's hard checks are
+    grounding and schema, and "every other contradiction check, INCLUDING THE
+    PRECEDENCE OF RULE FACTS OVER MODEL FACTS, is shown to the model as a flag
+    with its evidence, and the model reconciles".
+
+    THIS TEST USED TO PIN THE OPPOSITE. It asserted `reject` and
+    `claims_rejected == 1`, which is `104` R-20's residual and `104` §18.2 gap
+    1's second half: site A stopped vetoing here at `fact_validation.py`'s check
+    4, and the generic validator every OTHER site goes through kept doing it --
+    code overruling the model on the one question the amendment gives the model.
+
+    WHAT THE FLAG IS. The answer keeps the outcome its grounding checks reached,
+    carries `requires_review`, and is recorded under the `llm_supported_review`
+    disposition, which is what distinguishes it from a clean acceptance in the
+    one column `llm_verdict` indexes -- site A's own move at
+    `fact_validation._verdict`. `may_propose` stays True because the claim IS a
+    proposal; what changes is that a person is asked about it instead of it
+    being discarded. There is no literal `possible` row at these sites (that is
+    site A's fact-table state): the equivalent is this disposition plus
+    `requires_review`, which is what each site's own consumer gates on.
+
+    AND THE REPORT COUNTS IT AS A PROPOSAL. `report_from_verdicts` counts by
+    outcome, so the printed pass sentences -- which read `outcome IN
+    (accept_direct, accept_context_supported)` -- now count this answer among
+    the ones a model gave rather than among the rejections.
+    """
     verdicts, report = _validate(
         _dossier(), DIRECT_BYTES, contradicts=lambda *_a, **_k: True,
     )
-    assert verdicts[0].outcome == "reject"
+    assert verdicts[0].outcome == ACCEPT_DIRECT
+    assert verdicts[0].may_propose is True
+    assert verdicts[0].requires_review is True
+    assert verdicts[0].disposition == LLM_SUPPORTED_REVIEW
     assert CONTRADICTED_BY_STRONGER in verdicts[0].reasons
     assert report.reasons_histogram[CONTRADICTED_BY_STRONGER] == 1
-    assert report.claims_rejected == 1
+    assert report.claims_rejected == 0
+    assert report.claims_accepted_direct == 1
+
+
+def test_an_uncontradicted_acceptance_is_untouched_by_the_flag():
+    """The control for the test above: nothing moves when nothing disagrees.
+
+    A flag that changed a clean acceptance would be worse than the rejection it
+    replaced, because every answer would then arrive asking for a person.
+    """
+    verdicts, report = _validate(_dossier(), DIRECT_BYTES)
+    assert verdicts[0].outcome == ACCEPT_DIRECT
+    assert verdicts[0].requires_review is False
+    assert verdicts[0].disposition == LLM_SUPPORTED
+    assert verdicts[0].reasons == ()
+    assert report.claims_rejected == 0
+
+
+def test_an_admitted_uncited_claim_is_flagged_not_vetoed():
+    """The second veto, on the road site C's context-only placement takes.
+
+    A claim the SITE admits with no citation at all (`105` §14.1: a level
+    supported by an accepted group, which cannot be cited) took the same hard
+    `reject` on a contradiction. It keeps the outcome the site admitted it with
+    and carries the flag, for the reason the cited path carries it.
+    """
+    verdicts, _report = _validate(
+        _dossier(), UNCITED_BYTES,
+        contradicts=lambda *_a, **_k: True,
+        uncited_claim=lambda *_a, **_k: ACCEPT_DIRECT,
+    )
+    assert verdicts[0].outcome == ACCEPT_DIRECT
+    assert verdicts[0].may_propose is True
+    assert verdicts[0].requires_review is True
+    assert verdicts[0].disposition == LLM_SUPPORTED_REVIEW
+    assert verdicts[0].reasons == (CONTRADICTED_BY_STRONGER,)
+
+
+def test_the_flag_reaches_the_site_validator_and_the_reasons_accumulate():
+    """`104` §18.2 gap 3b at this seam: two findings are two sentences.
+
+    `placement_validation._flagged` composes by appending to `verdict.reasons`
+    rather than returning at the first thing it finds, because a placement with
+    two things worth telling a person must tell them both. That only works if
+    the contradiction flag is ON the verdict the site validator is handed --
+    which is what this pins. A site validator that overwrote `reasons` would
+    erase the rule's disagreement, and `_group_site`'s context arm is patched in
+    the same change for exactly that reason.
+
+    The site's word here is a REAL one (`SEARCH_HINT_ONLY`) because
+    `P8Verdict.__post_init__` checks every reason against the closed vocabulary
+    and refuses an invented one -- which is itself the guard that keeps this
+    change from quietly minting a code the owner never approved.
+    """
+    def _appending_site(_dossier_, _raw, verdict):
+        return dataclasses.replace(
+            verdict,
+            reasons=verdict.reasons + (SEARCH_HINT_ONLY,),
+            requires_review=True,
+        )
+
+    verdicts, report = _validate(
+        _dossier(), DIRECT_BYTES,
+        contradicts=lambda *_a, **_k: True,
+        site_validator=_appending_site,
+    )
+    assert verdicts[0].reasons == (CONTRADICTED_BY_STRONGER, SEARCH_HINT_ONLY)
+    assert verdicts[0].outcome == ACCEPT_DIRECT
+    assert verdicts[0].requires_review is True
+    assert report.reasons_histogram[CONTRADICTED_BY_STRONGER] == 1
+
+
+def test_a_structurally_invalid_answer_still_rejects_and_never_asks_the_oracle():
+    """What the amendment left hard: grounding and schema.
+
+    Both halves matter. A structural failure is still a rejection -- the model
+    cited something it was not shown, or cited nothing where the site requires a
+    citation -- and the ORDER is what makes the flag safe: the oracle is asked
+    only about an answer that is already well formed and grounded, so a
+    contradicting rule can never turn a structurally broken answer into a
+    proposal a person is asked to confirm. The counting oracle is how the order
+    is measured rather than assumed.
+    """
+    asked = []
+
+    def _counting_oracle(*_a, **_k):
+        asked.append(1)
+        return True
+
+    outside, _ = _validate(
+        _dossier(), OUTSIDE_BYTES, contradicts=_counting_oracle)
+    assert outside[0].outcome == "reject"
+    assert CITATION_NOT_IN_DOSSIER in outside[0].reasons
+    assert CONTRADICTED_BY_STRONGER not in outside[0].reasons
+
+    uncited, _ = _validate(
+        _dossier(), UNCITED_BYTES, contradicts=_counting_oracle)
+    assert uncited[0].outcome == "reject"
+    assert uncited[0].reasons == (UNCITED_CLAIM,)
+
+    malformed, _ = _validate(
+        _dossier(), MALFORMED_BYTES, contradicts=_counting_oracle)
+    assert malformed[0].outcome == "reject"
+    assert SCHEMA_INVALID in malformed[0].reasons
+
+    assert asked == []
 
 
 def test_omitted_contradiction_oracle_is_unavailable_when_check_four_is_needed():

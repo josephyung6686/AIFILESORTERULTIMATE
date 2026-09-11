@@ -15,7 +15,9 @@ from llm_harness.vocabulary import (
     ABSTAIN,
     ACCEPT_CONTEXT_SUPPORTED,
     ACCEPT_DIRECT,
+    CONTRADICTED_BY_STRONGER,
     E_TEMPLATE,
+    LLM_SUPPORTED_REVIEW,
     REJECT,
     SCOPE_TEMPLATE,
     WEAK,
@@ -90,6 +92,35 @@ def test_site_e_outcome_pairs_cover_direct_context_weak_reject_unknown():
 
     unknown = _validate(by_name["unknown"])[0][0]
     assert unknown.outcome == ABSTAIN
+
+
+def test_site_e_stronger_contradiction_is_a_flagged_template():
+    """A template a stronger fact contradicts is designed, not vetoed.
+
+    `00`:42's amendment of 2026-09-05: the validator's hard checks are grounding
+    and schema, and "every other contradiction check, INCLUDING THE PRECEDENCE OF
+    RULE FACTS OVER MODEL FACTS, is shown to the model as a flag with its
+    evidence, and the model reconciles". Site A honoured it at
+    `fact_validation.py`'s check 4 (`104` §18.2 gap 1); this site reaches the
+    same check through `validation._validate_claim`, which went on rejecting
+    until `104` R-20's residual was closed.
+
+    `_template_disposition` returns an accepted verdict untouched, so what
+    distinguishes this from a clean acceptance is the disposition
+    `validation._make_verdict` wrote -- `llm_supported_review`, site A's own
+    word for the same state. The pass counter follows the OUTCOME
+    (`cli.template_named_by_verdict` reads `ACCEPTING_OUTCOMES`), so the screen
+    now counts this answer among the templates a model designed rather than
+    among the files it was asked about and left alone.
+    """
+    by_name = {pair.name: pair for pair in SITE_E_OUTCOME_PAIRS}
+    verdict = _validate(
+        by_name["direct_accept"], contradicts=lambda *_a, **_k: True)[0][0]
+    assert verdict.outcome == ACCEPT_DIRECT
+    assert verdict.may_propose is True
+    assert verdict.requires_review is True
+    assert verdict.disposition == LLM_SUPPORTED_REVIEW
+    assert CONTRADICTED_BY_STRONGER in verdict.reasons
 
 
 def test_site_e_citation_required_per_proposed_dimension():
