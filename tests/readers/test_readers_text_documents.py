@@ -438,6 +438,41 @@ def test_a_notebook_heading_addresses_the_joined_cell_text(tmp_path):
     assert document.headings[0].start > 0
 
 
+def test_a_notebooks_markdown_cell_is_reported_as_a_cell_and_its_code_cells_are_not(
+        tmp_path):
+    """`104` R-160. Headings alone were never the row.
+
+    `.ipynb` is `code_structured`, and E3 emits its whole-text body reading for
+    `text_document` only -- so a notebook whose cells were read still yielded its
+    headings and NOT ONE WORD of the prose under them. The recogniser scans evidence,
+    so a lab report's own sentences were stored and unreachable exactly as the JSON
+    had been. A markdown cell is the prose a person typed into a prose cell, and it
+    is reported here as one `body` region so the extractor can make a unit of it.
+
+    CODE CELLS ARE NOT REPORTED, and this asserts it rather than trusting it. §2.4
+    asks code for structural evidence "rather than forcing semantic analysis to infer
+    a project from arbitrary code text", and P4's fifteen zones carry no `code`, so
+    reporting a code cell as `body` would file source text in the zone that means the
+    opposite. The zone P4 would need is a vocabulary revision and the owner's.
+
+    THE ORDINAL IS THE NOTEBOOK'S OWN CELL NUMBER, not the markdown cells' own count,
+    and `NOTEBOOK` is built to tell the two apart: its markdown cell is the SECOND of
+    three. A person who opens the file counts cell 2, and an address that said
+    `cell=1` would name a cell holding somebody else's characters.
+    """
+    path = tmp_path / "lab4.ipynb"
+    path.write_text(json.dumps(NOTEBOOK))
+
+    document = read(path)
+
+    assert [(cell.zone, cell.ordinal) for cell in document.cells] == [("body", 2)]
+    cell = document.cells[0]
+    assert document.text[cell.start:cell.end] == (
+        "# Air track lab\n\nCart mass was 0.51 kg.\n")
+    assert "import math" not in document.text[cell.start:cell.end], (
+        "a code cell's source is inside the cell reported as prose")
+
+
 def test_a_notebook_that_is_not_json_is_still_read_as_its_own_bytes(tmp_path):
     """A truncated notebook is a file whose cells could not be read, not a file with
     no text. It falls back to what an unregistered extension already gets -- the
@@ -449,6 +484,7 @@ def test_a_notebook_that_is_not_json_is_still_read_as_its_own_bytes(tmp_path):
 
     assert document.text == '{"nbformat": 4, "cells": ['
     assert document.headings == ()
+    assert document.cells == ()
 
 
 def test_a_notebooks_metadata_still_arrives_once_its_cells_are_read(tmp_path):

@@ -727,6 +727,26 @@ def _notebook(path: Path) -> TextDocument:
     one as a document's structure is the same mistake `_markdown_headings` already
     refuses when it skips a fenced block.
 
+    **A MARKDOWN CELL IS ALSO REPORTED AS A CELL, and `104` R-160 is why.** Headings
+    alone were never the row: `.ipynb` is `code_structured`, E3 emits its whole-text
+    body reading for `text_document` only, and the result was a notebook that
+    yielded its headings and NOTHING of what the person wrote under them -- the
+    recogniser scans evidence, so a lab report's prose was stored and unreachable
+    exactly as the JSON was. Each markdown cell is one `body` region spanning its own
+    source in the joined text, carrying the notebook's OWN 1-based cell number as its
+    ordinal: `cell=4` is the fourth cell of the file as a person opening it counts,
+    not the fourth markdown one, so an address stays true when a code cell sits
+    between two of them.
+
+    **CODE CELLS ARE NOT REPORTED, and that is the owner's to change, not this
+    module's.** §2.4 asks code for structural evidence "rather than forcing semantic
+    analysis to infer a project from arbitrary code text", and P4's fifteen zones
+    carry no `code` -- reporting a code cell as `body` would file source text as
+    prose in the one zone that means the opposite, and minting the zone is a
+    vocabulary revision this reader does not own. The channel is already the right
+    shape for it: a cell says its own zone, so the day P4 publishes one, code cells
+    are one more `Region` here and no change at all in the extractor.
+
     **Outputs are not read.** A stream, a traceback, a rendered frame are what the
     notebook PRODUCED, not what the person wrote, and §2.9 asks a text document for
     its own text. A cell that printed a list of names would otherwise put that list
@@ -746,9 +766,10 @@ def _notebook(path: Path) -> TextDocument:
 
     parts: list[str] = []
     regions: list[Region] = []
+    cells: list[Region] = []
     offset = 0
     ordinal = 0
-    for cell in notebook["cells"]:
+    for number, cell in enumerate(notebook["cells"], start=1):
         if not isinstance(cell, dict):
             continue
         source = cell.get("source")
@@ -762,9 +783,12 @@ def _notebook(path: Path) -> TextDocument:
                 regions.append(Region(zone="heading", start=offset + region.start,
                                       end=offset + region.end, ordinal=ordinal,
                                       label=region.label))
+            cells.append(Region(zone="body", start=offset,
+                                end=offset + len(source), ordinal=number))
         parts.append(source)
         offset += len(source) + len(_CELL_SEPARATOR)
-    return TextDocument(text=_CELL_SEPARATOR.join(parts), headings=tuple(regions))
+    return TextDocument(text=_CELL_SEPARATOR.join(parts), headings=tuple(regions),
+                        cells=tuple(cells))
 
 
 _BY_EXTENSION.update({
@@ -810,8 +834,16 @@ def stdlib_text_document_reader(
         language = _LANGUAGE_BY_EXTENSION.get(path.suffix.lower())
         if not markers and language is None:
             return document
+        # `cells` IS CARRIED, and the reason it has to be said is that this is a
+        # rebuild rather than a copy: every field the reader reported has to be
+        # named here or it is dropped on exactly the files that also carry markers.
+        # A notebook is the whole of that set -- it is the one format with cells and
+        # `104` §2.4's one in-file marker class both -- so `104` R-160's cells would
+        # have reached nothing at all while the same reader's headings reached
+        # everything.
         return TextDocument(text=document.text, language=language,
                             headings=document.headings,
-                            markers=document.markers + markers)
+                            markers=document.markers + markers,
+                            cells=document.cells)
 
     return read_text_document

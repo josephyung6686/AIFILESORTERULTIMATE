@@ -33,8 +33,10 @@ a broken ceiling FAILS them rather than stopping the suite.
 """
 import multiprocessing
 import os
+import pickle as _pickle
 import sqlite3
 import time
+from concurrent.futures import Future as _Future
 from dataclasses import replace
 from pathlib import Path
 
@@ -1028,6 +1030,96 @@ def test_a_file_that_wedges_and_then_dies_names_both_ends_in_order(
                 continue
             assert _failure_reason(outcomes[name]) is None, (
                 f"{name} was failed by its neighbour: {_failure_reason(outcomes[name])}")
+    finally:
+        pool.close()
+
+
+#: The third way an attempt can end, and the one R-120 left behind: the result was
+#: never delivered at all. `extraction_pool`'s own comment names the two causes -- an
+#: argument or a result that would not pickle, a worker the OS killed between submit
+#: and run -- and neither raises `TimeoutError` or `BrokenProcessPool`, so both land
+#: in the generic branch.
+_UNDELIVERED = _pickle.PicklingError("cannot pickle 'module' object")
+_UNDELIVERED_END = ("nothing was delivered "
+                    "(PicklingError: cannot pickle 'module' object)")
+
+
+def _pool_that_starts_no_worker() -> ProcessPool:
+    """A pool whose executor is never built, so nothing is spawned.
+
+    The two tests below are about the SENTENCE the recovery writes when an attempt
+    ends in a way no other test can stage: what has to be reproduced is a second
+    attempt whose result never arrives, and the ways to cause that from a real worker
+    -- an unpicklable result, a kill between submit and run -- are the machine's to
+    choose and not a test's. So the future is handed the failure directly and
+    `result()` is asked the only question at issue: given the end this attempt had,
+    and the end the file already had, what does the row say. `_executor()` is lazy,
+    so no subprocess is started and `close()` returns at once -- which also keeps
+    these two off a machine already running a suite (§14.4).
+    """
+    return ProcessPool(workers=1, context_factory=_never_called_context,
+                       lookahead_per_worker=1,
+                       seconds_per_extraction=_FAKE_CEILING_SECONDS)
+
+
+def _never_called_context() -> ExtractionContext:      # pragma: no cover -- no worker
+    raise AssertionError("this pool was never meant to start a worker")
+
+
+def test_a_file_that_wedges_and_then_delivers_nothing_names_both_ends(corpus):
+    """`104` R-120's residue, which the row recorded as open when R-120 closed.
+
+    The two NAMED branches compose their reason from every end the file had. The
+    generic one did not: it reported its own error and nothing else, so a file that
+    wedged for a whole ceiling and then had its retry's result fail to arrive was
+    recorded as though the second thing were the only thing that happened. That is
+    the same false row R-120 exists to end, reached by the one road R-120 did not
+    walk -- and it is the LIKELIEST road to a mixed pair, because this branch fires
+    on the ISOLATED suspect, whose own result is exactly what may not pickle.
+
+    The failure is staged on the future rather than in a worker, and
+    `_pool_that_starts_no_worker` argues why. What is asserted is the sentence: both
+    ends, in the order they happened.
+    """
+    pool = _pool_that_starts_no_worker()
+    try:
+        handle = _Future()
+        handle.set_exception(_UNDELIVERED)
+        pool._outstanding[handle] = (
+            _request(corpus, HANG), 2, (_ceiling_end(_FAKE_CEILING_SECONDS),))
+
+        reason = _failure_reason(pool.result(handle))
+
+        assert reason is not None, "a file that spent both attempts was not failed"
+        assert _both_ends(_ceiling_end(_FAKE_CEILING_SECONDS),
+                          _UNDELIVERED_END) in reason, (
+            "the row names only the last attempt's end, so the ceiling this file "
+            f"actually burned is not in the record at all: {reason}")
+        assert not reason.startswith("PicklingError"), (
+            "`failed_result` leads with the exception type, so the last attempt's "
+            f"mode is back at the front of the row: {reason}")
+    finally:
+        pool.close()
+
+
+def test_a_first_attempt_that_delivers_nothing_still_reports_its_own_error(corpus):
+    """And the fix must reach no further than that. `ends` holds one entry per
+    attempt that has ALREADY finished, so it is empty on a first attempt -- where
+    this error is the whole and honest story, and wrapping it would bury the one
+    sentence that says what went wrong under a claim about two attempts the file
+    never had. `attempts` counts the attempt now ending and would be one too many.
+    """
+    pool = _pool_that_starts_no_worker()
+    try:
+        handle = _Future()
+        handle.set_exception(_UNDELIVERED)
+        pool._outstanding[handle] = (_request(corpus, HANG), 1, ())
+
+        reason = _failure_reason(pool.result(handle))
+
+        assert reason == f"PicklingError: {_UNDELIVERED}", reason
+        assert "attempt 1:" not in reason, (
+            f"one attempt was reported as two: {reason}")
     finally:
         pool.close()
 

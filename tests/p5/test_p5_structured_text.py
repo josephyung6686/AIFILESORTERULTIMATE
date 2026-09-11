@@ -436,3 +436,115 @@ def test_a_paragraph_repeated_in_the_file_collapses_under_p4s_own_rule(sink):
     assert locator_for(readings[0]["location"]) == "body:paragraph=1"
     assert [u["container_path"][0]["index"] for u in paragraph_units(sink, run_id)] \
         == [1, 2, 3]
+
+
+#: `104` R-160. A notebook as `readers/text_documents._notebook` reports one: the
+#: cells joined by a blank line, a markdown cell reported as a `body` region carrying
+#: the NOTEBOOK'S own cell number, and the code cell beside it reported as nothing at
+#: all. The markdown cell is the SECOND, which is what makes the ordinal an assertion
+#: rather than a coincidence.
+NOTEBOOK_CODE = "import math\nmass = 0.51\n"
+NOTEBOOK_PROSE = "# Air track lab\n\nCart mass was 0.51 kg.\n"
+
+
+def a_notebook() -> TextDocument:
+    text = NOTEBOOK_CODE + "\n\n" + NOTEBOOK_PROSE
+    start = text.index(NOTEBOOK_PROSE)
+    return TextDocument(
+        text=text,
+        headings=(Region(zone="heading", start=start, end=start + 15, ordinal=1,
+                         label="Air track lab"),),
+        cells=(Region(zone="body", start=start, end=start + len(NOTEBOOK_PROSE),
+                      ordinal=2),),
+    )
+
+
+def cell_units(sink, run_id) -> list:
+    return [u for u in sink.units_for(run_id)
+            if u["container_path"] and u["container_path"][0]["kind"] == "cell"]
+
+
+def test_a_notebooks_markdown_cell_is_a_body_unit_at_its_own_address(sink):
+    """`104` R-160, the half that is E3's.
+
+    The cell-aware reader landed and a notebook STILL showed the model nothing it was
+    about: `.ipynb` is `code_structured`, the whole-text body reading is emitted for
+    `text_document` only, and the recogniser reads observations. So eleven of the
+    owner's notebooks produced headings, three metadata markers and zero evidence of
+    their own prose -- the words were extracted, stored, and shown to nobody, which
+    is R-164's failure one family further along.
+
+    A markdown cell is not "arbitrary code text". §2.4's exclusion is about source,
+    and this is the paragraph a person typed into a prose cell. It is emitted
+    whatever the family says, because the READER is what decided this stretch was
+    prose -- E3 asks nothing about the format.
+
+    `cell=2` IS THE NOTEBOOK'S OWN ADDRESS (P4 D3 rule 3), and the unit standing at
+    exactly that path holds exactly those characters, so P4 rule 10 is satisfied by
+    construction and the reading is measured against the cell it is the whole of --
+    a cell-sized reading is one §8.6's ceiling can admit, where the 118,000-character
+    notebook `104` §16.1 measured was a reading nothing could.
+    """
+    run_id = sink.write(run_it(document=a_notebook(), source_type="code_structured",
+                               finder=lambda text: ()))
+
+    readings = body_readings(sink, run_id)
+    assert [o["raw_value"] for o in readings] == [NOTEBOOK_PROSE], (
+        "a notebook's prose is still invisible to everything that reads evidence")
+    assert locator_for(readings[0]["location"]) == "body:cell=2"
+    assert [u["text"] for u in cell_units(sink, run_id)] == [NOTEBOOK_PROSE]
+    sink.conforms()
+
+
+def test_a_notebook_cell_reading_does_not_become_a_folder_name(sink):
+    """`test_a_paragraph_reading_does_not_become_a_folder_name`'s property, asked of
+    the newest locator, because the newest locator is the one that could break it.
+
+    A cell reading is addressed `body:cell=N` and carries no span, so it does not
+    serialise into the `body#...` space a direct slot claims. What the product may
+    READ widened; what it may ASSERT did not.
+    """
+    import sys
+    from pathlib import Path as _Path
+    sys.path.insert(0, str(_Path(__file__).resolve().parents[2] / "src"))
+    import cli
+
+    run_id = sink.write(run_it(document=a_notebook(), source_type="code_structured",
+                               finder=lambda text: ()))
+    for reading in body_readings(sink, run_id):
+        locator = locator_for(reading["location"])
+        assert not locator.startswith("body#"), locator
+        assert not any(slot.names(locator) for slot in cli.DIRECT_SLOTS.slots), locator
+
+
+def test_a_notebooks_code_cell_is_not_read_as_prose(sink):
+    """§2.4 asks code for structural evidence "rather than forcing semantic analysis
+    to infer a project from arbitrary code text", and P4 publishes no `code` zone to
+    put a code cell in. `test_e3_reads_no_code_and_infers_no_project` asks this of a
+    whole source file; this asks it of the code cell sitting beside prose that IS
+    read, which is the one place the two could be confused.
+
+    The guard is the reader's REPORT and not a judgement here: E3 reads
+    `document.cells` and nothing else, so a cell the reader does not report reaches
+    no observation and no unit. The day P4 publishes a zone for code, the reader
+    reports code cells and this is the test that has to be re-argued.
+    """
+    run_id = sink.write(run_it(document=a_notebook(), source_type="code_structured",
+                               finder=lambda text: ()))
+
+    assert not [o for o in sink.observations_for(run_id)
+                if NOTEBOOK_CODE in o["raw_value"]], (
+        "a code cell reached the evidence as prose")
+    assert NOTEBOOK_CODE not in [u["text"] for u in cell_units(sink, run_id)]
+
+
+def test_a_document_with_no_cells_is_read_exactly_as_it_was(sink):
+    """R-160 is a notebook's row and must be nothing else's. A `.txt` and a `.md`
+    have no cells, their reader reports none, and the loop that emits them does not
+    run -- so R-164's paragraph split and the whole-file unit are untouched.
+    """
+    run_id = sink.write(run_it(document=three_paragraphs(), finder=lambda text: ()))
+
+    assert cell_units(sink, run_id) == []
+    assert [u["container_path"][0]["index"] for u in paragraph_units(sink, run_id)] \
+        == [1, 2, 3]

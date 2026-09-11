@@ -70,6 +70,34 @@ def test_a_loose_image_has_a_region_and_no_page(screenshot):
     assert [r.region for r in out.regions] == list(range(1, len(out.regions) + 1))
 
 
+def test_the_engine_reports_whether_this_machine_can_detect_language(
+        screenshot, monkeypatch):
+    """`104` §18.2 gap 19's open half, which was open in a COMMENT and is now on the
+    record.
+
+    Gap 19's measurement is that the language LIST decides nothing and the
+    recogniser's own language identification decides everything: on a rendered
+    `会计学原理`, the whole published set with detection off reads no text at all and
+    detection on reads it at confidence 1.0. An older macOS's Vision has no such flag,
+    so on that machine a Chinese-titled document still comes back empty -- and came
+    back empty SILENTLY, indistinguishable in the record from a blank page.
+
+    THE MACHINE RUNNING THIS TEST HAS THE FLAG, so the arm that matters is staged
+    rather than waited for: what can be asserted here is the wiring, which is the
+    half that could break quietly -- an engine that stopped reporting the capability
+    would take the caveat off every run without failing anything. The recognition
+    itself is untouched by this and the text still comes back.
+    """
+    import readers.ocr_vision as adapter
+
+    assert vision_ocr()(screenshot, config=dict(ACCURATE)).detects_language is True
+
+    monkeypatch.setattr(adapter, "_detects_language", lambda request: False)
+    older = vision_ocr()(screenshot, config=dict(ACCURATE))
+    assert older.detects_language is False, (
+        "a recogniser that cannot identify a language has no way to say so")
+
+
 def test_the_provider_name_folds_to_p5s_extractor_name(screenshot):
     """The join. §2.7's first persisted field is the provider's own name, and P5
     folds it into `extractor_name`. If this drifts, one engine becomes two citation

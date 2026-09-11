@@ -119,6 +119,14 @@ class TextDocument:
     language: str | None = None
     headings: tuple[Region, ...] = ()
     markers: tuple[StructuralMarker, ...] = ()
+    #: The document's own CELLS, when the format has them and the reader read them --
+    #: `104` R-160, and today a notebook's markdown cells are the only producer.
+    #: Each is a stretch of `text`, carrying the format's own 1-based cell number as
+    #: its `ordinal` and saying its OWN zone, because which kind of place a cell is
+    #: is library knowledge (`Region`'s docstring) and E3 has no way to tell prose
+    #: from source by looking. Absent everywhere else, so a `.txt` and a `.md` are
+    #: read exactly as they were.
+    cells: tuple[Region, ...] = ()
 
 
 def paragraph_spans(text: str) -> tuple[tuple[int, int], ...]:
@@ -275,6 +283,33 @@ def extract_structured_text(
             # stored twice and offered twice.
             emit(zone="body", raw=document.text, container_path=(), span=None,
                  unit_text=None, reliability="possible")
+
+    # `104` R-160, and it stands OUTSIDE the prose gate above on purpose. A notebook
+    # is `code_structured`, so the whole-text reading is rightly withheld from it --
+    # and the consequence measured on the owner's eleven notebooks was a file that
+    # produced its headings, its three metadata markers and not one word of what its
+    # author actually wrote. A markdown cell is not "arbitrary code text": it is the
+    # prose a person typed into a prose cell, and §2.4's exclusion is about the
+    # other kind. The READER decides which cells are which and reports only those it
+    # can name a zone for; this loop asks nothing about the format.
+    #
+    # ADDRESSED `cell=N`, WHICH IS THE NOTEBOOK'S OWN ADDRESS (P4 D3 rule 3), and
+    # `cell` has been in `INDEXED_SEGMENT_KINDS` all along -- no vocabulary is added
+    # here. It carries no `#`, so a cell cannot become a `subject` fact and cannot
+    # name a folder, which is the same guard `body:paragraph=N` above is built on.
+    # NO SPAN, for that reason exactly.
+    #
+    # The unit stands at exactly that path holding exactly those characters, so P4
+    # rule 10 is satisfied by construction and `store.unit_length_for_observation`
+    # measures the reading against the cell it is the whole of -- a cell-sized unit
+    # is a reading §8.6's ceiling can admit, where the 118,000-character notebook
+    # `104` §16.1 measured was a reading nothing could.
+    for cell in document.cells:
+        cell_text = document.text[cell.start:cell.end]
+        container = (segment("cell", index=cell.ordinal),)
+        units.append(text_unit(text=cell_text, container_path=container))
+        emit(zone=cell.zone, raw=cell_text, container_path=container, span=None,
+             unit_text=None, reliability="possible")
 
     if document.language:
         emit(zone="metadata", raw=document.language,
