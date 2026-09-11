@@ -108,8 +108,8 @@ from placement.records import (
 from placement.residual import (
     ACTION_OUTCOME, ResidualSet, ResidualSetDecision, SetDecisionRequired,
     check_return_cycle, link_return, model_calls_permitted, outcome_for_action,
-    record_set_decision, require_model_call_permitted, require_set_actionable,
-    require_set_decision, surface_residual_sets,
+    record_set_decision, refuse_if_protected, require_model_call_permitted,
+    require_set_actionable, require_set_decision, surface_residual_sets,
 )
 from placement.retrieval import (
     CURATED_FOLDER, GRAPH_RELATIONSHIP, NON_DECIDING_CHANNELS, Candidate,
@@ -5184,6 +5184,17 @@ def act_on_residual_sets(conn: sqlite3.Connection, *, result: CorpusResult,
                 "any of them: the second answer would have replaced the first "
                 "without saying so")
         answered.add(label)
+        for item in by_label[label]:
+            # `67` §1, BEFORE the row and not after it -- `104` R-26's finding,
+            # which was about a send and is true of every bulk answer. P13's
+            # `collect` refuses a send and a leave over protected material
+            # already; it refuses a `review_with_model` answer nowhere, because
+            # P13 has no action word for that gesture, so without this line a
+            # protected set could acquire a decision saying a model was to be
+            # asked about it. The refusal is P11's own and is raised here from
+            # `refuse_if_protected` rather than restated, so the two callers say
+            # one sentence.
+            refuse_if_protected(item)
         return by_label[label]
 
     resolved: list[tuple[ResidualSet, str, str | None]] = []

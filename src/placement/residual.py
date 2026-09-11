@@ -435,6 +435,29 @@ def require_set_actionable(conn: sqlite3.Connection, *, plan_version: str,
     looked at it, which is a different thing from leaving it alone. The set stays
     on the review screen with its count and its reason.
     """
+    refuse_if_protected(residual_set)
+    return require_set_decision(conn, plan_version=plan_version,
+                                set_id=residual_set.set_id)
+
+
+def refuse_if_protected(residual_set: ResidualSet) -> None:
+    """`67` §1 over one review set, as its own reader.
+
+    Lifted out of `require_set_actionable` by `104` R-42 item 1 because a SECOND
+    caller needs the same refusal at a moment when there is no decision to
+    require: `act_on_residual_sets` has to refuse a protected set BEFORE it writes
+    a decision row, and `require_set_actionable` reaches
+    `require_set_decision` -- which raises for want of the very row that is about
+    to be written. Restating the rule at the other call site would be a second
+    home for the one sentence this product may never get wrong.
+
+    That ordering is `104` R-26's finding exactly, one gesture along. A bulk send
+    used to record "file this protected material into a residual area" and only
+    then meet the refusal, so the run ended with the decision row standing; P13's
+    `collect` now fires first for a send and for a leave. It fires for neither a
+    `review_with_model` answer -- P13 has no action word for that gesture -- so
+    this is the wall in front of that one.
+    """
     if residual_set.protected:
         raise ProtectedSetNotReadable(
             f"set {residual_set.set_id!r} holds protected material "
@@ -443,8 +466,6 @@ def require_set_actionable(conn: sqlite3.Connection, *, plan_version: str,
             "reason; acting on it is refused rather than skipped, so no caller "
             "can record it as understood and found unimportant."
         )
-    return require_set_decision(conn, plan_version=plan_version,
-                                set_id=residual_set.set_id)
 
 
 def require_model_call_permitted(conn: sqlite3.Connection, *, plan_version: str,

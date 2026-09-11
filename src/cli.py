@@ -15068,9 +15068,17 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # survives exactly as it does for `ResidualSendRefused` below: the
             # run is already computed and a refused gesture is not a reason to
             # throw it away. Nothing was filed, because nothing downstream ran.
-            print(f"\nThat send was refused, and the plan below is unaffected:"
-                  f"\n  {refusal}\n  Nothing was filed in bulk, and the plan "
-                  "below is the run that was already computed.", file=out)
+            # `104` R-42 item 1 made this sentence true again. It said "That
+            # SEND was refused ... nothing was FILED in bulk", which was the
+            # whole story while `--send-set` was the only gesture and is a false
+            # sentence in front of somebody who typed `--leave-set`: nothing was
+            # going to be filed either way, and what was refused was an answer.
+            # §18.3 ranks a false sentence on a person's screen the worst class
+            # of defect there is.
+            print(f"\nThat answer was refused, and the plan below is "
+                  f"unaffected:\n  {refusal}\n  No review set was decided and "
+                  "nothing was filed, and the plan below is the run that was "
+                  "already computed.", file=out)
             sends, leaves, reviews = {}, (), ()
     if sends or leaves or reviews:
         try:
@@ -15093,7 +15101,15 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                     "question under has not been approved yet. Nothing about "
                     "these files was sent anywhere and none of them moved. Your "
                     "answer is kept against this plan.", file=out)
-        except ResidualSendRefused as refusal:
+        except (ResidualSendRefused, ProtectedSetNotReadable) as refusal:
+            # `ProtectedSetNotReadable` JOINS IT HERE (`104` R-42 item 1). P11
+            # now raises it BEFORE it writes a decision row rather than after,
+            # which is R-26's ordering applied to the two gestures R-26 did not
+            # have -- and a `--review-set` over a protected set reaches this
+            # point with no P13 collection in front of it, because P13 has no
+            # action word for that gesture. Uncaught, it ended the run "No plan
+            # was made", which is precisely the shape R-26 was written to stop.
+            #
             # REFUSED, AND THE PLAN SURVIVES. Refusing is right -- a renumbered
             # set holds different files, and filing them would be the gesture
             # acting on something other than what the person named. Letting the
@@ -15137,8 +15153,9 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 "uses it: "
                 + " ".join(f"--residual {shlex.quote(area)}"
                            for area in unenabled)) if unenabled else ""
-            print(f"\nThat send was refused, and the plan below is unaffected:"
-                  f"\n  {refusal}{advice}\n  Nothing was filed in bulk, and "
+            print(f"\nThat answer was refused, and the plan below is "
+                  f"unaffected:\n  {refusal}{advice}\n  No review set was "
+                  "decided and nothing was filed, and "
                   "the plan below is the run that was already computed.",
                   file=out)
     reaches = _raise_blocked_questions(conn, detector=detector, asked_at=clock)

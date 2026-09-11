@@ -3360,8 +3360,8 @@ def test_a_protected_review_set_refuses_to_be_filed_in_one_gesture(tmp_path):
                             "--send-set", f"{label}=Review Later"], out=out)
     printed = out.getvalue()
     assert code == 0, printed
-    assert "That send was refused" in printed, printed
-    assert "Nothing was filed in bulk" in printed, printed
+    assert "That answer was refused" in printed, printed
+    assert "No review set was decided" in printed, printed
     assert "Passport scan.txt" not in printed.split("refused", 1)[-1][:200], printed
     # AND NOTHING WAS RECORDED. The exit code says the plan survived; this says
     # the gesture did not half happen, which is the half `104` R-26 is about.

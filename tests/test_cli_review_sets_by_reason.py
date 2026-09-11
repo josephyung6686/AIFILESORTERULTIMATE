@@ -455,8 +455,8 @@ def test_protected_files_are_their_own_set_named_counted_and_never_opened(
                      f"Protected, and not filed in bulk={AREA}"], out=out)
     refused = out.getvalue()
     assert code == 0, refused
-    assert "That send was refused" in refused, refused
-    assert "Nothing was filed in bulk" in refused, refused
+    assert "That answer was refused" in refused, refused
+    assert "No review set was decided" in refused, refused
     acted = [d for d in _decisions(tmp_path / "sent.sqlite") if d.residual is not None]
     assert not acted, (
         f"a protected set was acted on after the refusal: {acted}")
@@ -706,7 +706,7 @@ def test_leave_set_records_the_choice_and_moves_nothing(tmp_path):
     corpus = _three_reason_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     printed = _report(corpus, database, "--leave-set", HELD_SET)
-    assert "That send was refused" not in printed, printed
+    assert "That answer was refused" not in printed, printed
 
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
@@ -791,7 +791,7 @@ def test_one_set_cannot_be_answered_two_ways_in_one_run(tmp_path):
     database = tmp_path / "plan.sqlite"
     printed = _report(corpus, database, "--leave-set", HELD_SET,
                       "--review-set", HELD_SET)
-    assert "That send was refused" in printed, printed
+    assert "That answer was refused" in printed, printed
     assert HELD_SET in printed, printed
 
 
@@ -814,3 +814,35 @@ def test_the_review_gesture_has_no_word_of_its_own_in_p13_yet():
         "P13 has no action word for `review_with_model_against_approved_"
         f"residual_folders`; its {len(rv.ACTIONS)} actions are the owner's to "
         "add one to")
+
+
+def test_a_protected_set_cannot_be_sent_to_a_model_by_a_bulk_gesture(tmp_path):
+    """`67` §1 over the gesture P13 has no word for, and BEFORE any row.
+
+    `--send-set` and `--leave-set` meet P13's refusal first, because `collect`
+    reads the subject kind and raises. `--review-set` collects nothing -- there
+    is no action word for it -- so without a wall of P11's own, a protected set
+    would end the run carrying a decision saying a model was to be asked about
+    it, on a plan version nobody can re-answer. That is `104` R-26's finding with
+    a new gesture in it.
+    """
+    import sqlite3
+
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database, "--review-set",
+                      "Protected, and not filed in bulk")
+    assert "That answer was refused" in printed, printed
+    assert "never opened" in printed, printed
+
+    conn = sqlite3.connect(database)
+    try:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM residual_set_decisions").fetchone()[0] == 0, (
+            "a decision row was written about protected material")
+    finally:
+        conn.close()
+    acted = [d for d in _decisions(database) if d.residual is not None]
+    assert not acted, acted
+    # And the set is still there, counted and explained: refused, not deleted.
+    assert "Protected, and not filed in bulk" in dict(_surfaced(database))
