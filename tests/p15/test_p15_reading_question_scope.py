@@ -46,6 +46,12 @@ from production import (
     situation_schema_family,
 )
 
+#: `104` SF-3: a group is a DRAFT until a person decides it, and a run that
+#: decides nothing prints the proposal and never opens a reading question -- this
+#: whole file is about that question, so every run has to type the accept,
+#: exactly as `tests/test_cli.py`'s `ACCEPTS_THE_PROPOSAL` does.
+ACCEPTS_THE_PROPOSAL: tuple[str, ...] = ("--accept-groups",)
+
 QUESTION = "reading.organization:BUSIB4300"
 
 #: The seven readings the two files' own words support, read off the recorded
@@ -84,7 +90,8 @@ def _run(tmp_path, *extra):
     out = io.StringIO()
     code = cli.main([str(_corpus(tmp_path)), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
-                     "--database", str(tmp_path / "plan.sqlite"), *extra],
+                     "--database", str(tmp_path / "plan.sqlite"),
+                     *ACCEPTS_THE_PROPOSAL, *extra],
                     out=out)
     return code, out.getvalue()
 
