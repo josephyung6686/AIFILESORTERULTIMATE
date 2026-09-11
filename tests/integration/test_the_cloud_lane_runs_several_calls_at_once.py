@@ -654,8 +654,84 @@ class _Overlaps:
             self._gathered.notify_all()
 
 
+def test_the_same_question_twice_in_one_batch_is_one_call():
+    """`104` §18.28: a duplicate waits for its twin's answer instead of buying it.
+
+    The batch is the window the old note called an accepted cost: `llm_call_
+    identity` is written AFTER the call, so inside one window two copies of a file
+    both reached the provider and a person paid twice for one answer. The driver is
+    the only place that can see both at once, and the bytes are what it compares --
+    `assemble` is the template plus the canonical dossier and carries no
+    provenance, so equal bytes are the same prompt about the same content.
+
+    Measured here over three cloud subjects, two of which ask the same thing: the
+    later one is answered out of the earlier one's round trip (its answer IS the
+    earlier one's raw bytes), the third is asked on its own, and the lane counts
+    the question it did not buy.
+    """
+    watcher = _Overlaps()
+    walk = [("first", b"the same question"), ("twin", b"the same question"),
+            ("other", b"a different question")]
+    lane = CallLane(width=cli.EXTRACTION_WORKERS)
+    answered = list(in_walk_order(
+        ((key, _one_send(key, CLOUD_LOCALITY, watcher, asks=asks))
+         for key, asks in walk), lane=lane))
+
+    assert [key for key, _value in answered] == ["first", "twin", "other"]
+    got = dict(answered)
+    # THE TWIN CARRIES THE ASKING SUBJECT'S OWN ANSWER. The fake answers with its
+    # own key, so `b"first"` here is the proof that no second socket was opened
+    # for `twin`: its own send would have said `b"twin"`.
+    assert got["twin"] == b"first", got
+    assert got["first"] == b"first" and got["other"] == b"other", got
+    assert lane.reused == 1, (
+        f"the lane says {lane.reused} questions were answered out of another "
+        f"call, and exactly one duplicate stood in this batch")
+    # The window is the DISTINCT questions: two, not three.
+    assert lane.at_once == 2, lane.at_once
+
+
+def test_a_call_that_failed_is_not_handed_to_its_twin():
+    """`104` §18.28, and the half that is about coverage rather than money.
+
+    A provider that timed out bought no answer. Handing that failure to the
+    duplicate standing beside it would spend a second file's only chance on the
+    first one's bad minute -- two files with no fact where the run before this
+    rule would have had one -- so the twin makes its own send, in its turn, and
+    nothing is counted as reused.
+    """
+    watcher = _Overlaps()
+    outage = TimeoutError("the provider did not answer")
+    lane = CallLane(width=cli.EXTRACTION_WORKERS)
+    answered = list(in_walk_order(
+        [("first", _one_send("first", CLOUD_LOCALITY, watcher,
+                             asks=b"the same question", fails=outage)),
+         ("twin", _one_send("twin", CLOUD_LOCALITY, watcher,
+                            asks=b"the same question")),
+         ("other", _one_send("other", CLOUD_LOCALITY, watcher,
+                             asks=b"a different question"))],
+        lane=lane))
+
+    got = dict(answered)
+    assert [key for key, _value in answered] == ["first", "twin", "other"]
+    # A `SendResult` carrying an exception has no `raw`, which is what the failing
+    # subject's steps return; the twin asked and has its own.
+    assert got["first"] is None, got
+    assert got["twin"] == b"twin", got
+    assert lane.reused == 0, (
+        "a failure was counted as an answer reused, which is the one thing this "
+        "rule must not do to a second file")
+
+
+#: ONE MODEL BEHIND EVERY FAKE CARRIER, because the driver's question key is the
+#: bytes AND the client: two clients are two models and two answers, and a fake
+#: that minted one client per subject could never be a duplicate of anything.
+_ONE_CLIENT = object()
+
+
 def _one_send(key: str, locality: str, watcher: _Overlaps, *,
-              opens_turn=None, costs: float = 0.0, tick=None, prepared=None):
+              opens_turn=None, costs: float = 0.0, tick=None, prepared=None,
+              asks: bytes | None = None, fails: BaseException | None = None):
     """One subject's steps: nothing but a socket, so the driver is what is tested.
 
     **THE CARRIER IS A FAKE AND THAT IS DELIBERATE.** The real one is
@@ -664,10 +740,22 @@ def _one_send(key: str, locality: str, watcher: _Overlaps, *,
     one and never names its type -- it asks for a `locality` and calls `perform` --
     so a fake that answers those two is the protocol, and using it here keeps this
     pin about the driver's ORDER OF WORK with no database, gate or model in the way.
+
+    `asks` is the same protocol one step further: `104` §18.28's duplicate rule
+    reads `model_visible_bytes` and `model_client` off the carrier, so a fake that
+    offers them is a subject with a question and a fake that does not is a subject
+    whose question cannot be read -- which is the case every other test here
+    drives, and which is never paired with anything.
+
+    `fails` is what the provider did rather than what it said: a `SendResult`
+    carrying the exception, exactly as `_PendingSend.perform` carries one rather
+    than raising it across a thread.
     """
 
     class _Carrier:
         locality = None
+        model_visible_bytes = None
+        model_client = None
 
         def perform(self) -> SendResult:
             watcher.enter(key, self.locality)
@@ -676,12 +764,17 @@ def _one_send(key: str, locality: str, watcher: _Overlaps, *,
                     # THE CALL TAKING TIME, on the injected clock. A real one
                     # spends it in a socket; here it is the only thing that moves.
                     tick(key, costs)()
+                if fails is not None:
+                    return SendResult(error=fails)
                 return SendResult(raw=key.encode("utf-8"))
             finally:
                 watcher.leave(self.locality)
 
     carrier = _Carrier()
     carrier.locality = locality
+    if asks is not None:
+        carrier.model_visible_bytes = asks
+        carrier.model_client = _ONE_CLIENT
 
     def steps():
         # `104` R-175: the stage opens this file's turn before it does any work,
