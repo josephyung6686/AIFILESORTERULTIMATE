@@ -46,6 +46,14 @@ recapture differs from its predecessor in exactly two rows, the two
 `privacy_blocked`, the placements, the counts and the sentences are unchanged.
 That is `00`:109's arithmetic reaching the record and nothing else.
 
+**Recaptured again on 10 Sep 2026 for `104` R-160's VERSION bump of the
+structured-text extractor (0.3.0 -> 0.4.0, on R-164's rule, so cached notebooks
+are re-read), and the diff was read before it was taken.** Twenty-one
+`extractor_version` strings moved, and the eight `file_facts` and eight
+`unresolved` rows whose `cache_key` is derived from that version moved with
+them; sorted and compared with the version and the cache keys masked, every
+table is identical to its predecessor. Nothing this corpus concludes changed.
+
 The corpus is `test_local_model_fact_pass._corpus`'s six files: a syllabus, a
 lecture, a homework, a problem set, an application essay and a passport scan. The
 anchors the work-type rule finds on it are all academic's, so it is one branch.

@@ -59,7 +59,10 @@ from extractors.sink import ExtractionResult
 #: numbers -- and the long-tail half now emits a span-less whole-unit observation
 #: for every bulk-text zone. A `.pptx` and an `.eml` extracted before this carry no
 #: row for their own content; the number is what says so.
-VERSION = "0.3.0"
+# `104` R-164's rule, applied 10 Sep 2026 for R-160: a notebook's markdown cells
+# are now body units, so what E3 emits for `.ipynb` changed and the cache key
+# must move with it, or the owner's cached notebooks are never re-read.
+VERSION = "0.4.0"
 
 #: One family name for both halves of E3: the router dispatches eight `source_type`s
 #: here and `runs.ANALYSIS_TIER_BY_EXTRACTOR` keys the tier on the family.
