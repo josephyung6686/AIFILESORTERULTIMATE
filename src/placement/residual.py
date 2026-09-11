@@ -36,7 +36,7 @@ from types import MappingProxyType
 from database_agent.db import transaction
 from llm_harness.vocabulary import (
     ABSTAIN as P8_ABSTAIN, CHOOSE_BROAD_PARENT, CHOOSE_RESIDUAL_DESTINATION,
-    LEAVE_IN_CURRENT_LOCATION, MARK_PROTECTED_OR_UNSUPPORTED,
+    LEAVE_IN_CURRENT_LOCATION, MARKED_STATES, MARK_PROTECTED_OR_UNSUPPORTED,
     MARK_REVIEW_LATER as P8_MARK_REVIEW_LATER, RESIDUAL_ACTIONS,
     RETURN_ACCEPTED_PACKET, RETURN_CONFIRMED_GROUP,
 )
@@ -45,7 +45,7 @@ from placement import events as placement_events
 from placement.store import subject_ref_of
 from placement.vocabulary import (
     ABSTAIN, ACCEPTED_GRAPH_OR_PURPOSE_PACKET, ASK_USER, CONFIRMED_DOMAIN_GROUP,
-    LEAVE_IN_PLACE, MARK_REVIEW_LATER, MARK_STATE, MARKED_STATES,
+    LEAVE_IN_PLACE, MARK_REVIEW_LATER, MARK_STATE,
     NO_SUPPORTED_DESTINATION, PLACE, RETURN_TO_PLACEMENT, REVIEW_WITH_MODEL,
     SEND_TO_APPROVED_NODE, SET_CHOICES, check,
 )
@@ -536,34 +536,35 @@ def outcome_for_action(action: str, *, target) -> tuple[str, object]:
         return outcome, target
     if outcome == MARK_STATE:
         if target not in MARKED_STATES:
-            # `104` R-104, AND THE MESSAGE USED TO BLAME THE WRONG PARTY. It read
-            # "a third state would be P11 inventing a category", which is the
-            # argument for a P11 caller that made a word up. The word that
-            # actually arrives here is the MODEL'S: `_residual_action_of`
+            # `104` R-104, CLOSED, AND THIS RAISE IS NO LONGER THE PLACE THE
+            # MODEL'S WORD LANDS. It used to be: `_residual_action_of`
             # (`cli.py`:1710) reads the raw D payload, so an accepted
-            # `mark_protected_or_unsupported` carries whatever string the model
-            # put in `target` straight into this function, and P8 rejects it
-            # nowhere -- `_residual_disposition` now records the mark honestly but
-            # cannot refuse the word, because the two states are
-            # `placement.vocabulary`'s and no P8 module may import `placement`
-            # (`tests/p8/test_p8_architecture.py`'s `NEIGHBOUR_PRODUCERS`).
+            # `mark_protected_or_unsupported` carried whatever string the model
+            # put in `target` straight into this function, and P8 refused it
+            # nowhere -- the two states were `placement.vocabulary`'s and no P8
+            # module may import `placement`
+            # (`tests/p8/test_p8_architecture.py`'s `NEIGHBOUR_PRODUCERS`). One
+            # stray word in one answer about one file ended the whole residual
+            # pass, and the set the person was answering went with it.
             #
-            # So this raise is the run-ender R-104 names: one stray word in one
-            # answer about one file ends the whole residual pass, and the set the
-            # person was answering goes with it. It is NOT fixed by softening it
-            # here. P11 "re-implements no check of P8's" (`placement/__init__`)
-            # and this module holds "no residual-specific legality path at all";
-            # returning an abstention for a word P8 ACCEPTED would write the
-            # record `pipeline`:4235 reserves for an answer the validator threw
-            # away, and say the model abstained when it said "mark protected".
-            # The refusal belongs at P8, where a rejected verdict already routes
-            # to that record and the run continues (`pipeline`:4226).
+            # The refusal moved to where it belonged rather than softening here.
+            # `llm_harness.vocabulary.MARKED_STATES` is the P8 home for the pair
+            # and `_residual_site` refuses a target outside it with
+            # `ACTION_NOT_IN_CONTROLLED_SET`, so a rejected verdict routes to the
+            # abstention record (`pipeline`:4226) and the run continues. THIS
+            # IMPORT IS THAT SAME TUPLE, read from P8 rather than from
+            # `placement.vocabulary` beside it, so the check that refuses the
+            # word and the check that re-refuses it here cannot come apart into
+            # two pairs; `records.py`'s `marked_state` keeps P11's own copy and
+            # `tests/p11/test_p11_residual_actions.py` pins the two equal against
+            # D's ratified sentence.
             #
-            # It stays a raise, and it stays the honest report of a gap: a caller
-            # that reached here with a word outside the two either skipped P8 or
-            # is the model itself, and until the two words have a P8 home
-            # `tests/llm_harness/test_d2_contract_gaps.py` carries the strict
-            # xfail that says what should have happened instead.
+            # It stays a raise because P11 "re-implements no check of P8's"
+            # (`placement/__init__`): a word that still reaches here is a caller
+            # that skipped P8 entirely, and returning an abstention for it would
+            # write the record `pipeline`:4235 reserves for an answer the
+            # validator threw away -- saying the model abstained when it said
+            # "mark protected".
             raise ValueError(
                 f"§7.7 action 7 marks a file {MARKED_STATES}; {target!r} is "
                 "neither, and `PlacementDecision` refuses it again by name at "

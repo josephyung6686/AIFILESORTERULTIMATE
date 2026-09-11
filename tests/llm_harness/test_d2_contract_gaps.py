@@ -464,16 +464,25 @@ def test_g7_site_d_broad_parent_and_residual_destination_are_one_disposition():
 # downstream changes.
 
 
-@pytest.mark.xfail(strict=True, reason="`104` R-104: P8 has no home for the two "
-                                       "marked-state words, so it cannot refuse "
-                                       "a third; the run ends in P11 instead")
 def test_g8_a_mark_whose_state_is_neither_word_is_refused_by_p8():
     """DESIGN: a word the ratified D text did not offer is a rejected claim
     recorded on the set, not a `ValueError` that ends the run.
 
     MEASUREMENT: a site D answer marking the file `"archived"` -- a word neither
-    `protected` nor `unsupported` -- comes back REJECT. Today it comes back
-    `accept_direct`, and the word travels to `outcome_for_action`, which raises.
+    `protected` nor `unsupported` -- comes back REJECT. It used to come back
+    `accept_direct` and the word travelled to `outcome_for_action`, which raises
+    and ended the residual pass on one bad word in one answer about one file.
+
+    `104` R-104 IS CLOSED AND THIS IS WHERE IT SHOWS. The unblock the xfail named
+    is `llm_harness.vocabulary.MARKED_STATES`, a P8 home for the two words
+    mirrored from D's own ratified sentence, so `_residual_site` refuses a third
+    with `ACTION_NOT_IN_CONTROLLED_SET` -- the code it already gives every other
+    out-of-vocabulary answer -- and `placement/pipeline.py`:4226 routes the
+    rejected verdict to the abstention record, so the run continues.
+
+    SABOTAGE: drop the `MARKED_STATES` arm from `_residual_site` -- the claim is
+    accepted here again and `placement.residual.outcome_for_action` raises on the
+    word instead, which is exactly the defect R-104 named.
     """
     case = _d_case()
     response = json.dumps({"claims": [{
@@ -488,7 +497,7 @@ def test_g8_a_mark_whose_state_is_neither_word_is_refused_by_p8():
     assert verdict.worst_outcome == REJECT
 
 
-# --- G9: §13.6's schema half still has no channel at site C -------------------
+# --- G9: §13.6's schema half still has no channel at site C -----------------
 #
 # `104` R-77. §13.6 makes a hard veto of two things, and only one of them is
 # buildable here today: a model fact "not grounded in the file's own evidence"
@@ -496,22 +505,54 @@ def test_g8_a_mark_whose_state_is_neither_word_is_refused_by_p8():
 # the model calls it) "or FALLS OUTSIDE THE DERIVED SCHEMA" (not built). At site
 # A the derived schema is the dossier's own field keys, so "the field exists" is
 # a lookup. At C the schema is the frozen tree's levels and nothing in the
-# dossier names them: `Dossier.folder_levels` is `()` at C by design
-# (`model_placement.py`:448, "C and D place a file inside a tree that is already
-# designed"), `allowed_vocabulary` is node ids, and R-17's node profiles reach
-# the dossier as one free-text `location` string per candidate rather than as an
-# enumeration. The wired C schema constrains `dimension` to any non-empty string.
+# dossier names them.
 #
-# So a level the tree does not have, whose value the file DOES state, is admitted
-# -- grounded, and about a level that does not exist. The unblock is a channel,
-# not a check: `folder_levels` filled at C, or a node-profile field that names
-# the levels. Inventing the list inside the validator would be a rule guessing at
-# the tree, which is the one thing `_invented_dimension` is written not to do.
+# **THE OBVIOUS UNBLOCK WAS TRIED AND IT IS THREE REFUSALS DEEP, NOT ONE.**
+# "Fill `Dossier.folder_levels` at C from the levels the fact site carries"
+# (`model_placement.py`:448) is the shape everything above pointed at, and it
+# cannot be done from this side of the product:
+#
+#   1. **The ratified C text says the key is empty.** All five wired templates --
+#      `c_placement_template.{eliminate,eliminate-v2,eliminate-v2r,
+#      eliminate-v2r-group,walk}.txt`, line 33 -- read *"The rest is bookkeeping
+#      and you do not need it. `field_glossary` and `folder_levels` are empty at
+#      this site."* Filling it would make the prompt lie to the model about its
+#      own dossier, and the library is ratified text nobody may edit to make a
+#      validator's life easier.
+#   2. **`dossier._folder_levels_body` would refuse the call before it was made.**
+#      It raises `MalformedRecord` for any level whose `field` is outside
+#      `allowed_vocabulary`, and at C `allowed_vocabulary` is NODE IDS
+#      (`placement/pipeline.py`:3120, `allowed_vocabulary=list(offered)`). Every
+#      level field is outside it by construction, so a filled `folder_levels`
+#      does not produce a stricter validator; it produces a run that cannot
+#      assemble a C dossier at all. Widening `allowed_vocabulary` to admit them
+#      is the opposite fix: it is the list the model answers WITH, and a level
+#      name in it is a destination a model may name and `_residual_site` would
+#      have to accept.
+#   3. **R-17's node profiles are still prose.** They reach the dossier as one
+#      free-text `location` string per candidate (`placement/index.py`'s
+#      `node_profile`), so the levels are in the dossier as English and not as an
+#      enumeration. Parsing them back out would be the rule guessing at the tree
+#      that `_invented_dimension` is written not to do.
+#
+# So a level the tree does not have, whose value the file DOES state, is still
+# admitted -- grounded, and about a level that does not exist. The unblock is a
+# ratification plus a channel, in this order: the C template's line 33 is
+# re-ratified to describe a filled `folder_levels`, and then EITHER
+# `_folder_levels_body` learns that a site whose vocabulary is node ids projects
+# its levels against something other than that list, OR `node_profile` gains a
+# field that names the levels outright. Both are edits to what the dossier
+# carries and to text the owner ratifies, which is why this is priced and not
+# built.
 
 
-@pytest.mark.xfail(strict=True, reason="`104` R-77: nothing in the C dossier "
-                                       "names the tree's levels, so the schema "
-                                       "half of 13.6 has no channel")
+@pytest.mark.xfail(strict=True, reason="`104` R-77: the ratified C text says "
+                                       "`folder_levels` is empty at this site, "
+                                       "and `_folder_levels_body` refuses a "
+                                       "level outside `allowed_vocabulary`, "
+                                       "which at C is node ids; the schema half "
+                                       "of 13.6 needs a ratification and a "
+                                       "channel, not a check")
 def test_g9_a_level_the_tree_does_not_have_is_refused_at_site_c():
     """DESIGN: 13.6 hard-vetoes a fact that falls outside the derived schema,
     and at site C the derived schema is the frozen tree's own levels.
@@ -520,6 +561,15 @@ def test_g9_a_level_the_tree_does_not_have_is_refused_at_site_c():
     exists in any tree this product designs -- comes back REJECT even though the
     value it carries is stated by the file. Today it is accepted, because
     grounding is all the validator can ask.
+
+    STILL OWED, AND RE-PRICED RATHER THAN FLIPPED. The comment above records what
+    filling `Dossier.folder_levels` at C was measured to cost: the five wired C
+    templates state in ratified prose that the key IS empty at this site, and
+    `dossier._folder_levels_body` raises `MalformedRecord` on any level field
+    outside `allowed_vocabulary`, which at C is node ids. Filling it does not
+    make the validator stricter -- it makes the prompt untrue and stops the C
+    dossier assembling at all. R-104 and gap 15 landed in the same pass and this
+    did not, which is the honest shape of the row.
     """
     case = _c_case()
     response = _c_response(case, support=1, next_support=0)

@@ -56,6 +56,7 @@ from llm_harness.vocabulary import (
     INVENTED_PROJECT,
     LEAVE_IN_CURRENT_LOCATION,
     LEAVE_IN_PLACE,
+    MARKED_STATES,
     MARK_PROTECTED_OR_UNSUPPORTED,
     MARK_REVIEW_LATER,
     MOVE_PLAN_ELIGIBLE,
@@ -656,6 +657,19 @@ def _residual_site(
     target = payload.get("target")
     if isinstance(target, str) and "/" in target:
         return _reject(verdict, INVENTED_FOLDER, REJECTED)
+    # `104` R-104. THE MARK'S TARGET IS A WORD FROM A CLOSED SET, AND THIS IS
+    # WHERE THE SET IS CHECKED. `mark_protected_or_unsupported` is not a member
+    # of `_TARGET_ACTIONS` and correctly so -- its target is a state and not a
+    # node, so `node_exists` would refuse the only legal answer -- and until the
+    # two words had a P8 home that left the word entirely unchecked: the claim
+    # was accepted here and the stray word raised in
+    # `placement.residual.outcome_for_action`, ending the run. The words live in
+    # `llm_harness.vocabulary` now, so the refusal is made at the site that
+    # refuses every other out-of-vocabulary answer, with the code it already
+    # uses, and `placement/pipeline.py`:4226 routes the rejected verdict to the
+    # abstention record so the run continues.
+    if action == MARK_PROTECTED_OR_UNSUPPORTED and target not in MARKED_STATES:
+        return _reject(verdict, ACTION_NOT_IN_CONTROLLED_SET, REJECTED)
     plan_version = dossier.plan_version or ""
     if action in _TARGET_ACTIONS:
         if not isinstance(target, str) or not target:
@@ -772,17 +786,20 @@ def _residual_disposition(verdict: P8Verdict, raw: object | None = None) -> P8Ve
     and least of all one whose whole content is that the file is not to be
     handled.
 
-    **THE WORD ITSELF IS STILL UNCHECKED HERE, AND DELIBERATELY SO.** Refusing a
-    target outside the two would need the two words, and P8 has no home for them:
-    `llm_harness.vocabulary` carries the ACTION `mark_protected_or_unsupported`
+    **THE WORD ITSELF IS CHECKED IN `_residual_site` NOW (`104` R-104), AND NOT
+    HERE.** It was unchecked anywhere while P8 had no home for the two states:
+    `llm_harness.vocabulary` carried the ACTION `mark_protected_or_unsupported`
     and neither of its states, `placement.vocabulary.MARKED_STATES` is P11's and
     `tests/p8/test_p8_architecture.py`'s `NEIGHBOUR_PRODUCERS` forbids every P8
-    module from importing `placement`, and deriving the pair by splitting the
-    action's own spelling would be a word list built by parsing. Until the two
-    words have a P8 home the refusal cannot honestly be made here; what that
-    costs is recorded on `placement.residual.outcome_for_action`'s raise, which is
-    where a stray word lands today, and pinned as a strict xfail in
-    `tests/llm_harness/test_d2_contract_gaps.py`.
+    module from importing `placement`, so a stray word was accepted here and
+    raised in `placement.residual.outcome_for_action`, ending the run. The pair
+    is now `llm_harness.vocabulary.MARKED_STATES`, mirrored from D's ratified
+    text rather than derived by splitting the action's own spelling, and pinned
+    equal to P11's record by
+    `tests/p11/test_p11_residual_actions.py::test_the_two_marked_states_are_the_
+    two_words_the_d_template_offers`. The refusal is made ONE screen up, beside
+    every other out-of-vocabulary refusal, because this function reads a verdict
+    that has already been scored and a rejected claim never reaches it.
     """
     if STRONGER_RELATIONSHIP_OVERLOOKED in verdict.reasons:
         return _rewrite(verdict, disposition=RETURN_TO_PLACEMENT)

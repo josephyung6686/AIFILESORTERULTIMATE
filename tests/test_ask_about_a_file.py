@@ -401,34 +401,139 @@ def test_a_question_with_one_option_is_a_placement_wearing_a_question_mark():
     assert cli._ask_when_there_are_two_homes_to_offer(()) == pv.ABSTAIN
 
 
-@pytest.mark.xfail(strict=True, reason="`104` §18.2 gap 15: a two-homes question "
-                                       "is about ONE file and `SCOPES` has no "
-                                       "member that scopes one")
 def test_gap15_a_question_can_be_scoped_to_the_one_file_a_two_homes_ask_is_about():
-    """DESIGN: the two-homes Ask reaches the review set but not the "Questions
-    only you can answer" panel, and the panel is where the person answers
-    everything else in one place. The blocker is not the printing: it is that a
-    recorded question needs a scope, and this question is about ONE FILE.
+    """DESIGN: a two-homes question is about ONE FILE, so the scope it is
+    recorded under names one file and nothing else.
 
-    MEASUREMENT: `questions.vocabulary.SCOPES` carries a member that names a
-    file. Today it is corpus, organization, branch and folder, and `HOME_KIND` --
-    the kind whose answer `chosen_destination` reads back into a destination --
-    is `SCOPE_FOLDER`. Recording a two-homes question under the file's folder
-    would make one answer govern every file in that folder, which
-    `chosen_destination`'s own docstring rules out in as many words. The day this
-    turns green, the rest is the `_home_questions` shape once per file:
-    `entry_for` each of the two node ids into a `display_path`, `record_question`
-    a `home:`-kind question with those two as options, and the panel's existing
-    `--answer <id>=<option>` line prints itself.
+    MEASUREMENT: `questions.vocabulary.SCOPES` carries `file`. It used to be
+    corpus, organization, branch and folder, and `HOME_KIND` -- the kind whose
+    answer `chosen_destination` reads back into a destination -- is
+    `SCOPE_FOLDER`. Recording a two-homes question under the file's folder would
+    make one answer govern every file in that folder, which
+    `chosen_destination`'s own docstring rules out in as many words and which
+    `104` R-86 was raised to fix.
 
-    THE WORD "file" HERE IS A PLACEHOLDER for whatever the owner names the
-    member, because the member is theirs to name and does not exist to be
-    referenced. If they add it under another spelling this keeps xfailing while
-    the blocker is gone, so whoever lands the scope updates this line with it.
+    THE BLOCKER THIS PINNED IS GONE and the rest of the shape landed with it:
+    `cli._two_home_questions` mints a `home:`-kind question per file after
+    placement, with the two node ids resolved to folder chains through the same
+    map `already_answered` reads an answer back through, so the panel's existing
+    `--answer <id>=<option>` line settles it. The two tests below measure that
+    end of it; this one measures the vocabulary member it stands on.
     """
-    from questions.vocabulary import SCOPES
+    from questions.vocabulary import SCOPE_FILE, SCOPES
 
-    assert "file" in SCOPES
+    assert SCOPE_FILE in SCOPES
+    assert SCOPE_FILE == "file"
+
+
+def _two_homed_run(node_ids=("n-course", "n-thesis"), file_id="f-thesis"):
+    """A finished run with one `ask_user` decision, and nothing else it needs.
+
+    `_two_home_questions` reads exactly three things -- the frozen tree's nodes,
+    the run's decisions, and each decision's `ask` -- so the double is those and
+    no more. A fuller fixture would make the test pass for reasons the function
+    does not have.
+    """
+    import types
+
+    def node(node_id, label, parent):
+        return types.SimpleNamespace(node_id=node_id, display_label=label,
+                                     parent_node_id=parent,
+                                     accepts_placement=True)
+
+    frozen = types.SimpleNamespace(nodes=(
+        node("n-cw", "Coursework", None),
+        node("n-course", "W3134", "n-cw"),
+        node("n-res", "Research", None),
+        node("n-thesis", "Thesis", "n-res"),
+    ))
+    from placement import vocabulary as pv
+    from placement.records import Ask
+
+    decision = types.SimpleNamespace(
+        outcome=pv.ASK_USER,
+        ask=Ask(question="Which of these two is the home for this file?",
+                options=tuple(node_ids)),
+        subject=types.SimpleNamespace(file_id=file_id, member_file_ids=()))
+    return types.SimpleNamespace(
+        tree=types.SimpleNamespace(tree=frozen),
+        placement=types.SimpleNamespace(decisions=(decision,)))
+
+
+def test_gap15_the_two_homes_question_is_scoped_to_its_file_and_offers_chains():
+    """DESIGN: the Ask reaches the panel as a recorded question whose options are
+    folder chains, and whose answer reaches ONLY the file it was asked about.
+
+    MEASUREMENT: given one `ask_user` decision carrying two node ids,
+    `cli._two_home_questions` records a `home:`-kind question scoped
+    `file:<file id>`, whose options are the two DISPLAY PATHS rather than the raw
+    node ids, and answering one makes `chosen_destination` return that chain for
+    this file and `None` for the file beside it. That last pair is the loop
+    closing: the option a person picks resolves back through the same chain map
+    the run places on, and an answer about one file does not travel to another.
+
+    SABOTAGE: record the question under `folder:<its folder>` -- every assertion
+    about the option ids still passes and the last two fail, because the answer
+    now reaches a file nobody asked about.
+    """
+    from questions.records import StructuralAnswer
+    from questions.schema import create_questions_schema
+    from questions.store import (
+        chosen_destination, open_questions, record_answer, questions_for,
+    )
+    from questions.vocabulary import CONFIRMED, SCOPE_FILE
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    create_questions_schema(conn)
+
+    cli._two_home_questions(conn, _two_homed_run(),
+                            asked_at="2026-09-10T00:00:00Z")
+
+    question = questions_for(conn, (f"home:f-thesis",))[0]
+    assert question.scope == f"{SCOPE_FILE}:f-thesis"
+    # CHAINS, NOT NODE IDS. `n-course` in the panel is a string nobody can read
+    # and an answer `chosen_destination` resolves to nothing.
+    assert [option.option_id for option in question.options] == [
+        "Coursework/W3134", "Research/Thesis"]
+    assert [option.chooses_destination for option in question.options] == [
+        "Coursework/W3134", "Research/Thesis"]
+    # It reaches the panel at all, which is the half gap 15 was missing.
+    assert question.question_id in {
+        asked.question_id for asked in open_questions(conn)}
+
+    record_answer(conn, StructuralAnswer(
+        question_id="home:f-thesis", option_id="Research/Thesis",
+        state=CONFIRMED, scope=f"{SCOPE_FILE}:f-thesis",
+        user_id="jy", recorded_at="2026-09-10T00:01:00Z"))
+
+    assert chosen_destination(
+        conn, scope=f"{SCOPE_FILE}:f-thesis") == "Research/Thesis"
+    assert chosen_destination(conn, scope=f"{SCOPE_FILE}:f-other") is None
+
+
+def test_gap15_an_ask_this_tree_no_longer_offers_is_not_half_asked():
+    """DESIGN: a question offers the person somewhere to choose BETWEEN, and one
+    option is a placement wearing a question mark.
+
+    MEASUREMENT: an `Ask` one of whose nodes the frozen tree does not carry
+    records NO question at all, rather than a one-option question the panel would
+    print as a choice. `StructuralQuestion` would take it; `Ask` and
+    `question_for_unreadable_folder` both refuse the same shape by name, and this
+    refuses it a third time at the only new place it can arise.
+    """
+    from questions.schema import create_questions_schema
+    from questions.store import open_questions
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    create_questions_schema(conn)
+
+    cli._two_home_questions(conn,
+                            _two_homed_run(node_ids=("n-course", "n-gone")),
+                            asked_at="2026-09-10T00:00:00Z")
+
+    assert open_questions(conn) == ()
 
 
 def test_the_run_hands_the_placement_pipeline_the_asking_selector(tmp_path,

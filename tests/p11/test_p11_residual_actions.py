@@ -206,11 +206,14 @@ def test_the_mark_takes_one_of_two_states_and_no_third():
     threw away -- the file's record would say the model abstained when it said
     "mark protected".
 
-    What SHOULD happen instead is pinned as a strict xfail at
+    The two words HAVE a P8 home now -- `llm_harness.vocabulary.MARKED_STATES`,
+    which this module's `residual.py` reads rather than its neighbour's -- so
+    `_residual_site` refuses a stray word with `ACTION_NOT_IN_CONTROLLED_SET`,
+    `pipeline`:4226 routes the rejected verdict to the abstention record, and
     `tests/llm_harness/test_d2_contract_gaps.py::
-    test_g8_a_mark_whose_state_is_neither_word_is_refused_by_p8`. The day the two
-    words have a P8 home, that turns green, a stray word never reaches here, and
-    these assertions go back to meaning what they say on the tin.
+    test_g8_a_mark_whose_state_is_neither_word_is_refused_by_p8` is green rather
+    than an xfail. A word still reaching here is a caller that skipped P8, which
+    is what these assertions have always said on the tin.
     """
     outcome, payload = outcome_for_action(MARK_PROTECTED_OR_UNSUPPORTED,
                                           target=v.UNSUPPORTED)
@@ -226,9 +229,13 @@ def test_the_two_marked_states_are_the_two_words_the_d_template_offers():
 
     MEASUREMENT: both wired D templates state the pair in prose -- `"target" is
     the word "protected" or the word "unsupported"` -- and every word of
-    `MARKED_STATES` appears in that sentence. `104` R-104 leaves P8 unable to
-    check the pair (it may not import this package); this holds the two records
-    equal so the P8 home that closes it cannot be given a different pair.
+    `MARKED_STATES` appears in that sentence. `104` R-104 is closed by a P8 home
+    for the pair -- `llm_harness.vocabulary.MARKED_STATES`, which P8 may keep
+    because it is a fact about the call P8 validates and not an import of this
+    package -- and this holds the THREE records equal: D's ratified sentence, the
+    P8 spelling `_residual_site` refuses a third word against, and this package's
+    own, which `records.py` checks `marked_state` with. A mirror is only honest
+    while something pins it.
     """
     library = pathlib.Path(__file__).resolve().parents[2] / "src/llm_harness/library"
     for name in ("d_residual_template.ladder.txt",
@@ -239,6 +246,14 @@ def test_the_two_marked_states_are_the_two_words_the_d_template_offers():
         for state in v.MARKED_STATES:
             assert f'the word "{state}"' in sentence, (name, state)
         assert len(v.MARKED_STATES) == sentence.count("the word ")
+    # The P8 mirror, pinned to the same sentence through this package's copy. P8
+    # may not import `placement` (`tests/p8/test_p8_architecture.py`'s
+    # `NEIGHBOUR_PRODUCERS`), so the pair exists twice; two spellings that drifted
+    # would mean `_residual_site` refusing a word `PlacementDecision` accepts, or
+    # the reverse, and the run would end in exactly the place R-104 named.
+    from llm_harness import vocabulary as p8v
+
+    assert p8v.MARKED_STATES == v.MARKED_STATES
 
 
 def test_the_three_targetless_actions_refuse_a_target():
