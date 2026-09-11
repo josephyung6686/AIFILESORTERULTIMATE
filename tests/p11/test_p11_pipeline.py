@@ -1772,7 +1772,7 @@ def test_the_user_can_be_asked_which_packet_is_the_primary_home(skeleton):
     assert set(decision.ask.options) == {"n-course", "n-course-alt"}
 
 
-def _two_homes_asking(conn, shared=SHARED):
+def _two_homes_asking(conn, shared=SHARED, tree=None):
     """The same corpus under the asking selector. A second run supersedes the
     first decision about each subject, which is §8.2's own rule."""
     from placement.pipeline import run_corpus
@@ -1790,6 +1790,8 @@ def _two_homes_asking(conn, shared=SHARED):
                      partition=lambda ids: _partition(ids, label="Asked"),
                      ask_or_abstain=lambda ids: (
                          v.ASK_USER if len(tuple(ids)) >= 2 else v.ABSTAIN))
+    if tree is not None:
+        inputs = dataclasses.replace(inputs, tree=tree)
     return run_corpus(
         conn, subjects=(), group_ids=("g-columbia", "g-phys1402-packet"),
         inputs=inputs, evidence_for=_two_home_evidence_for(shared[0]),
@@ -1879,19 +1881,54 @@ def test_a_protected_file_in_two_packets_is_never_turned_into_a_question(
     assert decision.privacy.protected is True
 
 
-def test_a_shared_branch_takes_the_file_and_the_packets_still_do_not(skeleton):
-    # §6.9's other answer: a tree that froze a shared-material branch places the
-    # file ABOVE the competition. `resolve_multi_home` refuses a branch that IS
-    # one of the competitors, so this can never become an arbitrary pick.
+def test_gap14_a_frozen_shared_branch_is_no_longer_a_rules_placement(skeleton):
+    """RE-ARGUED BY `104` §18.2 gap 14's finding, and it used to assert the defect.
+
+    It read: "a tree that froze a shared-material branch places the file ABOVE the
+    competition", and it measured `place` at `n-course-shared` with
+    `decided_by=rule`. `00`'s Amendments say *"every placement goes through the
+    model"*, and a file two packets claim is the case a judge is most needed for --
+    so `run_corpus` hands `resolve_multi_home` no branch to place on, asks site C
+    between the two homes, and keeps §6.9's other two answers for when it gets no
+    reply.
+
+    THIS RUN HAS NO MODEL PATH (`_inputs` wires every model injection to `None`),
+    which is exactly the condition §13.5 calls the deterministic fallback -- and
+    the fallback is now the selector's answer rather than the branch. Under this
+    fixture's selector that answer is the abstention; the twin below asks instead.
+
+    SABOTAGE: hand `_shared_branch_of(inputs.tree)` back to `resolve_multi_home` --
+    this comes back `place` at `n-course-shared` with no model call anywhere, and
+    the amendment is unenforced in the one case §6.9 exists for.
+    """
     from p11.p10_fixtures import tree_with
     from tree_design.vocabulary import SHARED_BRANCH
 
     decision = _multi_home(
         _two_homes(skeleton, tree=tree_with(shared_material_policy=SHARED_BRANCH)))
-    assert decision.outcome == v.PLACE
-    assert decision.destination.node_id == "n-course-shared"
-    assert decision.confidence_class == v.SHARED_MATERIAL_DECISION
-    assert decision.review_policy == v.REVIEW_REQUIRED
+    assert decision.outcome == v.ABSTAIN
+    assert decision.destination is None
+    assert decision.abstention_reason == v.NO_SHARED_BRANCH
+
+
+def test_gap14_a_frozen_shared_branch_does_not_take_the_question_away_either(
+        skeleton):
+    """The discriminating twin. Without it the test above could be passing because
+    the branch-bearing policy stopped reaching `resolve_multi_home` at all.
+
+    Under the asking selector the same tree produces the PERSON's question, and
+    its options are the two packets -- never the branch, which nobody was asked
+    about.
+    """
+    from p11.p10_fixtures import tree_with
+    from tree_design.vocabulary import SHARED_BRANCH
+
+    branch_bearing = tree_with(shared_material_policy=SHARED_BRANCH)
+    _two_homes(skeleton, tree=branch_bearing)
+    result = _two_homes_asking(skeleton, tree=branch_bearing)
+    decision = _multi_home(result)
+    assert decision.outcome == v.ASK_USER
+    assert set(decision.ask.options) == {"n-course", "n-course-alt"}
 
 
 # --- §7.4's disposition, where it is the only thing that can force review ---------
@@ -3239,3 +3276,119 @@ def test_a_residual_file_the_model_is_not_asked_about_does_not_end_the_run(
     rows = [dict(row) for row in skeleton.execute(
         "SELECT reason, call_site FROM llm_pre_call_abstention")]
     assert rows == [{"reason": NOT_ELIGIBLE_FOR_MODEL, "call_site": D_RESIDUAL}]
+
+
+# --- `00`:110's missing fields and deterministic scores, per candidate -----------
+#
+# *"...known conflicts, MISSING FIELDS, and DETERMINISTIC SCORES."* Neither key
+# existed: rank reached the model as list order alone, and no candidate said which
+# of the levels it fixes this file states no fact for. Gated by the row's own flag
+# for R-77's reason, so the observed row's bytes do not move.
+
+
+def _candidate_items_seen(skeleton, monkeypatch, *, prompt):
+    import placement.pipeline as pipeline
+
+    seen = {}
+
+    def _fake_call(conn, request, **kwargs):
+        seen["items"] = {item.evidence_ref: item
+                         for item in request.evidence_items}
+        seen["allowed"] = kwargs["call_dependencies"].allowed_vocabulary
+        return _verdict()
+
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_fake_call))
+    _place(skeleton, inputs=_model_inputs(skeleton, prompt=prompt),
+           evidence=_evidence(**AMBIGUOUS))
+    return seen
+
+
+def test_under_a_row_that_names_no_scores_the_candidate_items_carry_none(
+        skeleton, monkeypatch):
+    """The row site C observes today describes a candidate item by six fields, and
+    the builder is told so by `PromptDefinition.lists_candidate_scores`. This is
+    why `tests/integration/test_r37_single_branch_is_byte_identical.py` needs no
+    recapture: the dossier this call assembles is the one it always assembled."""
+    seen = _candidate_items_seen(skeleton, monkeypatch,
+                                 prompt=SimpleNamespace(ratified=True))
+    item = seen["items"]["n-course"]
+
+    assert item.missing_fields == ()
+    assert item.score is None
+    assert item.margin is None
+
+
+def test_under_the_amended_row_each_candidate_carries_its_score_and_the_leader_its_margin(
+        skeleton, monkeypatch):
+    """MEASURED: the figure `score_candidates` produced for each offered node, and
+    the ONE margin this engine computes, on the candidate the margin is about.
+
+    SABOTAGE: put `margin` on every candidate -- the record starts claiming a
+    comparison `_exact_margin` makes exactly once, against a runner-up most of the
+    list never had.
+    """
+    seen = _candidate_items_seen(
+        skeleton, monkeypatch,
+        prompt=SimpleNamespace(ratified=True, lists_candidate_scores=True))
+    scored = [item for item in seen["items"].values()
+              if item.score is not None]
+
+    assert scored, "no candidate carried a deterministic score"
+    with_margin = [item for item in scored if item.margin is not None]
+    assert len(with_margin) == 1, "the margin belongs to the leader alone"
+    leader = with_margin[0]
+    assert leader.score == max(item.score for item in scored)
+
+
+def test_under_the_amended_row_a_candidate_names_the_levels_this_file_has_no_fact_for(
+        skeleton, monkeypatch):
+    """`00`:111's own question, answered per candidate: *"a file may have sufficient
+    evidence for a broad branch but not for every deeper level."*
+
+    The levels come off `IndexEntry.expected_values` -- the chain P10 wrote, read
+    verbatim the way `_candidate_levels` reads it -- and what is missing is a field
+    on that chain the SUBJECT states no fact for. `AMBIGUOUS` gives this file no
+    `subject` fact at all, so the node whose chain fixes `subject` names it.
+
+    SABOTAGE: ask the matched facts instead of the file's own -- a level goes
+    "missing" because the folder did not happen to use it.
+    """
+    seen = _candidate_items_seen(
+        skeleton, monkeypatch,
+        prompt=SimpleNamespace(ratified=True, lists_candidate_scores=True))
+
+    assert seen["items"]["n-course"].missing_fields == ("subject",)
+    # And a node the tree fixes no level on says nothing, which is what P10 gave
+    # it to say -- the same silence `_candidate_levels` keeps.
+    assert seen["items"]["n-course-shared"].missing_fields == ()
+
+
+# --- the C dossier's `conflicts` key, measured end to end ------------------------
+
+
+def test_the_c_dossier_carries_the_conflicts_this_files_own_values_caused(
+        skeleton, monkeypatch):
+    """The ratified C text's line 31: *"each is a disagreement the engine found
+    between something this file states and a folder it was being pulled towards."*
+
+    MEASURED at the request: this file states `subject = PHYS1401`, `n-course-alt`
+    expects `PHYS1402`, §6.3 suppresses it, and the suppression reaches the judge
+    as a `conflicts` entry whose kind is the field. Nothing here was injected --
+    `retrieve` reads the frozen tree through the deployment's own canonicaliser and
+    `to_p8_conflicts` addresses the result by content.
+    """
+    import placement.pipeline as pipeline
+
+    seen = {}
+
+    def _fake_call(conn, request, **kwargs):
+        seen["conflicts"] = request.conflicts
+        return _verdict()
+
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_fake_call))
+    decision = _place(skeleton,
+                      inputs=_model_inputs(skeleton,
+                                           prompt=SimpleNamespace(ratified=True)),
+                      evidence=_evidence(group_ids=PLACING_GROUPS))
+    assert decision is not None
+    assert [c.kind for c in seen["conflicts"]] == ["subject"]

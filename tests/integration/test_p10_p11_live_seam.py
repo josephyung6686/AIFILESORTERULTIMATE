@@ -577,11 +577,18 @@ def test_the_one_path_where_the_disposition_alone_decides_is_unreachable_today(
 
 
 def test_p11s_own_reader_finds_the_shared_branch_p10_minted(corpus):
-    """`_shared_branch_of` is the function `run_corpus` calls, and it scans
-    `tree.nodes` for `node_role == shared-material` with `accepts_placement`.
-    Here it is reading P10's real bundle: the node was created by
-    `apply_review_action(set-shared-material-policy)` and its id was minted by
-    the draft that action opened."""
+    """`_shared_branch_of` is P11's one reader of P10's `shared-material` role, and
+    it scans `tree.nodes` for `node_role == shared-material` with
+    `accepts_placement`. Here it is reading P10's real bundle: the node was created
+    by `apply_review_action(set-shared-material-policy)` and its id was minted by
+    the draft that action opened.
+
+    **`run_corpus` NO LONGER HANDS THE ANSWER TO `resolve_multi_home`** (`104`
+    §18.2 gap 14's finding): placing a two-homes file on the branch was a RULE
+    making a placement `00`'s Amendments reserve for the judge, so the two homes go
+    to site C and this function's answer is not a destination any more. The
+    agreement it measures -- P11 reads the role P10 writes -- is what the owner's
+    open question needs if the branch is to come back as a third candidate."""
     from placement.pipeline import _shared_branch_of
 
     result = run_p10(corpus)

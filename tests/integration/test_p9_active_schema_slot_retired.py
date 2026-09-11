@@ -50,6 +50,8 @@ import pathlib
 import sqlite3
 import sys
 
+import pytest
+
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "src"))
 
 import cli  # noqa: E402
@@ -162,3 +164,45 @@ def test_what_actually_bars_a_model_fact_from_seeding_is_the_state_bar():
 
     assert LLM_SUPPORTED not in ANCHOR_STATES
     assert ANCHOR_STATES == frozenset({"direct", "validated"})
+
+
+# --- the slot that STAYED and is still answered with nothing ----------------------
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "OWNER'S WORD OWED, AND IT IS A FIELD SET. `cli.py`'s composition root answers "
+    "`conflicts_for` with `lambda file_ids: ()`, so three things nothing else can "
+    "reach are dead in every real run: `Group.conflicts` and `Membership.conflicts` "
+    "are empty on every stored row, site B's dossier carries `conflicts=()` (which "
+    "is what makes `llm_harness/group_validation.py`'s target-institution check "
+    "unreachable from P9 -- `grouping/p8_seam.py`'s own comment says so), and SR4, "
+    "the stop rule for irreconcilable facts, can never fire. The MECHANISM is "
+    "entirely built and tested against an injected oracle on both sides; what is "
+    "missing is the one answer P9 may not author. `00`:63 names the stop rule's "
+    "field set in the design's own words -- 'when members carry irreconcilable "
+    "COURSE, INSTITUTION, PROJECT, TERM, or PURPOSE facts' -- and those five words "
+    "are not P6 field keys or library role refs. They have to be named as role refs "
+    "(the library's own vocabulary: `holder_institution`, `cycle_period`, "
+    "`subject_anchor`, `artifact_kind`, ...), because the reader then resolves them "
+    "to field keys through the applicability row's `role_bindings` exactly as "
+    "`production.group_level_fields_for` resolves `GROUP_LEVEL_ROLES`. It CANNOT be "
+    "every field: `00`:112's own packet mixes an essay, a checklist, a screenshot "
+    "and a transcript, so a reader that fired on `artifact_kind` would stop every "
+    "real packet from forming, and choosing which of the library's roles those five "
+    "words mean is a deciding word list P9 does not own. Once the owner names them, "
+    "the reader is one query over `file_facts` joined to `values` -- the same read "
+    "`cli.evidence_for` makes -- grouped by field over the member file ids, one "
+    "`Conflict(kind=<field key>, competing_values=..., file_ids=...)` per field "
+    "holding two or more canonical values among P9's own `ANCHOR_STATES`, and one "
+    "line at `cli.py`'s `conflicts_for=`."))
+def test_the_conflicts_oracle_is_answered_by_the_live_run(tmp_path):
+    """The composition root supplies a REAL conflict reader, not an empty tuple.
+
+    Read off the run's own wiring rather than off a fixture, because a fixture can
+    pass its own oracle and every P9 test does -- which is exactly how a slot stays
+    green for a year while the product answers it with nothing.
+    """
+    import cli
+
+    source = pathlib.Path(inspect.getsourcefile(cli)).read_text(encoding="utf-8")
+    assert "conflicts_for=lambda file_ids: ()" not in source

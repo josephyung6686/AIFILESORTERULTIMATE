@@ -50,13 +50,20 @@ legitimately holds, and nothing is bound against a guess:
     nothing and is what the model's own `members` list is read against.
   * `call_site`, `eligibility_reason`, `reduction_rung`, `evidence_items[].basis`,
     `.reliability_state` -- membership in the closed vocabularies P8 publishes.
-  * `evidence_items` / `conflicts` entries -- exact key sets, the same rule
-    `released_evidence` gets, derived from the dataclasses rather than retyped.
+  * `evidence_items` / `conflicts` entries -- closed key sets, the same rule
+    `released_evidence` gets, derived from the dataclasses rather than retyped. A
+    `conflicts` entry's is exact; an `evidence_items` entry's is the six required
+    fields plus at most `00`:110's three defaulted ones, which the builder writes
+    only when they are filled.
+  * `evidence_items[].score`, `.margin` -- finite numbers and not `bool`. The
+    transport holds no assessment to recompute them against, and does not need to:
+    a path, an excerpt, a name and a content hash are none of them numbers.
   * `policy_version` -- equality with the payload's, which `_require_binding` has
     already tied to the release.
 
-**What is STILL not bound, and it is three things.** `evidence_items[].location`,
-`evidence_items[].kind` and `conflicts[].kind` are free strings with no vocabulary in
+**What is STILL not bound, and it is four things.** `evidence_items[].location`,
+`evidence_items[].kind`, `evidence_items[].missing_fields` and `conflicts[].kind` are
+free strings with no vocabulary in
 `records.py` to check them against, and `allowed_vocabulary` is the caller's declared
 answer vocabulary, legitimately arbitrary -- P9 passes group labels, P10 node ids, P11
 residual actions, none of them field names, so it cannot be bound to the glossary
@@ -135,8 +142,23 @@ RELEASED_EVIDENCE_KEY: str = "released_evidence"
 #: The keys `dossier._evidence_item_body` and `_body`'s conflict comprehension write,
 #: READ from the dataclasses so a field added to either is a door that refuses until
 #: somebody looks, rather than a slot that silently carries whatever is put in it.
+#:
+#: **SPLIT BY THE RECORD'S OWN DEFAULTS, and that is not a loosening.** `00`:110's
+#: missing fields and deterministic scores are written only when they are filled --
+#: every ratified text describes a candidate item by the six required fields, so a
+#: builder writing three more under such a row would make the prompt lie about its
+#: own contents, and an item that fills none of them is byte-identical to the one
+#: this product has always sent. The door has to admit both shapes and nothing
+#: between them: `required <= keys <= required | optional`, so a key neither set
+#: names is refused exactly as it was before. Which is which is read off the
+#: dataclass rather than retyped here, so a field added to `EvidenceItem` with no
+#: default still closes this door until somebody looks.
 EVIDENCE_ITEM_FIELDS: frozenset[str] = frozenset(
-    f.name for f in dataclasses.fields(EvidenceItem))
+    f.name for f in dataclasses.fields(EvidenceItem)
+    if f.default is dataclasses.MISSING)
+EVIDENCE_ITEM_OPTIONAL_FIELDS: frozenset[str] = frozenset(
+    f.name for f in dataclasses.fields(EvidenceItem)
+    if f.default is not dataclasses.MISSING)
 CONFLICT_FIELDS: frozenset[str] = frozenset(
     f.name for f in dataclasses.fields(Conflict))
 
@@ -165,18 +187,48 @@ def _require_keyed(value: object, *, slot: str) -> None:
             "reversible digest CR-03 removed")
 
 
-def _require_entries(entries: object, expected: frozenset[str], *, slot: str) -> list:
+def _require_entries(entries: object, expected: frozenset[str], *, slot: str,
+                     optional: frozenset[str] = frozenset()) -> list:
+    """Every entry's keys: the required set, plus at most the optional one.
+
+    `optional` is empty for every slot but `evidence_items`, so those keep the
+    EXACT check they have always had. Where it is not empty it is the record's own
+    defaulted fields, and the rule is still a closed one -- a key outside both sets
+    is a key nothing bound, which is how a faithful list and a corpus travel in one
+    payload.
+    """
     if not isinstance(entries, list):
         _refuse(f"{slot} is a {type(entries).__name__}; `_body` writes a list")
     for entry in entries:
-        if not isinstance(entry, dict) or set(entry) != expected:
+        keys = set(entry) if isinstance(entry, dict) else None
+        if keys is None or not expected <= keys <= expected | optional:
             _refuse(
                 f"an entry of {slot} carries "
                 f"{sorted(entry) if isinstance(entry, dict) else type(entry).__name__}"
-                f" where the builder writes {sorted(expected)}. A key this door does "
+                f" where the builder writes {sorted(expected)}"
+                + (f" and may add {sorted(optional)}" if optional else "")
+                + ". A key this door does "
                 "not recognise is a key nothing bound, which is how a faithful list "
                 "and a corpus travel in one payload")
     return entries
+
+
+def _require_engine_figure(value: object, *, slot: str) -> None:
+    """A support score or a margin: a finite number this engine measured, or absent.
+
+    Bound by SHAPE and not by value, which is what there is to bind. The transport
+    holds no assessment to recompute the figure against -- and it does not need to:
+    a path, an excerpt, a name and a content hash are none of them numbers, so the
+    slot §8.4's always-local set would have to ride in is closed by the type. `bool`
+    is excluded because Python calls it a number and a reader would not.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        _refuse(
+            f"{slot} is {value!r}; `dossier._evidence_item_body` writes the "
+            "engine's own figure or leaves the key out, and a slot that accepted "
+            "a string would be a slot the corpus could ride in")
+    if value != value or value in (float("inf"), float("-inf")):
+        _refuse(f"{slot} is not a finite number, so no ranking produced it")
 
 
 def released_content_digest(canonical_dossier_bytes: bytes, *,
@@ -279,10 +331,29 @@ def released_content_digest(canonical_dossier_bytes: bytes, *,
                     "rejected under check 1 for obeying its instructions")
 
     for item in _require_entries(body["evidence_items"], EVIDENCE_ITEM_FIELDS,
-                                 slot="evidence_items"):
+                                 slot="evidence_items",
+                                 optional=EVIDENCE_ITEM_OPTIONAL_FIELDS):
         _require_member(item["basis"], EVIDENCE_BASES, slot="evidence_items[].basis")
         _require_member(item["reliability_state"], RELIABILITY_STATES,
                         slot="evidence_items[].reliability_state")
+        # `00`:110's two figures, bound by shape. See `_require_engine_figure`.
+        for figure in ("score", "margin"):
+            if figure in item:
+                _require_engine_figure(item[figure],
+                                       slot=f"evidence_items[].{figure}")
+        # And the levels: a list of non-empty field keys. They are the tree's own
+        # field names, and there is no vocabulary here to check them against --
+        # `allowed_vocabulary` is node ids at the one site that fills this -- so
+        # this is a shape check and `missing_fields` joins the named residual in
+        # the module docstring rather than pretending to be bound.
+        if "missing_fields" in item:
+            levels = item["missing_fields"]
+            if not isinstance(levels, list) or any(
+                    not isinstance(level, str) or not level for level in levels):
+                _refuse(
+                    "evidence_items[].missing_fields is a list of the field keys a "
+                    "candidate fixes that the subject states no fact for; anything "
+                    "else did not come through the builder")
 
     for conflict in _require_entries(body["conflicts"], CONFLICT_FIELDS,
                                      slot="conflicts"):

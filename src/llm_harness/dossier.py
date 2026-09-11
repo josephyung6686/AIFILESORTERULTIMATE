@@ -154,7 +154,25 @@ def _released_evidence(released: Released) -> tuple[ReleasedEvidence, ...]:
 
 
 def _evidence_item_body(item: EvidenceItem, *, handle_key: bytes) -> dict:
-    return {
+    """One builder item as the model sees it.
+
+    **`00`:110's LAST TWO, AND THEY ARE WRITTEN ONLY WHEN THEY ARE FILLED.** The
+    design asks a placement dossier for each candidate's "known conflicts, missing
+    fields, and deterministic scores"; there was no `missing_fields` key and no
+    score value anywhere in these bytes, so the ranking reached the model as LIST
+    ORDER alone. `EvidenceItem` now carries all three -- supplied by the builder,
+    never synthesised here, on the same terms as `kind` and `basis`.
+
+    The keys are CONDITIONAL for the reason `folder_levels` is gated one layer up
+    (R-77): every ratified text tells the model the dossier has these keys and no
+    others and describes an item by six fields, and a builder writing three more
+    under such a row would make the prompt lie about its own contents. An item
+    nobody scored and no tree named a level for is the item this product has always
+    sent, byte for byte -- which is what keeps the r37 capture identical without a
+    recapture. `canonical_json` sorts nested keys, so where they DO appear they
+    appear in one place.
+    """
+    body = {
         "basis": item.basis,
         "evidence_ref": wire_ref(item.evidence_ref, key=handle_key),
         "excerpt_span": list(item.excerpt_span) if item.excerpt_span else None,
@@ -162,6 +180,13 @@ def _evidence_item_body(item: EvidenceItem, *, handle_key: bytes) -> dict:
         "location": item.location,
         "reliability_state": item.reliability_state,
     }
+    if item.missing_fields:
+        body["missing_fields"] = list(item.missing_fields)
+    if item.score is not None:
+        body["score"] = item.score
+    if item.margin is not None:
+        body["margin"] = item.margin
+    return body
 
 
 def _released_body(item: ReleasedEvidence, *, handle_key: bytes) -> dict:
@@ -563,6 +588,19 @@ def dossier_from_stored_body(body: Mapping[str, object], *,
                               else tuple(item["excerpt_span"])),
                 reliability_state=item["reliability_state"],
                 basis=item["basis"],
+                # `00`:110's three, read with defaults the way `folder_levels` and
+                # R-135's two are read below and for their reason: they are
+                # defaulted on the record, so a row written before they existed
+                # carries no such key, and refusing one would make an old database
+                # unreadable to say that a new field is absent. Dropping them is
+                # not a lost statistic either -- `store.load_dossier` compares the
+                # rebuilt record against the row key by key, so a rebuild short of
+                # a field the row HOLDS is `MalformedRecord` out of a reuse
+                # decision, and `_reuse_is_current` would answer `False` and buy
+                # the model answer again.
+                missing_fields=tuple(item.get("missing_fields", ())),
+                score=item.get("score"),
+                margin=item.get("margin"),
             ) for item in body["evidence_items"]),
         conflicts=tuple(
             Conflict(conflict_id=item["conflict_id"], kind=item["kind"])

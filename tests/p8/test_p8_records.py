@@ -249,10 +249,18 @@ def test_prompt_definition_is_frozen_and_carries_exact_bytes():
         # reword. `False` is the truthful answer for every row ratified so far --
         # their line 33 says the key is empty at site C.
         "lists_folder_levels",
+        # `00`:110's missing fields and deterministic scores, on the same terms and
+        # for the same reason: every C row ratified so far describes a candidate
+        # item by six fields, so the builder fills the three new slots only under a
+        # row whose text says it does.
+        "lists_candidate_scores",
     )
     assert prompt.lists_folder_levels is False
+    assert prompt.lists_candidate_scores is False
     with pytest.raises(MalformedRecord):
         dataclasses.replace(prompt, lists_folder_levels="yes")
+    with pytest.raises(MalformedRecord):
+        dataclasses.replace(prompt, lists_candidate_scores="yes")
     assert prompt.template_bytes == b"TEMPLATE"
     assert prompt.response_schema_bytes == b'{"type":"object"}'
     assert prompt.shaping_policy_bytes == b'{"policy":"authored"}'
@@ -313,9 +321,15 @@ def test_evidence_item_and_conflict_are_frozen():
     conflict = Conflict(conflict_id="c1", kind="suppressed_candidate")
     assert item.__dataclass_params__.frozen
     assert conflict.__dataclass_params__.frozen
+    # THE SIX THE RATIFIED TEXTS DESCRIBE, AND `00`:110's THREE BEHIND THEM. The
+    # design lists what a placement dossier carries per candidate -- "known
+    # conflicts, MISSING FIELDS, and DETERMINISTIC SCORES" -- and none of the three
+    # had a field here or a key in the bytes. They are TRAILING AND DEFAULTED, so
+    # every existing constructor is unchanged and an item that fills none of them
+    # writes the same six keys it always wrote (`dossier._evidence_item_body`).
     assert _field_names(EvidenceItem) == (
         "evidence_ref", "kind", "location", "excerpt_span",
-        "reliability_state", "basis",
+        "reliability_state", "basis", "missing_fields", "score", "margin",
     )
     assert _field_names(Conflict) == ("conflict_id", "kind")
     assert item.basis == DIRECT_ANCHOR

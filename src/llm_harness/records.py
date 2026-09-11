@@ -6,6 +6,8 @@ Internal modules import `P8Verdict` by that name. This package exports no bare
 """
 from __future__ import annotations
 
+import math
+
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
@@ -117,6 +119,24 @@ class PromptDefinition:
     #: depend on a naming habit" -- and scanning the prose for the word would make
     #: it depend on a sentence the owner may reword.
     lists_folder_levels: bool = False
+    #: WHETHER THIS ROW'S TEXT DESCRIBES A CANDIDATE ITEM CARRYING `missing_fields`,
+    #: `score` AND `margin`, set by the loader from the manifest row on
+    #: `lists_folder_levels`' own terms and for its own reason.
+    #:
+    #: `00`:110 asks the placement dossier for "known conflicts, missing fields, and
+    #: deterministic scores" per candidate, and the builder fills all three -- but
+    #: every C row ratified so far describes a candidate item by six fields and tells
+    #: the model the dossier has these keys and no others. A builder that filled three
+    #: more under such a row would make the prompt lie about its own contents, which
+    #: is the defect R-77 priced one layer up.
+    #:
+    #: ONE FLAG FOR THE THREE, because they are one sentence for the owner to write:
+    #: the figures and the unfilled levels are the same claim -- the engine's own
+    #: measurements of the tree and of its own ranking, never quotations from the file.
+    #:
+    #: `False` BY DEFAULT, which is the truthful direction for every row that has ever
+    #: been ratified, and READ OFF THE OBJECT AND NEVER PARSED OUT OF `template_bytes`.
+    lists_candidate_scores: bool = False
 
     def __post_init__(self) -> None:
         _require(self.call_site, CALL_SITES, name="call_site")
@@ -128,6 +148,11 @@ class PromptDefinition:
         if not isinstance(self.lists_folder_levels, bool):
             raise MalformedRecord(
                 "prompt definition `lists_folder_levels` is a bool set by the "
+                "loader from the manifest row; anything else is a caller guessing "
+                "at what the text tells the model its dossier carries")
+        if not isinstance(self.lists_candidate_scores, bool):
+            raise MalformedRecord(
+                "prompt definition `lists_candidate_scores` is a bool set by the "
                 "loader from the manifest row; anything else is a caller guessing "
                 "at what the text tells the model its dossier carries")
         if not self.template_id or not self.call_site_version:
@@ -310,6 +335,37 @@ class EvidenceItem:
     excerpt_span: tuple[int, int] | None
     reliability_state: str
     basis: str
+    #: `00`:110's MISSING FIELDS, for a candidate item and for nothing else. The
+    #: design lists what a placement dossier carries -- "the small set of top legal
+    #: destination candidates, each candidate's node profile, representative files
+    #: already accepted in those nodes, known conflicts, MISSING FIELDS, and
+    #: DETERMINISTIC SCORES" -- and the last two had no key and no value anywhere
+    #: in the bytes.
+    #:
+    #: **THE LEVELS THAT FOLDER FIXES WHICH THIS FILE STATES NO FACT FOR**, which
+    #: is `00`:111's own question ("sufficient evidence for a broad branch but not
+    #: for every deeper level") asked of one candidate. A field the file states
+    #: with a DIFFERENT value is not missing -- that is a conflict, and conflicts
+    #: are their own key.
+    #:
+    #: DEFAULTED EMPTY, because every site but C has nothing to put here and the
+    #: ratified texts describe an item by the six fields above. P8 fills none of
+    #: this: the builder supplies it, exactly as it supplies `kind`, `location`,
+    #: `reliability_state` and `basis`.
+    missing_fields: tuple[str, ...] = ()
+    #: The engine's own support figure for this candidate, and how far the leader
+    #: beat the next -- `00`:110's DETERMINISTIC SCORES. Rank reached the model as
+    #: LIST ORDER alone, so a shortlist whose leader doubled the runner-up read
+    #: identically to one whose two leaders were a hair apart.
+    #:
+    #: `None` on an item nobody scored, which is every non-candidate item and every
+    #: candidate a step-6 rule set aside -- "offered and never scored" is the
+    #: rule's own sentence. `margin` is set on the LEADER only, because that is the
+    #: one number the engine computes: `two_condition.margin_over_next` is the best
+    #: over the runner-up, and a per-candidate margin would be a metric invented
+    #: here.
+    score: float | None = None
+    margin: float | None = None
 
     def __post_init__(self) -> None:
         if not self.evidence_ref:
@@ -318,6 +374,30 @@ class EvidenceItem:
             span = _freeze_sequence(self, "excerpt_span")
             if len(span) != 2 or any(not isinstance(n, int) for n in span):
                 raise MalformedRecord("excerpt_span must be a pair of ints")
+        levels = _freeze_sequence(self, "missing_fields")
+        if any(not isinstance(field, str) or not field for field in levels):
+            raise MalformedRecord(
+                "EvidenceItem.missing_fields names the levels a candidate fixes "
+                "that this file states no fact for, each by the field key the tree "
+                "itself carries; anything else is a caller describing a level P10 "
+                "did not name")
+        for name in ("score", "margin"):
+            value = getattr(self, name)
+            if value is None:
+                continue
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise MalformedRecord(
+                    f"EvidenceItem.{name} is the engine's own figure or nothing; "
+                    "a caller with no measurement passes None rather than a word "
+                    "standing in for one")
+            if not math.isfinite(value):
+                # `canonical_json` refuses these too, and its message is about
+                # JSON. This one is about the measurement: a support figure that
+                # is not a number did not come out of `score_candidates`, whose
+                # denominator `producible_weight` refuses to be zero.
+                raise MalformedRecord(
+                    f"EvidenceItem.{name} is not a finite number, so no ranking "
+                    "produced it")
         try:
             check(self.reliability_state, RELIABILITY_STATES, name="reliability_state")
         except ValueError as exc:

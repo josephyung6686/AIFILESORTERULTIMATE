@@ -1631,6 +1631,13 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
     #: parent -> the dimensions its ORDINARY children bind, which is what a file
     #: filed in that parent's General deliberately did not fill.
     levels_under: dict[str, list[str]] = {}
+    #: `104` §18.2 GAP 14's SECOND SENTENCE. Parent -> the nodes a file may
+    #: actually be placed in under it, which is `00`:112's *"classify members
+    #: WITHIN that branch"* read as a list of destinations rather than a list of
+    #: dimensions. In the same walk and for the same reason as the four maps
+    #: above: a sixth comprehension over the tree per file is the O(files x nodes)
+    #: shape `planning/58-SCALE-STRESS.md` §2 measured.
+    children_of: dict[str, list[str]] = {}
     for node in getattr(inputs.tree, "nodes"):
         dimension = getattr(node, "dimension", None)
         parent = getattr(node, "parent_node_id", None)
@@ -1642,6 +1649,12 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
             # A node nothing may be placed in is not an option, so it is neither
             # a General to offer nor a level anybody failed to fill.
             continue
+        # THE BRANCH'S OWN GENERAL IS ONE OF ITS LEVELS, deliberately. `00`:111's
+        # "approved scoped fallback under the meaningful parent" is where a member
+        # whose evidence settles no level belongs, and leaving it off the offer
+        # would make the judge choose between shelves when the honest answer is
+        # the branch's catch-all.
+        children_of.setdefault(parent, []).append(node.node_id)
         if getattr(node, "node_role", None) == SCOPED_GENERAL:
             # `setdefault`: a branch the person gave two catch-alls has one on
             # the menu, chosen by node id rather than by the order P10 emitted.
@@ -1746,7 +1759,7 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
             for node_id in conflict.suppressed_node_ids
         })
     if group_answer is not None and not contradicts_the_group:
-        # THE GROUP'S ANSWER IS THIS FILE'S ANSWER, and no second call is made.
+        # THE GROUP'S ANSWER IS THIS FILE'S BRANCH.
         # Checked against the index for the reason a model-chosen node is checked
         # three steps below: `legal_node_ids` is the one authority on what this
         # plan version contains, and P11 places nothing on a disagreement with it.
@@ -1759,6 +1772,47 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
                 "changed underneath the plan, and P11 places nothing on that"
             )
         chosen_node_id = group_answer.node_id
+        # **AND THEN WHICH SHELF INSIDE IT** (`104` §18.2 gap 14's second finding).
+        # `00`:112 is two sentences and only the first was built: *"First confirm
+        # the shared parent branch ... then CLASSIFY MEMBERS WITHIN THAT BRANCH:
+        # essay drafts go to Essays; checklists to Forms."* The group's answer was
+        # filed on every member verbatim, so a packet placed at a course put the
+        # essay, the transcript and the scan in one folder and never offered the
+        # levels the person's own tree holds under it.
+        #
+        # A SECOND QUESTION AND NOT THE SAME ONE TWICE. The group's call answered
+        # WHICH BRANCH, over the whole packet; this answers WHICH LEVEL, about this
+        # file, and its offer is the branch and the levels under it -- so no answer
+        # here can move the file out of what the group settled. The branch itself
+        # is on the offer as the fallback, which is the answer for a member whose
+        # evidence settles no level.
+        #
+        # A MEMBER WITH NO SUB-LEVEL OFFERED MAKES NO CALL, which is every member
+        # of a group placed on a leaf and is the ordinary case: there is nothing to
+        # choose between, and asking would be `00`:112's own inviting-an-invention.
+        # The per-file ledger is this file's own, because `_asked_between_steps`
+        # spends `inputs.call_dependencies.scan_budget` unchanged -- the group's
+        # `GROUP_BUDGET_SUFFIX` purse was `_the_groups_own_answer`'s and is not
+        # this call's.
+        inside = tuple(children_of.get(group_answer.node_id, ()))
+        if inside:
+            # The node alone here: this file's own `retrieval` and `graphs` are
+            # already what step 9 writes its record from, and they were built over
+            # the whole shortlist rather than over the branch's levels.
+            answered_inside = yield from _asked_between_steps(
+                conn, subject=subject, inputs=inputs, privacy=privacy,
+                retrieval=retrieval, evidence=evidence,
+                node_ids=(group_answer.node_id,) + inside,
+                # The group's answer is why this file is in this branch at all, so
+                # a level its own evidence did not reach is described by the
+                # membership that put it there.
+                group_ids_for=lambda _node_id: (group_answer.group_id,),
+                component_version=component_version, observed_at=observed_at)
+            # NO ANSWER LEAVES THE FILE AT THE BRANCH, and that is the coverage
+            # half. The group's call already said where this file goes; a
+            # refinement question nobody answered must not take that away.
+            if answered_inside is not None:
+                chosen_node_id = answered_inside[0]
     elif contradicts_the_group:
         # OFFERED, NOT FORCED (`00`:112's outlier, and gap 2's channel). The folder
         # §6.3 suppressed for this file goes back on the shortlist's TAIL, carrying
@@ -1850,6 +1904,9 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
                 # model is shown. They were built and read by nobody but the
                 # scorer and the decision record.
                 graphs=graphs,
+                # `00`:110's deterministic scores, from the assessment that
+                # produced the ranking above rather than re-derived beside it.
+                scores=_deterministic_scores(assessment),
             )
             if isinstance(result, Refusal):
                 # P7 denied the release, from inside `run_call`. That is §8.4's
@@ -2009,9 +2066,20 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
     #: and was placed singly: that file's home is its own evidence's, and saying
     #: the group supported it would be the post-hoc aggregation this gap closes,
     #: written the other way round.
+    #:
+    #: **AND A LEVEL INSIDE THE GROUP'S BRANCH IS STILL THE GROUP'S SUPPORT**
+    #: (`104` §18.2 gap 14's second finding). This read `chosen_node_id !=
+    #: group_answer.node_id`, which was right while the group's answer was filed
+    #: verbatim and is wrong the moment a member is classified WITHIN the branch:
+    #: `00`:112's essay in `PHYS1401/Essays` is there because its packet went to
+    #: `PHYS1401`, and a row that dropped `group_support` for being one level
+    #: deeper would say the group had nothing to do with it. The branch is the
+    #: group's answer; the level is this file's own, and both are true at once.
     group_support = (
         None if chosen_node_id is None or group_answer is None
-        or chosen_node_id != group_answer.node_id or contradicts_the_group
+        or contradicts_the_group
+        or (chosen_node_id != group_answer.node_id
+            and parent_of.get(chosen_node_id) != group_answer.node_id)
         else GroupSupport(group_id=group_answer.group_id,
                           membership=group_answer.membership))
     two = (assessment.two_condition if direct
@@ -2677,6 +2745,8 @@ _D_ITEM_KIND: dict[str, str] = {RESIDUAL_ROLE: RESIDUAL_AREA_ITEM}
 def _offered_items(conn, *, plan_version: str, node_ids, call_site: str,
                    own_folder_node_id: str | None,
                    ranked_below: Mapping[str, str] | None = None,
+                   fact_fields: frozenset[str] | None = None,
+                   scores: Mapping[str, tuple[float, float | None]] | None = None,
                    ) -> tuple[EvidenceItem, ...]:
     """`00`:105's destination profile for every node the model may answer with.
 
@@ -2720,6 +2790,7 @@ def _offered_items(conn, *, plan_version: str, node_ids, call_site: str,
     and the model may answer with it.
     """
     ranked_below = ranked_below or {}
+    scores = scores or {}
     entries = entries_for_plan(conn, plan_version=plan_version)
     by_id = {entry.node_id: entry for entry in entries}
     beside = sibling_counts(entries)
@@ -2739,14 +2810,68 @@ def _offered_items(conn, *, plan_version: str, node_ids, call_site: str,
         because = ranked_below.get(entry.node_id)
         if because:
             profile = f"{profile} | {because}"
+        score, margin = scores.get(entry.node_id, (None, None))
         items.append(EvidenceItem(
             evidence_ref=entry.node_id, kind=kind,
             location=profile,
             # A folder is not an excerpt of the file. It carries no span, it is
             # never in `released_evidence`, and P7 releases none of it.
             excerpt_span=None, reliability_state=DIRECT,
-            basis=P8_DIRECT_ANCHOR))
+            basis=P8_DIRECT_ANCHOR,
+            # `00`:110's MISSING FIELDS, and the read is the verbatim one
+            # `_candidate_levels` already makes: `expected_values` is the CHAIN
+            # this node sits under, field by field, as `materialise._project`
+            # wrote it and `index._entry` carried it over. What is missing is a
+            # field on that chain the SUBJECT states no fact for; a field it
+            # states with a DIFFERENT value is not missing but contradicted, and a
+            # conflict has its own key. Root-to-leaf, which is the order the chain
+            # is in and the order a person reads a path.
+            #
+            # P11 DERIVES NOTHING HERE. `_candidate_levels`' own paragraph is the
+            # argument -- "a node's chain of levels is already a field of the
+            # node" -- and the alternative, walking dimensions between this node
+            # and the ranked leaf, answers a different question: `_levels_not_
+            # filled` measures what a SHALLOW DECISION left unfilled, is empty for
+            # every candidate that is not an ancestor of the rules' deepest leaf,
+            # and cannot be computed here at all because `IndexEntry` carries no
+            # `dimension`.
+            #: `None` AND NOT AN EMPTY SET, because the two mean opposite
+            #: things: an empty set is a file that states no fact at all, whose
+            #: every level IS missing, and `None` is a caller that was not asked
+            #: -- the row does not describe the key, so nothing is said. Handing
+            #: the second in as the first filled the key on every dossier this
+            #: product sends.
+            missing_fields=() if fact_fields is None else tuple(
+                field for field, _value in entry.expected_values
+                if field not in fact_fields),
+            score=score, margin=margin))
     return tuple(items)
+
+
+def _deterministic_scores(assessment) -> dict:
+    """`00`:110's DETERMINISTIC SCORES, per candidate, off the assessment.
+
+    Rank reached the model as LIST ORDER alone: a shortlist whose leader doubled
+    the runner-up read identically to one whose two leaders were a hair apart, and
+    `00`:110 names the figures as part of the dossier rather than as something the
+    ordering implies.
+
+    **THE MARGIN IS THE LEADER'S AND NOBODY ELSE'S.** `two_condition.margin_over_
+    next` is the one margin this engine computes -- the best over the runner-up,
+    exactly once, by `_exact_margin` -- so putting a number on every candidate
+    would be a metric invented here. A candidate a step-6 rule set aside has no
+    `Scored` row at all and so no figure: "offered and never scored" is that rule's
+    own sentence, and `None` is what it means.
+    """
+    figures: dict = {
+        item.node_id: (item.support_score, None)
+        for item in assessment.scored
+    }
+    if assessment.scored:
+        leader = assessment.scored[0]
+        figures[leader.node_id] = (leader.support_score,
+                                   assessment.two_condition.margin_over_next)
+    return figures
 
 
 def _candidate_levels(conn, *, plan_version: str, node_ids) -> tuple:
@@ -2944,7 +3069,7 @@ def _judge_with_model_steps(conn, *, subject, inputs: PipelineInputs, retrieval,
                             set_aside: tuple[SetAside, ...] = (),
                             own_folder_node_id: str | None = None,
                             route_pair: object | None = None,
-                            graphs=None):
+                            graphs=None, scores=None):
     """§6.12 step 7, and step 8 with it. P11 assembles the REQUEST, never a check.
 
     **`104` §18.15: A GENERATOR, AND THE ONE `yield` IS THE SOCKET.** Every line
@@ -3182,10 +3307,29 @@ def _judge_with_model_steps(conn, *, subject, inputs: PipelineInputs, retrieval,
         # its ratified text says the key is empty at that site. R-77 amends C's
         # line 33 and nobody's else, so D's answer is the one it always gave.
         node_levels = ()
+    # `00`:110'S MISSING FIELDS AND DETERMINISTIC SCORES, UNDER THE ROW THAT
+    # DESCRIBES THEM -- the same mechanism and the same argument as `node_levels`
+    # above (R-77). `PromptDefinition.lists_candidate_scores` is the composition
+    # root's answer, set from the manifest row the way `ratified` is; under every
+    # row ratified so far it is false, the builder is handed nothing to fill the
+    # three slots with, and this call's dossier is byte-identical to the one built
+    # before this existed -- which is exactly what those rows tell the model about
+    # the keys an item has. `getattr` with the safe answer as its default, because
+    # a deployment may hand this pass a prompt object of its own and a caller that
+    # has said nothing about what its text describes gets the empty answer.
+    #
+    # THE FIELD SET IS THE SUBJECT'S OWN ACCEPTED FACTS, not the matched subset:
+    # "the file states no fact for this level" is a question about the file, and
+    # asking it of the facts that happened to match a node would call a level
+    # missing because the folder did not use it.
+    says_so = getattr(inputs.prompt, "lists_candidate_scores", False)
     profiles = _offered_items(
         conn, plan_version=inputs.plan_version, node_ids=offered,
         call_site=call_site, own_folder_node_id=own_folder_node_id,
-        ranked_below=ranked_below)
+        ranked_below=ranked_below,
+        fact_fields=(frozenset(fact.field for fact in evidence["facts"])
+                     if says_so else None),
+        scores=scores if says_so else None)
 
     # §8.6's two spend ceilings, put on the budget P8 reserves against.
     #
@@ -3666,7 +3810,8 @@ def _the_groups_own_answer(conn, *, accepted: AcceptedGroup, memberships,
         conn, subject=subject, inputs=inputs, retrieval=retrieval,
         evidence=evidence, call_site=C_PLACEMENT, observed_at=observed_at,
         ranked=tuple(item.node_id for item in assessment.scored),
-        set_aside=set_aside, own_folder_node_id=None, route_pair=route_pair)
+        set_aside=set_aside, own_folder_node_id=None, route_pair=route_pair,
+        scores=_deterministic_scores(assessment))
     if isinstance(result, (Refusal, CallRefused, PreCallAbstention, CallFailed,
                            ValidationUnavailable)):
         return None
@@ -3872,6 +4017,14 @@ def _shared_branch_of(tree) -> str | None:
     §6.9's worked example: *"If no shared branch exists, the system should not
     arbitrarily choose one university."* So absence is answered with None and the
     policy decides what happens next, rather than P11 producing a branch.
+
+    **`run_corpus` NO LONGER HANDS THIS TO `resolve_multi_home`** (`104` §18.2 gap
+    14's finding). Placing a two-homes file on the branch was the rules deciding a
+    placement `00`'s Amendments reserve for the judge, and the argument is `None`
+    there now. This stays P11's one reader of P10's `shared-material` role -- the
+    live seam tests drive it against P10's own bundle -- and it is what the owner's
+    open question needs if the answer is "offer the branch to the judge as a third
+    candidate".
     """
     for node in tree.nodes:
         if node.node_role == SHARED_MATERIAL and node.accepts_placement:
@@ -3887,6 +4040,16 @@ def _flat_two_condition(inputs: PipelineInputs) -> TwoCondition:
     and a §6.9 decision carry the thresholds they were judged under even though
     the judgement was P8's or the user's. `meets_margin` is vacuous because
     neither path compares against a next-best destination.
+
+    **AND IT STAYS FLAT NOW THAT §6.9's `place` IS THE JUDGE's** (`104` §18.2 gap
+    14's finding). `_two_homes_judged` runs `assess` over the two competing homes,
+    so a margin between them IS computed -- and it decided nothing. The model was
+    shown both and answered; recording its answer beside a support figure that did
+    not produce it would be the record claiming a measurement made the choice,
+    which is what `_user_chose`'s own paragraph refuses one line further down.
+    `requires_review` stays true for the reason it was always true here: two
+    packets claim this file, and that is a thing a person is owed sight of
+    whatever any score says.
     """
     return TwoCondition(
         support_score=0.0,
@@ -3926,15 +4089,188 @@ def _protected_material_is_never_a_question(node_ids) -> str:
     return ABSTAIN
 
 
+def _offered_exactly(retrieval: Retrieval, *, node_ids: tuple[str, ...],
+                     group_ids_for) -> Retrieval:
+    """These nodes as the whole shortlist, in the order they were named.
+
+    **NOT A STEP-6 RULE, AND IT DELETES NOTHING THE JUDGE WOULD OTHERWISE READ.**
+    Both callers are asking a question whose ANSWER SPACE somebody else already
+    settled -- §6.9's two competing homes, and the levels under the folder this
+    file's group was given -- so a folder from outside that space would be an
+    answer to a different question. Every node retrieval reached is still on the
+    record as retrieval's own stage; what narrows is the offer, and it narrows to
+    the shape of the question rather than to the rules' opinion of the evidence.
+
+    **A NODE RETRIEVAL DID NOT REACH IS ADDED, and that is the honest direction.**
+    `retrieve` suppresses a node this file's own values contradict (§6.3), so a
+    file leaning one way loses the other option -- and then the question could only
+    be put with one answer on it, which `Ask.__post_init__` already calls "a
+    placement wearing a question mark". The suppression is not lost: it stays a
+    `ConflictConsidered` on the same retrieval and `to_p8_conflicts` shows it to
+    the judge as the flag it must echo. The added candidate carries the GROUP IDS
+    that make the node an option at all, and no channel -- because this file's own
+    evidence did not reach it, and saying otherwise would be support invented here.
+    """
+    by_id = {candidate.node_id: candidate for candidate in retrieval.candidates}
+    return dataclasses.replace(
+        retrieval,
+        candidates=tuple(
+            by_id.get(node_id) or Candidate(
+                node_id=node_id, channels=(), matching_facts=(),
+                group_ids=tuple(group_ids_for(node_id)))
+            for node_id in node_ids),
+        set_aside=())
+
+
+def _asked_between_steps(conn, *, subject, inputs: PipelineInputs, privacy,
+                         retrieval: Retrieval, evidence,
+                         node_ids: tuple[str, ...], group_ids_for,
+                         component_version: str, observed_at: str):
+    """ONE site-C call whose offer is exactly `node_ids`. The node it chose, or `None`.
+
+    `00`'s Amendments -- *"every placement goes through the model"* -- read over
+    the two questions the rules used to answer by themselves: which of two packets
+    a shared file is primarily in (§6.9), and which level inside its group's branch
+    a member belongs on (`00`:112). Both are judgements about ONE FILE against a
+    small answer space, so both take the packet `00`:110 describes -- each node's
+    profile, the accepted group memberships, the node-local typed graph, §6.10's
+    arithmetic -- and the same site, text, vocabulary and ledger an ordinary file's
+    call takes.
+
+    `None` is every way this call does not produce an answer, and each caller has
+    its own honest fallback for it: no model path or unratified text; §8.4 refusing
+    this file's target, which is every protected file on either locality, so
+    nothing about one is ever assembled here; a refusal, an unbuilt call, a failed
+    call or an unjudgeable answer; and the judge's own "none", which is an
+    abstention about the CHOICE and not about the file.
+
+    **THE §8.4 GATE IS HERE AND NOT LEFT TO THE CALLER**, because this is the
+    function that assembles. A caller may ask `model_decides()` first to skip
+    preparing a retrieval nothing would use -- that is a caller declining work, not
+    a second answer to whether this file may be described to anything.
+
+    **THE ANSWER COMES BACK WITH THE EVIDENCE IT WAS REACHED ON**, as `(node_id,
+    retrieval, graphs)`. A caller that wrote a decision record from the node id
+    alone would record a placement with no matching facts, no graph anchors and no
+    conflicts considered -- a row saying this file's evidence said nothing, about a
+    file whose evidence is exactly what the judge was shown. §6.4 asks a decision to
+    state its actual basis, so the basis travels with the answer.
+    """
+    if not inputs.model_decides():
+        return None
+    # §8.4, BEFORE anything a model could see exists, and asked about the target
+    # THIS FILE would be sent to (`104` R-118, §17.13 ruling 3).
+    if not may_assemble_dossier(
+            privacy, target_locality=inputs.target_locality(subject.file_id)):
+        return None
+    offered = _offered_exactly(retrieval, node_ids=node_ids,
+                               group_ids_for=group_ids_for)
+    graphs = {
+        candidate.node_id: build_node_local_graph(
+            subject=subject, candidate=candidate,
+            entry=entry_for(conn, plan_version=inputs.plan_version,
+                            node_id=candidate.node_id),
+            related_files=evidence["related_files"], limits=inputs.limits,
+            entity_frequency=evidence["entity_frequency"],
+            generic_entity_frequency=evidence["generic_entity_frequency"],
+        )
+        for candidate in offered.candidates
+    }
+    offered = _with_the_graphs_own_channel(offered, graphs)
+    # §6.10's arithmetic over the offer, which RANKS it and decides nothing. The
+    # deciding is the judge's: neither caller reads `assessment.scored[0]` as an
+    # answer, and both fall to something that is not a placement when the judge
+    # gives none.
+    assessment = assess(offered, graphs, policy=inputs.policy,
+                        their_own_folder_node_ids=frozenset(),
+                        refinements=frozenset())
+    result = yield from _judged_or_refused_steps(
+        conn, subject=subject, inputs=inputs, retrieval=offered,
+        evidence=evidence, call_site=C_PLACEMENT, observed_at=observed_at,
+        ranked=tuple(item.node_id for item in assessment.scored) or node_ids,
+        set_aside=(), own_folder_node_id=None, graphs=graphs,
+        scores=_deterministic_scores(assessment))
+    if isinstance(result, (Refusal, CallRefused, PreCallAbstention, CallFailed,
+                           ValidationUnavailable)):
+        return None
+    verdict = _require_verdict(result, call_site=C_PLACEMENT)
+    outcome, _reason, _deferred = transcribe(verdict, assessment=assessment)
+    if outcome != PLACE:
+        return None
+    node_id = inputs.chosen_node_of(verdict)
+    if node_id not in legal_node_ids(conn, plan_version=inputs.plan_version):
+        raise ValueError(
+            f"{node_id!r} is not a legal destination of {inputs.plan_version!r}. "
+            "P8 already refuses an invented node; reaching here means the "
+            "resolver disagreed with the index, and P11 places no file on a "
+            "disagreement"
+        )
+    return node_id, offered, graphs
+
+
+def _two_homes_judged_steps(conn, *, subject, inputs: PipelineInputs,
+                            homes: tuple[str, ...], group_ids_by_home, privacy,
+                            evidence, component_version: str, observed_at: str):
+    """§6.9's question, put to the judge. The home it chose, or `None`.
+
+    `104` §18.2 gap 14's finding: `_multi_home_decision` wrote a `place` whose
+    `decided_by` was the RULES -- the tree's shared-material branch, read off the
+    shared-material policy -- on a file site C was never asked about. A file two
+    packets claim is the case a judge is most needed for, and which of them it is
+    primarily in is a judgement about the file rather than an arrangement of the
+    tree.
+
+    `None` leaves §6.9's own selector to choose between the person's question and
+    the abstention, exactly as it did before this call existed. An answer comes
+    back as `(node_id, retrieval, graphs)`, because `_multi_home_decision` writes a
+    record and a record states the basis it was reached on.
+    """
+    # Asked before the retrieval rather than only inside `_asked_between_steps`,
+    # so a deterministic-only run does not read the index for a call it cannot
+    # make. `_asked_between_steps` asks it again because it is the function that
+    # assembles, and that is where the answer has to be right.
+    if not inputs.model_decides():
+        return None
+    retrieval = retrieve(
+        conn, subject=subject, plan_version=inputs.plan_version,
+        limits=inputs.limits, facts=evidence["facts"],
+        group_ids=evidence["group_ids"],
+        curated_folder_labels=evidence["curated_folder_labels"],
+        semantic_neighbours=evidence["semantic_neighbours"],
+        canonical=inputs.canonical_value,
+        component_version=component_version, observed_at=observed_at,
+    )
+    if inputs.p2 is not None:
+        emit_retrieval_stage(conn, run_id=inputs.p2.run_id, retrieval=retrieval,
+                             version_tuple_ref=inputs.p2.version_tuple_ref,
+                             inputs=inputs.p2.upstream_stage_refs)
+    return (yield from _asked_between_steps(
+        conn, subject=subject, inputs=inputs, privacy=privacy,
+        retrieval=retrieval, evidence=evidence, node_ids=homes,
+        group_ids_for=lambda node_id: group_ids_by_home.get(node_id, ()),
+        component_version=component_version, observed_at=observed_at))
+
+
 def _multi_home_decision(conn, *, subject, inputs: PipelineInputs, outcome,
                          payload, privacy, automatic_move_permitted: bool,
-                         component_version: str,
-                         observed_at: str) -> PlacementDecision:
-    """§6.9's answer as one decision: a shared branch, a question, or an abstention.
+                         component_version: str, observed_at: str,
+                         retrieval=None, graphs=None) -> PlacementDecision:
+    """§6.9's answer as one decision: the judge's home, a question, or an abstention.
 
-    `payload` is the shared branch's node id for `place`, the competing ids for
-    `ask_user`, and `no_shared_branch` for `abstain` -- and it is NEVER one of the
-    competing packets, because `resolve_multi_home` has no branch that returns one.
+    `payload` is the node the JUDGE chose for `place`, the competing ids for
+    `ask_user`, and `no_shared_branch` for `abstain`.
+
+    **`104` §18.2 GAP 14's FINDING, AND THE SENTENCE ABOVE USED TO SAY THE
+    OPPOSITE.** It read "the shared branch's node id for `place` ... and it is
+    NEVER one of the competing packets, because `resolve_multi_home` has no branch
+    that returns one" -- which was true of the rule and is the defect. `00`'s
+    Amendments say "every placement goes through the model", and this seam wrote a
+    `place` whose `decided_by` was the RULES on a file site C was never asked
+    about. Two packets pulling one file is the case a judge is MOST needed for:
+    which of them the file primarily belongs to is a judgement about the file, and
+    the tree's shared-material branch is an arrangement chosen before anybody read
+    it. So a `place` here is now the judge's answer between the two homes
+    (`_two_homes_judged`), and the rules keep §6.9's other two answers.
     """
     two = _flat_two_condition(inputs)
     entry = (entry_for(conn, plan_version=inputs.plan_version, node_id=payload)
@@ -3960,8 +4296,25 @@ def _multi_home_decision(conn, *, subject, inputs: PipelineInputs, outcome,
         evidence_type=CONTEXT_SUPPORTED,
         confidence_class=(SHARED_MATERIAL_DECISION if entry is not None
                           else ABSTAIN_NO_SUPPORTED_DESTINATION),
-        matching_facts=(), group_support=None, graph_anchors=(),
-        conflicts_considered=(), alternatives=(), two_condition=two,
+        # **THE BASIS THE JUDGE WAS SHOWN, ON THE ROW THE PERSON READS.** These
+        # were three empty tuples, which was true while §6.9's `place` was a rule
+        # reading a policy and no evidence about this file was ever assembled. It
+        # is false now: `_two_homes_judged_steps` builds the packet `00`:110
+        # describes -- both homes' profiles, the memberships that pulled each way,
+        # the node-local typed graph -- and a record saying this file's evidence
+        # matched nothing, anchored nothing and ruled out nothing would be a
+        # decision that does not state its actual basis (§6.4). Absent on the
+        # question and the abstention, where no packet was built and the empty
+        # tuples are the true answer.
+        matching_facts=(() if retrieval is None or entry is None
+                        else _facts_of(retrieval, entry.node_id)),
+        group_support=None,
+        graph_anchors=(graphs[entry.node_id].anchors
+                       if entry is not None and graphs
+                       and entry.node_id in graphs else ()),
+        conflicts_considered=(() if retrieval is None
+                              else retrieval.conflicts),
+        alternatives=(), two_condition=two,
         abstention_reason=(NO_SHARED_BRANCH if outcome == ABSTAIN else None),
         deferred_stage=None, privacy=privacy,
         review_policy=review_policy_for(
@@ -3970,17 +4323,21 @@ def _multi_home_decision(conn, *, subject, inputs: PipelineInputs, outcome,
             destination_disposition=entry.disposition if entry else None,
             automatic_move_permitted=automatic_move_permitted),
         explanation=(
-            "This file has accepted membership in more than one packet. §6.9 "
-            "permits a shared branch, a question, or an abstention, and never an "
-            "arbitrary choice between the packets."),
+            "This file has accepted membership in more than one packet. The "
+            "model was shown both homes and asked which one this file is "
+            "primarily in; §6.9 permits a question or an abstention where it "
+            "does not answer, and never an arbitrary choice between the packets."),
         residual=None,
-        # `104` R-165. §6.9's `place` is `resolve_multi_home` returning the shared
-        # branch, which it reaches from the shared-material POLICY and the branch
-        # node id it was handed -- no model call, no per-file answer from the
-        # person, and it refuses outright to return one of the competing homes. So
-        # the rules decided. The other two outcomes chose no destination at all:
-        # `ask_user` IS the question, and `abstain` is `no_shared_branch`.
-        decided_by=DECIDED_BY_RULE if outcome == PLACE else None,
+        # `104` R-165, RE-ARGUED BY `104` §18.2 GAP 14's FINDING. It used to read
+        # `DECIDED_BY_RULE`, because §6.9's `place` WAS `resolve_multi_home`
+        # returning the shared branch off the shared-material policy -- no model
+        # call and no per-file answer from the person. Under `00`'s Amendments a
+        # rule may not place this file, so the only way this seam reaches `place`
+        # is `_two_homes_judged` coming back with a home, and that answer is the
+        # model's. The other two outcomes chose no destination at all: `ask_user`
+        # IS the question, and `abstain` is `no_shared_branch`, so neither names a
+        # decider.
+        decided_by=DECIDED_BY_MODEL if outcome == PLACE else None,
     )
     return _write(conn, decision, inputs=inputs,
                   reason="§6.9 resolved this file's multiple homes (§8.2)",
@@ -4466,10 +4823,56 @@ def run_corpus(conn: sqlite3.Connection, *, subjects, group_ids,
         privacy = privacy_state_for(conn, file_id=file_id,
                                     content_hash=subject.content_hash,
                                     plan_version=inputs.plan_version)
+        automatic_move_permitted = (
+            automatic_move_permitted_for(conn, file_id=file_id,
+                                         plan_version=inputs.plan_version)
+            if privacy.protected else False)
+        # `104` §18.2 GAP 14's FINDING, AND IT IS ASKED FIRST. `00`'s Amendments
+        # say "every placement goes through the model", and this branch used to
+        # place a file at the tree's shared-material branch off the shared-material
+        # POLICY -- a rule choosing a home for a file site C was never asked about.
+        # The two packets' own parents are the candidate set, because they are
+        # what §6.9's question is between.
+        #: WHICH PACKET PULLED THE FILE TO WHICH HOME, so a home retrieval did
+        #: not reach is described by the membership that makes it one.
+        pulled_by: dict[str, list[str]] = {}
+        for group_id in sorted(set(homes[file_id])):
+            pulled_by.setdefault(
+                by_group[group_id].shared_parent_node_id, []).append(group_id)
+        judged = drive_inline(_two_homes_judged_steps(
+            conn, subject=subject, inputs=inputs, homes=tuple(parents),
+            group_ids_by_home={node_id: tuple(ids)
+                               for node_id, ids in pulled_by.items()},
+            privacy=privacy, evidence=evidence_for(file_id),
+            component_version=component_version, observed_at=observed_at))
+        if judged is not None:
+            chosen, judged_over, judged_graphs = judged
+            decisions.append(_multi_home_decision(
+                conn, subject=subject, inputs=inputs, outcome=PLACE,
+                payload=chosen, privacy=privacy,
+                automatic_move_permitted=automatic_move_permitted,
+                retrieval=judged_over, graphs=judged_graphs,
+                component_version=component_version, observed_at=observed_at))
+            continue
         outcome, payload = resolve_multi_home(
             candidate_node_ids=tuple(parents),
             shared_material_policy=inputs.tree.shared_material_policy,
-            shared_branch_node_id=_shared_branch_of(inputs.tree),
+            # **NO SHARED BRANCH IS HANDED OVER ANY MORE, and that is `104` §18.2
+            # gap 14's finding rather than a fact about this tree.** The branch is
+            # the one destination `resolve_multi_home` may return by itself, and
+            # returning it IS a rule placing a file the amendment reserves for the
+            # judge -- so the argument is handed `None` and the function's other
+            # two answers are what remains: the person's question, or the
+            # abstention. `groups.resolve_multi_home` is untouched and still
+            # refuses to return one of the competitors; what it no longer gets is
+            # the one thing it could place on.
+            #
+            # **OWED TO THE OWNER** (in the agent's report): whether §6.9's shared
+            # branch should come back as a THIRD candidate on the judge's list --
+            # "Shared Application Materials" is a real answer to "which home", and
+            # the only reason it is not offered here is that the finding named the
+            # candidate set as the two homes.
+            shared_branch_node_id=None,
             # THE SECOND LOCK, and `_asking` already carries the argument for
             # why there is one: an `ask_user` decision is A REQUEST FOR
             # ATTENTION, a review surface lists what it holds, and `00`:201 says
