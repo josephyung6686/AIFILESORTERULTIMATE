@@ -725,7 +725,16 @@ def _residual_disposition(verdict: P8Verdict, raw: object | None = None) -> P8Ve
         elif leaving:
             disposition = LEAVE_IN_PLACE
         else:
-            disposition = RESIDUAL_DESTINATION
+            # `104` R-20's residual: the same line `_placement_disposition`
+            # already carries for gap 2, made here for gap 1's half. A residual
+            # destination a stronger fact contradicts is a flagged acceptance,
+            # and `residual_destination_review` is the word this site already
+            # uses for an accepted destination a person must see first -- the
+            # `accept_context_supported` arm below picks it for exactly that
+            # state. Without this line the flag would be in the payload and the
+            # destination would read as settled.
+            disposition = (RESIDUAL_DESTINATION_REVIEW
+                           if verdict.requires_review else RESIDUAL_DESTINATION)
     elif verdict.outcome == ACCEPT_CONTEXT_SUPPORTED:
         # The review survives -- `_rewrite` keeps `requires_review` True for this
         # outcome by construction -- and only the word "destination" goes.

@@ -32,6 +32,7 @@ from llm_harness.vocabulary import (
     ACTION_NOT_IN_CONTROLLED_SET,
     BELOW_SUPPORT_THRESHOLD,
     CHOOSE_RESIDUAL_DESTINATION,
+    CONTRADICTED_BY_STRONGER,
     CONFLICT_IGNORED,
     C_PLACEMENT,
     D_RESIDUAL,
@@ -292,6 +293,32 @@ def test_site_c_frozen_tree_and_sensitivity():
     assert _validate_c(sensitivity)[0][0].reasons == (SENSITIVITY_POLICY_VIOLATION,)
 
 
+def test_site_c_stronger_contradiction_is_a_flagged_placement():
+    """A placement a stronger fact contradicts is held for review, not vetoed.
+
+    `00`:42's amendment of 2026-09-05: the validator's hard checks are grounding
+    and schema, and "every other contradiction check, INCLUDING THE PRECEDENCE OF
+    RULE FACTS OVER MODEL FACTS, is shown to the model as a flag with its
+    evidence, and the model reconciles". Site A honoured it at
+    `fact_validation.py`'s check 4 (`104` §18.2 gap 1); this site reaches the
+    same check through `validation._validate_claim`, which went on rejecting
+    until `104` R-20's residual was closed.
+
+    `_placement_disposition` already read `requires_review` for `104` §18.2 gap
+    2, so this site needed only the flag: `valid_review_required` instead of
+    `move_plan_eligible` is what stops the file moving on an answer a person has
+    not seen, and it is site C's spelling of site A's `possible`.
+    """
+    by_name = {pair.name: pair for pair in SITE_C_OUTCOME_PAIRS}
+    verdict = _validate_c(
+        by_name["direct_accept"], contradicts=lambda *_a, **_k: True)[0][0]
+    assert verdict.outcome == ACCEPT_DIRECT
+    assert verdict.may_propose is True
+    assert verdict.requires_review is True
+    assert verdict.disposition == VALID_REVIEW_REQUIRED
+    assert CONTRADICTED_BY_STRONGER in verdict.reasons
+
+
 def test_site_c_outcome_pairs():
     by_name = {pair.name: pair for pair in SITE_C_OUTCOME_PAIRS}
     direct = _validate_c(by_name["direct_accept"])[0][0]
@@ -488,6 +515,32 @@ def test_site_d_choose_destination_rejects_missing_or_invalid_target():
         assert set(verdict.reasons) & {
             DESTINATION_NOT_IN_FROZEN_TREE, ACTION_NOT_IN_CONTROLLED_SET,
         }, (target, verdict.reasons)
+
+
+def test_site_d_stronger_contradiction_is_a_flagged_destination():
+    """A residual destination a stronger fact contradicts is held, not vetoed.
+
+    `00`:42's amendment of 2026-09-05: the validator's hard checks are grounding
+    and schema, and "every other contradiction check, INCLUDING THE PRECEDENCE OF
+    RULE FACTS OVER MODEL FACTS, is shown to the model as a flag with its
+    evidence, and the model reconciles". Site A honoured it at
+    `fact_validation.py`'s check 4 (`104` §18.2 gap 1); this site reaches the
+    same check through `validation._validate_claim`, which went on rejecting
+    until `104` R-20's residual was closed.
+
+    `residual_destination_review` is the word this site already uses for an
+    accepted destination a person must see first -- the `accept_context_supported`
+    arm beside it picks the same one -- so the flag needed no new vocabulary.
+    Without this the destination would read as settled while the flag sat in the
+    payload.
+    """
+    by_name = {pair.name: pair for pair in SITE_D_OUTCOME_PAIRS}
+    verdict = _validate_d(
+        by_name["direct_accept"], contradicts=lambda *_a, **_k: True)[0][0]
+    assert verdict.outcome == ACCEPT_DIRECT
+    assert verdict.requires_review is True
+    assert verdict.disposition == RESIDUAL_DESTINATION_REVIEW
+    assert CONTRADICTED_BY_STRONGER in verdict.reasons
 
 
 def test_site_d_outcome_pairs():
