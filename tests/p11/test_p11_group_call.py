@@ -52,6 +52,7 @@ from privacy.release import ModelTarget
 from p11.conftest import FIXED_CLOCK, NO_CANONICAL_RULE
 from placement import vocabulary as v
 from placement.config import CEILINGS
+from placement.pipeline import GROUP_BUDGET_SUFFIX
 from placement.index import build_destination_index
 from placement.records import MatchingFact
 
@@ -766,6 +767,11 @@ def test_gap_a_file_with_two_homes_is_asked_of_the_judge_with_both_homes_offered
     assert decision.destination.node_id == SECOND_HOME
     body = _stored(two_homes.conn, decision)
     assert body["decided_by"] == v.DECIDED_BY_MODEL
+    # AND THE ROW STATES THE BASIS THE JUDGE WAS SHOWN (§6.4). These three were
+    # empty tuples while §6.9's `place` was a rule reading a policy, and a record
+    # that still said so would tell the person this file's evidence ruled nothing
+    # out -- about a file whose own course fact suppressed one of the two homes.
+    assert [c["kind"] for c in body["conflicts_considered"]] == ["subject"]
 
 
 def test_gap_a_two_homes_file_the_judge_abstains_about_is_the_persons_question(
@@ -997,3 +1003,36 @@ def test_gap_a_member_the_judge_keeps_at_the_branch_stays_there_with_its_group(
     body = _stored(sub_levels.conn, decision)
     assert body["decided_by"] == v.DECIDED_BY_MODEL
     assert body["group_support"]["group_id"] == GROUP_ID
+
+
+def test_gap_a_members_own_question_spends_a_members_own_purse(sub_levels,
+                                                               monkeypatch):
+    """§8.6's ledgers, kept apart. `104` §18.31 is why this is a pin and not a
+    comment: the group's call was spending the per-file purse, and the factless
+    file site C exists for recorded `BUDGET_EXHAUSTED` on a six-file corpus.
+
+    The group's own question spends `GROUP_BUDGET_SUFFIX`'s ledger
+    (`_the_groups_own_answer` replaces `scan_id` on a LOCAL rebinding of `inputs`,
+    so `place_group`'s own `inputs` are untouched); a member's refinement question
+    is about one file and spends that file's own.
+
+    MEASURED: the group request's scan id carries the suffix and no member's does,
+    and every member still reaches a destination -- five calls under this fixture's
+    ceiling of eight, so nothing here is deferred for cost.
+    """
+    plan, calls = _place_in_branch(
+        sub_levels, monkeypatch=monkeypatch,
+        answers={f"{v.GROUP}:{GROUP_ID}": "n-course",
+                 sub_levels.ref["essay"]: ESSAYS,
+                 sub_levels.ref["transcript"]: FORMS})
+    purses = {request.subject_ref: kwargs["call_dependencies"].scan_budget.scan_id
+              for request, kwargs in calls}
+    group_purse = purses[f"{v.GROUP}:{GROUP_ID}"]
+    assert group_purse.endswith(GROUP_BUDGET_SUFFIX)
+    for subject_ref, purse in purses.items():
+        if subject_ref.startswith(f"{v.GROUP}:"):
+            continue
+        assert not purse.endswith(GROUP_BUDGET_SUFFIX), subject_ref
+        assert purse == group_purse[:-len(GROUP_BUDGET_SUFFIX)]
+    assert all(d.destination is not None for d in plan.member_decisions)
+    assert all(d.abstention_reason is None for d in plan.member_decisions)

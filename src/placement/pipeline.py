@@ -1796,7 +1796,10 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
         # this call's.
         inside = tuple(children_of.get(group_answer.node_id, ()))
         if inside:
-            refined = yield from _asked_between_steps(
+            # The node alone here: this file's own `retrieval` and `graphs` are
+            # already what step 9 writes its record from, and they were built over
+            # the whole shortlist rather than over the branch's levels.
+            answered_inside = yield from _asked_between_steps(
                 conn, subject=subject, inputs=inputs, privacy=privacy,
                 retrieval=retrieval, evidence=evidence,
                 node_ids=(group_answer.node_id,) + inside,
@@ -1808,8 +1811,8 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
             # NO ANSWER LEAVES THE FILE AT THE BRANCH, and that is the coverage
             # half. The group's call already said where this file goes; a
             # refinement question nobody answered must not take that away.
-            if refined is not None:
-                chosen_node_id = refined
+            if answered_inside is not None:
+                chosen_node_id = answered_inside[0]
     elif contradicts_the_group:
         # OFFERED, NOT FORCED (`00`:112's outlier, and gap 2's channel). The folder
         # §6.3 suppressed for this file goes back on the shortlist's TAIL, carrying
@@ -4145,6 +4148,13 @@ def _asked_between_steps(conn, *, subject, inputs: PipelineInputs, privacy,
     function that assembles. A caller may ask `model_decides()` first to skip
     preparing a retrieval nothing would use -- that is a caller declining work, not
     a second answer to whether this file may be described to anything.
+
+    **THE ANSWER COMES BACK WITH THE EVIDENCE IT WAS REACHED ON**, as `(node_id,
+    retrieval, graphs)`. A caller that wrote a decision record from the node id
+    alone would record a placement with no matching facts, no graph anchors and no
+    conflicts considered -- a row saying this file's evidence said nothing, about a
+    file whose evidence is exactly what the judge was shown. §6.4 asks a decision to
+    state its actual basis, so the basis travels with the answer.
     """
     if not inputs.model_decides():
         return None
@@ -4195,7 +4205,7 @@ def _asked_between_steps(conn, *, subject, inputs: PipelineInputs, privacy,
             "resolver disagreed with the index, and P11 places no file on a "
             "disagreement"
         )
-    return node_id
+    return node_id, offered, graphs
 
 
 def _two_homes_judged_steps(conn, *, subject, inputs: PipelineInputs,
@@ -4211,7 +4221,9 @@ def _two_homes_judged_steps(conn, *, subject, inputs: PipelineInputs,
     tree.
 
     `None` leaves §6.9's own selector to choose between the person's question and
-    the abstention, exactly as it did before this call existed.
+    the abstention, exactly as it did before this call existed. An answer comes
+    back as `(node_id, retrieval, graphs)`, because `_multi_home_decision` writes a
+    record and a record states the basis it was reached on.
     """
     # Asked before the retrieval rather than only inside `_asked_between_steps`,
     # so a deterministic-only run does not read the index for a call it cannot
@@ -4241,8 +4253,8 @@ def _two_homes_judged_steps(conn, *, subject, inputs: PipelineInputs,
 
 def _multi_home_decision(conn, *, subject, inputs: PipelineInputs, outcome,
                          payload, privacy, automatic_move_permitted: bool,
-                         component_version: str,
-                         observed_at: str) -> PlacementDecision:
+                         component_version: str, observed_at: str,
+                         retrieval=None, graphs=None) -> PlacementDecision:
     """§6.9's answer as one decision: the judge's home, a question, or an abstention.
 
     `payload` is the node the JUDGE chose for `place`, the competing ids for
@@ -4284,8 +4296,25 @@ def _multi_home_decision(conn, *, subject, inputs: PipelineInputs, outcome,
         evidence_type=CONTEXT_SUPPORTED,
         confidence_class=(SHARED_MATERIAL_DECISION if entry is not None
                           else ABSTAIN_NO_SUPPORTED_DESTINATION),
-        matching_facts=(), group_support=None, graph_anchors=(),
-        conflicts_considered=(), alternatives=(), two_condition=two,
+        # **THE BASIS THE JUDGE WAS SHOWN, ON THE ROW THE PERSON READS.** These
+        # were three empty tuples, which was true while §6.9's `place` was a rule
+        # reading a policy and no evidence about this file was ever assembled. It
+        # is false now: `_two_homes_judged_steps` builds the packet `00`:110
+        # describes -- both homes' profiles, the memberships that pulled each way,
+        # the node-local typed graph -- and a record saying this file's evidence
+        # matched nothing, anchored nothing and ruled out nothing would be a
+        # decision that does not state its actual basis (§6.4). Absent on the
+        # question and the abstention, where no packet was built and the empty
+        # tuples are the true answer.
+        matching_facts=(() if retrieval is None or entry is None
+                        else _facts_of(retrieval, entry.node_id)),
+        group_support=None,
+        graph_anchors=(graphs[entry.node_id].anchors
+                       if entry is not None and graphs
+                       and entry.node_id in graphs else ()),
+        conflicts_considered=(() if retrieval is None
+                              else retrieval.conflicts),
+        alternatives=(), two_condition=two,
         abstention_reason=(NO_SHARED_BRANCH if outcome == ABSTAIN else None),
         deferred_stage=None, privacy=privacy,
         review_policy=review_policy_for(
@@ -4817,10 +4846,12 @@ def run_corpus(conn: sqlite3.Connection, *, subjects, group_ids,
             privacy=privacy, evidence=evidence_for(file_id),
             component_version=component_version, observed_at=observed_at))
         if judged is not None:
+            chosen, judged_over, judged_graphs = judged
             decisions.append(_multi_home_decision(
                 conn, subject=subject, inputs=inputs, outcome=PLACE,
-                payload=judged, privacy=privacy,
+                payload=chosen, privacy=privacy,
                 automatic_move_permitted=automatic_move_permitted,
+                retrieval=judged_over, graphs=judged_graphs,
                 component_version=component_version, observed_at=observed_at))
             continue
         outcome, payload = resolve_multi_home(
