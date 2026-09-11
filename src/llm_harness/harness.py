@@ -1026,6 +1026,14 @@ def _settle(batch: "list[_Slot]", *, lane: CallLane, on_pause, on_resume=None):
                 results[id(slot)] = future.result()
     elif sends:
         lane.at_once = max(lane.at_once, 1)
+        if twins and on_resume is not None:
+            # `104` R-175's clock, and the one case §18.28 moves it. With no twin
+            # the asking subject IS the last one prepared, so the open turn is
+            # already its own and this branch says nothing; with a twin parked
+            # behind it the open turn belongs to the twin, and a call charged to
+            # the file that did not make it is the mis-billing R-175 exists to
+            # stop.
+            on_resume(sends[0].key)
         results[id(sends[0])] = sends[0].pending.perform()
 
     # THE TWINS, IN WALK ORDER, AFTER THE WINDOW THAT ANSWERED FOR THEM. An answer
