@@ -509,12 +509,51 @@ def row_104(runs: Sequence[RunObservation], labels: Mapping[str, Label],
             + (f"   -- {note}" if note else ""))
 
 
+def measured_under(settings: Mapping[str, object] | None) -> list[str]:
+    """The two settings a scorecard's numbers are only reproducible under.
+
+    **THE PROMPT ROWS** (`104` §12.12, §12.13). §12.7 records the corpus digest for
+    the same reason -- "a mismatch is a different corpus" -- and the questions are
+    the other half of what was measured: two runs of the same corpus under two
+    packet manifests are two experiments, and a scorecard that prints five numbers
+    without saying which prompts produced them cannot be compared with the one
+    printed yesterday. The digest is over the manifest's own bytes, so a row added
+    or repointed moves it, and so does a change to the text a row names.
+
+    **THE SEMANTIC SETTING** (`104` §12.7, R-46). The encoder classifies 13 more
+    files on the 199-file corpus and changes no protection either way, so a run
+    with the weights and a run without them differ by a number a reader will read
+    as a regression. It is a SETTING and is printed whether or not it was on: "off"
+    is the fact, and an absent line would leave the reader to assume.
+
+    Both are read from the note the run wrote beside its databases, never from the
+    checkout or the environment at scoring time -- `--score-only` re-scores months
+    later. A directory written before this note carried them says so rather than
+    going quiet, which is R-151's precedent: a reader must be able to tell an old
+    record from a run that had no setting.
+    """
+    settings = settings or {}
+    name = str(settings.get("prompt_library") or "")
+    digest = str(settings.get("prompt_library_sha256") or "")
+    if name and digest:
+        library = f"{name} {digest[:16]}"
+    else:
+        library = "not recorded by the run that wrote these databases"
+    weights = settings.get("semantic_model")
+    if weights is None:
+        semantic = "not recorded by the run that wrote these databases"
+    else:
+        semantic = str(weights) or "off"
+    return [f"prompt rows: {library}", f"semantic recognition: {semantic}"]
+
+
 def scorecard(runs: Sequence[RunObservation],
               scores: Sequence[SituationScore],
               labels: Mapping[str, Label],
               breaches: Sequence[ProtectedBreach],
               overmarks: Sequence[str],
-              *, corpus_files: int, seconds: float) -> str:
+              *, corpus_files: int, seconds: float,
+              settings: Mapping[str, object] | None = None) -> str:
     lines: list[str] = []
     w = lines.append
 
@@ -532,6 +571,8 @@ def scorecard(runs: Sequence[RunObservation],
     w(f"{corpus_files} files in the corpus, {len(labels)} labelled "
       f"({uncertain} uncertain, {protected} protected), "
       f"{len(runs)} situation runs, {seconds / 60:.1f} minutes")
+    for line in measured_under(settings):
+        w(line)
     w(_RULE)
     w("")
 

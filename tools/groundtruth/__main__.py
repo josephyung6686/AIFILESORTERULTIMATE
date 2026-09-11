@@ -37,7 +37,8 @@ from tools.groundtruth.protected_evidence import (                  # noqa: E402
     report as protected_evidence_report,
 )
 from tools.groundtruth.reuse import (                               # noqa: E402
-    ReuseRefused, read_seeded, refuse_unless_seedable, write_provenance,
+    ReuseRefused, read_provenance, read_seeded, refuse_unless_seedable,
+    write_provenance,
 )
 from tools.groundtruth.run import label_for, run_situations         # noqa: E402
 from tools.groundtruth.score import (                               # noqa: E402
@@ -244,8 +245,13 @@ def main(argv: list[str] | None = None) -> int:
         breaches.extend(protected_verdict(labels, run.files))
         overmarks.update(over_marked(labels, run.files))
 
+    # WHAT THE RUNS WERE MEASURED UNDER, read back from the note they wrote rather
+    # than from this process. `--score-only` re-scores a directory out of whatever
+    # checkout and shell happen to be current, so a digest or a setting read here
+    # would describe the scoring and not the runs.
     card = scorecard(runs, scores, labels, breaches, sorted(overmarks),
-                     corpus_files=corpus_files, seconds=time.monotonic() - started)
+                     corpus_files=corpus_files, seconds=time.monotonic() - started,
+                     settings=read_provenance(args.out))
     # Two measurements that answer questions the scorecard cannot: whether the
     # situation changes anything the product concludes, and whether the detector
     # was starved or lacks the word. Appended rather than folded in, because
