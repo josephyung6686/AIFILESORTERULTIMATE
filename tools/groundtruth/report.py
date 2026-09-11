@@ -509,8 +509,31 @@ def row_104(runs: Sequence[RunObservation], labels: Mapping[str, Label],
             + (f"   -- {note}" if note else ""))
 
 
+#: `104` SF-3, on the scorecard's own header. The harness accepts the groups and
+#: the plan it scores (`_one_run.main` passes `--accept-groups`), and a reader who
+#: cannot tell that from a reviewed acceptance will read every placement number as
+#: a claim about the product's judgement of a group when it is a claim about where
+#: the files went once the group was granted.
+#:
+#: **THE SECOND CLAUSE IS A GAP, NOT A DETAIL.** `grouping.vocabulary.DECIDED_BY`
+#: has three members -- `user`, `rules`, `validator` -- and none of them is a
+#: measuring harness. The gesture goes through the path a person's does, so the row
+#: it writes says `user`, which is the nearest true thing available and is not true:
+#: no person reviewed these groups. A closed vocabulary gains a member on the
+#: owner's word and on nothing else (`81` §14.1), so the member is OWED and this
+#: sentence is what stands in for it until it is ratified. The `user_id` on the
+#: event is `groundtruth`, which is the one place the record does say who acted.
+#: `tests/tools/test_groundtruth_acceptance_is_the_scoreboards.py` fails strictly
+#: on the day the member arrives.
+ACCEPTANCE_NOTE: tuple[str, ...] = (
+    "acceptance: groups and plan accepted by the scoreboard, not by a person",
+    "            (--accept-groups; the rows say decided_by=user because "
+    "DECIDED_BY has no word for a harness)",
+)
+
+
 def measured_under(settings: Mapping[str, object] | None) -> list[str]:
-    """The two settings a scorecard's numbers are only reproducible under.
+    """The settings a scorecard's numbers are only reproducible under.
 
     **THE PROMPT ROWS** (`104` §12.12, §12.13). §12.7 records the corpus digest for
     the same reason -- "a mismatch is a different corpus" -- and the questions are
@@ -531,6 +554,15 @@ def measured_under(settings: Mapping[str, object] | None) -> list[str]:
     later. A directory written before this note carried them says so rather than
     going quiet, which is R-151's precedent: a reader must be able to tell an old
     record from a run that had no setting.
+
+    **AND WHO ACCEPTED** (`104` SF-3). Not read from the note, because it is not a
+    setting of the run being scored -- it is a fact about this harness, true of
+    every run it has ever made and every run it can make: a scoreboard has nobody
+    at the screen, so if it is to score placement at all it must accept the groups
+    itself. `ACCEPTANCE_NOTE` carries the sentence and the vocabulary member it is
+    standing in for. It is printed unconditionally for `semantic_model`'s reason:
+    an absent line leaves the reader to assume, and the thing they would assume
+    here is that somebody looked.
     """
     settings = settings or {}
     name = str(settings.get("prompt_library") or "")
@@ -544,7 +576,8 @@ def measured_under(settings: Mapping[str, object] | None) -> list[str]:
         semantic = "not recorded by the run that wrote these databases"
     else:
         semantic = str(weights) or "off"
-    return [f"prompt rows: {library}", f"semantic recognition: {semantic}"]
+    return [f"prompt rows: {library}", f"semantic recognition: {semantic}",
+            *ACCEPTANCE_NOTE]
 
 
 def scorecard(runs: Sequence[RunObservation],

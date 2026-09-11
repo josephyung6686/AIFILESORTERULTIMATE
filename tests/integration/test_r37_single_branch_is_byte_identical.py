@@ -54,6 +54,28 @@ are re-read), and the diff was read before it was taken.** Twenty-one
 them; sorted and compared with the version and the cache keys masked, every
 table is identical to its predecessor. Nothing this corpus concludes changed.
 
+**Recaptured on 11 Sep 2026 for `104` SF-3, and the diff was read before it was
+taken.** SF-3 makes a group a DRAFT until a person's gesture or a ratified site B
+decides it, so the run this fixture captures now types `--accept-groups`. That is
+not a way around the change; it is the change. Without the flag the run designs no
+tree and places no file -- correctly -- and the fixture would have captured four
+lines of proposal screen and pinned nothing R-37 is about. The flag is the gesture
+a person makes and the one the scoreboard makes (`tools/groundtruth/_one_run.py`),
+so what is pinned here is the shape a decided run has.
+
+Structurally the recapture differs from its predecessor in EXACTLY ONE FIELD OF ONE
+ROW: `groups.proposed_basis` on the merged group gains its last clause, "so it is a
+draft until somebody decides". The screen is 151 lines before and after with no
+line changed; thirteen of the fourteen captured tables are identical row for row,
+`placement_decisions` and `placement_group_plans` among them. **Nothing vanished
+from this fixture, and that is the fact worth recording:** the acceptance is now
+somebody's act rather than the run's assumption, and once it is made the plan is
+the plan it always was. The rows that record WHO made it -- `group_acceptance`,
+`review_actions`, `review_presentations` -- are not in this fixture's table set,
+which is `test_two_runs_of_one_folder_agree`'s to widen and not this pin's;
+`tests/integration/test_sf3_a_group_is_a_draft_until_decided.py` asserts them
+directly.
+
 The corpus is `test_local_model_fact_pass._corpus`'s six files: a syllabus, a
 lecture, a homework, a problem set, an application essay and a passport scan. The
 anchors the work-type rule finds on it are all academic's, so it is one branch.
@@ -131,7 +153,16 @@ def run_and_normalise(root: Path) -> dict:
     database = root / "holder" / "plan.sqlite"
     out = io.StringIO()
     code = cli.main([str(corpus), "--situation", SITUATION, "--label", LABEL,
-                     "--user", "t", "--database", str(database)], out=out)
+                     "--user", "t", "--database", str(database),
+                     # `104` SF-3, and the flag is what keeps this fixture a pin on
+                     # the single-branch SCREEN rather than on the proposal screen.
+                     # A group is a draft until somebody accepts it, and a run that
+                     # accepts nothing designs no tree and places no file -- so
+                     # without this the fixture would capture four lines of
+                     # proposal and pin nothing R-37 is about. This is the shape the
+                     # scoreboard captures for the same reason: the gesture is made
+                     # explicitly, by the harness, through the flag a person types.
+                     "--accept-groups"], out=out)
     assert code == 0, out.getvalue()
     return {"screen": _screen(out.getvalue(), corpus, database),
             "tables": _tables(database, root)}

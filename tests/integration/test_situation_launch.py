@@ -141,6 +141,7 @@ def test_a_situation_whose_name_is_not_its_domain_still_reaches_a_report(tmp_pat
     code = cli.main([str(_corpus(tmp_path)),
                      "--situation", "applications.graduate-professional",
                      "--label", "Applications", "--user", "jy",
+                     "--accept-groups",
                      "--database", str(database)], out=out)
 
     assert code == 0, out.getvalue()
@@ -167,11 +168,13 @@ def test_a_second_situation_in_the_same_database_still_gets_its_files(tmp_path):
     first = io.StringIO()
     assert cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
+                     "--accept-groups",
                      "--database", str(database)], out=first) == 0, first.getvalue()
 
     second = io.StringIO()
     code = cli.main([str(corpus), "--situation", "finance.tax-filings",
                      "--label", "Taxes", "--user", "jy",
+                     "--accept-groups",
                      "--database", str(database)], out=second)
     assert code == 0, second.getvalue()
 

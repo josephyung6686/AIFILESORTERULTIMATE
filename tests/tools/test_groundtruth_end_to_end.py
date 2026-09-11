@@ -34,7 +34,7 @@ import pytest
 
 from tools.groundtruth.labels import load_labels
 from tools.groundtruth.measure import observe_run
-from tools.groundtruth.report import measured_under
+from tools.groundtruth.report import ACCEPTANCE_NOTE, measured_under
 from tools.groundtruth.run import label_for, run_situations
 from tools.groundtruth.score import (
     PROTECTED_BREACH_KINDS,
@@ -229,9 +229,16 @@ def test_a_directory_written_before_the_note_carried_them_says_so():
     assert lines == ["prompt rows: not recorded by the run that wrote these "
                      "databases",
                      "semantic recognition: not recorded by the run that wrote "
-                     "these databases"]
+                     "these databases",
+                     # `104` SF-3's line is NOT read from the note and is never
+                     # "not recorded": it is a fact about this harness rather than
+                     # about the run being scored, true of every directory it has
+                     # ever written, so a card scoring an old one still says who
+                     # accepted the groups those numbers rest on.
+                     *ACCEPTANCE_NOTE]
     assert measured_under({"prompt_library": "drafts.json",
                            "prompt_library_sha256": "0" * 64,
                            "semantic_model": "/weights/encoder"}) == [
         f"prompt rows: drafts.json {'0' * 16}",
-        "semantic recognition: /weights/encoder"]
+        "semantic recognition: /weights/encoder",
+        *ACCEPTANCE_NOTE]

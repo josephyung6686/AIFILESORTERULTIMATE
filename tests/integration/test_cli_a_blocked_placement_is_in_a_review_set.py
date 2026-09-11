@@ -101,6 +101,7 @@ def _crossing_run(root: Path, database: Path, *extra):
     downloads, desktop = _crossing_corpus(root)
     code, printed = _run([str(downloads), "--situation", SITUATION,
                           "--label", LABEL, "--user", "jy",
+                          "--accept-groups",
                           "--also-read", str(desktop),
                           "--database", str(database),
                           "--residual", AREA, *extra])
@@ -111,6 +112,7 @@ def _crossing_run(root: Path, database: Path, *extra):
 def _unclassified_run(tmp_path: Path, database: Path, *extra):
     code, printed = _run([str(_unclassified_corpus(tmp_path)),
                           "--situation", SITUATION, "--label", LABEL,
+                          "--accept-groups",
                           "--user", "jy", "--database", str(database),
                           "--residual", AREA, *extra])
     assert code == 0, printed

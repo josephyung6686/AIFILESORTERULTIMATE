@@ -75,6 +75,7 @@ def _run(tmp_path: Path, database: Path) -> str:
     out = io.StringIO()
     code = cli.main([str(_corpus(tmp_path)), "--situation", SITUATION,
                      "--label", LABEL, "--user", "jy",
+                     "--accept-groups",
                      "--database", str(database)], out=out)
     printed = out.getvalue()
     assert code == 0, printed

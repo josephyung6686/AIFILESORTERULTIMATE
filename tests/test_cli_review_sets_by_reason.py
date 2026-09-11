@@ -37,7 +37,11 @@ from placement import vocabulary as pv  # noqa: E402
 from placement.store import decisions_for_plan  # noqa: E402
 
 AREA = "Review Later"
-ARGV = ["--situation", "academic.coursework", "--label", "Papers", "--user", "jy"]
+#: `104` SF-3: `--accept-groups` is the person's accept, and a review set is
+#: something a PLAN has -- a run that accepts nothing designs no tree, places no
+#: file and surfaces no set, so every test in this file is about a decided run.
+ARGV = ["--situation", "academic.coursework", "--label", "Papers", "--user", "jy",
+        "--accept-groups"]
 
 
 def _three_reason_corpus(tmp_path):

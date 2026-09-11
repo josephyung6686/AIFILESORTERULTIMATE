@@ -177,6 +177,14 @@ def corpus(tmp_path_factory) -> Path:
 def _run(corpus: Path, database: Path) -> None:
     code = cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
+                     # `104` SF-3, and this one is load-bearing for what the file
+                     # PROVES rather than for whether it passes. A group is a draft
+                     # until somebody accepts it, so a run without this designs no
+                     # tree and places no file -- and two such runs would still
+                     # agree, on two proposal screens, while pinning none of the
+                     # derived tables this file exists to compare. It passes either
+                     # way; only one way is a test.
+                     "--accept-groups",
                      "--database", str(database)], out=io.StringIO())
     assert code == 0, f"the run over {corpus} exited {code}"
 

@@ -60,7 +60,8 @@ def test_an_ordinary_run_writes_no_bundle_rows(tmp_path):
     corpus = _corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     cli.main(["--situation", "academic.coursework", "--label", "Coursework",
-              "--user", "jy", "--database", str(database), str(corpus)],
+              "--user", "jy", "--database", str(database),
+              "--accept-groups", str(corpus)],
              out=io.StringIO())
 
     counts = _counts(database)
@@ -80,7 +81,7 @@ def test_recording_still_builds_the_whole_bundle(tmp_path):
     corpus = _corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     cli.main(["--situation", "academic.coursework", "--label", "Coursework",
-              "--user", "jy", "--database", str(database),
+              "--user", "jy", "--database", str(database), "--accept-groups",
               "--record", "before-upgrade", str(corpus)], out=io.StringIO())
 
     counts = _counts(database)
@@ -103,8 +104,10 @@ def test_the_ordinary_run_still_extracts_everything_it_did_before(tmp_path):
     plain, recorded = tmp_path / "plain.sqlite", tmp_path / "rec.sqlite"
     argv = ["--situation", "academic.coursework", "--label", "Coursework",
             "--user", "jy", str(corpus)]
-    cli.main([*argv[:-1], "--database", str(plain), argv[-1]], out=io.StringIO())
-    cli.main([*argv[:-1], "--database", str(recorded), "--record", "r",
+    cli.main([*argv[:-1], "--database", str(plain),
+    "--accept-groups", argv[-1]], out=io.StringIO())
+    cli.main([*argv[:-1], "--database", str(recorded),
+    "--accept-groups", "--record", "r",
               argv[-1]], out=io.StringIO())
 
     a, b = _counts(plain), _counts(recorded)
@@ -131,7 +134,8 @@ def test_the_audit_manifest_is_written_even_on_an_ordinary_run(tmp_path):
     corpus = _corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     cli.main(["--situation", "academic.coursework", "--label", "Coursework",
-              "--user", "jy", "--database", str(database), str(corpus)],
+              "--user", "jy", "--database", str(database),
+              "--accept-groups", str(corpus)],
              out=io.StringIO())
 
     conn = sqlite3.connect(database)

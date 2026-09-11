@@ -30,6 +30,18 @@ from facts.unresolved import (  # noqa: E402
 )
 
 
+#: `104` SF-3. A group is a DRAFT until somebody decides it, so a run that makes no
+#: gesture designs no tree and places no file -- it prints the proposal and stops.
+#: Every test below that is about a TREE or a PLACEMENT therefore types the accept,
+#: exactly as a person does and as `tools/groundtruth/_one_run.py` does. Spelled
+#: once so a reader finds one reason rather than twenty-five copies of it, and so a
+#: test that deliberately makes NO gesture is visible by not having it.
+#:
+#: `tests/integration/test_sf3_a_group_is_a_draft_until_decided.py` is where the
+#: undecided run is pinned; nothing here is trying to get around it.
+ACCEPTS_THE_PROPOSAL: tuple[str, ...] = ("--accept-groups",)
+
+
 def _run(argv):
     out = io.StringIO()
     code = cli.main(argv, out=out)
@@ -400,7 +412,7 @@ def test_the_show_protected_command_the_report_prints_actually_shows_them(tmp_pa
     """
     corpus = _mixed_sensitivity_corpus(tmp_path)
     argv = [str(corpus), "--situation", "academic.coursework", "--label",
-            "Papers", "--user", "jy", "--database", str(tmp_path / "plan.sqlite")]
+            "Papers", "--user", "jy", "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL]
 
     first = io.StringIO()
     assert cli.main(argv, out=first) == 0
@@ -973,7 +985,7 @@ def test_an_adopted_folder_enters_as_the_persons_folder_not_as_a_proposal(tmp_pa
     database = tmp_path / "plan.sqlite"
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
-              "--database", str(database)], out=io.StringIO())
+              "--database", str(database), *ACCEPTS_THE_PROPOSAL], out=io.StringIO())
 
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
@@ -1033,7 +1045,7 @@ def test_a_file_is_not_offered_a_move_into_a_duplicate_of_its_own_folder(tmp_pat
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
-              "--database", str(database)], out=out)
+              "--database", str(database), *ACCEPTS_THE_PROPOSAL], out=out)
 
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
@@ -1077,7 +1089,7 @@ def test_a_file_staying_in_its_own_folder_is_not_described_as_a_move(tmp_path):
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
-              "--database", str(database)], out=out)
+              "--database", str(database), *ACCEPTS_THE_PROPOSAL], out=out)
     printed = " ".join(out.getvalue().split())
 
     assert "would put it in the one it proposes" not in printed, printed
@@ -1099,8 +1111,16 @@ def test_the_group_record_does_not_claim_a_person_chose_its_file_set(tmp_path):
     'user'` and "the user confirmed these files are 'Coursework'" makes a record
     that a later part, a replay, or P13 will read as a human judgement.
 
-    `DECIDED_BY` and `CREATED_BY` already carry `rules`, which is what actually
-    decided, so the honest value was in the vocabulary at every one of these sites.
+    `CREATED_BY` already carries `rules`, which is what actually assembled the file
+    set, so the honest value was in the vocabulary at every one of these sites.
+
+    **`104` SF-3 split the two claims apart, and only one of them was ever this
+    test's.** The file set is still nobody's judgement and the group row still says
+    so. The ACCEPTANCE is a different sentence and it is now a person's: this run
+    types `--accept-groups`, so `decided_by=user` is the true value rather than the
+    overclaim, and the assertion at the bottom is inverted deliberately. A run that
+    types nothing records no acceptance at all, which
+    `tests/integration/test_sf3_a_group_is_a_draft_until_decided.py` pins.
     """
     import sqlite3
 
@@ -1111,7 +1131,7 @@ def test_the_group_record_does_not_claim_a_person_chose_its_file_set(tmp_path):
     database = tmp_path / "plan.sqlite"
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
-              "--database", str(database)], out=io.StringIO())
+              "--database", str(database), *ACCEPTS_THE_PROPOSAL], out=io.StringIO())
 
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
@@ -1136,10 +1156,21 @@ def test_the_group_record_does_not_claim_a_person_chose_its_file_set(tmp_path):
             f"the basis does not admit that nobody saw the file set: {basis!r}")
         assert "the user named and categorised" not in (
             group["supersede_reason"] or ""), group["supersede_reason"]
-    assert accept, "no acceptance was recorded at all"
+    # `104` SF-3 INVERTED THE SECOND HALF OF THIS TEST, and the inversion is the
+    # fix. It used to read `assert row["decided_by"] != "user"` because nobody was
+    # asked -- the rules wrote `accepted`/`RULES` on every run and the only honest
+    # thing left to check was that the row did not claim otherwise. A person IS
+    # asked now: this run typed `--accept-groups`, so `user` is the true value and
+    # anything else would be the overclaim running the other way.
+    #
+    # The claim about the FILE SET is untouched and is checked above, on the group
+    # row, where it belongs: the person accepted the group the rules assembled;
+    # they did not choose which files went into it, and `proposed_basis` still says
+    # so in its own words.
+    assert accept, "the person's gesture recorded no acceptance at all"
     for row in accept:
-        assert row["decided_by"] != "user", (
-            "the acceptance says a person decided it; nobody was asked")
+        assert row["decided_by"] == "user", (
+            "the person typed the accept and the row does not say they decided it")
 
 
 def test_the_label_is_still_recorded_as_the_persons_because_it_is(tmp_path):
@@ -1158,7 +1189,7 @@ def test_the_label_is_still_recorded_as_the_persons_because_it_is(tmp_path):
     database = tmp_path / "plan.sqlite"
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
-              "--database", str(database)], out=io.StringIO())
+              "--database", str(database), *ACCEPTS_THE_PROPOSAL], out=io.StringIO())
 
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
@@ -1220,7 +1251,7 @@ def test_the_frozen_tree_says_who_decided_how_deep_each_branch_goes(tmp_path):
     database = tmp_path / "plan.sqlite"
     code, printed = _run([str(corpus), "--situation", "academic.coursework",
                           "--label", "Coursework", "--user", "jy",
-                          "--database", str(database)])
+                          "--database", str(database), *ACCEPTS_THE_PROPOSAL])
     assert code == 0, printed
 
     conn = sqlite3.connect(database)
@@ -1387,7 +1418,7 @@ def test_the_residual_home_says_who_keeps_it_flat(tmp_path):
     code, printed = _run([str(corpus), "--situation", "academic.coursework",
                           "--label", "Coursework", "--user", "jy",
                           "--residual", "Review Later",
-                          "--database", str(database)])
+                          "--database", str(database), *ACCEPTS_THE_PROPOSAL])
     assert code == 0, printed
 
     conn = sqlite3.connect(database)
@@ -1463,7 +1494,7 @@ def test_the_tree_record_does_not_claim_a_person_saw_a_canvas(tmp_path):
     database = tmp_path / "plan.sqlite"
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
-              "--database", str(database)], out=io.StringIO())
+              "--database", str(database), *ACCEPTS_THE_PROPOSAL], out=io.StringIO())
 
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
@@ -1544,7 +1575,7 @@ def test_a_passport_number_never_becomes_a_folder_name(tmp_path):
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Matters", "--user", "jy",
-              "--database", str(database)], out=out)
+              "--database", str(database), *ACCEPTS_THE_PROPOSAL], out=out)
     printed = out.getvalue()
 
     conn = sqlite3.connect(database)
@@ -1599,7 +1630,7 @@ def test_a_value_shared_with_ordinary_files_is_still_allowed_to_name_a_folder(
 
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Matters", "--user", "jy",
-              "--database", str(database)], out=io.StringIO())
+              "--database", str(database), *ACCEPTS_THE_PROPOSAL], out=io.StringIO())
 
     conn = sqlite3.connect(database)
     labels = {r[0] for r in conn.execute("SELECT display_label FROM tree_nodes")}
@@ -1662,7 +1693,7 @@ def test_the_run_asks_a_question_when_a_decision_is_actually_blocked(tmp_path):
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
-              "--database", str(tmp_path / "plan.sqlite")], out=out)
+              "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL], out=out)
     printed = out.getvalue()
 
     assert "BUSIB4300" in printed
@@ -1694,7 +1725,7 @@ def test_a_run_with_nothing_blocked_asks_nothing(tmp_path):
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
-              "--database", str(tmp_path / "plan.sqlite")], out=out)
+              "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL], out=out)
 
     assert "Questions only you can answer" not in out.getvalue(), out.getvalue()
 
@@ -1711,7 +1742,7 @@ def test_an_answer_is_remembered_and_changes_the_next_run(tmp_path):
     corpus = _ambiguous_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     argv = [str(corpus), "--situation", "academic.coursework",
-            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+            "--label", "Coursework", "--user", "jy", "--database", str(database), *ACCEPTS_THE_PROPOSAL]
 
     first = io.StringIO()
     cli.main(argv, out=first)
@@ -1760,7 +1791,7 @@ def test_skipping_is_an_answer_and_the_question_does_not_come_back(tmp_path):
     corpus = _ambiguous_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     argv = [str(corpus), "--situation", "academic.coursework",
-            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+            "--label", "Coursework", "--user", "jy", "--database", str(database), *ACCEPTS_THE_PROPOSAL]
 
     cli.main(argv, out=io.StringIO())
     after = io.StringIO()
@@ -1856,7 +1887,7 @@ def test_the_tree_shows_which_folders_are_already_yours(tmp_path):
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
-              "--database", str(tmp_path / "plan.sqlite")], out=out)
+              "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL], out=out)
     printed = out.getvalue()
 
     assert "yours already" in printed, printed
@@ -1934,7 +1965,7 @@ def test_the_run_asks_how_the_branch_should_be_organised(tmp_path):
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
-              "--database", str(tmp_path / "plan.sqlite")], out=out)
+              "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL], out=out)
     printed = " ".join(out.getvalue().split())
 
     assert "How should Coursework be organised?" in printed, printed
@@ -1956,7 +1987,7 @@ def test_answering_it_changes_the_tree_on_the_same_run(tmp_path):
     database = tmp_path / "plan.sqlite"
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
-              "--database", str(database)], out=io.StringIO())
+              "--database", str(database), *ACCEPTS_THE_PROPOSAL], out=io.StringIO())
 
     after = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
@@ -1986,7 +2017,7 @@ def test_an_unanswered_question_leaves_the_tree_exactly_as_it_was(tmp_path):
     asked = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
-              "--database", str(tmp_path / "a.sqlite")], out=asked)
+              "--database", str(tmp_path / "a.sqlite"), *ACCEPTS_THE_PROPOSAL], out=asked)
 
     folders = asked.getvalue().split(
         "Folders in this plan:", 1)[1].split("Files:", 1)[0]
@@ -2000,7 +2031,7 @@ def test_a_skipped_nesting_offer_does_not_come_back_either(tmp_path):
     corpus = _two_shape_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     argv = [str(corpus), "--situation", "academic.coursework",
-            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+            "--label", "Coursework", "--user", "jy", "--database", str(database), *ACCEPTS_THE_PROPOSAL]
 
     cli.main(argv, out=io.StringIO())
     after = io.StringIO()
@@ -2024,7 +2055,7 @@ def test_a_person_can_change_their_mind(tmp_path):
     corpus = _two_shape_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     argv = [str(corpus), "--situation", "academic.coursework",
-            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+            "--label", "Coursework", "--user", "jy", "--database", str(database), *ACCEPTS_THE_PROPOSAL]
 
     cli.main(argv, out=io.StringIO())
     kept = io.StringIO()
@@ -2070,7 +2101,7 @@ def test_a_protected_files_own_words_are_never_printed_back_to_the_person(tmp_pa
 
     argv = [str(corpus), "--situation", "academic.coursework", "--label",
             "Coursework", "--user", "jy",
-            "--database", str(tmp_path / "plan.sqlite")]
+            "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL]
     out = io.StringIO()
     cli.main(argv, out=out)
     report = out.getvalue()
@@ -2109,9 +2140,9 @@ def test_groups_of_different_categories_get_different_top_level_branches(tmp_pat
     would close the task and fix nothing. Measured on this corpus: `Coursework/`
     already holds `CV20261234`, `PHYS1401` and `Q3 2025` as three branches. The
     vertical pass rebuilds them from the subject dimension, exactly as
-    `review_and_accept`'s docstring says.
+    `draft_for_review`'s docstring says.
 
-    The defect is one level up. `review_and_accept` merges every group P9 produced
+    The defect is one level up. `draft_for_review` merges every group P9 produced
     into ONE accepted group stamped with the single `--situation`, so four
     CATEGORIES become one branch. P9 named them correctly and unaided; the merge
     discards the naming. The function says so itself:
@@ -2140,7 +2171,7 @@ def test_groups_of_different_categories_get_different_top_level_branches(tmp_pat
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework", "--label",
               "Coursework", "--user", "jy",
-              "--database", str(tmp_path / "plan.sqlite")], out=out)
+              "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL], out=out)
     # THE TREE ONLY, and the second split is why this still measures the gap.
     # `104` R-41 prints the level names between the folder list and "Files:", and
     # its lines are indented two spaces like a root -- so without this the count
@@ -2163,10 +2194,11 @@ def test_groups_of_different_categories_get_different_top_level_branches(tmp_pat
 test_groups_of_different_categories_get_different_top_level_branches = (
     pytest.mark.xfail(
         strict=True,
-        reason="`review_and_accept` merges every P9 group into one accepted group "
-               "under a single `--label`/`--situation`, so a legal matter, a course "
-               "and a performance review share one branch. XPASSes and fails the "
-               "suite the moment per-category acceptance lands.",
+        reason="`draft_for_review` merges every P9 group into ONE draft under a "
+               "single `--label`/`--situation`, so the accept gesture accepts one "
+               "group and a legal matter, a course and a performance review share "
+               "one branch. XPASSes and fails the suite the moment per-category "
+               "drafting lands.",
     )(test_groups_of_different_categories_get_different_top_level_branches))
 
 
@@ -2191,7 +2223,7 @@ def test_a_refused_run_still_says_what_was_marked_and_counted(tmp_path):
     out = io.StringIO()
     code = cli.main([str(corpus), "--situation", "academic.coursework", "--label",
                      "Coursework", "--user", "jy",
-                     "--database", str(tmp_path / "plan.sqlite")], out=out)
+                     "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL], out=out)
     printed = out.getvalue()
 
     assert code != 0 and "No plan was made" in printed, printed
@@ -2261,7 +2293,7 @@ def test_protected_material_is_not_the_first_thing_on_the_screen(tmp_path):
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework", "--label",
               "Coursework", "--user", "jy",
-              "--database", str(tmp_path / "plan.sqlite")], out=out)
+              "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL], out=out)
     report = out.getvalue()
 
     assert "protected material" in report, report
@@ -2291,7 +2323,7 @@ def test_answering_again_supersedes_the_earlier_answer_instead_of_racing_it(tmp_
     corpus = _two_shape_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     argv = [str(corpus), "--situation", "academic.coursework",
-            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+            "--label", "Coursework", "--user", "jy", "--database", str(database), *ACCEPTS_THE_PROPOSAL]
     answered = argv + ["--answer", "branch:Coursework=keep-as-it-is"]
 
     cli.main(argv, out=io.StringIO())
@@ -2447,7 +2479,7 @@ def test_a_printed_answer_command_survives_being_pasted_into_a_shell(tmp_path, l
     printed = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", label, "--user", "jy",
-              "--database", str(tmp_path / "plan.sqlite")], out=printed)
+              "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL], out=printed)
     report = printed.getvalue()
 
     offered = [line.strip() for line in report.splitlines()
@@ -2492,7 +2524,7 @@ def test_a_skipped_question_can_still_be_found_afterwards(tmp_path):
     corpus = _ambiguous_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     argv = [str(corpus), "--situation", "academic.coursework",
-            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+            "--label", "Coursework", "--user", "jy", "--database", str(database), *ACCEPTS_THE_PROPOSAL]
 
     cli.main(argv, out=io.StringIO())
     after = io.StringIO()
@@ -2519,7 +2551,7 @@ def test_the_reminder_line_is_not_the_question_asked_again(tmp_path):
     corpus = _ambiguous_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     argv = [str(corpus), "--situation", "academic.coursework",
-            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+            "--label", "Coursework", "--user", "jy", "--database", str(database), *ACCEPTS_THE_PROPOSAL]
 
     first = io.StringIO()
     cli.main(argv, out=first)
@@ -2610,7 +2642,7 @@ def test_no_residual_area_is_created_unless_the_person_asks_for_it(tmp_path):
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "photos.screenshot-captures",
               "--label", "Pictures", "--user", "jy",
-              "--database", str(tmp_path / "plan.sqlite")], out=out)
+              "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL], out=out)
     printed = out.getvalue()
 
     folders = printed.split("Folders in this plan:", 1)[1].split("Files:", 1)[0]
@@ -2780,7 +2812,7 @@ def test_the_proposed_folder_does_not_share_a_name_with_one_of_the_persons_own(t
     out = io.StringIO()
     assert cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "m",
-                     "--database", str(tmp_path / "plan.sqlite")], out=out) == 0
+                     "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL], out=out) == 0
     printed = out.getvalue()
 
     names = _top_level_folders(printed)
@@ -2800,7 +2832,7 @@ def test_a_label_that_collides_with_nothing_still_gets_its_folder(tmp_path):
     out = io.StringIO()
     assert cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "m",
-                     "--database", str(tmp_path / "plan.sqlite")], out=out) == 0
+                     "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL], out=out) == 0
     printed = out.getvalue()
 
     names = _top_level_folders(printed)
@@ -2839,7 +2871,7 @@ def test_rejecting_a_conclusion_says_so_on_screen(tmp_path):
         "Installation address: 14 Ashgrove Terrace\n")
     argv = [str(corpus), "--situation", "construction_property.construction-project",
             "--label", "Jobs", "--user", "m",
-            "--database", str(tmp_path / "plan.sqlite")]
+            "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL]
     assert cli.main(argv, out=io.StringIO()) == 0
 
     out = io.StringIO()
@@ -2873,7 +2905,7 @@ def test_rejecting_something_the_file_never_said_is_still_refused(tmp_path):
         "Certificate number: EIC-2026-0341\n")
     argv = [str(corpus), "--situation", "construction_property.construction-project",
             "--label", "Jobs", "--user", "m",
-            "--database", str(tmp_path / "plan.sqlite")]
+            "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL]
     assert cli.main(argv, out=io.StringIO()) == 0
 
     out = io.StringIO()
@@ -2973,7 +3005,7 @@ def _run_two_formats(tmp_path):
     out = io.StringIO()
     assert cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
-                     "--database", str(database)], out=out) == 0
+                     "--database", str(database), *ACCEPTS_THE_PROPOSAL], out=out) == 0
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
     extractors = {}
@@ -3091,7 +3123,7 @@ def test_nothing_opens_the_vault_the_disk_image_or_the_passport(tmp_path):
     database = tmp_path / "plan.sqlite"
     assert cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Papers", "--user", "jy",
-                     "--database", str(database)], out=io.StringIO()) == 0
+                     "--database", str(database), *ACCEPTS_THE_PROPOSAL], out=io.StringIO()) == 0
 
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
@@ -3233,7 +3265,7 @@ def test_a_review_set_says_truthfully_whether_it_holds_protected_material(tmp_pa
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Papers", "--user", "jy",
-              "--database", str(tmp_path / "plan.sqlite")], out=out)
+              "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL], out=out)
     printed = out.getvalue()
 
     # Present, not omitted -- which under the owner's 2026-09-02 ruling is the
@@ -3279,7 +3311,7 @@ def test_a_protected_review_set_refuses_to_be_filed_in_one_gesture(tmp_path):
     corpus = _mixed_sensitivity_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     argv = [str(corpus), "--situation", "academic.coursework",
-            "--label", "Papers", "--user", "jy", "--database", str(database)]
+            "--label", "Papers", "--user", "jy", "--database", str(database), *ACCEPTS_THE_PROPOSAL]
 
     first = io.StringIO()
     cli.main(argv + ["--residual", "Review Later"], out=first)
@@ -3323,6 +3355,7 @@ def test_a_protected_set_is_not_offered_a_command_that_would_refuse(tmp_path):
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Papers", "--user", "jy",
               "--database", str(tmp_path / "plan.sqlite"),
+              *ACCEPTS_THE_PROPOSAL,
               "--residual", "Review Later"], out=out)
     printed = out.getvalue()
 
@@ -3366,7 +3399,7 @@ def test_a_printed_send_set_command_survives_being_pasted_into_a_shell(tmp_path)
         corpus = _mixed_sensitivity_corpus(holder)
         out = io.StringIO()
         cli.main([str(corpus)] + argv
-                 + ["--database", str(holder / "plan.sqlite"),
+                 + ["--database", str(holder / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL,
                     "--residual", area], out=out)
         printed = out.getvalue()
         offered = [line for line in printed.splitlines() if "--send-set" in line]
@@ -3523,7 +3556,7 @@ def test_a_childs_report_card_is_not_filed_into_the_law_school_semester(tmp_path
     out = io.StringIO()
     assert cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
-                     "--database", str(tmp_path / "plan.sqlite")],
+                     "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL],
                     out=out) == 0
     printed = out.getvalue()
 
@@ -3546,7 +3579,7 @@ def test_the_coursework_the_semester_folder_does_hold_is_still_recognised(tmp_pa
     out = io.StringIO()
     assert cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
-                     "--database", str(tmp_path / "plan.sqlite")],
+                     "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL],
                     out=out) == 0
     printed = out.getvalue()
 
@@ -3632,7 +3665,7 @@ def test_a_physics_exam_is_not_filed_into_the_high_school_history_folder(tmp_pat
     out = io.StringIO()
     assert cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
-                     "--database", str(tmp_path / "plan.sqlite")],
+                     "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL],
                     out=out) == 0
     printed = out.getvalue()
 
@@ -3657,7 +3690,7 @@ def test_the_exams_that_folder_does_hold_are_still_recognised(tmp_path):
     out = io.StringIO()
     assert cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
-                     "--database", str(tmp_path / "plan.sqlite")],
+                     "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL],
                     out=out) == 0
     printed = out.getvalue()
 
@@ -3896,7 +3929,7 @@ def test_the_lectures_get_a_folder_of_their_own_inside_the_folder_they_are_in(tm
     out = io.StringIO()
     assert cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
-                     "--database", str(tmp_path / "plan.sqlite")],
+                     "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL],
                     out=out) == 0
     printed = out.getvalue()
 
@@ -3918,7 +3951,7 @@ def test_a_folder_holding_one_of_a_kind_gains_nothing(tmp_path):
     out = io.StringIO()
     assert cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
-                     "--database", str(tmp_path / "plan.sqlite")],
+                     "--database", str(tmp_path / "plan.sqlite"), *ACCEPTS_THE_PROPOSAL],
                     out=out) == 0
     printed = out.getvalue()
 
@@ -3968,7 +4001,7 @@ def test_a_second_run_after_the_person_deletes_a_file_still_produces_a_plan(tmp_
     corpus = _course_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     argv = [str(corpus), "--situation", "academic.coursework",
-            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+            "--label", "Coursework", "--user", "jy", "--database", str(database), *ACCEPTS_THE_PROPOSAL]
 
     assert cli.main(argv, out=io.StringIO()) == 0
 
@@ -3997,7 +4030,7 @@ def test_a_file_the_person_deleted_is_not_in_the_next_plan(tmp_path):
     corpus = _course_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     argv = [str(corpus), "--situation", "academic.coursework",
-            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+            "--label", "Coursework", "--user", "jy", "--database", str(database), *ACCEPTS_THE_PROPOSAL]
 
     assert cli.main(argv, out=io.StringIO()) == 0
     (corpus / "PHYS 1401 lab.txt").unlink()
@@ -4017,7 +4050,7 @@ def test_a_rerun_over_an_unchanged_corpus_is_the_same_group_and_not_a_new_one(tm
     corpus = _course_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     argv = [str(corpus), "--situation", "academic.coursework",
-            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+            "--label", "Coursework", "--user", "jy", "--database", str(database), *ACCEPTS_THE_PROPOSAL]
 
     assert cli.main(argv, out=io.StringIO()) == 0
     assert cli.main(argv, out=io.StringIO()) == 0
@@ -4052,7 +4085,7 @@ def test_rejecting_a_conclusion_about_an_ambiguous_filename_is_refused(tmp_path)
         "CHEM 1500 Lecture Notes\n\nSpring 2026 lecture notes.\n")
     database = tmp_path / "plan.sqlite"
     argv = [str(corpus), "--situation", "academic.coursework",
-            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+            "--label", "Coursework", "--user", "jy", "--database", str(database), *ACCEPTS_THE_PROPOSAL]
 
     assert cli.main(argv, out=io.StringIO()) == 0
 

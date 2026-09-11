@@ -128,12 +128,22 @@ def test_exclude_from_packet_has_a_collector_and_a_receiver():
     would make the gesture WORK and would leave P9's own record of it unread, so
     the audit trail and the tree would disagree about whether the person acted.
 
-    **BLOCKER 2, the collector.** There is no group-review screen to collect it
-    on. `104` SF-3 is the measurement: `review_and_accept` records every group as
-    accepted and coherent with `decided_by=RULES`, so no person is shown a
-    packet's members and none is presented -- and §8.7 refuses a gesture with no
-    recorded presentation. `104` §7 Phase 5 schedules that screen separately, as
-    "group review before design (R-23)".
+    **BLOCKER 2, the collector. NARROWED BY `104` SF-3, AND STILL A BLOCKER.**
+    This used to read: "there is no group-review screen to collect it on --
+    `review_and_accept` records every group as accepted and coherent with
+    `decided_by=RULES`, so no person is shown a packet's members and none is
+    presented". Half of that is now false. SF-3 made a group a DRAFT until a
+    person's gesture decides it, `cli.accept_drafted_groups` records a
+    `group_plan` PRESENTATION and collects an `accept_bulk` against it, and the
+    run that accepts nothing prints the drafts and stops -- so there is a group
+    screen, and the accept gesture is collected on it.
+
+    What is still missing is the half this gesture needs: the screen names the
+    GROUP -- a label, a file count, and deliberately no filenames (`00`:201) --
+    and `exclude_from_packet` is about ONE MEMBER of one packet. §8.7 refuses a
+    gesture with no recorded presentation OF ITS SUBJECT, and no run presents a
+    packet's members. `104` §7 Phase 5 schedules that screen separately, as "group
+    review before design (R-23)".
 
     `xfail(strict=True)`: it states both blockers today and turns the suite RED
     the day either half lands, which forces the marker off under somebody who has
@@ -148,11 +158,12 @@ test_exclude_from_packet_has_a_collector_and_a_receiver = pytest.mark.xfail(
     strict=True,
     reason="P9 records `exclude_from_packet` as a review state whose only reader, "
            "`membership_review_state_as_of`, no module in src/ calls -- so the "
-           "exclusion is stored and never applied. And there is no screen to "
-           "collect it on: `review_and_accept` accepts every group with "
-           "decided_by=RULES (104 SF-3), so no packet's members are presented and "
-           "§8.7 refuses a gesture with no recorded presentation. R-23's group "
-           "review is the owed screen. XPASSes the day the reader is wired.",
+           "exclusion is stored and never applied. The collector is narrower than "
+           "it was: since 104 SF-3 a group IS presented and an accept IS collected "
+           "on the `group_plan` surface, but the screen names the group and not "
+           "its members, and §8.7 refuses a gesture with no recorded presentation "
+           "of its subject. R-23's per-member group review is the owed screen. "
+           "XPASSes the day the reader is wired.",
 )(test_exclude_from_packet_has_a_collector_and_a_receiver)
 
 

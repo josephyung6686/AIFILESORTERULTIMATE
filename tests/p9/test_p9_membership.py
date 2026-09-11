@@ -53,6 +53,8 @@ from grouping.vocabulary import (
     STRONGLY_IDENTIFIED_FILE,
     SUPPORTED,
     UNCERTAIN,
+    USER,
+    USER_ACCEPTED,
     USER_EDITED,
     VALIDATION,
 )
@@ -961,10 +963,19 @@ def test_r80_a_person_accepted_group_is_not_superseded_by_a_model_answer(
     """The person's word outranks both of the model's, and outranks the second.
 
     The acceptance is recorded on a SUPERSEDING row, because that is the only
-    form it takes: `cli.review_and_accept` mints a merged group carrying
-    `supersedes`, writes the acceptance on it, and never writes one against the
-    address P9 re-derives. A seam that looked for an acceptance on the id it was
-    handed would find none and overrule the person on every real run.
+    form it takes: `cli.draft_for_review` mints a merged group carrying
+    `supersedes`, and the gesture that accepts it writes the row against that id
+    and never against the address P9 re-derives. A seam that looked for an
+    acceptance on the id it was handed would find none and overrule the person on
+    every real run.
+
+    **`decided_by=USER`, and since `104` SF-3 that is load-bearing rather than
+    decoration.** This row used to say `RULES`, because the rules wrote it: a merge
+    was recorded as accepted on every run with nobody at the screen, and
+    `_a_person_accepted` therefore could not read the column without discarding the
+    person's own `--label`. The rules write no acceptance now, so the column says
+    who decided and is read -- which is also what stops site B's own row from
+    silencing site B's next answer.
 
     The answer is not lost. It is on disk in the harness's own tables under its
     verdict id, which is what an unratified site does with every answer it gets;
@@ -985,8 +996,8 @@ def test_r80_a_person_accepted_group_is_not_superseded_by_a_model_answer(
     record_acceptance(seam_conn, GroupAcceptance(
         acceptance_id=f"acc:{accepted_id}", plan_version_id=PLAN,
         group_id=accepted_id, membership_id=None, acceptance=ACCEPTED,
-        review_state=PENDING_REVIEW, user_edited_label="Coursework", aliases=(),
-        review_decision_ref=None, decided_by=RULES, created_at=T0))
+        review_state=USER_ACCEPTED, user_edited_label="Coursework", aliases=(),
+        review_decision_ref=None, decided_by=USER, created_at=T0))
     before = {row["group_id"] for row in
               seam_conn.execute("SELECT group_id FROM groups")}
 

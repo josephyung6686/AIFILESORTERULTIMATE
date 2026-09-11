@@ -79,7 +79,8 @@ def _run(corpus: Path, *extra: str) -> str:
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
-              "--database", str(corpus.parent / "plan.sqlite"), *extra], out=out)
+              "--database", str(corpus.parent / "plan.sqlite"),
+              "--accept-groups", *extra], out=out)
     return out.getvalue()
 
 
@@ -226,8 +227,14 @@ def test_a_label_that_is_a_path_fragment_leaves_no_record_of_having_been_typed(
 
     conn = _conn(corpus)
     try:
+        # THE RENAME, not every action. `104` SF-3 put an `accept_bulk` on this
+        # run -- the person accepted the groups, which is what makes there be a
+        # tree with a level in it to rename -- so a bare count of `review_actions`
+        # would now be a count of a gesture this test is not about. What must not
+        # be here is a record of the rename they were told did not happen.
         assert conn.execute(
-            "SELECT count(*) AS n FROM review_actions").fetchone()["n"] == 0
+            "SELECT count(*) AS n FROM review_actions WHERE action = 'rename'"
+        ).fetchone()["n"] == 0
         assert conn.execute(
             "SELECT count(*) AS n FROM user_level_edits").fetchone()["n"] == 0
     finally:

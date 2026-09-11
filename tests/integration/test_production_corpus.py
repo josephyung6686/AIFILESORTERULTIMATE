@@ -1102,6 +1102,7 @@ def test_the_command_runs_over_a_real_directory_and_leads_with_what_it_did_not_o
 
     code = cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
+                     "--accept-groups",
                      "--database", str(tmp_path / "plan.sqlite")])
     out = capsys.readouterr().out
 
@@ -1288,7 +1289,8 @@ def test_the_command_can_be_run_twice_over_the_same_folder(tmp_path, capsys):
     (corpus / "homework.txt").write_text("PHYS1401 Homework 3\nColumbia.\n")
     database = tmp_path / "plan.sqlite"
     argv = [str(corpus), "--situation", "academic.coursework",
-            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+            "--label", "Coursework", "--user", "jy", "--database", str(database),
+            "--accept-groups"]
 
     assert cli.main(argv) == 0, capsys.readouterr().out
     first = capsys.readouterr().out
@@ -1340,6 +1342,7 @@ def test_the_documents_own_text_is_read_here_and_can_leave_by_no_route(
     import cli
     assert cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
+                     "--accept-groups",
                      "--database", str(tmp_path / "plan.sqlite")]) == 0
 
     plan = sqlite3.connect(tmp_path / "plan.sqlite")
@@ -1460,6 +1463,7 @@ def test_a_placement_the_person_must_still_confirm_is_not_called_ready_to_file(
 
     code = cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
+                     "--accept-groups",
                      "--database", str(tmp_path / "plan.sqlite")])
     out = capsys.readouterr().out
     assert code == 0, out
@@ -1490,6 +1494,7 @@ def test_the_report_says_where_an_unconfirmed_file_would_go_rather_than_hiding_i
 
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
+              "--accept-groups",
               "--database", str(tmp_path / "plan.sqlite")])
     out = capsys.readouterr().out
 

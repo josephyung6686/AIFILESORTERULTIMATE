@@ -183,6 +183,7 @@ assert MODE_FORBIDS_TARGET in DENIAL_REASONS
 def _argv(corpus: Path, database: Path) -> list[str]:
     return [str(corpus), "--situation", "academic.coursework",
             "--label", "Coursework", "--user", "jy",
+            "--accept-groups",
             "--database", str(database)]
 
 
@@ -494,9 +495,33 @@ def test_the_only_thing_a_live_run_asks_of_p8_p12_and_p13_is_a_table(_census):
                            # no placement is judged, and nothing here reads a
                            # person's answer -- `collect` does that, and it runs
                            # only when somebody has typed one.
+                           # `collect_bulk`, `record_action` and `expand` since
+                           # `104` SF-3, and unlike `record_presentation` they run
+                           # ONLY WHEN SOMEBODY TYPED SOMETHING. A group is a draft
+                           # until a person's gesture or a ratified site B decides
+                           # it, and `--accept-groups` is that gesture: it is
+                           # collected as P13's `accept_bulk` on the `group_plan`
+                           # surface, stored, and expanded into one per-group
+                           # accept for P9's own receiver. This census runs the
+                           # command WITH the flag, because a run without it
+                           # designs no tree and there would be no seam traffic to
+                           # count at all -- so these three are here on the same
+                           # terms as `--send-set`'s would be, which is to say a
+                           # run that types nothing still reaches none of them.
+                           #
+                           # What that means for the sentence this test is named
+                           # for: P13 was already not one of the three parts a
+                           # live run only creates tables for, and it is now
+                           # further from it -- it collects a person's decision and
+                           # hands it to the part that applies it. It still does
+                           # not DECIDE: every value in the row came from the
+                           # command line or from what was presented a moment
+                           # before.
                            (("P13"), {"create_review_schema", "bucket_for",
                                       "assert_every_file_accounted",
-                                      "record_presentation"})):
+                                      "record_presentation",
+                                      "collect_bulk", "record_action",
+                                      "expand"})):
         reached = symbols.get((ROOT, part), set())
         assert reached <= expected, (
             f"{part} now does something on a live run beyond creating its "

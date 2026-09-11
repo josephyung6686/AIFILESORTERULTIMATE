@@ -78,6 +78,7 @@ def _run(tmp_path: Path) -> str:
     out = io.StringIO()
     cli.main(["--situation", "academic.coursework", "--label", "PHYS 1401",
               "--user", "jy", "--database", str(tmp_path / "plan.sqlite"),
+              "--accept-groups",
               "--freeze", str(corpus)], out=out)
     return out.getvalue()
 

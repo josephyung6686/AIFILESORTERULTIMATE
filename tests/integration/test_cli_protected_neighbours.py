@@ -101,6 +101,7 @@ def _run(corpus: Path) -> str:
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
+              "--accept-groups",
               "--residual", "Review Later",
               "--send-set", "Not yet placed=Review Later",
               "--freeze",

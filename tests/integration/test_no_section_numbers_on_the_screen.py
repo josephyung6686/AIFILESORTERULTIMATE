@@ -55,7 +55,8 @@ def _corpus(root: Path) -> Path:
 def _run(corpus: Path, database: Path, *extra: str) -> tuple[int, str]:
     out = io.StringIO()
     code = cli.main([str(corpus), "--situation", SITUATION, "--label", LABEL,
-                     "--user", "jy", "--database", str(database), *extra],
+                     "--user", "jy", "--database", str(database),
+                     "--accept-groups", *extra],
                     out=out)
     return code, out.getvalue()
 
