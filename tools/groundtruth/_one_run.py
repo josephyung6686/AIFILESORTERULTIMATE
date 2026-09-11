@@ -111,7 +111,27 @@ def main(argv: list[str]) -> int:
     from tools.groundtruth.reuse import SCOREBOARD_USER
 
     argv_for_cli = [corpus, "--situation", situation, "--label", label,
-                    "--user", SCOREBOARD_USER, "--database", database]
+                    "--user", SCOREBOARD_USER, "--database", database,
+                    # `104` SF-3. A GROUP IS A DRAFT UNTIL SOMEBODY ACCEPTS IT, and
+                    # a scoreboard with nobody at the screen would otherwise score a
+                    # run that placed nothing: §5.3 builds the top level out of
+                    # accepted groups and P11 plans a packet only for a group that
+                    # became a branch. So the harness makes the gesture, EXPLICITLY
+                    # and through the same flag a person types, rather than the
+                    # product making it silently for everyone -- which is the defect
+                    # SF-3 names.
+                    #
+                    # It is defensible here and nowhere else because the LABELS ARE
+                    # THE PERSON'S WORD: `labels.py` reads a file the owner wrote by
+                    # hand saying where each file belongs, so a run measured against
+                    # them is measured against a person's own judgement about this
+                    # corpus. What the harness supplies is the ACT, not the opinion.
+                    #
+                    # The scorecard says so in its own header, because a reader who
+                    # cannot tell a scored acceptance from a reviewed one will read
+                    # these numbers as a claim about the product's judgement when
+                    # they are a claim about its placement.
+                    "--accept-groups"]
     model = semantic_weights()
     if model:
         argv_for_cli += ["--semantic-model", model]
