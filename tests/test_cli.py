@@ -226,9 +226,25 @@ def _node(node_id, label, *, parent=None, accepts=True):
 
 
 def _set(label, members, reason, *, protected=False):
-    return SimpleNamespace(label=label, member_file_ids=tuple(members),
-                           file_count=len(members), reason_not_placed=reason,
-                           protected=protected)
+    """A review set, with §7.5's seven attributes on it.
+
+    `104` R-42 item 1: the screen prints the card now, so a double that carried
+    five of the seven was modelling a set `surface_residual_sets` cannot produce
+    -- `ResidualSet` requires all of them and `residual_card` refuses to emit a
+    shorter card. The values are the shapes `cli.residual_partition` writes: the
+    first three members as examples, one extension, two ISO days.
+    """
+    members = tuple(members)
+    return SimpleNamespace(
+        set_id=f"version_2:{label}", plan_version="version_2", label=label,
+        member_file_ids=members, file_count=len(members),
+        reason_not_placed=reason, protected=protected,
+        representative_examples=members[:3],
+        file_type_distribution=((".txt", len(members)),),
+        age_range=("2026-01-01", "2026-01-02"),
+        evidence_availability="partial",
+        sensitivity_status="protected" if protected else "none",
+        weak_graph_neighbours=())
 
 
 def _area(name, path):
@@ -3604,8 +3620,15 @@ def test_the_coursework_the_semester_folder_does_hold_is_still_recognised(tmp_pa
 
     settled = [block for block in printed.split("\n\n")
                if block.strip().startswith("Already in Fall 2026")]
-    named = [name for block in settled for name in block.splitlines()
-             if "CONTRACTS 210" in name]
+    # A PLACEMENT, which is its own line. `104` R-42 item 1 put §7.5's card on
+    # the screen and one of its seven attributes is "representative examples", so
+    # a held set under this same heading now names files too -- and an example is
+    # a file the run is telling you ABOUT, not a file this group is placing.
+    # Counting both would let the card satisfy a guard that is about placements.
+    named = {name.strip() for block in settled for name in block.splitlines()
+             if "CONTRACTS 210" in name and name.strip().endswith(".txt")
+             and not name.strip().startswith(
+                 f"{cli.RESIDUAL_CARD_WORDS['representative_examples']}: ")}
     assert len(named) == 3, (
         f"the semester folder's own coursework is no longer recognised as "
         f"being where it belongs; only {named} were:\n{printed}")

@@ -43,6 +43,13 @@ AREA = "Review Later"
 ARGV = ["--situation", "academic.coursework", "--label", "Papers", "--user", "jy",
         "--accept-groups"]
 
+#: One set `_three_reason_corpus` always surfaces, unprotected, named exactly as
+#: the report names it. Measured rather than assumed: the corpus's three sets are
+#: this one, "Waiting on a question you have been asked" and the protected one,
+#: and `test_files_held_for_three_reasons_are_three_sets_a_person_can_tell_apart`
+#: is what fails first if that stops being true.
+HELD_SET = "Not yet said what kind of material"
+
 
 def _three_reason_corpus(tmp_path):
     """One corpus whose unplaced files stopped for three different reasons.
@@ -611,3 +618,199 @@ def test_a_receipt_set_needs_a_fact_that_names_one():
         "no producer writes a receipt fact: the word owed is a `file_facts` "
         "field naming a transactional document, and `privacy.vocabulary."
         "ALWAYS_LOCAL_KIND_RECEIPT` is a detector's output name, not one")
+
+
+# ======================================================================================
+# `104` R-42, item 1: the per-set card, and the two set answers that had no gesture
+#
+# `00` §residual: "Each set should display representative examples, file-type
+# distribution, age range, available OCR or text evidence, sensitivity status, any
+# weak graph neighbors, and the reason the system could not safely place the
+# files." `review_surface/residual.py` computed exactly that and had no caller --
+# the audit of 11 Sep (§18.42) lists it under "finished, tested code with no
+# caller". The screen printed a count, a name and a reason, and the person decided
+# what happened to a whole set from three of the seven.
+#
+# §7.6 puts four choices to the person and `SET_CHOICES` carries all four. One had
+# a gesture: `--send-set`. "Leave them in place" and "review them with AI against
+# your approved residual folders" were legal decisions no command could make.
+# ======================================================================================
+
+def test_every_review_set_prints_its_card(tmp_path):
+    """The seven, on the screen, for every set the run surfaced.
+
+    The reason is the seventh and was already printed; the other six were not.
+    """
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database)
+
+    for label, members in _surfaced(database):
+        assert f'"{label}"' in printed, (
+            f"{label!r} is a set nobody can name, so no gesture reaches it:"
+            f"\n{printed}")
+    # The card's own words, each of them `00`'s.
+    assert "File types:" in printed, printed
+    assert "Age range:" in printed, printed
+    assert "Available OCR or text evidence:" in printed, printed
+    assert "Sensitivity:" in printed, printed
+    # And an example is a FILENAME, because a file id is not something a person
+    # can look for on their own disk.
+    assert "Examples: " in printed, printed
+    assert "holiday.jpg" in printed.split("Examples: ", 1)[1], printed
+
+
+def test_a_protected_set_s_card_does_not_name_its_files(tmp_path):
+    """The owner's 2026-09-02 ruling reaches the card too.
+
+    A protected set is named, counted and carries the rest of its card. Its
+    example FILENAMES are the part of the report least safe to have on a screen
+    somebody else can see, and `--show-protected` is where they live.
+    """
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database)
+
+    assert '"Protected, and not filed in bulk"' in printed, printed
+    assert "passport bio page.txt" not in printed, printed
+    block = printed.split('"Protected, and not filed in bulk"', 1)[1]
+    assert "File types:" in block.split("\n\n", 1)[0], block
+
+
+def test_the_screen_offers_leave_in_place_and_review_with_ai(tmp_path):
+    """§7.6's other two choices, as lines a person can paste.
+
+    Beside `--send-set`, which was the only one of the four with a route.
+    """
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database)
+
+    assert "--leave-set " in printed, printed
+    assert "--review-set " in printed, printed
+    # A protected set is offered neither, for the reason it is offered no
+    # `--send-set`: P13 carries no action over one at all.
+    block = printed.split('"Protected, and not filed in bulk"', 1)[1]
+    first = block.split("\n\n", 1)[0]
+    assert "--leave-set" not in first and "--review-set" not in first, first
+
+
+def test_leave_set_records_the_choice_and_moves_nothing(tmp_path):
+    """`leave_in_place`, which `SET_CHOICES` has always carried.
+
+    §7.6: a set the person left in place costs zero model calls and moves no
+    file. What was missing was any way to SAY it.
+    """
+    import sqlite3
+
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database, "--leave-set", HELD_SET)
+    assert "That send was refused" not in printed, printed
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = [dict(row) for row in conn.execute(
+            "SELECT * FROM residual_set_decisions")]
+    finally:
+        conn.close()
+    assert rows, printed
+    assert {row["choice"] for row in rows} == {"leave_in_place"}, rows
+    assert all(row["node_id"] is None for row in rows), rows
+    acted = [d for d in _decisions(database) if d.residual is not None]
+    assert not acted, f"a set left in place produced placement work: {acted}"
+
+
+def test_leave_set_is_collected_as_the_gesture_p13_already_has_a_word_for(
+        tmp_path):
+    """`leave_untouched`, and the audit trail R-26 built for `--send-set`.
+
+    P13 "presents and collects; it never decides", and the one bulk gesture this
+    command had was the only one that reached `review_actions`.
+    """
+    import json
+    import sqlite3
+
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    _report(corpus, database, "--leave-set", HELD_SET)
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    try:
+        actions = [dict(row) for row in conn.execute(
+            "SELECT * FROM review_actions")]
+    finally:
+        conn.close()
+    left = [row for row in actions if row["action"] == "leave_untouched"]
+    assert left, actions
+    assert json.loads(left[0]["bulk_member_refs"]), left
+
+
+def test_review_set_records_the_choice_and_site_d_does_not_act(tmp_path):
+    """§7.6's third choice, recorded, with the judgement it asks for deferred.
+
+    Site D's text is a DRAFT. `104` §7 Phase 1 step 6 records a verdict and
+    applies nothing while it is one, and `cli._must_not_apply` is what a run
+    injects in place of the real resolver. So the person's decision is written
+    down -- it is theirs, it belongs to this plan version, and a run that
+    refused to record it would be asking them again for an answer they gave --
+    and the model is not asked. The run says so rather than looking as though it
+    did the work.
+    """
+    import sqlite3
+
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database, "--review-set", HELD_SET)
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = [dict(row) for row in conn.execute(
+            "SELECT * FROM residual_set_decisions")]
+    finally:
+        conn.close()
+    assert {row["choice"] for row in rows} == {
+        "review_with_model_against_approved_residual_folders"}, rows
+    acted = [d for d in _decisions(database) if d.residual is not None]
+    assert not acted, f"site D acted under a draft text: {acted}"
+    assert "has not been approved" in printed, printed
+
+
+def test_one_set_cannot_be_answered_two_ways_in_one_run(tmp_path):
+    """Three gestures, one set: the run refuses rather than picking.
+
+    `act_on_residual_sets` already resolves every pair before recording any, so
+    that a refusal cannot half happen. Two answers about one set is the same
+    hazard from the other side: whichever was recorded second would silently be
+    the one that stood.
+    """
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database, "--leave-set", HELD_SET,
+                      "--review-set", HELD_SET)
+    assert "That send was refused" in printed, printed
+    assert HELD_SET in printed, printed
+
+
+def test_the_review_gesture_has_no_word_of_its_own_in_p13_yet():
+    """The word this build needed and did not have.
+
+    `--send-set` is collected as `accept_bulk` and `--leave-set` as
+    `leave_untouched`, both of them members of `review_surface.vocabulary.
+    ACTIONS`. There is no member meaning *ask a model about these against my
+    approved residual folders*, and using `accept_bulk` for it would record the
+    person as having ACCEPTED a destination they were never shown. So
+    `--review-set` writes P11's decision row and no `review_action`, and the
+    audit trail of that one gesture is the hole this xfail names.
+    """
+    import pytest
+
+    from review_surface import vocabulary as rv
+
+    pytest.xfail(
+        "P13 has no action word for `review_with_model_against_approved_"
+        f"residual_folders`; its {len(rv.ACTIONS)} actions are the owner's to "
+        "add one to")
