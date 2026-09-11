@@ -135,7 +135,7 @@ def test_a_run_still_forms_the_same_group_without_the_slot(tmp_path):
         "This assignment is graded coursework for the course.\n")
 
     cli.main([str(corpus), "--situation", "academic.coursework",
-              "--label", "PHYS 1401", "--user", "jy",
+              "--label", "PHYS 1401", "--user", "jy", "--accept-groups",
               "--database", str(corpus.parent / "plan.sqlite")], out=io.StringIO())
 
     conn = sqlite3.connect(corpus.parent / "plan.sqlite")

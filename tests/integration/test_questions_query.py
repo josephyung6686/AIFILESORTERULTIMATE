@@ -47,7 +47,8 @@ def _run(tmp_path: Path, root: Path):
     database = tmp_path / "plan.sqlite"
     with open(tmp_path / "out.txt", "w") as sink:
         code = cli.main([str(root), "--situation", "academic.coursework",
-                         "--label", "Coursework", "--database", str(database)],
+                         "--label", "Coursework", "--accept-groups",
+                         "--database", str(database)],
                         out=sink)
     assert code == 0, (tmp_path / "out.txt").read_text()[-2000:]
     return open_database(database)
