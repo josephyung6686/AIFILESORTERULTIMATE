@@ -81,16 +81,23 @@ def test_the_mode_is_hybrid_and_not_the_one_that_sounds_more_permissive():
     assert cli.CLOUD_ENABLED_MODE not in LOCAL_FIRST_MODES
 
 
-def test_the_weaker_mode_really_is_the_one_that_would_let_protected_material_out():
-    """Not asserted from the docstring: asked of P7's own predicate. If this ever
-    flips, the reasoning above is wrong and the choice has to be remade."""
+def test_no_mode_lets_protected_material_out():
+    """Asked of P7's own predicate. Until 11 Sep 2026 this pin asserted the
+    OPPOSITE for `cloud_assisted` plus a grant -- the carve-out that made that mode
+    the weaker one -- and said in as many words that if it ever flipped "the choice
+    has to be remade". The owner remade it on 9 Sep 2026 (`00` Amendments, `104`
+    §18.7): a protected file is shown to the local model only, never the cloud,
+    under any mode and any grant. The carve-out is deleted (`104` §18.42's audit,
+    item 8) and this pin now says so for every mode the deployment names."""
     from privacy.denial import protected_cloud_denies
 
     asked = dict(protected=True, locality="cloud", scope="an-area",
                  granted_scopes=("an-area",))
-    assert protected_cloud_denies(operation_mode="cloud_assisted", **asked) is False
-    assert protected_cloud_denies(operation_mode=cli.CLOUD_ENABLED_MODE,
-                                  **asked) is True
+    for mode in ("cloud_assisted", cli.CLOUD_ENABLED_MODE, cli.OPERATION_MODE):
+        assert protected_cloud_denies(operation_mode=mode, **asked) is True, mode
+    assert protected_cloud_denies(operation_mode="cloud_assisted", protected=False,
+                                  locality="cloud", scope="an-area",
+                                  granted_scopes=("an-area",)) is False
 
 
 def test_no_decision_means_the_local_first_floor():

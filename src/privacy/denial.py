@@ -298,18 +298,24 @@ def is_protected_records(template_name: str | None) -> bool:
 
 def protected_cloud_denies(*, protected: bool, locality: str, operation_mode: str,
                            scope: str, granted_scopes: Sequence[str]) -> bool:
-    """SPEC §2's first protected consequence: "not included in cloud-model prompts BY
-    DEFAULT" -- and `cloud_assisted` plus an explicit grant is the carve-out.
+    """SPEC §2's first protected consequence: a protected file is not included in
+    cloud-model prompts. Under any mode, under any grant.
 
-    §8.4: "Cloud-assisted mode: User explicitly permits selected corpus areas to use a
-    cloud model." What a "corpus area" is stays Open question 3, so `scope` is an
-    opaque string the caller supplies and P7 resolves none.
+    Until 11 Sep 2026 this carried a carve-out: `cloud_assisted` plus an explicit
+    grant of the file's scope returned False, after §8.4's "User explicitly permits
+    selected corpus areas to use a cloud model". The owner's ruling of 9 Sep 2026
+    (`00` Amendments; `104` §18.7) is narrower for PROTECTED files and governs:
+    they are opened on this machine and shown to the LOCAL model only, never the
+    cloud, never filed automatically. §8.4's grant still means what it says for
+    ordinary files in a granted area -- that is the route's business, not this
+    predicate's. The carve-out was unreachable in the shipped deployment (`cli.py`
+    pins the mode), and it is deleted rather than left as a sentence in the
+    person's direction that the code would honour if the pin moved. `scope` and
+    `granted_scopes` stay in the signature so every caller and pin keeps its
+    shape; they decide nothing here.
     """
-    if not protected or locality != "cloud":
-        return False
-    if operation_mode == "cloud_assisted" and scope in tuple(granted_scopes):
-        return False
-    return True
+    del operation_mode, scope, granted_scopes
+    return bool(protected) and locality == "cloud"
 
 
 # --- the two that need the resolved content ---------------------------------

@@ -17584,12 +17584,14 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     parser.add_argument(
         "--show-protected", action="store_true",
         help="print the name of every protected file, instead of the count. "
-             "They are counted and named as a group on every run and nothing "
-             "about them is read, indexed or moved either way -- what this "
-             "changes is only whether their filenames are on your screen, which "
-             "is the part of the report least safe to have somebody read over "
-             "your shoulder. It does not widen what any gesture may move: a "
-             "freeze still cannot approve a protected file.")
+             "They are counted and named as a group on every run. A protected "
+             "FILE is opened on this machine and shown to the local model only, "
+             "never to the cloud, and is never filed automatically; a protected "
+             "container (an app, a system folder) is never opened at all. What "
+             "this flag changes is only whether their filenames are on your "
+             "screen, which is the part of the report least safe to have "
+             "somebody read over your shoulder. It does not widen what any "
+             "gesture may move: a freeze still cannot approve a protected file.")
     parser.add_argument(
         "--send-set", action="append", default=[], metavar="SET=AREA",
         help="file a whole review set into one of the residual areas this plan "
