@@ -32,6 +32,40 @@ def test_a_txt_that_is_a_zip_by_signature_routes_to_the_archive_extractor():
     assert decision.extractor_name == "archive.manifest"
 
 
+def test_the_tar_family_routes_to_the_same_archive_extractor_as_zip():
+    """`104` §18.2 gap 14, item 2. All seven tar-family tokens are the `archive`
+    family and the same `archive.manifest` handler zip already reaches -- one
+    extractor, two readers dispatched behind it (`readers.deployment.
+    _archive_reader`), not two extractors."""
+    for token in ("tar", "tgz", "tar.gz", "tbz2", "tar.bz2", "txz", "tar.xz"):
+        decision = route(
+            file_id="f1",
+            content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
+            path=Path(f"/corpus/bundle.{token}"), extension=f".{token}",
+            detect_format=lambda path: None)
+        assert decision.source_type == "archive", token
+        assert decision.extractor_name == "archive.manifest", token
+        assert decision.unrouted_completeness is None, token
+
+
+def test_seven_and_rar_have_no_reader_and_stay_unsupported_by_omission():
+    """No standard-library reader exists for either, and a key would route them
+    to `archive.manifest`, which would open them, fail, and report `malformed
+    archive` -- the wrong §2.4 outcome for a format nobody shipped a reader
+    for. They are absent from `SOURCE_TYPE_BY_FORMAT` on purpose."""
+    assert "7z" not in SOURCE_TYPE_BY_FORMAT
+    assert "rar" not in SOURCE_TYPE_BY_FORMAT
+    for token in ("7z", "rar"):
+        decision = route(
+            file_id="f1",
+            content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
+            path=Path(f"/corpus/bundle.{token}"), extension=f".{token}",
+            detect_format=lambda path: None)
+        assert decision.source_type is None, token
+        assert decision.extractor_name is None, token
+        assert decision.unrouted_completeness == "unsupported", token
+
+
 def test_agreement_is_recorded_as_agreement():
     decision = route(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
                      path=Path("/corpus/Syllabus.pdf"), extension=".pdf",
@@ -113,8 +147,18 @@ def test_every_format_in_the_table_is_one_2_9_or_2_6_names():
         "code-workspace",                       # VS Code workspace (JSON)
         "dockerfile", "makefile",               # extensionless build files
     }
+    # `104` §18.2 gap 14, item 2. 00:35 names "compressed archives" and no format,
+    # the same posture that put `zip` alone under `named_by_2_9` above; these are
+    # the other archive formats the standard library (`tarfile`) reads without a
+    # new dependency. `tar`/`tgz`/`tbz2`/`txz` are what `Path.suffix` can carry;
+    # `tar.gz`/`tar.bz2`/`tar.xz` are reachable only through `readers.signatures`'
+    # byte-level check, because `Path.suffix` never returns a double extension.
+    tar_family_the_standard_library_reads_without_a_new_dependency = {
+        "tar", "tgz", "tar.gz", "tbz2", "tar.bz2", "txz", "tar.xz",
+    }
     assert set(SOURCE_TYPE_BY_FORMAT) == (named_by_2_9
                                           | named_by_2_6_or_the_spec_fixtures
+                                          | tar_family_the_standard_library_reads_without_a_new_dependency
                                           | added_by_b6_and_not_by_a_design_sentence
                                           | code_formats_the_owner_actually_writes
                                           | formats_that_recovered_no_text_on_the_measured_corpus)

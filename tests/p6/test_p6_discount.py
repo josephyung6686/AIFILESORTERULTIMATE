@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+import cli
 from database_agent.files_table import get_file, record_file
 from evidence_shape.fixtures import by_number
 from evidence_shape.location import Location, Segment
@@ -556,3 +557,31 @@ def test_field_permitted_has_a_production_caller():
                     and node.func.id == "field_permitted"):
                 callers.append(f"{path.name}:{node.lineno}")
     assert callers, "field_permitted is published and called by nothing"
+
+
+# --- `104` §18.2 gap 14: the PRODUCTION resolver, not a hand-rolled one ----------
+
+def test_the_production_resolver_screens_metadata_through_the_shipped_catalogue(
+        p6_conn, docx):
+    """`cli._resolver`, exactly as `cli.p1_p7_authorities` builds it for a real
+    scan. Before `104` §18.2 gap 14 this called `screen_metadata=lambda conn,
+    file_id, content_hash: ()` -- a survivor set nobody read, over a
+    `cli.METADATA_SCREEN` holding two empty catalogues -- so a `python-docx` value
+    reached `authored_by` as a `possible` fact (§2.3's demotion tier has no field
+    check to stop it once §2.2's suppression never fires) and no `unresolved` row
+    said it had been refused. `cli._resolver` now binds the real catalogue through
+    `_screen_deterministic_pass`, and this is that production wiring, not the
+    catalogue this file compiles by hand for the unit-level tests above.
+    """
+    file_id, content_hash = docx
+    _observe(p6_conn, run_id="run-item1-pin", file_id=file_id,
+             content_hash=content_hash, raw="python-docx", slot="creator")
+
+    cli._resolver(tiers=frozenset({"native"}), cache_key="item1-pin").resolve(
+        p6_conn, file_id=file_id, content_hash=content_hash)
+
+    assert facts_for_file(p6_conn, file_id, content_hash) == []
+    assert [row["reason"] for row in
+            unresolved_for_file(p6_conn, file_id, content_hash,
+                                field_key=AUTHORSHIP_FIELDS[0])] == [
+        "discounted_tool_metadata"]

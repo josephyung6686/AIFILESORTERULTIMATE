@@ -86,6 +86,7 @@ from facts.families import (
     shared_family_field,
 )
 from facts.discount import MetadataScreen
+from facts.discount import screen_metadata as _discount_screen_metadata
 # `104` §18.31: which reader produced each of the readings a site-E call carries.
 # `00`:44's "exact process that produced it" term of the cache key, read off the
 # evidence rather than off a constant, exactly as `model_facts.
@@ -315,6 +316,7 @@ from production import (
     shipped_situations, situation_schema_family, template_id_for_situation,
     run_production_corpus,
 )
+from readers.capture import make_tool_producer_strings, metadata_property_names
 from readers.deployment import macos_readers
 from readers.pdf_pdfium import pdfium_reader
 from readers.signatures import signature_detector
@@ -442,7 +444,7 @@ from tree_design.user_edits import (
 )
 from tree_design.vocabulary import (
     ACTION_RENAMED, ENABLE, MANDATORY_REVIEW, PHYSICAL_DESTINATION,
-    REFINE_LATER, REFINED,
+    PROTECTED_RECORDS, REFINE_LATER, REFINED,
     RESIDUAL_TEMPLATE_NAMES, SHALLOW_BY_CHOICE, SURFACE_UNATTENDED,
 )
 
@@ -4119,8 +4121,16 @@ DIRECT_SLOTS = DirectSlots(slots=())
 #: one file, two live `term` facts, two reliability states, two spellings, two term
 #: folders.
 
-METADATA_SCREEN = MetadataScreen(tool_producer_strings=(),
-                                 metadata_property_names=())
+#: `104` §18.2 gap 14 (11 Sep 2026). This shipped `MetadataScreen(tool_producer_
+#: strings=(), metadata_property_names=())` -- an empty injection, legitimate in
+#: `facts.discount`'s own words but never a caller who HELD a catalogue -- so
+#: `python-docx` and `Mozilla/5.0` reached `subject` and `authored_by` as facts and
+#: the SPEC's own `Producer` example was mistaken for meaningful content. Catalogue
+#: 01 shipped and compiled since `readers/capture.py` was written; it was never
+#: handed here. `make_tool_producer_strings`/`metadata_property_names` are the
+#: loader's own published readers of it (`lru_cache`, one compile per process).
+METADATA_SCREEN = MetadataScreen(tool_producer_strings=make_tool_producer_strings(),
+                                 metadata_property_names=metadata_property_names())
 
 #: §7.3 fixes nine residual template names and leaves their eight attribute slots
 #: deferred. Until now this deployment shipped NONE rather than inventing slot
@@ -4132,12 +4142,19 @@ METADATA_SCREEN = MetadataScreen(tool_producer_strings=(),
 _RESIDUAL_SLOTS_FILE = (
     Path(__file__).resolve().parent / "tree_design" / "library" / "residuals.json")
 
-#: The one slot the catalogue deliberately leaves unvalued: "`00` defines the
-#: slot and states no number; every threshold in this product is injected." This
-#: is the injection site, and the number is `RESEARCH.md` §4's recommendation --
-#: zero for eight of the nine, and zero for Reference Clips too because its
-#: optional clip-kind subfolders did not ship (NJ-R3-2: "if they are dropped, 0
-#: there too"), which `residuals.json` confirms by carrying none.
+#: The FALLBACK for a template whose own slot carries no number: "`00` defines the
+#: slot and states no number; every threshold in this product is injected." The
+#: floor is `RESEARCH.md` §4's recommendation -- zero for eight of the nine.
+#:
+#: **NOT ZERO FOR REFERENCE CLIPS, and the comment that used to say otherwise was
+#: wrong about the file it cited.** It read "zero for Reference Clips too because
+#: its optional clip-kind subfolders did not ship (NJ-R3-2: 'if they are dropped,
+#: 0 there too')" -- but `residuals.json`'s `Reference Clips` entry carries six
+#: subfolder names (`Recipes`, `Products`, `Quotes`, `Inspiration`, `Articles`,
+#: `Code Snippets`), so NJ-R3-2's own condition for the floor did not hold. §4's
+#: recommendation for that case is `1`, "if its optional clip-kind subfolders
+#: ship" -- and RESEARCH.md is a proposal this deployment has not injected.
+#: NEEDS-JOSEPH: `residual_max_depth.reference_clips` wants `1`, not this floor.
 #:
 #: Zero means the home is flat. §7.3's homes are "safe, intentionally broad
 #: destinations" and `00` holds that "an isolated file should normally remain
@@ -4149,14 +4166,25 @@ RESIDUAL_MAX_DEPTH: int = 0
 
 
 def _residual_library() -> Mapping[str, ResidualTemplate]:
-    """The nine, with this deployment's one injected number.
+    """The nine, each at ITS OWN authored depth where the catalogue states one.
 
     Built, not enabled. §7.4: "These templates are not automatically created."
     Enabling one is `--residual`, and a run that names none gets none.
+
+    `104` §18.2 gap 14: this used to overwrite EVERY template's `max_permitted_
+    depth` with `RESIDUAL_MAX_DEPTH`, so a template `01-nine-templates.json`
+    authors a real number for would never see it -- 00:119 states the slot per
+    template, and `dict(values, max_permitted_depth=RESIDUAL_MAX_DEPTH)` made the
+    per-template slot unreachable by construction. Reading `values.get(...)`
+    first, with `RESIDUAL_MAX_DEPTH` only as the floor for a template that
+    authors none, is what `residuals.json` shipping none for any of the nine
+    today keeps byte-identical -- the fallback is exercised by all nine and
+    nothing changes until the catalogue ships a number.
     """
     raw = json.loads(_RESIDUAL_SLOTS_FILE.read_text(encoding="utf-8"))
     slot_values = {
-        name: dict(values, max_permitted_depth=RESIDUAL_MAX_DEPTH)
+        name: dict(values, max_permitted_depth=values.get(
+            "max_permitted_depth", RESIDUAL_MAX_DEPTH))
         for name, values in raw.items() if name in RESIDUAL_TEMPLATE_NAMES
     }
     return build_library(slot_values)
@@ -5294,6 +5322,27 @@ def _media_type_stage(conn, file_id: str, content_hash: str) -> tuple[str, ...]:
     return () if written is None else (written,)
 
 
+def _screen_deterministic_pass(conn: sqlite3.Connection, file_id: str,
+                               content_hash: str) -> tuple:
+    """`FactResolver`'s required `screen_metadata`, bound as its own docstring
+    specifies: read the version's observations, hand them to `facts.discount.
+    screen_metadata` with `METADATA_SCREEN`'s two catalogue collections, and write
+    the one `unresolved` row Done-means 22 requires before any producer runs.
+
+    `104` §18.2 gap 14. This was `lambda conn, file_id, content_hash: ()` -- a
+    survivor set nobody read (`resolve_steps` discards the return; the row is the
+    whole point) and, because it was called with no catalogue behind it, a row that
+    was never written. `_direct_stage`/`_rule_stage` already bind `METADATA_SCREEN`
+    for the field-level check (§2.3); this is the version-level check (§2.2) the
+    two producers do not make.
+    """
+    return _discount_screen_metadata(
+        conn, file_id=file_id, content_hash=content_hash,
+        observations=observations_for_version(conn, file_id, content_hash),
+        tool_producer_strings=METADATA_SCREEN.tool_producer_strings,
+        metadata_property_names=METADATA_SCREEN.metadata_property_names)
+
+
 def _resolver(*, tiers: frozenset[str], cache_key: str) -> FactResolver:
     """P6, deterministic. `llm` is `None`, which is a decision.
 
@@ -5316,7 +5365,7 @@ def _resolver(*, tiers: frozenset[str], cache_key: str) -> FactResolver:
             conn, file_id=file_id, content_hash=content_hash,
             analysis_tiers=tiers),
         cache_key_for=lambda file_id, content_hash: f"{cache_key}:{content_hash}",
-        screen_metadata=lambda conn, file_id, content_hash: ())
+        screen_metadata=_screen_deterministic_pass)
 
 
 class AFactRowNotRatified(RuntimeError):
@@ -9454,6 +9503,37 @@ def _protected_file_ids(conn: sqlite3.Connection) -> set[str]:
         "WHERE protected = 1 AND superseded_by IS NULL")}
 
 
+def _sensitive_groups(conn: sqlite3.Connection,
+                      group_ids: Sequence[str]) -> frozenset[str]:
+    """Which of these accepted groups hold at least one file P7 marked protected.
+
+    `104` §18.2 gap 14. `tree_design.candidates` reads `sensitive_group_ids` to
+    decide `sensitive_content_present` per branch card and this deployment named
+    `frozenset()` on the argument that "P7 classifies FILES and publishes no
+    group-level answer" -- true, and no reason to answer none: P10 ASKS and never
+    classifies (§5.2, §8.4), the same rule `handling_class_for_member` a few lines
+    below already honours per file. This is the same question over a group's own
+    INCLUDED membership -- P9's live `memberships` (`decision = INCLUDED`, not
+    superseded), read the way `confirmed_membership_index` already reads it,
+    joined against the same `classifications.protected` flag `_protected_file_ids`
+    and `_protected_among` read.
+
+    Scoped to `group_ids` (the plan version's ACCEPTED groups) rather than every
+    group P9 ever proposed: `design_authorities` is handed exactly that sequence
+    and a group nobody accepted has no branch card to mark.
+    """
+    if not group_ids:
+        return frozenset()
+    marks = ",".join("?" * len(group_ids))
+    rows = conn.execute(
+        f"SELECT DISTINCT m.group_id FROM memberships m "
+        f"JOIN classifications c ON c.file_id = m.file_id "
+        f"WHERE m.group_id IN ({marks}) AND m.superseded_by IS NULL "
+        f"AND m.decision = ? AND c.protected = 1 AND c.superseded_by IS NULL",
+        (*group_ids, INCLUDED))
+    return frozenset(row["group_id"] for row in rows)
+
+
 def _protected_file_count(conn: sqlite3.Connection, scan_run_id: str) -> int:
     """How many of THIS scan's files P7 marked protected. `104` R-J.
 
@@ -11710,11 +11790,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 branch.schema for branch in (
                     partition_cell[0].branches if partition_cell else ()))
                 or (schema,)),
-            # Which accepted groups hold sensitive material. P7 classifies FILES
-            # and publishes no group-level answer, so this deployment names none
-            # and every group is offered; the per-file floors below are what keep
-            # a sensitive file from landing somewhere weaker.
-            sensitive_group_ids=frozenset(),
+            # Which accepted groups hold sensitive material. `104` §18.2 gap 14:
+            # this named `frozenset()` on the true premise that P7 classifies
+            # FILES and publishes no group-level answer, and missed that P10 asks
+            # rather than classifies -- `_sensitive_groups` asks the same
+            # `classifications.protected` flag the per-file floors below already
+            # read, over this plan version's own accepted groups.
+            sensitive_group_ids=_sensitive_groups(conn, accepted),
             # §5.2's privacy ordering. P7 publishes HANDLING_CLASSES as a SET and
             # no rank, so one is chosen here: everything ranks equal, which is the
             # only ordering that cannot give a branch a weaker floor than one of
@@ -11876,7 +11958,20 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             residual_library=residual_library,
             residual_choices=residual_choices,
             residual_configuration=residual_configuration,
-            residual_handling_class=lambda name: ORDINARY_CLASS,
+            # `104` §18.2 gap 14, register R-89. This named `ORDINARY_CLASS` for
+            # every one of the nine, so Protected Records -- the one template
+            # catalogue 09 authors to hold ONLY P7-protected files
+            # (`accepted_evidence_patterns`: "p7-protected-state", "required-
+            # isolation", "deterministic-only" -- no dossier is ever built to
+            # decide membership here, it is decided off P7's flag alone) -- built
+            # under the same ordinary class as every other residual home.
+            # `PROTECTED_RECORDS` is §7.3's own fixed name for it, published
+            # by `tree_design.vocabulary` and not invented here; no OTHER
+            # template's membership rule makes this promise, so name equality
+            # against the one template the catalogue defines this way is the
+            # producer, not a shortcut around one.
+            residual_handling_class=lambda name: (
+                PROTECTED_CLASS if name == PROTECTED_RECORDS else ORDINARY_CLASS),
             # §5.8, for a residual home. `shallow-by-choice` is the truthful
             # answer and not a convenience: `RESIDUAL_MAX_DEPTH` is zero, so
             # the home is flat DELIBERATELY, and `refine-later` would say the

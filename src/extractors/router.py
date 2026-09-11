@@ -42,7 +42,10 @@ from typing import Callable
 #: and carries no other version, so without this bump a person reading two rows for
 #: one file could not tell whether the FILE changed or the product did, which is the
 #: §3.4 ambiguity the paragraph above already refuses.
-VERSION = "0.4.0"
+#:
+#: 0.5.0 IS a table change: `104` §18.2 gap 14 item 2 adds the tar archive family
+#: (seven tokens, `"archive"` family, `archive.manifest` handler) beside `zip`.
+VERSION = "0.5.0"
 
 #: Section 2.9's eleven bullets and section 2.6's images, as (format token ->
 #: source_type candidates). The value is a TUPLE because section 2.9 lists two
@@ -206,8 +209,33 @@ SOURCE_TYPE_BY_FORMAT: dict[str, tuple[str, ...]] = {
     "bmp": ("image",),
     "heif": ("image",),     # HEIC's own container; the HEIC sentence is the nearest
     "avif": ("image",),     # design text either of these two has
-    # Compressed archives - "Yield their manifests without extraction."
+    # Compressed archives - "Yield their manifests without extraction." 00:35
+    # names no format, `zip` included; the standard library reads it and always
+    # has, so it was the first (and, until now, only) archive family member.
     "zip": ("archive",),
+    # `104` §18.2 gap 14, item 2: THE SAME SENTENCE, for the other archive family
+    # the standard library reads without a new dependency. `tarfile` is in the
+    # standard library and reads all four (plain, gzip, bzip2, xz) the way
+    # `zipfile` reads `zip` -- listing member names from the header, never
+    # extracting a byte (`readers/archive_tarfile.py`). `tar`/`tgz`/`tbz2`/`txz`
+    # are what a real declared extension carries; `tar.gz`/`tar.bz2`/`tar.xz` are
+    # reachable ONLY through `readers.signatures`' byte-level check -- `Path.
+    # suffix` never returns a double extension, so a file named `notes.tar.gz`
+    # declares `gz`, and the router only sees `tar.gz` when the bytes have
+    # already been opened and confirmed to be a valid tar (gap 21's "decided by
+    # bytes, never by extension alone"). `7z` and `rar` have no standard-library
+    # reader and are deliberately NOT keys here: a key would route them to
+    # `archive.manifest`, which would open them, fail, and report `malformed
+    # archive` -- the wrong §2.4 outcome for a format nobody shipped a reader
+    # for. They stay `unsupported` by the same omission every other unlisted
+    # format already gets.
+    "tar": ("archive",),
+    "tgz": ("archive",),
+    "tar.gz": ("archive",),
+    "tbz2": ("archive",),
+    "tar.bz2": ("archive",),
+    "txz": ("archive",),
+    "tar.xz": ("archive",),
     # Disk images, executables, databases, encrypted containers, damaged files,
     # unknown binary. Section 2.9 names no format; the SPEC's fixtures name two.
     "dmg": ("opaque_binary",),

@@ -142,6 +142,65 @@ def test_a_truncated_zip_is_a_zip_and_not_an_unknown(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
+# the tar family -- `104` §18.2 gap 14, item 2 / gap 21's rule applied a second
+# time: decided by bytes, never by extension
+# --------------------------------------------------------------------------- #
+
+def tarred(tmp_path: Path, name: str, *, mode: str = "w", members: dict) -> Path:
+    import tarfile as _tarfile
+    import io
+
+    path = tmp_path / name
+    with _tarfile.open(path, mode) as archive:
+        for member, payload in members.items():
+            data = payload.encode() if isinstance(payload, str) else payload
+            info = _tarfile.TarInfo(name=member)
+            info.size = len(data)
+            archive.addfile(info, io.BytesIO(data))
+    return path
+
+
+@pytest.mark.parametrize("mode,extension,token", [
+    ("w", ".dat", "tar"),           # plain tar, no extension the router knows
+    ("w:gz", ".txt", "tar.gz"),     # a misleading extension -- gap 21's own shape
+    ("w:bz2", "", "tar.bz2"),       # no extension at all
+    ("w:xz", ".bin", "tar.xz"),
+])
+def test_a_tar_family_member_is_told_apart_by_its_own_bytes(
+        tmp_path, mode, extension, token):
+    """Plain tar's `ustar` magic and gzip/bzip2/xz's own compression magic each
+    name the family positively, exactly as `PK\\x03\\x04` names ZIP -- and,
+    exactly as a `.numbers` bundle or a PDF wearing a `.txt` extension above,
+    the declared extension is not consulted first."""
+    path = tarred(tmp_path, f"payload{extension}", mode=mode,
+                  members={"a.txt": "hello"})
+    assert detect(path) == token
+
+
+def test_a_bare_compressed_file_that_is_not_a_tar_is_not_claimed_as_one(tmp_path):
+    """gzip/bzip2/xz magic identifies the COMPRESSION, not the payload -- a lone
+    `.gz` of a text file opens exactly the same way a `.tar.gz` does and is not a
+    tar. Claiming it anyway would send an ordinary compressed document to §2.5's
+    manifest handler, which has nothing to list."""
+    import gzip
+
+    path = tmp_path / "notes.gz"
+    with gzip.open(path, "wb") as handle:
+        handle.write(b"just some prose, never packed into a tar")
+    assert detect(path) is None
+
+
+def test_a_truncated_tar_is_still_not_claimed_without_ustar(tmp_path):
+    """The tar twin of the truncated-ZIP test above, and the asymmetry with it is
+    the point: ZIP's four-byte magic is unconditional, so a truncated ZIP is still
+    `zip`. A tar has no equivalent unconditional signature at offset zero -- only
+    `ustar` at offset 257 -- so bytes with neither that marker nor a compression
+    magic are not a tar and fall back to the declared extension, same as any other
+    signature this module does not recognise."""
+    assert detect(written(tmp_path, "broken.tar", b"not a tar header at all")) is None
+
+
+# --------------------------------------------------------------------------- #
 # text formats that identify themselves
 # --------------------------------------------------------------------------- #
 

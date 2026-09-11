@@ -9,6 +9,7 @@ whole purpose is to tell you what to pass to `--situation` cannot itself require
 from __future__ import annotations
 
 import io
+import json
 import shlex
 import sqlite3
 import pathlib
@@ -1252,6 +1253,118 @@ def test_the_frozen_tree_says_who_decided_how_deep_each_branch_goes(tmp_path):
             f"{row['refinement_reason']!r}")
 
 
+T0 = "2026-09-11T00:00:00Z"
+
+
+def _grouped(conn, group_id: str, file_ids) -> None:
+    """One accepted-shaped P9 group over real `memberships` rows, INCLUDED.
+
+    Minimal by design: `record_group`/`record_membership` are P9's own writers,
+    so a row `cli._sensitive_groups` reads is the same row P9 would have written,
+    not a hand-rolled dict a query could agree with by coincidence.
+    """
+    from grouping.records import AnchorFact, Group, Membership, Support
+    from grouping.store import record_group, record_membership
+    from grouping.vocabulary import (
+        COHERENT, DIRECT_ANCHOR, ENGINE, INCLUDED, NOT_FLAGGED, NO_SENSITIVITY,
+        RULES, SHARED_VALIDATED_FACT, STRONGLY_IDENTIFIED_FILE, SUPPORTED,
+    )
+
+    record_group(conn, Group(
+        group_id=group_id, seed_ref=f"seed_{group_id}",
+        seed_kind=STRONGLY_IDENTIFIED_FILE, proposed_basis="school = Test",
+        anchor_facts=(AnchorFact(
+            field="school", value="Test", file_ids=tuple(file_ids),
+            reliability_state="validated", observation_key="obs_1",
+            observation_keys=tuple(file_ids)),),
+        pre_model_signals={}, anchor_count=1, coherence_verdict=COHERENT,
+        coherence_citations=("obs_1",), group_category="academic",
+        display_label=group_id, label_source=ENGINE, conflicts=(),
+        stop_rule_hits=(), state=SUPPORTED, sensitivity_state=NO_SENSITIVITY,
+        dossier_id=None, llm_response_ref=None, validation_verdict_ref=None,
+        created_by=RULES, created_at=T0))
+    for file_id in file_ids:
+        record_membership(conn, Membership(
+            membership_id=f"m_{file_id}", group_id=group_id, file_id=file_id,
+            content_hash=f"h_{file_id}", basis=DIRECT_ANCHOR, decision=INCLUDED,
+            decision_source=RULES,
+            support=(Support(support_kind=SHARED_VALIDATED_FACT,
+                             observation_key="obs_1", quote_or_field="school",
+                             location="heading", edge_ref=None),),
+            insufficient_evidence=False, insufficiency_statement=None,
+            conflicts=(), outlier_flag=NOT_FLAGGED, validation_verdict_ref=None,
+            created_at=T0))
+
+
+def _classify(conn, file_id: str, *, protected: bool) -> None:
+    from privacy.classification import ClassificationRecord
+    from privacy.classification_store import ClassificationStore
+    from privacy.vocabulary import USER
+
+    # `USER` rather than `detector`: `_EVIDENCE_REQUIRED_BASES` demands a real P4
+    # `observation_key` for a detector's own classification, and this test is
+    # about `cli._sensitive_groups` reading the `protected` flag, not about
+    # constructing a P4 citation. A person's own reclassification carries no such
+    # requirement (§8.4 is about a DETECTOR's claim, not the owner's).
+    ClassificationStore(conn).write(ClassificationRecord(
+        file_id=file_id, content_hash=f"h_{file_id}",
+        handling_class=cli.PROTECTED_CLASS if protected else cli.ORDINARY_CLASS,
+        protected=protected, basis=USER, evidence_refs=(),
+        reliability_state="direct", observed_at=T0))
+
+
+def test_sensitive_groups_reads_p7s_protected_flag_over_a_groups_own_members(conn):
+    """`104` §18.2 gap 14. `design_authorities` named `sensitive_group_ids=
+    frozenset()` on the true premise that "P7 classifies FILES and publishes no
+    group-level answer" and missed that P10 ASKS rather than classifies (§5.2,
+    §8.4) -- the same rule the per-file handling-class floors a few lines below
+    already honour. `cli._sensitive_groups` asks `classifications.protected` over
+    a group's own live (INCLUDED, not superseded) membership, exactly the way
+    `_protected_among` already asks it over an arbitrary file list.
+    """
+    from grouping.schema import create_grouping_schema
+    from privacy.schema import create_privacy_schema
+
+    create_grouping_schema(conn)
+    create_privacy_schema(conn)
+
+    _grouped(conn, "g_clean", ("f1", "f2"))
+    _grouped(conn, "g_dirty", ("f3",))
+    _classify(conn, "f1", protected=False)
+    _classify(conn, "f2", protected=False)
+    _classify(conn, "f3", protected=True)
+
+    assert cli._sensitive_groups(conn, ["g_clean", "g_dirty"]) == frozenset(
+        {"g_dirty"})
+    assert cli._sensitive_groups(conn, ["g_clean"]) == frozenset()
+    # Scoped to the ids handed in: a protected group nobody accepted this plan
+    # version must not leak sensitivity onto an unrelated one.
+    assert cli._sensitive_groups(conn, []) == frozenset()
+
+
+def test_a_template_with_max_depth_authored_builds_to_that_depth(tmp_path, monkeypatch):
+    """`104` §18.2 gap 14. `_residual_library` used to write `dict(values,
+    max_permitted_depth=RESIDUAL_MAX_DEPTH)` over every one of the nine, so a
+    template `01-nine-templates.json` authored a real number for could never see
+    it -- 00:119 states the slot per template and the constant made the slot
+    unreachable. `residuals.json` ships none of the nine with a number today, so
+    this test is the only place the authored path is exercised: a fixture copy of
+    the shipped file with one template's slot filled in.
+    """
+    raw = json.loads(cli._RESIDUAL_SLOTS_FILE.read_text(encoding="utf-8"))
+    raw["Reading Inbox"] = dict(raw["Reading Inbox"], max_permitted_depth=2)
+    fixture = tmp_path / "residuals-with-one-authored-depth.json"
+    fixture.write_text(json.dumps(raw), encoding="utf-8")
+    monkeypatch.setattr(cli, "_RESIDUAL_SLOTS_FILE", fixture)
+
+    library = cli._residual_library()
+
+    assert library["Reading Inbox"].max_permitted_depth == 2
+    # The eight the fixture did not touch keep today's floor -- nothing about an
+    # authored neighbour changes a template that authored none of its own.
+    assert library["Review Later"].max_permitted_depth == cli.RESIDUAL_MAX_DEPTH
+
+
 def test_the_residual_home_says_who_keeps_it_flat(tmp_path):
     """The other `shallow-by-choice` this command writes, and the one that stays.
 
@@ -1291,6 +1404,38 @@ def test_the_residual_home_says_who_keeps_it_flat(tmp_path):
         assert home["refinement_reason"].startswith(actor), (
             "the residual home's flatness is the product's design and the "
             f"record does not say whose it is: {home['refinement_reason']!r}")
+
+
+def test_the_protected_records_residual_home_carries_the_protected_class(tmp_path):
+    """`104` §18.2 gap 14, register R-89. `design_decisions` named
+    `residual_handling_class=lambda name: ORDINARY_CLASS` for every one of the
+    nine templates, so `--residual "Protected Records"` built its node under the
+    same ordinary class as `--residual "Review Later"` -- catalogue 09 authors
+    Protected Records to hold ONLY P7-protected material and P10 said otherwise
+    on its own frozen node. Read off `tree_nodes.handling_class`, which is what
+    §5.2's privacy ordering and §8.4's placement floor actually consult, not the
+    tuple `design_decisions` builds.
+    """
+    import sqlite3
+
+    corpus = _uneven_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    code, printed = _run([str(corpus), "--situation", "academic.coursework",
+                          "--label", "Coursework", "--user", "jy",
+                          "--residual", "Protected Records",
+                          "--database", str(database)])
+    assert code == 0, printed
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    homes = [dict(r) for r in conn.execute(
+        "SELECT display_label, handling_class "
+        "FROM tree_nodes WHERE display_label = 'Protected Records'")]
+    conn.close()
+
+    assert homes, "the residual home this run enabled is not in the frozen tree"
+    for home in homes:
+        assert home["handling_class"] == cli.PROTECTED_CLASS, home
 
 
 def test_the_tree_record_does_not_claim_a_person_saw_a_canvas(tmp_path):
