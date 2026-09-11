@@ -857,17 +857,9 @@ def design_tree(conn: sqlite3.Connection, *,
         branches.append(design)
 
     default_parent = branches[0].origin_node_id
-    for answer in decisions.scoped_general:
-        version = _apply(conn, authorities, decisions, action=_Action(
-            review_action_id=f"ra_general_{answer.parent_origin_id or default_parent}",
-            surface=decisions.surface,
-            subject_ref=answer.parent_origin_id or default_parent,
-            plan_version=version, action=ADD_SCOPED_GENERAL,
-            correction_scope="node",
-            presented_state_ref=f"ps_{answer.parent_origin_id or default_parent}",
-            user_id=decisions.user_id, observed_at=decisions.created_at,
-            payload={"display_label": answer.display_label}))
-        versions.append(version)
+    version = _add_scoped_generals(conn, authorities, decisions, version=version,
+                                   default_parent=default_parent,
+                                   versions=versions)
 
     if decisions.shared_material is not None:
         answer = decisions.shared_material
@@ -921,6 +913,89 @@ def design_tree(conn: sqlite3.Connection, *,
         tree=frozen_tree(conn, plan_version=version),
         plan_version_ids=tuple(versions), branches=tuple(branches),
         protected_areas=areas)
+
+
+def _add_scoped_generals(conn, authorities, decisions, *, version: str,
+                         default_parent: str, versions: list[str]) -> str:
+    """`00`:99's General into the version chain, one review action per parent.
+
+    Factored out of `design_tree` because gap 11c asks for the SAME actions at a
+    second moment -- after the placement pass has proved which parents want one --
+    and two spellings of one gesture would be two answers to "what does adding a
+    General record".
+    """
+    for answer in decisions.scoped_general:
+        parent = answer.parent_origin_id or default_parent
+        version = _apply(conn, authorities, decisions, action=_Action(
+            review_action_id=f"ra_general_{parent}",
+            surface=decisions.surface,
+            subject_ref=parent,
+            plan_version=version, action=ADD_SCOPED_GENERAL,
+            correction_scope="node",
+            presented_state_ref=f"ps_{parent}",
+            user_id=decisions.user_id, observed_at=decisions.created_at,
+            payload={"display_label": answer.display_label}))
+        versions.append(version)
+    return version
+
+
+def mint_scoped_generals(conn: sqlite3.Connection, *,
+                         authorities: TreeDesignAuthorities,
+                         decisions: TreeDesignDecisions,
+                         tree: TreeDesignResult) -> TreeDesignResult:
+    """`00`:99's General, minted AFTER placement proved a file wants one.
+
+    `104` §18.2 gap 11c. The owner's ruling of 10 Sep is that the General is minted
+    on demand -- "only under a parent that actually has a file whose accepted facts
+    support the parent and no leaf, never under every branch" -- and the demand is
+    a placement outcome (`placement.versions.scoped_general_demand`), which the
+    tree pass cannot see because it runs first. So the chain continues: the frozen
+    version the files were placed against gains one review action per parent in
+    demand, exactly the action `design_tree` applies when a person asks for one at
+    the canvas, and the last version is frozen again.
+
+    **THE NODE IS A PROPOSAL LIKE ANY OTHER.** It enters the plan and nothing
+    else: P12's apply is what creates a folder on disk, and a General with no file
+    in it would be created by neither, because a parent nothing demanded gets no
+    action here at all.
+
+    Returns the result unchanged, having written NOTHING, when no parent is in
+    demand. That is the r37 case and the common one -- a corpus every file of
+    which settles its levels asks for no catch-all, and a run that opened a draft
+    to record that would show the person a new plan version that changed nothing.
+    """
+    if not decisions.scoped_general:
+        return tree
+    groups, _folders, areas, _moves = _upstream(conn, authorities, decisions)
+    versions: list[str] = []
+    version = _add_scoped_generals(
+        conn, authorities, decisions, version=tree.tree.plan_version_id,
+        default_parent=tree.branches[0].origin_node_id, versions=versions)
+    # Rebuilt for the new version rather than carried: §6.1's profiles are keyed
+    # on `node_id` and every one of them was just re-minted, so the frozen
+    # bundle's profiles would name nodes this version does not contain.
+    profiles = build_profiles(
+        conn, plan_version_id=version,
+        groups_by_id={group.group_id: group for group in groups},
+        document_types_by_node={}, anchor_excerpts_by_node={},
+        user_edits_by_node={}, node_scoped_rejections={})
+    freeze(
+        conn, plan_version_id=version, created_at=decisions.created_at,
+        user_id=decisions.user_id, surface=decisions.surface,
+        component_version=decisions.component_version,
+        residual_configuration=decisions.residual_configuration,
+        approved_branch_ids=tuple(
+            node.node_id for node in nodes_for_version(conn, version)
+            if node.accepts_placement),
+        profiles=profiles, protected_areas=areas,
+        catalogue_release_id=getattr(authorities.catalogue, "release_id", None),
+        # Read off the version this one descends from. The recipes that built the
+        # tree are the same recipes; re-deriving them would mean re-running §5's
+        # composition over a tree that is already designed.
+        template_versions=tree.tree.freeze_record.template_versions)
+    return dataclasses.replace(
+        tree, tree=frozen_tree(conn, plan_version=version),
+        plan_version_ids=tree.plan_version_ids + tuple(versions))
 
 
 def _open_first_draft(conn, authorities, decisions, cross_folder: bool) -> str:
