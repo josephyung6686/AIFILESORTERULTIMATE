@@ -373,7 +373,7 @@ from tree_design.template_schema import (
 from model_template import (
     file_fits_its_situation, file_template_request_for, template_request_for,
 )
-from tree_design.templates import CompositionConflict
+from tree_design.templates import CompositionConflict, MalformedTemplateRecord
 from scan_agent.selection import selection_candidate_roots
 from tree_design.upstream import (
     AnchorAgreement, UpstreamUnavailable, existing_folders,
@@ -406,7 +406,10 @@ from review_run.progress import progress_lines
 # states; this run needs the rule over a set of buckets P13 knows nothing about, so
 # the function is imported directly and nothing in P13 is widened to hold them.
 from database_agent.events import CORRECTION_SCOPES
-from review_gestures import collect_set_sends, record_set_presentations
+from review_gestures import (
+    LEVEL_KEY_SEPARATOR, LevelOnScreen, collect_level_relabel, collect_set_sends,
+    record_level_presentations, record_set_presentations,
+)
 from review_surface.collect import (
     BulkMembersRequired, PresentationRequired, ProtectedContainerHasNoAction,
     ScopeNotPresented,
@@ -429,8 +432,12 @@ from evidence_shape.store import get_observation, runs_for_content
 from tree_design.residuals import (
     ResidualChoice, ResidualTemplate, build_library,
 )
+from tree_design.user_edits import (
+    UserEditRefused, UserLevelEdit, record_user_level_edit,
+)
 from tree_design.vocabulary import (
-    ENABLE, MANDATORY_REVIEW, PHYSICAL_DESTINATION, REFINE_LATER, REFINED,
+    ACTION_RENAMED, ENABLE, MANDATORY_REVIEW, PHYSICAL_DESTINATION,
+    REFINE_LATER, REFINED,
     RESIDUAL_TEMPLATE_NAMES, SHALLOW_BY_CHOICE, SURFACE_UNATTENDED,
 )
 
@@ -8457,6 +8464,22 @@ def _validate_residuals(names: Sequence[str]) -> tuple[str, ...]:
 RESIDUAL_SEND_SCOPE: str = "node"
 assert RESIDUAL_SEND_SCOPE in CORRECTION_SCOPES
 
+#: §8.7's scope for the `--rename-level` gesture, chosen here for the same reason
+#: the one above is and argued from `64` §3 rather than picked as the nearest fit.
+#: What the person says is *"whatever level shows my `subject` field in an
+#: `academic` context, I call it Class"* -- a sentence about one SCHEMA, which is
+#: what `uses_schema` names and what `domain` is the scope of.
+#:
+#: The other five are each wrong in a way `64` rules out by name. `node` expires:
+#: §8.8 mints new node ids per plan version, and §3 refuses that key outright.
+#: `template` is the PACKAGING, which is precisely what a library upgrade changes
+#: and what §3 refuses second. `corpus` would claim the person renamed the level
+#: in every context they have, when §3's own consequence is that renaming *Course*
+#: to *Class* in an academic context "renames nothing in a research context".
+#: `file` and `group` are about material, and this gesture is about a name.
+LEVEL_RELABEL_SCOPE: str = "domain"
+assert LEVEL_RELABEL_SCOPE in CORRECTION_SCOPES
+
 
 def _parse_sends(raw: Sequence[str]) -> Mapping[str, str]:
     """`--send-set "SET=AREA"`, split the way `--answer` splits its own pair.
@@ -14664,6 +14687,81 @@ def apply_renames(conn: sqlite3.Connection, renames: Sequence[str], *,
             ) from refusal
 
 
+class RelabelRefused(NotConfigured):
+    """`--rename-level` was not a level key, or named one no run has shown."""
+
+
+def apply_level_relabels(conn: sqlite3.Connection, relabels: Sequence[str], *,
+                         user_id: str, observed_at: str,
+                         mint_action_id) -> None:
+    """`--rename-level SCHEMA:ROLE:FIELD=NEW`: what I call this level.
+
+    `104` R-41, and the gesture `64` was written for. The overlay has been
+    readable and appliable since `64` landed -- `design_tree` reads
+    `user_level_edits` and routing applies them as its last step -- and
+    `record_user_level_edit` had no caller, so the edit was "not honoured because
+    it cannot be made". This is the caller.
+
+    **The whole triple, because the triple is the key** (`64` §3). A level is not
+    named by a node id, which §8.8 mints afresh per plan version, nor by a
+    template version, which is the packaging an upgrade replaces. It is named by
+    the vocabulary -- schema, role, field -- and the report prints exactly the
+    string this reads, so the line the person pastes is the line that works.
+
+    **Collected as a `review_action` FIRST, then stored as the user's fact.**
+    `81` §13.1: a canvas gesture travels as a `review_action` so one history
+    explains every change. P13's refusals -- a level no run has shown, a scope
+    nobody chose -- land in front of the overlay write, which is the order
+    `--send-set` established and for its reason: a refusal that arrives after the
+    write leaves a stored row saying the person renamed something they were told
+    they had not.
+
+    **`proposed_label` is `None` here and that is not the field going unfilled.**
+    §5b wants "what the library called it at the moment the user overrode it", and
+    the composition is what knows that -- `apply_user_level_edits` fills it in
+    from the dimension it lands on, per release, which is the version of the fact
+    that can still be true after an upgrade. A label copied off the last screen
+    into the stored row would be a second, staler answer to the same question.
+    """
+    for raw in relabels:
+        level_key, sep, label = raw.partition("=")
+        # Unpacked rather than counted, so the shape of the key is stated by the
+        # names it binds and this function holds no number of its own.
+        try:
+            schema, role_ref, field_ref = level_key.split(LEVEL_KEY_SEPARATOR)
+        except ValueError:
+            schema = role_ref = field_ref = ""
+        if not sep or not label.strip() or not all(
+                (schema, role_ref, field_ref)):
+            raise RelabelRefused(
+                f"{raw!r} is not a level. The form is "
+                "`--rename-level <schema>:<role>:<field>=<what to call it>`, "
+                "naming a level exactly as the report printed it -- for example "
+                "`--rename-level 'academic:subject_anchor:subject=Class'`.")
+        try:
+            collect_level_relabel(
+                conn, level_key=level_key, display_label=label,
+                action_id=mint_action_id(),
+                correction_scope=LEVEL_RELABEL_SCOPE, user_id=user_id,
+                component_version=COMPONENT_VERSION, acted_at=observed_at)
+            record_user_level_edit(conn, UserLevelEdit(
+                uses_schema=schema, role_ref=role_ref, field_ref=field_ref,
+                action=ACTION_RENAMED, display_label=label,
+                proposed_label=None, user_id=user_id,
+                recorded_at=observed_at))
+        except (PresentationRequired, ProtectedContainerHasNoAction,
+                ScopeNotPresented, BulkMembersRequired, UserEditRefused,
+                MalformedTemplateRecord) as refusal:
+            # P13's and P10's OWN SENTENCES, re-raised as this command's refusal
+            # rather than paraphrased. The commonest of them is the one a person
+            # will actually meet: a triple no run has printed has no recorded
+            # presentation, and §8.7 refuses a gesture that carries no record of
+            # what was shown. `--rename-level` is a second-run gesture for the
+            # same reason `--reject` is -- there is nothing to rename until the
+            # product has proposed something.
+            raise RelabelRefused(str(refusal)) from refusal
+
+
 class AnswerRefused(NotConfigured):
     """`--answer` named something this database has never asked about."""
 
@@ -15702,8 +15800,65 @@ def duplicate_families(conn: sqlite3.Connection,
             for family, members in families.items() if len(members) > 1}
 
 
+def levels_on_screen(result: ProductionRun) -> tuple[LevelOnScreen, ...]:
+    """`64` §3's triple for every level this run's tree is named by.
+
+    `104` R-41's half (a). The key a rename is stored under has to be a key the
+    person can READ off the screen and type back, and until now the only thing
+    printed about a level was the field ref on the nesting chain -- half of a
+    three-part key, and the half that says least.
+
+    Read off the composition each branch was actually built from, never
+    re-derived: `CompositionCandidate.level_keys` is the same `binding_schemas`
+    mapping `apply_user_level_edits` is handed, so a triple this prints is a
+    triple that overlay honours. Deriving it a second way here is how a screen
+    comes to offer a gesture the writer refuses.
+
+    ONE ENTRY PER TRIPLE across the whole tree, because that is what the overlay
+    stores: two branches on one schema share a level, and printing it twice would
+    invite two renames of one thing.
+
+    IN NESTING ORDER, `order_index`, and not alphabetically. The block sits under
+    the tree and is read against it, and a person who has just read folders from
+    the outside in should meet the levels the same way round. The key breaks a tie,
+    so two runs of one folder print the same block in the same order.
+
+    **Every level the composition RESOLVED, including one this corpus did not
+    divide at.** §5.5 measures a level and does not build it when the files do not
+    divide there, and that is a fact about this run's files rather than about the
+    vocabulary: the name is still the name, and the day a second course arrives the
+    level appears wearing whatever the person called it. Listing only the built
+    ones would make the gesture available or not by accident of what is on the
+    disk this week.
+
+    A branch the person kept whole has no composition and contributes nothing --
+    there are no levels under it to name.
+    """
+    levels: dict[str, LevelOnScreen] = {}
+    depth: dict[str, int] = {}
+    for branch in result.tree.branches:
+        composition = branch.composition
+        if composition is None:
+            continue
+        by_pair = {(dimension.role_ref, dimension.field_ref): dimension
+                   for dimension in composition.resolved_dimensions}
+        for schema, role_ref, field_ref in composition.level_keys:
+            dimension = by_pair.get((role_ref, field_ref))
+            if dimension is None:
+                continue
+            level = LevelOnScreen(
+                uses_schema=schema, role_ref=role_ref, field_ref=field_ref,
+                display_label=dimension.display_label,
+                proposed_label=dimension.proposed_label)
+            levels.setdefault(level.key(), level)
+            depth.setdefault(level.key(), dimension.order_index)
+    return tuple(levels[key]
+                 for key in sorted(levels, key=lambda k: (depth[k], k)))
+
+
 def report(result: ProductionRun, names: dict[str, str], *, out=None,
            questions: Sequence = (), set_aside: Sequence = (),
+           levels: Sequence[LevelOnScreen] = (),
            role_moment: Sequence[str] = (),
            roles_held: Sequence[str] = (),
            invite_freeze: bool = False,
@@ -15812,6 +15967,39 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             draw(node.node_id, depth + 1)
 
     draw(None, 0)
+
+    # `104` R-41(a). WHAT EACH LEVEL OF THAT TREE IS, named by the key a rename
+    # is stored under (`64` §3). The tree above prints folder names -- values --
+    # and says nothing about the levels those values fill, so a person who reads
+    # "Course" on a folder cannot tell whether the product will call the level
+    # Course again next time, and had no string to name it by if they disagreed.
+    #
+    # The triple is printed in full and not shortened to the field. It is the
+    # whole key -- a rename is per-schema (`64` §3: renaming Course to Class in
+    # an academic context renames nothing in a research context) -- and a short
+    # form the flag then could not read is `84` §6's own defect.
+    # "each level of this plan" and NOT "these folders are named by". §5.5
+    # measures a level its files do not divide at and does not build it, so some
+    # of these name no folder above -- and a heading claiming they did would be
+    # false about a real level on a real run, which is the class of sentence
+    # `refinement_for` was rewritten to stop this file producing.
+    if levels:
+        print("\nWhat each level of this plan is called:", file=out)
+        for level in levels:
+            # The library's own proposal, kept beside the person's word rather
+            # than replaced by it (`64` §5b): a proposal that vanished cannot be
+            # offered back, and an upgrade could not be explained.
+            was = ("" if level.proposed_label is None
+                   else f"  (this release calls it {level.proposed_label})")
+            print(f"  {level.display_label} -- {level.key()}{was}", file=out)
+        # NAMING A LEVEL THIS RUN ACTUALLY HAS. An invented example would be a
+        # line the product told somebody to paste and the flag would refuse.
+        print(_wrapped(
+            f"To call one of them something else: --rename-level "
+            f"'{levels[0].key()}=Your word'. It is kept against what the level "
+            "means rather than against these folders, so a re-shaped tree and a "
+            "library update both keep it, and it changes nothing under a "
+            "different kind of material.", indent="  "), file=out)
 
     # The residual areas this plan actually has, so the held-for-review line can
     # name what to type instead of leaving the person to guess it. `getattr` for
@@ -17022,6 +17210,19 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "them because a value may contain an `=`. Can be given more than "
              "once.")
     parser.add_argument(
+        "--rename-level", action="append", default=[],
+        metavar="SCHEMA:ROLE:FIELD=NAME",
+        help="call one of the levels your folders are named by something else, "
+             "e.g. --rename-level "
+             "'academic:subject_anchor:subject=Class'. Name the level exactly as "
+             "the report printed it. Your word outlives the run: it is kept "
+             "against the level's meaning rather than against these folders, so "
+             "a later run, a re-shaped tree and a library update all keep it, "
+             "and what this release would have called it is recorded beside it. "
+             "It applies in that context only -- renaming a level here renames "
+             "nothing under a different kind of material. Nothing moves. Can be "
+             "given more than once.")
+    parser.add_argument(
         "--residual", action="append", default=[], metavar="NAME",
         help="enable one of §7.3's residual areas as a destination in this "
              "plan, e.g. --residual \"Reading Inbox\". These are the homes for "
@@ -17364,6 +17565,24 @@ def main(argv: Sequence[str] | None = None, *, out=None,
             _bootstrap(conn)
             apply_renames(conn, args.rename, user_id=args.user,
                           observed_at=now())
+        # BESIDE them and before the run, for their reason. `--rename` is about a
+        # VALUE the model read out of a file; this is about the NAME OF A LEVEL
+        # the library proposed, which is a different question asked on the same
+        # screen -- and a person who answers both in one command should see both
+        # on this run's tree.
+        if args.rename_level:
+            _bootstrap(conn)
+            relabels = count()
+
+            def mint_relabel_action_id() -> str:
+                # `mint_send_action_id`'s rule: an action id, an approval id and
+                # a plan id are three things a person may be asked about later,
+                # and the prefix is what says which one a bare uuid is.
+                return f"level-{uuid.uuid4().hex}:{next(relabels)}"
+
+            apply_level_relabels(
+                conn, args.rename_level, user_id=args.user, observed_at=now(),
+                mint_action_id=mint_relabel_action_id)
         if args.explain:
             _bootstrap(conn)
             for question_id in args.explain:
@@ -17478,9 +17697,25 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # place where new facts are discovered.
     held = live_roles(conn)
     _landscape = high_level_folders(directory, also_read, candidate_roots)
+    # `104` R-41. The levels are read off the run and RECORDED AS SHOWN before
+    # the report prints them, because the gesture that renames one is typed at
+    # the next invocation and P13 refuses a gesture with no recorded
+    # presentation. `review_gestures`' own docstring names the limitation this
+    # shares with the residual sets -- the row is written a moment before the
+    # screen rather than by the screen -- and the honest fix is the same one, and
+    # is owed there.
+    _levels = levels_on_screen(result)
+    _level_version = result.tree.tree.plan_version_id
+    record_level_presentations(
+        conn, levels=_levels, plan_version=_level_version,
+        session_id=_level_version,
+        settings=display_policy(conn, plan_version=_level_version),
+        user_id=args.user, component_version=COMPONENT_VERSION,
+        rendered_at=now())
     shown = report(result, file_names(conn, directory, *also_read), out=out,
                    questions=open_now,
                    set_aside=set_aside_questions(conn),
+                   levels=_levels,
                    role_moment=role_moment_lines(blocked=open_now,
                                                  already_declared=held),
                    roles_held=role_panel_lines(held),

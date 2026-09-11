@@ -155,6 +155,20 @@ class CompositionCandidate:
     #: level the user renamed, or resolves its role to another field, that is a
     #: question for the user rather than a decision for the product.
     unapplied_user_edits: tuple[UnappliedUserEdit, ...] = ()
+    #: `64` §3's stable key for every level this composition resolved, one entry
+    #: per schema that bound the pair: `(uses_schema, role_ref, field_ref)`.
+    #:
+    #: It is KEPT here rather than re-derived by whoever wants to print it. The
+    #: same mapping decides whether a user's rename speaks about a level --
+    #: `apply_user_level_edits` takes it as `schemas_for_binding` -- and a second
+    #: derivation would be a second answer to "is this level the one you named".
+    #: A screen that showed a triple the overlay does not honour would print a
+    #: gesture nobody can make.
+    #:
+    #: A TUPLE and not the mapping, because this record is frozen and hashes by
+    #: value: `_option_bindings` keys a dict on the candidate itself, and a dict
+    #: field would make every composition unhashable.
+    level_keys: tuple[tuple[str, str, str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -531,6 +545,16 @@ def evaluate_composition(
         template_refs=tuple(sorted(
             {(row.template_id, row.template_version) for row in rows})),
         unapplied_user_edits=unapplied,
+        # Read off `binding_schemas`, which is the mapping the overlay above was
+        # just handed, and restricted to the dimensions that SURVIVED the gates:
+        # a triple for a pair C4 refused is a key no level of this tree wears.
+        # `resolved` rather than `chosen` for the same reason -- it is the list
+        # the person will see.
+        level_keys=tuple(sorted(
+            (schema, dimension.role_ref, dimension.field_ref)
+            for dimension in resolved
+            for schema in binding_schemas.get(
+                (dimension.role_ref, dimension.field_ref), ()))),
     )
 
 
