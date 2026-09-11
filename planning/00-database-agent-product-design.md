@@ -312,3 +312,11 @@ Each amendment below is dated and was ruled by the owner; the ruling and its con
 - **The hold is a report, not a verdict (10 Sep).** The term detector's protected hold is a word-list guess about what a file is; the local model reads the whole text and may lift the hold with a cited ordinary answer, and its silence keeps it. A hold makes a file askable even where the rules recognised it (line 110 yields to a hold).
 - **The scoped General is minted on demand (10 Sep).** Never under every branch: only under a parent that has a file whose facts support the parent and no leaf, through the plan's own re-projection onto a new version; freezing stays the approval.
 
+### Amendments of 2026-09-11 (the owner, in session, asked with a recommendation each)
+
+1. **Find is in Release 1, after the placement gate.** Local, read-only search over the person's own index, reading the same retrieval placement reads and never a second ranking; the six result states, the protected rule extended to search, and five distinct no-result messages, as `66` §§1-6 set out.
+2. **A situation is not demanded of the person before a file is opened.** `--situation` is optional; each branch's situation is named from site G's evidence (per-branch situation); a situation the person types overrides it.
+3. **One file may carry several domain schemas when its evidence makes each plausible.** The two lines of §3 ("activate domain-specific schemas only when the evidence indicates a domain is plausible"; "one file may hold facts from more than one domain") are read together: activation is per schema, by evidence. Placement still gives a file one home (amendment of 2026-09-11, morning: one home per file, links for the rest, the two-homes question when tied).
+4. **`97` (version lineage) and `98` (near-duplicate metric) are ratified as written.** Duplicate and version-family signals are produced under those rules; perceptual hashes are supplied by the image reader; the comparison is kept sub-quadratic by a blocking step.
+5. **A protected file never reaches a cloud model under any mode or grant** (restating the ruling of 2026-09-09 against §8.4's cloud-assisted grant, which applies to ordinary files in a granted area only).
+
