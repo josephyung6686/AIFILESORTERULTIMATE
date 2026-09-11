@@ -44,7 +44,7 @@ from types import MappingProxyType
 
 from tree_design.candidates import (
     EXISTING_FOLDER_SOURCES, BranchCandidate, VerticalOption,
-    horizontal_candidates, vertical_options,
+    horizontal_candidates, node_type_for, vertical_options,
 )
 from tree_design.config import ConfigurationRequired, TreeLimits
 from tree_design.freeze import FrozenTree, freeze, frozen_tree, represent_protected_areas
@@ -666,7 +666,9 @@ def _top_level_node(candidate: BranchCandidate, *, plan_version_id: str,
     adopted = candidate.source in EXISTING_FOLDER_SOURCES
     return Node(
         node_id=node_id, plan_version_id=plan_version_id,
-        node_type=EXISTING if adopted else PROPOSED,
+        # `candidates.node_type_for`, so the word the CARD prints and the word
+        # the frozen node carries cannot come apart (`104` §18.42 items 1, 5).
+        node_type=node_type_for(candidate),
         # An observed fact about the corpus, never a composition -- which is why
         # `Node.__post_init__` refuses it on any other type. The candidate's
         # `subject_id` IS the directory path for these two sources.
@@ -681,8 +683,7 @@ def _top_level_node(candidate: BranchCandidate, *, plan_version_id: str,
         associated_group_ids=candidate.accepted_group_ids or associated_groups,
         explanation=candidate.why_suggested, node_role=ORDINARY,
         accepts_placement=derive_accepts_placement(
-            EXISTING if adopted else PROPOSED,
-            protected_movement_permitted=False),
+            node_type_for(candidate), protected_movement_permitted=False),
         # The classes the branch's own members carry, collapsed by the injected
         # authority. P7 publishes `HANDLING_CLASSES` as a set and no ordering, so
         # a rank chosen here could give the branch a weaker floor than one of its

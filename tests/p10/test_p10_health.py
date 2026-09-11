@@ -608,3 +608,56 @@ def test_the_indexed_walk_reports_what_the_rescanning_walk_reported(limits):
         assert counts[node_id].descendant_count == kin
         from tree_design.health import _depth
         assert _depth(nodes, node_id) == node_depth
+
+
+# --- `104` §18.42 item 2: the flatten rule is wired to a constant ------------------
+
+
+def test_the_flatten_rule_has_a_measure_to_read():
+    """`00`:99: "It should recommend flattening when a dimension does not
+    materially improve retrieval." `cli.py` supplies
+    `materially_improves_retrieval=lambda option: True`, so `RECOMMEND_FLATTEN`
+    can never fire on a real run -- one of §18.42's "safety and quality
+    predicates wired to constants that make them unfireable".
+
+    THE MEASURE DOES NOT EXIST AND IS NOT INVENTED HERE. `warnings_for` hands the
+    predicate a `BranchCounts`, and `BranchCounts` carries `child_count`,
+    `descendant_count`, `member_count`, the example members, the unresolved and
+    evidence-gap file ids, and two flags. None of them is about RETRIEVAL. The
+    two places `tree_design` uses the word are `TemplateDimension.
+    retrieval_rationale` and a template level's `retrieval_justification`, and
+    both are authored PROSE -- a sentence a recipe's author wrote about why a
+    level is worth having, not a number measured on this corpus.
+
+    So a real predicate here would be a threshold this project invented over
+    counts that mean something else, which is the defect in the other direction:
+    §5.9 states no number on purpose, and `TreeLimits.materially_improves_
+    retrieval` already documents that `None` -- "no authored test decides this
+    yet" -- "must never round to False", because "a flattening recommendation the
+    product cannot justify is worse than none".
+
+    What is owed is the measure itself, and it is the owner's: what makes a level
+    worth its folder, stated as something this corpus can be asked. This test
+    names the carrier it would have to arrive on.
+    """
+    from tree_design.health import BranchCounts
+
+    assert any("retrieval" in field for field in BranchCounts.__annotations__), (
+        "BranchCounts carries "
+        f"{sorted(BranchCounts.__annotations__)}, none of which measures "
+        "retrieval, so the §5.9 flatten test has nothing to read")
+
+
+test_the_flatten_rule_has_a_measure_to_read = pytest.mark.xfail(
+    strict=True,
+    reason="`00`:99 states the RULE and no measure, and nothing in `tree_design` "
+           "computes one: `BranchCounts` counts children, descendants and members, "
+           "and the two `retrieval_*` fields in the library are authored prose. So "
+           "`cli.py` keeps `materially_improves_retrieval=lambda option: True` and "
+           "`RECOMMEND_FLATTEN` stays unfireable on a real run. XPASSes -- and "
+           "fails the suite, forcing this marker off -- the day a retrieval measure "
+           "reaches `BranchCounts`. LEFT MARKED by `104` §18.42's build "
+           "(2026-09-11): inventing a threshold over counts that mean something "
+           "else is the same defect from the other side, and §5.9 states no number "
+           "on purpose.",
+)(test_the_flatten_rule_has_a_measure_to_read)

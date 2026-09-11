@@ -39,7 +39,9 @@ from tree_design.upstream import AcceptedGroup, ExistingFolder, ProtectedArea
 from tree_design.validation import ValidationReport
 from tree_design.vocabulary import (
     ACCEPT,
+    EXISTING,
     ORDINARY,
+    PROPOSED,
     PROTECTED,
     CREATE_MANUALLY,
     DEFER,
@@ -74,6 +76,20 @@ _BRANCH_ACTIONS: tuple[str, ...] = (
     ACCEPT, RENAME, MERGE, MOVE_UNDER_ROOT, DEFER, CREATE_MANUALLY,
     DRAG_GROUP_INTO_BRANCH, IGNORE,
 )
+
+
+def node_type_for(candidate: "BranchCandidate") -> str:
+    """`00`:102's type for the node this card would become.
+
+    Written here rather than in `pipeline._top_level_node`, which is where it
+    used to live inline, because a card is now RENDERED as well as built
+    (`104` §18.42 item 1) and the screen has to say the same word the frozen
+    node will carry. Two spellings of "is this the person's own folder" is how a
+    canvas comes to show `proposed` above a directory the tree then writes as
+    `existing`.
+    """
+    return (EXISTING if candidate.source in EXISTING_FOLDER_SOURCES
+            else PROPOSED)
 
 
 @dataclass(frozen=True)
@@ -150,8 +166,15 @@ class VerticalOption:
     branch_expectations: tuple[tuple[str, str], ...] = ()
 
 
-def _folder_label(directory_path: str) -> str:
-    """The last segment, as a display label. Never the path."""
+def folder_label(directory_path: str) -> str:
+    """The last segment, as a display label. Never the path.
+
+    PUBLIC because the branch card is rendered now (`104` §18.42 item 1) and
+    `resembling_existing_folders` holds directory PATHS. `privacy.vocabulary.
+    ALWAYS_LOCAL`'s first member is `paths`, and a card naming
+    `/Users/.../Uni/PHYS1401` would put one on a screen somebody else can see --
+    so the screen says what the tree says about the same folder, which is this.
+    """
     cleaned = directory_path.rstrip("/\\")
     for separator in ("/", "\\"):
         if separator in cleaned:
@@ -292,8 +315,8 @@ def horizontal_candidates(
         inactive = group.domain is not None and group.domain not in active_domains
         resembling = tuple(
             path for path, folder in folders_by_path.items()
-            if _folder_label(path).lower() in group.label.lower()
-            or group.label.lower() in _folder_label(path).lower()
+            if folder_label(path).lower() in group.label.lower()
+            or group.label.lower() in folder_label(path).lower()
         )
         sensitive = group.group_id in sensitive_group_ids
         detail = (
@@ -323,7 +346,7 @@ def horizontal_candidates(
         ))
 
     for path, folder in folders_by_path.items():
-        label = _folder_label(path)
+        label = folder_label(path)
         if suppressed_label(label):
             continue
         curated = folder.curation_signal == _CURATED

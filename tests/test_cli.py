@@ -204,9 +204,15 @@ def _decision(*, outcome, file_id, explanation="", node_id=None,
         privacy=SimpleNamespace(protected=protected))
 
 
-def _node(node_id, label, *, parent=None, accepts=True):
+def _node(node_id, label, *, parent=None, accepts=True, node_type="proposed"):
     return SimpleNamespace(node_id=node_id, display_label=label,
-                           parent_node_id=parent, accepts_placement=accepts)
+                           parent_node_id=parent, accepts_placement=accepts,
+                           # `104` §18.42 item 5: `00`:102 gives every node one
+                           # of five types and the report reads it. A real `Node`
+                           # cannot be built without one, so a fixture that could
+                           # would be a fixture the screen behaves differently
+                           # for.
+                           node_type=node_type)
 
 
 def _set(label, members, reason, *, protected=False):
@@ -2000,6 +2006,10 @@ def test_answering_it_changes_the_tree_on_the_same_run(tmp_path):
     printed = after.getvalue()
 
     folders = printed.split("Folders in this plan:", 1)[1].split("Files:", 1)[0]
+    # `104` §18.42 item 4: §5.11's health view prints under the tree and its
+    # lines are indented like folders, so the folder list ends at it as it ends
+    # at the level names.
+    folders = folders.split("Tree health:", 1)[0]
     assert "Coursework" in folders
     # The branch is not split, so neither course is a child of it. Both still
     # exist as the person's OWN folders, which is a different thing.
@@ -2183,7 +2193,7 @@ def test_groups_of_different_categories_get_different_top_level_branches(tmp_pat
     # off for a gap nobody closed. `104` §18.2 gap 14's group block is the same
     # hazard one block along; the folder list ends at whichever comes first.
     folders = out.getvalue().split("Folders in this plan:", 1)[1]
-    for heading in ("What each level of this plan is called:",
+    for heading in ("Tree health:", "What each level of this plan is called:",
                     "Groups put to a model as groups:", "Files:"):
         folders = folders.split(heading, 1)[0]
     roots = [line for line in folders.splitlines()
@@ -4406,3 +4416,121 @@ def test_the_answer_the_person_gave_is_the_shape_that_is_built():
         recorded_at="2026-09-11T00:01:00Z", supersedes=None))
 
     assert choose(candidate, options) == "opt_1"
+
+
+# ======================================================================================
+# `104` §18.42 item 1: the branch CARDS, item 5: the node type, item 4: tree health
+# ======================================================================================
+
+
+def test_every_node_the_report_draws_says_which_of_the_five_kinds_it_is():
+    """`104` §18.42 item 5. `00`:102: every node has a type -- existing,
+    proposed, user-created, protected or ignored -- and the report read none of
+    them. It guessed `existing` from whether `existing_path` was set and said
+    nothing at all about the other four, so a folder the person made themselves
+    and a folder the product is proposing printed identically.
+    """
+    from tree_design.vocabulary import NODE_TYPES
+
+    assert set(cli.NODE_TYPE_WORDS) == set(NODE_TYPES), (
+        "a node type with no word prints nothing, which is the silence this "
+        "closes")
+    run, names = _coursework()
+    run.tree.tree = SimpleNamespace(
+        plan_version_id="version_2",
+        nodes=(_node("node_0", "Coursework"),
+               _node("node_1", "Uni", parent="node_0", node_type="existing"),
+               _node("node_2", "Passports", parent="node_0",
+                     node_type="protected", accepts=False)))
+    printed = _printed(run, names)
+
+    assert "Coursework   [proposed]" in printed, printed
+    assert "[yours already]" in printed, printed
+    assert "[protected]" in printed, printed
+
+
+def _card(label, *, sensitive=False, folders=(), groups=()):
+    from tree_design.candidates import BranchCandidate
+
+    return BranchCandidate(
+        subject_id=label, display_label=label,
+        why_suggested="four files name one course.",
+        supporting_file_count=4, accepted_group_ids=("g_1",) if groups else (),
+        representative_group_labels=tuple(groups),
+        resembling_existing_folders=tuple(folders),
+        sensitive_content_present=sensitive, source="accepted-group",
+        available_actions=())
+
+
+def test_the_top_level_cards_reach_the_screen_with_every_field_00_names():
+    """`104` §18.42 item 1. `00`:68: each proposed top-level branch "should show
+    a file count, representative groups, existing related folders, and a concise
+    explanation rather than a technical confidence score".
+
+    Every one of those lives on `BranchCandidate` and the audit found no screen
+    that rendered one. This is that screen -- not the canvas, which is a later
+    release and is not a terminal, but the smallest true version of the card.
+    """
+    run, names = _coursework()
+    out = io.StringIO()
+    cli.report(run, names, out=out, cards=(
+        _card("Coursework", groups=("PHYS1401 course material",),
+              folders=("Uni/PHYS1401",)),))
+    printed = out.getvalue()
+
+    assert "Coursework -- 4 files, proposed" in printed, printed
+    assert "four files name one course." in printed, printed
+    assert "PHYS1401 course material" in printed, printed
+    # The folder by its NAME and never by its path: `resembling_existing_folders`
+    # holds directory paths and `privacy.vocabulary.ALWAYS_LOCAL`'s first member
+    # is `paths`.
+    assert "Folders of yours that look like it: PHYS1401" in printed, printed
+    assert "Uni/PHYS1401" not in printed, printed
+
+
+def test_a_card_holding_sensitive_material_is_not_printed_like_the_others():
+    """`00`:69: "Sensitive groups should appear differently." The marker is the
+    candidate's own and says only that the area holds such material -- no
+    filename, which `00`:201 keeps off a screen somebody else can see."""
+    run, names = _coursework()
+    out = io.StringIO()
+    cli.report(run, names, out=out, cards=(
+        _card("Identity", sensitive=True), _card("Coursework")))
+    printed = out.getvalue()
+
+    identity, coursework = (line for line in printed.splitlines()
+                            if line.strip().startswith(("Identity --",
+                                                        "Coursework --")))
+    assert "sensitive" in identity.lower(), identity
+    assert "sensitive" not in coursework.lower(), coursework
+
+
+def test_the_tree_health_view_is_printed_under_the_tree():
+    """`104` §18.42 item 3 of the "finished, tested code with no caller" list.
+    `00`:101 asks for a high-level tree health view; `health.tree_health` computes
+    it and nothing called it.
+
+    It prints what it has -- §5.11's coverage, per group -- and NAMES the five
+    measures nothing produces yet, rather than printing a zero for each. A zero
+    beside "files with enough facts" is a claim, and it would be false.
+    """
+    from tree_design.health import tree_health
+
+    run, names = _coursework()
+    health = tree_health(
+        run.tree.tree.nodes,
+        members_by_group={"g_1": ["id-0", "id-1", "id-2", "id-3"]},
+        placed_by_group={"g_1": ["id-0", "id-1", "id-2"]},
+        files_with_enough_facts=0, unresolved_node_ids=(),
+        context_supported_node_ids=(), sensitive_isolated_node_ids=(),
+        nodes_needing_decisions=())
+    out = io.StringIO()
+    cli.report(run, names, out=out, health=health,
+               group_names={"g_1": "PHYS1401 course material"})
+    printed = out.getvalue()
+
+    assert "Tree health" in printed, printed
+    assert "PHYS1401 course material" in printed, printed
+    assert "75% of it is in this tree" in printed, printed
+    assert "g_1" not in printed, "a group id is not something a person can act on"
+    assert "Not measured yet" in printed, printed
