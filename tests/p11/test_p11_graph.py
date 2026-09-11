@@ -60,17 +60,25 @@ def _build(entry, **overrides):
 
 
 def test_the_edge_types_are_typed_and_closed():
-    """`104` §18.2 gap 12 added two, and the set is still closed.
+    """`104` §18.2 gap 12 added two and the ninth relationship a third, and the
+    set is still closed.
 
     It was five. `attachment_of` and `direct_reference` are the two of `00`:109's
-    nine relationships that had no carrier AND have a producer the store can
-    answer truthfully; every other missing one is recorded in
-    `DESIGN_RELATIONSHIPS` with the reason it has none, which is the pin below.
+    nine relationships that had no carrier AND had a producer the store could
+    answer truthfully at gap 12. `user_confirmed_membership` is the eighth type
+    and the LAST of the nine to get one: its `DESIGN_RELATIONSHIPS` entry said it
+    "needs a gesture P7 has not shipped", `104` §18.2 gap 3 shipped `--confirm`,
+    and `cli.confirmed_membership_edges_of` draws the edge where the person
+    confirmed the membership's own basis on BOTH files.
+
+    Written out as literals rather than read off `EDGE_TYPES`: a set compared to
+    itself is closed by construction and pins nothing, and what this asserts is
+    that the vocabulary grew on purpose.
     """
     assert set(EDGE_TYPES) == {
         "shared_validated_fact", "duplicate", "version_family",
         "compatible_document_type", "existing_related_folder",
-        "attachment_of", "direct_reference",
+        "attachment_of", "direct_reference", "user_confirmed_membership",
     }
     with pytest.raises(ValueError):
         build_node_local_graph(
@@ -94,6 +102,17 @@ def test_the_nine_design_relationships_each_name_a_producer_or_none():
     that nothing does. Every carrier that is an EDGE is in `EDGE_TYPES`; the two
     that are retrieval channels say so by name.
 
+    **AND THE LAST EMPTY PRODUCER IS FILLED.** `without` was
+    `["user-confirmed membership"]` from gap 12 until the ninth relationship
+    gained `cli.confirmed_membership_edges_of`. Its entry had said the edge
+    "needs a gesture P7 has not shipped", and the missing half was never the edge
+    -- §3.13's `user_confirmed` had no producer until `--confirm` shipped, so the
+    only gesture on the screen was `--reject` and nobody could say yes.
+
+    It is asserted as an EMPTY LIST rather than by deleting the check, because
+    the check is the thing worth keeping: a tenth relationship, or a producer
+    somebody removes, comes back here by name.
+
     SABOTAGE: drop `user-confirmed membership` from the tuple -- the count falls
     to eight and gap 12's own question ("which four are missing?") stops having
     an answer in the code.
@@ -115,7 +134,7 @@ def test_the_nine_design_relationships_each_name_a_producer_or_none():
         assert row.producer or row.note, row.design_name
     without = [row.design_name for row in DESIGN_RELATIONSHIPS
                if not row.producer]
-    assert without == ["user-confirmed membership"]
+    assert without == []
     # Every edge type is reachable from the nine, and every one of them can say
     # what produced it when it reaches a dossier item.
     assert set(EDGE_PRODUCER) == set(EDGE_TYPES)
