@@ -97,8 +97,10 @@ def test_two_files_with_one_title_and_different_bytes_are_one_lineage(
 
     assert found is not None
     assert found.family_value == TITLE
-    # §3.13 through `facts.states`: one signal with no contextual check beside it is
-    # the weaker half, and `97` §2 forbids `direct` outright.
+    # `00`:50's ladder: a `validated` fact "passed contextual checks", and one
+    # signal with nothing beside it did not; `direct` is forbidden outright by
+    # Done-means 24. THE RULING DID NOT NAME THIS STATE -- `facts/lineage.py`
+    # derives it and writes out the counter-argument.
     assert found.reliability_state == "possible"
     # `97` §3: "a family with nothing to cite is not written." Both titles, so each
     # member's fact can cite the observation on its own file.

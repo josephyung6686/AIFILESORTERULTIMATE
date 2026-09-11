@@ -236,10 +236,13 @@ def test_three_drafts_of_one_document_form_one_version_family(tmp_path):
     for name in drafts:
         assert name not in value, (name, value)
 
-    # §3.13 through `facts.states`: a deterministic rule with no contextual check
-    # beside it is the weaker half. `possible` keeps the family out of
-    # `grouping.seeds.ANCHOR_STATES`, so a disk of documents whose first heading is
-    # `Notes` cannot become one group on this evidence alone.
+    # `00`:50: a `validated` fact "was found by a deterministic rule and passed
+    # contextual checks", and a shared title has none beside it. THE RULING DID NOT
+    # NAME THIS STATE; `facts/lineage.py` derives it and records the
+    # counter-argument. It is pinned here because it decides something visible:
+    # `possible` keeps the family out of `grouping.seeds.ANCHOR_STATES`, so a disk
+    # of documents whose first heading is `Notes` cannot become one group on this
+    # evidence alone.
     assert {state for _value, state in drafts.values()} == {"possible"}, drafts
 
     # THE FAMILY IS UNORDERED, and the owner ruled it so: "if nothing in the
@@ -304,7 +307,8 @@ def test_a_resaved_copy_of_one_image_is_a_near_duplicate_of_it(tmp_path):
     assert original is not None and resaved is not None, (
         f"neither re-encoding carries a duplicate family: {found}")
     assert original[0] == resaved[0], found
-    # §3.13 and `98` §2: anything weaker than byte identity is below `direct`.
+    # `98` §2's own table: byte identity is `direct` and a near match is
+    # `possible`. `00`:50 is the ladder behind it.
     assert original[1] == "possible", found
 
 

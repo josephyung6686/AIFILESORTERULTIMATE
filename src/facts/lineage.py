@@ -54,16 +54,33 @@ per member carrying one shared value and no rank, which IS the unordered family;
 order is stored, and a reader of the plan is told the members are of one document
 and not which came first.
 
-**The state is `possible` and never `validated`, and it is derived rather than
-chosen.** `97` §2 lists both and rules neither. §3.13 settles it: a deterministic
-rule that passes a CONTEXTUAL CHECK is `validated`, and anything weaker is
-`possible`. A shared title is one signal with no second corroboration, so it is the
-weaker half. The consequence is deliberate and is the reason the derivation matters:
+**The state is `possible`. THE OWNER'S RULING DID NOT NAME IT, and this is a
+derivation from `00` rather than a word anybody said.** `97` §2 lists `validated`
+and `possible` and rules neither; the ruling of 11 Sep named the rule, the name, the
+key and the ordering, and did not reach the state. What settles it is `00`:50's own
+ladder, quoted rather than paraphrased:
+
+    "A validated fact was found by a deterministic rule and PASSED CONTEXTUAL
+    CHECKS, such as a course-code pattern appearing beside 'lecture,' 'syllabus,'
+    or 'semester.' ... A possible fact is a useful but insufficient clue."
+
+A shared title is a deterministic rule with no contextual check beside it -- one
+signal, no second corroboration -- so it is not `validated` by that definition, and
+`direct` is closed to it outright by Done-means 24 and `Lineage.__post_init__`,
+because no explicit slot states a version relation. `possible` is what is left.
+
+**The counter-argument is recorded because it is a real one.** The same sentence of
+`00`:50 names "document title" among the reliable and explicit sources a DIRECT fact
+is read from. That is about a title fact -- the title is directly stated -- and not
+about the version relation the title implies, which nothing states. If the owner
+reads it the other way the state becomes `validated` and one consequence follows
+immediately, which is the reason the derivation is worth writing down:
 `grouping.seeds.ANCHOR_STATES` admits `direct` and `validated` and not `possible`,
-so a version family does not by itself seed a group -- which is what keeps a disk
-full of documents whose first heading is `Notes` or `Untitled` from becoming one
-group. It still writes the fact, still answers `shared_family_field`, and still lets
-P9 type the edge it would otherwise refuse to type.
+so at `possible` a version family does not by itself seed a group -- which is what
+keeps a disk full of documents whose first heading is `Notes` or `Untitled` from
+becoming one group -- and at `validated` it would. At either state the fact is
+written, `shared_family_field` answers, and P9 can type the edge it would otherwise
+refuse to type.
 """
 from __future__ import annotations
 
@@ -85,9 +102,11 @@ from facts.states import POSSIBLE
 TITLE_ZONE: str = "title"
 HEADING_ZONE: str = "heading"
 
-#: §3.13, through `facts.states` rather than as a literal. See the module docstring:
-#: a shared title is a deterministic rule with no contextual check beside it, which
-#: is §3.13's "anything weaker".
+#: `00`:50's ladder, through `facts.states` rather than as a literal. See the module
+#: docstring: a shared title is a deterministic rule with no CONTEXTUAL CHECK beside
+#: it, which is not what `00`:50 calls `validated`. THE RULING DID NOT NAME THIS
+#: STATE -- it is derived, the counter-argument is written out above, and it is the
+#: owner's to overturn.
 LINEAGE_STATE: str = POSSIBLE
 
 

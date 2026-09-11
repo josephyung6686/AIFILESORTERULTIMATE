@@ -13785,14 +13785,33 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         grouping is a fact no group could form on, and `grouping.seeds` reads
         `family_facts` into its anchor rows deliberately.
 
-        **THE COST IS LINEAR IN THE ROSTER, and that is a requirement rather than a
-        happy accident.** `duplicate_family`'s exact half groups the roster into a
-        dict keyed on `content_hash` and only looks inside a bucket holding two or
-        more files, so a corpus of unique files compares nothing. Its near half
-        enumerates pairs, but of PERCEPTUAL-HASH CARRIERS and never of the roster --
-        and `readers.image_headers`, the wired reader, supplies no perceptual hash,
-        so that set is empty (measured: 0 carriers on both real corpora) and
-        `_near_families` returns before the loop.
+        **THE COST IS LINEAR IN THE ROSTER AND QUADRATIC ONLY INSIDE A BLOCK, which
+        is a requirement rather than a happy accident.** Each of the three halves
+        buys its own bound and none of them enumerates the roster's pairs:
+
+        - `duplicate_family`'s EXACT half groups the roster into a dict keyed on
+          `content_hash` and looks inside a bucket only where two or more files
+          landed, so a corpus of unique files compares nothing.
+        - Its NEAR half enumerates pairs of PERCEPTUAL-HASH CARRIERS and never of
+          the roster, and within the carriers it enumerates only pairs that share a
+          band of `readers.perceptual_hash.near_block_keys`. That second bound used
+          to be unnecessary because the first was a bound of zero: until 11 Sep 2026
+          the wired reader supplied no hash at all and 0 carriers were measured on
+          both real corpora. The reader supplies one now, so on a photo library the
+          carriers ARE the roster and the banding is what stands between this pass
+          and 50 million comparisons.
+        - `version_family` enumerates pairs within a TITLE and never across the
+          roster, because no hash bucket can group files whose hashes differ by
+          definition.
+
+        What is paid per file rather than per pair: each half reads a file version's
+        observations, and the title is read once for the block key and again inside
+        the rule for each pair of a block. A block is the set of files stating ONE
+        title, which on a real disk is a handful -- but a corpus where thousands of
+        documents share a generic first heading (`Notes`, `Untitled`) is a corpus
+        where that block is thousands wide, and the rule as ruled will make one
+        version family that wide. That is the ruling's consequence and not this
+        seam's to narrow.
 
         **`version_family` IS CALLED SINCE 11 SEP 2026, and the call arrived with
         its rule.** It used to be absent, and the refusal was honest: §2.9 lists
