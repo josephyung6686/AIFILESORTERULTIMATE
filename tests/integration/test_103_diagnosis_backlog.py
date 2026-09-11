@@ -103,26 +103,42 @@ def test_a_superseded_file_version_gets_no_move_plan(tmp_path):
 
 # --- 103 §18 C16: --send-set writes no review action --------------------------------
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="103 C16: `review_gestures` (added in 4fc44a6) has no caller, so a "
-           "`--send-set` that writes a `residual_set_decisions` row writes no "
-           "`review_actions` row. The audit trail of the gesture is empty.")
 def test_a_residual_send_is_recorded_as_a_review_action(tmp_path):
-    corpus = _corpus(tmp_path)
-    scans = corpus / "scans"
-    scans.mkdir()
-    (scans / "IMG_0001.bin").write_bytes(bytes(range(256)) * 8)
+    """103 C16, closed by `104` R-26: `--send-set` now writes `review_actions`.
+
+    `review_gestures.py` was added by `4fc44a6` to fix exactly this and had no
+    caller, so `review_surface.collect` -- the one function in the product that
+    turns a person's gesture into a stored `review_action` -- was reachable from
+    nothing. Audited over the owner's own folder, `review_actions` had 0 rows
+    while the report on the same screen offered `--send-set "SET=AREA"` and a
+    person could type it. The gesture happened; the record of it did not.
+
+    **The set is scraped off the report rather than named here.** The marked
+    version of this test hardcoded "Not yet placed" and skipped itself when no
+    decision row appeared, so a removed marker could have passed on a body that
+    never ran. The report prints the `--send-set` line for every set it
+    surfaces; typing back what the screen printed is both what a person does and
+    the only way this test cannot silently stop exercising the seam.
+    """
+    corpus = _corpus_with_an_unreadable_folder(tmp_path)
     database = tmp_path / "holder" / "plan.sqlite"
-    _run(corpus, database)
-    _run(corpus, database, "--residual", "Review Later",
-         "--send-set", "Not yet placed=Review Later")
+    _, report = _run(corpus, database, "--residual", "Review Later")
+    typed = re.findall(r"--send-set '([^']+)'", report)
+    assert typed, report
+
+    code, report = _run(corpus, database, "--residual", "Review Later",
+                        "--send-set", typed[0])
+    assert code == 0, report
     decisions = _query(database, "SELECT COUNT(*) FROM residual_set_decisions")[0][0]
-    if decisions == 0:
-        pytest.skip("the send was refused before recording a decision; "
-                    "this corpus did not exercise the seam")
-    actions = _query(database, "SELECT COUNT(*) FROM review_actions")[0][0]
-    assert actions >= 1
+    assert decisions >= 1, report
+    actions = _query(
+        database,
+        "SELECT action, correction_scope FROM review_actions")
+    assert actions, report
+    # The gesture P13 already had a name for, at the scope the composition root
+    # chose: one `--send-set` files a whole set into one area without a per-file
+    # look, which is `accept_bulk`, and the area is a node of this plan version.
+    assert ("accept_bulk", "node") in {tuple(row) for row in actions}, actions
 
 
 # --- 103 §18 C7: the dossier token cap is asserted, never measured ------------------

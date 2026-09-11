@@ -424,16 +424,35 @@ def test_protected_files_are_their_own_set_named_counted_and_never_opened(
     conn.close()
 
     # And never opened, at the seam a review set is FOR: `--send-set` is the one
-    # gesture that files a whole set with no per-file look, and P11 refuses it
-    # over protected material before it reads any decision. The refusal is the
-    # "never opened" clause here -- the byte-level half is
+    # gesture that files a whole set with no per-file look, and the refusal over
+    # protected material now arrives before any decision is READ or WRITTEN. The
+    # refusal is the "never opened" clause here -- the byte-level half is
     # `test_nothing_opens_the_vault_the_disk_image_or_the_passport`.
+    #
+    # `104` R-26 MOVED THE REFUSAL AND THE PLAN NOW SURVIVES IT. Until it landed,
+    # `act_on_residual_sets` wrote a `residual_set_decisions` row saying protected
+    # material was to be filed in bulk and `review_residual_sets` only then raised
+    # `ProtectedSetNotReadable`, which nothing caught -- so the run ended "No plan
+    # was made", the person lost the whole proposal, and the decision row about
+    # their protected material outlived it. `review_gestures.collect_set_sends`
+    # now collects the gesture first, so P13's own `ProtectedContainerHasNoAction`
+    # fires before P11 is called at all: nothing is decided, nothing is recorded,
+    # and the plan the person asked for is still printed.
     out = io.StringIO()
     code = cli.main([str(corpus), *ARGV, "--database", str(tmp_path / "sent.sqlite"),
                      "--residual", AREA, "--send-set",
                      f"Protected, and not filed in bulk={AREA}"], out=out)
     refused = out.getvalue()
-    assert code != 0, refused
+    assert code == 0, refused
+    assert "That send was refused" in refused, refused
+    assert "Nothing was filed in bulk" in refused, refused
     acted = [d for d in _decisions(tmp_path / "sent.sqlite") if d.residual is not None]
     assert not acted, (
         f"a protected set was acted on after the refusal: {acted}")
+    sent = sqlite3.connect(tmp_path / "sent.sqlite")
+    try:
+        assert sent.execute(
+            "SELECT COUNT(*) FROM residual_set_decisions").fetchone()[0] == 0, (
+            "a decision row was written for a set P13 carries no action for")
+    finally:
+        sent.close()

@@ -400,6 +400,12 @@ from review_run.progress import progress_lines
 # through P13's own §8.6 line, which is a different question over P4's extraction
 # states; this run needs the rule over a set of buckets P13 knows nothing about, so
 # the function is imported directly and nothing in P13 is widened to hold them.
+from database_agent.events import CORRECTION_SCOPES
+from review_gestures import collect_set_sends, record_set_presentations
+from review_surface.collect import (
+    BulkMembersRequired, PresentationRequired, ProtectedContainerHasNoAction,
+    ScopeNotPresented,
+)
 from review_surface.progress import (
     UNREADABLE, assert_every_file_accounted, bucket_for,
 )
@@ -8310,6 +8316,18 @@ def _validate_residuals(names: Sequence[str]) -> tuple[str, ...]:
     return tuple(name for name in RESIDUAL_TEMPLATE_NAMES if name in set(names))
 
 
+#: §8.7's scope for the `--send-set` gesture, chosen by the composition root
+#: because `review_surface.collect` refuses to supply one and `review_gestures`
+#: refuses to default one -- §8.7's whole example is about not inferring a scope
+#: (`104` R-26). What the gesture says is that files like these belong at one
+#: residual AREA, and an area is a node of this plan version:
+#: `approved_residual_area` is what resolves the words the person typed to its
+#: `node_id`. `file` would claim they judged each member, which is the one thing
+#: a bulk send does not do; `corpus` would claim they said it about every run.
+RESIDUAL_SEND_SCOPE: str = "node"
+assert RESIDUAL_SEND_SCOPE in CORRECTION_SCOPES
+
+
 def _parse_sends(raw: Sequence[str]) -> Mapping[str, str]:
     """`--send-set "SET=AREA"`, split the way `--answer` splits its own pair.
 
@@ -13552,6 +13570,70 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     # minted a new one. So `--send-set` is applied to the sets it was typed at and
     # is not remembered between runs: the run that files the files is the run the
     # person named them in.
+    if sends:
+        # `104` R-26. THE GESTURE IS RECORDED BEFORE THE PART THAT ACTS ON IT IS
+        # CALLED, which is the order `review_gestures` was written for and could
+        # not have until something called it. `review_surface.collect` is the one
+        # function in the product that turns a person's gesture into a stored
+        # `review_action`, and until this line nothing in `src/` reached it: the
+        # screen offered `--send-set "SET=AREA"`, a person typed it,
+        # `residual_set_decisions` got a row and `review_actions` stayed empty on
+        # every real run. The audit trail of the one bulk gesture this command
+        # has did not exist.
+        #
+        # BEFORE, and the reason is P13's own refusal. A protected set carries no
+        # action; `act_on_residual_sets` writes its decision row first and
+        # `review_residual_sets` only then raises `ProtectedSetNotReadable`, so
+        # the run ended with a decision standing that said protected material was
+        # to be filed in bulk. Collecting first puts P13's paragraph in front of
+        # that write.
+        #
+        # `session_id` IS THE PLAN VERSION, for `approval_writer`'s reason one
+        # gesture along: `run_token` mints a fresh one per run, so it names this
+        # sitting and nothing else in this process has a truer claim to being it.
+        # `settings` is read from P7 at the moment of display rather than
+        # assumed, for the same reason the freeze reads it.
+        plan_version = result.tree.tree.plan_version_id
+        send_actions = count()
+
+        def mint_send_action_id() -> str:
+            # Prefixed for `mint_approval_id`'s reason: an action id, an approval
+            # id and a plan id are three different things a person may be asked
+            # about later, and a bare uuid says which by where it was found.
+            return f"send-{uuid.uuid4().hex}:{next(send_actions)}"
+
+        presented = record_set_presentations(
+            conn, sets=result.placement.residual_sets,
+            plan_version=plan_version, session_id=plan_version,
+            settings=display_policy(conn, plan_version=plan_version),
+            user_id=user_id, component_version=COMPONENT_VERSION,
+            rendered_at=now())
+        try:
+            # THE SCOPE IS `node`, CHOSEN HERE AND NOT INFERRED ANYWHERE BELOW.
+            # `collect` refuses to supply one and `review_gestures` refuses to
+            # default one, both citing §8.7's example of not inferring a scope,
+            # so the composition root answers it. What `--send-set` says is that
+            # files like these belong at one residual AREA, and an area is a node
+            # of this plan version -- `approved_residual_area` resolves the typed
+            # words to its `node_id`. `file` would claim the person judged each
+            # member, which is exactly what a bulk send does not do; `corpus`
+            # would claim they said it about every run.
+            collect_set_sends(
+                conn, sends=sends, sets=result.placement.residual_sets,
+                presented=presented, mint_action_id=mint_send_action_id,
+                plan_version=plan_version, session_id=plan_version,
+                correction_scope=RESIDUAL_SEND_SCOPE, user_id=user_id,
+                component_version=COMPONENT_VERSION, acted_at=now())
+        except (ProtectedContainerHasNoAction, PresentationRequired,
+                BulkMembersRequired, ScopeNotPresented) as refusal:
+            # P13's OWN SENTENCE, printed and not paraphrased, and the plan
+            # survives exactly as it does for `ResidualSendRefused` below: the
+            # run is already computed and a refused gesture is not a reason to
+            # throw it away. Nothing was filed, because nothing downstream ran.
+            print(f"\nThat send was refused, and the plan below is unaffected:"
+                  f"\n  {refusal}\n  Nothing was filed in bulk, and the plan "
+                  "below is the run that was already computed.", file=out)
+            sends = {}
     if sends:
         try:
             result = dataclasses.replace(result, placement=act_on_residual_sets(
