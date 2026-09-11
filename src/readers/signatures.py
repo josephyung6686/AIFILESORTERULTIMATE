@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import json
 import re
+import tarfile
 import zipfile
 from pathlib import Path
 from typing import Callable
@@ -116,6 +117,27 @@ _ZIP_MIMETYPES: dict[bytes, str] = {
     b"application/vnd.oasis.opendocument.presentation": "odp",
 }
 
+#: `104` §18.2 gap 14, item 2, gap 21's rule applied to the OTHER archive family:
+#: "ustar" at offset 257 (POSIX.1-1988 §10.1) is a plain tar's own magic and is
+#: read straight off `head` -- a valid tar's first header block is 512 bytes, well
+#: inside `HEAD_BYTES`, so no file is opened to answer it. gzip (RFC 1952 §2.3.1),
+#: bzip2 and xz (the LZMA Utils format's own magic) identify the COMPRESSION, not
+#: the payload -- a bare `.gz` of a text file opens the same way -- so each is
+#: paired with the `tarfile` mode that decompresses it, and `_tar_format` below
+#: opens the file to confirm a valid tar header follows before claiming the token.
+_USTAR_OFFSET: int = 257
+_USTAR_MAGIC: bytes = b"ustar"
+_TAR_COMPRESSION_MAGIC: tuple[tuple[bytes, str, str], ...] = (
+    (b"\x1f\x8b", "r:gz", "tar.gz"),
+    (b"BZh", "r:bz2", "tar.bz2"),
+    (b"\xfd7zXZ\x00", "r:xz", "tar.xz"),
+)
+#: Every token `_tar_format`/the ustar check can return, checked against the
+#: router's token space exactly as `_unknown` below checks every other table --
+#: these are not table entries, so they cannot appear there on their own.
+_TAR_TOKENS: tuple[str, ...] = (
+    "tar", "tar.gz", "tar.bz2", "tar.xz")
+
 #: Openers that identify a TEXT format as positively as a magic number does. Each
 #: one is the format's own required first line: RFC 6350 §6.1.1 for `BEGIN:VCARD`,
 #: RFC 5545 §3.4 for `BEGIN:VCALENDAR`, RTF 1.9.1 for `{\\rtf`, and HTML's doctype.
@@ -145,7 +167,7 @@ _CONTROL = frozenset(range(0, 9)) | frozenset(range(11, 13)) | frozenset(range(1
 
 _unknown = ({token for _, token in _MAGIC} | set(_BRANDS.values())
             | {token for _, token in _ZIP_MEMBERS} | set(_ZIP_MIMETYPES.values())
-            | {token for _, token in _TEXT_OPENERS}
+            | {token for _, token in _TEXT_OPENERS} | set(_TAR_TOKENS)
             | {"zip", "xml", "svg", "json", "mbox", "eml", "txt"})
 _unknown -= set(SOURCE_TYPE_BY_FORMAT)
 if _unknown:
@@ -203,6 +225,38 @@ def _zip_format(path: Path) -> str:
         # says no reader exists -- a statement about the deployment, and false.
         return "zip"
     return "zip"
+
+
+def _tar_format(path: Path, head: bytes) -> str | None:
+    """Which tar this is, or `None` when the bytes only LOOK like one.
+
+    Unlike `_zip_format`, a positive answer here is not unconditional. ZIP's own
+    four-byte magic already proves ZIP-ness; gzip/bzip2/xz magic proves only the
+    COMPRESSION -- a bare `.gz` of a text file opens exactly the same way and is
+    not a tar. So each candidate is opened and its FIRST header block parsed
+    (`tarfile.open`'s own `r:*`-family constructors validate one on entry, per
+    `TarFile.next()`; nothing here calls `getmembers()` or reads a member's data,
+    so no bytes beyond that first block are decompressed to answer this). A
+    header that does not parse means "compressed, not a tar" and returns `None`
+    -- the router then falls back to the declared extension, exactly as a camera
+    raw with no signature this module knows does.
+
+    Plain (uncompressed) tar is checked directly off `head`: POSIX ustar's magic
+    sits at a fixed offset in the first 512-byte block, always inside `HEAD_BYTES`,
+    so no file is opened to answer it at all.
+    """
+    if head[_USTAR_OFFSET:_USTAR_OFFSET + len(_USTAR_MAGIC)] == _USTAR_MAGIC:
+        return "tar"
+    for magic, mode, token in _TAR_COMPRESSION_MAGIC:
+        if not head.startswith(magic):
+            continue
+        try:
+            with tarfile.open(path, mode=mode):
+                pass
+        except (tarfile.TarError, OSError):
+            return None
+        return token
+    return None
 
 
 def _decoded(head: bytes) -> str | None:
@@ -325,6 +379,15 @@ def signature_detector(
             # lost by it, because this deployment ships no reader for any of the
             # four, so a precise answer and no answer both end at `unsupported`.
             return None
+        # `104` §18.2 gap 14, item 2 / gap 21: the tar family, decided by bytes and
+        # never by extension. `_tar_format` returns `None` for a compressed stream
+        # that is not actually a tar -- unlike the ZIP branch above, a positive
+        # answer here is never unconditional -- and the declared extension is what
+        # answers next, exactly as it does for any other signature this module
+        # does not recognise.
+        by_tar = _tar_format(path, head)
+        if by_tar is not None:
+            return by_tar
 
         text = _decoded(head)
         if text is None:

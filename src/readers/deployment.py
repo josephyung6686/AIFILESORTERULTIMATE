@@ -23,9 +23,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Callable
 
+from extractors.archive import ArchiveManifest
 from extractors.dispatch import Readers
 from extractors.structured_text import TextDocument
 
+from readers.archive_tarfile import tarfile_reader
 from readers.archive_zipfile import manifest_marker_recognizer, zipfile_reader
 from readers.capture import make_dimension_signal, make_filename_pattern
 from readers.doc_cocoa import cocoa_doc_reader
@@ -69,6 +71,34 @@ VISION_CONFIG: dict[str, Any] = {
 def _no_reader(*args: Any, **kwargs: Any) -> None:
     """This deployment ships no library for the format (§2.4 `unsupported`)."""
     return None
+
+
+def _archive_reader(*, zip_reader: Callable[[Path], ArchiveManifest],
+                    tar_reader: Callable[[Path], ArchiveManifest],
+                    ) -> Callable[[Path], ArchiveManifest]:
+    """One `read_manifest` for both archive families router.py now sends it.
+
+    `104` §18.2 gap 14, item 2. `extract_archive` takes exactly one injected
+    `read_manifest`; the router routes `zip` and the four tar tokens to the same
+    `archive.manifest` handler, so the two per-family readers need a caller that
+    picks between them. BY BYTES, never by the path's extension -- gap 21's rule
+    applies here as much as it does at the router: `PK\x03\x04` is ZIP's own
+    four-byte magic, read directly rather than re-derived from
+    `readers.signatures` (that module answers a ROUTING question and importing it
+    from a reader would be the reader asking the router's own question a second
+    way); anything else is handed to `tarfile`'s own `mode="r:*"` auto-detection,
+    the same one `readers.signatures._tar_format` already confirmed at routing
+    time. Four bytes are read and nothing else -- no member of either archive is
+    opened by this function.
+    """
+    def read_manifest(path: Path) -> ArchiveManifest:
+        with open(path, "rb") as handle:
+            head = handle.read(4)
+        if head.startswith(b"PK\x03\x04"):
+            return zip_reader(path)
+        return tar_reader(path)
+
+    return read_manifest
 
 
 def read_text_file(path: Path) -> TextDocument:
@@ -162,7 +192,13 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
         # §2.5's manifest, from the standard library. No ceiling: how many members
         # are worth listing is a deployment budget, and this deployment would
         # rather carry a long manifest than a truncated one it has to explain.
-        "read_manifest": zipfile_reader(),
+        #
+        # `104` §18.2 gap 14, item 2: TWO READERS NOW, not one -- the tar family
+        # beside zip -- so the single `read_manifest` key `extract_archive` takes
+        # is `_archive_reader`'s dispatch between them, by the file's own first
+        # bytes.
+        "read_manifest": _archive_reader(
+            zip_reader=zipfile_reader(), tar_reader=tarfile_reader()),
         # WAS `_no_reader`, and that one line was the largest single loss of
         # information measured in this product. §2.9 gives spreadsheets,
         # presentations, email, calendar, contacts and audio/video a field list
