@@ -91,7 +91,10 @@ from facts.discount import MetadataScreen
 # evidence rather than off a constant, exactly as `model_facts.
 # call_identity_dimensions` reads it at site A.
 from facts.evidence import observations_for_version
-from facts.learning import NoSuchClaim, reject_claim
+from facts.learning import (
+    MalformedCorrection, NoSuchClaim, confirm_claim, reject_claim,
+    rename_claim,
+)
 from facts.domains import ActivationSignal, ActivationSignals
 from branch_situation import (
     Branch, BranchPartition, partition_by_branch, single_owner_terms,
@@ -413,8 +416,8 @@ from review_surface.records import ProgressEntry
 from review_surface.schema import create_review_schema
 from review_surface.trail import file_trail
 from review_surface.vocabulary import (
-    ACTION_REJECT, SOURCE_P4_RUNS, SOURCE_P8, STATE_BLOCKED, STATE_COMPLETED,
-    STATE_DEFERRED,
+    ACTION_ACCEPT, ACTION_REJECT, ACTION_RENAME, SOURCE_P4_RUNS, SOURCE_P8,
+    STATE_BLOCKED, STATE_COMPLETED, STATE_DEFERRED,
 )
 # `104` §18.2 gap 10: P4's own extraction record, for the files the fact pass
 # never reached. Read through P4's published reader rather than a query of this
@@ -4875,15 +4878,18 @@ def _print_values_to_confirm(conn: sqlite3.Connection, out) -> None:
     the line printed is where the model got it -- which is what makes the question
     answerable rather than a request to trust a machine.
 
-    **WHAT THIS SCREEN DOES NOT YET OFFER, SAID HERE AND ON THE SCREEN ITSELF.** There
-    is no confirm gesture and no rename gesture in this command. `--reject` exists and
-    is printed because it is TRUE and typeable; confirming writes a `user_confirmed`
-    fact and renaming calls `facts.values.merge_values`, and neither has a flag. The
-    read side is built and tested (`normalize_with_the_persons_own_values` above), so
-    the day the owner shapes those two gestures the vocabulary they write is already
-    consulted. Printing a gesture that does not exist would break `84` §6 -- what the
-    screen tells a person to type has to be true -- so the block says plainly that the
-    answer is not typeable yet rather than inventing a flag to look finished.
+    **ALL THREE ANSWERS ARE NOW TYPEABLE** (`104` §18.2 gap 3's owed gestures).
+    `--confirm` writes the `user_confirmed` fact and `--rename` calls
+    `facts.values.merge_values` and then confirms at the survivor; both go through
+    `facts.learning`, where `--reject` already went, so the lookup stays in the part
+    that owns the schema. The read side was built and tested first
+    (`normalize_with_the_persons_own_values` above), which is why the vocabulary
+    these two write is consulted on the very next run.
+
+    Until they existed this block ended by saying that saying YES was not a gesture
+    this command had, and that was the honest thing to print -- `84` §6, what the
+    screen tells a person to type has to be true, so a flag was not invented to look
+    finished. The same rule is what took the sentence out: it is no longer true.
 
     **AND IT PRINTS WITH THE FACT PASS, WHICH IS A BOUND WORTH NAMING.** The call site
     is inside `_model_fact_pass`, so a run that reaches none of its four early returns
@@ -4986,12 +4992,24 @@ def _print_values_to_confirm(conn: sqlite3.Connection, out) -> None:
         # exactly where `_wrapped` would break this one.
         print(f"    --reject {shlex.quote(f'{filename}:{field_key}={value}')}"
               f"   No, that is not right", file=out)
+        # PRINTED RAW for the line above's reason, and all three together because
+        # they are one question with three answers. The rename line carries the
+        # value twice on purpose: the person edits the half after `>` and pastes
+        # it, so the wording they are changing FROM is in front of them and they
+        # never have to retype the half the product already knows.
+        print(f"    --confirm {shlex.quote(f'{filename}:{field_key}={value}')}"
+              f"   Yes, that is right", file=out)
+        print(f"    --rename "
+              f"{shlex.quote(f'{filename}:{field_key}={value}>{value}')}"
+              f"   Yes, but I call it something else -- edit the second half",
+              file=out)
     print("", file=out)
     print(_wrapped(
-        "Saying YES to one of these is not a gesture this command has yet: the "
-        "product can store your answer and will use it on every later run, and "
-        "there is no flag to type it with. Until there is, a proposal stays a "
-        "proposal and files nothing.", indent="  "), file=out)
+        "Confirming a value makes it yours: it outranks anything the rules or a "
+        "model say about that file, and the product uses your spelling on every "
+        "later run instead of asking again. Until you answer, a proposal stays a "
+        "proposal and files nothing. None of these three moves a file.",
+        indent="  "), file=out)
 
 
 #: The field the coursework `holder_institution` role resolves to, spelled here for
@@ -14274,6 +14292,126 @@ def apply_rejections(conn: sqlite3.Connection, rejections: Sequence[str], *,
             ) from refusal
 
 
+class ConfirmationRefused(NotConfigured):
+    """`--confirm` or `--rename` named something this plan has never proposed."""
+
+
+def _named_file(conn: sqlite3.Connection, filename: str, gesture: str):
+    """The one file row this gesture names, or a refusal that says which to type.
+
+    `apply_rejections` states the rule and this is the same rule, read once
+    instead of twice: `notes.txt` in two course folders is the most ordinary
+    thing on a real disk, and taking the first match would act on a file the
+    person did not name while the screen said it worked. EVERY row P1 has not
+    retired, because two versions of one file are not two files and the refusal
+    below could not tell them apart -- it offered the identical path twice as the
+    way to say which one was meant (`104` R-25).
+
+    `gesture` is the flag in the person's own words, so the refusal names the
+    thing they typed rather than a word this function chose.
+    """
+    rows = conn.execute(
+        "SELECT file_id, content_hash, current_path FROM files "
+        "WHERE filename = ? AND scan_state NOT IN (?, ?) "
+        "ORDER BY current_path",
+        (filename, SUPERSEDED_CONTENT, PATH_NO_LONGER_EXISTS)).fetchall()
+    if not rows:
+        raise ConfirmationRefused(
+            f"{filename!r} is not a file in this plan. Run the command without "
+            f"`{gesture}` first: there is nothing to answer about until the "
+            "product has proposed something.")
+    if len(rows) > 1:
+        paths = "\n    ".join(row["current_path"] for row in rows)
+        raise ConfirmationRefused(
+            f"{filename!r} names {len(rows)} files in this plan, and this "
+            f"{gesture} would only reach one of them. Name the one you mean by "
+            f"its path:\n    {paths}")
+    return rows[0]
+
+
+def apply_confirmations(conn: sqlite3.Connection, confirmations: Sequence[str], *,
+                        user_id: str, observed_at: str) -> None:
+    """`--confirm FILE:FIELD=VALUE`, the yes `--reject` was shipped without.
+
+    `104` §18.2 gap 3 asked for "a proposal the person SEES"; `_print_values_to_confirm`
+    built the screen and had to end by saying that saying YES was not a gesture
+    this command had. The read side was already there and reachable by nothing:
+    `normalize_for_review` writes the unseen value as `possible`,
+    `facts.read_surface.confirmed_spellings` reads back what the person confirmed,
+    and `normalize_with_the_persons_own_values` tests that the second consults the
+    first. Only the writer was missing.
+
+    Applied where `--reject` is applied, before the run reads anything and for its
+    reason: a person who has just been shown a proposal and said yes should see
+    the difference on this invocation, not the next one.
+
+    The lookup and the writes belong to P6 (`facts.learning.confirm_claim`), not
+    here. This turns one typed string into three words and hands them over; a
+    SELECT over `file_facts` written in this file would be a second home for P6's
+    schema in the one module that is supposed to hold none.
+    """
+    for raw in confirmations:
+        target, _, value = raw.partition("=")
+        filename, _, field_key = target.rpartition(":")
+        if not filename or not field_key or not value:
+            raise ConfirmationRefused(
+                f"{raw!r} is not a confirmation. The form is "
+                "`--confirm <file>:<field>=<value>`, naming something this plan "
+                "proposed -- for example "
+                "`--confirm 'week 3.pdf:work_type=reading response'`.")
+        row = _named_file(conn, filename, "--confirm")
+        try:
+            confirm_claim(conn, file_id=row["file_id"],
+                          content_hash=row["content_hash"], field_key=field_key,
+                          value=value, action=ACTION_ACCEPT, user_id=user_id,
+                          observed_at=observed_at)
+        except NoSuchClaim as refusal:
+            # P6 names the file by its id, which is the right word inside P6 and
+            # the wrong one on a screen: the person typed a filename and has
+            # never seen a uuid. Re-said in their words, with P6's reason kept.
+            raise ConfirmationRefused(
+                str(refusal).replace(repr(row["file_id"]), repr(filename))
+            ) from refusal
+
+
+def apply_renames(conn: sqlite3.Connection, renames: Sequence[str], *,
+                  user_id: str, observed_at: str) -> None:
+    """`--rename FILE:FIELD=OLD>NEW`: yes, and this is what I call it.
+
+    `>` and not a second `=`, because a value may contain an `=` and every one of
+    these fields is free text the model read out of a document. The separator has
+    to be something the form does not already spend, and the screen prints the
+    whole line for the person to paste.
+
+    `facts.learning.rename_claim` does both halves in one transaction -- merging
+    the two value rows so the survivor answers to both spellings, and confirming
+    this file's claim at the survivor. `confirmed_spellings` is what then reaches
+    a later run's proposal, so the spelling the person chose is the one the
+    product uses from here on.
+    """
+    for raw in renames:
+        target, _, wording = raw.partition("=")
+        filename, _, field_key = target.rpartition(":")
+        old, sep, new = wording.partition(">")
+        if not filename or not field_key or not sep or not old or not new:
+            raise ConfirmationRefused(
+                f"{raw!r} is not a rename. The form is "
+                "`--rename <file>:<field>=<what it says>><what to call it>`, "
+                "naming something this plan proposed -- for example "
+                "`--rename 'week 3.pdf:work_type=Reading Response Draft>reading "
+                "response'`.")
+        row = _named_file(conn, filename, "--rename")
+        try:
+            rename_claim(conn, file_id=row["file_id"],
+                         content_hash=row["content_hash"], field_key=field_key,
+                         old=old, new=new, action=ACTION_RENAME,
+                         user_id=user_id, observed_at=observed_at)
+        except (NoSuchClaim, MalformedCorrection) as refusal:
+            raise ConfirmationRefused(
+                str(refusal).replace(repr(row["file_id"]), repr(filename))
+            ) from refusal
+
+
 class AnswerRefused(NotConfigured):
     """`--answer` named something this database has never asked about."""
 
@@ -16570,6 +16708,22 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "Nothing is deleted -- the old conclusion and its evidence stay "
              "readable. Can be given more than once.")
     parser.add_argument(
+        "--confirm", action="append", default=[], metavar="FILE:FIELD=VALUE",
+        help="say yes to a value the product proposed, e.g. --confirm "
+             "'week 3.pdf:work_type=reading response'. The value becomes yours: "
+             "it outranks anything the rules or a model say about that file, and "
+             "the product uses that spelling on later runs instead of asking "
+             "again. Nothing moves -- --freeze and --apply are what move files. "
+             "Can be given more than once.")
+    parser.add_argument(
+        "--rename", action="append", default=[], metavar="FILE:FIELD=OLD>NEW",
+        help="say yes to a value and give it your own wording, e.g. --rename "
+             "'week 3.pdf:work_type=Reading Response Draft>reading response'. "
+             "The two spellings become one value answering to both, so the "
+             "product recognises either next time and uses yours. `>` separates "
+             "them because a value may contain an `=`. Can be given more than "
+             "once.")
+    parser.add_argument(
         "--residual", action="append", default=[], metavar="NAME",
         help="enable one of §7.3's residual areas as a destination in this "
              "plan, e.g. --residual \"Reading Inbox\". These are the homes for "
@@ -16894,6 +17048,18 @@ def main(argv: Sequence[str] | None = None, *, out=None,
             _bootstrap(conn)
             apply_rejections(conn, args.reject, user_id=args.user,
                              observed_at=now())
+        # `104` §18.2 gap 3's two owed gestures, applied beside the rejection and
+        # for its reason: all three are answers to the same screen, and a person
+        # who says "that one is wrong, that one is right, and call that one this"
+        # in one command should see all three on this run.
+        if args.confirm:
+            _bootstrap(conn)
+            apply_confirmations(conn, args.confirm, user_id=args.user,
+                                observed_at=now())
+        if args.rename:
+            _bootstrap(conn)
+            apply_renames(conn, args.rename, user_id=args.user,
+                          observed_at=now())
         if args.explain:
             _bootstrap(conn)
             for question_id in args.explain:

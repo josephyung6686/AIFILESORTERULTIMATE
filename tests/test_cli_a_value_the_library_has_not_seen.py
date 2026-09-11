@@ -52,6 +52,7 @@ from facts.file_facts import (  # noqa: E402
     LLM_INTERPRETATION, USER_CORRECTION, write_fact,
 )
 from facts.read_surface import confirmed_spellings  # noqa: E402
+from facts.read_surface import versions_in_fields  # noqa: E402
 from facts.states import POSSIBLE, USER_CONFIRMED  # noqa: E402
 from facts.values import VALUE_ORIGINS, ensure_value, merge_values  # noqa: E402
 
@@ -331,21 +332,38 @@ def test_a_proposal_reaches_the_screen_with_the_line_the_model_was_reading(corpu
     assert "The model was reading: 'Proposed Scope of the module'" in screen
 
 
-def test_the_screen_offers_only_the_gesture_that_exists(corpus):
+def test_the_screen_offers_every_gesture_that_exists_and_no_other(corpus):
     """`84` §6: what the screen tells a person to type has to be true.
 
-    **SABOTAGE:** print `--confirm module handbook.pdf:work_type=Proposed Scope`
-    because it reads better. There is no such flag on this command; the person types
-    it, argparse refuses it, and the one place the product asked them a question is
-    the one place it lied to them. `--reject` is printed because it exists and it
-    addresses a file by the filename the gesture actually takes.
+    **SABOTAGE:** print a flag because it reads better. Until `104` §18.2 gap 3's
+    two gestures were built this test asserted the opposite -- `--confirm` must
+    NOT appear, because there was no such flag and the one place the product asked
+    a question would have been the one place it lied. The rule did not change; the
+    flags did, so the assertion moved with them and the parser is now asked
+    directly rather than trusted.
+
+    Every command the screen prints is parsed here, so a gesture that is printed
+    and then refused by argparse cannot survive a run of this file.
     """
     _proposed(corpus, field_key="work_type", canonical="Proposed Scope")
     screen = _screen(corpus)
 
     assert "--reject 'module handbook.pdf:work_type=Proposed Scope'" in screen
-    assert "--confirm" not in screen
-    assert "not a gesture this command has yet" in screen
+    assert "--confirm 'module handbook.pdf:work_type=Proposed Scope'" in screen
+    assert "--rename 'module handbook.pdf:work_type=" in screen
+    assert "not a gesture this command has yet" not in screen
+
+    # AND THE CONFIRM LINE THE SCREEN PRINTS ACTUALLY WORKS, which is the same
+    # check `test_the_reject_line_the_screen_prints_actually_works` makes one
+    # gesture along: printing a command is a promise that typing it does
+    # something, and the form is where that promise is easiest to break.
+    import shlex
+    typed = next(shlex.split(line.strip())[1] for line in screen.splitlines()
+                 if line.strip().startswith("--confirm "))
+    cli.apply_confirmations(corpus["conn"], [typed], user_id="jy",
+                            observed_at=CLOCK)
+    assert cli.normalize_with_the_persons_own_values(corpus["conn"])(
+        "work_type", "Proposed Scope") == "Proposed Scope"
 
 
 def test_the_reject_line_the_screen_prints_actually_works(corpus):
@@ -389,3 +407,139 @@ def test_a_confirmed_value_is_no_longer_a_question(corpus):
 def test_a_run_with_nothing_to_confirm_prints_no_block_at_all(corpus):
     """An empty heading is a paragraph about nothing, and the screen has enough."""
     assert _screen(corpus) == ""
+
+
+# --- the gestures themselves (`104` §18.2 gap 3's two owed flags) -------------------
+
+
+def _typed(corpus, gesture: str, *flags: str) -> None:
+    """One `--confirm` or `--rename` as `cli.main` would apply it.
+
+    The applier is called rather than `cli.main`, and that is the whole reach of
+    this fixture: every other test in this file builds its proposal by hand, so
+    there is no run to hang a flag off. What it does exercise is the part the
+    gesture is -- the parse, the file lookup, the refusal wording, and P6's two
+    writes -- which is everything between the typed string and the database.
+    """
+    applier = (cli.apply_confirmations if gesture == "--confirm"
+               else cli.apply_renames)
+    applier(corpus["conn"], list(flags), user_id="jy", observed_at=CLOCK)
+
+
+def _states(corpus, field_key: str) -> dict:
+    """Canonical value -> reliability state, for every live fact in one field."""
+    return {row["canonical_value"]: row["reliability_state"]
+            for rows in versions_in_fields(
+                corpus["conn"], field_keys=(field_key,)).values()
+            for row in rows
+            if row["active"] and row["superseded_by"] is None}
+
+
+def test_confirming_a_proposal_makes_it_the_persons_answer(corpus):
+    """`--confirm`, end to end through P6, and then read back by the next run.
+
+    **SABOTAGE:** write the `user_confirmed` row and leave the `possible` one
+    standing. `preferred_of_slot` would then have two live rows for one slot and
+    the person's answer would win by a sort; §8.2 wants the old row readable, not
+    live, which is why `confirm_claim` supersedes rather than deactivates.
+    """
+    _proposed(corpus, field_key="work_type", canonical="Proposed Scope")
+    _typed(corpus, "--confirm", "module handbook.pdf:work_type=Proposed Scope")
+
+    assert _states(corpus, "work_type") == {"Proposed Scope": USER_CONFIRMED}
+    normalize = cli.normalize_with_the_persons_own_values(corpus["conn"])
+    assert normalize("work_type", "Proposed Scope") == "Proposed Scope"
+
+
+def test_confirming_twice_is_one_correction_and_not_two(corpus):
+    """A person re-runs this command by pressing up-arrow, `--confirm` and all.
+
+    `reject_claim` found this by doing exactly that against the real command and
+    `confirm_claim` inherits the answer: the second gesture returns the first
+    one's event id, so §8.5's count of decisions does not read an up-arrow as a
+    second decision.
+    """
+    _proposed(corpus, field_key="work_type", canonical="Proposed Scope")
+    _typed(corpus, "--confirm", "module handbook.pdf:work_type=Proposed Scope")
+    _typed(corpus, "--confirm", "module handbook.pdf:work_type=Proposed Scope")
+
+    assert _states(corpus, "work_type") == {"Proposed Scope": USER_CONFIRMED}
+
+
+def test_confirming_something_nobody_proposed_is_refused_not_ignored(corpus):
+    """A silently dropped confirmation is the worst of both: no effect, no way
+    to tell. The refusal names the file in the person's own words."""
+    _proposed(corpus, field_key="work_type", canonical="Proposed Scope")
+    with pytest.raises(cli.ConfirmationRefused) as refusal:
+        _typed(corpus, "--confirm", "module handbook.pdf:work_type=Lecture")
+    assert "module handbook.pdf" in str(refusal.value)
+    assert "Lecture" in str(refusal.value)
+
+
+def test_a_confirmation_that_is_not_a_pair_is_refused_with_the_form(corpus):
+    with pytest.raises(cli.ConfirmationRefused) as refusal:
+        _typed(corpus, "--confirm", "module handbook.pdf:work_type")
+    assert "--confirm <file>:<field>=<value>" in str(refusal.value)
+
+
+def test_renaming_a_proposal_gives_one_value_that_answers_to_both(corpus):
+    """`--rename`, which is a confirmation of a different spelling.
+
+    The two halves are asserted separately because either alone is a defect. The
+    merge alone leaves this file's fact pointing at a row whose canonical wording
+    is still the model's, so the folder keeps the name the person renamed away
+    from; the confirmation alone leaves the model's spelling free to come back as
+    a second value next run.
+
+    **SABOTAGE:** compare spellings case-insensitively anywhere. `00`:298 --
+    "There are no alias tables or equivalence maps in code" -- and the equivalence
+    here is one the person stated once, in their own database.
+    """
+    proposed = _proposed(corpus, field_key="work_type",
+                         canonical="Reading Response Draft")
+    _typed(corpus, "--rename",
+           "module handbook.pdf:work_type=Reading Response Draft>reading response")
+
+    assert _states(corpus, "work_type") == {"reading response": USER_CONFIRMED}
+    normalize = cli.normalize_with_the_persons_own_values(corpus["conn"])
+    assert normalize("work_type", "Reading Response Draft") == "reading response"
+    assert normalize("work_type", "reading response") == "reading response"
+    # §8.2: nothing was deleted to make the rename work.
+    merged = corpus["conn"].execute(
+        'SELECT merged_into, canonical_value FROM "values" WHERE value_id = ?',
+        (proposed,)).fetchone()
+    assert merged["canonical_value"] == "Reading Response Draft"
+    assert merged["merged_into"] is not None
+
+
+def test_renaming_a_value_to_itself_is_refused_in_the_persons_words(corpus):
+    """`merge_values` refuses a value merged into itself and its message is about
+    value ids nobody has seen. Refused first, here, in the words they typed."""
+    _proposed(corpus, field_key="work_type", canonical="Proposed Scope")
+    with pytest.raises(cli.ConfirmationRefused) as refusal:
+        _typed(corpus, "--rename",
+               "module handbook.pdf:work_type=Proposed Scope>Proposed Scope")
+    assert "nothing to rename" in str(refusal.value)
+
+
+def test_a_rename_without_the_separator_is_refused_with_the_form(corpus):
+    """`>` and not a second `=`: these fields are free text a model read out of a
+    document, and a value may carry an `=`."""
+    with pytest.raises(cli.ConfirmationRefused) as refusal:
+        _typed(corpus, "--rename", "module handbook.pdf:work_type=Proposed Scope")
+    assert "<what it says>><what to call it>" in str(refusal.value)
+
+
+def test_the_screen_offers_all_three_answers_and_says_so(corpus):
+    """`84` §6, both ways. The block used to end by saying that saying YES was
+    not a gesture this command had, which was true and is not any more; printing
+    a flag that does not exist and withholding one that does are the same defect.
+    """
+    _proposed(corpus, field_key="work_type", canonical="Proposed Scope")
+    screen = _screen(corpus)
+
+    assert "--reject 'module handbook.pdf:work_type=Proposed Scope'" in screen
+    assert "--confirm 'module handbook.pdf:work_type=Proposed Scope'" in screen
+    assert ("--rename 'module handbook.pdf:work_type=Proposed Scope>Proposed "
+            "Scope'") in screen
+    assert "is not a gesture this command has yet" not in screen
