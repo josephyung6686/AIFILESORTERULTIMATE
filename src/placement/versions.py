@@ -27,21 +27,35 @@ A rename is not a removal, and neither is a move. P10 rewrites `display_label`
 carries and produces no review at all. The label and path the user now sees are
 composed by P12 from the new chain.
 
-**The mark is the diff, and the diff is computed.** Nothing here writes to
-`placement_decisions`. `store.py` is append-only by doctrine -- "Nothing here
-rewrites a decision" -- so stamping `review_policy` onto an existing row would be
-the one mutation the store exists to forbid, and it would make §8.8's answer
-depend on when it was last run rather than on the two versions themselves.
+**The mark is the diff, and the diff is computed.** `reproject` writes nothing.
+`store.py` is append-only by doctrine -- "Nothing here rewrites a decision" -- so
+stamping `review_policy` onto an existing row would be the one mutation the store
+exists to forbid, and it would make §8.8's answer depend on when it was last run
+rather than on the two versions themselves.
+
+**`carry_onto` is the other half of the same sentence, and it appends.** §8.8's
+"the decision carries" had never been WRITTEN: `reproject` says which decisions
+survive a new version and nothing put them there, so a run that edited its own
+plan after placing (`104` §18.2 gap 11c) left half its decisions addressing a
+tree the person is no longer being shown -- the report joins labels to decisions
+by `node_id`, and a decision naming the old version's id joins to nothing. So the
+carry is a NEW row per decision whose `supersedes` names the old one, which is
+§8.2's rule and not an exception to it. Nothing is rewritten here either.
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 import sqlite3
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from placement.index import entries_for_plan
-from placement.store import decisions_for_plan
-from placement.vocabulary import ACCEPT_CONTEXT_SUPPORTED, ACCEPT_DIRECT, PLACE
+from placement.index import IndexEntry, entries_for_plan
+from placement.records import Destination, PlacementDecision
+from placement.store import decisions_for_plan, record_decision, subject_ref_of
+from placement.vocabulary import (
+    ACCEPT_CONTEXT_SUPPORTED, ACCEPT_DIRECT, PLACE, SCOPED_GENERAL,
+)
 
 #: The two verdict outcomes that still support a placement. Named, not sliced out
 #: of `VERDICTS`: a slice silently changes meaning the day P8 reorders its tuple,
@@ -184,6 +198,244 @@ def _revalidates(conn, decision, to_plan_version: str, inputs) -> bool:
     if isinstance(result, ValidationUnavailable):
         return False
     return result.outcome in _STILL_SUPPORTS
+
+
+class NodeHasNoSuccessor(RuntimeError):
+    """A decision names a node the new version has no lineage for."""
+
+
+#: What the person is told when a folder was created because their own file
+#: needed it. `84` §6: no section number, no field word, and the actor named --
+#: the branch gained the folder, and it gained it FOR THIS FILE.
+_MINTED_FOR_THIS_FILE: str = (
+    "the catch-all inside that folder was created for this file, because this "
+    "file belongs in that folder and in none of the folders beside it"
+)
+
+#: §8.2 requires a reason on every supersede, and the two are different facts: one
+#: decision changed where the file goes, and the rest changed only which version
+#: of the plan they are about.
+_CARRIED: str = (
+    "the plan gained a folder after this decision was made, and §8.8 re-projects "
+    "every decision onto the version the person is shown"
+)
+_MOVED_INTO_THE_GENERAL: str = (
+    "this branch's catch-all folder was created because of this file, so the "
+    "file goes into it rather than staying at the folder above it (`00`:99)"
+)
+
+
+def _current(decisions: Sequence[PlacementDecision],
+             ) -> tuple[PlacementDecision, ...]:
+    """One decision per subject: the LAST the pass reached, in first-seen order.
+
+    `run_corpus` returns what it decided in the order it decided it, and a subject
+    can be decided twice in one pass -- a group member placed by its packet and
+    then resolved again as shared material is the shape that does it. The second
+    row supersedes the first, so the earlier one is a decision the run itself
+    withdrew: reading demand from it would mint a folder for a placement that no
+    longer stands, and re-projecting it would make it live again in the new
+    version. `store.record_decision`'s own index says the same thing from the
+    other side -- one live decision per subject per version -- and `mark_superseded`
+    refuses to link a row that is already linked, so a run that reached here with
+    a withdrawn row would end rather than quietly resurrect it.
+
+    First-seen order, not last: the run's own order is what the report prints, and
+    a file changing places in the list because it was decided twice is a screen
+    that reorders itself for a reason nobody reading it can see.
+    """
+    latest: dict[str, PlacementDecision] = {}
+    for decision in decisions:
+        latest[subject_ref_of(decision.subject)] = decision
+    return tuple(latest.values())
+
+
+def scoped_general_demand(decisions: Sequence[PlacementDecision], *,
+                          tree) -> dict[str, tuple[str, ...]]:
+    """Which parents the placement pass proved owe a scoped General, and to whom.
+
+    `104` §18.2 gap 11c and the owner's ruling of 10 Sep: the General is minted ON
+    DEMAND, only under a parent that actually has a file whose accepted facts
+    support the parent and no leaf, never under every branch. `00`:99 makes the
+    branch optional -- "the future tree CAN include
+    Academics/Columbia/2026-Spring/General" -- and `cli.py` answered it with `()`
+    for the reason it recorded: an unasked question answered by default is a
+    folder nobody wanted. This is the question finally being ASKED, by the only
+    pass that is in a position to answer it.
+
+    **DEMAND IS A PLACEMENT OUTCOME AND CANNOT BE ANYTHING ELSE.** The file that
+    wants a General is the one gap 11b's decision half already names: placed on an
+    ancestor the shortlist offered, with `unsupported_levels` filled, which is
+    SPEC:401-404's record of a decision that deliberately left the levels below it
+    unfilled. The tree pass runs BEFORE placement, so nothing earlier in the run
+    knows it -- which is the ordering question §18.30 put to the owner and this
+    function is the answer to.
+
+    Keyed on `origin_node_id`, because that is the identity a review action names
+    (`tree_design.store._write_overlap_answer` matches the parent by lineage) and
+    because minting opens a draft, which mints a new `node_id` for every node.
+
+    **A PARENT THAT ALREADY HAS A GENERAL IS NOT IN DEMAND.** That General was on
+    this file's own shortlist as a set-aside
+    (`pipeline._the_parents_own_general_is_offered`) and whoever decided placed
+    the file on the parent anyway. Minting a second one -- or moving the file into
+    the first -- would be this function overruling the judgement it asked for.
+
+    Values are file ids in the order they were decided, deduplicated; keys are
+    sorted, so two runs over one corpus mint the same Generals in the same order.
+    """
+    by_id = {node.node_id: node for node in tree.nodes}
+    already = {node.parent_node_id for node in tree.nodes
+               if getattr(node, "node_role", None) == SCOPED_GENERAL}
+    demand: dict[str, list[str]] = {}
+    for decision in _current(decisions):
+        if decision.outcome != PLACE or decision.destination is None:
+            continue
+        # The shallow-decision record, and nothing else. An empty tuple is a file
+        # filed as deep as its evidence goes, which wants no catch-all.
+        if not decision.decision_depth.unsupported_levels:
+            continue
+        file_id = decision.subject.file_id
+        node = by_id.get(decision.destination.node_id)
+        if not file_id or node is None or node.node_id in already:
+            continue
+        # A file already IN a General carries the levels its siblings bind, which
+        # is the same field saying something else entirely. A General under a
+        # General is the global catch-all `00`:99 refuses, one level down.
+        if getattr(node, "node_role", None) == SCOPED_GENERAL:
+            continue
+        demand.setdefault(node.origin_node_id, []).append(file_id)
+    return {origin: tuple(dict.fromkeys(files))
+            for origin, files in sorted(demand.items())}
+
+
+def carry_onto(conn: sqlite3.Connection, *,
+               decisions: Sequence[PlacementDecision],
+               from_tree, to_tree,
+               into_general: Mapping[str, IndexEntry],
+               component_version: str,
+               observed_at: str) -> tuple[PlacementDecision, ...]:
+    """§8.8's "the decision carries", written: every decision onto the new version.
+
+    One appended row per decision, whose `supersedes` names the row it re-projects
+    and whose destination is the SAME NODE under the new version's id -- found the
+    way `reproject` finds it, `node_id -> origin_node_id -> node_id`, because P10
+    mints a new id per version and an id match would find nothing for any node.
+
+    **EVERY NODE ID ON THE RECORD IS REMAPPED, not only the destination.** The
+    alternatives, the suppressed nodes and their `found_on` pairs, and an `ask`'s
+    options are all node ids of the version the decision was made against; a
+    carried record that kept them would cite folders the new version does not
+    have, on the same screen as a destination that does. `graph_anchors` and
+    `matching_facts` are file and fact ids and are untouched.
+
+    **`into_general` IS THE ONE THING THAT CHANGES, and it changes one field.**
+    A file whose demand minted a General goes into it: the destination becomes the
+    General and the depth becomes the General's own. `decided_by` is carried
+    UNCHANGED from whoever decided the shallow placement -- the model or the rules
+    chose that branch and this does not revisit that; what changed is that the
+    branch now has the folder `00`:99 says the file belongs in. Every other field
+    -- the evidence, the two-condition measurement, the review policy -- is the
+    same evidence it was, so it is copied rather than re-derived.
+
+    `supported_depth` becomes the General's depth beside `node_depth`, and that is
+    the record's own arithmetic rather than a claim about the evidence:
+    `DecisionDepth` refuses `node_depth > supported_depth` as a filled slot, and a
+    General fills no slot -- it states no expected value and binds no level. It is
+    what `_place_one` already writes when the judge picks a General for itself.
+    `unsupported_levels` is carried untouched: the levels this file did not settle
+    are the same levels, whichever side of the branch's catch-all it is filed on.
+
+    **THE LINEAGE IS READ OFF THE TWO FROZEN TREES AND NOT OFF THE INDEX**, which
+    is the one place this differs from `reproject` above and it is not a
+    preference. The index holds LEGAL nodes only, and a record's node ids are not
+    all legal ones: `index._terms_of` writes a `parent_node_id` term whose key is
+    the PARENT of a legal node, so `_chain_around`'s walk up can name an ancestor
+    that accepts no placement, and gap 16's `found_on` can carry it into a
+    conflict. Looked up in the index that id has no successor -- and raising here
+    would end a run AFTER every model call in it was spent, with the new version
+    frozen and half the decisions carried. A frozen tree carries every node P10
+    wrote, legal or not, which is the same set `open_draft` copies, so every id a
+    record can hold has an answer.
+
+    Raises rather than guessing when a node has no successor even so. Nothing is
+    REMOVED by minting a General, so a missing successor means the two versions
+    disagree about the tree, and a decision quietly dropped or matched onto a
+    plausible neighbour is §8.8's "silent reclassification" by name.
+
+    **ONE ROW PER SUBJECT, AND IT IS THE ONE THE PASS ENDED ON** -- `_current`,
+    the same reading `scoped_general_demand` takes, so the folder that was minted
+    and the decision that lands in it can never be answering two different states
+    of the same run.
+    """
+    to_plan_version = to_tree.plan_version_id
+    origin_of = {node.node_id: node.origin_node_id for node in from_tree.nodes}
+    successors = {node.origin_node_id: node for node in to_tree.nodes}
+
+    def _successor(node_id: str):
+        node = successors.get(origin_of.get(node_id, ""))
+        if node is None:
+            raise NodeHasNoSuccessor(
+                f"{node_id!r} is named by a decision in "
+                f"{from_tree.plan_version_id!r} and {to_plan_version!r} carries "
+                "no node with its lineage. A plan that gained a folder removed "
+                "none, so the two versions disagree about the tree -- and "
+                "carrying the decision onto a plausible survivor is the silent "
+                "reclassification §8.8 forbids"
+            )
+        return node
+
+    carried: list[PlacementDecision] = []
+    for decision in _current(decisions):
+        general = (into_general.get(decision.subject.file_id or "")
+                   if decision.outcome == PLACE else None)
+        destination, depth, explanation = (
+            decision.destination, decision.decision_depth, decision.explanation)
+        reason = _CARRIED
+        if general is not None:
+            destination = Destination(node_id=general.node_id,
+                                      node_role=general.node_role)
+            depth = dataclasses.replace(depth, node_depth=general.depth,
+                                        supported_depth=general.depth)
+            explanation = (explanation.rstrip(".") + "; "
+                           + _MINTED_FOR_THIS_FILE + ".")
+            reason = _MOVED_INTO_THE_GENERAL
+        elif destination is not None:
+            entry = _successor(destination.node_id)
+            destination = Destination(node_id=entry.node_id,
+                                      node_role=entry.node_role)
+        subject_ref = subject_ref_of(decision.subject)
+        moved = dataclasses.replace(
+            decision,
+            decision_id=f"{to_plan_version}:{subject_ref}:{observed_at}",
+            plan_version=to_plan_version,
+            supersedes=decision.decision_id,
+            superseded_by=None, supersede_reason=None,
+            destination=destination, decision_depth=depth,
+            explanation=explanation,
+            ask=None if decision.ask is None else dataclasses.replace(
+                decision.ask,
+                options=tuple(_successor(node).node_id
+                              for node in decision.ask.options)),
+            conflicts_considered=tuple(
+                dataclasses.replace(
+                    conflict,
+                    suppressed_node_ids=tuple(
+                        _successor(node).node_id
+                        for node in conflict.suppressed_node_ids),
+                    found_on=tuple(
+                        (_successor(ruled).node_id, _successor(found).node_id)
+                        for ruled, found in conflict.found_on))
+                for conflict in decision.conflicts_considered),
+            alternatives=tuple(
+                dataclasses.replace(item,
+                                    node_id=_successor(item.node_id).node_id)
+                for item in decision.alternatives),
+        )
+        record_decision(conn, moved, component_version=component_version,
+                        observed_at=observed_at, supersede_reason=reason)
+        carried.append(moved)
+    return tuple(carried)
 
 
 def learned_preferences_still_applicable(conn: sqlite3.Connection, *,

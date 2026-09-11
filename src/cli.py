@@ -224,6 +224,8 @@ from placement.pipeline import (
 )
 from placement.residual import ProtectedSetNotReadable, prior_set_decisions
 from placement.schema import create_placement_schema
+from placement.index import build_destination_index, entries_for_plan
+from placement.versions import carry_onto, scoped_general_demand
 from model_facts import (
     AnchorOnlyLevels, FactCallAuthorities, FileTookTooLong, PerFileCeiling,
     dossier_tokens, fact_call_stage,
@@ -356,8 +358,8 @@ from tree_design.config import ConfigurationRequired, TreeLimits
 from tree_design.freeze import FreezeRefused
 from tree_design.materialise import MaterialisationRefused
 from tree_design.pipeline import (
-    NothingToDesign, SharedMaterialAnswer, TreeDesignAuthorities,
-    TreeDesignDecisions,
+    NothingToDesign, ScopedGeneralAnswer, SharedMaterialAnswer,
+    TreeDesignAuthorities, TreeDesignDecisions, mint_scoped_generals,
 )
 from tree_design.store import ReviewActionRefused
 from tree_design.template_schema import (
@@ -10978,6 +10980,85 @@ def _ask_when_there_are_two_homes_to_offer(node_ids) -> str:
     return pv.ASK_USER if len(tuple(node_ids)) >= 2 else pv.ABSTAIN
 
 
+def mint_generals_on_demand(conn: sqlite3.Connection, finished, *,
+                            authorities: TreeDesignAuthorities,
+                            decisions: TreeDesignDecisions,
+                            placement_inputs,
+                            component_version: str, observed_at: str):
+    """`00`:99's General, for the branches whose own files turned out to want one.
+
+    `104` §18.2 gap 11c, and THE STEP AFTER PLACEMENT because nothing before
+    placement knows the answer. `scoped_general_demand` reads the run's own
+    decisions for the shape gap 11b's decision half writes -- a file placed on an
+    ancestor the shortlist offered, with the levels below it recorded as
+    deliberately unfilled -- and the parents of those files are the parents in
+    demand. A branch with no such file gets no folder, which is what "on demand"
+    means and is the whole difference from minting one under every branch.
+
+    **NOTHING HAPPENS WHEN NOTHING IS DEMANDED**, and that is the common case: no
+    plan version is opened, no node is minted and no row is written, so a corpus
+    every file of which settles its levels produces byte-identically the run it
+    produced before this step existed.
+
+    **WHEN SOMETHING IS DEMANDED THE PLAN GAINS A FOLDER, AND §8.8 SAYS WHAT THAT
+    COSTS.** Adding a node opens a draft, and a draft mints a new id for every
+    node it copies -- so the decisions already made name a tree the person is no
+    longer being shown, and the report joins its labels to those decisions by
+    `node_id`. `carry_onto` re-projects all of them onto the version they will be
+    shown beside, which is §8.8's own "the decision carries" finally written down,
+    and the demanded files land in the General their own evidence asked for.
+
+    `decisions` arrives with `scoped_general` unanswered, because the tree pass
+    could not answer it; this fills it and hands it back to P10's own writer. It
+    is a MODULE-LEVEL function and not a closure inside `run` so that the step can
+    be driven by a test over one tree and one set of decisions, which is the only
+    way to pin a step whose input is a whole finished run.
+    """
+    demand = scoped_general_demand(finished.placement.decisions,
+                                   tree=finished.tree.tree)
+    if not demand:
+        return finished
+    before = finished.tree.tree
+    tree = mint_scoped_generals(
+        conn, authorities=authorities,
+        decisions=dataclasses.replace(
+            decisions,
+            # One answer per parent, in the demand's own order, so two runs over
+            # one corpus mint the same folders in the same order.
+            scoped_general=tuple(ScopedGeneralAnswer(parent_origin_id=parent)
+                                 for parent in demand)),
+        tree=finished.tree)
+    inputs = placement_inputs(tree)
+    build_destination_index(
+        conn, tree.tree, component_version=component_version,
+        observed_at=observed_at, canonical=inputs.canonical_value)
+    # WHICH FOLDER EACH DEMANDED FILE GOES INTO, found through the parent it was
+    # minted for. The General is read back off the frozen tree rather than
+    # remembered from the minting, for the reason `TreeDesignResult` gives about
+    # reading the bundle back through the seam: what P11 acts on is what P10
+    # published, not what the caller believed it asked for.
+    nodes = {node.node_id: node for node in tree.tree.nodes}
+    entries = {entry.node_id: entry for entry in entries_for_plan(
+        conn, plan_version=tree.tree.plan_version_id)}
+    general_of = {
+        nodes[node.parent_node_id].origin_node_id: entries[node.node_id]
+        for node in tree.tree.nodes
+        if node.node_role == pv.SCOPED_GENERAL
+        and node.parent_node_id in nodes and node.node_id in entries}
+    return dataclasses.replace(
+        finished, tree=tree,
+        placement=dataclasses.replace(
+            finished.placement,
+            decisions=carry_onto(
+                conn, decisions=finished.placement.decisions,
+                from_tree=before, to_tree=tree.tree,
+                into_general={file_id: general_of[parent]
+                              for parent, files in demand.items()
+                              for file_id in files},
+                component_version=component_version,
+                observed_at=observed_at)))
+
+
 def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str,
         user_id: str, now, out=None,
         also_read: Sequence[Path] = (),
@@ -11341,10 +11422,20 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # that keeps that decision with the person, file by file, which is the
             # only one a command with nobody to ask may make on their behalf.
             #
-            # `00`:99's scoped General is genuinely optional and stays unanswered:
-            # it puts a folder in the tree to catch things the branch does not
-            # cover, and an unasked question answered by default is a folder
-            # nobody wanted.
+            # `00`:99's scoped General is genuinely optional and is UNANSWERABLE
+            # HERE, which is a different sentence from the one that stood here.
+            #
+            # It used to read "an unasked question answered by default is a folder
+            # nobody wanted", and that argued against minting one under every
+            # branch -- correctly, and it is still the argument. What it left out
+            # is that there is a third answer between every branch and none, and
+            # the owner ruled it on 10 Sep (`104` §18.30, §18.33): the General is
+            # minted ON DEMAND, under a parent that actually has a file whose
+            # accepted facts support the parent and no leaf.
+            #
+            # Demand is a placement outcome, and this pass runs before placement.
+            # So the tree pass answers nothing and `mint_generals_on_demand` below
+            # asks the question once the run is in a position to answer it.
             shared_material=SharedMaterialAnswer(
                 parent_origin_id=None, policy=MANDATORY_REVIEW,
                 reason="Nobody was at the screen to say where material shared "
@@ -13413,6 +13504,21 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             plan_version_id=PLAN_VERSION, accept_groups=accept_and_remember,
             design=design_decisions, approve_plan=approve_plan,
             set_privacy_policy=set_privacy_policy))
+    # `104` §18.2 gap 11c, and FIRST among the things that happen after the run:
+    # everything below reads `result.tree` and `result.placement`, and the plan
+    # this step may add a folder to is the plan the person is about to be shown,
+    # recorded against and offered gestures on.
+    #
+    # The SAME two records the tree pass was built from, so the folder the run
+    # adds is added under the authorities and the decisions the rest of the tree
+    # was designed under. `scoped_general` is the one field that changes, and the
+    # step fills it from what the placement pass proved.
+    _accepted = tuple(dict.fromkeys(accepted_ids))
+    result = mint_generals_on_demand(
+        conn, result, authorities=design_authorities(catalogue, _accepted),
+        decisions=design_decisions(_accepted),
+        placement_inputs=placement_inputs,
+        component_version=COMPONENT_VERSION, observed_at=now())
     if record is not None:
         # AFTER P11, and that is the whole reason a SECOND bundle exists.
         # `run_p1_p7` sealed the first at the end of P1--P7 and a sealed bundle is
@@ -15156,6 +15262,22 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
     by_parent: dict[str | None, list] = {}
     for node in tree.nodes:
         by_parent.setdefault(node.parent_node_id, []).append(node)
+    # `104` §18.2 gap 11c. WHICH FILES A CATCH-ALL IS FOR. A scoped General is in
+    # this plan because a file belongs in the folder above it and in none of the
+    # folders beside it (`00`:99), and on an unattended run it is minted on demand
+    # -- so it is the one folder here whose reason for existing is a particular
+    # file, and a person reading a new folder in their own tree is owed that
+    # reason in the only form they can check it, which is the names.
+    #
+    # "for", not "created for", and that is R-28 rather than brevity: a person may
+    # also have added a General at the canvas, and a folder they made themselves
+    # described as one the engine created for them would credit the run with their
+    # own gesture. The sentence is true of both.
+    minted_for: dict[str, list[str]] = {}
+    for decision in result.placement.decisions:
+        if decision.destination is not None:
+            minted_for.setdefault(decision.destination.node_id, []).extend(
+                names.get(file_id, file_id) for file_id in _files_of(decision))
 
     def draw(parent, depth):
         for node in by_parent.get(parent, ()):
@@ -15164,6 +15286,10 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             # is carried in words. Only an `existing` node has a real path.
             if getattr(node, "existing_path", None):
                 mark = f"   [yours already]{mark}"
+            if getattr(node, "node_role", None) == pv.SCOPED_GENERAL:
+                held = sorted(minted_for.get(node.node_id, ()))
+                if held:
+                    mark = f"   [for {', '.join(held)}]{mark}"
             print(f"  {'  ' * depth}{node.display_label}{mark}", file=out)
             draw(node.node_id, depth + 1)
 
