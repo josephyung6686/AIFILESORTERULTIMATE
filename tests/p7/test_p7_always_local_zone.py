@@ -76,7 +76,7 @@ from privacy.items import (
 )
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.release import Denied, ModelCallRequest, ModelTarget, Released, Target
-from privacy.resolve import UnresolvableSpan, materialise
+from privacy.resolve import UnresolvableSpan, current_observation, materialise
 from privacy.schema import create_privacy_schema
 from privacy.vocabulary import (
     ALWAYS_LOCAL, ALWAYS_LOCAL_ZONES, ALWAYS_LOCAL_ZONES_FOR_EVERY_TARGET,
@@ -781,6 +781,34 @@ def test_the_real_ocr_extractors_whole_passage_is_released_within_the_ceiling_an
     any ceiling (r169a's finding, R-171). The extractor now writes the passage's own
     unit, so the row is bounded where every other page is: released at a ceiling the
     passage fits, refused one character below it. Both halves are run here.
+
+    **RE-ARGUED 10 Sep 2026 BY `104` §18.2 GAP 17d x R-174 (§18.21, commit
+    4d2934d): THE PASSAGE CARRIES A SPAN NOW, AND THIS ASKS FOR THE ONE IT
+    CARRIES.** Gap 17d attached the passage's BOUNDING BOX to R-171's span-less
+    passage observation, and r19 died on its first OCR file for it: `span_address`
+    refuses a box with no span, and R-174's `released_wire_cost` calls that at the
+    dossier fill. The fix was to give the passage the unit's own span beside its
+    box -- so the row this test seeds now records a `TextSpan` over the whole
+    passage.
+
+    `span=None` was TRUE of the row until that merge and is a CLAIM about
+    coordinates after it. `privacy/resolve.py` refuses a claim that disagrees with
+    the record rather than honouring it or silently replacing it
+    (`UnresolvableSpan`), which is the behaviour this file pins elsewhere, so the
+    pin was failing on a stale coordinate and not on the property.
+
+    **WHICH MEASURE THE CEILING IS TAKEN OVER WAS SETTLED BY THE SAME RULING, AND
+    IT IS THE SPAN.** R-174 put the dossier fill on wire bytes over the span -- not
+    on the box, which is why gap 17d's box alone was not enough to address the row
+    -- and `check_item`'s whole-document arm answers "whole" by COVERAGE of a text
+    unit. So the span is read off the record and asked for, the box is not asked
+    for at all, and both halves still run: the passage covers its whole unit, so it
+    is released at a ceiling it fits and refused one character below it as
+    `whole_document_requested`. Asking for the recorded span rather than for `None`
+    STRENGTHENS the second half -- a span that stopped short of the unit would no
+    longer be whole, and the refusal below would not fire. The added assertion says
+    exactly that, so the day the span stops covering the passage this goes red here
+    rather than passing on a weaker request.
     """
     from evidence_shape.store import RunWriter
     from extractors.ocr import OcrOutput, OcrRegion, extract_ocr
@@ -818,8 +846,17 @@ def test_the_real_ocr_extractors_whole_passage_is_released_within_the_ceiling_an
 
     _classify(zone_conn, file_id, content_hash, key=whole[0]["observation_key"])
     _store_policy(zone_conn)
+    # The coordinates the ROW carries, never coordinates this test composes: a
+    # caller's span is a claim, and the only claim worth making here is the record's
+    # own. `None` was that claim until gap 17d x R-174 gave the passage a span.
+    recorded_span = current_observation(
+        zone_conn, whole[0]["observation_key"]).location.text_span
+    assert recorded_span is not None and (
+        recorded_span.start, recorded_span.end) == (0, len(scanned)), (
+        "the whole-passage row no longer spans the whole passage, so the "
+        f"whole-document arm below is guarding nothing: {recorded_span!r}")
     resolved = materialise(
-        zone_conn, _Item(whole[0]["observation_key"], None))
+        zone_conn, _Item(whole[0]["observation_key"], recorded_span))
     assert resolved.unit_length == len(scanned), (
         "`extractors/ocr.py` writes the whole passage's own `text_units` row since "
         "`104` R-171; without it the whole-document arm cannot bound this row")
@@ -827,7 +864,8 @@ def test_the_real_ocr_extractors_whole_passage_is_released_within_the_ceiling_an
     def released_under(ceiling: int):
         set_ceiling(zone_conn, CEILING_KEY, ceiling)
         return _gate(zone_conn).release(_request(
-            items=(Excerpt(observation_key=whole[0]["observation_key"], span=None,
+            items=(Excerpt(observation_key=whole[0]["observation_key"],
+                           span=recorded_span,
                            reason="the recognised text of a scanned card"),),
             file_id=file_id))
 

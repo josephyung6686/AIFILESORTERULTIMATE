@@ -227,6 +227,29 @@ LIVE_SEAMS: tuple[tuple[str, str, str], ...] = (
     ("P11", "P6", "`P11 SPEC` Contract in: a destination matches on facts"),
     ("P11", "P7", "`38` §11.5: P11 never re-classifies; it carries P7's class "
                   "and asks P7's own denial predicates"),
+    # MOVED OUT OF `DARK_SEAMS`, WHICH IS WHAT THE ASSERTION ON THAT LIST DEMANDS
+    # WHEN A SEAM LIGHTS UP: `86` §5.4 is updated with it rather than this being
+    # widened. Its dark reason was "Site C placement validation needs the same
+    # transport" as P7 -> P8, and that reason has stopped being true of the CALL
+    # even though it is still true of the socket. `104` §18.28-30 made P8's round
+    # trip a walk a caller drives (`harness.in_walk_order`, one suspension point
+    # per send) and §18.31's gap 14 routed site C through it -- the group's own
+    # question first, then every member through the same lane with the group's
+    # answer attached. So P11 now DRIVES P8's walk rather than handing P8 a
+    # request and waiting, and the traced run records exactly that: 10 calls,
+    # `in_walk_order` and a P8 record's `__post_init__`, with `gate=None` and
+    # `model_client=None` and no socket opened anywhere in the run.
+    #
+    # §5.4's own sentence -- "with the injections `None`, a file that needs a
+    # judgement abstains with a reason" -- is still true and is no longer the
+    # whole story: the abstention is composed on P8's side now, so what the seam
+    # carries is the same on a run with a model and a run without one. That is
+    # why this is asserted LIVE and not left dark with a footnote; a seam that
+    # carries traffic is live whatever the traffic concludes.
+    ("P11", "P8", "`38` §6 through `104` §18.28-31: site C is P8's, and P11 "
+                  "drives P8's own call walk for it -- `harness.in_walk_order`, "
+                  "the lane gap 14 routes the group's question and then every "
+                  "member through"),
     ("RECOGNITION", "P7", "`02` D2: the sensitivity rule set is a deployment's, "
                           "injected into P7, and without one every file is "
                           "`Denied(unclassified)`"),
@@ -247,8 +270,6 @@ DARK_SEAMS: tuple[tuple[str, str, str], ...] = (
                  "no caller while no prompt is ratified"),
     ("P9", "P8", "`30` seam ledger P9->P8: `grouping.p8_seam` is guarded by "
                  "`if p8_run_call is None`"),
-    ("P11", "P8", "`38` §6: Site C placement validation needs the same "
-                  "transport"),
     ("P11", "P12", "nothing in the product applies a plan: `cli.py` reaches "
                    "`mutation` only for `create_mutation_schema`, and the "
                    "report ends `Nothing was moved.` unconditionally"),

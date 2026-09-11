@@ -1915,6 +1915,42 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
     if chosen_node_id is None and assessment.abstention_reason is not None:
         return _abstention(conn, context, reason=assessment.abstention_reason)
 
+    # **A QUESTION ABOUT WHAT THE FILE IS OUTRANKS A RULE'S GUESS ABOUT WHERE IT
+    # GOES.** `104` §18.35, and it is a defect gap 12 opened rather than a new
+    # policy. The hook below `_abstention` is where `ask_about_file` was consulted
+    # and it was enough while every file the caller asks about abstained: the
+    # caller's answer is `folders_nothing_could_be_read_from`, a file the product
+    # OPENED and recovered nothing readable from, which had no support and so no
+    # destination.
+    #
+    # Gap 12's typed graph gave it one. Three byte-identical unreadable scans in
+    # one folder now anchor each other -- `duplicate`, `existing_related_folder`
+    # and `shared_validated_fact`, every edge running between the three files and
+    # naming no other evidence -- so the graph channel is producible on their own
+    # folder, which "expects no stated value", and support lands on 0.50 against a
+    # threshold of 0.50. Measured on `tests/test_ask_about_a_file.py`'s own
+    # fixture: three `place` decisions carrying no `ask`, under a report that
+    # raised `home:scans` about those exact three files and then printed "no
+    # question this run raised is about them". One run, two answers, and the one
+    # the rest of the product can read was the false one.
+    #
+    # That support is circular: the file's only evidence is the other copies of
+    # itself. `00`'s whole complaint about this product is a file "understood and
+    # found unimportant" when nothing was understood, and a placement on
+    # self-reference is that sentence with a score attached.
+    #
+    # **ONLY WHERE NO MODEL CHOSE.** `chosen_node_id is not None` is a judgement
+    # that was actually made, and this function's own rule twenty lines down is
+    # that answering the model's choice with something else "would be the rules
+    # overruling the judgement they asked for". A question is not an exception to
+    # that; it is what stands in when nobody judged at all.
+    if chosen_node_id is None:
+        asked = inputs.ask_about_file(context.subject)
+        if asked is not None:
+            question, options = asked
+            return _asking(conn, context,
+                           ask=Ask(question=question, options=tuple(options)))
+
     node_id = chosen_node_id or assessment.scored[0].node_id
     entry = entry_for(conn, plan_version=inputs.plan_version, node_id=node_id)
     # `104` §18.2 GAP 11's DECISION HALF. Gap 11a put the shallower approved

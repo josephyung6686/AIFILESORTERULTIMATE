@@ -193,7 +193,7 @@ def test_the_trail_prints_why_the_file_was_never_asked(corpus):
     conn, roster = corpus
     _ask(conn, roster, _cloud_only())
 
-    trail = file_trail(conn, roster[0][0])
+    trail = file_trail(conn, roster[0][0], width=cli.WRAP_WIDTH)
 
     printed = " ".join("\n".join(trail.lines).split())
     assert trail.found
