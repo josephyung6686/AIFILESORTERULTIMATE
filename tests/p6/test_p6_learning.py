@@ -235,7 +235,10 @@ def test_the_guard_stops_the_write_a_resolver_would_have_made(p6_conn):
 
 
 def test_every_scope_p1_accepts_p6_can_record(p6_conn):
-    assert CORRECTION_SCOPES == ("file", "group", "node", "template", "domain", "corpus")
+    # `branch` joined P1's six on the owner's ruling of 11 Sep 2026 (`104` R-26,
+    # §18.39); P6 records it like the rest and still holds no copy of the list.
+    assert CORRECTION_SCOPES == ("file", "group", "node", "branch", "template",
+                                 "domain", "corpus")
     for index, scope in enumerate(CORRECTION_SCOPES):
         a_rejection(p6_conn, scope=scope, subject=f"subject-{index}")
     assert event_count(p6_conn) == len(CORRECTION_SCOPES)
