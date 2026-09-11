@@ -4534,3 +4534,79 @@ def test_the_tree_health_view_is_printed_under_the_tree():
     assert "75% of it is in this tree" in printed, printed
     assert "g_1" not in printed, "a group id is not something a person can act on"
     assert "Not measured yet" in printed, printed
+
+
+def _folders_block(printed: str) -> str:
+    """The tree the run drew, and nothing printed after it.
+
+    Three blocks follow the folder list and every one of them indents its lines
+    like a folder, so a reader counting nodes has to stop at whichever comes
+    first. `test_groups_of_different_categories_get_different_top_level_branches`
+    records the same hazard and the same fix.
+    """
+    block = printed.split("Folders in this plan:", 1)[1]
+    for heading in ("Tree health:", "What each level of this plan is called:",
+                    "Groups put to a model as groups:", "Files:"):
+        block = block.split(heading, 1)[0]
+    return block
+
+
+def test_the_persons_own_folders_are_shown_as_areas_and_nothing_is_built_inside(
+        tmp_path):
+    """`104` §18.42 item 1, on a real run. `00`:100 gives the person six gestures
+    over their own folders and says structure of theirs must not be "flattened,
+    renamed, or reorganized simply because a template would produce a different
+    structure".
+
+    TWO HALVES, and only one of them was missing. The folders were adopted as
+    branches with nobody asked -- the audit's "`design_decisions` adopts every
+    non-root directory" -- and they were invisible as CARDS, so a person could
+    not see what had been adopted or what it was built from. The cards are the
+    half this adds.
+
+    Nothing is built inside them, and today that is a GUARD rather than a repair.
+    `horizontal_candidates` gives every existing-folder candidate
+    `accepted_group_ids=()` unconditionally, and `design_tree` routes a branch
+    with exactly the groups that tuple names -- so an adopted folder reaches
+    `vertical_options` with no members, every composition materialises empty, and
+    `opt_no_split` is the only option there has ever been. `nesting_chooser`
+    refuses to design inside one whatever the count, which is what keeps this
+    true the day a composition does reach an adopted folder. (`refinement_for`'s
+    docstring says the opposite -- that `Desktop/Python 1006` "gains `lecture`
+    and `homework` from its own files" -- and on this code it cannot; that
+    sentence is left alone here and is the owner's to check.)
+
+    The second run is pinned at `test_the_answer_the_person_gave_is_the_shape_
+    that_is_built`, over the chooser itself. It is not pinned here because no
+    corpus in this suite routes TWO buildable shapes onto one branch: `route_
+    branch` emits one composition per eligible TEMPLATE, and these files make one
+    template eligible.
+    """
+    corpus = _two_shape_corpus(tmp_path)
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(tmp_path / "plan.sqlite"),
+              *ACCEPTS_THE_PROPOSAL], out=out)
+    printed = out.getvalue()
+
+    assert "Your top-level areas, and why each one is here:" in printed, printed
+    assert "PHYS1401 -- 2 files, yours already" in printed, printed
+    assert "CHEM1500 -- 2 files, yours already" in printed, printed
+
+    # The person's own folders keep the shape they had. Walked by indentation,
+    # which is what the tree is drawn with: every node BENEATH one of theirs is
+    # one of theirs too, so nothing this run proposed was put inside one.
+    folders = _folders_block(printed)
+    lines = [line for line in folders.splitlines() if line.strip()]
+    assert sum(1 for line in lines if "[yours already]" in line) == 3, folders
+    ancestry: dict[int, bool] = {}
+    for line in lines:
+        depth = len(line) - len(line.lstrip())
+        mine = "[yours already]" in line
+        inside = any(held for at, held in ancestry.items() if at < depth)
+        assert not (inside and not mine), (
+            f"{line.strip()!r} was proposed inside a folder of the person's, "
+            "which nobody asked them about:\n" + folders)
+        ancestry = {at: held for at, held in ancestry.items() if at < depth}
+        ancestry[depth] = mine
