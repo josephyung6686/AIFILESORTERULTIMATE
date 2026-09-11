@@ -44,10 +44,31 @@ SUBJECT = "file:gap-1"
 PLAN = "plan-gap"
 
 
-def _c_case(*, conflicts=(), items=(), extra_evidence=()) -> Case:
+#: `104` R-77. THE TWO CANDIDATES' LEVELS AS THE FROZEN TREE HOLDS THEM, in the
+#: shape the amended C row describes: per candidate node, the levels that node
+#: sits under, each by its name and the value that names its folder. They are the
+#: enumeration of what `_c_case`'s own `location` strings already say in prose --
+#: "Coursework > PHYS1401 > homework" -- which is the point: the tree knows its
+#: levels, and the projection prints the pairs it already holds.
+#:
+#: **`_c_case` DEFAULTS TO NO PROJECTION, and that default is the product.** Site
+#: C observes the ratified `eliminate-v2r-group` row, whose line 33 says
+#: `folder_levels` is empty at this site, so every other world in this file is an
+#: old-row world and stays one. Only the case that is about the amended row passes
+#: these in.
+C_NODE_LEVELS = (
+    ("node-hw", "course", "PHYS 1401"),
+    ("node-hw", "work_type", "homework"),
+    ("node-course", "course", "PHYS 1401"),
+)
+
+
+def _c_case(*, conflicts=(), items=(), extra_evidence=(),
+            node_levels=()) -> Case:
     heading = evidence(subject_ref=SUBJECT, address="heading:1",
                        value="PHYS 1401 Problem Set 4", zone="heading")
     return Case(
+        node_levels=tuple(node_levels),
         case_id="G-C", site=C_PLACEMENT, title="gap world", persona="Priya",
         traces=("104:R-15", "00:114"), subject_ref=SUBJECT,
         allowed_vocabulary=("node-hw", "node-course"),
@@ -535,43 +556,47 @@ def test_g8_a_mark_whose_state_is_neither_word_is_refused_by_p8():
 #      enumeration. Parsing them back out would be the rule guessing at the tree
 #      that `_invented_dimension` is written not to do.
 #
-# So a level the tree does not have, whose value the file DOES state, is still
-# admitted -- grounded, and about a level that does not exist. The unblock is a
-# ratification plus a channel, in this order: the C template's line 33 is
-# re-ratified to describe a filled `folder_levels`, and then EITHER
-# `_folder_levels_body` learns that a site whose vocabulary is node ids projects
-# its levels against something other than that list, OR `node_profile` gains a
-# field that names the levels outright. Both are edits to what the dossier
-# carries and to text the owner ratifies, which is why this is priced and not
-# built.
+# ALL THREE ARE CLOSED AND THE TESTS BELOW ARE WHERE IT SHOWS.
+#
+#   1. **The owner re-ratified the line.** Asked in session on 11 Sep 2026 --
+#      "the ratified C text says folder_levels is empty at this site, so C cannot
+#      be told which levels the tree has" -- he answered "Yes, change it", and the
+#      lead wrote the amended candidate row
+#      `c_placement.unratified.eliminate-v2r-group-levels.2026-09-11`, whose line
+#      33 reads *"folder_levels lists, for each candidate node, the levels of the
+#      tree that node sits under, each by its name and the value that names its
+#      folder; a level you assign a file to must be one of these, spelled as
+#      listed, and a level that is not listed for a node does not exist there."*
+#      Site C still OBSERVES the ratified `eliminate-v2r-group` row until the
+#      owner ratifies this one, which is why the second test below exists.
+#   2. **`_folder_levels_body` learned the other projection.** It did not learn to
+#      project against something other than `allowed_vocabulary`; it learned that
+#      a site whose vocabulary is NODE IDS projects its levels against that list
+#      BY NODE. `NodeFolderLevel(node, level, value)` is refused when the node is
+#      off the shortlist -- the same one-computation rule, with the subject moved.
+#   3. **Nothing is parsed back out of R-17's prose.** `materialise._project`
+#      already accumulates each node's whole chain onto it as
+#      `ExpectedValue(field, value)` and `index._entry` carries the pairs over
+#      verbatim, so `pipeline._candidate_levels` reads the levels off the rows
+#      `node_profile` prints its sentence from. What R-17 still leaves open is the
+#      node whose levels the tree could not name at all: a template-local level
+#      writes no `ExpectedValue`, so the projection is silent about that node and
+#      the check declines to read the silence as an assertion.
 
 
-@pytest.mark.xfail(strict=True, reason="`104` R-77: the ratified C text says "
-                                       "`folder_levels` is empty at this site, "
-                                       "and `_folder_levels_body` refuses a "
-                                       "level outside `allowed_vocabulary`, "
-                                       "which at C is node ids; the schema half "
-                                       "of 13.6 needs a ratification and a "
-                                       "channel, not a check")
 def test_g9_a_level_the_tree_does_not_have_is_refused_at_site_c():
     """DESIGN: 13.6 hard-vetoes a fact that falls outside the derived schema,
     and at site C the derived schema is the frozen tree's own levels.
 
     MEASUREMENT: a placement whose level is named `sabbatical` -- no such level
-    exists in any tree this product designs -- comes back REJECT even though the
-    value it carries is stated by the file. Today it is accepted, because
-    grounding is all the validator can ask.
+    exists on the folder it chose -- comes back REJECT even though the value it
+    carries is stated by the file, so grounding has nothing to say about it. It
+    used to be accepted, because grounding was all the validator could ask.
 
-    STILL OWED, AND RE-PRICED RATHER THAN FLIPPED. The comment above records what
-    filling `Dossier.folder_levels` at C was measured to cost: the five wired C
-    templates state in ratified prose that the key IS empty at this site, and
-    `dossier._folder_levels_body` raises `MalformedRecord` on any level field
-    outside `allowed_vocabulary`, which at C is node ids. Filling it does not
-    make the validator stricter -- it makes the prompt untrue and stops the C
-    dossier assembling at all. R-104 and gap 15 landed in the same pass and this
-    did not, which is the honest shape of the row.
+    SABOTAGE: empty the case's `node_levels` and this answer is admitted again,
+    which is the next test and is what the product still does today.
     """
-    case = _c_case()
+    case = _c_case(node_levels=C_NODE_LEVELS)
     response = _c_response(case, support=1, next_support=0)
     parsed = json.loads(response)
     parsed["claims"][0]["payload"]["per_dimension_support"] = [
@@ -582,3 +607,65 @@ def test_g9_a_level_the_tree_does_not_have_is_refused_at_site_c():
                     site_dependencies=site_dependencies_for(case))
 
     assert verdict.worst_outcome == REJECT
+
+
+def test_g9_under_the_row_c_observes_today_the_same_answer_is_still_admitted():
+    """THE OTHER ROW, and the reason the product is correct under both.
+
+    `eliminate-v2r-group` -- what `cli.OBSERVE_TEMPLATE_ID[C_PLACEMENT]` names --
+    says `folder_levels` is EMPTY at this site, so the builder projects nothing
+    and the dossier carries no list. The check asks the dossier and not the row:
+    with no list, it has nothing to hold the answer to and does nothing, and the
+    `sabbatical` answer is admitted exactly as it was before any of this landed.
+    The day the owner ratifies the amended row, the same validator starts
+    refusing, because the dossier started carrying the list its text describes.
+    """
+    case = _c_case()
+    assert dossier_of(case).folder_levels == ()
+    response = _c_response(case, support=1, next_support=0)
+    parsed = json.loads(response)
+    parsed["claims"][0]["payload"]["per_dimension_support"] = [
+        {"dimension": "sabbatical",
+         "value": "PHYS 1401", "support": "direct"}]
+    verdict = judge(case, dossier_of(case), json.dumps(parsed).encode(),
+                    schema={"type": "object"},
+                    site_dependencies=site_dependencies_for(case))
+
+    assert verdict.worst_outcome == ACCEPT_DIRECT
+
+
+def test_g9_a_level_the_projection_does_list_is_accepted():
+    """The discriminating twin. A check that refused every level would pass the
+    test above and be worthless: `course` IS one of `node-hw`'s levels, spelled as
+    the projection lists it, and the same answer stands."""
+    case = _c_case(node_levels=C_NODE_LEVELS)
+    verdict = judge(case, dossier_of(case),
+                    _c_response(case, support=1, next_support=0),
+                    schema={"type": "object"},
+                    site_dependencies=site_dependencies_for(case))
+
+    assert verdict.worst_outcome == ACCEPT_DIRECT
+
+
+def test_g9_a_node_the_projection_says_nothing_about_is_not_read_as_having_no_levels():
+    """R-17's still-open half, pinned as a decision rather than left to chance.
+
+    A level with no P6 field behind it writes no `ExpectedValue` (tree Contract
+    W4.3), so the projection lists nothing for that node -- and it lists nothing
+    for the same reason whether the node has no levels or has levels the tree
+    could not name. Reading that silence as "this node has no levels" would refuse
+    every placement under such a folder, and `00`:111's own example -- a file
+    placed under a course it never names -- lives exactly there. So the check asks
+    only about nodes the projection describes.
+
+    MEASURED: `node-hw` is described and `node-course` is left out of the list
+    entirely; a placement into `node-course` naming a level nobody listed stands.
+    """
+    case = _c_case(node_levels=(("node-hw", "course", "PHYS 1401"),))
+    response = _c_response(case, destination="node-course",
+                           support=1, next_support=0)
+    verdict = judge(case, dossier_of(case), response,
+                    schema={"type": "object"},
+                    site_dependencies=site_dependencies_for(case))
+
+    assert verdict.worst_outcome == ACCEPT_DIRECT

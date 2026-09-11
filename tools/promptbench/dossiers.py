@@ -21,8 +21,8 @@ if str(_ROOT / "src") not in sys.path:
 from llm_harness.dossier import canonical_dossier_bytes  # noqa: E402
 from evidence_shape.canonical import canonical_json  # noqa: E402
 from llm_harness.records import (  # noqa: E402
-    Conflict, Dossier, EvidenceItem, FolderLevel, PromptDefinition,
-    ReleasedEvidence, assemble,
+    Conflict, Dossier, EvidenceItem, FolderLevel, NodeFolderLevel,
+    PromptDefinition, ReleasedEvidence, assemble,
 )
 from llm_harness.vocabulary import (  # noqa: E402
     A_FACT, ACCEPTED_GROUP_FITS_NO_EXISTING_TEMPLATE, B_GROUP, C_PLACEMENT,
@@ -87,6 +87,13 @@ def dossier_of(case: Case, *, allowed_vocabulary=None,
         FolderLevel(field=f, label=l, requirement=r)
         for f, l, r in (folder_levels if folder_levels is not None
                         else case.folder_levels))
+    # `104` R-77: the C shape of the same key, one entry per `(node, level)`. A
+    # case states one shape or the other -- `Dossier` refuses a list carrying
+    # both -- so the case's own emptiness picks which, exactly as the row it is
+    # standing in for does at the product.
+    levels = levels or tuple(
+        NodeFolderLevel(node=node, level=level, value=value)
+        for node, level, value in case.node_levels)
     # The situation call (105 §12) has no CALL_SITES member yet and the ratified
     # vocabulary lists no eligibility reasons for the shortlist site, so its
     # record is built under A_fact's call-site string and A's "remains
