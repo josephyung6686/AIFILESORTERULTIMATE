@@ -36,10 +36,12 @@ RESPONSE_TOKENS = 512
 
 
 def fake_post(captured):
-    def post(url: str, body: bytes, *, timeout: float) -> bytes:
+    def post(url: str, body: bytes, *, timeout: float,
+             silence: float) -> bytes:
         captured["url"] = url
         captured["body"] = json.loads(body)
         captured["timeout"] = timeout
+        captured["silence"] = silence
         answer = {"message": {"role": "assistant",
                               "content": captured.get("reply", '{"claims":[]}')},
                   "done": True,
@@ -55,7 +57,7 @@ def _invoke(captured, **overrides):
     settings = dict(model_target=TARGET, base_url=DEFAULT_BASE_URL,
                     max_response_tokens=RESPONSE_TOKENS,
                     context_ceiling=CEILING, post=fake_post(captured),
-                    timeout_seconds=5.0)
+                    timeout_seconds=5.0, silence_seconds=2.0)
     settings.update(overrides)
     return ollama_invoke(**settings)
 
@@ -98,7 +100,13 @@ def test_the_call_is_deterministic():
     _invoke(captured)(b"x")
 
     assert captured["body"]["options"]["temperature"] == 0
-    assert captured["body"]["stream"] is False
+    # STREAMED SINCE `104` R-177, and determinism is not what that changes: the
+    # seed and the zero temperature are what make two runs agree, and the stream
+    # only decides whether the same answer arrives in one piece or in many. What
+    # it buys is the silence deadline -- a token arriving is the only evidence
+    # that separates a slow answer from a generation that produced nothing, which
+    # §18.37 measured holding the whole-call ceiling for ten minutes at a time.
+    assert captured["body"]["stream"] is True
     # JSON mode: P8 parses the reply against `response_schema_bytes`, and a model
     # free to answer in prose fails that check for a reason that is not about the
     # evidence.
@@ -326,7 +334,7 @@ def test_a_model_that_is_not_running_is_refused_not_guessed():
     "the call did not happen" -- so inventing an empty answer would file a file on
     the strength of a model that was never asked.
     """
-    def refuse(url, body, *, timeout):
+    def refuse(url, body, *, timeout, silence):
         raise ConnectionRefusedError("nothing listening")
 
     with pytest.raises(OllamaUnavailable, match="ollama"):
@@ -362,6 +370,13 @@ def test_a_deployment_with_no_response_ceiling_refuses_to_be_built():
         _invoke({}, context_ceiling=0)
     with pytest.raises(ValueError, match="timeout"):
         _invoke({}, timeout_seconds=0)
+    # `104` R-177's number, refused on the same rule: a client with no silence
+    # deadline charges every hang the whole-call ceiling, and zero would abandon
+    # every call before the model had finished reading the prompt.
+    with pytest.raises(ValueError, match="silence_seconds"):
+        _invoke({}, silence_seconds=0)
+    with pytest.raises(ValueError, match="silence_seconds"):
+        _invoke({}, silence_seconds=None)
 
 
 def test_bytes_that_are_not_text_are_refused_rather_than_repaired():
@@ -382,7 +397,7 @@ def test_a_model_that_ran_out_of_time_is_not_told_to_start_the_server():
     Still an `OllamaUnavailable` by inheritance, because the HANDLING is identical:
     there is no answer, P8 records `client_raised`, and nothing downstream has to
     tell the two apart. Only the sentence changes."""
-    def slow(url, body, *, timeout):
+    def slow(url, body, *, timeout, silence):
         raise TimeoutError("timed out")
 
     with pytest.raises(OllamaRanOutOfTime, match="had not answered"):
@@ -403,7 +418,7 @@ def test_a_timeout_that_arrived_wrapped_means_the_same_thing():
             super().__init__("urlopen error")
             self.reason = TimeoutError("timed out")
 
-    def slow(url, body, *, timeout):
+    def slow(url, body, *, timeout, silence):
         raise Wrapped()
 
     with pytest.raises(OllamaRanOutOfTime):
@@ -413,7 +428,7 @@ def test_a_timeout_that_arrived_wrapped_means_the_same_thing():
 def test_a_refused_connection_still_says_no_call_was_made():
     """The negative twin. Nothing is listening, nothing was asked, and `ollama
     serve` is exactly the right instruction."""
-    def refuse(url, body, *, timeout):
+    def refuse(url, body, *, timeout, silence):
         raise ConnectionRefusedError("nothing listening")
 
     try:

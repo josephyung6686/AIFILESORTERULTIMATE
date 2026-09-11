@@ -305,7 +305,8 @@ LOCAL_TABLE = {A_FACT: LOGIC, B_GROUP: LOGIC, C_PLACEMENT: LOGIC,
 def _local(**overrides):
     settings = dict(model_id="qwen3:8b", base_url=None,
                     tier_of_call_site=LOCAL_TABLE, max_response_tokens=2048,
-                    context_ceiling=32768, timeout_seconds=600.0)
+                    context_ceiling=32768, timeout_seconds=600.0,
+                    silence_seconds=90.0)
     settings.update(overrides)
     return ollama_routing(**settings)
 
@@ -423,7 +424,7 @@ def test_the_number_in_the_row_is_the_number_the_request_carries():
     are asserted to be one number rather than two that happen to agree today."""
     captured: dict[str, object] = {}
 
-    def post(url, body, *, timeout):
+    def post(url, body, *, timeout, silence):
         captured["body"] = json.loads(body)
         return json.dumps({
             "model": "qwen3:8b", "message": {"role": "assistant", "content": "{}"},
@@ -434,7 +435,8 @@ def test_the_number_in_the_row_is_the_number_the_request_carries():
                          provider=LOCAL_PROVIDER, context_tokens=4096)
     invoke = ollama_invoke(model_target=target, base_url=LOCAL_DEFAULT_BASE_URL,
                            max_response_tokens=256, context_ceiling=4096,
-                           timeout_seconds=30.0, post=post)
+                           timeout_seconds=30.0, silence_seconds=10.0,
+                           post=post)
     invoke(b"a dossier")
 
     assert captured["body"]["options"]["num_ctx"] == target.context_tokens
@@ -493,7 +495,8 @@ def test_a_window_that_could_not_have_been_sent_is_refused(window):
 def _both(**overrides):
     settings = dict(beside=_routing(table=LOCAL_TABLE), model_id="qwen3:8b",
                     base_url=None, max_response_tokens=2048,
-                    context_ceiling=32768, timeout_seconds=600.0)
+                    context_ceiling=32768, timeout_seconds=600.0,
+                    silence_seconds=90.0)
     settings.update(overrides)
     return cloud_and_local_routing(**settings)
 

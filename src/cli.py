@@ -768,6 +768,20 @@ MAX_RESPONSE_TOKENS: int = 8192
 #: resolver adds the operating system's own patience to the connecting phase.
 #: `readers.model_deepseek._under_one_deadline` states that bound where it is built
 #: and `tests/readers/test_model_deepseek_deadline.py` measures it.
+#:
+#: **SINCE `104` R-177 IT IS ALSO THE LOCAL CALL'S SILENCE DEADLINE, and one number
+#: because it answers one question.** What this number has always been is how long
+#: this deployment lets a model say NOTHING before the run stops waiting -- that is
+#: the sentence R-176 made exact for the cloud -- and a model on this machine saying
+#: nothing is the same silence. What is NOT the same is how long a whole answer may
+#: take, which is why `LOCAL_MODEL_TIMEOUT_SECONDS` exists and stays the outer bound
+#: there: the local model is slow at WRITING (~11 tokens/s measured), not quiet
+#: between tokens. Measured 11 Sep 2026 (§18.37): an ordinary local call is silent
+#: for the twenty-nine seconds it spends reading the prompt and then produces a
+#: token about every tenth of a second, while a hung one produces nothing for the
+#: full ten minutes. This number separates them. Its one cost is stated in
+#: `readers.model_ollama`'s docstring: a dossier several times the measured size is
+#: silent for longer than this while the model is still reading it.
 MODEL_CALL_TIMEOUT_SECONDS: float = 90.0
 
 #: HOW LONG ONE LOCAL CALL MAY TAKE, and it is not the cloud number. A provider
@@ -777,8 +791,15 @@ MODEL_CALL_TIMEOUT_SECONDS: float = 90.0
 #:
 #: Measured 2026-09-05, `qwen3:8b` on this deployment: 8,194 prompt tokens plus a
 #: short answer took 81.7 seconds; a cold model added 8.1 seconds of load on top of
-#: the first call of a run. The cloud number (90 s) would have refused that call and
-#: recorded the file as one the model declined.
+#: the first call of a run. The cloud number (90 s) as a WHOLE-CALL ceiling would
+#: have refused that call and recorded the file as one the model declined -- which
+#: is what this number exists to prevent, and `104` R-177 does not change it: the
+#: cloud number now bounds the local call's SILENCE and this one still bounds the
+#: whole of it. The distinction is the measurement: of those 81.7 seconds the
+#: silent part is the prompt read, and at the measured ~105 tokens/s that is about
+#: 78 of them -- inside the silence deadline, and not by much. A dossier much
+#: larger than the ones measured would be cut while the model was still reading it;
+#: `readers.model_ollama`'s docstring states that bound where it is spent.
 #:
 #: The cost of the two directions is not symmetric. Too long and a person waits;
 #: too short and the file is recorded as unanswered by a model that was answering.
@@ -2636,6 +2657,11 @@ def model_route(*, out, on_usage=None) -> TierRouting | None:
                 max_response_tokens=MAX_RESPONSE_TOKENS,
                 context_ceiling=LOCAL_CONTEXT_CEILING,
                 timeout_seconds=LOCAL_MODEL_TIMEOUT_SECONDS,
+                # `104` R-177: the OUTER bound is the local number above and the
+                # inner one is this, the same number the cloud call is given
+                # whole. See its own docstring for why the deployment's answer to
+                # "how long may a model say nothing" is one number and not two.
+                silence_seconds=MODEL_CALL_TIMEOUT_SECONDS,
                 on_usage=on_usage)
         # D1's local half, alone: one installed model answers every site.
         return ollama_routing(
@@ -2645,6 +2671,9 @@ def model_route(*, out, on_usage=None) -> TierRouting | None:
             max_response_tokens=MAX_RESPONSE_TOKENS,
             context_ceiling=LOCAL_CONTEXT_CEILING,
             timeout_seconds=LOCAL_MODEL_TIMEOUT_SECONDS,
+            # `104` R-177, as above: the whole-call ceiling is the local one, the
+            # silence deadline is the cloud call's whole number.
+            silence_seconds=MODEL_CALL_TIMEOUT_SECONDS,
             serves=None,
             beside=None,
             # `104` R-14, and this is the route that answers every site here: a
