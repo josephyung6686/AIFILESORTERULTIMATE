@@ -1772,7 +1772,7 @@ def test_the_user_can_be_asked_which_packet_is_the_primary_home(skeleton):
     assert set(decision.ask.options) == {"n-course", "n-course-alt"}
 
 
-def _two_homes_asking(conn, shared=SHARED):
+def _two_homes_asking(conn, shared=SHARED, tree=None):
     """The same corpus under the asking selector. A second run supersedes the
     first decision about each subject, which is §8.2's own rule."""
     from placement.pipeline import run_corpus
@@ -1790,6 +1790,8 @@ def _two_homes_asking(conn, shared=SHARED):
                      partition=lambda ids: _partition(ids, label="Asked"),
                      ask_or_abstain=lambda ids: (
                          v.ASK_USER if len(tuple(ids)) >= 2 else v.ABSTAIN))
+    if tree is not None:
+        inputs = dataclasses.replace(inputs, tree=tree)
     return run_corpus(
         conn, subjects=(), group_ids=("g-columbia", "g-phys1402-packet"),
         inputs=inputs, evidence_for=_two_home_evidence_for(shared[0]),
@@ -1879,19 +1881,54 @@ def test_a_protected_file_in_two_packets_is_never_turned_into_a_question(
     assert decision.privacy.protected is True
 
 
-def test_a_shared_branch_takes_the_file_and_the_packets_still_do_not(skeleton):
-    # §6.9's other answer: a tree that froze a shared-material branch places the
-    # file ABOVE the competition. `resolve_multi_home` refuses a branch that IS
-    # one of the competitors, so this can never become an arbitrary pick.
+def test_gap14_a_frozen_shared_branch_is_no_longer_a_rules_placement(skeleton):
+    """RE-ARGUED BY `104` §18.2 gap 14's finding, and it used to assert the defect.
+
+    It read: "a tree that froze a shared-material branch places the file ABOVE the
+    competition", and it measured `place` at `n-course-shared` with
+    `decided_by=rule`. `00`'s Amendments say *"every placement goes through the
+    model"*, and a file two packets claim is the case a judge is most needed for --
+    so `run_corpus` hands `resolve_multi_home` no branch to place on, asks site C
+    between the two homes, and keeps §6.9's other two answers for when it gets no
+    reply.
+
+    THIS RUN HAS NO MODEL PATH (`_inputs` wires every model injection to `None`),
+    which is exactly the condition §13.5 calls the deterministic fallback -- and
+    the fallback is now the selector's answer rather than the branch. Under this
+    fixture's selector that answer is the abstention; the twin below asks instead.
+
+    SABOTAGE: hand `_shared_branch_of(inputs.tree)` back to `resolve_multi_home` --
+    this comes back `place` at `n-course-shared` with no model call anywhere, and
+    the amendment is unenforced in the one case §6.9 exists for.
+    """
     from p11.p10_fixtures import tree_with
     from tree_design.vocabulary import SHARED_BRANCH
 
     decision = _multi_home(
         _two_homes(skeleton, tree=tree_with(shared_material_policy=SHARED_BRANCH)))
-    assert decision.outcome == v.PLACE
-    assert decision.destination.node_id == "n-course-shared"
-    assert decision.confidence_class == v.SHARED_MATERIAL_DECISION
-    assert decision.review_policy == v.REVIEW_REQUIRED
+    assert decision.outcome == v.ABSTAIN
+    assert decision.destination is None
+    assert decision.abstention_reason == v.NO_SHARED_BRANCH
+
+
+def test_gap14_a_frozen_shared_branch_does_not_take_the_question_away_either(
+        skeleton):
+    """The discriminating twin. Without it the test above could be passing because
+    the branch-bearing policy stopped reaching `resolve_multi_home` at all.
+
+    Under the asking selector the same tree produces the PERSON's question, and
+    its options are the two packets -- never the branch, which nobody was asked
+    about.
+    """
+    from p11.p10_fixtures import tree_with
+    from tree_design.vocabulary import SHARED_BRANCH
+
+    branch_bearing = tree_with(shared_material_policy=SHARED_BRANCH)
+    _two_homes(skeleton, tree=branch_bearing)
+    result = _two_homes_asking(skeleton, tree=branch_bearing)
+    decision = _multi_home(result)
+    assert decision.outcome == v.ASK_USER
+    assert set(decision.ask.options) == {"n-course", "n-course-alt"}
 
 
 # --- §7.4's disposition, where it is the only thing that can force review ---------

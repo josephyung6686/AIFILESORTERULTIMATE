@@ -596,3 +596,222 @@ def test_the_whole_group_goes_to_the_cloud_when_every_member_may(
         route_for=lambda file_id: cloud)
     _plan, calls = _place_group(seeded, inputs=inputs, monkeypatch=monkeypatch)
     assert _group_calls(calls)[0].model_call_request.model_target is CLOUD_TARGET
+
+
+# --- §6.9: the file with two homes is the JUDGE's question, never a rule's ---------
+
+from p11.p10_fixtures import tree_with
+from tree_design.vocabulary import SHARED_BRANCH as SHARED_BRANCH_POLICY
+
+#: §6.9's branch-bearing arm, which is the one `_multi_home_decision` wrote a
+#: `place` from. Under `mandatory-review` -- `FROZEN_TREE`'s own policy -- the
+#: tree deliberately offers no branch and the selector already decided, so the
+#: defect these tests are about is only reachable under a policy that bears one.
+SHARED_BRANCH_TREE = tree_with(shared_material_policy=SHARED_BRANCH_POLICY)
+
+#: The second accepted packet that also claims `scan`, and the file that is only
+#: ever in it. `00`:113's shape needs both: two groups whose plans settle
+#: DIFFERENT parents, and a member of each that is not the shared one -- without a
+#: second member of its own the second group has no plan to settle a parent from,
+#: and `run_corpus` would find fewer than two competing homes and take the
+#: ordinary per-file path.
+SECOND_GROUP_ID: str = "g-second"
+ONLY_SECOND: str = "brochure"
+
+#: The two packets' answers. Neither is the tree's shared-material branch, which
+#: `resolve_multi_home` refuses outright when it is one of the competitors.
+FIRST_HOME: str = "n-course"
+SECOND_HOME: str = "n-course-alt"
+
+
+def _seed_second_group(conn, ids) -> None:
+    """P9's records for the second packet, through P9's own writers."""
+    scan = ids["scan"][0]
+    brochure = ids[ONLY_SECOND][0]
+    record_group(conn, Group(
+        group_id=SECOND_GROUP_ID, seed_ref="seed-2",
+        seed_kind=STRONGLY_IDENTIFIED_FILE,
+        proposed_basis="subject = PHYS1402",
+        anchor_facts=(AnchorFact(
+            field="subject", value="PHYS1402",
+            file_ids=(brochure, scan), reliability_state=VALIDATED,
+            observation_key=_obs(brochure),
+            observation_keys=(_obs(brochure), _obs(scan))),),
+        pre_model_signals={}, anchor_count=2, coherence_verdict=COHERENT,
+        coherence_citations=(_obs(brochure),),
+        group_category="college_applications",
+        display_label="PHYS1402 packet", label_source=ENGINE, conflicts=(),
+        stop_rule_hits=(), state=SUPPORTED, sensitivity_state=NO_SENSITIVITY,
+        dossier_id=None, llm_response_ref=None, validation_verdict_ref=None,
+        created_by=RULES, created_at=T0))
+    for name in (ONLY_SECOND, "scan"):
+        file_id, content_hash = ids[name]
+        record_membership(conn, Membership(
+            membership_id=f"m2-{file_id}", group_id=SECOND_GROUP_ID,
+            file_id=file_id, content_hash=content_hash, basis=DIRECT_ANCHOR,
+            decision=INCLUDED, decision_source=RULES,
+            support=(Support(support_kind=SHARED_VALIDATED_FACT,
+                             observation_key=_obs(file_id),
+                             quote_or_field="subject", location="body",
+                             edge_ref=None),),
+            insufficient_evidence=False, insufficiency_statement=None,
+            conflicts=(), outlier_flag=NOT_FLAGGED,
+            validation_verdict_ref=None, created_at=T0))
+    record_acceptance(conn, GroupAcceptance(
+        acceptance_id="acc-2", plan_version_id="plan-1",
+        group_id=SECOND_GROUP_ID, membership_id=None, acceptance=ACCEPTED,
+        review_state=PENDING_REVIEW, user_edited_label=None, aliases=(),
+        review_decision_ref=None, decided_by=USER, created_at=T0))
+
+
+@pytest.fixture()
+def two_homes(seeded, p11_conn, tmp_path):
+    """`scan` with accepted membership in two packets, each settling its own parent."""
+    ids = dict(seeded.ids)
+    ids[ONLY_SECOND] = _real_file(
+        p11_conn, tmp_path / "corpus", name=f"{ONLY_SECOND}.pdf",
+        body=b"%PDF-1.4 " + ONLY_SECOND.encode())
+    _classify(p11_conn, file_id=ids[ONLY_SECOND][0],
+              content_hash=ids[ONLY_SECOND][1], protected=False,
+              handling_class="personal_non_sensitive")
+    _seed_second_group(p11_conn, ids)
+    return SimpleNamespace(
+        conn=p11_conn, ids=ids,
+        file_id={name: ids[name][0] for name in ids},
+        ref={name: f"{v.FILE}:{ids[name][0]}:{ids[name][1]}" for name in ids})
+
+
+def _two_home_evidence(world):
+    """Each packet's own course code, and the shared file carrying both group ids."""
+    first = _member_evidence("PHYS1401")
+    second = _member_evidence("PHYS1402")
+    scan = world.file_id["scan"]
+    brochure = world.file_id[ONLY_SECOND]
+
+    def evidence_for(file_id: str) -> dict:
+        if file_id == brochure:
+            return dict(second(file_id), group_ids=(SECOND_GROUP_ID,))
+        if file_id == scan:
+            return dict(first(file_id), group_ids=(GROUP_ID, SECOND_GROUP_ID))
+        return first(file_id)
+    return evidence_for
+
+
+def _run_two_homes(world, *, monkeypatch, inputs=None, answers=None,
+                   verdict_for=None):
+    """`run_corpus` over both packets with `call_placement_steps` faked."""
+    import placement.pipeline as pipeline
+
+    from p11.test_p11_pipeline import _partition
+
+    calls: list = []
+    answers = dict(answers or {})
+    answers.setdefault(f"{v.GROUP}:{GROUP_ID}", FIRST_HOME)
+    answers.setdefault(f"{v.GROUP}:{SECOND_GROUP_ID}", SECOND_HOME)
+
+    def _fake(conn_, request, **kwargs):
+        calls.append((request, kwargs))
+        if verdict_for is not None:
+            return verdict_for(request)
+        return _verdict(answers.get(request.subject_ref, FIRST_HOME))
+        yield  # pragma: no cover -- makes this a generator; never reached
+
+    monkeypatch.setattr(pipeline, "call_placement_steps", _fake)
+    if inputs is None:
+        inputs = _model_inputs(world.conn, tree=SHARED_BRANCH_TREE,
+                               partition=_partition)
+    result = pipeline.run_corpus(
+        world.conn, subjects=(), group_ids=(GROUP_ID, SECOND_GROUP_ID),
+        inputs=inputs, evidence_for=_two_home_evidence(world),
+        component_version="P11-test", observed_at=FIXED_CLOCK)
+    return result, calls
+
+
+def _scan_decision(result, world):
+    scan = world.file_id["scan"]
+    return next(d for d in result.decisions if d.subject.file_id == scan)
+
+
+def test_gap_a_file_with_two_homes_is_asked_of_the_judge_with_both_homes_offered(
+        two_homes, monkeypatch):
+    """`00` Amendments -- "every placement goes through the model" -- read over
+    §6.9's own case.
+
+    `_multi_home_decision` wrote a `place` whose `decided_by` was the RULES and
+    whose destination was the tree's shared-material branch, and site C was never
+    asked about the file at all. A two-homes file is the one a judge is most
+    needed for: two packets pulled it, and which of them it primarily belongs to
+    is a judgement about the file rather than an arrangement of the tree.
+
+    MEASURED: exactly one site-C request whose subject is the file, whose offer is
+    the two competing homes and nothing else, and a stored decision that says the
+    MODEL decided and names the home it chose.
+
+    SABOTAGE: put the shared branch back as a rule's `place` -- the call count
+    goes to zero and `decided_by` reads `rule`.
+    """
+    result, calls = _run_two_homes(
+        two_homes, monkeypatch=monkeypatch,
+        answers={two_homes.ref["scan"]: SECOND_HOME})
+    own = [(request, kwargs) for request, kwargs in calls
+           if request.subject_ref == two_homes.ref["scan"]]
+    assert len(own) == 1, "the file with two homes was never asked about"
+    offered = list(own[0][1]["call_dependencies"].allowed_vocabulary)
+    assert set(offered) == {FIRST_HOME, SECOND_HOME}
+    assert len(offered) == 2, "only §6.9's two competing homes are on the offer"
+    decision = _scan_decision(result, two_homes)
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == SECOND_HOME
+    body = _stored(two_homes.conn, decision)
+    assert body["decided_by"] == v.DECIDED_BY_MODEL
+
+
+def test_gap_a_two_homes_file_the_judge_abstains_about_is_the_persons_question(
+        two_homes, monkeypatch):
+    """The other legal outcome, and gap 15 already built it: when the judge does
+    not answer, the two homes go to the person as the `Ask` they settle.
+
+    MEASURED: the call was made, no destination was written, and the question
+    carries both homes as its options.
+    """
+    from p11.test_p11_pipeline import _partition
+
+    inputs = _model_inputs(two_homes.conn, tree=SHARED_BRANCH_TREE,
+                           partition=_partition,
+                           ask_or_abstain=lambda node_ids: v.ASK_USER)
+    result, calls = _run_two_homes(
+        two_homes, monkeypatch=monkeypatch, inputs=inputs,
+        verdict_for=lambda request: (
+            _abstaining_verdict()
+            if request.subject_ref == two_homes.ref["scan"]
+            else _verdict(FIRST_HOME
+                          if request.subject_ref == f"{v.GROUP}:{GROUP_ID}"
+                          else SECOND_HOME)))
+    assert [request.subject_ref for request, _k in calls].count(
+        two_homes.ref["scan"]) == 1
+    decision = _scan_decision(result, two_homes)
+    assert decision.outcome == v.ASK_USER
+    assert decision.destination is None
+    assert set(decision.ask.options) == {FIRST_HOME, SECOND_HOME}
+
+
+def test_gap_with_no_model_path_the_two_homes_file_is_still_never_placed_by_a_rule(
+        two_homes, monkeypatch):
+    """§13.5's fallback does not become a rule's placement here. With no model
+    configured there is no judgement to be had about which packet this file is
+    primarily in, and §6.9's remaining answers are the person's question and the
+    abstention -- never the branch chosen on their behalf.
+
+    MEASURED: no site-C request at all, and the file is the person's question.
+    """
+    from p11.test_p11_pipeline import _partition
+
+    inputs = _inputs(two_homes.conn, tree=SHARED_BRANCH_TREE,
+                     partition=_partition,
+                     ask_or_abstain=lambda node_ids: v.ASK_USER)
+    result, calls = _run_two_homes(two_homes, monkeypatch=monkeypatch,
+                                   inputs=inputs)
+    assert calls == []
+    decision = _scan_decision(result, two_homes)
+    assert decision.outcome == v.ASK_USER
+    assert set(decision.ask.options) == {FIRST_HOME, SECOND_HOME}

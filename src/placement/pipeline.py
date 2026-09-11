@@ -3872,6 +3872,14 @@ def _shared_branch_of(tree) -> str | None:
     §6.9's worked example: *"If no shared branch exists, the system should not
     arbitrarily choose one university."* So absence is answered with None and the
     policy decides what happens next, rather than P11 producing a branch.
+
+    **`run_corpus` NO LONGER HANDS THIS TO `resolve_multi_home`** (`104` §18.2 gap
+    14's finding). Placing a two-homes file on the branch was the rules deciding a
+    placement `00`'s Amendments reserve for the judge, and the argument is `None`
+    there now. This stays P11's one reader of P10's `shared-material` role -- the
+    live seam tests drive it against P10's own bundle -- and it is what the owner's
+    open question needs if the answer is "offer the branch to the judge as a third
+    candidate".
     """
     for node in tree.nodes:
         if node.node_role == SHARED_MATERIAL and node.accepts_placement:
@@ -3887,6 +3895,16 @@ def _flat_two_condition(inputs: PipelineInputs) -> TwoCondition:
     and a §6.9 decision carry the thresholds they were judged under even though
     the judgement was P8's or the user's. `meets_margin` is vacuous because
     neither path compares against a next-best destination.
+
+    **AND IT STAYS FLAT NOW THAT §6.9's `place` IS THE JUDGE's** (`104` §18.2 gap
+    14's finding). `_two_homes_judged` runs `assess` over the two competing homes,
+    so a margin between them IS computed -- and it decided nothing. The model was
+    shown both and answered; recording its answer beside a support figure that did
+    not produce it would be the record claiming a measurement made the choice,
+    which is what `_user_chose`'s own paragraph refuses one line further down.
+    `requires_review` stays true for the reason it was always true here: two
+    packets claim this file, and that is a thing a person is owed sight of
+    whatever any score says.
     """
     return TwoCondition(
         support_score=0.0,
@@ -3926,15 +3944,148 @@ def _protected_material_is_never_a_question(node_ids) -> str:
     return ABSTAIN
 
 
+def _only_the_two_homes(retrieval: Retrieval, *, homes: tuple[str, ...],
+                        group_ids_by_home) -> Retrieval:
+    """§6.9's competing homes as the whole shortlist, in the order they came.
+
+    **THIS IS NOT A STEP-6 RULE AND IT DELETES NOTHING THE JUDGE WOULD OTHERWISE
+    READ.** The question being asked is §6.9's own -- *"this file has accepted
+    membership in two packets; which of them is it primarily in"* -- and a third
+    folder on that list would be an answer to a different question. Every other
+    node retrieval reached is still on the record as retrieval's own stage
+    (`emit_retrieval_stage` ran over the full set before this), and the file is
+    not being placed on evidence: it is being placed on a judgement between two
+    homes the PACKETS named.
+
+    **A HOME RETRIEVAL DID NOT REACH IS ADDED, and that is the honest direction.**
+    `retrieve` suppresses a node this file's own values contradict (§6.3), so a
+    file leaning one way loses the other packet's folder from the candidate list
+    -- and then §6.9's question could only be put with one option, which
+    `Ask.__post_init__` already refuses as "a placement wearing a question mark".
+    The suppression is not lost: it is a `ConflictConsidered` in the same
+    retrieval, and `to_p8_conflicts` shows it to the judge as the flag it must
+    echo. The added candidate carries the GROUP IDS that pulled the file to that
+    home, which is exactly why it is a home, and no channel -- because the file's
+    own evidence did not reach it and saying otherwise would be support invented
+    here.
+    """
+    by_id = {candidate.node_id: candidate for candidate in retrieval.candidates}
+    return dataclasses.replace(
+        retrieval,
+        candidates=tuple(
+            by_id.get(node_id) or Candidate(
+                node_id=node_id, channels=(), matching_facts=(),
+                group_ids=tuple(group_ids_by_home.get(node_id, ())))
+            for node_id in homes),
+        set_aside=())
+
+
+def _two_homes_judged_steps(conn, *, subject, inputs: PipelineInputs,
+                            homes: tuple[str, ...], group_ids_by_home, privacy,
+                            evidence, component_version: str, observed_at: str):
+    """ONE site-C call between §6.9's two homes. The node it chose, or `None`.
+
+    `104` §18.2 gap 14's finding, and `00`'s Amendments are the whole of it:
+    *"every placement goes through the model"*. The packet this judge needs is the
+    one `00`:110 already describes -- both nodes' profiles, the accepted group
+    memberships that pulled the file each way, the node-local typed graph -- and
+    it is assembled here by the same three steps a single file's call takes, over
+    a candidate list §6.9 supplied instead of one step 6 narrowed.
+
+    `None` is every way this call does not produce an answer, and each of them
+    leaves §6.9's own selector to choose between the question and the abstention,
+    exactly as it did before this call existed: no model path or unratified text;
+    §8.4 refusing the file's target (which is every protected file, on either
+    locality, so a passport in two packets is never described to anything); a
+    refusal, an unbuilt call, a failed call or an unjudgeable answer; and the
+    judge's own "none", which is an abstention about the choice and not about the
+    file -- the person is then asked, which is the answer §6.9 gives when nothing
+    else can.
+    """
+    if not inputs.model_decides():
+        return None
+    # §8.4, BEFORE anything a model could see exists, and asked about the target
+    # THIS FILE would be sent to (`104` R-118, §17.13 ruling 3).
+    if not may_assemble_dossier(
+            privacy,
+            target_locality=inputs.target_locality(subject.file_id)):
+        return None
+    retrieval = retrieve(
+        conn, subject=subject, plan_version=inputs.plan_version,
+        limits=inputs.limits, facts=evidence["facts"],
+        group_ids=evidence["group_ids"],
+        curated_folder_labels=evidence["curated_folder_labels"],
+        semantic_neighbours=evidence["semantic_neighbours"],
+        canonical=inputs.canonical_value,
+        component_version=component_version, observed_at=observed_at,
+    )
+    if inputs.p2 is not None:
+        emit_retrieval_stage(conn, run_id=inputs.p2.run_id, retrieval=retrieval,
+                             version_tuple_ref=inputs.p2.version_tuple_ref,
+                             inputs=inputs.p2.upstream_stage_refs)
+    retrieval = _only_the_two_homes(retrieval, homes=homes,
+                                    group_ids_by_home=group_ids_by_home)
+    graphs = {
+        candidate.node_id: build_node_local_graph(
+            subject=subject, candidate=candidate,
+            entry=entry_for(conn, plan_version=inputs.plan_version,
+                            node_id=candidate.node_id),
+            related_files=evidence["related_files"], limits=inputs.limits,
+            entity_frequency=evidence["entity_frequency"],
+            generic_entity_frequency=evidence["generic_entity_frequency"],
+        )
+        for candidate in retrieval.candidates
+    }
+    retrieval = _with_the_graphs_own_channel(retrieval, graphs)
+    # §6.10's arithmetic over the two, which RANKS them and decides nothing:
+    # `_flat_two_condition` is still what the record carries, and its own
+    # paragraph says why.
+    assessment = assess(retrieval, graphs, policy=inputs.policy,
+                        their_own_folder_node_ids=frozenset(),
+                        refinements=frozenset())
+    result = yield from _judged_or_refused_steps(
+        conn, subject=subject, inputs=inputs, retrieval=retrieval,
+        evidence=evidence, call_site=C_PLACEMENT, observed_at=observed_at,
+        ranked=tuple(item.node_id for item in assessment.scored) or homes,
+        set_aside=(), own_folder_node_id=None, graphs=graphs)
+    if isinstance(result, (Refusal, CallRefused, PreCallAbstention, CallFailed,
+                           ValidationUnavailable)):
+        return None
+    verdict = _require_verdict(result, call_site=C_PLACEMENT)
+    outcome, _reason, _deferred = transcribe(verdict, assessment=assessment)
+    if outcome != PLACE:
+        return None
+    node_id = inputs.chosen_node_of(verdict)
+    if node_id not in legal_node_ids(conn, plan_version=inputs.plan_version):
+        raise ValueError(
+            f"{node_id!r} is not a legal destination of {inputs.plan_version!r}. "
+            "P8 already refuses an invented node; reaching here means the "
+            "resolver disagreed with the index, and P11 places no file on a "
+            "disagreement"
+        )
+    return node_id
+
+
 def _multi_home_decision(conn, *, subject, inputs: PipelineInputs, outcome,
                          payload, privacy, automatic_move_permitted: bool,
                          component_version: str,
                          observed_at: str) -> PlacementDecision:
-    """§6.9's answer as one decision: a shared branch, a question, or an abstention.
+    """§6.9's answer as one decision: the judge's home, a question, or an abstention.
 
-    `payload` is the shared branch's node id for `place`, the competing ids for
-    `ask_user`, and `no_shared_branch` for `abstain` -- and it is NEVER one of the
-    competing packets, because `resolve_multi_home` has no branch that returns one.
+    `payload` is the node the JUDGE chose for `place`, the competing ids for
+    `ask_user`, and `no_shared_branch` for `abstain`.
+
+    **`104` §18.2 GAP 14's FINDING, AND THE SENTENCE ABOVE USED TO SAY THE
+    OPPOSITE.** It read "the shared branch's node id for `place` ... and it is
+    NEVER one of the competing packets, because `resolve_multi_home` has no branch
+    that returns one" -- which was true of the rule and is the defect. `00`'s
+    Amendments say "every placement goes through the model", and this seam wrote a
+    `place` whose `decided_by` was the RULES on a file site C was never asked
+    about. Two packets pulling one file is the case a judge is MOST needed for:
+    which of them the file primarily belongs to is a judgement about the file, and
+    the tree's shared-material branch is an arrangement chosen before anybody read
+    it. So a `place` here is now the judge's answer between the two homes
+    (`_two_homes_judged`), and the rules keep §6.9's other two answers.
     """
     two = _flat_two_condition(inputs)
     entry = (entry_for(conn, plan_version=inputs.plan_version, node_id=payload)
@@ -3970,17 +4121,21 @@ def _multi_home_decision(conn, *, subject, inputs: PipelineInputs, outcome,
             destination_disposition=entry.disposition if entry else None,
             automatic_move_permitted=automatic_move_permitted),
         explanation=(
-            "This file has accepted membership in more than one packet. §6.9 "
-            "permits a shared branch, a question, or an abstention, and never an "
-            "arbitrary choice between the packets."),
+            "This file has accepted membership in more than one packet. The "
+            "model was shown both homes and asked which one this file is "
+            "primarily in; §6.9 permits a question or an abstention where it "
+            "does not answer, and never an arbitrary choice between the packets."),
         residual=None,
-        # `104` R-165. §6.9's `place` is `resolve_multi_home` returning the shared
-        # branch, which it reaches from the shared-material POLICY and the branch
-        # node id it was handed -- no model call, no per-file answer from the
-        # person, and it refuses outright to return one of the competing homes. So
-        # the rules decided. The other two outcomes chose no destination at all:
-        # `ask_user` IS the question, and `abstain` is `no_shared_branch`.
-        decided_by=DECIDED_BY_RULE if outcome == PLACE else None,
+        # `104` R-165, RE-ARGUED BY `104` §18.2 GAP 14's FINDING. It used to read
+        # `DECIDED_BY_RULE`, because §6.9's `place` WAS `resolve_multi_home`
+        # returning the shared branch off the shared-material policy -- no model
+        # call and no per-file answer from the person. Under `00`'s Amendments a
+        # rule may not place this file, so the only way this seam reaches `place`
+        # is `_two_homes_judged` coming back with a home, and that answer is the
+        # model's. The other two outcomes chose no destination at all: `ask_user`
+        # IS the question, and `abstain` is `no_shared_branch`, so neither names a
+        # decider.
+        decided_by=DECIDED_BY_MODEL if outcome == PLACE else None,
     )
     return _write(conn, decision, inputs=inputs,
                   reason="§6.9 resolved this file's multiple homes (§8.2)",
@@ -4466,10 +4621,54 @@ def run_corpus(conn: sqlite3.Connection, *, subjects, group_ids,
         privacy = privacy_state_for(conn, file_id=file_id,
                                     content_hash=subject.content_hash,
                                     plan_version=inputs.plan_version)
+        automatic_move_permitted = (
+            automatic_move_permitted_for(conn, file_id=file_id,
+                                         plan_version=inputs.plan_version)
+            if privacy.protected else False)
+        # `104` §18.2 GAP 14's FINDING, AND IT IS ASKED FIRST. `00`'s Amendments
+        # say "every placement goes through the model", and this branch used to
+        # place a file at the tree's shared-material branch off the shared-material
+        # POLICY -- a rule choosing a home for a file site C was never asked about.
+        # The two packets' own parents are the candidate set, because they are
+        # what §6.9's question is between.
+        #: WHICH PACKET PULLED THE FILE TO WHICH HOME, so a home retrieval did
+        #: not reach is described by the membership that makes it one.
+        pulled_by: dict[str, list[str]] = {}
+        for group_id in sorted(set(homes[file_id])):
+            pulled_by.setdefault(
+                by_group[group_id].shared_parent_node_id, []).append(group_id)
+        judged = drive_inline(_two_homes_judged_steps(
+            conn, subject=subject, inputs=inputs, homes=tuple(parents),
+            group_ids_by_home={node_id: tuple(ids)
+                               for node_id, ids in pulled_by.items()},
+            privacy=privacy, evidence=evidence_for(file_id),
+            component_version=component_version, observed_at=observed_at))
+        if judged is not None:
+            decisions.append(_multi_home_decision(
+                conn, subject=subject, inputs=inputs, outcome=PLACE,
+                payload=judged, privacy=privacy,
+                automatic_move_permitted=automatic_move_permitted,
+                component_version=component_version, observed_at=observed_at))
+            continue
         outcome, payload = resolve_multi_home(
             candidate_node_ids=tuple(parents),
             shared_material_policy=inputs.tree.shared_material_policy,
-            shared_branch_node_id=_shared_branch_of(inputs.tree),
+            # **NO SHARED BRANCH IS HANDED OVER ANY MORE, and that is `104` §18.2
+            # gap 14's finding rather than a fact about this tree.** The branch is
+            # the one destination `resolve_multi_home` may return by itself, and
+            # returning it IS a rule placing a file the amendment reserves for the
+            # judge -- so the argument is handed `None` and the function's other
+            # two answers are what remains: the person's question, or the
+            # abstention. `groups.resolve_multi_home` is untouched and still
+            # refuses to return one of the competitors; what it no longer gets is
+            # the one thing it could place on.
+            #
+            # **OWED TO THE OWNER** (in the agent's report): whether §6.9's shared
+            # branch should come back as a THIRD candidate on the judge's list --
+            # "Shared Application Materials" is a real answer to "which home", and
+            # the only reason it is not offered here is that the finding named the
+            # candidate set as the two homes.
+            shared_branch_node_id=None,
             # THE SECOND LOCK, and `_asking` already carries the argument for
             # why there is one: an `ask_user` decision is A REQUEST FOR
             # ATTENTION, a review surface lists what it holds, and `00`:201 says
