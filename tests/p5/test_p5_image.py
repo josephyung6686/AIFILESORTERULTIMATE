@@ -84,8 +84,31 @@ def test_every_section_2_6_signal_carries_its_own_tier(sink):
 
 
 def test_the_perceptual_hash_is_emitted_and_the_content_hash_is_not(sink):
-    # G5 gives duplicate and version families to P6, "from P1's content hashes and
-    # P5's perceptual hashes". P5 supplies the second and recomputes the first never.
+    """E5 emits the hash its reader supplies, and never the content hash.
+
+    G5 gives duplicate and version families to P6, "from P1's content hashes and
+    P5's perceptual hashes". P5 supplies the second and recomputes the first never.
+
+    **RE-ARGUED AGAINST THE DEPLOYMENT (`104` §18.43, the audit's item 10).** This
+    passes against `a_photo_heic()`, which is a FIXTURE: the test writes
+    `perceptual_hash="phash:8f3a"` into the `ImageRecord` itself. That is the right
+    test of the half it owns -- given a hash, E5 emits it under P5's own label --
+    and it is not weakened here. What it cannot see is one layer out: whether
+    anything in the deployment ever BUILDS such a record. Until the owner ruled `98`
+    on 11 Sep 2026 nothing did, so no corpus carried the observation and
+    `facts.families._near_families` returned before its loop with 0 carriers on both
+    real corpora -- while this test passed throughout.
+
+    That half is now
+    `tests/readers/test_readers_image_headers.py::test_the_reader_supplies_the_
+    perceptual_hash_section_2_6_names`, against `header_image_reader()` over a real
+    JPEG. Note that the fixture's own `phash:8f3a` is NOT what the deployment
+    produces and is not meant to be: the shipped values are `dhash64:`-prefixed, and
+    `readers.perceptual_hash.distance` refuses a pair whose prefixes disagree rather
+    than measuring a number about nothing. The fixture is an arbitrary string
+    standing for "whatever the reader supplied", which is exactly what E5's contract
+    says it is.
+    """
     run_id = sink.write(run_it())
     rows = slots(sink.observations_for(run_id))
     assert rows[PERCEPTUAL_HASH_FIELD]["raw_value"] == "phash:8f3a"
