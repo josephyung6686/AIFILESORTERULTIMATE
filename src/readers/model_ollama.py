@@ -88,10 +88,45 @@ could file a file on the strength of a model that was never asked.
 authored at the composition root and fingerprinted into the audit record. A
 sentence added here would be a prompt nobody approved and no record names.
 
-**And no NUMBER is chosen here.** The response ceiling, the context ceiling and the
-patience are injected, exactly as `model_deepseek`'s are: `84` §1's rule is absent
-means refuse, never guess, and `src/` picks no numbers. `cli.py` is the only file
-that picks them.
+**THE REPLY IS STREAMED, AND THE REASON IS THE HANG (`104` R-177).** R-175 gave
+this module one deadline over the whole call, and that deadline is the local
+model's: minutes, because a local model answering a whole dossier legitimately
+takes minutes. Measured on ollama's own log on 11 Sep 2026 (§18.37): `qwen3:8b`
+reads a ~3,000-token prompt at ~105 tokens/s and writes ~255 tokens at ~11
+tokens/s -- thirty-five to fifty-five seconds for an ordinary call -- and SOME
+calls produce nothing at all and are cut by the server itself at the whole-call
+ceiling, ten minutes later. Three of them in r23b's first fifty-seven minutes
+cost thirty of those minutes: one hang costs what ten ordinary calls cost.
+
+A whole-call ceiling cannot tell those apart, because it is asked the wrong
+question. The question that separates them is *has anything arrived lately*, and
+with `stream: false` nothing arrives until everything does -- so there is nothing
+to ask. `stream: true` makes the answer a sequence of JSON lines, one per token,
+and R-176's rule becomes available here exactly as the cloud client has it:
+SILENCE ENDS AT THE DEADLINE, a trickle within twice it is allowed. The whole-call
+ceiling stays as the outer bound; the silence deadline is the inner one, reset by
+every token, and a call it ends is `OllamaRanOutOfTimeWaitingForAToken` -- its own
+class, so the durable failure row says which of the two clocks stopped the call.
+
+**WHAT THE SILENCE DEADLINE COSTS, STATED BECAUSE A BOUND OVERSTATED IS WORSE THAN
+A BOUND.** The token stream is legitimately silent for the whole of the prompt
+read: ollama sends its first line when the first token is GENERATED, and nothing
+before it. At the measured read rate, the silence deadline this deployment injects
+(`cli.MODEL_CALL_TIMEOUT_SECONDS`, the same number R-176 spends on the whole cloud
+call) buys about nine thousand prompt tokens of patience, and `_fits` admits a
+dossier up to the deployment's whole context ceiling -- so a dossier several times
+the measured size would be cut while the model was still reading it, and recorded
+as a call the model did not answer. The measured ordinary call is well inside it
+(twenty-nine seconds of reading), and the ceiling docstring's own measured worst
+case -- 8,194 prompt tokens, about seventy-eight seconds of reading -- is inside it
+and not by much. Named here rather than guarded by a number this module invented:
+what would make the bound wider is a bigger injected number, and `cli.py` is the
+only file that picks one.
+
+**And no NUMBER is chosen here.** The response ceiling, the context ceiling, the
+whole-call patience and the silence deadline are injected, exactly as
+`model_deepseek`'s are: `84` §1's rule is absent means refuse, never guess, and
+`src/` picks no numbers. `cli.py` is the only file that picks them.
 """
 from __future__ import annotations
 
@@ -159,6 +194,21 @@ CHAT_TEMPLATE_TOKENS: int = 128
 #: evidence that `think: false` was not honoured.
 THINKING_FIELD: str = "thinking"
 
+#: Where ollama puts the turn it is answering with, and the field inside it that
+#: carries the answer. Spelled once because `assemble` joins them across a stream's
+#: lines and `_answer` reads them off the joined object: two spellings would let the
+#: streamed reply and the read of it drift apart.
+MESSAGE_FIELD: str = "message"
+CONTENT_FIELD: str = "content"
+
+#: WHAT SEPARATES ONE TOKEN FROM THE NEXT ON THE WIRE. `stream: true` makes
+#: `/api/chat` answer in newline-delimited JSON: one object per token, the last of
+#: them carrying `done`, `done_reason` and the counts. It is the token boundary and
+#: it is therefore also the CLOCK: a newline arriving is the evidence that the
+#: generation is still producing, which is the one thing a whole-call ceiling cannot
+#: observe (`104` R-177).
+NDJSON_END: bytes = b"\n"
+
 #: The only `done_reason` that means the model finished answering, and the same
 #: one-member closed set `model_deepseek.FINISHED` is: the failures are the
 #: server's to extend and the successes are not.
@@ -189,6 +239,25 @@ READING_THE_BODY: str = "reading the body"
 CALL_PHASES: tuple[str, ...] = (
     CONNECTING, SENDING_THE_REQUEST, WAITING_FOR_THE_FIRST_BYTE,
     READING_THE_BODY)
+
+#: THE SECOND CLOCK, AND IT IS NOT A FIFTH PHASE (`104` R-177). The four above
+#: partition the whole call and between them spend ONE budget; this one runs inside
+#: the last two of them, is reset by every token, and is spent from a DIFFERENT and
+#: smaller number. A call can therefore end two ways on a clock -- it outlived the
+#: whole-call ceiling, or its token stream went quiet -- and the two are different
+#: facts about the model: the first is a model that was working and was slow, the
+#: second is a generation that produced nothing, which is the shape §18.37 measured
+#: at ten minutes a time.
+#:
+#: It begins when the request is away, so a reply that never starts is caught by it
+#: as well as a reply that stops: "nothing since the last token" and "nothing since
+#: we asked" are the same silence and get the same sentence.
+WENT_SILENT: str = "waiting for a token"
+
+#: What each deadline is a deadline FOR, written into the sentence the failure
+#: carries so the seconds in it cannot be read against the wrong clock.
+WHOLE_CALL: str = "the whole call"
+THE_TOKEN_STREAM: str = "silence in the token stream"
 
 #: How much of the body is asked for at a time. It is a re-check interval and not a
 #: buffer size: the point of reading in pieces is that the deadline is consulted
@@ -247,6 +316,23 @@ class OllamaRanOutOfTimeReadingTheBody(OllamaRanOutOfTime):
     """
 
 
+class OllamaRanOutOfTimeWaitingForAToken(OllamaRanOutOfTime):
+    """The token stream said nothing for the silence deadline. `104` R-177.
+
+    THE ROW THAT SEPARATES A HANG FROM A SLOW ANSWER, and a separate class because
+    the class name is the whole of what the durable record keeps:
+    `transport._client_exception_explanation` reduces a client exception to
+    `type(exc).__qualname__` and drops the message, and `llm_call_failure` stores
+    that. A silence ended under one class with the ceiling's would be r23b's three
+    ten-minute hangs and r22's seven over-ceiling calls counted as one number.
+
+    Still an `OllamaRanOutOfTime`, so every `except` and `isinstance` upstream is
+    unchanged and P8 records `client_raised` exactly as before: what happened to
+    the file is the same -- no answer, retried next run -- and only the sentence
+    and the name are new.
+    """
+
+
 #: PHASE TO THE CLASS THAT NAMES IT, and the reason it is a class per phase rather
 #: than a field is the one place the phase has to survive to. `llm_harness.transport.
 #: _client_exception_explanation` reduces a client exception to `type(exc).
@@ -267,13 +353,20 @@ RAN_OUT_OF_TIME_IN: "MappingProxyType[str, type[OllamaRanOutOfTime]]" = (
         SENDING_THE_REQUEST: OllamaRanOutOfTimeSendingTheRequest,
         WAITING_FOR_THE_FIRST_BYTE: OllamaRanOutOfTimeWaitingForTheFirstByte,
         READING_THE_BODY: OllamaRanOutOfTimeReadingTheBody,
+        # `104` R-177's clock, LAST because it is not one of the phases: the four
+        # above partition the call and this one runs inside the last two of them.
+        # It is in the same map because the map's job is "the name the record
+        # keeps, for every way a clock can end a call", and a silence with no class
+        # would be the unattributable failure R-175 exists to end, arriving by the
+        # other clock.
+        WENT_SILENT: OllamaRanOutOfTimeWaitingForAToken,
     }))
 
-assert tuple(RAN_OUT_OF_TIME_IN) == CALL_PHASES, (
-    "every phase of a call earns a class, because the class name is the whole of "
-    "what the durable failure record keeps. A phase with no class fails to import "
-    "rather than being recorded as an unattributed timeout, which is `104` R-175's "
-    "own defect")
+assert tuple(RAN_OUT_OF_TIME_IN) == CALL_PHASES + (WENT_SILENT,), (
+    "every phase of a call earns a class, and so does the silence deadline that "
+    "runs inside them, because the class name is the whole of what the durable "
+    "failure record keeps. One with no class fails to import rather than being "
+    "recorded as an unattributed timeout, which is `104` R-175's own defect")
 
 
 class _OutOfTimeInPhase(TimeoutError):
@@ -290,11 +383,18 @@ class _OutOfTimeInPhase(TimeoutError):
     reason the phases are named is that the hang could not be attributed, and a
     phase that only ever appears inside a formatted string is one the next reader
     has to parse back out.
+
+    `bound` is which of the two clocks these seconds belong to (`104` R-177). The
+    sentence used to say "for the whole call" unconditionally, which would read as a
+    lie the moment a second, smaller deadline could also produce this exception: the
+    number and what it bounds have to travel together or the record invites the
+    wrong subtraction.
     """
 
-    def __init__(self, phase: str, *, timeout: float, elapsed: float):
+    def __init__(self, phase: str, *, timeout: float, elapsed: float,
+                 bound: str = WHOLE_CALL):
         super().__init__(
-            f"the deadline of {timeout:g} seconds for the whole call expired "
+            f"the deadline of {timeout:g} seconds for {bound} expired "
             f"while {phase}, {elapsed:.1f} seconds in")
         self.phase = phase
         self.timeout = timeout
@@ -373,7 +473,7 @@ def usage_of(response: object, *, model_id: str) -> Usage | None:
     )
 
 
-def _post(url: str, body: bytes, *, timeout: float) -> bytes:
+def _post(url: str, body: bytes, *, timeout: float, silence: float) -> bytes:
     """The one place this module touches a socket, so a test can replace it.
 
     **ONE DEADLINE OVER THE WHOLE CALL, and `104` R-175 is why this is no longer
@@ -407,6 +507,25 @@ def _post(url: str, body: bytes, *, timeout: float) -> bytes:
     raises, and P8 stores that sentence as the `client_raised` explanation exactly
     as it stores the existing one.
 
+    **AND A SECOND, SMALLER DEADLINE INSIDE IT: SILENCE (`104` R-177).** The budget
+    above is the local model's whole-call patience and it is minutes long, because a
+    local model legitimately takes minutes. A generation that produces NOTHING is
+    not slow, and charging it those minutes is what cost r23b thirty of its first
+    fifty-seven (§18.37). `silence` is the shorter question -- has a token arrived
+    lately -- and `quiet_since` is reset by every one that does, so the two clocks
+    together say: this call may take `timeout` overall AND may not go quiet for
+    `silence`. Each phase after the request is away is armed with whichever of the
+    two remainders is nearer, and `armed` remembers which, because the socket's own
+    timer fires with no idea what it was armed from.
+
+    Silence starts when the REQUEST IS AWAY and not at the first token, so a
+    generation that never begins is bounded by the same clock as one that stops.
+    A token is a newline: `stream: true` makes the body newline-delimited JSON, one
+    object per token, so a chunk containing one is proof of progress and a chunk
+    without one -- a half-written line, or the dribble `104` §18.22 measured -- is
+    not. That is the whole difference from the ceiling, which cannot see progress at
+    all and so cannot tell a hang from a long answer.
+
     **`http.client` and not `urllib.request`, for one reason:** `urlopen` offers
     the caller no seam between connecting, sending and reading, so there is nowhere
     to put a budget. Nothing else about the request changes -- same method, same
@@ -422,15 +541,53 @@ def _post(url: str, body: bytes, *, timeout: float) -> bytes:
     #: `except` below has to say which phase the socket's own timer fired in, and
     #: it is not the one that raised.
     phase = [CONNECTING]
+    #: WHICH OF THE TWO CLOCKS ARMED THE SOCKET, and it is not always the phase:
+    #: past the request both are running and the nearer one wins. `104` R-177.
+    armed = [CONNECTING]
+    #: When the token stream last said anything. Set when the request is away, and
+    #: again on every newline that arrives.
+    quiet_since = [started]
 
     def left(next_phase: str) -> float:
         """What is left of the one budget, and the phase about to spend it."""
         phase[0] = next_phase
+        armed[0] = next_phase
         remaining = timeout - (monotonic() - started)
         if remaining <= 0:
             raise _OutOfTimeInPhase(next_phase, timeout=timeout,
                                     elapsed=monotonic() - started)
         return remaining
+
+    def quiet_left() -> float:
+        """What is left of the silence deadline, measured from the last token."""
+        waited = monotonic() - quiet_since[0]
+        remaining = silence - waited
+        if remaining <= 0:
+            raise _OutOfTimeInPhase(WENT_SILENT, timeout=silence, elapsed=waited,
+                                    bound=THE_TOKEN_STREAM)
+        return remaining
+
+    def sooner(next_phase: str) -> float:
+        """The nearer of the two deadlines, and the one the socket is armed from.
+
+        Both are consulted, so whichever has already expired raises here rather
+        than being handed to a socket as a negative patience.
+        """
+        whole = left(next_phase)
+        quiet = quiet_left()
+        if quiet < whole:
+            armed[0] = WENT_SILENT
+            return quiet
+        return whole
+
+    def out_of_time() -> _OutOfTimeInPhase:
+        """The clock that armed the socket, as the exception that names it."""
+        if armed[0] == WENT_SILENT:
+            return _OutOfTimeInPhase(WENT_SILENT, timeout=silence,
+                                     elapsed=monotonic() - quiet_since[0],
+                                     bound=THE_TOKEN_STREAM)
+        return _OutOfTimeInPhase(phase[0], timeout=timeout,
+                                 elapsed=monotonic() - started)
 
     parts = urlsplit(url)
     secure = parts.scheme == "https"
@@ -444,7 +601,12 @@ def _post(url: str, body: bytes, *, timeout: float) -> bytes:
             sock.settimeout(left(SENDING_THE_REQUEST))
             connection.request("POST", parts.path or "/", body=body,
                                headers={"Content-Type": "application/json"})
-            sock.settimeout(left(WAITING_FOR_THE_FIRST_BYTE))
+            # THE SILENCE CLOCK STARTS HERE (`104` R-177). The question it asks --
+            # has the model produced anything -- is meaningless before the model has
+            # been asked, and from this line on it is the same question whether the
+            # answer never starts or stops half way.
+            quiet_since[0] = monotonic()
+            sock.settimeout(sooner(WAITING_FOR_THE_FIRST_BYTE))
             response = connection.getresponse()
             chunks: list[bytes] = []
             # `read1` AND NOT `read`, AND THE DIFFERENCE IS THE WHOLE FIX. Both
@@ -458,25 +620,94 @@ def _post(url: str, body: bytes, *, timeout: float) -> bytes:
             # length-delimited and a chunked body alike, and closes the response
             # when the last byte is in, which is what ends this loop normally.
             while not response.isclosed():
-                sock.settimeout(left(READING_THE_BODY))
+                sock.settimeout(sooner(READING_THE_BODY))
                 chunk = response.read1(BODY_CHUNK_BYTES)
                 if not chunk:
                     break
                 chunks.append(chunk)
+                if NDJSON_END in chunk:
+                    # A LINE ENDED, SO A TOKEN ARRIVED, so the stream is not silent
+                    # and the silence deadline starts again from here. Bytes without
+                    # a newline are a line still being written and prove nothing --
+                    # which is exactly the dribble that satisfies an idle timer for
+                    # ever (`104` §18.22) and must not satisfy this one.
+                    quiet_since[0] = monotonic()
         except _OutOfTimeInPhase:
             raise
         except TimeoutError as expiry:
-            # The socket's own timer fired inside the phase's remainder, which is
-            # the same deadline arriving by a different route. One sentence for
-            # both, so nothing above this line has to tell them apart.
-            raise _OutOfTimeInPhase(phase[0], timeout=timeout,
-                                    elapsed=monotonic() - started) from expiry
+            # The socket's own timer fired inside the remainder it was armed with,
+            # which is the same deadline arriving by a different route -- and which
+            # of the two deadlines that was is what `armed` remembers.
+            raise out_of_time() from expiry
         return b"".join(chunks)
     finally:
         # A call that ran out of time leaves no socket behind. The ESTABLISHED
         # connection in R-175's evidence outlived the call it belonged to, because
         # nothing closed it when the wait was abandoned.
         connection.close()
+
+
+def _joined(objects: "list[object]", field: str) -> str | None:
+    """One field of the message, concatenated across a stream's lines, or `None`.
+
+    `None` and not `""` when no line carried it, because the two say different
+    things and `_answer` branches on the difference: a `thinking` field nobody sent
+    is `think: false` honoured, and an EMPTY one is a model that opened a thinking
+    block and put nothing in it. Absence is reported as absence.
+    """
+    parts: list[str] = []
+    for one in objects:
+        message = one.get(MESSAGE_FIELD) if isinstance(one, dict) else None
+        piece = message.get(field) if isinstance(message, dict) else None
+        if isinstance(piece, str):
+            parts.append(piece)
+    return "".join(parts) if parts else None
+
+
+def assemble(raw: bytes) -> object:
+    """ollama's streamed reply, read back as the ONE object a whole reply is.
+
+    `104` R-177. With `stream: true` the body is newline-delimited JSON: one object
+    per token, each carrying that token in `message.content`, and the LAST carrying
+    `done`, `done_reason` and the counts. Everything downstream -- `_answer`'s four
+    refusals and `usage_of`'s row -- was written against the single object
+    `stream: false` returns, and none of it changes: this is the one function that
+    knows the reply arrived in pieces.
+
+    **The last object is the base and the pieces are only joined into it.** No field
+    is computed, dropped or reordered: `done_reason`, `prompt_eval_count` and
+    `eval_count` are the final line's own, and the only keys replaced are the two
+    that were split across lines. So a body that is ONE object -- which is what
+    `stream: false` sent, and what every injected `post` in this product's tests
+    sends -- assembles to a dict equal to `json.loads` of it, key order included,
+    and this function is the identity on the reply it used to receive.
+
+    A malformed line raises `json.JSONDecodeError` exactly where `json.loads(raw)`
+    used to, which is the same sentence about the same defect -- and a body cut
+    part-way through a line is malformed by that rule, as a truncated single object
+    always was. A body cut ON a line boundary -- the deadline fired between tokens,
+    or the server hung up between them -- assembles to the complete lines that
+    arrived, whose last one carries no `done_reason`, and `_answer` refuses it by
+    name rather than certifying part of a document as an answer.
+    """
+    pieces = [line for line in raw.split(NDJSON_END) if line.strip()]
+    if not pieces:
+        # Nothing to join. Handed on as it came so an empty body produces the
+        # error an empty body has always produced.
+        return json.loads(raw)
+    objects = [json.loads(piece) for piece in pieces]
+    whole = objects[-1]
+    if not isinstance(whole, dict) or not isinstance(
+            whole.get(MESSAGE_FIELD), dict):
+        # Not the shape this reads; `_answer` says so, and says it about the
+        # object the server actually finished with.
+        return whole
+    message = dict(whole[MESSAGE_FIELD])
+    for field in (CONTENT_FIELD, THINKING_FIELD):
+        across = _joined(objects, field)
+        if across is not None:
+            message[field] = across
+    return {**whole, MESSAGE_FIELD: message}
 
 
 #: What a timeout says when it cannot say which phase it died in. A `post` a caller
@@ -514,6 +745,43 @@ def _out_of_time(problem: BaseException, sentence: str) -> OllamaRanOutOfTime:
 #: each timeout branch below reads as the one sentence it is and neither has to
 #: know how a phase is spelled.
 PHASE_SLOT: str = "<phase>"
+
+
+def _stopped_waiting(problem: BaseException, *, endpoint: str,
+                     timeout_seconds: float, silence_seconds: float) -> str:
+    """What the person is told, and WHICH CLOCK STOPPED THE CALL. `104` R-177.
+
+    Two sentences and not one with two numbers in it, because the two failures ask
+    the person for different things. Outliving the whole-call ceiling is a model
+    that was working and was too slow for this deployment's patience -- a bigger
+    model on a busier machine -- and the answer is a longer patience or a smaller
+    model. Going SILENT is a generation that produced nothing at all, which no
+    amount of patience improves: §18.37 measured three of them, each held to the
+    full ten-minute ceiling, together costing thirty of r23b's first fifty-seven
+    minutes.
+
+    A `post` a caller injected raises the plain `TimeoutError`, which carries no
+    phase, and the honest sentence about one of those is the whole call's: nothing
+    observed a token stream, so nothing may claim one went quiet.
+    """
+    if getattr(problem, "phase", None) == WENT_SILENT:
+        return (
+            f"the local model at {endpoint} was asked and then said nothing for "
+            f"{silence_seconds:g} seconds -- no token at all -- so this run "
+            f"stopped waiting ({PHASE_SLOT}: {problem}). The call HAPPENED and "
+            f"ollama is running; a generation that produces no token for that "
+            f"long has hung, and waiting it out to the whole-call ceiling of "
+            f"{timeout_seconds:g} seconds costs what ten ordinary calls cost. "
+            f"Nothing was decided on the strength of a judgement that was never "
+            f"finished, and this file is asked again on the next run.")
+    return (
+        f"the local model at {endpoint} was asked and had not answered "
+        f"after {timeout_seconds:g} seconds, so this run stopped waiting "
+        f"({PHASE_SLOT}: {problem}). The call HAPPENED -- ollama "
+        f"is running and was working -- and no answer came back, so "
+        f"nothing was decided on the strength of a judgement that was "
+        f"never finished. A bigger model on a busy machine is the ordinary "
+        f"cause; raise the deployment's patience or name a smaller model.")
 
 
 def _require_loopback(base_url: str | None) -> str:
@@ -600,6 +868,7 @@ def _fits(prompt_bytes: int, *, max_response_tokens: int,
 def ollama_invoke(*, model_target: "ModelTarget", base_url: str | None,
                   max_response_tokens: int, context_ceiling: int,
                   timeout_seconds: float | None,
+                  silence_seconds: float | None,
                   post: Callable[..., bytes] = _post,
                   on_usage: Callable[[Usage | None], None] | None = None,
                   ) -> Callable[[bytes], bytes]:
@@ -630,6 +899,15 @@ def ollama_invoke(*, model_target: "ModelTarget", base_url: str | None,
             "timeout_seconds is injected and is the deployment's patience; a "
             "client built without one can hold a scan open for ever, and zero is "
             "not patience but a different bug wearing a number.")
+    if not isinstance(silence_seconds, (int, float)) or isinstance(
+            silence_seconds, bool) or silence_seconds <= 0:
+        raise ValueError(
+            "silence_seconds is injected and is how long this deployment lets the "
+            "model's token stream say NOTHING before the call is abandoned (`104` "
+            "R-177). A client built without one charges every hang the whole-call "
+            "ceiling, which is what ten ordinary local calls cost; zero would "
+            "abandon every call before the model had read the prompt. `cli.py` is "
+            "the only file that picks it.")
     url = endpoint + CHAT_PATH
     model_id = model_target.model_id
     #: The window every call in this run is given, for the row §8.4 writes about
@@ -654,7 +932,13 @@ def ollama_invoke(*, model_target: "ModelTarget", base_url: str | None,
         body = json.dumps({
             "model": model_id,
             "messages": [{"role": "user", "content": prompt}],
-            "stream": False,
+            # `104` R-177, AND IT IS NOT A SAMPLING CHOICE. Streaming changes
+            # nothing the model is asked and nothing it answers -- the same bytes
+            # go out, temperature and seed still make the reply deterministic, and
+            # `assemble` puts the pieces back into the one object this module has
+            # always read. What it buys is the only observation that separates a
+            # hang from a long answer: a token arriving.
+            "stream": True,
             # P8 parses the reply against `response_schema_bytes`. A model free to
             # answer in prose fails that check for a reason that is not about the
             # evidence, which would read as the model declining when it did not.
@@ -665,38 +949,33 @@ def ollama_invoke(*, model_target: "ModelTarget", base_url: str | None,
                         "num_ctx": window, "num_predict": response_tokens},
         }).encode("utf-8")
         try:
-            raw = post(url, body, timeout=timeout_seconds)
+            raw = post(url, body, timeout=timeout_seconds,
+                       silence=silence_seconds)
         except OllamaUnavailable:
             raise
         except TimeoutError as problem:
             # THE MODEL WAS ASKED AND IS STILL THINKING, which is not the same as
             # a model that is not there, and telling a person to start a server
             # that is already running would send them to fix the thing that works.
-            raise _out_of_time(problem,
-                f"the local model at {endpoint} was asked and had not answered "
-                f"after {timeout_seconds:g} seconds, so this run stopped waiting "
-                f"({PHASE_SLOT}: {problem}). The call HAPPENED -- ollama "
-                f"is running and was working -- and no answer came back, so "
-                f"nothing was decided on the strength of a judgement that was "
-                f"never finished. A bigger model on a busy machine is the ordinary "
-                f"cause; raise the deployment's patience or name a smaller model."
-            ) from problem
+            raise _out_of_time(problem, _stopped_waiting(
+                problem, endpoint=endpoint, timeout_seconds=timeout_seconds,
+                silence_seconds=silence_seconds)) from problem
         except Exception as problem:  # transport failure of any kind
             # A read timeout can also arrive wrapped, and what it MEANS does not
             # change with the wrapper it arrived in.
             if isinstance(getattr(problem, "reason", None), TimeoutError):
-                raise _out_of_time(problem.reason,
-                    f"the local model at {endpoint} was asked and had not "
-                    f"answered after {timeout_seconds:g} seconds, so this run "
-                    f"stopped waiting ({PHASE_SLOT}: {problem}). "
-                    f"The call HAPPENED and no answer came back."
-                ) from problem
+                raise _out_of_time(problem.reason, _stopped_waiting(
+                    problem.reason, endpoint=endpoint,
+                    timeout_seconds=timeout_seconds,
+                    silence_seconds=silence_seconds)) from problem
             raise OllamaUnavailable(
                 f"the local model at {endpoint} could not be reached ({problem}). "
                 f"Start it with `ollama serve`. No call was made, so nothing was "
                 f"decided on the strength of a model that was never asked."
             ) from problem
-        response = json.loads(raw)
+        # `104` R-177: the pieces of a streamed reply, back in the one object every
+        # line below this one was written against.
+        response = assemble(raw)
         # AFTER `_answer`, so a refusal is a refusal and not a cost. A `thinking`
         # block, a `done_reason` of `length` and a prompt that tokenised worse than
         # the floor all raise there, and none of them is an answer this run may bill
@@ -741,10 +1020,10 @@ def _answer(response: object, *, window: int, prompt_bytes: int,
             f"the server returned {type(response).__name__} where ollama's "
             f"`/api/chat` returns an object. What came back does not describe "
             f"what went out.")
-    message = response.get("message")
+    message = response.get(MESSAGE_FIELD)
     if not isinstance(message, dict):
         raise NoAnswerFromModel(
-            f"the response carried no `message` object (keys: "
+            f"the response carried no `{MESSAGE_FIELD}` object (keys: "
             f"{sorted(response) if isinstance(response, dict) else '?'}). ollama "
             f"puts the answer there and this module reads it nowhere else.")
     thinking = message.get(THINKING_FIELD)
@@ -800,7 +1079,7 @@ def _answer(response: object, *, window: int, prompt_bytes: int,
             f"{BYTES_PER_TOKEN_FLOOR}) and re-run; the answer is refused rather "
             f"than validated as the model's reading of evidence it may never have "
             f"been shown.")
-    text = message.get("content")
+    text = message.get(CONTENT_FIELD)
     if not isinstance(text, str) or not text.strip():
         raise NoAnswerFromModel(
             f"the response carried no message content (done_reason={reason!r}). "

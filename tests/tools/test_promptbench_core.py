@@ -162,7 +162,7 @@ def test_num_ctx_grows_with_the_prompt_and_refuses_beyond_the_window():
 def test_local_client_sets_think_off_and_num_ctx_and_records_them():
     seen: dict = {}
 
-    def fake_post(url, body, *, timeout):
+    def fake_post(url, body, *, timeout, silence):
         seen["body"] = json.loads(body)
         # `/api/chat`'s shape, which is what the product's transport reads. The
         # bench used to call a 95-line local copy of `ollama_invoke` that spoke
@@ -188,7 +188,7 @@ def test_local_client_sets_think_off_and_num_ctx_and_records_them():
 
 
 def test_local_client_refuses_a_prompt_that_filled_the_context():
-    def fake_post(url, body, *, timeout):
+    def fake_post(url, body, *, timeout, silence):
         num_ctx = json.loads(body)["options"]["num_ctx"]
         return json.dumps({"message": {"role": "assistant", "content": "{}"},
                            "done_reason": "stop",

@@ -42,7 +42,7 @@ from readers.model_deepseek import (  # noqa: E402
     BASE_URL_NAME, CREDENTIAL_NAME, deepseek_invoke,
 )
 from readers.model_ollama import (  # noqa: E402
-    DEFAULT_BASE_URL as LOCAL_BASE_URL, ollama_invoke,
+    DEFAULT_BASE_URL as LOCAL_BASE_URL, assemble, ollama_invoke,
 )
 
 #: Where the deployment keeps its key. NOT `cli.ENV_FILE`: that resolves beside
@@ -116,7 +116,16 @@ def local_client(*, post=None) -> Callable[[bytes], tuple[bytes, CallMeta]]:
     """`invoke(bytes) -> (answer bytes, meta)` over the product's Ollama transport."""
     from urllib.request import Request, urlopen
 
-    def _post(url: str, body: bytes, *, timeout: float) -> bytes:
+    def _post(url: str, body: bytes, *, timeout: float,
+              silence: float) -> bytes:
+        # `silence` IS ACCEPTED AND NOT SPENT, and that is the bench's own choice
+        # said out loud. `104` R-177's silence deadline lives in the product's
+        # `_post`, which drops to `http.client` for the seam between the phases of
+        # a call; `urlopen` offers none, which is why the product left it. The
+        # bench measures whole calls under `LOCAL_TIMEOUT_SECONDS` as it always
+        # has -- a bakeoff wants the slow candidate's real latency, not a run that
+        # abandons it -- and takes the argument so it is the product's transport
+        # it is driving and not a different one.
         request = Request(url, data=body,
                           headers={"Content-Type": "application/json"})
         with urlopen(request, timeout=timeout) as response:
@@ -125,7 +134,8 @@ def local_client(*, post=None) -> Callable[[bytes], tuple[bytes, CallMeta]]:
     real_post = post or _post
     last: dict = {}
 
-    def bench_post(url: str, body: bytes, *, timeout: float) -> bytes:
+    def bench_post(url: str, body: bytes, *, timeout: float,
+                   silence: float) -> bytes:
         payload = json.loads(body)
         # `/api/chat`, WHICH IS THE TRANSPORT THE PRODUCT SHIPS. This read
         # `payload["prompt"]`, the `/api/generate` field, against a 95-line
@@ -149,10 +159,15 @@ def local_client(*, post=None) -> Callable[[bytes], tuple[bytes, CallMeta]]:
         # are the same call.
         load_before = _load_average_1m()
         started = time.monotonic()
-        raw = real_post(url, json.dumps(payload).encode("utf-8"), timeout=timeout)
+        raw = real_post(url, json.dumps(payload).encode("utf-8"),
+                        timeout=timeout, silence=silence)
         elapsed = time.monotonic() - started
         load_after = _load_average_1m()
-        answer = json.loads(raw)
+        # `104` R-177: the transport asks for `stream: true`, so the body is one
+        # JSON object per token. `assemble` is the product's own reader of that,
+        # used here rather than re-parsed, so the bench's counts and the product's
+        # come off the same object.
+        answer = assemble(raw)
         prompt_tokens = answer.get("prompt_eval_count")
         last.clear()
         last.update(
@@ -183,6 +198,7 @@ def local_client(*, post=None) -> Callable[[bytes], tuple[bytes, CallMeta]]:
                            max_response_tokens=LOCAL_RESPONSE_CEILING,
                            context_ceiling=NUM_CTX_MAXIMUM,
                            timeout_seconds=LOCAL_TIMEOUT_SECONDS,
+                           silence_seconds=LOCAL_TIMEOUT_SECONDS,
                            post=bench_post)
 
     def call(payload: bytes) -> tuple[bytes, CallMeta]:

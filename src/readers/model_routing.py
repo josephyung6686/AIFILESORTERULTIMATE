@@ -293,7 +293,7 @@ def deepseek_routing(*, api_key: str | None, base_url: str | None,
 def ollama_routing(*, model_id: str | None, base_url: str | None,
                    tier_of_call_site: Mapping[str, str],
                    max_response_tokens: int, context_ceiling: int,
-                   timeout_seconds: float,
+                   timeout_seconds: float, silence_seconds: float,
                    serves: str | None = None,
                    beside: TierRouting | None = None,
                    on_usage=None) -> TierRouting:
@@ -365,7 +365,8 @@ def ollama_routing(*, model_id: str | None, base_url: str | None,
             base_url=base_url if base_url else LOCAL_DEFAULT_BASE_URL,
             max_response_tokens=max_response_tokens,
             context_ceiling=context_ceiling,
-            timeout_seconds=timeout_seconds, on_usage=on_usage),
+            timeout_seconds=timeout_seconds, silence_seconds=silence_seconds,
+            on_usage=on_usage),
     )
     if beside is None:
         return TierRouting(tier_of_call_site=table,
@@ -387,7 +388,7 @@ def ollama_routing(*, model_id: str | None, base_url: str | None,
 def cloud_and_local_routing(*, beside: TierRouting, model_id: str | None,
                             base_url: str | None,
                             max_response_tokens: int, context_ceiling: int,
-                            timeout_seconds: float,
+                            timeout_seconds: float, silence_seconds: float,
                             on_usage=None) -> TierRouting:
     """BOTH, per tier, so the choice can be made per file instead of per site.
 
@@ -421,7 +422,8 @@ def cloud_and_local_routing(*, beside: TierRouting, model_id: str | None,
         tier_of_call_site=beside.tier_of_call_site,
         max_response_tokens=max_response_tokens,
         context_ceiling=context_ceiling,
-        timeout_seconds=timeout_seconds, on_usage=on_usage)
+        timeout_seconds=timeout_seconds, silence_seconds=silence_seconds,
+        on_usage=on_usage)
     return TierRouting(tier_of_call_site=beside.tier_of_call_site,
                        client_of_tier=beside.client_of_tier,
                        local_client_of_tier=local.client_of_tier)

@@ -57,7 +57,8 @@ def _reply(**overrides) -> dict:
 
 
 def _answering(reply: dict):
-    def post(url: str, body: bytes, *, timeout: float) -> bytes:
+    def post(url: str, body: bytes, *, timeout: float,
+             silence: float) -> bytes:
         return json.dumps(reply).encode("utf-8")
     return post
 
@@ -65,7 +66,8 @@ def _answering(reply: dict):
 def _built(**overrides):
     arguments = dict(model_target=TARGET, base_url="http://127.0.0.1:11434",
                      max_response_tokens=RESPONSE_TOKENS, context_ceiling=CEILING,
-                     timeout_seconds=30, post=_answering(_reply()))
+                     timeout_seconds=30, silence_seconds=10,
+                     post=_answering(_reply()))
     arguments.update(overrides)
     return ollama_invoke(**arguments)
 
@@ -107,7 +109,7 @@ def test_the_response_format_recorded_is_the_one_actually_sent():
     column exists: `prompt_fingerprint` covers no transport parameter."""
     sent = {}
 
-    def post(url, body, *, timeout):
+    def post(url, body, *, timeout, silence):
         sent.update(json.loads(body))
         return json.dumps(_reply()).encode("utf-8")
 
