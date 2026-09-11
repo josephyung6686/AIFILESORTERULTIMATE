@@ -114,9 +114,11 @@ def test_the_question_names_the_branch_the_files_and_what_to_type(tmp_path):
     assert code == 2, report
     flat = _flat(report)
     # The branch is named after the kind of life its files turned out to be --
-    # the library's own word, and the name every other branch already carries.
-    assert "academic:" in flat, report
-    assert f"{len(COURSEWORK)} files" in flat, report
+    # the library's own word, and the name every other branch already carries --
+    # and it is the QUESTION's own three parts that print: the prompt, the
+    # evidence, and one typable line per option.
+    assert "Which of these is academic?" in flat, report
+    assert f"{len(COURSEWORK)} files sit under academic" in flat, report
     assert "--answer situation:academic=academic.coursework" in flat, report
     # And the whole-folder override is offered beside the per-branch answer.
     assert "--situation" in flat, report

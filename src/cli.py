@@ -11966,34 +11966,32 @@ def _the_one_with_the_most(votes: Mapping[str, int]) -> str | None:
     return leaders[0] if len(leaders) == 1 else None
 
 
-def _what_these_folders_are(partition: BranchPartition) -> str:
+def _what_these_folders_are(asked: Sequence[object]) -> str:
     """The refusal of a run that read the folder and cannot name what it is.
 
     `66` §14 is the shape: the first run asks nothing, and when the engine meets an
     ambiguity that prevents a useful template it asks a narrow, evidence-linked
-    question naming the visible context and the precise consequence. So this names
-    each folder the run proposes, how many files are under it, and the exact line
-    that answers it -- and it is raised only AFTER the questions are recorded,
-    because `apply_answers` refuses an answer to a question no run has asked.
+    question naming the visible context and the precise consequence. So this is
+    built from THE QUESTIONS THE RUN JUST RECORDED and not from the branches
+    beside them -- their prompt, their evidence and their options are the
+    library's own words and the report prints the same three -- and it is reached
+    only after they are written down, because `apply_answers` refuses an answer to
+    a question no run has asked.
 
-    The situations are the library's own names, verbatim, for
-    `question_for_situation`'s reason: `--list-situations` prints these exact
-    strings, so they are what the person has already been shown.
+    `_typable` and not an f-string, for its own measured reason: a branch's scope
+    is the person's own label, `--label "Legal Matters"` makes `situation:Legal
+    Matters=...`, and a line a shell splits in two fails looking like their
+    mistake rather than ours.
     """
     lines = ["the folder was read, and these are the folders its own files ask "
              "for -- but not which situation each of them is. Answer one and run "
              "the same command again, or pass --situation to answer for the "
              "whole folder at once:"]
-    for branch in partition.branches:
-        if branch.settled or not branch.file_ids:
-            continue
-        files = "file" if len(branch.file_ids) == 1 else "files"
-        lines.append(
-            f"\n  {branch.label}: {len(branch.file_ids)} {files}, and the "
-            f"library carries {len(branch.candidate_situations)} situations "
-            f"that fit them equally:")
-        lines.extend(f"    --answer situation:{branch.label}={name}"
-                     for name in branch.candidate_situations)
+    for question in asked:
+        lines.append(f"\n  {question.prompt}")
+        lines.append(f"  {question.evidence_context}")
+        lines.extend(f"    --answer {_typable(question, option.option_id)}"
+                     for option in question.options)
     return "\n".join(lines)
 
 
@@ -13770,19 +13768,30 @@ def run(conn: sqlite3.Connection, directory: Path, *,
 
         A unique leader wins and a tie decides nothing, which is
         `_grouped_by_branch`'s own rule.
+
+        **A SCHEMA THE LIBRARY CARRIES NO SITUATION FOR CANNOT WIN**, and four of
+        the twenty-three are in that state. The by-schema resolver says why in its
+        own words one pass over: such a schema "has no folder levels and no
+        readings, so there is nothing for a fact call under it to be asked FROM".
+        A branch named after one could be asked no question either -- there would
+        be no options to offer -- so it is not a reading of this folder that can
+        be acted on, and the vote does not count it. `identity` is the live case:
+        the recogniser raised it twice on the six files the byte pin uses.
         """
         anchors: dict[str, int] = {}
         raised: dict[str, int] = {}
         for file_id, content_hash in roster:
             owners = {WORK_TYPE_OWNER[value]
                       for field, value in _anchor_facts_of(file_id, content_hash)
-                      if field == WORK_TYPE_FIELD and value in WORK_TYPE_OWNER}
+                      if field == WORK_TYPE_FIELD and value in WORK_TYPE_OWNER
+                      and _situations_of(WORK_TYPE_OWNER[value])}
             if len(owners) == 1:
                 named = next(iter(owners))
                 anchors[named] = anchors.get(named, 0) + 1
             for schema_id in classify_producer.situation_outcome(
                     conn, file_id, content_hash).candidates:
-                raised[schema_id] = raised.get(schema_id, 0) + 1
+                if _situations_of(schema_id):
+                    raised[schema_id] = raised.get(schema_id, 0) + 1
         for votes in (anchors, raised):
             leader = _the_one_with_the_most(votes)
             if leader is not None:
@@ -13846,8 +13855,16 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # of answer.
             of_the_run[:] = [_the_situation_of_a_run(
                 catalogue, partition.default.situation, label)]
+        asked = []
         for branch in partition.branches:
-            if branch.settled or not branch.file_ids:
+            # THE DEFAULT BRANCH IS ASKED EVEN WITH NO FILES UNDER IT, and only
+            # it can be in that state: `partition_by_branch` opens a non-default
+            # branch from an anchor and an anchored file is under it by
+            # construction. An unsettled default with no files happens when every
+            # file anchored into a sibling or was held between two, and its
+            # situation is still what the whole run is waiting on -- so a run that
+            # skipped the question would refuse and offer nothing to type.
+            if branch.settled or (not branch.file_ids and not branch.is_default):
                 continue
             question = question_for_situation(
                 branch_label=branch.label,
@@ -13855,6 +13872,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 file_count=len(branch.file_ids))
             record_question(conn, question, asked_at=clock)
             branch_reaches[question.question_id] = branch.file_ids
+            asked.append(question)
         if not of_the_run:
             # THE QUESTIONS ARE RECORDED FIRST, and that is the whole point of
             # refusing here rather than at the parser: `--answer` refuses an
@@ -13862,7 +13880,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # told what to type once the run has done the work that makes the
             # question narrow. `66` §14: the first run asks nothing, and the
             # question it does ask names the visible context and the consequence.
-            raise NotConfigured(_what_these_folders_are(partition))
+            raise NotConfigured(_what_these_folders_are(asked))
         return partition
 
     def _model_fact_pass(run_id: str) -> None:
