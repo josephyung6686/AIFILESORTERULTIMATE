@@ -112,8 +112,45 @@ SCOPE_BRANCH: str = "branch"
 #: `privacy.vocabulary.ALWAYS_LOCAL`'s first member is `paths`, and a scope is
 #: stored, printed, and carried between runs.
 SCOPE_FOLDER: str = "folder"
+
+#: THE FIFTH KIND, added under the same principle the third and fourth record: a
+#: closed vocabulary that cannot express what happened is a design gap rather
+#: than a discipline. **JOSEPH HAS NOT RATIFIED THIS ONE EITHER.** It is added
+#: because `104` §18.2 gap 15 could not be done without it, and it is named here
+#: rather than slipped in, so that ratifying or reversing it is one edit in one
+#: place.
+#:
+#: What it scopes: ONE FILE. §6.9's two-homes question is asked when a file has
+#: accepted membership in two packets that lead to two different folders, and the
+#: file beside it in the same folder has its own pair or none at all.
+#:
+#: Why none of the four above will do, and `folder` least of all. `corpus` is the
+#: whole run and `organization` is one named entity the evidence produced, so
+#: neither is about a file. `branch` is a folder in the PROPOSED tree. `folder`
+#: is the near miss and the dangerous one: `chosen_destination` is scoped by
+#: contract and says so in as many words -- "a person who says a folder of
+#: unreadable scans belongs under `Vaccine records` has said that about THOSE
+#: files" -- so recording a two-homes question under the file's own folder would
+#: let one answer file every other file in that folder. That is not a smaller
+#: version of this question; it is the defect `104` R-86 was raised to fix,
+#: reintroduced through the scope instead of through the lookup.
+#:
+#: The entity is the FILE ID, not a path, for the reason SCOPE_FOLDER gives about
+#: `privacy.vocabulary.ALWAYS_LOCAL`'s first member: a scope is stored, printed,
+#: and carried between runs, and a file id is this corpus's own handle for the
+#: file rather than a place on somebody's disk.
+#:
+#: ONE SEAM IS LEFT AND IT IS THE OWNER'S. `registry.HOME_KIND` declares
+#: `scope_kind=SCOPE_FOLDER`, and a two-homes question is a `home:` question
+#: carrying a `file:` scope. Nothing reads `scope_kind` at answer time -- an
+#: answer copies its question's stored scope (`cli.py`'s `--answer` gesture) and
+#: `chosen_destination` reads that string back -- so the two do not disagree
+#: about anything the product does today. Making them agree on paper means a
+#: second `QuestionKind`, which is a registry entry and a closed-vocabulary
+#: decision of its own.
+SCOPE_FILE: str = "file"
 SCOPES: tuple[str, ...] = (SCOPE_CORPUS, SCOPE_ORGANIZATION, SCOPE_BRANCH,
-                           SCOPE_FOLDER)
+                           SCOPE_FOLDER, SCOPE_FILE)
 
 
 def check(value: str, allowed: tuple[str, ...], *, name: str) -> str:

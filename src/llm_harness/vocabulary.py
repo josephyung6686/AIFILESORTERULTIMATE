@@ -131,6 +131,31 @@ MARK_REVIEW_LATER: str = "mark_review_later"
 LEAVE_IN_CURRENT_LOCATION: str = "leave_in_current_location"
 MARK_PROTECTED_OR_UNSUPPORTED: str = "mark_protected_or_unsupported"
 
+#: THE TWO WORDS `mark_protected_or_unsupported` MAY CARRY AS ITS TARGET, and
+#: `104` R-104's close. The action above has lived here since it was written and
+#: its two states did not, so `_residual_site` could check that the ACTION was in
+#: the controlled set and not that its target was: a model answering
+#: `{"action": "mark_protected_or_unsupported", "target": "archived"}` was
+#: accepted here, and the stray word travelled to
+#: `placement.residual.outcome_for_action`, which raises and ends the run on one
+#: bad word in one answer about one file.
+#:
+#: **WHY THE PAIR LIVES HERE AND IS MIRRORED RATHER THAN IMPORTED.** The words
+#: are site D's ratified text's -- both wired D templates say `"target" is the
+#: word "protected" or the word "unsupported"` in prose -- so they are a fact
+#: about the call P8 validates, which is what this module is for.
+#: `placement.vocabulary` carries the same pair for P11's own records, and P8 may
+#: not import it: `tests/p8/test_p8_architecture.py`'s `NEIGHBOUR_PRODUCERS`
+#: forbids every P8 module from importing `placement`. So this is the spelling
+#: the residual site validates against, `placement.residual` reads THIS one
+#: rather than its neighbour's, and
+#: `tests/p11/test_p11_residual_actions.py::test_the_two_marked_states_are_the_
+#: two_words_the_d_template_offers` holds the two records equal against the
+#: template's own sentence, so the P8 home cannot be given a different pair.
+PROTECTED: str = "protected"
+UNSUPPORTED: str = "unsupported"
+MARKED_STATES: tuple[str, ...] = (PROTECTED, UNSUPPORTED)
+
 RESIDUAL_ACTIONS: tuple[str, ...] = (
     RETURN_CONFIRMED_GROUP,
     RETURN_ACCEPTED_PACKET,

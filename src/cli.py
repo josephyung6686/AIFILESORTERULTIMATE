@@ -272,11 +272,12 @@ from questions.proposal import propose_roles
 # the two lines may be merged into one.
 from questions.records import AnswerNotPermitted
 from questions.records import StructuralAnswer
+from questions.records import QuestionOption, StructuralQuestion
 from questions.role_report import (
     questions_a_run_could_not_settle, role_moment_lines, role_panel_lines,
     shortlist_lines,
 )
-from questions.registry import SITUATION_KIND, kind_of
+from questions.registry import HOME_KIND, SITUATION_KIND, kind_of
 from questions.roles import (
     apply_declarations, apply_descriptions, described_sentences, live_roles,
 )
@@ -290,12 +291,14 @@ from questions.store import (
     record_question, set_aside_questions,
 )
 from questions.triggers import (
+    SUBJECT_DRAWN_FROM_THE_CORPUS,
     DestinationChoice, NestingChoice, question_for_nesting,
     question_for_situation,
     question_for_unreadable_folder, tied_readings_and_the_files_they_reach,
 )
 from questions.vocabulary import (
-    CONFIRMED, REVOKED, SCOPE_BRANCH, SCOPE_FOLDER, SKIPPED,
+    CONFIRMED, REVOKED, SCOPE_BRANCH, SCOPE_FILE, SCOPE_FOLDER, SKIPPED,
+    STRUCTURAL,
 )
 from production import (
     CorpusAuthorities, CorpusDecisions, P1P7Authorities, ProductionRun,
@@ -12371,70 +12374,6 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                         PROTECTED_REVIEW_SET)
             if held.get(key))
 
-    def _every_destination(frozen) -> tuple[DestinationChoice, ...]:
-        """Every place a file can go in this plan, with the path a person reads.
-
-        The `display_path` is the answer's identity -- what a `--answer` line
-        carries and what the store keeps -- and the `node_id` is this run's address
-        for it. Both come from the same walk so they cannot disagree, which is the
-        whole reason the resolution is a lookup rather than a second derivation.
-
-        A node that accepts no placement is not here: an answer naming one would be
-        refused by `legal_node_ids` after the person had already given it, which is
-        a question whose answer is rejected on the way in.
-
-        **IN THE TREE'S OWN ORDER, and `104` R-116 is why.** "Where should the
-        files in Downloads go?" offered sixteen folders as `frozen.nodes` happened
-        to hold them -- Coursework, Spring2026, CS3134, ECON2010/lecture,
-        PHYS1401/lecture, W3134/lecture, cover letter, ECON2010 -- which is a
-        list with no order a person can follow, printed nine lines under a
-        picture of the same folders in the order they nest. The list IS the tree,
-        so it is walked the way `report` draws it: children under their parent,
-        siblings in the order the tree holds them. NOT sorted by string, which
-        would put `Coursework/W3134` above `Coursework/W3134/exam` by accident
-        and break the moment a label starts with a digit.
-
-        A node the walk never reaches -- one whose parent id names nothing in
-        this tree -- is APPENDED rather than dropped. Ordering a list is not a
-        licence to shorten it, and a destination missing from a question is one
-        an answer can never name.
-        """
-        labels = {node.node_id: node.display_label for node in frozen.nodes}
-        parents = {node.node_id: node.parent_node_id for node in frozen.nodes}
-
-        def path_of(node_id: str) -> str:
-            parts: list[str] = []
-            walk: str | None = node_id
-            while walk is not None and walk in labels:
-                parts.append(labels[walk])
-                walk = parents[walk]
-            return "/".join(reversed(parts))
-
-        by_parent: dict[str | None, list] = {}
-        for node in frozen.nodes:
-            by_parent.setdefault(node.parent_node_id, []).append(node)
-        walked: list = []
-        seen: set[str] = set()
-
-        def descend(parent: str | None) -> None:
-            for node in by_parent.get(parent, ()):
-                # Marked BEFORE the recursion, so a tree that somehow names
-                # itself as its own ancestor is a short list rather than a
-                # recursion error on somebody's folder.
-                if node.node_id in seen:
-                    continue
-                seen.add(node.node_id)
-                walked.append(node)
-                descend(node.node_id)
-
-        descend(None)
-        walked.extend(node for node in frozen.nodes if node.node_id not in seen)
-
-        return tuple(
-            DestinationChoice(node_id=node.node_id,
-                              display_path=path_of(node.node_id))
-            for node in walked if node.accepts_placement)
-
     def _destinations_to_offer(frozen):
         """The folders a person is offered when asked where something goes.
 
@@ -12714,6 +12653,19 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             the plan no longer builds is a real change they should see as the
             question coming back, not as a placement into a folder that is gone.
             """
+            # `104` §18.2 gap 15. THE FILE'S OWN ANSWER FIRST, and it is a
+            # different question from the one below. `_two_home_questions`
+            # records a `file:`-scoped question for each file the LAST run found
+            # two homes for, so this is the person answering about THIS file and
+            # nothing else -- which is the whole reason `SCOPE_FILE` exists and
+            # the folder scope would not do. Asked first because it is the
+            # narrower of the two: a file that is both unreadable and two-homed
+            # has been asked about twice, and the answer about the file itself is
+            # the one the person gave with that file in front of them.
+            chosen = chosen_destination(conn,
+                                        scope=f"{SCOPE_FILE}:{subject.file_id}")
+            if chosen is not None:
+                return node_of.get(chosen)
             folder = asked_about.get(subject.file_id)
             if folder is None:
                 return None
@@ -13742,6 +13694,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         decisions=design_decisions(_accepted),
         placement_inputs=placement_inputs,
         component_version=COMPONENT_VERSION, observed_at=now())
+
+    _two_home_questions(conn, result, asked_at=clock)
     if record is not None:
         # AFTER P11, and that is the whole reason a SECOND bundle exists.
         # `run_p1_p7` sealed the first at the end of P1--P7 and a sealed bundle is
@@ -14906,6 +14860,155 @@ def _role_lines(lines: Sequence[str], *, out) -> None:
     for line in lines:
         print(line if line.startswith(" ") else _wrapped(line, indent="  "),
               file=out)
+
+
+def _every_destination(frozen) -> tuple[DestinationChoice, ...]:
+    """Every place a file can go in this plan, with the path a person reads.
+
+    The `display_path` is the answer's identity -- what a `--answer` line
+    carries and what the store keeps -- and the `node_id` is this run's address
+    for it. Both come from the same walk so they cannot disagree, which is the
+    whole reason the resolution is a lookup rather than a second derivation.
+
+    A node that accepts no placement is not here: an answer naming one would be
+    refused by `legal_node_ids` after the person had already given it, which is
+    a question whose answer is rejected on the way in.
+
+    **IN THE TREE'S OWN ORDER, and `104` R-116 is why.** "Where should the
+    files in Downloads go?" offered sixteen folders as `frozen.nodes` happened
+    to hold them -- Coursework, Spring2026, CS3134, ECON2010/lecture,
+    PHYS1401/lecture, W3134/lecture, cover letter, ECON2010 -- which is a
+    list with no order a person can follow, printed nine lines under a
+    picture of the same folders in the order they nest. The list IS the tree,
+    so it is walked the way `report` draws it: children under their parent,
+    siblings in the order the tree holds them. NOT sorted by string, which
+    would put `Coursework/W3134` above `Coursework/W3134/exam` by accident
+    and break the moment a label starts with a digit.
+
+    A node the walk never reaches -- one whose parent id names nothing in
+    this tree -- is APPENDED rather than dropped. Ordering a list is not a
+    licence to shorten it, and a destination missing from a question is one
+    an answer can never name.
+    """
+    labels = {node.node_id: node.display_label for node in frozen.nodes}
+    parents = {node.node_id: node.parent_node_id for node in frozen.nodes}
+
+    def path_of(node_id: str) -> str:
+        parts: list[str] = []
+        walk: str | None = node_id
+        while walk is not None and walk in labels:
+            parts.append(labels[walk])
+            walk = parents[walk]
+        return "/".join(reversed(parts))
+
+    by_parent: dict[str | None, list] = {}
+    for node in frozen.nodes:
+        by_parent.setdefault(node.parent_node_id, []).append(node)
+    walked: list = []
+    seen: set[str] = set()
+
+    def descend(parent: str | None) -> None:
+        for node in by_parent.get(parent, ()):
+            # Marked BEFORE the recursion, so a tree that somehow names
+            # itself as its own ancestor is a short list rather than a
+            # recursion error on somebody's folder.
+            if node.node_id in seen:
+                continue
+            seen.add(node.node_id)
+            walked.append(node)
+            descend(node.node_id)
+
+    descend(None)
+    walked.extend(node for node in frozen.nodes if node.node_id not in seen)
+
+    return tuple(
+        DestinationChoice(node_id=node.node_id,
+                          display_path=path_of(node.node_id))
+        for node in walked if node.accepts_placement)
+
+
+def _two_home_questions(conn: sqlite3.Connection, finished, *,
+                        asked_at: str) -> None:
+    """`104` §18.2 gap 15's other half: §6.9's Ask, in the panel, per file.
+
+    `_ask_when_there_are_two_homes_to_offer` made the run ASK when a file has
+    two homes, and `_multi_home_decision` mints the `placement.records.Ask`
+    that carries the question into the review set. That is where it stopped:
+    the "Questions only you can answer" panel prints the `questions` STORE,
+    so an Ask nobody recorded had no `--answer` line, no folder labels beside
+    its two node ids, and no way for the person to settle it in the place
+    they settle everything else.
+
+    This is `_home_questions`' shape, once per FILE instead of once per
+    folder, and the three things that were in the way are each answered:
+
+    1. **The scope.** `questions.vocabulary.SCOPE_FILE` is new and is the
+       reason this could not land before it. A two-homes question is about
+       one file that accepted membership in two packets; the file beside it
+       in the same folder has its own pair or none. Recording it under
+       `folder:` would let one answer file the whole folder, which is
+       `104` R-86 reintroduced through the scope.
+    2. **The options are folder CHAINS.** Read out of `_node_for`'s own map,
+       inverted -- the same map `already_answered` resolves an answer
+       through, so the person is offered exactly the destinations an answer
+       can later reach. Raw `shared_parent_node_id`s would print opaque ids
+       and resolve to nothing.
+    3. **Recorded HERE and not in `placement/`.** P11 writes decisions, not
+       questions; `record_question` lives in this module and the run's own
+       `ASK_USER` decisions are what it reads.
+
+    RECORDED AFTER PLACEMENT, WHICH IS THE WHOLE DIFFERENCE FROM
+    `_home_questions`. A folder question can be written the moment the plan
+    is frozen, because it is about a folder nothing was read from. This one
+    does not exist until the placement pass has found the file two homes, so
+    the answer lands in the NEXT run -- read by `already_answered` exactly as
+    a home answer is, which is what makes the panel and the plan agree.
+    """
+    node_paths = {choice.node_id: choice.display_path
+                  for choice in _every_destination(finished.tree.tree)}
+    for decision in finished.placement.decisions:
+        if decision.outcome != pv.ASK_USER or decision.ask is None:
+            continue
+        # Every option or none. An `Ask` whose node the frozen tree no longer
+        # offers cannot be answered -- `legal_node_ids` would refuse the
+        # answer after the person had given it -- and printing the pair minus
+        # one would offer a choice between one thing, which
+        # `StructuralQuestion` and `Ask` both refuse by name.
+        chains = tuple(node_paths[node_id]
+                       for node_id in decision.ask.options
+                       if node_id in node_paths)
+        if len(chains) < 2:
+            continue
+        for file_id in _files_of(decision):
+            record_question(conn, StructuralQuestion(
+                question_id=f"{HOME_KIND.kind_id}:{file_id}",
+                answer_class=STRUCTURAL,
+                # THE ASK'S OWN WORDS. `_multi_home_decision` wrote the
+                # question and P11 owns that record; re-phrasing it here
+                # would put two sentences on one screen for one decision.
+                prompt=decision.ask.question,
+                evidence_context=(
+                    "This file belongs to two things you have accepted, and "
+                    "they lead to two different folders, so nothing but you "
+                    "can say which one it should be filed under."),
+                unlocks=(
+                    "This decides where this one file is filed. Until it is "
+                    "answered it stays where it is, unfiled."),
+                # `question_for_unreadable_folder`'s sentence and for its
+                # reason: the shared promise names the wrong risk, because
+                # this answer changes where a file goes and no folder at all.
+                will_not_do=(
+                    "Answering will not move, rename or delete anything, and "
+                    "creates no folder. It records where you want this one "
+                    "file filed, in a plan you still have to approve, and it "
+                    "can be changed by answering again."),
+                handling_class=SUBJECT_DRAWN_FROM_THE_CORPUS,
+                scope=f"{SCOPE_FILE}:{file_id}",
+                options=tuple(
+                    QuestionOption(chain, chain, chooses_destination=chain)
+                    for chain in chains),
+                evidence_refs=(f"{SCOPE_FILE}:{file_id}",)),
+                asked_at=asked_at)
 
 
 def _files_of(decision) -> tuple[str, ...]:
