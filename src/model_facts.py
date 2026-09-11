@@ -75,7 +75,9 @@ from evidence_shape.store import (
     DERIVED_NAMESPACE, opening_reading_for, record_observation,
     unit_length_for_observation,
 )
-from facts.domains import ActivationSignals, active_field_allowlist
+from facts.domains import (
+    ActivationSignals, active_domains, active_field_allowlist,
+)
 from facts.file_facts import LLM_INTERPRETATION, facts_for_file
 from facts.evidence import observations_for_version
 from facts.llm_seam import FactRequest, build_request
@@ -2516,8 +2518,19 @@ def call_identity_dimensions(
         "plan_version": None,
         "policy": _policy_content(conn, authorities.policy_version),
         "prompt_fingerprint": prompt_fingerprint(authorities.prompt),
-        "schema_id": sorted(
-            signal.schema_id for signal in authorities.activation_signals.signals),
+        # THE DOMAINS THIS FILE ACTIVATED, and not the signals the run carries.
+        # The dimension's own sentence is "the situation's domain, which decides
+        # the field allowlist", and under the owner's ruling of 11 Sep 2026 --
+        # activation is per schema, by evidence -- the signal set is every schema
+        # the deployment could activate and is therefore the same list for every
+        # file. Keying on it would key two different allowlists under one identity,
+        # which is the one thing `00`:44 asks this row to prevent. `active_domains`
+        # is the same computation `active_field_allowlist` starts from, so the
+        # dimension and the allowlist cannot disagree. Unchanged for a file with one
+        # active domain, which is the whole of a run before the ruling.
+        "schema_id": sorted(active_domains(
+            conn, file_id=file_id, content_hash=content_hash,
+            activation_signals=authorities.activation_signals)),
         "subject_ref": file_id,
     }
 

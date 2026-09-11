@@ -99,7 +99,8 @@ from facts.learning import (
 )
 from facts.domains import ActivationSignal, ActivationSignals
 from branch_situation import (
-    Branch, BranchPartition, partition_by_branch, single_owner_terms,
+    BRIDGES_THAT_DO_NOT_REACH, Branch, BranchPartition, partition_by_branch,
+    single_owner_terms,
 )
 # `MEDIA_TYPE_FIELD` left this import with `104` R-09: the retired
 # `active_schema_for` literal was the only line in this file that named it.
@@ -5235,6 +5236,82 @@ WORK_TYPE_OWNER: Mapping[str, str] = MappingProxyType(single_owner_terms({
     for schema_id, fields in DOMAIN_FIELDS.items()
     if WORK_TYPE_FIELD in fields}))
 
+
+def _schema_reached_by_the_facts(schema_id: str):
+    """Does this file's own evidence make THIS schema plausible? §3.11's predicate.
+
+    The two fact-derived reach signals `branch_situation` already measures, at P9's
+    anchor bar and in the same words:
+
+    * a `work_type` fact whose term exactly ONE schema authored -- the anchor, "a
+      syllabus anchors coursework; a cover letter anchors applications";
+    * a fact on one of the schema's own `DOMAIN_FIELDS`, less the two bridges. A
+      `term` shared between a syllabus and a cover letter is what filed the cover
+      letters under Coursework, and a `work_type` VALUE two schemas authored
+      (`reference letter`, `reference list`) anchors neither.
+
+    THE RECOGNISER'S READING IS NOT HERE, for `branch_situation`'s measured reason:
+    it answers what a file is made of, not which life it is part of -- it read a
+    cover letter as `clinical_practice` on the synthetic Downloads folder -- and it
+    is a reach signal into a schema an anchor has already opened, never one that
+    opens one.
+
+    THE BAR IS `ANCHOR_STATES` AND NOT EVERY ROW. `active_domains` hands the
+    predicate every fact of the file version, including a model's own
+    `llm_supported` answers; letting one of those widen the allowlist would let a
+    model author its own next question, one call later.
+    """
+    own = frozenset(DOMAIN_FIELDS.get(schema_id, ())) - BRIDGES_THAT_DO_NOT_REACH
+
+    def reaches(established) -> bool:
+        for row in established:
+            if not row["active"] or row["superseded_by"] is not None:
+                continue
+            if row["reliability_state"] not in ANCHOR_STATES:
+                continue
+            if row["field_key"] in own:
+                return True
+            if (row["field_key"] == WORK_TYPE_FIELD
+                    and WORK_TYPE_OWNER.get(row["canonical_value"]) == schema_id):
+                return True
+        return False
+
+    return reaches
+
+
+def evidence_activation(schema_id: str) -> ActivationSignals:
+    """The owner's ruling of 11 Sep 2026: several schemas per file, by evidence.
+
+    `00` Amendments of 2026-09-11 item 3 reads §3's two lines together --
+    "activate domain-specific schemas only when the evidence indicates a domain is
+    plausible" and "one file may hold facts from more than one domain" -- so
+    activation is PER SCHEMA, BY EVIDENCE. This is the one place the three fact
+    sites build it, and it replaces the single `activates=lambda facts: True`
+    signal each of them carried.
+
+    P6 could always hold several: `active_domains` returns a set, and
+    `active_field_allowlist` unions the field sets in catalogue order and drops
+    nothing. What could not was the composition root, so §3.11's own worked case --
+    a research abstract submitted with a university application -- could not happen
+    on a real run whatever the file said.
+
+    **`schema_id` -- the branch's own schema -- stays unconditionally active, and
+    that is what keeps this a widening.** Coverage is sacred (`104` R-140): a file
+    under a branch is asked that branch's questions whatever its own evidence says,
+    and a file no branch reaches lives on exactly that. A predicate over the
+    branch's own schema would take the questions away from every file whose
+    evidence is thin, which is most of a real folder.
+
+    PLACEMENT IS UNTOUCHED. A file still gets one home (the owner's rule of 11 Sep
+    09:00); what widens is what may be ASKED and recorded about it.
+    """
+    return ActivationSignals(signals=(
+        ActivationSignal(schema_id=schema_id, activates=lambda facts: True),
+        *(ActivationSignal(schema_id=other,
+                           activates=_schema_reached_by_the_facts(other))
+          for other in SCHEMA_IDS if other != schema_id)))
+
+
 #: P7's naming zones, MINUS `heading`, and the subtraction is the composition root's
 #: because it is a policy rather than a rule. A heading names a SECTION; a filename
 #: and a document title name the DOCUMENT, and `work_type` is a claim about the
@@ -5980,8 +6057,11 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
         prompt=a_fact_prompt(),
         model_target=None,
         route_for=route_for,
-        activation_signals=ActivationSignals(signals=(
-            ActivationSignal(schema_id=schema, activates=lambda facts: True),)),
+        # THE OWNER'S RULING OF 11 SEP 2026, at the first of the three sites that
+        # activated exactly one schema per file. `evidence_activation` keeps this
+        # schema unconditionally active and adds every other one this file's own
+        # facts reach, so a file with two lives is asked about both.
+        activation_signals=evidence_activation(schema),
         folder_levels=folder_levels,
         # §3.6 check 3's per-field alias tables are a Deferred row and this
         # deployment authors none, so the mapping is empty and `normalize_for_model`
@@ -13735,9 +13815,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 resolvers[branch.label] = model_fact_resolver(
                     conn, authorities=dataclasses.replace(
                         authorities,
-                        activation_signals=ActivationSignals(signals=(
-                            ActivationSignal(schema_id=branch.schema,
-                                             activates=lambda facts: True),)),
+                        activation_signals=evidence_activation(branch.schema),
                         folder_levels=tuple(
                             level for level in levels
                             if level.field not in group_levels),
@@ -13847,9 +13925,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             by_schema[answered] = model_fact_resolver(
                 conn, authorities=dataclasses.replace(
                     authorities,
-                    activation_signals=ActivationSignals(signals=(
-                        ActivationSignal(schema_id=answered,
-                                         activates=lambda facts: True),)),
+                    activation_signals=evidence_activation(answered),
                     folder_levels=tuple(
                         level for level in levels
                         if level.field not in group_levels),
