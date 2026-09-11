@@ -13752,7 +13752,18 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         placement_inputs=placement_inputs,
         component_version=COMPONENT_VERSION, observed_at=now())
 
-    _two_home_questions(conn, result, asked_at=clock)
+    _two_home_questions(
+        conn, result, asked_at=clock,
+        # §14's repeated ambiguity, asked once: a file the folder question
+        # already names is covered by that question and gets no second one.
+        # The same list `placement_inputs` walked for `asked_about`, read
+        # again here because that list is local to it; nothing has been
+        # scanned in between, so the two readings name the same files.
+        covered=frozenset(
+            file_id
+            for _, file_ids, _ in folders_nothing_could_be_read_from(
+                conn, root=directory)
+            for file_id in file_ids))
     if record is not None:
         # AFTER P11, and that is the whole reason a SECOND bundle exists.
         # `run_p1_p7` sealed the first at the end of P1--P7 and a sealed bundle is
@@ -15223,7 +15234,8 @@ def _every_destination(frozen) -> tuple[DestinationChoice, ...]:
 
 
 def _two_home_questions(conn: sqlite3.Connection, finished, *,
-                        asked_at: str) -> None:
+                        asked_at: str,
+                        covered: frozenset[str] = frozenset()) -> None:
     """`104` §18.2 gap 15's other half: §6.9's Ask, in the panel, per file.
 
     `_ask_when_there_are_two_homes_to_offer` made the run ASK when a file has
@@ -15258,6 +15270,13 @@ def _two_home_questions(conn: sqlite3.Connection, finished, *,
     does not exist until the placement pass has found the file two homes, so
     the answer lands in the NEXT run -- read by `already_answered` exactly as
     a home answer is, which is what makes the panel and the plan agree.
+
+    `covered` is the set of files a FOLDER home question already names
+    (`_home_questions`' own list, R-86). Those files get no question of their
+    own: §14's repeated ambiguity is asked once, and a person who answered
+    for the folder would rightly read a second question about one of its
+    files as nobody listening. `already_answered` still reads a file answer
+    before a folder answer, so a file answer given anyway is honoured.
     """
     node_paths = {choice.node_id: choice.display_path
                   for choice in _every_destination(finished.tree.tree)}
@@ -15275,6 +15294,8 @@ def _two_home_questions(conn: sqlite3.Connection, finished, *,
         if len(chains) < 2:
             continue
         for file_id in _files_of(decision):
+            if file_id in covered:
+                continue
             record_question(conn, StructuralQuestion(
                 question_id=f"{HOME_KIND.kind_id}:{file_id}",
                 answer_class=STRUCTURAL,
