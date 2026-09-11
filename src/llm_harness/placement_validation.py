@@ -9,13 +9,16 @@ fully supported destination after resolving ancestors and shared branches.
 marked `context` is verified against the dossier's accepted groups; a placement
 every level of which is `context` may carry no citation at all.
 
-**Site C rejects on three things and flags the rest** (`104` §18.2 gap 2, under
+**Site C rejects on four things and flags the rest** (`104` §18.2 gap 2, under
 `00`'s amendment of 2026-09-05: "deterministic validation rejects only a
-structurally invalid answer"). The three are the frozen tree (`node_exists`),
+structurally invalid answer"). The four are the frozen tree (`node_exists`),
 grounding (a level whose value the file's own released text does not state, and a
-`context` level whose group the dossier does not say the person accepted), and
-shape (a required key absent or not a number) -- plus the person's own privacy
-policy, which is theirs and not this module's opinion. Everything else --
+`context` level whose group the dossier does not say the person accepted), shape
+(a required key absent or not a number), and -- since `104` R-77 -- the derived
+schema (a level the dossier's own projection does not list for the folder the
+model chose, which fires only once a row that carries that projection is
+observed) -- plus the person's own privacy policy, which is theirs and not this
+module's opinion. Everything else --
 a destination P11's shortlist did not happen to contain, an unechoed conflict id,
 a generic hub, a placement with no supported level, a populated `alternatives`
 list -- is recorded on the verdict and sent to a person by `requires_review`.
@@ -290,32 +293,25 @@ def _invented_dimension(payload: Mapping[str, object], dossier: Dossier) -> str 
     model's own "unsupported" keeps its more precise reason because
     `SLOT_FILLED_WITHOUT_EVIDENCE` is asked first, above.
 
-    **The schema half of §13.6 has no channel at C, and is not faked here.** At
-    site A the schema check is real: the dossier's vocabulary IS the domain's
-    field keys, so "the field exists" is a lookup. At C the dimensions a model
-    may name are the frozen tree's own levels; `Dossier.folder_levels` is empty
-    at C by design ("empty at B, C and D, which design no tree") and
-    `allowed_vocabulary` is node ids, so nothing in the dossier says which levels
-    exist. The response schema constrains `dimension` to a non-empty string and
-    `SCHEMA_INVALID` carries that much. Naming the levels is the node-profile
-    change R-17 makes; a check invented here would be a rule guessing at the
-    tree.
+    **The schema half of §13.6 is now `_level_the_node_does_not_have` below, and
+    the two stay separate.** It used to have no channel at all: at site A the
+    schema check is a lookup, because the dossier's vocabulary IS the domain's
+    field keys, while at C `Dossier.folder_levels` was empty by design ("empty at
+    B, C and D, which design no tree") and `allowed_vocabulary` is node ids, so
+    nothing in the dossier said which levels exist. `104` R-77 closed that by
+    changing what the dossier carries -- which was always the shape of the fix --
+    rather than by inventing a rule here that guessed at the tree.
 
-    **WHAT THAT MISSING CHANNEL IS AND IS NOT AN EXCUSE FOR (`104` R-77).** It
-    excuses the SCHEMA half -- "this level does not exist in the tree" cannot be
-    asked without a list of the tree's levels, and R-17's node profiles reach the
-    dossier as one free-text `location` string per candidate
-    (`placement/index.py`'s `node_profile`), which is prose and not an
-    enumeration, so the list still is not here. It never excused the GROUNDING
+    **WHAT THAT MISSING CHANNEL WAS AND WAS NOT AN EXCUSE FOR (`104` R-77).** It
+    excused the SCHEMA half -- "this level does not exist in the tree" cannot be
+    asked without a list of the tree's levels. It never excused the GROUNDING
     half, which asks only whether the file's own released text states the value
     and needs no list at all. Those two were tangled: the grounding loop reached
     for `_DIMENSION_REASON` to get a reason code and treated a miss as "not my
     business", so an unrecognised level name skipped the check that did not
-    depend on recognising it. Untangled above. The schema half stays owed and
-    stays outside this module: it wants `Dossier.folder_levels` filled at C
-    (`model_placement.py`:448 sets `()` for C and D alike) or a node-profile
-    field that names the levels, either of which is a change to what the dossier
-    carries and not a check this file may invent.
+    depend on recognising it. Untangled above, and that untangling is why this
+    function still asks its own question of every non-`context` level whatever
+    the schema check concludes about the level's name.
     """
     for item in _dimensions(payload):
         if item.get("support") == "context":

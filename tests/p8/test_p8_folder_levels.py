@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import sqlite3
 
 import pytest
 
@@ -47,6 +48,8 @@ from llm_harness.records import (
     PromptDefinition,
 )
 from llm_harness.released_content import DOSSIER_BODY_KEYS, released_content_digest
+from llm_harness.schema import create_llm_schema
+from llm_harness.store import load_dossier, record_dossier
 from llm_harness.vocabulary import (
     A_FACT,
     B_GROUP,
@@ -372,8 +375,17 @@ def test_two_files_offered_one_shortlist_carry_byte_identical_c_levels():
 def test_a_stored_c_dossier_rebuilds_with_its_levels_intact():
     """`store.load_dossier` compares the rebuilt record against the row key by key,
     so a rebuild that assumed the A shape would be `MalformedRecord` out of every
-    reuse decision R-127 makes about a C response."""
+    reuse decision R-127 makes about a C response. Through the real row and the
+    real rebuild, because that comparison is the thing being pinned."""
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    create_llm_schema(conn)
     dossier = _c_build()
-    rebuilt = dossier_from_stored_body(
-        dataclasses.asdict(dossier), release_id=dossier.release_id)
-    assert rebuilt.folder_levels == NODE_LEVELS
+    record_dossier(conn, dossier, observed_at="2026-09-11T00:00:00Z")
+    reloaded = load_dossier(conn, dossier.dossier_id,
+                            release_id=dossier.release_id)
+
+    assert reloaded.folder_levels == NODE_LEVELS
+    assert dossier_from_stored_body(
+        dataclasses.asdict(dossier),
+        release_id=dossier.release_id).folder_levels == NODE_LEVELS
