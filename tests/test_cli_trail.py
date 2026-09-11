@@ -418,7 +418,7 @@ def test_the_walk_is_one_function_the_review_surface_can_call(a_run):
     """
     conn = open_database(a_run["database"])
     try:
-        trail = file_trail(conn, a_run["asked"])
+        trail = file_trail(conn, a_run["asked"], width=cli.WRAP_WIDTH)
     finally:
         conn.close()
 

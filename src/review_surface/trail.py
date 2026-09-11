@@ -91,14 +91,32 @@ class Trail:
     found: bool
 
 
-def _wrapped(text: str, *, indent: str) -> str:
+def _wrapped(text: str, *, indent: str, width: int) -> str:
     """A sentence a person reads, wrapped where a person can read it.
 
     `break_on_hyphens=False` for `cli._wrapped`'s measured reason: `textwrap`
     splits on hyphens, so `--trail` printed as `--trail` broken in two is the
     product telling somebody to type something that is not typeable.
+
+    **`width` IS PASSED IN, AND `104` §18.35 IS WHY.** It was `width=78` here, and
+    78 is a number P13 has no authority to choose:
+    `tests/p13/test_p13_no_invention.py::
+    test_no_numeric_literal_beyond_zero_and_one_lives_in_the_package` is the
+    package's own standing rule -- "every number is injected, and absent means
+    refuse" -- and `presentation.py` states the same doctrine at its digest ("a
+    truncation would be a number this package has no authority to choose"). It
+    cannot be a constant anywhere in `src/review_surface/` either; that is the
+    same literal one file across.
+
+    It is also the wrong number to copy rather than share. This width exists to
+    MATCH `cli._wrapped`, which is why the paragraph above cites it, and
+    `tests/test_cli_trail.py` asserts the identity outright -- the lines this
+    returns must appear verbatim in what `--trail` prints. Two spellings of one
+    width is one edit away from that assertion being false for a reason nobody
+    can see. So the surface that owns the screen owns the number, and hands it
+    down: `cli.WRAP_WIDTH`, through `file_trail`.
     """
-    return textwrap.fill(text, width=78, initial_indent=indent,
+    return textwrap.fill(text, width=width, initial_indent=indent,
                          subsequent_indent=indent, break_on_hyphens=False,
                          break_long_words=False)
 
@@ -191,7 +209,8 @@ def _subject_refs(row: sqlite3.Row) -> tuple[str, str]:
     return file_id, f"{_FILE_SUBJECT_PREFIX}{file_id}:%"
 
 
-def _extracted(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
+def _extracted(conn: sqlite3.Connection, row: sqlite3.Row, *,
+               width: int) -> list[str]:
     """Which reader, how complete, how much coverage, how much text, what failed.
 
     `00`:259's completed-versus-deferred line, per file. `completeness` and
@@ -206,7 +225,7 @@ def _extracted(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
         return [_wrapped(
             "Nothing was extracted, because this plan database holds no "
             "extraction run for this file. Nothing was read out of it, so every "
-            "stage below that would have used its text had none.", indent="  ")]
+            "stage below that would have used its text had none.", indent="  ", width=width)]
     for run in runs:
         units = conn.execute(
             "SELECT count(*) AS units, sum(length) AS chars FROM text_units "
@@ -220,12 +239,12 @@ def _extracted(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
             f"{'observation' if run['observation_count'] == 1 else 'observations'}"
             f", {count} {'text unit' if count == 1 else 'text units'}, "
             f"{chars} characters. Started {run['started_at']}, "
-            f"finished {run['finished_at'] or 'never'}.", indent="  "))
+            f"finished {run['finished_at'] or 'never'}.", indent="  ", width=width))
         if run["failure_reason"]:
             lines.append(_wrapped(
                 f"It failed: {run['failure_reason']}. What the stages below had "
                 f"of this file is whatever this run got before it stopped.",
-                indent="    "))
+                indent="    ", width=width))
     # `files.extraction_status_by_tier` is where a DEFERRAL lives -- a tier this
     # run did not reach is not a tier that found nothing -- and it is a per-file
     # column rather than a per-run one, so it is stated once under the runs.
@@ -235,11 +254,12 @@ def _extracted(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
             "The tiers this run recorded for it: "
             + ", ".join(f"{tier} {status}"
                         for tier, status in sorted(by_tier.items()))
-            + ".", indent="  "))
+            + ".", indent="  ", width=width))
     return lines
 
 
-def _classified(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
+def _classified(conn: sqlite3.Connection, row: sqlite3.Row, *,
+                width: int) -> list[str]:
     """Every classification row in order, live or retired, and what retired it.
 
     §8.2's whole point, made readable: *"a user reviewing a placement should
@@ -255,7 +275,7 @@ def _classified(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
         return [_wrapped(
             "Nothing classified this file, because no classification row names "
             "it. No detector reached it and no handling class was decided, so "
-            "nothing here says whether it is protected.", indent="  ")]
+            "nothing here says whether it is protected.", indent="  ", width=width)]
     lines: list[str] = []
     for fact in rows:
         state = ("still stands" if fact["superseded_by"] is None
@@ -266,15 +286,16 @@ def _classified(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
             f"class {fact['privacy_class'] or 'not recorded'}, on the basis of "
             f"{fact['basis']}, reliability {fact['reliability_state']}, "
             f"recorded {fact['observed_at']} as {fact['fact_id']} -- {state}.",
-            indent="  "))
+            indent="  ", width=width))
         if fact["supersede_reason"]:
             lines.append(_wrapped(
                 f"It was retired because: {fact['supersede_reason']}. The row "
-                f"itself is kept and is the one above.", indent="    "))
+                f"itself is kept and is the one above.", indent="    ", width=width))
     return lines
 
 
-def _one_call(conn: sqlite3.Connection, dossier: sqlite3.Row) -> list[str]:
+def _one_call(conn: sqlite3.Connection, dossier: sqlite3.Row, *,
+              width: int) -> list[str]:
     """One dossier: what was released, what came back, what it cost, what broke.
 
     **Every attempt, not the last one.** `store.record_dossier`'s own words are
@@ -302,7 +323,7 @@ def _one_call(conn: sqlite3.Connection, dossier: sqlite3.Row) -> list[str]:
         f"{dossier['eligibility_reason']}, reduced to rung "
         f"{dossier['reduction_rung']}, under policy {dossier['policy_version']}, "
         f"built {dossier['observed_at']} as {dossier['dossier_id']}.",
-        indent="  ")]
+        indent="  ", width=width)]
     lines.append("    This is the dossier, exactly as it was released:")
     lines.extend(_verbatim(dossier["payload"], indent="      "))
     for answer in answers:
@@ -313,26 +334,27 @@ def _one_call(conn: sqlite3.Connection, dossier: sqlite3.Row) -> list[str]:
         lines.append(_wrapped(
             "Nothing came back and nothing recorded a failure: this plan "
             "database holds a dossier for this call and no answer to it.",
-            indent="    "))
+            indent="    ", width=width))
     for spend in usage:
         lines.append(_wrapped(
             f"It cost {spend['prompt_tokens']} prompt and "
             f"{spend['completion_tokens']} answer tokens by the provider's own "
             f"count, against the {spend['reserved_cost']} the budget had put "
-            f"aside for it.", indent="    "))
+            f"aside for it.", indent="    ", width=width))
     for failure in failures:
         lines.append(_wrapped(
             f"It failed: {failure['failure_class']}: {failure['explanation']}. "
-            f"The release it spent was {failure['release_id']}.", indent="    "))
+            f"The release it spent was {failure['release_id']}.", indent="    ", width=width))
     for refusal in refusals:
         lines.append(_wrapped(
             "The privacy gate refused to release this dossier, so nothing was "
-            "sent. What it refused:", indent="    "))
+            "sent. What it refused:", indent="    ", width=width))
         lines.extend(_verbatim(refusal["payload"], indent="      "))
     return lines
 
 
-def _asked(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
+def _asked(conn: sqlite3.Connection, row: sqlite3.Row, *,
+           width: int) -> list[str]:
     """Every model call about this file, in the order the run made them.
 
     **Four sources, one order.** A dossier that was built, a question that was
@@ -356,7 +378,7 @@ def _asked(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
                   "subject_ref LIKE ? ORDER BY observed_at, dossier_id",
             bare, prefixed):
         entries.append((dossier["observed_at"], dossier["dossier_id"],
-                        _one_call(conn, dossier)))
+                        _one_call(conn, dossier, width=width)))
     for held in _rows(
             conn, "SELECT * FROM llm_pre_call_abstention WHERE subject_ref = ? "
                   "OR subject_ref LIKE ? ORDER BY observed_at, abstention_id",
@@ -364,7 +386,7 @@ def _asked(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
         entries.append((held["observed_at"], held["abstention_id"], [_wrapped(
             f"{held['call_site']} was not asked at all, because "
             f"{held['reason']}. Nothing was assembled and nothing was sent.",
-            indent="  ")]))
+            indent="  ", width=width)]))
     for reused in _rows(
             conn, "SELECT * FROM llm_call_reuse WHERE subject_ref = ? OR "
                   "subject_ref LIKE ? ORDER BY observed_at, reuse_id",
@@ -373,7 +395,7 @@ def _asked(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
             f"{reused['call_site']} was not asked again: the answer at dossier "
             f"{reused['prior_dossier_id']} already covered "
             f"{reused['reused_fields']}, under the same identity "
-            f"{reused['identity_id']}.", indent="  ")]))
+            f"{reused['identity_id']}.", indent="  ", width=width)]))
     for event in _rows(
             conn, "SELECT * FROM events WHERE event_type = ? "
                   "ORDER BY observed_at, event_id", _CALL_REFUSED):
@@ -387,21 +409,27 @@ def _asked(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
         entries.append((event["observed_at"], str(event["event_id"]), [_wrapped(
             f"{body.get('call_site')} was refused before anything was sent: "
             f"{body['refusal_class']}. No dossier was recorded for it, so there "
-            f"is nothing below to read.", indent="  ")]))
+            f"is nothing below to read.", indent="  ", width=width)]))
     if not entries:
         return [_wrapped(
             "No model was asked about this file. This plan database holds no "
             "dossier, no abstention, no refusal and no reuse that names it, and "
             "so it records no reason either -- a run that had no route to a "
             "model and a run that never reached this file leave exactly this.",
-            indent="  ")]
+            indent="  ", width=width)]
     lines: list[str] = []
-    for _at, _id, block in sorted(entries, key=lambda entry: entry[:2]):
+    # `(entry[0], entry[1])` rather than `entry[:2]`: the same two-element
+    # key, spelled without the literal `2` `104` §18.35 removed from this
+    # module. The pair is `(observed_at, id)` and naming both halves says
+    # which two, where a slice width said how many.
+    for _at, _id, block in sorted(
+            entries, key=lambda entry: (entry[0], entry[1])):
         lines.extend(block)
     return lines
 
 
-def _judged(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
+def _judged(conn: sqlite3.Connection, row: sqlite3.Row, *,
+            width: int) -> list[str]:
     """Every verdict on this file's answers, with its reasons and review flag.
 
     The reasons are the validator's closed reason codes and are the answer to
@@ -421,7 +449,7 @@ def _judged(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
         return [_wrapped(
             "Nothing judged this file, because no model answer about it reached "
             "the validator. No claim about it was accepted or refused on a "
-            "model's word.", indent="  ")]
+            "model's word.", indent="  ", width=width)]
     lines: list[str] = []
     for verdict in rows:
         body = _payload(verdict["payload"])
@@ -432,24 +460,25 @@ def _judged(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
             f"{verdict['claim_ref']}: {verdict['outcome']}, "
             f"{verdict['disposition']}, by validator "
             f"{verdict['validator_version']} on dossier "
-            f"{verdict['dossier_id']} -- {state}.", indent="  "))
+            f"{verdict['dossier_id']} -- {state}.", indent="  ", width=width))
         lines.append(_wrapped(
             ("Its reasons: " + ", ".join(str(reason) for reason in reasons) + "."
              if reasons else
              "It gave no reason code, which is what an accepted claim looks "
-             "like: there was nothing to refuse."), indent="    "))
+             "like: there was nothing to refuse."), indent="    ", width=width))
         if body.get("requires_review"):
             lines.append(_wrapped(
                 "It asks for a person to look at it before anything acts on it.",
-                indent="    "))
+                indent="    ", width=width))
         if verdict["supersede_reason"]:
             lines.append(_wrapped(
                 f"It was retired because: {verdict['supersede_reason']}.",
-                indent="    "))
+                indent="    ", width=width))
     return lines
 
 
-def _placed(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
+def _placed(conn: sqlite3.Connection, row: sqlite3.Row, *,
+            width: int) -> list[str]:
     """Where the file was sent, and which stage decided it.
 
     `origin_stage` is the "who decided" half and is why this stage is not just a
@@ -465,7 +494,7 @@ def _placed(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
         return [_wrapped(
             "Nothing was placed, because no placement decision names this file. "
             "This run proposed no destination for it, so no plan moves it and "
-            "no branch carries it.", indent="  ")]
+            "no branch carries it.", indent="  ", width=width)]
     lines: list[str] = []
     for decision in rows:
         state = ("still stands" if decision["superseded_by"] is None
@@ -474,28 +503,29 @@ def _placed(conn: sqlite3.Connection, row: sqlite3.Row) -> list[str]:
             f"{decision['outcome']} at node {decision['node_id'] or 'none'}, "
             f"decided by {decision['origin_stage']} in plan version "
             f"{decision['plan_version']}, {decision['created_at']} -- {state}.",
-            indent="  "))
+            indent="  ", width=width))
         if decision["group_plan_id"]:
             lines.append(_wrapped(
                 f"It went where its group went: group plan "
                 f"{decision['group_plan_id']} was judged as a whole and this "
-                f"file followed it.", indent="    "))
+                f"file followed it.", indent="    ", width=width))
         if decision["returned_from"]:
             lines.append(_wrapped(
                 f"It was returned from {decision['returned_from']} before it "
-                f"reached here.", indent="    "))
+                f"reached here.", indent="    ", width=width))
         if decision["review_policy"]:
             lines.append(_wrapped(
                 f"Before anything moves it, it needs "
-                f"{decision['review_policy']}.", indent="    "))
+                f"{decision['review_policy']}.", indent="    ", width=width))
         if decision["supersede_reason"]:
             lines.append(_wrapped(
                 f"It was retired because: {decision['supersede_reason']}.",
-                indent="    "))
+                indent="    ", width=width))
     return lines
 
 
-def file_trail(conn: sqlite3.Connection, wanted: str) -> Trail:
+def file_trail(conn: sqlite3.Connection, wanted: str, *,
+               width: int) -> Trail:
     """The five stages of one file, as lines, from this database alone.
 
     The one entry point. `--trail` prints what this returns and any other surface
@@ -517,33 +547,33 @@ def file_trail(conn: sqlite3.Connection, wanted: str) -> Trail:
                      f"is read from what a run recorded, so a file this "
                      f"database never saw has none -- pass the path, the "
                      f"filename or the file id exactly as the report printed "
-                     f"it.", indent=""),))
+                     f"it.", indent="", width=width),))
     if len(found) > 1:
         lines = [_wrapped(
             f"{wanted!r} names {len(found)} files in this plan database, and "
             f"which of them you meant is not something to guess at. Pass one of "
-            f"these file ids to --trail:", indent="")]
+            f"these file ids to --trail:", indent="", width=width)]
         lines.extend(f"  {row['file_id']}   {row['current_path']}"
                      for row in found)
         return Trail(found=False, lines=tuple(lines))
     row = found[0]
     lines = [
-        _wrapped(f"The trail of {row['filename']}", indent=""),
-        _wrapped(f"{row['current_path']}", indent="  "),
+        _wrapped(f"The trail of {row['filename']}", indent="", width=width),
+        _wrapped(f"{row['current_path']}", indent="  ", width=width),
         _wrapped(f"file id {row['file_id']}, {row['hash_algorithm']} "
                  f"{row['content_hash']}, {row['observed_size']} bytes, "
                  f"extension {row['extension'] or 'none'}, format declared "
                  f"{row['mime_type'] or 'none'} and detected "
                  f"{row['detected_format'] or 'none'}, scan {row['scan_state']}, "
                  f"sensitivity {row['sensitivity_state'] or 'not recorded'}.",
-                 indent="  "),
+                 indent="  ", width=width),
         _wrapped("Nothing below was read from your disk and no model was asked "
                  "anything to print it: every line is a row this run already "
-                 "wrote.", indent="  "),
+                 "wrote.", indent="  ", width=width),
     ]
     for stage, walk in ((EXTRACTED, _extracted), (CLASSIFIED, _classified),
                         (ASKED, _asked), (JUDGED, _judged), (PLACED, _placed)):
         lines.append("")
         lines.append(stage)
-        lines.extend(walk(conn, row))
+        lines.extend(walk(conn, row, width=width))
     return Trail(found=True, lines=tuple(lines))

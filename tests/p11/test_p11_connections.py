@@ -531,12 +531,30 @@ def test_the_scoped_general_role_is_described_to_the_model_and_offered_to_it():
     "model decides, rules validate" and the reason it arrives as a `SetAside`
     rather than as a contender -- a General scored as a rival would win every tie
     on an offline run and file the corpus into catch-alls.
+
+    **`versions.py` IS THE THIRD READER, PUT THERE BY `104` §18.34 (e6e92ff), AND
+    IT IS STILL NOT A RULE EITHER.** The on-demand General: a scoped General is
+    minted only where a decision already made asks for one, so some module has to
+    READ the role to know whether the demand is already answered. Both of
+    `versions.py`'s reads are that reading and neither places anything.
+    `scoped_general_demand` collects the parents that already carry a General
+    (`already`, ~289) so a second one is never minted, and skips a destination
+    that IS a General (~305) because a General under a General is the global
+    catch-all `00`:99 refuses, one level down. The function's own recorded
+    sentence is the test of this: "Minting a second one -- or moving the file into
+    the first -- would be this function overruling the judgement it asked for."
+
+    So the set grows by a named module carrying the ruling that put it there,
+    exactly as it did for `index.py` (R-17) and `pipeline.py` (§18.2 gap 11). What
+    still fails here -- and is the whole reason this pin is an equality rather
+    than a subset -- is a module that reads the role to CHOOSE a destination
+    rather than to count one that already exists.
     """
     readers = {name for name, tree in _modules().items()
                if name != "vocabulary.py"
                and "SCOPED_GENERAL" in {node.id for node in ast.walk(tree)
                                         if isinstance(node, ast.Name)}}
-    assert readers == {"index.py", "pipeline.py"}
+    assert readers == {"index.py", "pipeline.py", "versions.py"}
 
 
 def test_one_producer_fills_decision_depths_unsupported_levels():

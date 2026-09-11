@@ -14870,6 +14870,16 @@ def file_names(conn: sqlite3.Connection, *roots: Path) -> dict[str, str]:
     return names
 
 
+#: The width this product wraps prose at, and the ONE spelling of it. `104`
+#: §18.35: `review_surface/trail.py` wrapped at its own `78` until P13's
+#: no-invented-number pin caught it, and P13 may choose no number of its own --
+#: so `_print_trail` hands this down to `file_trail` rather than the trail
+#: keeping a second copy. `tests/test_cli_trail.py` asserts the trail's lines
+#: appear verbatim in what `--trail` prints, which is an assertion two spellings
+#: of one width would break for a reason nobody could see.
+WRAP_WIDTH: int = 78
+
+
 def _wrapped(text: str, *, indent: str, first: str | None = None) -> str:
     """`first` differs from `indent` only for a bullet, whose marker belongs on
     the first line and whose continuation lines must line up past it.
@@ -14889,7 +14899,7 @@ def _wrapped(text: str, *, indent: str, first: str | None = None) -> str:
     identifier -- which is the same hazard the send-set line and the database path
     already dodge by printing on their own line.
     """
-    return textwrap.fill(text, width=78,
+    return textwrap.fill(text, width=WRAP_WIDTH,
                          initial_indent=indent if first is None else first,
                          subsequent_indent=indent,
                          break_on_hyphens=False, break_long_words=False)
@@ -16583,7 +16593,7 @@ def _print_trail(args, *, out) -> int:
     print(f"Plan database: {database}", file=out)
     try:
         _bootstrap(conn)
-        trail = file_trail(conn, args.trail)
+        trail = file_trail(conn, args.trail, width=WRAP_WIDTH)
     finally:
         conn.close()
     print("", file=out)

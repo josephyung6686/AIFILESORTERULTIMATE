@@ -189,7 +189,19 @@ def test_the_guard_rejects_a_sabotage_module_that_calls_os_rename():
 
 
 def test_the_package_is_the_modules_this_wave_has_built():
-    """A new module is a deliberate act, so it updates this list on the way in."""
+    """A new module is a deliberate act, so it updates this list on the way in.
+
+    **`trail` ENTERED BY `104` §18.33's GAP 25 MERGE, AND IT IS REACHED.** The
+    owner's words are at the module: "the person can open any file's trail --
+    extracted -> sent -> answered -> judged -> classified -> placed -- from the
+    product itself; `00`'s 'a person can see why' has no surface today." It is not
+    a module sitting in the package unwired: `src/cli.py` imports `file_trail` at
+    its top and `cli._print_trail` calls it under `--trail`, so the route from
+    `cli.main` to it is a flag a person types. That reachability is why this list
+    widens rather than the entry being waved through -- a P13 module the CLI
+    cannot reach would be exactly the "deliberate act" this pin exists to make
+    somebody argue for.
+    """
     assert set(MODULE_NAMES) == {
         "activity", "apply_seam", "approvals", "bulk", "citations",
         "collect", "consent_surface",
@@ -198,6 +210,7 @@ def test_the_package_is_the_modules_this_wave_has_built():
         "presentation", "progress", "records", "redaction_boundary",
         "replay",
         "rejections", "residual", "routing", "schema", "states", "store",
+        "trail",
         "versions_view", "vocabulary",
     }
 

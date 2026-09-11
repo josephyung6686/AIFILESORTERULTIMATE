@@ -198,30 +198,56 @@ def test_the_real_transport_invokes_its_sink_exactly_once():
 
 
 def test_a_second_call_to_the_sink_is_caught():
+    """**RE-ARGUED 10 Sep 2026 BY `104` §18.15: THE SABOTAGE MOVED, THE RULE DID NOT.**
+
+    The sabotage anchored on `        raw = model_client.invoke(payload.
+    model_visible_bytes)` -- the socket as a LINE inside `issue`. §18.15 made the
+    round trip a SUSPENSION POINT so the cloud lane can run several calls at once:
+    the socket is now `_PendingSend.perform`, which holds the bytes and no
+    database, and `_issue_steps` yields one of those where it used to call. The
+    anchor stopped matching, `_sabotaged` caught it on `edited != source`, and this
+    test was failing on its own scaffolding rather than on the property.
+
+    The property is unchanged and so is what this drives: a SECOND call to the
+    sink, handing over the unreleased `canonical_dossier_bytes`, in the one
+    function that still has a `payload` and a `model_client` in scope. That is the
+    same leak at the same depth -- `assert_single_egress` reads signatures and
+    sees none of it -- and `assert_single_call_site` counts calls across the whole
+    module source, so it catches it wherever in the module it is written.
+    """
     from privacy.transport_guard import MultipleEgressPoints, assert_single_call_site
 
     def add_a_second_call(source: str) -> str:
         return source.replace(
-            "        raw = model_client.invoke(payload.model_visible_bytes)",
-            "        model_client.invoke(payload.canonical_dossier_bytes)\n"
-            "        raw = model_client.invoke(payload.model_visible_bytes)")
+            "    sent = yield _PendingSend(",
+            "    model_client.invoke(payload.canonical_dossier_bytes)\n"
+            "    sent = yield _PendingSend(")
 
     with pytest.raises(MultipleEgressPoints, match="invoke"):
         assert_single_call_site(_sabotaged(add_a_second_call))
 
 
 def test_the_sink_is_found_by_its_annotation_and_not_by_its_name():
-    """`invoke` is not hardcoded. Rename the field and the guard follows it."""
+    """`invoke` is not hardcoded. Rename the field and the guard follows it.
+
+    Re-argued with the test above by `104` §18.15, and for its reason alone: the
+    doubling anchor is the `yield` in `_issue_steps` rather than a socket line
+    inside `issue`. The rename half is untouched and still reaches the socket --
+    `model_client.invoke(` matches `self.model_client.invoke(` in
+    `_PendingSend.perform`.
+    """
     from privacy.transport_guard import MultipleEgressPoints, assert_single_call_site
 
     def rename_and_double(source: str) -> str:
         renamed = source.replace("invoke: Callable[[bytes], bytes]",
                                  "dispatch: Callable[[bytes], bytes]")
+        # Reaches `self.model_client.invoke(` in `_PendingSend.perform` too, which
+        # is where `104` §18.15 put the socket.
         renamed = renamed.replace("model_client.invoke(", "model_client.dispatch(")
         return renamed.replace(
-            "        raw = model_client.dispatch(payload.model_visible_bytes)",
-            "        model_client.dispatch(payload.canonical_dossier_bytes)\n"
-            "        raw = model_client.dispatch(payload.model_visible_bytes)")
+            "    sent = yield _PendingSend(",
+            "    model_client.dispatch(payload.canonical_dossier_bytes)\n"
+            "    sent = yield _PendingSend(")
 
     with pytest.raises(MultipleEgressPoints, match="dispatch"):
         assert_single_call_site(_sabotaged(rename_and_double))

@@ -13,7 +13,7 @@ sits beside it, which is this repo's own convention (`13-`, `18-`, `19-`, `26-`,
 the design says must talk, does data actually cross on a run of `cli.main`?
 
 **Status: 57 ordered pairs measured, 31 of them design-named and triaged here with a
-verdict — 18 connected, 7 dark on an owner decision, 1 dark and a gap, 5 carried;
+verdict — 19 connected, 6 dark on an owner decision, 1 dark and a gap, 5 carried;
 the remaining edges are the ones every part has to P1 and to the composition
 root, which are triaged as one row each rather than 26. P12↔P13 and P13↔P9/P10 are
 carried untriaged on purpose — two peers are mid-flight in them (§7).**
@@ -163,7 +163,7 @@ SEAM.
 
 ---
 
-## 4. Connected — 18 seams, asserted
+## 4. Connected — 19 seams, asserted
 
 | Seam | Evidence (calls, union over every gesture) | Why the design requires it |
 |---|---|---|
@@ -184,6 +184,7 @@ SEAM.
 | P11 → P9 | 12; `acceptance.group_state_as_of`, `store.memberships_for_group` | `P11 SPEC` §6.8 |
 | P11 → P6 | 12; `read_surface.is_destination_eligible` | `P11 SPEC` |
 | P11 → P7 | 60; `denial.mode_forbids`, `denial.unclassified_denies`, `policy.current_policy` | `38` §11.5 |
+| P11 → P8 | 10; `harness.in_walk_order`, a P8 record's `__post_init__` | `38` §6 through `104` §18.28-31 — see §5.4 |
 | RECOGNITION → P7 | 6; `ClassificationRecord` construction | `02` D2 |
 
 **P6 → P9 was the seam the brief said to suspect, and it is live.** `proposal_eligible`
@@ -199,7 +200,7 @@ something a bug. Not a defect.
 
 ---
 
-## 5. Dark, and the reason is an owner decision — 7 ordered pairs, 4 causes
+## 5. Dark, and the reason is an owner decision — 6 ordered pairs, 3 causes
 
 ### 5.1 P7 → P8, and P8 → P7. **The most important seam in the product.**
 
@@ -243,11 +244,39 @@ rulings behind it (`59` §3c, `66` §4).
 `grouping/pipeline.py:612` is explicit that `p8_run_call=None` is a legal deterministic
 run. Correctly dormant while 5.1 holds.
 
-### 5.4 P11 → P8 — Site C placement validation
+### 5.4 P11 → P8 — Site C placement validation. **NO LONGER DARK, 10 Sep 2026.**
 
-`placement/pipeline.py:505` asks `model_path_available()` BEFORE assembling a dossier,
-which is the property `38` §6 wanted. With the injections `None`, a file that needs a
-judgement abstains with a reason. Correct behaviour of an unwired seam, not a failure.
+**The entry as it was measured on 2026-09-02, kept because the reason it gave is what
+changed.** "`placement/pipeline.py:505` asks `model_path_available()` BEFORE assembling
+a dossier, which is the property `38` §6 wanted. With the injections `None`, a file that
+needs a judgement abstains with a reason. Correct behaviour of an unwired seam, not a
+failure."
+
+**What moved it.** The dark reason was 5.1's — site C needs the same transport, and the
+transport is unwired. That is still true of the SOCKET and has stopped being true of the
+CALL. `104` §18.28-30 made P8's round trip a walk a caller drives — `harness.
+in_walk_order`, one suspension point per send, so a lane of cloud calls can be in the
+air while the local ones settle — and §18.31's gap 14 routed site C through it: the
+group's own question first, then every member through the same lane with the group's
+answer attached, spending from the group's own ledger (`GROUP_BUDGET_SUFFIX`, §8.6's
+argument) after the packet's one question was measured emptying the per-file purse of
+the factless file site C exists for.
+
+So P11 no longer hands P8 a request and waits on a door that is shut; it drives P8's own
+walk, and the abstention a `None` injection produces is composed on P8's side. The
+traced run records 10 calls across the seam — `in_walk_order` and a P8 record's
+`__post_init__` — with `gate=None`, `model_client=None` and no socket opened anywhere in
+the run.
+
+**It is asserted live, not left dark with a footnote,** and the sentence that decides
+that is §3's: "Data crosses on a real run." A seam is live when traffic crosses it,
+whatever the traffic concludes. `tests/integration/test_seam_census.py` carries it in
+`LIVE_SEAMS` with that reason, so the day it stops carrying traffic the test goes red
+here rather than this page going quietly stale.
+
+**5.1, 5.2 and 5.3 are untouched by this.** P7 → P8 and P8 → P7 are still dark and still
+the most important seam in the product: no release is spent, no model-visible byte
+leaves, and the door §8.4 guards has still never been opened on a person's run.
 
 ---
 

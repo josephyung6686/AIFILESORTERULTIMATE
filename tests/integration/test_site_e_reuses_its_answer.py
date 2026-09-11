@@ -215,7 +215,7 @@ def test_the_trail_of_a_reused_file_says_it_was_not_asked_again(twice):
                     cli.E_TEMPLATE)[0]["subject_ref"]
     conn = sqlite3.connect(f"file:{twice.database}?mode=ro", uri=True)
     try:
-        trail = file_trail(conn, subject)
+        trail = file_trail(conn, subject, width=cli.WRAP_WIDTH)
     finally:
         conn.close()
     printed = " ".join("\n".join(trail.lines).split())
