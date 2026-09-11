@@ -65,7 +65,10 @@ under the default branch, nothing is held, and the run is the run it was; that i
 ruling (4) and `tests/integration/test_r37_single_branch_is_byte_identical.py`
 pins it against a fixture captured before this module existed.
 
-**A branch's situation.** The default branch's is the one the person typed. Any
+**A branch's situation.** The default branch's is the one the person typed --
+and when they typed none (the owner's ruling of 11 Sep 2026; `--situation` is
+optional) it is settled by exactly the rule below, because a branch the corpus
+named is no more the person's answer than a branch its anchors opened. Any
 other branch's is the person's own answer to the per-branch question
 `questions.triggers.question_for_situation` -- the trigger R-37 says was
 registered and never fired, read back through `questions.store.selected_situation`
@@ -204,7 +207,7 @@ def partition_by_branch(
         *,
         roster: Sequence[tuple[str, str]],
         default_label: str,
-        default_situation: str,
+        default_situation: str | None,
         default_schema: str,
         anchor_facts_of: Callable[[str, str], Sequence[tuple[str, str]]],
         owner_of_term: Mapping[str, str],
@@ -221,7 +224,43 @@ def partition_by_branch(
     DOMAIN_FIELDS`; `verdict_of` is the term detector's `explain`; `situations_of`
     lists the shipped situations of a schema; `chosen_situation(scope)` is
     `questions.store.selected_situation` bound to the run's database.
+
+    **`default_situation` IS `None` WHEN THE PERSON TYPED NO `--situation`**, on
+    the owner's ruling of 11 Sep 2026 (`00` Amendments of 2026-09-11 item 2). The
+    default branch is then settled by exactly the rule every other branch already
+    has -- the person's own answer at this branch's scope, or the library's single
+    situation for the schema, or UNSETTLED with its candidates carried for the
+    question -- because with nothing typed there is no reason for the branch the
+    corpus named to be treated differently from the branches its anchors opened.
     """
+    def _situation_for(schema_id: str,
+                       branch_label: str) -> tuple[str | None, tuple[str, ...]]:
+        """This branch's situation, and the candidates when it has none.
+
+        The one place the rule is spelled, read by the default branch and by every
+        other. `104` §11.2 step 4's ruling stands in the third arm: the person, or
+        a model from valid options, decides -- never a rule picking the first of
+        twenty-six.
+
+        THE SCOPE IS THE BRANCH'S LABEL and not its schema, because the label is
+        what `questions.triggers.question_for_situation` puts the question under
+        (`branch:<branch_label>`) and an answer looked for anywhere else is an
+        answer the person gave and the run never found. They are the same string
+        for every branch but a default one the person named with `--label`.
+        """
+        candidates = tuple(dict.fromkeys(situations_of(schema_id)))
+        chosen = chosen_situation(f"{SCOPE_BRANCH}:{branch_label}")
+        if chosen is not None and chosen in candidates:
+            return chosen, ()
+        if len(candidates) == 1:
+            return candidates[0], ()
+        return None, candidates
+
+    def _default() -> tuple[str | None, tuple[str, ...]]:
+        if default_situation is not None:
+            return default_situation, ()
+        return _situation_for(default_schema, default_label)
+
     facts: dict[str, tuple[tuple[str, str], ...]] = {}
     anchors_of: dict[str, list[str]] = {}
     anchored_to: dict[str, str] = {}
@@ -237,11 +276,13 @@ def partition_by_branch(
     schemas = [default_schema] + sorted(
         schema_id for schema_id in anchors_of if schema_id != default_schema)
     if len(schemas) == 1:
+        situation, candidates = _default()
         return BranchPartition(branches=(Branch(
             label=default_label, schema=default_schema,
-            situation=default_situation, is_default=True,
+            situation=situation, is_default=True,
             anchor_file_ids=tuple(anchors_of.get(default_schema, ())),
-            file_ids=tuple(file_id for file_id, _hash in roster)),), held=())
+            file_ids=tuple(file_id for file_id, _hash in roster),
+            candidate_situations=candidates),), held=())
 
     # The fields that carry a file into each branch: the schema's own, less the
     # two bridges.
@@ -270,24 +311,19 @@ def partition_by_branch(
     branches: list[Branch] = []
     for schema_id in schemas:
         if schema_id == default_schema:
+            situation, candidates = _default()
             branches.append(Branch(
                 label=default_label, schema=schema_id,
-                situation=default_situation, is_default=True,
+                situation=situation, is_default=True,
                 anchor_file_ids=tuple(anchors_of.get(schema_id, ())),
-                file_ids=tuple(under[schema_id])))
+                file_ids=tuple(under[schema_id]),
+                candidate_situations=candidates))
             continue
-        candidates = tuple(dict.fromkeys(situations_of(schema_id)))
-        chosen = chosen_situation(f"{SCOPE_BRANCH}:{schema_id}")
-        if chosen is not None and chosen in candidates:
-            situation: str | None = chosen
-        elif len(candidates) == 1:
-            situation = candidates[0]
-        else:
-            situation = None
+        situation, candidates = _situation_for(schema_id, schema_id)
         branches.append(Branch(
             label=schema_id, schema=schema_id, situation=situation,
             is_default=False,
             anchor_file_ids=tuple(anchors_of.get(schema_id, ())),
             file_ids=tuple(under[schema_id]),
-            candidate_situations=candidates if situation is None else ()))
+            candidate_situations=candidates))
     return BranchPartition(branches=tuple(branches), held=tuple(held))

@@ -79,16 +79,32 @@ def test_listing_the_situations_needs_nothing_else():
         "a situation was printed with no indication of what it files")
 
 
-def test_a_real_run_still_refuses_to_guess_the_situation():
-    """The negative twin. Making the discovery flag reachable must not make the
-    two required answers optional on a run that actually designs a tree -- that
-    is the whole reason they are required."""
+def test_the_folder_is_the_only_answer_a_run_still_demands():
+    """RE-ARGUED, and the owner remade the choice (11 Sep 2026).
+
+    This test's previous body pinned the opposite on purpose: `--situation` and
+    `--label` were both required of a run that designs a tree, and it asserted
+    argparse's `SystemExit` for a command missing either. `00` Amendments of
+    2026-09-11 item 2 -- with R-23, R-88 and `66`:461 -- rules that a situation
+    is not demanded of a person before a file is opened: the flag is optional and
+    each branch's situation comes from the evidence. So the question this test
+    asks is now the other one: what does a run still refuse to guess?
+
+    The FOLDER, and nothing else. Neither of the two optional flags makes argparse
+    exit any more; a folder nobody named is still a run with nothing to read, and
+    a folder that is not there is refused by the same sentence it always was --
+    before anything is opened, because it is a fact about the argument.
+    """
     for argv in (["somewhere"],
                  ["somewhere", "--situation", "academic.coursework"],
                  ["somewhere", "--label", "Coursework"]):
-        with pytest.raises(SystemExit) as exited:
-            cli.main(argv, out=io.StringIO())
-        assert exited.value.code == 2, argv
+        out = io.StringIO()
+        assert cli.main(argv, out=out) == 2, (argv, out.getvalue())
+        assert "is not a folder" in out.getvalue(), (argv, out.getvalue())
+    with pytest.raises(SystemExit) as exited:
+        cli.main(["--situation", "academic.coursework"], out=io.StringIO())
+    assert exited.value.code == 2
+
 
 
 def test_a_file_the_detector_declines_is_not_written_up_as_a_passport():

@@ -11951,7 +11951,145 @@ def mint_generals_on_demand(conn: sqlite3.Connection, finished, *,
                 observed_at=observed_at)))
 
 
-def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str,
+def _the_one_with_the_most(votes: Mapping[str, int]) -> str | None:
+    """The unique leader of a vote, or `None` because two tied or nobody voted.
+
+    `_grouped_by_branch`'s rule, in its own words one site over: a group with two
+    branches tied for its members is the default's, and nothing here breaks a tie
+    either. A rule that broke one would be this file choosing which life somebody's
+    folder belongs to on a count of one.
+    """
+    if not votes:
+        return None
+    most = max(votes.values())
+    leaders = [name for name, count in votes.items() if count == most]
+    return leaders[0] if len(leaders) == 1 else None
+
+
+def _what_these_folders_are(partition: BranchPartition) -> str:
+    """The refusal of a run that read the folder and cannot name what it is.
+
+    `66` §14 is the shape: the first run asks nothing, and when the engine meets an
+    ambiguity that prevents a useful template it asks a narrow, evidence-linked
+    question naming the visible context and the precise consequence. So this names
+    each folder the run proposes, how many files are under it, and the exact line
+    that answers it -- and it is raised only AFTER the questions are recorded,
+    because `apply_answers` refuses an answer to a question no run has asked.
+
+    The situations are the library's own names, verbatim, for
+    `question_for_situation`'s reason: `--list-situations` prints these exact
+    strings, so they are what the person has already been shown.
+    """
+    lines = ["the folder was read, and these are the folders its own files ask "
+             "for -- but not which situation each of them is. Answer one and run "
+             "the same command again, or pass --situation to answer for the "
+             "whole folder at once:"]
+    for branch in partition.branches:
+        if branch.settled or not branch.file_ids:
+            continue
+        files = "file" if len(branch.file_ids) == 1 else "files"
+        lines.append(
+            f"\n  {branch.label}: {len(branch.file_ids)} {files}, and the "
+            f"library carries {len(branch.candidate_situations)} situations "
+            f"that fit them equally:")
+        lines.extend(f"    --answer situation:{branch.label}={name}"
+                     for name in branch.candidate_situations)
+    return "\n".join(lines)
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class _RunSituation:
+    """Everything one situation decides about a run, derived once from the library.
+
+    These eight were eight locals at the top of `run`, computed from `--situation`
+    before a file was opened. The owner's ruling of 11 Sep 2026 makes the flag
+    optional, so they can no longer all be known then -- the run has to read the
+    folder first. Gathered into one record because they are one answer: a run whose
+    schema came from one situation and whose folder levels came from another would
+    be two answers to "what is this folder", and the second would be read by the
+    privacy gate.
+    """
+
+    #: The library's own name for the situation, e.g. `academic.coursework`.
+    situation: str
+    #: What the top-level folder is called. The person's `--label` where they typed
+    #: one; otherwise the schema id, which is what every OTHER branch this run
+    #: proposes is already called (`branch_situation.Branch.label`).
+    label: str
+    #: One of `facts.domains.SCHEMA_IDS`, asked of the library's applicability row
+    #: rather than split off the dotted name: they agree for 201 of 208 situations
+    #: and disagree for seven, and `uses_schema` has carried the true answer all
+    #: along.
+    schema: str
+    #: `recognition:<situation>`, P10's detection signal for the default branch.
+    signal: str
+    #: The folders this situation would build, from the same applicability row.
+    folder_levels: tuple
+    #: `104` §11.2 STEP 2. The levels whose value the GROUP carries: withheld from
+    #: site A, and read off the accepted group by P10 instead. From the same row as
+    #: the levels themselves, so a release that binds a role differently moves both
+    #: halves at once and neither can be true of the other's data.
+    group_level_fields: object
+    #: WHAT SITE A IS ASKED, which is not every level. `model_facts.
+    #: pending_fields_for` offers `pending & {level.field}` and that set becomes the
+    #: dossier's `allowed_vocabulary`, so a level withheld here is a question not
+    #: asked -- `00`:57's rule that the course's school and term belong to the
+    #: syllabus anchor and reach a sparse file through its GROUP. Asked per file,
+    #: `school` was answered by twenty files with the school each of them happened
+    #: to mention, and five essays from a university course were filed under a high
+    #: school (`104` §11.1).
+    file_level_fields: tuple
+    #: WHAT AN ANCHOR IS ASKED AND NO OTHER FILE IS (`105` §14.4, `104` R-131 with
+    #: R-102). Step 2's withdrawal is right about every file except the one that can
+    #: answer: the syllabus, the enrollment or registration record and the
+    #: transcript state the institution the course belongs to, and withholding the
+    #: question from them too is what left R-102 -- nothing writes a `school` fact
+    #: any more, so the coursework tree has no school level on any corpus.
+    #:
+    #: `school` alone. The other group-level role -- coursework's `cycle_period` --
+    #: stays withheld from every file: R-101 puts the term on B's per-course
+    #: acceptances, and nothing here changes B.
+    anchor_level_fields: tuple
+
+
+def _the_situation_of_a_run(catalogue: TemplateCatalogue, situation: str,
+                            label: str | None) -> _RunSituation:
+    """One situation, read into the eight things a run makes of it.
+
+    Read HERE and not inside the fact pass so a release that has lost its levels
+    refuses before anything is scanned, and so this file -- the one place a policy
+    may be chosen -- is visibly the one that decides what the model is asked.
+
+    `label` is `None` when the person typed none, and the answer is then the schema
+    id: it is the library's own word, it is what `partition_by_branch` already
+    calls every branch it opens, and it is the name the person will see printed
+    beside the files that go there. Nothing is invented -- a name this file made up
+    would be a folder the person never chose and could not search for.
+    """
+    # FIRST, and the order is the refusal's. `_validate_situation` is the one that
+    # offers "Did you mean:" over the 208 names; `schema_for_situation` refuses a
+    # name it cannot find too, in the release's own vocabulary and with no
+    # suggestion, so asking it first would answer a typo with the harder sentence.
+    signal = _validate_situation(catalogue, situation)
+    schema = schema_for_situation(catalogue, situation)
+    folder_levels = folder_levels_for(catalogue, situation)
+    group_level_fields = group_level_fields_for(catalogue, situation)
+    return _RunSituation(
+        situation=situation,
+        label=schema if label is None else label,
+        schema=schema,
+        signal=signal,
+        folder_levels=folder_levels,
+        group_level_fields=group_level_fields,
+        file_level_fields=tuple(level for level in folder_levels
+                                if level.field not in group_level_fields),
+        anchor_level_fields=tuple(level for level in folder_levels
+                                  if level.field in group_level_fields
+                                  and level.field == SCHOOL_FIELD))
+
+
+def run(conn: sqlite3.Connection, directory: Path, *,
+        situation: str | None = None, label: str | None = None,
         user_id: str, now, out=None,
         also_read: Sequence[Path] = (),
         candidate_roots: Sequence[Path] = (),
@@ -11998,49 +12136,27 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     convention -- `None` means `sys.stdout` -- rather than taking a policy default.
     """
     catalogue = load_shipped_catalogue(read_packaged_library_file)
-    signal = _validate_situation(catalogue, situation)
-    # ASKED of the library, not split off the name. The dotted prefix is the
-    # template library's word; the 23 domains are `facts.domains.SCHEMA_IDS`.
-    # They agree for 201 of 208 situations and disagree for seven, and every
-    # applicability row has carried the true answer in `uses_schema` all along.
-    schema = schema_for_situation(catalogue, situation)
-    # The folders this situation would build, from the same applicability row the
-    # line above reads. Here rather than inside the fact pass so a release that has
-    # lost its levels refuses before anything is scanned, and so this file -- the
-    # one place a policy may be chosen -- is visibly the one that decides what the
-    # model is asked.
-    folder_levels = folder_levels_for(catalogue, situation)
-    # `104` §11.2 STEP 2. The levels whose value the GROUP carries, split off here
-    # and used twice below: they are withheld from site A, and P10 is told to read
-    # them off the accepted group instead. Read from the same row as the levels
-    # themselves, so a release that binds a role differently moves both halves at
-    # once and neither can be true of the other's data.
-    group_level_fields = group_level_fields_for(catalogue, situation)
-    # WHAT SITE A IS ASKED, which is no longer every level. `model_facts.
-    # pending_fields_for` offers `pending & {level.field}` and that set becomes the
-    # dossier's `allowed_vocabulary`, so a level withheld here is a question not
-    # asked -- which is exactly `00`:57's rule that the course's school and term
-    # belong to the syllabus anchor and reach a sparse file through its GROUP. Asked
-    # per file, `school` was answered by twenty files with the school each of them
-    # happened to mention, and five essays from a university course were filed under
-    # a high school (`104` §11.1).
-    file_level_fields = tuple(level for level in folder_levels
-                              if level.field not in group_level_fields)
-    # WHAT AN ANCHOR IS ASKED AND NO OTHER FILE IS (`105` §14.4, `104` R-131 with
-    # R-102). Step 2's withdrawal above is right about every file except the one
-    # that can answer: the syllabus, the enrollment or registration record and the
-    # transcript state the institution the course belongs to, and withholding the
-    # question from them too is what left R-102 -- nothing writes a `school` fact
-    # any more, so the coursework tree has no school level on any corpus. Split off
-    # the SAME row as the two lines above, so a release that binds the role
-    # differently moves all three together.
-    #
-    # `school` alone. The other group-level role -- coursework's `cycle_period` --
-    # stays withheld from every file: R-101 puts the term on B's per-course
-    # acceptances, and nothing here changes B.
-    anchor_level_fields = tuple(level for level in folder_levels
-                                if level.field in group_level_fields
-                                and level.field == SCHOOL_FIELD)
+    #: THE RUN'S SITUATION, or nothing because the person typed none. One slot,
+    #: for `fact_authorities`' reason: it is written once and read by everything
+    #: after it, and a second copy would be a second answer to "what is this
+    #: folder". Filled HERE when `--situation` is typed -- so a typed run is the
+    #: run it was, byte for byte, and a typo still refuses before a file is opened
+    #: -- and filled by `_partition_branches` from the corpus's own evidence when
+    #: it is not (`00` Amendments of 2026-09-11 item 2). Every reader below is
+    #: inside a closure that runs after the branches exist.
+    of_the_run: list[_RunSituation] = (
+        [] if situation is None
+        else [_the_situation_of_a_run(catalogue, situation, label)])
+
+    def said() -> _RunSituation:
+        """The run's situation, and it is never read before one exists."""
+        if not of_the_run:
+            raise NotConfigured(
+                "the run's situation is read before the branches have named "
+                "one; `_partition_branches` fills it and everything that reads "
+                "it runs after that")
+        return of_the_run[0]
+
     clock = now()
     _bootstrap(conn)
     # `00`:20's THREE choices, as the person answered them. These were three
@@ -12132,7 +12248,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             active_domains=tuple(dict.fromkeys(
                 branch.schema for branch in (
                     partition_cell[0].branches if partition_cell else ()))
-                or (schema,)),
+                or (said().schema,)),
             # Which accepted groups hold sensitive material. `104` §18.2 gap 14:
             # this named `frozenset()` on the true premise that P7 classifies
             # FILES and publishes no group-level answer, and missed that P10 asks
@@ -12199,7 +12315,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
 
     def _signals_for_branch(branch: Branch | None) -> frozenset[str]:
         if branch is None:
-            return frozenset({signal})
+            return frozenset({said().signal})
         if branch.situation is None:
             return frozenset()
         return frozenset({f"recognition:{branch.situation}"})
@@ -12401,15 +12517,15 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         partition = partition_cell[0] if partition_cell else None
         if partition is None or partition.single:
             # ONE branch: the merge the run has always made, unchanged.
-            drafted = draft_for_review(db, results, group_category=schema,
-                                       label=label, created_at=clock)
+            drafted = draft_for_review(db, results, group_category=said().schema,
+                                       label=said().label, created_at=clock)
         else:
             def remember(merged_id: str, branch: Branch | None) -> None:
                 if branch is not None:
                     branch_of_group[merged_id] = branch
 
-            drafted = draft_for_review(db, results, group_category=schema,
-                                       label=label, created_at=clock,
+            drafted = draft_for_review(db, results, group_category=said().schema,
+                                       label=said().label, created_at=clock,
                                        branch_for=partition.branch_of,
                                        default_branch=partition.default,
                                        on_accepted=remember)
@@ -12417,7 +12533,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             drafts.extend(drafted)
         if accept_drafts:
             accept_drafted_groups(
-                db, drafted, label=label, session_id=PLAN_VERSION,
+                db, drafted, label=said().label, session_id=PLAN_VERSION,
                 user_id=user_id, acted_at=clock,
                 mint_action_id=mint_accept_action_id,
                 component_version=COMPONENT_VERSION)
@@ -13616,11 +13732,11 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         the corpus and the model's is a refinement of it, never a replacement.
         """
         answered = situation_cell[0].named.get(file_id)
-        if answered and answered != schema:
+        if answered and answered != said().schema:
             found = _situations_of(answered)
             if found:
                 return found[0]
-        return situation
+        return said().situation
 
     #: `104` §18.1 S6's producer, built once here and handed to the one `Gate` this
     #: run has. A MODULE-LEVEL factory rather than a closure of its own, so the two
@@ -13629,6 +13745,55 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     #: other, and both pinned" asks for.
     _template_for = template_resolver(
         catalogue, pass_of=lambda: template_cell[0], situation_of=_situation_of)
+
+    def _the_corpus_names_a_schema(roster) -> str:
+        """WHICH KIND OF LIFE THIS FOLDER IS, from the folder's own evidence.
+
+        `00` Amendments of 2026-09-11 item 2: with no `--situation` typed, the
+        default branch is named here instead of on the command line. The two
+        signals are the two `branch_situation` already measures, and they are
+        asked IN ITS ORDER -- **a fact outranks a reading**:
+
+        * the ANCHORS: a `work_type` fact at P9's bar whose term exactly one schema
+          authored. `partition_by_branch` opens every other branch on this signal
+          and nothing else, so the default branch is named on the same evidence as
+          its siblings;
+        * failing that, the RECOGNISER's candidates -- every schema a reading
+          raised, which is `SituationOutcome.candidates` off the same
+          `situation_outcome` site G is handed.
+
+        **Measured, and the order is the measurement's.** On the six-file corpus
+        the byte pin uses, the term detector RECOGNISES nothing at all -- every
+        file is an abstention -- while the anchors name `academic` four times and
+        nothing else once. A vote over recognitions would have named nothing on a
+        corpus the anchors answer outright.
+
+        A unique leader wins and a tie decides nothing, which is
+        `_grouped_by_branch`'s own rule.
+        """
+        anchors: dict[str, int] = {}
+        raised: dict[str, int] = {}
+        for file_id, content_hash in roster:
+            owners = {WORK_TYPE_OWNER[value]
+                      for field, value in _anchor_facts_of(file_id, content_hash)
+                      if field == WORK_TYPE_FIELD and value in WORK_TYPE_OWNER}
+            if len(owners) == 1:
+                named = next(iter(owners))
+                anchors[named] = anchors.get(named, 0) + 1
+            for schema_id in classify_producer.situation_outcome(
+                    conn, file_id, content_hash).candidates:
+                raised[schema_id] = raised.get(schema_id, 0) + 1
+        for votes in (anchors, raised):
+            leader = _the_one_with_the_most(votes)
+            if leader is not None:
+                return leader
+        raise NotConfigured(
+            "the folder was read and nothing in it said what kind of material "
+            "it is: no file carries a kind-of-file word one situation owns, and "
+            "the recogniser raised nothing about any of them. Nothing was moved. "
+            "Pass --situation to say what these are -- `--list-situations` "
+            "prints every one the shipped library carries, with the folders each "
+            "would build.")
 
     def _partition_branches(run_id: str) -> BranchPartition:
         """`104` R-37. Which branch each file is under, from the facts P6 wrote.
@@ -13643,17 +13808,44 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         A branch whose situation is unsettled has its question recorded here --
         `question_for_situation`, the trigger that was registered and never
         fired -- and the files it reaches are remembered for the screen.
+
+        **AND WITH NO `--situation` TYPED, THIS IS WHERE THE RUN LEARNS WHAT THE
+        FOLDER IS** (`00` Amendments of 2026-09-11 item 2). The default branch's
+        schema comes from the corpus's own evidence rather than from the command
+        line, and its situation is then settled by the same rule every other
+        branch's is. Here and not earlier because the evidence does not exist
+        earlier: the anchors are facts the deterministic pass has just written and
+        the readings are the recogniser's over files that have just been read.
         """
+        roster = corpus_roster(conn, run_id)
+        if of_the_run:
+            default_label, default_situation = said().label, said().situation
+            default_schema = said().schema
+        else:
+            default_schema = _the_corpus_names_a_schema(roster)
+            # THE SCHEMA ID IS THE NAME when the person named none, which is what
+            # `partition_by_branch` already calls every branch it opens. A typed
+            # `--label` is still theirs: the two flags became optional together
+            # and neither depends on the other, so a person who named the folder
+            # and not the life gets the folder they named.
+            default_label = default_schema if label is None else label
+            default_situation = None
         partition = partition_by_branch(
-            roster=corpus_roster(conn, run_id),
-            default_label=label, default_situation=situation,
-            default_schema=schema,
+            roster=roster,
+            default_label=default_label, default_situation=default_situation,
+            default_schema=default_schema,
             anchor_facts_of=_anchor_facts_of, owner_of_term=WORK_TYPE_OWNER,
             fields_of_schema=lambda schema_id: DOMAIN_FIELDS.get(schema_id, ()),
             verdict_of=lambda file_id, content_hash: detector.explain(
                 conn, file_id, content_hash),
             situations_of=_situations_of,
             chosen_situation=lambda scope: selected_situation(conn, scope=scope))
+        if not of_the_run and partition.default.settled:
+            # The corpus named it, and from here on the run reads it exactly as it
+            # reads a typed one: `--situation` is an override, not a second kind
+            # of answer.
+            of_the_run[:] = [_the_situation_of_a_run(
+                catalogue, partition.default.situation, label)]
         for branch in partition.branches:
             if branch.settled or not branch.file_ids:
                 continue
@@ -13663,6 +13855,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 file_count=len(branch.file_ids))
             record_question(conn, question, asked_at=clock)
             branch_reaches[question.question_id] = branch.file_ids
+        if not of_the_run:
+            # THE QUESTIONS ARE RECORDED FIRST, and that is the whole point of
+            # refusing here rather than at the parser: `--answer` refuses an
+            # answer to a question no run has asked, so the person can only be
+            # told what to type once the run has done the work that makes the
+            # question narrow. `66` §14: the first run asks nothing, and the
+            # question it does ask names the visible context and the consequence.
+            raise NotConfigured(_what_these_folders_are(partition))
         return partition
 
     def _model_fact_pass(run_id: str) -> None:
@@ -13747,12 +13947,12 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         authorities = fact_call_authorities(
             conn, routing=routing, scan_run_id=run_id,
             corpus_file_count=len(roster), policy_version=policy_version,
-            wire_handle_key=wire_handle_key, schema=schema,
+            wire_handle_key=wire_handle_key, schema=said().schema,
             # THE FILE'S OWN LEVELS, not the situation's whole set. `104` §11.2
             # step 2: a level the group carries is not a question to ask each file,
             # and the fields split off above are the ones `00`:57 puts on the
             # syllabus anchor.
-            folder_levels=file_level_fields, user_id=user_id,
+            folder_levels=said().file_level_fields, user_id=user_id,
             now=now,
             # THIS RUN'S MODE, read off the folder's own consent by
             # `operation_mode_for` and stated rather than inherited: it is what
@@ -13765,7 +13965,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # `105` §14.4. The school level, asked of the anchors and of nothing
             # else. Empty when this situation binds no such role, which is every
             # situation but coursework's today.
-            anchor_levels=anchor_level_fields,
+            anchor_levels=said().anchor_level_fields,
             # `104` §18.1 S6. The one `Gate` this run builds is built here, so
             # this is where the §7.3 arm is given something to read. The resolver
             # is the closure above and not a dict, because the per-file template
@@ -13777,7 +13977,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # of the nineteen schemas a `--situation` can resolve to is in the
             # compiled manifest, so a miss is a release that does not match this
             # build and is worth the crash.
-            deferred_readings=rules.schemas[schema].deferred_readings,
+            deferred_readings=rules.schemas[said().schema].deferred_readings,
             # `104` R-14. `run` was handed this beside the routing it was handed,
             # so the mailbox the transport fills is the mailbox `run_call` reads.
             usage_recorder=usage_recorder,
@@ -13907,7 +14107,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # a second gate would be a second answer to what may leave this device.
         by_schema: dict[str, FactResolver] = {}
         for answered in sorted(set(situation_pass.named.values())):
-            if answered == schema:
+            if answered == said().schema:
                 # The run's own situation, named again. Nothing to build: the
                 # default resolver already asks exactly these questions, and a
                 # second one would be a second object for one set of answers.
@@ -14381,7 +14581,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # AFTER the fact pass, because that is what builds the authorities these
         # borrow, and BEFORE P9 groups, because that is what asks site B.
         observe_b = (observe_group_authorities(
-            fact_authorities[0], routing=routing, situation=situation,
+            fact_authorities[0], routing=routing, situation=said().situation,
             placeable_file_count=placeable_file_count(
                 conn, p1_p7.scan_run_id))
             if fact_authorities else (None, None))
@@ -14462,7 +14662,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 # the group. THE SAME SET at both ends, computed once from the
                 # person's own situation, so "not asked per file" and "carried by
                 # the group" cannot come to mean two different field sets.
-                group_level_fields=group_level_fields),
+                group_level_fields=said().group_level_fields),
             user_seed_for=lambda file_id, content_hash: None,
             # `104` §7 Phase 1 step 6: site B runs and applies nothing. Both are
             # `None` when no model was configured, when B's tier is not on this
@@ -18082,13 +18282,18 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                         help="the folder to read")
     parser.add_argument(
         "--situation",
-        help="which situation these files are, e.g. academic.coursework. Required: "
-             "nothing upstream can answer it and this command will not guess. "
-             "`--list-situations` prints every one the shipped library carries.")
+        help="which situation these files are, e.g. academic.coursework. OPTIONAL "
+             "since the owner's ruling of 11 Sep 2026: leave it out and the run "
+             "reads your folder first and then asks, per folder it proposes, with "
+             "the files it is asking about named. Give one and it governs the "
+             "whole run, exactly as it always has. `--list-situations` prints "
+             "every one the shipped library carries.")
     parser.add_argument(
         "--label",
-        help="what to call the top-level folder, e.g. 'Coursework'. Required for "
-             "the same reason.")
+        help="what to call the top-level folder, e.g. 'Coursework'. Optional for "
+             "the same reason: without it the folder is called after the kind of "
+             "life its files turned out to belong to, which is what every other "
+             "folder this run proposes is already called.")
     parser.add_argument(
         "--also-read", action="append", default=[], metavar="FOLDER", type=Path,
         help="another folder to read in the same run, e.g. --also-read "
@@ -18404,9 +18609,17 @@ def main(argv: Sequence[str] | None = None, *, out=None,
 
     # The requirement argparse could not express. Same message and same exit code
     # it would have produced, so a run that forgets one reads no differently.
-    missing = [name for name, value in (("directory", args.directory),
-                                        ("--situation", args.situation),
-                                        ("--label", args.label)) if value is None]
+    #
+    # `--situation` AND `--label` LEFT THIS LIST on the owner's ruling of 11 Sep
+    # 2026 (`00` Amendments of 2026-09-11 item 2, `104` §18.43, R-23 and R-88;
+    # `66`:461 was CONTRADICTED by this line). Demanding one situation for a whole
+    # disk before a single file is opened is what filed two cover letters under
+    # `Coursework/Summer2026/cover letter`, and `66` §14 is the rule this line
+    # broke: the first run asks nothing, and a question is asked where the
+    # ambiguity actually is, naming the files it is about. The folder stays
+    # required -- nothing can read a folder nobody named.
+    missing = [name for name, value in (("directory", args.directory),)
+               if value is None]
     if missing:
         parser.error("the following arguments are required: "
                      + ", ".join(missing))
@@ -18741,9 +18954,19 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                    # command and not about the corpus. The run has already
                    # validated the situation against this same catalogue, so
                    # nothing here can refuse for the first time.
-                   reading_family=situation_schema_family(
-                       load_shipped_catalogue(read_packaged_library_file),
-                       args.situation),
+                   #
+                   # `()` WHEN THEY TYPED NONE, which is this parameter's own
+                   # default and the truthful value since `--situation` became
+                   # optional. R-90 narrows a question's options to the family of
+                   # the life the person NAMED; a person who named none has
+                   # nothing for it to narrow to, and assuming the family the
+                   # corpus happened to suggest would be the command answering on
+                   # their behalf in the one place that exists to stop it.
+                   reading_family=(
+                       () if args.situation is None
+                       else situation_schema_family(
+                           load_shipped_catalogue(read_packaged_library_file),
+                           args.situation)),
                    # `104` R-92, turned the way the report reads it: the run
                    # answers "which files does this question settle" and a group
                    # of files asks "which question settles me". Inverted here,
