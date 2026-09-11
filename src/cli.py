@@ -14555,7 +14555,9 @@ def _files_something_was_read_out_of(conn: sqlite3.Connection) -> set[str]:
 
 
 def _draft_proposal_report(conn: sqlite3.Connection, *,
-                           drafted: Sequence[str]) -> tuple[str, ...] | None:
+                           drafted: Sequence[str],
+                           also_asked_for: Sequence[str] = (),
+                           ) -> tuple[str, ...] | None:
     """`104` SF-3: the screen for a run whose groups nobody has accepted yet.
 
     Returns the lines, or `None` when this run drafted nothing -- and the caller
@@ -14580,6 +14582,14 @@ def _draft_proposal_report(conn: sqlite3.Connection, *,
     rule about a screen somebody else can see does not have an exception for a
     proposal. The card says how many; the report a run prints once its groups are
     accepted is where the files are named, under the protections that screen has.
+
+    **`also_asked_for` NAMES WHAT THE PERSON TYPED AND DID NOT GET.** A run that
+    stops here does not freeze and does not move, and somebody who typed `--freeze`
+    has asked for something that did not happen. Saying nothing would be `104`
+    SF-7's own shape -- a screen whose silence reads as success -- and it is the
+    one thing a proposal screen is most likely to get wrong, because everything on
+    it is about what WILL happen. Measured before it was written: `--freeze` on an
+    undecided run printed this screen, exited 0, and froze nothing without a word.
     """
     cards: list[str] = []
     for group_id in dict.fromkeys(drafted):
@@ -14592,6 +14602,13 @@ def _draft_proposal_report(conn: sqlite3.Connection, *,
                         if group.group_category else ""))
     if not cards:
         return None
+    unmet: tuple[str, ...] = ()
+    if also_asked_for:
+        unmet = ("", _wrapped(
+            f"{', '.join(also_asked_for)} did nothing on this run, and this is "
+            "why: there is no plan yet to freeze or move. Accept the groups "
+            "first, read the plan they build, and then type it again.",
+            indent="  "))
     return (
         "",
         "These groups are proposed, and nothing has been filed:",
@@ -14604,6 +14621,7 @@ def _draft_proposal_report(conn: sqlite3.Connection, *,
             "command again with --accept-groups and this run will build the "
             "folders and show you where each file would go. Nothing moves until "
             "you ask for that separately.", indent="  "),
+        *unmet,
     )
 
 
@@ -18429,7 +18447,19 @@ def main(argv: Sequence[str] | None = None, *, out=None,
             # and telling that person to accept something would name nothing.
             # This case is the opposite one -- the run understood the corpus,
             # proposed groups, and is waiting to be told they are right.
-            proposal = _draft_proposal_report(conn, drafted=drafted)
+            proposal = _draft_proposal_report(
+                conn, drafted=drafted,
+                # What they typed that this run could not do. Built here because
+                # this is where the flags are, and named one by one rather than
+                # summarised: a person who typed two of them should see both.
+                also_asked_for=tuple(
+                    name for name, typed in (
+                        ("--freeze", args.freeze),
+                        ("--apply", bool(args.apply)),
+                        ("--apply-everything", args.apply_everything),
+                        ("--undo", bool(args.undo)),
+                        ("--undo-everything", args.undo_everything))
+                    if typed))
             if proposal is not None:
                 for line in proposal:
                     print(line, file=out)

@@ -138,6 +138,27 @@ def test_a_run_that_accepts_nothing_places_nothing_and_prints_the_proposal(
     assert _count(database, "placement_group_plans") == 0
 
 
+def test_the_proposal_screen_says_what_a_typed_flag_did_not_do(tmp_path):
+    """`--freeze` on an undecided run froze nothing and said nothing. `104` SF-7.
+
+    Found by running it rather than by reading it: the run printed the proposal,
+    exited 0, and the person who had asked for a frozen plan had no way to tell
+    that from having got one. Every other line on this screen is about what WILL
+    happen, which is exactly what makes silence here read as success -- and a
+    screen whose silence is false is SF-7's own defect, on a screen SF-3 added.
+
+    The flags are named one by one, so a person who typed two sees both.
+    """
+    code, screen, database = _run(tmp_path, "--freeze")
+
+    assert code == 0, screen
+    assert "--freeze did nothing on this run" in screen, screen
+    assert "Accept the groups first" in screen, screen
+    # And it really did not: no frozen tree, and nothing moved.
+    assert _count(database, "frozen_trees") == 0
+    assert _count(database, "placement_decisions") == 0
+
+
 def test_a_draft_keeps_everything_the_engine_concluded_about_it(tmp_path):
     """What a draft group still IS, which is everything except decided.
 
