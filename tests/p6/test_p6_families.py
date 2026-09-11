@@ -98,6 +98,18 @@ def _no_lineage(conn, left_file_id: str, right_file_id: str):
     return None
 
 
+def _one_block(conn, file_id: str) -> str:
+    """The blocking key that blocks nothing: every file in one block.
+
+    The key is a property of whichever lineage rule ships, and `97` rules no rule,
+    so the tests below that are ABOUT the rule rather than about the cost inject the
+    degenerate key on purpose -- every pair is still offered to the rule, which is
+    what those tests measure. `test_the_pair_loop_asks_fewer_than_every_pair` is the
+    one that measures the cost, and it injects a key that actually splits.
+    """
+    return ""
+
+
 @pytest.fixture()
 def twins(p6_conn, tmp_path):
     """Two `files` rows over identical bytes: one content hash, two file ids."""
@@ -215,7 +227,7 @@ def test_two_files_sharing_only_a_one_suffix_share_no_family_of_either_kind(
                             perceptual_hash_label=LABEL,
                             near_match=_never_near) == ()
     assert version_family(p6_conn, file_ids=(left, right),
-                          lineage_rule=_no_lineage) == ()
+                          lineage_rule=_no_lineage, block_key=_one_block) == ()
     for file_id, digest in ((left, left_hash), (right, right_hash)):
         assert facts_for_file(p6_conn, file_id, digest) == []
         # A relation nobody proposed was never attempted; `unresolved` records the
@@ -231,7 +243,8 @@ def test_identical_hashes_are_a_duplicate_family_and_never_a_version_family(
         return Lineage(family_value="v1", reliability_state="validated",
                        evidence_refs=("sha256:deadbeef",))
 
-    assert version_family(p6_conn, file_ids=(left, right), lineage_rule=always) == ()
+    assert version_family(p6_conn, file_ids=(left, right), lineage_rule=always,
+                          block_key=_one_block) == ()
     rows = [r for r in facts_for_file(p6_conn, left, content_hash)
             if r["field_key"] == VERSION_FAMILY_FIELD]
     assert rows == []
@@ -254,7 +267,7 @@ def test_an_empty_lineage_rule_writes_no_version_family_fact(p6_conn, tmp_path):
     left, left_hash = _record(p6_conn, tmp_path, name="draft v1.docx", body=b"one")
     right, right_hash = _record(p6_conn, tmp_path, name="draft v2.docx", body=b"two")
     assert version_family(p6_conn, file_ids=(left, right),
-                          lineage_rule=_no_lineage) == ()
+                          lineage_rule=_no_lineage, block_key=_one_block) == ()
     assert facts_for_file(p6_conn, left, left_hash) == []
     assert facts_for_file(p6_conn, right, right_hash) == []
 
@@ -269,7 +282,7 @@ def test_a_lineage_that_cites_no_evidence_is_refused_rather_than_asserted(
                        evidence_refs=())
 
     assert version_family(p6_conn, file_ids=(left, right),
-                          lineage_rule=uncited) == ()
+                          lineage_rule=uncited, block_key=_one_block) == ()
     for file_id, digest in ((left, left_hash), (right, right_hash)):
         rows = unresolved_for_file(p6_conn, file_id, digest,
                                    field_key=VERSION_FAMILY_FIELD)
@@ -403,7 +416,157 @@ def test_a_shared_version_family_answers_the_version_field(p6_conn, tmp_path):
         p6_conn, file_ids=(left, right),
         lineage_rule=lambda conn, a, b: Lineage(
             family_value="report-lineage", reliability_state="validated",
-            evidence_refs=(key_left, key_right)))
+            evidence_refs=(key_left, key_right)),
+        block_key=_one_block)
     assert len(written) == 2
     assert families.shared_family_field(
         p6_conn, left_file_id=left, right_file_id=right) == VERSION_FAMILY_FIELD
+
+
+# --- the blocking step (`00` Amendments of 2026-09-11 item 4) -------------------
+#
+# "Duplicate and version-family signals are produced under those rules; perceptual
+# hashes are supplied by the image reader; **the comparison is kept sub-quadratic by
+# a blocking step**." The blocking step is the half of that sentence that does not
+# wait on a rule: whichever lineage rule the owner rules, the pair enumeration it is
+# offered has to be bounded, and `cli.py`'s `_family_pass` already names the cost as
+# the reason the call is not there -- "on 10,000 files that is 50 million pairs
+# enumerated to answer 'no rule' 50 million times ... whoever authors it owns the
+# blocking strategy that keeps the comparison bounded."
+
+
+def _blocked_corpus(conn, tmp_path, *, per_block=4):
+    """Two folders of distinct bytes, so a key over the folder splits the corpus."""
+    made = []
+    for folder in ("Drafts", "Invoices"):
+        for n in range(per_block):
+            file_id, _hash = _record(
+                conn, tmp_path, name=f"{folder}-{n}.pdf",
+                body=f"{folder} body {n}".encode(), parent=folder)
+            made.append(file_id)
+    return tuple(made)
+
+
+def _folder_block(conn, file_id: str) -> str:
+    """A blocking key read off the record, as a real one would be.
+
+    P1 stores the folder under `directory_position`; `record_file`'s keyword for it
+    is `parent_folder_context`.
+    """
+    return get_file(conn, file_id)["directory_position"]
+
+
+def test_the_pair_loop_asks_fewer_than_every_pair(p6_conn, tmp_path):
+    """The measurement, with a counting fake: N files, fewer than N(N-1)/2 asks."""
+    files = _blocked_corpus(p6_conn, tmp_path)
+    asked: list[tuple[str, str]] = []
+
+    def counting(conn, left, right):
+        asked.append((left, right))
+        return None
+
+    assert version_family(p6_conn, file_ids=files, lineage_rule=counting,
+                          block_key=_folder_block) == ()
+    every_pair = len(files) * (len(files) - 1) // 2
+    assert len(asked) < every_pair, (
+        f"{len(asked)} of {every_pair} pairs asked -- the loop is still quadratic")
+    # And the bound is the blocks' own, not an arbitrary smaller number: two blocks
+    # of four ask 6 + 6 rather than 28.
+    assert len(asked) == 12, asked
+
+
+def test_no_pair_from_two_different_blocks_is_ever_asked(p6_conn, tmp_path):
+    """What makes it cheap is also what makes it wrong if the key is wrong.
+
+    The contract `version_family` states is that the key must be a NECESSARY
+    condition of the rule: a pair the rule would have joined must share a key, or
+    blocking silently loses the family. This pins the half that is the module's --
+    that a pair across two keys is never offered at all.
+    """
+    files = _blocked_corpus(p6_conn, tmp_path)
+    blocks = {file_id: _folder_block(p6_conn, file_id) for file_id in files}
+    asked: list[tuple[str, str]] = []
+
+    def counting(conn, left, right):
+        asked.append((left, right))
+        return None
+
+    version_family(p6_conn, file_ids=files, lineage_rule=counting,
+                   block_key=_folder_block)
+    crossing = [(a, b) for a, b in asked if blocks[a] != blocks[b]]
+    assert crossing == [], crossing
+
+
+def test_a_file_with_no_block_key_is_compared_against_nothing(p6_conn, tmp_path):
+    """`None` is the key's own abstention, and it costs the file every comparison.
+
+    A reader that cannot key a file has not said the file is in no family; it has
+    said it cannot cheaply say which files it could be in. The module takes the
+    conservative half -- no comparison, therefore no fact and no `unresolved` row,
+    because a relation nobody proposed was never attempted.
+    """
+    left, left_hash = _record(p6_conn, tmp_path, name="keyed.pdf", body=b"one")
+    right, right_hash = _record(p6_conn, tmp_path, name="unkeyable.pdf", body=b"two")
+    asked: list[tuple[str, str]] = []
+
+    def counting(conn, a, b):
+        asked.append((a, b))
+        return None
+
+    assert version_family(
+        p6_conn, file_ids=(left, right), lineage_rule=counting,
+        block_key=lambda conn, file_id: None if file_id == right else "k") == ()
+    assert asked == []
+    for file_id, digest in ((left, left_hash), (right, right_hash)):
+        assert facts_for_file(p6_conn, file_id, digest) == []
+        assert unresolved_for_file(p6_conn, file_id, digest) == []
+
+
+def test_a_family_the_rule_joins_inside_one_block_still_forms(p6_conn, tmp_path):
+    """The twin. A blocking step that refused every pair would pass the two above.
+
+    Three files in one block, joined by a rule that answers for every pair it is
+    offered: one family of three, and the fourth file -- alone in its own block --
+    in none.
+    """
+    left, left_hash = _record(p6_conn, tmp_path, name="d1.pdf", body=b"one",
+                              parent="Drafts")
+    middle, middle_hash = _record(p6_conn, tmp_path, name="d2.pdf", body=b"two",
+                                  parent="Drafts")
+    right, right_hash = _record(p6_conn, tmp_path, name="d3.pdf", body=b"three",
+                                parent="Drafts")
+    stranger, stranger_hash = _record(p6_conn, tmp_path, name="x.pdf", body=b"four",
+                                      parent="Invoices")
+    keys = {}
+    for run, file_id, digest in (("b1", left, left_hash), ("b2", middle, middle_hash),
+                                 ("b3", right, right_hash),
+                                 ("b4", stranger, stranger_hash)):
+        keys[file_id] = _observe(p6_conn, run_id=run, file_id=file_id,
+                                 content_hash=digest, raw="Report", label="title")
+
+    def joins(conn, a, b):
+        return Lineage(family_value="report-lineage", reliability_state="validated",
+                       evidence_refs=(keys[a], keys[b]))
+
+    written = version_family(p6_conn, file_ids=(left, middle, right, stranger),
+                             lineage_rule=joins, block_key=_folder_block)
+    assert len(written) == 3
+    for file_id, digest in ((left, left_hash), (middle, middle_hash),
+                            (right, right_hash)):
+        rows = [r for r in facts_for_file(p6_conn, file_id, digest)
+                if r["field_key"] == VERSION_FAMILY_FIELD]
+        assert [r["canonical_value"] for r in rows] == ["report-lineage"], rows
+    assert [r for r in facts_for_file(p6_conn, stranger, stranger_hash)
+            if r["field_key"] == VERSION_FAMILY_FIELD] == []
+
+
+def test_the_blocking_step_is_injected_and_required(p6_conn):
+    """Like `lineage_rule` and for the same reason: `97` names no key either.
+
+    A default here would be this module choosing the cheap necessary condition of a
+    rule it does not know, which is the same defect one layer down from choosing the
+    rule.
+    """
+    parameter = inspect.signature(version_family).parameters["block_key"]
+    assert parameter.kind is inspect.Parameter.KEYWORD_ONLY
+    assert parameter.default is inspect.Parameter.empty

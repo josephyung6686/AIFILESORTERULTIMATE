@@ -339,7 +339,9 @@ def _near_families(conn: sqlite3.Connection, *, versions: tuple[_Version, ...],
 
 def version_family(conn: sqlite3.Connection, *, file_ids: Iterable[str],
                    lineage_rule: Callable[[sqlite3.Connection, str, str],
-                                          "Lineage | None"]) -> tuple[str, ...]:
+                                          "Lineage | None"],
+                   block_key: Callable[[sqlite3.Connection, str],
+                                       "str | None"]) -> tuple[str, ...]:
     """Done-means 24. Distinct content hashes, never `direct`, never a filename.
 
     `lineage_rule` is required with no default and receives the connection and the
@@ -349,6 +351,30 @@ def version_family(conn: sqlite3.Connection, *, file_ids: Iterable[str],
     A family is only as strong as its weakest link -- a component joined by one
     `validated` edge and one `possible` edge is written at `possible`, because the
     component is only connected at all through the weaker claim.
+
+    **`block_key` IS THE SUB-QUADRATIC HALF, and it is required for the same reason
+    `lineage_rule` is.** `00`'s Amendments of 2026-09-11, item 4: "the comparison is
+    kept sub-quadratic by a blocking step". A version family is by definition files
+    whose content hashes DIFFER, so no hash bucket can group them the way
+    `duplicate_family`'s exact half groups its own -- and without a second key the
+    enumeration below is every pair of the roster. `cli.py`'s `_family_pass` states
+    what that costs and why it is the reason this function was not called at all:
+    "on 10,000 files that is 50 million pairs enumerated to answer 'no rule' 50
+    million times."
+
+    The key is read once per file and pairs are enumerated WITHIN a key and never
+    across one. `None` is the key's own abstention and takes the file out of every
+    comparison: a keyer that cannot key a file has not said the file is in no
+    family, so no fact and no `unresolved` row follow -- a relation nobody proposed
+    was never attempted, which is the module's standing rule.
+
+    **The contract the caller owns: the key must be a NECESSARY CONDITION of the
+    rule.** Any pair `lineage_rule` would join must share a key, or blocking loses
+    the family silently rather than expensively. P6 cannot check that and does not
+    try: the cheapest necessary condition of a rule is a property of the rule, and
+    `97` rules no rule, so it names no key either. A default here would be this
+    module choosing a key for a rule it does not know, which is the defect one layer
+    down from choosing the rule.
     """
     versions = _read(conn, file_ids)
     by_id = {version.file_id: version for version in versions}
@@ -361,20 +387,31 @@ def version_family(conn: sqlite3.Connection, *, file_ids: Iterable[str],
             file_id = parent[file_id]
         return file_id
 
+    # THE BLOCKING STEP. Sorted before anything is decided, for `_read`'s reason:
+    # a computation that inherited insertion order would make the same corpus
+    # resolve differently depending on the order it was extracted in.
+    blocks: dict[str, list[str]] = {}
+    for file_id in sorted(by_id):
+        key = block_key(conn, file_id)
+        if key is None:
+            continue
+        blocks.setdefault(key, []).append(file_id)
+
     refused: set[str] = set()
-    for left, right in combinations(sorted(by_id), 2):
-        # Identical hashes are a duplicate family, never a version family.
-        if by_id[left].content_hash == by_id[right].content_hash:
-            continue
-        lineage = lineage_rule(conn, left, right)
-        if lineage is None:
-            continue
-        if not lineage.evidence_refs:
-            refused.update((left, right))
-            continue
-        parent[find(left)] = find(right)
-        for file_id in (left, right):
-            edges.setdefault(file_id, []).append(lineage)
+    for _key, blocked in sorted(blocks.items()):
+        for left, right in combinations(blocked, 2):
+            # Identical hashes are a duplicate family, never a version family.
+            if by_id[left].content_hash == by_id[right].content_hash:
+                continue
+            lineage = lineage_rule(conn, left, right)
+            if lineage is None:
+                continue
+            if not lineage.evidence_refs:
+                refused.update((left, right))
+                continue
+            parent[find(left)] = find(right)
+            for file_id in (left, right):
+                edges.setdefault(file_id, []).append(lineage)
 
     for file_id in sorted(refused):
         if file_id not in edges:
