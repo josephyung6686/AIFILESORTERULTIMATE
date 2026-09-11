@@ -1451,10 +1451,13 @@ def test_the_protected_records_residual_home_carries_the_protected_class(tmp_pat
 
     corpus = _uneven_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
+    # SF-3 (11 Sep): a run that decides nothing freezes no tree, so the residual
+    # home exists only once the person accepts the proposal, as every sibling
+    # pin now types it.
     code, printed = _run([str(corpus), "--situation", "academic.coursework",
                           "--label", "Coursework", "--user", "jy",
                           "--residual", "Protected Records",
-                          "--database", str(database)])
+                          "--database", str(database), *ACCEPTS_THE_PROPOSAL])
     assert code == 0, printed
 
     conn = sqlite3.connect(database)
