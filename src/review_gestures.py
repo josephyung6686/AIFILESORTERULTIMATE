@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 
 from placement.residual import ResidualSet
 from privacy.display import RedactionSettings
@@ -46,9 +47,11 @@ from privacy.display import RedactionSettings
 from review_surface.collect import collect
 from review_surface.presentation import PresentedState, record_presentation
 from review_surface.records import ReviewAction
-from review_surface.store import record_action
+from review_surface.store import last_presentation_ref, record_action
 from review_surface.vocabulary import (
     ACTION_ACCEPT_BULK,
+    ACTION_RENAME,
+    SURFACE_CANVAS,
     SURFACE_RESIDUAL_SET,
     UNTOUCHED_PROTECTED,
 )
@@ -205,3 +208,133 @@ def collect_set_sends(
             acted_at=acted_at)
         for label, area_label in sends.items()
         for item in by_label.get(label, ()))
+
+
+# --- §5's canvas: the levels a tree is named by (`64`, `104` R-41) ------------
+
+#: The separator between the three parts of `64` §3's key, on a screen and on a
+#: command line. ONE spelling, because the report PRINTS the key and the person
+#: PASTES it back: two spellings would make the line the report tells them to
+#: type a line the flag cannot read (`84` §6).
+LEVEL_KEY_SEPARATOR: str = ":"
+
+
+@dataclass(frozen=True)
+class LevelOnScreen:
+    """One level of a proposed tree, named by the key that outlives this run.
+
+    `64` §3's triple and nothing else identifies it. A `node_id` would expire at
+    the next plan version and a `template_id@version` at the next library
+    upgrade, and both are ruled out there by name -- so what the person is shown
+    and what they type is the VOCABULARY: which schema, which role, which field.
+
+    `display_label` is what the level is called on this run, which is the
+    person's own word once they have renamed it; `proposed_label` is what the
+    library called it and is `None` until they have. `64` §5b keeps both -- the
+    user wins AND the library's proposal is recorded, not discarded.
+    """
+
+    uses_schema: str
+    role_ref: str
+    field_ref: str
+    display_label: str
+    proposed_label: str | None = None
+
+    def key(self) -> str:
+        """`64` §3's triple as one string: what the screen prints and the flag reads."""
+        return LEVEL_KEY_SEPARATOR.join(
+            (self.uses_schema, self.role_ref, self.field_ref))
+
+
+def record_level_presentations(
+    conn: sqlite3.Connection, *,
+    levels: Sequence[LevelOnScreen],
+    plan_version: str,
+    session_id: str,
+    settings: RedactionSettings,
+    user_id: str,
+    component_version: str,
+    rendered_at: str,
+) -> dict[str, PresentedState]:
+    """One §8.4 presentation per level on the screen, keyed by `64` §3's triple.
+
+    **Why a level needs recording at all.** A relabel is typed at the NEXT
+    invocation -- the person reads the tree, decides that what the library calls
+    *Course* is a *Class* to them, and says so on the command after. `collect`
+    refuses a gesture with no recorded presentation, on §8.7's ground that
+    feedback carries the evidence that produced it, so a level nobody recorded
+    showing is a level nobody can rename. This is the row that makes the gesture
+    possible.
+
+    Keyed by the TRIPLE and not by a node id, for `64` §3's reason: the next plan
+    version's levels are different nodes and the same vocabulary, and a key that
+    expired between the screen and the answer would refuse every gesture made on
+    it.
+
+    `evidence_refs` is empty and that is a real answer rather than a missing one,
+    exactly as a residual card's is: a level is a name the library authored, and
+    there is no observation behind it to show.
+    """
+    return {
+        level.key(): record_presentation(
+            conn, surface=SURFACE_CANVAS, subject_ref=level.key(),
+            plan_version=plan_version, session_id=session_id, settings=settings,
+            evidence_refs=(), user_id=user_id,
+            component_version=component_version, rendered_at=rendered_at)
+        for level in levels
+    }
+
+
+def collect_level_relabel(
+    conn: sqlite3.Connection, *,
+    level_key: str,
+    display_label: str,
+    action_id: str,
+    correction_scope: str,
+    user_id: str,
+    component_version: str,
+    acted_at: str,
+) -> ReviewAction:
+    """One typed relabel, collected as P13's record and stored.
+
+    **`rename` on the `canvas` surface, because that is what the gesture is.**
+    §8.7's "renaming a branch" is `ACTION_RENAME`, approved by the owner on
+    2026-09-02, and `81` §13.1 settled that a canvas gesture DOES travel as a
+    `review_action` -- *"every edit a person makes to the proposed structure is
+    recorded in the same audit trail as accepting or rejecting a file, so one
+    history explains every change"*. `route` hands `canvas` to P10, which is the
+    part whose overlay then holds the fact.
+
+    **Collected BEFORE the overlay is written**, which is `collect_set_sends`'
+    order for `collect_set_sends`' reason: P13's refusals -- no recorded
+    presentation, a scope nobody chose -- belong in front of the write, or the
+    person meets them after a stored row already says they renamed something.
+
+    **The presentation is the last one recorded for this triple**, which is the
+    screen they are answering. A triple no run has ever shown resolves to none,
+    and it is handed to `collect` rather than short-circuited here, so what the
+    person reads is P13's own sentence about a ref no row carries rather than a
+    paraphrase of it written in the deployment layer.
+    """
+    shown = last_presentation_ref(
+        conn, surface=SURFACE_CANVAS, subject_ref=level_key)
+    row = None if shown is None else conn.execute(
+        "SELECT plan_version FROM review_presentations "
+        "WHERE presented_state_ref = ?", (shown,)).fetchone()
+    # The plan version the person was LOOKING AT, and not a new one: this
+    # invocation has designed nothing yet, and a gesture stamped with a version
+    # that does not exist would name a sitting nobody ever had. `session_id` is
+    # the same value for `collect_set_sends`' reason -- it names this sitting and
+    # nothing else here has a truer claim to being it.
+    plan_version = "" if row is None else row["plan_version"]
+    record = collect(
+        conn, action_id=action_id, surface=SURFACE_CANVAS,
+        subject_ref=level_key, plan_version=plan_version,
+        session_id=plan_version, action=ACTION_RENAME,
+        correction_scope=correction_scope,
+        presented_state_ref="" if shown is None else shown,
+        user_id=user_id, acted_at=acted_at, component_version=component_version,
+        payload={"display_label": display_label})
+    record_action(conn, record)
+    conn.commit()
+    return record

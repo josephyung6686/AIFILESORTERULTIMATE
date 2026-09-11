@@ -1996,7 +1996,17 @@ def test_groups_of_different_categories_get_different_top_level_branches(tmp_pat
     cli.main([str(corpus), "--situation", "academic.coursework", "--label",
               "Coursework", "--user", "jy",
               "--database", str(tmp_path / "plan.sqlite")], out=out)
-    folders = out.getvalue().split("Folders in this plan:", 1)[1].split("Files:", 1)[0]
+    # THE TREE ONLY, and the second split is why this still measures the gap.
+    # `104` R-41 prints the level names between the folder list and "Files:", and
+    # its lines are indented two spaces like a root -- so without this the count
+    # below rises with the number of LEVELS and this strict xfail XPASSes on a run
+    # where every category is still inside one branch, which is the marker coming
+    # off for a gap nobody closed. `104` §18.2 gap 14's group block is the same
+    # hazard one block along; the folder list ends at whichever comes first.
+    folders = out.getvalue().split("Folders in this plan:", 1)[1]
+    for heading in ("What each level of this plan is called:",
+                    "Groups put to a model as groups:", "Files:"):
+        folders = folders.split(heading, 1)[0]
     roots = [line for line in folders.splitlines()
              if line.startswith("  ") and not line.startswith("    ")]
 

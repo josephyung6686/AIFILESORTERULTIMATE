@@ -417,6 +417,16 @@ def test_the_only_thing_a_live_run_asks_of_p8_p12_and_p13_is_a_table(_census):
     `released_item_wire_bytes` (P8, `104` R-174) are both predicates or measures
     that compose nothing and write nothing, and both are named below with the
     reason they cannot be respelled outside the part that owns them.
+
+    **P13 IS NO LONGER ONE OF THE THREE, and this test now says so rather than
+    going on being named after it.** `104` R-41 put `record_presentation` on the
+    ordinary path: every run records what its levels screen showed, with no flag,
+    because the gesture that renames a level is typed at the NEXT invocation and
+    §8.7 refuses one that carries no record of what was shown. That is a WRITE,
+    which every earlier addition to these sets explicitly was not, so it is
+    argued at the member below instead of being absorbed into a bigger set.
+    `planning/86-SEAM-CENSUS.md` still records P13 as a dark seam and is stale on
+    exactly this point.
     """
     _edges, symbols, _text, _database = _census
     assert symbols.get((ROOT, "P8")) is not None, (
@@ -461,8 +471,32 @@ def test_the_only_thing_a_live_run_asks_of_p8_p12_and_p13_is_a_table(_census):
                            # for. Both are pure functions over rows the root
                            # already holds: no review screen is composed, no
                            # question is recorded, and P13 still writes nothing.
+                           # `record_presentation` since `104` R-41, AND IT IS NOT
+                           # LIKE THE FOUR ABOVE. Every other symbol added to
+                           # these sets is a pure function that composes nothing
+                           # and writes nothing; this one WRITES -- a
+                           # `review_presentations` row and an §8.2 event, on
+                           # every ordinary run, with no flag. So the sentence
+                           # this test is named for stopped being true of P13 on
+                           # that day, and the entry records when rather than
+                           # hiding it inside a widened set.
+                           #
+                           # It writes because the gesture it exists for is typed
+                           # at the NEXT invocation. `--rename-level` names a
+                           # level the report printed, and §8.7 refuses a gesture
+                           # carrying no record of what was shown, so a screen
+                           # nobody recorded showing is a screen nobody can
+                           # answer. Recording only when a gesture arrives would
+                           # be recording a presentation that had not happened.
+                           #
+                           # What it still does NOT do is decide anything: P13
+                           # presents and collects. No review screen is composed,
+                           # no placement is judged, and nothing here reads a
+                           # person's answer -- `collect` does that, and it runs
+                           # only when somebody has typed one.
                            (("P13"), {"create_review_schema", "bucket_for",
-                                      "assert_every_file_accounted"})):
+                                      "assert_every_file_accounted",
+                                      "record_presentation"})):
         reached = symbols.get((ROOT, part), set())
         assert reached <= expected, (
             f"{part} now does something on a live run beyond creating its "

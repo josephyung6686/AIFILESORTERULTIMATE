@@ -28,6 +28,35 @@ def presentation_exists(conn: sqlite3.Connection, presented_state_ref: str) -> b
     return row is not None
 
 
+def last_presentation_ref(conn: sqlite3.Connection, *, surface: str,
+                          subject_ref: str) -> str | None:
+    """The most recent moment this subject was shown on this surface, or None.
+
+    A read of P13's own table, beside `presentation_exists` and for the same
+    reason: `collect` needs a `presented_state_ref` and a person cannot type one.
+    They answer the screen they were shown, which for a gesture typed at the NEXT
+    invocation is the last run's screen -- so the ref the gesture carries is the
+    last one recorded for the thing they named.
+
+    **The LAST, and no window.** A presentation is a historical fact and this
+    package has no update path, so every run the person has seen leaves a row and
+    the newest is the one they are answering. Returning None when the subject has
+    never been shown is the answer `collect` turns into §8.7's refusal; deciding
+    here that a ref is too old would be this module judging a gesture, which P13
+    does not do.
+
+    Ordered by `rendered_at` and then by the ref, so two presentations recorded in
+    one clock tick still resolve to one answer rather than to whichever row SQLite
+    happened to return.
+    """
+    row = conn.execute(
+        "SELECT presented_state_ref FROM review_presentations "
+        "WHERE surface = ? AND subject_ref = ? "
+        "ORDER BY rendered_at DESC, presented_state_ref DESC LIMIT 1",
+        (surface, subject_ref)).fetchone()
+    return None if row is None else row["presented_state_ref"]
+
+
 def record_action(conn: sqlite3.Connection, action: ReviewAction) -> None:
     conn.execute(
         "INSERT INTO review_actions "

@@ -119,6 +119,7 @@ from facts.states import (
     LLM_SUPPORTED as LLM_SUPPORTED_STATE,
     POSSIBLE,
     REJECTED as REJECTED_STATE,
+    USER_CONFIRMED,
     VALIDATED,
     strength,
 )
@@ -220,6 +221,7 @@ from placement.graph import (
     EDGE_TYPES as P11_EDGE_TYPES,
     EXISTING_RELATED_FOLDER as P11_EXISTING_RELATED_FOLDER,
     SHARED_VALIDATED_FACT as P11_SHARED_VALIDATED_FACT,
+    USER_CONFIRMED_MEMBERSHIP as P11_USER_CONFIRMED_MEMBERSHIP,
     VERSION_FAMILY as P11_VERSION_FAMILY,
 )
 from placement.pipeline import (
@@ -376,7 +378,7 @@ from tree_design.template_schema import (
 from model_template import (
     file_fits_its_situation, file_template_request_for, template_request_for,
 )
-from tree_design.templates import CompositionConflict
+from tree_design.templates import CompositionConflict, MalformedTemplateRecord
 from scan_agent.selection import selection_candidate_roots
 from tree_design.upstream import (
     AnchorAgreement, UpstreamUnavailable, existing_folders,
@@ -409,7 +411,10 @@ from review_run.progress import progress_lines
 # states; this run needs the rule over a set of buckets P13 knows nothing about, so
 # the function is imported directly and nothing in P13 is widened to hold them.
 from database_agent.events import CORRECTION_SCOPES
-from review_gestures import collect_set_sends, record_set_presentations
+from review_gestures import (
+    LEVEL_KEY_SEPARATOR, LevelOnScreen, collect_level_relabel, collect_set_sends,
+    record_level_presentations, record_set_presentations,
+)
 from review_surface.collect import (
     BulkMembersRequired, PresentationRequired, ProtectedContainerHasNoAction,
     ScopeNotPresented,
@@ -432,8 +437,12 @@ from evidence_shape.store import get_observation, runs_for_content
 from tree_design.residuals import (
     ResidualChoice, ResidualTemplate, build_library,
 )
+from tree_design.user_edits import (
+    UserEditRefused, UserLevelEdit, record_user_level_edit,
+)
 from tree_design.vocabulary import (
-    ENABLE, MANDATORY_REVIEW, PHYSICAL_DESTINATION, REFINE_LATER, REFINED,
+    ACTION_RENAMED, ENABLE, MANDATORY_REVIEW, PHYSICAL_DESTINATION,
+    REFINE_LATER, REFINED,
     RESIDUAL_TEMPLATE_NAMES, SHALLOW_BY_CHOICE, SURFACE_UNATTENDED,
 )
 
@@ -8460,6 +8469,22 @@ def _validate_residuals(names: Sequence[str]) -> tuple[str, ...]:
 RESIDUAL_SEND_SCOPE: str = "node"
 assert RESIDUAL_SEND_SCOPE in CORRECTION_SCOPES
 
+#: §8.7's scope for the `--rename-level` gesture, chosen here for the same reason
+#: the one above is and argued from `64` §3 rather than picked as the nearest fit.
+#: What the person says is *"whatever level shows my `subject` field in an
+#: `academic` context, I call it Class"* -- a sentence about one SCHEMA, which is
+#: what `uses_schema` names and what `domain` is the scope of.
+#:
+#: The other five are each wrong in a way `64` rules out by name. `node` expires:
+#: §8.8 mints new node ids per plan version, and §3 refuses that key outright.
+#: `template` is the PACKAGING, which is precisely what a library upgrade changes
+#: and what §3 refuses second. `corpus` would claim the person renamed the level
+#: in every context they have, when §3's own consequence is that renaming *Course*
+#: to *Class* in an academic context "renames nothing in a research context".
+#: `file` and `group` are about material, and this gesture is about a name.
+LEVEL_RELABEL_SCOPE: str = "domain"
+assert LEVEL_RELABEL_SCOPE in CORRECTION_SCOPES
+
 
 def _parse_sends(raw: Sequence[str]) -> Mapping[str, str]:
     """`--send-set "SET=AREA"`, split the way `--answer` splits its own pair.
@@ -10022,7 +10047,15 @@ NOT_A_PLACEMENT_EDGE: tuple[str, ...] = (BOUNDED_SESSION, MUTUAL_SEMANTIC_RETRIE
 #: second engine. The day P9 draws one, its spelling joins the mapping and its
 #: name leaves this tuple -- and `test_cli_p9_p11_edge_seam.py` is what makes
 #: either move visible instead of silent.
-NOT_A_P9_EDGE: tuple[str, ...] = (P11_ATTACHMENT_OF, P11_DIRECT_REFERENCE)
+NOT_A_P9_EDGE: tuple[str, ...] = (
+    P11_ATTACHMENT_OF, P11_DIRECT_REFERENCE,
+    # The ninth relationship's carrier, and it is here for the same reason as the
+    # other two rather than in P9's vocabulary. P9 groups on evidence; this edge
+    # rests on a CORRECTION -- §3.13's `user_confirmed`, which P6 owns and P9
+    # never reads -- so a P9 member would put a P6 state in P9's closed edge
+    # vocabulary and leave P9 with an edge type its own engine cannot draw.
+    P11_USER_CONFIRMED_MEMBERSHIP,
+)
 
 
 def bridge_entity_for(edge_type: str, bridge: str | None) -> str | None:
@@ -10763,11 +10796,122 @@ def observation_edges_of(file_id: str, *, attachments, references
     return tuple(related)
 
 
+def confirmed_membership_edges_of(file_id: str, *, confirmations
+                                  ) -> tuple[dict, ...]:
+    """`00`:109's ninth relationship, and the last of the nine to get a producer.
+
+    `placement/graph.py`'s entry said "none yet AS AN EDGE ... needs a gesture P7
+    has not shipped". The gesture shipped: `104` §18.2 gap 3 gave `--confirm
+    'file:field=value'` to `facts.learning.confirm_claim`, which writes §3.13's
+    `user_confirmed` over the value the product proposed. So the missing half was
+    never the edge -- it was somebody to have spoken.
+
+    **UNDIRECTED, and the anchor is the file being placed.** `attachment_of` is
+    directed because the message is where the relationship was read; nothing here
+    is read out of one end. The person confirmed the same value on both files and
+    neither confirmation came first in any sense the graph can use.
+
+    **The bridge is the shared fact, keyed exactly as a `shared_validated_fact`
+    is.** `fact_bridge_ref(field, value)` is the one spelling both halves of
+    §6.5's hub test use, so a confirmed `subject = PHYS1401` counts against the
+    same entity frequency the inferred one does -- which is right: a course code
+    on four hundred files is a generic entity whoever vouched for it.
+
+    **There is no evidence ref on the edge, and that is the seam rather than an
+    omission.** A `group_edges` row carries one, and this edge is not one of
+    those: it is drawn at the composition root and handed straight to
+    `build_node_local_graph`, whose `GraphAnchor` has four fields -- type, from,
+    to, anchor -- and none of them is an evidence handle. Adding one would grow
+    P11's record for a field nothing reads. What the edge carries instead is the
+    confirmed value itself, which is the thing the person actually confirmed and
+    the thing a reader can go and look up.
+
+    Separate from `observation_edges_of` rather than folded into it: those two
+    are two files' own OBSERVATIONS agreeing about a third thing, and this one is
+    two of the person's own corrections agreeing. The sort contract is per
+    producer for `104` R-111's reason -- with every weight 1.0 the §8.6 cuts rank
+    nothing, so arrival order decides what survives, and it may not vary between
+    two runs over one folder.
+    """
+    related = [
+        {
+            "edge_type": P11_USER_CONFIRMED_MEMBERSHIP, "to_file_id": other,
+            "anchor_file_id": file_id, "weight": 1.0,
+            "entity": fact_bridge_ref(field_key, value),
+            "to_content_hash": other_hash,
+        }
+        for other, other_hash, field_key, value in confirmations.get(file_id, ())
+    ]
+    related.sort(key=lambda edge: (edge["to_file_id"], edge["entity"] or ""))
+    return tuple(related)
+
+
 #: The container-path segment an email attachment name is stored under.
 #: `readers/long_tail_stdlib._message_values` names the slot and `extractors/
 #: long_tail.py` writes it as `segment("field", label=<slot>)`, so this reads the
 #: reader's own word rather than a second spelling of it.
 _ATTACHMENT_SLOT: str = "attachment"
+
+
+def confirmed_membership_index(conn: sqlite3.Connection) -> dict:
+    """`00`:109's ninth relationship, keyed by file. One scan, once per run.
+
+    **What it takes to say "the person put these two together".** §3.13's
+    `user_confirmed` is a state on a FACT: `--confirm 'week 3.pdf:subject=
+    PHYS1401'` says that ONE file's subject is what the product proposed. It says
+    nothing on its own about any other file, so an edge drawn from one
+    confirmation would put the person's name on a pairing they never made. What
+    they DID make is the pairing where BOTH ends are confirmed -- two files, one
+    field, one value, each of them answered for by the person -- and that is the
+    only shape this returns.
+
+    **And the value has to be the one the membership rests on.** Two files in a
+    course group may both carry a confirmed `work_type`; that is not a confirmed
+    MEMBERSHIP of the course, and an edge naming it would claim the person had
+    ratified a grouping they were never asked about. So the field must be one the
+    membership's own `support` cites, which is P9's record of why this file is in
+    this group. A membership is the context; the shared confirmed fact is the
+    basis; neither alone is the relationship.
+
+    The join walks P9's live INCLUDED memberships, so a member P9 retracted or
+    the person rejected is not paired: `_retract_unsupported_memberships`
+    supersedes a membership whose anchor is gone, and a superseded row is not
+    read here.
+
+    ONE SCAN, built for the whole run beside `observation_edge_index`'s two and
+    for the same reason: the alternative is a corpus scan per file placed, which
+    is `58-SCALE-STRESS.md` §2's O(files x files) shape.
+    """
+    confirmed: dict[tuple[str, str, str], list[tuple[str, str]]] = {}
+    for row in conn.execute(
+            "SELECT m.group_id, m.file_id, m.content_hash, f.field_key, "
+            "       v.canonical_value "
+            "FROM memberships m "
+            "JOIN file_facts f "
+            "  ON f.file_id = m.file_id AND f.content_hash = m.content_hash "
+            'JOIN "values" v ON v.value_id = f.value_id '
+            "WHERE m.superseded_by IS NULL AND m.decision = ? "
+            "  AND f.superseded_by IS NULL AND f.active = 1 "
+            "  AND f.reliability_state = ? "
+            "  AND EXISTS (SELECT 1 FROM json_each(m.support) s "
+            "              WHERE json_extract(s.value, '$.quote_or_field') "
+            "                    = f.field_key) "
+            "ORDER BY m.group_id, f.field_key, v.canonical_value, "
+            "         m.content_hash, m.file_id",
+            (INCLUDED, USER_CONFIRMED)):
+        confirmed.setdefault(
+            (row["group_id"], row["field_key"], row["canonical_value"]),
+            []).append((row["file_id"], row["content_hash"]))
+
+    by_file: dict[str, list[tuple[str, str, str, str]]] = {}
+    for (_group, field_key, value), members in confirmed.items():
+        for one, _hash in members:
+            for other, other_hash in members:
+                if other == one:
+                    continue
+                by_file.setdefault(one, []).append(
+                    (other, other_hash, field_key, value))
+    return by_file
 
 
 def observation_edge_index(conn: sqlite3.Connection) -> tuple[dict, dict]:
@@ -11869,14 +12013,21 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         return CLOUD_LOCALITY if chosen is None else chosen[1].locality
 
     #: `104` §18.2 gap 12's two corpus maps and the neighbour descriptions, both
-    #: held for the run for `_how_many_files_state_each_fact`'s reason.
+    #: held for the run for `_how_many_files_state_each_fact`'s reason. The third
+    #: map is `00`:109's ninth relationship and is held for the same reason.
     _observation_edges: list = []
+    _confirmed_memberships: list = []
     _described: dict[str, str | None] = {}
 
     def _observation_edge_maps():
         if not _observation_edges:
             _observation_edges.append(observation_edge_index(conn))
         return _observation_edges[0]
+
+    def _confirmed_membership_map():
+        if not _confirmed_memberships:
+            _confirmed_memberships.append(confirmed_membership_index(conn))
+        return _confirmed_memberships[0]
 
     def _how_another_file_would_describe_itself(other_file_id: str) -> str | None:
         """A NEIGHBOUR, in the words its own site-C call would have used.
@@ -11952,10 +12103,21 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         return answer
 
     def _related_files(file_id: str) -> tuple[dict, ...]:
-        """P9's five typed edges and gap 12's two, each with its other end named."""
+        """P9's five typed edges and the composition root's three, each with its
+        other end named.
+
+        Three, not two: `00`:109's ninth relationship joined gap 12's pair once
+        `--confirm` gave a person a way to say yes. Concatenated in a fixed order
+        and each producer sorted within itself, for `104` R-111's reason -- with
+        every weight 1.0 the §8.6 cuts rank nothing, so arrival order decides
+        what survives a ceiling.
+        """
         attachments, references = _observation_edge_maps()
-        edges = typed_edges_of(conn, file_id) + observation_edges_of(
-            file_id, attachments=attachments, references=references)
+        edges = (typed_edges_of(conn, file_id)
+                 + observation_edges_of(file_id, attachments=attachments,
+                                        references=references)
+                 + confirmed_membership_edges_of(
+                     file_id, confirmations=_confirmed_membership_map()))
         return tuple(
             dict(edge,
                  to_describes=_how_another_file_would_describe_itself(
@@ -14629,6 +14791,101 @@ def apply_renames(conn: sqlite3.Connection, renames: Sequence[str], *,
             ) from refusal
 
 
+class RelabelRefused(NotConfigured):
+    """`--rename-level` was not a level key, or named one no run has shown."""
+
+
+def apply_level_relabels(conn: sqlite3.Connection, relabels: Sequence[str], *,
+                         user_id: str, observed_at: str,
+                         mint_action_id) -> None:
+    """`--rename-level SCHEMA:ROLE:FIELD=NEW`: what I call this level.
+
+    `104` R-41, and the gesture `64` was written for. The overlay has been
+    readable and appliable since `64` landed -- `design_tree` reads
+    `user_level_edits` and routing applies them as its last step -- and
+    `record_user_level_edit` had no caller, so the edit was "not honoured because
+    it cannot be made". This is the caller.
+
+    **The whole triple, because the triple is the key** (`64` §3). A level is not
+    named by a node id, which §8.8 mints afresh per plan version, nor by a
+    template version, which is the packaging an upgrade replaces. It is named by
+    the vocabulary -- schema, role, field -- and the report prints exactly the
+    string this reads, so the line the person pastes is the line that works.
+
+    **Collected as a `review_action` FIRST, then stored as the user's fact.**
+    `81` §13.1: a canvas gesture travels as a `review_action` so one history
+    explains every change. P13's refusals -- a level no run has shown, a scope
+    nobody chose -- land in front of the overlay write, which is the order
+    `--send-set` established and for its reason: a refusal that arrives after the
+    write leaves a stored row saying the person renamed something they were told
+    they had not.
+
+    **`proposed_label` is `None` here and that is not the field going unfilled.**
+    §5b wants "what the library called it at the moment the user overrode it", and
+    the composition is what knows that -- `apply_user_level_edits` fills it in
+    from the dimension it lands on, per release, which is the version of the fact
+    that can still be true after an upgrade. A label copied off the last screen
+    into the stored row would be a second, staler answer to the same question.
+    """
+    for raw in relabels:
+        level_key, sep, label = raw.partition("=")
+        # Unpacked rather than counted, so the shape of the key is stated by the
+        # names it binds and this function holds no number of its own.
+        try:
+            schema, role_ref, field_ref = level_key.split(LEVEL_KEY_SEPARATOR)
+        except ValueError:
+            schema = role_ref = field_ref = ""
+        if not sep or not label.strip() or not all(
+                (schema, role_ref, field_ref)):
+            raise RelabelRefused(
+                f"{raw!r} is not a level. The form is "
+                "`--rename-level <schema>:<role>:<field>=<what to call it>`, "
+                "naming a level exactly as the report printed it -- for example "
+                "`--rename-level 'academic:subject_anchor:subject=Class'`.")
+        try:
+            # BUILT FIRST, COLLECTED SECOND, STORED THIRD, and the first two are
+            # in that order for one refusal: `UserLevelEdit.__post_init__` rejects
+            # a label carrying a path separator -- "a renamed level is a display
+            # label, never a path fragment" -- and constructing the record after
+            # the gesture was collected would leave a `review_action` row saying
+            # the person renamed something the very next line told them they had
+            # not. Building it costs nothing and writes nothing; P10's shape
+            # refusals therefore land in front of P13's write, exactly as P13's
+            # refusals land in front of P10's.
+            edit = UserLevelEdit(
+                uses_schema=schema, role_ref=role_ref, field_ref=field_ref,
+                action=ACTION_RENAMED, display_label=label,
+                # `None`, and it is a KNOWN LIMIT rather than an unfilled field.
+                # `UserLevelEdit` wants "what the library called the level at the
+                # moment the user overrode it", and nothing durable holds the
+                # last label a screen showed -- the presentation row records the
+                # policy and the subject, not the words. What IS recorded is the
+                # other half of the same sentence: `apply_user_level_edits` fills
+                # `proposed_label` per release from the dimension the rename
+                # lands on, so an upgrade can still say "it now calls it Module".
+                # Copying the label off this run's screen would be a second and
+                # staler answer to the same question.
+                proposed_label=None, user_id=user_id,
+                recorded_at=observed_at)
+            collect_level_relabel(
+                conn, level_key=level_key, display_label=label,
+                action_id=mint_action_id(),
+                correction_scope=LEVEL_RELABEL_SCOPE, user_id=user_id,
+                component_version=COMPONENT_VERSION, acted_at=observed_at)
+            record_user_level_edit(conn, edit)
+        except (PresentationRequired, ProtectedContainerHasNoAction,
+                ScopeNotPresented, BulkMembersRequired, UserEditRefused,
+                MalformedTemplateRecord) as refusal:
+            # P13's and P10's OWN SENTENCES, re-raised as this command's refusal
+            # rather than paraphrased. The commonest of them is the one a person
+            # will actually meet: a triple no run has printed has no recorded
+            # presentation, and §8.7 refuses a gesture that carries no record of
+            # what was shown. `--rename-level` is a second-run gesture for the
+            # same reason `--reject` is -- there is nothing to rename until the
+            # product has proposed something.
+            raise RelabelRefused(str(refusal)) from refusal
+
+
 class AnswerRefused(NotConfigured):
     """`--answer` named something this database has never asked about."""
 
@@ -15826,8 +16083,65 @@ def duplicate_families(conn: sqlite3.Connection,
             for family, members in families.items() if len(members) > 1}
 
 
+def levels_on_screen(result: ProductionRun) -> tuple[LevelOnScreen, ...]:
+    """`64` §3's triple for every level this run's tree is named by.
+
+    `104` R-41's half (a). The key a rename is stored under has to be a key the
+    person can READ off the screen and type back, and until now the only thing
+    printed about a level was the field ref on the nesting chain -- half of a
+    three-part key, and the half that says least.
+
+    Read off the composition each branch was actually built from, never
+    re-derived: `CompositionCandidate.level_keys` is the same `binding_schemas`
+    mapping `apply_user_level_edits` is handed, so a triple this prints is a
+    triple that overlay honours. Deriving it a second way here is how a screen
+    comes to offer a gesture the writer refuses.
+
+    ONE ENTRY PER TRIPLE across the whole tree, because that is what the overlay
+    stores: two branches on one schema share a level, and printing it twice would
+    invite two renames of one thing.
+
+    IN NESTING ORDER, `order_index`, and not alphabetically. The block sits under
+    the tree and is read against it, and a person who has just read folders from
+    the outside in should meet the levels the same way round. The key breaks a tie,
+    so two runs of one folder print the same block in the same order.
+
+    **Every level the composition RESOLVED, including one this corpus did not
+    divide at.** §5.5 measures a level and does not build it when the files do not
+    divide there, and that is a fact about this run's files rather than about the
+    vocabulary: the name is still the name, and the day a second course arrives the
+    level appears wearing whatever the person called it. Listing only the built
+    ones would make the gesture available or not by accident of what is on the
+    disk this week.
+
+    A branch the person kept whole has no composition and contributes nothing --
+    there are no levels under it to name.
+    """
+    levels: dict[str, LevelOnScreen] = {}
+    depth: dict[str, int] = {}
+    for branch in result.tree.branches:
+        composition = branch.composition
+        if composition is None:
+            continue
+        by_pair = {(dimension.role_ref, dimension.field_ref): dimension
+                   for dimension in composition.resolved_dimensions}
+        for schema, role_ref, field_ref in composition.level_keys:
+            dimension = by_pair.get((role_ref, field_ref))
+            if dimension is None:
+                continue
+            level = LevelOnScreen(
+                uses_schema=schema, role_ref=role_ref, field_ref=field_ref,
+                display_label=dimension.display_label,
+                proposed_label=dimension.proposed_label)
+            levels.setdefault(level.key(), level)
+            depth.setdefault(level.key(), dimension.order_index)
+    return tuple(levels[key]
+                 for key in sorted(levels, key=lambda k: (depth[k], k)))
+
+
 def report(result: ProductionRun, names: dict[str, str], *, out=None,
            questions: Sequence = (), set_aside: Sequence = (),
+           levels: Sequence[LevelOnScreen] = (),
            role_moment: Sequence[str] = (),
            roles_held: Sequence[str] = (),
            invite_freeze: bool = False,
@@ -15936,6 +16250,39 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             draw(node.node_id, depth + 1)
 
     draw(None, 0)
+
+    # `104` R-41(a). WHAT EACH LEVEL OF THAT TREE IS, named by the key a rename
+    # is stored under (`64` §3). The tree above prints folder names -- values --
+    # and says nothing about the levels those values fill, so a person who reads
+    # "Course" on a folder cannot tell whether the product will call the level
+    # Course again next time, and had no string to name it by if they disagreed.
+    #
+    # The triple is printed in full and not shortened to the field. It is the
+    # whole key -- a rename is per-schema (`64` §3: renaming Course to Class in
+    # an academic context renames nothing in a research context) -- and a short
+    # form the flag then could not read is `84` §6's own defect.
+    # "each level of this plan" and NOT "these folders are named by". §5.5
+    # measures a level its files do not divide at and does not build it, so some
+    # of these name no folder above -- and a heading claiming they did would be
+    # false about a real level on a real run, which is the class of sentence
+    # `refinement_for` was rewritten to stop this file producing.
+    if levels:
+        print("\nWhat each level of this plan is called:", file=out)
+        for level in levels:
+            # The library's own proposal, kept beside the person's word rather
+            # than replaced by it (`64` §5b): a proposal that vanished cannot be
+            # offered back, and an upgrade could not be explained.
+            was = ("" if level.proposed_label is None
+                   else f"  (this release calls it {level.proposed_label})")
+            print(f"  {level.display_label} -- {level.key()}{was}", file=out)
+        # NAMING A LEVEL THIS RUN ACTUALLY HAS. An invented example would be a
+        # line the product told somebody to paste and the flag would refuse.
+        print(_wrapped(
+            f"To call one of them something else: --rename-level "
+            f"'{levels[0].key()}=Your word'. It is kept against what the level "
+            "means rather than against these folders, so a re-shaped tree and a "
+            "library update both keep it, and it changes nothing under a "
+            "different kind of material.", indent="  "), file=out)
 
     # The residual areas this plan actually has, so the held-for-review line can
     # name what to type instead of leaving the person to guess it. `getattr` for
@@ -17146,6 +17493,19 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "them because a value may contain an `=`. Can be given more than "
              "once.")
     parser.add_argument(
+        "--rename-level", action="append", default=[],
+        metavar="SCHEMA:ROLE:FIELD=NAME",
+        help="call one of the levels your folders are named by something else, "
+             "e.g. --rename-level "
+             "'academic:subject_anchor:subject=Class'. Name the level exactly as "
+             "the report printed it. Your word outlives the run: it is kept "
+             "against the level's meaning rather than against these folders, so "
+             "a later run, a re-shaped tree and a library update all keep it, "
+             "and what this release would have called it is recorded beside it. "
+             "It applies in that context only -- renaming a level here renames "
+             "nothing under a different kind of material. Nothing moves. Can be "
+             "given more than once.")
+    parser.add_argument(
         "--residual", action="append", default=[], metavar="NAME",
         help="enable one of §7.3's residual areas as a destination in this "
              "plan, e.g. --residual \"Reading Inbox\". These are the homes for "
@@ -17488,6 +17848,24 @@ def main(argv: Sequence[str] | None = None, *, out=None,
             _bootstrap(conn)
             apply_renames(conn, args.rename, user_id=args.user,
                           observed_at=now())
+        # BESIDE them and before the run, for their reason. `--rename` is about a
+        # VALUE the model read out of a file; this is about the NAME OF A LEVEL
+        # the library proposed, which is a different question asked on the same
+        # screen -- and a person who answers both in one command should see both
+        # on this run's tree.
+        if args.rename_level:
+            _bootstrap(conn)
+            relabels = count()
+
+            def mint_relabel_action_id() -> str:
+                # `mint_send_action_id`'s rule: an action id, an approval id and
+                # a plan id are three things a person may be asked about later,
+                # and the prefix is what says which one a bare uuid is.
+                return f"level-{uuid.uuid4().hex}:{next(relabels)}"
+
+            apply_level_relabels(
+                conn, args.rename_level, user_id=args.user, observed_at=now(),
+                mint_action_id=mint_relabel_action_id)
         if args.explain:
             _bootstrap(conn)
             for question_id in args.explain:
@@ -17602,9 +17980,25 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # place where new facts are discovered.
     held = live_roles(conn)
     _landscape = high_level_folders(directory, also_read, candidate_roots)
+    # `104` R-41. The levels are read off the run and RECORDED AS SHOWN before
+    # the report prints them, because the gesture that renames one is typed at
+    # the next invocation and P13 refuses a gesture with no recorded
+    # presentation. `review_gestures`' own docstring names the limitation this
+    # shares with the residual sets -- the row is written a moment before the
+    # screen rather than by the screen -- and the honest fix is the same one, and
+    # is owed there.
+    _levels = levels_on_screen(result)
+    _level_version = result.tree.tree.plan_version_id
+    record_level_presentations(
+        conn, levels=_levels, plan_version=_level_version,
+        session_id=_level_version,
+        settings=display_policy(conn, plan_version=_level_version),
+        user_id=args.user, component_version=COMPONENT_VERSION,
+        rendered_at=now())
     shown = report(result, file_names(conn, directory, *also_read), out=out,
                    questions=open_now,
                    set_aside=set_aside_questions(conn),
+                   levels=_levels,
                    role_moment=role_moment_lines(blocked=open_now,
                                                  already_declared=held),
                    roles_held=role_panel_lines(held),

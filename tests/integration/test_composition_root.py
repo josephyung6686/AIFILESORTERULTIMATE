@@ -121,37 +121,53 @@ def test_the_reachability_instrument_can_tell_a_caller_from_a_reference():
     """The falsifying twin for `_sources_calling`, and it is not a formality.
 
     `create_llm_schema` gained its first production caller in this same change, so
-    it proves the instrument SEES a real call. `record_user_level_edit` is named in
-    its own module's `__all__` and called by nothing, so it proves the instrument is
-    not merely matching the name -- which a grep would, and which is how this gap
-    stayed invisible.
+    it proves the instrument SEES a real call. The dead half proves the instrument
+    is not merely matching the name -- which a grep would, and which is how this
+    gap stayed invisible.
+
+    **THE DEAD ANCHOR MOVED, and the move is the instrument working.** It was
+    `record_user_level_edit`, and `104` R-41 gave that function a caller
+    (`cli.apply_level_relabels`), so this assertion went red on the same change
+    that flipped the strict xfail below -- which is exactly what a twin anchored
+    to a live gap does on the day the gap closes, and exactly why the xfail's own
+    twin (`test_the_reachability_census_can_fail`) anchors to something dead by
+    DECLARATION instead.
+
+    `tree_design.upstream.rejected_group_ids` replaces it and is the same shape of
+    evidence: P10's own published reader, exercised directly by
+    `tests/p10/test_p10_upstream.py`, called by nothing in `src/`. Perfect
+    coverage of a function no run enters is the defect this whole module is about,
+    so the anchor is an instance of it rather than a symbol chosen for
+    convenience.
     """
     assert "cli.py" in _sources_calling("create_llm_schema")
-    assert not _sources_calling("record_user_level_edit")
+    assert not _sources_calling("rejected_group_ids")
 
 
 def test_the_renaming_overlay_has_a_writer_somewhere_in_the_product():
-    """`64` §1's rename is readable, appliable, durable -- and unreachable.
+    """`64` §1's rename is readable, appliable, durable -- and now reachable.
 
-    `apply_user_level_edits` is wired into routing (`routing.py:506`) and the
-    overlay's own writer refuses an edit nothing can apply, on the grounds that
-    "the user would see their edit accepted and never honoured". Nothing calls the
-    writer, and `routing.py:303` defaults `user_edits` to `()`, so the person
-    cannot rename a level at all: the edit is not honoured because it cannot be
-    made. Its owed caller is P13's review surface, which is unbuilt.
+    `apply_user_level_edits` was wired into routing from the day `64` landed, and
+    the overlay's own writer refuses an edit nothing can apply on the grounds that
+    "the user would see their edit accepted and never honoured". Nothing called
+    the writer, so the person could not rename a level at all: the edit was not
+    honoured because it could not be MADE. The owed caller was named here as
+    P13's review surface, and the strict xfail that stood on this line reported
+    the gap until it arrived.
 
-    `xfail(strict=True)`: it reports the gap today and turns the suite RED the day
-    a writer appears, which forces the marker off.
+    **Wired by `104` R-41, and the marker came off with it.** `cli.main` takes
+    `--rename-level SCHEMA:ROLE:FIELD=NAME`, collects the gesture as P13's own
+    `review_action` on the `canvas` surface (`81` §13.1: a canvas edit travels in
+    the same audit trail as accepting a file), and hands the fact to
+    `record_user_level_edit`. The report prints `64` §3's triple for every level
+    of the tree, which is what makes the key typeable at all -- before it, the
+    screen showed the field ref alone.
+
+    `tests/integration/test_cli_level_relabel.py` is the end-to-end half: three
+    runs of the shipped command, and the third re-derives the whole composition
+    from the catalogue and still says the person's word.
     """
     assert _sources_calling("record_user_level_edit")
-
-
-test_the_renaming_overlay_has_a_writer_somewhere_in_the_product = pytest.mark.xfail(
-    strict=True,
-    reason="P13's review surface is unbuilt; nothing calls record_user_level_edit, "
-           "so a person cannot rename a level. XPASSes and fails the suite the "
-           "moment a writer appears.",
-)(test_the_renaming_overlay_has_a_writer_somewhere_in_the_product)
 
 
 def test_the_question_that_asks_which_situation_a_branch_is_reaches_a_person():
@@ -592,18 +608,28 @@ def test_every_public_mechanism_in_the_source_is_reachable_from_the_entry_point(
 test_every_public_mechanism_in_the_source_is_reachable_from_the_entry_point = (
     pytest.mark.xfail(
         strict=True,
-        reason="measured 2026-08-30: 261 of 1,226 public mechanisms in src/ are "
-               "unreachable from cli.main. 26 are explained by EXEMPT; the other 235, "
-               "across 97 modules, are not, and they are not a whitelist -- whole "
-               "parts are wired to nothing. §8.4's local-first default posture "
-               "(privacy/defaults.py, all 4), P7's consent path (4), P11's residual "
-               "return cycle (13), P10's freeze, diff, health and template schema, "
-               "the stage_output emitter of EVERY part, the eval harness's shadow and "
-               "adversarial gates, P5's date grammar, P6's rule stage, and P12/P13's "
-               "in-flight modules. 23 modules have no reached mechanism at all. The "
-               "count moves as parts land; the assertion prints the live list. "
-               "XPASSes -- and fails the suite, forcing this marker off -- the day "
-               "the last one is wired, so shrink it here as they are.",
+        reason="RE-MEASURED 2026-09-10 (104 R-45), on the change that wired R-41: 306 "
+               "of 1,939 public mechanisms in src/ are unreachable from cli.main. 29 "
+               "are explained by EXEMPT; the other 277, across 108 modules, are not, "
+               "and they are not a whitelist -- whole parts are wired to nothing. "
+               "P13's review surface is 102 of the 277 and 14 of the 28 modules with "
+               "no reached mechanism AT ALL, which is one finding rather than "
+               "fourteen: tests/p13/test_p13_gesture_census.py measures why, gesture "
+               "by gesture. P10 is 19 (freeze, diff, health, stage_output, and five "
+               "upstream readers), the eval harness 22 (shadow and adversarial "
+               "gates), P12 27, and §8.4's local-first default posture "
+               "(privacy/defaults.py, all 4) and P7's consent path (4) are still "
+               "whole. The stage_output emitter of five parts is still unreached. "
+               "WHAT MOVED SINCE 2026-08-30, and both directions are the instrument "
+               "working: the population grew 1,226 -> 1,939 as parts landed, P11's "
+               "residual return cycle came off the list entirely (placement/ is down "
+               "to 4), and tree_design.user_edits left it because R-41 gave "
+               "record_user_level_edit its first caller -- the only symbol this "
+               "change removed, and 9 of 9 public mechanisms it ADDED are reachable, "
+               "so the net is 278 -> 277. The count moves as parts land; the "
+               "assertion prints the live list. XPASSes -- and fails the suite, "
+               "forcing this marker off -- the day the last one is wired, so shrink "
+               "it here as they are.",
     )(test_every_public_mechanism_in_the_source_is_reachable_from_the_entry_point))
 
 
