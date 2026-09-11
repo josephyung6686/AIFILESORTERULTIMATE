@@ -960,6 +960,32 @@ OBSERVE_TEMPLATE_ID: Mapping[str, str] = MappingProxyType({
 
 assert set(OBSERVE_TEMPLATE_ID) == OBSERVE_CALL_SITES
 
+#: THE C ROW WHOSE TEXT DESCRIBES A FILLED `folder_levels`. `104` R-77, §13.6's
+#: schema half.
+#:
+#: The owner answered "Yes, change it" on 11 Sep 2026 to line 33 of the ratified C
+#: text -- *"`field_glossary` and `folder_levels` are empty at this site"* -- and
+#: the lead wrote the amended candidate row beside it, which says instead that the
+#: key lists, per candidate node, the levels that node sits under, and that a level
+#: named for a file must be one of them. This names that row.
+#:
+#: **A ROW ID AND NOT A READING OF THE TEXT.** `PromptDefinition.ratified`'s own
+#: sentence is the reason: the id names the FILE, the manifest row says what that
+#: file's text is, and a check that scanned the prose for a phrase would make the
+#: builder's behaviour depend on a sentence the owner may reword. This is the
+#: fifth row this file names -- `A_FACT_ROW`, `SITUATION_ROW` and the four in
+#: `OBSERVE_TEMPLATE_ID` are the others -- and it is named for the same reason all
+#: of them are: which text a site runs under is the composition root's answer.
+#:
+#: **NOTHING HERE RE-POINTS SITE C.** `OBSERVE_TEMPLATE_ID[C_PLACEMENT]` still
+#: names the ratified `eliminate-v2r-group` row and stays there until the owner
+#: ratifies this one; under that row `observe_prompt` sets `lists_folder_levels`
+#: false, the placement pass projects nothing, and the C dossier is byte-identical
+#: to the one it built before this constant existed -- which is what the row's own
+#: line 33 says is true. Ratification is one edit to the table above and none here.
+C_LEVELS_TEMPLATE_ID: str = (
+    "c_placement.unratified.eliminate-v2r-group-levels.2026-09-11")
+
 #: `104` R-144: THE MANIFEST ROW SITE A RUNS UNDER, `(template_id, candidate)`.
 #: Site A's text, schema, policy and glossary used to be loaded straight from the
 #: library files, so a second version of A's text could not be run locally
@@ -1930,6 +1956,15 @@ def observe_prompt(call_site: str) -> PromptDefinition:
         # ratified at the time. Renaming on ratification would strand every record
         # already written under the old id.
         ratified=draft_status(template_id) in STATUS_APPLIES,
+        # `104` R-77. WHAT THIS ROW'S TEXT TELLS THE MODEL ITS DOSSIER CARRIES,
+        # read off the row exactly as the word above it is. The placement pass
+        # fills `folder_levels` at C only under the row that describes a filled
+        # one, so the dossier and the sentence the model is shown about the
+        # dossier cannot disagree in either direction -- a key filled under a row
+        # that calls it empty is a prompt lying about its own contents, and a key
+        # left empty under a row that describes a list is a list the model is told
+        # to read and cannot find.
+        lists_folder_levels=template_id == C_LEVELS_TEMPLATE_ID,
         shaping_policy_bytes=shaping_policy)
 
 

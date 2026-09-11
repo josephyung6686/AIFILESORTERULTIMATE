@@ -99,6 +99,24 @@ class PromptDefinition:
     #: reads. A string test would make the invariant depend on a naming habit, and
     #: a renamed draft would start applying.
     ratified: bool = False
+    #: WHETHER THIS ROW'S TEXT DESCRIBES A FILLED `folder_levels`, set by the
+    #: loader from the manifest row on `ratified`'s own terms and for `ratified`'s
+    #: own reason (`104` R-77). What a dossier carries is what the text the model
+    #: is shown says it carries: every C row through `eliminate-v2r-group` states
+    #: that the key is EMPTY at this site, and the row the owner answered "Yes,
+    #: change it" about states what it lists instead. A builder that filled the
+    #: key under the first would make the prompt lie about its own dossier, and a
+    #: builder that left it empty under the second would describe a list that is
+    #: not there.
+    #:
+    #: `False` BY DEFAULT, which is the truthful direction for every row that has
+    #: ever been ratified: the projection is empty, exactly as their line 33 says.
+    #:
+    #: READ OFF THE OBJECT AND NEVER PARSED OUT OF `template_bytes`. `ratified`'s
+    #: own sentence applies unchanged -- "a string test would make the invariant
+    #: depend on a naming habit" -- and scanning the prose for the word would make
+    #: it depend on a sentence the owner may reword.
+    lists_folder_levels: bool = False
 
     def __post_init__(self) -> None:
         _require(self.call_site, CALL_SITES, name="call_site")
@@ -107,6 +125,11 @@ class PromptDefinition:
                 "prompt definition `ratified` is a bool set by the loader from "
                 "the packet manifest; anything else is a caller guessing at "
                 "whether the owner approved this text")
+        if not isinstance(self.lists_folder_levels, bool):
+            raise MalformedRecord(
+                "prompt definition `lists_folder_levels` is a bool set by the "
+                "loader from the manifest row; anything else is a caller guessing "
+                "at what the text tells the model its dossier carries")
         if not self.template_id or not self.call_site_version:
             raise MalformedRecord("prompt definition requires template_id and call_site_version")
         if not self.template_bytes:
@@ -345,6 +368,65 @@ class FolderLevel:
 
 
 @dataclass(frozen=True, slots=True)
+class NodeFolderLevel:
+    """One level ONE candidate node sits under. `104` R-77, §13.6's schema half.
+
+    The C form of a folder level, and it is a different record from `FolderLevel`
+    because it answers a different question. `FolderLevel` is *"which levels would
+    this situation build"* -- one list for the whole call, the same on every file.
+    This is *"which levels does THIS node sit under, and which value names its
+    folder"* -- one list per candidate, which is what the amended C row describes:
+    *"folder_levels lists, for each candidate node, the levels of the tree that
+    node sits under, each by its name and the value that names its folder; a level
+    you assign a file to must be one of these, spelled as listed, and a level that
+    is not listed for a node does not exist there."*
+
+    **Three values, and P8 authors none of them.** `node` is an identifier from the
+    call's own `allowed_vocabulary`; `level` is the P6 field the level divides on,
+    which P10 wrote onto the node as `Node.dimension` and carried into the chain of
+    `ExpectedValue`s the frozen node holds; `value` is that same `ExpectedValue`'s
+    value, the person's own spelling of the folder's name. The composition root's
+    placement pass reads all three off the frozen tree's index and hands them in.
+    There is no second engine here: `materialise._project` accumulates a node's
+    whole chain onto it (`chain + ExpectedValue(field, value)`), so the levels a
+    node sits under are already a field of the node.
+
+    **FLAT, one entry per `(node, level)`, and not a node with a nested list.**
+    `dossier._body` writes these into the model-visible bytes and
+    `released_content` re-reads them at the release door, where an entry is a flat
+    object whose key set is read off this dataclass -- the same shape
+    `field_glossary` and `FolderLevel` already wear, *"a list of objects whose
+    first key is"* the thing the entry is about. A nested list would be a second
+    shape for the one key.
+
+    **Why nothing about the FILE may be added to it.** `FolderLevel`'s sentence,
+    unchanged: every value here is a fact about the frozen tree and about the
+    shortlist this call already carries in `allowed_vocabulary`, so no entry can
+    differ between two files offered the same folders, and §8.4's always-local set
+    has no route in. The shape is closed at these three and `released_content`
+    refuses any entry carrying a fourth.
+    """
+
+    node: str
+    level: str
+    value: str
+
+    def __post_init__(self) -> None:
+        if not self.node or not self.level or not self.value:
+            raise MalformedRecord(
+                "NodeFolderLevel names a candidate node, the level it sits under "
+                "and the value that names that folder; a level missing any of the "
+                "three tells the model nothing it can spell back"
+            )
+
+
+#: The two records the `folder_levels` key may carry, one per site shape. Named
+#: once so `Dossier`, `dossier._folder_levels_body` and the release door read one
+#: list rather than three copies of it.
+FOLDER_LEVEL_RECORDS: tuple[type, ...] = (FolderLevel, NodeFolderLevel)
+
+
+@dataclass(frozen=True, slots=True)
 class ReleasedEvidence:
     """One P7 `ReleasedItem` as the model saw it.
 
@@ -492,7 +574,15 @@ class Dossier:
     #: rather than a default: the site that DOES design one refuses an empty list at
     #: composition (`model_facts.require_folder_levels`), where the deployment that
     #: forgot to read the library is a `TypeError` and not a quiet dossier.
-    folder_levels: tuple[FolderLevel, ...] = ()
+    #:
+    #: **`104` R-77: AT SITE C THE ENTRIES ARE `NodeFolderLevel`s, ONE PER
+    #: `(node, level)`, and the two shapes never mix in one dossier.** The site
+    #: that designs a tree lists the levels the tree WOULD build; the site that
+    #: places a file into a frozen one lists the levels each offered node already
+    #: sits under. Both are projections of `allowed_vocabulary` and both are
+    #: refused when they name something outside it -- a field the vocabulary does
+    #: not carry at A, a node the shortlist does not carry at C.
+    folder_levels: tuple[FolderLevel | NodeFolderLevel, ...] = ()
 
     def __post_init__(self) -> None:
         _require(self.call_site, CALL_SITES, name="call_site")
@@ -517,10 +607,24 @@ class Dossier:
         _freeze_sequence(self, "conflicts")
         _freeze_sequence(self, "released_evidence")
         _freeze_sequence(self, "folder_levels")
-        if any(not isinstance(item, FolderLevel) for item in self.folder_levels):
+        if any(not isinstance(item, FOLDER_LEVEL_RECORDS)
+               for item in self.folder_levels):
             raise MalformedRecord(
                 "folder_levels must be FolderLevel records read off the shipped "
-                "template library; a mapping here is a caller authoring a level"
+                "template library, or NodeFolderLevel records read off the frozen "
+                "tree; a mapping here is a caller authoring a level"
+            )
+        # ONE SHAPE PER DOSSIER, `104` R-77. The two records answer different
+        # questions -- which levels a situation would build, and which levels one
+        # frozen node sits under -- and the model is told the key means one of
+        # them. A dossier carrying both would be two answers under one key, and
+        # `_folder_levels_body` would have to pick which sentence the template's
+        # own description of the key was about.
+        if len({type(item) for item in self.folder_levels}) > 1:
+            raise MalformedRecord(
+                "folder_levels mixes FolderLevel and NodeFolderLevel entries. The "
+                "ratified text describes this key with one sentence per site, and "
+                "a list carrying both shapes is a dossier no sentence is true of"
             )
         if any(not isinstance(item, EvidenceItem) for item in self.evidence_items):
             raise MalformedRecord("evidence_items must be EvidenceItem records")

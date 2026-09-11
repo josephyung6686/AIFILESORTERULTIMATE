@@ -29,27 +29,33 @@ this key at all.
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 
 import pytest
 
 from evidence_shape.location import TextSpan
-from llm_harness.dossier import build_dossier, canonical_dossier_bytes
+from llm_harness.dossier import (
+    build_dossier, canonical_dossier_bytes, dossier_from_stored_body,
+)
 from llm_harness.records import (
     DossierRequest,
     EvidenceItem,
     FolderLevel,
     MalformedRecord,
+    NodeFolderLevel,
     PromptDefinition,
 )
 from llm_harness.released_content import DOSSIER_BODY_KEYS, released_content_digest
 from llm_harness.vocabulary import (
     A_FACT,
     B_GROUP,
+    C_PLACEMENT,
     COHERENCE_JUDGEMENT,
     DIRECT_ANCHOR,
     REDUCTION_NONE,
     REMAINS_AMBIGUOUS,
+    SEVERAL_LEGAL_NODES_PLAUSIBLE,
 )
 from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 from privacy.items import Excerpt
@@ -87,7 +93,8 @@ def _prompt(**overrides) -> PromptDefinition:
 
 
 def _request(*, subject_ref: str = "file-1", call_site: str = A_FACT,
-             eligibility_reason: str = REMAINS_AMBIGUOUS) -> DossierRequest:
+             eligibility_reason: str = REMAINS_AMBIGUOUS,
+             plan_version: str | None = None) -> DossierRequest:
     return DossierRequest(
         call_site=call_site,
         subject_ref=subject_ref,
@@ -105,7 +112,7 @@ def _request(*, subject_ref: str = "file-1", call_site: str = A_FACT,
             prompt_template_id="template.fact",
             prompt_fingerprint="fingerprint.fact",
             max_dossier_tokens=4000),
-        plan_version=None,
+        plan_version=plan_version,
         evidence_snapshot_id="snap-1",
     )
 
@@ -123,10 +130,11 @@ def _released(value: str = "Columbia University") -> Released:
 
 def _build(*, folder_levels=COURSEWORK, subject_ref="file-1", value="Columbia University",
            allowed_vocabulary=VOCABULARY, call_site=A_FACT,
-           eligibility_reason=REMAINS_AMBIGUOUS):
+           eligibility_reason=REMAINS_AMBIGUOUS, plan_version=None):
     return build_dossier(
         _request(subject_ref=subject_ref, call_site=call_site,
-                 eligibility_reason=eligibility_reason),
+                 eligibility_reason=eligibility_reason,
+                 plan_version=plan_version),
         _released(value),
         reduction_rung=REDUCTION_NONE,
         allowed_vocabulary=allowed_vocabulary,
@@ -236,3 +244,136 @@ def test_no_released_value_or_subject_text_appears_in_the_levels():
     assert "Columbia" not in printed
     assert "homework0" not in printed
     assert "Python 1006" not in printed
+
+
+# --- `104` R-77: the C shape of the same key ------------------------------------
+#
+# §13.6's schema half. The amended C row (`c_placement.unratified.
+# eliminate-v2r-group-levels.2026-09-11`, line 33, written on the owner's "Yes,
+# change it" of 11 Sep 2026) says what the key carries at site C: *"folder_levels
+# lists, for each candidate node, the levels of the tree that node sits under,
+# each by its name and the value that names its folder; a level you assign a file
+# to must be one of these, spelled as listed, and a level that is not listed for a
+# node does not exist there."*
+#
+# The projection invariant above is unchanged and only its subject moves. At A the
+# vocabulary is the domain's field keys and a level names one of them; at C the
+# vocabulary is the shortlist's node ids and a level belongs to one of them. That
+# is the second of G9's three blockers closed: the old check refused any level
+# whose `field` was outside `allowed_vocabulary`, and at C every level field is
+# outside it by construction.
+
+C_NODES = ("node-hw", "node-course")
+
+#: One candidate's chain as the frozen tree holds it: `Node.dimension` beside the
+#: `ExpectedValue` P10 wrote at that level, accumulated root-to-leaf by
+#: `materialise._project`. Synthetic, like everything else in this file.
+NODE_LEVELS = (
+    NodeFolderLevel(node="node-course", level="subject", value="PHYS 1401"),
+    NodeFolderLevel(node="node-hw", level="subject", value="PHYS 1401"),
+    NodeFolderLevel(node="node-hw", level="work_type", value="Homework"),
+)
+
+
+def _c_build(**kwargs):
+    values = dict(folder_levels=NODE_LEVELS, allowed_vocabulary=C_NODES,
+                  call_site=C_PLACEMENT,
+                  eligibility_reason=SEVERAL_LEGAL_NODES_PLAUSIBLE,
+                  plan_version="plan-1")
+    values.update(kwargs)
+    return _build(**values)
+
+
+def _c_body(**kwargs) -> dict:
+    dossier = _c_build(**kwargs)
+    assert not isinstance(dossier, Exception), dossier
+    return json.loads(canonical_dossier_bytes(
+        dossier, _prompt(), handle_key=FIXTURE_HANDLE_KEY).decode("utf-8"))
+
+
+def test_the_c_body_carries_each_candidates_levels_by_name_and_value():
+    """The amended row's sentence, as bytes. One entry per `(node, level)`, in the
+    shortlist's order and each node's own root-to-leaf order."""
+    assert _c_body()["folder_levels"] == [
+        {"level": "subject", "node": "node-course", "value": "PHYS 1401"},
+        {"level": "subject", "node": "node-hw", "value": "PHYS 1401"},
+        {"level": "work_type", "node": "node-hw", "value": "Homework"},
+    ]
+
+
+def test_under_a_row_that_lists_nothing_the_c_key_is_the_empty_list_it_always_was():
+    """`104` R-77's compatibility half, and the reason site C can keep observing
+    the ratified row while this is built. Every C row through
+    `eliminate-v2r-group` says the key is EMPTY at this site; under one of those
+    the builder is handed nothing and writes `[]`, which is the same byte string
+    it wrote before this shape existed."""
+    assert _c_body(folder_levels=())["folder_levels"] == []
+
+
+def test_levels_attributed_to_a_node_off_the_shortlist_are_refused_at_the_builder():
+    """The projection invariant, in C's terms: levels about a folder the model may
+    not answer with are levels no answer of its own can ever spell."""
+    with pytest.raises(MalformedRecord):
+        _c_build(folder_levels=(
+            NodeFolderLevel(node="node-elsewhere", level="subject",
+                            value="PHYS 1401"),))
+
+
+def test_the_door_recomputes_the_c_projection_rather_than_trusting_it():
+    """A body whose `folder_levels` describes a node its own `allowed_vocabulary`
+    does not carry is refused BEFORE the spend, exactly as the A shape is."""
+    prompt = _prompt()
+    dossier = _c_build()
+    raw = canonical_dossier_bytes(dossier, prompt, handle_key=FIXTURE_HANDLE_KEY)
+    released_content_digest(raw, prompt_definition=prompt, policy_version="policy-1")
+    body = json.loads(raw.decode("utf-8"))
+    body["folder_levels"] = [
+        {"level": "subject", "node": "node-elsewhere", "value": "PHYS 1401"}]
+    tampered = json.dumps(body, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    with pytest.raises(MalformedRecord):
+        released_content_digest(
+            tampered, prompt_definition=prompt, policy_version="policy-1")
+
+
+def test_the_door_refuses_a_c_level_entry_carrying_a_fourth_key():
+    """`FolderLevel`'s own sentence, over the C record: a fourth key is how an
+    example drawn from the person's corpus would travel beside a tree constant."""
+    prompt = _prompt()
+    dossier = _c_build()
+    body = json.loads(canonical_dossier_bytes(
+        dossier, prompt, handle_key=FIXTURE_HANDLE_KEY).decode("utf-8"))
+    body["folder_levels"] = [
+        {"level": "subject", "node": "node-hw", "value": "PHYS 1401",
+         "hint": "the heading says so"}]
+    tampered = json.dumps(body, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    with pytest.raises(MalformedRecord):
+        released_content_digest(
+            tampered, prompt_definition=prompt, policy_version="policy-1")
+
+
+def test_a_dossier_may_not_mix_the_two_level_shapes():
+    """One sentence per site, and a list carrying both shapes is a dossier no
+    sentence is true of."""
+    with pytest.raises(MalformedRecord):
+        _c_build(folder_levels=(COURSEWORK[2], NODE_LEVELS[0]),
+                 allowed_vocabulary=C_NODES + VOCABULARY)
+
+
+def test_two_files_offered_one_shortlist_carry_byte_identical_c_levels():
+    """§8.4, over the C shape. Every value here is the frozen tree's and the
+    shortlist's; nothing about the file has a route in."""
+    first = _c_body(subject_ref="file-1", value="Columbia University")
+    second = _c_body(subject_ref="file-2", value="Hong Kong Baptist University")
+    assert first["subject_ref"] != second["subject_ref"]
+    assert first["released_evidence"] != second["released_evidence"]
+    assert first["folder_levels"] == second["folder_levels"]
+
+
+def test_a_stored_c_dossier_rebuilds_with_its_levels_intact():
+    """`store.load_dossier` compares the rebuilt record against the row key by key,
+    so a rebuild that assumed the A shape would be `MalformedRecord` out of every
+    reuse decision R-127 makes about a C response."""
+    dossier = _c_build()
+    rebuilt = dossier_from_stored_body(
+        dataclasses.asdict(dossier), release_id=dossier.release_id)
+    assert rebuilt.folder_levels == NODE_LEVELS
