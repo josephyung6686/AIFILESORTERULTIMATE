@@ -227,3 +227,105 @@ def test_keeping_a_branch_as_it_is_does_not_unfile_its_members(tmp_path):
         database, "SELECT COUNT(*) FROM placement_decisions WHERE outcome = 'place' "
                   "AND plan_version = ?", _plan_version(after))[0][0]
     assert placed_after >= placed_before
+
+
+# --- 103 C21 / `104` R-40: the home answer lifts the unclassified hold -------------
+
+
+def _corpus_with_an_unreadable_folder(root: Path) -> Path:
+    """The shape the `home:` question exists for, and it is the smallest one.
+
+    `IMG_0001.txt` is empty, so every text-producing extractor opens it and
+    recovers nothing and it reaches P11 as `unreadable_unclassified` with no
+    evidence at all. `IMG_0002.txt` is its readable-by-a-newline twin, which the
+    question is NOT asked about: it is what a file nobody has said anything about
+    still has to look like after the hold is lifted for the one they did.
+    """
+    corpus = _corpus(root)
+    scans = corpus / "scans"
+    scans.mkdir()
+    (scans / "IMG_0001.txt").write_text("")
+    (scans / "IMG_0002.txt").write_text("\n")
+    return corpus
+
+
+def _policies(database: Path, plan_version: str) -> dict[str, str]:
+    """Filename -> the review policy its live placement decision carries."""
+    return {row[0]: row[1] for row in _query(
+        database,
+        "SELECT f.filename, p.review_policy FROM placement_decisions p "
+        # `subject_ref` is the file VERSION -- P11 addresses a decision by
+        # `(plan_version, subject_ref)` and a file id alone would name two rows
+        # for a file edited between runs -- so the id is its leading segment.
+        "JOIN files f ON p.subject_ref LIKE 'file:' || f.file_id || ':%' "
+        "WHERE p.superseded_by IS NULL AND p.plan_version = ?", plan_version)}
+
+
+def _frozen_names(database: Path) -> set[str]:
+    return {row[0] for row in _query(
+        database,
+        "SELECT f.filename FROM move_plans m JOIN files f ON f.file_id = m.file_id "
+        "WHERE m.superseded_by IS NULL")}
+
+
+def test_answering_where_an_unreadable_file_goes_lets_it_freeze(tmp_path):
+    """`104` R-40, end to end: the one question asked about an unreadable file.
+
+    `review_policy_for` returned `blocked_pending_user` for an unclassified
+    subject before every other test, so the answer wrote a `place` decision that
+    `freeze._withheld` then held as `awaiting_classification`. The person
+    answered and nothing filed -- measured on this corpus as no `move_plans` row
+    for the answered file at all, while the two readable files were frozen beside
+    it.
+
+    The second assertion is what makes the first honest: the hold lifts for the
+    file the person named and for no other, so the twin nobody answered about is
+    still not frozen.
+    """
+    corpus = _corpus_with_an_unreadable_folder(tmp_path)
+    database = tmp_path / "holder" / "plan.sqlite"
+    code, report = _run(corpus, database)
+    assert code == 0, report
+    assert "--answer home:scans=" in report, report
+
+    code, report = _run(corpus, database,
+                        "--answer", "home:scans=Coursework", "--freeze")
+    assert code == 0, report
+    frozen = _frozen_names(database)
+    assert "IMG_0001.txt" in frozen, report
+    assert "IMG_0002.txt" not in frozen, report
+
+
+def test_the_answered_file_is_review_required_and_its_twin_is_not(tmp_path):
+    """The same fact one layer down, on the record rather than on the outcome.
+
+    `review_required` and not `auto_eligible`: naming a home is not authorising a
+    move, and §6.11 keeps those apart. `blocked_pending_user` for the file nobody
+    answered about, because nothing has classified it and nobody has said where it
+    goes either.
+    """
+    corpus = _corpus_with_an_unreadable_folder(tmp_path)
+    database = tmp_path / "holder" / "plan.sqlite"
+    _run(corpus, database)
+    code, report = _run(corpus, database, "--answer", "home:scans=Coursework")
+    assert code == 0, report
+    policies = _policies(database, _plan_version(report))
+    assert policies.get("IMG_0001.txt") == "review_required", policies
+    assert policies.get("IMG_0002.txt") == "blocked_pending_user", policies
+
+
+def test_nothing_freezes_from_that_folder_when_nobody_answers(tmp_path):
+    """The negative twin of the first test, with the answer taken away.
+
+    A change that lifted the hold for every unclassified file would pass the
+    first test and fail this one, and it is the failure that matters: the freeze
+    would be approving moves for files nothing has looked at.
+    """
+    corpus = _corpus_with_an_unreadable_folder(tmp_path)
+    database = tmp_path / "holder" / "plan.sqlite"
+    _run(corpus, database)
+    code, report = _run(corpus, database, "--freeze")
+    assert code == 0, report
+    frozen = _frozen_names(database)
+    assert "IMG_0001.txt" not in frozen, report
+    assert "IMG_0002.txt" not in frozen, report

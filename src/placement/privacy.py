@@ -37,6 +37,13 @@ LOCAL model MAY be asked about it, which is the owner's answer to Open question 
 and changes nothing about the sentence above: what the model says is still not a
 classification, and the review policy still reads `blocked_pending_user`.
 
+One thing does lift that policy, and it is not a model (`104` R-40): the PERSON
+naming the file's destination. `review_policy_for`'s `destination_named_by_user`
+says why -- an answer to the `home:` question is not a classification and does
+not pretend to be one, it is the only evidence about an unreadable file that will
+ever exist, and a file whose home the person has stated is no longer a file
+nobody has looked at.
+
 **Unclassified is not protected, and the two never collapse.** `protected` is P7's
 FLAG and an absent record carries none, so it stays False. A passport is material
 the user marked sensitive and the product deliberately did not open; an unreadable
@@ -271,7 +278,8 @@ def moves_files(disposition: str | None) -> bool:
 def review_policy_for(*, privacy_state: PrivacyState, two_condition,
                       group_support, unique_direct_match: bool,
                       destination_disposition: str | None,
-                      automatic_move_permitted: bool = False) -> str:
+                      automatic_move_permitted: bool = False,
+                      destination_named_by_user: bool = False) -> str:
     """§6.11's review policy. Every path to `auto_eligible` is a narrow one.
 
     Six things each forbid it on their own, and every one traces to a design
@@ -292,6 +300,29 @@ def review_policy_for(*, privacy_state: PrivacyState, two_condition,
     "never", so a disposition gate placed after the scoring checks would be one a
     high enough score could reason its way past.
 
+    **`destination_named_by_user` is the ONE thing that lifts the unclassified
+    hold, and it is not a second classification** (`104` R-40). A file nothing
+    could read is the exact file `questions.registry.HOME_KIND` exists to ask
+    about: the product opened everything in the folder, recovered no text from
+    any of it, and asked the only party who knows. The person answered, and the
+    answer names a destination in this plan. Before this parameter the answer
+    changed nothing a person could see -- `_user_chose` wrote a `place` decision
+    carrying `blocked_pending_user`, `apply_run.freeze._withheld` read that word
+    and held the file as `awaiting_classification`, and the one question the
+    product asks about an unreadable file could not deliver on any run.
+
+    What it lifts is the review POLICY and nothing else. The handling class stays
+    `unreadable_unclassified` on the record, `may_assemble_dossier` still refuses
+    every cloud target, and `unique_direct_match=False` on that path means the
+    answer comes back `review_required` rather than `auto_eligible`: the person
+    named a home, which is not the same act as authorising the move, and §6.11
+    keeps those apart everywhere else. So the file joins the queue a reviewer can
+    act on instead of the one nobody can, which is the whole of `blocked_policy`'s
+    own distinction read in the person's favour.
+
+    It defaults to False, so every caller that is not `_user_chose` is exactly
+    what it was.
+
     `destination_disposition` has no default. A caller that forgot it would get
     the ordinary-node answer and silently lose the gate, which is precisely the
     state this field was already in -- written, validated, and read by nothing.
@@ -300,7 +331,7 @@ def review_policy_for(*, privacy_state: PrivacyState, two_condition,
     permission is a fact about the file and this function takes no connection;
     `automatic_move_permitted_for` above is where it comes from.
     """
-    if is_unclassified(privacy_state):
+    if is_unclassified(privacy_state) and not destination_named_by_user:
         return blocked_policy()
     if not moves_files(destination_disposition):
         return REVIEW_REQUIRED
