@@ -143,7 +143,8 @@ def seed(p11_conn, tmp_path):
     about a file is a record, not a switch.
     """
     def build(*, protected: tuple[str, ...] = (),
-              unclassified: tuple[str, ...] = ()) -> SimpleNamespace:
+              unclassified: tuple[str, ...] = (),
+              tree: object = None) -> SimpleNamespace:
         create_llm_schema(p11_conn)
         create_budget_schema(p11_conn)
         for key in CEILINGS.values():
@@ -162,7 +163,8 @@ def seed(p11_conn, tmp_path):
                       handling_class=("sensitive_personal" if name in protected
                                       else "personal_non_sensitive"))
         _policy(p11_conn)
-        build_destination_index(p11_conn, FROZEN_TREE,
+        build_destination_index(p11_conn,
+                                FROZEN_TREE if tree is None else tree,
                                 component_version="P11-test",
                                 observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
         _seed_group(p11_conn, ids)
@@ -815,3 +817,183 @@ def test_gap_with_no_model_path_the_two_homes_file_is_still_never_placed_by_a_ru
     decision = _scan_decision(result, two_homes)
     assert decision.outcome == v.ASK_USER
     assert set(decision.ask.options) == {FIRST_HOME, SECOND_HOME}
+
+
+# --- `00`:112's SECOND sentence: the members are classified WITHIN the branch -----
+
+#: `00`:112: *"classify members within that branch: essay drafts go to Essays;
+#: checklists to Forms"*. `FROZEN_TREE`'s `n-course` is a leaf, so every existing
+#: test in this file measures the no-sub-level arm -- a member that goes with its
+#: group and makes no call. This is the other arm, and it needs a branch with
+#: levels under it.
+ESSAYS: str = "n-essays"
+FORMS: str = "n-forms"
+
+
+def _sub_level(node_id: str, label: str, value: str, ordinal: int):
+    """One level under `n-course`, built through P10's own constructor.
+
+    `expected_values` is the CHAIN, which is what `materialise._project` writes:
+    the parent's `subject = PHYS1401` and then this level's own `work_type`.
+    """
+    from p11.p10_fixtures import ExpectedValue, _node
+
+    return _node(
+        node_id=node_id, display_label=label, parent_node_id="n-course",
+        ordinal=ordinal, associated_group_ids=(),
+        dimension_role="kind of work", dimension="work_type",
+        expected_values=(ExpectedValue(field="subject", value="PHYS1401"),
+                         ExpectedValue(field="work_type", value=value)),
+        explanation=f"The PHYS1401 group holds {label.lower()} of its own.",
+        refinement_disposition="refined",
+        refinement_reason="The course has enough populated work types for this level.")
+
+
+def _two_level_tree():
+    from dataclasses import replace
+
+    from p11.p10_fixtures import FROZEN_TREE, NODES, _profile
+
+    nodes = NODES + (_sub_level(ESSAYS, "Essays", "essay", 4),
+                     _sub_level(FORMS, "Forms", "checklist", 5))
+    return replace(
+        FROZEN_TREE, nodes=nodes,
+        profiles=tuple(_profile(node) for node in nodes),
+        freeze_record=replace(
+            FROZEN_TREE.freeze_record,
+            node_ids=tuple(node.node_id for node in nodes),
+            legal_destination_ids=frozenset(
+                node.node_id for node in nodes if node.accepts_placement)))
+
+
+TWO_LEVEL_TREE = _two_level_tree()
+
+
+def _kind_obs(file_id: str) -> str:
+    return f"obs-kind-{file_id}"
+
+
+def _member_evidence_with_kind(kind_value: str | None):
+    """One member's accepted facts: the course, and what kind of work it is."""
+    def build(file_id: str) -> dict:
+        facts = (MatchingFact(file_fact_id=f"ff-{file_id}", field="subject",
+                              value="PHYS1401", reliability=v.DIRECT,
+                              evidence_ref=_obs(file_id)),)
+        items = (EvidenceItem(evidence_ref=_obs(file_id), kind="fact",
+                              location="page-1", excerpt_span=(0, 8),
+                              reliability_state="direct",
+                              basis="direct-anchor"),)
+        if kind_value is not None:
+            facts += (MatchingFact(file_fact_id=f"ffk-{file_id}",
+                                   field="work_type", value=kind_value,
+                                   reliability=v.DIRECT,
+                                   evidence_ref=_kind_obs(file_id)),)
+            items += (EvidenceItem(evidence_ref=_kind_obs(file_id), kind="fact",
+                                   location="page-2", excerpt_span=(0, 8),
+                                   reliability_state="direct",
+                                   basis="direct-anchor"),)
+        return dict(facts=facts, evidence_items=items, group_ids=(GROUP_ID,),
+                    curated_folder_labels=(), semantic_neighbours=(),
+                    related_files=(), entity_frequency={"PHYS1401": 6},
+                    generic_entity_frequency=200)
+    return build
+
+
+def _kinded_evidence(world):
+    """The essay says it is an essay, the transcript says it is a checklist, and
+    the other two say nothing about what kind of work they are."""
+    kinds = {world.file_id["essay"]: "essay",
+             world.file_id["transcript"]: "checklist"}
+
+    def evidence_for(file_id: str) -> dict:
+        return _member_evidence_with_kind(kinds.get(file_id))(file_id)
+    return evidence_for
+
+
+@pytest.fixture()
+def sub_levels(seed):
+    return seed(tree=TWO_LEVEL_TREE)
+
+
+def _place_in_branch(world, *, monkeypatch, answers=None, verdict_for=None):
+    return _place_group(
+        world, monkeypatch=monkeypatch,
+        inputs=_model_inputs(world.conn, tree=TWO_LEVEL_TREE),
+        evidence_for=_kinded_evidence(world),
+        answers=answers, verdict_for=verdict_for)
+
+
+def _own_call(calls, ref):
+    own = [(request, kwargs) for request, kwargs in calls
+           if request.subject_ref == ref]
+    assert len(own) == 1, f"{ref} was asked {len(own)} questions of its own"
+    return own[0]
+
+
+def test_gap_each_member_is_judged_inside_the_folder_its_group_was_given(
+        sub_levels, monkeypatch):
+    """`00`:112, the sentence after the one gap 14 built: *"First confirm the
+    shared parent branch ... then classify members within that branch: essay
+    drafts go to Essays; checklists to Forms."*
+
+    The group's answer was filed on every member VERBATIM. A packet placed at
+    `PHYS1401` put the essay, the transcript and the scan in the same folder, and
+    the two levels the person's own tree offers under it -- the levels P10 built
+    because the course HAS enough populated work types for them -- were never
+    offered to anybody. A branch is where a packet belongs; which shelf inside it
+    a file belongs on is a second question about that file.
+
+    MEASURED: one call took the group, each member was then asked its own question
+    whose offer is the branch and the levels under it, and the two members with
+    evidence for different levels land in different folders -- each still carrying
+    its group's support, because the branch is still the group's answer.
+
+    SABOTAGE: file the group's answer verbatim again -- both members come back on
+    `n-course` and the member calls disappear.
+    """
+    plan, calls = _place_in_branch(
+        sub_levels, monkeypatch=monkeypatch,
+        answers={f"{v.GROUP}:{GROUP_ID}": "n-course",
+                 sub_levels.ref["essay"]: ESSAYS,
+                 sub_levels.ref["transcript"]: FORMS})
+    assert len(_group_calls(calls)) == 1
+    assert plan.shared_parent_node_id == "n-course"
+    placed = {d.subject.file_id: d for d in plan.member_decisions}
+    assert placed[sub_levels.file_id["essay"]].destination.node_id == ESSAYS
+    assert placed[sub_levels.file_id["transcript"]].destination.node_id == FORMS
+    for name in ("essay", "transcript"):
+        body = _stored(sub_levels.conn, placed[sub_levels.file_id[name]])
+        assert body["decided_by"] == v.DECIDED_BY_MODEL
+        assert body["group_support"]["group_id"] == GROUP_ID
+    # THE OFFER IS THE BRANCH AND ITS LEVELS, and nothing outside it: the group's
+    # answer already settled which branch, and re-opening that is asking one
+    # question twice.
+    offered = set(_own_call(calls, sub_levels.ref["essay"])[1][
+        "call_dependencies"].allowed_vocabulary)
+    assert offered == {"n-course", ESSAYS, FORMS}
+
+
+def test_gap_a_member_the_judge_keeps_at_the_branch_stays_there_with_its_group(
+        sub_levels, monkeypatch):
+    """The fallback, and it is the coverage half. A refinement question that goes
+    unanswered must not undo the answer the group's own call already gave about
+    this file: the branch is where it goes, and the level is the part nobody
+    settled.
+
+    MEASURED: the judge abstains on the member's own question, the file is still
+    placed at the branch, and its row still says the model decided and names the
+    group.
+    """
+    essay = sub_levels.ref["essay"]
+    plan, calls = _place_in_branch(
+        sub_levels, monkeypatch=monkeypatch,
+        verdict_for=lambda request: (
+            _abstaining_verdict() if request.subject_ref == essay
+            else _verdict("n-course")))
+    _own_call(calls, essay)
+    decision = next(d for d in plan.member_decisions
+                    if d.subject.file_id == sub_levels.file_id["essay"])
+    assert decision.destination.node_id == "n-course"
+    body = _stored(sub_levels.conn, decision)
+    assert body["decided_by"] == v.DECIDED_BY_MODEL
+    assert body["group_support"]["group_id"] == GROUP_ID
