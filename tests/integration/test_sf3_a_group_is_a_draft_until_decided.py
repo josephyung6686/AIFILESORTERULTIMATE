@@ -222,6 +222,38 @@ def test_the_persons_gesture_flips_the_group_and_the_run_builds_from_it(tmp_path
     assert _count(database, "placement_decisions") > 0
 
 
+def test_the_next_run_builds_from_the_acceptance_without_repeating_the_gesture(
+        tmp_path):
+    """"The group flips and the NEXT run builds from it."
+
+    Three runs of one command over one folder: propose, accept, and then a plain
+    run with no flag at all. The third is the one that matters -- a decision is a
+    record and not a mode, so the person types the accept once and every run after
+    it has a plan. Nothing new is collected on that third run: re-collecting would
+    be a second gesture recorded for one decision, and `accept_drafted_groups`
+    skips a draft that is already accepted for exactly that reason.
+
+    **IT HOLDS OVER AN UNCHANGED CORPUS**, which is a consequence of the address
+    and not an oversight. The merged id is a digest over the P9 group ids it
+    merges, which are themselves content-derived, so a folder that has not changed
+    re-derives the group the person accepted. Add or delete a file and the digest
+    moves: the next run proposes a new draft, and the person is asked about a group
+    they have not seen before -- which is the right answer, because it is not the
+    group they accepted.
+    """
+    _run(tmp_path)
+    _run(tmp_path, "--accept-groups")
+    gestures = _count(tmp_path / "holder" / "plan.sqlite", "review_actions")
+
+    code, screen, database = _run(tmp_path)
+
+    assert code == 0, screen
+    assert "These groups are proposed, and nothing has been filed:" not in screen
+    assert _count(database, "placement_decisions") > 0, screen
+    assert _count(database, "review_actions") == gestures, (
+        "a run that made no gesture recorded one")
+
+
 def test_the_gesture_is_p13s_bulk_action_and_p9s_per_group_accept(tmp_path):
     """One typed word, two records, and neither invents the other's vocabulary.
 
@@ -397,6 +429,178 @@ def test_an_unratified_site_b_decides_nothing(p9_conn):
         "AND membership_id IS NULL", (group.group_id,)).fetchone() is None
     assert group_state_as_of(p9_conn, group_id=group.group_id,
                              plan_version_id="plan_0") != ACCEPTED
+
+
+def _a_part_b_accepted(conn, group_id: str, *, decided_by: str = VALIDATOR):
+    from grouping.acceptance import record_acceptance
+    from grouping.records import GroupAcceptance
+
+    record_acceptance(conn, GroupAcceptance(
+        acceptance_id=f"acc:{group_id}", plan_version_id=cli.PLAN_VERSION,
+        group_id=group_id, membership_id=None, acceptance=ACCEPTED,
+        review_state=PENDING_REVIEW, user_edited_label=None, aliases=(),
+        review_decision_ref="v-1", decided_by=decided_by,
+        created_at="2026-09-11T00:00:00Z"))
+
+
+def test_site_b_accepts_a_merged_draft_only_when_it_accepted_every_part(p9_conn):
+    """The merge is one card to the person, so the answer about it is unanimous.
+
+    B judges the groups P9 proposed; the draft is a merge P9 never proposed, so B
+    has no verdict about it and never will. `_carry_site_bs_acceptance` is the
+    carry: every part accepted by B, and the merge is accepted too. Three of four
+    is not a majority to round up -- it is B declining to say that this group holds
+    together, and accepting it anyway would file the fourth part's files into a
+    branch on a judgement nobody made about them.
+    """
+    _a_part_b_accepted(p9_conn, "part-a")
+    _a_part_b_accepted(p9_conn, "part-b")
+
+    cli._carry_site_bs_acceptance(
+        p9_conn, merged_id="merged-1", parts=("part-a", "part-b"),
+        created_at="2026-09-11T00:00:00Z")
+
+    row = p9_conn.execute(
+        "SELECT acceptance, decided_by FROM group_acceptance "
+        "WHERE group_id = 'merged-1' AND superseded_by IS NULL").fetchone()
+    assert row is not None, "every part was B's, so the merge is B's"
+    assert (row["acceptance"], row["decided_by"]) == (ACCEPTED, VALIDATOR)
+
+
+def test_one_undecided_part_leaves_the_whole_merge_a_draft(p9_conn):
+    """The twin. Without it the test above cannot tell unanimity from "any"."""
+    _a_part_b_accepted(p9_conn, "part-a")
+
+    cli._carry_site_bs_acceptance(
+        p9_conn, merged_id="merged-2", parts=("part-a", "part-b"),
+        created_at="2026-09-11T00:00:00Z")
+
+    assert p9_conn.execute(
+        "SELECT 1 FROM group_acceptance WHERE group_id = 'merged-2'"
+    ).fetchone() is None
+
+
+def test_a_part_the_person_accepted_is_not_site_bs_answer(p9_conn):
+    """The second twin, and it is about the COLUMN rather than the state.
+
+    `group_state_as_of` answers `accepted` for a person's row as readily as for
+    B's, so a carry that asked only "is this part accepted" would report a group
+    as judged coherent by the model when what actually happened is that somebody
+    accepted one of its parts by hand. Two different sentences; one of them is not
+    B's to say.
+    """
+    _a_part_b_accepted(p9_conn, "part-a")
+    _a_part_b_accepted(p9_conn, "part-b", decided_by=USER)
+
+    cli._carry_site_bs_acceptance(
+        p9_conn, merged_id="merged-3", parts=("part-a", "part-b"),
+        created_at="2026-09-11T00:00:00Z")
+
+    assert p9_conn.execute(
+        "SELECT 1 FROM group_acceptance WHERE group_id = 'merged-3'"
+    ).fetchone() is None
+
+
+def test_a_standing_decision_about_the_merge_is_left_alone(p9_conn):
+    """Whatever a person decided about the merge outlives the model's answer.
+
+    Either way round: a merge they accepted is not re-accepted under a different
+    decider, and a merge they REJECTED is not quietly accepted by the next run's
+    model verdict, which is the direction that would cost something.
+    """
+    from grouping.acceptance import record_acceptance
+    from grouping.records import GroupAcceptance
+    from grouping.vocabulary import REJECTED, USER_REJECTED
+
+    _a_part_b_accepted(p9_conn, "part-a")
+    record_acceptance(p9_conn, GroupAcceptance(
+        acceptance_id="the-person-said-no", plan_version_id=cli.PLAN_VERSION,
+        group_id="merged-4", membership_id=None, acceptance=REJECTED,
+        review_state=USER_REJECTED, user_edited_label=None, aliases=(),
+        review_decision_ref=None, decided_by=USER,
+        created_at="2026-09-11T00:00:00Z"))
+
+    cli._carry_site_bs_acceptance(
+        p9_conn, merged_id="merged-4", parts=("part-a",),
+        created_at="2026-09-11T02:00:00Z")
+
+    rows = [dict(row) for row in p9_conn.execute(
+        "SELECT acceptance_id, acceptance FROM group_acceptance "
+        "WHERE group_id = 'merged-4' AND superseded_by IS NULL")]
+    assert rows == [{"acceptance_id": "the-person-said-no",
+                     "acceptance": REJECTED}]
+
+
+def test_the_whole_chain_flips_a_group_only_when_bs_prompt_is_ratified(
+        p9_conn, monkeypatch):
+    """`observed_run_call` -> `apply_p8_verdict` -> an acceptance, or not.
+
+    The seam end to end, with `prompt.ratified` as the only thing that differs
+    between the two halves -- simulated the way `tests/test_cli_observe_sites.py`
+    simulates it, by replacing the field on the prompt the product itself loads.
+    Nothing here ratifies anything on disk; the manifest still says `unratified`
+    and the run this checkout ships still decides nothing.
+    """
+    import dataclasses
+
+    from llm_harness.schema import create_llm_schema
+    from llm_harness.store import record_response
+    from llm_harness.vocabulary import B_GROUP
+    from grouping.fixtures import course_dossier_fixture
+    from grouping.p8_seam import Answered, ObservedOnly, apply_p8_verdict
+    from p9.p8_fixtures import accepted_direct_verdict
+
+    create_llm_schema(p9_conn)
+    dossier = course_dossier_fixture()
+    verdict = accepted_direct_verdict(dossier_id=dossier.dossier_id)
+    record_response(
+        p9_conn, dossier_id=dossier.dossier_id,
+        response_bytes=json.dumps({"claims": [{"payload": {
+            "coherent": "yes", "basis": "direct-anchor", "category": None,
+            "label": None,
+            "members": [{"file_id": "lecture-08", "decision": "include",
+                         "why": "states the course code", "evidence_refs": []}],
+            "outliers": [], "merge_terms": []}}]}).encode("utf-8"),
+        model_id="fixture", prompt_fingerprint="fp", release_audit_id=1,
+        release_id="rel-1", observed_at="2026-09-11T00:00:00Z")
+    monkeypatch.setattr(cli, "run_call", lambda *_a, **_k: verdict)
+
+    @dataclasses.dataclass
+    class _Deps:
+        """The two `CallDependencies` fields B's wrapper fills in per group.
+        A dataclass because `observed_run_call` `replace`s them."""
+
+        basis_key: str = "group"
+        learning_subject_id: str = "group"
+
+    def ask(*, ratified: bool):
+        from types import SimpleNamespace
+        return cli.observed_run_call(
+            p9_conn, SimpleNamespace(subject_ref=f"group:{dossier.group_id}"),
+            gate=None, model_client=None,
+            prompt=dataclasses.replace(cli.observe_prompt(B_GROUP),
+                                       ratified=ratified),
+            validation_dependencies=_Deps(),
+            observed_at="2026-09-11T00:00:00Z")
+
+    observed = ask(ratified=False)
+    assert isinstance(observed, ObservedOnly), (
+        "an unratified site must not hand the seam an answer to apply")
+
+    answered = ask(ratified=True)
+    assert isinstance(answered, Answered)
+
+    group = _b_group(p9_conn, dossier)
+    apply_p8_verdict(p9_conn, group=group, dossier=dossier, result=answered,
+                     plan_version_id=cli.PLAN_VERSION,
+                     created_at="2026-09-11T00:00:00Z")
+
+    row = p9_conn.execute(
+        "SELECT acceptance, decided_by FROM group_acceptance "
+        "WHERE group_id = ? AND membership_id IS NULL AND superseded_by IS NULL",
+        (group.group_id,)).fetchone()
+    assert row is not None, "the ratified chain decided nothing"
+    assert (row["acceptance"], row["decided_by"]) == (ACCEPTED, VALIDATOR)
 
 
 def test_a_persons_acceptance_outranks_the_models_and_is_never_superseded(
