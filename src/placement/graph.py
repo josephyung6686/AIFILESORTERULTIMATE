@@ -185,11 +185,16 @@ EDGE_PRODUCER: dict[str, str] = {
     EXISTING_RELATED_FOLDER: "a folder the person already keeps both in",
     ATTACHMENT_OF: "an attachment named in an email this run read",
     DIRECT_REFERENCE: "a reference identifier both files carry",
-    # "you confirmed", and the second person is the point. Every other phrase
-    # here names a mechanism because a mechanism is what produced it; this one
-    # names the reader, because what produced it is the reader's own word and a
-    # sentence about "the confirmation store" would hide that.
-    USER_CONFIRMED_MEMBERSHIP: "a value you confirmed on both files",
+    # "the user", and NEVER "you". This dict fills a dossier item's `location`:
+    # its reader is the MODEL, and a second person there tells a model that IT
+    # confirmed something -- which is R-28's misattribution class one part over.
+    # `actor_phrase` already fixes the word for the person in a record they did
+    # not write, and this is the same sentence pointed at a different reader.
+    # What the phrase must still carry is that a PERSON produced this edge, and
+    # not a mechanism: every other entry here names the machinery because
+    # machinery is what drew it, and naming one here would hide the only thing
+    # that makes this edge different from the shared-fact edge beside it.
+    USER_CONFIRMED_MEMBERSHIP: "a value the user confirmed on both files",
 }
 
 
