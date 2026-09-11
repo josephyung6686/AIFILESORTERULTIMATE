@@ -40,6 +40,13 @@ import pytest
 
 import cli
 
+#: `104` SF-3: a group is a DRAFT until a person decides it, and an undecided run
+#: places nothing and asks no reading question at all -- it only prints the
+#: proposal. Every run in this file is about the reading-question screen that
+#: exists downstream of acceptance, so every one of them has to type the accept,
+#: exactly as `tests/test_cli.py`'s `ACCEPTS_THE_PROPOSAL` does.
+ACCEPTS_THE_PROPOSAL: tuple[str, ...] = ("--accept-groups",)
+
 #: A heading is two spaces and a capital; everything under it is indented four or
 #: more. Parsed rather than asserted line by line because the point of this file
 #: is that EVERY such block holds, not that three named ones do.
@@ -91,7 +98,8 @@ def _run(tmp_path, *extra) -> str:
     out = io.StringIO()
     code = cli.main([str(_corpus(tmp_path)), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
-                     "--database", str(tmp_path / "plan.sqlite"), *extra],
+                     "--database", str(tmp_path / "plan.sqlite"),
+                     *ACCEPTS_THE_PROPOSAL, *extra],
                     out=out)
     assert code == 0, out.getvalue()
     return out.getvalue()

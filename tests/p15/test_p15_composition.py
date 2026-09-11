@@ -57,6 +57,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 import cli  # noqa: E402
 
+#: `104` SF-3: a group is a DRAFT until a person decides it, and a run that
+#: decides nothing prints the proposal and stops -- no tree, no per-file
+#: classification question, no role-declaration moment (there is nothing blocked
+#: yet for R1 to be due about). The three tests below are about that downstream
+#: screen, so they have to type the accept, exactly as `tests/test_cli.py`'s
+#: `ACCEPTS_THE_PROPOSAL` does.
+ACCEPTS_THE_PROPOSAL: tuple[str, ...] = ("--accept-groups",)
+
 #: A corpus the deterministic chain cannot settle, which is what makes the moment
 #: due: `role_declaration_is_due` requires at least one open non-role question.
 #:
@@ -173,7 +181,7 @@ def test_the_run_invites_the_declaration_at_the_moment_r1_names(tmp_path: Path):
     produces, and on R6's panel beside each role it would change.
     """
     corpus, database = _corpus(tmp_path)
-    code, printed = _run(corpus, database)
+    code, printed = _run(corpus, database, *ACCEPTS_THE_PROPOSAL)
     assert code == 0
     assert "--describe-role" in printed
 
@@ -208,7 +216,7 @@ def test_a_person_can_ask_what_one_of_their_answers_controls(tmp_path: Path):
     measures that all five reached the screen without freezing anybody's wording.
     """
     corpus, database = _corpus(tmp_path)
-    _run(corpus, database)
+    _run(corpus, database, *ACCEPTS_THE_PROPOSAL)
     question = open_questions(open_database(database))[0]
     code, printed = _run(corpus, database, "--explain", question.question_id)
     assert code == 0
@@ -233,7 +241,7 @@ def test_this_file_is_really_driving_the_command_and_the_moment_is_really_due(
     punishing its own finding being fixed.
     """
     corpus, database = _corpus(tmp_path)
-    code, printed = _run(corpus, database)
+    code, printed = _run(corpus, database, *ACCEPTS_THE_PROPOSAL)
     assert code == 0 and "Folders in this plan" in printed, (
         "this is not the run's report, so a passing assertion above would be "
         "about a string nobody printed")

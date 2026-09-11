@@ -51,6 +51,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 import cli  # noqa: E402
 
+#: `104` SF-3: a group is a DRAFT until a person decides it, and a run that
+#: decides nothing prints the proposal and stops -- no question is ever opened
+#: for `--answer` to correct. `_corrected` needs a real open question, so its
+#: first run has to type the accept, exactly as `tests/test_cli.py`'s
+#: `ACCEPTS_THE_PROPOSAL` does.
+ACCEPTS_THE_PROPOSAL: tuple[str, ...] = ("--accept-groups",)
+
 CORPUS: dict[str, str] = {
     "PHYS 1401 syllabus.txt": "PHYS 1401 Syllabus\n\nSpring 2026. Instructor.\n",
 }
@@ -80,7 +87,7 @@ def _corrected(tmp_path: Path) -> tuple[Path, Path, str, str, list[str]]:
     case the module deliberately says nothing about.
     """
     corpus, database = _corpus(tmp_path)
-    _run(corpus, database)
+    _run(corpus, database, *ACCEPTS_THE_PROPOSAL)
     question = open_questions(open_database(database))[0]
     options = [option.option_id for option in question.options]
     assert len(options) >= 2, "this question offers no correction to make"

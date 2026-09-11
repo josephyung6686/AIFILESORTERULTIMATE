@@ -23,6 +23,7 @@ hands `report` a tree it made up.
 from __future__ import annotations
 
 import io
+import re
 import sys
 from pathlib import Path
 
@@ -31,10 +32,24 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import cli  # noqa: E402
 
+#: `104` SF-3: a group is a DRAFT until a person decides it, and a run that
+#: decides nothing prints the proposal only -- no tree, no reading question, no
+#: freeze, no placement. Every screen this file reads is downstream of that
+#: decision, so every run has to type the accept, exactly as
+#: `tests/test_cli.py`'s `ACCEPTS_THE_PROPOSAL` does.
+ACCEPTS_THE_PROPOSAL: tuple[str, ...] = ("--accept-groups",)
+
 COURSES = ("CS3134", "ECON2010", "PHYS1401")
-#: The two markers `report` appends to a folder line. Stripped so the label is
-#: the label; keeping them would make the comparison below about punctuation.
-MARKS = ("   [yours already]", "   [marked, not a destination]")
+#: `104` §18.42 puts a node-type word on every tree line (`[proposed]`,
+#: `[yours already]`, ...), same as `tests/integration/test_r37_per_branch_
+#: situation.py`'s own `re.sub(r"\s+\[[^\]]+\]$", ...)` strips it -- generalised
+#: here to REPEATED trailing marks, because a node can carry its type word AND
+#: "[marked, not a destination]" on the same line. This parser only ever
+#: exercised the two marks an EXISTING folder can carry: under SF-3 an
+#: undecided run draws only the corpus's own folders (here, `scans`), and the
+#: invented `Coursework` structure -- carrying `[proposed]` -- only reaches this
+#: screen once `--accept-groups` is typed.
+_TRAILING_MARKS = re.compile(r"(?:\s+\[[^\]]+\])+$")
 
 
 def _corpus(root: Path, *, opaque: bool) -> Path:
@@ -75,7 +90,8 @@ def _plan_run(tmp_path: Path, *args, opaque: bool = False) -> str:
     corpus = _corpus(tmp_path / "corpus", opaque=opaque)
     return _run([str(corpus), "--situation", "academic.coursework",
                  "--label", "Coursework", "--user", "t",
-                 "--database", str(tmp_path / "plan.sqlite"), *args])
+                 "--database", str(tmp_path / "plan.sqlite"),
+                 *ACCEPTS_THE_PROPOSAL, *args])
 
 
 def _folders_in_this_plan(printed: str) -> list[str]:
@@ -94,9 +110,7 @@ def _folders_in_this_plan(printed: str) -> list[str]:
     for line in lines[start + 1:]:
         if not line.strip():
             break
-        label = line.rstrip()
-        for mark in MARKS:
-            label = label.replace(mark, "")
+        label = _TRAILING_MARKS.sub("", line.rstrip())
         depth = (len(label) - len(label.lstrip())) // 2 - 1
         chain = chain[:depth] + [label.strip()]
         paths.append("/".join(chain))
@@ -192,7 +206,7 @@ def test_two_applies_of_one_plan_list_the_same_files_in_the_same_order(tmp_path)
     database = str(tmp_path / "plan.sqlite")
     common = [str(corpus), "--user", "t", "--database", database]
     _run([*common, "--situation", "academic.coursework",
-          "--label", "Coursework", "--freeze"])
+          "--label", "Coursework", "--freeze", *ACCEPTS_THE_PROPOSAL])
 
     first = _moved(_run([*common, "--apply-everything"]))
     undone = _moved(_run([*common, "--undo-everything"]))
@@ -225,7 +239,7 @@ def test_the_undo_listing_is_read_in_the_same_order_as_the_apply_listing(
     database = str(tmp_path / "plan.sqlite")
     common = [str(corpus), "--user", "t", "--database", database]
     _run([*common, "--situation", "academic.coursework",
-          "--label", "Coursework", "--freeze"])
+          "--label", "Coursework", "--freeze", *ACCEPTS_THE_PROPOSAL])
     applied = _run([*common, "--apply-everything"])
     undone = _run([*common, "--undo-everything"])
 
