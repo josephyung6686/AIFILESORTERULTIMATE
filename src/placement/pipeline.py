@@ -1901,6 +1901,9 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
                 # model is shown. They were built and read by nobody but the
                 # scorer and the decision record.
                 graphs=graphs,
+                # `00`:110's deterministic scores, from the assessment that
+                # produced the ranking above rather than re-derived beside it.
+                scores=_deterministic_scores(assessment),
             )
             if isinstance(result, Refusal):
                 # P7 denied the release, from inside `run_call`. That is §8.4's
@@ -2739,6 +2742,8 @@ _D_ITEM_KIND: dict[str, str] = {RESIDUAL_ROLE: RESIDUAL_AREA_ITEM}
 def _offered_items(conn, *, plan_version: str, node_ids, call_site: str,
                    own_folder_node_id: str | None,
                    ranked_below: Mapping[str, str] | None = None,
+                   fact_fields: frozenset[str] | None = None,
+                   scores: Mapping[str, tuple[float, float | None]] | None = None,
                    ) -> tuple[EvidenceItem, ...]:
     """`00`:105's destination profile for every node the model may answer with.
 
@@ -2782,6 +2787,7 @@ def _offered_items(conn, *, plan_version: str, node_ids, call_site: str,
     and the model may answer with it.
     """
     ranked_below = ranked_below or {}
+    scores = scores or {}
     entries = entries_for_plan(conn, plan_version=plan_version)
     by_id = {entry.node_id: entry for entry in entries}
     beside = sibling_counts(entries)
@@ -2801,14 +2807,68 @@ def _offered_items(conn, *, plan_version: str, node_ids, call_site: str,
         because = ranked_below.get(entry.node_id)
         if because:
             profile = f"{profile} | {because}"
+        score, margin = scores.get(entry.node_id, (None, None))
         items.append(EvidenceItem(
             evidence_ref=entry.node_id, kind=kind,
             location=profile,
             # A folder is not an excerpt of the file. It carries no span, it is
             # never in `released_evidence`, and P7 releases none of it.
             excerpt_span=None, reliability_state=DIRECT,
-            basis=P8_DIRECT_ANCHOR))
+            basis=P8_DIRECT_ANCHOR,
+            # `00`:110's MISSING FIELDS, and the read is the verbatim one
+            # `_candidate_levels` already makes: `expected_values` is the CHAIN
+            # this node sits under, field by field, as `materialise._project`
+            # wrote it and `index._entry` carried it over. What is missing is a
+            # field on that chain the SUBJECT states no fact for; a field it
+            # states with a DIFFERENT value is not missing but contradicted, and a
+            # conflict has its own key. Root-to-leaf, which is the order the chain
+            # is in and the order a person reads a path.
+            #
+            # P11 DERIVES NOTHING HERE. `_candidate_levels`' own paragraph is the
+            # argument -- "a node's chain of levels is already a field of the
+            # node" -- and the alternative, walking dimensions between this node
+            # and the ranked leaf, answers a different question: `_levels_not_
+            # filled` measures what a SHALLOW DECISION left unfilled, is empty for
+            # every candidate that is not an ancestor of the rules' deepest leaf,
+            # and cannot be computed here at all because `IndexEntry` carries no
+            # `dimension`.
+            #: `None` AND NOT AN EMPTY SET, because the two mean opposite
+            #: things: an empty set is a file that states no fact at all, whose
+            #: every level IS missing, and `None` is a caller that was not asked
+            #: -- the row does not describe the key, so nothing is said. Handing
+            #: the second in as the first filled the key on every dossier this
+            #: product sends.
+            missing_fields=() if fact_fields is None else tuple(
+                field for field, _value in entry.expected_values
+                if field not in fact_fields),
+            score=score, margin=margin))
     return tuple(items)
+
+
+def _deterministic_scores(assessment) -> dict:
+    """`00`:110's DETERMINISTIC SCORES, per candidate, off the assessment.
+
+    Rank reached the model as LIST ORDER alone: a shortlist whose leader doubled
+    the runner-up read identically to one whose two leaders were a hair apart, and
+    `00`:110 names the figures as part of the dossier rather than as something the
+    ordering implies.
+
+    **THE MARGIN IS THE LEADER'S AND NOBODY ELSE'S.** `two_condition.margin_over_
+    next` is the one margin this engine computes -- the best over the runner-up,
+    exactly once, by `_exact_margin` -- so putting a number on every candidate
+    would be a metric invented here. A candidate a step-6 rule set aside has no
+    `Scored` row at all and so no figure: "offered and never scored" is that rule's
+    own sentence, and `None` is what it means.
+    """
+    figures: dict = {
+        item.node_id: (item.support_score, None)
+        for item in assessment.scored
+    }
+    if assessment.scored:
+        leader = assessment.scored[0]
+        figures[leader.node_id] = (leader.support_score,
+                                   assessment.two_condition.margin_over_next)
+    return figures
 
 
 def _candidate_levels(conn, *, plan_version: str, node_ids) -> tuple:
@@ -3006,7 +3066,7 @@ def _judge_with_model_steps(conn, *, subject, inputs: PipelineInputs, retrieval,
                             set_aside: tuple[SetAside, ...] = (),
                             own_folder_node_id: str | None = None,
                             route_pair: object | None = None,
-                            graphs=None):
+                            graphs=None, scores=None):
     """§6.12 step 7, and step 8 with it. P11 assembles the REQUEST, never a check.
 
     **`104` §18.15: A GENERATOR, AND THE ONE `yield` IS THE SOCKET.** Every line
@@ -3244,10 +3304,29 @@ def _judge_with_model_steps(conn, *, subject, inputs: PipelineInputs, retrieval,
         # its ratified text says the key is empty at that site. R-77 amends C's
         # line 33 and nobody's else, so D's answer is the one it always gave.
         node_levels = ()
+    # `00`:110'S MISSING FIELDS AND DETERMINISTIC SCORES, UNDER THE ROW THAT
+    # DESCRIBES THEM -- the same mechanism and the same argument as `node_levels`
+    # above (R-77). `PromptDefinition.lists_candidate_scores` is the composition
+    # root's answer, set from the manifest row the way `ratified` is; under every
+    # row ratified so far it is false, the builder is handed nothing to fill the
+    # three slots with, and this call's dossier is byte-identical to the one built
+    # before this existed -- which is exactly what those rows tell the model about
+    # the keys an item has. `getattr` with the safe answer as its default, because
+    # a deployment may hand this pass a prompt object of its own and a caller that
+    # has said nothing about what its text describes gets the empty answer.
+    #
+    # THE FIELD SET IS THE SUBJECT'S OWN ACCEPTED FACTS, not the matched subset:
+    # "the file states no fact for this level" is a question about the file, and
+    # asking it of the facts that happened to match a node would call a level
+    # missing because the folder did not use it.
+    says_so = getattr(inputs.prompt, "lists_candidate_scores", False)
     profiles = _offered_items(
         conn, plan_version=inputs.plan_version, node_ids=offered,
         call_site=call_site, own_folder_node_id=own_folder_node_id,
-        ranked_below=ranked_below)
+        ranked_below=ranked_below,
+        fact_fields=(frozenset(fact.field for fact in evidence["facts"])
+                     if says_so else None),
+        scores=scores if says_so else None)
 
     # §8.6's two spend ceilings, put on the budget P8 reserves against.
     #
@@ -3728,7 +3807,8 @@ def _the_groups_own_answer(conn, *, accepted: AcceptedGroup, memberships,
         conn, subject=subject, inputs=inputs, retrieval=retrieval,
         evidence=evidence, call_site=C_PLACEMENT, observed_at=observed_at,
         ranked=tuple(item.node_id for item in assessment.scored),
-        set_aside=set_aside, own_folder_node_id=None, route_pair=route_pair)
+        set_aside=set_aside, own_folder_node_id=None, route_pair=route_pair,
+        scores=_deterministic_scores(assessment))
     if isinstance(result, (Refusal, CallRefused, PreCallAbstention, CallFailed,
                            ValidationUnavailable)):
         return None
@@ -4098,7 +4178,8 @@ def _asked_between_steps(conn, *, subject, inputs: PipelineInputs, privacy,
         conn, subject=subject, inputs=inputs, retrieval=offered,
         evidence=evidence, call_site=C_PLACEMENT, observed_at=observed_at,
         ranked=tuple(item.node_id for item in assessment.scored) or node_ids,
-        set_aside=(), own_folder_node_id=None, graphs=graphs)
+        set_aside=(), own_folder_node_id=None, graphs=graphs,
+        scores=_deterministic_scores(assessment))
     if isinstance(result, (Refusal, CallRefused, PreCallAbstention, CallFailed,
                            ValidationUnavailable)):
         return None

@@ -3276,3 +3276,88 @@ def test_a_residual_file_the_model_is_not_asked_about_does_not_end_the_run(
     rows = [dict(row) for row in skeleton.execute(
         "SELECT reason, call_site FROM llm_pre_call_abstention")]
     assert rows == [{"reason": NOT_ELIGIBLE_FOR_MODEL, "call_site": D_RESIDUAL}]
+
+
+# --- `00`:110's missing fields and deterministic scores, per candidate -----------
+#
+# *"...known conflicts, MISSING FIELDS, and DETERMINISTIC SCORES."* Neither key
+# existed: rank reached the model as list order alone, and no candidate said which
+# of the levels it fixes this file states no fact for. Gated by the row's own flag
+# for R-77's reason, so the observed row's bytes do not move.
+
+
+def _candidate_items_seen(skeleton, monkeypatch, *, prompt):
+    import placement.pipeline as pipeline
+
+    seen = {}
+
+    def _fake_call(conn, request, **kwargs):
+        seen["items"] = {item.evidence_ref: item
+                         for item in request.evidence_items}
+        seen["allowed"] = kwargs["call_dependencies"].allowed_vocabulary
+        return _verdict()
+
+    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_fake_call))
+    _place(skeleton, inputs=_model_inputs(skeleton, prompt=prompt),
+           evidence=_evidence(**AMBIGUOUS))
+    return seen
+
+
+def test_under_a_row_that_names_no_scores_the_candidate_items_carry_none(
+        skeleton, monkeypatch):
+    """The row site C observes today describes a candidate item by six fields, and
+    the builder is told so by `PromptDefinition.lists_candidate_scores`. This is
+    why `tests/integration/test_r37_single_branch_is_byte_identical.py` needs no
+    recapture: the dossier this call assembles is the one it always assembled."""
+    seen = _candidate_items_seen(skeleton, monkeypatch,
+                                 prompt=SimpleNamespace(ratified=True))
+    item = seen["items"]["n-course"]
+
+    assert item.missing_fields == ()
+    assert item.score is None
+    assert item.margin is None
+
+
+def test_under_the_amended_row_each_candidate_carries_its_score_and_the_leader_its_margin(
+        skeleton, monkeypatch):
+    """MEASURED: the figure `score_candidates` produced for each offered node, and
+    the ONE margin this engine computes, on the candidate the margin is about.
+
+    SABOTAGE: put `margin` on every candidate -- the record starts claiming a
+    comparison `_exact_margin` makes exactly once, against a runner-up most of the
+    list never had.
+    """
+    seen = _candidate_items_seen(
+        skeleton, monkeypatch,
+        prompt=SimpleNamespace(ratified=True, lists_candidate_scores=True))
+    scored = [item for item in seen["items"].values()
+              if item.score is not None]
+
+    assert scored, "no candidate carried a deterministic score"
+    with_margin = [item for item in scored if item.margin is not None]
+    assert len(with_margin) == 1, "the margin belongs to the leader alone"
+    leader = with_margin[0]
+    assert leader.score == max(item.score for item in scored)
+
+
+def test_under_the_amended_row_a_candidate_names_the_levels_this_file_has_no_fact_for(
+        skeleton, monkeypatch):
+    """`00`:111's own question, answered per candidate: *"a file may have sufficient
+    evidence for a broad branch but not for every deeper level."*
+
+    The levels come off `IndexEntry.expected_values` -- the chain P10 wrote, read
+    verbatim the way `_candidate_levels` reads it -- and what is missing is a field
+    on that chain the SUBJECT states no fact for. `AMBIGUOUS` gives this file no
+    `subject` fact at all, so the node whose chain fixes `subject` names it.
+
+    SABOTAGE: ask the matched facts instead of the file's own -- a level goes
+    "missing" because the folder did not happen to use it.
+    """
+    seen = _candidate_items_seen(
+        skeleton, monkeypatch,
+        prompt=SimpleNamespace(ratified=True, lists_candidate_scores=True))
+
+    assert seen["items"]["n-course"].missing_fields == ("subject",)
+    # And a node the tree fixes no level on says nothing, which is what P10 gave
+    # it to say -- the same silence `_candidate_levels` keeps.
+    assert seen["items"]["n-course-shared"].missing_fields == ()

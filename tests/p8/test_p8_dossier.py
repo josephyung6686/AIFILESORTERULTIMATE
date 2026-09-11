@@ -429,3 +429,105 @@ def test_an_authority_the_model_cannot_read_is_refused():
     prompt = _prompt(response_schema_bytes=b"\xff\xfe not text")
     with pytest.raises(MalformedRecord):
         canonical_dossier_bytes(_build(prompt=prompt), prompt, handle_key=FIXTURE_HANDLE_KEY)
+
+
+# --- `00`:110's two missing halves: missing fields and deterministic scores -------
+
+
+def test_a_candidate_item_carries_its_missing_fields_and_deterministic_scores():
+    """`00`:110 lists what the placement dossier holds and two of them were absent:
+    *"the small set of top legal destination candidates, each candidate's node
+    profile, representative files already accepted in those nodes, known conflicts,
+    MISSING FIELDS, and DETERMINISTIC SCORES."*
+
+    There was no `missing_fields` key and no score value anywhere in the bytes: the
+    ranking reached the model as LIST ORDER alone, so a judge could not tell a
+    shortlist whose leader doubled the runner-up from one whose two leaders were a
+    hair apart, and `00`:111's own reasoning -- "sufficient evidence for a broad
+    branch but not for every deeper level" -- was a question about levels the model
+    was never told which of them this file settles.
+
+    MEASURED: on the item shape the dossier already validates, the three values
+    reach the model-visible body beside the six that were there.
+
+    SABOTAGE: drop them from `_evidence_item_body` -- the body is byte-identical to
+    the one built before this existed, which is exactly the state the gap names.
+    """
+    request = _request(
+        evidence_items=(
+            _evidence_item(kind="candidate", location="Academics > PHYS1401",
+                           excerpt_span=None, basis=DIRECT_ANCHOR,
+                           missing_fields=("term", "work_type"),
+                           score=0.8, margin=0.25),
+        ),
+    )
+    item = _body(_build(request=request))["evidence_items"][0]
+    assert item["missing_fields"] == ["term", "work_type"]
+    assert item["score"] == 0.8
+    assert item["margin"] == 0.25
+
+
+def test_an_item_that_states_no_levels_and_no_score_carries_the_six_keys_it_always_did():
+    """The discriminating twin, and it is what keeps the observed C row honest.
+
+    Every ratified text tells the model the dossier "has these keys and no others"
+    and describes an item by six fields. Until the owner adds the sentence the
+    builder is handed nothing to put in the three new slots, and the bytes must be
+    the ones that row describes -- so the keys are written only when they are
+    filled, and an item with none of them is the item this product has always sent.
+
+    SABOTAGE: write `missing_fields: []`, `score: null`, `margin: null`
+    unconditionally -- every A_fact, B, C, D and E dossier gains three keys its own
+    ratified text does not name, and `test_r37_single_branch_is_byte_identical`
+    goes red on a capture nobody changed.
+    """
+    item = _body()["evidence_items"][0]
+    assert set(item) == {"basis", "evidence_ref", "excerpt_span", "kind",
+                         "location", "reliability_state"}
+
+
+def test_a_stored_dossier_rebuilds_with_its_scores_intact():
+    """`store.load_dossier` compares the rebuilt record against the row key by key,
+    so a rebuild that dropped these would be `MalformedRecord` out of every reuse
+    decision R-127 makes about a C response -- and `_reuse_is_current` would answer
+    `False` and BUY the model answer again. R-135's own note records that failure.
+    """
+    import dataclasses
+
+    from llm_harness.dossier import dossier_from_stored_body
+
+    request = _request(
+        evidence_items=(
+            _evidence_item(kind="candidate", excerpt_span=None,
+                           missing_fields=("term",), score=0.5, margin=None),
+        ),
+    )
+    dossier = _build(request=request)
+    rebuilt = dossier_from_stored_body(dataclasses.asdict(dossier),
+                                       release_id=dossier.release_id)
+    item = rebuilt.evidence_items[0]
+    assert item.missing_fields == ("term",)
+    assert item.score == 0.5
+    assert item.margin is None
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "OWNER'S SENTENCE OWED. `00`:110 asks the placement dossier to carry each "
+    "candidate's missing fields and deterministic scores, and the builder now "
+    "fills them -- but only under a C row whose text says so. Every ratified C row "
+    "through `eliminate-v2r-group` tells the model the dossier has fifteen keys and "
+    "describes a candidate item by six fields, so filling three more under it would "
+    "make the prompt lie about its own contents. What the owner must ratify is a new "
+    "`c_placement_template.*.txt` beside `eliminate-v2r-group-levels` carrying one "
+    "sentence: 'Each candidate may also carry missing_fields, the levels that folder "
+    "fixes which this file states no fact for; score, the engine's own support figure "
+    "for that candidate; and margin, by how much the leading candidate beat the next "
+    "-- these are the engine's measurements of the tree and of its own ranking, never "
+    "quotations from the file.' Then `cli.observe_prompt` sets `lists_candidate_"
+    "scores` off that row id exactly as R-77 set `lists_folder_levels`, and this "
+    "passes."))
+def test_the_observed_c_row_tells_the_model_its_dossier_carries_the_scores():
+    import cli
+    from llm_harness.vocabulary import C_PLACEMENT
+
+    assert cli.observe_prompt(C_PLACEMENT).lists_candidate_scores is True
