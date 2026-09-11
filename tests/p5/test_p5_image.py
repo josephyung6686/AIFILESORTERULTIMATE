@@ -93,13 +93,21 @@ def test_the_perceptual_hash_is_emitted_and_the_content_hash_is_not(sink):
     passes against `a_photo_heic()`, which is a FIXTURE: the test writes
     `perceptual_hash="phash:8f3a"` into the `ImageRecord` itself. That is the right
     test of the half it owns -- given a hash, E5 emits it under P5's own label --
-    and it is not weakened here. What it cannot see is one layer out: the reader
-    this deployment actually wires, `readers.image_headers.header_image_reader`,
-    builds no such record, so no corpus ever carries the observation and
-    `facts.families._near_families` returns before its loop with 0 carriers.
+    and it is not weakened here. What it cannot see is one layer out: whether
+    anything in the deployment ever BUILDS such a record. Until the owner ruled `98`
+    on 11 Sep 2026 nothing did, so no corpus carried the observation and
+    `facts.families._near_families` returned before its loop with 0 carriers on both
+    real corpora -- while this test passed throughout.
+
+    That half is now
     `tests/readers/test_readers_image_headers.py::test_the_reader_supplies_the_
-    perceptual_hash_section_2_6_names` is that half, and it is a strict xfail
-    naming the two words `98` leaves to the owner.
+    perceptual_hash_section_2_6_names`, against `header_image_reader()` over a real
+    JPEG. Note that the fixture's own `phash:8f3a` is NOT what the deployment
+    produces and is not meant to be: the shipped values are `dhash64:`-prefixed, and
+    `readers.perceptual_hash.distance` refuses a pair whose prefixes disagree rather
+    than measuring a number about nothing. The fixture is an arbitrary string
+    standing for "whatever the reader supplied", which is exactly what E5's contract
+    says it is.
     """
     run_id = sink.write(run_it())
     rows = slots(sink.observations_for(run_id))

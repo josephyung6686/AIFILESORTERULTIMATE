@@ -31,6 +31,16 @@ missing was a reader that answered for them, so every one fell through to OCR.
 the router already says which of its tokens are images, so neither a second brand
 table nor a format list of this module's own exists here.
 
+**ONE SLOT DECODES PIXELS AND THE REST STILL DO NOT (`98`, the owner's ruling of
+11 Sep 2026).** `_published_properties` below still reads properties only and says
+why: "decoding the pixels to read a camera's `Make` would spend a 50-megapixel
+decode on a string, on every image in a corpus." That argument governs EXIF, colour,
+software and orientation exactly as before. §2.6's perceptual hash is the one slot
+that is about the pixels and cannot be read from a header at all, so
+`readers/perceptual_hash.py` takes the cheap route -- a thumbnail at the nine columns
+the hash needs, decoded at a reduced scale by the same ImageIO -- and that module
+states the algorithm and the threshold together, as `98` §3.1 requires.
+
 **Quartz is imported inside the call, never at module scope.** `deployment.py`
 imports this module eagerly and says at length why it does not import
 `readers/ocr_vision.py` that way: Apple's frameworks cost about 4.6s warm and 75s
@@ -65,6 +75,7 @@ from typing import Any, Callable, Mapping
 
 from extractors.image import ExifValue, ImageRecord
 from extractors.router import SOURCE_TYPE_BY_FORMAT
+from readers.perceptual_hash import perceptual_hash
 from readers.signatures import format_from_magic
 
 #: The format tokens this reader answers with. §2.6 names "PNG format" as a tier-3
@@ -506,6 +517,13 @@ def header_image_reader() -> Callable[[Path], ImageRecord | None]:
             image_format=sized.image_format if sized is not None else named,
             dimensions=f"{width}x{height}", width=width, height=height,
             exif=exif, color=color, software=software,
+            # §2.6's OTHER HASH, and the one slot on this record that is about the
+            # pixels rather than the container. `readers/perceptual_hash.py` states
+            # the algorithm, the threshold and why this one decode is an exception
+            # to the rule two paragraphs of this module's docstring set out. `None`
+            # when ImageIO will not decode the bytes, which is one fewer carrier for
+            # `_near_families` and never a hash of nothing.
+            perceptual_hash=perceptual_hash(path),
             unread_reason=unread_reason)
 
     return read_image

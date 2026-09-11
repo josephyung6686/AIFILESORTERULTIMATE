@@ -83,8 +83,9 @@ from facts.dates import (
 from facts.direct import DirectSlot, DirectSlots, direct_facts
 from facts.families import (
     DUPLICATE_FAMILY_FIELD, VERSION_FAMILY_FIELD, duplicate_family,
-    shared_family_field,
+    shared_family_field, version_family,
 )
+from facts.lineage import title_block_key, title_lineage
 from facts.discount import MetadataScreen
 from facts.discount import screen_metadata as _discount_screen_metadata
 # `104` §18.31: which reader produced each of the readings a site-E call carries.
@@ -319,6 +320,7 @@ from production import (
 from readers.capture import make_tool_producer_strings, metadata_property_names
 from readers.deployment import macos_readers
 from readers.pdf_pdfium import pdfium_reader
+from readers.perceptual_hash import near_block_keys, near_duplicate
 from readers.signatures import signature_detector
 from extraction_pool import ExtractionContext, ProcessPool
 from model_placement import (
@@ -13792,26 +13794,38 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         so that set is empty (measured: 0 carriers on both real corpora) and
         `_near_families` returns before the loop.
 
-        **`version_family` IS NOT CALLED, and that is the same refusal one step
-        further out.** §2.9 lists "duplicate and version-family signals" among what
-        extraction produces and defines none of them, so there is no lineage rule to
-        bind -- see `planning/97-VERSION-LINEAGE-PROPOSAL.md`. Binding it to a rule
+        **`version_family` IS CALLED SINCE 11 SEP 2026, and the call arrived with
+        its rule.** It used to be absent, and the refusal was honest: §2.9 lists
+        "duplicate and version-family signals" among what extraction produces and
+        defines none of them, so there was no lineage rule to bind, and binding one
         that answers `None` would have been honest about the FACTS and dishonest
-        about the COST: `version_family` compares every pair of file versions,
-        because a version family is by definition files whose content hashes DIFFER
-        and no hash bucket can group them. On 10,000 files that is 50 million pairs
-        enumerated to answer "no rule" 50 million times. A producer whose rule can
-        establish nothing is not a producer this run has; calling it would buy a
-        quadratic and no fact. When a lineage rule is ruled, it arrives here with
-        the call, and whoever authors it owns the blocking strategy that keeps the
-        comparison bounded.
+        about the COST -- a version family is by definition files whose content
+        hashes DIFFER, no hash bucket can group them, and on 10,000 files that is 50
+        million pairs enumerated to answer "no rule" 50 million times.
 
-        `near_match` answers False always, for the same reason one field over: §2.6
-        names the perceptual hash and states no distance metric and no threshold, and
-        equality would be a threshold of zero. See
-        `planning/98-NEAR-DUPLICATE-METRIC-PROPOSAL.md`. Byte identity needs no
-        threshold and is unaffected -- measured on a real 42-file corpus, 15 files in
-        7 families.
+        The owner ruled `97` on 11 Sep 2026 (`00`, Amendments of 2026-09-11, item 4;
+        `104` §18.43): two files are two versions of one document when they share a
+        document title and their content hashes differ, and the blocking key is that
+        title's canonical form. `facts.lineage` holds the rule and the key and states
+        the whole of the ruling; the only thing spelled HERE is the composition --
+        the deployment's own canonicaliser goes into both, which is what makes a
+        title that is one string at placement one string here.
+
+        THE COST OBJECTION IS ANSWERED RATHER THAN ACCEPTED. `version_family` takes
+        `block_key` beside `lineage_rule`, both required, so the pair loop runs
+        within a title and never across the roster; the 50 million pairs are the
+        pairs of files that state the SAME title, which on a real disk is a handful.
+
+        `near_match` and `near_block_keys` arrived by the same ruling. §2.6 named the
+        perceptual hash and stated no distance metric and no threshold, so this used
+        to answer False always and equality would have been a threshold of zero; the
+        owner ruled a 64-bit difference hash and a Hamming distance of at most 5, and
+        `readers.perceptual_hash` holds the hash, the distance and the banded
+        blocking key together, as `98` §3.1 requires ("whatever ships must be stated
+        together with the hash it assumes"). The image reader now supplies the hash,
+        so `_near_families` has carriers for the first time. Byte identity needed no
+        threshold and is unaffected either way -- measured on a real 42-file corpus,
+        15 files in 7 families.
 
         `perceptual_hash_label` is IMPORTED from `extractors.image` and never
         respelled. It has a space in it, P5 owns the spelling, and a second home for
@@ -13820,10 +13834,18 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         roster = corpus_roster(conn, run_id)
         if not roster:
             return
-        duplicate_family(conn,
-                         file_ids=tuple(file_id for file_id, _hash in roster),
+        file_ids = tuple(file_id for file_id, _hash in roster)
+        duplicate_family(conn, file_ids=file_ids,
                          perceptual_hash_label=PERCEPTUAL_HASH_FIELD,
-                         near_match=lambda left, right: False)
+                         near_match=near_duplicate,
+                         near_block_keys=near_block_keys)
+        # AFTER the duplicate half, so a pair that is byte-identical is already a
+        # `direct` family when the weaker claim is asked. `version_family` excludes
+        # identical hashes itself, so the order is not what makes that true -- it is
+        # what makes the stronger fact the one that was written first.
+        version_family(conn, file_ids=file_ids,
+                       lineage_rule=title_lineage(normalize_for_model),
+                       block_key=title_block_key(normalize_for_model))
 
     #: P6's two field keys onto P9's two verdicts. THE ONLY PLACE either vocabulary
     #: may be spelled beside the other, which is why the mapping is here and not in

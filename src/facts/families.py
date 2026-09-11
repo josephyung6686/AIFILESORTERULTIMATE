@@ -204,7 +204,9 @@ def shared_family_field(conn: sqlite3.Connection, *, left_file_id: str,
 
 def duplicate_family(conn: sqlite3.Connection, *, file_ids: Iterable[str],
                      perceptual_hash_label: str,
-                     near_match: Callable[[str, str], bool]) -> tuple[str, ...]:
+                     near_match: Callable[[str, str], bool],
+                     near_block_keys: Callable[[str], tuple[str, ...]]
+                     ) -> tuple[str, ...]:
     """Done-means 23. Byte identity is `direct`; a near match is at most `possible`.
 
     `perceptual_hash_label` and `near_match` are required with no default. §2.6 names
@@ -267,7 +269,8 @@ def duplicate_family(conn: sqlite3.Connection, *, file_ids: Iterable[str],
 
     written.extend(_near_families(conn, versions=versions,
                                   perceptual_hash_label=perceptual_hash_label,
-                                  near_match=near_match))
+                                  near_match=near_match,
+                                  near_block_keys=near_block_keys))
     return tuple(written)
 
 
@@ -281,23 +284,37 @@ def _perceptual(version: _Version, label: str) -> tuple[Observation, ...]:
 
 def _near_families(conn: sqlite3.Connection, *, versions: tuple[_Version, ...],
                    perceptual_hash_label: str,
-                   near_match: Callable[[str, str], bool]) -> list[str]:
+                   near_match: Callable[[str, str], bool],
+                   near_block_keys: Callable[[str], tuple[str, ...]]) -> list[str]:
     """§2.6's near-duplicates, at `possible` and never above.
 
     Pairs already in one exact family are skipped: they are a duplicate family at
     `direct` already, and a weaker second fact over the same members for the same
     field is noise rather than evidence.
+
+    `near_block_keys` is the sub-quadratic half `00`'s Amendments of 2026-09-11 item
+    4 ratifies, injected for the same reason `near_match` is: the cheap necessary
+    condition of a distance is a property of the hash that distance is over, and P6
+    holds neither. A reading gets one or more keys and two files are compared only
+    where a key coincides; a reading the keyer will not key gets no key and is
+    compared against nothing. **The contract the caller owns: a pair `near_match`
+    would join must share a key**, or blocking loses the family silently rather than
+    expensively -- see `readers.perceptual_hash.near_block_keys` for the pigeonhole
+    argument that makes the shipped key satisfy it.
     """
     carriers = {version.file_id: readings
                 for version in versions
                 if (readings := _perceptual(version, perceptual_hash_label))}
-    # The pair loop below is quadratic, and this is what bounds it: it enumerates
-    # PERCEPTUAL-HASH CARRIERS, never the roster. A corpus of 10,000 files with no
-    # perceptual hash in it does no work here at all -- which is today's case, since
-    # the wired `readers.image_headers` reader supplies none, measured 0 carriers on
-    # both real corpora. Returning early is not an optimisation of that; it is so
-    # that the bound is stated in the code rather than inferred from a dict
-    # comprehension by the next person who reads this for its cost.
+    # THE FIRST BOUND: the pair loop below enumerates PERCEPTUAL-HASH CARRIERS and
+    # never the roster, so a corpus of 10,000 files with no image in it does no work
+    # here at all. Returning early is not an optimisation of that; it is so that the
+    # bound is stated in the code rather than inferred from a dict comprehension by
+    # the next person who reads this for its cost.
+    #
+    # It stopped being the ONLY bound on 11 Sep 2026. Until the owner ruled `98`'s
+    # hash there were no carriers anywhere (0 measured on both real corpora) and
+    # "carriers, not the roster" was a bound of zero; on a photo library the carriers
+    # ARE the roster, which is what `near_block_keys` is for.
     if len(carriers) < 2:
         return []
     parent = {file_id: file_id for file_id in carriers}
@@ -309,12 +326,26 @@ def _near_families(conn: sqlite3.Connection, *, versions: tuple[_Version, ...],
         return file_id
 
     by_id = {version.file_id: version for version in versions}
-    for left, right in combinations(sorted(carriers), 2):
-        if by_id[left].content_hash == by_id[right].content_hash:
-            continue
-        if any(near_match(a.raw_value, b.raw_value)
-               for a in carriers[left] for b in carriers[right]):
-            parent[find(left)] = find(right)
+    # THE SECOND BOUND. Sorted before anything is decided, for `_read`'s reason.
+    blocks: dict[str, set[str]] = {}
+    for file_id in sorted(carriers):
+        for reading in carriers[file_id]:
+            for key in near_block_keys(reading.raw_value):
+                blocks.setdefault(key, set()).add(file_id)
+
+    # One pair is asked once however many keys it shares, so a file carrying several
+    # readings cannot make the same comparison several times.
+    asked: set[tuple[str, str]] = set()
+    for _key, blocked in sorted(blocks.items()):
+        for left, right in combinations(sorted(blocked), 2):
+            if (left, right) in asked:
+                continue
+            asked.add((left, right))
+            if by_id[left].content_hash == by_id[right].content_hash:
+                continue
+            if any(near_match(a.raw_value, b.raw_value)
+                   for a in carriers[left] for b in carriers[right]):
+                parent[find(left)] = find(right)
 
     components: dict[str, list[str]] = {}
     for file_id in sorted(carriers):

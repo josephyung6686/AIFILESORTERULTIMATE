@@ -35,6 +35,10 @@ from extractors.image import ImageRecord, SIGNAL_TIER
 from readers.image_headers import (
     CAMERA_EXIF, CAPTURE_TIME, GPS, header_image_reader,
 )
+from readers.perceptual_hash import (
+    HASH_ALGORITHM, NEAR_DUPLICATE_HASH_BITS, NEAR_DUPLICATE_MAX_DISTANCE,
+    distance, near_block_keys, near_duplicate,
+)
 
 Quartz = pytest.importorskip(
     "Quartz",
@@ -497,49 +501,120 @@ def test_a_pdf_and_a_psd_are_not_claimed_by_the_image_reader():
 # §2.6's other hash -- `104` §18.43, the audit's item 10
 #
 # "Exact hashes and perceptual hashes can identify duplicates and near-duplicates."
-# The exact half is P1's and needs nobody. The other half has no carrier anywhere in
-# the deployment: this reader supplies no `perceptual_hash`, so `extract_image` emits
-# no `perceptual hash` observation, so `facts.families._near_families` counts fewer
-# than two carriers and returns before its loop on every corpus -- measured at 0 on
-# both real corpora (`cli.py`'s `_family_pass`).
+# The exact half is P1's and needs nobody. The other half had NO CARRIER ANYWHERE in
+# the deployment until the owner ruled on 11 Sep 2026: this reader supplied no
+# `perceptual_hash`, so `extract_image` emitted no `perceptual hash` observation, so
+# `facts.families._near_families` counted fewer than two carriers and returned before
+# its loop on every corpus -- 0 measured on both real corpora (`cli.py`'s
+# `_family_pass`). `98` was ratified as written and as written it named neither the
+# algorithm (§3.1) nor the distance (§3.2, "the number is the owner's"); the ruling
+# named both, and `readers/perceptual_hash.py` holds them together as §3.1 requires.
+#
+# The fixtures are written by the test through the same library the reader reads
+# with, as everything above this line is. A re-encoding is a SECOND JPEG QUALITY over
+# one raster: same picture, different bytes, so P1's content hashes differ and the
+# exact half of `duplicate_family` correctly says nothing about the pair.
 # --------------------------------------------------------------------------- #
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "The deployment's image reader supplies no perceptual hash, so §2.6's "
-    "near-duplicate half has no carrier and `_near_families` returns before its "
-    "loop on every corpus -- 0 carriers measured on both real corpora. WHAT IS "
-    "MISSING IS THE OWNER'S WORD AND NOT THE CODE. `98` was ratified as written "
-    "on 2026-09-11 (`00`, Amendments of 2026-09-11, item 4; `104` §18.43) and as "
-    "written it authors nothing. `98` §3.1: `00` 'names no algorithm', and "
-    "'whatever ships must be stated together with the hash it assumes'. `98` "
-    "§3.2: the threshold 'is a judgement about the owner's tolerance, not a "
-    "technical constant', and 'the number is the owner's'. `98` §3 closes the "
-    "escape hatch in advance: 'Equality is not a way out ... it is a threshold of "
-    "zero, and zero is a number nobody ruled.' So TWO WORDS ARE OWED -- which "
-    "hash, and the distance at which two of them are one photograph -- and "
-    "choosing either here is `98` §5's own refusal case: 'a threshold invented in "
-    "an implementation is a policy with no reviewer, and this one is directly "
-    "visible to the owner as a deletion suggestion about their own photographs.' "
-    "NOTHING ELSE BLOCKS IT. `CGImageSourceCreateThumbnailAtIndex` decodes a "
-    "small raster through the ImageIO this reader already holds, so no dependency "
-    "question arrives with the answer -- that is a fact about the toolchain, not a "
-    "choice about the metric. It does reverse one standing decision, which is why "
-    "it is named here rather than discovered later: this module reads 'Properties "
-    "only, never `CGImageSourceCreateImageAtIndex`', because decoding pixels to "
-    "read a camera's `Make` would spend a 50-megapixel decode on a string. A "
-    "perceptual hash is the one slot that genuinely needs the pixels, and the "
-    "thumbnail route is what keeps that argument true for the others. Strict, so "
-    "the suite turns red the day the hash ships."))
+def _patterned(width, height, boxes):
+    """A raster with real structure in it, so two of them can genuinely differ.
+
+    `blank_image` above is solid white, which is the right fixture for a dimension
+    and the wrong one for a difference hash: every adjacent pair of cells is equal,
+    so two unrelated blanks hash identically and a threshold test over them would
+    measure nothing.
+    """
+    context = Quartz.CGBitmapContextCreate(
+        None, width, height, 8, 0, Quartz.CGColorSpaceCreateDeviceRGB(),
+        Quartz.kCGImageAlphaPremultipliedLast)
+    Quartz.CGContextSetRGBFillColor(context, 1, 1, 1, 1)
+    Quartz.CGContextFillRect(context, Quartz.CGRectMake(0, 0, width, height))
+    Quartz.CGContextSetRGBFillColor(context, 0, 0, 0, 1)
+    for left, bottom, wide, high in boxes:
+        Quartz.CGContextFillRect(
+            context, Quartz.CGRectMake(left, bottom, wide, high))
+    return Quartz.CGBitmapContextCreateImage(context)
+
+
+def _encoded(path, image, quality):
+    destination = Quartz.CGImageDestinationCreateWithURL(
+        NSURL.fileURLWithPath_(str(path)), "public.jpeg", 1, None)
+    assert destination is not None, "this ImageIO cannot write JPEG"
+    Quartz.CGImageDestinationAddImage(
+        destination, image,
+        {Quartz.kCGImageDestinationLossyCompressionQuality: quality})
+    assert Quartz.CGImageDestinationFinalize(destination), path
+    return path
+
+
 def test_the_reader_supplies_the_perceptual_hash_section_2_6_names(tmp_path):
-    """A real photograph through the real reader, not an `ImageRecord` fixture.
+    """§2.6's other hash, through the real reader and not an `ImageRecord` fixture.
 
     `tests/p5/test_p5_image.py::test_the_perceptual_hash_is_emitted_and_the_content
-    _hash_is_not` passes today and is not wrong: it pins `extract_image`'s side of
-    the contract by handing it a record that carries `phash:8f3a`. What it cannot
-    see is that nothing in the deployment ever builds such a record. This is that
-    half.
+    _hash_is_not` pins `extract_image`'s side of the contract by HANDING it a record
+    that carries `phash:8f3a`. What it could not see is whether anything in the
+    deployment ever builds such a record. Until the owner's ruling of 11 Sep 2026
+    nothing did, and `_near_families` measured 0 carriers on both real corpora.
     """
     record = header_image_reader()(written(tmp_path, *WRITABLE["JPEG"]))
     assert record is not None, "the JPEG fixture was not read at all"
     assert record.perceptual_hash is not None
+    name, _, digits = record.perceptual_hash.partition(":")
+    # The value states the algorithm it was computed under: `98` §3.1 requires the
+    # metric to ship "together with the hash it assumes", and a bare hex string
+    # would let a future algorithm's value be compared against this one bit for bit.
+    assert name == HASH_ALGORITHM
+    assert len(digits) * 4 == NEAR_DUPLICATE_HASH_BITS
+
+
+def test_a_format_the_image_stack_will_not_decode_gets_no_hash_and_no_zero(tmp_path):
+    """A refusal is `None`. A zero hash would be within distance 0 of every other.
+
+    The SVG branch is read entirely out of the head of the file and never handed to
+    ImageIO, so it is the reader's own case of a record with dimensions and no
+    pixels decoded.
+    """
+    path = tmp_path / "diagram.svg"
+    path.write_bytes(b'<svg width="120" height="80"></svg>')
+    record = header_image_reader()(path)
+    assert (record.width, record.height) == (120, 80)
+    assert record.perceptual_hash is None
+
+
+def test_a_re_encoding_is_near_and_a_different_picture_is_not(tmp_path):
+    """The metric at the owner's threshold, over two encodings of one raster.
+
+    `98` §4's own material -- "resized exports, screenshots of screenshots, and
+    messaging-app re-encodes" -- is what byte identity cannot catch and what this
+    number is for. Both directions are measured in one test on purpose: a threshold
+    wide enough to satisfy the first half and narrow enough to satisfy the second is
+    the whole of what `98` §3.2 asked the owner to choose.
+    """
+    read = header_image_reader()
+    one = _patterned(640, 480, ((40, 40, 200, 160), (400, 300, 180, 120)))
+    other = _patterned(640, 480, ((300, 60, 90, 380), (60, 380, 500, 60)))
+    original = read(_encoded(tmp_path / "IMG_4821.jpg", one, 1.0)).perceptual_hash
+    resaved = read(_encoded(tmp_path / "IMG_4821 (1).jpg", one, 0.55)).perceptual_hash
+    different = read(_encoded(tmp_path / "IMG_5106.jpg", other, 1.0)).perceptual_hash
+
+    assert distance(original, resaved) <= NEAR_DUPLICATE_MAX_DISTANCE
+    assert near_duplicate(original, resaved)
+    assert not near_duplicate(original, different)
+    # And the banded key is a NECESSARY condition of the first, which is what makes
+    # it safe for `_near_families` to block on: a pair within the threshold always
+    # shares a band.
+    assert set(near_block_keys(original)) & set(near_block_keys(resaved))
+
+
+def test_a_value_this_algorithm_did_not_produce_is_refused_rather_than_compared():
+    """`None`, not a distance, and no blocking key -- see `perceptual_hash.distance`.
+
+    P5's own long-standing fixture spells `phash:8f3a`. Measuring a Hamming distance
+    between that and a `dhash64` would be a number about nothing, and a False from
+    `near_duplicate` is the safe side of `98` §3.2's asymmetry.
+    """
+    ours = f"{HASH_ALGORITHM}:{0:016x}"
+    assert distance("phash:8f3a", ours) is None
+    assert not near_duplicate("phash:8f3a", ours)
+    assert near_block_keys("phash:8f3a") == ()

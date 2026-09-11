@@ -1,35 +1,45 @@
-"""`104` §18.43, the audit's item 10: the two families that never form.
+"""`104` §18.43, the audit's item 10: the two families, formed.
 
 "Version families and near-duplicates never form (`version_family` uncalled,
 `near_match=lambda: False`, no perceptual hash carrier; the rules are `97` and
-`98`)." The owner ratified both on 2026-09-11 (`00`, Amendments of 2026-09-11,
-item 4: "`97` (version lineage) and `98` (near-duplicate metric) are ratified as
-written").
+`98`)." Both proposals were ratified as written on 2026-09-11 (`00`, Amendments of
+2026-09-11, item 4) and AS WRITTEN NEITHER AUTHORED A RULE -- each carries the
+status line "OWED TO THE OWNER. Nothing is authored here and nothing is bound", and
+each spends its §3 naming the word the owner still had to say. `97` §3 introduces
+its four candidate signals as "Candidate signals, none of them ruled"; `98` §3.1
+records that `00` "names no algorithm" and §3.2 that "the number is the owner's".
 
-**Ratified as written, and as written neither authors a rule.** Both documents
-carry the same status line -- "OWED TO THE OWNER. Nothing is authored here and
-nothing is bound" -- and both spend their §3 saying which word the owner still has
-to say. `97` §3 is titled "The decision the owner has to make" and introduces its
-four candidate signals as "Candidate signals, **none of them ruled**"; §4 says why
-an agent must not pick one ("`84` §1: absent means refuse, never guess ...
-Authoring a version rule from a reading of the word 'version' would be an
-implementation answering a deferred design question"). `98` §3.1 says `00` "names
-no algorithm" and §3.2 says of the threshold that "the number is the owner's".
+**The owner then ruled, in session on 11 Sep 2026, and this file measures the two
+rulings end to end through `cli.main` over a real corpus.**
 
-So the two pins below are red and stay red until a word arrives, and each xfail
-names the word it is waiting for. The twin beside each one is the guard on the
-other side: a rule that joined every pair, or a threshold that called every
-photograph a near-duplicate of every other, would satisfy the xfail and be worse
-than the refusal. They pass vacuously today -- nothing forms, so nothing over-forms
--- and they are what stops the eventual fix from passing by over-forming.
+`97`: two files are two versions of one document when they share a document title --
+the `title` observation, or the first `heading` where there is none -- and their
+content hashes differ; filenames are never a basis; the family's stored name is the
+shared title; the blocking key is that title's canonical form.
+`facts/lineage.py` holds it.
 
-What is NOT waiting on a word, and is built: the blocking step `00`'s item 4
-ratifies in the same sentence ("the comparison is kept sub-quadratic by a blocking
-step"). `facts.families.version_family` takes `block_key` beside `lineage_rule`,
-both required, and `tests/p6/test_p6_families.py` measures the bound with a
-counting fake. A blocking key is a property of whichever rule ships, so the seam in
-`cli.py` stays held: injecting a refusing rule and a refusing key would be `104`
-§18.6's S6 dead arm in a second spelling.
+`98`: a 64-bit difference hash over an 8x9 greyscale thumbnail decoded through the
+ImageIO the reader already uses, and two images are near-duplicates at a Hamming
+distance of at most 5. `readers/perceptual_hash.py` holds the hash, the distance and
+the banded blocking key together, as `98` §3.1 requires.
+
+**Every pin has a twin that says the opposite, and the twins are why the numbers
+matter.** `98` §3.2 is explicit that the two errors are not symmetric -- "too loose
+-> two different photographs are called near-duplicates, and the review screen
+invites the owner to delete one of them" -- so a threshold wide enough to join every
+JPEG in a corpus, or a lineage rule that answered for every pair, would satisfy the
+positive half of each pair and be worse than the refusal it replaced. Both negatives
+were green before the rules shipped, when nothing formed at all; they are green now
+against rules that DO form families, which is the measurement that was missing.
+
+**One thing the ruling does not reach, recorded because the corpus below shows it.**
+The rule reads the `title` or `heading` zone, and a plain `.txt` file produces
+neither: `readers/text_documents.py` detects heading regions for Markdown, docx and
+the structured formats, and a bare first line of a text file is `zone="body"`. So
+three drafts saved as `.txt` state no title and form no version family. The drafts
+here are Markdown for that reason, and it is stated rather than worked around: a
+fallback to the first body paragraph would be this file inventing the half of the
+rule the owner did not say.
 """
 from __future__ import annotations
 
@@ -93,10 +103,9 @@ def _family(database: Path, field_key: str) -> dict[str, tuple[str, str]]:
 def _extractors(database: Path) -> dict[str, set[str]]:
     """Which extractors completed on each file, so a twin can prove the corpus read.
 
-    A pin that is waiting on a word must not be able to turn into a pin that is
-    waiting on a file nobody opened. The two green twins assert this; the two
-    xfails cannot, because a strict xfail is satisfied by ANY failure and would
-    swallow the difference.
+    A negative pin -- "these two are NOT one family" -- passes just as happily over
+    a corpus nothing opened as over one the rules considered and separated. The two
+    twins below assert the corpus was read, so the difference cannot be swallowed.
     """
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
@@ -124,20 +133,20 @@ def _drafts(root: Path) -> Path:
     """
     corpus = root / "holder" / "corpus"
     corpus.mkdir(parents=True)
-    (corpus / "Proposal draft.txt").write_text(
-        f"{TITLE}\n\nSpring 2026. Supervisor: Dr. Lee.\n"
+    (corpus / "Proposal draft.md").write_text(
+        f"# {TITLE}\n\nSpring 2026. Supervisor: Dr. Lee.\n"
         "Section 1. The estuary is stratified for most of the year.\n")
-    (corpus / "Proposal draft 2.txt").write_text(
-        f"{TITLE}\n\nSpring 2026. Supervisor: Dr. Lee.\n"
+    (corpus / "Proposal draft 2.md").write_text(
+        f"# {TITLE}\n\nSpring 2026. Supervisor: Dr. Lee.\n"
         "Section 1. The estuary is stratified for most of the year.\n"
         "Section 2. Spring tides break the stratification down.\n")
-    (corpus / "Proposal final.txt").write_text(
-        f"{TITLE}\n\nSpring 2026. Supervisor: Dr. Lee.\n"
+    (corpus / "Proposal final.md").write_text(
+        f"# {TITLE}\n\nSpring 2026. Supervisor: Dr. Lee.\n"
         "Section 1. The estuary is stratified for most of the year.\n"
         "Section 2. Spring tides break the stratification down.\n"
         "Section 3. Mixing is strongest at the mouth.\n")
-    (corpus / "Electricity invoice March 2026.txt").write_text(
-        "CLP Power Hong Kong Limited\n\nInvoice for March 2026.\n"
+    (corpus / "Electricity invoice March 2026.md").write_text(
+        "# CLP Power Hong Kong Limited\n\nInvoice for March 2026.\n"
         "Amount due: HKD 412.60. Account 8813-5521.\n")
     return corpus
 
@@ -195,102 +204,96 @@ def _photos(root: Path) -> Path:
 # --- `97`: version families -----------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "`facts.families.version_family` is never called. `cli.py`'s `_family_pass` "
-    "states the refusal and defers: '§2.9 lists duplicate and version-family "
-    "signals among what extraction produces and defines none of them, so there is "
-    "no lineage rule to bind ... When a lineage rule is ruled, it arrives here "
-    "with the call.' `97` was ratified as written on 2026-09-11 and AS WRITTEN IT "
-    "RULES NOTHING. Its §3 is titled 'The decision the owner has to make'; it "
-    "introduces its four candidates as 'Candidate signals, none of them ruled'; "
-    "and of the four, §8.3 forbids one outright ('a filename match alone does "
-    "not'), one needs 'a marker vocabulary, which does not exist', and one needs a "
-    "'near-identical' prose threshold, which is a second number nobody ruled. §4 "
-    "says why an agent may not pick from among them: 'Authoring a version rule "
-    "from a reading of the word version would be an implementation answering a "
-    "deferred design question.' FOUR WORDS ARE OWED, all of them `97`'s own: (1) "
-    "THE RULE -- which evidence makes two files two versions of one document; (2) "
-    "THE STATE -- `97` §2 lists `validated` and `possible` and rules neither, and "
-    "the difference is whether P9 may anchor a group on the family at all "
-    "(`grouping.seeds.ANCHOR_STATES` admits `validated` and not `possible`); (3) "
-    "THE NAME -- `97` §3 calls this 'a second decision' and constrains it only "
-    "negatively ('it must not be a file hash ... whatever names a version family "
-    "must be safe to show and to send'), and `duplicate_family`'s own answer "
-    "cannot be reused, because it names a family after the observation keys its "
-    "members SHARE and an `observation_key` hashes the content hash, so two files "
-    "with different bytes share none by construction; (4) THE ORDER -- a version "
-    "family is ordered (a draft precedes a final) and `97` says nothing about "
-    "ordering one anywhere, nor about timestamps, which is the evidence an order "
-    "would have to read. The blocking step the same amendment ratifies is NOT "
-    "waiting on any of that and is built: `version_family` takes `block_key` "
-    "beside `lineage_rule`, measured in `tests/p6/test_p6_families.py`. Strict, so "
-    "the suite turns red the day a rule is bound."))
 def test_three_drafts_of_one_document_form_one_version_family(tmp_path):
-    """`97` §5's own measurement, as a corpus: three drafts, one family."""
-    database = tmp_path / "holder" / "plan.sqlite"
-    code, report = _run(_drafts(tmp_path), database)
-    assert code == 0, report
+    """`97` §5's own measurement, as a corpus: three drafts, one family.
 
-    found = _family(database, VERSION_FAMILY_FIELD)
-    drafts = {name: found[name] for name in
-              ("Proposal draft.txt", "Proposal draft 2.txt", "Proposal final.txt")
-              if name in found}
-    assert len(drafts) == 3, f"only {sorted(drafts)} carry a version family: {found}"
-    assert len({value for value, _state in drafts.values()}) == 1, drafts
-
-
-def test_two_unrelated_documents_are_not_one_version_family(tmp_path):
-    """The twin, and the reason it is here before there is anything to catch.
-
-    A lineage rule that answered for every pair would satisfy the pin above and be
-    worse than the refusal it replaces: `97` §3 requires the rule to cite real
-    observations precisely so a family nobody can point at is not written. A
-    thesis proposal and an electricity bill share a corpus and nothing else.
-
-    It passes vacuously today -- no version family forms at all -- which is stated
-    rather than hidden: what it is for is the day the pin above goes green.
+    "What is lost is the case where the owner has two genuinely different drafts of
+    one document -- common on this disk, and currently invisible to the product."
+    The three share a title and no bytes; under the owner's ruling they are one
+    family, and every clause of that ruling is asserted here rather than the count
+    alone.
     """
     database = tmp_path / "holder" / "plan.sqlite"
     code, report = _run(_drafts(tmp_path), database)
     assert code == 0, report
 
     found = _family(database, VERSION_FAMILY_FIELD)
-    draft = found.get("Proposal draft.txt")
-    invoice = found.get("Electricity invoice March 2026.txt")
+    drafts = {name: found[name] for name in
+              ("Proposal draft.md", "Proposal draft 2.md", "Proposal final.md")
+              if name in found}
+    assert len(drafts) == 3, f"only {sorted(drafts)} carry a version family: {found}"
+
+    values = {value for value, _state in drafts.values()}
+    assert len(values) == 1, drafts
+    value = values.pop()
+
+    # `97` §3's SECOND DECISION: "it must not be a file hash ... whatever names a
+    # version family must be safe to show and to send." The owner ruled the name is
+    # the shared title, so it is the title -- content, releasable, and neither a
+    # hash nor a filename. §8.3 is the other half, "a filename match alone does
+    # not", and no member's name appears in the value either.
+    assert value == TITLE, value
+    for name in drafts:
+        assert name not in value, (name, value)
+
+    # §3.13 through `facts.states`: a deterministic rule with no contextual check
+    # beside it is the weaker half. `possible` keeps the family out of
+    # `grouping.seeds.ANCHOR_STATES`, so a disk of documents whose first heading is
+    # `Notes` cannot become one group on this evidence alone.
+    assert {state for _value, state in drafts.values()} == {"possible"}, drafts
+
+    # THE FAMILY IS UNORDERED, and the owner ruled it so: "if nothing in the
+    # evidence orders them, record the family unordered and say so." Nothing in the
+    # shared evidence does -- a title carries no sequence -- so the three rows are
+    # indistinguishable except by which file they are on. A draft is not recorded as
+    # preceding a final, and this says the plan does not pretend otherwise.
+    assert len(set(drafts.values())) == 1, drafts
+
+
+def test_two_unrelated_documents_are_not_one_version_family(tmp_path):
+    """The twin. A rule that answered for every pair would satisfy the pin above.
+
+    A thesis proposal and an electricity bill share a corpus and nothing else, and
+    the rule reads the one thing that separates them: their titles. `97` §3 requires
+    the rule to cite real observations precisely so that a family nobody can point
+    at is not written, and §8.3 forbids the rule that would join these two -- both
+    files' names end in `.md` and both sit in one folder.
+
+    It ran green before the ruling too, when nothing formed at all. It is green now
+    against a rule that DOES form a family three files wide in the same corpus,
+    which is the measurement that was missing.
+    """
+    database = tmp_path / "holder" / "plan.sqlite"
+    code, report = _run(_drafts(tmp_path), database)
+    assert code == 0, report
+
+    found = _family(database, VERSION_FAMILY_FIELD)
+    draft = found.get("Proposal draft.md")
+    invoice = found.get("Electricity invoice March 2026.md")
     assert draft is None or invoice is None or draft[0] != invoice[0], found
 
     # And the four documents were read: the pin above waits on a rule, not on a
     # file nothing opened.
     read = _extractors(database)
-    for name in ("Proposal draft.txt", "Proposal draft 2.txt",
-                 "Proposal final.txt", "Electricity invoice March 2026.txt"):
+    for name in ("Proposal draft.md", "Proposal draft 2.md",
+                 "Proposal final.md", "Electricity invoice March 2026.md"):
         assert "text.structured" in read.get(name, set()), (name, read)
+
+    # And the corpus really did form the family this one is the negative of, so a
+    # rule that stopped answering at all could not make this test pass.
+    assert len(found) == 3, found
 
 
 # --- `98`: near-duplicates ------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "`near_match` is `lambda left, right: False` at `cli.py` ~13826 and the wired "
-    "`readers.image_headers` supplies no perceptual hash, so `_near_families` "
-    "counts fewer than two carriers and returns before its loop -- 0 carriers "
-    "measured on both real corpora. `98` was ratified as written on 2026-09-11 and "
-    "AS WRITTEN IT NAMES NEITHER HALF. §3.1: `00` 'names no algorithm', and "
-    "'whatever ships must be stated together with the hash it assumes'. §3.2: the "
-    "threshold 'is a judgement about the owner's tolerance, not a technical "
-    "constant ... the number is the owner's', and it trades two errors that are "
-    "not symmetric -- 'too loose, two different photographs are called "
-    "near-duplicates, and the review screen invites the owner to delete one of "
-    "them; too tight, a resized or re-exported copy of one photo is treated as two "
-    "files'. §3 closes the escape hatch: 'Equality is not a way out ... it is a "
-    "threshold of zero, and zero is a number nobody ruled.' TWO WORDS ARE OWED: "
-    "the hash, and the distance. Both halves are one constant each once they are "
-    "said, and no dependency arrives with them -- "
-    "`CGImageSourceCreateThumbnailAtIndex` decodes a small raster through the "
-    "ImageIO `readers/image_headers.py` already imports. Strict, so the suite "
-    "turns red the day the metric ships."))
 def test_a_resaved_copy_of_one_image_is_a_near_duplicate_of_it(tmp_path):
-    """`98` §4's own material: one picture, two encodings, two content hashes."""
+    """`98` §4's own material: one picture, two encodings, two content hashes.
+
+    "The cost of leaving this open is low today and rises with the photo library:
+    resized exports, screenshots of screenshots, and messaging-app re-encodes are
+    exactly the material §2.6 names and exactly what byte identity cannot catch."
+    """
     database = tmp_path / "holder" / "plan.sqlite"
     code, report = _run(_photos(tmp_path), database)
     assert code == 0, report
@@ -314,8 +317,10 @@ def test_two_different_pictures_are_not_near_duplicates(tmp_path):
     is what it would cost: the product "may use ... duplicate status ... to surface
     review suggestions" over files it must never delete.
 
-    Vacuous today for the same reason as its counterpart above, and here for the
-    same day.
+    Green before the metric shipped, when no near family formed at all. Green now
+    against a threshold that DOES join the two encodings above, in the same corpus
+    and the same run -- which is what makes it a measurement of the number rather
+    than of its absence.
     """
     database = tmp_path / "holder" / "plan.sqlite"
     code, report = _run(_photos(tmp_path), database)
@@ -331,3 +336,7 @@ def test_two_different_pictures_are_not_near_duplicates(tmp_path):
     read = _extractors(database)
     for name in ("IMG_4821.jpg", "IMG_4821 resaved.jpg", "IMG_5106.jpg"):
         assert "image.metadata" in read.get(name, set()), (name, read)
+
+    # And the near family this one is the negative of DID form in this same run:
+    # the original is in a family, and the different picture is not in its family.
+    assert original is not None, found
