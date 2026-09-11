@@ -69,7 +69,17 @@ def direct_document_ocr_needed(*, result: ExtractionResult) -> bool:
 #: hypothesis." Tiers 1 and 2 are evidence ABOUT the image; tier 3 is what every
 #: image has, which is why it appears in the design as support for the SCREENSHOT
 #: hypothesis rather than against it.
+from extractors.image import DIMENSIONS_FIELD
+
 USABLE_METADATA_TIERS: frozenset[int] = frozenset({1, 2})
+
+
+def _field_of(observation) -> str | None:
+    """The metadata field an observation sits in, off its own container path."""
+    for segment in observation["location"].get("container_path", ()):
+        if segment.get("kind") == "field":
+            return segment.get("label")
+    return None
 
 
 def _has_metadata_observation(result: ExtractionResult) -> bool:
@@ -93,7 +103,15 @@ def _has_metadata_observation(result: ExtractionResult) -> bool:
     classify it. Running OCR on a photograph a messaging platform stripped is exactly
     right: nothing is being classified, the pixels are being read.
     """
+    # An image's DIMENSIONS are never usable metadata for this decision, whatever
+    # tier §2.6's hierarchy gives them: 1080x1080 says nothing about what the
+    # image is. Measured 11 Sep 2026 on the owner's second corpus: 46 of 63
+    # images were skipped by OCR because their pixel dimensions carried tier 2
+    # (read as sensor-shaped), among them four designed graphics whose words a
+    # person reads at a glance. §2.7's trigger is about metadata that says what
+    # the image IS -- camera EXIF, capture time, GPS -- and those still count.
     return any(o["location"]["zone"] == "metadata"
+               and _field_of(o) != DIMENSIONS_FIELD
                and o.get("signal_tier") in USABLE_METADATA_TIERS
                for o in result.observations)
 

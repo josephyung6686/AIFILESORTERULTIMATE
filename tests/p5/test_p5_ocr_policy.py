@@ -237,6 +237,13 @@ def test_a_real_photograph_with_camera_exif_does_not_reach_ocr():
     assert image_ocr_decision(result=result).run_ocr is False
 
 
+@pytest.mark.xfail(strict=True, reason=(
+    "Re-argued 11 Sep 2026 (104 §18.52): dimensions ALONE no longer hold OCR back. "
+    "On the owner's second corpus a 1080x1080 design-tool graphic was read as "
+    "sensor-shaped and skipped, with 45 other images; §2.7's trigger reads the "
+    "metadata that says what the image IS. Beside camera EXIF, dimensions still "
+    "hold it back (the pin below). Whether 1080x1080 is sensor-shaped at all is "
+    "the dimension-signal tiebreak the code already marks NEEDS JOSEPH."))
 def test_sensor_shaped_dimensions_are_enough_to_hold_ocr_back():
     """§2.6 tier 2 -- "capture time, GPS, and sensor-shaped dimensions reinforce it"."""
     result = _real_image(dimension_signal=lambda w, h: "sensor-shaped dimensions")
@@ -248,3 +255,39 @@ def test_an_exact_display_resolution_is_not_enough():
     hypothesis" must not be read as evidence that the image is already understood."""
     result = _real_image(dimension_signal=lambda w, h: "exact display resolution")
     assert image_ocr_decision(result=result).run_ocr is True
+
+
+def test_an_image_whose_only_usable_metadata_is_its_dimensions_reaches_ocr():
+    """11 Sep 2026, the owner's second corpus: four designed graphics (1080x1080,
+    made in a design tool) were skipped by OCR because their pixel dimensions
+    carried tier 2, and 46 of 63 images with them. An image's dimensions say
+    nothing about what it is; §2.7's trigger reads the metadata that does
+    (camera EXIF, capture time, GPS), and those still count."""
+    from extractors.image import DIMENSIONS_FIELD
+    from extractors.shape import location, observation, run, segment
+    from extractors.sink import ExtractionResult
+    H = "67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124"
+
+    def meta(label, tier, value):
+        return observation(
+            file_id="f1", content_hash=H, extractor_name="image.metadata",
+            extractor_version="0.1.0", source_type="image", raw_value=value,
+            location=location(zone="metadata",
+                              container_path=(segment("field", label=label),)),
+            observed_at=FIXED_CLOCK, reliability="direct", signal_tier=tier)
+
+    def result(*obs):
+        return ExtractionResult(
+            run=run(file_id="f1", content_hash=H, extractor_name="image.metadata",
+                    extractor_version="0.1.0", source_type="image",
+                    analysis_tier="native", config={}, completeness="complete",
+                    coverage={"units": "images", "processed": 1, "total": 1},
+                    observation_count=len(obs), started_at=FIXED_CLOCK,
+                    finished_at=FIXED_CLOCK),
+            observations=obs)
+
+    graphic = result(meta(DIMENSIONS_FIELD, 2, "1080x1080"), meta("format", 3, "PNG"),
+                     meta("Software", 3, "Canva"))
+    assert image_ocr_decision(result=graphic).run_ocr is True
+    photo = result(meta(DIMENSIONS_FIELD, 2, "4032x3024"), meta("Make", 1, "Apple"))
+    assert image_ocr_decision(result=photo).run_ocr is False
