@@ -119,6 +119,7 @@ from facts.states import (
     LLM_SUPPORTED as LLM_SUPPORTED_STATE,
     POSSIBLE,
     REJECTED as REJECTED_STATE,
+    USER_CONFIRMED,
     VALIDATED,
     strength,
 )
@@ -220,6 +221,7 @@ from placement.graph import (
     EDGE_TYPES as P11_EDGE_TYPES,
     EXISTING_RELATED_FOLDER as P11_EXISTING_RELATED_FOLDER,
     SHARED_VALIDATED_FACT as P11_SHARED_VALIDATED_FACT,
+    USER_CONFIRMED_MEMBERSHIP as P11_USER_CONFIRMED_MEMBERSHIP,
     VERSION_FAMILY as P11_VERSION_FAMILY,
 )
 from placement.pipeline import (
@@ -10042,7 +10044,15 @@ NOT_A_PLACEMENT_EDGE: tuple[str, ...] = (BOUNDED_SESSION, MUTUAL_SEMANTIC_RETRIE
 #: second engine. The day P9 draws one, its spelling joins the mapping and its
 #: name leaves this tuple -- and `test_cli_p9_p11_edge_seam.py` is what makes
 #: either move visible instead of silent.
-NOT_A_P9_EDGE: tuple[str, ...] = (P11_ATTACHMENT_OF, P11_DIRECT_REFERENCE)
+NOT_A_P9_EDGE: tuple[str, ...] = (
+    P11_ATTACHMENT_OF, P11_DIRECT_REFERENCE,
+    # The ninth relationship's carrier, and it is here for the same reason as the
+    # other two rather than in P9's vocabulary. P9 groups on evidence; this edge
+    # rests on a CORRECTION -- §3.13's `user_confirmed`, which P6 owns and P9
+    # never reads -- so a P9 member would put a P6 state in P9's closed edge
+    # vocabulary and leave P9 with an edge type its own engine cannot draw.
+    P11_USER_CONFIRMED_MEMBERSHIP,
+)
 
 
 def bridge_entity_for(edge_type: str, bridge: str | None) -> str | None:
@@ -10783,11 +10793,122 @@ def observation_edges_of(file_id: str, *, attachments, references
     return tuple(related)
 
 
+def confirmed_membership_edges_of(file_id: str, *, confirmations
+                                  ) -> tuple[dict, ...]:
+    """`00`:109's ninth relationship, and the last of the nine to get a producer.
+
+    `placement/graph.py`'s entry said "none yet AS AN EDGE ... needs a gesture P7
+    has not shipped". The gesture shipped: `104` §18.2 gap 3 gave `--confirm
+    'file:field=value'` to `facts.learning.confirm_claim`, which writes §3.13's
+    `user_confirmed` over the value the product proposed. So the missing half was
+    never the edge -- it was somebody to have spoken.
+
+    **UNDIRECTED, and the anchor is the file being placed.** `attachment_of` is
+    directed because the message is where the relationship was read; nothing here
+    is read out of one end. The person confirmed the same value on both files and
+    neither confirmation came first in any sense the graph can use.
+
+    **The bridge is the shared fact, keyed exactly as a `shared_validated_fact`
+    is.** `fact_bridge_ref(field, value)` is the one spelling both halves of
+    §6.5's hub test use, so a confirmed `subject = PHYS1401` counts against the
+    same entity frequency the inferred one does -- which is right: a course code
+    on four hundred files is a generic entity whoever vouched for it.
+
+    **There is no evidence ref on the edge, and that is the seam rather than an
+    omission.** A `group_edges` row carries one, and this edge is not one of
+    those: it is drawn at the composition root and handed straight to
+    `build_node_local_graph`, whose `GraphAnchor` has four fields -- type, from,
+    to, anchor -- and none of them is an evidence handle. Adding one would grow
+    P11's record for a field nothing reads. What the edge carries instead is the
+    confirmed value itself, which is the thing the person actually confirmed and
+    the thing a reader can go and look up.
+
+    Separate from `observation_edges_of` rather than folded into it: those two
+    are two files' own OBSERVATIONS agreeing about a third thing, and this one is
+    two of the person's own corrections agreeing. The sort contract is per
+    producer for `104` R-111's reason -- with every weight 1.0 the §8.6 cuts rank
+    nothing, so arrival order decides what survives, and it may not vary between
+    two runs over one folder.
+    """
+    related = [
+        {
+            "edge_type": P11_USER_CONFIRMED_MEMBERSHIP, "to_file_id": other,
+            "anchor_file_id": file_id, "weight": 1.0,
+            "entity": fact_bridge_ref(field_key, value),
+            "to_content_hash": other_hash,
+        }
+        for other, other_hash, field_key, value in confirmations.get(file_id, ())
+    ]
+    related.sort(key=lambda edge: (edge["to_file_id"], edge["entity"] or ""))
+    return tuple(related)
+
+
 #: The container-path segment an email attachment name is stored under.
 #: `readers/long_tail_stdlib._message_values` names the slot and `extractors/
 #: long_tail.py` writes it as `segment("field", label=<slot>)`, so this reads the
 #: reader's own word rather than a second spelling of it.
 _ATTACHMENT_SLOT: str = "attachment"
+
+
+def confirmed_membership_index(conn: sqlite3.Connection) -> dict:
+    """`00`:109's ninth relationship, keyed by file. One scan, once per run.
+
+    **What it takes to say "the person put these two together".** §3.13's
+    `user_confirmed` is a state on a FACT: `--confirm 'week 3.pdf:subject=
+    PHYS1401'` says that ONE file's subject is what the product proposed. It says
+    nothing on its own about any other file, so an edge drawn from one
+    confirmation would put the person's name on a pairing they never made. What
+    they DID make is the pairing where BOTH ends are confirmed -- two files, one
+    field, one value, each of them answered for by the person -- and that is the
+    only shape this returns.
+
+    **And the value has to be the one the membership rests on.** Two files in a
+    course group may both carry a confirmed `work_type`; that is not a confirmed
+    MEMBERSHIP of the course, and an edge naming it would claim the person had
+    ratified a grouping they were never asked about. So the field must be one the
+    membership's own `support` cites, which is P9's record of why this file is in
+    this group. A membership is the context; the shared confirmed fact is the
+    basis; neither alone is the relationship.
+
+    The join walks P9's live INCLUDED memberships, so a member P9 retracted or
+    the person rejected is not paired: `_retract_unsupported_memberships`
+    supersedes a membership whose anchor is gone, and a superseded row is not
+    read here.
+
+    ONE SCAN, built for the whole run beside `observation_edge_index`'s two and
+    for the same reason: the alternative is a corpus scan per file placed, which
+    is `58-SCALE-STRESS.md` §2's O(files x files) shape.
+    """
+    confirmed: dict[tuple[str, str, str], list[tuple[str, str]]] = {}
+    for row in conn.execute(
+            "SELECT m.group_id, m.file_id, m.content_hash, f.field_key, "
+            "       v.canonical_value "
+            "FROM memberships m "
+            "JOIN file_facts f "
+            "  ON f.file_id = m.file_id AND f.content_hash = m.content_hash "
+            'JOIN "values" v ON v.value_id = f.value_id '
+            "WHERE m.superseded_by IS NULL AND m.decision = ? "
+            "  AND f.superseded_by IS NULL AND f.active = 1 "
+            "  AND f.reliability_state = ? "
+            "  AND EXISTS (SELECT 1 FROM json_each(m.support) s "
+            "              WHERE json_extract(s.value, '$.quote_or_field') "
+            "                    = f.field_key) "
+            "ORDER BY m.group_id, f.field_key, v.canonical_value, "
+            "         m.content_hash, m.file_id",
+            (INCLUDED, USER_CONFIRMED)):
+        confirmed.setdefault(
+            (row["group_id"], row["field_key"], row["canonical_value"]),
+            []).append((row["file_id"], row["content_hash"]))
+
+    by_file: dict[str, list[tuple[str, str, str, str]]] = {}
+    for (_group, field_key, value), members in confirmed.items():
+        for one, _hash in members:
+            for other, other_hash in members:
+                if other == one:
+                    continue
+                by_file.setdefault(one, []).append(
+                    (other, other_hash, field_key, value))
+    return by_file
 
 
 def observation_edge_index(conn: sqlite3.Connection) -> tuple[dict, dict]:
@@ -11889,14 +12010,21 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         return CLOUD_LOCALITY if chosen is None else chosen[1].locality
 
     #: `104` §18.2 gap 12's two corpus maps and the neighbour descriptions, both
-    #: held for the run for `_how_many_files_state_each_fact`'s reason.
+    #: held for the run for `_how_many_files_state_each_fact`'s reason. The third
+    #: map is `00`:109's ninth relationship and is held for the same reason.
     _observation_edges: list = []
+    _confirmed_memberships: list = []
     _described: dict[str, str | None] = {}
 
     def _observation_edge_maps():
         if not _observation_edges:
             _observation_edges.append(observation_edge_index(conn))
         return _observation_edges[0]
+
+    def _confirmed_membership_map():
+        if not _confirmed_memberships:
+            _confirmed_memberships.append(confirmed_membership_index(conn))
+        return _confirmed_memberships[0]
 
     def _how_another_file_would_describe_itself(other_file_id: str) -> str | None:
         """A NEIGHBOUR, in the words its own site-C call would have used.
@@ -11972,10 +12100,21 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         return answer
 
     def _related_files(file_id: str) -> tuple[dict, ...]:
-        """P9's five typed edges and gap 12's two, each with its other end named."""
+        """P9's five typed edges and the composition root's three, each with its
+        other end named.
+
+        Three, not two: `00`:109's ninth relationship joined gap 12's pair once
+        `--confirm` gave a person a way to say yes. Concatenated in a fixed order
+        and each producer sorted within itself, for `104` R-111's reason -- with
+        every weight 1.0 the §8.6 cuts rank nothing, so arrival order decides
+        what survives a ceiling.
+        """
         attachments, references = _observation_edge_maps()
-        edges = typed_edges_of(conn, file_id) + observation_edges_of(
-            file_id, attachments=attachments, references=references)
+        edges = (typed_edges_of(conn, file_id)
+                 + observation_edges_of(file_id, attachments=attachments,
+                                        references=references)
+                 + confirmed_membership_edges_of(
+                     file_id, confirmations=_confirmed_membership_map()))
         return tuple(
             dict(edge,
                  to_describes=_how_another_file_would_describe_itself(

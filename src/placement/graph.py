@@ -47,6 +47,11 @@ EXISTING_RELATED_FOLDER: str = "existing_related_folder"
 #: produces it; nothing here is minted for a relationship nothing can observe.
 ATTACHMENT_OF: str = "attachment_of"
 DIRECT_REFERENCE: str = "direct_reference"
+#: `00`:109's ninth, and the last of the nine to get a producer. It waited on a
+#: gesture rather than on a mechanism: an edge saying the PERSON put these two
+#: files together needs a person to have said so, and until `104` §18.2 gap 3
+#: shipped `--confirm` there was no way for anyone to say yes to anything.
+USER_CONFIRMED_MEMBERSHIP: str = "user_confirmed_membership"
 
 #: §6.5's typed relationships. A semantic neighbour is deliberately absent: it is
 #: a retrieval channel (`placement.retrieval.SEMANTIC_NEIGHBOUR`) and never an edge,
@@ -55,6 +60,7 @@ DIRECT_REFERENCE: str = "direct_reference"
 EDGE_TYPES: tuple[str, ...] = (
     SHARED_VALIDATED_FACT, DUPLICATE, VERSION_FAMILY, COMPATIBLE_DOCUMENT_TYPE,
     EXISTING_RELATED_FOLDER, ATTACHMENT_OF, DIRECT_REFERENCE,
+    USER_CONFIRMED_MEMBERSHIP,
 )
 
 
@@ -149,13 +155,21 @@ DESIGN_RELATIONSHIPS: tuple[Relationship, ...] = (
         "never an edge: §6.5 says an embedding alone is insufficient, and an "
         "edge type would make it look like evidence of a shared fact's kind"),
     Relationship(
-        "user-confirmed membership", ("retrieval.accepted_group",),
-        "",
-        "none yet AS AN EDGE. §3.13's `user_confirmed` is a state on a FACT, "
-        "and a membership the person confirmed arrives as the accepted-group "
-        "channel above; what has no producer is an edge between two files the "
-        "person confirmed belong together, which needs a gesture P7 has not "
-        "shipped"),
+        "user-confirmed membership",
+        ("retrieval.accepted_group", USER_CONFIRMED_MEMBERSHIP),
+        "cli.confirmed_membership_edges_of, from `--confirm`'s own rows",
+        # THE LAST OF THE NINE, and this entry read "none yet AS AN EDGE ...
+        # needs a gesture P7 has not shipped" until `104` §18.2 gap 3 shipped
+        # one. `facts.learning.confirm_claim` writes §3.13's `user_confirmed`
+        # state and `--confirm 'file:field=value'` is how a person reaches it, so
+        # the missing half was never the edge -- it was somebody to have spoken.
+        "TWO CARRIERS, and they answer different questions. A membership the "
+        "person confirmed still retrieves its branch through the accepted-group "
+        "channel; the EDGE is between two files whose shared basis they BOTH "
+        "confirmed, which is a relationship between files and not a retrieval. "
+        "Both ends must carry the confirmation: one person's yes about one file "
+        "says nothing about the other, and an edge drawn from it would put their "
+        "name on a pairing they never made"),
 )
 
 #: What produced an edge, in one phrase, for the dossier item's `location`. This
@@ -171,6 +185,11 @@ EDGE_PRODUCER: dict[str, str] = {
     EXISTING_RELATED_FOLDER: "a folder the person already keeps both in",
     ATTACHMENT_OF: "an attachment named in an email this run read",
     DIRECT_REFERENCE: "a reference identifier both files carry",
+    # "you confirmed", and the second person is the point. Every other phrase
+    # here names a mechanism because a mechanism is what produced it; this one
+    # names the reader, because what produced it is the reader's own word and a
+    # sentence about "the confirmation store" would hide that.
+    USER_CONFIRMED_MEMBERSHIP: "a value you confirmed on both files",
 }
 
 
