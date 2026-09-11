@@ -510,6 +510,52 @@ def test_spreadsheets_that_no_folder_matched_are_the_design_s_own_set(tmp_path):
     assert "No folder matched" in surfaced, sorted(surfaced)
 
 
+def test_a_standalone_pdf_is_read_off_the_router_s_own_decision(tmp_path):
+    """`00`'s "21 standalone PDFs and forms", off §2.9's own routing row.
+
+    The format is the ROUTER's answer and not the extension: `readers/
+    signatures.py` reads the bytes, so a text file named `form.pdf` is not in
+    this set and a PDF with any name is. The bytes below are the smallest thing
+    that carries the signature, because what is under test is the routing row.
+
+    **The characteristic is read here and not through the screen, and the reason
+    is worth stating.** A PDF this deployment cannot read is UNCLASSIFIED, so the
+    run raises a question about it and it is held under "Waiting on a question
+    you have been asked" -- which is the right set for it and is exactly what
+    `REFINED_BY_CHARACTERISTIC` is narrow for: a characteristic divides the pile
+    that means the product looked and nothing matched, and telling somebody their
+    PDF is "a standalone PDF no folder matched" when what happened is that a
+    question is waiting would be the false sentence §18.3 ranks worst. So the set
+    fills with the PDFs a run READ and could not place, and this pins the reader
+    the partition consults.
+    """
+    import sqlite3
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "syllabus.txt").write_text(
+        "PHYS 1401 Syllabus\n\nSpring 2026. Instructor: Dr Lee. Credits: 3.\n")
+    (corpus / "form.pdf").write_bytes(
+        b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n%%EOF\n")
+    database = tmp_path / "plan.sqlite"
+    _report(corpus, database)
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    try:
+        by_name = {row["filename"]: row["file_id"] for row in conn.execute(
+            "SELECT file_id, filename FROM files")}
+        assert conn.execute(
+            "SELECT detected_format FROM extraction_routing WHERE file_id = ?",
+            (by_name["form.pdf"],)).fetchone()["detected_format"] == "pdf"
+        assert cli.residual_characteristics(
+            conn, [by_name["form.pdf"], by_name["syllabus.txt"]]) == {
+            by_name["form.pdf"]: cli.STANDALONE_PDF_REVIEW_SET}, (
+            "the router's own format decision is not what names this set")
+    finally:
+        conn.close()
+
+
 def _write_a_screenshot_fact(conn, file_id: str) -> None:
     """One `media_type = screenshot` row, written the way P6 writes one.
 
