@@ -100,6 +100,23 @@ The two filters disagree about the root by design and the card is true about it
 -- it is their folder and it holds six files -- but it is an area nothing can
 turn into a branch. Left as the chain computes it; whether the canvas should
 show the folder it was pointed at is the owner's.
+**Recaptured on 11 Sep 2026 for `104` R-42, and the diff was read before it was
+taken.** The residual screen gained §7.5's per-set card and §7.6's two other set
+answers, so this screen gains SEVENTEEN LINES and loses none: under each of the
+four review sets, two card lines -- examples by filename, file-type
+distribution, age range, the OCR or text evidence, the sensitivity -- and, under
+the three unprotected ones, a `--leave-set` and a `--review-set` line. The
+protected set gets its card without the examples, which is the owner's
+2026-09-02 ruling reaching the card.
+
+**Every one of the fourteen captured tables is identical row for row**, which is
+the fact worth recording: no placement row moved, no decision changed, nothing
+vanished. The four items of R-42 that could have touched this run -- the
+characteristic partition, the disposition read off a template's authored
+treatment, the library actions, the user-defined areas -- all of them need a
+`--residual` or a `--residual-library` this fixture's argv does not type, and a
+PDF, a spreadsheet or a screenshot this corpus does not hold. Their absence from
+this diff is the measurement, not an assumption.
 
 The corpus is `test_local_model_fact_pass._corpus`'s six files: a syllabus, a
 lecture, a homework, a problem set, an application essay and a passport scan. The

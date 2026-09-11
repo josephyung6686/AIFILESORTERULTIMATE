@@ -50,6 +50,7 @@ from review_surface.records import ReviewAction
 from review_surface.store import last_presentation_ref, record_action
 from review_surface.vocabulary import (
     ACTION_ACCEPT_BULK,
+    ACTION_LEAVE_UNTOUCHED,
     ACTION_RENAME,
     SURFACE_CANVAS,
     SURFACE_RESIDUAL_SET,
@@ -207,6 +208,88 @@ def collect_set_sends(
             user_id=user_id, component_version=component_version,
             acted_at=acted_at)
         for label, area_label in sends.items()
+        for item in by_label.get(label, ()))
+
+
+def collect_set_leave(
+    conn: sqlite3.Connection, *,
+    item: ResidualSet,
+    presented: Mapping[str, PresentedState],
+    action_id: str,
+    plan_version: str,
+    session_id: str,
+    correction_scope: str,
+    user_id: str,
+    component_version: str,
+    acted_at: str,
+) -> ReviewAction:
+    """One `--leave-set` label, collected as the word P13 already has for it.
+
+    `104` R-42 item 1. §7.6's second choice is "leave them in place", and P13's
+    `leave_untouched` is that gesture in P13's own spelling -- the one `81` §14.1
+    resolved a four-way disagreement in favour of, and the one `tree_design`
+    already imports rather than respelling. Nothing here invents a word for it.
+
+    **The members are enumerated, although this action does not require it.**
+    `collect` demands a member list only of `accept_bulk`, and the reason it
+    demands one there is true here too: this is one gesture about many files, and
+    a record that could not say WHICH files cannot be read back later to say what
+    a reversal applies to. "Leave these alone" is a decision about material and
+    deserves the same list as "file these".
+
+    **No `bulk_basis`.** That field is *the area the person named, which is the
+    whole of why these files were filed together*, and this gesture names no
+    destination at all. Putting the set's own label there would be the record
+    repeating the subject it already carries.
+
+    The protected refusal is `collect`'s, reached exactly as `collect_set_send`
+    reaches it: the subject kind goes into the payload and P13 raises.
+    """
+    shown = presented.get(item.set_id)
+    record = collect(
+        conn, action_id=action_id, surface=SURFACE_RESIDUAL_SET,
+        subject_ref=item.set_id, plan_version=plan_version,
+        session_id=session_id, action=ACTION_LEAVE_UNTOUCHED,
+        correction_scope=correction_scope,
+        presented_state_ref="" if shown is None else shown.presented_state_ref,
+        user_id=user_id, acted_at=acted_at, component_version=component_version,
+        bulk_member_refs=item.member_file_ids,
+        payload={"subject_kind": (PROTECTED_SUBJECT_KIND if item.protected
+                                  else SURFACE_RESIDUAL_SET)})
+    record_action(conn, record)
+    conn.commit()
+    return record
+
+
+def collect_set_leaves(
+    conn: sqlite3.Connection, *,
+    leaves: Sequence[str],
+    sets: Sequence[ResidualSet],
+    presented: Mapping[str, PresentedState],
+    mint_action_id,
+    plan_version: str,
+    session_id: str,
+    correction_scope: str,
+    user_id: str,
+    component_version: str,
+    acted_at: str,
+) -> tuple[ReviewAction, ...]:
+    """Every `--leave-set` label this run was given, collected BEFORE P11 acts.
+
+    The order is `collect_set_sends`' order and it is the same argument: P13's
+    refusal over a protected set has to arrive in front of any decision row, or
+    the run ends with a record saying protected material was disposed of in bulk.
+    """
+    by_label: dict[str, list[ResidualSet]] = {}
+    for item in sets:
+        by_label.setdefault(item.label, []).append(item)
+    return tuple(
+        collect_set_leave(
+            conn, item=item, presented=presented, action_id=mint_action_id(),
+            plan_version=plan_version, session_id=session_id,
+            correction_scope=correction_scope, user_id=user_id,
+            component_version=component_version, acted_at=acted_at)
+        for label in leaves
         for item in by_label.get(label, ()))
 
 

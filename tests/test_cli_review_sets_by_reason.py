@@ -43,6 +43,13 @@ AREA = "Review Later"
 ARGV = ["--situation", "academic.coursework", "--label", "Papers", "--user", "jy",
         "--accept-groups"]
 
+#: One set `_three_reason_corpus` always surfaces, unprotected, named exactly as
+#: the report names it. Measured rather than assumed: the corpus's three sets are
+#: this one, "Waiting on a question you have been asked" and the protected one,
+#: and `test_files_held_for_three_reasons_are_three_sets_a_person_can_tell_apart`
+#: is what fails first if that stops being true.
+HELD_SET = "Not yet said what kind of material"
+
 
 def _three_reason_corpus(tmp_path):
     """One corpus whose unplaced files stopped for three different reasons.
@@ -448,8 +455,8 @@ def test_protected_files_are_their_own_set_named_counted_and_never_opened(
                      f"Protected, and not filed in bulk={AREA}"], out=out)
     refused = out.getvalue()
     assert code == 0, refused
-    assert "That send was refused" in refused, refused
-    assert "Nothing was filed in bulk" in refused, refused
+    assert "That answer was refused" in refused, refused
+    assert "No review set was decided" in refused, refused
     acted = [d for d in _decisions(tmp_path / "sent.sqlite") if d.residual is not None]
     assert not acted, (
         f"a protected set was acted on after the refusal: {acted}")
@@ -460,3 +467,485 @@ def test_protected_files_are_their_own_set_named_counted_and_never_opened(
             "a decision row was written for a set P13 carries no action for")
     finally:
         sent.close()
+
+
+# ======================================================================================
+# `104` R-42, item 2: the design's own named sets
+#
+# `00` §residual names its review sets by what their files SHARE -- "58 screenshots
+# with no accepted project or event", "21 standalone PDFs and forms", "14
+# spreadsheets and presentations with unclear purpose". R-115 divided by the reason
+# code, which is a reliable characteristic and is not that one: every one of those
+# three files stops for the same reason ("no folder matched") and lands under one
+# heading. The characteristic REFINES that pile and only that pile -- a reason that
+# says what is BLOCKING a file (a model was not allowed to look, you have been asked
+# a question) is a set of its own and stays one.
+# ======================================================================================
+
+def test_spreadsheets_that_no_folder_matched_are_the_design_s_own_set(tmp_path):
+    """The router already knows: `source_type` is `spreadsheet` for a `.csv`.
+
+    Before this the person read "No folder matched -- 4 files" over a mixture of
+    a spreadsheet and three notes, which is `00`'s "single intimidating pile"
+    one level down.
+    """
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "syllabus.txt").write_text(
+        "PHYS 1401 Syllabus\n\nSpring 2026. Instructor: Dr Lee. Credits: 3.\n")
+    (corpus / "misc.txt").write_text("Nothing in particular about anything.\n")
+    (corpus / "unclear.csv").write_text("a,b,c\n1,2,3\n")
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database)
+
+    surfaced = dict(_surfaced(database))
+    assert "Spreadsheets and presentations with unclear purpose" in surfaced, (
+        f"the spreadsheet is still inside the reason pile {sorted(surfaced)}")
+    spreadsheets = surfaced["Spreadsheets and presentations with unclear purpose"]
+    assert len(spreadsheets) == 1, surfaced
+    assert "Spreadsheets and presentations with unclear purpose" in printed, printed
+    # And the notes it was gathered with are still their own set, under the
+    # reason both stopped for. A division that swallowed the remainder would be
+    # a set of everything the characteristic happened to recognise.
+    assert "No folder matched" in surfaced, sorted(surfaced)
+
+
+def test_a_standalone_pdf_is_read_off_the_router_s_own_decision(tmp_path):
+    """`00`'s "21 standalone PDFs and forms", off §2.9's own routing row.
+
+    The format is the ROUTER's answer and not the extension: `readers/
+    signatures.py` reads the bytes, so a text file named `form.pdf` is not in
+    this set and a PDF with any name is. The bytes below are the smallest thing
+    that carries the signature, because what is under test is the routing row.
+
+    **The characteristic is read here and not through the screen, and the reason
+    is worth stating.** A PDF this deployment cannot read is UNCLASSIFIED, so the
+    run raises a question about it and it is held under "Waiting on a question
+    you have been asked" -- which is the right set for it and is exactly what
+    `REFINED_BY_CHARACTERISTIC` is narrow for: a characteristic divides the pile
+    that means the product looked and nothing matched, and telling somebody their
+    PDF is "a standalone PDF no folder matched" when what happened is that a
+    question is waiting would be the false sentence §18.3 ranks worst. So the set
+    fills with the PDFs a run READ and could not place, and this pins the reader
+    the partition consults.
+    """
+    import sqlite3
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "syllabus.txt").write_text(
+        "PHYS 1401 Syllabus\n\nSpring 2026. Instructor: Dr Lee. Credits: 3.\n")
+    (corpus / "form.pdf").write_bytes(
+        b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n%%EOF\n")
+    database = tmp_path / "plan.sqlite"
+    _report(corpus, database)
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    try:
+        by_name = {row["filename"]: row["file_id"] for row in conn.execute(
+            "SELECT file_id, filename FROM files")}
+        assert conn.execute(
+            "SELECT detected_format FROM extraction_routing WHERE file_id = ?",
+            (by_name["form.pdf"],)).fetchone()["detected_format"] == "pdf"
+        assert cli.residual_characteristics(
+            conn, [by_name["form.pdf"], by_name["syllabus.txt"]]) == {
+            by_name["form.pdf"]: cli.STANDALONE_PDF_REVIEW_SET}, (
+            "the router's own format decision is not what names this set")
+    finally:
+        conn.close()
+
+
+def _write_a_screenshot_fact(conn, file_id: str) -> None:
+    """One `media_type = screenshot` row, written the way P6 writes one.
+
+    Written here rather than produced by the run because producing one needs a
+    real photograph's EXIF beside a real screenshot's: `media_type` refuses a
+    file whose only tiered observations are in the screenshot band, which is
+    §2.6's "the absence of EXIF is not proof". What is under test is the READ.
+    """
+    row = conn.execute(
+        "SELECT content_hash FROM files WHERE file_id = ?", (file_id,)).fetchone()
+    conn.execute(
+        'INSERT OR IGNORE INTO "values" (value_id, field_key, canonical_value, '
+        'raw_variants, display_label, aliases, origin) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?)',
+        ("value-screenshot-pin", "media_type", "screenshot", "[]", "screenshot",
+         "[]", "found"))
+    conn.execute(
+        "INSERT INTO file_facts (fact_id, file_id, content_hash, field_key, "
+        "value_id, reliability_state, origin, evidence_refs, cited_quote_refs, "
+        "cache_key, active, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ("fact-screenshot-pin", file_id, row["content_hash"], "media_type",
+         "value-screenshot-pin", "validated", "rule", "[]", "[]",
+         "cache-screenshot-pin", 1, "2026-09-11T00:00:00+00:00"))
+    conn.commit()
+
+
+def test_a_screenshot_is_read_off_the_image_reader_s_own_signal(tmp_path):
+    """§2.6's `media_type`, and nothing that guesses from a filename.
+
+    The fact is the image reader's: `facts.photo_event.media_type` ranks the
+    EXIF bands and writes `screenshot` or refuses. This reads that row back. A
+    file with no such fact has no characteristic and keeps its reason's set,
+    which is what stops this from being a detector.
+    """
+    import sqlite3
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "syllabus.txt").write_text(
+        "PHYS 1401 Syllabus\n\nSpring 2026. Instructor: Dr Lee. Credits: 3.\n")
+    (corpus / "misc.txt").write_text("Nothing in particular about anything.\n")
+    database = tmp_path / "plan.sqlite"
+    _report(corpus, database)
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    try:
+        held = [row["file_id"] for row in conn.execute(
+            "SELECT file_id, filename FROM files WHERE filename = 'misc.txt'")]
+        assert held, "the corpus changed shape"
+        assert cli.residual_characteristics(conn, held) == {}, (
+            "a file with no media_type fact was given a characteristic")
+        _write_a_screenshot_fact(conn, held[0])
+        assert cli.residual_characteristics(conn, held) == {
+            held[0]: cli.SCREENSHOT_REVIEW_SET}, (
+            "the image reader's own screenshot signal is not read")
+    finally:
+        conn.close()
+
+
+def test_a_blocking_reason_is_still_a_set_of_its_own():
+    """The characteristic refines "no folder matched" and nothing else.
+
+    A spreadsheet a model was not allowed to look at has not been matched
+    against anything; calling it "a spreadsheet with unclear purpose" would
+    tell somebody the product looked and could not tell, when what happened is
+    that it was not allowed to look. `66` §4 forbids the two sharing a message.
+    """
+    assert cli.NO_MODEL_ALLOWED not in cli.REFINED_BY_CHARACTERISTIC
+    assert cli.NOT_YET_CLASSIFIED not in cli.REFINED_BY_CHARACTERISTIC
+    assert cli.WAITING_ON_AN_ANSWER not in cli.REFINED_BY_CHARACTERISTIC
+    assert cli.NOT_ALLOWED_TO_CROSS not in cli.REFINED_BY_CHARACTERISTIC
+    assert pv.NO_SUPPORTED_DESTINATION in cli.REFINED_BY_CHARACTERISTIC
+
+
+def test_no_two_review_sets_share_a_name():
+    """`--send-set` addresses a set by the name printed beside it.
+
+    The characteristics are a second table of set names, so the uniqueness the
+    reason table already holds for itself has to hold ACROSS the two.
+    """
+    labels = ([label for _, label, _ in cli.REVIEW_SET_REASONS]
+              + [label for _, label, _ in cli.REVIEW_SET_CHARACTERISTICS]
+              + [cli.PROTECTED_REVIEW_SET_WORDS[0]])
+    assert len(labels) == len(set(labels)), labels
+    keys = ([key for key, _, _ in cli.REVIEW_SET_REASONS]
+            + [key for key, _, _ in cli.REVIEW_SET_CHARACTERISTICS]
+            + [cli.PROTECTED_REVIEW_SET])
+    assert len(keys) == len(set(keys)), keys
+
+
+def test_a_receipt_set_needs_a_fact_that_names_one():
+    """§7.3's `Receipts and Confirmations` has a residual TEMPLATE and no producer.
+
+    `00` names "17 receipts, tickets, and confirmations" as a review set, and
+    nothing in this product concludes that a file is a receipt: `privacy/
+    vocabulary.py` publishes `ALWAYS_LOCAL_KIND_RECEIPT` as *a name a detector
+    writes* and says in as many words that "how a receipt is recognised as a
+    receipt is hand-authored elsewhere". Dividing a review set on a word found
+    in a filename is the invention this whole file exists to refuse, so the set
+    waits for the fact.
+    """
+    import pytest
+    pytest.xfail(
+        "no producer writes a receipt fact: the word owed is a `file_facts` "
+        "field naming a transactional document, and `privacy.vocabulary."
+        "ALWAYS_LOCAL_KIND_RECEIPT` is a detector's output name, not one")
+
+
+# ======================================================================================
+# `104` R-42, item 1: the per-set card, and the two set answers that had no gesture
+#
+# `00` §residual: "Each set should display representative examples, file-type
+# distribution, age range, available OCR or text evidence, sensitivity status, any
+# weak graph neighbors, and the reason the system could not safely place the
+# files." `review_surface/residual.py` computed exactly that and had no caller --
+# the audit of 11 Sep (§18.42) lists it under "finished, tested code with no
+# caller". The screen printed a count, a name and a reason, and the person decided
+# what happened to a whole set from three of the seven.
+#
+# §7.6 puts four choices to the person and `SET_CHOICES` carries all four. One had
+# a gesture: `--send-set`. "Leave them in place" and "review them with AI against
+# your approved residual folders" were legal decisions no command could make.
+# ======================================================================================
+
+def test_every_review_set_prints_its_card(tmp_path):
+    """The seven, on the screen, for every set the run surfaced.
+
+    The reason is the seventh and was already printed; the other six were not.
+    """
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database)
+
+    for label, members in _surfaced(database):
+        assert f'"{label}"' in printed, (
+            f"{label!r} is a set nobody can name, so no gesture reaches it:"
+            f"\n{printed}")
+    # The card's own words, each of them `00`'s.
+    assert "File types:" in printed, printed
+    assert "Age range:" in printed, printed
+    assert "Available OCR or text evidence:" in printed, printed
+    assert "Sensitivity:" in printed, printed
+    # And an example is a FILENAME, because a file id is not something a person
+    # can look for on their own disk.
+    assert "Examples: " in printed, printed
+    assert "holiday.jpg" in printed.split("Examples: ", 1)[1], printed
+
+
+def test_a_protected_set_s_card_does_not_name_its_files(tmp_path):
+    """The owner's 2026-09-02 ruling reaches the card too.
+
+    A protected set is named, counted and carries the rest of its card. Its
+    example FILENAMES are the part of the report least safe to have on a screen
+    somebody else can see, and `--show-protected` is where they live.
+    """
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database)
+
+    assert '"Protected, and not filed in bulk"' in printed, printed
+    assert "passport bio page.txt" not in printed, printed
+    block = printed.split('"Protected, and not filed in bulk"', 1)[1]
+    assert "File types:" in block.split("\n\n", 1)[0], block
+
+
+def test_the_screen_offers_leave_in_place_and_review_with_ai(tmp_path):
+    """§7.6's other two choices, as lines a person can paste.
+
+    Beside `--send-set`, which was the only one of the four with a route.
+    """
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database)
+
+    assert "--leave-set " in printed, printed
+    assert "--review-set " in printed, printed
+    # A protected set is offered neither, for the reason it is offered no
+    # `--send-set`: P13 carries no action over one at all.
+    block = printed.split('"Protected, and not filed in bulk"', 1)[1]
+    first = block.split("\n\n", 1)[0]
+    assert "--leave-set" not in first and "--review-set" not in first, first
+
+
+def test_leave_set_records_the_choice_and_moves_nothing(tmp_path):
+    """`leave_in_place`, which `SET_CHOICES` has always carried.
+
+    §7.6: a set the person left in place costs zero model calls and moves no
+    file. What was missing was any way to SAY it.
+    """
+    import sqlite3
+
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database, "--leave-set", HELD_SET)
+    assert "That answer was refused" not in printed, printed
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = [dict(row) for row in conn.execute(
+            "SELECT * FROM residual_set_decisions")]
+    finally:
+        conn.close()
+    assert rows, printed
+    assert {row["choice"] for row in rows} == {"leave_in_place"}, rows
+    assert all(row["node_id"] is None for row in rows), rows
+    acted = [d for d in _decisions(database) if d.residual is not None]
+    assert not acted, f"a set left in place produced placement work: {acted}"
+
+
+def test_leave_set_is_collected_as_the_gesture_p13_already_has_a_word_for(
+        tmp_path):
+    """`leave_untouched`, and the audit trail R-26 built for `--send-set`.
+
+    P13 "presents and collects; it never decides", and the one bulk gesture this
+    command had was the only one that reached `review_actions`.
+    """
+    import json
+    import sqlite3
+
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    _report(corpus, database, "--leave-set", HELD_SET)
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    try:
+        actions = [dict(row) for row in conn.execute(
+            "SELECT * FROM review_actions")]
+    finally:
+        conn.close()
+    left = [row for row in actions if row["action"] == "leave_untouched"]
+    assert left, actions
+    assert json.loads(left[0]["bulk_member_refs"]), left
+
+
+def test_review_set_records_the_choice_and_site_d_does_not_act(tmp_path):
+    """§7.6's third choice, recorded, with the judgement it asks for deferred.
+
+    Site D's text is a DRAFT. `104` §7 Phase 1 step 6 records a verdict and
+    applies nothing while it is one, and `cli._must_not_apply` is what a run
+    injects in place of the real resolver. So the person's decision is written
+    down -- it is theirs, it belongs to this plan version, and a run that
+    refused to record it would be asking them again for an answer they gave --
+    and the model is not asked. The run says so rather than looking as though it
+    did the work.
+    """
+    import sqlite3
+
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database, "--review-set", HELD_SET)
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = [dict(row) for row in conn.execute(
+            "SELECT * FROM residual_set_decisions")]
+    finally:
+        conn.close()
+    assert {row["choice"] for row in rows} == {
+        "review_with_model_against_approved_residual_folders"}, rows
+    acted = [d for d in _decisions(database) if d.residual is not None]
+    assert not acted, f"site D acted under a draft text: {acted}"
+    assert "has not been approved" in printed, printed
+
+
+def test_one_set_cannot_be_answered_two_ways_in_one_run(tmp_path):
+    """Three gestures, one set: the run refuses rather than picking.
+
+    `act_on_residual_sets` already resolves every pair before recording any, so
+    that a refusal cannot half happen. Two answers about one set is the same
+    hazard from the other side: whichever was recorded second would silently be
+    the one that stood.
+    """
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database, "--leave-set", HELD_SET,
+                      "--review-set", HELD_SET)
+    assert "That answer was refused" in printed, printed
+    assert HELD_SET in printed, printed
+
+
+def test_the_review_gesture_has_no_word_of_its_own_in_p13_yet():
+    """The word this build needed and did not have.
+
+    `--send-set` is collected as `accept_bulk` and `--leave-set` as
+    `leave_untouched`, both of them members of `review_surface.vocabulary.
+    ACTIONS`. There is no member meaning *ask a model about these against my
+    approved residual folders*, and using `accept_bulk` for it would record the
+    person as having ACCEPTED a destination they were never shown. So
+    `--review-set` writes P11's decision row and no `review_action`, and the
+    audit trail of that one gesture is the hole this xfail names.
+    """
+    import pytest
+
+    from review_surface import vocabulary as rv
+
+    pytest.xfail(
+        "P13 has no action word for `review_with_model_against_approved_"
+        f"residual_folders`; its {len(rv.ACTIONS)} actions are the owner's to "
+        "add one to")
+
+
+def test_a_protected_set_cannot_be_sent_to_a_model_by_a_bulk_gesture(tmp_path):
+    """`67` §1 over the gesture P13 has no word for, and BEFORE any row.
+
+    `--send-set` and `--leave-set` meet P13's refusal first, because `collect`
+    reads the subject kind and raises. `--review-set` collects nothing -- there
+    is no action word for it -- so without a wall of P11's own, a protected set
+    would end the run carrying a decision saying a model was to be asked about
+    it, on a plan version nobody can re-answer. That is `104` R-26's finding with
+    a new gesture in it.
+    """
+    import sqlite3
+
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database, "--review-set",
+                      "Protected, and not filed in bulk")
+    assert "That answer was refused" in printed, printed
+    assert "never opened" in printed, printed
+
+    conn = sqlite3.connect(database)
+    try:
+        assert conn.execute(
+            "SELECT COUNT(*) FROM residual_set_decisions").fetchone()[0] == 0, (
+            "a decision row was written about protected material")
+    finally:
+        conn.close()
+    acted = [d for d in _decisions(database) if d.residual is not None]
+    assert not acted, acted
+    # And the set is still there, counted and explained: refused, not deleted.
+    assert "Protected, and not filed in bulk" in dict(_surfaced(database))
+
+
+def test_a_placement_onto_an_area_that_never_moves_files_has_no_sentence():
+    """`104` R-42 item 4 made a gap reachable that was there all along.
+
+    §7.4's three dispositions are real and two of them never move a file:
+    `placement.privacy.moves_files` answers False for a review-only category and
+    for a leave-in-place policy, and `mutation.plan` refuses either as a write
+    target. Until item 4 the CLI supplied `physical-destination` for every
+    residual area, so no run this command made could reach one -- and the report
+    has exactly three sentences for a placement, one per review policy, all of
+    them about being filed. A classified file sent to an area whose template is
+    authored `reviewed` now reads "Ready for you to approve, then file into
+    Review Later", and approving it will not file it: P12 refuses the write.
+
+    The word owed is a fourth reading of `PLACEMENT_WORDS` -- what to say when
+    the destination is settled and the area the person enabled is one that holds
+    files without moving them (`00`:120's "represent without moving"). It is a
+    sentence to a person about their own material and it is the owner's to write,
+    not this build's to invent.
+    """
+    import pytest
+
+    assert set(cli.PLACEMENT_WORDS) == {
+        pv.AUTO_ELIGIBLE, pv.REVIEW_REQUIRED, pv.BLOCKED_PENDING_USER}
+    assert "approve, then file into" in cli.PLACEMENT_WORDS[pv.REVIEW_REQUIRED]
+    from placement.privacy import moves_files
+    from tree_design.vocabulary import LEAVE_IN_PLACE, REVIEW_ONLY
+    assert moves_files(REVIEW_ONLY) is False
+    assert moves_files(LEAVE_IN_PLACE) is False
+    pytest.xfail(
+        "no sentence exists for a placement onto a residual area that never "
+        "moves files; the three `PLACEMENT_WORDS` readings all promise filing")
+
+
+def test_the_screen_says_what_the_area_it_offers_is_for(tmp_path):
+    """`104` R-42 item 4's last half: two authored slots, read at last.
+
+    §7.2 makes "accepted evidence patterns" and "expected file types" two of a
+    residual template's eight slots and `01-nine-templates.json` authors both for
+    all nine. Nothing read either, so the screen asked a person to send a whole
+    set into `Review Later` and said nothing at all about what `Review Later` is
+    for.
+
+    ONCE, in the block about the plan rather than under each set: what an area
+    accepts is one fact about the plan however many sets are offered it, which is
+    `104` R-122's own split.
+    """
+    corpus = _three_reason_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    printed = _report(corpus, database)
+
+    assert f'"{AREA}" holds ' in printed, printed
+    assert "spreadsheet" in printed.split(f'"{AREA}" holds ', 1)[1], printed
+    assert printed.count(f'"{AREA}" holds ') == 1, (
+        "the area's slots are printed once per set rather than once per plan:\n"
+        + printed)

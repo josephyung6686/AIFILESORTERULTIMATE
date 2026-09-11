@@ -21,7 +21,9 @@ from tree_design.config import ConfigurationRequired
 from tree_design.records import Node, derive_accepts_placement
 from tree_design.vocabulary import (
     DISABLE,
+    LEAVE_IN_PLACE,
     MERGE_RESIDUAL,
+    PHYSICAL_DESTINATION,
     REPLACE_WITH_EXISTING,
     RESIDUAL,
     RESIDUAL_LIBRARY_ACTIONS,
@@ -30,6 +32,11 @@ from tree_design.vocabulary import (
     RESIDUAL_SLOTS,
     RESIDUAL_TEMPLATE_NAMES,
     RESIDUAL_TREATMENTS,
+    REVIEW_ONLY,
+    OutOfVocabulary,
+    TREATMENT_KEPT_SEARCHABLE,
+    TREATMENT_RETAINED,
+    TREATMENT_REVIEWED,
     USER_CREATED,
     check,
 )
@@ -63,6 +70,51 @@ class ResidualTemplate:
                     "recommended placement in the TREE, not on disk (resolution "
                     "B3). Nothing about a residual node makes it path-bearing."
                 )
+
+
+#: §7.2's `treatment` slot and §7.4's disposition are the same three answers
+#: written from the two ends of one decision, and `104` R-42 item 4 is what
+#: joining them closes: `cli.py` supplied `PHYSICAL_DESTINATION` for every
+#: template whatever its own author had said, so an authored slot the library
+#: ships for all nine was unreachable by construction -- and six of the nine are
+#: authored something else.
+#:
+#: Each arrow carries the design sentence that makes it that arrow and not
+#: another:
+#:
+#: * `reviewed` -> `review-only`. §7.4 spells the category "a review-only
+#:   category that never moves files automatically", which is what a template
+#:   asking for its files to be REVIEWED is asking for.
+#: * `retained` -> `physical-destination`. §7.3's templates "may live under" a
+#:   parent and "hold" their files; a physical destination is where holding
+#:   happens, and `00`:120 contrasts it with the template that may "represent
+#:   without moving".
+#: * `merely kept searchable` -> `leave-in-place`. `00` names that policy in as
+#:   many words: "the system learns that their preferred policy is searchability
+#:   without movement", beside §7.4's "a policy that tells the system to leave
+#:   files in place".
+#:
+#: This is P10 reading the template's own answer, NOT P10 deciding for the
+#: person. §7.4 leaves the disposition theirs to change, and a gesture that says
+#: so is owed; what this replaces is a composition root guessing one value for
+#: all nine, which is the one answer that moves files.
+_DISPOSITION_BY_TREATMENT: Mapping[str, str] = {
+    TREATMENT_REVIEWED: REVIEW_ONLY,
+    TREATMENT_RETAINED: PHYSICAL_DESTINATION,
+    TREATMENT_KEPT_SEARCHABLE: LEAVE_IN_PLACE,
+}
+
+
+def disposition_for_treatment(treatment: str) -> str:
+    """§7.4's disposition for a template whose author stated §7.2's treatment.
+
+    A value outside the three raises rather than defaulting, for `moves_files`'
+    reason at the other end of the same decision: a permissive default would make
+    a misspelling mean "yes, move these", which is the one answer this may never
+    give by accident.
+    """
+    check(treatment, RESIDUAL_TREATMENTS, name="treatment")
+    return _DISPOSITION_BY_TREATMENT[treatment]
 
 
 @dataclass(frozen=True)

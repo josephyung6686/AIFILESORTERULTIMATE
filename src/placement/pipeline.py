@@ -40,7 +40,7 @@ from __future__ import annotations
 
 import dataclasses
 import sqlite3
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 from types import MappingProxyType
@@ -108,8 +108,8 @@ from placement.records import (
 from placement.residual import (
     ACTION_OUTCOME, ResidualSet, ResidualSetDecision, SetDecisionRequired,
     check_return_cycle, link_return, model_calls_permitted, outcome_for_action,
-    record_set_decision, require_model_call_permitted, require_set_actionable,
-    require_set_decision, surface_residual_sets,
+    record_set_decision, refuse_if_protected, require_model_call_permitted,
+    require_set_actionable, require_set_decision, surface_residual_sets,
 )
 from placement.retrieval import (
     CURATED_FOLDER, GRAPH_RELATIONSHIP, NON_DECIDING_CHANNELS, Candidate,
@@ -123,7 +123,7 @@ from placement.vocabulary import (
     BLOCKED_PENDING_USER, BUDGET_DEFERRED,
     CONFLICTING_FACTS, CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH,
     DECIDED_BY_MODEL, DECIDED_BY_RULE, DECIDED_BY_USER, DIRECT,
-    EXISTING, FILE, GENERIC_HUB_ONLY, GROUP, LOW_MARGIN,
+    EXISTING, FILE, GENERIC_HUB_ONLY, GROUP, LEAVE_IN_PLACE, LOW_MARGIN,
     MARGIN_TRUE_VACUOUS, MARK_STATE, NO_SHARED_BRANCH, SEMANTIC_ONLY,
     MULTIPLE_SUPPORTED_HOMES, NO_SUPPORTED_DESTINATION, PLACE, PLACEMENT,
     POSSIBLE, PRIVACY_BLOCKED, RESIDUAL, RESIDUAL_ROLE, REVIEW_WITH_MODEL,
@@ -5010,6 +5010,25 @@ def review_residual_sets(conn: sqlite3.Connection, *, result: CorpusResult,
                 subjects=result.subjects, evidence_for=evidence_for,
                 component_version=component_version, observed_at=observed_at))
             continue
+        if not residual_judgement_available(inputs):
+            # `104` R-42 item 1. THE DECISION STANDS AND THE JUDGEMENT WAITS.
+            #
+            # Site D's text is a draft in this deployment, and `104` §7 Phase 1
+            # step 6 is explicit about what a draft site may do: record the
+            # verdict, apply nothing. The composition root injects
+            # `_must_not_apply` in place of the real resolver for exactly that
+            # reason, and `prompt_for(D_RESIDUAL)` raises outright where D was
+            # never wired at all -- so without this line the person's own
+            # `review_with_model` answer ended the run on the first file of the
+            # set they gave it about.
+            #
+            # SKIPPED, NOT REFUSED, and the difference is whose answer it is.
+            # The decision row is already written and it is theirs: it belongs to
+            # this plan version, it says what they want done, and a run that
+            # threw it away would ask them the same question again next time.
+            # What is deferred is the model's half. The set stays on the review
+            # screen, counted and explained, exactly as an undecided one does.
+            continue
         require_model_call_permitted(conn, plan_version=inputs.plan_version,
                                      residual_set=item)
         written.extend(_review_set_with_model(
@@ -5017,6 +5036,25 @@ def review_residual_sets(conn: sqlite3.Connection, *, result: CorpusResult,
             evidence_for=evidence_for, component_version=component_version,
             observed_at=observed_at))
     return tuple(written)
+
+
+def residual_judgement_available(inputs: PipelineInputs) -> bool:
+    """Whether site D may APPLY an answer in this deployment.
+
+    Two facts, and both are needed, which is `PipelineInputs.model_decides`'s own
+    rule read at the other site. The path has to exist -- `residual_prompt` is
+    `None` for a deployment that wired C and not D, and `prompt_for` refuses
+    rather than falling back to C's text. And the text has to be RATIFIED, read
+    off the prompt's own field the way `_observed_only` reads it, because a site
+    running under text nobody approved records its answer and applies nothing.
+
+    Published rather than folded into the caller because the composition root
+    needs the same answer to tell the person their choice is recorded and their
+    judgement is waiting, and two readings of one fact are two answers free to
+    disagree about whether a model was consulted.
+    """
+    prompt = inputs.residual_prompt
+    return prompt is not None and bool(getattr(prompt, "ratified", False))
 
 
 class ResidualSendRefused(RuntimeError):
@@ -5088,8 +5126,22 @@ def _send_set_to_approved_node(conn: sqlite3.Connection, *, item: ResidualSet,
 def act_on_residual_sets(conn: sqlite3.Connection, *, result: CorpusResult,
                          inputs: PipelineInputs, sends, evidence_for,
                          component_version: str, observed_at: str,
-                         user_id: str) -> CorpusResult:
+                         user_id: str, leaves: Sequence[str] = (),
+                         reviews: Sequence[str] = ()) -> CorpusResult:
     """§7.6's set answers for THIS plan version, recorded and then carried out.
+
+    THREE OF §7.6'S FOUR ARRIVE HERE (`104` R-42 item 1). `sends` maps a label to
+    a residual area; `leaves` and `reviews` are bare labels, because
+    `leave_in_place` and `review_with_model_against_approved_residual_folders`
+    name no node and `ResidualSetDecision` refuses one on either. The fourth,
+    `create_custom_branch`, is a tree edit that mints a new plan version, so this
+    version's review of that set is over and it is not an answer P11 records.
+
+    **A set may be answered once.** All three gestures are resolved before any
+    decision is recorded, so a label given to two of them is refused with nothing
+    written -- the same rule, for the same reason, that already makes a
+    misspelled second `--send-set` leave the first unrecorded. Two answers about
+    one set would otherwise mean whichever was written second silently stood.
 
     `sends` maps a surfaced set's LABEL -- the words the person read on the review
     screen -- to the display label of an enabled residual area, and it is not a
@@ -5117,22 +5169,52 @@ def act_on_residual_sets(conn: sqlite3.Connection, *, result: CorpusResult,
     # let `--send-set A --send-set typo` file A and then refuse the run, leaving
     # an answer standing for a plan the person was never shown -- a refusal that
     # half happened is the one thing worse than a refusal.
-    resolved: list[tuple[ResidualSet, str]] = []
-    for label, area_label in sends.items():
+    answered: set[str] = set()
+
+    def _surfaced(label: str) -> list[ResidualSet]:
         if label not in by_label:
             raise ResidualSendRefused(
                 f"{label!r} is not a review set this run surfaced. It surfaced "
                 + (", ".join(repr(name) for name in sorted(by_label))
                    if by_label else "none, so there is nothing to send"))
+        if label in answered:
+            raise ResidualSendRefused(
+                f"{label!r} was given more than one answer in this command, and "
+                "§7.6 asks one question about a set. Nothing was recorded for "
+                "any of them: the second answer would have replaced the first "
+                "without saying so")
+        answered.add(label)
+        for item in by_label[label]:
+            # `67` §1, BEFORE the row and not after it -- `104` R-26's finding,
+            # which was about a send and is true of every bulk answer. P13's
+            # `collect` refuses a send and a leave over protected material
+            # already; it refuses a `review_with_model` answer nowhere, because
+            # P13 has no action word for that gesture, so without this line a
+            # protected set could acquire a decision saying a model was to be
+            # asked about it. The refusal is P11's own and is raised here from
+            # `refuse_if_protected` rather than restated, so the two callers say
+            # one sentence.
+            refuse_if_protected(item)
+        return by_label[label]
+
+    resolved: list[tuple[ResidualSet, str, str | None]] = []
+    for label, area_label in sends.items():
         area = approved_residual_area(conn, plan_version=inputs.plan_version,
                                       display_label=area_label)
-        resolved.extend((item, area.node_id) for item in by_label[label])
-    for item, node_id in resolved:
+        resolved.extend((item, SEND_TO_APPROVED_NODE, area.node_id)
+                        for item in _surfaced(label))
+    for label in leaves:
+        resolved.extend((item, LEAVE_IN_PLACE, None)
+                        for item in _surfaced(label))
+    for label in reviews:
+        resolved.extend((item, REVIEW_WITH_MODEL, None)
+                        for item in _surfaced(label))
+    for item, choice, node_id in resolved:
         record_set_decision(
             conn,
             ResidualSetDecision(set_id=item.set_id,
                                 plan_version=inputs.plan_version,
-                                choice=SEND_TO_APPROVED_NODE, node_id=node_id,
+                                choice=choice, node_id=node_id,
                                 decided_at=observed_at),
             component_version=component_version, observed_at=observed_at,
             user_id=user_id)

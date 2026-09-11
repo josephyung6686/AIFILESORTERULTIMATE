@@ -71,6 +71,13 @@ from extractors.image import PERCEPTUAL_HASH_FIELD
 # shortcut, which `104` §18.2 gap 21 deleted. `readers/signatures.py` imports it
 # directly -- it is the reader that needs to know which extensions the router
 # already understands, and this module no longer asks that question.
+#
+# `104` R-42 item 2 imports it BACK, and for a different question: not "what does
+# this extension mean" -- that is still the reader's -- but "is `pdf` a format this
+# router has a row for", asked once, at import, as the assert beside
+# `PDF_FORMAT`. A review set named after a format token the table does not carry
+# would silently hold nothing.
+from extractors.router import SOURCE_TYPE_BY_FORMAT
 from extractors.reading import ZONE_BY_STRUCTURED_KIND, StructuredString
 from extractors.structured_text import EXTRACTOR_NAME as STRUCTURED_EXTRACTOR
 from extractors.filesystem import SOURCE_TYPE as FILESYSTEM_SOURCE_TYPE
@@ -104,7 +111,7 @@ from branch_situation import (
 )
 # `MEDIA_TYPE_FIELD` left this import with `104` R-09: the retired
 # `active_schema_for` literal was the only line in this file that named it.
-from facts.photo_event import media_type
+from facts.photo_event import MEDIA_TYPES, MEDIA_TYPE_FIELD, media_type
 from facts.budgets import LLM_ROUTE, P6_CEILING_KEYS, UnknownCeiling
 from facts.resolver import BUDGET_BAR, PRIVACY_BAR, FactResolver
 from facts.anchor_statements import (
@@ -229,6 +236,7 @@ from placement.graph import (
 )
 from placement.pipeline import (
     PipelineInputs, ResidualSendRefused, act_on_residual_sets,
+    residual_judgement_available,
 )
 from placement.residual import ProtectedSetNotReadable, prior_set_decisions
 from placement.schema import create_placement_schema
@@ -423,8 +431,8 @@ from review_run.progress import progress_lines
 # the function is imported directly and nothing in P13 is widened to hold them.
 from database_agent.events import CORRECTION_SCOPES
 from review_gestures import (
-    LEVEL_KEY_SEPARATOR, LevelOnScreen, collect_level_relabel, collect_set_sends,
-    record_level_presentations, record_set_presentations,
+    LEVEL_KEY_SEPARATOR, LevelOnScreen, collect_level_relabel, collect_set_leaves,
+    collect_set_sends, record_level_presentations, record_set_presentations,
 )
 from review_surface.bulk import collect_bulk, expand
 from review_surface.collect import (
@@ -432,6 +440,12 @@ from review_surface.collect import (
     ScopeNotPresented,
 )
 from review_surface.presentation import record_presentation
+#: `104` R-42 item 1. The per-set card, which the audit of 11 Sep (§18.42) found
+#: computed and printed nowhere: `review_surface/residual.py` had zero callers.
+#: This line is the caller.
+from review_surface.residual import (
+    SEVEN_ATTRIBUTES, IncompleteResidualCard, residual_card,
+)
 from review_surface.store import record_action
 from review_surface.progress import (
     UNREADABLE, assert_every_file_accounted, bucket_for,
@@ -449,16 +463,21 @@ from grouping.learning import apply_review_action as record_group_review
 # file's own, so "this file could not be read" means here exactly what it means on
 # §8.6's line and the two screens cannot disagree about one file.
 from evidence_shape.store import get_observation, runs_for_content
+#: P4's closed `source_type` vocabulary, imported for the assert beside
+#: `SPREADSHEET_FAMILIES` and for nothing else (`104` R-42 item 2).
+from evidence_shape.vocabulary import SOURCE_TYPES
 from tree_design.residuals import (
-    ResidualChoice, ResidualTemplate, build_library,
+    ResidualChoice, ResidualTemplate, build_library, disposition_for_treatment,
 )
 from tree_design.user_edits import (
     UserEditRefused, UserLevelEdit, record_user_level_edit,
 )
 from tree_design.vocabulary import (
-    ACTION_RENAMED, ENABLE, MANDATORY_REVIEW, PHYSICAL_DESTINATION,
-    PROTECTED_RECORDS, REFINE_LATER, REFINED,
-    RESIDUAL_TEMPLATE_NAMES, SHALLOW_BY_CHOICE, SURFACE_UNATTENDED,
+    ACTION_RENAMED, DISABLE, ENABLE, MANDATORY_REVIEW, MERGE_RESIDUAL,
+    PHYSICAL_DESTINATION, PROTECTED_RECORDS, REFINE_LATER, REFINED, RELOCATE,
+    RENAME_RESIDUAL, REPLACE_WITH_EXISTING, RESIDUAL_LIBRARY_ACTIONS,
+    RESIDUAL_TEMPLATE_NAMES, RESIDUAL_TREATMENTS, SHALLOW_BY_CHOICE,
+    SURFACE_UNATTENDED,
 )
 
 # ======================================================================================
@@ -4191,7 +4210,8 @@ _RESIDUAL_SLOTS_FILE = (
 RESIDUAL_MAX_DEPTH: int = 0
 
 
-def _residual_library() -> Mapping[str, ResidualTemplate]:
+def _residual_library(defined: Mapping[str, str] | None = None
+                      ) -> Mapping[str, ResidualTemplate]:
     """The nine, each at ITS OWN authored depth where the catalogue states one.
 
     Built, not enabled. §7.4: "These templates are not automatically created."
@@ -4213,7 +4233,120 @@ def _residual_library() -> Mapping[str, ResidualTemplate]:
             "max_permitted_depth", RESIDUAL_MAX_DEPTH))
         for name, values in raw.items() if name in RESIDUAL_TEMPLATE_NAMES
     }
-    return build_library(slot_values)
+    return build_library(slot_values, user_defined=tuple(
+        ResidualTemplate(
+            template_name=name, display_name=name,
+            # §7.3 leaves five of the nine shipped defaults unstated and P10
+            # refuses to invent one; a person's own area has none by the same
+            # rule, and `_enable_residual_library` puts a parentless residual
+            # branch under this run's top-level branch.
+            default_parent_location=None,
+            # EMPTY, and that is a value. A person who has just named an area has
+            # stated no evidence pattern and no expected file type; filling
+            # either would be P10 authoring a template it was asked to carry.
+            accepted_evidence_patterns=(), expected_file_types=(),
+            sensitivity_restrictions=(), optional_shallow_subfolders=(),
+            max_permitted_depth=RESIDUAL_MAX_DEPTH, treatment=treatment,
+            user_defined=True)
+        for name, treatment in (defined or {}).items()))
+
+
+def residual_library_choices(library: Mapping[str, ResidualTemplate],
+                             enabled: Sequence[str],
+                             actions: Sequence[tuple[str, str, str | None]] = (),
+                             landscape: Sequence[str] = (),
+                             ) -> tuple[ResidualChoice, ...]:
+    """§7.4's decisions, one per template the person named.
+
+    **`104` R-42 item 3: `--residual-library` is the other five actions.** §7.4
+    lets a person "enable, disable, rename, relocate, merge, or replace with
+    existing folders"; five of the six were implemented in
+    `project_residual_nodes`, tested there, and reachable by nothing, because the
+    only `ResidualChoice` this product ever constructed said `enable`.
+
+    **A LIBRARY ACTION IS THAT TEMPLATE'S WHOLE DECISION.** `rename`, `relocate`,
+    `merge` and `replace-with-existing` all put a node in the tree, so each of
+    them IS the enablement rather than a modifier on one -- and §7.4 asks one
+    question per template, which `project_residual_nodes` refuses two answers to.
+    A template named by `--residual` and by `--residual-library` in one command is
+    refused HERE, by name and by flag, rather than reaching P10 and ending the run
+    on a sentence that names neither.
+
+    **The merges come last.** `project_residual_nodes` resolves a merge against
+    the branches it has already built, so a merge typed before its target would be
+    refused for a target that is about to exist. Ordering them here is the
+    composition root arranging its own decisions, not P10 relaxing a rule.
+    """
+    named: dict[str, ResidualChoice] = {}
+
+    def _decide(name: str, choice: ResidualChoice) -> None:
+        if name in named:
+            raise NotConfigured(
+                f"{name!r} was given two decisions in one command. §7.4 asks one "
+                "question per residual area, and two answers would build two "
+                "branches with the same name and nothing to say which one your "
+                "files went into. `--residual` enables an area; "
+                "`--residual-library` does everything else to it, enabling "
+                "included.")
+        if name not in library:
+            raise NotConfigured(
+                f"{name!r} names no residual area. §7.3 fixes nine and this "
+                f"product invents none: {', '.join(RESIDUAL_TEMPLATE_NAMES)}. "
+                f"`--list-residuals` prints them, and `--define-residual` is how "
+                f"you name one of your own.")
+        named[name] = choice
+
+    for action, name, argument in actions:
+        if action == RENAME_RESIDUAL and not argument:
+            raise NotConfigured(
+                f"`rename:{name}` says nothing to call it. Write "
+                f'--residual-library "rename:{name}=<your name for it>".')
+        if action == MERGE_RESIDUAL and not argument:
+            raise NotConfigured(
+                f"`merge:{name}` says nothing to merge it into. Write "
+                f'--residual-library "merge:{name}=<the area it joins>".')
+        if action == RELOCATE and argument not in tuple(landscape):
+            # The anchors are the top-level folders THIS RUN is looking at, which
+            # is the same landscape the freeze checks a move against. A name
+            # outside it is a folder this plan has no picture of, and a residual
+            # home anchored there would be refused later by something that cannot
+            # say which flag was wrong.
+            raise NotConfigured(
+                f"`relocate:{name}` names {argument!r}, which is not one of the "
+                f"top-level folders this run is looking at: "
+                f"{', '.join(sorted(landscape))}. `--also-read` is how another "
+                "one joins the picture.")
+        if action == REPLACE_WITH_EXISTING:
+            raise NotConfigured(
+                f"`replace-with-existing:{name}` cannot be answered from here "
+                "yet. §7.4 lets you map a residual area onto a folder you "
+                "already have, and the record of that choice names the folder by "
+                "the id this plan version mints for it -- which does not exist "
+                "until the tree is being designed, after this command has "
+                "composed its decisions. The other five actions need no id: "
+                f"{', '.join(a for a in RESIDUAL_LIBRARY_ACTIONS if a != action)}.")
+        _decide(name, ResidualChoice(
+            template_name=name, action=action,
+            # §7.4 makes the disposition meaningless on a `disable`, which builds
+            # no node at all, and P10 refuses one that is enabled without it.
+            disposition=(None if action == DISABLE else
+                         disposition_for_treatment(library[name].treatment)
+                         if name in library else None),
+            display_label=argument if action == RENAME_RESIDUAL else None,
+            parent_node_id=None,
+            root_anchor=(argument if action == RELOCATE else ROOT_ANCHOR),
+            merge_into=argument if action == MERGE_RESIDUAL else None,
+            replaces_node_id=None))
+    for name in enabled:
+        _decide(name, ResidualChoice(
+            template_name=name, action=ENABLE,
+            disposition=(disposition_for_treatment(library[name].treatment)
+                         if name in library else None),
+            display_label=None, parent_node_id=None, root_anchor=ROOT_ANCHOR,
+            merge_into=None, replaces_node_id=None))
+    return tuple(
+        sorted(named.values(), key=lambda one: one.action == MERGE_RESIDUAL))
+
 
 _RECOGNITION_MANIFEST = (
     Path(__file__).resolve().parent / "recognition" / "library" / "recognition.json")
@@ -8954,23 +9087,36 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
     set_ceiling(conn, "ocr.max_time_per_file", OCR_SECONDS_PER_FILE)
 
 
-def _validate_residuals(names: Sequence[str]) -> tuple[str, ...]:
-    """Each name is one of §7.3's nine, spelled as §7.3 spells it.
+def _validate_residuals(names: Sequence[str],
+                        defined: Sequence[str] = ()) -> tuple[str, ...]:
+    """Each name is one of §7.3's nine, or one the person defined in this command.
 
     A misspelling that quietly enabled nothing would be the run reporting
     success for work it did not do, and the person would find out by looking for
     a folder that is not there. So it refuses, and it prints the nine -- a
     refusal that does not say what to type is half a refusal.
+
+    **`104` R-42 item 3 widened it by exactly one thing and no more.** §7.4 says
+    "the library must support user-defined residual areas ... because residual
+    organization is highly personal and should not be dictated by a universal
+    taxonomy", and until now this function was the reason it could not:
+    `build_library` accepted an authored template and nothing could name one. A
+    name the person DEFINED in this command is admitted; a name that is neither
+    a template's nor theirs is refused exactly as it was, which is what keeps
+    this a widening rather than the removal of the check.
+
+    Order is §7.3's for the shipped nine, then the person's own in the order they
+    defined them, so two runs given the same command produce the same plan.
     """
-    unknown = [name for name in names if name not in RESIDUAL_TEMPLATE_NAMES]
+    known = tuple(RESIDUAL_TEMPLATE_NAMES) + tuple(defined)
+    unknown = [name for name in names if name not in known]
     if unknown:
         raise NotConfigured(
             f"{unknown[0]!r} names no residual area. §7.3 fixes nine and this "
             f"product invents none: {', '.join(RESIDUAL_TEMPLATE_NAMES)}. "
-            f"`--list-residuals` prints them.")
-    # Order is §7.3's, not the order they were typed, so two runs that enable
-    # the same areas produce the same plan.
-    return tuple(name for name in RESIDUAL_TEMPLATE_NAMES if name in set(names))
+            f"`--list-residuals` prints them, and `--define-residual` is how you "
+            f"name one of your own.")
+    return tuple(name for name in known if name in set(names))
 
 
 #: §8.7's scope for the `--send-set` gesture, chosen by the composition root
@@ -9023,6 +9169,121 @@ def _parse_sends(raw: Sequence[str]) -> Mapping[str, str]:
                 'this plan has>".')
         sends[label.strip()] = area.strip()
     return sends
+
+
+def _parse_set_names(raw: Sequence[str], *, flag: str) -> tuple[str, ...]:
+    """`--leave-set "SET"` and `--review-set "SET"`, which name a set and nothing else.
+
+    `104` R-42 item 1. There is no `=` in either, and that is the grammar saying
+    what the gesture is: §7.6's `leave_in_place` and
+    `review_with_model_against_approved_residual_folders` name NO node --
+    `ResidualSetDecision` refuses one on both -- so a pair would offer a
+    destination that the record cannot carry. `--send-set` keeps its pair because
+    its answer is a destination.
+
+    Only the SHAPE is checked here, exactly as it is for `--send-set`: whether the
+    run surfaced that set is a question about a plan version that does not exist
+    yet, and `act_on_residual_sets` refuses an unsurfaced name by listing what was
+    surfaced. Order is preserved and a repeat collapses, so typing one twice is
+    one answer rather than the double answer the refusal below is about.
+    """
+    names: list[str] = []
+    for item in raw:
+        label = item.strip()
+        if not label:
+            raise NotConfigured(
+                f"{flag} names a review set, and it was given nothing. Write it "
+                f'as {flag} "<the set as the report named it>".')
+        if label not in names:
+            names.append(label)
+    return tuple(names)
+
+
+def _parse_library_actions(raw: Sequence[str]) -> tuple[tuple[str, str, str | None], ...]:
+    """`--residual-library ACTION:NAME[=ARG]`, as (action, template, argument).
+
+    `104` R-42 item 3. §7.4 lets a person "enable, disable, rename, relocate,
+    merge, or replace with existing folders", `RESIDUAL_LIBRARY_ACTIONS` has
+    carried all six since P10 was written, and no gesture in this product ever
+    constructed a `ResidualChoice` that was anything but `enable`.
+
+    THE ACTION COMES FIRST because it is what the rest of the line means. `rename`
+    takes a new label and `merge` takes the template to merge INTO, and the two
+    would be indistinguishable written `NAME=ARG`. `:` separates the action from
+    the template and `=` the template from the argument, which is the split
+    `--rename-level` already uses for the same reason.
+
+    Only the SHAPE and the ACTION WORD are checked here, as for `--send-set`:
+    whether that template exists and whether the argument names anything is a
+    question about the library this run loads, and `residual_library_choices`
+    answers both by name once it has one.
+    """
+    parsed: list[tuple[str, str, str | None]] = []
+    for item in raw:
+        action, sep, rest = item.partition(":")
+        name, has_arg, argument = rest.partition("=")
+        if not sep or not action.strip() or not name.strip():
+            raise NotConfigured(
+                f"{item!r} is not an action and a residual area. Write it as "
+                '--residual-library "<action>:<area>" or '
+                '--residual-library "<action>:<area>=<what the action needs>", '
+                f"e.g. --residual-library \"rename:Review Later=To Sort\". The "
+                f"actions are {', '.join(RESIDUAL_LIBRARY_ACTIONS)}.")
+        if action.strip() not in RESIDUAL_LIBRARY_ACTIONS:
+            raise NotConfigured(
+                f"{action.strip()!r} is not something you can do to a residual "
+                f"area. §7.4 fixes six and this product invents none: "
+                f"{', '.join(RESIDUAL_LIBRARY_ACTIONS)}.")
+        if has_arg and not argument.strip():
+            raise NotConfigured(
+                f"{item!r} ends in `=` and says nothing after it. Either name "
+                "what the action needs or leave the `=` off.")
+        parsed.append((action.strip(), name.strip(),
+                       argument.strip() if has_arg else None))
+    return tuple(parsed)
+
+
+def _parse_defined_residuals(raw: Sequence[str]) -> Mapping[str, str]:
+    """`--define-residual "NAME=TREATMENT"`, the person's own residual area.
+
+    `104` R-42 item 3. §7.4: "the library must support user-defined residual
+    areas such as Things to Read, Ideas, Shopping Research, Memes, Travel,
+    Receipts to Process, Clips, or Stuff to Sort, because residual organization
+    is highly personal and should not be dictated by a universal taxonomy."
+    `build_library` has accepted them since it was written and
+    `_validate_residuals` refused every name that was not one of §7.3's nine, so
+    the two halves could never meet.
+
+    THE TREATMENT IS ASKED FOR AND NOT ASSUMED. `ResidualTemplate` requires
+    §7.2's eight slots and `treatment` is the one of them with no honest default:
+    it decides whether the area holds files, reviews them or leaves them where
+    they are (`104` R-42 item 4), and choosing one on the person's behalf would
+    be this product deciding what their own folder is for. The other seven slots
+    are EMPTY here, which is a value rather than a gap -- a person who has just
+    named an area has stated no evidence pattern and no expected file type, and
+    inventing either would be P10 authoring a template it was asked to carry.
+    """
+    defined: dict[str, str] = {}
+    for item in raw:
+        name, sep, treatment = item.partition("=")
+        if not sep or not name.strip() or not treatment.strip():
+            raise NotConfigured(
+                f"{item!r} is not an area and what it is for. Write it as "
+                '--define-residual "<your name for it>=<what it does>", where '
+                f"what it does is one of {', '.join(RESIDUAL_TREATMENTS)}, e.g. "
+                '--define-residual "Stuff to Sort=retained".')
+        if treatment.strip() not in RESIDUAL_TREATMENTS:
+            raise NotConfigured(
+                f"{treatment.strip()!r} is not what a residual area can do with "
+                f"a file. §7.2 states three: {', '.join(RESIDUAL_TREATMENTS)}.")
+        if name.strip() in RESIDUAL_TEMPLATE_NAMES:
+            raise NotConfigured(
+                f"{name.strip()!r} is already one of the areas this product "
+                "ships, and `--define-residual` is for the ones it does not. "
+                "`--residual-library rename:` is how a shipped area gets your "
+                "own name.")
+        defined[name.strip()] = treatment.strip()
+    return defined
 
 
 def _validate_situation(catalogue: TemplateCatalogue, situation: str) -> str:
@@ -11835,10 +12096,84 @@ PROTECTED_REVIEW_SET_WORDS: tuple[str, str] = (
     "everything else; each one is yours to decide.",
 )
 
+#: `104` R-42 item 2. THE CHARACTERISTIC, WHERE THE ENGINE ALREADY HAS ONE.
+#:
+#: R-115 divided the residual screen by the reason the decision recorded, which is
+#: a reliable characteristic and is not the one `00` §residual names. Its eight
+#: example sets are named by what their files SHARE -- "58 screenshots with no
+#: accepted project or event", "21 standalone PDFs and forms", "14 spreadsheets
+#: and presentations with unclear purpose" -- and all three of those files stop
+#: for ONE reason, so R-115 put them under one heading called "No folder matched".
+#:
+#: **These refine that heading and no other.** `REFINED_BY_CHARACTERISTIC` below
+#: is the one reason a characteristic may divide: the reason that says the product
+#: LOOKED and nothing matched. Every other row of `REVIEW_SET_REASONS` says what
+#: is BLOCKING the file -- a model was not allowed to look, you have been asked a
+#: question, this run stopped before reaching them -- and dividing one of those by
+#: file type would tell somebody the product looked at their spreadsheet and could
+#: not tell, when what happened is that it never looked. `66` §4 forbids those two
+#: sharing a message, so they do not share a set either.
+#:
+#: **Each sentence is `NO_SUPPORTED_DESTINATION`'s, unchanged**, and that is what
+#: makes this a division rather than new copy: every member of these sets stopped
+#: for that reason and its sentence is true of each of them word for word. What
+#: the characteristic adds is the NAME, which is `00`'s own.
+#:
+#: **The signals are read, never derived.** Screenshots come from §2.6's
+#: `media_type` fact, which `facts.photo_event.media_type` writes off the EXIF
+#: bands or refuses to write at all; PDFs and spreadsheets come from §2.9's
+#: router, whose `extraction_routing` row already carries the detected format and
+#: the source-type family. `00`'s fourth named set -- "17 receipts, tickets, and
+#: confirmations" -- is NOT here, and `test_a_receipt_set_needs_a_fact_that_names_
+#: one` is the strict xfail that says why: nothing in this product concludes that a
+#: file is a receipt, and dividing a review set on a word found in a filename is
+#: the invention `00` §7.2 exists to refuse.
+SCREENSHOT_REVIEW_SET: str = "screenshots-with-no-accepted-project-or-event"
+STANDALONE_PDF_REVIEW_SET: str = "standalone-pdfs-and-forms"
+SPREADSHEET_REVIEW_SET: str = "spreadsheets-and-presentations"
+
+#: The two signals, NAMED out of the vocabularies that publish them rather than
+#: spelled here. `SCREENSHOT_MEDIA_TYPE` is §2.6's second hypothesis, in the order
+#: `facts.photo_event` publishes the pair; `PDF_FORMAT` is a key of §2.9's own
+#: routing table and `SPREADSHEET_FAMILIES` are two members of P4's closed
+#: `source_type` vocabulary. The asserts are what makes this a selection from
+#: somebody else's list rather than a copy of part of it: a rename upstream fails
+#: here instead of quietly emptying a review set.
+SCREENSHOT_MEDIA_TYPE: str = MEDIA_TYPES[1]
+PDF_FORMAT: str = "pdf"
+assert PDF_FORMAT in SOURCE_TYPE_BY_FORMAT
+#: `00` names one set "spreadsheets and presentations with unclear purpose", so the
+#: set is the two families that sentence names and neither is here on its own.
+SPREADSHEET_FAMILIES: tuple[str, ...] = ("spreadsheet", "presentation")
+assert set(SPREADSHEET_FAMILIES) <= set(SOURCE_TYPES)
+
+#: The reasons a characteristic may divide. One member, and the docstring above is
+#: the argument for its being one.
+REFINED_BY_CHARACTERISTIC: frozenset[str] = frozenset({pv.NO_SUPPORTED_DESTINATION})
+
+REVIEW_SET_CHARACTERISTICS: tuple[tuple[str, str, str], ...] = tuple(
+    (key, label, dict(
+        (row[0], row[2]) for row in REVIEW_SET_REASONS)[pv.NO_SUPPORTED_DESTINATION])
+    for key, label in (
+        (SCREENSHOT_REVIEW_SET, "Screenshots with no accepted project or event"),
+        (STANDALONE_PDF_REVIEW_SET, "Standalone PDFs and forms"),
+        (SPREADSHEET_REVIEW_SET,
+         "Spreadsheets and presentations with unclear purpose"),
+    ))
+
 REVIEW_SET_WORDS: Mapping[str, tuple[str, str]] = MappingProxyType({
     **{key: (label, reason) for key, label, reason in REVIEW_SET_REASONS},
+    **{key: (label, reason) for key, label, reason in REVIEW_SET_CHARACTERISTICS},
     PROTECTED_REVIEW_SET: PROTECTED_REVIEW_SET_WORDS,
 })
+
+#: The order the screen names its sets in, protected last. A characteristic sits
+#: where the reason it divides sits, so the three named sets are read together and
+#: the remainder of that reason keeps its own place immediately before them.
+REVIEW_SET_ORDER: tuple[str, ...] = tuple(
+    key for row in REVIEW_SET_REASONS
+    for key in ((row[0], *(name for name, _, _ in REVIEW_SET_CHARACTERISTICS))
+                if row[0] in REFINED_BY_CHARACTERISTIC else (row[0],)))
 
 #: The rows a decision's own reason may name, and the protected key is NOT in it.
 #: `PROTECTED_REVIEW_SET` is the string `"protected"`, which is also
@@ -11849,6 +12184,63 @@ REVIEW_SET_WORDS: Mapping[str, tuple[str, str]] = MappingProxyType({
 #: decided by `_protected_among` and by nothing else.
 ORDINARY_REVIEW_SET_KEYS: frozenset[str] = frozenset(
     key for key, _, _ in REVIEW_SET_REASONS)
+
+
+def residual_characteristics(conn: sqlite3.Connection,
+                             file_ids: Sequence[str]) -> dict[str, str]:
+    """Which of `00` §residual's named characteristics each file HAS, read back.
+
+    `104` R-42 item 2. Two readers, both of records this run already wrote, and
+    no third derivation of either:
+
+    * a screenshot is §2.6's `media_type` fact. `facts.photo_event.media_type`
+      ranks the EXIF bands and either writes `screenshot` or refuses to write
+      anything -- "the system must not mistake the absence of EXIF for proof that
+      an image is a screenshot" -- so a file with no row here has no
+      characteristic rather than being guessed at from its name or its extension.
+    * a PDF and a spreadsheet are §2.9's router. `extraction_routing` carries the
+      DETECTED format and the source-type family it chose, which is the same
+      reading `00` calls "the file extension as a routing signal rather than an
+      assumption about meaning". Reading the extension off `files` instead would
+      be a second answer free to disagree with the router's, on the one axis the
+      router exists to settle.
+
+    A file with more than one signal takes the image reader's first: `media_type`
+    is a conclusion about the file's CONTENT and a routing family is a conclusion
+    about its container, and §2.6's question is asked of images alone, so the two
+    overlap only where the narrower one has already answered.
+
+    The latest routing row wins. `extraction_routing` is append-only and a
+    re-scan writes another row for the same version; the newest is the one whose
+    reading the rest of this run used.
+    """
+    if not file_ids:
+        return {}
+    marks = ",".join("?" * len(file_ids))
+    found: dict[str, str] = {}
+    for row in conn.execute(
+            "SELECT r.file_id AS file_id, r.detected_format AS detected_format, "
+            "r.source_type AS source_type FROM extraction_routing AS r "
+            "JOIN files AS f ON f.file_id = r.file_id "
+            "AND f.content_hash = r.content_hash "
+            f"WHERE r.file_id IN ({marks}) ORDER BY r.routing_id",
+            tuple(file_ids)):
+        if row["detected_format"] == PDF_FORMAT:
+            found[row["file_id"]] = STANDALONE_PDF_REVIEW_SET
+        elif row["source_type"] in SPREADSHEET_FAMILIES:
+            found[row["file_id"]] = SPREADSHEET_REVIEW_SET
+        else:
+            found.pop(row["file_id"], None)
+    for row in conn.execute(
+            'SELECT ff.file_id AS file_id FROM file_facts AS ff '
+            'JOIN "values" AS v ON v.value_id = ff.value_id '
+            "JOIN files AS f ON f.file_id = ff.file_id "
+            "AND f.content_hash = ff.content_hash "
+            f"WHERE ff.file_id IN ({marks}) AND ff.field_key = ? "
+            "AND v.canonical_value = ? AND ff.active = 1",
+            (*file_ids, MEDIA_TYPE_FIELD, SCREENSHOT_MEDIA_TYPE)):
+        found[row["file_id"]] = SCREENSHOT_REVIEW_SET
+    return found
 
 
 def _ask_when_there_are_two_homes_to_offer(node_ids) -> str:
@@ -12161,7 +12553,20 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         candidate_roots: Sequence[Path] = (),
         cross_folder_moves: bool = False,
         residuals: Sequence[str] = (),
+        #: `104` R-42 item 3. §7.4's other five library actions, as
+        #: `_parse_library_actions` parsed them, and the residual areas the
+        #: person named for themselves. Defaulted empty, so every caller that
+        #: predates them composes the run it composed before.
+        library_actions: Sequence[tuple[str, str, str | None]] = (),
+        defined_residuals: Mapping[str, str] = MappingProxyType({}),
         sends: Mapping[str, str] = MappingProxyType({}),
+        #: `104` R-42 item 1. §7.6's other two set answers, each a bare label:
+        #: `leave_in_place` and `review_with_model_against_approved_residual_
+        #: folders` name no node, so neither carries a destination the way a send
+        #: does. Defaulted empty, so every caller that predates them composes the
+        #: run it composed before.
+        leaves: Sequence[str] = (),
+        reviews: Sequence[str] = (),
         operation_mode: str = OPERATION_MODE,
         record: str | None = None,
         routing: TierRouting | None = None,
@@ -12452,28 +12857,16 @@ def run(conn: sqlite3.Connection, directory: Path, *,
 
     # §7.4's enablement, and only what the person named. `00`: "These templates
     # are not automatically created", so a run that names none passes an empty
-    # library and the tree is exactly the tree it was. The disposition is a
-    # physical destination because that is what `--residual` asks for -- a place
-    # for these files to go; the other two dispositions (review-only, leave in
-    # place) are real §7.4 choices with no flag yet, and inventing a way to say
-    # them here would be guessing at a gesture nobody designed.
-    #
-    # The anchor is this run's own root anchor -- §7.3 leaves five of the
-    # nine default parents unstated and P10 refuses to invent one, and the
-    # top of the tree the plan is written against is the one place that is
-    # not an invention. `_enable_residual_library` then puts a branch that
-    # named no parent inside this run's top-level branch rather than at the
-    # root, which is `00`:99's rule that a catch-all must not become the
-    # product's default answer to ambiguity.
-    residual_library = _residual_library() if residuals else {}
-    residual_choices = tuple(
-        ResidualChoice(template_name=name, action=ENABLE,
-                       disposition=PHYSICAL_DESTINATION, display_label=None,
-                       parent_node_id=None, root_anchor=ROOT_ANCHOR,
-                       merge_into=None,
-                       replaces_node_id=None)
-        for name in residuals)
-    residual_configuration = {name: ENABLE for name in residuals}
+    # library and the tree is exactly the tree it was. `residual_library_choices`
+    # is where the shape of each decision is argued.
+    residual_library = (_residual_library(defined_residuals)
+                        if residuals or library_actions else {})
+    residual_choices = residual_library_choices(
+        residual_library, residuals, library_actions,
+        landscape=tuple(high_level_folders(directory, also_read,
+                                           candidate_roots)))
+    residual_configuration = {choice.template_name: choice.action
+                              for choice in residual_choices}
 
     def design_decisions(accepted: Sequence[str]) -> TreeDesignDecisions:
         return TreeDesignDecisions(
@@ -13228,6 +13621,19 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         follow the order files were decided in, so the same corpus would name its
         sets differently between runs and the `--send-set` lines beneath them
         would move -- which is a person's typed command changing under them.
+
+        **AND `00`'s OWN NAMED SETS DIVIDE THE ONE REASON THAT SAYS "NOTHING
+        MATCHED" (`104` R-42 item 2).** The reason code is a reliable
+        characteristic and is not the one `00` §residual names: its eight example
+        sets are named by what their files SHARE -- screenshots, standalone PDFs
+        and forms, spreadsheets and presentations -- and all three of those stop
+        for `no_supported_destination`, so R-115 gathered them under one heading.
+        `residual_characteristics` reads the signals this run already recorded and
+        `REFINED_BY_CHARACTERISTIC` says which reason they may divide: exactly the
+        one that means the product looked and nothing matched. A reason that says
+        what is BLOCKING a file keeps its own set, because "we looked and could
+        not tell" and "we were not allowed to look" are the two sentences `66` §4
+        forbids sharing a message.
         """
         if not unplaced:
             return ()
@@ -13238,6 +13644,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
 
         protected = _protected_among(unplaced)
         records = _file_records(unplaced)
+        characteristic = residual_characteristics(conn, tuple(unplaced))
         decided = {decision.subject.file_id: decision
                    for decision in decisions_for_plan(conn,
                                                       plan_version=plan_version)
@@ -13286,6 +13693,12 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 return (NOT_YET_CLASSIFIED if is_unclassified(decision.privacy)
                         else NO_MODEL_ALLOWED)
             if reason in ORDINARY_REVIEW_SET_KEYS:
+                # `104` R-42 item 2, and ONLY over the reason that means the
+                # product looked and nothing matched. The characteristic is what
+                # `00` names its sets by; the reason stays the sentence under
+                # them, word for word, because it is still true of each one.
+                if reason in REFINED_BY_CHARACTERISTIC:
+                    return characteristic.get(file_id, reason)
                 return reason
             if decision.outcome == pv.ASK_USER:
                 # Not an abstention: the run turned it into a question the report
@@ -13344,8 +13757,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
 
         return tuple(
             _set(key, tuple(held[key]))
-            for key in (*(row[0] for row in REVIEW_SET_REASONS),
-                        PROTECTED_REVIEW_SET)
+            for key in (*REVIEW_SET_ORDER, PROTECTED_REVIEW_SET)
             if held.get(key))
 
     def _destinations_to_offer(frozen):
@@ -14853,7 +15265,13 @@ def run(conn: sqlite3.Connection, directory: Path, *,
     # minted a new one. So `--send-set` is applied to the sets it was typed at and
     # is not remembered between runs: the run that files the files is the run the
     # person named them in.
-    if sends:
+    # `104` R-42 item 1 widens this from ONE gesture to three. §7.6 puts four
+    # choices to the person and `SET_CHOICES` carries all four; `--send-set` was
+    # the only one with a route, so "leave them in place" and "review them with
+    # AI against your approved residual folders" were legal answers no command
+    # could make. All three are collected here and applied below in one call, so
+    # a set given two of them is refused with nothing written.
+    if sends or leaves or reviews:
         # `104` R-26. THE GESTURE IS RECORDED BEFORE THE PART THAT ACTS ON IT IS
         # CALLED, which is the order `review_gestures` was written for and could
         # not have until something called it. `review_surface.collect` is the one
@@ -14907,24 +15325,69 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 plan_version=plan_version, session_id=plan_version,
                 correction_scope=RESIDUAL_SEND_SCOPE, user_id=user_id,
                 component_version=COMPONENT_VERSION, acted_at=now())
+            # THE SAME SCOPE, and it is the same sentence about the same kind of
+            # answer: "files like these belong at this area" and "files like
+            # these stay where they are" are both said about the set in front of
+            # the person, not about each member and not about every run.
+            # `--review-set` collects NOTHING here, and
+            # `test_the_review_gesture_has_no_word_of_its_own_in_p13_yet` is the
+            # strict xfail that names what is missing: P13 has no action meaning
+            # *ask a model about these*, and recording it as `accept_bulk` would
+            # say the person accepted a destination they were never shown.
+            collect_set_leaves(
+                conn, leaves=leaves, sets=result.placement.residual_sets,
+                presented=presented, mint_action_id=mint_send_action_id,
+                plan_version=plan_version, session_id=plan_version,
+                correction_scope=RESIDUAL_SEND_SCOPE, user_id=user_id,
+                component_version=COMPONENT_VERSION, acted_at=now())
         except (ProtectedContainerHasNoAction, PresentationRequired,
                 BulkMembersRequired, ScopeNotPresented) as refusal:
             # P13's OWN SENTENCE, printed and not paraphrased, and the plan
             # survives exactly as it does for `ResidualSendRefused` below: the
             # run is already computed and a refused gesture is not a reason to
             # throw it away. Nothing was filed, because nothing downstream ran.
-            print(f"\nThat send was refused, and the plan below is unaffected:"
-                  f"\n  {refusal}\n  Nothing was filed in bulk, and the plan "
-                  "below is the run that was already computed.", file=out)
-            sends = {}
-    if sends:
+            # `104` R-42 item 1 made this sentence true again. It said "That
+            # SEND was refused ... nothing was FILED in bulk", which was the
+            # whole story while `--send-set` was the only gesture and is a false
+            # sentence in front of somebody who typed `--leave-set`: nothing was
+            # going to be filed either way, and what was refused was an answer.
+            # §18.3 ranks a false sentence on a person's screen the worst class
+            # of defect there is.
+            print(f"\nThat answer was refused, and the plan below is "
+                  f"unaffected:\n  {refusal}\n  No review set was decided and "
+                  "nothing was filed, and the plan below is the run that was "
+                  "already computed.", file=out)
+            sends, leaves, reviews = {}, (), ()
+    if sends or leaves or reviews:
         try:
             result = dataclasses.replace(result, placement=act_on_residual_sets(
                 conn, result=result.placement,
                 inputs=placement_inputs(result.tree), sends=sends,
+                leaves=leaves, reviews=reviews,
                 evidence_for=evidence_for, component_version=COMPONENT_VERSION,
                 observed_at=now(), user_id=user_id))
-        except ResidualSendRefused as refusal:
+            if reviews and not residual_judgement_available(
+                    placement_inputs(result.tree)):
+                # `104` R-42 item 1. The choice is recorded and the judgement is
+                # not made, so the run says which. Printed HERE rather than on
+                # the review screen, and once: the screen offers the command
+                # under every set it applies to, and a caveat repeated beside
+                # each of them is R-122's defect with a new sentence in it.
+                print(
+                    "\nThese sets are recorded for review with AI, and nothing "
+                    "was judged: the wording this product would put that "
+                    "question under has not been approved yet. Nothing about "
+                    "these files was sent anywhere and none of them moved. Your "
+                    "answer is kept against this plan.", file=out)
+        except (ResidualSendRefused, ProtectedSetNotReadable) as refusal:
+            # `ProtectedSetNotReadable` JOINS IT HERE (`104` R-42 item 1). P11
+            # now raises it BEFORE it writes a decision row rather than after,
+            # which is R-26's ordering applied to the two gestures R-26 did not
+            # have -- and a `--review-set` over a protected set reaches this
+            # point with no P13 collection in front of it, because P13 has no
+            # action word for that gesture. Uncaught, it ended the run "No plan
+            # was made", which is precisely the shape R-26 was written to stop.
+            #
             # REFUSED, AND THE PLAN SURVIVES. Refusing is right -- a renumbered
             # set holds different files, and filing them would be the gesture
             # acting on something other than what the person named. Letting the
@@ -14968,8 +15431,9 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 "uses it: "
                 + " ".join(f"--residual {shlex.quote(area)}"
                            for area in unenabled)) if unenabled else ""
-            print(f"\nThat send was refused, and the plan below is unaffected:"
-                  f"\n  {refusal}{advice}\n  Nothing was filed in bulk, and "
+            print(f"\nThat answer was refused, and the plan below is "
+                  f"unaffected:\n  {refusal}{advice}\n  No review set was "
+                  "decided and nothing was filed, and "
                   "the plan below is the run that was already computed.",
                   file=out)
     reaches = _raise_blocked_questions(conn, detector=detector, asked_at=clock)
@@ -16739,7 +17203,101 @@ def _how_to_say_what_these_are(questions: Sequence,
     return tuple(lines)
 
 
+#: §7.5's own words for its seven attributes, keyed by the `ResidualSet` field
+#: that carries each -- `review_surface.residual.SEVEN_ATTRIBUTES` is the list of
+#: FIELDS, and this is the sentence they come from: "Each set should display
+#: representative examples, file-type distribution, age range, available OCR or
+#: text evidence, sensitivity status, any weak graph neighbors, and the reason the
+#: system could not safely place the files."
+#:
+#: Named once and read twice -- by the card and by the sentence that says which
+#: attribute a set could not answer -- so a person is told the same word either
+#: way and neither says `evidence_availability` at them.
+RESIDUAL_CARD_WORDS: Mapping[str, str] = MappingProxyType({
+    "representative_examples": "Examples",
+    "file_type_distribution": "File types",
+    "age_range": "Age range",
+    "evidence_availability": "Available OCR or text evidence",
+    "sensitivity_status": "Sensitivity",
+    "weak_graph_neighbours": "Weak graph neighbours",
+    "reason_not_placed": "Reason",
+})
+assert set(RESIDUAL_CARD_WORDS) == set(SEVEN_ATTRIBUTES)
+
+
+def _set_card_lines(item, names: Mapping[str, str]) -> tuple[str, ...]:
+    """§7.5's card for one review set, as lines the report wraps.
+
+    `104` R-42 item 1. `review_surface.residual.residual_card` is the renderer and
+    the audit of 11 Sep found it had no caller at all: the card was computed into
+    `residual_sets.payload` and printed nowhere, so a person deciding what happens
+    to a whole set in one gesture read a count, a name and a reason -- three of
+    the seven §7.5 requires. This is that function's caller and it adds no field
+    of its own.
+
+    **The reason is not repeated here.** It is the seventh attribute and the
+    screen has printed it already, either as the group's "Same reason for each" or
+    as the `Held for review as "<set>": <reason>` line immediately above; a card
+    that said it a third time is `104` R-124 with a new sentence in it.
+
+    **Two lines, not six.** R-114 and R-122 were both about a residual screen that
+    grew one paragraph per set until a 52-file corpus printed 412 lines. The
+    attributes are grouped rather than listed one per line for that reason and no
+    other -- every one of them is still on the screen.
+
+    **An example is a FILENAME.** `representative_examples` carries file ids,
+    which are not something a person can look for on their own disk.
+
+    **A PROTECTED set's examples are not named**, and the rest of its card is.
+    The owner's 2026-09-02 ruling (`93-PROTECTED-DISCLOSURE-RULING.md`) makes a
+    list of protected filenames the part of this report least safe to have on a
+    screen somebody else can see, and the group block above this one already says
+    where they are: `--show-protected`. What is withheld is the names; the count,
+    the types, the dates and the sensitivity are exactly what "marked and counted,
+    never silently omitted" requires to be on the screen.
+
+    **An attribute this run could not fill is SAID, not dropped.**
+    `residual_card` raises rather than emitting a shorter card -- a card missing
+    one looks complete while hiding the thing the person needs in order to decide
+    -- and `84` §6 is why the exception carries `missing` as a list: a composition
+    root that catches it owes them the attributes by name.
+    """
+    try:
+        card = residual_card(item)
+    except IncompleteResidualCard as gap:
+        return ("Nothing on this screen says the "
+                + ", ".join(RESIDUAL_CARD_WORDS[field].lower()
+                            for field in gap.missing)
+                + " of this set: nothing this run read filled them.",)
+    facts = []
+    if not card.protected:
+        facts.append(
+            f"{RESIDUAL_CARD_WORDS['representative_examples']}: "
+            + ", ".join(names.get(file_id, file_id)
+                        for file_id in card.representative_examples))
+    facts.append(f"{RESIDUAL_CARD_WORDS['file_type_distribution']}: "
+                 + ", ".join(f"{extension} ({count})"
+                             for extension, count in card.file_type_distribution))
+    facts.append(f"{RESIDUAL_CARD_WORDS['age_range']}: "
+                 + " to ".join(card.age_range))
+    rest = [f"{RESIDUAL_CARD_WORDS['evidence_availability']}: "
+            f"{card.evidence_availability}",
+            f"{RESIDUAL_CARD_WORDS['sensitivity_status']}: "
+            f"{card.sensitivity_status}"]
+    if card.weak_graph_neighbours:
+        # The ONE of the seven §7.5 qualifies -- "ANY weak graph neighbors" -- so
+        # a set with none has answered and the line is absent rather than saying
+        # so. `review_surface.residual.WEAK_NEIGHBOURS` skips it for exactly this
+        # reason and the screen may not contradict the record.
+        rest.append(f"{RESIDUAL_CARD_WORDS['weak_graph_neighbours']}: "
+                    + ", ".join(card.weak_graph_neighbours))
+    return (". ".join(facts) + ".", ". ".join(rest) + ".")
+
+
 def _review_note(items: Sequence, areas: Sequence[str], *,
+                 names: Mapping[str, str] = MappingProxyType({}),
+                 slots: Mapping[str, tuple[tuple[str, ...], tuple[str, ...]]]
+                 = MappingProxyType({}),
                  reason_already_said: bool = False
                  ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Why these sets are being held, and what a person can type about each one.
@@ -16836,14 +17394,21 @@ def _review_note(items: Sequence, areas: Sequence[str], *,
                         "heading, and each is addressed by the name beside it.")
         lines.append(opening)
         # One batch is already named in the sentence above, so a hold that is one
-        # batch says it once and only a SPLIT hold gets the roll-call. In that
-        # roll-call a PROTECTED set is named however long the list is:
+        # batch is not named again and only a SPLIT hold gets the roll-call. In
+        # that roll-call a PROTECTED set is named however long the list is:
         # shortening the ordinary list is fine, and shortening the part that
         # says what was marked protected and left alone is the silent omission
         # the standing rule exists to forbid.
-        shown = () if len(held) == 1 else (
-            held if protected else held[:NAMES_LISTED_PER_GROUP])
+        #
+        # `104` R-42 item 1: EVERY set in the roll-call, and not only the ones a
+        # command could be typed at. The card is §7.5's contract -- "each set
+        # should display representative examples, file-type distribution, age
+        # range..." -- and it is owed to a protected set too, minus the names.
+        shown = held if protected else held[:NAMES_LISTED_PER_GROUP]
         for item in shown:
+            if len(held) > 1:
+                lines.append(f'"{item.label}" -- {item.file_count} file(s)')
+            lines.extend(_set_card_lines(item, names))
             if protected:
                 # No command, because there is no command. `--send-set` files a
                 # set in one gesture with no per-file look, and P11 refuses that
@@ -16851,20 +17416,26 @@ def _review_note(items: Sequence, areas: Sequence[str], *,
                 # the flag here would offer an instruction that always fails, and
                 # it would contradict the sentence immediately above it. The set
                 # is still shown, named and counted; what is withheld is a
-                # suggestion that was never true.
-                lines.append(f'"{item.label}" -- {item.file_count} file(s)')
-            elif areas:
-                # NOTHING after the command on its line. `--answer` learned this
-                # too: a count appended for readability is pasted along with the
-                # command and arrives at the shell as stray arguments.
+                # suggestion that was never true. The same holds for the two
+                # gestures below it: P13's `collect` refuses a protected subject
+                # whatever the action is.
+                continue
+            # NOTHING after a command on its line. `--answer` learned this too: a
+            # count appended for readability is pasted along with the command and
+            # arrives at the shell as stray arguments.
+            #
+            # THREE OF §7.6'S FOUR, and the send is the one that needs an area to
+            # exist first. Leaving a set alone and asking a model about it name no
+            # destination, so they are offered whether or not this plan has one --
+            # which is the whole of why they were reachable by no command before
+            # `104` R-42: the screen only ever offered the answer that needed
+            # somewhere to put things.
+            if areas:
                 lines.append(f'      --send-set '
                              f'{shlex.quote(f"{item.label}={areas[0]}")}')
-            else:
-                lines.append(f'"{item.label}" -- {item.file_count} file(s)')
-        if len(held) == 1 and not protected and areas:
-            lines.append(f'      --send-set '
-                         f'{shlex.quote(f"{held[0].label}={areas[0]}")}')
-        rest = len(held) - len(shown) if shown else 0
+            lines.append(f'      --leave-set {shlex.quote(item.label)}')
+            lines.append(f'      --review-set {shlex.quote(item.label)}')
+        rest = len(held) - len(shown)
         if rest:
             lines.append(
                 f"...and {rest} more review sets held for the same reason, "
@@ -16888,6 +17459,26 @@ def _review_note(items: Sequence, areas: Sequence[str], *,
                 "This plan has nowhere to put them yet: enable an area with "
                 '`--residual "Review Later"` and each of these sets can be sent '
                 "there with one command.",)
+        # `104` R-42 item 4's last half. WHAT EACH AREA IS FOR, said ONCE.
+        #
+        # §7.2 makes "accepted evidence patterns" and "expected file types" two
+        # of a residual template's eight slots, `01-nine-templates.json` authors
+        # both for all nine, and nothing read either: the person was asked to
+        # send a whole set somewhere and told nothing about the somewhere.
+        #
+        # In the CLOSING block and not on the card, which is the R-122 split
+        # applied to the same kind of fact: what a set holds is the set's, and
+        # what an area accepts is one fact about the PLAN however many sets are
+        # offered it. Printed under each set it would be R-122 again with a new
+        # sentence in it. These slots are not read into PLACEMENT: nothing in
+        # this build decides membership from an evidence pattern, and a screen
+        # that described them as a rule would be promising a check nobody makes.
+        closing += tuple(
+            f'"{area}" holds '
+            + ", ".join(slots[area][0])
+            + (f"; the evidence it is for is {', '.join(slots[area][1])}."
+               if slots[area][1] else ".")
+            for area in areas if slots.get(area) and slots[area][0])
     return tuple(lines), closing
 
 
@@ -17268,6 +17859,12 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
            reading_family: Sequence[str] = (),
            reaching: Mapping[str, tuple[str, ...]] = MappingProxyType({}),
            not_carried: Sequence = (),
+           #: `104` R-42 item 4's last half: §7.2's `expected file types` and
+           #: `accepted evidence patterns`, by the display label of the area that
+           #: authors them. Read and passed IN for `questions`' reason -- this
+           #: function takes a finished run and holds no library.
+           residual_slots: Mapping[str, tuple[tuple[str, ...], tuple[str, ...]]]
+           = MappingProxyType({}),
            groups: "GroupPass | None" = None,
            cards: Sequence = (),
            health: "TreeHealth | None" = None,
@@ -17889,7 +18486,8 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # `104` R-124. `reason` is this group's "Same reason for each" line and
         # is empty exactly where that line was not printed, so the flag is the
         # screen's own record of whether the reason has been said.
-        note, closing = _review_note(held_sets.get(key, ()), areas,
+        note, closing = _review_note(held_sets.get(key, ()), areas, names=names,
+                                     slots=residual_slots,
                                      reason_already_said=bool(reason))
         said_in_full = say(note, handle=handle,
             again=("Held for review; the set and the command are under the "
@@ -18666,6 +19264,24 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "created unless you name it, and it can be given more than once. "
              "`--list-residuals` prints them.")
     parser.add_argument(
+        "--residual-library", action="append", default=[], metavar="ACTION:NAME",
+        help="do something other than enable to one of the residual areas, e.g. "
+             "--residual-library \"rename:Review Later=To Sort\". The actions "
+             "are disable, rename, relocate and merge, each written "
+             "<action>:<area> with what it needs after an `=`: a name for "
+             "rename, the top-level folder for relocate, the area it joins for "
+             "merge. Each of these is that area's whole decision, so it is not "
+             "given `--residual` as well.")
+    parser.add_argument(
+        "--define-residual", action="append", default=[], metavar="NAME=DOES",
+        help="name a residual area of your own, e.g. --define-residual "
+             "\"Stuff to Sort=retained\". Residual organisation is personal "
+             "and the nine this product ships are not a taxonomy you have to "
+             "accept. What it does with a file is yours to say: `retained` "
+             "holds them, `reviewed` keeps them for you to look at and moves "
+             "nothing, `merely kept searchable` leaves them where they are. "
+             "Name it and it can then be enabled with `--residual`.")
+    parser.add_argument(
         "--show-protected", action="store_true",
         help="print the name of every protected file, instead of the count. "
              "They are counted and named as a group on every run. A protected "
@@ -18692,6 +19308,21 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "set exactly as the report printed it. No model is consulted -- "
              "the answer names the destination -- and it applies to the run "
              "that prints it, because a plan version's review sets are its own.")
+    parser.add_argument(
+        "--leave-set", action="append", default=[], metavar="SET",
+        help="leave a whole review set exactly where it is, e.g. --leave-set "
+             "\"No folder matched\". Name the set exactly as the report printed "
+             "it. Nothing moves, no model is consulted, and the files stay "
+             "searchable where they already are. It applies to the run that "
+             "prints it, because a plan version's review sets are its own.")
+    parser.add_argument(
+        "--review-set", action="append", default=[], metavar="SET",
+        help="ask a model about a whole review set, file by file, against the "
+             "residual areas this plan has, e.g. --review-set \"No folder "
+             "matched\". Name the set exactly as the report printed it. Your "
+             "choice is recorded now; the wording this product would put that "
+             "question under has not been approved yet, so nothing is sent "
+             "anywhere and nothing is judged until it is.")
     parser.add_argument(
         "--explain", action="append", default=[], metavar="QUESTION",
         help="print what one answer controls, where it applies, when it was "
@@ -19090,8 +19721,18 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                      user_id=args.user, now=now, out=out,
                      also_read=also_read, candidate_roots=candidate_roots,
                      cross_folder_moves=args.may_cross_folders,
-                     residuals=_validate_residuals(args.residual),
+                     residuals=_validate_residuals(
+                         args.residual,
+                         tuple(_parse_defined_residuals(args.define_residual))),
+                     library_actions=_parse_library_actions(
+                         args.residual_library),
+                     defined_residuals=_parse_defined_residuals(
+                         args.define_residual),
                      sends=_parse_sends(args.send_set),
+                     leaves=_parse_set_names(args.leave_set,
+                                             flag="--leave-set"),
+                     reviews=_parse_set_names(args.review_set,
+                                              flag="--review-set"),
                      operation_mode=operation_mode_for(consent),
                      record=args.record,
                      # BOTH, or the fact pass does not happen. `routing` is `None`
@@ -19204,6 +19845,19 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                    invite_freeze=not args.freeze,
                    list_every_name=args.freeze,
                    show_protected=args.show_protected,
+                   # `104` R-42 item 4. §7.2's two authored slots, by the label
+                   # of the area that carries them, read HERE because `report`
+                   # takes a finished run and holds no library. Only the areas
+                   # this command enabled, which is the set `--send-set` offers.
+                   residual_slots={
+                       template.display_name: (
+                           template.expected_file_types,
+                           template.accepted_evidence_patterns)
+                       for name, template in (
+                           _residual_library(
+                               _parse_defined_residuals(args.define_residual))
+                           if args.residual or args.residual_library else {}
+                       ).items()},
                    # Read here and passed IN, for the reason `report`'s own
                    # docstring gives about `questions`: it takes a finished run
                    # and a naming table and holds no connection.
