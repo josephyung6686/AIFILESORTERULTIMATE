@@ -44,7 +44,7 @@ from types import MappingProxyType
 
 from tree_design.candidates import (
     EXISTING_FOLDER_SOURCES, BranchCandidate, VerticalOption,
-    horizontal_candidates, vertical_options,
+    horizontal_candidates, node_type_for, vertical_options,
 )
 from tree_design.config import ConfigurationRequired, TreeLimits
 from tree_design.freeze import FrozenTree, freeze, frozen_tree, represent_protected_areas
@@ -243,7 +243,18 @@ class TreeDesignDecisions:
     #: validation report, which nesting the user took. A callable rather than a
     #: mapping because the options do not exist until the chain has computed
     #: them, and a caller naming `opt_0` in advance has chosen nothing.
-    choose_option: Callable[[BranchCandidate, tuple[VerticalOption, ...]], str]
+    #:
+    #: `None` IS AN ANSWER AND IT IS "NOT YET" (`104` §18.42 item 1, R-92).
+    #: `00`:66 designs the branches the person accepted and no others, so a
+    #: branch whose shape is still the person's to pick gets no lower level on
+    #: this run. It is deliberately not `opt_no_split`: the two build the same
+    #: folders -- none -- and only one of them is somebody's decision, so
+    #: recording "keep this branch as it is" for a person who has not spoken
+    #: would be the engine taking their turn, which is the finding this exists
+    #: to close. The branch node is still written and the options are still
+    #: computed, because the screen has to show what is being asked.
+    choose_option: Callable[[BranchCandidate, tuple[VerticalOption, ...]],
+                            str | None]
     #: §5.8, per node the chain writes, WITH the number of files that node holds.
     #: The count is passed because every §5.8 answer is a claim about one — "few
     #: enough files that a further split would not help" is a sentence about a
@@ -301,7 +312,10 @@ class BranchDesign:
     candidate: BranchCandidate
     routing: RoutingReport
     options: tuple[VerticalOption, ...]
-    chosen_option_id: str
+    #: `None` when nobody has answered this branch's shape yet -- see
+    #: `TreeDesignDecisions.choose_option`. The options beside it are what the
+    #: person is choosing between.
+    chosen_option_id: str | None
     evidence: BranchEvidence | None
     #: §5.9's warnings for the option the user took, computed by
     #: `vertical_options` over `health.warnings_for` and `parent_concepts_for`.
@@ -327,6 +341,13 @@ class TreeDesignResult:
     plan_version_ids: tuple[str, ...]
     branches: tuple[BranchDesign, ...]
     protected_areas: tuple[ProtectedArea, ...]
+    #: §5.1's horizontal pass, WHOLE: every top-level candidate this run built a
+    #: card for, including the ones the decisions did not select. `branches`
+    #: holds the selected ones only, so without this a card the person has not
+    #: accepted is computed and then dropped -- which is `104` §18.42 item 1's
+    #: "branch cards live on `BranchCandidate` and no screen renders them", one
+    #: layer down: a screen cannot render what the chain does not return.
+    candidates: tuple[BranchCandidate, ...] = ()
 
 
 # --- step 1 -------------------------------------------------------------------------
@@ -645,7 +666,9 @@ def _top_level_node(candidate: BranchCandidate, *, plan_version_id: str,
     adopted = candidate.source in EXISTING_FOLDER_SOURCES
     return Node(
         node_id=node_id, plan_version_id=plan_version_id,
-        node_type=EXISTING if adopted else PROPOSED,
+        # `candidates.node_type_for`, so the word the CARD prints and the word
+        # the frozen node carries cannot come apart (`104` §18.42 items 1, 5).
+        node_type=node_type_for(candidate),
         # An observed fact about the corpus, never a composition -- which is why
         # `Node.__post_init__` refuses it on any other type. The candidate's
         # `subject_id` IS the directory path for these two sources.
@@ -660,8 +683,7 @@ def _top_level_node(candidate: BranchCandidate, *, plan_version_id: str,
         associated_group_ids=candidate.accepted_group_ids or associated_groups,
         explanation=candidate.why_suggested, node_role=ORDINARY,
         accepts_placement=derive_accepts_placement(
-            EXISTING if adopted else PROPOSED,
-            protected_movement_permitted=False),
+            node_type_for(candidate), protected_movement_permitted=False),
         # The classes the branch's own members carry, collapsed by the injected
         # authority. P7 publishes `HANDLING_CLASSES` as a set and no ordering, so
         # a rank chosen here could give the branch a weaker floor than one of its
@@ -912,7 +934,7 @@ def design_tree(conn: sqlite3.Connection, *,
     return TreeDesignResult(
         tree=frozen_tree(conn, plan_version=version),
         plan_version_ids=tuple(versions), branches=tuple(branches),
-        protected_areas=areas)
+        protected_areas=areas, candidates=candidates)
 
 
 def _add_scoped_generals(conn, authorities, decisions, *, version: str,
@@ -1066,6 +1088,17 @@ def _design_one_branch(conn, authorities, decisions, *, candidate, groups,
         materialise=materialise, validate=validate, limits=authorities.limits,
         preview=preview)
     option_id = decisions.choose_option(candidate, options)
+    if option_id is None:
+        # `104` §18.42 item 1. THE BRANCH IS PRESENTED AND NOT DESIGNED. Its node
+        # is written -- `00`:101's horizontal pass produces the few major areas
+        # and that is a real product, and an adopted folder still carries the
+        # expectations its own contents already agree on -- but nothing is routed
+        # into it, no `accept` action is applied, and the version is returned
+        # unchanged, so the freeze that follows contains no level nobody chose.
+        return version, BranchDesign(
+            origin_node_id=parent.origin_node_id, candidate=candidate,
+            routing=report, options=options, chosen_option_id=None,
+            evidence=None, warnings=())
     chosen = next((option for option in options
                    if option.option_id == option_id), None)
     if chosen is None:

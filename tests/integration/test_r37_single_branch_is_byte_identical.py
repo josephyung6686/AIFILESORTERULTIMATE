@@ -76,6 +76,31 @@ which is `test_two_runs_of_one_folder_agree`'s to widen and not this pin's;
 `tests/integration/test_sf3_a_group_is_a_draft_until_decided.py` asserts them
 directly.
 
+**Recaptured on 11 Sep 2026 for `104` §18.42 items 1, 4 and 5, and the diff was
+read before it was taken.** The design's horizontal pass now has a screen: the
+top-level branch cards print above the tree, every node says which of `00`:102's
+five kinds it is, and §5.11's health view prints under the tree. The screen is
+151 lines before and 168 after, and the growth is in exactly three places -- the
+ten-line card block, the six-line health block, and `   [proposed]` appended to
+each of the five tree lines. Nothing else on the screen moved.
+
+**ALL FOURTEEN CAPTURED TABLES ARE IDENTICAL ROW FOR ROW**, `tree_nodes`,
+`placement_decisions` and `placement_group_plans` among them, and that is the
+fact worth recording: R-92's wait fires where a branch's own facts support more
+than one shape or where the branch is a folder the person already made, and this
+corpus is neither -- one composition plus `opt_no_split`, and a scan root that
+`adopted_folders` has always refused to adopt. So the run this fixture captures
+proceeds exactly as it did and places exactly what it placed; what changed is
+that the person can now see the areas it was built from.
+
+The card block names the scan root (`corpus`) as one of the person's own
+folders, because `horizontal_candidates` offers every existing folder and
+`cli.adopted_folders` is what excludes the root from being adopted as a branch.
+The two filters disagree about the root by design and the card is true about it
+-- it is their folder and it holds six files -- but it is an area nothing can
+turn into a branch. Left as the chain computes it; whether the canvas should
+show the folder it was pointed at is the owner's.
+
 The corpus is `test_local_model_fact_pass._corpus`'s six files: a syllabus, a
 lecture, a homework, a problem set, an application essay and a passport scan. The
 anchors the work-type rule finds on it are all academic's, so it is one branch.

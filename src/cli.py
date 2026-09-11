@@ -369,7 +369,12 @@ from scan_agent.exclusion import is_protected_container
 from scan_agent.dataless import is_dataless
 from scan_agent.selection import record_selection
 from scan_agent.summary import scan_run_summary, set_aside_paths
+from tree_design import vocabulary as tv
+from tree_design.candidates import (
+    EXISTING_FOLDER_SOURCES, folder_label, node_type_for,
+)
 from tree_design.catalogue import TemplateCatalogue
+from tree_design.health import TreeHealth, tree_health
 from tree_design.config import ConfigurationRequired, TreeLimits
 from tree_design.freeze import FreezeRefused
 from tree_design.materialise import MaterialisationRefused
@@ -549,6 +554,19 @@ TREE_LIMITS = TreeLimits(
     # measure it, and answering `False` would suppress every vertical option; this
     # answers `True` and leaves the judgement to the user, who sees the option's
     # counts and warnings before taking it.
+    #
+    # `104` §18.42 item 2 names this among the "predicates wired to constants
+    # that make them unfireable", and it is LEFT AS IT IS DELIBERATELY. The
+    # predicate is handed a `BranchCounts`, which counts children, descendants
+    # and members and measures no retrieval; the two `retrieval_*` fields in the
+    # template library are authored prose rather than a number about this corpus.
+    # So there is nothing real to feed it, and a threshold invented over counts
+    # that mean something else would be worse than the constant -- `TreeLimits`
+    # says so in its own words: "a flattening recommendation the product cannot
+    # justify is worse than none". `tests/p10/test_p10_health.py::test_the_
+    # flatten_rule_has_a_measure_to_read` is the strict xfail that names the
+    # carrier the measure would arrive on, and turns the suite red the day it
+    # does.
     materially_improves_retrieval=lambda option: True)
 
 #: P9's bounds. Same status as the tree limits: named by §8.6, valued here.
@@ -8595,11 +8613,25 @@ def choose_option(candidate, options) -> str:
     so and the question is still printed.
     """
     for option in options:
-        report = option.validation
-        if ((option.total_child_branches or option.branch_expectations)
-                and (report is None or report.accepted)):
+        if would_build(option):
             return option.option_id
     return options[-1].option_id
+
+
+def would_build(option) -> bool:
+    """Whether this option is a SHAPE, as `choose_option`'s docstring defines it.
+
+    Lifted out of the loop above and given a name because `nesting_chooser` needs
+    the same number: how many shapes a branch's own facts support is what decides
+    whether there is anything to ask the person (`104` R-92), and the option
+    COUNT is not that number -- `vertical_options` appends `opt_no_split` to
+    every branch, so every branch has two. One reading, two readers; a second
+    copy of the test is a second answer to "is this a choice" the day either
+    moves.
+    """
+    report = option.validation
+    return bool((option.total_child_branches or option.branch_expectations)
+                and (report is None or report.accepted))
 
 
 #: `opt_no_split`'s key. `00`:99 offers "keep this branch as it is" beside every
@@ -8674,31 +8706,67 @@ def nesting_chooser(conn: sqlite3.Connection, *, asked_at: str):
     took `options[0]` and disclosed that it had. The disclosure was honest and is
     not the same as asking.
 
-    **Asking costs the person nothing, which is what makes it safe to ask here.**
-    An unanswered question does not stop the run: the default is taken exactly as
-    before, the tree is the tree they would have got, and the question is printed
-    beside it. So the first run is no worse than it was, and the second run --
-    `--answer branch:Coursework=subject` -- is theirs.
-
     One question per BRANCH, scoped to it, because §13 forbids reusing an answer
     "outside its stated scope" and how somebody wants their coursework shaped says
     nothing about how they want their legal matters shaped.
+
+    **`104` §18.42 item 1 and R-92: THE QUESTION NOW WAITS FOR ITS ANSWER.** It
+    used to be asked and answered in the same breath -- `options[0]` was taken,
+    the disclosure said so, and the alternatives printed underneath were
+    answerable only on the next run, by which time the tree they would have
+    changed was already frozen. The disclosure was honest and was never the same
+    thing as asking. So where the answer is the person's, this returns `None`:
+    the branch keeps its top-level node, nothing is built inside it, and the
+    options stay on the screen with their counts until they say which.
+
+    **Two cases where it is theirs, and one where it is not.**
+
+    1. TWO SHAPES THE FACTS SUPPORT. Not "two options": `vertical_options`
+       appends `opt_no_split` to every branch, so a rule keyed on the option
+       count would stop every ordinary run. `choose_option`'s own test for
+       whether an option "would build something" is the one used here, so the
+       number this waits on and the number the fallback acts on cannot come to
+       mean two different things.
+    2. A FOLDER THE PERSON ALREADY MADE, whatever the count. `00`:100:
+       "Existing folders must not be automatically flattened, renamed, or
+       reorganized simply because a template would produce a different
+       structure." `--accept-groups` accepts GROUPS, and an adopted directory is
+       not one -- which is the audit's finding in one line: `design_decisions`
+       adopted every non-root directory and designed levels inside all of them
+       with nobody asked. One buildable shape is still a proposal to build
+       folders inside somebody's own folder, and `keep-as-it-is` beside it is a
+       real answer rather than a formality.
+    3. Anything else proceeds exactly as it did. A proposed branch with one
+       shape has nothing to decide, and stopping there would ask a person to
+       confirm the only thing that could happen.
     """
 
-    def choose(candidate, options) -> str:
+    def choose(candidate, options) -> str | None:
         scope = f"{SCOPE_BRANCH}:{candidate.display_label}"
         by_key = {_nesting_key(option): option for option in options}
         answered = gated_template(conn, scope=scope)
         if answered is not None and answered in by_key:
             return by_key[answered].option_id
-        # Two shapes or more is a decision; one is not, and §12 permits a question
-        # only where "a specific decision is blocked".
+        theirs = (candidate.source in EXISTING_FOLDER_SOURCES
+                  or sum(1 for option in options if would_build(option)) > 1)
+        # ASKED EXACTLY WHERE IT WAS ASKED BEFORE. Two entries or more is
+        # something to choose BETWEEN, and §12 permits a question only where "a
+        # specific decision is blocked". Narrowing this to the cases that WAIT
+        # would take `keep-as-it-is` away from every branch with one shape, and
+        # that is a real answer a person may want to give -- what changed here is
+        # what the run does while it waits, not what it asks.
         if len(by_key) > 1:
             record_question(conn, question_for_nesting(
                 branch_label=candidate.display_label,
                 choices=_nesting_choices(options),
-                file_count=candidate.supporting_file_count), asked_at=asked_at)
-        return choose_option(candidate, options)
+                file_count=candidate.supporting_file_count,
+                # WHICH OF TWO TRUE SENTENCES the question carries, and this is
+                # the only part that knows. The old one -- "the first shape that
+                # passed every check is used" -- is a false statement about a
+                # branch nothing was built inside, and it is false in exactly the
+                # case where the person most needs to act.
+                waits_for_the_answer=theirs), asked_at=asked_at)
+        return None if theirs else choose_option(candidate, options)
 
     return choose
 
@@ -17036,6 +17104,156 @@ def levels_on_screen(result: ProductionRun) -> tuple[LevelOnScreen, ...]:
                  for key in sorted(levels, key=lambda k: (depth[k], k)))
 
 
+#: `104` §18.42 item 5. `00`:102's five node types, in the words a person reads.
+#: Every one of them is here and the tests assert the set is `NODE_TYPES` whole,
+#: because a type with no word prints nothing -- and a folder described by
+#: silence is the same defect as a folder described wrongly.
+#:
+#: `yours already` and `proposed` are not new words: the headline one line above
+#: the tree has said "5 proposed, 0 yours already" since existing folders reached
+#: it, so the marks on the nodes and the count over them are the same two words.
+NODE_TYPE_WORDS: Mapping[str, str] = MappingProxyType({
+    tv.EXISTING: "yours already",
+    tv.PROPOSED: "proposed",
+    tv.USER_CREATED: "you made this one",
+    tv.PROTECTED: "protected",
+    tv.IGNORED: "ignored",
+})
+
+
+def _print_cards(cards: Sequence, *, out) -> None:
+    """§5.1's horizontal canvas, as a terminal can draw it (`104` §18.42 item 1).
+
+    `00`:68: each proposed top-level branch "should show a file count,
+    representative groups, existing related folders, and a concise explanation
+    rather than a technical confidence score", and `00`:69 adds that "sensitive
+    groups should appear differently". Every one of those is a field of
+    `BranchCandidate`, and the audit's finding was that no screen rendered any of
+    them: the cards were computed, filtered by an answer supplied in advance, and
+    thrown away.
+
+    This is not the canvas. `00` describes a drag-and-drop surface and a command
+    line is not one, and `_draft_proposal_report` already records why the smallest
+    true version of a card is the right thing to print rather than nothing.
+
+    NO FILENAMES, for `00`:201's reason and `_draft_proposal_report`'s: a
+    sensitive area says that it holds such material and not what is in it.
+    """
+    if not cards:
+        return
+    print("\nYour top-level areas, and why each one is here:", file=out)
+    for card in cards:
+        files = "file" if card.supporting_file_count == 1 else "files"
+        sensitive = ("   [sensitive material inside]"
+                     if card.sensitive_content_present else "")
+        print(f"  {card.display_label} -- {card.supporting_file_count} "
+              f"{files}, {NODE_TYPE_WORDS[node_type_for(card)]}{sensitive}",
+              file=out)
+        if card.why_suggested:
+            print(_wrapped(card.why_suggested, indent="    "), file=out)
+        if card.representative_group_labels:
+            print(_wrapped(
+                "Groups: " + ", ".join(card.representative_group_labels),
+                indent="    "), file=out)
+        if card.resembling_existing_folders:
+            # THE FOLDER'S NAME AND NEVER ITS PATH. `resembling_existing_folders`
+            # holds directory paths and `privacy.vocabulary.ALWAYS_LOCAL`'s first
+            # member is `paths`; `folder_label` is what the tree beneath calls
+            # the same folder, so the two blocks name it the same way.
+            print(_wrapped(
+                "Folders of yours that look like it: "
+                + ", ".join(dict.fromkeys(
+                    folder_label(path)
+                    for path in card.resembling_existing_folders)),
+                indent="    "), file=out)
+
+
+def _health_for(conn: sqlite3.Connection, result: ProductionRun) -> dict:
+    """§5.11's view for this run, and the names its keys are printed by.
+
+    Read here and handed to `report` for the reason `group_pass_counts` gives:
+    the report takes a finished run and a naming table and holds no connection.
+
+    **COVERAGE IS ASKED OF THE GROUPS THE TREE ACTUALLY REPRESENTS.** §5.11's
+    question is "how much of each accepted group is represented by the proposed
+    structure", so the groups are read off the frozen nodes' own
+    `associated_group_ids` rather than from everything P9 drafted -- a group that
+    became no branch is not under-represented by this tree; it is not in it, and
+    SF-3's proposal screen is where a person is told about that.
+
+    **REPRESENTED MEANS PLACED SOMEWHERE IN THE TREE, not placed in its own
+    branch.** A member the run filed into a General or into an adopted folder is
+    in the structure, and counting only its own branch would report a corpus as
+    half-covered because the other half went exactly where it belongs.
+
+    The five measures with no producer are passed empty and NAMED on the screen
+    rather than printed as zeroes; `_print_health` carries that reasoning.
+    """
+    tree = result.tree.tree
+    group_ids = tuple(dict.fromkeys(
+        group_id for node in tree.nodes
+        for group_id in (getattr(node, "associated_group_ids", ()) or ())))
+    members_by_group = {
+        group_id: [membership.file_id
+                   for membership in memberships_for_group(conn, group_id)
+                   if membership.decision == INCLUDED]
+        for group_id in group_ids}
+    placed = {file_id for decision in result.placement.decisions
+              if decision.destination is not None
+              for file_id in _files_of(decision)}
+    return {
+        "health": tree_health(
+            tree.nodes, members_by_group=members_by_group,
+            placed_by_group={
+                group_id: [file_id for file_id in members if file_id in placed]
+                for group_id, members in members_by_group.items()},
+            files_with_enough_facts=0, unresolved_node_ids=(),
+            context_supported_node_ids=(), sensitive_isolated_node_ids=(),
+            nodes_needing_decisions=()),
+        "group_names": {
+            group_id: (current_group(conn, group_id).display_label or group_id)
+            for group_id in group_ids},
+    }
+
+
+def _print_health(health, group_names: Mapping[str, str], *, out) -> None:
+    """§5.11's tree health view, printed (`104` §18.42's third list).
+
+    `health.tree_health` computes six measures and had no caller anywhere in
+    `src/`, which is the audit's "finished, tested code with no caller" -- a green
+    suite describing a part nobody can reach.
+
+    ONE OF THE SIX HAS A PRODUCER and five do not. `group_coverage` is derived
+    from memberships and placements, both of which this run has; the other five
+    arrive as empty because nothing computes them yet. So the empty five are
+    NAMED rather than printed as zeroes: "0 files have enough facts to fill a
+    branch" is a claim, it would be false, and §5.11's own warning is that health
+    must not "imply that the system must account for every file immediately".
+
+    §5.11 also refuses a single number on purpose -- "a single number would be
+    read as a grade to raise, which is the opposite" -- so this prints one line
+    per group and no total.
+    """
+    if health is None:
+        return
+    print("\nTree health:", file=out)
+    for group_id, share in sorted(
+            health.group_coverage.items(),
+            key=lambda pair: (group_names.get(pair[0], pair[0]), pair[0])):
+        # `group_coverage` is the share and the counts behind it are not on the
+        # record, so the share is what is printed. Rounded to whole percent
+        # because the third decimal place of a ratio over four files is
+        # precision this measurement does not have.
+        print(f"  {group_names.get(group_id, group_id)} -- "
+              f"{round(share * 100)}% of it is in this tree", file=out)
+    print(_wrapped(
+        "Not measured yet: how many files have enough facts to fill a branch, "
+        "which branches hold unresolved or context-supported members, where "
+        "sensitive material was isolated, and which branches still need a "
+        "decision from you. Nothing computes those, so nothing here claims "
+        "them.", indent="  "), file=out)
+
+
 def report(result: ProductionRun, names: dict[str, str], *, out=None,
            questions: Sequence = (), set_aside: Sequence = (),
            levels: Sequence[LevelOnScreen] = (),
@@ -17050,7 +17268,11 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
            reading_family: Sequence[str] = (),
            reaching: Mapping[str, tuple[str, ...]] = MappingProxyType({}),
            not_carried: Sequence = (),
-           groups: "GroupPass | None" = None) -> tuple[str, ...]:
+           groups: "GroupPass | None" = None,
+           cards: Sequence = (),
+           health: "TreeHealth | None" = None,
+           group_names: Mapping[str, str] = MappingProxyType({}),
+           ) -> tuple[str, ...]:
     """The run, in the order a person would ask about it.
 
     Four questions, in this order: what was left alone, what folders are being
@@ -17098,10 +17320,28 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
     `group_pass_counts` and arriving the same way for the same sentence. `None`
     means the caller did not ask -- every test and every caller that predates the
     group call -- and reads as `NO_GROUP_CALLS`, which prints nothing.
+
+    `cards` is `104` §18.42 item 1's: §5.1's horizontal pass, every top-level
+    candidate this run built, arriving from `TreeDesignResult.candidates` the way
+    the rest of this does. Empty prints nothing, which is every caller that
+    predates them.
+
+    `health` is §5.11's view, computed by `tree_design.health.tree_health` and
+    handed in for `questions`' reason -- this function holds no connection.
+    `group_names` is what its per-group coverage is PRINTED by: `group_coverage`
+    is keyed on group ids and an id is not something a person can act on.
     """
     out = out if out is not None else sys.stdout
     tree = result.tree.tree
     places = len(result.destinations)
+    # §5.1's HORIZONTAL PASS, and it prints ABOVE the tree because that is the
+    # order it happens in: `00`:67 begins the design "horizontally at the top
+    # level" and the tree below is what those areas then became. It is also out
+    # of the block every reader of this screen slices between "Folders in this
+    # plan:" and the next heading -- a section printed inside that slice reads as
+    # a folder to anything counting roots, which is `104` R-41's own hazard one
+    # block along.
+    _print_cards(cards, out=out)
     # `00`:100 -- "the canvas should make the difference between existing
     # structure and proposed structure visually clear". The person's own folders
     # are in this tree now, and counting them as PROPOSALS would tell someone who
@@ -17134,19 +17374,30 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
 
     def draw(parent, depth):
         for node in by_parent.get(parent, ()):
-            mark = "" if node.accepts_placement else "   [marked, not a destination]"
-            # A terminal has no two styles, so the difference `00`:100 asks for
-            # is carried in words. Only an `existing` node has a real path.
-            if getattr(node, "existing_path", None):
-                mark = f"   [yours already]{mark}"
+            marks: list[str] = []
             if getattr(node, "node_role", None) == pv.SCOPED_GENERAL:
                 held = sorted(minted_for.get(node.node_id, ()))
                 if held:
-                    mark = f"   [for {', '.join(held)}]{mark}"
+                    marks.append(f"for {', '.join(held)}")
+            # `104` §18.42 item 5. THE NODE'S OWN TYPE, read rather than
+            # inferred. A terminal has no two styles, so the difference `00`:100
+            # asks for is carried in words -- and it used to be carried by
+            # whether `existing_path` was set, which answers ONE of `00`:102's
+            # five and says nothing about the other four. A folder the person
+            # made themselves and one the product is proposing printed
+            # identically, which is the one distinction that paragraph exists
+            # for.
+            word = NODE_TYPE_WORDS.get(getattr(node, "node_type", None))
+            if word:
+                marks.append(word)
+            if not node.accepts_placement:
+                marks.append("marked, not a destination")
+            mark = "".join(f"   [{word}]" for word in marks)
             print(f"  {'  ' * depth}{node.display_label}{mark}", file=out)
             draw(node.node_id, depth + 1)
 
     draw(None, 0)
+    _print_health(health, group_names, out=out)
 
     # `104` R-41(a). WHAT EACH LEVEL OF THAT TREE IS, named by the key a rename
     # is stored under (`64` §3). The tree above prints folder names -- values --
@@ -18996,6 +19247,15 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                    groups=group_pass_counts(
                        conn, plan_version=result.tree.tree.plan_version_id,
                        decisions=result.placement.decisions),
+                   # `104` §18.42 item 1. §5.1's horizontal pass, off the run
+                   # that computed it -- the cards were always built and never
+                   # shown to anybody.
+                   cards=result.tree.candidates,
+                   # `104` §18.42's third list: §5.11's view, computed by P10 and
+                   # called from nowhere until here. Read and passed IN for
+                   # `questions`' reason, and with the group names beside it
+                   # because its keys are ids.
+                   **_health_for(conn, result),
                    # A §7.6 set answer belongs to the plan version it was given
                    # in, and every run mints a new one, so an answer given
                    # yesterday is not applied today. That is

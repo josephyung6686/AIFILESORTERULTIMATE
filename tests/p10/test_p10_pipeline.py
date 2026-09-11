@@ -1003,3 +1003,58 @@ def test_a_branch_that_gained_children_is_told_it_was_split(corpus):
     assert seen["Homework"] == {False}, seen
     assert seen["Syllabus"] == {False}, seen
     assert seen["PHYS1401"] == {False}, seen
+
+
+# --- `104` §18.42 item 1: the horizontal step is presented before it is answered ----
+
+
+def test_an_unanswered_branch_gets_no_lower_level_and_the_tree_still_freezes(
+        corpus):
+    """`104` §18.42 item 1. `00`:66: "let them decide the major branches first,
+    and then progressively design each accepted branch."
+
+    `None` from `choose_option` is the answer that has not arrived yet, and it is
+    NOT `opt_no_split`. The two produce the same folders -- none -- and only one
+    of them is somebody's decision: `opt_no_split` is a person saying "keep this
+    branch as it is", and recording it for a person who has not spoken is the
+    defect the audit named, wearing a default's clothes. So no `accept` action is
+    applied, nothing is written under the branch, and `chosen_option_id` is
+    `None` rather than a shape nobody picked.
+
+    The tree still freezes. A run that froze nothing would take the branches the
+    person HAS settled away from them as well, and `00`:101 is explicit that the
+    first horizontal pass is "intentionally shallow" -- the top level IS the
+    product of this step.
+    """
+    result = design(corpus, dec=decisions(
+        choose_option=lambda candidate, options: None))
+    assert result.branches[0].chosen_option_id is None
+    assert result.branches[0].evidence is None
+    assert result.branches[0].composition is None
+    labels = {node.display_label for node in result.tree.nodes}
+    assert "Columbia coursework" in labels
+    assert "BUSIB 4300" not in labels
+    # The options were still computed, so whoever renders the screen can print
+    # what each one would create -- which is what the person is being asked.
+    assert [o.option_id for o in result.branches[0].options] == [
+        "opt_0", "opt_no_split"]
+
+
+def test_the_result_carries_every_top_level_candidate_not_only_the_chosen(corpus):
+    """`104` §18.42 item 1: the branch CARDS reach the screen.
+
+    `00`:68 puts a file count, representative groups, existing related folders
+    and a concise explanation on each proposed top-level branch, and the audit
+    found that every field of that card lives on `BranchCandidate` and no screen
+    renders one. A screen cannot render what the chain does not return, and
+    `branches` holds only the candidates the decisions selected -- so a candidate
+    the person has not accepted was computed, dropped, and invisible.
+    """
+    result = design(corpus)
+    assert result.candidates
+    subjects = {candidate.subject_id for candidate in result.candidates}
+    assert "g_columbia_coursework" in subjects
+    card = next(candidate for candidate in result.candidates
+                if candidate.subject_id == "g_columbia_coursework")
+    assert card.supporting_file_count > 0
+    assert card.why_suggested

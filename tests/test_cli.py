@@ -220,9 +220,15 @@ def _decision(*, outcome, file_id, explanation="", node_id=None,
         privacy=SimpleNamespace(protected=protected))
 
 
-def _node(node_id, label, *, parent=None, accepts=True):
+def _node(node_id, label, *, parent=None, accepts=True, node_type="proposed"):
     return SimpleNamespace(node_id=node_id, display_label=label,
-                           parent_node_id=parent, accepts_placement=accepts)
+                           parent_node_id=parent, accepts_placement=accepts,
+                           # `104` §18.42 item 5: `00`:102 gives every node one
+                           # of five types and the report reads it. A real `Node`
+                           # cannot be built without one, so a fixture that could
+                           # would be a fixture the screen behaves differently
+                           # for.
+                           node_type=node_type)
 
 
 def _set(label, members, reason, *, protected=False):
@@ -2016,6 +2022,10 @@ def test_answering_it_changes_the_tree_on_the_same_run(tmp_path):
     printed = after.getvalue()
 
     folders = printed.split("Folders in this plan:", 1)[1].split("Files:", 1)[0]
+    # `104` §18.42 item 4: §5.11's health view prints under the tree and its
+    # lines are indented like folders, so the folder list ends at it as it ends
+    # at the level names.
+    folders = folders.split("Tree health:", 1)[0]
     assert "Coursework" in folders
     # The branch is not split, so neither course is a child of it. Both still
     # exist as the person's OWN folders, which is a different thing.
@@ -2199,7 +2209,7 @@ def test_groups_of_different_categories_get_different_top_level_branches(tmp_pat
     # off for a gap nobody closed. `104` §18.2 gap 14's group block is the same
     # hazard one block along; the folder list ends at whichever comes first.
     folders = out.getvalue().split("Folders in this plan:", 1)[1]
-    for heading in ("What each level of this plan is called:",
+    for heading in ("Tree health:", "What each level of this plan is called:",
                     "Groups put to a model as groups:", "Files:"):
         folders = folders.split(heading, 1)[0]
     roots = [line for line in folders.splitlines()
@@ -4289,3 +4299,330 @@ def test_the_composition_root_builds_a_process_pool_at_every_worker_count():
                 "the calling thread where no ceiling can reach a wedged reader")
         finally:
             pool.close()
+
+
+# ======================================================================================
+# `104` §18.42 item 1 and R-92: the branch is asked before its levels are built
+# ======================================================================================
+
+
+def _questions_conn():
+    from questions.schema import create_questions_schema
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    create_questions_schema(conn)
+    return conn
+
+
+def _candidate(label: str, *, source: str):
+    from tree_design.candidates import BranchCandidate
+
+    return BranchCandidate(
+        subject_id=label, display_label=label,
+        why_suggested="four files name one course.",
+        supporting_file_count=4, accepted_group_ids=(),
+        representative_group_labels=(), resembling_existing_folders=(),
+        sensitive_content_present=False, source=source,
+        available_actions=())
+
+
+def _option(option_id: str, chain: tuple[str, ...]):
+    from tree_design.candidates import VerticalOption
+
+    return VerticalOption(
+        option_id=option_id, kind="fragment-composition",
+        resulting_child_counts={role: 2 for role in chain},
+        total_child_branches=2 * len(chain), example_members=(),
+        member_count=4, unresolved_file_ids=(),
+        summary=f"This option would create {2 * len(chain)} folder(s).",
+        validation=None, children=(), protected_file_ids=(), warnings=())
+
+
+def _no_split():
+    from tree_design.candidates import VerticalOption
+
+    return VerticalOption(
+        option_id="opt_no_split", kind="no-split", resulting_child_counts={},
+        total_child_branches=0, example_members=(), member_count=4,
+        unresolved_file_ids=(), summary="Keep this branch as it is.",
+        validation=None, children=(), protected_file_ids=(), warnings=())
+
+
+def test_one_buildable_shape_for_a_proposed_branch_proceeds_as_it_did():
+    """`104` R-92, the half that does NOT change.
+
+    `vertical_options` appends `opt_no_split` to every branch, so "more than one
+    option" is true of every branch that can be split at all -- and a rule keyed
+    on that number would stop every ordinary run. The number that matters is how
+    many SHAPES the branch's own facts support, which `cli.choose_option` already
+    tells apart: an option "would build something" when it makes a child or
+    records a value on the branch and its checks passed. With one, there is
+    nothing to decide and the run proceeds.
+    """
+    conn = _questions_conn()
+    choose = cli.nesting_chooser(conn, asked_at="2026-09-11T00:00:00Z")
+    options = (_option("opt_0", ("subject", "work_type")), _no_split())
+
+    assert choose(_candidate("Coursework", source="accepted-group"),
+                  options) == "opt_0"
+
+
+def test_two_buildable_shapes_and_no_answer_builds_no_level(capsys):
+    """`104` R-92. Two shapes the facts support is a decision, and the run takes
+    it no longer.
+
+    `None` is not `opt_no_split`: nothing is recorded as the person's, the
+    options stay on the screen with their counts, and the answer they give lands
+    on the next run -- which is the shape every other gesture in this command
+    already has.
+    """
+    from questions.store import open_questions
+
+    conn = _questions_conn()
+    choose = cli.nesting_chooser(conn, asked_at="2026-09-11T00:00:00Z")
+    options = (_option("opt_0", ("subject", "work_type")),
+               _option("opt_1", ("work_type", "subject")), _no_split())
+
+    assert choose(_candidate("Coursework", source="accepted-group"),
+                  options) is None
+    assert [question.question_id for question in open_questions(conn)] == [
+        "branch:Coursework"]
+
+
+def test_a_folder_the_person_made_is_not_split_until_they_say_so():
+    """`00`:100: "Existing folders must not be automatically flattened, renamed,
+    or reorganized simply because a template would produce a different
+    structure."
+
+    `--accept-groups` accepts GROUPS, and an adopted directory is not one -- the
+    audit's finding is that `design_decisions` adopted every non-root directory
+    and designed levels inside all of them with nobody asked. So an adopted
+    folder waits even where a proposal would proceed: one buildable shape is
+    still a proposal to build folders inside somebody's own folder, and
+    `keep-as-it-is` beside it is a real answer rather than a formality.
+    """
+    from tree_design.candidates import EXISTING_FOLDER
+
+    conn = _questions_conn()
+    choose = cli.nesting_chooser(conn, asked_at="2026-09-11T00:00:00Z")
+    options = (_option("opt_0", ("subject", "work_type")), _no_split())
+
+    assert choose(_candidate("Desktop/Python 1006", source=EXISTING_FOLDER),
+                  options) is None
+
+
+def test_the_answer_the_person_gave_is_the_shape_that_is_built():
+    """The other end of both rules: once it is answered, the branch is designed.
+    The answer is recorded against the CHAIN rather than `opt_1`, so it survives
+    a corpus that renumbers the options."""
+    from questions.store import open_questions, record_answer, StructuralAnswer
+
+    conn = _questions_conn()
+    choose = cli.nesting_chooser(conn, asked_at="2026-09-11T00:00:00Z")
+    options = (_option("opt_0", ("subject", "work_type")),
+               _option("opt_1", ("work_type", "subject")), _no_split())
+    candidate = _candidate("Coursework", source="accepted-group")
+
+    assert choose(candidate, options) is None            # asked, not taken
+    assert open_questions(conn)
+    record_answer(conn, StructuralAnswer(
+        question_id="branch:Coursework", option_id="work_type>subject",
+        state="confirmed", scope="branch:Coursework", user_id="jy",
+        recorded_at="2026-09-11T00:01:00Z", supersedes=None))
+
+    assert choose(candidate, options) == "opt_1"
+
+
+# ======================================================================================
+# `104` §18.42 item 1: the branch CARDS, item 5: the node type, item 4: tree health
+# ======================================================================================
+
+
+def test_every_node_the_report_draws_says_which_of_the_five_kinds_it_is():
+    """`104` §18.42 item 5. `00`:102: every node has a type -- existing,
+    proposed, user-created, protected or ignored -- and the report read none of
+    them. It guessed `existing` from whether `existing_path` was set and said
+    nothing at all about the other four, so a folder the person made themselves
+    and a folder the product is proposing printed identically.
+    """
+    from tree_design.vocabulary import NODE_TYPES
+
+    assert set(cli.NODE_TYPE_WORDS) == set(NODE_TYPES), (
+        "a node type with no word prints nothing, which is the silence this "
+        "closes")
+    run, names = _coursework()
+    run.tree.tree = SimpleNamespace(
+        plan_version_id="version_2",
+        nodes=(_node("node_0", "Coursework"),
+               _node("node_1", "Uni", parent="node_0", node_type="existing"),
+               _node("node_2", "Passports", parent="node_0",
+                     node_type="protected", accepts=False)))
+    printed = _printed(run, names)
+
+    assert "Coursework   [proposed]" in printed, printed
+    assert "[yours already]" in printed, printed
+    assert "[protected]" in printed, printed
+
+
+def _card(label, *, sensitive=False, folders=(), groups=()):
+    from tree_design.candidates import BranchCandidate
+
+    return BranchCandidate(
+        subject_id=label, display_label=label,
+        why_suggested="four files name one course.",
+        supporting_file_count=4, accepted_group_ids=("g_1",) if groups else (),
+        representative_group_labels=tuple(groups),
+        resembling_existing_folders=tuple(folders),
+        sensitive_content_present=sensitive, source="accepted-group",
+        available_actions=())
+
+
+def test_the_top_level_cards_reach_the_screen_with_every_field_00_names():
+    """`104` §18.42 item 1. `00`:68: each proposed top-level branch "should show
+    a file count, representative groups, existing related folders, and a concise
+    explanation rather than a technical confidence score".
+
+    Every one of those lives on `BranchCandidate` and the audit found no screen
+    that rendered one. This is that screen -- not the canvas, which is a later
+    release and is not a terminal, but the smallest true version of the card.
+    """
+    run, names = _coursework()
+    out = io.StringIO()
+    cli.report(run, names, out=out, cards=(
+        _card("Coursework", groups=("PHYS1401 course material",),
+              folders=("Uni/PHYS1401",)),))
+    printed = out.getvalue()
+
+    assert "Coursework -- 4 files, proposed" in printed, printed
+    assert "four files name one course." in printed, printed
+    assert "PHYS1401 course material" in printed, printed
+    # The folder by its NAME and never by its path: `resembling_existing_folders`
+    # holds directory paths and `privacy.vocabulary.ALWAYS_LOCAL`'s first member
+    # is `paths`.
+    assert "Folders of yours that look like it: PHYS1401" in printed, printed
+    assert "Uni/PHYS1401" not in printed, printed
+
+
+def test_a_card_holding_sensitive_material_is_not_printed_like_the_others():
+    """`00`:69: "Sensitive groups should appear differently." The marker is the
+    candidate's own and says only that the area holds such material -- no
+    filename, which `00`:201 keeps off a screen somebody else can see."""
+    run, names = _coursework()
+    out = io.StringIO()
+    cli.report(run, names, out=out, cards=(
+        _card("Identity", sensitive=True), _card("Coursework")))
+    printed = out.getvalue()
+
+    identity, coursework = (line for line in printed.splitlines()
+                            if line.strip().startswith(("Identity --",
+                                                        "Coursework --")))
+    assert "sensitive" in identity.lower(), identity
+    assert "sensitive" not in coursework.lower(), coursework
+
+
+def test_the_tree_health_view_is_printed_under_the_tree():
+    """`104` §18.42 item 3 of the "finished, tested code with no caller" list.
+    `00`:101 asks for a high-level tree health view; `health.tree_health` computes
+    it and nothing called it.
+
+    It prints what it has -- §5.11's coverage, per group -- and NAMES the five
+    measures nothing produces yet, rather than printing a zero for each. A zero
+    beside "files with enough facts" is a claim, and it would be false.
+    """
+    from tree_design.health import tree_health
+
+    run, names = _coursework()
+    health = tree_health(
+        run.tree.tree.nodes,
+        members_by_group={"g_1": ["id-0", "id-1", "id-2", "id-3"]},
+        placed_by_group={"g_1": ["id-0", "id-1", "id-2"]},
+        files_with_enough_facts=0, unresolved_node_ids=(),
+        context_supported_node_ids=(), sensitive_isolated_node_ids=(),
+        nodes_needing_decisions=())
+    out = io.StringIO()
+    cli.report(run, names, out=out, health=health,
+               group_names={"g_1": "PHYS1401 course material"})
+    printed = out.getvalue()
+
+    assert "Tree health" in printed, printed
+    assert "PHYS1401 course material" in printed, printed
+    assert "75% of it is in this tree" in printed, printed
+    assert "g_1" not in printed, "a group id is not something a person can act on"
+    assert "Not measured yet" in printed, printed
+
+
+def _folders_block(printed: str) -> str:
+    """The tree the run drew, and nothing printed after it.
+
+    Three blocks follow the folder list and every one of them indents its lines
+    like a folder, so a reader counting nodes has to stop at whichever comes
+    first. `test_groups_of_different_categories_get_different_top_level_branches`
+    records the same hazard and the same fix.
+    """
+    block = printed.split("Folders in this plan:", 1)[1]
+    for heading in ("Tree health:", "What each level of this plan is called:",
+                    "Groups put to a model as groups:", "Files:"):
+        block = block.split(heading, 1)[0]
+    return block
+
+
+def test_the_persons_own_folders_are_shown_as_areas_and_nothing_is_built_inside(
+        tmp_path):
+    """`104` §18.42 item 1, on a real run. `00`:100 gives the person six gestures
+    over their own folders and says structure of theirs must not be "flattened,
+    renamed, or reorganized simply because a template would produce a different
+    structure".
+
+    TWO HALVES, and only one of them was missing. The folders were adopted as
+    branches with nobody asked -- the audit's "`design_decisions` adopts every
+    non-root directory" -- and they were invisible as CARDS, so a person could
+    not see what had been adopted or what it was built from. The cards are the
+    half this adds.
+
+    Nothing is built inside them, and today that is a GUARD rather than a repair.
+    `horizontal_candidates` gives every existing-folder candidate
+    `accepted_group_ids=()` unconditionally, and `design_tree` routes a branch
+    with exactly the groups that tuple names -- so an adopted folder reaches
+    `vertical_options` with no members, every composition materialises empty, and
+    `opt_no_split` is the only option there has ever been. `nesting_chooser`
+    refuses to design inside one whatever the count, which is what keeps this
+    true the day a composition does reach an adopted folder. (`refinement_for`'s
+    docstring says the opposite -- that `Desktop/Python 1006` "gains `lecture`
+    and `homework` from its own files" -- and on this code it cannot; that
+    sentence is left alone here and is the owner's to check.)
+
+    The second run is pinned at `test_the_answer_the_person_gave_is_the_shape_
+    that_is_built`, over the chooser itself. It is not pinned here because no
+    corpus in this suite routes TWO buildable shapes onto one branch: `route_
+    branch` emits one composition per eligible TEMPLATE, and these files make one
+    template eligible.
+    """
+    corpus = _two_shape_corpus(tmp_path)
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(tmp_path / "plan.sqlite"),
+              *ACCEPTS_THE_PROPOSAL], out=out)
+    printed = out.getvalue()
+
+    assert "Your top-level areas, and why each one is here:" in printed, printed
+    assert "PHYS1401 -- 2 files, yours already" in printed, printed
+    assert "CHEM1500 -- 2 files, yours already" in printed, printed
+
+    # The person's own folders keep the shape they had. Walked by indentation,
+    # which is what the tree is drawn with: every node BENEATH one of theirs is
+    # one of theirs too, so nothing this run proposed was put inside one.
+    folders = _folders_block(printed)
+    lines = [line for line in folders.splitlines() if line.strip()]
+    assert sum(1 for line in lines if "[yours already]" in line) == 3, folders
+    ancestry: dict[int, bool] = {}
+    for line in lines:
+        depth = len(line) - len(line.lstrip())
+        mine = "[yours already]" in line
+        inside = any(held for at, held in ancestry.items() if at < depth)
+        assert not (inside and not mine), (
+            f"{line.strip()!r} was proposed inside a folder of the person's, "
+            "which nobody asked them about:\n" + folders)
+        ancestry = {at: held for at, held in ancestry.items() if at < depth}
+        ancestry[depth] = mine
