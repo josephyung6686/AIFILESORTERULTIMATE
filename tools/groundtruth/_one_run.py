@@ -27,6 +27,30 @@ import sys
 from pathlib import Path
 
 
+#: Where the scoreboard is told the encoder weights are. Machine state and not
+#: project state, so the harness is told where they are rather than knowing.
+SEMANTIC_MODEL_ENV = "GRAPH_AGENT_SEMANTIC_MODEL"
+
+
+def semantic_weights() -> str:
+    """The encoder this run recognises with, or `""` when the channel is off.
+
+    **ONE READING OF THE SETTING, AND THAT IS `104` §12.7's WHOLE POINT.** A
+    scorecard whose columns do not state the semantic setting is a row nobody can
+    reproduce: the same corpus classifies 13 more files with the weights than
+    without, and two runs printed side by side look like a regression. The parent
+    process records what this line returns beside the databases and the scorecard
+    prints it back, so the setting a run WAS GIVEN and the setting a scorecard
+    REPORTS are one value read in one place, never the environment read twice at
+    two different times.
+
+    Absent means the semantic channel is off and the run is the deterministic one
+    -- the same posture `--enable-cloud` takes in `main` below: a capability is
+    named or it does not happen.
+    """
+    return os.environ.get(SEMANTIC_MODEL_ENV, "")
+
+
 def file_ceiling_seconds(cli) -> float:
     """How long one FILE may hold a scoreboard run. `104` R-175 part b.
 
@@ -88,11 +112,7 @@ def main(argv: list[str]) -> int:
 
     argv_for_cli = [corpus, "--situation", situation, "--label", label,
                     "--user", SCOREBOARD_USER, "--database", database]
-    # The weights are machine state, not project state, so the harness is told
-    # where they are rather than knowing. Absent means the semantic channel is off
-    # and the run is the deterministic one, which is the same posture `--enable-
-    # cloud` takes above: a capability is named or it does not happen.
-    model = os.environ.get("GRAPH_AGENT_SEMANTIC_MODEL")
+    model = semantic_weights()
     if model:
         argv_for_cli += ["--semantic-model", model]
     if cloud:

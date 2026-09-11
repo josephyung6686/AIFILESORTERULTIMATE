@@ -24,6 +24,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -33,6 +34,7 @@ import pytest
 
 from tools.groundtruth.labels import load_labels
 from tools.groundtruth.measure import observe_run
+from tools.groundtruth.report import measured_under
 from tools.groundtruth.run import label_for, run_situations
 from tools.groundtruth.score import (
     PROTECTED_BREACH_KINDS,
@@ -192,3 +194,44 @@ def test_the_command_a_person_types_produces_a_scorecard(tmp_path):
     assert "SORTING" in card
     table = (out / "per-file.tsv").read_text(encoding="utf-8").splitlines()
     assert len(table) == 1 + len(LABELS["files"])
+
+    # `104` §12.12 and §12.7: WHICH PROMPT ROWS AND WHICH SEMANTIC SETTING THIS
+    # CARD MEASURED. The digest is computed here from the manifest itself rather
+    # than copied from the tool, so the two are independent readings of one claim,
+    # and it is the run's note that the card prints -- `--score-only` below reads
+    # the same note back out of the directory.
+    from llm_harness.prompt_library import DRAFTS_FILE
+    digest = hashlib.sha256(DRAFTS_FILE.read_bytes()).hexdigest()
+    assert f"prompt rows: {DRAFTS_FILE.name} {digest[:16]}" in card
+    # The environment names no weights in a test run, and "off" is the fact rather
+    # than a line left out for the reader to assume.
+    assert "semantic recognition: off" in card
+
+    rescored = subprocess.run(
+        [sys.executable, "-m", "tools.groundtruth", "--corpus", str(CORPUS),
+         "--labels", str(labels_path), "--out", str(out), "--score-only"],
+        cwd=ROOT, capture_output=True, text=True)
+    assert rescored.returncode in (0, 1), rescored.stderr
+    assert f"prompt rows: {DRAFTS_FILE.name} {digest[:16]}" in (
+        out / "scorecard.txt").read_text(encoding="utf-8")
+
+
+def test_a_directory_written_before_the_note_carried_them_says_so():
+    """The honest word for a scorecard that cannot know. R-151's precedent.
+
+    A directory of databases from before these two facts were recorded -- and a
+    directory whose note this checkout cannot read -- must not print a digest
+    taken from the scorer's own library or a setting read out of the scorer's own
+    shell. Both would describe the scoring rather than the runs, and would look
+    exactly like a card that knew.
+    """
+    lines = measured_under({})
+    assert lines == ["prompt rows: not recorded by the run that wrote these "
+                     "databases",
+                     "semantic recognition: not recorded by the run that wrote "
+                     "these databases"]
+    assert measured_under({"prompt_library": "drafts.json",
+                           "prompt_library_sha256": "0" * 64,
+                           "semantic_model": "/weights/encoder"}) == [
+        f"prompt rows: drafts.json {'0' * 16}",
+        "semantic recognition: /weights/encoder"]

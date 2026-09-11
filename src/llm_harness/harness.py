@@ -728,13 +728,19 @@ class CallLane:
     and a second number to keep in step with the first.
 
     `at_once` is the widest window this pass actually opened -- what the printed
-    sentence reports, and the only counter the lane keeps. It is a MEASUREMENT and
-    not a setting: a corpus whose cloud files never sit next to each other opens
-    windows of one and says so.
+    sentence reports. It is a MEASUREMENT and not a setting: a corpus whose cloud
+    files never sit next to each other opens windows of one and says so.
+
+    `reused` is the other measurement, and it is the one that says a question was
+    NOT bought: how many parked sends this pass answered out of another send's
+    round trip because the two carried byte-identical bytes to the same client
+    (`104` §18.28). Like `at_once` it counts what happened rather than setting
+    anything, and a corpus with no duplicate in any one batch reports zero.
     """
 
     width: int
     at_once: int = 0
+    reused: int = 0
 
     def __post_init__(self) -> None:
         if (not isinstance(self.width, int) or isinstance(self.width, bool)
@@ -807,11 +813,33 @@ def in_walk_order(started, *, lane: CallLane, on_pause=None, on_resume=None):
 
     **WHAT THIS CHANGES ABOUT ORDER, STATED RATHER THAN BURIED.** Inside one batch
     a later file's PREPARATION now precedes an earlier file's RESPONSE, because
-    that is what "several at once" means. Two consequences, both bounded: a
-    duplicate of a file in the same batch is asked rather than reusing its twin's
-    answer -- `llm_call_identity` is written after the call, and R-13's cache is
-    about a PRIOR RUN's answer, which is unaffected; and a per-file clock that is
-    charged by turns sees the batch's shared wait, which `on_pause` is for.
+    that is what "several at once" means. One consequence, bounded: a per-file
+    clock that is charged by turns sees the batch's shared wait, which `on_pause`
+    is for.
+
+    5. **THE SAME QUESTION IS ASKED ONCE PER BATCH** (`104` §18.28). Two subjects
+       whose prepared bytes are identical, to the same client, are one question:
+       the first is sent, the later ones wait for its answer and are handed it.
+       Until this rule the batch asked both and paid twice, and the reuse that
+       exists -- `llm_call_identity`, written AFTER the call -- could not fire
+       inside a window where nothing has been written yet. R-13's cache is about a
+       PRIOR RUN's answer and is untouched; this is about a duplicate standing
+       beside its twin in one window.
+
+       **THE KEY IS THE BYTES ON THE WIRE AND NOTHING SOFTER.** `assemble` is the
+       template plus the canonical dossier and carries no provenance, so equal
+       bytes are the same prompt about the same content -- and unequal bytes, for
+       whatever reason, are asked. A looser key would hand one file the answer to
+       another file's question, which is the one mistake this product may not make
+       to save a call. Walk order decides which is the asking one, so the twin is
+       always the later subject and two runs over one corpus spend the same call.
+
+       **A FAILURE IS NOT REUSED.** If the asking send comes back carrying an
+       error, the twin performs its own send, in its turn on this thread: a
+       provider that timed out bought no answer, and handing the same failure to
+       both files would spend a second file's chance on the first one's bad
+       minute. Only an answer is shared, and the shared copy carries no usage --
+       the twin consumed no tokens and must not be recorded as if it had.
 
     **`on_pause` AND `on_resume` ARE `104` R-175's CLOCK, AND THE PAIR IS WHAT
     KEEPS IT HONEST.** That clock charges a file for the time the run spends with
@@ -893,6 +921,56 @@ def _finish(steps, sent):
         sent = pending.perform()
 
 
+def _one_send_per_question(parked: "list[_Slot]"):
+    """Split this batch's parked sends into the ones that ask and the ones that wait.
+
+    `104` §18.28. Returns `(sends, twins)`: the slots whose sockets are actually
+    performed, in walk order, and `(twin, asking)` pairs for the slots that carry
+    a question an earlier slot is already asking.
+
+    **THE SAME QUESTION IS THE SAME BYTES TO THE SAME CLIENT, AND NOTHING WIDER.**
+    `records.assemble` is the template plus the canonical dossier and includes no
+    provenance, so two subjects with equal bytes are the same prompt about the same
+    content -- which is what makes handing one the other's answer honest rather
+    than a guess. The client is in the key because two clients are two models and
+    two answers. Anything this cannot read -- a carrier that offers no bytes, which
+    is what the driver's own tests inject -- is never a twin: an unreadable
+    question is asked, because the cost of asking twice is a call and the cost of
+    pairing two questions that differ is a person's file answered about another
+    person's file.
+
+    **THE EARLIER SUBJECT ASKS.** `parked` is in walk order, so which of a pair
+    spends the call is decided by the walk and not by which thread got there first,
+    and two runs over one corpus buy the same calls.
+    """
+    sends: list[_Slot] = []
+    twins: list[tuple[_Slot, _Slot]] = []
+    asking_for: dict[tuple[int, bytes], _Slot] = {}
+    for slot in parked:
+        question = _question(slot.pending)
+        if question is not None and question in asking_for:
+            twins.append((slot, asking_for[question]))
+            continue
+        if question is not None:
+            asking_for[question] = slot
+        sends.append(slot)
+    return sends, twins
+
+
+def _question(pending) -> "tuple[int, bytes] | None":
+    """What this send would ask, as a key, or `None` when it cannot be read.
+
+    The carrier is duck-typed for `transport._PendingSend`'s own reason (the class
+    is private and the driver never builds one), so its fields are read the same
+    way its `locality` is: by asking, and taking `None` for an answer.
+    """
+    body = getattr(pending, "model_visible_bytes", None)
+    client = getattr(pending, "model_client", None)
+    if not isinstance(body, bytes) or client is None:
+        return None
+    return (id(client), body)
+
+
 def _settle(batch: "list[_Slot]", *, lane: CallLane, on_pause, on_resume=None):
     """Perform the parked sends, then finish and yield the batch in walk order.
 
@@ -907,7 +985,11 @@ def _settle(batch: "list[_Slot]", *, lane: CallLane, on_pause, on_resume=None):
     """
     if not batch:
         return
-    sends = [slot for slot in batch if slot.pending is not None]
+    parked = [slot for slot in batch if slot.pending is not None]
+    # `104` §18.28. ONE SEND PER QUESTION: the later subject of a duplicate pair
+    # waits here rather than buying the same answer twice. Walk order decides
+    # which one asks, so this is the same spend on every run over one corpus.
+    sends, twins = _one_send_per_question(parked)
     away = [slot for slot in sends
             if slot.pending.locality == CLOUD_LOCALITY]
     # BY IDENTITY. `_Slot` is a plain dataclass, so `in` would compare it field by
@@ -944,7 +1026,38 @@ def _settle(batch: "list[_Slot]", *, lane: CallLane, on_pause, on_resume=None):
                 results[id(slot)] = future.result()
     elif sends:
         lane.at_once = max(lane.at_once, 1)
+        if twins and on_resume is not None:
+            # `104` R-175's clock, and the one case §18.28 moves it. With no twin
+            # the asking subject IS the last one prepared, so the open turn is
+            # already its own and this branch says nothing; with a twin parked
+            # behind it the open turn belongs to the twin, and a call charged to
+            # the file that did not make it is the mis-billing R-175 exists to
+            # stop.
+            on_resume(sends[0].key)
         results[id(sends[0])] = sends[0].pending.perform()
+
+    # THE TWINS, IN WALK ORDER, AFTER THE WINDOW THAT ANSWERED FOR THEM. An answer
+    # is copied WITHOUT ITS USAGE: `104` R-14's mailbox reading belongs to the call
+    # that was made, and a twin recorded with the asking call's tokens would bill a
+    # person twice for one round trip in the very row that exists to say what a
+    # call cost. A FAILURE IS NOT COPIED -- a provider that timed out bought no
+    # answer, so the twin makes its own send, in its turn on this thread, with
+    # R-175's clock reopened for it exactly as a local send has it.
+    asked_again = False
+    for twin, asking in twins:
+        answer = results[id(asking)]
+        if getattr(answer, "error", None) is None:
+            results[id(twin)] = replace(answer, usage=None)
+            lane.reused += 1
+            continue
+        if on_resume is not None:
+            on_resume(twin.key)
+        asked_again = True
+        results[id(twin)] = twin.pending.perform()
+    if asked_again and on_pause is not None:
+        # The turn this reopened is closed again, for `here`'s reason: what
+        # follows is the batch's own bookkeeping and belongs to no file.
+        on_pause()
 
     # EVERY RESPONSE IS RECORDED BEFORE ANYTHING IS RE-RAISED. A raise out of one
     # subject's post-call work used to end the run with the files behind it not yet
@@ -952,8 +1065,11 @@ def _settle(batch: "list[_Slot]", *, lane: CallLane, on_pause, on_resume=None):
     # release and sent their bytes, and abandoning them would leave answers on the
     # wire with no row naming them. So each is finished, the first raise is kept,
     # and the run then stops the way it stops today.
+    # OVER EVERY PARKED SUBJECT AND NOT ONLY THE ONES THAT ASKED: a twin has an
+    # answer and the rows that follow it -- the response, the verdict, the fact --
+    # are its own, written under its own dossier in its own place in walk order.
     raised: BaseException | None = None
-    for slot in sends:
+    for slot in parked:
         try:
             slot.value = _finish(slot.steps, results[id(slot)])
         except BaseException as problem:  # noqa: BLE001 -- re-raised below

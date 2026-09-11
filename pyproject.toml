@@ -98,8 +98,30 @@ database-agent = "cli:main"
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+# WHAT THE WHEEL SHIPS IS LEFT TO SRC-LAYOUT AUTO-DISCOVERY, AND THE EXPLICIT
+# TABLE THAT STOOD HERE IS THE DEFECT (`104` NEW-2). `[tool.setuptools.packages.
+# find] where = ["src"]` names PACKAGES, and naming any of them turns off the
+# discovery of single-file modules along with it -- so `cli.py`, `model_facts.py`,
+# `orchestrator.py` and the eight other bare modules under `src/` were absent from
+# every wheel this project built, while `[project.scripts]` above pointed the
+# installed command straight at one of them. Measured: 325 entries with the table
+# and no `cli.py`; 336 without it, every bare module present.
+#
+# NOTHING IS TYPED IN ITS PLACE. A `py-modules` list would ship today's eleven and
+# go quietly wrong the day a twelfth is added -- the same shape of defect one
+# level down. `src/` is the layout setuptools discovers on its own, and
+# `tests/test_packaging_declares_what_the_readers_import.py` builds a wheel and
+# reads its contents, so a module that stops shipping is a failing test rather
+# than a command that is missing on a person's machine.
+
+# THE PROMPT TEXT IS DATA AND SHIPS WITH THE PACKAGE THAT READS IT. Nothing under
+# `library/` is a module, so neither packages nor modules carry it, and without it
+# an installed `database-agent` refuses every call it is configured for
+# (`RatifiedTextMissing`, `llm_harness/prompt_library.py`): "this package ships no
+# default prompt text, draft or otherwise". One glob, so a new template is a new
+# file rather than a second edit here.
+[tool.setuptools.package-data]
+"*" = ["library/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

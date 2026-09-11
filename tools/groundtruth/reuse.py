@@ -62,6 +62,7 @@ old one would be a lie about what this run spent. The two columns dangle on purp
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sqlite3
@@ -71,6 +72,13 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Mapping
+
+# The runner's own reading of the semantic setting, imported rather than
+# respelled: the note beside the databases must say what the runs were GIVEN, and
+# a second `os.environ` lookup here would be a second answer to that question the
+# day the two disagree. `_one_run` imports this module only from inside `main`,
+# so this direction of the dependency costs nothing at import time.
+from tools.groundtruth._one_run import semantic_weights
 
 _ROOT = Path(__file__).resolve().parents[2]
 
@@ -271,13 +279,49 @@ def _checkout() -> dict:
 
     commit = git("rev-parse", "HEAD")
     changes = git("status", "--porcelain")
+    name, digest = _prompt_library()
     return {
         "commit": commit,
         # A dirty checkout is the case where the commit alone is a lie, so it is
         # recorded beside it rather than left for somebody to assume.
         "dirty": None if changes is None else bool(changes),
+        # `104` §12.12 and §12.7, and both are recorded HERE rather than read at
+        # scoring time. `--score-only` re-reads these databases days later, out of
+        # a checkout whose library may have moved and a shell whose environment
+        # certainly has; a digest or a setting read then would describe the
+        # SCORER and print a false line about the runs.
+        "prompt_library": name,
+        "prompt_library_sha256": digest,
+        "semantic_model": semantic_weights(),
         "written_at": datetime.now(timezone.utc).isoformat(),
     }
+
+
+def _prompt_library() -> tuple[str, str]:
+    """The packet manifest this run asked its questions out of, and its digest.
+
+    **WHICH PROMPT ROWS A SCORECARD MEASURED** (`104` §12.12). The manifest is the
+    index of every draft and ratified row in the library -- it names the template,
+    schema and policy files and carries the digests that verify them -- so one
+    digest over its bytes says which set of questions a run was asking. Two
+    scorecards that disagree are comparing different prompts unless this line
+    matches, which is exactly the claim the corpus digest makes about the files.
+
+    Taken over the manifest's OWN bytes rather than composed out of the digests
+    inside it: a row added, retitled or repointed changes this, and a change to
+    the text a row points at changes the row's digest and so these bytes too.
+
+    `("", "")` when the library cannot be read at all, which is a fact about the
+    record and is reported as one -- `_checkout`'s rule for a commit git cannot
+    answer, applied to the same note.
+    """
+    _src_on_path()
+    try:
+        from llm_harness.prompt_library import DRAFTS_FILE
+        raw = DRAFTS_FILE.read_bytes()
+    except (ImportError, OSError):
+        return "", ""
+    return DRAFTS_FILE.name, hashlib.sha256(raw).hexdigest()
 
 
 def write_provenance(out_dir: Path) -> None:

@@ -860,12 +860,24 @@ ENV_FILE: Path = Path(__file__).resolve().parents[1] / ".env"
 #: A BOOLEAN WOULD NOW TELL THE SAME KIND OF UNTRUTH FROM THE OTHER SIDE. `A_fact`
 #: is wired -- `_fact_call_authorities` builds the gate, the client, the ratified
 #: prompt and the dependencies, and `model_facts.fact_call_stage` runs them as P6's
-#: third producer. `C_placement` and `D_residual` are NOT: `placement_inputs` below
-#: still passes `gate=None, model_client=None, prompt=None, call_dependencies=None`,
-#: and `p8_run_call=None, p8_authorities=None` still go to P9. One flag that said
-#: "wired" would have made the announcement claim a person's files may be sent for
-#: checks and review sets, which is exactly as false as the sentence it replaced.
-#: So the set is what is true, and `announce_cloud_posture` reads it per site.
+#: third producer. WHAT KEEPS `C_placement` AND `D_residual` OUT IS NO LONGER THAT
+#: NOTHING IS INJECTED FOR THEM. `placement_inputs` below fills
+#: `OBSERVE_PLACEMENT_FIELDS` from `observe_placement_injections`, which builds a
+#: real gate, client, prompt and dependencies for C and D wherever C's tier is on
+#: this device, and P9 is handed site B's pair as `p8_run_call=observe_b[0],
+#: p8_authorities=observe_b[1]`. They are out because they APPLY NOTHING -- the
+#: second set below, `OBSERVE_CALL_SITES`, is where that is said -- and one flag
+#: spanning both would put the observe sites' asking on the screen as "your files
+#: may be sent for checks and review sets", which is the untruth this set replaced
+#: read from the other end. So the set is what is true about APPLYING, and
+#: `announce_cloud_posture` reads it per site.
+#:
+#: OWED TO THE OWNER (`104` NEW-3), AND THIS COMMENT DOES NOT RULE IT. C's rows in
+#: the packet manifest now read `ratified` rather than `ratified_local`, so C has a
+#: cloud candidate and an observe-only call at C can put a person's folder labels
+#: on a provider's server while this set -- and the screen that reads it -- names
+#: only `A_fact`. Whether the announcement is about applying or about sending is
+#: the owner's word, not this file's.
 #:
 #: A SITE IS IN HERE ONLY WHEN A PROMPT IS RATIFIED FOR IT TOO. `run_call` refuses
 #: without a `PromptDefinition` (`llm_harness/records.py:89`), so a route plus a key
@@ -1782,10 +1794,14 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
         return {}
     # `104` §17.13 ruling 3: C's destination is PER FILE, so what is asked here is
     # only whether the site has any destination at all. `target_for` drops the
-    # cloud candidate for a site whose text may not cross the internet -- C's word
-    # is `ratified_local` -- so on a two-target deployment every file C is asked
-    # about goes to the model on this machine, and the site keeps running where
-    # reading `locality_for` would have handed it a cloud client and turned it off.
+    # cloud candidate only for a site whose text may not cross the internet, and
+    # C's word in the packet manifest is `ratified` -- not `ratified_local`, which
+    # is G's word -- so on a two-target deployment C KEEPS its cloud candidate and
+    # the per-file route decides: a protected or still-unclassified file goes to
+    # the model on this machine, everything else to the cloud. That is exactly why
+    # this line asks `site_has_a_destination` and not `locality_for`: one locality
+    # read here would answer for every file at once, and would turn the site off
+    # on a deployment where only some of its files may leave.
     placement_route = target_for(conn, routing, C_PLACEMENT,
                                  operation_mode=operation_mode)
     if not site_has_a_destination(conn, routing, C_PLACEMENT,

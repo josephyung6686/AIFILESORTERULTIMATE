@@ -35,9 +35,12 @@ test holds every `except ImportError` in the readers layer to raising.
 from __future__ import annotations
 
 import ast
+import os
 import pathlib
+import shutil
 import sys
 import tomllib
+import zipfile
 from importlib.metadata import packages_distributions
 
 import pytest
@@ -128,13 +131,94 @@ def test_the_engine_still_declares_no_runtime_dependency():
     assert _manifest()["project"]["dependencies"] == []
 
 
-def test_there_is_a_console_script_and_it_points_at_the_cli():
+@pytest.fixture(scope="module")
+def wheel_contents(tmp_path_factory) -> frozenset[str]:
+    """What a wheel built from this checkout ACTUALLY contains. `104` NEW-2.
+
+    **BUILT, NOT PREDICTED.** The defect this fixture exists for was invisible to
+    every assertion about the manifest: `[project.scripts]` said `cli:main`, the
+    string was right, and the module was absent from all 325 entries of the wheel
+    because an explicit packages table had turned single-module discovery off. A
+    test that reads the mapping cannot see that. A test that reads the archive can.
+
+    **NO FRONTEND, SO NO NETWORK.** `setuptools.build_meta` is the backend
+    `[build-system]` already names, and calling it in this process skips the part
+    of `pip`/`build` that would go and fetch an isolated build environment. The
+    tests in this repo do not reach the internet and this one does not either.
+
+    **IN A COPY, BECAUSE A BUILD LEAVES THINGS BEHIND.** The backend writes
+    `build/` and `*.egg-info/` into whatever directory it runs in, and the
+    checkout is not the place for either.
+    """
+    work = tmp_path_factory.mktemp("wheel")
+    shutil.copy2(PYPROJECT, work / "pyproject.toml")
+    shutil.copytree(ROOT / "src", work / "src",
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    out = work / "dist"
+    out.mkdir()
+    here = os.getcwd()
+    os.chdir(work)
+    try:
+        from setuptools import build_meta
+        built = build_meta.build_wheel(str(out))
+    finally:
+        os.chdir(here)
+    with zipfile.ZipFile(out / built) as wheel:
+        return frozenset(wheel.namelist())
+
+
+def test_there_is_a_console_script_and_it_points_at_the_cli(wheel_contents):
     """A product a person installs is a product a person can then run. The name is
     the one `cli.py` already gives its own parser, so `--help` names the command
-    that produced it rather than a second spelling nobody chose."""
+    that produced it rather than a second spelling nobody chose.
+
+    AND THE MODULE IT NAMES IS IN THE WHEEL (`104` NEW-2). The mapping string was
+    right for months while the wheel shipped no `cli.py`: the command installed,
+    and died on `ModuleNotFoundError: cli` the first time anybody typed it. What
+    the script names is read out of the mapping rather than spelled again here, so
+    this stays true if the entry point is ever repointed.
+    """
     scripts = _manifest()["project"].get("scripts", {})
     assert scripts, "an installed product with no command is a library"
     assert scripts.get("database-agent") == "cli:main", scripts
+
+    module = scripts["database-agent"].split(":")[0].replace(".", "/")
+    assert (f"{module}.py" in wheel_contents
+            or f"{module}/__init__.py" in wheel_contents), (
+        f"`database-agent` runs {scripts['database-agent']!r} and the wheel ships "
+        f"no {module!r}. The command would install and then not start.")
+    assert any(name.endswith(".dist-info/entry_points.txt")
+               for name in wheel_contents), (
+        "the built wheel declares no entry points, so nothing installs the command")
+
+
+def test_the_wheel_ships_every_module_under_src_and_the_text_they_refuse_without(
+        wheel_contents):
+    """`104` NEW-2's other half: a command that starts and then cannot answer.
+
+    Two derived sets, neither of them typed: every bare module under `src/` -- the
+    eleven the layout has today and the twelfth on the day it is added -- and every
+    file under a package's `library/` folder, which is where the prompt text lives.
+    `llm_harness.prompt_library` refuses without those bytes in the words it will
+    use on a person's screen ("this package ships no default prompt text, draft or
+    otherwise"), so a wheel without them is an install whose every model call is
+    `RatifiedTextMissing`.
+    """
+    source = ROOT / "src"
+    missing_modules = sorted(
+        f"{path.stem}.py" for path in source.glob("*.py")
+        if f"{path.stem}.py" not in wheel_contents)
+    assert not missing_modules, (
+        f"these modules are under `src/` and in no wheel this project builds: "
+        f"{missing_modules}")
+
+    data = sorted(str(path.relative_to(source))
+                  for path in source.glob("*/library/*") if path.is_file())
+    assert data, "no packaged library files were found under `src/*/library/`"
+    absent = [name for name in data if name not in wheel_contents]
+    assert not absent, (
+        f"the wheel ships none of these packaged files: {absent[:5]}. An installed "
+        f"product with no prompt text refuses every call it is configured for.")
 
 
 def test_no_reader_turns_a_missing_library_into_an_unsupported_format():
