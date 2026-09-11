@@ -86,16 +86,22 @@ def test_the_term_is_authored_as_a_work_type_of_its_safety_schema(
     assert term in schema.work_type_terms, (term, why)
 
 
-def test_the_british_spelling_is_a_context_term_too(rules):
+def test_the_british_spelling_is_authored_too(rules):
     """`immunization` is authored BOTH ways, so its sibling must be.
 
-    The medical rows carry `immunization` as a context term AND `immunization record`
-    as a work type. Mirroring only the work type would leave the British spelling
-    half-present in a way no reader could predict from either half.
+    UPDATED for the owner's 11 Sep 2026 ruling: both bare spellings are now two of
+    the seven ratified protected-term-vocabulary members
+    (`tests/recognition/test_recognition_safety_ruling_2026_09_11.py`), which moves
+    them from `context_terms` into `work_type_terms` -- `compile_rules`'s "one home
+    per term, and the home is `work_types`" rule. A context term protects nothing
+    (`_safety_readings_in_evidence`), so the ruling's own words -- "a file carrying
+    one is held" -- require the work-type home. `immunization record` stays a work
+    type beside them; mirroring only that phrase would leave the bare British
+    spelling half-present in a way no reader could predict from either half.
     """
     medical = rules.schemas["medical"]
-    assert "immunization" in medical.context_terms, "the US spelling was the premise"
-    assert "immunisation" in medical.context_terms
+    assert "immunization" in medical.work_type_terms, "the US spelling was the premise"
+    assert "immunisation" in medical.work_type_terms
 
 
 def test_no_added_term_is_owned_by_more_than_its_own_schema(rules):
@@ -119,9 +125,14 @@ def test_the_old_spellings_still_stand(rules):
     generic words. A vocabulary change that widened one word by removing another
     would unprotect a file that is protected now, and the harness would report it as
     a wash rather than as a regression.
+
+    UPDATED for the owner's 11 Sep 2026 ruling: the bare spelling now lives in
+    `work_type_terms` rather than `context_terms` (see
+    `test_the_british_spelling_is_authored_too`); the file is still protected by
+    the same word, only its home moved.
     """
     assert "immunization record" in rules.schemas["medical"].work_type_terms
-    assert "immunization" in rules.schemas["medical"].context_terms
+    assert "immunization" in rules.schemas["medical"].work_type_terms
     assert "national identity card" in rules.schemas["identity"].work_type_terms
     assert "statement" in rules.schemas["finance"].work_type_terms
 
