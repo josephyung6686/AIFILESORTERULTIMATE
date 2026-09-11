@@ -177,7 +177,14 @@ def test_a_purpose_packet_stays_one_candidate_and_is_not_split_by_institution(co
 def test_the_vertical_pass_always_offers_the_no_split_option(conn):
     """§5.3: a candidate may be "a complete reusable template, a compatible
     composition of reusable fragments, or NO SPLIT." Keeping the branch shallow
-    is a first-class answer, not a refusal to answer."""
+    is a first-class answer, not a refusal to answer.
+
+    `104` Q-H (owner, 11 Sep 2026, R-27/R-40): this option states no values, so
+    every member it carries is unresolved by its own composition -- not the
+    empty set it used to report. Nothing in `src/` reads this field; the `104`
+    register recorded the empty tuple as untrue -- nothing left to resolve,
+    when both files here still were. This corrects the option's own record.
+    """
     report = RoutingReport(candidates=(), conflicts=(), deferred=0)
     options = vertical_options(
         report, branch_members=("f1", "f2"),
@@ -185,7 +192,7 @@ def test_the_vertical_pass_always_offers_the_no_split_option(conn):
         limits=_limits(conn), preview=_preview_binding())
     assert [o.kind for o in options] == [NO_SPLIT]
     assert options[0].total_child_branches == 0
-    assert options[0].unresolved_file_ids == ()
+    assert options[0].unresolved_file_ids == ("f1", "f2")
 
 
 def test_a_whole_option_preview_states_what_each_option_would_create(conn):

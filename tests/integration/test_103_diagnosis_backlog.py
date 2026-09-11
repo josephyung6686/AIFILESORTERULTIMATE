@@ -224,18 +224,22 @@ def test_a_file_with_nothing_releasable_still_cannot_reach_a_cloud_model():
 
 
 # --- 103 §18 C17: keep-as-it-is silently un-files the branch -----------------------
+# `104` Q-H (owner, 11 Sep 2026, R-27/R-40): when a person answers `keep-as-it-is`
+# about a branch the system proposed to split, its files are left exactly where
+# they are and NONE of them is filed into the branch's accepted parent either.
+#
+# The strict xfail this replaced asserted the opposite of that ruling --
+# `placed_after >= placed_before`, i.e. that the three files ready to file into
+# `Coursework`'s proposed children before the answer should still carry a
+# `place` outcome after it, at `Coursework` itself (`00`:111's "file at the
+# accepted parent" reading). That is the hypothesis Q-H rejected, so the old
+# assertion cannot be satisfied by the ruled behaviour and the marker could not
+# simply come off: `0 >= 3` is correct now, not a defect. This replacement pins
+# the ruling instead -- keeping the branch unsplit states no values, so none of
+# its members gets a `place` decision in the answered plan version.
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="103 C17, HALF CLOSED. Answering `branch:Coursework=keep-as-it-is` "
-           "leaves the branch stating no values, so P11's direct-fact channel "
-           "reaches nothing and three files that were ready to file become "
-           "'waiting for you'. `104` R-27's text half landed: the option now says "
-           "the branch records no values and its files cannot be filed into it, so "
-           "the screen is true. Whether the answer should still file at the "
-           "accepted parent (`00`:111) is `104` Q-H and is the OWNER's -- this "
-           "marker stays until that is ruled.")
-def test_keeping_a_branch_as_it_is_does_not_unfile_its_members(tmp_path):
+
+def test_keeping_a_branch_as_it_is_files_none_of_its_members(tmp_path):
     corpus = _corpus(tmp_path)
     database = tmp_path / "holder" / "plan.sqlite"
     _, before = _run(corpus, database)
@@ -247,7 +251,9 @@ def test_keeping_a_branch_as_it_is_does_not_unfile_its_members(tmp_path):
     placed_after = _query(
         database, "SELECT COUNT(*) FROM placement_decisions WHERE outcome = 'place' "
                   "AND plan_version = ?", _plan_version(after))[0][0]
-    assert placed_after >= placed_before
+    assert placed_after == 0, (
+        "keep-as-it-is filed a member into the branch's accepted parent, which "
+        "`104` Q-H rules out")
 
 
 # --- 103 C21 / `104` R-40: the home answer lifts the unclassified hold -------------

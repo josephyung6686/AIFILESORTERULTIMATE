@@ -655,7 +655,17 @@ def vertical_options(
         total_child_branches=0,
         example_members=members[:sample_size(limits)],
         member_count=len(members),
-        unresolved_file_ids=(),
+        # `104` Q-H (owner, 11 Sep 2026, R-27/R-40): `keep-as-it-is` leaves the
+        # files in this branch exactly where they are and files none of them
+        # into the accepted parent. The branch records no values (see
+        # `no_split_summary`), so every member is unresolved from this
+        # option's own composition -- not the empty set the option used to
+        # claim. Nothing in `src/` reads this field; `00`:99 names it as part
+        # of what the picker states about an option, and the `104` register
+        # recorded the empty tuple as untrue -- a branch with nothing
+        # unresolved, when every member here was. This corrects the option's
+        # own record; it is behaviour-neutral everywhere else.
+        unresolved_file_ids=tuple(sorted(members)),
         summary=no_split_summary,
         validation=None,
         children=(),
