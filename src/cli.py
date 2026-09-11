@@ -10950,10 +10950,41 @@ def _ask_when_there_are_two_homes_to_offer(node_ids) -> str:
     NOT reach the text report's "Questions only you can answer" panel, because
     that panel prints the `questions` store and this Ask is never
     `record_question`'d -- so there is no `--answer` gesture that resolves it and
-    no folder LABELS printed beside the two node ids. Closing that is the same
-    shape `_home_questions` already builds (a recorded question whose options are
-    folder chains, resolved back through `chosen_destination`), and it is a
-    follow-up rather than part of gap 15.
+    no folder LABELS printed beside the two node ids.
+
+    **AND THE PARAGRAPH THAT STOOD HERE NAMED THE SHAPE WITHOUT PRICING IT.** It
+    read "the same shape `_home_questions` already builds ... a follow-up rather
+    than part of gap 15", which is true about the shape and hid what the shape
+    costs. Three things are in the way, and only one of them is work:
+
+    1. **The record needs a scope naming ONE FILE, and `SCOPES` has none.**
+       `questions.vocabulary.SCOPES` is corpus, organization, branch and folder.
+       `HOME_KIND` is `SCOPE_FOLDER` and `chosen_destination(conn, scope=...)` is
+       scoped BY CONTRACT -- its own words: "A person who says a folder of
+       unreadable scans belongs under `Vaccine records` has said that about THOSE
+       files." A two-homes question is about one file that has accepted
+       membership in two packets; the file beside it in the same folder has its
+       own pair or none. Recording it under `folder:<its folder>` would let one
+       answer file every other file in that folder, which is not a smaller
+       version of this question but a new defect. A file scope is an addition to
+       a closed vocabulary and is the owner's.
+    2. **The `Ask`'s options are node ids and the panel needs folder chains.**
+       `_multi_home_decision` (`placement/pipeline.py`) mints the `Ask` from the
+       raw `shared_parent_node_id`s and calls `entry_for` only on the `place`
+       branch, so no `display_path` is fetched for the asking one; a
+       `QuestionOption` carries `chooses_destination` as the chain, because that
+       is what `chosen_destination` reads back. Resolving the pair through
+       `entry_for` is the one piece here that is ordinary work.
+    3. **Nothing in `placement/` may record a question.** `record_question` lives
+       in this module, which is right -- P11 writes decisions, not questions -- so
+       the recording step belongs here, after placement, reading the run's own
+       `ASK_USER` decisions. That is the `_home_questions` shape, once per file
+       rather than once per folder.
+
+    So: (1) is the owner's, and (2) and (3) are a half-hour that cannot honestly
+    land before it. `tests/test_ask_about_a_file.py::test_gap15_a_question_can_
+    be_scoped_to_the_one_file_a_two_homes_ask_is_about` is the strict xfail that
+    turns green on the day (1) does.
 
     **NOTHING HERE CHOOSES A HOME.** `resolve_multi_home` has no branch that
     returns a member of `node_ids`, so the strongest thing this selector can do

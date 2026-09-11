@@ -401,6 +401,36 @@ def test_a_question_with_one_option_is_a_placement_wearing_a_question_mark():
     assert cli._ask_when_there_are_two_homes_to_offer(()) == pv.ABSTAIN
 
 
+@pytest.mark.xfail(strict=True, reason="`104` §18.2 gap 15: a two-homes question "
+                                       "is about ONE file and `SCOPES` has no "
+                                       "member that scopes one")
+def test_gap15_a_question_can_be_scoped_to_the_one_file_a_two_homes_ask_is_about():
+    """DESIGN: the two-homes Ask reaches the review set but not the "Questions
+    only you can answer" panel, and the panel is where the person answers
+    everything else in one place. The blocker is not the printing: it is that a
+    recorded question needs a scope, and this question is about ONE FILE.
+
+    MEASUREMENT: `questions.vocabulary.SCOPES` carries a member that names a
+    file. Today it is corpus, organization, branch and folder, and `HOME_KIND` --
+    the kind whose answer `chosen_destination` reads back into a destination --
+    is `SCOPE_FOLDER`. Recording a two-homes question under the file's folder
+    would make one answer govern every file in that folder, which
+    `chosen_destination`'s own docstring rules out in as many words. The day this
+    turns green, the rest is the `_home_questions` shape once per file:
+    `entry_for` each of the two node ids into a `display_path`, `record_question`
+    a `home:`-kind question with those two as options, and the panel's existing
+    `--answer <id>=<option>` line prints itself.
+
+    THE WORD "file" HERE IS A PLACEHOLDER for whatever the owner names the
+    member, because the member is theirs to name and does not exist to be
+    referenced. If they add it under another spelling this keeps xfailing while
+    the blocker is gone, so whoever lands the scope updates this line with it.
+    """
+    from questions.vocabulary import SCOPES
+
+    assert "file" in SCOPES
+
+
 def test_the_run_hands_the_placement_pipeline_the_asking_selector(tmp_path,
                                                                   monkeypatch):
     """The wiring, not the function. `104` §18.2 gap 15 was one lambda.

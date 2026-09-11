@@ -56,6 +56,7 @@ from llm_harness.vocabulary import (
     INVENTED_PROJECT,
     LEAVE_IN_CURRENT_LOCATION,
     LEAVE_IN_PLACE,
+    MARK_PROTECTED_OR_UNSUPPORTED,
     MARK_REVIEW_LATER,
     MOVE_PLAN_ELIGIBLE,
     NO_DESTINATION,
@@ -298,15 +299,50 @@ def _invented_dimension(payload: Mapping[str, object], dossier: Dossier) -> str 
     `SCHEMA_INVALID` carries that much. Naming the levels is the node-profile
     change R-17 makes; a check invented here would be a rule guessing at the
     tree.
+
+    **WHAT THAT MISSING CHANNEL IS AND IS NOT AN EXCUSE FOR (`104` R-77).** It
+    excuses the SCHEMA half -- "this level does not exist in the tree" cannot be
+    asked without a list of the tree's levels, and R-17's node profiles reach the
+    dossier as one free-text `location` string per candidate
+    (`placement/index.py`'s `node_profile`), which is prose and not an
+    enumeration, so the list still is not here. It never excused the GROUNDING
+    half, which asks only whether the file's own released text states the value
+    and needs no list at all. Those two were tangled: the grounding loop reached
+    for `_DIMENSION_REASON` to get a reason code and treated a miss as "not my
+    business", so an unrecognised level name skipped the check that did not
+    depend on recognising it. Untangled above. The schema half stays owed and
+    stays outside this module: it wants `Dossier.folder_levels` filled at C
+    (`model_placement.py`:448 sets `()` for C and D alike) or a node-profile
+    field that names the levels, either of which is a change to what the dossier
+    carries and not a check this file may invent.
     """
     for item in _dimensions(payload):
         if item.get("support") == "context":
             continue
-        reason = _DIMENSION_REASON.get(item.get("dimension"))
-        if reason is None:
+        if _stated_by_the_file(item.get("value"), dossier):
             continue
-        if not _stated_by_the_file(item.get("value"), dossier):
-            return reason
+        # `104` R-77. EVERY non-`context` LEVEL IS GROUNDED, AND THE THREE NAMED
+        # ONES ONLY GET A MORE PRECISE WORD FOR IT. This used to read
+        # `reason = _DIMENSION_REASON.get(...)` / `if reason is None: continue`,
+        # so a level named anything but `date`, `institution` or `project` was
+        # skipped BEFORE it was grounded -- and `dimension` is `{"type": "string",
+        # "minLength": 1}` in the wired C schema, so any word at all reached that
+        # skip. A model that answered `{"dimension": "course", "value": "Advanced
+        # Sculpture", "support": "direct"}` about a file whose text says neither
+        # was admitted, while the same invention spelled `project` was rejected.
+        # The name the model chose decided whether its evidence was checked.
+        #
+        # `00`:114's sentence is about the four things a model must not invent,
+        # not about a vocabulary of level names, and §13.6 makes GROUNDING the
+        # hard check. So grounding runs on the level, and `_DIMENSION_REASON` is
+        # what it is called -- a lookup for the report, not a gate on the check.
+        # `SLOT_FILLED_WITHOUT_EVIDENCE` is the fallback because that is already
+        # C's code for a slot filled with something the file does not state (it
+        # is what the model's own `unsupported` and an unverifiable `context`
+        # level both get, above), and because naming a new code here would be a
+        # closed-vocabulary addition.
+        return _DIMENSION_REASON.get(item.get("dimension"),
+                                     SLOT_FILLED_WITHOUT_EVIDENCE)
     return None
 
 
@@ -712,24 +748,62 @@ def _residual_disposition(verdict: P8Verdict, raw: object | None = None) -> P8Ve
     None)` and P12 builds a plan from `place` alone, so `True` would be P8 saying
     a move plan may follow a decision that moves nothing. It is the answer
     `mark_review_later` and `abstain` beside it already give.
+
+    **`mark_protected_or_unsupported` HAD THE SAME FALL-THROUGH, AND IT IS THE
+    SECOND HALF OF R-104.** The ratified D text offers it as one of the eight and
+    tells the model in as many words that its `"target" is the word "protected"
+    or the word "unsupported"` (`d_residual_template.ladder.txt`:41). It is not a
+    member of `_TARGET_ACTIONS`, so `_residual_site` checks no node for it --
+    correctly, because the two words are not node ids and `node_exists` would
+    refuse the only legal answer -- and it then arrived here with an
+    `accept_direct` outcome and neither of the two returns, took the last branch
+    left and was recorded `residual_destination`. A model saying "this is
+    protected material, do not file it" was recorded as having named a home, with
+    the word "protected" standing where a node id belongs.
+
+    So it joins `leave_in_current_location` on the same branch and for the same
+    reason: **a mark moves nothing.** `LEAVE_IN_PLACE` is P8's coarser word for
+    that -- P8's disposition axis has no member meaning "marked", and minting one
+    is a closed-vocabulary addition and the owner's -- and the distinction is not
+    lost, because P11 keeps it on its own axis: `outcome_for_action` answers
+    `(mark_state, <the word>)` and `PlacementDecision` carries `marked_state`
+    (`placement/records.py`:503). `may_propose=False` for the same reason it is
+    False for a leave: a move plan must not follow a decision that moves nothing,
+    and least of all one whose whole content is that the file is not to be
+    handled.
+
+    **THE WORD ITSELF IS STILL UNCHECKED HERE, AND DELIBERATELY SO.** Refusing a
+    target outside the two would need the two words, and P8 has no home for them:
+    `llm_harness.vocabulary` carries the ACTION `mark_protected_or_unsupported`
+    and neither of its states, `placement.vocabulary.MARKED_STATES` is P11's and
+    `tests/p8/test_p8_architecture.py`'s `NEIGHBOUR_PRODUCERS` forbids every P8
+    module from importing `placement`, and deriving the pair by splitting the
+    action's own spelling would be a word list built by parsing. Until the two
+    words have a P8 home the refusal cannot honestly be made here; what that
+    costs is recorded on `placement.residual.outcome_for_action`'s raise, which is
+    where a stray word lands today, and pinned as a strict xfail in
+    `tests/llm_harness/test_d2_contract_gaps.py`.
     """
     if STRONGER_RELATIONSHIP_OVERLOOKED in verdict.reasons:
         return _rewrite(verdict, disposition=RETURN_TO_PLACEMENT)
     payload = _payload_of(raw) if raw is not None else {}
     action = payload.get("action")
     leaving = action == LEAVE_IN_CURRENT_LOCATION
-    may_propose = False if leaving else None
+    marking = action == MARK_PROTECTED_OR_UNSUPPORTED
+    moves_nothing = leaving or marking
+    may_propose = False if moves_nothing else None
     if verdict.outcome == ACCEPT_DIRECT:
         if action in {RETURN_CONFIRMED_GROUP, RETURN_ACCEPTED_PACKET}:
             disposition = RETURN_TO_PLACEMENT
-        elif leaving:
+        elif moves_nothing:
             disposition = LEAVE_IN_PLACE
         else:
             disposition = RESIDUAL_DESTINATION
     elif verdict.outcome == ACCEPT_CONTEXT_SUPPORTED:
         # The review survives -- `_rewrite` keeps `requires_review` True for this
         # outcome by construction -- and only the word "destination" goes.
-        disposition = LEAVE_IN_PLACE if leaving else RESIDUAL_DESTINATION_REVIEW
+        disposition = (LEAVE_IN_PLACE if moves_nothing
+                       else RESIDUAL_DESTINATION_REVIEW)
     elif verdict.outcome == WEAK:
         disposition = REVIEW_LATER if action == MARK_REVIEW_LATER else LEAVE_IN_PLACE
     elif verdict.outcome == REJECT:

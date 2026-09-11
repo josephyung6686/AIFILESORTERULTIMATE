@@ -46,6 +46,7 @@ from llm_harness.vocabulary import (
     INVENTED_NODE,
     INVENTED_PROJECT,
     LEAVE_IN_CURRENT_LOCATION,
+    MARK_PROTECTED_OR_UNSUPPORTED,
     LEAVE_IN_PLACE,
     MARK_REVIEW_LATER,
     MOVE_PLAN_ELIGIBLE,
@@ -1307,3 +1308,149 @@ def test_r15_no_site_c_fixture_puts_a_value_in_the_node_id_vocabulary():
     for pair in SITE_C_REASON_PAIRS + SITE_C_OUTCOME_PAIRS:
         assert all(node_id.startswith("node-")
                    for node_id in pair.dossier.allowed_vocabulary), pair.name
+
+
+# --- R-104's second half: the mark had the same fall-through ------------------
+#
+# `104` R-104's own closing sentence: "`mark_protected_or_unsupported` has the
+# same fall-through". The ratified D text offers it as one of the eight and says
+# its `"target" is the word "protected" or the word "unsupported"`, so the target
+# is not a node id -- which is why the action is correctly outside
+# `_TARGET_ACTIONS`, and exactly why the disposition fell through to
+# `residual_destination` with a state word standing where a node id belongs.
+
+
+def test_r104_marking_a_file_protected_is_not_a_residual_destination():
+    """DESIGN: a mark moves nothing, so P8 records it as leaving the file alone.
+
+    MEASUREMENT: a site D answer whose action is `mark_protected_or_unsupported`
+    with the target `"protected"`, validated end to end through
+    `validate_residual_response`, comes back `accept_direct / leave_in_place`
+    with `may_propose` False -- where it came back `accept_direct /
+    residual_destination` before, which says the model named a home it never
+    named.
+    """
+    verdict = _validate_d(_d_with_action(MARK_PROTECTED_OR_UNSUPPORTED,
+                                         target="protected"))[0][0]
+
+    assert verdict.outcome == ACCEPT_DIRECT
+    assert verdict.disposition == LEAVE_IN_PLACE
+    assert verdict.disposition != RESIDUAL_DESTINATION
+    assert verdict.reasons == ()
+    # The same answer `leave_in_current_location` gets beside it, and for a
+    # stronger reason: a move plan must not follow a decision whose whole content
+    # is that the file is not to be handled.
+    assert verdict.may_propose is False
+
+
+def test_r104_a_mark_that_rests_on_context_leaves_and_still_reviews():
+    """DESIGN: the review a context-supported claim earns survives the fix; only
+    the word "destination" goes.
+
+    MEASUREMENT: the `context_accept` pair re-payloaded as a mark is
+    `accept_context_supported / leave_in_place`, not
+    `residual_destination_review`, and `requires_review` is still True.
+    """
+    pair = next(p for p in SITE_D_OUTCOME_PAIRS if p.name == "context_accept")
+    verdict = _validate_d(_with_payload_fields(
+        pair, action=MARK_PROTECTED_OR_UNSUPPORTED, target="unsupported"))[0][0]
+
+    assert verdict.outcome == ACCEPT_CONTEXT_SUPPORTED
+    assert verdict.disposition == LEAVE_IN_PLACE
+    assert verdict.disposition != RESIDUAL_DESTINATION_REVIEW
+    assert verdict.requires_review is True
+
+
+def test_r104_a_mark_is_checked_like_any_accepted_claim():
+    """DESIGN: accepted does not mean unchecked -- the fix is a disposition and
+    not an early return, so the four fall-through checks still run on a mark.
+
+    MEASUREMENT: the site D reason pairs for the file-record check and the
+    sensitivity policy, re-payloaded as a mark, still come back REJECT carrying
+    that check's own reason rather than an accepted `leave_in_place`.
+    """
+    by_name = {pair.name: pair for pair in SITE_D_REASON_PAIRS}
+    for name in (EVIDENCE_NOT_IN_FILE_RECORD, SENSITIVITY_RESTRICTION_IGNORED):
+        pair = by_name[name]
+        verdict = _validate_d(_with_payload_fields(
+            pair, action=MARK_PROTECTED_OR_UNSUPPORTED,
+            target="protected"))[0][0]
+        assert verdict.outcome == REJECT, name
+        assert name in verdict.reasons, name
+
+
+def test_r104_the_mark_target_is_not_checked_against_the_frozen_tree():
+    """DESIGN: the two state words are not node ids, so `node_exists` must never
+    be asked about one -- asking would refuse the only legal answer there is.
+
+    MEASUREMENT: a dependency set whose `node_exists` raises if it is called at
+    all still validates a mark. The four real target actions are what that oracle
+    is for.
+    """
+    def _never_asked(node_id, plan_version):
+        raise AssertionError(f"node_exists was asked about {node_id!r}")
+
+    pair = _d_with_action(MARK_PROTECTED_OR_UNSUPPORTED, target="protected")
+    deps = dataclasses.replace(_residual_deps(pair), node_exists=_never_asked)
+    verdict = _validate_d(pair, dependencies=deps)[0][0]
+
+    assert verdict.outcome == ACCEPT_DIRECT
+    assert verdict.disposition == LEAVE_IN_PLACE
+
+
+# --- R-77: the grounding half of §13.6, which never needed the missing channel --
+
+
+def test_r77_a_level_is_grounded_whatever_the_model_calls_it():
+    """DESIGN: §13.6 makes grounding the hard check, and grounding asks only
+    whether the file's own released text states the value. It needs no list of
+    the tree's level names, so the level's NAME must not decide whether the check
+    runs.
+
+    MEASUREMENT: the site C pair that is rejected `INVENTED_PROJECT` for an
+    ungrounded `project` level is still rejected when the same ungrounded value
+    is relabelled `course` -- a name outside `_DIMENSION_REASON`, which the wired
+    C schema permits because `dimension` is any non-empty string. Before R-77
+    that relabelling was admitted.
+    """
+    pair = next(p for p in SITE_C_REASON_PAIRS
+                if p.expected_reasons == (INVENTED_PROJECT,))
+    ungrounded = [dict(item) for item in json.loads(
+        pair.response_bytes)["claims"][0]["payload"]["per_dimension_support"]]
+    assert any(item["dimension"] == "project" for item in ungrounded)
+    for item in ungrounded:
+        if item["dimension"] == "project":
+            item["dimension"] = "course"
+
+    verdict = _validate_c(_with_payload_fields(
+        pair, per_dimension_support=ungrounded))[0][0]
+
+    assert verdict.outcome == REJECT
+    # The reason is the closed set's existing word for a slot filled with
+    # something the file does not state -- the same one the model's own
+    # `unsupported` and an unverifiable `context` level already get. The three
+    # named levels keep their more precise code; naming a fourth would be a
+    # closed-vocabulary addition.
+    assert verdict.reasons == (SLOT_FILLED_WITHOUT_EVIDENCE,)
+
+
+def test_r77_a_grounded_level_passes_under_any_name():
+    """DESIGN: the check is grounding and not a vocabulary of level names, so a
+    level the file DOES state is accepted whatever it is called.
+
+    MEASUREMENT: the direct-accept C pair still accepts when every level name is
+    replaced by one `_DIMENSION_REASON` does not carry. R-77 closes a fail-open;
+    it opens no new refusal.
+    """
+    pair = _c_direct_pair()
+    levels = [dict(item) for item in json.loads(
+        pair.response_bytes)["claims"][0]["payload"]["per_dimension_support"]]
+    assert levels
+    for index, item in enumerate(levels):
+        item["dimension"] = f"level-{index}"
+
+    verdict = _validate_c(_with_payload_fields(
+        pair, per_dimension_support=levels))[0][0]
+
+    assert verdict.outcome == ACCEPT_DIRECT
+    assert verdict.reasons == ()

@@ -536,9 +536,39 @@ def outcome_for_action(action: str, *, target) -> tuple[str, object]:
         return outcome, target
     if outcome == MARK_STATE:
         if target not in MARKED_STATES:
+            # `104` R-104, AND THE MESSAGE USED TO BLAME THE WRONG PARTY. It read
+            # "a third state would be P11 inventing a category", which is the
+            # argument for a P11 caller that made a word up. The word that
+            # actually arrives here is the MODEL'S: `_residual_action_of`
+            # (`cli.py`:1710) reads the raw D payload, so an accepted
+            # `mark_protected_or_unsupported` carries whatever string the model
+            # put in `target` straight into this function, and P8 rejects it
+            # nowhere -- `_residual_disposition` now records the mark honestly but
+            # cannot refuse the word, because the two states are
+            # `placement.vocabulary`'s and no P8 module may import `placement`
+            # (`tests/p8/test_p8_architecture.py`'s `NEIGHBOUR_PRODUCERS`).
+            #
+            # So this raise is the run-ender R-104 names: one stray word in one
+            # answer about one file ends the whole residual pass, and the set the
+            # person was answering goes with it. It is NOT fixed by softening it
+            # here. P11 "re-implements no check of P8's" (`placement/__init__`)
+            # and this module holds "no residual-specific legality path at all";
+            # returning an abstention for a word P8 ACCEPTED would write the
+            # record `pipeline`:4235 reserves for an answer the validator threw
+            # away, and say the model abstained when it said "mark protected".
+            # The refusal belongs at P8, where a rejected verdict already routes
+            # to that record and the run continues (`pipeline`:4226).
+            #
+            # It stays a raise, and it stays the honest report of a gap: a caller
+            # that reached here with a word outside the two either skipped P8 or
+            # is the model itself, and until the two words have a P8 home
+            # `tests/llm_harness/test_d2_contract_gaps.py` carries the strict
+            # xfail that says what should have happened instead.
             raise ValueError(
                 f"§7.7 action 7 marks a file {MARKED_STATES}; {target!r} is "
-                "neither, and a third state would be P11 inventing a category"
+                "neither, and `PlacementDecision` refuses it again by name at "
+                "`marked_state`. P8 is where a model's word should have been "
+                "refused: see `104` R-104"
             )
         return outcome, target
     if target is not None:

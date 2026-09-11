@@ -1,6 +1,8 @@
 """§7.7's eight, §7.9's loop, and the ninth that does not exist."""
 from __future__ import annotations
 
+import pathlib
+
 import pytest
 
 from llm_harness.fixtures import FIXTURE_HANDLE_KEY, SITE_D_REASON_PAIRS
@@ -185,12 +187,58 @@ def test_a_return_names_what_it_returns_to():
 
 
 def test_the_mark_takes_one_of_two_states_and_no_third():
+    """RE-ARGUED for `104` R-104; the assertions are unchanged and the reason is
+    not the one they were written under.
+
+    They were written as P11 refusing to invent a third category, which is the
+    right argument for a P11 CALLER that made a word up. It is not the argument
+    for the word that actually arrives: `_residual_action_of` (`cli.py`:1710)
+    reads site D's raw payload, so an accepted `mark_protected_or_unsupported`
+    carries whatever string the MODEL wrote in `target` into this function.
+
+    P8 is where a model's word belongs refused, and P8 cannot refuse it yet --
+    the two states are this package's and no P8 module may import `placement`
+    (`tests/p8/test_p8_architecture.py`'s `NEIGHBOUR_PRODUCERS`). So this raise
+    is currently the run-ender `104` R-104 names, and softening it here would be
+    worse than the defect: P11 "re-implements no check of P8's"
+    (`placement/__init__`), and answering an abstention for a word P8 ACCEPTED
+    would write the record `pipeline`:4235 reserves for an answer the validator
+    threw away -- the file's record would say the model abstained when it said
+    "mark protected".
+
+    What SHOULD happen instead is pinned as a strict xfail at
+    `tests/llm_harness/test_d2_contract_gaps.py::
+    test_g8_a_mark_whose_state_is_neither_word_is_refused_by_p8`. The day the two
+    words have a P8 home, that turns green, a stray word never reaches here, and
+    these assertions go back to meaning what they say on the tin.
+    """
     outcome, payload = outcome_for_action(MARK_PROTECTED_OR_UNSUPPORTED,
                                           target=v.UNSUPPORTED)
     assert (outcome, payload) == (v.MARK_STATE, v.UNSUPPORTED)
     for bad in (None, "archived", v.PLACE):
         with pytest.raises(ValueError):
             outcome_for_action(MARK_PROTECTED_OR_UNSUPPORTED, target=bad)
+
+
+def test_the_two_marked_states_are_the_two_words_the_d_template_offers():
+    """DESIGN: P11's `MARKED_STATES` and the words site D's ratified text tells
+    the model to use are one vocabulary, not two that happen to agree.
+
+    MEASUREMENT: both wired D templates state the pair in prose -- `"target" is
+    the word "protected" or the word "unsupported"` -- and every word of
+    `MARKED_STATES` appears in that sentence. `104` R-104 leaves P8 unable to
+    check the pair (it may not import this package); this holds the two records
+    equal so the P8 home that closes it cannot be given a different pair.
+    """
+    library = pathlib.Path(__file__).resolve().parents[2] / "src/llm_harness/library"
+    for name in ("d_residual_template.ladder.txt",
+                 "d_residual_template.shelves.txt"):
+        text = (library / name).read_text()
+        sentence = next(line for line in text.splitlines()
+                        if line.startswith('"mark_protected_or_unsupported"'))
+        for state in v.MARKED_STATES:
+            assert f'the word "{state}"' in sentence, (name, state)
+        assert len(v.MARKED_STATES) == sentence.count("the word ")
 
 
 def test_the_three_targetless_actions_refuse_a_target():
