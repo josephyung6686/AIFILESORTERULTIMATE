@@ -210,7 +210,7 @@ def test_the_prompt_in_force_says_unratified_in_its_own_id():
     from llm_harness.prompt_library import draft_bytes, draft_status
 
     prompt = a_fact_prompt()
-    assert prompt.template_id == "a_fact.unratified.folder-levels-v3.2026-09-09"
+    assert prompt.template_id == "a_fact.unratified.folder-levels-v4.2026-09-11"
     assert prompt.template_id == A_FACT_ROW[0]
     assert "unratified" in prompt.template_id
     assert draft_status(prompt.template_id) == "ratified"

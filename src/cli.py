@@ -944,7 +944,7 @@ OBSERVE_TEMPLATE_ID: Mapping[str, str] = MappingProxyType({
     # `104` §18.13 (9 Sep 2026): eliminate-v2r -- v2 with the owner's tie sentence
     # (gap 7) and the set-aside sentence (gap 2), C's policy v2; ratified, cloud
     # open. `v3` stays reserved for 105 §14's amendments.
-    C_PLACEMENT: "c_placement.unratified.eliminate-v2r.2026-09-09",
+    C_PLACEMENT: "c_placement.unratified.eliminate-v2r-group.2026-09-11",
     D_RESIDUAL: "d_residual.unratified.ladder.2026-09-06",
     E_TEMPLATE: "e_template.unratified.what-a-person-opens-v2.2026-09-06",
 })
@@ -973,7 +973,7 @@ assert set(OBSERVE_TEMPLATE_ID) == OBSERVE_CALL_SITES
 #: policy v2. The scoreboard scripts that patched this constant to v2 in a
 #: worktree are superseded by the row itself.
 A_FACT_ROW: tuple[str, str] = (
-    "a_fact.unratified.folder-levels-v3.2026-09-09", "v3-conflicts-open-values")
+    "a_fact.unratified.folder-levels-v4.2026-09-11", "v4-a-year-is-not-a-term")
 
 
 #: `104` §17.1's THIRD WALL: THE MANIFEST ROW SITE G RUNS UNDER, `(template_id,

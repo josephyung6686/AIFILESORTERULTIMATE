@@ -367,6 +367,29 @@
    "note": "v2 plus two paragraphs for the per-file subject site E now has (104 §18.1 S6, merged 10 Sep): the subject may be one file, and why it is here; folder_levels is what the subject does not fit. Everything else byte-identical to v2. The eligibility word for a file (a P8 vocabulary widening, the agent's candidate file_fits_no_situation_template) is the owner's and is not written here.",
    "status": "unratified",
    "ratified_by": "nobody -- authored by the lead from the site E agent's report under the owner's 7 Sep delegation; the owner ratifies or strikes it."
+  },
+  {
+   "site": "A_fact",
+   "candidate": "v4-a-year-is-not-a-term",
+   "status": "ratified",
+   "template_id": "a_fact.unratified.folder-levels-v4.2026-09-11",
+   "template_file": "a_fact_template_folder_levels.v4.txt",
+   "response_schema_file": "a_fact_response_schema.json",
+   "shaping_policy_file": "a_fact_shaping_policy.v2.json",
+   "glossary_file": "field_glossary.json",
+   "ratified_by": "the owner, 10 Sep 2026 (local evening), in session: asked 'ratify the candidate row v4-a-year-is-not-a-term as the live A_fact text?' and answered 'Ratify v4 now'; applied by the lead as a new row, never an edit to the candidate row of 2026-09-10, which stands as written.",
+   "note": "v4 of the A_fact text: rule 14 tells the model what a term IS and that a year alone, a range alone, a month-year or a date is not one, so it declines instead of answering. Measured on r19 (104 §18.24): 136 claims died at the validator as VALUE_NOT_NORMALIZABLE, 104 of them a bare year, a bare range or a season initial for \"term\" -- refusals 105 §14.2 ruled and the ratified text never tells the model about. Everything else byte-identical to v3. Ratified copy of the 2026-09-10 candidate: same files, same digests; only the status and the ratifier differ."
+  },
+  {
+   "site": "C_placement",
+   "candidate": "eliminate-v2r-group",
+   "template_id": "c_placement.unratified.eliminate-v2r-group.2026-09-11",
+   "template_file": "c_placement_template.eliminate-v2r-group.txt",
+   "response_schema_file": "c_placement_response_schema.eliminate-v2r-group.json",
+   "shaping_policy_file": "c_placement_shaping_policy.v2.json",
+   "status": "ratified",
+   "ratified_by": "the owner, 10 Sep 2026 (local evening), in session: asked 'ratify eliminate-v2r-group (the packet sentence, the graph_edge sentence, its own schema allowing context_group)?' and answered 'Ratify it now'; applied by the lead as a new row, never an edit to the candidate row of 2026-09-10.",
+   "note": "v2r plus one sentence for the group subject (104 §18.2 gap 14, merged 10 Sep): when subject_ref names a group the dossier is a packet the person accepted together and the model decides the packet's one folder. Everything else byte-identical to v2r. Written because the ratified text says \"about one file\" in three places that are false for a group call. Its own schema file (10 Sep; the name \"v2 schema\" is reserved for 105 §14's bundle and pinned absent): a per_dimension_support item may carry context_group, the key the validator REQUIRES for context support and the ratified schema forbade (additionalProperties false) -- a contradiction that made every context level schema-invalid one way or validator-rejected the other; found by the gap 14 agent, 104 §18.34. The product keeps observing the ratified v2r: site C acts only on a ratified row (test_cli_observe_sites pins it), so observing this row unratified would place nothing. The owner ratifies this row to close the contradiction. Also carries the graph_edge sentence gap 12 (merged 10 Sep) owes: a relationship item is support for a level and never a citation. Ratified copy of the 2026-09-10 candidate: same files, same digests; only the status and the ratifier differ. Site C observes this row from 11 Sep; v2r of 2026-09-09 stays recorded."
   }
  ],
  "digests": {

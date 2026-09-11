@@ -34,7 +34,7 @@ from readers.model_routing import CLOUD, LOCAL
 def _as_composed_before_r144() -> PromptDefinition:
     """`a_fact_prompt` as it read before the row: the library files by digest."""
     return PromptDefinition(
-        template_id="a_fact.unratified.folder-levels-v3.2026-09-09",
+        template_id="a_fact.unratified.folder-levels-v4.2026-09-11",
         template_bytes=a_fact_template_folder_levels_bytes(),
         response_schema_bytes=a_fact_response_schema_bytes(),
         call_site=A_FACT, call_site_version="1", ratified=True,
@@ -71,7 +71,7 @@ def test_the_row_a_runs_under_is_ratified_and_names_the_shipped_glossary():
 
 
 def _pointed_at(monkeypatch, *, status: str | None, candidate: str = "r144-test",
-                template_id: str = "a_fact.unratified.folder-levels-v3.2026-09-09",
+                template_id: str = "a_fact.unratified.folder-levels-v4.2026-09-11",
                 glossary: str = "field_glossary.json"):
     """Select a row that exists only in this test's copy of the manifest."""
     manifest = {key: (list(value) if isinstance(value, list) else value)
@@ -142,4 +142,4 @@ def test_a_row_nobody_published_is_refused_and_names_the_candidates(monkeypatch)
     monkeypatch.setattr(cli, "A_FACT_ROW", (cli.A_FACT_ROW[0], "no-such-arm"))
     with pytest.raises(prompt_library.DraftNotInManifest) as refused:
         cli.a_fact_prompt()
-    assert "v3-conflicts-open-values" in str(refused.value)
+    assert "v4-a-year-is-not-a-term" in str(refused.value)
