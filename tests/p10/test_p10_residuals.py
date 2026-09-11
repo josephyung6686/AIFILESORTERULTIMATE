@@ -481,3 +481,69 @@ def test_replacing_a_node_that_is_not_in_the_version_is_refused(conn):
             parent_node_id=None, root_anchor=None, merge_into=None,
             replaces_node_id="n_absent")])
     assert "n_absent" in str(excinfo.value)
+
+
+# ======================================================================================
+# `104` R-42 item 4: the disposition a template ALREADY AUTHORS
+#
+# §7.2 makes "whether the file should be reviewed, retained, or merely kept
+# searchable" one of the eight slots, and `01-nine-templates.json` authors it for
+# all nine. §7.4 makes the node's disposition "a real physical destination, a
+# review-only category that never moves files automatically, or a policy that
+# tells the system to leave files in place". They are the same three answers,
+# written from the two ends of one decision -- and `cli.py` supplied
+# `PHYSICAL_DESTINATION` for every template regardless of what its own author had
+# said, which made the authored slot unreachable by construction.
+# ======================================================================================
+
+def test_each_authored_treatment_has_the_disposition_it_describes():
+    """The three, each with the design sentence that pairs them.
+
+    reviewed -> review-only: §7.4's "a review-only category that never moves
+    files automatically" is what a template whose treatment is `reviewed` is
+    asking for. retained -> physical destination: `00`:120 lets a template
+    "hold" its files, and a physical destination is where holding happens.
+    "merely kept searchable" -> leave in place: `00` §7.11 names that policy in
+    as many words -- "their preferred policy is searchability without movement".
+    """
+    from tree_design.residuals import disposition_for_treatment
+    from tree_design.vocabulary import TREATMENT_KEPT_SEARCHABLE
+
+    assert disposition_for_treatment(TREATMENT_REVIEWED) == REVIEW_ONLY
+    assert disposition_for_treatment(TREATMENT_RETAINED) == PHYSICAL_DESTINATION
+    assert disposition_for_treatment(TREATMENT_KEPT_SEARCHABLE) == LEAVE_IN_PLACE
+
+
+def test_a_treatment_outside_the_three_is_refused_rather_than_defaulted():
+    """A default here would be P10 answering §7.4's question for the person.
+
+    And it would answer it the one way that moves files, which is the answer a
+    misspelling must never mean.
+    """
+    from tree_design.residuals import OutOfVocabulary, disposition_for_treatment
+
+    with pytest.raises(OutOfVocabulary):
+        disposition_for_treatment("kept")
+
+
+def test_every_shipped_template_maps_to_a_disposition():
+    """The nine the product ships, against the three §7.4 allows.
+
+    A template whose authored treatment had no disposition would make
+    `--residual <that name>` raise on a name `--list-residuals` prints.
+    """
+    import json
+    from pathlib import Path
+
+    from tree_design.residuals import disposition_for_treatment
+    from tree_design.vocabulary import RESIDUAL_DISPOSITIONS
+
+    library = json.loads(
+        (Path(__file__).resolve().parents[2] / "src" / "tree_design" /
+         "library" / "residuals.json").read_text(encoding="utf-8"))
+    treatments = {name: values["treatment"]
+                  for name, values in library.items()
+                  if name in RESIDUAL_TEMPLATE_NAMES}
+    assert len(treatments) == len(RESIDUAL_TEMPLATE_NAMES)
+    for name, treatment in treatments.items():
+        assert disposition_for_treatment(treatment) in RESIDUAL_DISPOSITIONS, name

@@ -846,3 +846,36 @@ def test_a_protected_set_cannot_be_sent_to_a_model_by_a_bulk_gesture(tmp_path):
     assert not acted, acted
     # And the set is still there, counted and explained: refused, not deleted.
     assert "Protected, and not filed in bulk" in dict(_surfaced(database))
+
+
+def test_a_placement_onto_an_area_that_never_moves_files_has_no_sentence():
+    """`104` R-42 item 4 made a gap reachable that was there all along.
+
+    §7.4's three dispositions are real and two of them never move a file:
+    `placement.privacy.moves_files` answers False for a review-only category and
+    for a leave-in-place policy, and `mutation.plan` refuses either as a write
+    target. Until item 4 the CLI supplied `physical-destination` for every
+    residual area, so no run this command made could reach one -- and the report
+    has exactly three sentences for a placement, one per review policy, all of
+    them about being filed. A classified file sent to an area whose template is
+    authored `reviewed` now reads "Ready for you to approve, then file into
+    Review Later", and approving it will not file it: P12 refuses the write.
+
+    The word owed is a fourth reading of `PLACEMENT_WORDS` -- what to say when
+    the destination is settled and the area the person enabled is one that holds
+    files without moving them (`00`:120's "represent without moving"). It is a
+    sentence to a person about their own material and it is the owner's to write,
+    not this build's to invent.
+    """
+    import pytest
+
+    assert set(cli.PLACEMENT_WORDS) == {
+        pv.AUTO_ELIGIBLE, pv.REVIEW_REQUIRED, pv.BLOCKED_PENDING_USER}
+    assert "approve, then file into" in cli.PLACEMENT_WORDS[pv.REVIEW_REQUIRED]
+    from placement.privacy import moves_files
+    from tree_design.vocabulary import LEAVE_IN_PLACE, REVIEW_ONLY
+    assert moves_files(REVIEW_ONLY) is False
+    assert moves_files(LEAVE_IN_PLACE) is False
+    pytest.xfail(
+        "no sentence exists for a placement onto a residual area that never "
+        "moves files; the three `PLACEMENT_WORDS` readings all promise filing")

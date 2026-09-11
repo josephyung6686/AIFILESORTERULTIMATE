@@ -462,7 +462,7 @@ from evidence_shape.store import get_observation, runs_for_content
 #: `SPREADSHEET_FAMILIES` and for nothing else (`104` R-42 item 2).
 from evidence_shape.vocabulary import SOURCE_TYPES
 from tree_design.residuals import (
-    ResidualChoice, ResidualTemplate, build_library,
+    ResidualChoice, ResidualTemplate, build_library, disposition_for_treatment,
 )
 from tree_design.user_edits import (
     UserEditRefused, UserLevelEdit, record_user_level_edit,
@@ -4213,6 +4213,44 @@ def _residual_library() -> Mapping[str, ResidualTemplate]:
         for name, values in raw.items() if name in RESIDUAL_TEMPLATE_NAMES
     }
     return build_library(slot_values)
+
+
+def residual_library_choices(library: Mapping[str, ResidualTemplate],
+                             enabled: Sequence[str]) -> tuple[ResidualChoice, ...]:
+    """§7.4's decisions, one per template the person named.
+
+    **THE DISPOSITION IS THE TEMPLATE'S OWN ANSWER (`104` R-42 item 4).** This
+    said `PHYSICAL_DESTINATION` for every one of the nine, under a comment
+    reading "the other two dispositions are real §7.4 choices with no flag yet,
+    and inventing a way to say them here would be guessing at a gesture nobody
+    designed". The first half was right and the second overlooked that the
+    template ALREADY ANSWERS: §7.2's `treatment` slot is "whether the file should
+    be reviewed, retained, or merely kept searchable", `01-nine-templates.json`
+    authors it for all nine, and six of the nine say something other than
+    "retained". So the authored slot was unreachable by construction and the one
+    value a composition root guessed for all of them was the one that moves
+    files. `tree_design.residuals.disposition_for_treatment` is the join and
+    carries the design sentence behind each arrow.
+
+    It is still not a gesture, and §7.4 still leaves the disposition the person's
+    to change; what it stops being is a guess. A flag that says "make this one a
+    physical destination after all" is owed and is not invented here.
+
+    **The anchor is this run's own root anchor** -- §7.3 leaves five of the nine
+    default parents unstated and P10 refuses to invent one, and the top of the
+    tree the plan is written against is the one place that is not an invention.
+    `_enable_residual_library` then puts a branch that named no parent inside this
+    run's top-level branch rather than at the root, which is `00`:99's rule that a
+    catch-all must not become the product's default answer to ambiguity.
+    """
+    return tuple(
+        ResidualChoice(template_name=name, action=ENABLE,
+                       disposition=disposition_for_treatment(
+                           library[name].treatment),
+                       display_label=None, parent_node_id=None,
+                       root_anchor=ROOT_ANCHOR, merge_into=None,
+                       replaces_node_id=None)
+        for name in enabled)
 
 _RECOGNITION_MANIFEST = (
     Path(__file__).resolve().parent / "recognition" / "library" / "recognition.json")
@@ -12567,28 +12605,12 @@ def run(conn: sqlite3.Connection, directory: Path, *,
 
     # §7.4's enablement, and only what the person named. `00`: "These templates
     # are not automatically created", so a run that names none passes an empty
-    # library and the tree is exactly the tree it was. The disposition is a
-    # physical destination because that is what `--residual` asks for -- a place
-    # for these files to go; the other two dispositions (review-only, leave in
-    # place) are real §7.4 choices with no flag yet, and inventing a way to say
-    # them here would be guessing at a gesture nobody designed.
-    #
-    # The anchor is this run's own root anchor -- §7.3 leaves five of the
-    # nine default parents unstated and P10 refuses to invent one, and the
-    # top of the tree the plan is written against is the one place that is
-    # not an invention. `_enable_residual_library` then puts a branch that
-    # named no parent inside this run's top-level branch rather than at the
-    # root, which is `00`:99's rule that a catch-all must not become the
-    # product's default answer to ambiguity.
+    # library and the tree is exactly the tree it was. `residual_library_choices`
+    # is where the shape of each decision is argued.
     residual_library = _residual_library() if residuals else {}
-    residual_choices = tuple(
-        ResidualChoice(template_name=name, action=ENABLE,
-                       disposition=PHYSICAL_DESTINATION, display_label=None,
-                       parent_node_id=None, root_anchor=ROOT_ANCHOR,
-                       merge_into=None,
-                       replaces_node_id=None)
-        for name in residuals)
-    residual_configuration = {name: ENABLE for name in residuals}
+    residual_choices = residual_library_choices(residual_library, residuals)
+    residual_configuration = {choice.template_name: choice.action
+                              for choice in residual_choices}
 
     def design_decisions(accepted: Sequence[str]) -> TreeDesignDecisions:
         return TreeDesignDecisions(
