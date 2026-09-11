@@ -9503,6 +9503,37 @@ def _protected_file_ids(conn: sqlite3.Connection) -> set[str]:
         "WHERE protected = 1 AND superseded_by IS NULL")}
 
 
+def _sensitive_groups(conn: sqlite3.Connection,
+                      group_ids: Sequence[str]) -> frozenset[str]:
+    """Which of these accepted groups hold at least one file P7 marked protected.
+
+    `104` §18.2 gap 14. `tree_design.candidates` reads `sensitive_group_ids` to
+    decide `sensitive_content_present` per branch card and this deployment named
+    `frozenset()` on the argument that "P7 classifies FILES and publishes no
+    group-level answer" -- true, and no reason to answer none: P10 ASKS and never
+    classifies (§5.2, §8.4), the same rule `handling_class_for_member` a few lines
+    below already honours per file. This is the same question over a group's own
+    INCLUDED membership -- P9's live `memberships` (`decision = INCLUDED`, not
+    superseded), read the way `confirmed_membership_index` already reads it,
+    joined against the same `classifications.protected` flag `_protected_file_ids`
+    and `_protected_among` read.
+
+    Scoped to `group_ids` (the plan version's ACCEPTED groups) rather than every
+    group P9 ever proposed: `design_authorities` is handed exactly that sequence
+    and a group nobody accepted has no branch card to mark.
+    """
+    if not group_ids:
+        return frozenset()
+    marks = ",".join("?" * len(group_ids))
+    rows = conn.execute(
+        f"SELECT DISTINCT m.group_id FROM memberships m "
+        f"JOIN classifications c ON c.file_id = m.file_id "
+        f"WHERE m.group_id IN ({marks}) AND m.superseded_by IS NULL "
+        f"AND m.decision = ? AND c.protected = 1 AND c.superseded_by IS NULL",
+        (*group_ids, INCLUDED))
+    return frozenset(row["group_id"] for row in rows)
+
+
 def _protected_file_count(conn: sqlite3.Connection, scan_run_id: str) -> int:
     """How many of THIS scan's files P7 marked protected. `104` R-J.
 
@@ -11759,11 +11790,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 branch.schema for branch in (
                     partition_cell[0].branches if partition_cell else ()))
                 or (schema,)),
-            # Which accepted groups hold sensitive material. P7 classifies FILES
-            # and publishes no group-level answer, so this deployment names none
-            # and every group is offered; the per-file floors below are what keep
-            # a sensitive file from landing somewhere weaker.
-            sensitive_group_ids=frozenset(),
+            # Which accepted groups hold sensitive material. `104` §18.2 gap 14:
+            # this named `frozenset()` on the true premise that P7 classifies
+            # FILES and publishes no group-level answer, and missed that P10 asks
+            # rather than classifies -- `_sensitive_groups` asks the same
+            # `classifications.protected` flag the per-file floors below already
+            # read, over this plan version's own accepted groups.
+            sensitive_group_ids=_sensitive_groups(conn, accepted),
             # §5.2's privacy ordering. P7 publishes HANDLING_CLASSES as a SET and
             # no rank, so one is chosen here: everything ranks equal, which is the
             # only ordering that cannot give a branch a weaker floor than one of
