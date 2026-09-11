@@ -1008,9 +1008,9 @@ def _record_the_models_acceptance(conn: sqlite3.Connection, *, group_id: str,
     `decided_by=VALIDATOR` and not `LLM`: `DECIDED_BY` has three members and the
     model is not one of them, and the honest one of the three is the one that is
     true. `ACCEPT_DIRECT` and `ACCEPT_CONTEXT_SUPPORTED` are P8's VALIDATOR's
-    outcomes over the model's claim -- the claim is only accepted once every
-    citation resolved, every field belonged to the schema and no stronger fact
-    contradicted it -- so the decider named here is the part that did the deciding.
+    outcomes over the model's claim, reached only after P8's own checks passed, so
+    the decider named here is the part that did the deciding. P9 reads no citation
+    and runs no second validator to find that out -- it reads the outcome word.
 
     `review_state=PENDING_REVIEW` beside `acceptance=ACCEPTED`, because both are
     true and they are about different questions: this plan version accepts the
