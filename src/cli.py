@@ -86,6 +86,7 @@ from facts.families import (
     shared_family_field,
 )
 from facts.discount import MetadataScreen
+from facts.discount import screen_metadata as _discount_screen_metadata
 # `104` §18.31: which reader produced each of the readings a site-E call carries.
 # `00`:44's "exact process that produced it" term of the cache key, read off the
 # evidence rather than off a constant, exactly as `model_facts.
@@ -315,6 +316,7 @@ from production import (
     shipped_situations, situation_schema_family, template_id_for_situation,
     run_production_corpus,
 )
+from readers.capture import make_tool_producer_strings, metadata_property_names
 from readers.deployment import macos_readers
 from readers.pdf_pdfium import pdfium_reader
 from readers.signatures import signature_detector
@@ -4119,8 +4121,16 @@ DIRECT_SLOTS = DirectSlots(slots=())
 #: one file, two live `term` facts, two reliability states, two spellings, two term
 #: folders.
 
-METADATA_SCREEN = MetadataScreen(tool_producer_strings=(),
-                                 metadata_property_names=())
+#: `104` §18.2 gap 14 (11 Sep 2026). This shipped `MetadataScreen(tool_producer_
+#: strings=(), metadata_property_names=())` -- an empty injection, legitimate in
+#: `facts.discount`'s own words but never a caller who HELD a catalogue -- so
+#: `python-docx` and `Mozilla/5.0` reached `subject` and `authored_by` as facts and
+#: the SPEC's own `Producer` example was mistaken for meaningful content. Catalogue
+#: 01 shipped and compiled since `readers/capture.py` was written; it was never
+#: handed here. `make_tool_producer_strings`/`metadata_property_names` are the
+#: loader's own published readers of it (`lru_cache`, one compile per process).
+METADATA_SCREEN = MetadataScreen(tool_producer_strings=make_tool_producer_strings(),
+                                 metadata_property_names=metadata_property_names())
 
 #: §7.3 fixes nine residual template names and leaves their eight attribute slots
 #: deferred. Until now this deployment shipped NONE rather than inventing slot
@@ -5294,6 +5304,27 @@ def _media_type_stage(conn, file_id: str, content_hash: str) -> tuple[str, ...]:
     return () if written is None else (written,)
 
 
+def _screen_deterministic_pass(conn: sqlite3.Connection, file_id: str,
+                               content_hash: str) -> tuple:
+    """`FactResolver`'s required `screen_metadata`, bound as its own docstring
+    specifies: read the version's observations, hand them to `facts.discount.
+    screen_metadata` with `METADATA_SCREEN`'s two catalogue collections, and write
+    the one `unresolved` row Done-means 22 requires before any producer runs.
+
+    `104` §18.2 gap 14. This was `lambda conn, file_id, content_hash: ()` -- a
+    survivor set nobody read (`resolve_steps` discards the return; the row is the
+    whole point) and, because it was called with no catalogue behind it, a row that
+    was never written. `_direct_stage`/`_rule_stage` already bind `METADATA_SCREEN`
+    for the field-level check (§2.3); this is the version-level check (§2.2) the
+    two producers do not make.
+    """
+    return _discount_screen_metadata(
+        conn, file_id=file_id, content_hash=content_hash,
+        observations=observations_for_version(conn, file_id, content_hash),
+        tool_producer_strings=METADATA_SCREEN.tool_producer_strings,
+        metadata_property_names=METADATA_SCREEN.metadata_property_names)
+
+
 def _resolver(*, tiers: frozenset[str], cache_key: str) -> FactResolver:
     """P6, deterministic. `llm` is `None`, which is a decision.
 
@@ -5316,7 +5347,7 @@ def _resolver(*, tiers: frozenset[str], cache_key: str) -> FactResolver:
             conn, file_id=file_id, content_hash=content_hash,
             analysis_tiers=tiers),
         cache_key_for=lambda file_id, content_hash: f"{cache_key}:{content_hash}",
-        screen_metadata=lambda conn, file_id, content_hash: ())
+        screen_metadata=_screen_deterministic_pass)
 
 
 class AFactRowNotRatified(RuntimeError):
