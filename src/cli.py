@@ -262,7 +262,9 @@ from privacy.vocabulary import (
     MODE_SEMANTICS, RESTRICTED_KINDS,
 )
 from questions.explanation import explain_question, render_explanation
-from questions.effects import changed_answer, diff_for_answer_change
+from questions.effects import (
+    changed_answer, diff_for_answer_change, draft_for_answer_change,
+)
 from questions.explanation import explain_question, render_explanation
 from questions.proposal import propose_roles
 # TWO `questions.records` LINES, DELIBERATELY, AND THIS IS THE WHOLE REASON.
@@ -388,7 +390,7 @@ from mutation.schema import create_mutation_schema
 from mutation import vocabulary as mv
 from mutation.constraints import FilesystemConstraints
 from mutation.resolution import source_high_level_folder
-from tree_design.store import nodes_for_version
+from tree_design.store import latest_plan_version, nodes_for_version, open_draft
 from apply_run.approval import approval_reader, approval_writer
 from apply_run.branches import BranchRefused, branches_named
 from apply_run.freeze import freeze, frozen_plans
@@ -14486,7 +14488,8 @@ def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
     return tuple(settled)
 
 
-def _print_answer_effects(conn: sqlite3.Connection, settled, out) -> None:
+def _print_answer_effects(conn: sqlite3.Connection, settled, out, *,
+                          created_at: str) -> None:
     """§17:577's diff, for the answers this invocation actually changed.
 
     `changed_answer` returns `None` for a FIRST answer, which is why this prints
@@ -14500,6 +14503,8 @@ def _print_answer_effects(conn: sqlite3.Connection, settled, out) -> None:
     the same reason, in its own docstring.
     """
     out = out if out is not None else sys.stdout
+    draft_token = uuid.uuid4().hex[:8]
+    draft_ids = count()
     for question_id, scope in settled:
         change = changed_answer(conn, question_id=question_id, scope=scope)
         if change is None:
@@ -14525,6 +14530,39 @@ def _print_answer_effects(conn: sqlite3.Connection, settled, out) -> None:
         print("  Not worked out here, and why:", file=out)
         for name, reason in diff.why_not_computed.items():
             print(f"    {name}: {reason}", file=out)
+        # `104` R-38. §17:576's DRAFT, opened here because this is where the
+        # policy lives. `draft_for_answer_change`'s own docstring says whether to
+        # call it at all "IS NOT DECIDED HERE ... The composition root holds that
+        # policy, as it holds every other one" -- and until this line the
+        # composition root held no policy, so the function had no caller and an
+        # edited answer opened nothing. §17:576 reads "the product creates a draft
+        # plan version"; this deployment reads that as automatic, which is the
+        # sentence taken at its word, and `75` §6 Q5's offered-instead reading
+        # stays the owner's to rule.
+        #
+        # It returns `None` when the change changed nothing, so a person who
+        # re-types the answer they already gave finds no draft waiting -- the
+        # guard is P15's and is not repeated here.
+        #
+        # FROM the version the person last saw, and never from nothing: before any
+        # run there is no tree to copy and the answer simply takes effect on the
+        # run that follows. The ids are minted off this invocation's own token for
+        # the same reason `run` mints its own -- two drafts opened in one session
+        # must not collide, and a uuid per node would make the draft unreadable
+        # beside the version it came from.
+        from_version = latest_plan_version(conn)
+        if from_version is None:
+            continue
+        draft = draft_for_answer_change(
+            conn, change=change, from_version=from_version,
+            new_version_id=f"version_{draft_token}_{next(draft_ids)}",
+            created_at=created_at, open_draft=open_draft,
+            mint_node_id=lambda: f"node_{draft_token}_{next(draft_ids)}")
+        if draft is not None:
+            conn.commit()
+            print(f"  A draft plan version was opened from {from_version} so "
+                  "you can see this against what you had. Nothing is frozen and "
+                  "nothing has moved.", file=out)
 
 
 # ======================================================================================
@@ -17018,10 +17056,16 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         # should not have to run the command a third time to see what it did.
         if args.answer:
             _bootstrap(conn)
+            # ONE timestamp for the gesture and its consequence. `now()` is a
+            # fresh reading per call, and an answer recorded a millisecond before
+            # the draft it opened would sort after it on a `created_at DESC` read
+            # -- which is exactly the read `latest_plan_version` makes.
+            recorded_at = now()
             _print_answer_effects(
                 conn,
                 apply_answers(conn, args.answer, user_id=args.user,
-                              recorded_at=now()), out)
+                              recorded_at=recorded_at), out,
+                created_at=recorded_at)
         # After the answers and before the run, for the same reason, and in
         # this order: describing then confirming under one name is a correction
         # that supersedes, so the confirmation must be the later write.

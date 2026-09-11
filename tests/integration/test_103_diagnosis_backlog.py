@@ -348,3 +348,67 @@ def test_nothing_freezes_from_that_folder_when_nobody_answers(tmp_path):
     frozen = _frozen_names(database)
     assert "IMG_0001.txt" not in frozen, report
     assert "IMG_0002.txt" not in frozen, report
+
+
+# --- `104` R-38: an answer change opens a draft plan version -----------------------
+
+
+def _versions(database):
+    return {row[0]: row[1] for row in _query(
+        database, "SELECT plan_version_id, state FROM plan_versions")}
+
+
+def test_changing_an_answer_opens_a_draft_plan_version(tmp_path):
+    """`104` R-38 / §17:576. `draft_for_answer_change` had no caller in `src/`.
+
+    Its own docstring said the policy was the composition root's, and the
+    composition root held none -- so a person who changed their mind about a
+    branch got a new answer recorded and no way to see it against what they had.
+    §17:576 reads "the product creates a draft plan version"; this deployment
+    takes that at its word.
+
+    The draft is asserted by COUNT rather than by id, because the id is minted per
+    invocation and the run that follows the answer mints its own versions too. The
+    screen line is asserted beside it: a draft nobody is told about is the same
+    silent loss as the proposal nobody was shown.
+    """
+    corpus = _corpus(tmp_path)
+    database = tmp_path / "holder" / "plan.sqlite"
+    _run(corpus, database)
+    _run(corpus, database, "--answer",
+         "branch:Coursework=school>term>subject>work_type")
+    before = _versions(database)
+
+    code, report = _run(corpus, database, "--answer",
+                        "branch:Coursework=keep-as-it-is")
+    assert code == 0, report
+    assert "A draft plan version was opened from" in report, report
+    after = _versions(database)
+    opened = [name for name in after if name not in before]
+    assert opened, (before, after)
+    assert any(after[name] == "draft" for name in opened), after
+
+
+def test_re_typing_the_same_answer_opens_nothing(tmp_path):
+    """P15's guard, reached through the composition root rather than repeated.
+
+    A person who presses up-arrow has not edited anything, and a product that
+    opened a draft would teach them that re-confirming is dangerous -- the
+    opposite of what §12's revocability promises.
+    """
+    corpus = _corpus(tmp_path)
+    database = tmp_path / "holder" / "plan.sqlite"
+    _run(corpus, database)
+    _run(corpus, database, "--answer", "branch:Coursework=keep-as-it-is")
+    before = _versions(database)
+    code, report = _run(corpus, database, "--answer",
+                        "branch:Coursework=keep-as-it-is")
+    assert code == 0, report
+    assert "A draft plan version was opened" not in report, report
+    drafted = [name for name, state in _versions(database).items()
+               if name not in before and state == "draft"]
+    # The run itself mints drafts on its way to a frozen version; what must not
+    # appear is one opened BEFORE the run, from the answer. The screen line is
+    # the honest test of that and the count is its corroboration: the answer
+    # opened none of these, because it changed nothing.
+    assert "What changing" not in report or "Nothing this can see" in report, report
