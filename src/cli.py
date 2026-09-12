@@ -3236,9 +3236,12 @@ def announce_entity_reader(entity_model, *, out) -> None:
     this device, and a run that proceeds without it may release a health form on the
     rules' word alone (`104` §18.56 measured four of those). So this refuses, through
     `NotConfigured`, which `main` prints as a reason and not as a crash.
-    `readers.entities_gliner.available_in` makes exactly the checks construction makes
-    that do not need the runtime, so the header and the pass agree about what is
-    readable.
+    `readers.entities_gliner.available_in` makes every check construction makes short
+    of opening the graph -- the two libraries, the tokenizer, the config and its four
+    keys, and which export is usable -- so the header and the pass agree about what is
+    readable. What is left to fail late is onnxruntime failing to open a file that is
+    present and named right, which is not a configuration fact and crashes loudly, as
+    an unexpected error should.
     """
     if entity_model is None:
         return

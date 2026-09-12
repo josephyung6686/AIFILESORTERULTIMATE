@@ -153,7 +153,18 @@ def available_in(model_dir) -> tuple[Path, dict]:
     instead and refuses there, which is `MiniLmEncoder`'s rule ("raised at
     CONSTRUCTION and never at classification time") kept for a reader whose
     construction cannot happen that early.
+
+    The two libraries are checked FIRST and not only the files, so the header's
+    promise is exact: everything that can refuse this reader short of the graph
+    itself opening has refused by the time this returns.
     """
+    try:
+        import onnxruntime  # noqa: F401,PLC0415  a deployment import, by design
+        import tokenizers  # noqa: F401,PLC0415
+    except ImportError as problem:  # pragma: no cover - environment shape
+        raise ModelUnavailable(
+            "onnxruntime and tokenizers are this deployment's choice and are not "
+            f"installed: {problem}") from problem
     directory = Path(model_dir)
     tokenizer_path = directory / TOKENIZER_FILE
     config_path = directory / CONFIG_FILE
@@ -340,13 +351,9 @@ class GlinerEntities:
         self._sep_token = str(config["sep_token"])
         self._max_width = int(config["max_width"])
 
-        try:
-            import onnxruntime  # noqa: PLC0415  a deployment import, by design
-            from tokenizers import Tokenizer  # noqa: PLC0415
-        except ImportError as problem:  # pragma: no cover - environment shape
-            raise ModelUnavailable(
-                "onnxruntime and tokenizers are this deployment's choice and are "
-                f"not installed: {problem}") from problem
+        # Present, because `available_in` above refused if they were not.
+        import onnxruntime  # noqa: PLC0415  a deployment import, by design
+        from tokenizers import Tokenizer  # noqa: PLC0415
 
         self._tokenizer = Tokenizer.from_file(str(directory / TOKENIZER_FILE))
         # The encoder's own ceiling, from its own config. Without it a dense page
