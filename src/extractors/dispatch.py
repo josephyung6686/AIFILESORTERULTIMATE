@@ -486,6 +486,19 @@ def current_versions() -> dict[str, str]:
     fields), so P5 cannot state it without asking an engine that may not be installed.
     A caller sees no entry and therefore never calls an OCR run stale, which is the
     honest answer rather than a guessed one.
+
+    **`entities.` IS DELIBERATELY ABSENT TOO, and this is where that is recorded.**
+    `extractors/entities.py` is `00` amendment 7(b)'s local entity pass. It is not a
+    routed family and this module cannot run it: it opens no file, mints no run, and
+    reads the text units an earlier run already stored, writing its readings ONTO
+    that run (its own docstring says why at length). So there is nothing here for a
+    caller to call stale -- a REUSE file's entity readings are re-read from the
+    database whatever the stat cache decided about its bytes. Its VERSION still
+    reaches §3.4's cache key, by the route the key actually uses:
+    `model_facts.call_identity_dimensions` reads `extractor_versions` as the
+    `(name, version)` pairs of the readings a call CARRIES, off the evidence rather
+    than off a constant, so a bumped entity pass re-asks the questions that rested on
+    its output and an entry here would be a second, staler home for the same number.
     """
     return {
         pdf.EXTRACTOR_NAME: pdf.VERSION,
