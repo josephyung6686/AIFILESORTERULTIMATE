@@ -74,6 +74,7 @@ from privacy.release import ModelCallRequest, Target
 #: `00` amendment 7(a)'s closed roster of identifier kinds, IMPORTED so
 #: `_held_phrase` can tell a scheme's name from an authored work type without
 #: keeping a second copy that stops matching the day a kind is renamed.
+from extractors.entities import ENTITY_NAMESPACE, is_entity_extractor
 from extractors.identifiers import KINDS as IDENTIFIER_KINDS
 from recognition.detector import Precaution, SituationOutcome
 from recognition.vocabulary import SAFETY_DOMAIN_IDS
@@ -353,18 +354,29 @@ def _held_phrase(precaution: Precaution | None) -> str:
     told apart by `extractors.identifiers.KINDS`, which is that extractor's own
     closed roster, so nothing here keeps a second list. The kind is still not a word
     out of the person's file: it is the name of a numbering scheme.
+
+    **AND SINCE 7(b), A TERM MAY BE AN ENTITY THE LOCAL ENCODER NAMED**, which is a
+    third sentence: not a word the author wrote and not a checksum, but a model's
+    reading of what a span IS. Those carry their own `entities.` prefix -- the label
+    set is the deployment's, so there is no closed roster to check a bare kind
+    against -- and are printed without it, so the model is told "on the entities
+    person, medical_condition" and can weigh a pairing as a pairing.
     """
     if precaution is None:
         return ""
+    entities = ", ".join(term[len(ENTITY_NAMESPACE):] for term in precaution.terms
+                         if is_entity_extractor(term))
     kinds = ", ".join(term for term in precaution.terms
                       if term in IDENTIFIER_KINDS)
     terms = ", ".join(term for term in precaution.terms
-                      if term not in IDENTIFIER_KINDS)
+                      if term not in IDENTIFIER_KINDS
+                      and not is_entity_extractor(term))
     zones = ", ".join(precaution.zones)
     return (f" | held: the rules are holding this file as "
             f"{precaution.schema_id} material"
             + (f", on the work type {terms}" if terms else "")
             + (f", on the identifier {kinds}" if kinds else "")
+            + (f", on the entities {entities}" if entities else "")
             + (f", found in {zones}" if zones else ""))
 
 
