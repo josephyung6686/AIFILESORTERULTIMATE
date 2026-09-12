@@ -38,6 +38,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import cli  # noqa: E402
 
+#: SF-3 (63b1d41, 11 Sep 2026): a group is a draft until a person accepts it, and
+#: the lists that name every file are printed for an accepted plan. This test is
+#: about the lists, so it accepts the proposal the way `tests/test_cli.py` does.
+ACCEPTS_THE_PROPOSAL = ("--accept-groups",)
+
 SVG = "diagram.svg"
 RIS = "refs.ris"
 RAW = "capture.raw"
@@ -63,6 +68,7 @@ def run(tmp_path_factory):
     database = root / "plan.sqlite"
     out = io.StringIO()
     assert cli.main([str(corpus), "--situation", "academic.coursework",
+                     *ACCEPTS_THE_PROPOSAL,
                      "--label", "Coursework", "--user", "t",
                      "--database", str(database)], out=out) == 0, out.getvalue()
 

@@ -122,7 +122,8 @@ from facts.unresolved import BUDGET_DEFERRED, NO_CANDIDATE_EVIDENCE
 from facts.usable import record_pass
 from facts.fields import DOMAIN_FIELDS
 from facts.read_surface import (
-    DanglingCitation, confirmed_spellings, evidence_chain, versions_in_fields,
+    DanglingCitation, confirmed_spellings, evidence_chain, proposal_eligible,
+    versions_in_fields,
 )
 from facts.file_facts import facts_for_file
 from facts.states import (
@@ -325,7 +326,13 @@ from production import (
     GROUP_LEVEL_ROLES, load_shipped_catalogue,
     nearest_situations, read_packaged_library_file, schema_for_situation,
     shipped_situations, situation_schema_family, template_id_for_situation,
-    run_production_corpus,
+    # THE TWO HALVES AND NOT `run_production_corpus`, which is those two halves in
+    # one call with `downstream(p1_p7)` evaluated inline as the second's
+    # `authorities=`. `--stop-after` ends the run at the seam between them, so this
+    # module composes them itself; `run_production_corpus` still states the rule
+    # that decides the shape and `tests/integration/test_production_corpus.py`
+    # still drives it.
+    run_production_p1_p7, run_production_p8_p11,
 )
 from readers.capture import make_tool_producer_strings, metadata_property_names
 from readers.deployment import macos_readers
@@ -10760,6 +10767,54 @@ def _print_candidate_roots(candidate_roots: Sequence[Path],
           "nothing.", file=out)
 
 
+def _print_stopped_after_facts(conn: sqlite3.Connection, *, run_id: str,
+                               out) -> None:
+    """The last thing a `--stop-after facts` run says, and the only thing that run
+    says which an ordinary run does not.
+
+    **IT IS SAID, not left to be inferred from what is missing.** Everything above
+    this line is what an ordinary run prints too; what tells a person their run
+    ended early is that the proposal never came, and a screen that simply stops is
+    indistinguishable from one that crashed. `84` §6's rule about a decision that no
+    longer applies is the same rule here: what did not happen is named.
+
+    **`proposal_eligible` AND NOT A COUNT OF `file_facts` ROWS.** A SELECT over that
+    table written in this file is a second home for P6's schema, which
+    `values_with_counts` and `_facts_by_file` both refuse for the reason their
+    docstrings give -- and the unfiltered per-file read is the wrong question
+    besides: it returns the replaced conclusion and the row a weak answer left
+    behind, so a file the pass abstained on would be counted as one that came out
+    with facts. `proposal_eligible` is P6's own answer to "what did this file end up
+    with that the rest of the run could have used", which is exactly the number a
+    person stopping here wants.
+
+    Both counts come off the roster this scan built, so they are a fraction of the
+    corpus the person asked to organise and not of anything wider.
+
+    **"HAVE FACTS RECORDED", AND NOT "CAME OUT OF THE PASS WITH FACTS".** The pass
+    has four early returns and every one of them is an ordinary way for a run to go
+    -- and on a machine with no model configured, which is the common one, the block
+    directly above this sentence says so and counts every file as "not asked". A
+    sentence here crediting the pass with the facts would contradict that block on
+    the same screen about the same files, which is the defect `_reconcile_the_roster`
+    ranks its own precedence to avoid. What is true either way is that the files have
+    facts: P6's deterministic producers wrote them whether or not a model was asked.
+    """
+    out = out if out is not None else sys.stdout
+    roster = corpus_roster(conn, run_id)
+    with_facts = sum(
+        1 for file_id, content_hash in roster
+        if proposal_eligible(conn, file_id=file_id, content_hash=content_hash))
+    print("", file=out)
+    print(_wrapped(
+        f"Stopped after the fact pass, as --stop-after {STOP_AFTER_FACTS} asked: "
+        f"{with_facts} of {len(roster)} "
+        f"{'file' if len(roster) == 1 else 'files'} {'has' if with_facts == 1 else 'have'} "
+        f"facts recorded, and nothing was grouped and nothing was placed -- no "
+        f"folder was proposed, no file was given a home, and nothing moved.",
+        indent=""), file=out)
+
+
 #: §4.4's similarity threshold, MEASURED AND NOT CHOSEN. `planning/103` records
 #: the run: every pair of the owner's own labelled files, encoded by the same
 #: MiniLM weights this deployment names, split by whether the ground truth puts
@@ -12561,6 +12616,18 @@ def _the_situation_of_a_run(catalogue: TemplateCatalogue, situation: str,
                                   and level.field == SCHOOL_FIELD))
 
 
+#: `--stop-after`'s stages, BY NAME AND IN ONE PLACE. The flag's `choices` and the
+#: comparison inside `run` read this same tuple, so a stage cannot come to be spelled
+#: one way on the command line and another in the composition -- and the next stage
+#: this grows to offer is one entry here rather than a literal in two files.
+#:
+#: A NAME AND NOT A BOOLEAN. `stop_after_facts=True` would need a second flag for the
+#: second stage and a rule about what two of them together mean; a stage name says
+#: where the run ends and cannot say it twice.
+STOP_AFTER_FACTS: str = "facts"
+STOP_AFTER_STAGES: tuple[str, ...] = (STOP_AFTER_FACTS,)
+
+
 def run(conn: sqlite3.Connection, directory: Path, *,
         situation: str | None = None, label: str | None = None,
         user_id: str, now, out=None,
@@ -12614,7 +12681,13 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # needs to know which drafts this run made.
         accept_drafts: bool = False,
         drafts: list[str] | None = None,
-        wire_handle_key: bytes | None = None) -> ProductionRun:
+        # `--stop-after`'s stage, or `None` for the whole run. `STOP_AFTER_STAGES`
+        # is the whole of what may be passed and is the same tuple the flag offers.
+        # A run that stops returns `None` rather than a `ProductionRun`: there is no
+        # tree, no placement and no plan version, and a record with those three
+        # fields empty would be a plan a caller could read counts off.
+        stop_after: str | None = None,
+        wire_handle_key: bytes | None = None) -> ProductionRun | None:
     """One corpus, end to end. Assembles the authorities and calls the composition.
 
     `out` is here so the protected-container block can be printed the moment the
@@ -15080,7 +15153,15 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # go, and every authority this pass borrows is built inside it. No model, no
         # authorities, no pass -- and `_NO_TEMPLATE_ASKED` then keeps every file
         # under the template its situation names, which is where it was.
-        if fact_authorities and site_has_a_destination(
+        #
+        # AND NOT AT ALL UNDER `--stop-after`. The stages below this line are the
+        # ones that spend a call ON TOP of the fact pass -- site E's template
+        # question and site B's observation -- and a run told to end at the facts
+        # has said it does not want them. The three blocks after them still print:
+        # they report what the SCAN found, and the scan is the whole of what this
+        # run did.
+        going_on = stop_after is None
+        if going_on and fact_authorities and site_has_a_destination(
                 conn, routing, E_TEMPLATE, operation_mode=operation_mode):
             roster = corpus_roster(conn, p1_p7.scan_run_id)
             template_cell[:] = [ask_for_a_template(
@@ -15097,7 +15178,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             fact_authorities[0], routing=routing, situation=said().situation,
             placeable_file_count=placeable_file_count(
                 conn, p1_p7.scan_run_id))
-            if fact_authorities else (None, None))
+            if going_on and fact_authorities else (None, None))
         # HERE, and not in `report`. The scan has finished and every design stage
         # after this point can refuse by name -- and `main` reaches `report` only
         # when none of them does. Printed at the end, the count of what was marked
@@ -15204,7 +15285,16 @@ def run(conn: sqlite3.Connection, directory: Path, *,
     # the decision has to be made before it starts.
     recording = (RecordingCorpusSource(FilesystemCorpusSource())
                  if record is not None else None)
-    result = run_production_corpus(
+    # `run_production_corpus` INLINED, and that is `--stop-after`'s whole
+    # mechanism. That function is two lines -- P1--P7, then P8--P11 with
+    # `downstream(p1_p7)` evaluated inline as its `authorities=` argument -- and
+    # the seam between them is exactly where a run that has read every file and
+    # written its facts ends. Evaluated inline, the fact pass could only be
+    # stopped after by raising out of the middle of a call, which is a second way
+    # to leave a composition for a case that is not an error. Hoisted into a
+    # local, the stop is an `if` between two statements and the ordinary run is
+    # the same three steps in the same order it always ran them.
+    p1_p7 = run_production_p1_p7(
         conn, selection_id, authorities=p1_p7_authorities(
             now=now, detector=classify_producer, operation_mode=operation_mode,
             source=recording,
@@ -15213,8 +15303,20 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # this run. `record_bundle` below reads `result.p1_p7.bundle_id`, so
             # the bundle has to exist by the time it is called and cannot be
             # assembled afterwards -- a sealed bundle is immutable by trigger.
-            bundle_content=record is not None),
-        downstream=downstream,
+            bundle_content=record is not None))
+    # THE FACT PASS AND THE THREE BLOCKS THAT REPORT THE SCAN, all of which are
+    # inside `downstream`. Everything the database gets from a stopped run is
+    # written by the time this returns.
+    corpus_authorities = downstream(p1_p7)
+    if stop_after == STOP_AFTER_FACTS:
+        # AFTER `downstream` and not inside it, so this sentence lands under the
+        # blocks that say what the scan found rather than in the middle of them.
+        # The authorities it just built are dropped: they are the argument P8--P11
+        # takes, and P8--P11 is what this run was told not to do.
+        _print_stopped_after_facts(conn, run_id=p1_p7.scan_run_id, out=out)
+        return None
+    result = run_production_p8_p11(
+        conn, p1_p7, authorities=corpus_authorities,
         decisions=CorpusDecisions(
             plan_version_id=PLAN_VERSION, accept_groups=accept_and_remember,
             design=design_decisions, approve_plan=approve_plan,
@@ -19382,6 +19484,18 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "effect immediately and needs nothing else -- not a situation, not a "
              "label, not even the folder still existing.")
     parser.add_argument(
+        # NO `metavar`, deliberately: argparse prints the choices in the usage
+        # line, and the stage names are the only way to learn what this flag
+        # accepts. A `STAGE` placeholder would be `--list-situations`' closed door
+        # in miniature -- a flag whose value you must already know to use it.
+        "--stop-after", choices=STOP_AFTER_STAGES, default=None,
+        help="stop the run after one stage instead of carrying on to a "
+             "proposal, e.g. --stop-after facts. `facts` reads every file and "
+             "records what it found, and says what it found; nothing is "
+             "grouped, no folder is proposed and no file is placed. What the "
+             "pass wrote is kept, so a later run without this flag starts from "
+             "it rather than reading your files again.")
+    parser.add_argument(
         "--freeze", action="store_true",
         help="turn this run's proposal into a plan you can move files with. "
              "Freezing moves nothing. What it prints is one line per branch "
@@ -19472,6 +19586,50 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         # picking one would decide what may leave the device by argument order.
         parser.error("--enable-cloud and --disable-cloud say opposite things "
                      "about the same folder; pass one")
+
+    # `84` §6 again, and BEFORE the `--apply` dispatch below because that one
+    # returns: a `--stop-after --apply` checked after it would move a person's
+    # files and never reach this refusal at all.
+    #
+    # THERE IS NOTHING TO FREEZE OR ACCEPT. A run that ends at the fact pass makes
+    # no group, no tree and no plan version, so each of these four names something
+    # this run will not produce. Honouring the stop and ignoring the gesture would
+    # leave a person who typed `--freeze` believing they had a plan; honouring the
+    # gesture and ignoring the stop would run the whole pipeline they asked not to.
+    # Neither is more obviously right than the other, which is this rule's own
+    # test for when to refuse instead of choosing.
+    #
+    # `--undo` IS NOT ON THIS LIST, and neither is `--apply`'s partner in the
+    # dispatch below: both are answered before a scan starts and neither composes a
+    # run, so `--stop-after` beside them is not two answers to one question. It is
+    # the four gestures that need THIS run to have gone further than it did.
+    if args.stop_after is not None:
+        also_typed = [name for name, typed in (
+            ("--freeze", args.freeze),
+            ("--apply", bool(args.apply)),
+            ("--apply-everything", args.apply_everything),
+            ("--accept-groups", args.accept_groups),
+            # A recording names a plan; a run that stops before the plan exists
+            # would take the name and announce nothing under it.
+            ("--record", bool(getattr(args, "record", None)))) if typed]
+        if also_typed:
+            print("\nThis run was not started, because it was asked for two "
+                  "things at once:", file=out)
+            # WRAPPED, and `_wrapped` rather than a long f-string for the reason
+            # its own docstring gives: every name in this sentence is a flag a
+            # person has to be able to read and retype, and `textwrap`'s default
+            # would split `--accept-groups` across two lines at the hyphen.
+            print(_wrapped(
+                f"--stop-after {args.stop_after} ends the run at the "
+                f"{args.stop_after}, and {', '.join(also_typed)} "
+                f"{'needs' if len(also_typed) == 1 else 'need'} the proposal "
+                f"that comes after it.", indent="  "), file=out)
+            print(_wrapped(
+                "Run it with --stop-after alone to see what was read out of "
+                "your files, then run it again without --stop-after when you "
+                "want the proposal. Nothing was read and nothing was written.",
+                indent="  "), file=out)
+            return 2
 
     # BEFORE the required-argument check, because turning sending OFF must not
     # require a full run's worth of arguments. A person who wants it to stop should
@@ -19778,6 +19936,10 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                      # filled with what the run drafted, and is read below when
                      # `design_tree` refuses because nobody accepted anything.
                      accept_drafts=args.accept_groups, drafts=drafted,
+                     # The stage this run ends at, or `None` for all of it. The
+                     # four gestures that would need what comes after it were
+                     # refused before the scan started.
+                     stop_after=args.stop_after,
                      wire_handle_key=wire_handle_key_for(database))
     except RecordingNameTaken as refusal:
         # Belt and braces behind hunk 13. The name is checked before the scan, so
@@ -19835,6 +19997,14 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         print(f"\nNo plan was made for {directory}, and this is why:\n"
               f"  {type(refusal).__name__}: {refusal}", file=out)
         return 1
+    # `--stop-after` ENDED THE RUN, and `run` has already said so on the same
+    # stream. Everything below this line reads `result.tree` or
+    # `result.placement`, which a stopped run does not have: the report is a report
+    # ON A PLAN, `record_level_presentations` records levels a tree named, and the
+    # freeze turns a proposal into one. There is no proposal, and the flag that
+    # would have frozen one was refused before the scan started.
+    if result is None:
+        return 0
     # `questions_a_run_could_not_settle` and not `open_questions` raw. A revoked
     # role question REOPENS -- that is what revocation means -- and printing it
     # under "Questions only you can answer" put a 23-option identity question in

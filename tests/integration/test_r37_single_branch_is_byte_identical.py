@@ -167,6 +167,16 @@ def _corpus(root: Path) -> Path:
     (corpus / "Passport scan.txt").write_text(
         "Passport\nHong Kong Special Administrative Region\n"
         "Passport No. K12345678\nDate of birth: 1 January 1990\n")
+    # THE SCREEN PRINTS THE FILES' DATES ("Age range: ... to ..."), and a golden
+    # captured on one day would differ on every other. The corpus is stamped with
+    # the noon of the day the golden was captured (11 Sep 2026, local time), so a
+    # byte-identical screen is byte-identical on any date. Measured: the pin failed
+    # the first time the suite ran after midnight, on that one line.
+    import os
+    import time
+    stamp = time.mktime((2026, 9, 11, 12, 0, 0, 0, 0, -1))
+    for path in corpus.iterdir():
+        os.utime(path, (stamp, stamp))
     return corpus
 
 

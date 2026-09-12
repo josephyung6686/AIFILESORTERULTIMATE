@@ -23,8 +23,11 @@ def _correction(conn, scope, subject, explanation, **overrides):
     return append_event(conn, **fields)
 
 
-def test_the_six_scopes():
-    assert SCOPES == ("file", "group", "node", "template", "domain", "corpus")
+def test_the_seven_scopes():
+    # Seven since `104` R-26 (11 Sep 2026): the owner ratified `branch` -- a
+    # correction that reaches one branch of the tree -- between node and template.
+    assert SCOPES == ("file", "group", "node", "branch", "template", "domain",
+                      "corpus")
 
 
 def test_a_file_scoped_correction_is_not_returned_by_a_corpus_read(conn):
