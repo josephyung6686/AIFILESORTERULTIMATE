@@ -713,6 +713,46 @@ def test_the_packaged_rule_set_names_only_schemas_the_product_recognises():
     assert set(rules.schemas) <= set(SCHEMA_IDS)
 
 
+# --- `00` amendment 7 / `104` §18.56: two rows for a person's own life --------------
+# The answer key measured the library gap directly on the owner's corpus: 62 files
+# were a student organisation's own records, 51 were personal media outside a camera
+# or messenger export. `nonprofit.student-organisation` and `photos.personal-graphics`
+# close two of the three named gaps; the third (online learning) was the key's
+# vocabulary, not the library's -- `academic.online-course` already covers it.
+# Neither of these rows is a safety domain, so `detector()`'s shipped POLICY -- which
+# only extends `SAFETY_DOMAIN_HANDLING` with `academic` -- is extended again here,
+# exactly as that constant's own docstring says a deployment would.
+
+NEW_ROW_POLICY = {**SAFETY_DOMAIN_HANDLING,
+                  "nonprofit": Handling("personal_non_sensitive", False, "detector"),
+                  "photos": Handling("personal_non_sensitive", False, "detector")}
+
+
+def test_the_packaged_manifest_recognises_a_students_own_club_record(db, tmp_path):
+    rules = load_rules(MANIFEST_PATH.read_text)
+    file_id, content_hash = a_file(
+        db, tmp_path, "Fall interest meeting sign-up sheet.pdf",
+        body="Please bring this budget request to the student activities office.")
+    outcome = detector(rules, handling_for=NEW_ROW_POLICY).explain(
+        db, file_id, content_hash)
+    assert isinstance(outcome, Recognition), outcome
+    assert outcome.schema_id == "nonprofit"
+    assert {match.term for match in outcome.matches} >= {
+        "sign up sheet", "budget request", "student activities office"}
+
+
+def test_the_packaged_manifest_recognises_a_saved_personal_graphic(db, tmp_path):
+    rules = load_rules(MANIFEST_PATH.read_text)
+    file_id, content_hash = a_file(
+        db, tmp_path, "funny meme wallpaper.jpg", body="",
+        source_type="image", extension=".jpg")
+    outcome = detector(rules, handling_for=NEW_ROW_POLICY).explain(
+        db, file_id, content_hash)
+    assert isinstance(outcome, Recognition), outcome
+    assert outcome.schema_id == "photos"
+    assert {match.term for match in outcome.matches} >= {"meme", "wallpaper"}
+
+
 # --- the term arrays were also used as a notes field -------------------------------
 
 NOTE = ("proposed for r6, not design: accession register, deaccession, object "

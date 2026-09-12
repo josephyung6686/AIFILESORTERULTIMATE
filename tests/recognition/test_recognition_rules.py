@@ -102,9 +102,20 @@ def test_compiled_rules_round_trip_through_json_unchanged():
 
 
 def test_the_packaged_manifest_loads_and_covers_every_schema_the_rows_named():
+    # 358 -> 360, re-argued rather than bumped silently: `00` amendment 7 and `104`
+    # §18.56 ratify two new rows for a gap the answer key measured directly --
+    # `nonprofit.student-organisation` (a student club's own sign-up sheets, event
+    # flyers, meeting agendas, event shift rosters, officer handovers and
+    # activities-office funding requests) and `photos.personal-graphics` (designed
+    # graphics a person saved or made for themselves -- memes, wallpapers, stickers,
+    # banners, profile images -- outside a camera, a screenshot or a bulk export).
+    # The diagnosis's third named gap, online learning outside a school, is NOT a
+    # third new row: §18.56's own ruling is that `academic.online-course` already
+    # exists and covers it, and the gap was the answer key's vocabulary, not the
+    # library's.
     rules = load_rules(MANIFEST_PATH.read_text)
     assert set(rules.schemas) <= set(SCHEMA_IDS)
-    assert rules.compiled_rows == 358
+    assert rules.compiled_rows == 360
     # Not asserted as a literal count of schemas: `SCHEMA_IDS` is widening
     # underneath this package, so the guard is that every compiled schema is a
     # recognised one and that the rule set is not empty.

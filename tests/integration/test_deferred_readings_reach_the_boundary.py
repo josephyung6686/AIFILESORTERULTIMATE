@@ -18,8 +18,10 @@ built from, and are not written into the dossier.
 
 **The numbers the packet needs, measured here rather than asserted.**
 
-  * 314 `needs_llm` ROWS across 23 schemas, carrying 1,984 individual readings. (The
-    "314 rows" in `102` is rows; the reading count is six times larger.)
+  * 316 `needs_llm` ROWS across 23 schemas, carrying 1,994 individual readings. (The
+    "314 rows" in `102` is rows; the reading count is six times larger. 314 -> 316
+    and 1,984 -> 1,994: `00` amendment 7 and `104` §18.56 add `nonprofit.
+    student-organisation` and `photos.personal-graphics`, five readings each.)
   * `SchemaRules.deferred_readings` is the SCHEMA's, not the situation's:
     `recognition.rules._schema` flattens every row's `readings` and discards the
     `row` key that says which situation authored them. So a coursework run holds
@@ -103,17 +105,23 @@ def test_the_readings_the_run_holds_are_the_librarys_own_verbatim():
 
 
 def test_every_schema_a_situation_can_name_carries_readings():
-    """1,984 readings over 314 rows, and no schema a person can reach is empty.
+    """1,994 readings over 316 rows, and no schema a person can reach is empty.
 
     An empty one would mean a run whose model is steered by nothing while another
     run in the same product is steered by prose -- a difference nobody chose.
+
+    314 -> 316, 1,984 -> 1,994: `00` amendment 7 and `104` §18.56 ratify two new
+    rows for a library gap the answer key measured directly -- a student
+    organisation's own records and personal media outside a camera or messenger
+    export. `nonprofit.student-organisation` and `photos.personal-graphics` each
+    carry one `needs_llm` entry of five readings.
     """
     manifest = _manifest()["schemas"]
     rows = sum(len(schema.get("needs_llm", ())) for schema in manifest.values())
     readings = sum(len(entry["readings"])
                    for schema in manifest.values()
                    for entry in schema.get("needs_llm", ()))
-    assert (rows, readings) == (314, 1984)
+    assert (rows, readings) == (316, 1994)
 
     rules = _rules()
     for schema_id in sorted(rules.schemas):
