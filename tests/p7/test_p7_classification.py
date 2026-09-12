@@ -206,9 +206,12 @@ def test_p6s_origin_vocabulary_is_not_p7s_basis_vocabulary(file_id, content_hash
     # interpretation" says a VALUE was produced by a model, and this says a model
     # answered the SITUATION question -- one is about a field of a file, the other
     # about which kind of material the file is.
+    # `local_model_gate` (12 Sep 2026, `00` amendment 7(c)): the gate's own word,
+    # which of the ten restricted kinds a file is, on this device; its clearance is
+    # what opens the cloud. Its own member, because a basis must not overclaim.
     assert CLASSIFICATION_BASES == (
         "detector", "detector_no_safety_evidence", "safety_domain", "user",
-        "local_model_situation")
+        "local_model_situation", "local_model_gate")
     with pytest.raises(OutOfVocabulary):
         a_record(file_id, content_hash, basis="rule")
 

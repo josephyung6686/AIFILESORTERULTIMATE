@@ -6407,9 +6407,20 @@ def model_route_permitted(conn: sqlite3.Connection, *, locality: str,
         # items; `scan_agent.exclusion.is_protected_container`) are a different
         # mechanism again: the walk creates no `files` row inside one, so nothing
         # here can route them, and nothing should.
-        return not protected_cloud_denies(
-            protected=record.protected, locality=locality,
-            operation_mode=operation_mode, scope="", granted_scopes=())
+        if protected_cloud_denies(
+                protected=record.protected, locality=locality,
+                operation_mode=operation_mode, scope="", granted_scopes=()):
+            return False
+        # A CLOUD ROUTE NEEDS A LOCAL MODEL'S WORD OR THE PERSON'S OWN (`00`
+        # amendment 7(c)). The rules' word alone -- a `detector` row with
+        # `protected = 0` -- released two health forms on the second corpus
+        # (`104` §18.56), and the gate exists so that no file leaves on it. After a
+        # completed gate pass every un-held file carries a gate row, so this
+        # changes nothing for a scan that ran; it is what keeps a file local when
+        # the gate declined, failed, or was never run.
+        if locality != LOCAL:
+            return record.basis in CLOUD_CLEARING_BASES
+        return True
 
     return permitted
 
@@ -7257,6 +7268,15 @@ LOCAL_MODEL_GATE: str = "local_model_gate"
 #: file in every run, and catching the refusal per file would turn one missing
 #: vocabulary member into a per-file mystery in the counts.
 GATE_MAY_WRITE_A_CLASSIFICATION: bool = LOCAL_MODEL_GATE in CLASSIFICATION_BASES
+
+#: The bases on which a file's readings may reach a CLOUD model: a model on this
+#: device read the file and said it is none of the ten restricted kinds -- the
+#: gate's clearance, or the situation site lifting a hold (the owner's ruling of
+#: 10 Sep, gap 24b: its template asks the protected kinds first) -- or the person's
+#: own settlement. `detector` and `detector_no_safety_evidence` are the rules'
+#: word alone and are not among them (`00` amendment 7(c)).
+CLOUD_CLEARING_BASES: tuple[str, ...] = (
+    LOCAL_MODEL_GATE, LOCAL_MODEL_SITUATION, "user")
 
 #: THE HANDLING CLASS A GATE-NAMED KIND CARRIES, derived rather than spelled, on
 #: `SAFETY_DOMAIN_BASES`' own argument one screen up. A file the gate names is a
@@ -16273,6 +16293,25 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # not leave 2.36 GB resident for the rest of the run.
             del reader
 
+    def _reclassify_on_entities(run_id: str) -> None:
+        """`00` amendment 7(b), the half the classify loop cannot see.
+
+        `classifier` runs per file inside `run_p1_p7`, before the entity pass
+        exists, so an entity hold -- a person beside a diagnosis -- is never on the
+        row the gate and the routes read. The detector is asked once more over the
+        roster with the entity readings in the store; a candidate that HOLDS the
+        file is assigned (a hold supersedes an ordinary row at the same rank and
+        never a person's own word); an ordinary candidate changes nothing.
+        """
+        if entity_model is None:
+            return
+        store = ClassificationStore(conn)
+        for file_id, content_hash in corpus_roster(conn, run_id):
+            candidate = classify_producer(conn, file_id, content_hash)
+            if candidate is not None and candidate.protected:
+                assign(conn, candidate, store=store,
+                       component_version=COMPONENT_VERSION)
+
     def _family_pass(run_id: str) -> None:
         """§3.11's two family fields, over the whole corpus at once.
 
@@ -16465,6 +16504,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # 2.36 GB session and drops it, so it must finish before the local language
         # model wants the machine.
         _entity_pass(p1_p7.scan_run_id)
+        _reclassify_on_entities(p1_p7.scan_run_id)
         # `104` R-37. The branches, once every deterministic fact exists and
         # before a model is asked anything: the fact pass asks per branch.
         partition_cell[:] = [_partition_branches(p1_p7.scan_run_id)]

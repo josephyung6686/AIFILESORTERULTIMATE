@@ -228,7 +228,7 @@ def test_the_basis_vocabulary_gains_a_fourth_member_and_stays_closed():
     """
     assert CLASSIFICATION_BASES == (
         "detector", "detector_no_safety_evidence", "safety_domain", "user",
-        "local_model_situation")
+        "local_model_situation", "local_model_gate")
     assert DETECTOR_NO_SAFETY_EVIDENCE == "detector_no_safety_evidence"
     assert DETECTOR_NO_SAFETY_EVIDENCE in CLASSIFICATION_BASES
 

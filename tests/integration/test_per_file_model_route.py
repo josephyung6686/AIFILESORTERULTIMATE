@@ -113,16 +113,20 @@ def corpus(conn, tmp_path):
         return file_id, get_file(conn, file_id)["content_hash"]
 
     def _classify(file_id: str, content_hash: str, *, protected: bool,
-                  handling: str) -> None:
+                  handling: str, basis: str = DETECTOR) -> None:
         store.write(ClassificationRecord(
             file_id=file_id, content_hash=content_hash,
-            handling_class=handling, protected=protected, basis=DETECTOR,
+            handling_class=handling, protected=protected, basis=basis,
             evidence_refs=("sha256:" + "b" * 64,), reliability_state="validated",
             observed_at="2026-09-09T00:00:00Z"))
 
+    # ORDINARY MEANS GATE-CLEARED (`00` amendment 7(c)): the local gate read the
+    # file and named none of the ten restricted kinds. The rules' word alone
+    # (`detector`, protected 0) no longer opens the cloud -- see
+    # `test_the_rules_word_alone_keeps_a_file_local`.
     ordinary, ordinary_hash = _file("Lecture 08.pdf", b"work and energy")
     _classify(ordinary, ordinary_hash, protected=False,
-              handling="personal_non_sensitive")
+              handling="personal_non_sensitive", basis=cli.LOCAL_MODEL_GATE)
     # NO RECORD AT ALL, which is what the detector abstaining leaves behind. It is
     # the common case on a real folder -- 95 of the owner's 199 files -- and it is
     # a sentence about the detector, not about the bytes.
@@ -226,37 +230,33 @@ def test_site_c_splits_the_same_way_a_does_now_that_its_text_is_ratified(corpus,
     assert route(corpus["unclassified"])[1].model_id == LOCAL_ID
 
 
-def test_site_g_keeps_every_file_on_this_device_too(corpus, conn):
-    """`104` §17.1: *"Nothing leaves the device under this ruling."* G's row is
-    unratified, so the same drop applies -- and it matters more here than anywhere,
-    because site G is where a file either is or is not recognised as a medical
-    record before anything else happens to it."""
+def test_site_g_crosses_only_for_a_file_the_gate_cleared(corpus, conn):
+    """`00` amendment 7(c) (12 Sep 2026) re-argues §17.1's "nothing leaves the
+    device": the GATE (site H) is the site whose text never crosses, and site G's
+    whole-library row is ratified for the cloud -- for a file the gate cleared and
+    for no other. A gate-cleared file's situation goes to the provider; an
+    unclassified or held file's stays here."""
     route = cli.target_for(conn, _both(), G_SITUATION_SENSITIVITY,
                            operation_mode=SENDING_ON)
-
     assert _where(route, corpus) == {
-        "ordinary": LOCAL, "unclassified": LOCAL, "protected": LOCAL}
-
+        "ordinary": CLOUD, "unclassified": LOCAL, "protected": LOCAL}
 
 def test_the_sites_that_may_not_cross_are_still_on_with_both_models_configured(
         conn):
     """The other half of the regression: a site whose text keeps it here must
     still HAVE a destination when a local model is configured beside a key.
-
-    G and D_residual are those sites now -- G's row is `ratified_local` and D's is
-    unratified -- since C's was ratified for the cloud.
+    H (the gate, local by its nature) and D_residual are those sites now -- G's
+    whole-library row was ratified for the cloud on 12 Sep 2026 (`00` amendment
+    7(c)) and belongs beside A and C.
     """
+    from llm_harness.vocabulary import H_RESTRICTED_KIND
     both = _both()
-
-    for site in (D_RESIDUAL, G_SITUATION_SENSITIVITY):
+    for site in (D_RESIDUAL, H_RESTRICTED_KIND):
         assert not cli.observe_locality_permits(site, CLOUD), (
             "this test is about sites whose own text keeps them here; if one of "
             "them was ratified for the cloud it belongs beside A and C instead")
         assert cli.site_has_a_destination(conn, both, site,
                                           operation_mode=SENDING_ON)
-
-
-# --- one model configured: nothing about it changes ---------------------------
 
 def test_a_cloud_key_alone_behaves_exactly_as_it_did(corpus, conn):
     """No local model, so a file the cloud may not see gets NO call rather than a
@@ -434,21 +434,23 @@ def test_the_fact_pass_runs_with_both_models_configured_and_sending_off(conn):
 
 
 def test_site_gs_guard_lets_the_pass_run_on_a_two_target_deployment(conn):
-    """`104` §17.1 says nothing leaves the device at site G, and the guard used to
-    enforce that by reading `locality_for(G)`. On a two-target routing that answers
-    CLOUD, so the guard would have turned site G off in exactly the deployment the
-    ruling is for -- while `target_for` inside the pass was already keeping every
-    file here. The site is asked whether it has a DESTINATION, and it has one."""
+    """`104` §17.1 said nothing leaves the device at site G, and the guard used to
+    enforce that by reading `locality_for(G)`. The site is asked whether it has a
+    DESTINATION, and on a two-target routing it has one. `00` amendment 7(c): G's
+    row is ratified for the cloud, so a cloud key alone is a destination for G too
+    -- the gate-cleared files reach it and the rest get no call rather than a
+    cloud one. The site whose text never crosses is the GATE, and a cloud key
+    alone leaves it with nowhere to ask."""
+    from llm_harness.vocabulary import H_RESTRICTED_KIND
     for mode in (cli.OPERATION_MODE, SENDING_ON):
         assert cli.site_has_a_destination(conn, _both(),
                                           G_SITUATION_SENSITIVITY,
                                           operation_mode=mode)
-    assert not cli.site_has_a_destination(conn, _cloud_only(),
-                                          G_SITUATION_SENSITIVITY,
-                                          operation_mode=SENDING_ON), (
-        "site G's text may not cross the internet, so a cloud key alone leaves it "
-        "with nowhere to ask and the pass is right to stop")
-
+    assert cli.site_has_a_destination(conn, _cloud_only(),
+                                      G_SITUATION_SENSITIVITY,
+                                      operation_mode=SENDING_ON)
+    assert not cli.site_has_a_destination(conn, _cloud_only(), H_RESTRICTED_KIND,
+                                          operation_mode=SENDING_ON)
 
 def test_the_placement_evidence_is_gathered_under_the_destination_it_will_go_to(
         corpus, conn):
@@ -474,3 +476,30 @@ def test_site_c_asks_nobody_over_the_internet_when_sending_is_off(corpus, conn):
 
     assert _where(route, corpus) == {
         "ordinary": LOCAL, "unclassified": LOCAL, "protected": LOCAL}
+
+
+def test_the_rules_word_alone_keeps_a_file_local(corpus, conn, tmp_path):
+    """`00` amendment 7(c): a cloud route needs the gate's clearance or the
+    person's own word. A `detector` row with `protected = 0` is the rules' word,
+    and the rules released two health forms on the second corpus (`104` §18.56),
+    so under a cloud-sending mode that file takes the LOCAL target."""
+    from database_agent.files_table import get_file, record_file
+    from privacy.classification import ClassificationRecord
+    from privacy.classification_store import ClassificationStore
+    path = tmp_path / "Lecture 09.pdf"; path.write_bytes(b"rules only")
+    file_id = record_file(
+        conn, path, filename=path.name, normalized_filename=path.name.lower(),
+        extension=".pdf", observed_size=10,
+        observed_timestamps=json.dumps({"mtime": 1_700_000_000.0}),
+        parent_folder_context="Downloads", mime_type="application/pdf",
+        detected_format="pdf", scan_state="included", materialized=True)
+    ClassificationStore(conn).write(ClassificationRecord(
+        file_id=file_id, content_hash=get_file(conn, file_id)["content_hash"],
+        handling_class="personal_non_sensitive", protected=False, basis="detector",
+        evidence_refs=("sha256:" + "c" * 64,), reliability_state="validated",
+        observed_at="2026-09-12T00:00:00Z"))
+    for site in (A_FACT, G_SITUATION_SENSITIVITY):
+        route = cli.target_for(conn, _both(), site, operation_mode=SENDING_ON)
+        assert route(file_id)[1].locality == LOCAL
+    assert cli.target_for(conn, _both(), A_FACT, operation_mode=SENDING_ON)(
+        corpus["ordinary"])[1].locality == CLOUD

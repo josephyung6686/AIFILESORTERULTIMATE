@@ -539,8 +539,9 @@ def test_wall_two_is_open_and_a_local_model_verdict_has_a_truthful_basis():
 
     assert LOCAL_MODEL_SITUATION == "local_model_situation"
     assert LOCAL_MODEL_SITUATION in CLASSIFICATION_BASES
-    assert len(CLASSIFICATION_BASES) == 5
-    assert CLASSIFICATION_BASES[-1] == LOCAL_MODEL_SITUATION
+    # six since `00` amendment 7(c) added the gate's own basis (12 Sep 2026)
+    assert len(CLASSIFICATION_BASES) == 6
+    assert CLASSIFICATION_BASES[-2] == LOCAL_MODEL_SITUATION  # the gate's basis follows it
     assert "detector" not in LOCAL_MODEL_SITUATION, (
         "the owner's stated intent is that a model verdict is never recorded as "
         "`detector`, and a word carrying it would read as one at a glance")

@@ -325,9 +325,12 @@ def test_five_classification_bases_and_three_audit_outcomes():
     situations the file is part of -- and the question is named in the word because
     `96` §19's lesson is that a basis must not overclaim what was checked.
     """
+    # `local_model_gate` (12 Sep 2026, `00` amendment 7(c)): the gate's own word,
+    # which of the ten restricted kinds a file is, on this device; its clearance is
+    # what opens the cloud. Its own member, because a basis must not overclaim.
     assert CLASSIFICATION_BASES == (
         "detector", "detector_no_safety_evidence", "safety_domain", "user",
-        "local_model_situation")
+        "local_model_situation", "local_model_gate")
     assert AUDIT_OUTCOMES == ("released", "denied", "consent_requested")
 
 

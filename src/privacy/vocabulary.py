@@ -503,9 +503,20 @@ REDACTION_VALUES: tuple[str, str] = (SHOWN, REDACTED)
 #: record supersedes it, and `reliability_state` is where that ranking lives.
 LOCAL_MODEL_SITUATION: str = "local_model_situation"
 
+#: The gate's basis (`00` amendment 7(c), ratified by the owner 12 Sep 2026): a
+#: model running on this device read the file's opening and said whether it is a
+#: record of one of the ten restricted kinds, citing the text. `protected = 1` with
+#: the kind as the privacy class when it named one; `protected = 0`,
+#: `personal_non_sensitive`, when it said none and the deterministic layers were
+#: silent -- and that row is what lets the file's situation and facts reach a cloud
+#: model. Its own member and not `local_model_situation`'s, because that word names
+#: a different question (which situation, from a list) and a basis must not overclaim
+#: what was checked.
+LOCAL_MODEL_GATE: str = "local_model_gate"
+
 CLASSIFICATION_BASES: tuple[str, ...] = (
     "detector", "detector_no_safety_evidence", "safety_domain", "user",
-    LOCAL_MODEL_SITUATION,
+    LOCAL_MODEL_SITUATION, LOCAL_MODEL_GATE,
 )
 
 #: The one basis P7 itself writes: Task 16's reclassification records the user's own

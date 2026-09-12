@@ -68,6 +68,7 @@ from extractors.long_tail import POTENTIALLY_SENSITIVE, sensitivity_signals_for
 from privacy.vocabulary import (
     CLASSIFICATION_BASES, DETECTOR as _DETECTOR,
     DETECTOR_NO_SAFETY_EVIDENCE as _DETECTOR_NO_SAFETY_EVIDENCE,
+    LOCAL_MODEL_GATE as _LOCAL_MODEL_GATE,
     LOCAL_MODEL_SITUATION as _LOCAL_MODEL_SITUATION,
     PRIVACY_CLASS_BY_KIND, PRIVACY_CLASS_ORDINARY,
     PRIVACY_CLASS_PENDING, PRIVACY_CLASS_PROTECTED, PRIVACY_CLASSES,
@@ -108,8 +109,14 @@ UNREADABLE_UNCLASSIFIED: str = check_handling_class("unreadable_unclassified")
 #: (`model_situation`). So a `local_model_situation` row that reached this
 #: constructor with an empty `evidence_refs` is a wiring defect, and it is refused
 #: here rather than stored as a model conclusion nobody can trace.
+#: THE GATE'S BASIS IS HERE FOR THE SAME REASON (`00` amendment 7(c)): both of its
+#: rows cite what the model was shown -- a named kind through its citation, a
+#: clearance through the released readings it read and found no record in -- and a
+#: clearance with nothing behind it would be the row that sends a file to the
+#: cloud on no evidence at all.
 _EVIDENCE_REQUIRED_BASES: frozenset[str] = frozenset(
-    {_DETECTOR, _DETECTOR_NO_SAFETY_EVIDENCE, _LOCAL_MODEL_SITUATION})
+    {_DETECTOR, _DETECTOR_NO_SAFETY_EVIDENCE, _LOCAL_MODEL_SITUATION,
+     _LOCAL_MODEL_GATE})
 
 
 

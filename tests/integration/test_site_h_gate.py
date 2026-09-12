@@ -463,7 +463,7 @@ def test_the_predicate_that_routes_a_cleared_file_is_the_doors_own(tmp_path):
         _file(file_id, "a" * 64)
         store.write(ClassificationRecord(
             file_id=file_id, content_hash="a" * 64, handling_class=handling,
-            protected=protected, basis="local_model_situation",
+            protected=protected, basis=cli.LOCAL_MODEL_GATE,
             evidence_refs=("sha256:" + "c" * 64,), reliability_state="llm_supported",
             observed_at="2026-09-12T00:00:00Z",
             privacy_class="protected" if protected else PRIVACY_CLASS_ORDINARY))
