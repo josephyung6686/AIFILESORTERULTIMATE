@@ -69,6 +69,7 @@ from llm_harness.vocabulary import (
     DEFERRED,
     E_TEMPLATE,
     G_SITUATION_SENSITIVITY,
+    H_RESTRICTED_KIND,
     SCOPE_FILE,
     SCOPE_GROUP,
     SCOPE_NODE,
@@ -94,6 +95,10 @@ _SCOPE_BY_SITE = {
     # `104` §17.1's seventh site, and the same scope `validation._SCOPE_BY_SITE`
     # gives it: one file version is what a situation verdict is about.
     G_SITUATION_SENSITIVITY: SCOPE_FILE,
+    # `00` amendment 7(c)'s eighth site, and the same scope again: the gate judges
+    # ONE file version -- whether it is a record of a restricted kind -- and a
+    # verdict about a file is scoped to the file at every site that asks about one.
+    H_RESTRICTED_KIND: SCOPE_FILE,
 }
 
 _BOOL_FLAGS = frozenset({"unreduced_fits", "summarized_fits", "anchors_fit"})

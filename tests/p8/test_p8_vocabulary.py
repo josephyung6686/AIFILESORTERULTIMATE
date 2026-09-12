@@ -18,6 +18,7 @@ from llm_harness.vocabulary import (
     C_PLACEMENT,
     CALL_SITES,
     G_SITUATION_SENSITIVITY,
+    H_RESTRICTED_KIND,
     CHOOSE_BROAD_PARENT,
     CHOOSE_RESIDUAL_DESTINATION,
     CITATION_NOT_FOUND,
@@ -148,11 +149,22 @@ def test_call_sites_are_the_spec_envelope_spellings():
     # model when the recognisers could not settle it. Appended, so the six that
     # records already point at keep their positions.
     assert G_SITUATION_SENSITIVITY == "G_situation_sensitivity"
+    # The EIGHTH is `00` amendment 7(c), 12 September 2026, on the owner's go and
+    # ratified as a name by the lead on G's precedent. `104` §18.56 measured what
+    # the seventh cost while it asked two questions at once: a shortlist that held
+    # the right answer for 35 of 87 files, 60 abstentions in 83, and two health
+    # forms released to the cloud on the rules' word. So the question that decides
+    # whether a file may LEAVE is its own site, over its own short dossier, on this
+    # machine and nowhere else -- while the seventh keeps the question of which
+    # situation a file is part of. Appended, so the seven before it keep their
+    # positions and every record already written still points where it pointed.
+    assert H_RESTRICTED_KIND == "H_restricted_kind"
     assert CALL_SITES == (A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE,
-                          F_ROLE_SHORTLIST, G_SITUATION_SENSITIVITY)
+                          F_ROLE_SHORTLIST, G_SITUATION_SENSITIVITY,
+                          H_RESTRICTED_KIND)
     assert CALL_SITES == (
         "A_fact", "B_group", "C_placement", "D_residual", "E_template",
-        "F_role_shortlist", "G_situation_sensitivity",
+        "F_role_shortlist", "G_situation_sensitivity", "H_restricted_kind",
     )
 
 

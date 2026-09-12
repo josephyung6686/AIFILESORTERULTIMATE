@@ -93,9 +93,41 @@ F_ROLE_SHORTLIST: str = "F_role_shortlist"
 #: site exists for.
 G_SITUATION_SENSITIVITY: str = "G_situation_sensitivity"
 
+#: THE EIGHTH, ADDED 2026-09-12, AND THE NAME IS RATIFIED BY THE LEAD ON THE
+#: OWNER'S GO OF THAT DAY -- recorded here, at the member, on the seventh's own
+#: precedent that a closed vocabulary carries its own approval.
+#:
+#: `00` amendment 7(c) is the act. Measured against the second corpus's answer key
+#: (`104` §18.56), the seventh site was asked about a minority of files, from a
+#: shortlist that held the right answer for 35 of 87, and two health forms the
+#: rules called ordinary were released to the cloud without any model reading
+#: them. The owner's ruling splits the seventh site in two, and this is the half
+#: that decides whether a file may leave: **which of `105` §13.3's ten restricted
+#: kinds, if any, is this file?** Nothing else. Not what it is about, not where it
+#: belongs, not which situation it is part of -- those are G's question and they
+#: are asked of the whole library afterwards.
+#:
+#: **A SITE OF ITS OWN AND NOT A READING OF G**, on the same argument that made G
+#: a site rather than a reading of A. G asks which SITUATION a file is part of,
+#: over a dossier built to answer that; this asks whether the file IS a record of
+#: a restricted kind, over a short dossier built to answer that -- the opening of
+#: a document and its metadata, where an identity number, a patient field or a
+#: booking reference sits. Two questions on one prompt is what §18.56 measured
+#: going wrong: the model answered `none` 60 times in 83, and the abstention was
+#: about the situation menu while the protection axis rode on it.
+#:
+#: **LOCAL ONLY, ALWAYS, AND NOT BECAUSE OF A ROW'S WORD.** It decides whether a
+#: file may leave the device, so it never leaves: asking a cloud model which
+#: restricted kind a file is would answer the question by sending the file, which
+#: is `00`'s own sentence about the four safety domains and amendment 5's ruling
+#: read one step earlier. `cli.gate_target` builds this site's destination with
+#: `cloud_permitted=False` and refuses a non-local locality outright, so the day
+#: this row is ratified the site still does not cross the internet.
+H_RESTRICTED_KIND: str = "H_restricted_kind"
+
 CALL_SITES: tuple[str, ...] = (
     A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE, F_ROLE_SHORTLIST,
-    G_SITUATION_SENSITIVITY,
+    G_SITUATION_SENSITIVITY, H_RESTRICTED_KIND,
 )
 
 # ---------------------------------------------------------------------------
@@ -277,6 +309,17 @@ ELIGIBILITY_BY_SITE: MappingProxyType[str, tuple[str, ...]] = MappingProxyType({
     # `ambiguous` is `multiple_plausible_domains`, and `no_corroboration` and
     # `no_evidence` are `remains_ambiguous` -- the file the rules could not settle.
     G_SITUATION_SENSITIVITY: FACT_ELIGIBILITY,
+    # THE EIGHTH SITE REUSES THE SAME THREE, and beside the seventh rather than in
+    # a list of its own for the reason stated above it: `00`:39 names the three
+    # states that send a file to a model in one sentence, and a fourth closed tuple
+    # holding those three words would be a second vocabulary saying one thing.
+    #
+    # The gate asks about EVERY file the deterministic layers could not settle
+    # either way, which is `remains_ambiguous` in `00`:39's own words -- the rules
+    # neither held it nor cleared it, so what it is remains open. A file the
+    # recognisers tied on arrives here `multiple_plausible_domains` exactly as it
+    # arrives at G, because the reason is read off the same recogniser outcome.
+    H_RESTRICTED_KIND: FACT_ELIGIBILITY,
 })
 
 SITES_REQUIRING_PLAN_VERSION: frozenset[str] = frozenset(

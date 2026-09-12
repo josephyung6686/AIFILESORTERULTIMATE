@@ -29,6 +29,7 @@ sys.path.insert(0, str(REPO))
 from llm_harness.vocabulary import (  # noqa: E402
     F_ROLE_SHORTLIST,
     G_SITUATION_SENSITIVITY,
+    H_RESTRICTED_KIND,
     A_FACT, ABSTAIN, ACCEPT_CONTEXT_SUPPORTED, ACCEPT_DIRECT, B_GROUP, C_PLACEMENT,
     D_RESIDUAL, E_TEMPLATE,
 )
@@ -170,6 +171,16 @@ def _instantiate(candidate, case, shape: dict) -> bytes:
                 payload["restricted_kind"] = kind
             else:
                 payload.pop("restricted_kind")
+        payload["alternatives"] = []
+    if candidate.site == H_RESTRICTED_KIND:
+        # `00` amendment 7(c)'s gate answers one payload key and it is not
+        # `situation`: the kind, and the alternatives. The case's own expected kind
+        # is the answer, exactly as the situation branch above uses the case's
+        # expected situation -- and the declining shape already carries
+        # `none_of_these` in the template, which is the site's own answer for a
+        # cleared file rather than a placeholder to fill.
+        if "citations" in claim:
+            payload["restricted_kind"] = case.expect["restricted_kind"]
         payload["alternatives"] = []
     if candidate.site == C_PLACEMENT:
         payload["destination"] = case.expect.get("destination", "none")

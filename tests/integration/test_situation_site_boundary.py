@@ -237,14 +237,28 @@ def test_wall_one_is_open_and_the_seventh_site_is_a_call_site():
     that it is spelled in exactly one place, and that opening it did not disturb
     the six that were already there. A file that only said "six became seven"
     would let the next member arrive without an approval beside it.
+
+    **AN EIGHTH ARRIVED ON 12 September 2026** (`00` amendment 7(c),
+    `H_restricted_kind`), so the count moved and the POSITION assertion is what
+    carries the argument now. The seventh is still at index 6 -- an appended
+    member leaves every earlier position where the records already point -- and
+    that is the property this test was defending all along; the length was only
+    ever the shortest way to say it. It is kept, at the new number, because a
+    member arriving with no approval beside it is exactly what a bare "the site is
+    in the tuple" assertion would let through.
     """
-    from llm_harness.vocabulary import CALL_SITES, G_SITUATION_SENSITIVITY
+    from llm_harness.vocabulary import (
+        CALL_SITES, G_SITUATION_SENSITIVITY, H_RESTRICTED_KIND,
+    )
 
     assert SITUATION_SENSITIVITY in CALL_SITES
-    assert len(CALL_SITES) == 7
-    assert CALL_SITES[-1] == SITUATION_SENSITIVITY, (
-        "the seventh is appended, so the six that records already point at keep "
-        "their positions")
+    assert len(CALL_SITES) == 8
+    assert CALL_SITES[6] == SITUATION_SENSITIVITY, (
+        "the seventh keeps its position; the six before it are where the records "
+        "that already point at them expect them")
+    assert CALL_SITES[-1] == H_RESTRICTED_KIND, (
+        "the eighth is appended too -- `00` amendment 7(c)'s gate -- so nothing "
+        "earlier moved when it was granted")
     assert SITUATION_SENSITIVITY is G_SITUATION_SENSITIVITY, (
         "the site is spelled in `llm_harness.vocabulary` and re-exported here; "
         "two spellings of one call site is two vocabularies")

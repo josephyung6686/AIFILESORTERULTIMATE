@@ -329,7 +329,13 @@ def test_the_question_is_asked_now_and_the_request_is_built_from_the_real_run(
 
     from llm_harness.vocabulary import CALL_SITES
     assert SITUATION_SENSITIVITY in CALL_SITES
-    assert len(CALL_SITES) == 7
+    # EIGHT SINCE `00` amendment 7(c) (12 Sep 2026), which split this site in two:
+    # the gate (`H_restricted_kind`) took the question of whether a file may leave
+    # the device, and this site kept the question of which situation it is part
+    # of. What the count is here for is unchanged -- a member arriving with no
+    # approval beside it -- and `tests/p8/test_p8_vocabulary` is where each
+    # member's approval is recorded.
+    assert len(CALL_SITES) == 8
 
     observations = cli.releasable_observations(
         measured, file_id=file_id, content_hash=content_hash,

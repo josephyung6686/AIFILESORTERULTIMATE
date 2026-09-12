@@ -28,6 +28,7 @@ from llm_harness.fact_validation import (
     FactValidationDependencies,
     validate_fact_proposal,
 )
+from llm_harness.gate_validation import validate_gate_response
 from llm_harness.group_validation import validate_group_response
 from llm_harness.placement_validation import (
     PlacementDependencies,
@@ -60,6 +61,7 @@ from llm_harness.vocabulary import (
     D_RESIDUAL,
     E_TEMPLATE,
     G_SITUATION_SENSITIVITY,
+    H_RESTRICTED_KIND,
 )
 
 
@@ -598,6 +600,16 @@ def dispatch(
         # -- so a slot here would be a slot a caller could fill with an acceptance
         # callback, which is the shape this module exists to refuse.
         return _addressed_to_the_response(validate_situation_response(
+            dossier, response_bytes, **common,
+        ), response_bytes)
+    if site == H_RESTRICTED_KIND:
+        # NO BUNDLE EITHER, and here the argument is at its strongest. `00`
+        # amendment 7(c)'s gate checks one thing beyond the universal citation
+        # rules -- that the kind is one of the eleven the dossier showed the model
+        # -- and the eleven are already in the dossier. A slot here would be a slot
+        # a caller could fill with an acceptance callback at the one site that
+        # decides whether a person's file may leave their device.
+        return _addressed_to_the_response(validate_gate_response(
             dossier, response_bytes, **common,
         ), response_bytes)
     return ValidationUnavailable(missing=("site_validator",))
