@@ -327,3 +327,28 @@ def partition_by_branch(
             file_ids=tuple(under[schema_id]),
             candidate_situations=candidates))
     return BranchPartition(branches=tuple(branches), held=tuple(held))
+
+
+def branch_votes(named: "dict[str, str]", partition: "BranchPartition",
+                 ) -> dict[str, str]:
+    """`00` Amendments of 2026-09-11 item 2: a branch's situation from site G's
+    evidence. For each branch, the schema the model named most often over its
+    files; a tie names nothing, a branch with no named file names nothing. A file
+    the model could not place inherits this for its fact pass, so a club flyer the
+    judge called "none" is asked a club's questions when its folder is a club's.
+    """
+    votes: dict[str, str] = {}
+    for branch in partition.branches:
+        tally: dict[str, int] = {}
+        for file_id in branch.file_ids:
+            schema = named.get(file_id)
+            if schema:
+                tally[schema] = tally.get(schema, 0) + 1
+        if not tally:
+            continue
+        top = max(tally.values())
+        leaders = [schema for schema, n in tally.items() if n == top]
+        if len(leaders) == 1:
+            votes[branch.label] = leaders[0]
+    return votes
+

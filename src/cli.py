@@ -109,6 +109,7 @@ from facts.learning import (
 )
 from facts.domains import ActivationSignal, ActivationSignals
 from branch_situation import (
+    branch_votes,
     BRIDGES_THAT_DO_NOT_REACH, Branch, BranchPartition, partition_by_branch,
     single_owner_terms,
 )
@@ -16005,6 +16006,13 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                         if level.field not in group_levels),
                     deferred_readings=rules.schemas[answered].deferred_readings))
 
+        # A FILE THE JUDGE COULD NOT PLACE INHERITS ITS BRANCH'S VOTE (`00`
+        # amendment 2, applied 12 Sep 2026): the schema the model named most
+        # often over the branch's files, which is site G's evidence about the
+        # folder rather than the run's typed situation.
+        votes = ({} if partition is None
+                 else branch_votes(situation_pass.named, partition))
+
         def resolver_for(file_id: str) -> FactResolver | None:
             # THE FILE'S OWN SITUATION FIRST, and it outranks the branch. A branch
             # is a folder of this corpus and its situation is the person's answer
@@ -16023,6 +16031,9 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 # questions.
                 not_asked.setdefault(NOT_ASKED_AMBIGUOUS, []).append(file_id)
                 return None
+            voted = by_schema.get(votes.get(branch.label, ""))
+            if voted is not None:
+                return voted
             chosen = resolvers.get(branch.label)
             if chosen is None:
                 not_asked.setdefault(NOT_ASKED_UNSETTLED, []).append(file_id)

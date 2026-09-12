@@ -446,3 +446,22 @@ def test_the_default_branch_keeps_its_course_and_term_levels_beside_a_second_bra
     assert not any(chain.startswith("Coursework") and
                    ("cover letter" in chain or "resume" in chain)
                    for chain in chains), chains
+
+
+def test_a_branch_votes_its_situation_from_what_the_model_named():
+    """`00` amendment 2 (12 Sep 2026): the schema named most often over a branch's
+    files is the branch's; a tie names nothing; a branch with no named file names
+    nothing. A file the judge called "none" inherits it for the fact pass."""
+    from branch_situation import Branch, BranchPartition, branch_votes
+    partition = BranchPartition(branches=(
+        Branch(label="Downloads", schema="academic", situation=None,
+               is_default=True, anchor_file_ids=(), file_ids=("a", "b", "c", "d")),
+        Branch(label="Club", schema="nonprofit", situation=None, is_default=False,
+               anchor_file_ids=(), file_ids=("e", "f")),
+        Branch(label="Quiet", schema="research", situation=None, is_default=False,
+               anchor_file_ids=(), file_ids=("g",)),
+    ), held=())
+    named = {"a": "academic", "b": "academic", "c": "research",
+             "e": "nonprofit", "f": "academic"}
+    assert branch_votes(named, partition) == {"Downloads": "academic"}
+
