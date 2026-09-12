@@ -3396,10 +3396,19 @@ SEMANTIC_FLOORS: SemanticFloors = SemanticFloors(
 #: inside the design's own domains are health forms, immigration papers and travel
 #: records -- documents whose only person-bearing text IS that block.
 #:
-#: `organisation` is spelled the way the model was trained ("organization") in the
-#: PROMPT and slugged to whatever the label says; it is here because a person beside
-#: an organisation is the shape a club roster and a referral letter share, and
-#: because a diagnosis beside a clinic is what makes a health form a health form.
+#: `organisation` is spelled AMERICAN here, and deliberately: the label is what is
+#: put to the model, the spike measured this model on "organization", and a
+#: respelling is an unmeasured prompt for a gain of nothing. It is on the list
+#: because a person beside an organisation is the shape a club roster and a referral
+#: letter share, and a diagnosis beside a clinic is what makes a health form one.
+#:
+#: WHAT WAS MEASURED AND WHAT WAS NOT. The spike of 12 Sep 2026 measured eight of
+#: these -- person, date of birth, passport number, medical condition, phone number,
+#: email address, home address, organization -- at 0.80/0.90 on 52 planted entities.
+#: `identity document number`, `account number` and `medical record number` are
+#: added here from 7(a)'s list and are UNMEASURED: this model is zero-shot over its
+#: labels, so they cost one more prompt word each and nothing else, and a run's own
+#: rows are what will say whether they earn their place.
 #:
 #: NOT A HOLD RULE. This is a list of what to look FOR. Which combination holds a
 #: file is `recognition/detector.py`'s and is not decided here or in the pass.

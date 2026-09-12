@@ -22,9 +22,11 @@ THE CONTRACT, for the rule that reads these rows
                    `entities.passport_number`, `entities.account_number`,
                    `entities.medical_record_number`, `entities.medical_condition`,
                    `entities.phone_number`, `entities.email_address`,
-                   `entities.home_address`, `entities.organisation`. The PREFIX is
-                   the contract and the label set is the deployment's, so a rule
-                   written against `entities.` keeps working when the deployment
+                   `entities.home_address`, `entities.organization` -- the last
+                   spelled the way the model was trained, because the label is what
+                   is put TO the model and a respelling is an unmeasured prompt. The
+                   PREFIX is the contract and the label set is the deployment's, so a
+                   rule written against `entities.` keeps working when the deployment
                    adds a kind.
 
 `extractor_version` this module's `VERSION`. It moves when what the pass emits
