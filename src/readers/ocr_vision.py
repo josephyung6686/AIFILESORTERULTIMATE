@@ -22,9 +22,11 @@ P5's and P6's.
 from __future__ import annotations
 
 import contextlib
+import fcntl
 import os
 import platform
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -240,6 +242,100 @@ def _detects_language(request) -> bool:
     return hasattr(request, "setAutomaticallyDetectsLanguage_")
 
 
+#: WHETHER THIS PROCESS HAS ALREADY BEEN THROUGH VISION ONCE.
+#:
+#: The first call is the one that opens the Metal shader compiler's on-disk cache;
+#: every call after it reuses the slot this process already holds. So the lock below
+#: is taken once per process and never again -- a run of 5,760 files pays for it
+#: once, on the file that happens to be first.
+_BEEN_THROUGH_VISION = False
+
+
+
+def _metal_first_call_lock() -> Path:
+    """Where the turn is taken: one file, per user, for every run at once.
+
+    The lock has to have the same reach as the thing it protects, and no more. The
+    Metal cache is `/var/folders/<user>/C/org.python.python/com.apple.metal/`, which
+    every Python process this user runs shares -- two concurrent scans collide with
+    each other exactly as two workers of one scan do -- so a lock beside the database
+    or inside the run's own directory would be too narrow.
+
+    `tempfile.gettempdir()` is `/var/folders/<user>/T` on this platform: the cache
+    directory's own sibling, under the same per-user folder, so it has precisely that
+    reach. `os.confstr` was the first draft and it does not work -- CPython publishes
+    no `CS_DARWIN_USER_CACHE_DIR` name and raises `ValueError` for it (executed) --
+    which would have left this quietly on the fallback while the comment claimed
+    otherwise.
+    """
+    return Path(tempfile.gettempdir()) / "graph-agent-vision-first-call.lock"
+
+
+@contextlib.contextmanager
+def _one_process_at_a_time_into_metal():
+    """One process at a time makes its FIRST Vision call. R-112's wedge, at the cause.
+
+    **THE WEDGE IS A RACE FOR A CACHE SLOT, and this is the whole of the fix.**
+    `extraction_pool`'s R-50 note records a worker's main thread inside
+    `-[VNImageRequestHandler performRequests:]` -> `-[CIContext render:toCVPixelBuffer:]`
+    -> `CI::ProgramNode::mainProgram` -> `__DISPATCH_WAIT_FOR_QUEUE__`, with
+    `CI::KernelCompileQueue` blocked in `flock()` inside `MTLCompilerFSCache::openSync`,
+    and answered it with a ceiling and a retry because the cause was not known.
+
+    It is known now. `libCoreFSCache` gives each process an exclusive numbered slot
+    of that cache -- `libraries10.data`, `functions10.data` -- and CHOOSES the number
+    by looking for one nobody holds. Two processes that look at the same instant
+    choose the same number, one takes the exclusive `flock` and the other blocks in
+    it, with no timeout, for as long as the winner lives. Measured 11 Sep 2026 while
+    a scan was stalled: workers 28855 and 28861 both had `libraries10.data` open,
+    28855 idle in `sem_wait` holding it, 28861 wedged in `flock` waiting for it, four
+    minutes and counting. The winner had gone back to waiting for its next file, and
+    a `ProcessPool` consumes results in submission order, so the run stopped.
+
+    **WHAT MADE IT CONSTANT WAS 913f647, WHICH READS EVERY IMAGE.** The wedge was
+    measured at one run in eleven when OCR ran on a handful of files. Once every
+    image and every sparse page goes to OCR, all seven workers make their first
+    Vision call within the same second of the pool starting, which is precisely the
+    condition the slot race needs. Measured over a 44-file synthetic corpus: ten
+    runs without this lock stalled seven times, and seven runs with it stalled
+    none.
+
+    So the turns are taken one at a time. A process that has already been through
+    holds its own slot and never looks again, so this costs one queue at the start
+    of a run and nothing afterwards.
+
+    **AND THE WAIT CARRIES NO NUMBER.** A first draft bounded it at sixty seconds
+    "so a holder that never returns cannot become a second way to hang". It cannot:
+    `flock` is released by the kernel the moment its holder dies, and a holder that
+    wedges inside its own first call is killed by `extraction_pool`'s ceiling
+    (`cli.EXTRACTION_SECONDS_PER_FILE`), which is the one bound this product puts
+    on an extraction. A second number here would be a guess about the first one.
+    """
+    global _BEEN_THROUGH_VISION
+    if _BEEN_THROUGH_VISION:
+        yield
+        return
+    try:
+        handle = os.open(str(_metal_first_call_lock()),
+                         os.O_CREAT | os.O_RDWR, 0o600)
+    except OSError:                                 # pragma: no cover -- unwritable
+        handle = None
+    if handle is not None:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+    try:
+        yield
+    finally:
+        # SET WHATEVER HAPPENED. A first call that raised still opened the cache,
+        # and a process that queued again on every failure would serialise a whole
+        # run's worth of unreadable files behind one lock.
+        _BEEN_THROUGH_VISION = True
+        if handle is not None:
+            try:
+                fcntl.flock(handle, fcntl.LOCK_UN)
+            finally:
+                os.close(handle)
+
+
 def _recognise(image, *, languages, level) -> list[tuple[str, float, Any]]:
     handler = Vision.VNImageRequestHandler.alloc().initWithCGImage_options_(image, {})
     request = Vision.VNRecognizeTextRequest.alloc().init()
@@ -259,7 +355,8 @@ def _recognise(image, *, languages, level) -> list[tuple[str, float, Any]]:
         request.setAutomaticallyDetectsLanguage_(True)
     if languages:
         request.setRecognitionLanguages_(list(languages))
-    ok, error = handler.performRequests_error_([request], None)
+    with _one_process_at_a_time_into_metal():
+        ok, error = handler.performRequests_error_([request], None)
     if not ok:
         raise RuntimeError(f"Vision failed to process the image: {error}")
     found = []

@@ -383,3 +383,165 @@ def test_a_file_that_is_not_a_pdf_prints_nothing_of_core_graphics_own(tmp_path):
     assert done.returncode == 0, done.stderr
     assert "CoreGraphics" not in done.stderr, done.stderr
     assert "PROBE-OWN-STDERR" in done.stderr
+
+
+# --- R-112's wedge, at its cause: the race for a Metal cache slot -----------------
+
+
+class _RanNothing:
+    """Vision, reduced to the one call the turn is taken around.
+
+    REAL VISION IS THE WRONG INSTRUMENT HERE and that is deliberate. A real
+    recognition takes two to three seconds, so "did the call happen while the turn
+    was held" would be a race against the recogniser's own cost rather than an
+    assertion about the lock. What is being pinned is WHEN
+    `performRequests_error_` is reached, and a fake reaches it instantly -- which
+    is exactly what makes the failure sharp: before the fix the call lands while
+    another process holds the turn, and the test says so in milliseconds.
+    """
+
+    def __init__(self) -> None:
+        self.reached = __import__("threading").Event()
+
+    # -- the two objects `_recognise` builds --------------------------------------
+    @property
+    def VNImageRequestHandler(self):
+        outer = self
+
+        class Handler:
+            @staticmethod
+            def alloc():
+                return Handler()
+
+            def initWithCGImage_options_(self, image, options):
+                return self
+
+            def performRequests_error_(self, requests, error):
+                outer.reached.set()
+                return True, None
+
+        return Handler
+
+    @property
+    def VNRecognizeTextRequest(self):
+        class Request:
+            @staticmethod
+            def alloc():
+                return Request()
+
+            def init(self):
+                return self
+
+            def setRecognitionLevel_(self, level):
+                return None
+
+            def setRecognitionLanguages_(self, languages):
+                return None
+
+            def results(self):
+                return []
+
+        return Request
+
+
+def _hold_the_turn(path):
+    """Take the machine-wide turn the way another process would, and give it back."""
+    import fcntl
+    import os
+
+    handle = os.open(str(path), os.O_CREAT | os.O_RDWR, 0o600)
+    fcntl.flock(handle, fcntl.LOCK_EX)
+
+    def give_it_back():
+        fcntl.flock(handle, fcntl.LOCK_UN)
+        os.close(handle)
+
+    return give_it_back
+
+
+def test_the_first_call_into_vision_waits_for_the_process_holding_the_turn(
+        tmp_path, monkeypatch):
+    """R-112's wedge is a race for a cache slot, and this is the race being refused.
+
+    `libCoreFSCache` gives each process an exclusive numbered slot of the Metal
+    shader compiler's on-disk cache and picks the number by looking for a free one.
+    Two processes that look at the same instant pick the same number: one takes the
+    `flock`, the other blocks inside `MTLCompilerFSCache::openSync` with no timeout
+    for as long as the winner lives. Measured 11 Sep 2026 on a stalled scan: two
+    workers of one pool both held `libraries10.data` open, the winner idle in
+    `sem_wait` waiting for its next file and the loser wedged in `flock`, four
+    minutes and counting. `ProcessPool` consumes results in submission order, so the
+    whole run stopped on the loser.
+
+    913f647 is what made it constant rather than one run in eleven: every image and
+    every sparse page now goes to OCR, so all seven workers make their first Vision
+    call inside the same second. Measured over the same 44-file corpus, ten runs
+    without this lock stalled seven times and six runs with it stalled none.
+
+    So the turn is taken before the first call and the SECOND process waits. The
+    assertion is that it waits -- not that it is fast.
+    """
+    import threading
+
+    from readers import ocr_vision
+
+    lock = tmp_path / "vision-first-call.lock"
+    monkeypatch.setattr(ocr_vision, "_metal_first_call_lock", lambda: lock,
+                        raising=False)
+    monkeypatch.setattr(ocr_vision, "_BEEN_THROUGH_VISION", False, raising=False)
+    vision = _RanNothing()
+    monkeypatch.setattr(ocr_vision, "Vision", vision)
+
+    give_it_back = _hold_the_turn(lock)
+    reader = threading.Thread(
+        target=ocr_vision._recognise,
+        args=(object(),), kwargs={"languages": (), "level": None}, daemon=True)
+    reader.start()
+    try:
+        assert not vision.reached.wait(2.0), (
+            "the first call into Vision ran while another process held the turn; "
+            "that is the slot race a worker wedges in")
+    finally:
+        give_it_back()
+
+    assert vision.reached.wait(30.0), "the reading never happened once the turn came"
+    reader.join(timeout=30.0)
+
+
+def test_only_the_first_call_in_a_process_takes_a_turn(tmp_path, monkeypatch):
+    """And every call after it goes straight through, which is the cost of the fix.
+
+    The slot is claimed once per process, so a lock held per FILE would serialise
+    every reading in the run behind one another -- seven workers reduced to one, on
+    a product whose owner has already said local reading is too slow. The flag is
+    what keeps the cost to one queue at the start of a run, and a fix whose cost
+    grew with the corpus would be worse than the stall it ends.
+    """
+    import threading
+
+    from readers import ocr_vision
+
+    lock = tmp_path / "vision-first-call.lock"
+    monkeypatch.setattr(ocr_vision, "_metal_first_call_lock", lambda: lock,
+                        raising=False)
+    monkeypatch.setattr(ocr_vision, "_BEEN_THROUGH_VISION", False, raising=False)
+    first = _RanNothing()
+    monkeypatch.setattr(ocr_vision, "Vision", first)
+
+    ocr_vision._recognise(object(), languages=(), level=None)
+    assert first.reached.is_set()
+
+    second = _RanNothing()
+    monkeypatch.setattr(ocr_vision, "Vision", second)
+    give_it_back = _hold_the_turn(lock)
+    try:
+        again = threading.Thread(
+            target=ocr_vision._recognise,
+            args=(object(),), kwargs={"languages": (), "level": None}, daemon=True)
+        again.start()
+        assert second.reached.wait(10.0), (
+            "a later reading queued behind the turn as well, which would serialise "
+            "the whole run behind one worker")
+        again.join(timeout=10.0)
+    finally:
+        give_it_back()
