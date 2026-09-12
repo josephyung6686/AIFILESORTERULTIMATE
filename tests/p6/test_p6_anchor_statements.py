@@ -645,3 +645,71 @@ def test_the_minted_line_is_the_documents_own_sentence_about_the_course(p6_conn,
     assert minted.raw_value == WORD_LINE
     assert minted.extractor_name == LINE_EXTRACTOR
     assert minted.location.zone == "body"
+
+
+def test_a_sheet_of_codes_hashes_each_reading_once_not_once_per_pair(
+        p6_conn, tmp_path, monkeypatch):
+    """The pass is linear in a file's readings, and the key is computed once each.
+
+    Measured 12 Sep 2026 on the owner's corpus: a sheet whose 14,607 cells all print a
+    course code sat in `_containing_span_reading` for nine hours, because the former
+    shape asked `observation_key` -- a sha256 over locator and words -- of every
+    sibling for every code reading: 14,607 × 14,607 × 2 digests before the file was
+    done. `_span_index` keys each reading once per file version and a code reading
+    looks only at the readings of its own container.
+
+    The bound is stated per reading and argued, not tuned: the former shape spent AT
+    LEAST one key per sibling per reading, so on N readings it was ≥ N per reading;
+    the new shape spends one for the index, one to cite the code, and a handful for
+    the minted line, which is fewer than ten however large N is. N is three hundred so
+    the two shapes are three hundred against ten and no seed can blur them.
+    """
+    from evidence_shape.observation import Observation as _Observation
+
+    file_id, content_hash = _file(p6_conn, tmp_path, "catalogue.pdf")
+    codes = [f"W{3100 + n}" for n in range(300)]
+    for n, code in enumerate(codes):
+        start = n * (len(code) + 1)
+        _observe(p6_conn, file_id=file_id, content_hash=content_hash, raw=code,
+                 span=TextSpan(start, start + len(code)))
+
+    original = _Observation.observation_key
+    asked = {"n": 0}
+
+    def counted(self):
+        asked["n"] += 1
+        return original.fget(self)
+
+    monkeypatch.setattr(_Observation, "observation_key", property(counted))
+    written = record_anchor_statements(
+        p6_conn, scan_run_id=SCAN, file_versions=[(file_id, content_hash)], **RECORD)
+
+    assert len(written) == len(codes)
+    assert asked["n"] < 10 * len(codes), asked
+
+
+def test_the_narrowest_containing_reading_is_cited_when_a_page_holds_the_heading(
+        p6_conn, tmp_path):
+    """Shortest containing reading wins, now through the index's ordering.
+
+    `extractors/pdf.py` can offer a page reading over the heading reading over the
+    identifier, all in one container. The identifier's line is the heading, not the
+    page: the index is narrowest first, so the first containing entry is the heading,
+    exactly what the former linear scan chose by keeping the smallest width.
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path, "catalogue.pdf")
+    page = "Fall 2026 offerings\n" + HEADING + "\nInstructor: Dr Lacker"
+    heading_start = page.index(HEADING)
+    code_start = page.index("W3134")
+    _observe(p6_conn, file_id=file_id, content_hash=content_hash, raw=page,
+             span=TextSpan(0, len(page)))
+    heading = _observe(p6_conn, file_id=file_id, content_hash=content_hash, raw=HEADING,
+                       span=TextSpan(heading_start, heading_start + len(HEADING)))
+    _observe(p6_conn, file_id=file_id, content_hash=content_hash, raw="W3134",
+             span=TextSpan(code_start, code_start + len("W3134")))
+
+    record_anchor_statements(p6_conn, scan_run_id=SCAN,
+                             file_versions=[(file_id, content_hash)], **RECORD)
+    statements = anchor_statements_for(p6_conn, SCAN)
+    assert len(statements) == 1
+    assert statements[0].line_evidence_ref == heading.observation_key

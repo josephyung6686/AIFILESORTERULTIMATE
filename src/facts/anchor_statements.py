@@ -126,7 +126,38 @@ LINE_EXTRACTOR: str = DERIVED_NAMESPACE + "anchor_statements.line"
 LINE_EXTRACTOR_VERSION: str = "1.0.0"
 
 
-def _containing_span_reading(observation, siblings) -> str | None:
+#: One file version's readings that carry a span, by container path, each keyed ONCE
+#: and ordered narrowest first. Built by `_span_index`, read by `_containing_span_reading`.
+SpanIndex = dict[str, tuple[tuple[int, int, str], ...]]
+
+
+def _span_index(siblings) -> SpanIndex:
+    """Every reading with a span, grouped by container path, keyed once, narrowest first.
+
+    **Built once per file version, which is the whole point.** `observation_key` is a
+    sha256 over the locator and the words, computed on every access; the former shape
+    asked it of every sibling for every code reading, so a sheet whose 14,607 cells all
+    print a course code hashed 14,607 × 14,607 × 2 times before it moved on (measured
+    12 Sep 2026: a parsing run sat in this loop for nine hours). Keyed here, each
+    reading is hashed once, and a code reading looks only at the readings that share
+    its container, which is the only place a containing span can be.
+
+    Ordered by width ascending and stably, so the first containing entry is the
+    shortest and, among equal widths, the earliest in P4's order -- exactly the entry
+    the former linear scan chose.
+    """
+    by_path: dict[str, list[tuple[int, int, str]]] = {}
+    for other in siblings:
+        span = other.location.text_span
+        if span is None:
+            continue
+        path = serialize_container_path(other.location.container_path)
+        by_path.setdefault(path, []).append((span.start, span.end, other.observation_key))
+    return {path: tuple(sorted(rows, key=lambda row: row[1] - row[0]))
+            for path, rows in by_path.items()}
+
+
+def _containing_span_reading(observation, index: SpanIndex, *, own_key: str) -> str | None:
     """The reading that CONTAINS this one, by container path and span. Structural.
 
     `extractors/pdf.py` emits a heading twice over: once as the whole heading, whose
@@ -135,27 +166,20 @@ def _containing_span_reading(observation, siblings) -> str | None:
     within one container and needs no text and no parsing.
 
     The SHORTEST containing reading wins, so a heading is preferred over a page when a
-    document offers both. Ties cannot happen: two readings with the same span and the
-    same container are the same reading.
+    document offers both: `index` is narrowest first, so the first containing entry is
+    the answer. Ties cannot happen: two readings with the same span and the same
+    container are the same reading.
     """
     own = observation.location.text_span
     if own is None:
         return None
     path = serialize_container_path(observation.location.container_path)
-    best = None
-    for other in siblings:
-        if other.observation_key == observation.observation_key:
+    for start, end, key in index.get(path, ()):
+        if key == own_key:
             continue
-        span = other.location.text_span
-        if span is None:
-            continue
-        if serialize_container_path(other.location.container_path) != path:
-            continue
-        if span.start <= own.start and span.end >= own.end:
-            width = span.end - span.start
-            if best is None or width < best[0]:
-                best = (width, cite(other))
-    return None if best is None else best[1]
+        if start <= own.start and end >= own.end:
+            return key
+    return None
 
 
 def _minted_line(conn: sqlite3.Connection, observation, *,
@@ -207,7 +231,8 @@ def _minted_line(conn: sqlite3.Connection, observation, *,
     return key
 
 
-def _containing_line(conn: sqlite3.Connection, observation, siblings, *,
+def _containing_line(conn: sqlite3.Connection, observation, index: SpanIndex, *,
+                     own_key: str,
                      reads_in_document: Callable[[str], bool]) -> str | None:
     """The reading whose words are the whole LINE: the document's own, or a minted one.
 
@@ -216,7 +241,7 @@ def _containing_line(conn: sqlite3.Connection, observation, siblings, *,
     what happens when the containing reading has no span to be found by, which on this
     corpus is 91 statements of 99.
     """
-    found = _containing_span_reading(observation, siblings)
+    found = _containing_span_reading(observation, index, own_key=own_key)
     if found is not None:
         return found
     return _minted_line(conn, observation, reads_in_document=reads_in_document)
@@ -252,6 +277,7 @@ def record_anchor_statements(conn: sqlite3.Connection, *, scan_run_id: str,
     written: list[str] = []
     for file_id, content_hash in sorted(set(file_versions)):
         observations = observations_for_version(conn, file_id, content_hash)
+        index = _span_index(observations)
         for observation in observations:
             if not reads_in_document(observation.locator):
                 continue
@@ -261,17 +287,17 @@ def record_anchor_statements(conn: sqlite3.Connection, *, scan_run_id: str,
             code = canonical(reading)
             if not code:
                 continue
+            own_key = cite(observation)
             statement_id = _statement_identity(
                 scan_run_id=scan_run_id, stating_content_hash=content_hash,
-                code_evidence_ref=cite(observation))
+                code_evidence_ref=own_key)
             conn.execute(
                 f"INSERT OR REPLACE INTO {ANCHOR_STATEMENTS_TABLE} "
                 "(statement_id, scan_run_id, stating_file_id, stating_content_hash, "
                 " canonical_code, code_evidence_ref, line_evidence_ref) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (statement_id, scan_run_id, file_id, content_hash, code,
-                 cite(observation),
-                 _containing_line(conn, observation, observations,
+                (statement_id, scan_run_id, file_id, content_hash, code, own_key,
+                 _containing_line(conn, observation, index, own_key=own_key,
                                   reads_in_document=reads_in_document)))
             written.append(statement_id)
     return tuple(written)

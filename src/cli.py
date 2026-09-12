@@ -19233,6 +19233,32 @@ def _print_trail(args, *, out) -> int:
     return 0 if trail.found else 2
 
 
+def say_where_you_are_when_asked() -> None:
+    """A RUN SAYS WHERE IT IS WHEN ASKED, and goes on.
+
+    `kill -USR1 <pid>` prints every thread's Python stack to stderr and the run
+    continues; nothing else in the product can answer "what is it doing?" for a
+    process that is busy, and on this platform nothing outside it may attach a
+    debugger without root (measured 11 Sep 2026: a parsing run sat at full CPU for
+    forty minutes and could not be asked).
+
+    **`chain=False`, and this is the whole lesson.** `faulthandler.register` with
+    `chain=True` re-raises the signal to the handler it replaced, and the handler it
+    replaced is the default one, whose action for this signal is to end the process.
+    The first shape asked a nine-hour parsing run where it was and killed it with the
+    question (measured 12 Sep 2026, exit 158 = 128 + the signal's number). With no
+    chaining the stacks are printed and the run does not notice it was asked.
+
+    Standard library, no number, no behaviour change unless the signal is sent.
+    """
+    try:
+        import faulthandler
+        import signal as _signal
+        faulthandler.register(_signal.SIGUSR1, all_threads=True, chain=False)
+    except (ImportError, AttributeError, RuntimeError, ValueError):  # pragma: no cover
+        pass
+
+
 def main(argv: Sequence[str] | None = None, *, out=None,
          # `104` R-175. NOT A FLAG, and that is the decision. A per-file ceiling is
          # not a thing a person types: it is derived from the deployment's own
@@ -19246,18 +19272,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # Bound at CALL time, not as a default: a default argument is evaluated when
     # this module is imported, which pins the stream that existed then.
     out = out if out is not None else sys.stdout
-    # A RUN SAYS WHERE IT IS WHEN ASKED. `kill -USR1 <pid>` prints every thread's
-    # Python stack to stderr and the run goes on; nothing else in the product can
-    # answer "what is it doing?" for a process that is busy, and on this platform
-    # nothing outside it may attach a debugger without root (measured 11 Sep 2026:
-    # a parsing run sat at full CPU for forty minutes and could not be asked).
-    # Standard library, no number, no behaviour change unless the signal is sent.
-    try:
-        import faulthandler
-        import signal as _signal
-        faulthandler.register(_signal.SIGUSR1, all_threads=True, chain=True)
-    except (ImportError, AttributeError, RuntimeError, ValueError):  # pragma: no cover
-        pass
+    say_where_you_are_when_asked()
     parser = argparse.ArgumentParser(
         prog="database-agent",
         # NO ABBREVIATIONS. argparse defaults `allow_abbrev=True`, which makes
