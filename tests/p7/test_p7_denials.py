@@ -293,15 +293,18 @@ def test_the_template_name_is_section_seven_threes_literal():
 # --- 6. protected_cloud_target ----------------------------------------------
 
 def test_protected_cloud_target_under_hybrid():
-    # §8.4: "Hybrid mode: Sensitive files remain local". And SPEC §2's first protected
-    # consequence: "not included in cloud-model prompts BY DEFAULT" -- the carve-out
-    # that `cloud_assisted` plus an explicit grant satisfies.
+    # §8.4: "Hybrid mode: Sensitive files remain local". Until amendment 5 of
+    # 2026-09-11 (`00`, "Amendments of 2026-09-11"; `104` commit c7300c2) this pin
+    # also asserted the CARVE-OUT: `cloud_assisted` plus an explicit grant naming
+    # the scope let a protected file through. The owner removed that carve-out --
+    # protected material never reaches the cloud, in any mode and under any grant
+    # -- so the same call that used to release now denies, same as hybrid does.
     assert protected_cloud_denies(protected=True, locality="cloud",
                                   operation_mode="hybrid", scope="Academics",
                                   granted_scopes=("Academics",)) is True
     assert protected_cloud_denies(protected=True, locality="cloud",
                                   operation_mode="cloud_assisted", scope="Academics",
-                                  granted_scopes=("Academics",)) is False
+                                  granted_scopes=("Academics",)) is True
     assert protected_cloud_denies(protected=True, locality="cloud",
                                   operation_mode="cloud_assisted", scope="Taxes",
                                   granted_scopes=("Academics",)) is True
@@ -321,12 +324,16 @@ def test_protected_cloud_target_under_hybrid():
 def test_the_corpus_area_is_the_callers_and_p7_defines_none():
     # Open question 3: "What is a 'corpus area'? ... Consent grants cannot be scoped
     # until this is named." The scope is a string the caller supplies; P7 compares it
-    # and never resolves it.
+    # and never resolves it. Amendment 5 of 2026-09-11 (`00`, "Amendments of
+    # 2026-09-11"; `104` commit c7300c2) removed the carve-out this used to measure
+    # through a matching grant, so a scope naming itself exactly no longer buys a
+    # protected file anything -- the denial holds regardless of what the caller
+    # calls the area or whether a grant happens to name it.
     assert protected_cloud_denies(protected=True, locality="cloud",
                                   operation_mode="cloud_assisted",
                                   scope="whatever-the-caller-calls-it",
                                   granted_scopes=("whatever-the-caller-calls-it",)) \
-        is False
+        is True
 
 
 # --- 7. whole_document_requested --------------------------------------------

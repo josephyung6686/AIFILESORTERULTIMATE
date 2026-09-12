@@ -94,6 +94,11 @@ NON_PRODUCERS = frozenset({
     "authorship", "budgets", "cache", "evidence", "fields", "file_facts",
     "learning", "llm_seam", "plan_versions", "read_surface", "resolver", "schema",
     "states", "stage_output", "unresolved", "values", "vocabulary",
+    # `lineage` (2026-09-11, `00` Amendments item 4; `104` commit d2e64ab) writes no
+    # fact itself. `title_lineage`/`title_block_key` are the `lineage_rule`/
+    # `block_key` callables `facts.families.version_family` requires and that
+    # producer's own write is what PRODUCERS already lists under `facts.families`.
+    "lineage",
 })
 
 #: The four names that would carry a model into a deterministic producer.

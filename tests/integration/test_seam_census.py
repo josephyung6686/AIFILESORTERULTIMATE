@@ -171,7 +171,20 @@ def _corpus(root: Path) -> Path:
 #: an assertion below can mention it is by the run having been told it here --
 #: a bare literal on the far side would be a string the test wrote matching a
 #: string the test wrote.
-RESIDUAL_AREA: str = "Reading Inbox"
+#:
+#: `104` commit 69e13f5 (R-42 item 4, 11 Sep): a residual area's §7.4 disposition
+#: is now read off its own template's authored §7.2 treatment
+#: (`tree_design.residuals.disposition_for_treatment`) instead of the
+#: composition root guessing `physical-destination` for all nine. `Reading
+#: Inbox` authors `reviewed`, so its disposition is `review-only` -- a write
+#: target this test's `build_plan` call is correctly refused by `mutation.plan`
+#: §7.4's gate for `NODE_REFUSES_PLACEMENT`, and no longer stands for the
+#: "ready to file into a residual area" seam this file measures.
+#: `Independent Records` authors `retained`, whose disposition is
+#: `physical-destination` -- a real write target -- so the census below is
+#: pointed at it and still measures what it measured against `Reading Inbox`
+#: before that ruling: a `--send-set` place decision P12 can plan.
+RESIDUAL_AREA: str = "Independent Records"
 
 #: §8.4's refusal `cli.py`'s offline mode produces, spelled from P7's own closed
 #: vocabulary so a rename in `privacy/` is a red test rather than an assertion
@@ -517,11 +530,20 @@ def test_the_only_thing_a_live_run_asks_of_p8_p12_and_p13_is_a_table(_census):
                            # not DECIDE: every value in the row came from the
                            # command line or from what was presented a moment
                            # before.
+                           # `residual_card` since `104` R-42 item 1 (commit
+                           # 9322206, 11 Sep): §7.5's card was computed into
+                           # `residual_sets.payload` and had no caller at all, so
+                           # this census could not yet see it reached on a live
+                           # run. `report` now calls it for every held set on the
+                           # screen. It is a pure function like the four above --
+                           # no schema, no store, no call, and it writes nothing;
+                           # it reads the fields a `ResidualSet` already carries
+                           # and raises or renders them.
                            (("P13"), {"create_review_schema", "bucket_for",
                                       "assert_every_file_accounted",
                                       "record_presentation",
                                       "collect_bulk", "record_action",
-                                      "expand"})):
+                                      "expand", "residual_card"})):
         reached = symbols.get((ROOT, part), set())
         assert reached <= expected, (
             f"{part} now does something on a live run beyond creating its "
@@ -555,8 +577,8 @@ def test_the_place_decisions_a_real_run_writes_are_ones_p12_can_plan(tmp_path):
 
     `--send-set` is the one gesture that reaches `outcome = place` with no model
     at all: the answer names the destination, so nothing has to be judged. The
-    run then prints *"Ready for you to approve, then file into Reading Inbox"*
-    and there is no gesture that files them -- `cli.py` reaches `mutation` only
+    run then prints *"Ready for you to approve, then file into Independent
+    Records"* and there is no gesture that files them -- `cli.py` reaches `mutation` only
     for `create_mutation_schema`. This is the seam whose absence a person feels
     most directly, and this test is what says the fault is the missing caller
     and not the contract: every field P12 reads is present and correct on the

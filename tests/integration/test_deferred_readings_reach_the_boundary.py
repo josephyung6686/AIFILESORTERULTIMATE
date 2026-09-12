@@ -138,7 +138,10 @@ def test_the_run_is_what_supplies_them_and_it_reads_the_compiled_release():
     the release `run` already loaded rather than a second copy of the library.
     """
     source = inspect.getsource(cli.run)
-    assert "deferred_readings=rules.schemas[schema].deferred_readings" in source
+    # `104` commit 2d6add2: `schema` was read from a bare local; the literal now
+    # names it through `said().schema`, the situation call's own answer.
+    assert "deferred_readings=rules.schemas[said().schema].deferred_readings" \
+        in source
     assert source.count("load_rules(") == 1
 
 

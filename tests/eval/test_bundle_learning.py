@@ -93,7 +93,13 @@ def test_scope_is_p1s_and_is_exact(eval_conn):
     create_schema(eval_conn)
     create_eval_schema(eval_conn)
     bundle_id = _bundle(eval_conn)
-    assert set(SCOPES) == {"file", "group", "node", "template", "domain", "corpus"}
+    # `branch` joined P1's six on the owner's ruling of 11 Sep 2026 (`104` R-26,
+    # §18.39; `database_agent.events.CORRECTION_SCOPES`), the same day
+    # `tests/p6/test_p6_learning.py::test_every_scope_p1_accepts_p6_can_record` was
+    # updated for it. `database_agent.learning.SCOPES` is P1's own list and not a
+    # second copy, so it moved with it.
+    assert set(SCOPES) == {"file", "group", "node", "branch", "template",
+                           "domain", "corpus"}
     with pytest.raises(ValueError):
         capture_learning_records(eval_conn, bundle_id, scope="destination node",
                                  subject_id="n1")

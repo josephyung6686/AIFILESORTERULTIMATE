@@ -27,6 +27,12 @@ from privacy.vocabulary import OPERATION_MODES
 from readers.model_deepseek import CREDENTIAL_NAME
 from readers.model_routing import FAST, LOGIC, MODEL_NAME_OF_TIER, REASONING
 
+#: `104` SF-3. A group is a DRAFT until somebody decides it (see `test_cli.py`'s
+#: own docstring for the ruling); the two tests below that check what a run
+#: WRITES to the tree/plan therefore have to type the accept, same as a person
+#: does, or there is nothing there to check.
+ACCEPTS_THE_PROPOSAL: tuple[str, ...] = ("--accept-groups",)
+
 ENV = {CREDENTIAL_NAME: "sk-not-a-real-key", "DEEPSEEK_BASE_URL": "https://api.example",
        MODEL_NAME_OF_TIER[REASONING]: "a-reasoner",
        MODEL_NAME_OF_TIER[LOGIC]: "a-logician",
@@ -127,7 +133,8 @@ def test_an_enabled_decision_selects_the_cloud_mode():
 # --- once, and then never again -----------------------------------------------
 
 def test_the_flag_records_the_decision_and_the_run_proceeds(corpus, monkeypatch):
-    code, printed = _run(corpus, "--enable-cloud", monkeypatch=monkeypatch, env=ENV)
+    code, printed = _run(corpus, "--enable-cloud", *ACCEPTS_THE_PROPOSAL,
+                         monkeypatch=monkeypatch, env=ENV)
     assert code == 0
     assert "Folders in this plan" in printed
     conn = _database(corpus)
@@ -161,7 +168,7 @@ def test_the_stored_policy_carries_the_mode_and_not_just_the_screen(
 
 
 def test_a_run_nobody_enabled_stores_the_local_first_mode(corpus, monkeypatch):
-    _run(corpus, monkeypatch=monkeypatch, env=ENV)
+    _run(corpus, *ACCEPTS_THE_PROPOSAL, monkeypatch=monkeypatch, env=ENV)
     conn = _database(corpus)
     try:
         versions = [row["operation_mode"] for row in conn.execute(

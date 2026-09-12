@@ -338,11 +338,20 @@ def test_the_two_optional_keywords_are_supplied_where_a_denial_needs_them():
     assert callable(gate_arguments(by_number(6), store=object())["measure_tokens"])
 
 
-def test_without_template_for_the_content_half_releases(p7_conn, tmp_path):
-    # The claim above, run rather than asserted: fixture 4's denial exists ONLY
-    # because `template_for` was supplied. With the signature's `None` default the
-    # branch at the top of the gate is unreachable and a protected-records excerpt
-    # sails through as an ordinary protected-cloud question.
+def test_without_template_for_the_ordinary_protected_cloud_denial_still_fires(
+        p7_conn, tmp_path):
+    # Until amendment 5 of 2026-09-11 (`00`, "Amendments of 2026-09-11"; `104`
+    # commit c7300c2), this proved fixture 4's denial existed ONLY because
+    # `template_for` was supplied: with the signature's `None` default, the
+    # `protected_records_template` branch was unreachable and fixture 4's
+    # `cloud_assisted` grant for its own area used to release a protected excerpt
+    # to the cloud through the carve-out that grant satisfied.
+    #
+    # That carve-out is gone. Fixture 4 is still `protected=True` against a cloud
+    # target, and `protected_cloud_denies` now denies that unconditionally, in any
+    # mode and under any grant -- so losing `template_for` only trades ONE denial
+    # reason for another, and does not release a protected file's excerpt to the
+    # cloud on any path.
     fixture = by_number(4)
     file_id = seed(p7_conn, fixture, tmp_path)
     request = dataclasses.replace(
@@ -351,10 +360,8 @@ def test_without_template_for_the_content_half_releases(p7_conn, tmp_path):
                               store=ClassificationStore(p7_conn))
     keywords["template_for"] = lambda _file_id: None
     decision = Gate(p7_conn, **keywords).release(request)
-    # It does not merely deny for a weaker reason -- it RELEASES a protected file's
-    # excerpt to a cloud model, because its area carries an explicit grant. That is
-    # how much of §7.3 rides on the optional keyword being supplied.
-    assert isinstance(decision, Released)
+    assert isinstance(decision, Denied)
+    assert decision.reason == "protected_cloud_target"
 
 
 def test_without_measure_tokens_the_budget_denial_cannot_fire(p7_conn, tmp_path):

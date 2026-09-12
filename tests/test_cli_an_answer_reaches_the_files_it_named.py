@@ -37,6 +37,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import cli  # noqa: E402
 
+#: `104` SF-3. A group is a DRAFT until somebody decides it (see `test_cli.py`'s
+#: own docstring for the ruling); every run below reads a structural question or
+#: a placement decision, so every one of them has to type the accept, same as a
+#: person does, or none of that exists yet.
+ACCEPTS_THE_PROPOSAL: tuple[str, ...] = ("--accept-groups",)
+
 #: Thirty-one files the product CAN read, over two courses so the plan has more
 #: than one destination to offer -- a question with one option is a placement
 #: wearing a question mark, and `question_for_unreadable_folder` refuses it.
@@ -137,7 +143,7 @@ def _asked(tmp_path, database):
     The answer has to be given to the database that asked: `--answer` naming a
     question this plan has never raised is refused outright, and rightly.
     """
-    code, printed = _run(_argv(_corpus(tmp_path), database))
+    code, printed = _run(_argv(_corpus(tmp_path), database, *ACCEPTS_THE_PROPOSAL))
     assert code == 0, printed
     question = _home_question(database)
     return question, json.loads(question["options"])[0]["option_id"], printed
@@ -169,7 +175,8 @@ def test_the_answer_moves_the_two_files_the_question_named(tmp_path):
     _, chosen, _ = _asked(tmp_path, database)
 
     code, printed = _run(_argv(_corpus(tmp_path), database,
-                               "--answer", f"home:.={chosen}"))
+                               "--answer", f"home:.={chosen}",
+                               *ACCEPTS_THE_PROPOSAL))
     assert code == 0, printed
 
     moved = _chosen_by_the_person(database)
@@ -190,11 +197,12 @@ def test_the_other_thirty_one_files_are_decided_by_the_run(tmp_path):
     """
     database = tmp_path / "plan.sqlite"
     _, chosen, _ = _asked(tmp_path, database)
-    _run(_argv(_corpus(tmp_path), database, "--answer", f"home:.={chosen}"))
+    _run(_argv(_corpus(tmp_path), database, "--answer", f"home:.={chosen}",
+              *ACCEPTS_THE_PROPOSAL))
 
     control = tmp_path / "unanswered.sqlite"
     _asked(tmp_path, control)
-    _run(_argv(_corpus(tmp_path), control))
+    _run(_argv(_corpus(tmp_path), control, *ACCEPTS_THE_PROPOSAL))
 
     answered = _outcomes(database, excluding=UNREADABLE)
     assert len(answered) == READABLE
@@ -219,7 +227,8 @@ def test_the_sentence_on_the_screen_and_the_answer_reach_the_same_files(
                      r"filed", question["unlocks"])
     assert said, question["unlocks"]
 
-    _run(_argv(_corpus(tmp_path), database, "--answer", f"home:.={chosen}"))
+    _run(_argv(_corpus(tmp_path), database, "--answer", f"home:.={chosen}",
+              *ACCEPTS_THE_PROPOSAL))
     moved = _chosen_by_the_person(database)
     assert int(said.group(1)) == len(moved), (
         f"the screen said {said.group(0)!r} and the answer reached "
@@ -260,7 +269,8 @@ def test_the_freeze_plans_the_other_files_into_the_folders_the_run_chose(
     _, chosen, _ = _asked(tmp_path, database)
 
     code, printed = _run(_argv(_corpus(tmp_path), database,
-                               "--answer", f"home:.={chosen}", "--freeze"))
+                               "--answer", f"home:.={chosen}", "--freeze",
+                               *ACCEPTS_THE_PROPOSAL))
     assert code == 0, printed
 
     conn = _open(database)

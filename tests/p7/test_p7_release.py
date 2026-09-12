@@ -918,10 +918,14 @@ def test_a_local_model_grant_does_not_authorize_a_cloud_release(gate_conn):
         "a local_model grant authorised a cloud release")
 
 
-def test_a_cloud_grant_still_authorizes_the_cloud_release_it_was_given_for(
+def test_a_cloud_grant_no_longer_authorizes_a_protected_cloud_release(
         gate_conn):
-    """The carve-out §8.4 does intend must survive: cloud_assisted plus an explicit
-    cloud_model grant for that area releases."""
+    """Amendment 5 of 2026-09-11 (`00`, "Amendments of 2026-09-11"; `104` commit
+    c7300c2) removed the carve-out this used to prove survives: `cloud_assisted`
+    plus an explicit `cloud_model` grant for the file's own area used to release a
+    protected file to the cloud. It no longer does -- protected material never
+    reaches the cloud, in any mode and under any grant -- so the same policy and
+    the same grant now deny."""
     file_id = _file(gate_conn, "passport.pdf", "hash-passport")
     key = _evidence(gate_conn, file_id, "hash-passport")
     _classify(gate_conn, file_id, "hash-passport",
@@ -932,7 +936,8 @@ def test_a_cloud_grant_still_authorizes_the_cloud_release_it_was_given_for(
         items=(Excerpt(observation_key=key, span=SPAN, reason="heading"),),
         model_target=CLOUD, file_ids=(file_id,)))
 
-    assert isinstance(decision, Released)
+    assert isinstance(decision, Denied)
+    assert decision.reason == "protected_cloud_target"
 
 
 def test_every_consent_option_says_which_localities_it_authorizes():

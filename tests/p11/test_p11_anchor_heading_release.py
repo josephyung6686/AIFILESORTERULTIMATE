@@ -1099,6 +1099,7 @@ def test_the_call_identity_moves_when_an_anchor_appears_beside_a_file(
     from types import SimpleNamespace
 
     import model_facts
+    from facts.domains import ActivationSignal, ActivationSignals
     from llm_harness.store import CALL_IDENTITY_DIMENSIONS, call_identity
 
     world = _folder_corpus(conn, tmp_path)
@@ -1113,8 +1114,13 @@ def test_the_call_identity_moves_when_an_anchor_appears_beside_a_file(
         # destination and says so as the pair the route returns.
         route=lambda _file_id: (None, _target()),
         policy_version="policy-1", prompt=_prompt(),
-        activation_signals=SimpleNamespace(
-            signals=(SimpleNamespace(schema_id="academic"),)))
+        # A real `ActivationSignal`, not a bare `SimpleNamespace`: `active_domains`
+        # calls `signal.activates(established)` and a namespace with no `activates`
+        # predicate cannot answer that. This fixture's own point is the anchor
+        # moving the digest, so the signal activates unconditionally, same as
+        # `_fact_request`'s does above.
+        activation_signals=ActivationSignals(signals=(
+            ActivationSignal(schema_id="academic", activates=lambda _rows: True),)))
 
     def dimensions(context_readings):
         return model_facts.call_identity_dimensions(

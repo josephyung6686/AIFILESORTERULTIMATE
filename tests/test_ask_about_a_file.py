@@ -75,6 +75,12 @@ import pytest
 
 import cli
 
+#: `104` SF-3. A group is a DRAFT until somebody decides it (see `test_cli.py`'s
+#: own docstring for the ruling); the tests below that read placement decisions,
+#: structural answers, or the "Waiting for you to choose" report have to type the
+#: accept, same as a person does, or none of that is computed yet.
+ACCEPTS_THE_PROPOSAL: tuple[str, ...] = ("--accept-groups",)
+
 
 def _unreadable_corpus(tmp_path):
     """A folder the product can open and read nothing out of, beside one it can.
@@ -117,7 +123,7 @@ def test_a_file_the_product_could_not_read_becomes_a_question(tmp_path):
     gesture under it.
     """
     corpus = _unreadable_corpus(tmp_path)
-    _, printed = _run(_argv(corpus, tmp_path / "plan.sqlite"))
+    _, printed = _run(_argv(corpus, tmp_path / "plan.sqlite", *ACCEPTS_THE_PROPOSAL))
 
     joined = " ".join(printed.split())
     assert "scans" in joined, printed
@@ -142,7 +148,7 @@ def test_a_question_about_the_folder_that_was_scanned_names_that_folder(tmp_path
     (corpus / "PHYS1401 syllabus.txt").write_text(
         "PHYS1401 Syllabus\n\nSpring 2026. Course syllabus for PHYS1401.\n")
 
-    _, printed = _run(_argv(corpus, tmp_path / "plan.sqlite"))
+    _, printed = _run(_argv(corpus, tmp_path / "plan.sqlite", *ACCEPTS_THE_PROPOSAL))
 
     joined = " ".join(printed.split())
     assert "Where should the files in Downloads go?" in joined, printed
@@ -161,7 +167,7 @@ def test_one_question_covers_the_whole_folder(tmp_path):
     """
     corpus = _unreadable_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
-    _run(_argv(corpus, database))
+    _run(_argv(corpus, database, *ACCEPTS_THE_PROPOSAL))
 
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
@@ -186,7 +192,7 @@ def test_every_file_the_question_covers_carries_it_on_its_own_decision(tmp_path)
 
     corpus = _unreadable_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
-    _run(_argv(corpus, database))
+    _run(_argv(corpus, database, *ACCEPTS_THE_PROPOSAL))
 
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
@@ -251,7 +257,7 @@ def test_a_protected_file_is_counted_in_the_question_and_never_named(tmp_path):
     import json
 
     database = tmp_path / "plan.sqlite"
-    _, printed = _run(_argv(corpus, database))
+    _, printed = _run(_argv(corpus, database, *ACCEPTS_THE_PROPOSAL))
 
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
@@ -303,7 +309,7 @@ def test_an_answer_about_a_folder_is_remembered_and_places_the_files(tmp_path):
 
     corpus = _unreadable_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
-    argv = _argv(corpus, database)
+    argv = _argv(corpus, database, *ACCEPTS_THE_PROPOSAL)
 
     _, first = _run(argv)
     assert "--answer home:scans=" in " ".join(first.split()), first

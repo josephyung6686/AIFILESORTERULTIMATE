@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import dataclasses
 import io
+import re
 
 import pytest
 
@@ -398,7 +399,11 @@ def test_the_report_names_the_minted_general_and_the_file_it_was_minted_for(
     # Under the course, which is what "scoped" means on a screen with no styles:
     # the General is indented one level deeper than the folder it belongs to.
     lines = printed.splitlines()
-    course = next(i for i, line in enumerate(lines) if line.strip() == COURSE)
+    # `104` §18.42 items 1-2 (11 Sep): every tree line now carries a trailing
+    # node-type mark (`[proposed]`, ...), stripped the same way
+    # `test_r37_per_branch_situation.py` strips it before the exact match.
+    course = next(i for i, line in enumerate(lines)
+                 if re.sub(r"\s+\[[^\]]+\]$", "", line.strip()) == COURSE)
     general = next(i for i, line in enumerate(lines) if "General" in line)
     assert general > course
     assert (len(lines[general]) - len(lines[general].lstrip())

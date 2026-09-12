@@ -46,6 +46,11 @@ from extractors.router import route  # noqa: E402
 
 HASH = "67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124"
 
+#: `104` SF-3. A group is a DRAFT until somebody decides it (see `test_cli.py`'s
+#: own docstring for the ruling); the one test below that reads a frozen plan has
+#: to type the accept, same as a person does, or there is no plan yet to freeze.
+ACCEPTS_THE_PROPOSAL: tuple[str, ...] = ("--accept-groups",)
+
 
 def routed(name: str):
     path = Path("/corpus") / name
@@ -361,7 +366,7 @@ def test_an_extensionless_pdf_is_frozen_and_placed_like_its_named_twin(tmp_path)
     assert cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "t",
                      "--database", str(tmp_path / "plan.sqlite"),
-                     "--freeze"], out=out) == 0
+                     "--freeze", *ACCEPTS_THE_PROPOSAL], out=out) == 0
     printed = out.getvalue()
 
     frozen = printed.split("Frozen:", 1)[-1].split("Not frozen", 1)[0]

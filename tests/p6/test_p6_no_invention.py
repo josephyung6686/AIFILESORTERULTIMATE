@@ -106,6 +106,15 @@ DECLARED_MODULES = frozenset({
     # document through P7's gate.
     "session", "states", "stage_output", "supersede", "unresolved", "usable", "values",
     "vocabulary", "kind", "anchor_statements",
+    # `lineage` is a fourth module beyond the plan's list, added 2026-09-11 for `97`'s
+    # rule as the owner ruled it in session that day (`00`, Amendments of 2026-09-11,
+    # item 4; `104` commit d2e64ab). It holds no producer of its own: `title_lineage`
+    # and `title_block_key` are the `lineage_rule` and `block_key` callables
+    # `facts.families.version_family` is written to require, built once here from one
+    # shared `_canonical_title` so the rule and its blocking key can never read a
+    # title differently. `version_family` still does the one write; this module is a
+    # rule supplier, the same shape as `dates.fill_or_abstain` is for `facets.py`.
+    "lineage",
 })
 
 #: Every module-level COLLECTION P6 publishes, with the task that owns it. A plain string

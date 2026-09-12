@@ -23,6 +23,11 @@ from readers.model_ollama import (
 )
 from readers.model_routing import FAST, LOGIC, MODEL_NAME_OF_TIER, REASONING
 
+#: `104` SF-3. A group is a DRAFT until somebody decides it (see `test_cli.py`'s
+#: own docstring for the ruling); this file's one end-to-end run has to type the
+#: accept, same as a person does, to see the folders it is checking for.
+ACCEPTS_THE_PROPOSAL: tuple[str, ...] = ("--accept-groups",)
+
 ENV = {CREDENTIAL_NAME: "a-key", "DEEPSEEK_BASE_URL": "https://api.example",
        MODEL_NAME_OF_TIER[REASONING]: "a-reasoner",
        MODEL_NAME_OF_TIER[LOGIC]: "a-logician",
@@ -95,7 +100,8 @@ def test_a_run_with_no_key_still_produces_a_plan(tmp_path, monkeypatch):
     out = io.StringIO()
     code = cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Coursework", "--user", "jy",
-                     "--database", str(tmp_path / "holder" / "plan.sqlite")],
+                     "--database", str(tmp_path / "holder" / "plan.sqlite"),
+                     *ACCEPTS_THE_PROPOSAL],
                     out=out)
     printed = out.getvalue()
     assert code == 0
