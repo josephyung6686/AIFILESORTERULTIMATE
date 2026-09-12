@@ -185,10 +185,40 @@ def _version_parts(conn: sqlite3.Connection, *, file_id: str,
     versions of EVERY observation of it, and the last analysis tier present."""
     _required(file_id, name="file_id")
     _required(content_hash, name="content_hash")
-    observations = observations_for_version(conn, file_id, content_hash)
-    pairs = sorted({(one.extractor_name, one.extractor_version)
-                    for one in observations})
-    tiers = {analysis_tier_for_observation(conn, one) for one in observations}
+    # ONE INDEXED JOIN, not every observation parsed and one run query each.
+    # `pass_cache_key` is asked once per fact and once per refusal a pass writes,
+    # and this derivation used to read EVERY observation of the version (JSON, one
+    # row at a time) and ask P4 for each one's tier. A four-megabyte data export
+    # carries 7,578 observations, thousands of them matching a rule whose context
+    # check fails, so the rules pass alone read the version's evidence thousands of
+    # times over: observations squared. Measured 11 Sep 2026 on the owner's second
+    # corpus: the P6 pass sat at full CPU for over forty minutes on that one file
+    # (`104` §18.55). The set of (extractor, version) pairs and the set of tiers
+    # are what the key is made of, and SQLite's DISTINCT over the version's rows,
+    # joined to their runs on BOTH columns `analysis_tier_for_observation` insists
+    # on, is the same two sets.
+    rows = conn.execute(
+        "SELECT DISTINCT e.extractor_name, e.extractor_version, r.analysis_tier "
+        "FROM evidence AS e JOIN extraction_runs AS r "
+        "ON r.run_id = e.run_id AND r.content_hash = e.content_hash "
+        "WHERE e.file_id = ? AND e.content_hash = ?",
+        (file_id, content_hash)).fetchall()
+    joined = conn.execute(
+        "SELECT count(*) FROM evidence AS e JOIN extraction_runs AS r "
+        "ON r.run_id = e.run_id AND r.content_hash = e.content_hash "
+        "WHERE e.file_id = ? AND e.content_hash = ?",
+        (file_id, content_hash)).fetchone()[0]
+    held = conn.execute(
+        "SELECT count(*) FROM evidence WHERE file_id = ? AND content_hash = ?",
+        (file_id, content_hash)).fetchone()[0]
+    if joined != held:
+        # An observation names a run P4 does not hold. The row-by-row derivation
+        # raises `UnknownRun` naming the observation, which is the answer owed.
+        observations = observations_for_version(conn, file_id, content_hash)
+        for one in observations:
+            analysis_tier_for_observation(conn, one)
+    pairs = sorted({(row[0], row[1]) for row in rows})
+    tiers = {row[2] for row in rows}
     present = [tier for tier in ANALYSIS_TIERS if tier in tiers]
     return (canonical_json([list(pair) for pair in pairs]),
             present[-1] if present else ANALYSIS_TIERS[0])
