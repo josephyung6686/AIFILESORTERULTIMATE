@@ -279,7 +279,8 @@ from privacy.resolve import (
     current_observation, filename_address,
 )
 from privacy.vocabulary import (
-    ALWAYS_LOCAL_ZONES, CLOUD_LOCALITY, CONSENT_OPTIONS, LOCAL_MODEL_SITUATION,
+    ALWAYS_LOCAL_ZONES, CLASSIFICATION_BASES, CLOUD_LOCALITY, CONSENT_OPTIONS,
+    LOCAL_MODEL_SITUATION,
     MODE_SEMANTICS, RESTRICTED_KINDS,
 )
 from questions.explanation import explain_question, render_explanation
@@ -1147,8 +1148,32 @@ A_FACT_ROW: tuple[str, str] = (
 #: is the kind recogniser `privacy_class` has been waiting for.
 #: v3 (`104` §18.13, gap 8): the v2 text and schema with site G's OWN shaping
 #: policy, so the model-visible description of the call is true of the call.
+#:
+#: **RE-POINTED 12 September 2026 17:15 TO THE WHOLE-LIBRARY ROW, on the owner's
+#: ratification, and every word above is the record of what it replaced.** `00`
+#: amendment 7(c) split this site in two: the question of whether a file may leave
+#: the device went to `H_restricted_kind`, and what stayed here is which situation
+#: of the WHOLE LIBRARY a file is part of, with the recognisers' candidates carried
+#: as evidence rather than as the menu. The v3 text cannot ask that question: it
+#: names "the kinds it came nearest to" and asks the protected-kind question first,
+#: which is now the gate's and not this site's.
+#:
+#: The choice between the two whole-library candidates is NOT a bakeoff result and
+#: is not presented as one -- the v1/v2/v3 rows above were chosen on measured
+#: numbers and this one was chosen by the owner's ratification of 12 Sep 17:15.
+#: `situation-whole-library-plain` is the reserved A/B twin, authored beside it and
+#: ratified by nobody; it stays in the manifest so the comparison can be run
+#: without authoring a row under pressure.
+#:
+#: **THE ROW READS `ratified`, WHICH IS THE WORD FOR BOTH PERMISSIONS**, and it is
+#: the first time this site has carried it. `STATUS_APPLIES` makes the site act on
+#: the answer, as `ratified_local` already did; `STATUS_MAY_CROSS_THE_INTERNET`
+#: makes `observe_locality_permits` stop refusing a cloud target -- which is what
+#: amendment 7(c) needs, because a file the gate has CLEARED is the one whose
+#: situation may be asked off this device. Nothing widens for a file the gate did
+#: not clear: the per-file predicate is still the door's own.
 SITUATION_ROW: tuple[str, str] = (
-    "situation.unratified.safety-first-v3.2026-09-09", "situation-safety-first-v3")
+    "situation.unratified.whole-library.2026-09-12", "situation-whole-library")
 
 #: `00` AMENDMENT 7(c)'s GATE ROW, and the site is `H_restricted_kind`. Authored by
 #: the lead on the owner's go of 12 September and put to the owner for
@@ -2404,6 +2429,47 @@ GATE_DOSSIER_TOKENS: int = 1_200
 #: and a length are different bounds and a corpus finds the difference (the twelve's
 #: own comment records what happened when one stood in for the other).
 GATE_MAX_RELEASED_OBSERVATIONS: int = 5
+
+#: HOW MUCH OF A FILE THE SITUATION CALL MAY SEND TO A CLOUD TARGET, in
+#: `model_facts.dossier_tokens`' unit, which is CHARACTERS used as an upper bound
+#: on tokens. The LOCAL situation call keeps `GROUPING_LIMITS.max_dossier_tokens`
+#: (4,000) and is unchanged; this is the bound on the one route where a person's
+#: text leaves their machine, and `00` amendment 7(c) is what created that route
+#: for this site at all.
+#:
+#: **WHY THE TWO TARGETS GET DIFFERENT BOUNDS.** They cost different things. A
+#: local token costs seconds on the person's own machine and nothing else -- and
+#: the local model is the one that reads a file the gate did not clear, which is
+#: exactly the file that needs everything. A cloud token is billed, and §8.6's
+#: "maximum model cost per scan" is a ceiling `00` names and this deployment is
+#: spending: the whole-library menu adds about 1,244 tokens of frame to EVERY
+#: situation dossier (`model_situation._candidate_items` measures it), and on the
+#: cloud route that frame is paid for per file per scan.
+#:
+#: **2,750, AND THE ARITHMETIC IS THE MEASUREMENT.** 4,000 less the 1,250 the
+#: whole-library frame added, so one cloud situation call bills for about what one
+#: situation call billed before the menu grew -- the amendment buys the right
+#: question at the same price rather than the right question at three times it.
+#: The released half is what gives way rather than the frame, because the frame is
+#: what the amendment IS: a menu that omits the answer three times in five was
+#: what §18.56 measured, and cutting it back would be undoing the fix to protect a
+#: number.
+#:
+#: **IT MUST NOT EXCEED P1's STORED CEILING and it does not.** `create_all_schemas`
+#: seeds `model.max_dossier_tokens_per_call` at `GROUPING_LIMITS.max_dossier_tokens`
+#: and `privacy.denial.over_dossier_ceiling` measures the released values against
+#: the STORED number, never the caller's echo -- so a bound above 4,000 here would
+#: be a cloud call routed, assembled, and then denied at the door. A LARGER cloud
+#: bound is therefore not a change to this line alone; it is a change to the stored
+#: ceiling, which is a privacy-posture decision and the owner's.
+#:
+#: **THE COST OF EACH DIRECTION.** Too small and a long document's decisive
+#: paragraph is cut before the cloud model reads it, and the answer is worse than
+#: the local one; `releasable_observations` fills most-placed-first, so what is cut
+#: is the least-placed reading rather than an arbitrary one. Too large and every
+#: cloud call costs more than the site was measured at, on every file in the
+#: corpus, at the one site the owner asked to be made faster and not dearer.
+SITUATION_DOSSIER_TOKENS_CLOUD: int = 2_750
 
 #: What one A_fact call is charged, and what it settles for. THIS DEPLOYMENT
 #: MEASURES NEITHER A TOKEN NOR A PRICE: `readers.model_deepseek` returns no usage
@@ -6978,6 +7044,28 @@ def restricted_kind_named_by_verdict(conn: sqlite3.Connection, verdict) -> str |
 #: first verdict rather than silently.
 LOCAL_MODEL_GATE: str = "local_model_gate"
 
+#: WHETHER THE STORE CAN ACTUALLY HOLD A GATE ROW YET, asked once at import rather
+#: than discovered at the first verdict. `ClassificationRecord.__post_init__`
+#: refuses a basis outside `CLASSIFICATION_BASES`, so until the privacy patch above
+#: lands a gate row cannot be written -- and the owner ratified the gate's text on
+#: 12 September, which means the site is otherwise applying its answers from the
+#: next run onwards.
+#:
+#: **IT MAKES THE SITE RECORD-ONLY AND NEVER MAKES THE RUN FAIL**, which is the
+#: same state a missing prompt row produces and is reached here for the other of
+#: its two causes: the dossier and the verdict are stored, the counts say what the
+#: gate WOULD have decided, and no classification is written. The alternative is a
+#: `ValueError` from inside P7's constructor on the first cleared file of a scan of
+#: somebody's home directory, which is a fault reported in the one place a person
+#: cannot act on it -- and it would land on the site that decides whether their
+#: files may be sent.
+#:
+#: A CONSTANT AND NOT A `try`, because what is being asked is a question about this
+#: build's vocabulary and not about this file: the answer is the same for every
+#: file in every run, and catching the refusal per file would turn one missing
+#: vocabulary member into a per-file mystery in the counts.
+GATE_MAY_WRITE_A_CLASSIFICATION: bool = LOCAL_MODEL_GATE in CLASSIFICATION_BASES
+
 #: THE HANDLING CLASS A GATE-NAMED KIND CARRIES, derived rather than spelled, on
 #: `SAFETY_DOMAIN_BASES`' own argument one screen up. A file the gate names is a
 #: record of one of the ten restricted kinds, which is material of exactly the
@@ -7460,13 +7548,17 @@ def ask_the_gate(conn: sqlite3.Connection, *, roster, fact_authorities,
         if kind is None:
             declined += 1
             continue
-        if not prompt.ratified:
-            # RECORD-ONLY UNTIL THE ROW SAYS OTHERWISE. `104` §7 Phase 1 step 6: the
-            # dossier and the verdict are recorded and nothing is applied while the
-            # text is a draft. Counted so a run under an unratified text still
-            # reports what the gate WOULD have decided, which is the whole value of
-            # an observe pass -- and no classification is written, because a record
-            # is an act on the answer and this one would open the cloud.
+        if not (prompt.ratified and GATE_MAY_WRITE_A_CLASSIFICATION):
+            # RECORD-ONLY, FOR EITHER OF ITS TWO CAUSES. `104` §7 Phase 1 step 6:
+            # the dossier and the verdict are recorded and nothing is applied while
+            # the text is a draft -- and, since the owner ratified this text on
+            # 12 September, the live cause is the other one: P7's
+            # `CLASSIFICATION_BASES` does not yet carry `local_model_gate`, so
+            # there is no lawful row for this verdict to be written as. Counted so
+            # a run in either state still reports what the gate WOULD have decided,
+            # which is the whole value of an observe pass, and nothing is applied,
+            # because a record is an act on the answer and this one opens the
+            # cloud.
             declined += 1
             continue
         record = gate_classification(
@@ -7523,20 +7615,19 @@ class SituationPass:
 
     #: file_id -> the schema id a model named for it, validated and recorded.
     named: dict
-    #: Files the recognisers settled without a model AND are not holding. Not
-    #: asked, and rightly. `104` §18.26 gap 24b, the owner's ruling of 10 Sep
-    #: 13:10: a file the rules recognised and ALSO hold is not settled and is not
-    #: counted here -- `00`:110 reserves the model for what the rules cannot
-    #: settle, and a hold is the rules saying they could not. It is asked like any
-    #: other held file and lands in whichever of the counters below its answer
-    #: earns, so the six still partition the roster.
-    settled: int
-    #: Files with an abstention and no candidate at all -- `no_evidence` with no
-    #: semantic recogniser behind it. `NothingToAsk`, and 60 of the owner's 112
-    #: abstentions on the measured corpus.
-    nothing_to_ask: int
     #: Files with a shortlist and no releasable reading. A question `00`:42 permits
     #: no answer to.
+    #:
+    #: `settled` AND `nothing_to_ask` USED TO STAND HERE AND `00` amendment 7(c)
+    #: retired both, because each counted a file this pass did not ask about for a
+    #: reason that is no longer a reason. `settled` was "the recognisers named it
+    #: and are not holding it", which `00`:110 reserved from the model until the
+    #: owner ruled that line no longer reserves the SITUATION -- the rules' measured
+    #: top-1 accuracy on the second corpus was 32.2%, so it was reserving two files
+    #: in three from the only reader that could correct them. `nothing_to_ask` was
+    #: "the recognisers raised no candidate, so the menu would hold only the
+    #: decline", which cannot arise now that the menu is the whole library. What the
+    #: first of them counted is still on the screen: see `recognised_by_rules`.
     nothing_to_read: int
     #: Files a model was asked about and declined to name, or whose answer P8 did
     #: not accept. `00`: correct abstention is a successful outcome, and either way
@@ -7562,6 +7653,16 @@ class SituationPass:
     #: in the largest. Zero on every run that sets no ceiling, which is every run a
     #: person is watching.
     over_ceiling: int = 0
+    #: HOW MANY OF THE ROSTER THE RULES HAD ALREADY RECOGNISED, and it is NOT one of
+    #: the counters that partition it -- every one of these files was also asked and
+    #: is also in exactly one of the five above. `00` amendment 7(c) is why it is
+    #: here at all: the number used to be `settled`, a bucket of files nobody asked,
+    #: and the owner's ruling turned it into a fact about the rules rather than a
+    #: fate for the file. It stays on the screen because a person watching a scan is
+    #: owed the difference between "the rules had nothing" and "the rules had an
+    #: answer and it was checked", and because it is the denominator §18.56's 32.2%
+    #: was measured against.
+    recognised_by_rules: int = 0
 
 
 #: THE PASS THAT DID NOT RUN, and it is a value rather than a `None` for the
@@ -7721,8 +7822,8 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
       standing exactly where no hold exists.
     """
     named: dict = {}
-    settled = nothing_to_ask = nothing_to_read = declined = 0
-    over_ceiling = 0
+    nothing_to_read = declined = 0
+    over_ceiling = recognised_by_rules = 0
     #: `104` §18.33 gap 25: THE ROWS, AND THE COUNT IS TAKEN OFF THEM. `no_route`
     #: was `+= 1` and nothing else, so `--trail FILE` could not say why a file was
     #: never asked -- the surface's own words: *"this module cannot say 'no site had
@@ -7739,11 +7840,26 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     held = released = confirmed = 0
     dependencies_for = situation_call_dependencies
     store = ClassificationStore(conn)
-    # `104` §17.13 ruling 3: PER FILE, not per site. Site G's own text is
-    # unratified, so `target_for` drops the cloud candidate for it and every file
-    # this pass asks about goes to the model on this machine -- which is what
-    # `104` §17.1 already said in words and what this now makes mechanical rather
-    # than a consequence of which tier the local model happened to take.
+    # `104` §17.13 ruling 3: PER FILE, not per site -- and since `00` amendment
+    # 7(c) the per-file answer is the gate's.
+    #
+    # **WHAT DECIDES A FILE'S TARGET HERE.** `target_for` offers the cloud
+    # candidate first and asks `model_route_permitted` about this file: a file
+    # carrying an ordinary classification row that the privacy module's own rules
+    # permit a cloud release of -- which is what the gate writes when it clears a
+    # file, basis `local_model_gate` with `protected = 0` -- takes it; every other
+    # file falls through to the local candidate, which is where an unclassified
+    # file, a held file and a file the gate could not answer for all belong. The
+    # predicate is the GATE's own rule, called and never respelled (`104` R-02).
+    #
+    # **AND TODAY EVERY FILE STILL GOES LOCAL, for two reasons that are both
+    # temporary and neither of which this line decides.** Site G's row is
+    # unratified, so `observe_locality_permits` drops the cloud candidate before
+    # any file is asked about; and `privacy.vocabulary.CLASSIFICATION_BASES` does
+    # not yet carry `local_model_gate`, so the gate writes no row for the route to
+    # read. Both are the owner's to change -- a ratification and a privacy patch --
+    # and when they change this line needs no edit, which is the point of asking
+    # the door's own predicate rather than a word of this function's own.
     route_for = target_for(conn, routing, G_SITUATION_SENSITIVITY)
     for file_id, content_hash in roster:
         # `104` R-175, and BEFORE the recogniser runs. `open_turn` charges the
@@ -7811,30 +7927,30 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             precaution = precaution_of(conn, outcome.by_the_rules,
                                        file_id=file_id,
                                        content_hash=content_hash)
-        if precaution is None and outcome.recognised is not None:
-            # THE RULES SETTLED IT AND ARE NOT HOLDING IT, which is the whole of
-            # what `00`:110 sanctions: "The LLM should not be called for direct,
-            # unique matches." A HELD file is not that. The owner's ruling of
-            # 10 Sep 13:10 (`104` §18.26 gap 24b) is that `00`:110 yields to a
-            # protected hold, and the reason is what the two sentences are ABOUT:
-            # a direct, unique match is the rules reading the file's own words and
-            # knowing what it is, while a hold is a word-list guess about what the
-            # file IS, taken on one term that may be the modal verb "will" in the
-            # body of a datasheet. Eight of r19's eleven wrongly-held ordinary
-            # files were recognised files, settled here, never asked, and routed
-            # local-only for no reason. The local model reads the whole text; the
-            # word list does not.
-            settled += 1
-            continue
+        if outcome.recognised is not None:
+            # THE RULES RECOGNISED IT, AND IT IS ASKED ANYWAY (`00` amendment
+            # 7(c)). This used to be a `continue`: a file the rules named and were
+            # not holding was `settled` and never asked, on `00`:110's "the LLM
+            # should not be called for direct, unique matches" as §17.1 read it
+            # onto this site. The owner has ruled that reading out, and the number
+            # is the argument: the rules' measured top-1 accuracy on the second
+            # corpus was 32.2% (`cli.SEMANTIC_MAX_ANCHOR_WORDS`' comment), so two
+            # files in three that this branch called settled were settled wrongly
+            # -- and went to the cloud, under the run's own `--situation`, with
+            # nobody having checked. A direct, unique match is now the top-ranked
+            # candidate rather than a bypass, which is exactly what the
+            # constitution's placement ruling of 5 September already said about
+            # the other site that used to skip the model.
+            #
+            # THE COUNT STAYS ON THE SCREEN and stops being a fate. What the rules
+            # recognised is worth knowing; what it may no longer do is decide that
+            # nobody looks.
+            recognised_by_rules += 1
         if precaution is not None:
             held += 1
-        try:
-            question = question_for(
-                outcome, file_id=file_id, content_hash=content_hash,
-                precaution=precaution)
-        except NothingToAsk:
-            nothing_to_ask += 1
-            continue
+        question = question_for(
+            outcome, file_id=file_id, content_hash=content_hash,
+            precaution=precaution)
         chosen = route_for(file_id)
         if chosen is None:
             # NOTHING IS ASSEMBLED AND NOTHING IS SENT. A file with no route is
@@ -7883,15 +7999,24 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                 f"routed to a {target.locality} target "
                 f"({target.provider}/{target.model_id}); protected material "
                 "reaches the local model only, opened on this machine for it")
+        # THE BOUND IS THE TARGET'S, since `00` amendment 7(c) opened a cloud route
+        # for this site. The local bound is unchanged; the cloud one is smaller,
+        # and `SITUATION_DOSSIER_TOKENS_CLOUD` carries the whole argument. One
+        # number, read once and spent twice -- at the offer, where
+        # `releasable_observations` decides what fits, and on the request, which is
+        # the caller's echo of P1's ceiling (M9) -- so the dossier that is built is
+        # the dossier the request describes.
+        bound = (SITUATION_DOSSIER_TOKENS_CLOUD if target.locality == CLOUD
+                 else GROUPING_LIMITS.max_dossier_tokens)
         observations = releasable_observations(
             conn, file_id=file_id, content_hash=content_hash,
             limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
             locality=target.locality,
-            ceiling=GROUPING_LIMITS.max_dossier_tokens)
+            ceiling=bound)
         try:
             request = build_situation_request(
                 question, observations, model_target=target, prompt=prompt,
-                max_dossier_tokens=GROUPING_LIMITS.max_dossier_tokens)
+                max_dossier_tokens=bound)
         except NothingToAsk:
             nothing_to_read += 1
             continue
@@ -8002,7 +8127,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     if ceiling is not None:
         ceiling.close_turn()
     return SituationPass(
-        named=named, settled=settled, nothing_to_ask=nothing_to_ask,
+        named=named, recognised_by_rules=recognised_by_rules,
         nothing_to_read=nothing_to_read, declined=declined,
         # `104` §18.33 gap 25: THE NUMBER IS THE ROWS. Not a tally kept beside them
         # -- a counter and a table are two accounts of one fact and the day they
@@ -8024,8 +8149,7 @@ _NO_GATE = GatePass(
     declined=0)
 
 _NOTHING_ASKED = SituationPass(
-    named={}, settled=0, nothing_to_ask=0, nothing_to_read=0, declined=0,
-    no_route=0,
+    named={}, nothing_to_read=0, declined=0, no_route=0,
     holds=PrecautionHolds(held=0, released=0, confirmed=0, still_held=0))
 
 NO_GROUP_CALLS = GroupPass(asked=0, answered=0, abstained=0,
@@ -10615,23 +10739,16 @@ assert set(GATE_SENTENCE) | {"named"} == {
 
 
 SITUATION_SENTENCE: Mapping[str, str] = MappingProxyType({
-    "settled":
-        "settled by rule: the recognisers named what they are from their own "
-        "words, so no model was asked about them. `00`:110 reserves the model "
-        "for what the rules cannot settle, and this is that rule holding. A file "
-        "the rules named AND are holding on a safety term is not among them: the "
-        "hold is a guess about what the file is, so it is asked like every other "
-        "held file and counted in the block below.",
-    # TWO "NOT ASKED" LINES, AND EACH SAYS WHICH ONE IT IS IN ITS FIRST THREE
-    # WORDS. A first version began both with the bare phrase, and the block then
-    # printed two lines reading "0 not asked" with different paragraphs under
-    # them -- a reader has to get to the third line of prose to find out they are
-    # different facts, and a reader scanning counts never gets there at all.
-    "nothing_to_ask":
-        "not asked, no candidate: nothing that could be read out of them offered "
-        "a candidate situation at all, so there was no question to put to a "
-        "model. That is about what this product could read, not about what they "
-        "are.",
+    # `settled` AND `nothing_to_ask` STOOD HERE AND `00` amendment 7(c) retired
+    # both counters, so their sentences go with them. The first read "settled by
+    # rule: the recognisers named what they are from their own words, so no model
+    # was asked about them"; it was true of the code and the owner has ruled the
+    # behaviour out, because the rules' top-1 accuracy on the second corpus was
+    # 32.2% and a sentence telling a person their files were settled by rules that
+    # were wrong two times in three is the worst kind of screen this product can
+    # print. The second read "not asked, no candidate", which cannot happen now
+    # that the menu is the whole library. `recognised_by_rules` below is what
+    # survives of the first, and it says what it is rather than what happened.
     "nothing_to_read":
         "not asked, nothing to read: a shortlist of situations existed for them "
         "and no releasable reading did, so the question could not be asked from "
@@ -10661,7 +10778,17 @@ SITUATION_SENTENCE: Mapping[str, str] = MappingProxyType({
         "was decided -- what is open is open, and the next run asks again.",
 })
 
-assert set(SITUATION_SENTENCE) | {"named", "holds"} == {
+#: `00` amendment 7(c): WHAT THE RULES HAD RECOGNISED, said as a fact about the
+#: rules. It is outside the partition -- every one of these files was also asked --
+#: so `_print_situation_pass` prints it apart from the six that add up, on
+#: `PrecautionHolds`' own rule.
+SITUATION_RECOGNISED_SENTENCE: str = (
+    "of them the rules had already recognised from their own words. Every one "
+    "was still asked: on the corpus this was measured against, the rules named "
+    "the right situation for about a third of the files they named one for, and "
+    "a file nobody re-reads is a file that goes wherever the first guess sent it.")
+
+assert set(SITUATION_SENTENCE) | {"named", "holds", "recognised_by_rules"} == {
     field.name for field in dataclasses.fields(SituationPass)}, (
     "every counter site G leaves behind earns a sentence on the screen. A "
     "counter with no sentence would be a number this report silently drops, "
@@ -10922,11 +11049,18 @@ def _print_situation_pass(situation: SituationPass, *, files: int,
         f"may be sent at all, so it is never asked anywhere else.", indent=""),
         file=out)
     for field in dataclasses.fields(SituationPass):
-        if field.name in ("named", "holds"):
+        if field.name in ("named", "holds", "recognised_by_rules"):
             continue
         print(_wrapped(f"{getattr(situation, field.name)} "
                        f"{SITUATION_SENTENCE[field.name]}", indent="  "),
               file=out)
+    # OUTSIDE THE ARITHMETIC AND SAID SO BY WHERE IT IS PRINTED. The lines above
+    # partition the roster and their sum is the total a person can check; this
+    # number counts files that are ALSO in one of them, so printing it in that
+    # loop would give a reader five numbers that no longer add up.
+    if situation.recognised_by_rules:
+        print(_wrapped(f"{situation.recognised_by_rules} "
+                       f"{SITUATION_RECOGNISED_SENTENCE}", indent="  "), file=out)
     _print_the_holds(situation.holds, out=out)
 
 

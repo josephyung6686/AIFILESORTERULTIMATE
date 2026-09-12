@@ -140,6 +140,41 @@ class GateQuestion:
     evidence_refs: tuple[str, ...] = ()
 
 
+#: THE EXTRACTOR FAMILY WHOSE READINGS ARE IDENTIFIER REPORTS, `00` amendment
+#: 7(a). Its observations are the deterministic identifier layer's -- a card
+#: number, an account or IBAN shape, a national-identity or passport shape, a
+#: medical record number, a date of birth beside a name -- and their recorded
+#: value is never the whole identifier.
+#:
+#: A PREFIX AND NOT A LIST, because the extractor names are that agent's to choose
+#: and this module invents none of them. The gate's ratified template already
+#: describes the item kind those readings arrive under -- *"An 'identifier' item,
+#: when present, reports that a deterministic check found the shape of an
+#: identifier in the file ... its value is masked"* -- so the kind is written here
+#: and the sentence becomes true the day that branch merges, rather than the
+#: template describing an item nothing ever sends.
+IDENTIFIER_EXTRACTOR_PREFIX: str = "identifiers."
+
+#: What the model sees such an item called. Not `excerpt`: the two are different
+#: things to the reader the template describes -- an excerpt is a reference to text
+#: of the file, and this is a report that a deterministic check fired -- and the
+#: rule that a masked value is the only text a citation may quote follows the kind.
+IDENTIFIER_ITEM_KIND: str = "identifier"
+
+
+def _item_kind(observation) -> str:
+    """`excerpt`, or `identifier` for a reading the identifier layer produced.
+
+    Read off `extractor_name`, which P4 records on every observation, rather than
+    off the value or the zone: what makes a reading an identifier report is which
+    extractor concluded it, and a reader that guessed from the text would be a
+    second, worse identifier recogniser sitting inside the dossier builder.
+    """
+    name = getattr(observation, "extractor_name", "") or ""
+    return (IDENTIFIER_ITEM_KIND
+            if name.startswith(IDENTIFIER_EXTRACTOR_PREFIX) else "excerpt")
+
+
 def _eligibility(reason: str | None) -> str:
     """`00`:39's three states, from the recogniser's own word for where it stopped.
 
@@ -165,6 +200,13 @@ def build_gate_request(
     **No text crosses this line**, on `build_situation_request`'s own terms: every
     field is a reference, and what the model is shown of the file is whatever P7
     decides to release for those observation keys, at the door.
+
+    **TWO ITEM KINDS AND BOTH ARE THE FILE'S OWN READINGS.** An `excerpt` is a
+    reference to text of the file; an `identifier` is a reading the deterministic
+    identifier layer produced (`00` amendment 7(a)), whose recorded value is masked
+    and whose presence is itself the report. The gate's ratified template describes
+    both, and `_item_kind` reads which one this is off P4's `extractor_name` rather
+    than off the value.
 
     **NO FRAME ITEMS**, and that is this dossier's whole shape. Site G carries one
     `candidate_schema` item per option and one `recogniser_abstention` item,
@@ -195,7 +237,7 @@ def build_gate_request(
         evidence_items=tuple(
             EvidenceItem(
                 evidence_ref=observation.observation_key,
-                kind="excerpt",
+                kind=_item_kind(observation),
                 location=serialize_locator(observation.location),
                 excerpt_span=(
                     None if observation.location.text_span is None else
