@@ -416,7 +416,7 @@
   {
    "site": "H_restricted_kind",
    "candidate": "gate-restricted-kind",
-   "status": "unratified",
+   "status": "ratified_local",
    "template_id": "gate.unratified.restricted-kind.2026-09-12",
    "template_file": "gate_template.restricted-kind.txt",
    "response_schema_file": "gate_response_schema.json",
@@ -424,12 +424,12 @@
    "readings_rows": [],
    "layout": "frame-first",
    "note": "00 amendment 7(c): the gate asks only which of the ten restricted kinds, if any, a file is, over a short dossier; local only; a named kind protects the file, none_of_these with the deterministic layers silent clears it for the cloud.",
-   "ratified_by": null
+   "ratified_by": "the owner, 12 Sep 2026, 17:15 local, in session: \"I ratify the situation prompts and stuff, and if not we A/B test it when needed.\" Applied by the lead on the row itself, which no record had yet pointed at. LOCAL ONLY: the gate decides whether a file may leave the device, so it never leaves the device."
   },
   {
    "site": "G_situation_sensitivity",
    "candidate": "situation-whole-library",
-   "status": "unratified",
+   "status": "ratified",
    "template_id": "situation.unratified.whole-library.2026-09-12",
    "template_file": "situation_template.whole-library.txt",
    "response_schema_file": "situation_response_schema.v2.json",
@@ -439,7 +439,7 @@
    ],
    "layout": "frame-first",
    "note": "00 amendment 7(c): the whole library as the menu, the recognisers' candidates as evidence; two supported kinds answered as one plus alternatives; none only when no kind of material shows. Runs on the cloud for a file the gate cleared, locally otherwise.",
-   "ratified_by": null
+   "ratified_by": "the owner, 12 Sep 2026, 17:15 local, in session: \"I ratify the situation prompts and stuff, and if not we A/B test it when needed.\" Applied by the lead on the row itself, which no record had yet pointed at. RATIFIED, not ratified_local: this call runs on a cloud model for a file the gate cleared (00 amendment 7(c))."
   },
   {
    "site": "G_situation_sensitivity",
@@ -453,7 +453,7 @@
     "@case"
    ],
    "layout": "frame-first",
-   "note": "The bake-off twin of situation-whole-library: the same text without the illustrative examples of kinds, so the owner's worry (12 Sep 16:20: do the examples bias the model?) is measured rather than argued.",
+   "note": "The bake-off twin of situation-whole-library: the same text without the illustrative examples of kinds, so the owner's worry (12 Sep 16:20: do the examples bias the model?) is measured rather than argued. Kept unratified as the A/B candidate the owner reserved (\"if not we A/B test it when needed\").",
    "ratified_by": null
   }
  ],

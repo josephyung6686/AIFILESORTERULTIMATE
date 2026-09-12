@@ -1,5 +1,5 @@
 {
- "compiled_rows": 358,
+ "compiled_rows": 360,
  "manifest_version": 1,
  "refused_rows": 44,
  "schemas": {
@@ -13319,8 +13319,10 @@
     "bargaining unit",
     "beneficiary",
     "bequest",
+    "blood drive",
     "branch",
     "branch secretary",
+    "budget request",
     "burial",
     "burial register",
     "campaign",
@@ -13362,6 +13364,7 @@
     "endowment",
     "entitled to vote",
     "entry number",
+    "event flyer",
     "expulsion",
     "extraordinary general meeting",
     "facilities agreement",
@@ -13369,6 +13372,8 @@
     "full member",
     "fund balance",
     "funding call",
+    "funding request",
+    "general body meeting",
     "gift",
     "gift aid",
     "gift range table",
@@ -13381,10 +13386,12 @@
     "honorary member",
     "in arrears",
     "in memoriam",
+    "incoming officer",
     "induction",
     "industrial action ballot",
     "instalment",
     "intake",
+    "interest form",
     "interment",
     "joint negotiating committee",
     "lapsed",
@@ -13395,6 +13402,8 @@
     "marriage register",
     "match funding",
     "matching gift",
+    "meeting agenda",
+    "meeting schedule",
     "member case file",
     "member class",
     "membership number",
@@ -13405,11 +13414,13 @@
     "no goods or services were provided",
     "notice of industrial action",
     "notice of meeting",
+    "officer handover",
     "officiant",
     "order of service",
     "ordinary resolution",
     "out-of-pocket expenses",
     "outcomes",
+    "outgoing officer",
     "outputs",
     "parish",
     "pastoral visit",
@@ -13452,7 +13463,9 @@
     "scrutineer",
     "scrutineer return",
     "service user",
+    "shift schedule",
     "shop steward",
+    "sign-up sheet",
     "society registration",
     "soft credit",
     "solicitation",
@@ -13462,11 +13475,13 @@
     "sponsors",
     "standing order",
     "stewardship",
+    "student activities office",
     "students' union",
     "subscription",
     "support plan",
     "supporter",
     "table sponsorship",
+    "tabling schedule",
     "teller",
     "this is not a contract of employment",
     "trustees' report",
@@ -13549,6 +13564,16 @@
     },
     {
      "readings": [
+      "Deciding whether a name-and-contact list has crossed from a sign-up sheet into a membership roll once retained across terms — the discriminator is a standing column appearing over time, and a snapshot alone may not show it.",
+      "Separating an event flyer produced for the club's own record-keeping from a designed graphic with no organisational-record context at all (photos.personal-graphics' territory) or from a commercial ad-campaign asset (creative.ad-campaign's), where the same design tooling and the same file shape serve all three.",
+      "Recognising a budget request as this row's informal, unrestricted ask rather than the schema's own restricted-grant lifecycle, where the vocabulary (\"funding\", \"request\", \"grant\") is shared and only the presence or absence of a payment schedule and milestone reporting discriminates.",
+      "Distinguishing an officer handover from a generic role-transition memo in hr or business_operations, where the discriminating evidence — a term boundary and an unpaid, elected role — is often stated once and briefly.",
+      "Abstaining whenever only the organisation type or the word student is present with no operational-document structure of its own: \"A model that cannot cite sufficient evidence must return unknown.\""
+     ],
+     "row": "nonprofit.student-organisation"
+    },
+    {
+     "readings": [
       "Deciding the HOLDER SIDE of a grievance, disciplinary or collective-agreement packet that names both the association and the employer - union case file versus employer personnel file versus instructed legal matter. Interpretation may use only a bounded local dossier and must abstain when the side is unresolved, on 00's own rule that “A model that cannot cite sufficient evidence must return unknown.”",
       "Separating a statutory industrial-action ballot from an ordinary members' meeting ballot when the employer-addressee block is missing or the question text is ambiguous.",
       "Separating check-off remittance schedules from the association's own staff payroll and from a member's personal bank statement showing a union subscription.",
@@ -13578,6 +13603,10 @@
     },
     {
      "cautions": 7,
+     "row": "nonprofit.student-organisation"
+    },
+    {
+     "cautions": 7,
      "row": "nonprofit.trade-union"
     }
    ],
@@ -13594,6 +13623,7 @@
     "nonprofit.fundraising-donor",
     "nonprofit.member-association",
     "nonprofit.religious-institution",
+    "nonprofit.student-organisation",
     "nonprofit.trade-union"
    ],
    "schema_id": "nonprofit",
@@ -13616,6 +13646,7 @@
     "banns, notice or preliminary record preceding a rite",
     "beneficiary or service-user referral, assessment, case note, support plan and closure record",
     "branch or workplace organising record tied to an evidenced bargaining unit or case",
+    "budget or funding request to a host institution's student-activities office",
     "burial, cremation and interment register, plot map and right-of-burial record",
     "campaign, advocacy and lobbying record where a registration or disclosure structure exists",
     "case for support, major-gift proposal and gift-range table",
@@ -13625,8 +13656,10 @@
     "donation record, gift declaration, pledge schedule, legacy file, and appeal performance record",
     "donor or supporter register and its exports",
     "donor or supporter register, its segmentation and its exports",
+    "event flyer or poster",
     "faith-institution rite register and its certificates",
     "fundraising event record - tickets, table sponsorship, auction lots, and the declared benefit split",
+    "general-body-meeting agenda or recurring meeting schedule",
     "grant application, offer, agreement, drawdown and monitoring report on the grantee side",
     "individual gift record and its acknowledgement or receipt",
     "joining, renewal and resignation instrument for one member, held on the association's side",
@@ -13640,6 +13673,7 @@
     "membership register or roll, its snapshots, and its exports",
     "membership register, subscription record, members' meeting instrument, proxy and ballot",
     "notice, agenda and numbered resolutions of a members' general meeting",
+    "officer handover document",
     "officer or committee election record where the electorate is the membership",
     "pastoral visit or contact record held by a minister or chaplain",
     "peer-to-peer or crowdfunding page record held by the benefiting association",
@@ -13653,6 +13687,8 @@
     "restricted and designated fund statement, fund reconciliation, and grant expenditure return",
     "rite register volume and its entry pages",
     "safeguarding concern, allegation, incident, referral to authority, and background-check record",
+    "shift or task roster for one dated club event",
+    "sign-up or interest form for a club or an event",
     "statutory industrial-action ballot, notice to employer, and result return",
     "stewardship, recognition and impact report written to donors",
     "subscription or dues run across the roll, with arrears and reminder stages",
@@ -13774,6 +13810,16 @@
     },
     {
      "readings": [
+      "Deciding whether an OCR'd caption is genuinely meme-shaped humour or commentary, as against a saved reference image (a recipe card, a diagram, a quote graphic) whose overlay text serves a different purpose — both are Reference Clips' material either way, but the distinction matters for grouping.",
+      "Separating a personally made or edited graphic from a professional client deliverable when both carry an editing-tool tag and no camera EXIF: the model must look for project, client or brief evidence elsewhere in the file or its neighbourhood and return unknown when none exists, rather than defaulting either way.",
+      "Recognising a downloaded meme or wallpaper as against a real photograph whose EXIF was merely stripped in transit — photos.screenshot-captures' own adversarial case, shared by this row: 00 warns the system \"must not mistake the absence of EXIF for proof\" of anything.",
+      "Distinguishing a profile image the user set for their own account from a profile image downloaded of someone else (a contact's avatar saved from a messaging app), which is a photograph of a person and not personal graphics merely because it is square and small.",
+      "Concluding that nothing more can be said once the material-kind signal fires, which must remain an available answer: no event, project or reference-collection association is invented merely because a graphic was recognised as this kind of material."
+     ],
+     "row": "photos.personal-graphics"
+    },
+    {
+     "readings": [
       "deciding what the captured document IS once OCR text exists, which is the whole point of running OCR here — 00 states the principle for the neighbouring case and it holds identically for a photographed page: \"A screenshot is always a screenshot of something\", and \"OCR should therefore run when a file yields no usable text and no usable metadata, including scanned PDFs, confirmed screenshots, and opaque images without EXIF.\" The model's job is to say which roster schema the recovered text makes plausible, citing the OCR region; it is not to name a folder",
       "a photographed page in a non-Latin script or in handwriting, where the OCR output needs interpretation before any field on any schema can be filled",
       "separating a photographed page from a photographed whiteboard, notebook spread or poster, where the frame is dense text but is not a document — the deciding evidence is content, not density, and conflicting signals abstain",
@@ -13837,6 +13883,10 @@
      "row": "photos.messenger-export"
     },
     {
+     "cautions": 7,
+     "row": "photos.personal-graphics"
+    },
+    {
      "cautions": 8,
      "row": "photos.scanned-documents"
     },
@@ -13861,6 +13911,7 @@
     "photos.family-archive",
     "photos.home-video",
     "photos.messenger-export",
+    "photos.personal-graphics",
     "photos.scanned-documents",
     "photos.screenshot-captures",
     "photos.social-media-export",
@@ -13885,6 +13936,7 @@
     "aerial video clip",
     "album",
     "album page scan",
+    "banner",
     "book or article page scan",
     "bracketed exposure set",
     "burst",
@@ -13893,8 +13945,12 @@
     "chaptered take",
     "chat transcript",
     "conversation export bundle",
+    "cover image",
+    "cover photo",
+    "desktop wallpaper",
     "digitized tape transfer",
     "edited derivative",
+    "edited graphic",
     "event recording",
     "exported contact card",
     "faxed document received as an image",
@@ -13903,6 +13959,7 @@
     "hyperlapse or timelapse clip",
     "interview or conversation recording",
     "live photo",
+    "meme",
     "mobile scanning-app capture",
     "motion-still sidecar",
     "multi-page scan batch",
@@ -13910,6 +13967,7 @@
     "negative scan",
     "panorama",
     "phone screen capture",
+    "phone wallpaper",
     "photo",
     "photographed handwritten note",
     "photographed page",
@@ -13918,7 +13976,9 @@
     "platform-generated derivative (thumbnail, re-encode)",
     "practice or performance recording",
     "print scan",
+    "profile image",
     "profile photo",
+    "profile picture",
     "raw aerial original",
     "raw original",
     "region capture",
@@ -13934,6 +13994,7 @@
     "shared video",
     "short-form or story clip",
     "slide scan",
+    "sticker",
     "sticker or animated image",
     "stitched aerial composite",
     "time-lapse or slow-motion clip",
@@ -13945,6 +14006,7 @@
     "video clip",
     "voice memo",
     "voice note",
+    "wallpaper",
     "window capture"
    ]
   },

@@ -1378,6 +1378,12 @@
       "why_no_template": "nonprofit declares no key for a bargaining unit or a case-or-ballot reference, and the row explicitly says the opaque token 'is not a preference for minting a field'. Unlike nonprofit.member-association it does not promote the period into the vacated slot, so `record_period` would stand at a root the row never put it at."
     },
     {
+      "row_id": "nonprofit.student-organisation",
+      "uses_schema": "nonprofit",
+      "row_sentence": "then the TERM OR EVENT, promoted into the vacated slot, because a sign-up sheet or a shift roster is unintelligible until the event or term that produced it is known",
+      "why_no_template": "nonprofit's only generally usable declared key is `record_period` (H9), which fits the TERM half of this row's promoted level but not the EVENT half: a shift schedule or a flyer names a single dated occasion, not a content period, and nonprofit declares no key for a named occasion. Building a recipe on `record_period` alone would silently drop the event reading the row's own prose promotes equally to the term reading, which is exactly the invented-recipe failure this wave refuses rather than commits. The club level above it is a collector in a single-club corpus for the same reason nonprofit.member-association's association level is."
+    },
+    {
       "row_id": "government.archives-recordkeeping",
       "uses_schema": "government",
       "row_sentence": "The custody unit - collection, fonds, or accession - would come first, because a series or item description is unintelligible without it",
