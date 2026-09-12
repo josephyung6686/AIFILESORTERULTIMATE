@@ -17,8 +17,8 @@ import numpy
 import pytest
 
 from readers.entities_gliner import (
-    Entity, GlinerEntities, ModelUnavailable, decode, greedy_non_overlapping, pack,
-    span_grid, weights_in, word_mask, words_of,
+    Entity, GlinerEntities, ModelUnavailable, decode, greedy_non_overlapping,
+    overlaps, pack, span_grid, weights_in, word_mask, words_of,
 )
 
 REAL_WEIGHTS = Path.home() / ".graph-agent" / "models" / "gliner-pii"
@@ -92,7 +92,7 @@ def test_the_word_mask_numbers_the_first_sub_token_of_each_document_word():
 def test_packing_shapes_the_six_tensors_the_graph_takes():
     labels = ("person", "phone number")
     encoding = Encoding([None, 0, 1, 2, 3, 4, 5, 6, 6, 7, None])
-    feed, word_count = pack("Sarah Whitfield now", labels, encoding, max_width=4)
+    feed, word_count = pack(labels, encoding, max_width=4)
 
     assert word_count == 3
     assert set(feed) == {"input_ids", "attention_mask", "words_mask",
@@ -117,15 +117,14 @@ def test_packing_counts_the_words_that_survived_truncation_and_not_the_others():
     labels = ("person",)                      # prompt of three words
     # Five document words went in; the encoding stops after two of them.
     encoding = Encoding([None, 0, 1, 2, 3, 4])
-    feed, word_count = pack("a b c d e", labels, encoding, max_width=3)
+    feed, word_count = pack(labels, encoding, max_width=3)
     assert word_count == 2
     assert feed["text_lengths"].tolist() == [[2]]
     assert feed["span_idx"].shape == (1, 2 * 3, 2)
 
 
 def test_packing_a_document_the_prompt_left_no_room_for_counts_nothing():
-    feed, word_count = pack("anything", ("person",), Encoding([None, 0, 1, 2]),
-                            max_width=3)
+    feed, word_count = pack(("person",), Encoding([None, 0, 1, 2]), max_width=3)
     assert word_count == 0
     assert feed["text_lengths"].tolist() == [[0]]
 
@@ -178,6 +177,15 @@ def test_an_invalid_span_is_never_a_reading_however_it_scored():
     rows = _logits(len(words), 4, 1, {(0, 4, 0): 9.0})     # words 0..3; only 0-1 exist
     assert decode(rows, words=words, grid=grid, valid=valid, labels=("person",),
                   text=text, score_floor=0.5) == ()
+
+
+def test_two_readings_that_share_no_character_are_both_kept():
+    """GLiNER's own test is on inclusive WORD indices; this is on half-open CHARACTER
+    offsets, where `Whitfield` and the comma after it are `(6, 15)` and `(15, 16)`.
+    Under the inclusive test they share offset 15 and one is thrown away."""
+    assert not overlaps((6, 15), (15, 16))
+    assert overlaps((6, 15), (6, 15))
+    assert overlaps((6, 15), (14, 20))
 
 
 def test_greedy_keeps_the_strongest_of_two_overlapping_readings():
@@ -281,6 +289,30 @@ def test_a_text_with_no_words_asks_the_model_nothing(tmp_path):
     assert session.fed == []
 
 
+# --- the windows --------------------------------------------------------------
+
+def test_a_reading_on_a_window_boundary_is_observed_once_and_not_twice(tmp_path):
+    """Two windows both see what lies in their overlap. The greedy pass at the end
+    -- over ALL the windows, not one per window -- is what makes it one reading."""
+    directory = _model_directory(tmp_path / "pii", max_len=64)
+    text = " ".join(f"word{index}" for index in range(300))
+    # EVERY word is a person, at a logit the floor clears. So every word in every
+    # overlap is returned twice by construction, which is the case under test.
+    session = FakeSession(lambda feed: _logits(
+        int(feed["text_lengths"][0][0]), 4, 1,
+        {(first, 1, 0): 6.0 for first in range(int(feed["text_lengths"][0][0]))}))
+    reader = GlinerEntities(directory, labels=("person",), score_floor=0.7,
+                            threads=1, session=session)
+    found = reader.entities(text)
+
+    assert len(session.fed) > 1, "the premise is that there were several windows"
+    spans = [(one.start, one.end) for one in found]
+    assert len(spans) == len(set(spans)), "a boundary reading was recorded twice"
+    assert len(found) == 300, "every word is a person and every word is read once"
+    assert [one.text for one in found] == [f"word{index}" for index in range(300)]
+    assert all(text[one.start:one.end] == one.text for one in found)
+
+
 def test_an_empty_label_list_is_refused_because_it_asks_the_model_nothing(tmp_path):
     directory = _model_directory(tmp_path / "pii")
     with pytest.raises(ValueError):
@@ -319,15 +351,52 @@ def test_the_real_weights_find_a_planted_name_and_date_of_birth():
 @pytest.mark.skipif(not (REAL_WEIGHTS / "onnx" / "model.onnx").is_file(),
                     reason="the published GLiNER weights are machine state, not "
                            "repository state; this deployment has not fetched them")
-def test_a_dense_thousand_characters_is_truncated_and_not_a_shape_error():
-    """The truncation arithmetic, against the graph rather than against a stub.
+def test_a_diagnosis_on_page_three_of_a_unit_is_read():
+    """THE CASE THE GATE EXISTS FOR, against the real weights.
 
-    `gliner_config.json` caps the encoder at 384 sub-tokens; the deployment's
-    character budget is a thousand, and a thousand characters of account numbers,
-    hyphenated addresses and punctuation is far more than 384 word-pieces. A
-    `text_lengths` built from the PRE-tokenized word count asks the graph about words
-    whose vectors were never computed, which is a shape error on the fortieth file of
-    a real corpus or, worse, spans over text the model did not read.
+    `104` §18.56: four health forms were released to the cloud on the rules' word
+    alone. A reader that encoded once would see the first 384 sub-tokens of each and
+    report its silence about the rest as an absence -- so this plants a person and a
+    diagnosis at character 3,000 of a 4,000-character unit, which is the fourth
+    window, and asks for them back. Measured while writing it: 1.1 s for the 4,000
+    characters, and both are found at 1.000 and 0.992.
+    """
+    filler = (
+        "The quarterly infrastructure review focused on latency improvements across "
+        "the regional caching layer. Further testing is planned before the change is "
+        "rolled out to every availability zone. The team agreed to reconvene after "
+        "the next sprint to compare results against the baseline configuration. ")
+    planted = ("The patient, Marcus Lindqvist, was assessed and found to have "
+               "generalized anxiety disorder.")
+    page = (filler * 40)[:4_000]
+    page = (page[:3_000] + planted + page[3_000 + len(planted):])[:4_000]
+    assert page[3_000:3_000 + len(planted)] == planted, "the fixture plants it there"
+
+    reader = GlinerEntities(
+        REAL_WEIGHTS, labels=("person", "medical condition"), score_floor=0.7,
+        threads=2)
+    found = reader.entities(page)
+    by_label = {one.label: one for one in found}
+
+    assert by_label["person"].text == "Marcus Lindqvist"
+    assert by_label["medical condition"].text == "generalized anxiety disorder"
+    assert by_label["person"].start > 3_000, "the point is that it is late in the unit"
+    assert all(page[one.start:one.end] == one.text for one in found)
+
+
+@pytest.mark.skipif(not (REAL_WEIGHTS / "onnx" / "model.onnx").is_file(),
+                    reason="the published GLiNER weights are machine state, not "
+                           "repository state; this deployment has not fetched them")
+def test_a_dense_thousand_characters_is_read_whole_and_not_a_shape_error():
+    """The window arithmetic, against the graph rather than against a stub.
+
+    `gliner_config.json` caps the encoder at 384 sub-tokens, and a thousand
+    characters of account numbers, hyphenated addresses and punctuation is far more
+    than 384 word-pieces -- so this text takes several windows where the prose above
+    takes fewer. A `text_lengths` built from the PRE-tokenized word count asks the
+    graph about words whose vectors were never computed, which is a shape error on
+    the fortieth file of a real corpus or, worse, spans over text the model did not
+    read.
     """
     reader = GlinerEntities(
         REAL_WEIGHTS, labels=("person", "date of birth", "account number",

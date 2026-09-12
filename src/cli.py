@@ -3504,6 +3504,18 @@ ENTITY_TAIL_KEPT: int = 4
 #: default: a floor is a measurement about a corpus and the reader has seen none.
 ENTITY_SCORE_FLOOR: float = 0.7
 
+#: How much of a file version the entity reader is given. TWENTY THOUSAND, because
+#: `104`'s P4 extraction row measures 199 files as 3.3M characters -- 16,583 a file
+#: version, over 93 stored units -- so this reads the average file to its end, and
+#: at the measured 250 ms per 1,000 characters plus about 40 ms per unit call (12
+#: Sep 2026, four threads: 41 ms for a 60-character unit, 356 for a 1,500-character
+#: page, 248 ms/kchar at 4,000) that is 4 to 9 seconds a file and 25 to 55 minutes
+#: over a 371-file corpus, against site G's own 3.6 to 4.6 hours on the same one.
+#: Its OWN number and not `SEMANTIC_CHAR_BUDGET`'s thousand, because a vector of a
+#: document's opening IS the vector while a gate that reads only the opening
+#: released four health forms to the cloud (`104` §18.56).
+ENTITY_CHAR_BUDGET: int = 20_000
+
 #: The threads the entity session runs on: `SEMANTIC_THREADS`, deliberately the same
 #: number rather than a second one. Both are the same question -- how much of this
 #: machine one local ONNX model may have -- and the two models never run at once
@@ -15236,14 +15248,10 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         try:
             record_entity_readings(
                 conn, file_versions=roster, entities=reader.entities,
-                # THE SEMANTIC PATH'S OWN ZONES AND BUDGET, not a second pair. Both
-                # answer "how much of this file does a local model read, and which
-                # part", and `recognition/semantic.py`'s comment on `SEMANTIC_ZONES`
-                # -- `metadata` excluded because it is the format talking about the
-                # software that wrote it -- is as true of an entity reader as of an
-                # encoder. A second budget here would be a second answer to one
-                # question, and the first one to go stale.
-                zones=SEMANTIC_ZONES, char_budget=SEMANTIC_CHAR_BUDGET,
+                # The semantic path's ZONES, shared because `metadata` is excluded
+                # for the same reason either way; its own BUDGET, because an encoder
+                # reads a document's opening and this reads as far as it can.
+                zones=SEMANTIC_ZONES, char_budget=ENTITY_CHAR_BUDGET,
                 masked_labels=ENTITY_MASKED_LABELS, tail_kept=ENTITY_TAIL_KEPT,
                 now=now())
         finally:

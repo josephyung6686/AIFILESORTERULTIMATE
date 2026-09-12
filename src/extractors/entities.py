@@ -110,13 +110,15 @@ defect. What it costs is one more read of a superseded unit's text and readings
 minted onto a superseded run; what it does not cost is duplicate rows, because the
 `observation_key` a reading is deduplicated on carries no `run_id`.
 
-**WHAT THE MODEL IS SHOWN, and it is small.** The zones and the character budget
-are the deployment's semantic-path numbers (`cli.SEMANTIC_ZONES`,
-`cli.SEMANTIC_CHAR_BUDGET`), injected. Zone order is spend order, exactly as
-`recognition.semantic.evidence_text` spends it, so a truncation keeps the half of a
-document that says what it is. THE CONSEQUENCE IS WORTH STATING: at a
-thousand-character budget a diagnosis on page three of a health form is not read.
-That is the deployment's number and this pass applies it; moving it is the owner's.
+**WHAT THE MODEL IS SHOWN: THE WHOLE OF A FILE VERSION, TO A CEILING.** The zones
+are the semantic path's (`cli.SEMANTIC_ZONES`) and the budget is this path's own
+(`cli.ENTITY_CHAR_BUDGET`), both injected. The budgets differ because the questions
+do: a vector of a document's opening IS the vector, and this asks whether a file
+names a person or a diagnosis ANYWHERE in it -- `104` §18.56's four released health
+forms are what the opening alone bought. `readers.entities_gliner` windows what it
+is handed, so a unit longer than the encoder's sequence length is read end to end.
+Zone order is spend order, exactly as `recognition.semantic.evidence_text` spends
+it, so a file over the ceiling spends it on its headings and its opening pages.
 
 **THE SESSION IS A PHASE, NOT A RESIDENT.** The fp32 weights hold 2.36 GB
 resident and the local language model wants the rest of the machine. So the caller
