@@ -221,7 +221,11 @@ def test_the_tie_becomes_a_question_with_valid_options_and_a_way_out(measured):
                             file_id=file_id, content_hash=content_hash)
 
     assert question.allowed_situations[-1] == NONE_OF_THESE
-    assert set(question.allowed_situations[:-1]) == set(TIED)
+    # `00` amendment 7(c): the menu is the whole library and the tie is carried as
+    # evidence. This read `== set(TIED)`; `104` §18.56 measured that menu holding
+    # the right answer for 35 of 87 files.
+    assert set(question.allowed_situations[:-1]) == set(SCHEMA_IDS)
+    assert set(question.raised) == set(TIED)
     assert NONE_OF_THESE not in SCHEMA_IDS
     assert question.reason == outcome.reason
     assert question.evidence_refs == outcome.evidence_refs, (
@@ -357,7 +361,12 @@ def test_the_question_is_asked_now_and_the_request_is_built_from_the_real_run(
         "so in P8's vocabulary rather than in the recogniser's")
     offered = {item.evidence_ref
                for item in request.evidence_items if item.kind == "candidate_schema"}
-    assert offered == set(TIED) | {NONE_OF_THESE}
+    assert offered == set(SCHEMA_IDS) | {NONE_OF_THESE}
+    raised = {item.evidence_ref for item in request.evidence_items
+              if item.kind == "candidate_schema"
+              and "raised this for this file" in item.location}
+    assert raised == set(TIED), (
+        "the tie is what the recognisers raised, and it is said on the items")
     assert offered <= set(SCHEMA_IDS) | {NONE_OF_THESE}, (
         "an option outside the library is `recognition/_CONTRACT.md` rule 5's "
         "invention arriving through the prompt")

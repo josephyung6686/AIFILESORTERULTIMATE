@@ -140,39 +140,39 @@ class GateQuestion:
     evidence_refs: tuple[str, ...] = ()
 
 
-#: THE EXTRACTOR FAMILY WHOSE READINGS ARE IDENTIFIER REPORTS, `00` amendment
-#: 7(a). Its observations are the deterministic identifier layer's -- a card
-#: number, an account or IBAN shape, a national-identity or passport shape, a
-#: medical record number, a date of birth beside a name -- and their recorded
-#: value is never the whole identifier.
-#:
-#: A PREFIX AND NOT A LIST, because the extractor names are that agent's to choose
-#: and this module invents none of them. The gate's ratified template already
-#: describes the item kind those readings arrive under -- *"An 'identifier' item,
-#: when present, reports that a deterministic check found the shape of an
-#: identifier in the file ... its value is masked"* -- so the kind is written here
-#: and the sentence becomes true the day that branch merges, rather than the
-#: template describing an item nothing ever sends.
-IDENTIFIER_EXTRACTOR_PREFIX: str = "identifiers."
-
-#: What the model sees such an item called. Not `excerpt`: the two are different
-#: things to the reader the template describes -- an excerpt is a reference to text
-#: of the file, and this is a report that a deterministic check fired -- and the
-#: rule that a masked value is the only text a citation may quote follows the kind.
+#: What the model sees a masked identifier reading called. Not `excerpt`: the two
+#: are different things to the reader the ratified gate template describes -- *"An
+#: 'identifier' item, when present, reports that a deterministic check found the
+#: shape of an identifier in the file (a card number, an account number, a passport
+#: or identity number, a medical record number, a date of birth beside a name) and
+#: where; its value is masked"* -- and an excerpt is a reference to text of the
+#: file. The rule that the masked value is the only text a citation may quote
+#: follows the kind.
 IDENTIFIER_ITEM_KIND: str = "identifier"
 
 
 def _item_kind(observation) -> str:
-    """`excerpt`, or `identifier` for a reading the identifier layer produced.
+    """`excerpt`, or `identifier` for a reading `00` amendment 7(a)'s layer produced.
+
+    **ASKED OF THE EXTRACTOR AND NOT SPELLED HERE.** `extractors.identifiers`
+    publishes `is_identifier_extractor` precisely because two consumers must agree
+    about which rows those are, and its own docstring names the cost of the second
+    copy: `recognition.detector._matches` skips these rows because their normalized
+    value prints the KIND, so a tokeniser reading `medical_record_number ...8842`
+    finds the word `record` and holds the file by the wrong rule. A prefix written
+    out here would be that second copy.
 
     Read off `extractor_name`, which P4 records on every observation, rather than
     off the value or the zone: what makes a reading an identifier report is which
     extractor concluded it, and a reader that guessed from the text would be a
     second, worse identifier recogniser sitting inside the dossier builder.
     """
-    name = getattr(observation, "extractor_name", "") or ""
+    from extractors.identifiers import is_identifier_extractor
+
     return (IDENTIFIER_ITEM_KIND
-            if name.startswith(IDENTIFIER_EXTRACTOR_PREFIX) else "excerpt")
+            if is_identifier_extractor(getattr(observation, "extractor_name", "")
+                                       or "")
+            else "excerpt")
 
 
 def _eligibility(reason: str | None) -> str:

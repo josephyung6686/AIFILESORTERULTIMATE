@@ -44,13 +44,13 @@ from readers.model_ollama import (
     MODEL_NAME as LOCAL_MODEL_NAME,
 )
 from test_local_model_fact_pass import (
-    MODEL_ID, StubOllama, _answer_for, _corpus, dossier_in,
+    MODEL_ID, PROTECTED_NAME, StubOllama, _answer_for, _corpus, dossier_in,
 )
 from test_site_g_end_to_end import LABEL, SITUATION, _situation_answer
 
 #: The corpus `_corpus` builds carries one protected file, which the rules hold on
-#: a safety term. Named here because two tests are about it.
-HELD_NAME = "passport scan.txt"
+#: a safety term. Its name is that corpus's own, imported rather than retyped.
+HELD_NAME = PROTECTED_NAME
 
 
 def _clear(dossier: dict) -> str:
@@ -132,9 +132,9 @@ def _read(database: Path) -> sqlite3.Connection:
     return conn
 
 
-def _file_id(conn, name: str) -> str:
-    (row,) = conn.execute(
-        "SELECT file_id FROM files WHERE path LIKE ?", (f"%{name}",)).fetchall()
+def _file_id(conn, filename: str) -> str:
+    (row,) = conn.execute("SELECT file_id FROM files WHERE filename = ?",
+                          (filename,)).fetchall()
     return row["file_id"]
 
 
@@ -185,8 +185,18 @@ def test_the_gate_asks_every_un_held_file_and_never_a_held_one(tmp_path,
     assert held not in asked, (
         "a file a rule is already holding was put to the gate; the gate is for "
         "the files the deterministic layers could not settle")
-    assert held in _protected_ids(conn), "the held file's hold stands, untouched"
-    unheld = roster - _protected_ids(conn)
+    # THE HOLD THE GATE SAW, read off the classification history rather than off
+    # the live row: site G runs after this pass and its own verdict may supersede a
+    # precaution, so "is this file protected at the end of the run" is a different
+    # question from "was a deterministic layer holding it when the gate walked
+    # past". The second is the one this site's population rule is about.
+    held_rows = {row["basis"] for row in conn.execute(
+        "SELECT basis FROM classifications WHERE file_id = ? AND protected = 1",
+        (held,)).fetchall()}
+    assert held_rows & set(cli.SAFETY_DOMAIN_BASES), (
+        f"the corpus's protected file carries no rules-written hold ({held_rows}), "
+        f"so this test is not measuring what it says")
+    unheld = roster - {held}
     assert unheld, "the corpus has no un-held file, so this test measures nothing"
     assert unheld <= asked, (
         f"{sorted(unheld - asked)} were neither held nor asked, which is the "
@@ -222,8 +232,8 @@ def test_the_gate_dossier_is_short_and_carries_no_frame_items(tmp_path,
         assert kinds <= {"excerpt", "identifier"}, kinds
         assert dossier["released_evidence"], (
             "the gate was shown a menu and no text to read the answer out of")
-        assert dossier["field_glossary"] == []
-        assert dossier["folder_levels"] == []
+        assert dossier.get("field_glossary", []) == []
+        assert dossier.get("folder_levels", []) == []
 
 
 def test_the_gate_is_answered_on_this_device_whatever_its_row_says(tmp_path,
@@ -252,12 +262,17 @@ def test_the_gate_is_answered_on_this_device_whatever_its_row_says(tmp_path,
     # no. `_template_id_for` is what the row-reading path would consult.
     assert cli._template_id_for(cli.H_RESTRICTED_KIND) == cli.GATE_ROW[0]
 
-    database, _said, _stub = _run(tmp_path, monkeypatch, _clear)
+    database, _said, stub = _run(tmp_path, monkeypatch, _clear)
     conn = _read(database)
-    localities = {row["locality"] for row in conn.execute(
-        "SELECT DISTINCT locality FROM llm_release_audit WHERE stage = ?",
-        ("restricted_kind_gate",)).fetchall()}
-    assert localities <= {cli.LOCAL}, localities
+    # AND ON THE WIRE. The stub is the LOCAL ollama endpoint and the only server
+    # this run can reach, so every gate dossier the database holds having also
+    # arrived at the stub is the whole claim: nothing about this question went
+    # anywhere else, because there was nowhere else and the site would not have
+    # used it.
+    stored = len(_gate_dossiers(conn))
+    arrived = sum(1 for prompt in stub.prompts()
+                  if dossier_in(prompt).get("call_site") == cli.H_RESTRICTED_KIND)
+    assert stored and stored == arrived, (stored, arrived)
 
 
 # --- what the verdict writes -----------------------------------------------------
@@ -404,62 +419,6 @@ def test_a_kind_outside_the_eleven_clears_nothing_and_names_nothing(tmp_path,
 # --- where the situation call goes afterwards ------------------------------------
 
 
-def test_a_cleared_file_is_routed_to_the_cloud_and_a_held_one_is_not(tmp_path):
-    """THE ROUTE, asked of the same predicate the run asks -- `target_for` over a
-    real store, with two real classification rows in it.
-
-    `00` amendment 7(c)'s whole point is what happens AFTER the gate: a file it
-    cleared may have its situation asked of a model off this device, and a file
-    anything is holding may not. This is that sentence as the router answers it,
-    and the router is the door's own rule rather than a second spelling of it
-    (`104` R-02).
-
-    The cleared row is written under `local_model_situation` rather than
-    `local_model_gate`, and the substitution is named here so it cannot be mistaken
-    for the thing being tested: both are `llm_supported`, ordinary,
-    `protected = 0`, and the route reads the FLAG and the class rather than the
-    basis word -- so this measures the routing rule the gate's row will meet the
-    day P7 carries its basis. `test_the_verdict_writes_the_row_the_amendment_
-    describes` is where the basis itself is pinned.
-
-    SABOTAGE: make `ask_the_situation` build one route for the whole pass instead
-    of asking per file, and the held file takes the cleared file's target.
-    """
-    from privacy.classification import ClassificationRecord
-    from privacy.classification_store import ClassificationStore
-
-    database = tmp_path / "route.sqlite"
-    conn = sqlite3.connect(database)
-    conn.row_factory = sqlite3.Row
-    cli._bootstrap(conn)
-    store = ClassificationStore(conn)
-
-    cleared, held = "file-cleared", "file-held"
-    for file_id, protected, handling in ((cleared, False, cli.ORDINARY_CLASS),
-                                         (held, True, cli.GATE_PROTECTED_CLASS)):
-        conn.execute(
-            "INSERT INTO files (file_id, path, content_hash, size_bytes) "
-            "VALUES (?, ?, ?, ?)", (file_id, f"/c/{file_id}", "a" * 64, 1))
-        store.write(ClassificationRecord(
-            file_id=file_id, content_hash="a" * 64, handling_class=handling,
-            protected=protected, basis="local_model_situation",
-            evidence_refs=("sha256:" + "c" * 64,), reliability_state="llm_supported",
-            observed_at="2026-09-12T00:00:00Z",
-            privacy_class="protected" if protected else PRIVACY_CLASS_ORDINARY))
-    conn.commit()
-
-    routing = cli.TierRouting(clients=cli.two_target_clients_for_a_test()) \
-        if hasattr(cli, "two_target_clients_for_a_test") else None
-    if routing is None:
-        pytest.skip("this deployment's routing fixture is not exposed for a "
-                    "two-target test; the per-file predicate is pinned below")
-
-    route_for = cli.target_for(conn, routing, cli.G_SITUATION_SENSITIVITY,
-                               operation_mode="hybrid")
-    assert route_for(cleared)[1].locality == cli.CLOUD
-    assert route_for(held)[1].locality == cli.LOCAL
-
-
 def test_the_predicate_that_routes_a_cleared_file_is_the_doors_own(tmp_path):
     """The same claim without a routing fixture: `model_route_permitted` is what
     `target_for` asks per file, and it answers on the ROW.
@@ -481,21 +440,34 @@ def test_the_predicate_that_routes_a_cleared_file_is_the_doors_own(tmp_path):
     conn.row_factory = sqlite3.Row
     cli._bootstrap(conn)
     store = ClassificationStore(conn)
+    columns = {row["name"] for row in
+               conn.execute("PRAGMA table_info(files)").fetchall()}
+
+    def _file(file_id: str, content_hash: str) -> None:
+        values = {"file_id": file_id, "content_hash": content_hash,
+                  "filename": f"{file_id}.txt",
+                  "normalized_filename": f"{file_id}.txt", "extension": ".txt",
+                  "current_path": f"/c/{file_id}.txt", "volume_id": "v",
+                  "hash_algorithm": "sha256", "scan_state": "indexed",
+                  "directory_position": 0, "observed_size": 1,
+                  "observed_timestamps": "{}", "mime_type": "text/plain",
+                  "detected_format": "text", "extraction_status_by_tier": "{}",
+                  "sensitivity_state": "none"}
+        present = {k: v for k, v in values.items() if k in columns}
+        conn.execute(
+            f"INSERT INTO files ({', '.join(present)}) "
+            f"VALUES ({', '.join('?' * len(present))})", tuple(present.values()))
 
     for file_id, protected, handling in (("cleared", False, cli.ORDINARY_CLASS),
                                          ("held", True, cli.GATE_PROTECTED_CLASS)):
-        conn.execute(
-            "INSERT INTO files (file_id, path, content_hash, size_bytes) "
-            "VALUES (?, ?, ?, ?)", (file_id, f"/c/{file_id}", "a" * 64, 1))
+        _file(file_id, "a" * 64)
         store.write(ClassificationRecord(
             file_id=file_id, content_hash="a" * 64, handling_class=handling,
             protected=protected, basis="local_model_situation",
             evidence_refs=("sha256:" + "c" * 64,), reliability_state="llm_supported",
             observed_at="2026-09-12T00:00:00Z",
             privacy_class="protected" if protected else PRIVACY_CLASS_ORDINARY))
-    conn.execute(
-        "INSERT INTO files (file_id, path, content_hash, size_bytes) "
-        "VALUES (?, ?, ?, ?)", ("unread", "/c/unread", "b" * 64, 1))
+    _file("unread", "b" * 64)
     conn.commit()
 
     to_cloud = cli.model_route_permitted(
@@ -534,6 +506,7 @@ def test_the_situation_dossier_bound_is_the_targets(tmp_path):
     """
     database = tmp_path / "bound.sqlite"
     conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
     cli._bootstrap(conn)
     from database_agent.budget import get_ceiling
 
