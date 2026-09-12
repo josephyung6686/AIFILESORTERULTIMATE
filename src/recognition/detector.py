@@ -48,6 +48,8 @@ from types import MappingProxyType
 
 from database_agent.files_table import get_file
 
+from evidence_shape.location import Segment
+from evidence_shape.locator import serialize_container_path
 from evidence_shape.store import is_derived_extractor
 
 #: §2.4's "language where relevant" slot, IMPORTED rather than spelled. `_matches`
@@ -65,6 +67,15 @@ from extractors.structured_text import LANGUAGE_FIELD
 from extractors.identifiers import (
     IDENTIFIERS_NAMESPACE, KINDS as IDENTIFIER_KINDS, is_identifier_extractor,
     kind_of,
+)
+
+#: `00` amendment 7(b)'s local entity reader, imported for 7(a)'s reason exactly.
+#: THE PREFIX IS THE CONTRACT AND THE LABEL SET IS THE DEPLOYMENT'S -- that module's
+#: own words -- so what is imported is the namespace and the slug rule, never a
+#: roster: `cli.ENTITY_LABELS` may gain a twelfth label without an edit here, and a
+#: label this rule names no domain for holds nothing, which is the honest answer.
+from extractors.entities import (
+    ENTITY_NAMESPACE, is_entity_extractor, label_slug,
 )
 
 from facts.domains import SCHEMA_IDS, UnknownSchema
@@ -195,6 +206,66 @@ for _kind, _schema_id in IDENTIFIER_SAFETY_DOMAIN.items():
             f"{_schema_id!r} is not one of `00`:52's four safety domains "
             f"{SAFETY_DOMAIN_IDS}; 7(a) says an identifier holds a file as an "
             "authored safety term does, and only those four have such a hold")
+
+
+#: `00` AMENDMENT 7(b), THE OTHER HALF, AND THE SENTENCE IS THE OWNER'S:
+#:
+#:     "a small local entity encoder ... names people, diagnoses, dates of birth and
+#:     identity numbers as observations, AND A PERSON BESIDE A DIAGNOSIS OR AN
+#:     IDENTITY NUMBER HOLDS THE FILE WITHOUT A MODEL CALL."
+#:
+#: Two tables, because the ruling is two rules. THIS ONE IS THE PAIR: an entity of
+#: this kind holds the file only where a PERSON is beside it, and the domain is the
+#: one the pair names. A diagnosis with a person is somebody's health record; a
+#: diagnosis without one is a paper about a disease -- and telling those apart is the
+#: same distinction the authored library gets wrong, which is how the owner's own
+#: design notes for this product were once locked on the phrase "discharge summary".
+#:
+#: `date_of_birth` IS IDENTITY AND NOT MEDICAL, on 7(a)'s own reading: a birth date is
+#: what an identity document and an identity check are built on, and `00` gives no
+#: other of its four a claim on it. The two layers then agree by construction -- one
+#: date is `identity` whether the pattern layer's label found it or the encoder did.
+ENTITY_BESIDE_A_PERSON: Mapping[str, str] = MappingProxyType({
+    "medical_condition": "medical",
+    "identity_document_number": "identity",
+    "passport_number": "identity",
+    "date_of_birth": "identity",
+})
+
+#: AND THIS ONE IS THE NUMBER THAT NEEDS NOBODY BESIDE IT. An account number and a
+#: medical record number are not things a document mentions about somebody else: they
+#: are issued to a holder and printed on that holder's own paper, so the number is
+#: already about a person. They are also exactly the two kinds 7(a)'s pattern layer
+#: holds a file on alone (`IDENTIFIER_SAFETY_DOMAIN`'s `bank_account` and
+#: `medical_record_number`), and the two layers answering differently about one
+#: number would be one rule with two homes.
+ENTITY_ALONE: Mapping[str, str] = MappingProxyType({
+    "account_number": "finance",
+    "medical_record_number": "medical",
+})
+
+#: The kind whose presence turns the first table on. Spelled once.
+PERSON_ENTITY: str = "person"
+
+#: A PERSON ALONE, AN ORGANISATION ALONE, AN EMAIL OR A PHONE ALONE HOLD NOTHING, and
+#: their absence from both tables is the whole of how that is said. It is not an
+#: omission to be tidied up later: every document a person owns names somebody, most
+#: name an organisation, and a corpus where a name is a lock is a corpus with no
+#: unlocked files in it -- the over-protection collapse `_precaution` records,
+#: reached by the commonest entity there is. 7(b)'s sentence is about a person BESIDE
+#: something, and the something is what carries the claim.
+for _slug in (*ENTITY_BESIDE_A_PERSON, *ENTITY_ALONE, PERSON_ENTITY):
+    if label_slug(_slug) != _slug:
+        raise UnknownSchema(
+            f"{_slug!r} is not the slug `extractors.entities` would write for any "
+            "label, so no reading can ever carry it and this rule can never fire. "
+            "The naming rule is that module's; this table only spells its answers.")
+for _slug, _schema_id in (*ENTITY_BESIDE_A_PERSON.items(), *ENTITY_ALONE.items()):
+    if _schema_id not in SAFETY_DOMAIN_IDS:
+        raise UnknownSchema(
+            f"{_schema_id!r} is not one of `00`:52's four safety domains "
+            f"{SAFETY_DOMAIN_IDS}; 7(b) holds a file the way 7(a) does and the way "
+            "an authored term does, and only those four have such a hold")
 
 
 #: WHERE A DOCUMENT NAMES ITSELF. SPEC 2.2 ranks "a filename, title, or page-one
@@ -771,6 +842,20 @@ class Detector:
             # predicate is the extractor's own, on `is_derived_extractor`'s pattern.
             if is_identifier_extractor(row["extractor_name"]):
                 continue
+            # AND NEITHER IS AN ENTITY READING (`00` amendment 7(b)), for `104`
+            # R-135's reason rather than for the line above's. An entity reading of
+            # a named thing IS the document's own characters -- that is its contract
+            # -- but it is a SECOND ADDRESS for text the host reading already
+            # carries, cut out of it so the encoder's finding can be cited. Counting
+            # both is counting one word twice, and `never_alone`'s arity is a count:
+            # a file whose only academic word is inside a person's name would reach
+            # two on one occurrence of it. It is the same sentence the derived
+            # refusal above makes -- "not a second thing the file says about itself"
+            # -- and `_entity_readings` is where these rows are read for what they
+            # ARE, which is a pair the encoder found rather than a word an author
+            # wrote.
+            if is_entity_extractor(row["extractor_name"]):
+                continue
             # The file KIND is a property of the file and not of the observation
             # that named it, so this is read before the refusal below: narrowing
             # which words count must not narrow `file_kind_plausible` as well.
@@ -1259,8 +1344,13 @@ class Detector:
         # what a checksum is -- and requiring it to lead as well would release
         # exactly the file 7(a) was ruled for: `104` §18.56's card statement, whose
         # words tie nothing because it is a table of numbers.
+        #
+        # AND 7(b)'s PAIR IS A READING ON THE SAME TERMS. A person beside a diagnosis
+        # carries its own proof in the same sense: the claim rests on two findings
+        # standing in one unit, not on one word that might be a mention. §18.56's
+        # health forms tie nothing either -- an intake sheet is a table of fields.
         readings += [schema_id for schema_id
-                     in self._identifier_readings(conn, file_id, content_hash)
+                     in self._deterministic_readings(conn, file_id, content_hash)
                      if schema_id not in readings]
         if not readings:
             return None
@@ -1306,23 +1396,23 @@ class Detector:
         `min(readings, key=SCHEMA_IDS.index)` is `_protect_as`'s own choice, made
         here once and handed to it, on the same terms as the abstention arm.
         """
-        identifiers = self._identifier_readings(conn, file_id, content_hash)
+        deterministic = self._deterministic_readings(conn, file_id, content_hash)
         if outcome.schema_id in SAFETY_DOMAIN_IDS:
             # The winner is the hold. `explain` returns `unassigned_handling`
             # rather than a `Recognition` where the policy states no class, so a
             # recognised schema always has one and there is nothing to check.
             #
-            # Its own identifiers join the report (`00` amendment 7(a)) and change
-            # no decision here: the file is already held as this domain. What they
-            # change is what the report SAYS, which is gap 24's whole subject -- a
-            # `finance` recognition on a statement that also prints a card number
-            # reports the card, and the model reading the dossier is told the hold
-            # rests on a number and not only on the word `statement`.
+            # Its own identifiers and entities join the report (`00` amendment 7)
+            # and change no decision here: the file is already held as this domain.
+            # What they change is what the report SAYS, which is gap 24's whole
+            # subject -- a `finance` recognition on a statement that also prints a
+            # card number reports the card, and the model reading the dossier is
+            # told the hold rests on a number and not only on the word `statement`.
             return _reported(outcome.schema_id, tuple(
                 match for match in outcome.matches
                 if match.term in self._work_types.get(outcome.schema_id,
                                                       frozenset())
-            ) + identifiers.get(outcome.schema_id, ()))
+            ) + deterministic.get(outcome.schema_id, ()))
         readings = self._safety_readings_naming_the_file(
             conn, file_id, content_hash,
             in_evidence=self._safety_readings_in_evidence(
@@ -1335,7 +1425,7 @@ class Detector:
         # naming zone of it would release exactly the passport `_precaution`'s own
         # docstring opens with. `104` §18.56 measured what the release costs: a
         # health form the rules called ordinary went to the cloud on the rules' word.
-        readings = list(readings) + [schema_id for schema_id in identifiers
+        readings = list(readings) + [schema_id for schema_id in deterministic
                                      if schema_id not in readings]
         if not readings:
             return None
@@ -1351,7 +1441,7 @@ class Detector:
         return _reported(schema_id, tuple(
             match for match in matches
             if match.schema_id == schema_id and match.term in work_types
-            and _names_the_file(match)) + identifiers.get(schema_id, ()))
+            and _names_the_file(match)) + deterministic.get(schema_id, ()))
 
     def _safety_work_type_matches(
             self, conn: sqlite3.Connection, file_id: str,
@@ -1437,23 +1527,146 @@ class Detector:
                 whole=True))
         return {schema_id: tuple(found[schema_id]) for schema_id in sorted(found)}
 
+    def _entity_readings(
+            self, conn: sqlite3.Connection, file_id: str,
+            content_hash: str) -> dict[str, tuple["TermMatch", ...]]:
+        """`00` amendment 7(b): what the local encoder found BESIDE what.
+
+        The ruling is a sentence about two things in one place -- "a person beside a
+        diagnosis or an identity number holds the file without a model call" -- so
+        this is the only reader in this module that weighs a reading against another
+        reading rather than on its own. `ENTITY_BESIDE_A_PERSON` and `ENTITY_ALONE`
+        are the two halves; neither is decided here.
+
+        **"BESIDE" IS STRUCTURAL AND IS NOT A NUMBER.** It means the same TEXT UNIT
+        -- the same `container_path` -- which is `facts.anchor_statements`'
+        `_containing_span_reading` asking the same kind of question the same way:
+        that module's `_span_index` groups a file version's spanned readings by their
+        serialized container path and calls the grouping structural, with the comment
+        that it "needs no text and no parsing". Nothing here counts characters
+        between two entities, because a character distance would be a threshold and
+        this package holds none -- and a threshold would also be wrong: on an intake
+        form a name and a diagnosis are two table cells and forty characters apart,
+        while in a paragraph of prose two unrelated mentions can be adjacent.
+        `extractors.entities` mints every reading onto the HOST's container path, so
+        two entities share a path exactly when the encoder read them out of one unit.
+        A page is a unit, a paragraph is a unit, a notebook cell is a unit: the
+        document's own division, not this module's.
+
+        THE ADDRESS IS P4'S OWN, through `serialize_container_path` over `Segment`s
+        built from the stored location, and not a tuple assembled here. P4's rule 10
+        compares paths that way -- "the comparison is on the ADDRESS and not on the
+        record: segment-kind rule 2 makes a label descriptive only, so a labelled
+        `slide=6` and a bare `slide=6` are one address" -- and "the same unit" has to
+        mean what `text_units` means by it or this rule is measuring something else.
+
+        THE RUN IS DELIBERATELY NOT PART OF THE ADDRESS, and it is the one place this
+        is wider than `text_units`' own key. A PDF page read natively and the same
+        page read by OCR are two units and one page; a person the native pass found
+        on page one and a diagnosis the OCR pass found on page one are beside each
+        other on that page, however the characters reached the database. Narrowing to
+        `(run_id, path)` would release exactly the scanned health form this amendment
+        was ruled for -- the one whose typed cover and photographed pages are read by
+        two different extractors (`00` amendment 6).
+
+        **WHAT A MATCH CITES.** A pair cites BOTH readings: the person and the thing
+        beside them are jointly what raised the hold, and §8.4 says a record cites
+        what raised it. A solo kind cites its own reading. The `term` is the reading's
+        full `entities.<kind>` name rather than a bare kind, because -- unlike
+        `IDENTIFIER_KINDS` -- the label set is the DEPLOYMENT's and there is no closed
+        roster a reader could check a bare word against; the reading names itself,
+        prefix and all, which is the contract `extractors.entities` publishes.
+
+        Reads the rows `_matches` refuses, through the same predicate, so the two sets
+        are exact complements by construction.
+        """
+        #: container address -> kind -> the matches found at it, in row order.
+        by_unit: dict[str, dict[str, list[tuple[str, str | None, int | None]]]] = {}
+        for row in conn.execute(
+                "SELECT observation_key, extractor_name, location FROM evidence "
+                "WHERE file_id = ? AND content_hash = ? AND extractor_name LIKE ? "
+                "AND superseded_by IS NULL ORDER BY rowid",
+                (file_id, content_hash, ENTITY_NAMESPACE + "%")):
+            if not is_entity_extractor(row["extractor_name"]):
+                # `LIKE` is the index's filter and the predicate is the rule.
+                continue
+            kind = row["extractor_name"][len(ENTITY_NAMESPACE):]
+            if kind != PERSON_ENTITY and kind not in ENTITY_BESIDE_A_PERSON \
+                    and kind not in ENTITY_ALONE:
+                # An organisation, an email, a phone, a home address -- and any label
+                # a later deployment adds. They hold nothing, which is the tables'
+                # own statement, and skipping them here is that statement executing.
+                continue
+            where = _json.loads(row["location"])
+            page = next((step.get("index")
+                         for step in where.get("container_path") or ()
+                         if step.get("kind") == "page"), None)
+            address = serialize_container_path(tuple(
+                Segment(step["kind"], step.get("index"), step.get("label"))
+                for step in where.get("container_path") or ()))
+            by_unit.setdefault(address, {}).setdefault(kind, []).append(
+                (row["observation_key"], where.get("zone"), page))
+
+        found: dict[str, list["TermMatch"]] = {}
+
+        def _record(schema_id: str, kind: str, rows) -> None:
+            for key, zone, page in rows:
+                found.setdefault(schema_id, []).append(TermMatch(
+                    schema_id=schema_id, term=ENTITY_NAMESPACE + kind,
+                    observation_key=key, zone=zone, page=page, whole=True))
+
+        for address in sorted(by_unit):
+            kinds = by_unit[address]
+            people = kinds.get(PERSON_ENTITY, [])
+            for kind, schema_id in ENTITY_BESIDE_A_PERSON.items():
+                if people and kind in kinds:
+                    _record(schema_id, PERSON_ENTITY, people)
+                    _record(schema_id, kind, kinds[kind])
+            for kind, schema_id in ENTITY_ALONE.items():
+                if kind in kinds:
+                    _record(schema_id, kind, kinds[kind])
+        return {schema_id: tuple(dict.fromkeys(found[schema_id]))
+                for schema_id in sorted(found)}
+
+    def _deterministic_readings(
+            self, conn: sqlite3.Connection, file_id: str,
+            content_hash: str) -> dict[str, tuple["TermMatch", ...]]:
+        """Both deterministic layers' readings, by domain, in ONE answer.
+
+        `00` amendment 7's first two items are two extractors and one conclusion:
+        7(a)'s checksummed identifier and 7(b)'s person-beside-a-diagnosis each hold
+        a file "without a model call", by the same three lines of code that hold a
+        discharge summary. Every arm below asks this rather than either half, so a
+        layer added to the amendment later is wired in one place -- and the four arms
+        cannot come to disagree about one file, which is what this package has paid
+        for most often.
+
+        7(a) first within a domain, so a report that had both before 7(b) reads the
+        way it read then.
+        """
+        merged = dict(self._identifier_readings(conn, file_id, content_hash))
+        for schema_id, matches in self._entity_readings(
+                conn, file_id, content_hash).items():
+            merged[schema_id] = merged.get(schema_id, ()) + matches
+        return {schema_id: merged[schema_id] for schema_id in sorted(merged)}
+
     def _safety_evidence(
             self, conn: sqlite3.Connection, file_id: str,
             content_hash: str) -> dict[str, tuple["TermMatch", ...]]:
-        """BOTH kinds of safety evidence this file carries, by domain, in one answer.
+        """EVERY kind of safety evidence this file carries, by domain, in one answer.
 
-        The authored work types (`_safety_work_type_matches`) and the checksummed
-        identifiers (`_identifier_readings`), merged. `00` amendment 7(a) makes them
-        one question -- "does this file's own evidence name it as one of `00`'s four"
-        -- and asking it in two places is how one of the four arms below would come
-        to hold a file the other three release.
+        The authored work types (`_safety_work_type_matches`) and the deterministic
+        layers (`_deterministic_readings`), merged. `00` amendment 7 makes them one
+        question -- "does this file's own evidence name it as one of `00`'s four" --
+        and asking it in two places is how one of the four arms below would come to
+        hold a file the other three release.
 
         Authored terms first within a domain, so a report reads the way it read
         before 7(a) for every file that has both, and `SCHEMA_IDS` order across
         domains is `_protect_as`'s own choice, made from this one mapping.
         """
         merged = dict(self._safety_work_type_matches(conn, file_id, content_hash))
-        for schema_id, matches in self._identifier_readings(
+        for schema_id, matches in self._deterministic_readings(
                 conn, file_id, content_hash).items():
             merged[schema_id] = merged.get(schema_id, ()) + matches
         return {schema_id: merged[schema_id] for schema_id in sorted(merged)}
@@ -1584,16 +1797,17 @@ class Detector:
         # threaded through `Abstention`, which is a record of a RECOGNITION
         # decision and gains nothing by carrying a classification's citations.
         #
-        # AND A MASKED IDENTIFIER READING IS ONE OF THOSE CITATIONS (`00` amendment
-        # 7(a)). `_matches` refuses these rows -- rightly, they are not words the
-        # file said -- so without this line a file held on a card number alone
-        # reached the `if not refs` refusal below and came back UNPROTECTED: the
-        # report said `finance`, the record said nothing, and §8.4's flag that gates
-        # cloud egress stayed down. The one thing 7(a) exists to prevent, produced by
-        # the guard that exists to stop a classification citing nothing.
+        # AND A DETERMINISTIC READING IS ONE OF THOSE CITATIONS (`00` amendment 7).
+        # `_matches` refuses these rows -- rightly, they are not words the file said
+        # -- so without this line a file held on a card number alone, or on a name
+        # beside a diagnosis, reached the `if not refs` refusal below and came back
+        # UNPROTECTED: the report said `medical`, the record said nothing, and §8.4's
+        # flag that gates cloud egress stayed down. The one thing amendment 7 exists
+        # to prevent, produced by the guard that exists to stop a classification
+        # citing nothing.
         matches, _ = self._matches(conn, file_id, content_hash)
         refs: list[str] = []
-        for match in (*matches, *self._identifier_readings(
+        for match in (*matches, *self._deterministic_readings(
                 conn, file_id, content_hash).get(schema_id, ())):
             if match.schema_id == schema_id and match.observation_key not in refs:
                 refs.append(match.observation_key)
