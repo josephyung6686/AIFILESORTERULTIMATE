@@ -2444,6 +2444,31 @@ OCR_SECONDS_PER_FILE: int = 120
 #: carries it into the OCR run's own config, so what bounded a run is on the run.
 OCR_SPARSE_PAGE_WORDS: int = 20
 
+#: HOW MANY CHARACTERS OF AN IDENTIFIER MAY BE RECORDED, and the only place the
+#: number is chosen (`extractors.identifiers.identifier_observations`).
+#:
+#: `00`, Amendments of 2026-09-11, item 7(a): identifier patterns with checksums are
+#: a deterministic extractor "whose recorded value is never the whole identifier".
+#: The ruling says NEVER THE WHOLE and states no length, so the length is the
+#: deployment's, and this is it.
+#:
+#: WHY FOUR. It is the display convention the schemes that publish these numbers
+#: publish for showing them: PCI-DSS requires that the maximum a merchant may display
+#: is the first six and the LAST FOUR digits of a card, and a bank statement, a
+#: receipt, an airline booking and a hospital portal all print the same four. So four
+#: is the number a person recognises their own card by and the number every regulated
+#: system has already agreed is not the card. Fewer would make two of the owner's
+#: cards indistinguishable on a review screen and buy nothing -- the identifier is
+#: unreconstructible at four, because the remaining twelve digits of a Visa are a
+#: trillion possibilities and the checksum removes only one decimal digit of that.
+#:
+#: WHAT IT ACTUALLY BOUNDS, which is stronger than a mask. It is the width of the
+#: `text_span` the reading carries, not a string it prints: `raw_value` is the
+#: substring at that span (RAW-1) and `privacy.resolve` materialises a span by
+#: reading those characters out of the stored unit. So four is what the row holds AND
+#: what anything reading the row can ever recover.
+IDENTIFIER_MASK_TAIL: int = 4
+
 #: HOW MANY PROCESSES READ FILES AT ONCE, and the only place the number is chosen.
 #: `extraction_pool.ProcessPool` refuses to default it, for the reason every number
 #: in this product refuses to default: absent means refuse, never guess.

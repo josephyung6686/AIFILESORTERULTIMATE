@@ -37,6 +37,38 @@ SOURCE_DIR = Path(extractors.__file__).parent
 #: which the design names as one of exactly four mechanical transforms.
 MECHANICAL_REPAIR = ("extractors.shape", "_LINE_BREAK_HYPHEN")
 
+#: THE ONE MODULE THIS RULE NO LONGER REACHES, AND THE OWNER IS WHY.
+#:
+#: `00`, Amendments of 2026-09-11, item 7(a), ratified 12 Sep 2026 16:05: "identifier
+#: patterns with checksums are a deterministic EXTRACTOR". That sentence is a ruling
+#: on the very Deferred row this guard enforces -- P5's SPEC keeps "the patterns" out
+#: of `src/extractors/` and `extractors/reading.py` says so in `StructuredString`'s
+#: own docstring, "no pattern lives in src/extractors/ and the finder is supplied by
+#: the caller" -- and the ruling names a pattern layer and puts it in the extractor.
+#: The guard is not weakened; it is aimed at what it was written to stop.
+#:
+#: WHAT IT WAS WRITTEN TO STOP is a pattern that is a JUDGEMENT: a course-code shape,
+#: a producer string, a screen resolution -- a guess about what a document is, held
+#: where the owner cannot see it and cannot ratify it. `cli.py` holds the deployment's
+#: `find_structured_strings` for exactly that reason and `104` §18.56 measures the
+#: cost of getting it wrong (`subject` was 0 correct and 14 wrong on the owner's 199
+#: files). Every pattern in `extractors/identifiers.py` is the opposite kind: a
+#: NUMBERING SCHEME published by a standards body or a government, tested by that
+#: scheme's own arithmetic. ISO/IEC 7812's Luhn digit is true or false about a string
+#: of digits and says nothing about the page it sits on; there is no corpus in which
+#: mod-97 means something else, and nothing there is the owner's to ratify.
+#:
+#: THE NUMBERS IN THAT MODULE ARE THE SCHEMES' OWN for the same reason -- a card's
+#: issued lengths, the ABA 3-7-1 weights, HKID's 9-to-2 -- and are not thresholds.
+#: `test_p5_holds_no_number_anywhere` above still passes over it unchanged, and the
+#: one number that IS a deployment's choice, how many characters of an identifier may
+#: be recorded, is `cli.IDENTIFIER_MASK_TAIL` and arrives as an argument.
+#:
+#: NARROW ON PURPOSE: one module by name. Every other P5 module still owns exactly
+#: the one pattern P4 D8 names, and a second identifier module -- or a pattern
+#: appearing in `pdf.py` or `image.py` -- fails here the day it is written.
+RULED_PATTERN_MODULE = "extractors.identifiers"
+
 RESOLUTION = re.compile(r"^\d+\s*[x×]\s*\d+$")
 LANGUAGE_TAG = re.compile(r"^[a-z]{2}-[A-Z]{2}$")
 
@@ -87,10 +119,37 @@ def test_p5_holds_no_number_anywhere():
 
 
 def test_the_only_pattern_p5_owns_is_p4_d8s_mechanical_repair():
+    """Every P5 module but the one the owner ruled -- see `RULED_PATTERN_MODULE`."""
     found = [(module.__name__, name) for module in p5_modules()
              for name, value in constants(module).items()
-             if isinstance(value, re.Pattern)]
+             if isinstance(value, re.Pattern)
+             and module.__name__ != RULED_PATTERN_MODULE]
     assert found == [MECHANICAL_REPAIR]
+
+
+def test_the_ruled_pattern_module_holds_schemes_and_never_a_judgement():
+    """The other half of the exemption, so it cannot widen quietly.
+
+    `00` amendment 7(a) licenses PATTERNS WITH CHECKSUMS. Each shape must therefore
+    carry the scheme's own test or say in its own field that the shape is too weak to
+    fire alone and name the labels it needs -- there is no third kind, and a pattern
+    with neither would be a guess about a document wearing an identifier's clothes.
+    """
+    from extractors.identifiers import CONTEXT_WORDS, IDENTIFIER_SHAPES
+
+    for shape in IDENTIFIER_SHAPES:
+        # A NAMED function is one of the module's published checksums -- `card_ok`,
+        # `iban_ok`, `hkid_ok`, `date_ok` -- and can be read and checked against the
+        # standard it cites. An inline `lambda: True` is a shape with no arithmetic,
+        # which the ruling admits only "with context", and then the labels must be
+        # named: `passport_number` and `medical_record_number` are the two, and both
+        # are schemes that publish no check digit a text extraction can see.
+        published = shape.check.__name__ != "<lambda>"
+        assert published or shape.needs_context, shape.kind
+        # And the two halves of "with context" live together: a kind that says its
+        # shape is too weak may not then name no labels, and a kind that names labels
+        # may not quietly stop requiring them.
+        assert shape.needs_context == (shape.kind in CONTEXT_WORDS), shape.kind
 
 
 def test_no_screen_resolution_no_language_tag_and_no_producer_string():
