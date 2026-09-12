@@ -3212,6 +3212,47 @@ def announce_cloud_posture(routing: TierRouting | None,
         f"turn sending on for this folder, add --enable-cloud.",
         indent="  "), file=out)
 
+def announce_entity_reader(entity_model, *, out) -> None:
+    """One line in the header: the entity reader is on, and on which weights.
+
+    **In the header, and only when it is on.** `announce_cloud_posture`'s own
+    docstring settles where this belongs -- "the header is where the difference gets
+    said" -- and a run without `--entity-model` says nothing, because a line reading
+    "off" for every path a deployment did not enable is a header nobody reads.
+
+    **It names the FILE and not the folder.** The published model directory holds
+    eight ONNX exports and seven of them are refused by name, so "reading entities
+    from that folder" would leave the one thing a person or an auditor needs to know
+    unsaid. `readers.entities_gliner.weights_in` answers it as a filesystem question,
+    without building the 2.36 GB session, so the header costs nothing.
+
+    **A refusal is said here too, and does not end the run.** The reader raises at
+    construction (its `ModelUnavailable`), and construction happens inside the scan;
+    a person who named a folder with the wrong contents finds out in the header
+    instead of after the corpus has been read.
+    """
+    if entity_model is None:
+        return
+    from readers.entities_gliner import ModelUnavailable, weights_in  # noqa: PLC0415
+
+    try:
+        weights = weights_in(entity_model)
+    except ModelUnavailable as refusal:
+        print("\nEntities: NOT read on this run.", file=out)
+        print(_wrapped(str(refusal), indent="  "), file=out)
+        return
+    print("\nEntities: read on this device, by these weights and no other:",
+          file=out)
+    # The path on its OWN line, never inside a wrapped paragraph, for the reason
+    # `announce_cloud_posture` already records where it prints a folder.
+    print(f"  {weights}", file=out)
+    print(_wrapped(
+        f"Where your documents name a person, a diagnosis, a date of birth or an "
+        f"identity number, this run marks the place -- and records a number by its "
+        f"last {ENTITY_TAIL_KEPT} characters only. Nothing is sent anywhere to do "
+        f"it.", indent="  "), file=out)
+
+
 #: P7's handling class for an ordinary file and for a protected area. The set is
 #: P7's vocabulary; which one a node carries is a deployment decision, and the
 #: protected one is deliberately the strongest so a marked container can never
@@ -3330,6 +3371,89 @@ SEMANTIC_MIN_CHARS: int = 100
 #: releases one of `00`'s four domains: near one, it says nothing.
 SEMANTIC_FLOORS: SemanticFloors = SemanticFloors(
     caution=0.137, release=0.10, margin=0.01)
+
+# --- THE LOCAL ENTITY READER: every number amendment 7(b)'s pass decides with ----
+#
+# `00`'s Amendments of 2026-09-11 item 7(b): "a small local entity encoder
+# (GLiNER-class, ONNX, on the same seam as the semantic encoder) names people,
+# diagnoses, dates of birth and identity numbers as observations". `readers/
+# entities_gliner.py` holds the model and `extractors/entities.py` the pass; every
+# number and every name is here, because neither of them may author one.
+#
+# THE PATH IS OFF UNLESS `--entity-model DIR` NAMES THE WEIGHTS, exactly as
+# `--semantic-model` is off. Absent means the product behaves as it did before.
+
+#: THE ELEVEN KINDS THE GATE NEEDS NAMED, and each one is here because a recorded
+#: ruling asks for it, never because the model happens to know it.
+#:
+#: Amendment 7(b) names four in its own words -- "people, diagnoses, dates of birth
+#: and identity numbers" -- and 7(a) names the shapes the deterministic layer looks
+#: for beside them: "card numbers, account and IBAN shapes, national-identity and
+#: passport shapes, medical record numbers, a date of birth beside a name". The
+#: remaining three are what `00`'s four safety domains need to recognise a household
+#: document at all: a phone number, an email address and a home address are the
+#: contact block every form, letter and booking carries, and `104` §18.56's 12 misses
+#: inside the design's own domains are health forms, immigration papers and travel
+#: records -- documents whose only person-bearing text IS that block.
+#:
+#: `organisation` is spelled the way the model was trained ("organization") in the
+#: PROMPT and slugged to whatever the label says; it is here because a person beside
+#: an organisation is the shape a club roster and a referral letter share, and
+#: because a diagnosis beside a clinic is what makes a health form a health form.
+#:
+#: NOT A HOLD RULE. This is a list of what to look FOR. Which combination holds a
+#: file is `recognition/detector.py`'s and is not decided here or in the pass.
+ENTITY_LABELS: tuple[str, ...] = (
+    "person",
+    "date of birth",
+    "identity document number",
+    "passport number",
+    "account number",
+    "medical record number",
+    "medical condition",
+    "phone number",
+    "email address",
+    "home address",
+    "organization",
+)
+
+#: THE KINDS WHOSE VALUE IS A NUMBER, and therefore the kinds whose value is never
+#: recorded whole. Amendment 7(a)'s rule for the deterministic layer -- "whose
+#: recorded value is never the whole identifier" -- read onto 7(b)'s readings,
+#: because a passport number the entity reader found is the same person's passport
+#: number the pattern layer would have found. A name, a diagnosis, an address and an
+#: email are recorded as they stand: they are what the file SAYS, they are what makes
+#: a citation checkable, and a masked name is not a privacy measure but an unreadable
+#: one.
+ENTITY_MASKED_LABELS: tuple[str, ...] = (
+    "identity document number", "passport number", "account number",
+    "medical record number", "phone number",
+)
+
+#: How much of one of those numbers is kept. FOUR, which is the last-four convention
+#: every bank statement, card receipt and airline booking on the owner's own corpora
+#: already prints -- so a person reading their own audit recognises the row, and a
+#: four-digit tail identifies nobody: the shortest identifier in `ENTITY_MASKED_LABELS`
+#: that this corpus carries is a nine-character passport number, and four of its
+#: characters leave five unknown. `extractors/entities.py` narrows the reading's span
+#: to exactly these characters so RAW-1 still holds; its contract says why.
+ENTITY_TAIL_KEPT: int = 4
+
+#: The score a span must clear to become a reading. 0.7, MEASURED by the spike of 12
+#: Sep 2026 on 20 documents holding 52 planted entities: precision/recall 0.80/0.90 at
+#: 0.7 against 0.72/0.90 at 0.5. The recall is the same and eight false readings in
+#: every hundred go, which is the trade this path wants -- a reading here is evidence
+#: the gate weighs, and a `person` invented out of the words "account manager" is a
+#: person the gate has to spend a question on. `readers/entities_gliner.py` holds no
+#: default: a floor is a measurement about a corpus and the reader has seen none.
+ENTITY_SCORE_FLOOR: float = 0.7
+
+#: The threads the entity session runs on: `SEMANTIC_THREADS`, deliberately the same
+#: number rather than a second one. Both are the same question -- how much of this
+#: machine one local ONNX model may have -- and the two models never run at once
+#: (the entity pass finishes and drops its session before the fact pass begins), so
+#: a second constant would be two spellings of one deployment fact.
+ENTITY_THREADS: int = SEMANTIC_THREADS
 
 #: §1.1's root anchor -- the top of the tree the plan is written against.
 ROOT_ANCHOR: str = "root_documents"
@@ -12653,6 +12777,11 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         record: str | None = None,
         routing: TierRouting | None = None,
         semantic_model: Path | None = None,
+        #: `00` amendment 7(b)'s local entity reader, or `None` for a run that names
+        #: none. Off exactly as `semantic_model` is off: this file names no download
+        #: and no default location, so an absent directory is the product the
+        #: deployment had before rather than a failed run.
+        entity_model: Path | None = None,
         # `104` R-14's mailbox, built beside `routing` by `main` and handed to both
         # the transport and `run_call`. Defaulted: a deployment that records no
         # usage is a real deployment, and every caller that predates this still
@@ -14958,6 +15087,57 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # course is called.
             reads_in_document=reads_a_structured_string)
 
+    def _entity_pass(run_id: str) -> None:
+        """`00` amendment 7(b), over the whole corpus, in one phase that then ends.
+
+        **A PHASE AND NOT A RESIDENT, and the reason is a measurement.** The fp32
+        GLiNER session holds 2.36 GB resident, and the local language model that
+        answers site A and site G wants the rest of a 24 GB machine -- `104` §18.56
+        records what happens when it does not get it: five of that run's seven model
+        failures were one stall under swap. So the reader is built HERE, spends
+        itself over every file version this scan saw, and is dropped before
+        `_model_fact_pass` begins. It is a local name in a function that returns,
+        with no cache behind it: `_encoder_at`'s `lru_cache` is right for a 90 MB
+        sentence encoder read by two consumers and would be wrong for this.
+
+        **Before the model pass, for `_anchor_statement_pass`'s reason.** An entity
+        reading that arrives after the model has been asked is evidence nothing was
+        judged against -- and this one decides whether a file may be asked over the
+        internet at all, so arriving late is arriving after the decision.
+
+        **Off unless the weights are named**, which is `_embedding_runtime`'s rule
+        and the honest reading of "absent means refuse, never guess".
+        """
+        if entity_model is None:
+            return
+        roster = corpus_roster(conn, run_id)
+        if not roster:
+            return
+        from extractors.entities import record_entity_readings  # noqa: PLC0415
+        from readers.entities_gliner import GlinerEntities  # noqa: PLC0415
+
+        reader = GlinerEntities(entity_model, labels=ENTITY_LABELS,
+                                score_floor=ENTITY_SCORE_FLOOR,
+                                threads=ENTITY_THREADS)
+        try:
+            record_entity_readings(
+                conn, file_versions=roster, entities=reader.entities,
+                # THE SEMANTIC PATH'S OWN ZONES AND BUDGET, not a second pair. Both
+                # answer "how much of this file does a local model read, and which
+                # part", and `recognition/semantic.py`'s comment on `SEMANTIC_ZONES`
+                # -- `metadata` excluded because it is the format talking about the
+                # software that wrote it -- is as true of an entity reader as of an
+                # encoder. A second budget here would be a second answer to one
+                # question, and the first one to go stale.
+                zones=SEMANTIC_ZONES, char_budget=SEMANTIC_CHAR_BUDGET,
+                masked_labels=ENTITY_MASKED_LABELS, tail_kept=ENTITY_TAIL_KEPT,
+                now=now())
+        finally:
+            # The session, explicitly, before the next phase asks for memory. The
+            # `finally` is not tidiness: a refusal halfway through the corpus must
+            # not leave 2.36 GB resident for the rest of the run.
+            del reader
+
     def _family_pass(run_id: str) -> None:
         """§3.11's two family fields, over the whole corpus at once.
 
@@ -15120,6 +15300,10 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # `104` R-135. BEFORE the model pass: a statement that arrives after the model
         # has been asked is a statement nothing could be judged against.
         _anchor_statement_pass(p1_p7.scan_run_id)
+        # `00` amendment 7(b). Here for the same reason and one more: it loads a
+        # 2.36 GB session and drops it, so it must finish before the local language
+        # model wants the machine.
+        _entity_pass(p1_p7.scan_run_id)
         # `104` R-37. The branches, once every deterministic fact exists and
         # before a model is asked anything: the fact pass asks per branch.
         partition_cell[:] = [_partition_branches(p1_p7.scan_run_id)]
@@ -19571,6 +19755,16 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "here. Measured on a 199-file corpus it classifies 13 more files "
              "and changes no protection in either direction.")
     parser.add_argument(
+        "--entity-model", type=Path, default=None, metavar="DIR",
+        help="the folder holding a local entity reader (onnx/model.onnx, "
+             "tokenizer.json and gliner_config.json). With it, the run marks "
+             "where your documents name a person, a diagnosis, a date of birth "
+             "or an identity number, so the question of whether a file may leave "
+             "this device is answered from what the file says rather than from "
+             "its filename. OFF unless you name it; nothing leaves your device "
+             "either way, and a number is recorded by its last four characters "
+             "only.")
+    parser.add_argument(
         "--replay", nargs="?", const="", default=None, metavar="BUNDLE",
         help="re-evaluate one recorded bundle without touching the files: it "
              "reads what the run recorded, never the folder. Pass the bundle "
@@ -19809,6 +20003,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         cloud_consent_for(conn, str(source)) for source in (directory, *also_read))
     announce_cloud_posture(routing, consent, corpus_root=directory,
                            other_sources=also_read, out=out)
+    announce_entity_reader(args.entity_model, out=out)
     try:
         # BEFORE the run, so an answer takes effect on the very invocation that
         # supplies it. A person who has just been asked something and answers it
@@ -19956,6 +20151,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                      usage_recorder=usage_recorder,
                      questions_reach=questions_reach,
                      semantic_model=args.semantic_model,
+                     entity_model=args.entity_model,
                      # `104` R-175, straight through from whoever composed this
                      # run. `None` on the command line, always.
                      file_ceiling_seconds=file_ceiling_seconds,
