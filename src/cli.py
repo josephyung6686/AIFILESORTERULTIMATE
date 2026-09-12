@@ -3226,21 +3226,34 @@ def announce_entity_reader(entity_model, *, out) -> None:
     unsaid. `readers.entities_gliner.weights_in` answers it as a filesystem question,
     without building the 2.36 GB session, so the header costs nothing.
 
-    **A refusal is said here too, and does not end the run.** The reader raises at
-    construction (its `ModelUnavailable`), and construction happens inside the scan;
-    a person who named a folder with the wrong contents finds out in the header
-    instead of after the corpus has been read.
+    **A FOLDER THAT CANNOT BE READ FROM ENDS THE RUN, HERE, BEFORE THE SCAN.** The
+    reader raises at construction and construction happens after the scan -- it costs
+    2.36 GB resident and the pass builds it as late as it can -- so without this the
+    person would get a polite header, a full read of their corpus, and then a
+    traceback. Worse than the traceback is the alternative that was written first: a
+    line saying entities were not read, and a run that carries on. A person who typed
+    `--entity-model` asked for the layer that decides whether their files may leave
+    this device, and a run that proceeds without it may release a health form on the
+    rules' word alone (`104` §18.56 measured four of those). So this refuses, through
+    `NotConfigured`, which `main` prints as a reason and not as a crash.
+    `readers.entities_gliner.available_in` makes exactly the checks construction makes
+    that do not need the runtime, so the header and the pass agree about what is
+    readable.
     """
     if entity_model is None:
         return
-    from readers.entities_gliner import ModelUnavailable, weights_in  # noqa: PLC0415
+    from readers.entities_gliner import ModelUnavailable, available_in  # noqa: PLC0415
 
     try:
-        weights = weights_in(entity_model)
+        weights, _config = available_in(entity_model)
     except ModelUnavailable as refusal:
-        print("\nEntities: NOT read on this run.", file=out)
-        print(_wrapped(str(refusal), indent="  "), file=out)
-        return
+        raise NotConfigured(
+            f"--entity-model named {entity_model}, and the entity reader cannot be "
+            f"built from it, so this run stopped before reading anything. That flag "
+            f"is what marks where your files name a person, a diagnosis, a date of "
+            f"birth or an identity number, and carrying on without it would decide "
+            f"what may leave this device on less than you asked for. {refusal}"
+        ) from refusal
     print("\nEntities: read on this device, by these weights and no other:",
           file=out)
     # The path on its OWN line, never inside a wrapped paragraph, for the reason
@@ -20012,8 +20025,13 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         cloud_consent_for(conn, str(source)) for source in (directory, *also_read))
     announce_cloud_posture(routing, consent, corpus_root=directory,
                            other_sources=also_read, out=out)
-    announce_entity_reader(args.entity_model, out=out)
     try:
+        # INSIDE the `try`, because it refuses: a folder `--entity-model` names that
+        # the reader cannot be built from raises `NotConfigured`, and the handler
+        # below is what turns that into a reason on the screen instead of a
+        # traceback. `announce_entity_reader` says why the refusal is the right
+        # answer rather than a line saying the layer is off.
+        announce_entity_reader(args.entity_model, out=out)
         # BEFORE the run, so an answer takes effect on the very invocation that
         # supplies it. A person who has just been asked something and answers it
         # should not have to run the command a third time to see what it did.

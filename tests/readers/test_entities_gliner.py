@@ -314,3 +314,31 @@ def test_the_real_weights_find_a_planted_name_and_date_of_birth():
     # extractor's RAW-1 arithmetic depends on.
     assert all(text[one.start:one.end] == one.text for one in found)
     assert all(one.score > 0.7 for one in found)
+
+
+@pytest.mark.skipif(not (REAL_WEIGHTS / "onnx" / "model.onnx").is_file(),
+                    reason="the published GLiNER weights are machine state, not "
+                           "repository state; this deployment has not fetched them")
+def test_a_dense_thousand_characters_is_truncated_and_not_a_shape_error():
+    """The truncation arithmetic, against the graph rather than against a stub.
+
+    `gliner_config.json` caps the encoder at 384 sub-tokens; the deployment's
+    character budget is a thousand, and a thousand characters of account numbers,
+    hyphenated addresses and punctuation is far more than 384 word-pieces. A
+    `text_lengths` built from the PRE-tokenized word count asks the graph about words
+    whose vectors were never computed, which is a shape error on the fortieth file of
+    a real corpus or, worse, spans over text the model did not read.
+    """
+    reader = GlinerEntities(
+        REAL_WEIGHTS, labels=("person", "date of birth", "account number",
+                              "home address", "email address"),
+        score_floor=0.7, threads=2)
+    dense = ("Acct 4471-9928-1130-2265/MRN-88231045-Z;DOB 02/29/1992;"
+             "+1(415)555-0192;sarah.whitfield.records@example.co.uk;"
+             "56-Cambridge-Court,Flat-2,Manchester,M14-5TP;") * 12
+    dense = dense[:1_000]
+
+    found = reader.entities(dense)
+    assert found, "the truncated prefix still holds entities"
+    assert all(one.end <= len(dense) for one in found)
+    assert all(dense[one.start:one.end] == one.text for one in found)

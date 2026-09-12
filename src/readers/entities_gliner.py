@@ -141,6 +141,38 @@ def weights_in(model_dir) -> Path:
           "which is worse than being off.")
 
 
+def available_in(model_dir) -> tuple[Path, dict]:
+    """Every check construction makes that does not need the runtime, and the two
+    things it found: the weights file and the published config.
+
+    **Separate from `__init__` so a run can be REFUSED before it reads a corpus.**
+    Building the reader costs 2.36 GB resident, so `extractors/entities.py`'s pass
+    builds it late -- after the scan -- and a person who named a folder with the
+    wrong contents would otherwise learn it from a traceback with their whole
+    corpus already read. `cli.announce_entity_reader` calls this in the run header
+    instead and refuses there, which is `MiniLmEncoder`'s rule ("raised at
+    CONSTRUCTION and never at classification time") kept for a reader whose
+    construction cannot happen that early.
+    """
+    directory = Path(model_dir)
+    tokenizer_path = directory / TOKENIZER_FILE
+    config_path = directory / CONFIG_FILE
+    for path in (tokenizer_path, config_path):
+        if not path.is_file():
+            raise ModelUnavailable(
+                f"{path} is missing. This file names no download and no default "
+                f"location: the deployment that fetched the weights is the one "
+                f"that says where they are")
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    for key in ("ent_token", "sep_token", "max_width", "max_len"):
+        if key not in config:
+            raise ModelUnavailable(
+                f"{config_path} carries no {key!r}. The packing is built from the "
+                f"config the weights were published with, and guessing one is how a "
+                f"model gets fed a sequence it was not trained on")
+    return weights_in(directory), config
+
+
 def words_of(text: str) -> tuple[tuple[str, int, int], ...]:
     """`(word, start, end)` for every word GLiNER's splitter finds, in order."""
     return tuple((found.group(), found.start(), found.end())
@@ -303,25 +335,10 @@ class GlinerEntities:
         if not isinstance(threads, int) or isinstance(threads, bool) or threads <= 0:
             raise ValueError("threads must be a positive integer")
         self.score_floor = float(score_floor)
-        tokenizer_path = directory / TOKENIZER_FILE
-        config_path = directory / CONFIG_FILE
-        for path in (tokenizer_path, config_path):
-            if not path.is_file():
-                raise ModelUnavailable(
-                    f"{path} is missing. This file names no download and no default "
-                    f"location: the deployment that fetched the weights is the one "
-                    f"that says where they are")
-        config = json.loads(config_path.read_text(encoding="utf-8"))
-        for key in ("ent_token", "sep_token", "max_width", "max_len"):
-            if key not in config:
-                raise ModelUnavailable(
-                    f"{config_path} carries no {key!r}. The packing is built from the "
-                    f"config the weights were published with, and guessing one is how "
-                    f"a model gets fed a sequence it was not trained on")
+        weights, config = available_in(directory)
         self._ent_token = str(config["ent_token"])
         self._sep_token = str(config["sep_token"])
         self._max_width = int(config["max_width"])
-        weights = weights_in(directory)
 
         try:
             import onnxruntime  # noqa: PLC0415  a deployment import, by design
@@ -331,7 +348,7 @@ class GlinerEntities:
                 "onnxruntime and tokenizers are this deployment's choice and are "
                 f"not installed: {problem}") from problem
 
-        self._tokenizer = Tokenizer.from_file(str(tokenizer_path))
+        self._tokenizer = Tokenizer.from_file(str(directory / TOKENIZER_FILE))
         # The encoder's own ceiling, from its own config. Without it a dense page
         # reaches the graph longer than the position embeddings it was trained with.
         self._tokenizer.enable_truncation(max_length=int(config["max_len"]))

@@ -394,6 +394,33 @@ def test_the_pass_is_not_a_routed_family_and_says_so_where_that_is_read():
     assert "entities." in reason and "DELIBERATELY ABSENT" in reason
 
 
+def test_a_named_folder_the_reader_cannot_be_built_from_refuses_the_run(tmp_path):
+    """The header may not promise a layer the run then does without.
+
+    The reader is built AFTER the scan -- it costs 2.36 GB resident -- so without a
+    check in the header a person who mistyped the folder gets a polite line, a full
+    read of their corpus and then a traceback. And a run that carried on would decide
+    what may leave this device on less than they asked for: `104` §18.56 measured
+    four health forms released on the rules' word alone.
+    """
+    import io
+
+    from cli import NotConfigured, announce_entity_reader
+
+    empty = tmp_path / "not-the-weights"
+    empty.mkdir()
+    with pytest.raises(NotConfigured) as refusal:
+        announce_entity_reader(empty, out=io.StringIO())
+    assert "--entity-model" in str(refusal.value)
+    assert "tokenizer.json" in str(refusal.value)
+
+    # And a run that named none says nothing at all: a line reading "off" for every
+    # path a deployment did not enable is a header nobody reads.
+    quiet = io.StringIO()
+    announce_entity_reader(None, out=quiet)
+    assert quiet.getvalue() == ""
+
+
 def test_an_entity_reading_is_evidence_and_not_a_derived_copy():
     """`derived.` is for an addressable COPY of text an earlier pass stored, which
     "says nothing new about what the file it was cut from IS". A reading that says a

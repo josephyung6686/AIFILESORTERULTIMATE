@@ -100,6 +100,16 @@ is a substring of a unit some host already offers, and reading it again would as
 the model the same question twice. A reading with no unit at its path (§2.8's EXIF
 field, a language marker) is skipped: a span there would dangle.
 
+**A SUPERSEDED HOST IS STILL A HOST, and the agreement is deliberate.** §8.2's own
+example is a garbled OCR pass followed by a recovered one, and both rows remain
+available; `recognition.semantic.evidence_text` filters `superseded_by IS NULL` and
+`facts.evidence.observations_for_version` -- which every fact-layer consumer reads
+through -- does not. This follows the fact layer, because that is where these
+readings are consumed and one rule with two spellings is this project's costliest
+defect. What it costs is one more read of a superseded unit's text and readings
+minted onto a superseded run; what it does not cost is duplicate rows, because the
+`observation_key` a reading is deduplicated on carries no `run_id`.
+
 **WHAT THE MODEL IS SHOWN, and it is small.** The zones and the character budget
 are the deployment's semantic-path numbers (`cli.SEMANTIC_ZONES`,
 `cli.SEMANTIC_CHAR_BUDGET`), injected. Zone order is spend order, exactly as
