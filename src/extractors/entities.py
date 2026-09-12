@@ -112,18 +112,13 @@ minted onto a superseded run; what it does not cost is duplicate rows, because t
 
 **WHAT THE MODEL IS SHOWN: THE WHOLE OF A FILE VERSION, TO A CEILING.** The zones
 are the semantic path's (`cli.SEMANTIC_ZONES`) and the budget is this path's own
-(`cli.ENTITY_CHAR_BUDGET`), both injected. The two budgets differ on purpose, and
-the reason is the gate's whole reason for existing: an encoder reads a document's
-opening because a vector of the opening IS the vector, and this reads as far as the
-ceiling allows because `104` §18.56 measured four health forms released to the cloud
-on the rules' word alone -- files whose opening says nothing and whose third page
-says everything. `readers.entities_gliner` windows what it is handed, so a unit
-longer than the encoder's sequence length is read end to end rather than truncated.
-
+(`cli.ENTITY_CHAR_BUDGET`), both injected. The budgets differ because the questions
+do: a vector of a document's opening IS the vector, and this asks whether a file
+names a person or a diagnosis ANYWHERE in it -- `104` §18.56's four released health
+forms are what the opening alone bought. `readers.entities_gliner` windows what it
+is handed, so a unit longer than the encoder's sequence length is read end to end.
 Zone order is spend order, exactly as `recognition.semantic.evidence_text` spends
-it, so a file over the ceiling spends it on its headings and its opening pages
-rather than on whichever unit P4 happened to write first. The ceiling's number and
-what it costs are `cli.ENTITY_CHAR_BUDGET`'s to state and not this module's.
+it, so a file over the ceiling spends it on its headings and its opening pages.
 
 **THE SESSION IS A PHASE, NOT A RESIDENT.** The fp32 weights hold 2.36 GB
 resident and the local language model wants the rest of the machine. So the caller

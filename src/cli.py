@@ -3473,40 +3473,16 @@ ENTITY_TAIL_KEPT: int = 4
 #: default: a floor is a measurement about a corpus and the reader has seen none.
 ENTITY_SCORE_FLOOR: float = 0.7
 
-#: HOW MUCH OF A FILE VERSION THE ENTITY READER IS GIVEN. Its OWN number and not
-#: `SEMANTIC_CHAR_BUDGET`, because the two paths ask different questions of different
-#: lengths of text. The encoder's budget is a thousand characters and is matched to
-#: `SEMANTIC_MAX_TOKENS`: a vector of a whole document is a vector of its opening,
-#: and reading further would put a scope in the vector that nothing was computed
-#: over. This path's question is "does this file name a person, a diagnosis or an
-#: identity number ANYWHERE in it", and a thousand characters answers it about the
-#: opening only -- which is the failure `104` §18.56 measured, four health forms
-#: released to the cloud because nothing had read the part of them that says what
-#: they are.
-#:
-#: TWENTY THOUSAND, and every term is measured.
-#:   * SPEED. 250 ms per 1,000 characters at full precision, windowed (12 Sep 2026,
-#:     ordinary prose, on this machine's four threads: 251 ms/kchar at 1,000
-#:     characters, 248 at 4,000, 269 at 16,000, 292 at 32,000 -- linear, with the
-#:     drift the overlap costs). So this ceiling is at most five seconds for one
-#:     file, and it is a CEILING and not a cost: a file shorter than it is read
-#:     whole and paid for by its own length.
-#:   * THE CORPUS. `104`'s P4 extraction row measures 199 files as 18,489 text units
-#:     and 3.3M characters -- 16,583 characters per file version. Twenty thousand
-#:     reads the average file to its end with room, where sixteen thousand would cut
-#:     half the corpus at its own mean.
-#:   * THE TAIL, which is what a ceiling is for. `104` R-160's notebooks are 50,000
-#:     to 118,000 characters and R-164's plain-text case is 39,000; at this ceiling
-#:     they cost five seconds each rather than thirty and ten, and what is dropped
-#:     is the end of a file whose first twenty thousand characters have already said
-#:     what kind of thing it is.
-#:   * THE WHOLE RUN. About 4 seconds a file, so 25 to 30 minutes over a 371-file
-#:     corpus, against about 90 seconds for the opening thousand and against site
-#:     G's own measured 3.6 to 4.6 hours on the same corpus (`104` §18.56). The
-#:     trade is the point: this is the pass that decides what may leave the device.
-#: Zone order is still spend order (`SEMANTIC_ZONES`), so a file over the ceiling
-#: spends it on its headings and its opening pages rather than on whichever unit P4
-#: happened to write first.
+#: How much of a file version the entity reader is given. TWENTY THOUSAND, because
+#: `104`'s P4 extraction row measures 199 files as 3.3M characters -- 16,583 a file
+#: version, over 93 stored units -- so this reads the average file to its end, and
+#: at the measured 250 ms per 1,000 characters plus about 40 ms per unit call (12
+#: Sep 2026, four threads: 41 ms for a 60-character unit, 356 for a 1,500-character
+#: page, 248 ms/kchar at 4,000) that is 4 to 9 seconds a file and 25 to 55 minutes
+#: over a 371-file corpus, against site G's own 3.6 to 4.6 hours on the same one.
+#: Its OWN number and not `SEMANTIC_CHAR_BUDGET`'s thousand, because a vector of a
+#: document's opening IS the vector while a gate that reads only the opening
+#: released four health forms to the cloud (`104` §18.56).
 ENTITY_CHAR_BUDGET: int = 20_000
 
 #: The threads the entity session runs on: `SEMANTIC_THREADS`, deliberately the same
@@ -15183,16 +15159,9 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         try:
             record_entity_readings(
                 conn, file_versions=roster, entities=reader.entities,
-                # THE SEMANTIC PATH'S ZONES, AND THIS PATH'S OWN BUDGET. The zones
-                # are one question and are shared: `recognition/semantic.py`'s
-                # comment on `SEMANTIC_ZONES` -- `metadata` excluded because it is
-                # the format talking about the software that wrote it -- is as true
-                # of an entity reader as of an encoder, and a second list would be
-                # the first one's chance to go stale. The BUDGET is not one
-                # question: an encoder reads a document's opening because a vector
-                # of the opening IS the vector, and this reads as far as it can
-                # because a diagnosis on page three is the case it exists for.
-                # `ENTITY_CHAR_BUDGET` carries the measurement.
+                # The semantic path's ZONES, shared because `metadata` is excluded
+                # for the same reason either way; its own BUDGET, because an encoder
+                # reads a document's opening and this reads as far as it can.
                 zones=SEMANTIC_ZONES, char_budget=ENTITY_CHAR_BUDGET,
                 masked_labels=ENTITY_MASKED_LABELS, tail_kept=ENTITY_TAIL_KEPT,
                 now=now())

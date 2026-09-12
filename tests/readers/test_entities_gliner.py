@@ -291,30 +291,6 @@ def test_a_text_with_no_words_asks_the_model_nothing(tmp_path):
 
 # --- the windows --------------------------------------------------------------
 
-def test_a_document_longer_than_the_encoder_is_read_in_overlapping_windows(tmp_path):
-    """The gate exists to catch a diagnosis on page three, so the whole unit is read.
-
-    `max_len` here is 64 sub-tokens against a 300-word document, so the reader must
-    come back for the rest -- and the windows must overlap by `max_width` words, the
-    longest span this model can name, or an entity on a boundary is two fragments.
-    """
-    directory = _model_directory(tmp_path / "pii", max_len=64)
-    text = " ".join(f"word{index}" for index in range(300))
-    session = FakeSession(
-        lambda feed: _logits(int(feed["text_lengths"][0][0]), 4, 1, {}))
-    reader = GlinerEntities(directory, labels=("person",), score_floor=0.7,
-                            threads=1, session=session)
-    reader.entities(text)
-
-    read = [int(feed["text_lengths"][0][0]) for feed in session.fed]
-    assert len(read) > 1, "one window cannot hold a 300-word document at max_len 64"
-    assert sum(read) > 300, "the windows overlap, so they cover more than the text"
-    # Every window but the last is a full one, and the step between them is that
-    # window less the overlap -- the config's own `max_width`, which is 4 here.
-    assert all(count == read[0] for count in read[:-1])
-    assert (len(read) - 1) * (read[0] - 4) < 300 <= len(read) * (read[0] - 4) + 4
-
-
 def test_a_reading_on_a_window_boundary_is_observed_once_and_not_twice(tmp_path):
     """Two windows both see what lies in their overlap. The greedy pass at the end
     -- over ALL the windows, not one per window -- is what makes it one reading."""

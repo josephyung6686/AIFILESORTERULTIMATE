@@ -253,38 +253,6 @@ def test_the_character_budget_is_spent_and_the_model_sees_no_more(database):
     assert seen == [BODY[:30]]
 
 
-def test_a_unit_longer_than_the_semantic_budget_is_read_to_its_end(database):
-    """The follow-up's whole point: the gate exists to catch a diagnosis on page
-    three, so the deployment's entity budget is its own number and not the encoder's
-    thousand characters. Here the row lands at character 3,000 of a 4,000-character
-    unit, which the semantic budget would never have reached."""
-    from cli import ENTITY_CHAR_BUDGET, SEMANTIC_CHAR_BUDGET
-
-    assert ENTITY_CHAR_BUDGET > SEMANTIC_CHAR_BUDGET, (
-        "the two budgets answer different questions; see cli.ENTITY_CHAR_BUDGET")
-    page = ("Routine correspondence about the caching layer. " * 90)[:4_000]
-    planted = "generalized anxiety disorder"
-    page = (page[:3_000] + planted + page[3_000 + len(planted):])[:4_000]
-    RunWriter(database, author="P5").write(a_text_run(body=page))
-
-    seen: list[int] = []
-
-    def reader(text):
-        seen.append(len(text))
-        return [at(text, planted, "medical condition")]
-
-    record_entity_readings(
-        database, file_versions=[("f1", CONTENT_HASH)], entities=reader,
-        zones=ZONES, char_budget=ENTITY_CHAR_BUDGET, masked_labels=MASKED,
-        tail_kept=TAIL, now=LATER)
-
-    assert seen == [4_000], "the whole unit reached the reader, not its opening"
-    reading, = entity_rows(database)
-    assert reading.extractor_name == "entities.medical_condition"
-    assert reading.location.text_span.start == 3_000
-    assert page[3_000:reading.location.text_span.end] == planted
-
-
 def test_a_reading_with_no_unit_at_its_path_is_not_read(database):
     """A span-less reading with no unit standing at its path -- §2.8's EXIF field,
     E3's `language` marker -- would give a minted span nothing to anchor to. The

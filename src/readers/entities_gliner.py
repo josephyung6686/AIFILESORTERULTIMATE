@@ -406,35 +406,26 @@ class GlinerEntities:
     def entities(self, text: str) -> tuple[Entity, ...]:
         """Every entity in the WHOLE of `text` above the caller's floor, in order.
 
-        **WINDOWED, because the gate exists to catch a diagnosis on page three.**
-        The encoder's sequence length is fixed (`max_len` in `gliner_config.json`,
-        384 sub-tokens for this model) and a document is not, so a reader that
-        encoded once would read the opening of every file and report its silence
-        about the rest as an absence. `104` §18.56 measured what that costs: a
-        health form the rules called ordinary, released to the cloud because
-        nothing had read the part of it that says what it is.
+        WINDOWED, because the gate exists to catch a diagnosis on page three: the
+        encoder's sequence length is fixed (`max_len`) and a document is not, so a
+        reader that encoded once would read every file's opening and report its
+        silence about the rest as an absence -- which is `104` §18.56's four
+        released health forms.
 
-        So the words are walked in windows and the windows OVERLAP by `max_width`
-        words -- the longest span this model can name -- which is what makes an
-        entity lying across a boundary whole inside the next window rather than two
-        fragments in two.
+        The window is OFFERED at `max_len` words (every word costs at least one
+        sub-token, so no more can survive) and its real size is what `pack` reports
+        as having survived, so nothing is truncated silently. Consecutive windows
+        overlap by `max_width` words -- the longest span this model can name -- so
+        an entity cut by a boundary is whole inside the next one; the step is at
+        least one word, because a step of zero is a run that never ends.
 
-        **The window's size is measured, not assumed.** `pack` reports how many
-        words survived the encoder's ceiling, and the next window starts that many
-        words on, less the overlap. So a page of long words takes more windows than
-        a page of short ones and neither is truncated silently, and the step is at
-        least one word whatever the tokenizer did, because a step of zero is a run
-        that never ends.
-
-        **The spans are already absolute.** `words_of` reports offsets into `text`
-        and a window is a SLICE of that list, so a span decoded in window four
-        carries window four's characters' own offsets and needs no mapping back.
-
-        **One greedy pass over all of them at the end, not one per window.** Two
-        windows that both saw an entity in their overlap return it twice, and the
-        flat-NER rule this model is decoded with -- the strongest of any two spans
-        that touch -- is the same rule that settles the duplicate. Applying it per
-        window instead would leave the boundary entity in the result twice.
+        Spans come back absolute: a window is a slice of `words_of`'s own list.
+        ONE greedy pass at the end and not one per window, because two windows that
+        both saw an entity in their overlap return it twice and the flat-NER rule
+        that decodes this model is the same rule that settles the duplicate. What
+        the overlap guarantees is that a boundary entity is WHOLE in some window; a
+        fragment of it may also be scored in the neighbouring one, and greed keeps
+        whichever scored higher.
         """
         words = words_of(text)
         if not words:
