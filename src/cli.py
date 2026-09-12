@@ -3218,6 +3218,18 @@ def _situation_site_sentence(routing: TierRouting) -> str:
     # true of this build by construction and is a claim about ORDERING that
     # nothing on this screen is being asked to make. On the notice a person
     # decides by, every extra clause is another thing that has to stay true.
+    # `00` amendment 7(c): the situation of a file the gate CLEARED may be asked
+    # off this device, and the sentence says so when the site's row and the
+    # routing both permit it; otherwise the old sentence stands and is true.
+    _cloud_client, cloud = routing.route_for(G_SITUATION_SENSITIVITY,
+                                             cloud_permitted=True)
+    if cloud.locality == CLOUD and observe_locality_permits(
+            G_SITUATION_SENSITIVITY, CLOUD):
+        return _wrapped(
+            f"Files that need {_QUESTION_OF_SITE[G_SITUATION_SENSITIVITY]} are "
+            f"answered by {cloud.model_id} for a file the gate cleared, and by "
+            f"{target.model_id} on this device for every other file.",
+            indent="  ")
     return _wrapped(
         f"Files that need {_QUESTION_OF_SITE[G_SITUATION_SENSITIVITY]} are "
         f"answered by {target.model_id} on this device and do not leave it.",
@@ -11317,9 +11329,9 @@ def _print_situation_pass(situation: SituationPass, *, files: int,
         f"Situations from a model: {named} of {files} "
         f"{'file was' if files == 1 else 'files were'} given "
         f"{'its' if named == 1 else 'their'} own situation by {model_id} on this "
-        f"device, instead of being asked this run's questions. Nothing about any "
-        f"of them left the device: this is the site that decides whether a file "
-        f"may be sent at all, so it is never asked anywhere else.", indent=""),
+        f"device or, for a file the gate cleared, by the cloud model, instead of "
+        f"being asked this run's questions. Whether a file may be sent at all "
+        f"was decided by the gate before this.", indent=""),
         file=out)
     for field in dataclasses.fields(SituationPass):
         if field.name in ("named", "holds", "recognised_by_rules"):

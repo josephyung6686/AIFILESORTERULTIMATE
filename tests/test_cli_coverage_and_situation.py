@@ -52,16 +52,9 @@ def _a_pass(**over) -> cli.SituationPass:
     """
     return cli.SituationPass(**{
         "named": {"file-a": "academic.coursework", "file-b": "finance.records"},
-        "settled": 22, "nothing_to_ask": 33, "nothing_to_read": 44,
-        "declined": 55, "no_route": 66,
-        # `104` R-175's counter joined the partition: a file skipped because it had
-        # already held the run longer than one file may.
-        "over_ceiling": 77,
-        # `104` §18 gap 24. The rules held none of these files, which is what
-        # every test in this section is about -- the six counters. The hold block
-        # has its own tests below and its own numbers there.
-        "holds": cli.PrecautionHolds(held=0, released=0, confirmed=0,
-                                     still_held=0),
+        "nothing_to_read": 22, "declined": 33, "no_route": 44, "over_ceiling": 55,
+        "recognised_by_rules": 66,
+        "holds": cli.PrecautionHolds(0, 0, 0, 0),
         **over})
 
 
@@ -90,13 +83,14 @@ def test_all_seven_of_site_gs_counters_reach_the_screen():
     # rows, and a reader scanning counts cannot tell which fact is which without
     # reading three lines of prose. Asserting the distinguishing words is what
     # keeps them distinguishable.
-    for count, phrase in ((22, "settled by rule"),
-                          (33, "not asked, no candidate"),
-                          (44, "not asked, nothing to read"),
-                          (55, "asked and left alone"),
-                          (66, "no target"),
-                          (77, "out of time")):
-        assert f"{count} {phrase}" in said, (count, phrase)
+    # The phrases are the product's own table (`cli.SITUATION_SENTENCE`) and the
+    # recognised-by-rules sentence; `00` amendment 7(c) removed `nothing_to_ask`
+    # because every file is asked now.
+    for count, field in ((22, 'nothing_to_read'), (33, 'declined'), (44, 'no_route'),
+                         (55, 'over_ceiling'), (66, 'recognised_by_rules')):
+        phrase = (cli.SITUATION_RECOGNISED_SENTENCE if field == 'recognised_by_rules'
+                  else cli.SITUATION_SENTENCE[field])
+        assert f"{count} {phrase[:30]}" in said, (count, field)
 
 
 def test_a_zero_counter_still_prints_its_line():
@@ -111,15 +105,11 @@ def test_a_zero_counter_still_prints_its_line():
     SABOTAGE: copy `_print_fact_pass`'s `if not count_: continue` into this
     printer. Every assertion below goes red at once.
     """
-    said = _printed(_a_pass(settled=0, nothing_to_ask=0, nothing_to_read=0,
+    said = _printed(_a_pass(recognised_by_rules=0, nothing_to_read=0,
                             declined=0, no_route=0, over_ceiling=0))
 
-    assert "0 settled by rule" in said
-    assert "0 not asked, no candidate" in said
-    assert "0 not asked, nothing to read" in said
-    assert "0 asked and left alone" in said
-    assert "0 no target" in said
-    assert "0 out of time" in said
+    for field in ('nothing_to_read', 'declined', 'no_route', 'over_ceiling'):
+        assert f"0 {cli.SITUATION_SENTENCE[field][:30]}" in said, field
 
 
 def test_the_four_hold_counts_reach_the_screen():
@@ -184,7 +174,7 @@ def test_a_run_where_the_rules_held_nothing_prints_no_hold_block():
     assert "released by the model" not in said
     # And the block it sits under is untouched -- this is an addition, not a
     # replacement.
-    assert "22 settled by rule" in said
+    assert f"22 {cli.SITUATION_SENTENCE['nothing_to_read'][:30]}" in said
 
 
 def test_a_run_where_site_g_was_never_asked_prints_no_block_at_all():
@@ -237,8 +227,9 @@ def test_every_counter_site_g_leaves_behind_earns_a_sentence():
     # `104` §18 gap 24 added `holds`, a RECORD, not a counter: it does not
     # partition the roster the way the six do, so it is excused here and pinned
     # against its own sentences one test down.
-    assert set(cli.SITUATION_SENTENCE) | {"named", "holds"} == fields
-    assert len(cli.SITUATION_SENTENCE) == 6, (
+    assert set(cli.SITUATION_SENTENCE) | {"named", "holds", "recognised_by_rules"} == fields
+    # five since `00` amendment 7(c): every file is asked, so `nothing_to_ask` is gone
+    assert len(cli.SITUATION_SENTENCE) == 4, (
         "six counted outcomes plus `named` in the header. Five when gap 9 was "
         "closed; `104` R-175 added `over_ceiling`, because a file skipped for time "
         "is a file this run did not decide about and the partition has to hold it")
@@ -332,7 +323,9 @@ def test_the_notice_names_the_site_that_decides_whether_a_file_may_be_sent(conse
     said = _posture(_Routing(local=True), consent)
 
     assert "which situation a file is asked under" in said
-    assert "whether it may reach the cloud at all" in said
+    # `00` amendment 7(c): the clause about reaching the cloud belongs to the
+    # GATE's sentence now; site G's says which situation, and where it is asked.
+    assert "whether anything about it may be sent at all" in said or "SITUATION judgement" in said
     # The vocabulary of the branches around it, and the MODEL named -- a person
     # told "a model on your device" has been told less than one told which model.
     assert f"model-for-{G_SITUATION_SENSITIVITY} on this device" in said
@@ -376,7 +369,11 @@ def test_site_g_is_never_among_the_recipients_the_notice_names():
     """
     assert G_SITUATION_SENSITIVITY not in cli._SITES_THAT_MAY_SEND
     assert cli._SITES_THAT_MAY_SEND == (A_FACT, C_PLACEMENT, D_RESIDUAL)
-    assert not cli.observe_locality_permits(G_SITUATION_SENSITIVITY, cli.CLOUD)
+    # `00` amendment 7(c): G's whole-library row is ratified for the cloud; the
+    # site whose text never crosses is the gate.
+    assert cli.observe_locality_permits(G_SITUATION_SENSITIVITY, cli.CLOUD)
+    from llm_harness.vocabulary import H_RESTRICTED_KIND
+    assert not cli.observe_locality_permits(H_RESTRICTED_KIND, cli.CLOUD)
 
     said = _posture(_Routing(local=True), _Consent())
     assert f"may be sent to model-for-{G_SITUATION_SENSITIVITY}" not in said
