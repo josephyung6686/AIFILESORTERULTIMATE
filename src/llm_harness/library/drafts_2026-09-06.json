@@ -506,7 +506,7 @@
   "c_placement_response_schema.eliminate-v2r-group.json": "4c6eb9ad4e7b0e7006dd1432f53e4d1c5878e24f2ec4a97e4a1fa9d194082a78",
   "c_placement_template.eliminate-v2r-group-levels.txt": "929f281c5583b317ca92f8c37e7f91bd1a0318c2af695571d0e2e2f0c3bc0a48",
   "c_placement_template.eliminate-v2r-group-levels-scores.txt": "4454838b11402cdfd74945e642a9aa0bc4f176ffefa106dc913fe024d7e2baf5",
-  "gate_template.restricted-kind.txt": "f0ba97b6824d5a396629c283345a0d36c2c8065860c3f100e112445c62440c9e",
+  "gate_template.restricted-kind.txt": "51f74d1361b3470526345ffa8c9267cd1cde19a4648b5cea4824007bb0a9ebd8",
   "gate_response_schema.json": "ad5c3663d1081ea56a9c4b47d674037c50d754d669ed6f836e047a522006a864",
   "gate_shaping_policy.json": "05903569aa7d0823792fd0b16c690bde5befd5889c7c602ef9d79be8e7702b95",
   "situation_template.whole-library.txt": "a76d53579e1fe51fb2ace90d2a04f20a76687be84205e572940509e03f7a0c14",
