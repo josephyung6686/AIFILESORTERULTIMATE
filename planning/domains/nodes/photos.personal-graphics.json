@@ -1,0 +1,266 @@
+{
+  "id": "photos.personal-graphics",
+  "kind": "template",
+  "schema_id": "photos",
+  "parent_id": null,
+  "name": "Personal graphics",
+  "one_line": "Designed images a person saved or made for themselves, outside any camera capture, screen grab, or bulk messenger or social export: a meme, a phone or desktop wallpaper, a sticker or transparent-background asset, a banner or cover image, a profile picture, or an edited image carrying an editing-tool tag and no camera metadata. It is NOT activated by the mere absence of camera EXIF, which photos.screenshot-captures already warns proves nothing on its own, nor by an image extension or PNG format alone. It does NOT hold a screen-origin capture (an exact display resolution paired with a screen-capture software tag is photos.screenshot-captures'), a camera photograph whose EXIF was merely stripped in transit (photos.camera-events'), a graphic extracted from a bulk chat or platform export archive (photos.messenger-export's and photos.social-media-export's), or a designed asset made for a client, a brief or an employer (creative.*'s, on the same evidence the refused creative.self-initiated-work row already ceded: the absence of a client is not itself evidence, and this row does not repeat that mistake by defining itself as an absence either). Declares no field rows under PR-6; activation unlocks recognition and a residual home for material that is otherwise the corpus's most common orphan image.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "node_test": "Passes on three limbs, each stated against the sibling whose absence-based reasoning this row is built to avoid repeating. (1) Detection signals differ from photos.screenshot-captures' and from a bare absence: this row's positive evidence is a labelled image-editing or design-tool software slot (never a specific product name, read the way a screen-capture tool name is read there), a pixel-dimension or aspect-ratio match to a known wallpaper, avatar or banner shape, an alpha-channel isolated-subject image consistent with a sticker, or an OCR'd caption-and-punchline structure baked into the pixels — none of which screenshot-captures' own signals (an exact DISPLAY resolution with a screen-capture tool) supply, and none of which is merely 'no camera EXIF'. (2) It differs from creative.self-initiated-work's refused shape on the exact ground that row was refused: that row's only candidate signal was a negated one, client_not_found, which the activation algorithm has no input for; this row instead requires a POSITIVE material-kind signal (a wallpaper-shaped dimension, a sticker's alpha channel, a meme's caption structure) that a professional deliverable does not characteristically carry, so the discriminator is what the file IS, not what it lacks. (3) The recommended dimension and privacy contour both differ from camera-events': no capture_year or location dimension is offered, because this material has no capture event behind it, and the privacy posture is markedly lighter than a photograph's — no third party is depicted merely by the graphic existing.",
+
+  "fields": [],
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, stated as three exclusions before any positive signal is read: NOT an exact known display resolution paired with a screen-capture software slot (photos.screenshot-captures' own pair); NOT a camera Make/Model slot or sensor-shaped dimensions (photos.camera-events'); NOT a member of a bulk chat, contact or platform export archive (photos.messenger-export's and photos.social-media-export's). This row's positive signals below apply only once those three are absent.",
+      "A LABELLED SOFTWARE OR CREATOR SLOT (EXIF Software, XMP Creator, or a PNG text chunk named Software) naming an image-editing or graphic-design tool rather than a screen-capture or camera-processing one — read the same way photos.screenshot-captures reads its own software slot, as a labelled structured value rather than a specific product name authored into this row.",
+      "A DIMENSION OR ASPECT-RATIO MATCH to a known wallpaper, avatar or banner shape: pixel dimensions matching a common phone or desktop wallpaper resolution, a square crop matching a platform profile-picture size, or an aspect ratio matching a platform cover-photo or banner size — together with no camera EXIF and no screenshot pair, exactly mirroring the co-occurrence discipline 00 states for the screenshot case.",
+      "AN ALPHA-CHANNEL, ISOLATED-SUBJECT IMAGE: a PNG or WEBP carrying transparency with a single subject and no surrounding scene, consistent with a sticker or a standalone graphic asset, together with no camera EXIF.",
+      "A CAPTION-AND-PUNCHLINE STRUCTURE recovered by OCR: text baked into the image in a top-and-bottom or single-caption layout distinct from the surrounding image content, legible only through OCR — 00's own reason OCR runs at all: \"OCR should therefore run when a file yields no usable text and no usable metadata\".",
+      "A GENERIC DOWNLOADED-FILE FILENAME co-occurring with any signal above: a browser's default numbered download name or a save-as name carrying neither a camera-shaped IMG_#### pattern nor a screen-grab-tool pattern.",
+      "Exact and perceptual hash agreement identifying re-saved or re-shared copies of the same graphic, exactly as 00 states for duplicate detection generally.",
+      "An ARCHIVE MANIFEST whose member paths repeatedly encode wallpaper, sticker or meme-shaped filenames with no repository marker and no export-tool manifest, inspected without unpacking."
+    ],
+    "needs_llm": [
+      "Deciding whether an OCR'd caption is genuinely meme-shaped humour or commentary, as against a saved reference image (a recipe card, a diagram, a quote graphic) whose overlay text serves a different purpose — both are Reference Clips' material either way, but the distinction matters for grouping.",
+      "Separating a personally made or edited graphic from a professional client deliverable when both carry an editing-tool tag and no camera EXIF: the model must look for project, client or brief evidence elsewhere in the file or its neighbourhood and return unknown when none exists, rather than defaulting either way.",
+      "Recognising a downloaded meme or wallpaper as against a real photograph whose EXIF was merely stripped in transit — photos.screenshot-captures' own adversarial case, shared by this row: 00 warns the system \"must not mistake the absence of EXIF for proof\" of anything.",
+      "Distinguishing a profile image the user set for their own account from a profile image downloaded of someone else (a contact's avatar saved from a messaging app), which is a photograph of a person and not personal graphics merely because it is square and small.",
+      "Concluding that nothing more can be said once the material-kind signal fires, which must remain an available answer: no event, project or reference-collection association is invented merely because a graphic was recognised as this kind of material."
+    ],
+    "never_alone": [
+      "ABSENCE OF CAMERA EXIF ALONE. photos.screenshot-captures' own rule applies with equal force here: an absence of EXIF is consistent with a screenshot, a re-encoded messaging-app photograph, and a personal graphic alike, and proves none of them.",
+      "AN IMAGE EXTENSION OR PNG FORMAT ALONE. file_kind_plausible is constitutionally never-alone across this whole library; a routing signal is not evidence.",
+      "A GENERIC DOWNLOADED FILENAME ALONE. A downloaded receipt, a downloaded article image and a downloaded meme share the identical browser-assigned filename shape.",
+      "OCR TEXT DENSITY ALONE, and humour-shaped or caption-shaped wording alone with no image-structure signal. The same warning 00 gives for screenshots holds here: dense or witty text can sit on a scanned page, a chat export or an article capture with no relation to this row's material.",
+      "A FOLDER OR FILENAME WORD SUCH AS WALLPAPER, MEMES OR STICKERS, WITH NO METADATA SIGNAL ON THE FILE ITSELF. Existing user folders are read as an expression of intent for grouping, never as a substitute for the file's own evidence when recognition is what is being decided.",
+      "AN EDITING-TOOL SOFTWARE TAG ALONE, with camera evidence or a screenshot pair also present. A photographer who retouches real photographs in the same tool produces camera-EXIF-bearing files with an editing-tool tag; the tag discriminates only once camera and screen-capture evidence are both absent.",
+      "A BARE 4-DIGIT NUMBER OR DIMENSION FIGURE AS A YEAR OR EVENT. A pixel width, a resolution figure and a filename counter are not a capture year, exactly as 00 warns for course identifiers and ZIP codes."
+    ]
+  },
+
+  "proposed_context_terms": [],
+
+  "work_types": [
+    "meme",
+    "wallpaper",
+    "phone wallpaper",
+    "desktop wallpaper",
+    "sticker",
+    "banner",
+    "cover photo",
+    "cover image",
+    "profile picture",
+    "profile image",
+    "edited graphic"
+  ],
+
+  "grouping_reasons": [
+    "a near-duplicate family of one graphic found by exact and perceptual hash — a re-saved, re-shared or recompressed copy of the same meme or wallpaper.",
+    "a set the user already keeps in one curated folder (a Wallpapers or Stickers folder), read as an expression of intent — 00: \"existing folder structures should mainly be preserved\".",
+    "a run of graphics saved in one bulk-download session, offered as one reviewable set and never as a fact on any member, exactly as 00 forbids treating a session as proof of topic.",
+    "no group at all is the common and expected outcome for an isolated meme or a single saved wallpaper."
+  ],
+
+  "template": {
+    "dimension_order": ["media_type"],
+    "why": "The one dimension this material reliably supplies, mirroring photos.screenshot-captures' own reasoning for leading with media_type rather than with the schema default's capture_year then event: this material has no capture event, no location and typically no camera-adjacent date at all, so a template that opened on event or capture_year would open on a level almost nothing here can fill. media_type separates this row's graphics from camera-events and from screenshot-captures under a shared Photos parent. Where a user has already made a Wallpapers, Stickers or Memes folder their own root, this single level should be flattened away, exactly as 00 asks when \"a level produces only one child\". time_first is false: there is no capture date to lead with, and 00's document-domain reasoning against a leading calendar level applies here even though this is not, in the ordinary sense, a document. All of this is a recommendation the user may reverse, remove or flatten.",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": ["image", "ocr", "archive"],
+    "extensions": [".png", ".jpg", ".jpeg", ".webp", ".gif", ".heic", ".zip"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "IMG_20260304_meme.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "no camera Make/Model slot, no GPS, pixel dimensions matching neither a known display resolution nor a sensor shape",
+        "a software-metadata slot names an image-editing application rather than a screen-capture or camera tool",
+        "OCR reads a top caption and a bottom caption in a bold sans font over a photograph-shaped background image",
+        "no course, project, institution or account wording anywhere in the OCR text"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "media_type = screenshot from the absent EXIF alone — no exact display resolution and no screen-capture software slot are present, which is this row's discriminator against that one",
+        "media_type = photo from the camera-shaped IMG_#### filename — a filename pattern with no metadata behind it is never alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "wallpaper-3840x2160-mountains.png",
+      "source_type": "image",
+      "observations": [
+        "pixel dimensions equal a common desktop wallpaper resolution",
+        "no camera EXIF, no screen-capture software slot",
+        "a generic download-manager filename with a resolution figure baked in",
+        "no text of any kind in an OCR pass"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "media_type = screenshot from the resolution figure — this is a WALLPAPER resolution match, not a DISPLAY resolution paired with a capture-tool slot, and the two must not be conflated",
+        "a capture_year from the numbers in the filename",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "sticker_pack_04.webp",
+      "source_type": "image",
+      "observations": [
+        "alpha-channel transparency with one isolated cartoon subject and no background",
+        "no camera EXIF",
+        "dimensions far smaller than any photograph or wallpaper in the same folder",
+        "eleven sibling files in the same directory share the same shape"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "that the sibling count alone licenses an event or album fact — a shared shape is not a shared occasion",
+        "media_type = photo from the image extension alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "profile_picture_new.jpg",
+      "source_type": "image",
+      "observations": [
+        "square crop matching a common platform profile-picture export size",
+        "an editing-tool software slot; no camera Make/Model slot",
+        "OCR finds no text",
+        "no display-resolution match and no screen-capture tool slot"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "that the square crop alone makes this a photograph of the user — no camera evidence supports that reading, and this row does not resolve whether the underlying image began as a photo before editing",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Untitled design (4).png",
+      "source_type": "image",
+      "observations": [
+        "aspect ratio matches a common social-media banner or cover-photo size",
+        "a labelled software slot names a design tool; no camera EXIF",
+        "OCR reads short headline-style text laid over a coloured background, no body prose",
+        "a generic export-tool default filename"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a creative-schema fact from the design-tool slot alone — no client, brief or project evidence accompanies it, which is this row's discriminator against creative.* and against the refused creative.self-initiated-work shape",
+        "a folder path"
+      ],
+      "also_schema": "creative",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "20260112_204533.jpg",
+      "source_type": "image",
+      "observations": [
+        "a camera Make and Model slot, GPS coordinates and sensor-shaped dimensions",
+        "no editing-tool software slot",
+        "OCR finds no overlay caption structure"
+      ],
+      "facts_legal": ["capture_year", "camera_information"],
+      "must_not_conclude": [
+        "that this row fires. Camera EXIF is present, which is this row's own precondition failing; the file is photos.camera-events'",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": null
+    },
+    {
+      "filename": "chat_export/media/IMG-20260304-WA0007.jpg",
+      "source_type": "archive",
+      "observations": [
+        "the file sits inside a bulk chat-export archive's media folder alongside hundreds of similarly named siblings",
+        "the archive manifest names a messaging platform's export structure",
+        "the individual member, read alone, has no camera EXIF and could otherwise resemble this row's material"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this row fires merely because the member lacks camera EXIF - membership in a bulk export archive is photos.messenger-export's precondition and takes the file first, exactly as this row's own precondition excludes it",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "SAME FIXTURE BOTH SIDES: an image with no camera EXIF and a labelled software slot. That row fires on an EXACT DISPLAY RESOLUTION paired with a SCREEN-CAPTURE tool slot; this row fires on a WALLPAPER, AVATAR or BANNER dimension match, an alpha-channel sticker shape, or a meme's caption structure, paired with an editing or design tool slot rather than a capture tool. Neither side may use the absence of camera EXIF by itself, which discriminates nothing between them and 00 says so directly. Where both a display-resolution match and a design-tool slot occur together, the display-resolution pairing wins, because a saved graphic re-exported at exactly one known display size is rarer than a genuine grab.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.camera-events",
+      "signal": "The confusable evidence item is again an image with no camera EXIF, this time on the other side: a real photograph re-encoded by a messaging platform loses its EXIF and can otherwise look like this row's material. The discriminating evidence is positive on the camera side - Make, Model, GPS or sensor-shaped dimensions - and positive on this row's side - a wallpaper or avatar dimension match, an alpha channel, a caption structure, or a design-tool slot. A file with neither set of positive evidence abstains to One-Off Images rather than defaulting here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.messenger-export",
+      "signal": "A meme or sticker is exactly the kind of file a chat export carries by the thousand, and the individual member, inspected alone, can look identical to this row's material. This row's precondition excludes any file that is a member of a bulk chat or platform export archive; that row's evidence - an export manifest, a platform-specific media-folder structure, sibling counts in the thousands - takes the file first. Where a meme is saved OUT of a chat as a standalone file with no export archive around it, this row's positive signals apply as normal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative",
+      "signal": "AN EDITING-TOOL SOFTWARE SLOT WITH NO CAMERA EXIF IS THE SHARED EVIDENCE ITEM, and it is exactly the shape the refused creative.self-initiated-work row could not discriminate from creative's own paid material. This row does not repeat that row's mistake: it requires a POSITIVE material-kind signal (a wallpaper or banner dimension, a sticker's alpha channel, a meme's caption structure) that a professional deliverable does not characteristically carry, rather than the absence of a client. Where a project, client or brief slot is also present, creative's own rows take the file; where none is present and a material-kind signal is, this row does.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.social-media-export",
+      "signal": "A downloaded personal-data export from a social platform carries the user's own posted memes and cover images among thousands of other exported items, in the platform's own export-archive shape. As with messenger-export, archive membership is this row's excluded precondition and that row's own evidence; a graphic the user separately saved to their camera roll or downloads folder, outside any export archive, is this row's on its own signals.",
+      "provenance": "inference"
+    }
+  ],
+
+  "also_holds_with": [],
+
+  "falls_through_to": [
+    {
+      "residual_template": "One-Off Images",
+      "why": "The primary and expected outcome for this material: 00's own words, \"images with no event, project, reference collection, or photo-family association\", describe an isolated meme or wallpaper precisely. This is also where a graphic whose media_type never positively resolves belongs, rather than being forced into either this row or camera-events on absent evidence.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "00 names saved visual material inside this residual by name - \"saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval\" - which covers a meme or quote-graphic kept for its content rather than as decoration, when the corpus and the user's own habits suggest that reading.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home for this row's defining ambiguity: a graphic carrying an editing-tool slot and no camera EXIF but also no material-kind signal strong enough to confirm personal graphics over a professional deliverable or over a stripped-EXIF photograph.",
+      "provenance": "design"
+    }
+  ],
+
+  "role_split": [],
+
+  "sensitivity": "none",
+  "sensitivity_why": "Unlike almost everything else this schema's neighbours hold, this row's characteristic artefact depicts no one and evidences no relationship: a meme, a wallpaper or a sticker is either downloaded third-party media or a graphic the user made with no subject beyond its own design. The residual risk is narrow and belongs to a needs_llm reading rather than to the row's posture - a profile image could be a photograph of the user or of someone else - and that risk is the reason media_type stays the only fact this row licenses; it is not a reason to raise the row's own sensitivity above what its typical member actually is. Where a graphic is later found to be a stripped-EXIF photograph of a person, it is photos.camera-events' file and that row's posture, not this one's, governs it. The handling class, if any is warranted for the narrow residual, is P7's and is not set here.",
+  "open_question": "One, Joseph's. Whether a profile picture specifically should be split out as its own signal with a stricter default posture than the rest of this row's material - since a small share of profile images are photographs of the user or of a third party rather than a designed graphic - or whether the needs_llm reading recorded above is sufficient and no field-level split is warranted for a fieldless schema."
+}

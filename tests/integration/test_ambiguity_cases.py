@@ -1138,6 +1138,12 @@ def test_all_twenty_three_corpus_schemas_now_have_a_runtime_identity():
     `planning/60-VOCABULARY-RULINGS.md` J-1 closes it: "All 23 roster schemas become
     schemas the product recognises." `60` §5 gives twenty of them a field set, and
     the three that keep none are §3.15's out-of-scope safety domains.
+
+    358 -> 360, re-argued rather than bumped silently: `00` amendment 7 and `104`
+    §18.56 ratify `nonprofit.student-organisation` and `photos.personal-graphics`
+    for a library gap the answer key measured directly (a student club's own
+    records, personal media outside a camera or messenger export). The schema
+    count is untouched at 23 -- both rows land on schemas the corpus already named.
     """
     from facts.domains import FIELD_LESS_SCHEMA_IDS, SCHEMA_IDS
 
@@ -1148,7 +1154,7 @@ def test_all_twenty_three_corpus_schemas_now_have_a_runtime_identity():
         corpus_schemas.add(row["schema_id"])
         total += 1
 
-    assert total == 358
+    assert total == 360
     assert len(corpus_schemas) == 23
     assert len(SCHEMA_IDS) == 23
     assert set(SCHEMA_IDS) == corpus_schemas

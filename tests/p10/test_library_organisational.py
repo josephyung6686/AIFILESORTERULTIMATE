@@ -37,12 +37,22 @@ five things this particular wave can silently lose:
    `test_no_hr_level_can_be_built_from_a_person_identifying_key` asserts it
    against the LIVE `facts.fields` catalogue rather than against a list retyped
    here — a key later promoted to destination-eligible turns it red.
-5. **A refusal is a deliverable and must be as traceable as a row.** 48 of the
-   66 live rows in these four schemas earned no template, almost always because
+5. **A refusal is a deliverable and must be as traceable as a row.** 49 of the
+   67 live rows in these four schemas earned no template, almost always because
    the level their own prose puts first has no declared key. That is a fact
    about the vocabulary, and a wave that recorded only its successes would look
    identical to a wave that quietly skipped the hard rows.
    `test_every_live_row_is_either_covered_or_refused_by_name` closes it.
+
+**`nonprofit.student-organisation`, added.** `00` amendment 7 and `104` §18.56
+ratify this row on the recognition side, for a library gap the answer key
+measured directly (a student club's own sign-up sheets, flyers, meeting
+agendas, event shift rosters, officer handovers and activities-office funding
+requests). On the template side it is refused, not covered, for the same
+reason three of its four nonprofit siblings already are: it promotes a TERM OR
+EVENT into the vacated counterparty slot, and nonprofit's only generally usable
+key, `record_period`, fits the term half and not the event half. 48 -> 49
+refusals; nonprofit's own count moves 3 -> 4.
 """
 from __future__ import annotations
 
@@ -547,9 +557,12 @@ def test_every_refusal_quotes_the_sentence_behind_it(raw):
     """*"An honest gap beats an invented recipe"* — but only if the gap is
     legible. A refusal whose reason is a shrug is indistinguishable from a row
     nobody read."""
-    assert len(raw["refusals"]) == 48
+    # 48 -> 49, 3 -> 4 nonprofit: `nonprofit.student-organisation` (`00` amendment
+    # 7, `104` §18.56) is refused as a TEMPLATE here on the same ground as three
+    # of its siblings, while it is a live, compiled recognition row.
+    assert len(raw["refusals"]) == 49
     assert Counter(x["uses_schema"] for x in raw["refusals"]) == {
-        "government": 26, "business_operations": 14, "hr": 5, "nonprofit": 3}
+        "government": 26, "business_operations": 14, "hr": 5, "nonprofit": 4}
     for entry in raw["refusals"]:
         assert len(entry["row_sentence"]) > 40, entry["row_id"]
         assert len(entry["why_no_template"]) > 120, entry["row_id"]
