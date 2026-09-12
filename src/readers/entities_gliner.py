@@ -232,8 +232,18 @@ def word_mask(word_ids: Sequence[int | None], prompt_length: int) -> list[int]:
 
 
 def overlaps(one: tuple[int, int], other: tuple[int, int]) -> bool:
-    """Whether two word spans touch. `gliner.decoding.utils.has_overlapping`."""
-    return not (one[0] > other[1] or other[0] > one[1])
+    """Whether two spans share a character. `gliner.decoding.utils.has_overlapping`.
+
+    HALF-OPEN, where GLiNER's is inclusive, and the difference is the translation
+    rather than a change of rule. GLiNER compares WORD INDICES, where word 1 and
+    word 2 are adjacent and not overlapping; this compares CHARACTER OFFSETS, where
+    the same two words are `(0, 5)` and `(5, 6)` if no space separates them -- which
+    is exactly what `words_of` produces for `Whitfield,`. Under the inclusive test
+    those two share the offset 5 and one of them is thrown away; under this one they
+    share no character, which is the question actually being asked. Identical
+    non-empty spans still overlap, which is the duplicate a window boundary makes.
+    """
+    return not (one[0] >= other[1] or other[0] >= one[1])
 
 
 def greedy_non_overlapping(found: Sequence[Entity]) -> tuple[Entity, ...]:
@@ -257,8 +267,8 @@ def greedy_non_overlapping(found: Sequence[Entity]) -> tuple[Entity, ...]:
     return tuple(sorted(kept, key=lambda one: (one.start, one.end)))
 
 
-def pack(text: str, labels: Sequence[str], encoding, *, max_width: int):
-    """The six tensors the graph takes, from one tokenizer encoding of one text.
+def pack(labels: Sequence[str], encoding, *, max_width: int):
+    """The six tensors the graph takes, from one tokenizer encoding of one window.
 
     `encoding` is what `tokenizers` returned for the prompt-and-document sequence;
     this function does the arithmetic and opens nothing, so a pin can hand it a
@@ -350,6 +360,19 @@ class GlinerEntities:
         self._ent_token = str(config["ent_token"])
         self._sep_token = str(config["sep_token"])
         self._max_width = int(config["max_width"])
+        #: HOW MANY WORDS ARE OFFERED PER WINDOW, and it is an UPPER BOUND rather
+        #: than a size. Every word costs at least one sub-token, so no more than
+        #: `max_len` of them can survive the encoder's own ceiling however short
+        #: they are -- and `pack` reports how many actually did, which is the real
+        #: window. Offering the whole remaining document instead would be correct
+        #: and quadratic: the tokenizer would re-encode the tail once per window.
+        self._window_words = int(config["max_len"])
+        #: THE OVERLAP, in words, and it is the config's own `max_width`. That is
+        #: the longest span this model can name, so an entity cut by a boundary is
+        #: whole inside the next window by construction -- a shorter overlap would
+        #: leave the longest entities readable only as fragments, and a longer one
+        #: would pay for spans the head cannot emit.
+        self._overlap = self._max_width
 
         # Present, because `available_in` above refused if they were not.
         import onnxruntime  # noqa: PLC0415  a deployment import, by design
@@ -381,7 +404,38 @@ class GlinerEntities:
         self.weights = f"{weights.name}@{_digest_of(weights)}"
 
     def entities(self, text: str) -> tuple[Entity, ...]:
-        """Every entity in `text` above the caller's floor, in reading order."""
+        """Every entity in the WHOLE of `text` above the caller's floor, in order.
+
+        **WINDOWED, because the gate exists to catch a diagnosis on page three.**
+        The encoder's sequence length is fixed (`max_len` in `gliner_config.json`,
+        384 sub-tokens for this model) and a document is not, so a reader that
+        encoded once would read the opening of every file and report its silence
+        about the rest as an absence. `104` §18.56 measured what that costs: a
+        health form the rules called ordinary, released to the cloud because
+        nothing had read the part of it that says what it is.
+
+        So the words are walked in windows and the windows OVERLAP by `max_width`
+        words -- the longest span this model can name -- which is what makes an
+        entity lying across a boundary whole inside the next window rather than two
+        fragments in two.
+
+        **The window's size is measured, not assumed.** `pack` reports how many
+        words survived the encoder's ceiling, and the next window starts that many
+        words on, less the overlap. So a page of long words takes more windows than
+        a page of short ones and neither is truncated silently, and the step is at
+        least one word whatever the tokenizer did, because a step of zero is a run
+        that never ends.
+
+        **The spans are already absolute.** `words_of` reports offsets into `text`
+        and a window is a SLICE of that list, so a span decoded in window four
+        carries window four's characters' own offsets and needs no mapping back.
+
+        **One greedy pass over all of them at the end, not one per window.** Two
+        windows that both saw an entity in their overlap return it twice, and the
+        flat-NER rule this model is decoded with -- the strongest of any two spans
+        that touch -- is the same rule that settles the duplicate. Applying it per
+        window instead would leave the boundary entity in the result twice.
+        """
         words = words_of(text)
         if not words:
             return ()
@@ -389,19 +443,27 @@ class GlinerEntities:
         for label in self.labels:
             prompt.extend((self._ent_token, label))
         prompt.append(self._sep_token)
-        encoding = self._tokenizer.encode(prompt + [word for word, _, _ in words],
-                                          is_pretokenized=True)
-        feed, word_count = pack(text, self.labels, encoding,
-                                max_width=self._max_width)
-        if word_count == 0:
-            # The label prompt filled the encoder on its own: nothing of the document
-            # reached the graph, so there is nothing to say about it. Silence, not a
-            # crash and not an empty claim that the text holds no entities.
-            return ()
-        logits = self._session.run(None, feed)[0]
-        return decode(logits, words=words[:word_count], grid=feed["span_idx"][0],
-                      valid=feed["span_mask"][0], labels=self.labels, text=text,
-                      score_floor=self.score_floor)
+
+        found: list[Entity] = []
+        first_word = 0
+        while first_word < len(words):
+            window = words[first_word:first_word + self._window_words]
+            encoding = self._tokenizer.encode(
+                prompt + [word for word, _, _ in window], is_pretokenized=True)
+            feed, read = pack(self.labels, encoding, max_width=self._max_width)
+            if read == 0:
+                # The label prompt filled the encoder on its own: nothing of the
+                # document reached the graph, and no later window would fare better.
+                break
+            logits = self._session.run(None, feed)[0]
+            found.extend(decode(logits, words=window[:read],
+                                grid=feed["span_idx"][0], valid=feed["span_mask"][0],
+                                labels=self.labels, text=text,
+                                score_floor=self.score_floor))
+            if first_word + read >= len(words):
+                break
+            first_word += max(1, read - self._overlap)
+        return greedy_non_overlapping(found)
 
 
 def _digest_of(path: Path) -> str:
