@@ -359,3 +359,27 @@ def test_a_second_pass_over_an_unchanged_file_writes_no_second_row(db, tmp_path)
         "SELECT * FROM evidence WHERE extractor_name LIKE ? ORDER BY rowid",
         (IDENTIFIERS_NAMESPACE + "%",))]
     assert after_one == after_two and after_one
+
+
+def test_the_dossier_calls_a_kind_an_identifier_and_not_a_work_type():
+    """What site G is TOLD about the hold, and it is a different sentence.
+
+    `model_situation._held_phrase` is the dossier line the local model reads to
+    learn why a file is held. `payment_card` is not a work type -- the document did
+    not use the words, its digits passed Luhn -- so printing "on the work type
+    payment_card" would tell the model the file says something it does not say, on
+    the one line that explains the lock. A file carrying both says both.
+    """
+    from model_situation import _held_phrase
+
+    both = Precaution(schema_id="finance", terms=("bank statement", "payment_card"),
+                      zones=("body",), evidence_refs=())
+    phrase = _held_phrase(both)
+    assert "on the work type bank statement" in phrase
+    assert "on the identifier payment_card" in phrase
+    assert "work type payment_card" not in phrase
+
+    only_a_kind = Precaution(schema_id="identity", terms=("hkid",), zones=("body",),
+                             evidence_refs=())
+    assert "on the identifier hkid" in _held_phrase(only_a_kind)
+    assert "work type" not in _held_phrase(only_a_kind)
