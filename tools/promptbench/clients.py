@@ -137,6 +137,11 @@ def local_client(*, post=None) -> Callable[[bytes], tuple[bytes, CallMeta]]:
     def bench_post(url: str, body: bytes, *, timeout: float,
                    silence: float) -> bytes:
         payload = json.loads(body)
+        if "messages" not in payload:
+            # THE MODEL LOAD, not a call: the transport's first request names
+            # the model and carries no prompt. Nothing to size, nothing to
+            # record; it goes through as it is.
+            return real_post(url, body, timeout=timeout, silence=silence)
         # `/api/chat`, WHICH IS THE TRANSPORT THE PRODUCT SHIPS. This read
         # `payload["prompt"]`, the `/api/generate` field, against a 95-line
         # bench-local copy of `ollama_invoke` that the Phase 0a transport

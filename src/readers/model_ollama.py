@@ -165,6 +165,10 @@ DEFAULT_BASE_URL: str = "http://127.0.0.1:11434"
 #: The chat endpoint, appended to whatever loopback endpoint was injected.
 CHAT_PATH: str = "/api/chat"
 
+#: Where a model is LOADED without being asked anything: a generate request that
+#: names the model and carries no prompt returns when the weights are resident.
+GENERATE_PATH: str = "/api/generate"
+
 #: The hosts a `locality="local"` claim survives. `Gate.release` is TOLD the
 #: locality and cannot measure it; here is where it is a fact, so here is where
 #: anything else refuses. A person running ollama on another PORT is ordinary and
@@ -913,6 +917,49 @@ def ollama_invoke(*, model_target: "ModelTarget", base_url: str | None,
     #: The window every call in this run is given, for the row §8.4 writes about
     #: what the model was given. One value, because changing it reloads the model.
     used: dict[str, int] = {"context_tokens": ceiling}
+    loaded = {"yet": False}
+
+    def load_once() -> None:
+        """THE LOAD IS PAID ONCE, OUTSIDE ANY FILE'S CLOCK.
+
+        The silence deadline is armed from the request and reset by every token,
+        and a model that is not resident sends no token until it is: measured 12
+        Sep 2026, the first call of each launch of the parsing run -- and every
+        call after the server had evicted the weights -- ended as
+        `OllamaRanOutOfTimeWaitingForAToken`, with the load still running. The
+        file it was asked about lost its verdict for that run to a clock that was
+        never about it. So the first request this client makes is a load and
+        nothing else: a generate request naming the model and carrying no prompt,
+        which returns when the weights are resident and answers nothing. It waits
+        under the WHOLE-CALL patience, because a load streams nothing to be silent
+        about. The chat request follows under the ordinary two clocks, with the
+        model already in memory. No number is chosen here: both deadlines are the
+        injected ones.
+        """
+        if loaded["yet"]:
+            return
+        body = json.dumps({"model": model_id}).encode("utf-8")
+        try:
+            post(endpoint + GENERATE_PATH, body, timeout=timeout_seconds,
+                 silence=timeout_seconds)
+        except OllamaUnavailable:
+            raise
+        except TimeoutError as problem:
+            raise _out_of_time(problem, _stopped_waiting(
+                problem, endpoint=endpoint, timeout_seconds=timeout_seconds,
+                silence_seconds=timeout_seconds)) from problem
+        except Exception as problem:  # transport failure of any kind
+            if isinstance(getattr(problem, "reason", None), TimeoutError):
+                raise _out_of_time(problem.reason, _stopped_waiting(
+                    problem.reason, endpoint=endpoint,
+                    timeout_seconds=timeout_seconds,
+                    silence_seconds=timeout_seconds)) from problem
+            raise OllamaUnavailable(
+                f"the local model at {endpoint} could not be reached ({problem}). "
+                f"Start it with `ollama serve`. No call was made, so nothing was "
+                f"decided on the strength of a model that was never asked."
+            ) from problem
+        loaded["yet"] = True
 
     def invoke(payload: bytes) -> bytes:
         try:
@@ -928,6 +975,9 @@ def ollama_invoke(*, model_target: "ModelTarget", base_url: str | None,
         # BEFORE the socket, so a dossier that cannot fit is never truncated.
         _fits(len(payload), max_response_tokens=response_tokens,
               context_ceiling=ceiling)
+        # AFTER the fit check: a payload that is going to be refused is refused
+        # before anything touches the socket, the load included.
+        load_once()
         window = ceiling
         body = json.dumps({
             "model": model_id,

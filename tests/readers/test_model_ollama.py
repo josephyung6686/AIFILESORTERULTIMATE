@@ -437,3 +437,53 @@ def test_a_refused_connection_still_says_no_call_was_made():
         assert "ollama serve" in str(refusal)
         assert "No call was made" in str(refusal)
         assert not isinstance(refusal, OllamaRanOutOfTime)
+
+
+def _recording_post(calls, reply='{"claims":[]}'):
+    def post(url: str, body: bytes, *, timeout: float, silence: float) -> bytes:
+        calls.append({"url": url, "body": json.loads(body), "timeout": timeout,
+                      "silence": silence})
+        if url.endswith("/api/generate"):
+            return json.dumps({"model": "qwen3:8b", "done": True,
+                               "done_reason": "load"}).encode("utf-8")
+        return json.dumps({"message": {"role": "assistant", "content": reply},
+                           "done": True, "done_reason": "stop",
+                           "prompt_eval_count": 12}).encode("utf-8")
+    return post
+
+
+def test_the_model_is_loaded_once_ahead_of_the_first_files_clock():
+    """The first request of a client loads the model and asks nothing; the chat
+    follows with the weights resident; a second call loads nothing again.
+
+    Measured 12 Sep 2026: the first call of each launch of the parsing run ended
+    as `OllamaRanOutOfTimeWaitingForAToken` with the load still running, and the
+    file lost its verdict to a clock that was never about it. The load waits
+    under the whole-call patience, because nothing streams during a load.
+    """
+    calls: list[dict] = []
+    invoke = ollama_invoke(model_target=TARGET, base_url=DEFAULT_BASE_URL,
+                           max_response_tokens=RESPONSE_TOKENS,
+                           context_ceiling=CEILING, post=_recording_post(calls),
+                           timeout_seconds=5.0, silence_seconds=2.0)
+    invoke(b'{"dossier": 1}')
+    invoke(b'{"dossier": 2}')
+
+    assert [c["url"].rsplit("/", 2)[-2:] for c in calls] == [
+        ["api", "generate"], ["api", "chat"], ["api", "chat"]]
+    load = calls[0]
+    assert load["body"] == {"model": "qwen3:8b"}
+    assert "prompt" not in load["body"] and "messages" not in load["body"]
+    assert load["silence"] == load["timeout"] == 5.0
+    assert calls[1]["silence"] == 2.0
+
+
+def test_a_load_that_cannot_reach_the_server_is_the_same_refusal_as_a_call():
+    def post(url, body, *, timeout, silence):
+        raise ConnectionRefusedError("nobody listening")
+    invoke = ollama_invoke(model_target=TARGET, base_url=DEFAULT_BASE_URL,
+                           max_response_tokens=RESPONSE_TOKENS,
+                           context_ceiling=CEILING, post=post,
+                           timeout_seconds=5.0, silence_seconds=2.0)
+    with pytest.raises(OllamaUnavailable):
+        invoke(b'{"dossier": 1}')

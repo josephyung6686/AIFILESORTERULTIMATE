@@ -122,16 +122,32 @@ class _Server:
 
     def _serve(self) -> None:
         self._listener.settimeout(SERVER_WAIT)
+        # THE LOAD IS ANSWERED, THE CHAT IS SABOTAGED. The client's first request
+        # loads the model (a promptless generate); a real server answers it at
+        # once, and so does this one. The sabotage is for the chat that follows,
+        # which arrives on a second connection.
         try:
             accepted, _ = self._listener.accept()
         except OSError:  # the test finished before a client arrived
             return
         with accepted:
-            try:
-                self._behave(accepted, self.stop)
-            except OSError:
-                # The client hung up at its deadline, which is the whole point.
-                pass
+            if _answered_a_load(accepted):
+                try:
+                    accepted, _ = self._listener.accept()
+                except OSError:
+                    return
+            else:
+                self._behave_on(accepted)
+                return
+        with accepted:
+            self._behave_on(accepted)
+
+    def _behave_on(self, accepted) -> None:
+        try:
+            self._behave(accepted, self.stop)
+        except OSError:
+            # The client hung up at its deadline, which is the whole point.
+            pass
 
     def close(self) -> None:
         self.stop.set()
@@ -207,6 +223,23 @@ def _headers(length: int) -> bytes:
 #: more and stops only because a deadline says so.
 NEVER_FINISHED = b"HTTP/1.1 200 OK\r\nContent-Type: application/x-ndjson\r\n" \
                  b"Content-Length: 1000000\r\n\r\n"
+
+
+LOADED = (b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n"
+          b"Connection: close\r\nContent-Length: 13\r\n\r\n"
+          b'{"done":true}')
+
+
+def _answered_a_load(accepted: socket.socket) -> bool:
+    """Answer a promptless generate request at once and say so; leave a chat
+    request unread for the sabotage that expects to read it itself."""
+    accepted.settimeout(SERVER_WAIT)
+    head = accepted.recv(4096, socket.MSG_PEEK)
+    if not head.startswith(b"POST /api/generate"):
+        return False
+    _read_the_request(accepted)
+    accepted.sendall(LOADED)
+    return True
 
 
 def _read_the_request(accepted: socket.socket) -> None:

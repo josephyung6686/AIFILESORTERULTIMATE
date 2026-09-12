@@ -134,6 +134,11 @@ def parse_citation(raw: object) -> Citation | None:
         return None
 
 
+def _folded(text: str) -> str:
+    """The text with every run of whitespace read as one space."""
+    return " ".join(text.split())
+
+
 def _check_citation(
     citation: Citation,
     dossier: Dossier,
@@ -169,7 +174,16 @@ def _check_citation(
             CITATION_NOT_FOUND,
         )
     if citation.cited_span:
-        matched = citation.cited_span in released.value
+        # PRESENT, READ THE WAY THE MODEL READ IT. The SPEC's test is that the
+        # quotation is "actually present in the stored evidence". Recognised text
+        # breaks lines where the page did, and a model copying a heading across
+        # one of those breaks writes a space where the release has a newline:
+        # measured 12 Sep 2026, a correct `boarding_pass_or_ticket` verdict on an
+        # e-ticket was thrown away on exactly that, and the file lost its
+        # protection verdict for the run. Whitespace is folded on BOTH sides and
+        # nothing else is: the characters, their order and their case must
+        # still be the release's own.
+        matched = _folded(citation.cited_span) in _folded(released.value)
     elif citation.cited_span is None:
         matched = citation.metadata_field_name == released.address
     else:

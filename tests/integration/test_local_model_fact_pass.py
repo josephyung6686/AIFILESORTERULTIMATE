@@ -199,6 +199,7 @@ class StubOllama:
     def __init__(self, answer=_answer_for):
         self.requests: list[dict] = []
         self.raw: list[bytes] = []
+        self.loads: list[dict] = []
         self._answer = answer
         recorder = self
 
@@ -208,6 +209,20 @@ class StubOllama:
 
             def do_POST(self):  # noqa: N802 - http.server's spelling
                 body = self.rfile.read(int(self.headers["Content-Length"]))
+                if self.path == "/api/generate":
+                    # THE LOAD. The client's first request names the model and
+                    # carries no prompt; a real server answers when the weights
+                    # are resident. It is not a call and is not counted as one.
+                    recorder.loads.append(json.loads(body))
+                    reply = json.dumps({"model": json.loads(body)["model"],
+                                        "done": True,
+                                        "done_reason": "load"}).encode("utf-8")
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Content-Length", str(len(reply)))
+                    self.end_headers()
+                    self.wfile.write(reply)
+                    return
                 recorder.raw.append(body)
                 request = json.loads(body)
                 recorder.requests.append(dict(request, _path=self.path))

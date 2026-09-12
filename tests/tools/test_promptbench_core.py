@@ -163,6 +163,8 @@ def test_local_client_sets_think_off_and_num_ctx_and_records_them():
     seen: dict = {}
 
     def fake_post(url, body, *, timeout, silence):
+        if url.endswith("/api/generate"):  # the client's one model load
+            return json.dumps({"done": True, "done_reason": "load"}).encode()
         seen["body"] = json.loads(body)
         # `/api/chat`'s shape, which is what the product's transport reads. The
         # bench used to call a 95-line local copy of `ollama_invoke` that spoke
@@ -189,6 +191,8 @@ def test_local_client_sets_think_off_and_num_ctx_and_records_them():
 
 def test_local_client_refuses_a_prompt_that_filled_the_context():
     def fake_post(url, body, *, timeout, silence):
+        if url.endswith("/api/generate"):  # the client's one model load
+            return json.dumps({"done": True, "done_reason": "load"}).encode()
         num_ctx = json.loads(body)["options"]["num_ctx"]
         return json.dumps({"message": {"role": "assistant", "content": "{}"},
                            "done_reason": "stop",

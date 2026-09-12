@@ -1541,3 +1541,53 @@ def test_both_reducers_use_the_one_rule():
     assert source.count("OUTCOME_SEVERITY.index") == 1
     assert "verdicts[-1]" not in source
     assert "produced[-1]" not in source
+
+
+def _one_claim_bytes(key: str, *, cited_span: str) -> bytes:
+    return json.dumps({"claims": [{
+        "claim_ref": "c-line-broken",
+        "payload": {"field": "school", "value": "Columbia"},
+        "citations": [{"evidence_ref": key, "cited_span": cited_span,
+                       "why_it_supports": "names the school"}],
+    }]}).encode("utf-8")
+
+
+@pytest.mark.parametrize("cited_span, accepted", (
+    ("Columbia\nUniversity", True),     # the release's words across a line break
+    ("Columbia   University", True),    # the same words, one run of spaces
+    ("columbia university", False),     # not the release's characters
+    ("Columbia Universit", True),       # a shorter exact quotation still is one
+    ("University Columbia", False),     # not the release's order
+))
+def test_a_quotation_is_present_whatever_the_line_breaks_did(
+        harness_conn, subject, cited_span, accepted):
+    """`CITATION_SPAN_MISMATCH` folds whitespace on both sides and nothing else.
+
+    Measured 12 Sep 2026: a correct `boarding_pass_or_ticket` verdict on an
+    e-ticket was rejected because the model wrote a space where the recognised
+    text had a line break, and the file lost its protection verdict for the run.
+    The SPEC's test is presence in what the model was shown; the characters,
+    their order and their case are still the release's own.
+    """
+    from llm_harness.vocabulary import CITATION_SPAN_MISMATCH
+    key = subject[2]
+    bundle = _fact_bundle(harness_conn, subject)
+    prompt = _prompt()
+    digest = prompt_fingerprint(prompt)
+    verdict = _run(
+        harness_conn,
+        _request(file_id=subject[0], fingerprint=digest, key=key),
+        gate=RecordingGate(harness_conn, prompt=prompt, decision="released", key=key),
+        model_client=ModelClient(
+            model_target=CLOUD,
+            invoke=Recorder(reply=_one_claim_bytes(key, cited_span=cited_span))),
+        prompt=prompt,
+        deps=_deps(site_dependencies=bundle, allowed_vocabulary=("school", "subject")),
+    )
+    assert isinstance(verdict, P8Verdict)
+    if accepted:
+        assert verdict.outcome != REJECT
+        assert CITATION_SPAN_MISMATCH not in verdict.reasons
+    else:
+        assert verdict.outcome == REJECT
+        assert CITATION_SPAN_MISMATCH in verdict.reasons
