@@ -321,6 +321,60 @@ def unit_for_observation(conn: sqlite3.Connection,
                         observation.location.container_path)
 
 
+#: P4's zone for a document's own text, and the answer for a unit no reading names a
+#: zone for. `readings_over_stored_units` is the one caller; see there.
+DEFAULT_UNIT_ZONE: str = "body"
+
+
+def readings_over_stored_units(
+        conn: sqlite3.Connection, *, file_id: str, content_hash: str,
+        read) -> tuple[Observation, ...]:
+    """Run a caller's reader over every stored unit of one file version. Not recorded.
+
+    **Here for `line_reading_for`'s reason, and it is the same reason.**
+    `tests/p7/test_p7_no_invention.py`'s L2 guard names the three packages that may
+    bind a P4 text materialiser -- `evidence_shape`, `privacy`, `orchestrator` -- and
+    a fourth is an architectural change, not a convenience. `00` amendment 7(a)'s
+    identifier extractor needs the WHOLE of each stored unit rather than one line, and
+    its production caller is `cli`, which is not one of the three. So the read happens
+    where the text already lives and the caller receives RECORDS.
+
+    `read` is called once per run that has units, as
+    `read(source_type=..., units=..., zone_for=...)`, and returns observations. It
+    decides everything about them; nothing here inspects what comes back. Whether the
+    records may exist at all, and whether they are written, is the caller's -- P4 does
+    not decide what a caller is allowed to have.
+
+    **The zone comes from the unit's OWN span-less reading.** P4 stores no zone on a
+    text unit -- `TextUnit.unit_locator`: "no zone: a unit is an address, not a
+    located value" -- and every text extractor writes exactly one span-less
+    observation standing over each unit it emits, carrying that unit's zone. So the
+    zone is read off the rows rather than guessed, and `DEFAULT_UNIT_ZONE` answers for
+    a unit no reading stands over, which is P4's own zone for a document's text.
+
+    **The pair, not the hash.** A content hash is shared by identical files and P4's
+    own join is on `(file_id, content_hash)`; runs of a twin belong to the twin.
+    """
+    minted: list[Observation] = []
+    for run in runs_for_content(conn, content_hash):
+        if run.file_id != file_id:
+            continue
+        units = text_units_for_run(conn, run.run_id)
+        if not units:
+            continue
+        zones: dict[str, str] = {}
+        for reading in observations_for_run(conn, run.run_id):
+            if reading.location.text_span is None:
+                zones.setdefault(
+                    serialize_container_path(reading.location.container_path),
+                    reading.location.zone)
+        minted.extend(read(
+            source_type=run.source_type, units=units,
+            zone_for=lambda unit: zones.get(unit.unit_locator,
+                                            DEFAULT_UNIT_ZONE)))
+    return tuple(minted)
+
+
 #: The namespace a DERIVED reading's extractor name sits in. A convention and not a
 #: list, so a producer written next year opts in by naming itself and no consumer has
 #: to be edited to know about it.

@@ -120,19 +120,21 @@ def test_a_file_the_detector_declines_is_not_written_up_as_a_passport():
 
     `00`: "sensitive personal material is not the same thing as `Numbers.app`."
     """
-    # A real P4 observation key: `sha256:` plus 64 hex. The record validates the
-    # shape, so a placeholder would fail this test for the wrong reason.
-    key = "sha256:" + "ab" * 32
-
     classify = cli.classifier(lambda conn, f, c: None,
                               now=lambda: "2026-01-01T00:00:00Z")
 
     class _Conn:
+        """A database with nothing in it.
+
+        `classifier` reads one now (`00` amendment 7(a): it mints the file version's
+        identifier readings before it asks the detector about them), so the stub has
+        to answer a query. Empty is the right answer here and keeps the test about
+        its own subject: no runs, no units, no identifier, and the detector's
+        abstention is the only thing that reaches the assertion.
+        """
+
         def execute(self, *_a):
-            class _Cur:
-                def fetchone(_self):
-                    return {"observation_key": key}
-            return _Cur()
+            return []
 
     record = classify(_Conn(), "file-1", "sha256:abc")
     assert record is None, (
@@ -147,7 +149,12 @@ def test_a_file_the_detector_does_recognise_still_gets_its_candidate():
     sentinel = object()
     classify = cli.classifier(lambda conn, f, c: sentinel,
                               now=lambda: "2026-01-01T00:00:00Z")
-    assert classify(None, "file-1", "sha256:abc") is sentinel
+
+    class _Conn:
+        def execute(self, *_a):
+            return []
+
+    assert classify(_Conn(), "file-1", "sha256:abc") is sentinel
 
 
 def test_the_help_is_true_about_whether_this_moves_files(capsys):

@@ -53,7 +53,9 @@ from extractors.sink import ExtractionResult
 from extractors.structured_text import (
     STRUCTURED_TEXT_SOURCE_TYPES, extract_structured_text,
 )
-from extractors import archive, docx, filesystem, image, ocr, pdf, structured_text
+from extractors import (
+    archive, docx, filesystem, identifiers, image, ocr, pdf, structured_text,
+)
 
 
 @dataclass(frozen=True)
@@ -499,6 +501,27 @@ def current_versions() -> dict[str, str]:
     `(name, version)` pairs of the readings a call CARRIES, off the evidence rather
     than off a constant, so a bumped entity pass re-asks the questions that rested on
     its output and an entry here would be a second, staler home for the same number.
+
+    **Two second passes, two answers, and the difference is where each version is
+    read.** Both ride on an earlier family's run and mint none of their own. The
+    entity pass's version reaches the key off the readings a call carries, so it is
+    absent here; the identifier pass is present because a corrected checksum must
+    move the key for a REUSE file whose bytes did not change. (Merged 12 Sep 2026.)
+
+    **`identifiers` IS PRESENT AND IS NOT DISPATCHED, and the entry is what makes its
+    version auditable at all** (`00`, Amendments of 2026-09-11, item 7(a)). It is a
+    second pass over the units an earlier family already stored, and its readings ride
+    on that family's run -- conformance rule 10 puts the unit a span points into on
+    the reading's own run, and `text_units` is D12/G1's one home for bulk text, so it
+    writes no run row of its own to carry a version. `extractor_versions()` reads run
+    rows and therefore cannot see it. Without this line the only record of WHICH
+    identifier patterns produced a row would be the row itself, and §3.4's key -- the
+    thing that exists so that "an upgraded reader invalidates the answers that rested
+    on its output" -- would never move when a checksum was corrected. `104` §17.11
+    records the same trap costing E3 a cache full of stale evidence reported as a
+    saving. The name is the NAMESPACE, because the per-kind names below it
+    (`identifiers.payment_card`) are one extractor at one version and §8.5's tuple
+    holds one version per extractor.
     """
     return {
         pdf.EXTRACTOR_NAME: pdf.VERSION,
@@ -510,4 +533,5 @@ def current_versions() -> dict[str, str]:
         structured_text.EXTRACTOR_NAME: structured_text.VERSION,
         filesystem.EXTRACTOR_NAME: filesystem.VERSION,
         filesystem.STOPPED_EXTRACTOR_NAME: filesystem.VERSION,
+        identifiers.IDENTIFIERS_NAMESPACE: identifiers.VERSION,
     }

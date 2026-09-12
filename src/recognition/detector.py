@@ -56,6 +56,17 @@ from evidence_shape.store import is_derived_extractor
 #: renamed, silently and in the permissive direction.
 from extractors.structured_text import LANGUAGE_FIELD
 
+#: `00` amendment 7(a)'s deterministic extractor, IMPORTED for the same reason
+#: `LANGUAGE_FIELD` is: the kinds and the namespace are the extractor's and a
+#: detector holding its own copy of either is a rule that stops applying the day one
+#: is renamed. `is_identifier_extractor` is asked in two places here and they mean
+#: opposite things -- `_matches` refuses these rows, `_identifier_readings` reads
+#: only them -- so one predicate serving both is what keeps them exact complements.
+from extractors.identifiers import (
+    IDENTIFIERS_NAMESPACE, KINDS as IDENTIFIER_KINDS, is_identifier_extractor,
+    kind_of,
+)
+
 from facts.domains import SCHEMA_IDS, UnknownSchema
 
 from privacy.classification import UNREADABLE_UNCLASSIFIED, ClassificationRecord
@@ -130,6 +141,60 @@ SAFETY_DOMAIN_HANDLING: Mapping[str, Handling] = MappingProxyType({
                         basis="safety_domain")
     for schema_id in SAFETY_DOMAIN_IDS
 })
+
+
+#: WHICH OF `00`:52'S FOUR SAFETY DOMAINS EACH IDENTIFIER KIND IS A READING OF.
+#:
+#: `00`, Amendments of 2026-09-11, item 7(a), the owner's ruling of 12 Sep 2026:
+#: identifier patterns with checksums are a deterministic extractor "whose
+#: observations hold a file exactly as an authored safety term does". This table is
+#: the whole of "exactly as": a `payment_card` reading is a `finance` reading, and
+#: from here on it travels the paths an authored work type already travels --
+#: `_safety_readings_in_evidence`, `precaution_report`, `_protect_as` -- so the file
+#: is held `sensitive_personal, protected=True, basis='safety_domain'` by the same
+#: three lines of code that hold a discharge summary. No new class, no new basis and
+#: no new record shape: one more READER of the rule that already exists.
+#:
+#: THE MAPPING IS THE RULING'S OWN SENTENCE, split into its clauses. "card numbers,
+#: account and IBAN shapes" -> finance; "national-identity and passport shapes" ->
+#: identity; "medical record numbers" -> medical; "a date of birth beside a name" ->
+#: identity, because a birth date is what an identity document and an identity check
+#: are built on and `00` gives no other of its four a claim on it.
+#:
+#: `legal` HAS NO KIND, and the absence is a statement rather than an oversight: no
+#: numbering scheme identifies a document as legal. A will and a deposition are named
+#: by their words, which is what the authored library is for, and inventing a
+#: "case number" shape here would be this module authoring the research.
+IDENTIFIER_SAFETY_DOMAIN: Mapping[str, str] = MappingProxyType({
+    "payment_card": "finance",
+    "iban": "finance",
+    "bank_account": "finance",
+    "us_ssn": "identity",
+    "passport_number": "identity",
+    "hkid": "identity",
+    "date_of_birth": "identity",
+    "medical_record_number": "medical",
+})
+#: Checked against the extractor's own roster at import, on `SAFETY_DOMAIN_IDS`' own
+#: pattern: a kind added there without a domain here would be extracted, masked,
+#: stored -- and silently hold nothing, which is `104` §18.56's defect wearing a new
+#: shape.
+for _kind in IDENTIFIER_KINDS:
+    if _kind not in IDENTIFIER_SAFETY_DOMAIN:
+        raise UnknownSchema(
+            f"{_kind!r} is one of `extractors.identifiers.KINDS` and this table names "
+            "no safety domain for it. An identifier the product extracts and then "
+            "counts as nothing is the miss amendment 7(a) exists to close.")
+for _kind, _schema_id in IDENTIFIER_SAFETY_DOMAIN.items():
+    if _kind not in IDENTIFIER_KINDS:
+        raise UnknownSchema(
+            f"{_kind!r} is not a kind `extractors.identifiers` extracts; a domain for "
+            "a kind that never fires is a rule with nothing to apply to")
+    if _schema_id not in SAFETY_DOMAIN_IDS:
+        raise UnknownSchema(
+            f"{_schema_id!r} is not one of `00`:52's four safety domains "
+            f"{SAFETY_DOMAIN_IDS}; 7(a) says an identifier holds a file as an "
+            "authored safety term does, and only those four have such a hold")
 
 
 #: WHERE A DOCUMENT NAMES ITSELF. SPEC 2.2 ranks "a filename, title, or page-one
@@ -264,6 +329,15 @@ class Precaution:
     #: The WORK TYPES of that domain the file's evidence carries, found-order,
     #: deduplicated. Never its context terms: `_safety_readings_in_evidence` is
     #: what refuses those and this reads its answer rather than a wider one.
+    #:
+    #: AND, SINCE `00` AMENDMENT 7(a), THE IDENTIFIER KINDS -- `payment_card`,
+    #: `hkid`, `medical_record_number`. They stand here because the ruling puts them
+    #: here: an identifier's observations hold a file "exactly as an authored safety
+    #: term does", so what raised the hold is what this field reports, whichever of
+    #: the two it was. A kind is distinguishable from a work type by being one of
+    #: `extractors.identifiers.KINDS`, so a screen that wants to say "a card number"
+    #: rather than "a discharge summary" can, without this field growing a second
+    #: shape.
     terms: tuple[str, ...]
     #: P4's zone for each of those matches, found-order, deduplicated. A zoneless
     #: match contributes nothing rather than a placeholder -- an absent zone is a
@@ -684,6 +758,18 @@ class Detector:
             # does not, so words that were never evidence about the notebook became
             # evidence about it.
             if is_derived_extractor(row["extractor_name"]):
+                continue
+            # AND A MASKED IDENTIFIER READING IS NOT A WORD THE FILE SAID EITHER
+            # (`00` amendment 7(a)). These rows are read as safety readings in their
+            # own right by `_identifier_readings`, and they must not ALSO arrive
+            # here: their `normalized_value` prints the kind, so a tokeniser reading
+            # `medical_record_number …8842` finds `record`, and `payment_card …4242`
+            # would corroborate `finance` as though the document had used the word.
+            # The file would then be held by the wrong rule and cite the wrong
+            # evidence -- the exact shape `_safety_readings_in_evidence` was narrowed
+            # to stop when `credit`, out of "credit hours", locked two syllabi. The
+            # predicate is the extractor's own, on `is_derived_extractor`'s pattern.
+            if is_identifier_extractor(row["extractor_name"]):
                 continue
             # The file KIND is a property of the file and not of the observation
             # that named it, so this is read before the refusal below: narrowing
@@ -1161,11 +1247,21 @@ class Detector:
         # belongs to both, because a tie is not evidence about which KIND of term
         # matched. Without it `finance`'s context term `statement` tied on a college
         # personal statement and marked it `sensitive_personal, protected=1`.
-        says_what_it_is = self._safety_work_type_matches(
-            conn, file_id, content_hash)
+        says_what_it_is = self._safety_evidence(conn, file_id, content_hash)
         readings = [schema_id for schema_id
                     in (outcome.schema_id, *outcome.tied_schema_ids)
                     if schema_id in SAFETY_DOMAIN_IDS and schema_id in says_what_it_is]
+        # AND A CHECKSUMMED IDENTIFIER IS A READING WITHOUT BEING A TIED LEADER
+        # (`00` amendment 7(a)). The leader test above is `never_alone`'s discipline
+        # borrowed: a safety domain that stood level with every other reading on the
+        # file's own WORDS has already been corroborated by the tie. An identifier
+        # needs no such loan -- it is one signal that carries its own proof, which is
+        # what a checksum is -- and requiring it to lead as well would release
+        # exactly the file 7(a) was ruled for: `104` §18.56's card statement, whose
+        # words tie nothing because it is a table of numbers.
+        readings += [schema_id for schema_id
+                     in self._identifier_readings(conn, file_id, content_hash)
+                     if schema_id not in readings]
         if not readings:
             return None
         # `SCHEMA_IDS` order, so two safety readings resolve the same way twice
@@ -1210,18 +1306,37 @@ class Detector:
         `min(readings, key=SCHEMA_IDS.index)` is `_protect_as`'s own choice, made
         here once and handed to it, on the same terms as the abstention arm.
         """
+        identifiers = self._identifier_readings(conn, file_id, content_hash)
         if outcome.schema_id in SAFETY_DOMAIN_IDS:
             # The winner is the hold. `explain` returns `unassigned_handling`
             # rather than a `Recognition` where the policy states no class, so a
             # recognised schema always has one and there is nothing to check.
+            #
+            # Its own identifiers join the report (`00` amendment 7(a)) and change
+            # no decision here: the file is already held as this domain. What they
+            # change is what the report SAYS, which is gap 24's whole subject -- a
+            # `finance` recognition on a statement that also prints a card number
+            # reports the card, and the model reading the dossier is told the hold
+            # rests on a number and not only on the word `statement`.
             return _reported(outcome.schema_id, tuple(
                 match for match in outcome.matches
                 if match.term in self._work_types.get(outcome.schema_id,
-                                                      frozenset())))
+                                                      frozenset())
+            ) + identifiers.get(outcome.schema_id, ()))
         readings = self._safety_readings_naming_the_file(
             conn, file_id, content_hash,
             in_evidence=self._safety_readings_in_evidence(
                 conn, file_id, content_hash))
+        # ANOTHER SCHEMA WON AND A CHECKSUM STILL HOLDS THE FILE (7(a)). This arm's
+        # rule is the naming-zone one, written because five authored work types are
+        # also ordinary English and a MENTION had to be told from a claim by where
+        # it sat. An identifier is under no such doubt and sits where the document
+        # printed it -- a passport page's number is in its BODY -- so requiring a
+        # naming zone of it would release exactly the passport `_precaution`'s own
+        # docstring opens with. `104` §18.56 measured what the release costs: a
+        # health form the rules called ordinary went to the cloud on the rules' word.
+        readings = list(readings) + [schema_id for schema_id in identifiers
+                                     if schema_id not in readings]
         if not readings:
             return None
         schema_id = min(readings, key=SCHEMA_IDS.index)
@@ -1236,7 +1351,7 @@ class Detector:
         return _reported(schema_id, tuple(
             match for match in matches
             if match.schema_id == schema_id and match.term in work_types
-            and _names_the_file(match)))
+            and _names_the_file(match)) + identifiers.get(schema_id, ()))
 
     def _safety_work_type_matches(
             self, conn: sqlite3.Connection, file_id: str,
@@ -1258,6 +1373,90 @@ class Detector:
                                                            frozenset())):
                 found.setdefault(match.schema_id, []).append(match)
         return {schema_id: tuple(found[schema_id]) for schema_id in sorted(found)}
+
+    def _identifier_readings(
+            self, conn: sqlite3.Connection, file_id: str,
+            content_hash: str) -> dict[str, tuple["TermMatch", ...]]:
+        """The masked identifier readings this file version carries, by safety domain.
+
+        `00` amendment 7(a). A checksummed card number, an IBAN that passes mod-97, a
+        Hong Kong identity number whose check character is right -- each one is a
+        reading of one of `00`:52's four, and the ruling says it holds the file
+        "exactly as an authored safety term does".
+
+        **IT COMES BACK AS A `TermMatch`, AND THAT IS THE WHOLE OF THE WIRING.** Every
+        hold in this module is computed from matches and reported by `_reported`; a
+        second record shape for the second kind of evidence would mean a second
+        projection, a second `min(readings, key=SCHEMA_IDS.index)` and a second answer
+        to "why is this file held" -- which is the two-homed rule this package has
+        paid for before (`104` §18.26 gap 24b's own reason for existing). The `term`
+        is the KIND, because that is what the reading actually says: not that the
+        document used the word `passport`, but that the characters on its page are a
+        passport number. `whole` is True because the reading IS the identifier and
+        nothing else, so the corroboration gate treats it the way it treats any
+        reading that is nothing but its own signal.
+
+        **NO NAMING-ZONE TEST, and the checksum is why.** `_safety_readings_naming_the_file`
+        exists because five authored work types -- `will`, `statement`, `receipt`,
+        `invoice`, `passport` -- are also ordinary English, so a MENTION had to be
+        told from a claim by where it sat. A number that passes Luhn, mod-97 or mod-11
+        is not a mention of anything: an essay that discusses credit cards does not
+        contain a valid card number, and a datasheet that uses the word `will` on
+        every page contains no IBAN. The zone is still RECORDED on every match, so a
+        report and a dossier can say where the number was found.
+
+        Reads the same rows `_matches` refuses, through the same predicate, so the
+        two sets are exact complements by construction.
+        """
+        found: dict[str, list["TermMatch"]] = {}
+        for row in conn.execute(
+                "SELECT observation_key, extractor_name, location FROM evidence "
+                "WHERE file_id = ? AND content_hash = ? AND extractor_name LIKE ? "
+                "AND superseded_by IS NULL ORDER BY rowid",
+                (file_id, content_hash, IDENTIFIERS_NAMESPACE + "%")):
+            if not is_identifier_extractor(row["extractor_name"]):
+                # `LIKE` is the index's filter and the predicate is the rule; a name
+                # that merely starts with the same characters under some other
+                # collation is not one of these readings.
+                continue
+            schema_id = IDENTIFIER_SAFETY_DOMAIN.get(kind_of(row["extractor_name"]))
+            if schema_id is None:
+                # A kind this deployment's detector states no domain for. The import
+                # guard above makes that impossible for a kind the shipped extractor
+                # produces, so this can only be a row an older or a newer version
+                # wrote -- and counting it as a domain of this module's choosing
+                # would be inventing the ruling rather than reading it.
+                continue
+            where = _json.loads(row["location"])
+            found.setdefault(schema_id, []).append(TermMatch(
+                schema_id=schema_id, term=kind_of(row["extractor_name"]),
+                observation_key=row["observation_key"], zone=where.get("zone"),
+                page=next((step.get("index")
+                           for step in where.get("container_path") or ()
+                           if step.get("kind") == "page"), None),
+                whole=True))
+        return {schema_id: tuple(found[schema_id]) for schema_id in sorted(found)}
+
+    def _safety_evidence(
+            self, conn: sqlite3.Connection, file_id: str,
+            content_hash: str) -> dict[str, tuple["TermMatch", ...]]:
+        """BOTH kinds of safety evidence this file carries, by domain, in one answer.
+
+        The authored work types (`_safety_work_type_matches`) and the checksummed
+        identifiers (`_identifier_readings`), merged. `00` amendment 7(a) makes them
+        one question -- "does this file's own evidence name it as one of `00`'s four"
+        -- and asking it in two places is how one of the four arms below would come
+        to hold a file the other three release.
+
+        Authored terms first within a domain, so a report reads the way it read
+        before 7(a) for every file that has both, and `SCHEMA_IDS` order across
+        domains is `_protect_as`'s own choice, made from this one mapping.
+        """
+        merged = dict(self._safety_work_type_matches(conn, file_id, content_hash))
+        for schema_id, matches in self._identifier_readings(
+                conn, file_id, content_hash).items():
+            merged[schema_id] = merged.get(schema_id, ()) + matches
+        return {schema_id: merged[schema_id] for schema_id in sorted(merged)}
 
     def _safety_readings_in_evidence(
             self, conn: sqlite3.Connection, file_id: str,
@@ -1297,8 +1496,21 @@ class Detector:
         inside it -- measured, and it protected a syllabus. That refusal now lives
         in `_matches`, which is what these matches come from, because the same
         hole was open at the door where a schema WINS and one rule wants one home.
+
+        **AND A CHECKSUMMED IDENTIFIER IS ONE OF THESE READINGS TOO** (`00` amendment
+        7(a)). The question this answers is "does this file's own evidence name it as
+        one of `00`'s four", and after 7(a) a file's evidence names a domain in two
+        ways: with a word its author wrote, and with a number that passes the
+        scheme's own arithmetic. `_safety_evidence` is the one place the two are put
+        together, so every reader below -- the corroboration gate in `_decide`, the
+        winning-schema branch, `__call__`'s `detector_no_safety_evidence` -- moves
+        with the ruling at once. What that costs is stated rather than hidden: a
+        `finance` leader on a file carrying a valid card number is now corroborable,
+        which is exactly the sentence 7(a) asks for, and the guard that stopped
+        `IMG_4471.pdf` -- a reference code, which is a code and no scheme's number --
+        is untouched, because a reference code passes no checksum.
         """
-        return tuple(self._safety_work_type_matches(conn, file_id, content_hash))
+        return tuple(self._safety_evidence(conn, file_id, content_hash))
 
     def _safety_readings_naming_the_file(
             self, conn: sqlite3.Connection, file_id: str, content_hash: str, *,
@@ -1371,9 +1583,18 @@ class Detector:
         # a protection cites what raised it. `_matches` is re-run rather than
         # threaded through `Abstention`, which is a record of a RECOGNITION
         # decision and gains nothing by carrying a classification's citations.
+        #
+        # AND A MASKED IDENTIFIER READING IS ONE OF THOSE CITATIONS (`00` amendment
+        # 7(a)). `_matches` refuses these rows -- rightly, they are not words the
+        # file said -- so without this line a file held on a card number alone
+        # reached the `if not refs` refusal below and came back UNPROTECTED: the
+        # report said `finance`, the record said nothing, and §8.4's flag that gates
+        # cloud egress stayed down. The one thing 7(a) exists to prevent, produced by
+        # the guard that exists to stop a classification citing nothing.
         matches, _ = self._matches(conn, file_id, content_hash)
         refs: list[str] = []
-        for match in matches:
+        for match in (*matches, *self._identifier_readings(
+                conn, file_id, content_hash).get(schema_id, ())):
             if match.schema_id == schema_id and match.observation_key not in refs:
                 refs.append(match.observation_key)
         if not refs:

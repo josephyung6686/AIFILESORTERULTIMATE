@@ -71,6 +71,10 @@ from llm_harness.vocabulary import (
 )
 from privacy.items import Excerpt
 from privacy.release import ModelCallRequest, Target
+#: `00` amendment 7(a)'s closed roster of identifier kinds, IMPORTED so
+#: `_held_phrase` can tell a scheme's name from an authored work type without
+#: keeping a second copy that stops matching the day a kind is renamed.
+from extractors.identifiers import KINDS as IDENTIFIER_KINDS
 from recognition.detector import Precaution, SituationOutcome
 from recognition.vocabulary import SAFETY_DOMAIN_IDS
 
@@ -340,14 +344,27 @@ def _held_phrase(precaution: Precaution | None) -> str:
     The terms are the LIBRARY's authored words and the zones are P4's own zone
     names -- the same class of value `matched` above already carries, and neither
     is a word out of the person's file.
+
+    **AND SINCE `00` AMENDMENT 7(a), A TERM MAY BE AN IDENTIFIER KIND, which is a
+    different sentence and is said differently.** `payment_card` is not a work type
+    -- the document did not use the words, its digits passed Luhn -- and printing
+    "on the work type payment_card" would tell the local model the file says
+    something it does not say, on the one line that explains the hold. The two are
+    told apart by `extractors.identifiers.KINDS`, which is that extractor's own
+    closed roster, so nothing here keeps a second list. The kind is still not a word
+    out of the person's file: it is the name of a numbering scheme.
     """
     if precaution is None:
         return ""
-    terms = ", ".join(precaution.terms)
+    kinds = ", ".join(term for term in precaution.terms
+                      if term in IDENTIFIER_KINDS)
+    terms = ", ".join(term for term in precaution.terms
+                      if term not in IDENTIFIER_KINDS)
     zones = ", ".join(precaution.zones)
     return (f" | held: the rules are holding this file as "
             f"{precaution.schema_id} material"
             + (f", on the work type {terms}" if terms else "")
+            + (f", on the identifier {kinds}" if kinds else "")
             + (f", found in {zones}" if zones else ""))
 
 
