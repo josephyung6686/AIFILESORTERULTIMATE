@@ -1,0 +1,23 @@
+{
+ "policy_id": "gate_shaping_policy.unratified.2026-09-12",
+ "call_site": "H_restricted_kind",
+ "what_this_is": "How the dossier beside it was shaped, so the reader knows what it is looking at and what it is not. It describes the SHAPING, never the file: every sentence here is the same on every file in every corpus, and nothing in it is evidence.",
+ "closed_world": "The dossier is the whole of what was sent. There is no document behind it, no page, no filename, no path, no surrounding sentence. An answer can only be an identifier present in allowed_vocabulary, and a citation can only be anchored in a value present in released_evidence.",
+ "selection": {
+  "unit": "one file version",
+  "what_is_offered": "the opening of the file's own text and its metadata, as observations the local extractors already produced, each addressed by an observation_key and bounded by a span; the masked report of any identifier shape a deterministic check found; the rules' own reports, marked as reports",
+  "what_is_never_offered": "the whole tree, complete extracted text, whole documents, paths, filenames, file hashes, image EXIF, GPS, the person's own typed words, unmasked identifiers, and any other file",
+  "ordering": "evidence in the document's own order, bounded",
+  "bounded": "the count and the length are both capped before the request is built, at a bound smaller than the situation call's because a record's kind is shown in its opening and its fields; what did not fit was not sent and is not described"
+ },
+ "reduction_ladder": [
+  "none: the dossier fits and is sent unreduced",
+  "preserved_anchors: only the anchoring evidence is kept",
+  "deferred: nothing is sent"
+ ],
+ "reduction_rung_in_force": "the dossier's own reduction_rung key says which rung this one was built at",
+ "redaction": "identifiers the local policy recognises are transformed before the value is written into the dossier. A redacted value is the value that was sent, and it is the only text a citation can quote.",
+ "what_is_done_with_the_answer": "restricted_kind is checked against allowed_vocabulary; every citation is checked against the released value it names; a kind named with no citation is an unknown and writes no record. A named kind becomes the file's privacy class and the file is protected: it never reaches a cloud model. none_of_these, with the deterministic layers silent, clears the file: its situation and its facts may be asked of a cloud model. A decline, a refusal or a failed call writes nothing and the file stays on this machine.",
+ "declining": "none_of_these is a real answer and is recorded as one; the file it clears is judged again, on its situation, by another call.",
+ "_": "UNRATIFIED DRAFT, 2026-09-12. Shaping for the gate (00 amendment 7(c)). LOCAL ONLY: this call decides whether a file may leave the device, so it never leaves the device."
+}
