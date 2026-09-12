@@ -80,6 +80,9 @@ from extractors.image import PERCEPTUAL_HASH_FIELD
 from extractors.router import SOURCE_TYPE_BY_FORMAT
 from extractors.reading import ZONE_BY_STRUCTURED_KIND, StructuredString
 from extractors.structured_text import EXTRACTOR_NAME as STRUCTURED_EXTRACTOR
+#: `00` amendment 7(a)'s deterministic extractor. `record_identifier_readings`
+#: below is its one production call site.
+from extractors.identifiers import identifier_observations
 from extractors.filesystem import SOURCE_TYPE as FILESYSTEM_SOURCE_TYPE
 from extractors.safety import SafetyPolicy
 from facts.date_facts import date_facts
@@ -469,7 +472,10 @@ from grouping.learning import apply_review_action as record_group_review
 # never reached. Read through P4's published reader rather than a query of this
 # file's own, so "this file could not be read" means here exactly what it means on
 # §8.6's line and the two screens cannot disagree about one file.
-from evidence_shape.store import get_observation, runs_for_content
+from evidence_shape.store import (
+    get_observation, record_observation, readings_over_stored_units,
+    runs_for_content,
+)
 #: P4's closed `source_type` vocabulary, imported for the assert beside
 #: `SPREADSHEET_FAMILIES` and for nothing else (`104` R-42 item 2).
 from evidence_shape.vocabulary import SOURCE_TYPES
@@ -7995,7 +8001,57 @@ def _detect_format(path: Path) -> str | None:
     return _FORMAT_BY_SIGNATURE(path)
 
 
-def classifier(detector, *, now):
+def record_identifier_readings(conn: sqlite3.Connection, *, file_id: str,
+                               content_hash: str, now, mask_tail: int) -> int:
+    """`00` amendment 7(a)'s pass over one file version's stored units.
+
+    **Here, and not in a corpus pass, because of WHEN it has to happen.** An
+    identifier reading exists to hold a file, and the hold is written by the
+    `ClassificationProducer` inside `orchestrator.run_p1_p7`'s fact loop. Every
+    corpus producer in this file -- `_family_pass`, `_anchor_statement_pass` --
+    runs in `downstream`, which is after P1-P7 has finished and after every
+    classification is already in the store. A pass there would extract the card
+    number on a statement the product had already released.
+
+    So it runs from `classifier` below, for the file version being classified,
+    immediately before the detector is asked about it. The ordering is not a
+    convention a later edit can break: the same call makes the readings and puts
+    the question.
+
+    **THIS FILE READS NO STORED TEXT and binds no materialiser.**
+    `tests/p7/test_p7_no_invention.py`'s L2 guard names the three packages that may
+    -- `evidence_shape`, `privacy`, `orchestrator` -- and `cli` is not one of them.
+    `evidence_shape.store.readings_over_stored_units` does the read, on
+    `line_reading_for`'s own terms, and hands back RECORDS; what this contributes is
+    the rule (which reader, at which mask) and the decision to write them. Found by
+    the guard, which is what it is for: the first draft called `text_units_for_run`
+    here and made `cli` a fourth binder in one line.
+
+    **Idempotent, on `facts/anchor_statements._minted_line`'s pattern.**
+    `observation_key` is content-addressed, so a re-scan of an unchanged file finds
+    the row it wrote last time; the check is by key and file, so a second run writes
+    nothing and two runs of one corpus still produce byte-identical rows (P4
+    conformance rule 8).
+
+    Returns how many rows it wrote, for a caller that wants to say so.
+    """
+    written = 0
+    for record in readings_over_stored_units(
+            conn, file_id=file_id, content_hash=content_hash,
+            read=lambda *, source_type, units, zone_for: identifier_observations(
+                file_id=file_id, content_hash=content_hash,
+                source_type=source_type, units=units, zone_for=zone_for,
+                now=now(), mask_tail=mask_tail)):
+        seen = conn.execute(
+            "SELECT 1 FROM evidence WHERE observation_key = ? AND file_id = ? "
+            "LIMIT 1", (record.observation_key, file_id)).fetchone()
+        if seen is None:
+            record_observation(conn, record)
+            written += 1
+    return written
+
+
+def classifier(detector, *, now, mask_tail: int = IDENTIFIER_MASK_TAIL):
     """P7's candidate producer: the real detector, and nothing behind it.
 
     A file the detector declines to answer about stays UNCLASSIFIED, and that is
@@ -8019,6 +8075,14 @@ def classifier(detector, *, now):
     """
 
     def classify(conn: sqlite3.Connection, file_id: str, content_hash: str):
+        # `00` amendment 7(a). FIRST, because the detector reads these rows and a
+        # reading written after the question is a reading nothing was judged
+        # against -- the same sentence `_anchor_statement_pass` gives for its own
+        # ordering. See `record_identifier_readings` for why the pass lives at
+        # this seam rather than in `downstream` with the other corpus producers.
+        record_identifier_readings(conn, file_id=file_id,
+                                   content_hash=content_hash, now=now,
+                                   mask_tail=mask_tail)
         return detector(conn, file_id, content_hash)
 
     return classify

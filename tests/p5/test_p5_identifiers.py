@@ -88,7 +88,7 @@ CASES: tuple[tuple[str, str, str, str], ...] = (
      "4487211",
      "Invoice 4487211 admitted overnight."),
     ("date_of_birth",
-     "Jane Marie Roberts   1990-04-11   admitted",
+     "Date of birth   1990-04-11   on the form",
      "1990-04-11",
      "Invoice raised 1990-04-11 and settled"),
 )
@@ -220,13 +220,63 @@ def test_a_pair_is_a_pair_in_either_printed_order():
         f"bank_account {MASK}7890")
 
 
-def test_a_date_of_birth_fires_on_a_label_or_on_a_name_and_on_neither_alone():
-    """The ruling names an OR -- "beside a person-name-like token or the words 'date
-    of birth'/'DOB'" -- so both halves are asserted, and so is the absence of both."""
+def test_a_date_of_birth_fires_on_its_label_and_never_on_title_case():
+    """THE ARM THAT WAS WRITTEN, MEASURED, AND REMOVED, held shut.
+
+    7(a)'s list ends "a date of birth beside a name" and the deterministic reading of
+    "a name" -- two adjacent capitalised words -- was implemented first. Over lines a
+    student's disk is full of it fired on every one:
+
+        "Final Exam: May 15, 2024"   "Office Hours   10/12/2024"   "Adobe Acrobat ..."
+
+    which is the over-protection collapse `_precaution` records ("an unreadable scan
+    and a passport identical in P7's store") reached by a new road. Title case is
+    typography; a person is an ENTITY, and naming one is amendment 7(b)'s local
+    entity encoder. This file is what stops the arm coming back as a tidy-looking
+    improvement.
+    """
     assert len(_of_kind(observe("Date of birth: 11/04/1990"), "date_of_birth")) == 1
-    assert len(_of_kind(observe("Jane Marie Roberts  11/04/1990"),
-                        "date_of_birth")) == 1
-    assert _of_kind(observe("Payment due 11/04/1990"), "date_of_birth") == []
+    assert len(_of_kind(observe("DOB 11 Apr 1990"), "date_of_birth")) == 1
+    for ordinary in ("Final Exam: May 15, 2024",
+                     "Problem Set 3 due 03/15/2024",
+                     "Office Hours   10/12/2024",
+                     "Jane Marie Roberts  11/04/1990",
+                     "Payment due 11/04/1990"):
+        assert _of_kind(observe(ordinary), "date_of_birth") == [], ordinary
+
+
+def test_the_fractional_digits_of_a_float_are_not_a_card():
+    """THE LARGEST FALSE-POSITIVE CLASS THERE IS, measured and shut.
+
+    Run over the synthetic corpus's six spreadsheets before this rule existed, the
+    extractor produced 29 `payment_card` readings and every one was the fraction of
+    a random float -- `0.5503786251865023` is a Mastercard prefix and passes Luhn.
+    Sixteen digits after a decimal point do that about one time in forty, so every
+    dataset a person owns would have come back `sensitive_personal, protected=1`.
+    After the rule: 0 readings over the same 13 text files (4.5 MB), in 1.8 s.
+
+    AND A CSV COLUMN OF REAL CARDS STILL FIRES, which is the reason the rule is
+    about `.` and not about `,`: a comma is the field separator in every CSV ever
+    written, and refusing on it would refuse the file this layer exists to catch.
+    """
+    assert observe("31,0.5503786251865023,meeting") == ()
+    assert observe("53,0.4124219052004032,essay") == ()
+    assert observe("ratio 0.4242424242424242 measured") == ()
+    # The same digits as a field of their own are a card, and are read as one.
+    assert len(_of_kind(observe("31,4242424242424242,meeting"),
+                        "payment_card")) == 1
+
+
+def test_a_label_is_a_whole_word_and_never_a_substring():
+    """`dob` is inside `Adobe`, `aba` inside `database`, `acct` inside `acctg`.
+
+    Measured while writing this: "Adobe Acrobat 11/04/1990" came back a date of
+    birth. A label is a WORD a form prints beside a number, so the test is for the
+    word -- and the permissive direction is the one that costs, because it ends in a
+    file held on a coincidence of letters.
+    """
+    assert observe("Adobe Acrobat 11/04/1990") == ()
+    assert observe("Database export 021000021 with 1234567890 rows") == ()
 
 
 def test_one_identifier_printed_five_times_is_one_reading_that_counts_to_five():

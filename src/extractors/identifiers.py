@@ -165,19 +165,34 @@ CONTEXT_WORDS: Mapping[str, tuple[str, ...]] = MappingProxyType({
     "bank_account": ("account", "acct", "routing", "aba", "sort code"),
 })
 
-#: A PERSON-NAME-LIKE TOKEN, for the one kind whose ruling names one: "a date of
-#: birth beside a person-name-like token or the words 'date of birth'/'DOB'". Two or
-#: more adjacent capitalised alphabetic words, which is what a written human name
-#: looks like in a Latin-script corpus and which says nothing about any domain.
+#: A DATE BESIDE A NAME IS AMENDMENT 7(b)'s, AND THIS IS THE RECORD OF WHY.
 #:
-#: DELIBERATELY THE WEAKER HALF OF AN OR, and honestly reported as such. The labelled
-#: form (`DOB`, `Date of Birth`) carries the documents that print a label; this is
-#: what reaches an intake table whose row is a name and a date and which labels
-#: neither. It will also fire on a line reading `Acme Corporation  2024-01-15`, and
-#: that cost is accepted on the ruling's own terms: over-holding a file keeps it on
-#: the device, which is the safe direction, where the miss `104` §18.56 measured
-#: released a health form to the cloud.
-_NAME_LIKE = re.compile(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b")
+#: 7(a)'s list ends "a date of birth beside a name", and the obvious deterministic
+#: reading of "a name" -- two or more adjacent capitalised words -- was written,
+#: measured, and removed the same hour. Over lines of the kind a student's disk is
+#: full of:
+#:
+#:     "Final Exam: May 15, 2024"        -> held, identity
+#:     "Office Hours   10/12/2024"       -> held, identity
+#:     "Adobe Acrobat 11/04/1990"        -> held, identity
+#:
+#: Adjacency does not rescue it: `Final Exam` and `Office Hours` sit against their
+#: dates with a colon or a space between. Every syllabus, every assignment sheet and
+#: every reading list in the owner's corpus would have come back
+#: `sensitive_personal, protected=1` -- which is precisely the collapse
+#: `recognition.detector._precaution` records the cost of ("made an unreadable scan
+#: and a passport identical in P7's store") and precisely the over-protection half of
+#: what `104` §18.56 measured.
+#:
+#: TITLE CASE IS NOT A NAME, and that is the whole finding. A capital letter is
+#: typography; a person is an ENTITY, and naming one is what amendment 7(b) puts in a
+#: local entity encoder -- "a small local entity encoder (GLiNER-class, ONNX ...)
+#: names people, diagnoses, dates of birth and identity numbers as observations, and
+#: a person beside a diagnosis or an identity number holds the file without a model
+#: call". That is the same sentence as this arm, in the layer that can actually
+#: execute it. So `date_of_birth` here fires on its LABEL, which is a shape of a form
+#: and not a guess about a document, and the other half waits for 7(b) rather than
+#: being approximated by a regex over capital letters.
 
 
 class UnknownKind(ValueError):
@@ -423,8 +438,10 @@ IDENTIFIER_SHAPES: tuple[IdentifierShape, ...] = (
         # crosses line breaks: measured on a synthetic statement, a medical record
         # number on one line paired with a routing number on the next, claimed the
         # characters of both, and the real pair below it never fired -- one wrong
-        # reading that also silenced two right ones.
-        pattern=re.compile(r"(?<![\w-])(?P<first>\d{6,17})[^\d\r\n]{1,40}?"
+        # reading that also silenced two right ones. UNBOUNDED between them, because
+        # the line already bounds it: a "within N characters" window would be a
+        # number, and this module holds none.
+        pattern=re.compile(r"(?<![\w-])(?P<first>\d{6,17})[^\d\r\n]+?"
                            r"(?P<second>\d{6,17})(?![\w-])"),
         check=bank_account_ok, needs_context=True,
         value_span=bank_account_value),
@@ -495,26 +512,65 @@ def line_around(text: str, start: int, end: int) -> str:
     return text[opening:len(text) if closing == -1 else closing]
 
 
+#: Each label as a WHOLE-WORD pattern, built once at import.
+#:
+#: A substring test was written first and is wrong in the permissive direction, which
+#: is the direction that costs: `dob` is inside `Adobe`, `aba` inside `database`,
+#: `mrn` inside nothing English but inside plenty of file names, and `acct` inside
+#: `acctg`. Measured: "Adobe Acrobat 11/04/1990" was read as a date of birth. A label
+#: is a WORD a form prints, so the test is for the word.
+_CONTEXT_PATTERNS: Mapping[str, tuple[re.Pattern[str], ...]] = MappingProxyType({
+    kind: tuple(re.compile(rf"\b{re.escape(word)}\b") for word in words)
+    for kind, words in CONTEXT_WORDS.items()})
+
+
 def _has_context(kind: str, line: str) -> bool:
-    """One of the kind's own labels, on this line, case-insensitively."""
+    """One of the kind's own labels, as a whole word, on this line, case-folded."""
     folded = line.casefold()
-    return any(word in folded for word in CONTEXT_WORDS[kind])
+    return any(pattern.search(folded) for pattern in _CONTEXT_PATTERNS[kind])
+
+
+def _is_a_fraction(match: re.Match[str]) -> bool:
+    """Are these digits part of a longer DECIMAL NUMBER rather than an identifier?
+
+    MEASURED, and it is the largest false-positive class there is. Over the
+    synthetic corpus's six spreadsheets, 29 readings fired and every one of them was
+    the fractional part of a random float:
+
+        31,0.5503786251865023,meeting   ->  `5503786251865023`, a Mastercard prefix
+        53,0.4124219052004032,essay     ->  `4124219052004032`, a Visa prefix
+
+    Sixteen digits after a decimal point pass Luhn one time in ten and carry an
+    issuer prefix about one time in four, so a table of floats holds a payment card
+    every dozen rows -- and every dataset a person owns would be
+    `sensitive_personal, protected=1`. That is the over-protection collapse, reached
+    by arithmetic rather than by a word.
+
+    A DECIMAL POINT AND NOT A COMMA, and the choice is the consequential one. `,` is
+    a decimal separator in much of the world AND the field separator in every CSV
+    ever written, so refusing on it would refuse a column of real card numbers --
+    `31,4124219052004032,x` -- which is the file this whole layer exists to catch. A
+    European-formatted float is therefore still admitted, and it is the rarer error
+    in the safer direction.
+    """
+    text, start, end = match.string, match.start(), match.end()
+    if start >= 2 and text[start - 1] == "." and text[start - 2].isdigit():
+        return True
+    return (end + 1 < len(text) and text[end] == "."
+            and text[end + 1].isdigit())
 
 
 def _fires(shape: IdentifierShape, match: re.Match[str], line: str) -> bool:
     """The scheme's own test, and its label where the shape alone is too weak.
 
-    `date_of_birth` is the one kind whose second half is an OR, because the ruling
-    states it as one: "a date of birth beside a person-name-like token or the words
-    'date of birth'/'DOB'".
+    ONE RULE FOR EVERY KIND, and `date_of_birth`'s second half is deliberately not
+    here: see the block above `IdentifierShape` for why "a date of birth beside a
+    name" is amendment 7(b)'s and not a regex over capital letters.
     """
-    if not shape.check(match):
+    if _is_a_fraction(match):
         return False
-    if not shape.needs_context:
-        return True
-    if _has_context(shape.kind, line):
-        return True
-    return shape.kind == "date_of_birth" and _NAME_LIKE.search(line) is not None
+    return shape.check(match) and (
+        not shape.needs_context or _has_context(shape.kind, line))
 
 
 def masked_tail(text: str, start: int, end: int, *,

@@ -79,7 +79,7 @@ Order raised 11/04/1990 and settled.
 """
 
 
-def a_page(db, tmp_path, filename: str, text: str):
+def a_page(db, tmp_path, filename: str, text: str, *, mint: bool = True):
     """One file whose body is `text`, read the way production reads it.
 
     `a_file` gives the `files` row and the filesystem observation; this adds the
@@ -108,12 +108,13 @@ def a_page(db, tmp_path, filename: str, text: str):
             reliability="possible"),),
         text_units=({"container_path": (), "text": text, "length": len(text),
                      "truncated": False},)))
-    for record in identifier_observations(
-            file_id=file_id, content_hash=content_hash,
-            source_type="text_document", units=text_units_for_run(db, run_id),
-            zone_for=lambda unit: "body", now=CLOCK,
-            mask_tail=IDENTIFIER_MASK_TAIL):
-        record_observation(db, record)
+    if mint:
+        for record in identifier_observations(
+                file_id=file_id, content_hash=content_hash,
+                source_type="text_document", units=text_units_for_run(db, run_id),
+                zone_for=lambda unit: "body", now=CLOCK,
+                mask_tail=IDENTIFIER_MASK_TAIL):
+            record_observation(db, record)
     return file_id, content_hash
 
 
@@ -287,7 +288,7 @@ def test_every_kind_the_extractor_produces_reaches_one_of_the_four(db, tmp_path)
         "us_ssn": "SSN: 078-05-1120 on file.",
         "passport_number": "Passport No. X1234567 expires 2031.",
         "hkid": "Holder HKID A123456(3) at the counter.",
-        "date_of_birth": "Jane Marie Roberts 11/04/1990 attended.",
+        "date_of_birth": "Date of birth 11/04/1990 recorded.",
         "medical_record_number": "MRN 4487211 admitted overnight.",
     }
     assert set(lines) == set(IDENTIFIER_SAFETY_DOMAIN)
@@ -299,3 +300,62 @@ def test_every_kind_the_extractor_produces_reaches_one_of_the_four(db, tmp_path)
         assert report.schema_id == IDENTIFIER_SAFETY_DOMAIN[kind], kind
         assert kind in report.terms, (kind, report.terms)
         assert record.basis == "safety_domain" and record.protected is True, kind
+
+
+# --- the production seam ----------------------------------------------------------
+
+def test_the_shipped_classifier_mints_the_readings_before_it_asks(db, tmp_path):
+    """THE CALL SITE, asserted, because an extractor nothing calls holds nothing.
+
+    `cli.classifier` is what `orchestrator.run_p1_p7` invokes as its
+    `ClassificationProducer`, once per file version, inside the fact loop. The
+    identifier pass runs from THERE and not from `downstream` with the other corpus
+    producers -- `_family_pass` and `_anchor_statement_pass` both run after P1-P7 has
+    finished, which is after every classification is already in the store, so a pass
+    there would extract the card number on a statement the product had already
+    released.
+
+    Nothing in this test mints a reading: the page is written with `mint=False`, so
+    the rows can only have come from the shipped seam.
+
+    SABOTAGE: delete the `record_identifier_readings` line from `cli.classifier`.
+    The record comes back `None` and the keys stay empty, which is the run `104`
+    §18.56 measured.
+    """
+    from cli import classifier
+
+    file_id, content_hash = a_page(db, tmp_path, "scan007.pdf", CARD_STATEMENT,
+                                   mint=False)
+    assert _identifier_keys(db, file_id, content_hash) == set()
+
+    classify = classifier(detector(rule_set(ACADEMIC)), now=lambda: CLOCK)
+    record = classify(db, file_id, content_hash)
+
+    assert _identifier_keys(db, file_id, content_hash) != set()
+    assert record is not None
+    assert record.basis == "safety_domain"
+    assert record.protected is True
+    assert set(record.evidence_refs) <= _identifier_keys(db, file_id, content_hash)
+
+
+def test_a_second_pass_over_an_unchanged_file_writes_no_second_row(db, tmp_path):
+    """P4 conformance rule 8: two runs of one corpus produce byte-identical rows.
+
+    `observation_key` is content-addressed, so the second pass finds what the first
+    wrote and records nothing -- `facts/anchor_statements._minted_line`'s own
+    idempotency, on the same check.
+    """
+    from cli import classifier
+
+    file_id, content_hash = a_page(db, tmp_path, "scan008.pdf", CARD_STATEMENT,
+                                   mint=False)
+    classify = classifier(detector(rule_set(ACADEMIC)), now=lambda: CLOCK)
+    classify(db, file_id, content_hash)
+    after_one = [dict(row) for row in db.execute(
+        "SELECT * FROM evidence WHERE extractor_name LIKE ? ORDER BY rowid",
+        (IDENTIFIERS_NAMESPACE + "%",))]
+    classify(db, file_id, content_hash)
+    after_two = [dict(row) for row in db.execute(
+        "SELECT * FROM evidence WHERE extractor_name LIKE ? ORDER BY rowid",
+        (IDENTIFIERS_NAMESPACE + "%",))]
+    assert after_one == after_two and after_one
