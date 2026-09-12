@@ -440,6 +440,21 @@
    "layout": "frame-first",
    "note": "00 amendment 7(c): the whole library as the menu, the recognisers' candidates as evidence; two supported kinds answered as one plus alternatives; none only when no kind of material shows. Runs on the cloud for a file the gate cleared, locally otherwise.",
    "ratified_by": null
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-whole-library-plain",
+   "status": "unratified",
+   "template_id": "situation.unratified.whole-library-plain.2026-09-12",
+   "template_file": "situation_template.whole-library-plain.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_shaping_policy.v3.json",
+   "readings_rows": [
+    "@case"
+   ],
+   "layout": "frame-first",
+   "note": "The bake-off twin of situation-whole-library: the same text without the illustrative examples of kinds, so the owner's worry (12 Sep 16:20: do the examples bias the model?) is measured rather than argued.",
+   "ratified_by": null
   }
  ],
  "digests": {
