@@ -13,6 +13,8 @@ The ten kinds, by the identifier you answer with:
 
 WHAT THE DOSSIER CONTAINS
 
+The dossier has these keys and no others: allowed_vocabulary, call_site, conflicts, eligibility_reason, evidence_items, field_glossary, folder_levels, max_dossier_tokens, plan_version, policy_version, reduction_rung, released_evidence, response_schema, shaping_policy, subject_ref.
+
 "allowed_vocabulary" is the complete list of identifiers you may answer with: the ten kinds and "none_of_these".
 
 "evidence_items" is a list of references. An "excerpt" item is a reference to text of the file; it carries no text. An "identifier" item, when present, reports that a deterministic check found the shape of an identifier in the file (a card number, an account number, a passport or identity number, a medical record number, a date of birth beside a name) and where; its value is masked. A "recogniser_abstention" or "candidate_schema" item is a report from the product's rules; it is not evidence and cannot be cited.
