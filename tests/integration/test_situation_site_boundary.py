@@ -39,13 +39,17 @@ from model_situation import (  # noqa: E402
     NONE_OF_THESE,
     SITUATION_SENSITIVITY,
     NothingToAsk,
+    SituationQuestion,
+    _candidate_items,
     build_situation_request,
     question_for,
+    raised_for,
     shortlist_for,
 )
 from recognition.detector import (  # noqa: E402
-    Abstention, Precaution, situation_outcome_of,
+    Abstention, Precaution, Recognition, SituationOutcome, situation_outcome_of,
 )
+from recognition.vocabulary import SAFETY_DOMAIN_IDS  # noqa: E402
 
 
 def _abstention(reason: str, schema_id=None, tied=(), terms=(), refs=(),
@@ -126,59 +130,128 @@ def _prompt():
     return cli.situation_prompt()
 
 
-# --- the shortlist is what the recognisers raised, and nothing else --------------
+# --- the MENU is the whole library and what was RAISED is evidence ---------------
+#
+# `00` amendment 7(c), 12 September 2026. Every test between here and the walls
+# used to assert the opposite: that the options a model is shown are exactly the
+# schemas a recogniser raised. Each is turned around rather than deleted, and each
+# keeps the measurement that made the old rule look right, because the old rule was
+# not careless -- it was `recognition/_CONTRACT.md` rule 5 read one step too far,
+# and it took a corpus to show the difference.
 
 
-def test_a_tie_becomes_the_tied_schemas_and_a_way_out():
-    """`ambiguous`, 20 files on the owner's corpus. The tie IS the shortlist."""
-    options = shortlist_for(_abstention("ambiguous", tied=("career", "academic")))
+def test_the_menu_is_the_whole_library_however_the_recognisers_answered():
+    """`00` amendment 7(c). The options do not vary with what the rules noticed.
 
-    assert options == ("academic", "career", NONE_OF_THESE)
+    THIS WAS THREE TESTS AND THEY ARE ONE NOW, because they asserted three shapes
+    of one rule that no longer exists: a tie became the tied schemas
+    (`test_a_tie_becomes_the_tied_schemas_and_a_way_out`), a near miss became a
+    shortlist of one (`..._a_near_miss_becomes_a_shortlist_of_one...`), and a
+    `no_evidence` abstention became a list with nothing on it but the decline
+    (`..._the_biggest_bucket_has_nothing_to_ask...`). All three were true of the
+    code and all three were the defect.
+
+    **THE MEASUREMENT THAT ENDED IT (`104` §18.56).** On the owner's second corpus,
+    graded against its answer key: the shortlist held the right schema for 35 of 87
+    files; 28 menus offered one candidate and the decline; the members offered most
+    often were `construction_property` (27) and `finance` (25), on a student's
+    Downloads folder; and 40 of the 60 abstentions were files whose answer was not
+    on the menu at all. "Valid options only" is a rule about not inventing a class,
+    and it had become a rule that the right answer is usually unavailable.
+
+    SABOTAGE: filter `shortlist_for`'s return by `outcome.candidates` again -- the
+    old body is two lines -- and the tie case below goes back to two options.
+    """
+    tie = _abstention("ambiguous", tied=("career", "academic"))
+    near_miss = _abstention("no_corroboration", schema_id="medical")
+    nothing_raised = _abstention("no_evidence")
+
+    for outcome in (tie, near_miss, nothing_raised):
+        options = shortlist_for(outcome)
+        assert options == SCHEMA_IDS + (NONE_OF_THESE,), outcome.reason
+        assert len(options) == 24
 
 
-def test_a_near_miss_becomes_a_shortlist_of_one_and_a_way_out():
-    """`no_corroboration`, 32 files: one term matched, and one signal never
-    activates a schema. The model is shown the schema that term belongs to and can
-    say it does not fit."""
-    assert shortlist_for(_abstention("no_corroboration", schema_id="medical")) == \
-        ("medical", NONE_OF_THESE)
+def test_a_file_no_recogniser_raised_anything_for_is_asked_like_any_other():
+    """THE 60, AND THEY NO LONGER WAIT ON THE WEIGHTS.
 
+    This test was `test_the_biggest_bucket_has_nothing_to_ask_without_the_semantic_
+    recogniser`, and its measurement stands: 60 of the owner's 112 lexical
+    abstentions are `no_evidence` -- no term any schema authored -- so the lexical
+    side raises nothing for them. What it concluded was that those 60 "become
+    askable only through the candidates the composed recogniser raises, which is
+    what makes the two mechanisms partners rather than alternatives".
 
-def test_the_biggest_bucket_has_nothing_to_ask_without_the_semantic_recogniser():
-    """THE MEASUREMENT THAT DECIDES WHETHER `--semantic-model` IS OPTIONAL.
+    Half of that is still true and is the better half: the semantic recogniser is
+    what tells the MODEL which schemas resembled the file, and that reaches it as
+    evidence. What is no longer true is the "only": a file nothing raised anything
+    for is now asked with the same twenty-four options as every other file, because
+    the recognisers being quiet is a fact about the recognisers and was never a
+    reason to leave the file unread.
 
-    60 of the owner's 112 abstentions are `no_evidence` -- no term any schema
-    authored -- so the lexical side raises no candidate at all and there is no
-    question with valid options. Those 60 become askable only through the
-    candidates the composed recogniser raises, which is what makes the two
-    mechanisms partners rather than alternatives.
-
-    **AND THE SECOND ARGUMENT IS GONE (`104` §18.26's owed row).** The semantic
-    candidates used to arrive as a separate object a caller passed beside the
-    outcome -- and `cli.ask_the_situation` passed `None` for it on every run, so
-    the 60 were never askable in the product however the weights were configured.
-    They arrive on the outcome now, raised by whichever recogniser raised them.
+    SABOTAGE: restore `NothingToAsk` for an empty candidate set and this file --
+    the largest bucket the owner's corpus has -- goes back to never being asked.
     """
     empty = _abstention("no_evidence")
-    assert shortlist_for(empty) == (NONE_OF_THESE,)
-    with pytest.raises(NothingToAsk):
-        question_for(empty, file_id="f", content_hash="a" * 64)
-
-    with_semantic = _abstention("no_evidence", semantic=("research", "academic"))
-    assert shortlist_for(with_semantic) == ("academic", "research", NONE_OF_THESE)
-    assert question_for(with_semantic, file_id="f",
-                        content_hash="a" * 64).allowed_situations
+    question = question_for(empty, file_id="f", content_hash="a" * 64)
+    assert question.allowed_situations == SCHEMA_IDS + (NONE_OF_THESE,)
+    assert question.raised == ()
 
 
-def test_both_recognisers_contribute_and_neither_orders_the_list():
-    """The order is `SCHEMA_IDS`', so the same file gets the same prompt however the
-    candidates arrived. `104` R-58 is the same argument about the dossier's bytes."""
-    merged = shortlist_for(
+def test_what_the_recognisers_raised_is_carried_and_still_ordered_by_the_library():
+    """`raised_for` is what `shortlist_for` used to be, and the ORDER argument is
+    the half of the old test that survives unchanged.
+
+    `test_both_recognisers_contribute_and_neither_orders_the_list` asserted it of
+    the menu: "the order is `SCHEMA_IDS`', so the same file gets the same prompt
+    however the candidates arrived. `104` R-58 is the same argument about the
+    dossier's bytes." The menu is now the library's order by construction, so the
+    argument moved to the set that still varies per file -- which is the one the
+    candidate items are written from.
+
+    SABOTAGE: return `tuple(raised)` from a set in `raised_for` and this goes red
+    on any run whose hash seed differs.
+    """
+    merged = raised_for(
         _abstention("ambiguous", schema_id="career", tied=("career", "photos"),
                     semantic=("academic", "photos")))
 
-    assert merged == ("academic", "career", "photos", NONE_OF_THESE)
-    assert list(merged[:-1]) == [s for s in SCHEMA_IDS if s in set(merged[:-1])]
+    assert merged == ("academic", "career", "photos")
+    assert list(merged) == [s for s in SCHEMA_IDS if s in set(merged)]
+
+
+def test_a_candidate_item_says_whether_the_recognisers_raised_it():
+    """`00` amendment 7(c): the candidates are EVIDENCE and this is where they are.
+
+    The old rule put the recognisers' opinion in the shape of the menu, where a
+    model could not tell a schema nobody considered from a schema considered and
+    rejected -- because neither was there. It is said in words now, per option, and
+    the three states are distinct: raised with the terms the file matched, raised
+    with no term (the semantic recogniser's neighbour, which must not read as "said
+    this word"), and not raised at all.
+
+    SABOTAGE: drop the `elif schema_id in raised` arm so every item reads the same,
+    and the model is shown twenty-three options with nothing to tell it that the
+    rules pointed at two of them.
+    """
+    question = question_for(
+        _abstention("ambiguous", schema_id="career", tied=("career", "photos"),
+                    terms=(("career", ("resume", "cv")), ("photos", ())),
+                    semantic=("academic",)),
+        file_id="f", content_hash="a" * 64)
+    items = {item.evidence_ref: item.location
+             for item in _candidate_items(question, SAFETY_DOMAIN_IDS)}
+
+    assert len(items) == 24
+    assert "raised this for this file, on: resume, cv" in items["career"]
+    assert "raised this for this file, on no term" in items["photos"]
+    assert "in the library; not raised for this file" in items["research"]
+    # THE FOUR ARE STILL MARKED, wherever they stand: a protected kind the
+    # recognisers did not raise is still a protected kind, and it is now on every
+    # file's menu, which is the whole reason the note has to travel with the item.
+    assert "one of 00's four protected kinds" in items["medical"]
+    assert "not raised for this file" in items["medical"]
+    assert items[NONE_OF_THESE].startswith("no situation on this list")
 
 
 def test_a_shortlist_never_carries_a_name_the_library_does_not(monkeypatch):
@@ -186,11 +259,19 @@ def test_a_shortlist_never_carries_a_name_the_library_does_not(monkeypatch):
     pipeline continue. A candidate from outside the library would be that invention
     arriving through the back door.
 
+    **AND THE RULE IS UNTOUCHED BY `00` amendment 7(c), which is worth saying
+    plainly because the amendment reads like the opposite.** Widening the menu to
+    the whole library does not widen it by one name: `SCHEMA_IDS` IS the library,
+    the model still cannot answer with a class the product does not have, and the
+    validator still refuses one (`situation_validation._situation_site`). What the
+    amendment removed was the narrowing BELOW the library, which rule 5 never
+    asked for.
+
     TWO DOORS AND BOTH SHUT, since `104` §18.26's owed row moved the candidates
     onto the outcome. A name outside the library cannot be RAISED at all --
     `SituationOutcome` checks every candidate against `SCHEMA_IDS`, one step
-    earlier than the shortlist -- and the hold, which is the other thing that puts
-    a schema on this list, is still checked here.
+    earlier -- and the hold, which is the other thing that used to put a schema on
+    the list, is still checked by `shortlist_for` on its way past.
     """
     from recognition.detector import SituationOutcome
     from facts.domains import UnknownSchema
@@ -214,11 +295,62 @@ def test_declining_is_always_available_and_always_last():
         assert NONE_OF_THESE not in SCHEMA_IDS
 
 
-def test_a_question_whose_only_option_is_to_decline_is_refused():
-    """Not a question. A model shown one way out and no way in answers something
-    about every file it is given."""
+def test_a_recognised_file_with_no_hold_is_a_question_now():
+    """GAP 24b's REFUSAL, RE-ARGUED. `00` amendment 7(c) is the act that ended it.
+
+    `SituationQuestion.__post_init__` used to raise for a file the recogniser had
+    RECOGNISED and the rules were not holding, and the sentence it raised with was
+    `00`:110's: "the LLM should not be called for direct, unique matches". Gap 24b
+    (10 Sep) had already carved out the held file, on the argument that a hold is
+    the rules saying they could not settle it.
+
+    The owner's ruling of 12 September removes the rest of the carve-out, and the
+    number is why: measured on the second corpus, the rules' top-1 accuracy on the
+    files they DID name was 32.2% (`cli.SEMANTIC_MAX_ANCHOR_WORDS`' comment). Two
+    files in three that this refusal protected from the model were named wrongly --
+    and, being classified, went to the cloud on the rules' word. `00`:110's own
+    words are now read as the placement ruling of 5 September reads them at the
+    other site that used to skip the model: a direct, unique match is the
+    top-ranked candidate, not a bypass.
+
+    SABOTAGE: restore the `recognised_as is not None and precaution is None` raise
+    and this goes red, along with two thirds of the corpus going unread.
+    """
+    key = "sha256:" + "c" * 64
+    outcome = SituationOutcome(
+        by_the_rules=Recognition("academic", (), (key,)),
+        reason=None, recognised="academic", candidates=("academic",),
+        matched_terms=(("academic", ("syllabus",)),), evidence_refs=(key,))
+
+    question = question_for(outcome, file_id="f", content_hash="a" * 64)
+
+    assert question.recognised_as == "academic"
+    assert question.precaution is None
+    assert question.allowed_situations == SCHEMA_IDS + (NONE_OF_THESE,)
+    # WHAT THE RULES CONCLUDED IS NOT LOST, it is demoted from cage to evidence.
+    assert question.raised == ("academic",)
+
+
+def test_a_question_whose_only_option_is_to_decline_is_still_refused():
+    """THE LIST-OF-ONE REFUSAL, RE-ARGUED and kept for what it was defending.
+
+    It read: "a question whose only option is to decline is not a question. A model
+    shown one way out and no way in answers something about every file it is given."
+    That was reachable on real files -- the 60 `no_evidence` abstentions raised
+    nothing, so the list was `(NONE_OF_THESE,)` -- and under `00` amendment 7(c) it
+    is not reachable at all, because `shortlist_for` returns the whole library
+    whatever the recognisers said.
+
+    Kept rather than deleted, because what it defends is still a property worth
+    holding: the model is given something to choose BETWEEN. It now fails on a
+    caller that built the list itself instead of asking `shortlist_for` for it,
+    which is the only way the condition can still arise.
+    """
     with pytest.raises(NothingToAsk):
-        question_for(_abstention("no_evidence"), file_id="f", content_hash="a" * 64)
+        SituationQuestion(
+            file_id="f", content_hash="a" * 64, reason="no_evidence",
+            allowed_situations=(NONE_OF_THESE,), matched_terms=(),
+            evidence_refs=("k1",))
 
 
 # --- the three walls -------------------------------------------------------------
@@ -312,9 +444,14 @@ def test_wall_one_a_question_now_becomes_a_request_at_the_seventh_site():
     assert request.plan_version is None
     assert request.evidence_snapshot_id is None
     kinds = [item.kind for item in request.evidence_items]
-    assert kinds == ["candidate_schema"] * 3 + ["recogniser_abstention", "excerpt"]
+    # TWENTY-FOUR CANDIDATE ITEMS SINCE `00` amendment 7(c), where this asserted
+    # three. The shape of the request is unchanged and that is what this line is
+    # for: the frame's items first and the file's after them (`104` R-58), one item
+    # per option with the decline included, then the recogniser's report, then the
+    # readings. What changed is how many options there are.
+    assert kinds == ["candidate_schema"] * 24 + ["recogniser_abstention", "excerpt"]
     refs = [item.evidence_ref for item in request.evidence_items]
-    assert refs[:3] == ["academic", "career", NONE_OF_THESE], (
+    assert refs[:24] == list(SCHEMA_IDS) + [NONE_OF_THESE], (
         "every option the model is offered is described, the way out included; an "
         "option shown in the vocabulary and in no item is the one the prompt most "
         "wants used and the one it says least about")
@@ -511,12 +648,15 @@ def test_the_question_carries_the_recognisers_own_reason_and_evidence():
 def test_the_three_reasons_the_real_detector_produces_all_make_a_question(conn):
     """The shapes come from the real `Abstention`, so a change to its fields fails
     here rather than at the seam. Every reason the owner's corpus produces is
-    covered, and each is a question the moment a candidate exists."""
+    covered, and each is a question -- since `00` amendment 7(c), whether or not a
+    candidate exists, which is the clause this test used to end on."""
     from recognition.vocabulary import ABSTENTION_REASONS
 
     for reason in ("no_evidence", "no_corroboration", "ambiguous"):
         assert reason in ABSTENTION_REASONS
         outcome = _abstention(reason, schema_id="academic", tied=("academic",))
         question = question_for(outcome, file_id="f", content_hash="a" * 64)
-        assert question.allowed_situations == ("academic", NONE_OF_THESE)
+        assert question.allowed_situations == SCHEMA_IDS + (NONE_OF_THESE,)
+        assert question.raised == ("academic",), (
+            "the recogniser's own near miss is carried per reason, as evidence")
         assert question.reason == reason

@@ -45,6 +45,7 @@ import sqlite3
 from pathlib import Path
 
 import cli
+from facts.domains import SCHEMA_IDS
 from model_situation import NONE_OF_THESE
 from privacy.vocabulary import (
     LOCAL_MODEL_SITUATION, PRIVACY_CLASS_ORDINARY, PRIVACY_CLASS_PROTECTED,
@@ -174,39 +175,76 @@ def test_a_recognised_file_the_rules_hold_is_asked_and_its_report_names_both(
     # still the one the ratified text describes; the sentence inside it is not.
     assert "recogniser abstention" not in report["location"], report["location"]
 
-    # The shortlist is the ruling read literally: what the rules named, what they
-    # are holding it as, and the decline that keeps it a question.
+    # THE MENU IS THE WHOLE LIBRARY SINCE `00` amendment 7(c), and this assertion
+    # used to read `len(options) == 3` -- gap 24b's shortlist read literally: what
+    # the rules named, what they are holding it as, and the decline. `104` §18.56
+    # measured that shape across 87 files and found the right answer on the menu
+    # for 35 of them, so the amendment widened every menu to the library and moved
+    # what the rules concluded onto the items. Both halves are still checked here,
+    # because both still have to reach the model -- they now reach it as the two
+    # options the recognisers RAISED rather than as the only two that exist.
     options = dossier["allowed_vocabulary"]
     assert RECOGNISED_AS in options and HELD_DOMAIN in options
     assert options[-1] == NONE_OF_THESE
-    assert len(options) == 3, options
+    assert len(options) == len(SCHEMA_IDS) + 1, options
+    raised = {item["evidence_ref"]: item["location"]
+              for item in dossier["evidence_items"]
+              if item["kind"] == "candidate_schema"}
+    assert "raised this for this file" in raised[RECOGNISED_AS], raised[RECOGNISED_AS]
+    assert "raised this for this file" in raised[HELD_DOMAIN], raised[HELD_DOMAIN]
 
 
-def test_a_recognised_file_with_no_hold_is_still_settled_and_never_asked(
+def test_a_recognised_file_with_no_hold_is_asked_too_and_the_count_says_so(
         tmp_path_factory, monkeypatch):
-    """`00`:110 STILL STANDS WHERE NO HOLD EXISTS, and this is the file that says
-    so. Its twin differs by one word in a filename.
+    """`00`:110 NO LONGER RESERVES THIS FILE, and this test is the record of the
+    day it stopped. Its twin differs by one word in a filename.
 
-    The ruling is narrow on purpose: a hold makes a recognised file askable, and
-    nothing else does. `00`:110 -- "the LLM should not be called for direct,
-    unique matches" -- is untouched for every recognised file the rules are not
-    holding, which on a real corpus is nearly all of them. Widening this would
-    spend a local call per file on the one site that already runs on every file.
+    **WHAT IT USED TO ASSERT, and why it was right until it was measured.** Gap
+    24b's ruling was narrow on purpose: a hold makes a recognised file askable and
+    nothing else does. This test held the other side of it -- "no dossier was built
+    for it, and the `settled` line counts it" -- on the argument that `00`:110
+    ("the LLM should not be called for direct, unique matches") is untouched for
+    every recognised file the rules are not holding, "which on a real corpus is
+    nearly all of them", and that widening it "would spend a local call per file on
+    the one site that already runs on every file".
 
-    Measured on the wire and on the screen: no dossier was built for it, and the
-    `settled` line counts it.
+    **THE MEASUREMENT THAT TURNED IT AROUND (`00` amendment 7(c), from `104`
+    §18.56).** Nearly all of them was right and was the problem: 218 of the second
+    corpus's files carried a rule classification, and the rules' top-1 accuracy on
+    the files they named was 32.2%. So this branch was reserving two files in three
+    from the only reader that could correct them -- and, because a classified
+    ordinary file is cloud-eligible, sending them. The owner ruled that a file the
+    rules settle is still asked. The cost the old docstring names is real and was
+    accepted: one local call per file is what the site now spends, which is why
+    amendment 7(c) also split the protection question onto a shorter, cheaper
+    dossier.
 
-    SABOTAGE: drop the `precaution is None` half of the settled test and ask every
-    recognised file. This file gets a dossier and the count reads 0.
+    What the rules concluded is not thrown away. It reaches the model on its own
+    `candidate_schema` item, and the screen still says how many files the rules had
+    recognised -- as a fact about the rules rather than as a fate for the file.
+
+    SABOTAGE: restore `if precaution is None and outcome.recognised is not None:
+    settled += 1; continue` and this file goes back to never being read.
     """
     database, said, _stub = _run("released", _naming(RECOGNISED_AS),
                                  tmp_path_factory, monkeypatch)
     conn = _read(database)
     free = _file_id(conn, FREE_NAME)
 
-    assert _report_items(conn, free) == [], (
-        "a recognised file the rules are not holding was put to the model")
-    assert "1 settled by rule" in " ".join(said.split())
+    assert _report_items(conn, free) != [], (
+        "a file the rules recognised was not put to the model, which is the state "
+        "`00` amendment 7(c) ended")
+    said_flat = " ".join(said.split())
+    # THE RETIRED SENTENCE, by its own first words. "settled by rule" alone is not
+    # enough to test on: the FACT pass prints a line of its own with that phrase
+    # about P6 fields, and it is untouched by this amendment.
+    assert "settled by rule: the recognisers named" not in said_flat, (
+        "the situation pass's `settled` counter is retired; a file the rules named "
+        "is asked like any other and lands in one of the five that partition the "
+        "roster")
+    assert "the rules had already recognised" in said_flat, (
+        "what the rules recognised is still counted and still printed, outside "
+        "the partition, because those files were also asked")
     # And it is not protected, which is what makes it the honest twin: the two
     # files differ in the hold and in nothing else this pass reads.
     assert free not in cli._protected_file_ids(conn)
@@ -459,26 +497,33 @@ def test_a_held_recognised_file_is_never_offered_a_cloud_target(
 
 def test_the_counts_move_a_recognised_hold_out_of_settled_and_into_the_block(
         tmp_path_factory, monkeypatch):
-    """RULING 4. A file recognised AND held is not `settled`; it is asked, and its
-    hold is counted in `PrecautionHolds` like any other.
+    """RULING 4, and `00` amendment 7(c) over the top of it. A file recognised AND
+    held is asked and its hold is counted in `PrecautionHolds` like any other --
+    and so, now, is its free twin.
 
-    Two files walked. On the released run one is `settled` -- the free twin -- and
-    the held one is NAMED, so it is in neither of the six; the hold block says 1
-    held, 1 released. On the declined run the same file is `asked and left alone`
-    and the block says 1 still held. Both runs keep the arithmetic a person can
-    check: the six counters plus the named files are the roster, and the three
-    hold sentences add up to `held`.
+    **WHAT THIS TEST MEASURED BEFORE.** Two files walked; on the released run the
+    free twin was `settled` and the held one was NAMED, so it was in neither of the
+    six; the hold block said 1 held, 1 released. The `settled` count was the half
+    that proved the ruling was NARROW -- that a hold, and only a hold, made a
+    recognised file askable.
 
-    On r19 the answer for these files was silence: they were `settled`, they were
-    `protected`, and no line on any screen said either thing about them.
+    That narrowness is what amendment 7(c) removed, on `104` §18.56's numbers: the
+    rules' top-1 accuracy on the files they named was 32.2%, so "settled" was
+    settling two files in three wrongly and releasing them. BOTH files are asked
+    now, and what this test measures instead is that the arithmetic still closes:
+    the five counters plus the named files are the roster, the three hold sentences
+    still add up to `held`, and the recognised count -- which is now outside the
+    partition, because those files are also in one of the five -- is printed on its
+    own line rather than folded in where it would break the sum.
 
-    SABOTAGE: count a recognised hold as `settled` as well as asking it. The
-    partition over-counts and the `1 settled by rule` assertion goes red.
+    SABOTAGE: print `recognised_by_rules` inside `_print_situation_pass`'s field
+    loop and the numbers on the screen stop adding up to the roster.
     """
     _database, released, _stub = _run("released", _naming(RECOGNISED_AS),
                                       tmp_path_factory, monkeypatch)
     said = " ".join(released.split())
-    assert "1 settled by rule" in said
+    assert "2 of them the rules had already recognised" in said, (
+        "both twins were recognised by the rules and both were asked")
     assert "the rules were holding 1 file on a safety term" in said
     assert "1 released by the model" in said
     assert "0 confirmed by the model" in said
@@ -487,8 +532,11 @@ def test_the_counts_move_a_recognised_hold_out_of_settled_and_into_the_block(
     _database, declined, _stub = _run("declined", _decline, tmp_path_factory,
                                       monkeypatch)
     said = " ".join(declined.split())
-    assert "1 settled by rule" in said
-    assert "1 asked and left alone" in said
+    assert "2 of them the rules had already recognised" in said, (
+        "both twins were recognised by the rules and both were asked")
+    # BOTH files are asked and both decline, where this used to read 1: the free
+    # twin used to be `settled` and is now a second question.
+    assert "2 asked and left alone" in said
     assert "the rules were holding 1 file on a safety term" in said
     assert "0 released by the model" in said
     assert "1 still held because nothing could say" in said

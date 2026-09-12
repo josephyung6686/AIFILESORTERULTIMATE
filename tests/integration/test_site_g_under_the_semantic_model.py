@@ -33,6 +33,7 @@ import sqlite3
 from pathlib import Path
 
 import cli
+from facts.domains import SCHEMA_IDS
 from model_situation import NONE_OF_THESE
 from recognition.semantic import SemanticRecogniser, SimilarityReading
 from readers.model_ollama import (
@@ -236,7 +237,17 @@ def test_a_no_evidence_file_is_asked_with_the_candidates_the_vector_raised(
 
     assert NEAR_ONE in options and NEAR_TWO in options
     assert options[-1] == NONE_OF_THESE
-    assert len(options) == 3, options
+    # THE WHOLE LIBRARY SINCE `00` amendment 7(c), where this read `== 3`. What the
+    # vector raised is still the thing this test is about and it is still measured
+    # -- on the candidate items and in the report, two assertions down -- but it is
+    # no longer the boundary of what the model may answer. `104` §18.56: the
+    # boundary held the right answer for 35 of 87 files.
+    assert len(options) == len(SCHEMA_IDS) + 1, options
+    raised = {item["evidence_ref"]: item["location"]
+              for item in dossier["evidence_items"]
+              if item["kind"] == "candidate_schema"}
+    for near in (NEAR_ONE, NEAR_TWO):
+        assert "raised this for this file, on no term" in raised[near], raised[near]
     report = _report(dossier)
     assert "reason: no_evidence" in report, report
     assert f"{NEAR_ONE}: no term" in report and f"{NEAR_TWO}: no term" in report, (
@@ -245,33 +256,46 @@ def test_a_no_evidence_file_is_asked_with_the_candidates_the_vector_raised(
         "reading as 'said this word'")
 
 
-def test_a_semantic_proposal_with_no_hold_is_settled_and_never_asked(
-        tmp_path_factory, monkeypatch):
-    """`00`:110 STANDS WHERE THE VECTOR SETTLED THE FILE. A proposal clear of the
-    release floor and clear of its runner-up is a recognition: the composed
-    recogniser writes the classification for it, so the situation pass has nothing
-    to ask and spending a local call would be asking about a file this run had
-    already filed.
+def test_a_semantic_proposal_with_no_hold_is_asked_too(tmp_path_factory,
+                                                       monkeypatch):
+    """`00`:110 NO LONGER STANDS WHERE THE VECTOR SETTLED THE FILE EITHER.
 
-    Its twin above differs only in what the vector said about it -- same bytes,
-    same rules, same absence of any authored term.
+    **WHAT THIS ASSERTED, and it was the lexical rule applied to the vector.** "A
+    proposal clear of the release floor and clear of its runner-up is a
+    recognition: the composed recogniser writes the classification for it, so the
+    situation pass has nothing to ask and spending a local call would be asking
+    about a file this run had already filed." No dossier, and the `settled` line
+    counted it.
 
-    SABOTAGE: return the proposal as an abstention carrying the leader as a
-    candidate. This file gets a dossier and the `settled` count drops.
+    `00` amendment 7(c) ends it on both paths at once, and the vector is the one
+    where it matters more: a nearest neighbour clear of a floor is a weaker
+    conclusion than a term the library authored, and the file it settles is
+    cloud-eligible the moment the row is written. Measured on the second corpus,
+    the rules' own top-1 accuracy on the files they named was 32.2%.
+
+    The vector's record is still what it was -- basis `detector`, written by the
+    composed recogniser -- and it is still checked below, because what changed is
+    who else looks, not who wrote the row. Its twin above still differs only in
+    what the vector said about it.
+
+    SABOTAGE: restore the `outcome.recognised is not None` continue and this file
+    goes back to being filed on a nearest neighbour nobody re-read.
     """
     database, said, _stub = _run("named", _situation_answer, tmp_path_factory,
                                  monkeypatch)
     conn = _read(database)
     settled = _file_id(conn, SETTLED_NAME)
 
-    assert _dossiers(conn, settled) == [], (
-        "a file the recogniser settled without a model was put to the model")
-    assert "1 settled by rule" in " ".join(said.split())
-    (record,) = _classifications(conn, settled)
-    assert record["basis"] == "detector", (
-        "the vector's own record, written by the composed recogniser, is what "
-        "makes this file settled -- so the pass counting it settled agrees with "
-        "the store rather than contradicting it")
+    assert _dossiers(conn, settled) != [], (
+        "a file the vector proposed a situation for was not put to the model, "
+        "which is the state `00` amendment 7(c) ended")
+    assert "the rules had already recognised" in " ".join(said.split()), (
+        "what the recognisers settled is still counted, as a fact about them")
+    records = _classifications(conn, settled)
+    assert "detector" in {record["basis"] for record in records}, (
+        "the vector's own record, written by the composed recogniser, still "
+        "stands in the store; the model's answer supersedes it rather than "
+        "replacing the history of it")
 
 
 def test_a_semantic_proposal_the_rules_hold_is_asked(tmp_path_factory,
@@ -307,10 +331,20 @@ def test_a_semantic_proposal_the_rules_hold_is_asked(tmp_path_factory,
     assert "held:" in report and HELD_DOMAIN in report and "passport" in report
 
 
-def test_the_similarity_path_never_puts_one_of_the_four_on_a_shortlist(
+def test_the_similarity_path_never_raises_one_of_the_four_as_a_candidate(
         tmp_path_factory, monkeypatch):
-    """`104` §18.11 AND THE CONSTITUTION, on the wire. A safety domain reaches a
-    site G shortlist through the TERM detector or not at all.
+    """`104` §18.11 AND THE CONSTITUTION, on the wire. A safety domain is RAISED
+    for a file by the TERM detector or not at all.
+
+    **THE ASSERTION MOVED FROM THE MENU TO THE CANDIDATES, and the rule is
+    untouched.** Under `00` amendment 7(c) every menu holds all four safety
+    domains, on every file, because the menu is the whole library -- so "not on
+    the shortlist" is no longer a thing that can be measured about a file, and it
+    was never what this rule was about. What the rule forbids is the SIMILARITY
+    PATH concluding something about one of `00`'s four, and that is exactly what a
+    raised candidate is: the recogniser saying it read this file as plausibly
+    that. An item reading "in the library; not raised for this file" is the vector
+    saying nothing, which is what the veto requires of it.
 
     The measurement behind the rule is `SemanticFloors`': this path can neither
     protect nor release one of `00`'s four -- a Red Cross certificate outscores an
@@ -338,12 +372,20 @@ def test_the_similarity_path_never_puts_one_of_the_four_on_a_shortlist(
 
     for filename in (ASKED_NAME, SETTLED_NAME):
         for dossier in _dossiers(conn, _file_id(conn, filename)):
-            assert not set(dossier["allowed_vocabulary"]) & set(
-                cli.SAFETY_DOMAIN_HANDLING), dossier["allowed_vocabulary"]
+            for domain in cli.SAFETY_DOMAIN_HANDLING:
+                (item,) = [i for i in dossier["evidence_items"]
+                           if i["kind"] == "candidate_schema"
+                           and i["evidence_ref"] == domain]
+                assert "not raised for this file" in item["location"], (
+                    f"the similarity path raised {domain}, which the veto "
+                    f"forbids it: {item['location']}")
 
     (held,) = _dossiers(conn, _file_id(conn, HELD_NAME))
-    assert HELD_DOMAIN in held["allowed_vocabulary"], (
-        "the hold is an option, and it is the term detector that put it there")
+    (item,) = [i for i in held["evidence_items"]
+               if i["kind"] == "candidate_schema"
+               and i["evidence_ref"] == HELD_DOMAIN]
+    assert "raised this for this file" in item["location"], (
+        "the hold is raised, and it is the term detector that raised it")
 
 
 # --- the counts a person reads still close ---------------------------------------
@@ -359,13 +401,16 @@ def test_the_four_hold_counts_close_under_the_semantic_model_too(
     up to the one above them -- which is what makes the numbers a person can check
     rather than four tallies drifting apart.
 
-    SABOTAGE: count a semantically-proposed hold as `settled` as well as asking
-    it. The partition over-counts and the `settled by rule` assertion goes red.
+    SABOTAGE: print `recognised_by_rules` inside `_print_situation_pass`'s field
+    loop and the five numbers above the block stop adding up to the roster.
     """
     _database, named, _stub = _run("named", _situation_answer, tmp_path_factory,
                                    monkeypatch)
     said = " ".join(named.split())
-    assert "1 settled by rule" in said
+    # `00` amendment 7(c): this read `1 settled by rule`, a file nobody asked.
+    # The count survives as a fact about the recognisers and is printed outside
+    # the partition, because that file is now also in one of the five.
+    assert "the rules had already recognised" in said
     assert "the rules were holding 1 file on a safety term" in said
     assert "1 released by the model" in said
     assert "0 confirmed by the model" in said
