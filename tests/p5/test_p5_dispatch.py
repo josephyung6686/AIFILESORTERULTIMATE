@@ -141,13 +141,47 @@ def test_an_opaque_image_produces_the_image_run_and_then_the_ocr_run():
     assert tiers == ["native", "ocr"]
 
 
-def test_an_image_with_metadata_does_not_reach_ocr():
+def test_an_image_with_metadata_is_read_too():
+    """Re-argued 11 Sep 2026 (`00` amendment 6): every image is read; camera EXIF
+    says what the image is and no longer decides whether it is looked at."""
     from extractors.image import ExifValue, ImageRecord
+    from extractors.ocr import OcrOutput, OcrRegion
+
+    def engine(path, config):
+        return OcrOutput(provider="apple-vision", provider_version="19.1",
+                         regions=(OcrRegion(page=None, region=1, text="Genesis 2"),),
+                         pages_processed=1, pages_total=1)
+
     dispatched = run_it("photo.heic", readers={
         "read_image": lambda p: ImageRecord(
             image_format="HEIC", dimensions="4032x3024", width=4032, height=3024,
-            exif=(ExifValue(name="Make", value="Apple", kind="camera EXIF"),))})
-    assert [r.run["analysis_tier"] for r in dispatched.results] == ["native"]
+            exif=(ExifValue(name="Make", value="Apple", kind="camera EXIF"),)),
+        "ocr_engine": engine})
+    assert [r.run["analysis_tier"] for r in dispatched.results] == ["native", "ocr"]
+
+
+def test_a_pdfs_pages_without_words_reach_ocr_and_only_they_do():
+    """§2.2 per page (11 Sep 2026, `104` §18.53): a typed cover over photographed
+    pages sends THOSE pages to the engine, named in the run's own config."""
+    from extractors.pdf import PdfDocument, PdfPage
+    from extractors.ocr import OcrOutput, OcrRegion
+    asked: list[dict] = []
+
+    def engine(path, config):
+        asked.append(dict(config))
+        return OcrOutput(provider="apple-vision", provider_version="19.1",
+                         regions=(OcrRegion(page=2, region=1, text="Columbia"),),
+                         pages_processed=2, pages_total=3)
+
+    dispatched = run_it("homework.pdf", readers={
+        "read_pdf": lambda p: PdfDocument(metadata={}, iso_dates={}, pages=(
+            PdfPage(number=1, text="Honors Precalculus power functions due Thursday"),
+            PdfPage(number=2, text=""),
+            PdfPage(number=3, text="1"))),
+        "ocr_engine": engine})
+    assert [r.run["analysis_tier"] for r in dispatched.results] == ["native", "ocr"]
+    assert asked[0]["pages"] == [2, 3]
+    assert dispatched.results[1].run["config"]["pages"] == [2, 3]
 
 
 def test_a_pdf_with_no_text_layer_reaches_ocr():

@@ -115,6 +115,7 @@ def read_text_file(path: Path) -> TextDocument:
 def macos_readers(*, find_structured_strings: Callable[[str], tuple],
                   spreadsheet_cell_ceiling: int,
                   ocr_page_ceiling: int, ocr_seconds_per_file: int,
+                  ocr_sparse_page_words: int | None = None,
                   **overrides: Any) -> Readers:
     """The wired `Readers`. Pass `**overrides` to swap any single reader.
 
@@ -187,7 +188,13 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
                        "languages": list(recognition_languages(
                            recognition_level=VISION_CONFIG["recognition_level"])),
                        "page_cap": ocr_page_ceiling,
-                       "time_limit_seconds": ocr_seconds_per_file},
+                       "time_limit_seconds": ocr_seconds_per_file,
+                       # `ocr_policy.sparse_pages`' floor: a page with fewer words
+                       # than this has no text layer and is read. None keeps the
+                       # bare rule (a page with no words at all); the product
+                       # passes `cli.OCR_SPARSE_PAGE_WORDS`. SPEC OQ1's deferred
+                       # configuration value, held here and not in the policy.
+                       "sparse_page_words": ocr_sparse_page_words},
         "read_docx": python_docx_reader(),
         # §2.5's manifest, from the standard library. No ceiling: how many members
         # are worth listing is a deployment budget, and this deployment would

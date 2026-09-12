@@ -1146,3 +1146,26 @@ def test_control_bytes_that_decode_are_still_not_a_spreadsheet(tmp_path, extensi
     path.write_bytes(b"\x00\x01\x02rawsensor\x03")
 
     assert read(path) is None
+
+
+def test_two_events_sharing_a_uid_are_two_entries(tmp_path):
+    """`104` R-178: a recurring event's exceptions share its UID, and two exported
+    calendars on the owner's second corpus failed whole with `DuplicateUnit`. The
+    RECURRENCE-ID tells them apart; when a file repeats even that, position does."""
+    from readers.long_tail_stdlib import _read_ics
+    path = tmp_path / "series.ics"
+    path.write_text(
+        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n"
+        "BEGIN:VEVENT\r\nUID:series-1\r\nDTSTART:20260312T090000\r\n"
+        "DESCRIPTION:Weekly advising\r\nEND:VEVENT\r\n"
+        "BEGIN:VEVENT\r\nUID:series-1\r\nRECURRENCE-ID:20260319T090000\r\n"
+        "DTSTART:20260319T100000\r\nDESCRIPTION:Moved an hour\r\n"
+        "DESCRIPTION:Bring the form\r\nEND:VEVENT\r\n"
+        "BEGIN:VEVENT\r\nUID:series-1\r\nDTSTART:20260326T090000\r\n"
+        "DESCRIPTION:Repeated verbatim\r\nEND:VEVENT\r\n"
+        "END:VCALENDAR\r\n")
+    document = _read_ics(path)
+    labels = [entry.label for entry in document.entries]
+    assert labels == ["series-1", "series-1 / 20260319T090000", "series-1 #3"]
+    assert [(t.entry_ordinal, t.region) for t in document.texts] == [
+        (1, 1), (2, 1), (2, 2), (3, 1)]

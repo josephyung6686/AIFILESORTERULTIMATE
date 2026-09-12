@@ -45,6 +45,7 @@ from extractors.long_tail import LONG_TAIL_SOURCE_TYPES, extract_long_tail
 from extractors.ocr import extract_ocr
 from extractors.ocr_policy import (
     direct_document_ocr_needed, document_ocr_decision, image_ocr_decision,
+    sparse_pages,
 )
 from extractors.pdf import extract_pdf
 from extractors.safety import DatalessRefused, ProtectedContainerRefused
@@ -141,7 +142,8 @@ class Dispatched:
 
 
 def _ocr(*, file_row, path, policy, readers, now, context_window,
-         budget_spent: bool, alongside: ExtractionResult | None
+         budget_spent: bool, alongside: ExtractionResult | None,
+         pages: tuple[int, ...] | None = None
          ) -> tuple[ExtractionResult | None, float]:
     """The OCR run and the seconds it took; or the run its failure is; or the run
     the scan's OCR budget stopped before it started; or None when no engine is
@@ -199,11 +201,17 @@ def _ocr(*, file_row, path, policy, readers, now, context_window,
             analysis_tier=ocr.ANALYSIS_TIER,
             units=units, total=total, now=now), 0.0
     started = time.monotonic()
+    # `pages` is the per-page half of §2.2 (`ocr_policy.sparse_pages`): the pages
+    # whose text layer is absent, and the only pages the engine renders. It rides in
+    # the run's own `config` so the stored run says which pages were read.
+    config = dict(readers.ocr_config or {})
+    if pages:
+        config["pages"] = list(pages)
     try:
         return extract_ocr(
             file_row=file_row, path=path, policy=policy,
             ocr_engine=readers.ocr_engine,
-            config=dict(readers.ocr_config or {}),
+            config=config,
             find_structured_strings=readers.find_structured_strings,
             now=now, context_window=context_window), time.monotonic() - started
     except ContractViolation:
@@ -258,11 +266,17 @@ def extract_initial(*, file_row: Mapping[str, Any], decision, path: Path, policy
         # The signals index into the NATIVE batch, which is result 0 whether or not
         # OCR runs beside it -- the same naming CR-05b gave the image branch.
         signals = pdf.person_field_signals(first)
-        # Before P6, only an absent text layer authorizes OCR. A non-empty layer is
-        # persisted first so P6 can evaluate the evidence rather than a preview.
-        if direct_document_ocr_needed(result=first):
+        # Before P6, an absent text layer authorizes OCR -- PER PAGE since 11 Sep
+        # 2026 (`104` §18.53): a typed cover over thirteen photographed pages was
+        # "a text layer" and the thirteen pages were never read. None means the
+        # whole document has none (every page, as before); an empty tuple means
+        # every page has text and P6 decides later, through `document_ocr_decision`.
+        pages = sparse_pages(
+            result=first,
+            word_floor=(readers.ocr_config or {}).get("sparse_page_words"))
+        if pages is None or pages:
             second, seconds = _ocr(readers=readers, budget_spent=ocr_budget_spent,
-                                   alongside=first, **common)
+                                   alongside=first, pages=pages, **common)
             if second is not None:
                 return Dispatched((first, second), signals, 0, seconds)
         return Dispatched((first,), signals, 0)

@@ -144,7 +144,12 @@ def test_an_image_with_no_text_and_no_metadata_reaches_ocr(sink):
     assert decision.state is None       # §2.2's states are about documents
 
 
-def test_an_image_with_usable_metadata_does_not_reach_ocr():
+def test_an_image_with_usable_metadata_is_still_read():
+    """Re-argued 11 Sep 2026 (`00` amendment 6, `104` §18.53). §2.7 wrote "no usable
+    text AND no usable metadata"; the owner, reading the second corpus, ruled that a
+    photograph of a page IS words: camera EXIF said "photograph" of an 11,000-character
+    book page and it was never read. Metadata says what an image is; it no longer
+    decides whether it is looked at."""
     from extractors.shape import location, observation, run, segment
     from extractors.sink import ExtractionResult
     with_exif = ExtractionResult(
@@ -161,7 +166,7 @@ def test_an_image_with_usable_metadata_does_not_reach_ocr():
             location=location(zone="metadata",
                               container_path=(segment("field", label="Make"),)),
             observed_at=FIXED_CLOCK, reliability="direct", signal_tier=1),))
-    assert image_ocr_decision(result=with_exif).run_ocr is False
+    assert image_ocr_decision(result=with_exif).run_ocr is True
 
 
 def test_ocr_text_density_is_not_an_input_anywhere_in_the_policy():
@@ -229,25 +234,18 @@ def test_a_real_opaque_screenshot_reaches_ocr():
     assert image_ocr_decision(result=result).run_ocr is True
 
 
-def test_a_real_photograph_with_camera_exif_does_not_reach_ocr():
-    """§2.6 tier 1 -- "camera EXIF is strong photo evidence"."""
+def test_a_real_photograph_with_camera_exif_is_read():
+    """§2.6 tier 1 still says "camera EXIF is strong photo evidence" -- about what the
+    image IS. Since 11 Sep 2026 that is not a reason to leave its words unread."""
     from extractors.image import ExifValue
     result = _real_image(record={"exif": (
         ExifValue(name="Make", value="Apple", kind="camera EXIF"),)})
-    assert image_ocr_decision(result=result).run_ocr is False
+    assert image_ocr_decision(result=result).run_ocr is True
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "Re-argued 11 Sep 2026 (104 §18.52): dimensions ALONE no longer hold OCR back. "
-    "On the owner's second corpus a 1080x1080 design-tool graphic was read as "
-    "sensor-shaped and skipped, with 45 other images; §2.7's trigger reads the "
-    "metadata that says what the image IS. Beside camera EXIF, dimensions still "
-    "hold it back (the pin below). Whether 1080x1080 is sensor-shaped at all is "
-    "the dimension-signal tiebreak the code already marks NEEDS JOSEPH."))
-def test_sensor_shaped_dimensions_are_enough_to_hold_ocr_back():
-    """§2.6 tier 2 -- "capture time, GPS, and sensor-shaped dimensions reinforce it"."""
+def test_sensor_shaped_dimensions_do_not_hold_ocr_back():
     result = _real_image(dimension_signal=lambda w, h: "sensor-shaped dimensions")
-    assert image_ocr_decision(result=result).run_ocr is False
+    assert image_ocr_decision(result=result).run_ocr is True
 
 
 def test_an_exact_display_resolution_is_not_enough():
@@ -289,5 +287,59 @@ def test_an_image_whose_only_usable_metadata_is_its_dimensions_reaches_ocr():
     graphic = result(meta(DIMENSIONS_FIELD, 2, "1080x1080"), meta("format", 3, "PNG"),
                      meta("Software", 3, "Canva"))
     assert image_ocr_decision(result=graphic).run_ocr is True
+    # Same day, a few hours on: the owner's ruling made the photograph's words the
+    # file too (`00` amendment 6), so the camera EXIF beside the dimensions no
+    # longer holds OCR back either. Both are read.
     photo = result(meta(DIMENSIONS_FIELD, 2, "4032x3024"), meta("Make", 1, "Apple"))
-    assert image_ocr_decision(result=photo).run_ocr is False
+    assert image_ocr_decision(result=photo).run_ocr is True
+
+
+# ------------------------------------------------------------ §2.2, per page
+def _document(pages: dict[int, str], total: int | None = None):
+    from extractors.shape import run, segment, text_unit
+    from extractors.sink import ExtractionResult
+    count = total if total is not None else (max(pages) if pages else 0)
+    return ExtractionResult(
+        run=run(file_id="f1", content_hash="67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
+                extractor_name="pdf.text", extractor_version="0.1.0",
+                source_type="document", analysis_tier="native", config={},
+                completeness="complete",
+                coverage={"units": "pages", "processed": count, "total": count},
+                observation_count=0, started_at=FIXED_CLOCK, finished_at=FIXED_CLOCK),
+        text_units=tuple(text_unit(text=text, container_path=(segment("page", index=n),))
+                         for n, text in pages.items()))
+
+
+def test_a_document_with_no_text_at_all_is_the_file_level_route():
+    """None: every page, exactly as `direct_document_ocr_needed` always said."""
+    from extractors.ocr_policy import sparse_pages
+    assert sparse_pages(result=_document({}), word_floor=None) is None
+    assert sparse_pages(result=_document({1: "", 2: "   "}), word_floor=None) is None
+
+
+def test_a_typed_cover_over_photographed_pages_sends_those_pages_to_ocr():
+    """11 Sep 2026, the owner's second corpus (`104` §18.53): fourteen pages, one
+    typed, thirteen photographs; the file "had a text layer" and thirteen pages were
+    never read. A page with no words has no text layer, whatever page 1 has."""
+    from extractors.ocr_policy import sparse_pages
+    result = _document({1: "Honors Precalculus, due Thursday: sketch each graph",
+                        2: "", 3: "1"}, total=4)
+    assert sparse_pages(result=result, word_floor=None) == (2, 3, 4)
+
+
+def test_the_deployments_word_floor_catches_a_scanners_garbage_layer():
+    """A scanned form whose scanner embedded "tle Jes," on every page has a text layer
+    of stray words. The floor is the deployment's number (SPEC OQ1's deferred
+    configuration value), never this module's."""
+    from extractors.ocr_policy import sparse_pages
+    result = _document({1: "tle Jes, Says esmsis", 2: " ".join(["word"] * 40)})
+    assert sparse_pages(result=result, word_floor=20) == (1,)
+    assert sparse_pages(result=result, word_floor=None) == ()
+
+
+def test_every_page_with_words_leaves_the_decision_to_p6():
+    """An empty tuple: nothing is sent before P6; `document_ocr_decision` still
+    decides the broken-layer case on P6's verdict."""
+    from extractors.ocr_policy import sparse_pages
+    result = _document({1: " ".join(["alpha"] * 30), 2: " ".join(["beta"] * 30)})
+    assert sparse_pages(result=result, word_floor=20) == ()

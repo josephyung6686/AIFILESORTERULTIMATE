@@ -247,6 +247,80 @@ def _body_blocks(document: _Document):
             yield Table(child, document)
 
 
+#: Word writes every drawing twice, a `mc:Choice` the current Word reads and a
+#: `mc:Fallback` for older ones, with the same words in both.
+_MC_FALLBACK = "{http://schemas.openxmlformats.org/markup-compatibility/2006}Fallback"
+
+
+def _box_paragraphs(element, parent) -> list[Paragraph]:
+    """The paragraphs inside every text box under `element`, in document order,
+    reading the `mc:Choice` copy only. A flyer, a poster, a form built from shapes
+    keeps its words in `w:txbxContent`, which `Paragraph.text` and `_Cell.text`
+    never reach (11 Sep 2026, `104` §18.53: three blood-drive flyers on the owner's
+    second corpus came out as their filenames). Three identical boxes are three
+    boxes; only the Fallback twin is the same box twice."""
+    found: list[Paragraph] = []
+    for content in element.iter(qn("w:txbxContent")):
+        if any(ancestor.tag == _MC_FALLBACK for ancestor in content.iterancestors()):
+            continue
+        for paragraph in content.findall(qn("w:p")):
+            found.append(Paragraph(paragraph, parent))
+    return found
+
+
+def _read_table(table: Table, table_index: int, cells: list[DocxCell]) -> int:
+    """Every cell of `table` once, then every table nested in a cell, numbered on
+    from `table_index`; returns the next free table number.
+
+    A MERGED CELL IS ONE CELL. python-docx's `row.cells` hands back the same
+    underlying `w:tc` once per grid column it spans (and once per row for a
+    vertical merge), so a résumé laid out as one wide table came out at twenty
+    times its length -- 169 copies of the same cell on the owner's second corpus,
+    11 Sep 2026 (`104` §18.53). Each `w:tc` is emitted at the first grid position
+    it occupies and never again. A cell's own words are its paragraphs and the
+    text boxes drawn in it; the tables nested in it (a résumé's columns inside a
+    layout table) are tables of their own and were never read before that date.
+    """
+    rows = table.rows
+    headers: list[str | None] = []
+    if rows:
+        headers = [cell.text.strip() or None for cell in rows[0].cells]
+    # Row 0 is the header row. That is a convention rather than a fact Word
+    # records -- `w:tblHeader` marks a REPEATING header and most documents that
+    # have a header row do not set it -- so it is applied only to name the column,
+    # never to drop the row: row 0 is emitted as a cell like any other and a caller
+    # that disagrees still has it.
+    # Identity, not `id()`: lxml frees an element's Python proxy when nothing
+    # holds it and hands the address to the next one, so `id(cell._tc)` called a
+    # résumé's twenty-three distinct cells "the same cell" (measured 11 Sep 2026,
+    # 300 of 3,124 characters kept). The proxies are held here, so `is` is exact.
+    seen_tc: list = []
+    nested: list[Table] = []
+    this_table = table_index
+    for row_index, row in enumerate(rows, start=1):
+        for column_index, cell in enumerate(row.cells, start=1):
+            tc = cell._tc
+            if any(tc is seen for seen in seen_tc):
+                continue
+            seen_tc.append(tc)
+            header = (headers[column_index - 1]
+                      if column_index <= len(headers) else None)
+            own = [paragraph.text for paragraph in cell.paragraphs
+                   if paragraph.text.strip()]
+            own += [inner.text for inner in _box_paragraphs(cell._tc, cell)
+                    if inner.text.strip()]
+            cells.append(DocxCell(
+                table=this_table, row=row_index, column=column_index,
+                text="\n".join(own),
+                # A header row is not its own column header.
+                column_header=None if row_index == 1 else header))
+            nested.extend(cell.tables)
+    table_index += 1
+    for inner in nested:
+        table_index = _read_table(inner, table_index, cells)
+    return table_index
+
+
 def _read(path: Path) -> DocxDocument | None:
     document = docx.Document(str(path))
 
@@ -283,51 +357,55 @@ def _read(path: Path) -> DocxDocument | None:
             #: documents that have a header row do not set it -- so it is applied
             #: only to name the column, never to drop the row: row 0 is emitted as
             #: a cell like any other and a caller that disagrees still has it.
-            rows = block.rows
-            headers: list[str | None] = []
-            if rows:
-                headers = [cell.text.strip() or None for cell in rows[0].cells]
-            for row_index, row in enumerate(rows, start=1):
-                for column_index, cell in enumerate(row.cells, start=1):
-                    header = (headers[column_index - 1]
-                              if column_index <= len(headers) else None)
-                    cells.append(DocxCell(
-                        table=table_index, row=row_index, column=column_index,
-                        text=cell.text,
-                        # A header row is not its own column header.
-                        column_header=None if row_index == 1 else header))
-            table_index += 1
+            table_index = _read_table(block, table_index, cells)
             continue
 
         text = block.text
-        if not text.strip():
+        # THE WORDS IN A TEXT BOX. A flyer, a poster, a form built from shapes keeps
+        # its words inside `w:txbxContent`, nested under the paragraph's drawing,
+        # and `Paragraph.text` reads only the paragraph's own runs. Three blood-drive
+        # flyers on the owner's second corpus (11 Sep 2026, `104` §18.53) came out as
+        # their filenames and nothing else. Each box paragraph is a paragraph of its
+        # own, in the order it sits, taking the next ordinal. Word writes every box
+        # twice (`mc:Choice` and `mc:Fallback`), so a text already seen under this
+        # host paragraph is the same box, not a second one (`_box_paragraphs`).
+        boxed: list[Paragraph] = [
+            inner for inner in _box_paragraphs(block._element, block._parent)
+            if inner.text.strip()]
+        if not text.strip() and not boxed:
             # An empty paragraph is layout, not content. It still consumes no
             # ordinal, so the ordinals stay dense and a person counting
             # paragraphs in Word and a citation here agree about which is which.
             continue
-        zone, level = _zone(block)
-        if zone == "heading" and level is not None:
-            ancestry = [entry for entry in ancestry if entry[0] < level]
-            ancestry.append((level, index, text))
-        paragraphs.append(DocxParagraph(
-            index=index, text=text, zone=zone,
-            heading_path=tuple((ordinal, label)
-                               for _, ordinal, label in ancestry)))
-        # `104` §18.2 gap 17, ANCHORED TO THE ORDINAL THIS PARAGRAPH JUST TOOK.
-        # Collected here rather than from a second pass over `document.paragraphs`
-        # for the reason `_body_blocks` exists at all: that property skips
-        # everything inside a table and loses the layout order, so a second walk
-        # would hand P4 an ordinal that addresses a different paragraph.
-        #
-        # `address` is the external URI; an anchor into the same document (a
-        # cross-reference, a bookmark) has none and is skipped, because P4 would
-        # store an empty `raw_value` for it and an observation records presence,
-        # never absence.
-        for hyperlink in block.hyperlinks:
-            target = (hyperlink.address or "").strip()
-            if target:
-                links.append(DocxLink(target=target, paragraph=index))
-        index += 1
+        # The host paragraph first, when it has words of its own, then its boxes:
+        # one path for all of them, so a box paragraph is a paragraph in every
+        # respect -- zone, heading ancestry, hyperlinks, and an ordinal of its own.
+        for member in ([block] if text.strip() else []) + boxed:
+            text = member.text
+            zone, level = _zone(member)
+            if zone == "heading" and level is not None:
+                ancestry = [entry for entry in ancestry if entry[0] < level]
+                ancestry.append((level, index, text))
+            paragraphs.append(DocxParagraph(
+                index=index, text=text, zone=zone,
+                heading_path=tuple((ordinal, label)
+                                   for _, ordinal, label in ancestry)))
+            # `104` §18.2 gap 17, ANCHORED TO THE ORDINAL THIS PARAGRAPH JUST TOOK.
+            # Collected here rather than from a second pass over
+            # `document.paragraphs` for the reason `_body_blocks` exists at all:
+            # that property skips everything inside a table and loses the layout
+            # order, so a second walk would hand P4 an ordinal that addresses a
+            # different paragraph.
+            #
+            # `address` is the external URI; an anchor into the same document (a
+            # cross-reference, a bookmark) has none and is skipped, because P4
+            # would store an empty `raw_value` for it and an observation records
+            # presence, never absence.
+            for hyperlink in member.hyperlinks:
+                target = (hyperlink.address or "").strip()
+                if target:
+                    links.append(DocxLink(target=target, paragraph=index))
+            index += 1
 
     #: AFTER the body, and that ordering is load-bearing. A paragraph ordinal is an
     #: ADDRESS (P4 D3) and every stored citation into this document names one, so

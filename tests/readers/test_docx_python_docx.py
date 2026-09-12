@@ -294,3 +294,59 @@ def test_a_document_with_no_running_matter_gains_nothing(written):
     document = python_docx_reader()(written)
     assert [p for p in document.paragraphs if p.zone == "header_footer"] == []
     assert document.annotations == ()
+
+
+# ------------------------------------------------- 11 Sep 2026, `104` §18.53
+def test_a_merged_cell_is_read_once(tmp_path):
+    """python-docx hands a spanned cell back once per grid column; a résumé laid out
+    as one wide table came out at twenty times its length. And the check must be
+    identity, not `id()`: lxml recycles a freed proxy's address."""
+    document = docx_lib.Document()
+    table = document.add_table(rows=2, cols=3)
+    merged = table.cell(0, 0).merge(table.cell(0, 2))
+    merged.text = "Joseph -- summary across the whole width"
+    for column, word in enumerate(("Education", "Skills", "Service")):
+        table.cell(1, column).text = word
+    path = tmp_path / "wide.docx"
+    document.save(path)
+    read = python_docx_reader()(path)
+    texts = [cell.text for cell in read.cells]
+    assert texts.count("Joseph -- summary across the whole width") == 1
+    assert texts[1:] == ["Education", "Skills", "Service"]
+
+
+def _text_box(document, words: str, fallback_too: bool = True):
+    """A paragraph holding one text box the way Word writes it: `mc:Choice` and,
+    when asked, the `mc:Fallback` twin carrying the same words."""
+    from docx.oxml import OxmlElement, parse_xml
+    MC = "http://schemas.openxmlformats.org/markup-compatibility/2006"
+    W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    box = (f'<w:txbxContent xmlns:w="{W}"><w:p><w:r><w:t>{words}</w:t></w:r></w:p>'
+           f'</w:txbxContent>')
+    fallback = (f'<mc:Fallback xmlns:mc="{MC}"><w:pict xmlns:w="{W}">{box}</w:pict>'
+                f'</mc:Fallback>' if fallback_too else "")
+    xml = (f'<mc:AlternateContent xmlns:mc="{MC}" xmlns:w="{W}">'
+           f'<mc:Choice Requires="wps"><w:drawing>{box}</w:drawing></mc:Choice>'
+           f'{fallback}</mc:AlternateContent>')
+    paragraph = document.add_paragraph()
+    run = OxmlElement("w:r")
+    run.append(parse_xml(xml))
+    paragraph._p.append(run)
+    return paragraph
+
+
+def test_the_words_in_a_text_box_are_read_once_and_in_order(tmp_path):
+    """A flyer built from shapes keeps its words in `w:txbxContent`, which
+    `Paragraph.text` never reaches; three such flyers came out as their filenames.
+    Word writes each box twice (Choice and Fallback); that is one box."""
+    document = docx_lib.Document()
+    document.add_paragraph("Before the box")
+    _text_box(document, "Blood Drive Name")
+    _text_box(document, "Blood Drive Name")      # a second, identical box
+    document.add_paragraph("After the box")
+    path = tmp_path / "flyer.docx"
+    document.save(path)
+    read = python_docx_reader()(path)
+    assert [p.text for p in read.paragraphs] == [
+        "Before the box", "Blood Drive Name", "Blood Drive Name", "After the box"]
+    assert [p.index for p in read.paragraphs] == [1, 2, 3, 4]

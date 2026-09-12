@@ -2423,6 +2423,20 @@ OCR_PAGE_CEILING: int = 20
 #: trusting whoever next edits one of them.
 OCR_SECONDS_PER_FILE: int = 120
 
+#: A PDF page with fewer words than this has no text layer and is sent to OCR, page
+#: by page (`ocr_policy.sparse_pages`); the only place the NUMBER is chosen.
+#:
+#: WHY. 11 Sep 2026, the owner's second corpus (`104` §18.53): a homework set with
+#: one typed cover page and thirteen photographed pages, and scanned forms whose
+#: scanner had embedded a garbage text layer ("tle Jes,", "Says esmsis"), both counted
+#: as "having a text layer" and were never OCR'd. Measured there: 88 of 130 PDFs had
+#: pages under three words. A page of prose carries hundreds of words; a chapter
+#: divider, a music sheet or a scan's stray characters carry a handful. Twenty sends
+#: the second kind to Vision and costs the first kind nothing. SPEC Open question 1
+#: calls this a deferred configuration value, and it is one: `readers/deployment.py`
+#: carries it into the OCR run's own config, so what bounded a run is on the run.
+OCR_SPARSE_PAGE_WORDS: int = 20
+
 #: HOW MANY PROCESSES READ FILES AT ONCE, and the only place the number is chosen.
 #: `extraction_pool.ProcessPool` refuses to default it, for the reason every number
 #: in this product refuses to default: absent means refuse, never guess.
@@ -8061,7 +8075,8 @@ def extraction_context() -> ExtractionContext:
                               # what bounded a run can be read back from the run's
                               # own database rather than from this file.
                               ocr_page_ceiling=OCR_PAGE_CEILING,
-                              ocr_seconds_per_file=OCR_SECONDS_PER_FILE),
+                              ocr_seconds_per_file=OCR_SECONDS_PER_FILE,
+                              ocr_sparse_page_words=OCR_SPARSE_PAGE_WORDS),
         # Transcription opens audio and video. Not authorised, and saying so is
         # what keeps it off rather than the absence of a transcriber.
         transcription_authorized=lambda: False)

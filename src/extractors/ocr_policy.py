@@ -24,6 +24,8 @@ threshold behind that verdict is SPEC Open question 1 and is not answered here.
 """
 from __future__ import annotations
 
+import re
+
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -56,64 +58,62 @@ def _has_text(result: ExtractionResult) -> bool:
 def direct_document_ocr_needed(*, result: ExtractionResult) -> bool:
     """Whether a PDF must go directly to OCR before P6 can evaluate evidence.
 
-    A non-empty text layer is deliberately left alone.  Whether its stored evidence
-    yields usable facts is knowable only after P6 completes, through
-    :func:`document_ocr_decision`.
+    A non-empty text layer is deliberately left alone AT THE FILE LEVEL.  Whether its
+    stored evidence yields usable facts is knowable only after P6 completes, through
+    :func:`document_ocr_decision`.  `sparse_pages` below is the per-page reading of
+    the same rule, and it is what the dispatcher asks now.
     """
     return not _has_text(result)
 
 
-#: §2.6's hierarchy, read at the level that decides. "Camera EXIF is strong photo
-#: evidence; capture time, GPS, and sensor-shaped dimensions reinforce it; exact
-#: display resolutions, PNG format, and software metadata may support a screenshot
-#: hypothesis." Tiers 1 and 2 are evidence ABOUT the image; tier 3 is what every
-#: image has, which is why it appears in the design as support for the SCREENSHOT
-#: hypothesis rather than against it.
-from extractors.image import DIMENSIONS_FIELD
-
-USABLE_METADATA_TIERS: frozenset[int] = frozenset({1, 2})
-
-
-def _field_of(observation) -> str | None:
-    """The metadata field an observation sits in, off its own container path."""
-    for segment in observation["location"].get("container_path", ()):
-        if segment.get("kind") == "field":
-            return segment.get("label")
+def _page_of(unit) -> int | None:
+    for segment in unit["container_path"]:
+        if segment.get("kind") == "page":
+            return segment.get("index")
     return None
 
 
-def _has_metadata_observation(result: ExtractionResult) -> bool:
-    """Did this run find metadata that says anything about the image?
+def _words(text: str) -> int:
+    """Alphabetic tokens of two or more letters. Not a language-quality check: it does
+    not judge the words, it notices whether the page has any."""
+    return sum(1 for _ in re.finditer(r"[^\W\d_]{2,}", text))
 
-    This counted ANY `zone=metadata` row, and §2.7's main path was dead as a result.
-    E5 emits `format` and `pixel dimensions` for every image, both at `zone=metadata`,
-    so an opaque PNG screenshot with no EXIF -- §2.7's own named example -- always had
-    "usable metadata" and never reached OCR. Executed 2026-08-21: no real image could
-    reach E6 at all. §2.7 opens by saying OCR "is the main way screenshots and opaque
-    loose images become understandable to the pre-sorting engine", so that path being
-    unreachable is not a small gap.
 
-    §2.6's hierarchy is the fix and it is already on the record: M2 puts `signal_tier`
-    on the observation precisely so it is "carried on the record and never re-derived
-    downstream". Reading it here uses that hierarchy; it does not build a second one.
+def sparse_pages(*, result: ExtractionResult,
+                 word_floor: int | None) -> tuple[int, ...] | None:
+    """The pages of a document whose text layer is absent, read PER PAGE.
 
-    A tier-3-only image is one the design says "may support a screenshot hypothesis",
-    and §2.6 also warns the system "must not mistake the absence of EXIF for proof
-    that an image is a screenshot" -- which is why the answer is to READ it, not to
-    classify it. Running OCR on a photograph a messaging platform stripped is exactly
-    right: nothing is being classified, the pixels are being read.
+    11 Sep 2026, the owner's second corpus (`104` §18.53): a fourteen-page homework
+    set had one typed cover page and thirteen photographed pages; a scanned volunteer
+    file carried a scanner's garbage text layer ("tle Jes,", "Says esmsis") on every
+    page. Both had "a text layer", so `direct_document_ocr_needed` said no and P6,
+    finding a date on the cover, said the layer was usable. §2.2's rule -- no text
+    layer routes to OCR -- is right; applying it to the whole file when the file is
+    a stack of pages was the defect. 88 of 130 PDFs on that corpus have pages with
+    fewer than three words.
+
+    Returns None when the whole document has no text (the file-level route: OCR
+    every page, as before); otherwise the page numbers whose text layer is absent.
+    A page is absent when it stores no non-blank text, or, when the deployment
+    supplies `word_floor` (`readers/deployment.py`, `cli.OCR_SPARSE_PAGE_WORDS`),
+    when it carries fewer words than that. The NUMBER lives with the deployment,
+    which is what SPEC Open question 1 asks: a deferred configuration value, not a
+    constant in this module. A page the reader reported in `coverage.total` but
+    stored no unit for is absent.
     """
-    # An image's DIMENSIONS are never usable metadata for this decision, whatever
-    # tier §2.6's hierarchy gives them: 1080x1080 says nothing about what the
-    # image is. Measured 11 Sep 2026 on the owner's second corpus: 46 of 63
-    # images were skipped by OCR because their pixel dimensions carried tier 2
-    # (read as sensor-shaped), among them four designed graphics whose words a
-    # person reads at a glance. §2.7's trigger is about metadata that says what
-    # the image IS -- camera EXIF, capture time, GPS -- and those still count.
-    return any(o["location"]["zone"] == "metadata"
-               and _field_of(o) != DIMENSIONS_FIELD
-               and o.get("signal_tier") in USABLE_METADATA_TIERS
-               for o in result.observations)
+    if not _has_text(result):
+        return None
+    words: dict[int, int] = {}
+    for unit in result.text_units:
+        page = _page_of(unit)
+        if page is None:
+            continue
+        words[page] = words.get(page, 0) + _words(unit["text"])
+    coverage = result.run.get("coverage") or {}
+    total = coverage.get("processed") if coverage.get("units") == "pages" else None
+    numbers = range(1, (total or 0) + 1) if total else sorted(words)
+    floor = 1 if word_floor is None else word_floor
+    return tuple(n for n in numbers if words.get(n, 0) < floor)
 
 
 def text_layer_state(*, result: ExtractionResult, file_id: str, content_hash: str,
@@ -151,17 +151,24 @@ def document_ocr_decision(*, result: ExtractionResult, file_id: str,
 
 
 def image_ocr_decision(*, result: ExtractionResult) -> OcrDecision:
-    """Section 2.7's trigger for an image: "when a file yields no usable text AND no
-    usable metadata, including scanned PDFs, confirmed screenshots, and opaque images
-    without EXIF."
+    """Every image is read. Nothing about an image's metadata holds OCR back.
 
-    Reading an absence to make a routing decision is allowed; WRITING one as an
-    observation is not (M2), and nothing here writes anything.
+    §2.7 wrote the trigger as "no usable text AND no usable metadata", and the owner
+    ruled it away on 11 Sep 2026 (`00` amendment 6, `104` §18.52-§18.53) after
+    reading the second corpus: four designed graphics were filed with nothing
+    extracted, and camera photographs of a book page (11,000 characters of words)
+    and of a printed passage were skipped because their EXIF said "photograph". A
+    photograph of a page IS words. Reading an image classifies nothing; the pixels
+    are read, the metadata stays what it was, and §2.6's tiers keep their meaning
+    for what the image is -- they no longer decide whether it is looked at.
+
+    The only thing that holds OCR back is text this run already stored, which an
+    image run never does; the branch is kept so the decision stays a decision.
     """
-    if _has_text(result) or _has_metadata_observation(result):
+    if _has_text(result):
         return OcrDecision(state=None, run_ocr=False, targeted=False,
-                           reason="the file yielded usable text or usable metadata")
+                           reason="the file yielded usable text")
     return OcrDecision(
         state=None, run_ocr=True, targeted=False,
-        reason=("no usable text and no usable metadata (section 2.7); an opaque "
-                "image is how a screenshot becomes understandable at all"))
+        reason=("every image is read (owner's ruling of 11 Sep 2026): the words on "
+                "a graphic or a photographed page are the file"))

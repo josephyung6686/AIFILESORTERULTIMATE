@@ -825,6 +825,21 @@ def _sent_iso(message) -> str | None:
         return None
 
 
+def _unique_label(label: str, taken: set[str], ordinal: int) -> str:
+    """One entry, one label. An entry is label-addressed (P4 segment-kind rule 2),
+    and `text_units` is keyed by the container path, so two entries wearing one
+    label lose the second's text to `DuplicateUnit` (`104` R-178: a recurring
+    calendar event's exceptions share its UID; two exported calendars on the owner's
+    second corpus failed whole). The format's own identifier stays the label and the
+    second wearer is told apart by its position."""
+    if label not in taken:
+        taken.add(label)
+        return label
+    disambiguated = f"{label} #{ordinal}"
+    taken.add(disambiguated)
+    return disambiguated
+
+
 def _assemble_mail(messages: list[Any]) -> LongTailFile:
     """The shared shape for one `.eml` and for an `.mbox` of many.
 
@@ -837,9 +852,11 @@ def _assemble_mail(messages: list[Any]) -> LongTailFile:
     entries: list[LongTailEntry] = []
     values: list[LongTailValue] = []
     texts: list[LongTailText] = []
+    taken: set[str] = set()
     for ordinal, message in enumerate(messages, 1):
         identifier = str(message.get("Message-ID") or f"message {ordinal}").strip()
-        entries.append(LongTailEntry(kind="entry", label=identifier))
+        entries.append(LongTailEntry(kind="entry",
+                                     label=_unique_label(identifier, taken, ordinal)))
         values.extend(_message_values(message, ordinal))
         body, _ = _message_bodies(message, ordinal, 0)
         texts.extend(body)
@@ -909,18 +926,29 @@ def _read_ics(path: Path) -> LongTailFile:
     texts: list[LongTailText] = []
     iso_dates: dict[str, str] = {}
     events = list(_blocks(lines, "VEVENT"))
+    taken: set[str] = set()
     for ordinal, block in enumerate(events, 1):
         properties = [pair for pair in (_property(line) for line in block)
                       if pair is not None]
         identifier = next((v for n, v in properties if n == "UID"), f"event {ordinal}")
-        entries.append(LongTailEntry(kind="entry", label=identifier.strip()))
+        # A recurrence exception shares the series' UID and differs by RECURRENCE-ID;
+        # that pair is the event's own identifier, and only when a file repeats
+        # even that does position tell them apart.
+        recurrence = next((v for n, v in properties if n == "RECURRENCE-ID"), None)
+        label = identifier.strip() + (f" / {recurrence.strip()}" if recurrence else "")
+        entries.append(LongTailEntry(kind="entry",
+                                     label=_unique_label(label, taken, ordinal)))
+        region = 0
         for name, value in properties:
             rendered = _unescape(value).strip()
             if not rendered:
                 continue
             if name == "DESCRIPTION":
+                # A second DESCRIPTION in one event is a second region, not the
+                # first one's twin.
+                region += 1
                 texts.append(LongTailText(zone="notes", text=rendered,
-                                          entry_ordinal=ordinal, region=1))
+                                          entry_ordinal=ordinal, region=region))
                 continue
             if name not in _EVENT_PROPERTIES:
                 continue
@@ -939,20 +967,23 @@ def _read_vcf(path: Path) -> LongTailFile:
     entries: list[LongTailEntry] = []
     values: list[LongTailValue] = []
     texts: list[LongTailText] = []
+    taken: set[str] = set()
     for ordinal, block in enumerate(_blocks(lines, "VCARD"), 1):
         properties = [pair for pair in (_property(line) for line in block)
                       if pair is not None]
         name = next((v for n, v in properties if n == "FN"), None)
         identifier = next((v for n, v in properties if n == "UID"), None)
-        entries.append(LongTailEntry(
-            kind="entry", label=(identifier or name or f"card {ordinal}").strip()))
+        entries.append(LongTailEntry(kind="entry", label=_unique_label(
+            (identifier or name or f"card {ordinal}").strip(), taken, ordinal)))
+        region = 0
         for slot, value in properties:
             rendered = _unescape(value).strip()
             if not rendered:
                 continue
             if slot == "NOTE":
+                region += 1
                 texts.append(LongTailText(zone="notes", text=rendered,
-                                          entry_ordinal=ordinal, region=1))
+                                          entry_ordinal=ordinal, region=region))
                 continue
             if slot not in _CARD_PROPERTIES:
                 continue

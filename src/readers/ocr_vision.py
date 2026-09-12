@@ -366,7 +366,12 @@ def vision_ocr() -> Callable[..., OcrOutput]:
         started = time.monotonic()
         processed = 0
         stopped_early = False
-        for number in range(1, total + 1):
+        # `pages`: the subset the policy asked for (`ocr_policy.sparse_pages`), or
+        # every page. A number outside the document is skipped, not an error.
+        wanted = settings.get("pages")
+        numbers = ([n for n in wanted if 1 <= n <= total] if wanted
+                   else range(1, total + 1))
+        for number in numbers:
             if page_cap is not None and processed >= page_cap:
                 stopped_early = True
                 break
