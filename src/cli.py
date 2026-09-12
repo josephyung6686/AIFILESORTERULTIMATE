@@ -172,6 +172,9 @@ from llm_harness.prompt_library import (
     a_fact_row as prompt_library_a_fact_row,
     a_fact_template_folder_levels_bytes, draft_bytes, draft_status,
 )
+from llm_harness.prompt_library import (
+    DraftManifestAmbiguous, DraftNotInManifest,
+)
 from llm_harness.harness import (
     CallDependencies, CallLane, in_walk_order, run_call,
 )
@@ -207,9 +210,10 @@ from llm_harness.schema import create_llm_schema
 # bump` states the rule one site over: patching only one of them tests a fixture.
 from llm_harness import validation as p8_validation
 from llm_harness.vocabulary import (
-    A_FACT, B_GROUP, C_PLACEMENT, CONTEXT_SUPPORTED, D_RESIDUAL, DIRECT_ANCHOR,
-    ACCEPT_CONTEXT_SUPPORTED, ACCEPT_DIRECT,
-    E_TEMPLATE, G_SITUATION_SENSITIVITY, LLM_SUPPORTED, NOT_ELIGIBLE_FOR_MODEL,
+    A_FACT, ABSTAIN, B_GROUP, C_PLACEMENT, CONTEXT_SUPPORTED, D_RESIDUAL,
+    DIRECT_ANCHOR, ACCEPT_CONTEXT_SUPPORTED, ACCEPT_DIRECT,
+    E_TEMPLATE, G_SITUATION_SENSITIVITY, H_RESTRICTED_KIND, LLM_SUPPORTED,
+    NOT_ELIGIBLE_FOR_MODEL,
     PRE_CALL_NAMESPACE,
     SCOPE_FILE, SCOPE_TEMPLATE as TEMPLATE_SCOPE, pre_call_address,
 )
@@ -221,6 +225,9 @@ from llm_harness.vocabulary import (
 #: literal pair at the call site would be the second spelling brief §11 bans.
 ACCEPTING_OUTCOMES: frozenset[str] = frozenset(
     {ACCEPT_DIRECT, ACCEPT_CONTEXT_SUPPORTED})
+from model_gate import (
+    GateQuestion, build_gate_request, restricted_kind_vocabulary,
+)
 from model_situation import (
     NONE_OF_THESE, SITUATION_SENSITIVITY, NothingToAsk, build_situation_request,
     question_for,
@@ -275,7 +282,8 @@ from privacy.resolve import (
     current_observation, filename_address,
 )
 from privacy.vocabulary import (
-    ALWAYS_LOCAL_ZONES, CLOUD_LOCALITY, CONSENT_OPTIONS, LOCAL_MODEL_SITUATION,
+    ALWAYS_LOCAL_ZONES, CLASSIFICATION_BASES, CLOUD_LOCALITY, CONSENT_OPTIONS,
+    LOCAL_MODEL_SITUATION,
     MODE_SEMANTICS, RESTRICTED_KINDS,
 )
 from questions.explanation import explain_question, render_explanation
@@ -761,6 +769,21 @@ TIER_OF_CALL_SITE: Mapping[str, str] = MappingProxyType({
     # reasoning model sharing one budget between thinking and writing never starts
     # writing.
     G_SITUATION_SENSITIVITY: LOGIC,
+    # `00` amendment 7(c)'s gate. LOGIC, on site G's own argument and not on a new
+    # one: the answer is one identifier out of a closed list of eleven, every
+    # citation behind it is re-checked against evidence already extracted, and the
+    # decline is always available -- `83`'s "bounded, checkable,
+    # verification-shaped". It is NOT FAST although the question is narrow and the
+    # dossier short: this is the site where a medical record either is or is not
+    # recognised as one BEFORE anything about the file may be sent anywhere, so
+    # being wrong here is not "low stakes, individually cheap to get wrong" -- it
+    # is the one error this product cannot take back.
+    #
+    # §18.56 prices the other direction for the owner: qwen2.5:3b is about twice
+    # the speed of the tier's model and the gate runs on every file, so a smaller
+    # model for this site is a real lever. It is a bakeoff and the owner's, and it
+    # is a change to this line when it is taken.
+    H_RESTRICTED_KIND: LOGIC,
 })
 
 #: §8.6's response ceiling, in tokens. `00` names the ceiling and states no value,
@@ -876,18 +899,25 @@ LOCAL_MODEL_TIMEOUT_SECONDS: float = 600.0
 
 #: THE LOCAL CALL SITES ONE FILE CAN BE ASKED AT IN A SINGLE PASS, in the order the
 #: pass asks them, and the multiplier `104` R-175's per-file ceiling is built from.
-#: `_model_fact_pass` runs `ask_the_situation` (site G, one `run_call` per unsettled
-#: file, cli.py) and then the fact resolver (site A, one `run_call` per file,
-#: `model_facts.fact_call_stage`), so two is the most calls one FILE can make before
-#: the pass moves on. B and E are per GROUP and C is asked in the placement pass, so
-#: none of them lengthens a file's turn here.
+#: `_model_fact_pass` runs `ask_the_gate` (site H, one `run_call` per un-held file,
+#: cli.py), then `ask_the_situation` (site G, one `run_call` per roster file), then
+#: the fact resolver (site A, one `run_call` per file,
+#: `model_facts.fact_call_stage`), so three is the most calls one FILE can make
+#: before the pass moves on. B and E are per GROUP and C is asked in the placement
+#: pass, so none of them lengthens a file's turn here.
+#:
+#: **THE THIRD ARRIVED WITH `00` amendment 7(c)** and it is exactly the case this
+#: tuple was written for: the gate is a new per-file loop in front of the other
+#: two, so a file's turn is now three calls long and the ceiling has to know it.
+#: Whoever adds the fourth adds it here.
 #:
 #: A TUPLE OF THE SITES AND NOT THE NUMBER 2, because the number is a fact about
 #: which loops exist and would go quietly wrong the day a third site is wired --
 #: which is the same failure `MODEL_CALL_SITES_WIRED` is derived rather than written
 #: to avoid. Whoever adds a per-file call site adds it here, beside the sites, and
 #: the ceiling moves with it.
-PER_FILE_LOCAL_CALL_SITES: tuple[str, ...] = (G_SITUATION_SENSITIVITY, A_FACT)
+PER_FILE_LOCAL_CALL_SITES: tuple[str, ...] = (
+    H_RESTRICTED_KIND, G_SITUATION_SENSITIVITY, A_FACT)
 
 #: THE LARGEST CONTEXT WINDOW THIS DEPLOYMENT WILL ASK A LOCAL MODEL TO HOLD OPEN,
 #: in tokens, and the bound `readers.model_ollama` refuses above rather than letting
@@ -1124,8 +1154,44 @@ A_FACT_ROW: tuple[str, str] = (
 #: is the kind recogniser `privacy_class` has been waiting for.
 #: v3 (`104` §18.13, gap 8): the v2 text and schema with site G's OWN shaping
 #: policy, so the model-visible description of the call is true of the call.
+#:
+#: **RE-POINTED 12 September 2026 17:15 TO THE WHOLE-LIBRARY ROW, on the owner's
+#: ratification, and every word above is the record of what it replaced.** `00`
+#: amendment 7(c) split this site in two: the question of whether a file may leave
+#: the device went to `H_restricted_kind`, and what stayed here is which situation
+#: of the WHOLE LIBRARY a file is part of, with the recognisers' candidates carried
+#: as evidence rather than as the menu. The v3 text cannot ask that question: it
+#: names "the kinds it came nearest to" and asks the protected-kind question first,
+#: which is now the gate's and not this site's.
+#:
+#: The choice between the two whole-library candidates is NOT a bakeoff result and
+#: is not presented as one -- the v1/v2/v3 rows above were chosen on measured
+#: numbers and this one was chosen by the owner's ratification of 12 Sep 17:15.
+#: `situation-whole-library-plain` is the reserved A/B twin, authored beside it and
+#: ratified by nobody; it stays in the manifest so the comparison can be run
+#: without authoring a row under pressure.
+#:
+#: **THE ROW READS `ratified`, WHICH IS THE WORD FOR BOTH PERMISSIONS**, and it is
+#: the first time this site has carried it. `STATUS_APPLIES` makes the site act on
+#: the answer, as `ratified_local` already did; `STATUS_MAY_CROSS_THE_INTERNET`
+#: makes `observe_locality_permits` stop refusing a cloud target -- which is what
+#: amendment 7(c) needs, because a file the gate has CLEARED is the one whose
+#: situation may be asked off this device. Nothing widens for a file the gate did
+#: not clear: the per-file predicate is still the door's own.
 SITUATION_ROW: tuple[str, str] = (
-    "situation.unratified.safety-first-v3.2026-09-09", "situation-safety-first-v3")
+    "situation.unratified.whole-library.2026-09-12", "situation-whole-library")
+
+#: `00` AMENDMENT 7(c)'s GATE ROW, and the site is `H_restricted_kind`. Authored by
+#: the lead on the owner's go of 12 September and put to the owner for
+#: ratification; the manifest carries it `unratified`, so `gate_prompt` builds a
+#: definition whose `ratified` is false and the site records its answer without
+#: acting on it -- see `ask_the_gate`, which is where the two states are spelled.
+#:
+#: The pair rather than the id alone, on `SITUATION_ROW`'s own rule: re-pointing
+#: this site is a change to this line and never a change the manifest makes on its
+#: own.
+GATE_ROW: tuple[str, str] = (
+    "gate.unratified.restricted-kind.2026-09-12", "gate-restricted-kind")
 
 
 #: WHAT EACH STATUS WORD BUYS, and the two questions it answers are not one
@@ -1307,6 +1373,29 @@ def situation_scan_budget(fact_budget: ScanBudget, *,
     """
     return ScanBudget(
         scan_id=fact_budget.scan_id + SITUATION_BUDGET_SUFFIX,
+        corpus_file_count=corpus_file_count,
+        max_calls_per_1000_files=OBSERVE_CALLS_PER_1000_FILES,
+        max_estimated_cost=OBSERVE_CALLS_PER_SCAN_CEILING,
+        min_calls_per_scan=OBSERVE_MIN_CALLS_PER_SCAN)
+
+
+def gate_scan_budget(fact_budget: ScanBudget, *,
+                     corpus_file_count: int) -> ScanBudget:
+    """`00` amendment 7(c)'s gate, spending from a FIFTH ledger.
+
+    `situation_scan_budget`'s whole argument one site earlier in the run, and here
+    it is at its strongest: the gate asks one call per un-held file in the roster
+    and runs BEFORE site G, the fact pass, the per-file template site and the three
+    observe sites. Any purse it shared it would empty first, and a starved site
+    looks exactly like a site nobody wired (`104` R-04).
+
+    **The rate, the floor and the ceiling are the observe ones and are not new
+    numbers**, on `situation_scan_budget`'s own rule: "how many model calls may one
+    scan make about one corpus" is a deployment answer this deployment has given
+    once. What is the gate's own is the `scan_id`.
+    """
+    return ScanBudget(
+        scan_id=fact_budget.scan_id + GATE_BUDGET_SUFFIX,
         corpus_file_count=corpus_file_count,
         max_calls_per_1000_files=OBSERVE_CALLS_PER_1000_FILES,
         max_estimated_cost=OBSERVE_CALLS_PER_SCAN_CEILING,
@@ -2073,6 +2162,22 @@ def prompt_for(call_site: str) -> PromptDefinition:
         return a_fact_prompt()
     if call_site == G_SITUATION_SENSITIVITY:
         return situation_prompt()
+    if call_site == H_RESTRICTED_KIND:
+        # THE ONE SITE WHOSE TEXT MAY NOT EXIST, and this seam does not hide it.
+        # `gate_prompt` answers `None` for a row the manifest does not carry, which
+        # is the state `ask_the_gate` reads to ask nothing; a caller that came here
+        # for the bytes is asking a different question -- what does this deployment
+        # ask at this site -- and the truthful answer when there is no row is the
+        # same refusal every other unwired site gets, naming the row it wanted.
+        prompt = gate_prompt()
+        if prompt is None:
+            raise DraftNotInManifest(
+                f"no row in the drafts manifest carries {GATE_ROW[0]!r} with "
+                f"candidate {GATE_ROW[1]!r}, so this deployment has no text for "
+                f"{H_RESTRICTED_KIND}. `ask_the_gate` treats that as a site that "
+                f"asks nothing; a caller that wants the bytes is refused here "
+                f"rather than given somebody else's.")
+        return prompt
     if call_site in OBSERVE_CALL_SITES:
         return observe_prompt(call_site)
     raise ValueError(
@@ -2118,6 +2223,17 @@ def observe_locality_permits(call_site: str, locality: str) -> bool:
     `A_fact` is unaffected and stays cloud-eligible: it is not in this set, its
     text is ratified, and `WIRED_CALL_SITES` is what governs it.
     """
+    if call_site == H_RESTRICTED_KIND:
+        # `00` AMENDMENT 7(c): LOCAL ONLY, ALWAYS, AND NOT ON A ROW'S WORD. Every
+        # other site here is refused the cloud until its own text is ratified, and
+        # the day the owner ratifies it the site may send. The gate may not, ever:
+        # it is the site that decides whether a file may leave the device, so
+        # asking it off the device would answer the question by sending the file --
+        # which is `00`'s own sentence about the four safety domains and amendment
+        # 5's ruling read one step earlier. Answered before the row is looked at,
+        # which also means a deployment whose gate row is not in the manifest gets
+        # a truthful answer here instead of `DraftNotInManifest` from `draft_status`.
+        return locality == LOCAL
     if call_site not in _SITES_WITH_A_ROW:
         return True
     if locality == LOCAL:
@@ -2135,7 +2251,7 @@ def observe_locality_permits(call_site: str, locality: str) -> bool:
 #: site with one is asked its own word before its bytes may cross the internet.
 #: The four observe sites, site A since `104` R-144, and site G since `104` §17.1.
 _SITES_WITH_A_ROW: frozenset[str] = (
-    OBSERVE_CALL_SITES | {A_FACT, G_SITUATION_SENSITIVITY})
+    OBSERVE_CALL_SITES | {A_FACT, G_SITUATION_SENSITIVITY, H_RESTRICTED_KIND})
 
 
 def _template_id_for(call_site: str) -> str:
@@ -2143,6 +2259,8 @@ def _template_id_for(call_site: str) -> str:
         return A_FACT_ROW[0]
     if call_site == G_SITUATION_SENSITIVITY:
         return SITUATION_ROW[0]
+    if call_site == H_RESTRICTED_KIND:
+        return GATE_ROW[0]
     return OBSERVE_TEMPLATE_ID[call_site]
 
 
@@ -2265,6 +2383,99 @@ SITUATION_BUDGET_SUFFIX: str = ":situation"
 #: deployment answer this deployment has given once, and what is site E's own is the
 #: `scan_id`, which is the whole of the separation.
 TEMPLATE_BUDGET_SUFFIX: str = ":template"
+
+#: THE GATE'S OWN LEDGER, a fifth id on the third and fourth's argument. `00`
+#: amendment 7(c) puts one call in front of every un-held file in the roster, which
+#: is the largest per-file population any site has -- larger than site G's, which
+#: was already enough to empty the observe purse on a six-file corpus (`104`
+#: R-131). Pointing it at any existing purse would starve whichever sites follow
+#: it, and every other site follows it. No new rate, floor or ceiling: what is the
+#: gate's own is the `scan_id`.
+GATE_BUDGET_SUFFIX: str = ":gate"
+
+#: HOW MUCH OF A FILE THE GATE IS SHOWN, in `model_facts.dossier_tokens`' unit,
+#: which is CHARACTERS used as an upper bound on tokens. The local situation call
+#: keeps `GROUPING_LIMITS.max_dossier_tokens` (4,000); this is the gate's own and it
+#: is deliberately about a third of it.
+#:
+#: **WHAT THE GATE READS FOR, and it is why a short dossier is the right one rather
+#: than a cheap one.** The question is whether the file IS a record of one of `105`
+#: §13.3's ten kinds, and a record says so where records say so: in the filename and
+#: title, in the heading block, in the metadata, and in the first fields of the form
+#: -- a patient or member line, an account or policy number, a booking reference, a
+#: balance, a signature line. `00`'s own words for the same idea are §8.4's "should
+#: not send full documents where a short heading or OCR excerpt is enough to resolve
+#: the question". A document that is a receipt does not become one on page nine.
+#:
+#: **1,200, AND THE ARITHMETIC IS THE PRODUCT'S OWN NUMBERS.** One excerpt is
+#: bounded at `GROUPING_LIMITS.max_excerpt_characters` (240), so this is five
+#: readings at the product's own per-excerpt ceiling: the name or title, the heading
+#: block, a metadata field and two body readings -- the opening of a document plus
+#: its metadata, which is the sentence above made countable. Measured against the
+#: openings available to me (the first eight non-empty lines of the text files on
+#: this machine's synthetic corpus run 198 to 373 characters), it is several times
+#: what a document's own self-identifying block costs, so the bound is not the thing
+#: deciding what the gate sees -- `releasable_observations` runs out of releasable
+#: readings first on an ordinary document.
+#:
+#: **THE COST OF EACH DIRECTION.** Too small and a record whose identifying field
+#: sits below the fold is called `none_of_these` and may be sent -- the one error
+#: this site cannot take back -- which is why it is five readings and not one. Too
+#: large and the gate costs what site G costs, on every file in the corpus rather
+#: than on the ones a recogniser could not settle; §18.56 measured the local site at
+#: 33 to 42 seconds a file with dossiers of 6,492 to 8,607 prompt tokens, and a gate
+#: at that size would double a scan that the owner has already ruled too slow.
+GATE_DOSSIER_TOKENS: int = 1_200
+
+#: AND HOW MANY READINGS, on the same argument. `FACT_CALL_MAX_RELEASED_OBSERVATIONS`
+#: is twelve because a fact call asks about a dozen fields spread through a
+#: document; the gate asks one question that the opening answers, and five readings
+#: is the count `GATE_DOSSIER_TOKENS` is the length of. The two bounds are stated
+#: separately because `releasable_observations` spends them separately -- a count
+#: and a length are different bounds and a corpus finds the difference (the twelve's
+#: own comment records what happened when one stood in for the other).
+GATE_MAX_RELEASED_OBSERVATIONS: int = 5
+
+#: HOW MUCH OF A FILE THE SITUATION CALL MAY SEND TO A CLOUD TARGET, in
+#: `model_facts.dossier_tokens`' unit, which is CHARACTERS used as an upper bound
+#: on tokens. The LOCAL situation call keeps `GROUPING_LIMITS.max_dossier_tokens`
+#: (4,000) and is unchanged; this is the bound on the one route where a person's
+#: text leaves their machine, and `00` amendment 7(c) is what created that route
+#: for this site at all.
+#:
+#: **WHY THE TWO TARGETS GET DIFFERENT BOUNDS.** They cost different things. A
+#: local token costs seconds on the person's own machine and nothing else -- and
+#: the local model is the one that reads a file the gate did not clear, which is
+#: exactly the file that needs everything. A cloud token is billed, and §8.6's
+#: "maximum model cost per scan" is a ceiling `00` names and this deployment is
+#: spending: the whole-library menu adds about 1,244 tokens of frame to EVERY
+#: situation dossier (`model_situation._candidate_items` measures it), and on the
+#: cloud route that frame is paid for per file per scan.
+#:
+#: **2,750, AND THE ARITHMETIC IS THE MEASUREMENT.** 4,000 less the 1,250 the
+#: whole-library frame added, so one cloud situation call bills for about what one
+#: situation call billed before the menu grew -- the amendment buys the right
+#: question at the same price rather than the right question at three times it.
+#: The released half is what gives way rather than the frame, because the frame is
+#: what the amendment IS: a menu that omits the answer three times in five was
+#: what §18.56 measured, and cutting it back would be undoing the fix to protect a
+#: number.
+#:
+#: **IT MUST NOT EXCEED P1's STORED CEILING and it does not.** `create_all_schemas`
+#: seeds `model.max_dossier_tokens_per_call` at `GROUPING_LIMITS.max_dossier_tokens`
+#: and `privacy.denial.over_dossier_ceiling` measures the released values against
+#: the STORED number, never the caller's echo -- so a bound above 4,000 here would
+#: be a cloud call routed, assembled, and then denied at the door. A LARGER cloud
+#: bound is therefore not a change to this line alone; it is a change to the stored
+#: ceiling, which is a privacy-posture decision and the owner's.
+#:
+#: **THE COST OF EACH DIRECTION.** Too small and a long document's decisive
+#: paragraph is cut before the cloud model reads it, and the answer is worse than
+#: the local one; `releasable_observations` fills most-placed-first, so what is cut
+#: is the least-placed reading rather than an arbitrary one. Too large and every
+#: cloud call costs more than the site was measured at, on every file in the
+#: corpus, at the one site the owner asked to be made faster and not dearer.
+SITUATION_DOSSIER_TOKENS_CLOUD: int = 2_750
 
 #: What one A_fact call is charged, and what it settles for. THIS DEPLOYMENT
 #: MEASURES NEITHER A TOKEN NOR A PRICE: `readers.model_deepseek` returns no usage
@@ -2910,8 +3121,11 @@ _QUESTION_OF_SITE: dict[str, str] = {
     C_PLACEMENT: "a placement CHECK -- whether a proposed folder is the right one --",
     D_RESIDUAL: "a REVIEW SET -- what to do with what nothing else placed --",
     G_SITUATION_SENSITIVITY:
-        "a SITUATION judgement -- which situation a file is asked under, and "
-        "whether it may reach the cloud at all --",
+        "a SITUATION judgement -- which situation a file is asked under --",
+    H_RESTRICTED_KIND:
+        "a GATE judgement -- whether a file is a receipt, a ticket, an identity "
+        "document, a medical record, a statement, a credential or a legal paper, "
+        "and so whether anything about it may be sent at all --",
 }
 
 #: The three sites a file's text may be sent to, and the ONLY three this notice
@@ -2932,6 +3146,39 @@ def _local_model_id(routing: TierRouting, call_site: str) -> str:
     which model.
     """
     return routing.route_for(call_site, cloud_permitted=False)[1].model_id
+
+
+def _gate_site_sentence(routing: TierRouting) -> str:
+    """The gate's line in the posture notice, or `""` where the gate cannot run.
+
+    **`00` AMENDMENT 7(c) MOVED THE SENTENCE THAT MATTERS MOST HERE.** Until the
+    amendment, site G's line carried the clause "and whether it may reach the
+    cloud at all", because site G was the site that decided it. It is not any
+    more: the gate is, and a notice that told a person the situation call decides
+    whether their file may be sent would be describing the wrong call on the one
+    screen where being believed is the whole point (`84` §6). So the clause moved
+    with the decision, and this sentence is where it lives.
+
+    **IT NAMES THE KINDS RATHER THAN THE MECHANISM.** A person reading a consent
+    notice can act on "whether this is a receipt, a ticket, an identity document";
+    they cannot act on "the restricted-kind gate". The list is
+    `RESTRICTED_KIND_LABELS`' subject matter in the shortest form that is still
+    true of all ten.
+
+    **`""` WHERE THE GATE HAS NO LOCAL DESTINATION**, on `_situation_site_
+    sentence`'s own rule: this site is answered on this machine or not at all, so
+    a deployment with a key and no local model does not run it, and a sentence
+    saying the gate decided anything on such a run would describe work that did
+    not happen.
+    """
+    _client, target = routing.route_for(H_RESTRICTED_KIND, cloud_permitted=False)
+    if target.locality != LOCAL:
+        return ""
+    return _wrapped(
+        f"Before anything else, {target.model_id} on this device reads each file "
+        f"and answers {_QUESTION_OF_SITE[H_RESTRICTED_KIND]} and nothing about "
+        f"that question leaves this machine. A file it names stays here.",
+        indent="  ")
 
 
 def _situation_site_sentence(routing: TierRouting) -> str:
@@ -3152,9 +3399,16 @@ def announce_cloud_posture(routing: TierRouting | None,
         # command that turns sending off, so a person who reads only the last two
         # lines still reads it. Empty and silent where G has no local destination.
         if routing is not None:
-            said = _situation_site_sentence(routing)
-            if said:
-                print(said, file=out)
+            # THE GATE FIRST AND SITE G AFTER IT, which is the order the run makes
+            # the two decisions in and the order a person needs them: what may be
+            # sent at all, and then what is asked of whatever it is sent to.
+            # `00` amendment 7(c) is what put a second sentence here; before it,
+            # site G's line carried the clause about sending, and leaving that
+            # clause where it was would name the wrong call.
+            for said in (_gate_site_sentence(routing),
+                         _situation_site_sentence(routing)):
+                if said:
+                    print(said, file=out)
         print(_turn_off_line(corpus_root, *other_sources), file=out)
         return
     if routing is None:
@@ -3195,9 +3449,10 @@ def announce_cloud_posture(routing: TierRouting | None,
         # work -- G runs on every deployment that has a model on this machine,
         # whatever this folder's consent says -- and a person who reads it only on
         # the runs where sending is on has been told it is a thing about sending.
-        said = _situation_site_sentence(routing)
-        if said:
-            print(said, file=out)
+        for said in (_gate_site_sentence(routing),
+                     _situation_site_sentence(routing)):
+            if said:
+                print(said, file=out)
         elsewhere = tuple(sorted({
             routing.model_id_for(site) for site in (C_PLACEMENT, D_RESIDUAL)
             if routing.locality_for(site) != LOCAL}))
@@ -3359,6 +3614,27 @@ HANDLING_POLICY: Mapping[str, Handling] = MappingProxyType({
 #: this true if one of them ever differs, and `in` is the same question either way.
 SAFETY_DOMAIN_BASES: frozenset[str] = frozenset(
     handling.basis for handling in SAFETY_DOMAIN_HANDLING.values())
+
+
+def _one_safety_domain_class() -> str:
+    """The handling class `00`'s four safety domains all carry, or a refusal.
+
+    Read rather than spelled, on `SAFETY_DOMAIN_BASES`' own argument one line up:
+    `Handling` carries a class per schema and a literal here would be a second
+    answer to what this deployment calls protected personal material. `00`
+    amendment 7(c)'s gate names a restricted KIND rather than a domain and needs
+    the same class for it; the day the four stop agreeing, the gate's class is a
+    question somebody has to answer rather than one this function may pick.
+    """
+    classes = {handling.handling_class
+               for handling in SAFETY_DOMAIN_HANDLING.values()}
+    if len(classes) != 1:
+        raise ImportError(
+            f"the four safety domains carry {sorted(classes)} and no longer agree "
+            f"on one handling class, so `00` amendment 7(c)'s gate has no class to "
+            f"read for a restricted kind. Which class a named kind carries is a "
+            f"decision, and this line may not take it")
+    return classes.pop()
 
 # --- RECOGNITION BY MEANING: every number the similarity path decides with -----
 #
@@ -5939,6 +6215,60 @@ def situation_prompt() -> PromptDefinition:
         shaping_policy_bytes=shaping_policy)
 
 
+def gate_prompt() -> PromptDefinition | None:
+    """The text the gate asks under, or `None` because the row is not there yet.
+
+    `00` amendment 7(c). Composed on `situation_prompt`'s pattern: the bytes come
+    through `GATE_ROW`, a manifest row, and `draft_bytes` resolves the id through
+    the packet and verifies each of the three files against the digest recorded
+    there -- so this function picks an id and a candidate and reads nothing else.
+
+    **THE TWO STATES A MISSING OR UNRATIFIED ROW PRODUCES, and they are different
+    states.** A prompt row is the owner's act and this file must never invent one,
+    so both are answered by doing less rather than by raising:
+
+    * **The row is NOT IN THE MANIFEST** -- `None`. The site asks nothing: no
+      dossier is built, no bytes are sent, no verdict is recorded, and the run is
+      the run it was before this site existed. A crash here would be this
+      deployment refusing to scan a person's folder because a prompt the owner has
+      not yet been shown is not in the library, which is a fault reported in the
+      one place a person cannot act on it.
+    * **The row is in the manifest and UNRATIFIED** -- a definition whose
+      `ratified` is false. The site RUNS: the dossier is built, the call is made,
+      the response and the verdict are stored, and no classification is written,
+      because a record is an act on the answer. That is `104` §7 Phase 1 step 6's
+      observe-only state, and it is what today's manifest gives -- the lead
+      authored the row on 12 September and the owner has not ratified it.
+
+    `ratified_local` counts as ratified here and not at the locality gate, exactly
+    as at site G. The difference does not matter for this site: `observe_locality_
+    permits` refuses it the internet on the site's own name rather than on its
+    row's word, because a gate that could be asked off the device would answer the
+    question by sending the file.
+    """
+    template_id, candidate = GATE_ROW
+    try:
+        prompt_library_a_fact_row(template_id, candidate)
+        template, response_schema, shaping_policy = draft_bytes(template_id)
+        status = draft_status(template_id)
+    except (DraftNotInManifest, DraftManifestAmbiguous):
+        # THE ROW IS NOT THERE, OR DOES NOT IDENTIFY BYTES. Both are "the owner has
+        # no text at this site yet", which is a state and not a failure. What is
+        # NOT caught is `RatifiedTextChanged`: bytes on disk that do not match a
+        # digest a run has already recorded is a corrupted library, and a site that
+        # quietly went silent on it would hide the one condition the digests exist
+        # to catch.
+        return None
+    return PromptDefinition(
+        template_id=template_id,
+        template_bytes=template,
+        response_schema_bytes=response_schema,
+        call_site=H_RESTRICTED_KIND,
+        call_site_version="1",
+        ratified=status in STATUS_APPLIES,
+        shaping_policy_bytes=shaping_policy)
+
+
 #: The consent option the owner's ruling answers with. Spelled here for the
 #: reason `review_surface.consent_surface.OPTION_SENTENCES` spells the four --
 #: P7 publishes the tuple and no constant per member -- and checked against P7's
@@ -6539,6 +6869,66 @@ def _stored_value_of(conn: sqlite3.Connection):
 SITUATION_PROPOSAL_CLASS: str = "situation.llm_shortlist"
 
 
+#: WHAT A REJECTED GATE ANSWER IS CALLED, on `SITUATION_PROPOSAL_CLASS`'s terms:
+#: the subject kind, then what the model was asked to do. `eligibility.py` matches
+#: it EXACTLY against `learning_records.proposal_class`, so it is an identity this
+#: file names and must keep stable -- a rename stops every past rejection
+#: suppressing what it was recorded to suppress.
+GATE_PROPOSAL_CLASS: str = "gate.llm_restricted_kind"
+
+
+def gate_call_dependencies(fact_authorities, *, allowed_vocabulary,
+                           placeable_file_count: int) -> CallDependencies:
+    """The gate's authorities for one call. `situation_call_dependencies`, one site
+    earlier, and every argument it makes is made again here.
+
+    **The gate, the key, the costs and the policy version are site A's OBJECTS.** A
+    second `Gate` here would be a second answer to what may leave this device, and
+    at THIS site that answer is the site's entire subject.
+
+    **The budget is the gate's own purse** (`gate_scan_budget`): one call per
+    un-held file, ahead of every other site, so a shared ledger would be emptied
+    here and every site after it would record `BUDGET_EXHAUSTED`.
+
+    **`allowed_vocabulary` is the same eleven on every file** -- the ten restricted
+    kinds and the decline -- which is the difference from site G, where it is this
+    file's shortlist. `dossier._body` builds `field_glossary` from it and finds no
+    meaning for a document kind, which is why the gate's own text tells the model
+    that key is empty at this site.
+    """
+    return CallDependencies(
+        proposal_class=GATE_PROPOSAL_CLASS,
+        # §8.7's closed scope vocabulary. The subject of a gate verdict is one
+        # FILE, which is also `_SCOPE_BY_SITE`'s answer for this site.
+        learning_scope=SCOPE_FILE,
+        basis_key=SCOPE_FILE,
+        learning_subject_id=SCOPE_FILE,
+        evidence_resolver=fact_authorities.evidence_resolver,
+        # NO BUNDLE, on sites B and G's answer: the validator checks the answer
+        # against the eleven the dossier already carries and needs no tree, no
+        # action set and no catalogue.
+        site_dependencies=SiteDependencies(
+            fact=None, placement=None, residual=None, template=None),
+        # There is no per-field fact for "this file is a boarding pass" to
+        # contradict: the question exists because nothing had concluded it.
+        contradicts=_no_group_contradiction,
+        # One rung. `releasable_observations` fills the offer up to the gate's own
+        # bound before the request is built, so there is no smaller shape of this
+        # dossier to fall back to.
+        unreduced_fits=True, summarized_fits=False, anchors_fit=False,
+        split_shard_fits=(), split_shards=(),
+        scan_budget=gate_scan_budget(
+            fact_authorities.scan_budget,
+            corpus_file_count=placeable_file_count),
+        estimated_cost=fact_authorities.estimated_cost,
+        actual_cost=fact_authorities.actual_cost,
+        allowed_vocabulary=tuple(allowed_vocabulary),
+        # THIS SITE DESIGNS NO FOLDER TREE and proposes no destination in one.
+        folder_levels=(),
+        policy_version=fact_authorities.policy_version,
+        wire_handle_key=fact_authorities.wire_handle_key)
+
+
 def situation_call_dependencies(fact_authorities, *, allowed_vocabulary,
                                 placeable_file_count: int) -> CallDependencies:
     """Site G's authorities for one call. Built off site A's, never beside them.
@@ -6821,6 +7211,194 @@ def restricted_kind_named_by_verdict(conn: sqlite3.Connection, verdict) -> str |
     return kind
 
 
+#: THE BASIS A GATE VERDICT IS WRITTEN UNDER. `00` amendment 7(c) splits site G in
+#: two and the two halves must not write under one word: `local_model_situation`
+#: names the question "which situation is this file part of, from a shortlist the
+#: recognisers raised", and a gate row makes a different and narrower claim -- a
+#: model on this device read the opening of this file and said whether it is a
+#: record of one of `105` §13.3's ten kinds. `96` §19's rule is that a basis word
+#: must not overclaim what was checked, and it cuts both ways: a gate row written
+#: as `local_model_situation` would claim a situation nobody asked about, and a
+#: situation row written as `local_model_gate` would claim a protection reading
+#: that call never made.
+#:
+#: **IT IS NOT YET A MEMBER OF `privacy.vocabulary.CLASSIFICATION_BASES`, and that
+#: is a patch the owner's privacy module owes rather than a name this file may
+#: add.** `ClassificationRecord.__post_init__` refuses a basis outside that tuple,
+#: so `gate_classification` below builds a row this deployment cannot store until
+#: the member exists -- which is harmless today because the gate's row is
+#: `unratified` and `ask_the_gate` writes no classification under an unratified
+#: text. The exact patch is recorded in the report of the commit that added this
+#: line: `privacy/vocabulary.py` names the constant and appends it to
+#: `CLASSIFICATION_BASES`, and `privacy/classification.py` adds it to
+#: `_EVIDENCE_REQUIRED_BASES` beside the other three. Ratifying the gate row before
+#: that patch lands is the one ordering that breaks, and it breaks loudly at the
+#: first verdict rather than silently.
+LOCAL_MODEL_GATE: str = "local_model_gate"
+
+#: WHETHER THE STORE CAN ACTUALLY HOLD A GATE ROW YET, asked once at import rather
+#: than discovered at the first verdict. `ClassificationRecord.__post_init__`
+#: refuses a basis outside `CLASSIFICATION_BASES`, so until the privacy patch above
+#: lands a gate row cannot be written -- and the owner ratified the gate's text on
+#: 12 September, which means the site is otherwise applying its answers from the
+#: next run onwards.
+#:
+#: **IT MAKES THE SITE RECORD-ONLY AND NEVER MAKES THE RUN FAIL**, which is the
+#: same state a missing prompt row produces and is reached here for the other of
+#: its two causes: the dossier and the verdict are stored, the counts say what the
+#: gate WOULD have decided, and no classification is written. The alternative is a
+#: `ValueError` from inside P7's constructor on the first cleared file of a scan of
+#: somebody's home directory, which is a fault reported in the one place a person
+#: cannot act on it -- and it would land on the site that decides whether their
+#: files may be sent.
+#:
+#: A CONSTANT AND NOT A `try`, because what is being asked is a question about this
+#: build's vocabulary and not about this file: the answer is the same for every
+#: file in every run, and catching the refusal per file would turn one missing
+#: vocabulary member into a per-file mystery in the counts.
+GATE_MAY_WRITE_A_CLASSIFICATION: bool = LOCAL_MODEL_GATE in CLASSIFICATION_BASES
+
+#: THE HANDLING CLASS A GATE-NAMED KIND CARRIES, derived rather than spelled, on
+#: `SAFETY_DOMAIN_BASES`' own argument one screen up. A file the gate names is a
+#: record of one of the ten restricted kinds, which is material of exactly the
+#: order `00`'s four safety domains hold -- so the class it carries is the class
+#: those four carry, read off `SAFETY_DOMAIN_HANDLING` rather than restated. A
+#: literal here would be a second answer to "what does this deployment call
+#: protected personal material", free to disagree with the detector's.
+#:
+#: A SINGLE CLASS FOR ALL TEN, and the alternative was considered and refused: a
+#: per-kind table -- credentials to `highly_sensitive_credential_bearing`, the rest
+#: to `sensitive_personal` -- is a judgement about ten kinds that nobody has ruled,
+#: and `protected` is the flag every neighbour consumes (SPEC §2: "consume the
+#: `protected` flag, not infer it from the class"). The class the four safety
+#: domains already carry is the one this product has an answer for.
+GATE_PROTECTED_CLASS: str = _one_safety_domain_class()
+
+
+def gate_kind_named_by_verdict(conn: sqlite3.Connection, verdict) -> str | None:
+    """The gate's answer: one of the ten kinds, `NONE_OF_THESE`, or `None`.
+
+    **THREE ANSWERS AND NOT TWO, and the third is the point of the site.** At site
+    G a decline and a silence lead to the same place -- the file stays where the
+    rules left it, which is local -- so one `None` says enough. Here they do not:
+    `none_of_these` is a POSITIVE reading that clears the file for a cloud target,
+    and a silence clears nothing. Folding them would send a file to a provider
+    because a call timed out.
+
+    **`none_of_these` ARRIVES AS AN ABSTENTION AND IS READ ANYWAY**, which is the
+    one thing about this reader that is not obvious. The ratified text asks for the
+    decline in the `unknown` shape -- *"To answer none_of_these: ... unknown:
+    {insufficiency_statement: one short sentence saying what kind of material the
+    text shows instead}"* -- and `validation._validate_claim` turns any claim
+    carrying `unknown` into `ABSTAIN` before the site hook is reached. So the
+    outcome for a cleared file is `abstain` and the payload still says
+    `none_of_these`. Refusing to read it would make the gate incapable of ever
+    clearing anything, which is amendment 7(c) not happening.
+
+    **WHAT AN ABSTENTION IS TRUSTED FOR HERE, exactly.** The response decoded, the
+    envelope validated, the claim declared no kind and gave a statement of what the
+    text shows instead. That is the model answering the question it was asked. It
+    is NOT trusted to clear a file on its own: `ask_the_gate` writes the ordinary
+    row only where the deterministic layers are also silent, and a `REJECT` -- a
+    kind outside the eleven, a citation that did not resolve -- reads `None` here
+    and clears nothing.
+
+    A kind is read only off an ACCEPTED verdict, because a named kind is a claim
+    with a citation behind it and the citation check is what makes it one.
+    """
+    if verdict is None:
+        return None
+    payload = _validated_payload(conn, verdict)
+    kind = payload.get("restricted_kind") if payload else None
+    if not isinstance(kind, str) or not kind:
+        return None
+    if verdict.outcome in ACCEPTING_OUTCOMES:
+        if kind in RESTRICTED_KINDS:
+            return kind
+        # A model that wrote the decline into the payload AND cited something means
+        # the same thing as one that used the `unknown` shape, and is recorded the
+        # same way rather than refused on a formatting difference --
+        # `situation_validation.is_decline`'s own equivalence at the other site.
+        return NONE_OF_THESE if is_decline(
+            kind, decline_word=NONE_OF_THESE) else None
+    if verdict.outcome == ABSTAIN and is_decline(kind, decline_word=NONE_OF_THESE):
+        # THE CLEARANCE, AND THE ONLY OUTCOME IT IS READ FROM. `weak` and `reject`
+        # are answers the checks did not accept, and a file is not cleared by an
+        # answer this product refused.
+        return NONE_OF_THESE
+    return None
+
+
+def gate_classification(question, kind: str | None, *, observed_at: str,
+                        deterministic_layers_silent: bool
+                        ) -> ClassificationRecord | None:
+    """`00` amendment 7(c)'s verdict, written down truthfully, or `None`.
+
+    **THE BASIS IS THE GATE'S AND THE CLASS IS THE DEPLOYMENT'S**, which is
+    `situation_classification`'s own division and the reason both records are
+    honest. `basis` says WHO concluded: a model on this device, answering the
+    restricted-kind question and nothing else. `handling_class`, `protected` and
+    `privacy_class` say what THIS DEPLOYMENT does with a file of that kind, and
+    they come from the vocabulary's own precedence (`privacy_class_for`) and from
+    the class the four safety domains already carry.
+
+    **THE TWO ROWS IT WRITES, and the asymmetry between them is the ruling.**
+
+    * A NAMED KIND -> protected, always. The privacy class is the kind's own under
+      `105` §14.3's precedence -- protected over always-local over ordinary -- and
+      the file never reaches a cloud model again in this run or any later one,
+      because the row outlives the run.
+    * `none_of_these` AND THE DETERMINISTIC LAYERS SILENT -> ordinary, protected 0.
+      This is the row the whole amendment exists to produce: §18.56 measured 43 of
+      45 protection misses never put to any model, and a file the rules had merely
+      not spoken about carrying no row at all, which `unclassified_denies` refuses
+      the cloud unconditionally. A model looked at this file and said what it is
+      not; §14.3's "on neither list is ordinary" is what that means, and
+      `privacy_class_for(())` is the vocabulary's own way of saying "assessed, and
+      neither" as against `None`'s "never assessed".
+
+    **`None` FOR EVERYTHING ELSE, and silence is the whole of the reason.** A
+    decline this reader could not read, a refused claim, a failed call: none of
+    them is a model saying anything about this file, and a row written on one would
+    be this deployment recording its own silence as a finding -- which is `96` §19
+    exactly. The file stays unclassified, which keeps it local.
+
+    **AND `none_of_these` CLEARS NOTHING WHERE A DETERMINISTIC LAYER SPOKE.** The
+    caller passes that answer, not this function's guess at it: amendment 7 layers
+    identifier patterns with checksums and a local entity encoder UNDER this call,
+    and their observations hold a file exactly as an authored safety term does. A
+    gate that wrote `protected = 0` over a hold would be the model releasing what
+    the deterministic layers caught, which is the one direction this site may not
+    move -- so where anything is holding the file, the clearance writes no row and
+    the hold stands.
+    """
+    if kind is None:
+        return None
+    if kind == NONE_OF_THESE:
+        if not deterministic_layers_silent:
+            return None
+        return ClassificationRecord(
+            file_id=question.file_id,
+            content_hash=question.content_hash,
+            handling_class=ORDINARY_CLASS,
+            protected=False,
+            basis=LOCAL_MODEL_GATE,
+            evidence_refs=tuple(question.evidence_refs),
+            reliability_state=LLM_SUPPORTED,
+            observed_at=observed_at,
+            privacy_class=privacy_class_for(()))
+    return ClassificationRecord(
+        file_id=question.file_id,
+        content_hash=question.content_hash,
+        handling_class=GATE_PROTECTED_CLASS,
+        protected=True,
+        basis=LOCAL_MODEL_GATE,
+        evidence_refs=tuple(question.evidence_refs),
+        reliability_state=LLM_SUPPORTED,
+        observed_at=observed_at,
+        privacy_class=privacy_class_for((kind,)))
+
+
 def situation_classification(question, schema_id: str, *, observed_at: str,
                              restricted_kind: str | None = None,
                              precaution=None,
@@ -6958,6 +7536,266 @@ class PrecautionHolds:
     still_held: int
 
 
+class GateOfferedACloudTarget(RuntimeError):
+    """The site that decides whether a file may leave was pointed off the device.
+
+    `00` amendment 7(c) makes the gate LOCAL ONLY by construction, not by its
+    row's word: `observe_locality_permits` refuses it the cloud on the site's own
+    name, so a cloud target here means the locality gate and the route disagree
+    about one call. The next line would assemble a file's readings for a
+    destination off this device in order to find out whether they may go there,
+    which is the question answering itself.
+    """
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class GatePass:
+    """What `00` amendment 7(c)'s gate left behind, counted. `SituationPass`' shape.
+
+    **THE SEVEN COUNTERS PARTITION THE ROSTER.** Every file the pass walked lands
+    in exactly one of them -- `named` counts as one through its length -- so the
+    numbers are an arithmetic a person can check against the total, which is
+    `104` §17.2's rule about a number with no provenance and `00`:259's about the
+    difference between completed work and deferred work.
+    """
+
+    #: file_id -> the restricted kind a model named for it, validated and
+    #: recorded. Every one of these files is now protected and reaches no cloud
+    #: model for the rest of this run or any later one.
+    named: dict
+    #: Files the gate CLEARED: the model read them, named no restricted kind, and
+    #: the deterministic layers were silent, so an ordinary row was written and
+    #: their situation may be asked of a cloud model. This is the number `104`
+    #: §18.56 exists to produce -- 43 of 45 protection misses were never put to any
+    #: model, and a file nothing had spoken about carried no row at all.
+    cleared: int
+    #: Files a deterministic layer is already holding (`protected = 1` on a
+    #: `SAFETY_DOMAIN_BASES` row, from the rules or from an identifier
+    #: observation). NOT ASKED, and rightly: the gate exists to decide the files
+    #: the layers under it could not settle, and asking about a file already held
+    #: would spend a call per file to be told what a rule already knows. Their hold
+    #: stands untouched.
+    already_held: int
+    #: Files with no releasable reading. A question `00`:42 permits no answer to,
+    #: and at this site the safe direction by construction: an unanswered gate
+    #: clears nothing.
+    nothing_to_read: int
+    #: Files no model this site may use could take. On a deployment with a local
+    #: model this is zero; on one with a cloud key and no local model it is the
+    #: whole roster, because the gate never leaves the device. Counted rather than
+    #: folded away, on `SituationPass.no_route`'s rule.
+    no_route: int
+    #: Files a model was asked about and whose answer was not acted on: it named
+    #: nothing this deployment could read, or the check refused what it named, or
+    #: the text is not ratified yet, or a stronger record already stands. All of
+    #: them leave the file exactly as it was, which is unclassified and local.
+    declined: int
+    #: `104` R-175: files past the run's per-file wall-clock ceiling, skipped so
+    #: the pass could reach the rest. Its own count on `SituationPass`' argument --
+    #: a file nobody could ask, a file with nothing to read and a file that ate its
+    #: budget are three different facts.
+    over_ceiling: int = 0
+
+
+#: THE GATE THAT DID NOT RUN, a value rather than a `None` on `_NOTHING_ASKED`'s
+#: own ruling: a run where the gate was not asked and a run where it was asked and
+#: cleared nothing must not read the same downstream. Both leave every file where
+#: the rules left it; only one of them means a model was consulted.
+_NO_GATE: "GatePass"
+
+
+def ask_the_gate(conn: sqlite3.Connection, *, roster, fact_authorities,
+                 routing: TierRouting, prompt, now,
+                 component_version: str = COMPONENT_VERSION) -> GatePass:
+    """`00` amendment 7(c): which of the ten restricted kinds, if any, is this file?
+
+    **WHAT THIS PASS IS FOR, measured.** `104` §18.56 graded site G against the
+    second corpus's answer key: 43 of 45 protection misses were never put to any
+    model at all, because site G asked only files the rules could not settle or
+    were holding, and four health forms carrying basis `detector` with
+    `protected = 0` were cloud-eligible on the rules' word -- whose measured top-1
+    accuracy on that corpus was 32.2%. The owner's ruling is that every file the
+    deterministic layers could not settle EITHER WAY is put to a local model before
+    anything about it may be sent anywhere.
+
+    **IT RUNS BEFORE THE SITUATION PASS AND ITS ANSWER IS WHAT ROUTES IT.** A file
+    this pass clears may have its situation asked of a cloud model; a file it names
+    may not, and neither may a file it could not answer for. A gate asked after the
+    thing it gates is not a gate.
+
+    **A FILE ALREADY HELD IS NOT ASKED.** The deterministic layers -- the term
+    detector's safety domains, and amendment 7(a)'s identifier patterns writing
+    through the same bases -- have already decided those, and this site exists for
+    the files they could not. Asking anyway would spend one call per file to be
+    told what a rule already knows, on the site that runs over the whole roster.
+
+    **EVERY OTHER FILE IS ASKED, WHETHER OR NOT THE RULES RECOGNISED IT.** That is
+    the half of the ruling that is new: `00`:110's "not called for direct, unique
+    matches" reserved the model from a file the rules had settled, and the four
+    health forms above are exactly such files. A schema the rules recognised says
+    what a file is ABOUT; it says nothing about whether the file is a record of one
+    of the ten kinds, which is a different question and the one the cloud route
+    rests on.
+
+    **LOCAL, ALWAYS, AND THE INVARIANT IS HERE RATHER THAN IN A COMMENT.**
+    `observe_locality_permits` refuses this site the cloud on its own name, so
+    `target_for` has only a local candidate to offer -- and
+    `GateOfferedACloudTarget` is what says so if that ever stops being true.
+
+    **SILENCE WRITES NOTHING.** A decline this reader cannot read, a refused claim,
+    a failed call, a file with nothing releasable: none of them is a model saying
+    anything, so none of them writes a row and none of them clears a file. The file
+    stays unclassified, which `unclassified_denies` keeps local.
+    """
+    named: dict = {}
+    cleared = already_held = nothing_to_read = declined = over_ceiling = 0
+    # `104` §18.33 gap 25: THE ROWS, AND THE COUNT IS TAKEN OFF THEM, so a
+    # `continue` added without a row lowers the number a person reads instead of
+    # leaving the number right and the file unaccounted for.
+    no_route_rows: list[str] = []
+    # `104` R-175: THE SAME CEILING SITE G AND SITE A CONSULT, off the bundle all
+    # three are handed. This pass sees each file FIRST now, so it is where a file's
+    # turn opens -- and one ceiling with one set of first sightings is what makes
+    # the bound a bound on the file's turn rather than on each loop separately.
+    ceiling = fact_authorities.per_file_ceiling
+    store = ClassificationStore(conn)
+    # THE ELEVEN, BUILT ONCE. They are the same on every file in every corpus --
+    # the ten kinds are `105` §13.3's closed list and the eleventh is the decline
+    # -- so a per-file build would be the same work per file and a per-file chance
+    # for the list to differ.
+    vocabulary = restricted_kind_vocabulary()
+    route_for = target_for(conn, routing, H_RESTRICTED_KIND)
+    for file_id, content_hash in roster:
+        if ceiling is not None:
+            ceiling.open_turn(file_id)
+            try:
+                ceiling.check(file_id)
+            except FileTookTooLong as over:
+                refusal_outcome(conn, call_site=H_RESTRICTED_KIND,
+                                subject_ref=file_id, error=over,
+                                observed_at=now())
+                over_ceiling += 1
+                continue
+        # THE HOLD, READ OFF THE STORE AND NOT RE-DERIVED. `ask_the_situation` says
+        # at length why the live ROW is the question and not what the rules would
+        # say if asked again: a person's own correction supersedes a precaution,
+        # and a report taken on the detector's word alone would call a file held
+        # that the person had already released.
+        current = store.current(file_id, content_hash)
+        if (current is not None and current.protected
+                and current.basis in SAFETY_DOMAIN_BASES):
+            already_held += 1
+            continue
+        chosen = route_for(file_id)
+        if chosen is None:
+            # NOTHING IS ASSEMBLED AND NOTHING IS SENT, and it has a row of its own
+            # rather than a tally, on `ask_the_situation`'s own argument: a count is
+            # not something a person can open their file and read.
+            no_route_rows.append(record_unbuilt_call_abstention(
+                conn, PreCallAbstention(
+                    reason=NOT_ELIGIBLE_FOR_MODEL,
+                    call_site=H_RESTRICTED_KIND, subject_ref=file_id),
+                observed_at=now()))
+            continue
+        client, target = chosen
+        if target.locality != LOCAL:
+            raise GateOfferedACloudTarget(
+                f"{file_id} was routed to a {target.locality} target "
+                f"({target.provider}/{target.model_id}) at "
+                f"{H_RESTRICTED_KIND}; this is the site that decides whether a "
+                "file may leave the device, so it is answered on this machine or "
+                "not at all")
+        observations = releasable_observations(
+            conn, file_id=file_id, content_hash=content_hash,
+            limit=GATE_MAX_RELEASED_OBSERVATIONS,
+            locality=target.locality,
+            ceiling=GATE_DOSSIER_TOKENS)
+        question = GateQuestion(
+            file_id=file_id, content_hash=content_hash,
+            evidence_refs=tuple(observation.observation_key
+                                for observation in observations))
+        try:
+            request = build_gate_request(
+                question, observations, model_target=target, prompt=prompt,
+                max_dossier_tokens=GATE_DOSSIER_TOKENS)
+        except NothingToAsk:
+            nothing_to_read += 1
+            continue
+        verdict = run_call(
+            conn, request,
+            gate=fact_authorities.gate,
+            model_client=client,
+            prompt=prompt,
+            validation_dependencies=gate_call_dependencies(
+                fact_authorities,
+                allowed_vocabulary=vocabulary,
+                placeable_file_count=len(roster)),
+            observed_at=now,
+            # `104` R-14 / R-172: the same mailbox every other site is handed, so
+            # what this call consumed is recorded beside what was reserved.
+            usage_recorder=fact_authorities.usage_recorder)
+        kind = None
+        if isinstance(verdict, P8Verdict):
+            kind = gate_kind_named_by_verdict(conn, verdict)
+        if kind is None:
+            declined += 1
+            continue
+        if not (prompt.ratified and GATE_MAY_WRITE_A_CLASSIFICATION):
+            # RECORD-ONLY, FOR EITHER OF ITS TWO CAUSES. `104` §7 Phase 1 step 6:
+            # the dossier and the verdict are recorded and nothing is applied while
+            # the text is a draft -- and, since the owner ratified this text on
+            # 12 September, the live cause is the other one: P7's
+            # `CLASSIFICATION_BASES` does not yet carry `local_model_gate`, so
+            # there is no lawful row for this verdict to be written as. Counted so
+            # a run in either state still reports what the gate WOULD have decided,
+            # which is the whole value of an observe pass, and nothing is applied,
+            # because a record is an act on the answer and this one opens the
+            # cloud.
+            declined += 1
+            continue
+        record = gate_classification(
+            question, kind, observed_at=now(),
+            # THE DETERMINISTIC LAYERS' SILENCE, read off the live row and passed
+            # rather than guessed at inside the record builder. A held file never
+            # reaches here, so what is left is a file with no row, a file the rules
+            # cleared, and a file something OTHER than the rules is protecting -- a
+            # person's own `user_confirmed` correction. The last of those is not
+            # silence, and a clearance written over it would be the model
+            # overturning the person.
+            deterministic_layers_silent=(
+                current is None or not current.protected))
+        if record is None:
+            declined += 1
+            continue
+        written = assign(
+            conn, record, store=store, component_version=component_version,
+            supersede_reason=(
+                f"local model gate verdict {verdict.verdict_id} "
+                + (f"named the restricted kind {kind}"
+                   if kind != NONE_OF_THESE else
+                   "read this file and named none of the ten restricted kinds")))
+        if written is not record:
+            # `assign` wrote none of it: the person has rejected this class for this
+            # file, or a stronger record already stands. Either way the gate's
+            # answer changed nothing, and counting it as an answer would put a
+            # number on the screen that the store does not agree with.
+            declined += 1
+            continue
+        if record.protected:
+            named[file_id] = kind
+        else:
+            cleared += 1
+    # `104` R-175: the last file's turn ends with the loop and not with the next
+    # file, because there is no next file.
+    if ceiling is not None:
+        ceiling.close_turn()
+    return GatePass(
+        named=named, cleared=cleared, already_held=already_held,
+        nothing_to_read=nothing_to_read,
+        no_route=len(no_route_rows), declined=declined,
+        over_ceiling=over_ceiling)
+
+
 @dataclasses.dataclass(frozen=True, slots=True)
 class SituationPass:
     """What site G left behind, counted. Every field is a number a report can print.
@@ -6969,20 +7807,19 @@ class SituationPass:
 
     #: file_id -> the schema id a model named for it, validated and recorded.
     named: dict
-    #: Files the recognisers settled without a model AND are not holding. Not
-    #: asked, and rightly. `104` §18.26 gap 24b, the owner's ruling of 10 Sep
-    #: 13:10: a file the rules recognised and ALSO hold is not settled and is not
-    #: counted here -- `00`:110 reserves the model for what the rules cannot
-    #: settle, and a hold is the rules saying they could not. It is asked like any
-    #: other held file and lands in whichever of the counters below its answer
-    #: earns, so the six still partition the roster.
-    settled: int
-    #: Files with an abstention and no candidate at all -- `no_evidence` with no
-    #: semantic recogniser behind it. `NothingToAsk`, and 60 of the owner's 112
-    #: abstentions on the measured corpus.
-    nothing_to_ask: int
     #: Files with a shortlist and no releasable reading. A question `00`:42 permits
     #: no answer to.
+    #:
+    #: `settled` AND `nothing_to_ask` USED TO STAND HERE AND `00` amendment 7(c)
+    #: retired both, because each counted a file this pass did not ask about for a
+    #: reason that is no longer a reason. `settled` was "the recognisers named it
+    #: and are not holding it", which `00`:110 reserved from the model until the
+    #: owner ruled that line no longer reserves the SITUATION -- the rules' measured
+    #: top-1 accuracy on the second corpus was 32.2%, so it was reserving two files
+    #: in three from the only reader that could correct them. `nothing_to_ask` was
+    #: "the recognisers raised no candidate, so the menu would hold only the
+    #: decline", which cannot arise now that the menu is the whole library. What the
+    #: first of them counted is still on the screen: see `recognised_by_rules`.
     nothing_to_read: int
     #: Files a model was asked about and declined to name, or whose answer P8 did
     #: not accept. `00`: correct abstention is a successful outcome, and either way
@@ -7008,6 +7845,16 @@ class SituationPass:
     #: in the largest. Zero on every run that sets no ceiling, which is every run a
     #: person is watching.
     over_ceiling: int = 0
+    #: HOW MANY OF THE ROSTER THE RULES HAD ALREADY RECOGNISED, and it is NOT one of
+    #: the counters that partition it -- every one of these files was also asked and
+    #: is also in exactly one of the five above. `00` amendment 7(c) is why it is
+    #: here at all: the number used to be `settled`, a bucket of files nobody asked,
+    #: and the owner's ruling turned it into a fact about the rules rather than a
+    #: fate for the file. It stays on the screen because a person watching a scan is
+    #: owed the difference between "the rules had nothing" and "the rules had an
+    #: answer and it was checked", and because it is the denominator §18.56's 32.2%
+    #: was measured against.
+    recognised_by_rules: int = 0
 
 
 #: THE PASS THAT DID NOT RUN, and it is a value rather than a `None` for the
@@ -7167,8 +8014,8 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
       standing exactly where no hold exists.
     """
     named: dict = {}
-    settled = nothing_to_ask = nothing_to_read = declined = 0
-    over_ceiling = 0
+    nothing_to_read = declined = 0
+    over_ceiling = recognised_by_rules = 0
     #: `104` §18.33 gap 25: THE ROWS, AND THE COUNT IS TAKEN OFF THEM. `no_route`
     #: was `+= 1` and nothing else, so `--trail FILE` could not say why a file was
     #: never asked -- the surface's own words: *"this module cannot say 'no site had
@@ -7185,11 +8032,26 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     held = released = confirmed = 0
     dependencies_for = situation_call_dependencies
     store = ClassificationStore(conn)
-    # `104` §17.13 ruling 3: PER FILE, not per site. Site G's own text is
-    # unratified, so `target_for` drops the cloud candidate for it and every file
-    # this pass asks about goes to the model on this machine -- which is what
-    # `104` §17.1 already said in words and what this now makes mechanical rather
-    # than a consequence of which tier the local model happened to take.
+    # `104` §17.13 ruling 3: PER FILE, not per site -- and since `00` amendment
+    # 7(c) the per-file answer is the gate's.
+    #
+    # **WHAT DECIDES A FILE'S TARGET HERE.** `target_for` offers the cloud
+    # candidate first and asks `model_route_permitted` about this file: a file
+    # carrying an ordinary classification row that the privacy module's own rules
+    # permit a cloud release of -- which is what the gate writes when it clears a
+    # file, basis `local_model_gate` with `protected = 0` -- takes it; every other
+    # file falls through to the local candidate, which is where an unclassified
+    # file, a held file and a file the gate could not answer for all belong. The
+    # predicate is the GATE's own rule, called and never respelled (`104` R-02).
+    #
+    # **AND TODAY EVERY FILE STILL GOES LOCAL, for two reasons that are both
+    # temporary and neither of which this line decides.** Site G's row is
+    # unratified, so `observe_locality_permits` drops the cloud candidate before
+    # any file is asked about; and `privacy.vocabulary.CLASSIFICATION_BASES` does
+    # not yet carry `local_model_gate`, so the gate writes no row for the route to
+    # read. Both are the owner's to change -- a ratification and a privacy patch --
+    # and when they change this line needs no edit, which is the point of asking
+    # the door's own predicate rather than a word of this function's own.
     route_for = target_for(conn, routing, G_SITUATION_SENSITIVITY)
     for file_id, content_hash in roster:
         # `104` R-175, and BEFORE the recogniser runs. `open_turn` charges the
@@ -7257,30 +8119,30 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             precaution = precaution_of(conn, outcome.by_the_rules,
                                        file_id=file_id,
                                        content_hash=content_hash)
-        if precaution is None and outcome.recognised is not None:
-            # THE RULES SETTLED IT AND ARE NOT HOLDING IT, which is the whole of
-            # what `00`:110 sanctions: "The LLM should not be called for direct,
-            # unique matches." A HELD file is not that. The owner's ruling of
-            # 10 Sep 13:10 (`104` §18.26 gap 24b) is that `00`:110 yields to a
-            # protected hold, and the reason is what the two sentences are ABOUT:
-            # a direct, unique match is the rules reading the file's own words and
-            # knowing what it is, while a hold is a word-list guess about what the
-            # file IS, taken on one term that may be the modal verb "will" in the
-            # body of a datasheet. Eight of r19's eleven wrongly-held ordinary
-            # files were recognised files, settled here, never asked, and routed
-            # local-only for no reason. The local model reads the whole text; the
-            # word list does not.
-            settled += 1
-            continue
+        if outcome.recognised is not None:
+            # THE RULES RECOGNISED IT, AND IT IS ASKED ANYWAY (`00` amendment
+            # 7(c)). This used to be a `continue`: a file the rules named and were
+            # not holding was `settled` and never asked, on `00`:110's "the LLM
+            # should not be called for direct, unique matches" as §17.1 read it
+            # onto this site. The owner has ruled that reading out, and the number
+            # is the argument: the rules' measured top-1 accuracy on the second
+            # corpus was 32.2% (`cli.SEMANTIC_MAX_ANCHOR_WORDS`' comment), so two
+            # files in three that this branch called settled were settled wrongly
+            # -- and went to the cloud, under the run's own `--situation`, with
+            # nobody having checked. A direct, unique match is now the top-ranked
+            # candidate rather than a bypass, which is exactly what the
+            # constitution's placement ruling of 5 September already said about
+            # the other site that used to skip the model.
+            #
+            # THE COUNT STAYS ON THE SCREEN and stops being a fate. What the rules
+            # recognised is worth knowing; what it may no longer do is decide that
+            # nobody looks.
+            recognised_by_rules += 1
         if precaution is not None:
             held += 1
-        try:
-            question = question_for(
-                outcome, file_id=file_id, content_hash=content_hash,
-                precaution=precaution)
-        except NothingToAsk:
-            nothing_to_ask += 1
-            continue
+        question = question_for(
+            outcome, file_id=file_id, content_hash=content_hash,
+            precaution=precaution)
         chosen = route_for(file_id)
         if chosen is None:
             # NOTHING IS ASSEMBLED AND NOTHING IS SENT. A file with no route is
@@ -7329,15 +8191,24 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                 f"routed to a {target.locality} target "
                 f"({target.provider}/{target.model_id}); protected material "
                 "reaches the local model only, opened on this machine for it")
+        # THE BOUND IS THE TARGET'S, since `00` amendment 7(c) opened a cloud route
+        # for this site. The local bound is unchanged; the cloud one is smaller,
+        # and `SITUATION_DOSSIER_TOKENS_CLOUD` carries the whole argument. One
+        # number, read once and spent twice -- at the offer, where
+        # `releasable_observations` decides what fits, and on the request, which is
+        # the caller's echo of P1's ceiling (M9) -- so the dossier that is built is
+        # the dossier the request describes.
+        bound = (SITUATION_DOSSIER_TOKENS_CLOUD if target.locality == CLOUD
+                 else GROUPING_LIMITS.max_dossier_tokens)
         observations = releasable_observations(
             conn, file_id=file_id, content_hash=content_hash,
             limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
             locality=target.locality,
-            ceiling=GROUPING_LIMITS.max_dossier_tokens)
+            ceiling=bound)
         try:
             request = build_situation_request(
                 question, observations, model_target=target, prompt=prompt,
-                max_dossier_tokens=GROUPING_LIMITS.max_dossier_tokens)
+                max_dossier_tokens=bound)
         except NothingToAsk:
             nothing_to_read += 1
             continue
@@ -7448,7 +8319,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     if ceiling is not None:
         ceiling.close_turn()
     return SituationPass(
-        named=named, settled=settled, nothing_to_ask=nothing_to_ask,
+        named=named, recognised_by_rules=recognised_by_rules,
         nothing_to_read=nothing_to_read, declined=declined,
         # `104` §18.33 gap 25: THE NUMBER IS THE ROWS. Not a tally kept beside them
         # -- a counter and a table are two accounts of one fact and the day they
@@ -7465,9 +8336,12 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                               still_held=held - released - confirmed))
 
 
+_NO_GATE = GatePass(
+    named={}, cleared=0, already_held=0, nothing_to_read=0, no_route=0,
+    declined=0)
+
 _NOTHING_ASKED = SituationPass(
-    named={}, settled=0, nothing_to_ask=0, nothing_to_read=0, declined=0,
-    no_route=0,
+    named={}, nothing_to_read=0, declined=0, no_route=0,
     holds=PrecautionHolds(held=0, released=0, confirmed=0, still_held=0))
 
 NO_GROUP_CALLS = GroupPass(asked=0, answered=0, abstained=0,
@@ -10074,24 +10948,57 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
 #: either -- and two sentences about one fact are how two blocks on one screen come
 #: to disagree. `104` §18.2 gap 9 calls this counter "the protected-file count the
 #: design wanted surfaced", and this is where it is surfaced.
+#: WHAT EACH OF THE GATE'S COUNTERS MEANS, in the person's own words.
+#: `SITUATION_SENTENCE`'s table one site earlier, and every sentence here says what
+#: happened to the FILE rather than what the code did.
+GATE_SENTENCE: Mapping[str, str] = MappingProxyType({
+    "cleared":
+        "cleared to be sent: a model on this device read the opening of each of "
+        "them, found none of the ten kinds of record this product keeps at home, "
+        "and nothing else was holding them. Their situation may now be asked of a "
+        "model off this device.",
+    "already_held":
+        "already held, not asked: a rule or a recognised identifier had already "
+        "marked them as one of the protected kinds, so there was nothing for this "
+        "question to settle. They stay on this device.",
+    "nothing_to_read":
+        "not asked, nothing to read: no reading of them could be released, so the "
+        "question could not be asked from anything. Nothing about them was "
+        "assembled and nothing was sent, and they are not cleared.",
+    "no_route":
+        "no target: this question is answered on your own machine or not at all, "
+        "and no model on this machine could take them. Nothing about them was "
+        "assembled and nothing was sent, and they are not cleared.",
+    "declined":
+        "asked and left alone: a model was asked and named nothing it could cite, "
+        "or the check did not accept what it named, or its answer is being "
+        "recorded rather than acted on. They stay exactly as they were, which is "
+        "on this device.",
+    "over_ceiling":
+        "past the time this run gives one file: the run stopped waiting for them "
+        "so it could reach the rest. Nothing was decided about them and they are "
+        "not cleared.",
+})
+
+assert set(GATE_SENTENCE) | {"named"} == {
+    field.name for field in dataclasses.fields(GatePass)}, (
+    "every counter the gate leaves behind earns a sentence on the screen. A "
+    "counter with no sentence would be a number this report silently drops, "
+    "which is `104` §18.2 gap 9's defect -- so a new one fails to import rather "
+    "than going unprinted")
+
+
 SITUATION_SENTENCE: Mapping[str, str] = MappingProxyType({
-    "settled":
-        "settled by rule: the recognisers named what they are from their own "
-        "words, so no model was asked about them. `00`:110 reserves the model "
-        "for what the rules cannot settle, and this is that rule holding. A file "
-        "the rules named AND are holding on a safety term is not among them: the "
-        "hold is a guess about what the file is, so it is asked like every other "
-        "held file and counted in the block below.",
-    # TWO "NOT ASKED" LINES, AND EACH SAYS WHICH ONE IT IS IN ITS FIRST THREE
-    # WORDS. A first version began both with the bare phrase, and the block then
-    # printed two lines reading "0 not asked" with different paragraphs under
-    # them -- a reader has to get to the third line of prose to find out they are
-    # different facts, and a reader scanning counts never gets there at all.
-    "nothing_to_ask":
-        "not asked, no candidate: nothing that could be read out of them offered "
-        "a candidate situation at all, so there was no question to put to a "
-        "model. That is about what this product could read, not about what they "
-        "are.",
+    # `settled` AND `nothing_to_ask` STOOD HERE AND `00` amendment 7(c) retired
+    # both counters, so their sentences go with them. The first read "settled by
+    # rule: the recognisers named what they are from their own words, so no model
+    # was asked about them"; it was true of the code and the owner has ruled the
+    # behaviour out, because the rules' top-1 accuracy on the second corpus was
+    # 32.2% and a sentence telling a person their files were settled by rules that
+    # were wrong two times in three is the worst kind of screen this product can
+    # print. The second read "not asked, no candidate", which cannot happen now
+    # that the menu is the whole library. `recognised_by_rules` below is what
+    # survives of the first, and it says what it is rather than what happened.
     "nothing_to_read":
         "not asked, nothing to read: a shortlist of situations existed for them "
         "and no releasable reading did, so the question could not be asked from "
@@ -10121,7 +11028,17 @@ SITUATION_SENTENCE: Mapping[str, str] = MappingProxyType({
         "was decided -- what is open is open, and the next run asks again.",
 })
 
-assert set(SITUATION_SENTENCE) | {"named", "holds"} == {
+#: `00` amendment 7(c): WHAT THE RULES HAD RECOGNISED, said as a fact about the
+#: rules. It is outside the partition -- every one of these files was also asked --
+#: so `_print_situation_pass` prints it apart from the six that add up, on
+#: `PrecautionHolds`' own rule.
+SITUATION_RECOGNISED_SENTENCE: str = (
+    "of them the rules had already recognised from their own words. Every one "
+    "was still asked: on the corpus this was measured against, the rules named "
+    "the right situation for about a third of the files they named one for, and "
+    "a file nobody re-reads is a file that goes wherever the first guess sent it.")
+
+assert set(SITUATION_SENTENCE) | {"named", "holds", "recognised_by_rules"} == {
     field.name for field in dataclasses.fields(SituationPass)}, (
     "every counter site G leaves behind earns a sentence on the screen. A "
     "counter with no sentence would be a number this report silently drops, "
@@ -10283,6 +11200,51 @@ def _print_template_pass(pass_: TemplatePass, *, files: int,
               file=out)
 
 
+def _print_gate_pass(gate: GatePass, *, files: int, model_id: str, out) -> None:
+    """The gate's seven counters, in the shape the situation pass prints its own.
+
+    **THE FIRST BLOCK A PERSON READS ABOUT MODELS, because it is the first
+    decision the run makes.** `00`:259: the interface "should show the difference
+    between completed work and deferred work", and at this site the difference is
+    which of a person's files may be sent anywhere at all. A run that cleared
+    forty files and held six has told a person something they can act on; a run
+    that printed only the situations would have made the sending decision in
+    silence.
+
+    **ALL SEVEN, INCLUDING THE ZEROS**, on `_print_situation_pass`'s rule: they
+    partition the roster, so the numbers are an arithmetic a person can check
+    against the total and a missing line makes that arithmetic unreadable.
+
+    **A PASS THAT DID NOT RUN PRINTS NOTHING**, which is `_NO_GATE`'s own ruling:
+    a run where the gate was not asked and a run where it was asked and cleared
+    nothing must not read the same.
+    """
+    if gate is _NO_GATE or not files:
+        return
+    named = len(gate.named)
+    print("", file=out)
+    print(_wrapped(
+        f"What may be sent: {gate.cleared} of {files} "
+        f"{'file was' if files == 1 else 'files were'} cleared by {model_id} on "
+        f"this device, and {named} "
+        f"{'was' if named == 1 else 'were'} named as one of the ten kinds of "
+        f"record that stay here. This question is asked on your machine and its "
+        f"answer never leaves it: it is the question that decides whether "
+        f"anything else about a file may.", indent=""), file=out)
+    for field in dataclasses.fields(GatePass):
+        if field.name == "named":
+            continue
+        print(_wrapped(f"{getattr(gate, field.name)} "
+                       f"{GATE_SENTENCE[field.name]}", indent="  "),
+              file=out)
+    if named:
+        kinds = ", ".join(sorted(set(gate.named.values())))
+        print(_wrapped(
+            f"{named} named, and the kinds named were: {kinds}. Each of those "
+            f"files is marked and counted and is never sent anywhere; a person "
+            f"decides what happens to it.", indent="  "), file=out)
+
+
 def _print_situation_pass(situation: SituationPass, *, files: int,
                           model_id: str, out) -> None:
     """Site G's seven counters, in the shape the fact pass prints its own.
@@ -10337,11 +11299,18 @@ def _print_situation_pass(situation: SituationPass, *, files: int,
         f"may be sent at all, so it is never asked anywhere else.", indent=""),
         file=out)
     for field in dataclasses.fields(SituationPass):
-        if field.name in ("named", "holds"):
+        if field.name in ("named", "holds", "recognised_by_rules"):
             continue
         print(_wrapped(f"{getattr(situation, field.name)} "
                        f"{SITUATION_SENTENCE[field.name]}", indent="  "),
               file=out)
+    # OUTSIDE THE ARITHMETIC AND SAID SO BY WHERE IT IS PRINTED. The lines above
+    # partition the roster and their sum is the total a person can check; this
+    # number counts files that are ALSO in one of them, so printing it in that
+    # loop would give a reader five numbers that no longer add up.
+    if situation.recognised_by_rules:
+        print(_wrapped(f"{situation.recognised_by_rules} "
+                       f"{SITUATION_RECOGNISED_SENTENCE}", indent="  "), file=out)
     _print_the_holds(situation.holds, out=out)
 
 
@@ -14490,6 +15459,15 @@ def run(conn: sqlite3.Connection, directory: Path, *,
     #: it say what happened to every file that is not in it.
     situation_cell: list = [_NOTHING_ASKED]
 
+    #: `00` amendment 7(c): what the gate answered, filled by `_model_fact_pass`
+    #: and read by the report. One slot for `situation_cell`'s reason.
+    #:
+    #: THE NUMBER THAT SAYS WHETHER THIS WORKED is `cleared` against the roster:
+    #: how many files a model on this device read and released for a target off
+    #: it. `104` §18.56's measurement is the "before" -- 43 of 45 protection misses
+    #: never put to any model, and health forms released on the rules' word alone.
+    gate_cell: list = [_NO_GATE]
+
     #: `104` §18.1 S6: what the per-file template site answered, filled by
     #: `downstream` and read by `_template_for` below, by the report, and -- through
     #: the gate this run's authorities are built with -- by every release after the
@@ -14882,6 +15860,41 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # is deliberate: `--situation` is the person's own answer for the corpus
         # and the model's is a per-file refinement of it, never a replacement for
         # the thing they typed.
+        # `00` AMENDMENT 7(c): THE GATE, BEFORE THE SITUATION AND BEFORE THE
+        # FIELDS. Its answer is what routes the situation call -- a file it clears
+        # may be asked of a model off this device, a file it names or could not
+        # answer for may not -- so a gate asked after the thing it gates is not a
+        # gate. It also runs over the WHOLE roster, which the two passes after it
+        # now do as well: `104` §18.56 measured 43 of 45 protection misses never
+        # put to any model, because the sites before this one asked only about
+        # files the rules could not settle.
+        #
+        # `gate_prompt` AND NOT `prompt_for` (see both): the row is the owner's and
+        # may not be in the manifest at all, and `None` here is a site that asks
+        # nothing rather than a run that will not scan. Handed to the pass rather
+        # than read inside it, so the composition root stays the one place that
+        # decides what text this deployment asks under.
+        gate_prompt_in_force = gate_prompt()
+        gate_pass = (
+            ask_the_gate(
+                conn, roster=roster, fact_authorities=authorities,
+                routing=routing, prompt=gate_prompt_in_force, now=now)
+            # THE SITE'S OWN DESTINATION, and for this site that is always the
+            # local one: `observe_locality_permits` refuses it the cloud on its own
+            # name, so `site_has_a_destination` answers whether this machine has a
+            # model at all. A deployment with a key and no local model does not run
+            # the gate -- and therefore clears nothing, which is the safe direction
+            # and is said on the screen rather than inferred.
+            if gate_prompt_in_force is not None
+            and site_has_a_destination(conn, routing, H_RESTRICTED_KIND,
+                                       operation_mode=operation_mode)
+            else _NO_GATE)
+        gate_cell[:] = [gate_pass]
+        # PRINTED HERE, before the situation block, because that is the order the
+        # run made the decisions in: what may be sent, then what is asked of it.
+        _print_gate_pass(gate_pass, files=len(roster),
+                         model_id=_local_model_id(routing, H_RESTRICTED_KIND),
+                         out=out)
         situation_prompt_in_force = prompt_for(G_SITUATION_SENSITIVITY)
         situation_pass = (
             ask_the_situation(
@@ -15415,6 +16428,32 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             for file_id, content_hash in corpus_roster(db, scan_run_id[0])))
 
     def downstream(p1_p7) -> CorpusAuthorities:
+        """Everything after P1-P7, in the one order the parts allow.
+
+        **THE MODEL PASSES RUN IN THIS ORDER AND IT IS NOT A PREFERENCE:**
+
+        1. **The entity reader** (`00` amendment 7(b), `_entity_pass`). A local
+           encoder names people, diagnoses, dates of birth and identity numbers as
+           observations, and a person beside a diagnosis holds the file with no
+           model call at all. It runs first because its readings are evidence the
+           three passes below judge with, and it must FINISH first because its
+           session holds 2.36 GB and the local language model wants the rest of the
+           machine -- `104` §18.56 measured what happens when it does not get it.
+           Its `finally` releases the session before the next line runs.
+        2. **The gate** (`00` amendment 7(c), site H, inside `_model_fact_pass`).
+           Which of the ten restricted kinds, if any, each file the layers above
+           could not settle is -- on this device, always. Its answer decides
+           whether anything else about the file may leave.
+        3. **The situation** (site G, inside `_model_fact_pass`). Which schema of
+           the whole library each file is part of, on the cloud for a file the gate
+           cleared and on this machine for one it did not.
+        4. **The facts** (site A, inside `_model_fact_pass`). The fields the
+           deterministic producers left open, asked under the situation named in 3.
+
+        Each step is evidence for the next and none of them can be reordered: a
+        gate asked after the call it gates is not a gate, and a situation named
+        after the fields were asked is a situation nothing acts on.
+        """
         scan_run_id[0] = p1_p7.scan_run_id
         # §3.11's universal families, BEFORE the model pass and before P9 groups.
         # See `_family_pass` for why a corpus producer cannot be a resolver stage.

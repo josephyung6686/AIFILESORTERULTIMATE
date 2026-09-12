@@ -18,13 +18,26 @@ on the device, and only an ordinary verdict may then let it reach a provider. A 
 this site declines to name stays local, which is the safe direction: a wrong
 "ordinary" is what sends somebody's medical record away.
 
-**VALID OPTIONS ONLY (constitution 3), and the classifier aims the question.** The
-model is not shown the 23 schemas and asked to pick. It is shown the candidates the
-recogniser itself raised -- the schemas it tied on, its near miss, the semantic
-recogniser's nearest and runner-up -- plus one structural option meaning none of
-them fits. `recognition/_CONTRACT.md` rule 5 forbids the recogniser inventing a
-class to let the pipeline continue, and a model naming a schema nobody proposed
-would be that same invention wearing a model's face.
+**THE MENU IS THE WHOLE LIBRARY, AND THE RECOGNISERS' CANDIDATES ARE EVIDENCE
+(`00` amendment 7(c), 12 September 2026).** This module used to show the model
+only the schemas a recogniser had raised, on the reading that a model naming a
+schema nobody proposed would be `recognition/_CONTRACT.md` rule 5's invention
+wearing a model's face. `104` §18.56 measured that reading on the owner's second
+corpus and it does not hold: the shortlist held the key's own answer for 35 of 87
+files, 28 menus offered one candidate plus the decline, the members offered most
+often were `construction_property` (27) and `finance` (25) on a student's
+Downloads folder, and 40 of the 60 abstentions were files whose answer was not on
+the menu at all. A closed list that omits the answer three times in five is not
+"valid options only"; it is the wrong question.
+
+So the options are every member of `SCHEMA_IDS`, in the library's order, and then
+the decline. Rule 5 is untouched -- the model still cannot name a class the
+library does not have, which is what that rule is about -- and what the
+recognisers raised is carried as EVIDENCE instead of as the cage: each candidate
+item says whether the recognisers raised this schema for this file and on which
+of the library's own terms, so the model reads the rules' opinion and is not
+confined to it. `00`:39's "identify obvious candidate domains" is kept, as the
+stage-two hint it was written as.
 
 THE THREE WALLS ARE OPEN, 8 September 2026 (`104` §17.1), and this is what each
 one turned into:
@@ -154,7 +167,8 @@ class SituationQuestion:
     #: `no_corroboration` or `ambiguous` on the owner's corpus -- or `None`
     #: because the recogniser did not abstain at all. See `recognised_as`.
     reason: str | None
-    #: The closed list the model may answer from, `NONE_OF_THESE` last.
+    #: The closed list the model may answer from: since `00` amendment 7(c), every
+    #: member of `SCHEMA_IDS` in the library's order, then `NONE_OF_THESE`.
     allowed_situations: tuple[str, ...]
     #: What the file matched, per candidate. A candidate the file matched nothing
     #: for is a candidate the semantic recogniser raised, and saying so is what
@@ -180,6 +194,14 @@ class SituationQuestion:
     #: being asked which of the two it is.
     recognised_as: str | None = None
 
+    #: WHAT THE RECOGNISERS ACTUALLY RAISED for this file -- the schemas they tied
+    #: on, the near miss, the semantic recogniser's nearest and runner-up, and the
+    #: domain any hold names. Since `00` amendment 7(c) this no longer decides
+    #: WHICH options the model is shown; it decides what each option's item SAYS
+    #: about itself. Empty for a file no recogniser raised anything for, which is
+    #: now a question like any other rather than a file with nothing to ask.
+    raised: tuple[str, ...] = ()
+
     def __post_init__(self) -> None:
         # EXACTLY ONE, because the recogniser either stopped or it named the file
         # and there is no third thing it can have done. Two nullable fields with
@@ -190,24 +212,45 @@ class SituationQuestion:
                 "a situation question states the recogniser's abstention reason "
                 "or the schema it recognised, and exactly one of them: "
                 f"reason={self.reason!r}, recognised_as={self.recognised_as!r}")
-        if self.recognised_as is not None and self.precaution is None:
-            raise ValueError(
-                f"{self.file_id} was recognised as {self.recognised_as!r} and is "
-                "not held, so `00`:110 reserves it from the model entirely -- "
-                "\"the LLM should not be called for direct, unique matches\". "
-                "A recognised file becomes a question only through a hold "
-                "(`104` §18.26 gap 24b)")
+        # `104` §18.26 gap 24b's REFUSAL IS GONE, and `00` amendment 7(c) is the
+        # act that removed it. It read: a file the recogniser RECOGNISED and the
+        # rules are not holding is reserved from the model entirely, because
+        # `00`:110 says "the LLM should not be called for direct, unique matches".
+        # The owner has ruled that line no longer reserves the SITUATION from the
+        # model, and the number is why: the rules' own measured top-1 accuracy on
+        # the second corpus was 32.2% (`cli.SEMANTIC_MAX_ANCHOR_WORDS`' comment),
+        # so two files in three that the rules "settled" were settled wrongly and
+        # went to the cloud under a situation nobody had checked. A direct, unique
+        # match is now the top-ranked candidate and not a bypass, which is exactly
+        # what the constitution's placement ruling of 5 September already said
+        # about the other site that used to skip the model.
+        #
+        # What replaces the refusal is not nothing: a recognised file's
+        # `candidate_schema` item SAYS the recognisers raised that schema and on
+        # which terms, so the rules' answer reaches the model as the strongest
+        # thing on the page rather than as the only thing.
         if self.allowed_situations[-1:] != (NONE_OF_THESE,):
             raise NothingToAsk(
                 f"the shortlist must end with {NONE_OF_THESE!r}; a closed list "
                 "without it is a forced choice, and a model with no way to decline "
                 "answers something about every file it is shown")
+        # THE LIST-OF-ONE REFUSAL IS GONE TOO, for the same act and by
+        # construction. It read: "a question whose only option is to decline is not
+        # a question", and it was true of a menu built from what a recogniser
+        # raised -- 60 of the owner's 112 lexical abstentions raised nothing at all
+        # and got a list of one. Under `00` amendment 7(c) the list is the whole
+        # library on every file, so there are always twenty-four options and the
+        # condition it guarded cannot arise. The invariant is kept as a length
+        # check rather than deleted, because what it was really defending is that
+        # the model is given something to choose BETWEEN, and that is still the
+        # property -- it now fails on a caller that built a shortlist by hand
+        # rather than on a file the recognisers were quiet about.
         if len(self.allowed_situations) < 2:
             raise NothingToAsk(
                 "a question whose only option is to decline is not a question. "
-                "The recogniser raised no candidate for this file, so there is "
-                "nothing for a model to choose BETWEEN, and asking anyway would "
-                "invite it to invent one")
+                "Since `00` amendment 7(c) the options are the whole library, so "
+                "reaching this means a caller built the list itself rather than "
+                "asking `shortlist_for` for it")
 
 
 def _require_schema(schema_id: str) -> str:
@@ -222,48 +265,71 @@ def _require_schema(schema_id: str) -> str:
 
 def shortlist_for(outcome: SituationOutcome,
                   precaution: Precaution | None = None) -> tuple[str, ...]:
-    """The valid options for one file, from what the recognisers actually raised.
+    """The valid options for one file: the whole library, then the decline.
 
-    **The order is `SCHEMA_IDS`', not the order the candidates arrived in.** Two
-    recognisers contribute and their orders are their own; a shortlist whose order
-    depended on which one spoke first would be a different prompt for the same file,
-    and `104` R-58 is the same argument about the dossier's bytes.
+    **THE LIST NO LONGER DEPENDS ON THE FILE, and `00` amendment 7(c) is the act.**
+    This used to return only the schemas the recognisers had raised, plus any held
+    safety domain, plus the decline -- and every argument for that is preserved
+    below, because each of them was true and none of them survived measurement.
 
-    `NONE_OF_THESE` is always last and always present. It is the only member here
-    that is not a schema.
+    * *"The candidates arrive raised"* (`104` §18.26). Still true, and still the
+      one place a candidate is raised: `raised_for` reads the same projection this
+      function used to filter by. What changed is what the raising is FOR -- it
+      aims the question through the candidate items' own words instead of closing
+      the list.
+    * *"Measured on the owner's corpus ... 60 abstain `no_evidence` ... so the
+      lexical side raises nothing for them and this returns a list of one, which
+      `SituationQuestion` refuses."* That refusal is gone with the narrowing: a
+      file the recognisers were quiet about now gets the same twenty-four options
+      as every other file, which is the honest state -- the recognisers being quiet
+      is a fact about the recognisers.
+    * *"The hold is an option too."* Every safety domain is on the list on every
+      file now, so a hold can no longer be the only way one of `00`'s four reaches
+      it. The hold still rides in the dossier, on the `recogniser_abstention`
+      item, where the model reads what the rules are holding this file as.
 
-    **THE CANDIDATES ARRIVE RAISED, and that is `104` §18.26's owed row.** This
-    used to take the recogniser's record and a second `semantic` object beside it
-    and read candidates off both -- so a caller that forgot the second argument
-    got a shortlist missing half of what had been raised, which is what site G
-    did on every run: `cli.ask_the_situation` passed `semantic=None` always.
-    `SituationOutcome.candidates` is now the ONE place a candidate is raised and
-    both recognisers project into it. Measured on the owner's corpus, that is what
-    the biggest bucket needed: of the 112 files the term detector abstains on, 60
-    abstain `no_evidence` -- they carry no term any schema authored -- so the
-    lexical side raises nothing for them and this returns a list of one, which
-    `SituationQuestion` refuses. Those 60 become askable through the composed
-    recogniser's own candidates, which is what makes the two mechanisms partners
-    rather than alternatives.
+    **WHAT REPLACED IT IS THE MEASUREMENT.** `104` §18.56: the shortlist held the
+    key's own answer for 35 of 87 files; 28 menus offered one candidate and the
+    decline; 40 of 60 abstentions were files whose answer was not on the menu. A
+    closed list is only "valid options only" while the answer is one of them.
 
-    **THE HOLD IS AN OPTION TOO (`104` §18.26 gap 24b), and on a lexical
-    abstention it is a no-op that is worth stating.** `Detector.precaution_report`
-    reads an abstention's hold off `(schema_id, *tied_schema_ids)` -- which is
-    exactly what that abstention's `candidates` are -- so adding the held domain
-    can never widen the list there, and the argument changes nothing for the files
-    gap 24 already asked about. On a RECOGNISED file it is the whole of what makes
-    the question a question: the recogniser named ONE schema, the hold names
-    another, and a shortlist of the winner alone would ask a model holding a
-    passport whether it is coursework, with no way to say that it is not. It is
-    also the only way one of `00`'s four ever reaches this list on the semantic
-    path, which raises none of them.
+    `NONE_OF_THESE` is still always last and always present, and is still the one
+    member here that is not a schema. `outcome` and `precaution` are still taken:
+    they are validated (`_require_schema` refuses a name the library does not
+    have, which is the check that used to run on the way in) and `question_for`
+    reads the raised set off the same pair.
+    """
+    for schema_id in outcome.candidates:
+        _require_schema(schema_id)
+    if precaution is not None:
+        _require_schema(precaution.schema_id)
+    return SCHEMA_IDS + (NONE_OF_THESE,)
+
+
+def raised_for(outcome: SituationOutcome,
+               precaution: Precaution | None = None) -> tuple[str, ...]:
+    """The schemas the recognisers RAISED for this file, in `SCHEMA_IDS` order.
+
+    What `shortlist_for` used to return, minus the decline, and it is now evidence
+    rather than a menu: `_candidate_items` reads it to say, per option, whether the
+    recognisers raised this schema for this file or whether it is a library member
+    they did not. `00`:39's stage two -- "identify obvious candidate domains" -- is
+    kept exactly here and nowhere else.
+
+    **THE ORDER IS `SCHEMA_IDS`', not the order the candidates arrived in**, on the
+    reason that survived the amendment unchanged: two recognisers contribute and
+    their orders are their own, so a set whose order depended on which spoke first
+    would be a different prompt for the same file (`104` R-58).
+
+    The hold's domain is in it. A file the rules are holding as `medical` has had
+    `medical` raised for it by the strongest thing the rules do, and an item saying
+    the recognisers did not raise it would be false on the one file where the
+    stakes are highest.
     """
     raised = {_require_schema(schema_id) for schema_id in outcome.candidates}
     if precaution is not None:
         raised.add(_require_schema(precaution.schema_id))
-    return tuple(
-        schema_id for schema_id in SCHEMA_IDS if schema_id in raised
-    ) + (NONE_OF_THESE,)
+    return tuple(schema_id for schema_id in SCHEMA_IDS if schema_id in raised)
 
 
 def question_for(outcome: SituationOutcome, *, file_id: str,
@@ -271,9 +337,13 @@ def question_for(outcome: SituationOutcome, *, file_id: str,
                  precaution: Precaution | None = None) -> SituationQuestion:
     """One file's question, or `NothingToAsk`.
 
-    Refusing is a real outcome and the common one today: a file the recognisers
-    raised no candidate for has no question with valid options, and `00`:259's
-    "mark the deferred stage ... rather than guessing" is what happens to it.
+    **REFUSING IS NO LONGER AN OUTCOME OF THIS FUNCTION, and `00` amendment 7(c)
+    is why.** It used to be the common one: "a file the recognisers raised no
+    candidate for has no question with valid options", which was 60 of the owner's
+    112 lexical abstentions. The options are the whole library now, so every file
+    has a question; `NothingToAsk` still exists and is still raised, one function
+    down, for a file with no releasable READING -- which is `00`:42's own condition
+    and a fact about the file rather than about the recognisers.
 
     `precaution` is SUPPLIED and never derived here. The hold is the detector's
     conclusion and this module reads no rules of its own -- the same discipline
@@ -287,20 +357,23 @@ def question_for(outcome: SituationOutcome, *, file_id: str,
     into, and every field below is read off it rather than being reconstructed
     from a record class. A third recogniser would need no line here.
 
-    **A RECOGNITION IS A QUESTION ONLY BECAUSE OF THE HOLD (`104` §18.26 gap
-    24b).** WHICH files reach here is `cli.ask_the_situation`'s ruling and not
-    this module's; what this function owes such a file is the shortlist the
-    owner's ruling names -- the schema the recogniser named, and the safety
-    domain(s) the hold names -- so the model can answer the ordinary situation
-    that was read, or a protected one, or none of them. The outcome raises only
-    the recognised schema as a candidate in that case, so this stays true of a
-    semantic proposal without a word here about which recogniser spoke.
+    **A RECOGNITION IS A QUESTION LIKE ANY OTHER (`00` amendment 7(c)).** Gap 24b
+    made a recognised file askable only through a hold, because `00`:110 reserved
+    the model from a direct, unique match. The owner has ruled that line no longer
+    reserves the SITUATION, on the measurement: the rules' top-1 accuracy on the
+    second corpus was 32.2%, so "settled" meant "wrong two times in three and sent
+    to the cloud anyway". WHICH files reach here is still `cli.ask_the_situation`'s
+    ruling and not this module's -- and its answer is now every file on the roster.
+    What the recogniser concluded is not lost: it reaches the model on its own
+    schema's `candidate_schema` item and in the report item, as the rules' opinion
+    rather than as the boundary of the question.
     """
     return SituationQuestion(
         file_id=file_id, content_hash=content_hash,
         reason=outcome.reason,
         recognised_as=outcome.recognised,
         allowed_situations=shortlist_for(outcome, precaution),
+        raised=raised_for(outcome, precaution),
         matched_terms=outcome.matched_terms,
         evidence_refs=outcome.evidence_refs,
         precaution=precaution,
@@ -439,30 +512,76 @@ def _abstention_item(question: SituationQuestion) -> EvidenceItem:
 
 def _candidate_items(question: SituationQuestion,
                      safety_domain_ids: Sequence[str]) -> tuple[EvidenceItem, ...]:
-    """One item per option, the decline included, and no option without one.
+    """One item per option -- the whole library and the decline -- and no option
+    without one.
 
-    THE DECLINE GETS AN ITEM TOO. It is on `allowed_vocabulary`, so a model reading
-    the vocabulary and then the items would find one option it was offered and never
-    described -- and the option it would find undescribed is the one the prompt most
-    wants used when the two readings are close.
+    **TWENTY-FOUR ITEMS SINCE `00` amendment 7(c)**, where there used to be as few
+    as two. The menu is every member of `SCHEMA_IDS` in the library's order, then
+    the decline, and the recognisers' candidates are carried HERE, in what each
+    item says about itself, rather than by deciding which items exist.
 
-    **`location` says whether the kind is one of the four the product protects**, in
-    the prompt's own terms, and that is the only judgement in this function. It is
+    **EACH ITEM SAYS WHETHER THE RECOGNISERS RAISED IT, and that is the whole of
+    what this function judges beyond the protected-kind note.** A raised schema
+    says so and names the library's own terms the file matched for it; a raised
+    schema with no term is the semantic recogniser's neighbour and says that, which
+    is what keeps "near in vector space" from reading as "said this word"; a schema
+    the recognisers did not raise says that too, because an item that was silent
+    about it would leave the model to guess whether silence meant "not considered"
+    or "considered and rejected". `00`:39's stage two survives exactly here: the
+    obvious candidate domains are identified and shown, and they no longer close
+    the list.
+
+    **THE DECLINE GETS AN ITEM TOO**, unchanged: it is on `allowed_vocabulary`, so
+    a model reading the vocabulary and then the items would otherwise find one
+    option it was offered and never described -- the one the prompt most wants used
+    when nothing on the list is stated.
+
+    **`location` SAYS WHETHER THE KIND IS ONE OF THE FOUR THE PRODUCT PROTECTS**,
     read off `recognition.vocabulary.SAFETY_DOMAIN_IDS` rather than listed here:
-    `00`:52's four are the recogniser's own list and a second copy would be a second
-    answer to which material is protected.
+    `00`:52's four are the recogniser's own list and a second copy would be a
+    second answer to which material is protected.
+
+    **THE COST, MEASURED, AND `104` §18.56 PRICED IT AT "about 1,200 more prompt
+    tokens per dossier" BEFORE IT WAS BUILT.** Measured over the shipped library
+    (23 schemas, four of them protected) on a two-candidate tie: the twenty-four
+    items carry 1,524 characters of `location` text where the old three carried
+    262, and 4,977 bytes of canonical item JSON where the old three carried 703 --
+    +1,262 characters of description and +4,274 bytes of frame. The whole block is
+    about 1,244 tokens at four characters a token, which is §18.56's estimate
+    almost exactly, and at most 4,977 under `model_facts.dossier_tokens`' own
+    character bound.
+
+    The wording above is what holds it there and is why the descriptions are
+    curt: an unraised member costs 40 characters plus its schema id, and on an
+    ordinary file twenty-one of the twenty-four are unraised. A sentence per
+    schema saying what that schema is FOR -- the obvious next thing to add --
+    would multiply this block several times over on every file in the corpus, and
+    what the model needs from an option it was not offered before is that it
+    exists and that the rules did not point at it.
+
+    **IT DOES NOT COME OUT OF `GROUPING_LIMITS.max_dossier_tokens`, which is what
+    made the growth affordable.** That ceiling and the door's own
+    `over_dossier_ceiling` both measure the RELEASED values, and a candidate item
+    releases nothing -- `gate.REFERENCE_ONLY` is where that is decided and
+    `_REFERENCE_ONLY_KINDS` above is this module's half of it. §18.56 read the
+    growth as "the bound would need to give way or the descriptions shorten"; the
+    bound did not have to, because the bound was never over this.
     """
+    raised = set(question.raised)
+    terms = {schema_id: matched for schema_id, matched in question.matched_terms}
     items = []
     for schema_id in question.allowed_situations:
         if schema_id == NONE_OF_THESE:
             where = ("no situation on this list | choosing this leaves the file "
                      "where the rules left it, on this device, for a person")
+        elif schema_id in raised:
+            matched = ", ".join(terms.get(schema_id, ()))
+            where = (f"{schema_id} | the recognisers raised this for this file"
+                     + (f", on: {matched}" if matched else ", on no term"))
         else:
-            where = f"{schema_id} | a situation the recogniser shortlisted for this file"
-            if schema_id in safety_domain_ids:
-                where += (" | one of 00's four protected kinds: material of this "
-                          "kind is protected before any cloud or automated "
-                          "placement decision is allowed")
+            where = f"{schema_id} | in the library; not raised for this file"
+        if schema_id in safety_domain_ids:
+            where += " | one of 00's four protected kinds"
         items.append(EvidenceItem(
             evidence_ref=schema_id, kind="candidate_schema", location=where,
             excerpt_span=None, reliability_state=DIRECT, basis=DIRECT_ANCHOR))

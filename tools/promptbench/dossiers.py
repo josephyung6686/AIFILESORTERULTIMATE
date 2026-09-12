@@ -26,7 +26,8 @@ from llm_harness.records import (  # noqa: E402
 )
 from llm_harness.vocabulary import (  # noqa: E402
     A_FACT, ACCEPTED_GROUP_FITS_NO_EXISTING_TEMPLATE, B_GROUP, C_PLACEMENT,
-    COHERENCE_JUDGEMENT, D_RESIDUAL, E_TEMPLATE, G_SITUATION_SENSITIVITY, REDUCTION_NONE,
+    COHERENCE_JUDGEMENT, D_RESIDUAL, E_TEMPLATE, G_SITUATION_SENSITIVITY,
+    H_RESTRICTED_KIND, REDUCTION_NONE,
     REMAINS_AMBIGUOUS, SEVERAL_LEGAL_NODES_PLAUSIBLE,
     USER_OPTED_RESIDUAL_SET_INTO_AI_REVIEW,
 )
@@ -48,6 +49,10 @@ ELIGIBILITY = {
     # The situation call (105 §12) rides under the shortlist site: the rules
     # looked and the file remains ambiguous, which is A's reason too.
     G_SITUATION_SENSITIVITY: REMAINS_AMBIGUOUS,
+    # `00` amendment 7(c)'s gate: the deterministic layers neither held the file
+    # nor cleared it, so what it is remains open -- A's reason again, and
+    # `model_gate._eligibility` is the product's own reading of the same sentence.
+    H_RESTRICTED_KIND: REMAINS_AMBIGUOUS,
 }
 
 
@@ -107,6 +112,16 @@ def dossier_of(case: Case, *, allowed_vocabulary=None,
     # ended that: the seventh member exists, `ELIGIBILITY_BY_SITE` carries it, and
     # the `call_site` key of the model-visible bytes now says which site is asking.
     call_site = case.site
+    # `00` amendment 7(c): THE GATE'S DOSSIER IS SHORTER THAN EVERY OTHER SITE'S,
+    # and the bench builds it at the bound the product builds it at rather than at
+    # the shared 4,000. The gate reads for identifiers and record kinds, which sit
+    # in the opening of a document and in its metadata, and it runs over the whole
+    # roster -- so its bound is the deployment's `GATE_DOSSIER_TOKENS`. Imported
+    # here rather than restated for `site_dependencies_for`'s own reason: the
+    # deployment's number is the deployment's.
+    tokens = MAX_DOSSIER_TOKENS
+    if case.site == H_RESTRICTED_KIND:
+        from cli import GATE_DOSSIER_TOKENS as tokens  # the deployment's
     return Dossier(
         dossier_id=f"promptbench:{case.site}:{case.case_id}",
         call_site=call_site,
@@ -118,7 +133,7 @@ def dossier_of(case: Case, *, allowed_vocabulary=None,
         evidence_items=evidence_items_of(case),
         conflicts=tuple(Conflict(conflict_id=c, kind=k) for c, k in case.conflicts),
         released_evidence=released_of(case),
-        max_dossier_tokens=MAX_DOSSIER_TOKENS,
+        max_dossier_tokens=tokens,
         reduction_rung=REDUCTION_NONE,
         release_id=RELEASE_ID,
         folder_levels=levels,

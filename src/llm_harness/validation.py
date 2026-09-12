@@ -63,6 +63,7 @@ from llm_harness.vocabulary import (
     DEFERRED,
     E_TEMPLATE,
     G_SITUATION_SENSITIVITY,
+    H_RESTRICTED_KIND,
     LLM_SUPPORTED,
     LLM_SUPPORTED_REVIEW,
     POSSIBLE,
@@ -90,6 +91,10 @@ _SCOPE_BY_SITE = {
     # `104` §17.1's seventh site. One file, one situation: the same scope site A
     # and site D carry, because the thing judged is one file version.
     G_SITUATION_SENSITIVITY: SCOPE_FILE,
+    # `00` amendment 7(c)'s eighth site, and the same scope again: the gate judges
+    # ONE file version -- whether it is a record of a restricted kind -- and a
+    # verdict about a file is scoped to the file at every site that asks about one.
+    H_RESTRICTED_KIND: SCOPE_FILE,
 }
 
 _DISPOSITION_BY_OUTCOME = {

@@ -48,8 +48,17 @@ def test_site_g_runs_under_the_ratified_row_and_its_enum_is_the_vocabulary():
     the v2 schema, and this goes red.
     """
     template_id, candidate = cli.SITUATION_ROW
-    # v2 added the field; v3 (gap 8) carries the same template and schema.
-    assert candidate.startswith("situation-safety-first-v")
+    # v2 added the field; v3 (gap 8) carried the same template and schema; and the
+    # whole-library row of `00` amendment 7(c), ratified by the owner on 12 Sep
+    # 17:15, carries the same schema again and asks the same second question in its
+    # own words. The prefix test was `situation-safety-first-v`, which named the
+    # bakeoff family rather than the property -- and the property is what the rest
+    # of this test asserts: whatever row site G runs under, its schema's enum IS
+    # `RESTRICTED_KINDS` and its text names all ten by identifier and by the
+    # owner's own label. A row that asked no kind at all would go red two lines
+    # down, which is the check that matters now that the gate asks the question
+    # too: the two sites must be asking about one list.
+    assert candidate.startswith("situation-")
     template, schema, _policy = draft_bytes(template_id)
     payload = json.loads(schema)["properties"]["claims"]["items"]["properties"]["payload"]
     assert tuple(payload["properties"]["restricted_kind"]["enum"]) == RESTRICTED_KINDS

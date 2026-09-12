@@ -177,14 +177,20 @@ def test_a_missing_env_file_is_not_an_error(monkeypatch, tmp_path):
 def test_every_call_site_p8_publishes_is_routed_to_a_tier():
     """`83` §3's last row refuses an unrouted site, which is the right behaviour
     and a bad surprise: a site P8 already publishes and this table forgot would
-    refuse forever and nothing would say why. So the six are checked here: the
-    five of `83` §3, and site G since `104` §17.1 (9 Sep 2026), which asks the
-    situation question on this device before any other site is asked."""
-    from llm_harness.vocabulary import G_SITUATION_SENSITIVITY
+    refuse forever and nothing would say why. So the SEVEN are checked here: the
+    five of `83` §3, site G since `104` §17.1 (9 Sep 2026), and site H since `00`
+    amendment 7(c) (12 Sep 2026), which asks the restricted-kind question on this
+    device before site G and before any other site is asked.
+
+    `F_role_shortlist` is deliberately absent and always has been: it is a
+    `CALL_SITES` member with no prompt installed and nothing routes it."""
+    from llm_harness.vocabulary import (
+        G_SITUATION_SENSITIVITY, H_RESTRICTED_KIND,
+    )
 
     assert set(cli.TIER_OF_CALL_SITE) == {
         A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE,
-        G_SITUATION_SENSITIVITY}
+        G_SITUATION_SENSITIVITY, H_RESTRICTED_KIND}
 
 
 def test_the_site_whose_errors_become_folders_gets_the_checkable_tier():

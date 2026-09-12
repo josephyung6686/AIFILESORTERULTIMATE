@@ -6,6 +6,7 @@ import importlib
 
 from llm_harness.vocabulary import (
     A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE, G_SITUATION_SENSITIVITY,
+    H_RESTRICTED_KIND,
 )
 
 _MODULES = {
@@ -17,6 +18,8 @@ _MODULES = {
     # The situation call of 105 §12, carried under the shortlist site until the
     # owner names its CALL_SITES member.
     G_SITUATION_SENSITIVITY: "tools.promptbench.suites.suite_s",
+    # `00` amendment 7(c)'s gate: which of the ten restricted kinds, if any.
+    H_RESTRICTED_KIND: "tools.promptbench.suites.suite_h",
 }
 
 

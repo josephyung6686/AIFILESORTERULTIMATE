@@ -37,6 +37,7 @@ from llm_harness.sites import SiteDependencies, dispatch  # noqa: E402
 from llm_harness.vocabulary import (  # noqa: E402
     A_FACT, ABSTAIN, ACCEPT_CONTEXT_SUPPORTED, ACCEPT_DIRECT, B_GROUP,
     C_PLACEMENT, D_RESIDUAL, E_TEMPLATE, G_SITUATION_SENSITIVITY,
+    H_RESTRICTED_KIND,
     LEAVE_IN_CURRENT_LOCATION, MARK_REVIEW_LATER, REJECT, SCHEMA_INVALID,
 )
 from llm_harness.wire_handles import wire_handle  # noqa: E402
@@ -152,7 +153,9 @@ def site_dependencies_for(case: Case, *, catalogue=None,
             catalogue = load_shipped_catalogue(read_packaged_library_file)
         return SiteDependencies(fact=None, placement=None, residual=None,
                                 template=template_dependencies(catalogue))
-    if site in (B_GROUP, G_SITUATION_SENSITIVITY):
+    if site in (B_GROUP, G_SITUATION_SENSITIVITY, H_RESTRICTED_KIND):
+        # No bundle at any of the three: each checks its answer against a list the
+        # dossier already carries and needs no tree, action set or catalogue.
         return SiteDependencies(fact=None, placement=None, residual=None,
                                 template=None)
     raise ValueError(f"site A builds its authorities in site_a.py, not here: {site}")
@@ -302,8 +305,27 @@ def _read_s(case, claims):
             situation == "none" or "unknown" in claims[0])
 
 
+def _read_h(case, claims):
+    """The gate (`00` amendment 7(c)): one claim, `restricted_kind` from
+    `allowed_vocabulary`, and `none_of_these` is an ANSWER rather than a silence.
+
+    `abstained` is True for the clearance, which is what makes a
+    `should_abstain` case here mean "this file must be cleared" -- the site's
+    own asymmetry, not the usual one. `cli.gate_kind_named_by_verdict` reads the
+    product's copy of the same payload the same way.
+    """
+    if not claims or not isinstance(claims[0], dict):
+        return {"restricted_kind": None, "alternatives": []}, False
+    payload = claims[0].get("payload", {}) or {}
+    kind = payload.get("restricted_kind")
+    return ({"restricted_kind": kind,
+             "alternatives": list(payload.get("alternatives", []) or [])},
+            kind == "none_of_these" or "unknown" in claims[0])
+
+
 READERS = {C_PLACEMENT: _read_c, D_RESIDUAL: _read_d, B_GROUP: _read_b,
-           E_TEMPLATE: _read_e, A_FACT: _read_a, G_SITUATION_SENSITIVITY: _read_s}
+           E_TEMPLATE: _read_e, A_FACT: _read_a, G_SITUATION_SENSITIVITY: _read_s,
+           H_RESTRICTED_KIND: _read_h}
 
 
 # --- correctness --------------------------------------------------------------
@@ -395,6 +417,17 @@ def _correct(case: Case, answer: dict, accepted: bool) -> tuple[bool | None, dic
             return None, detail
         detail["situation_matches"] = answer["situation"] == want
         return bool(answer["situation"] == want), detail
+    if site == H_RESTRICTED_KIND:
+        # EVERY GATE CASE IS GRADED, including the four that expect the clearance,
+        # which is where this differs from every other site's branch. At C, D and G
+        # an expectation of `none` returns `None` -- not graded -- because naming
+        # nothing there is a judgement call the bench does not second-guess. Here
+        # `none_of_these` is a positive answer that releases a file to a provider,
+        # so a model that gets it wrong in either direction is wrong and the suite
+        # says so.
+        want = expect.get("restricted_kind")
+        detail["kind_matches"] = answer["restricted_kind"] == want
+        return bool(detail["kind_matches"]), detail
     if site == A_FACT:
         expected = expect.get("fields", {})
         got = answer["fields"]
