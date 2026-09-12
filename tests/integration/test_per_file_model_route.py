@@ -503,3 +503,21 @@ def test_the_rules_word_alone_keeps_a_file_local(corpus, conn, tmp_path):
         assert route(file_id)[1].locality == LOCAL
     assert cli.target_for(conn, _both(), A_FACT, operation_mode=SENDING_ON)(
         corpus["ordinary"])[1].locality == CLOUD
+
+
+def test_site_gs_route_is_built_under_the_runs_mode_not_the_offline_default():
+    """Measured 12 Sep 2026 on the second corpus: the gate cleared 181 files and
+    every one of their situation calls went to the local model, because site G
+    built its route with `target_for`'s default mode, `offline`, under which
+    `mode_forbids` drops the cloud candidate before any file is asked. Sites A and
+    C pass the run's mode; G does now too, and the run's call site hands it over."""
+    import inspect
+    import re
+    assert "operation_mode" in inspect.signature(cli.ask_the_situation).parameters
+    source = inspect.getsource(cli)
+    site = source[source.index("def ask_the_situation("):]
+    site = site[:site.index("\ndef ", 1)]
+    assert re.search(r"target_for\(conn, routing, G_SITUATION_SENSITIVITY,\s*operation_mode=operation_mode\)", site)
+    call = source[source.index("            ask_the_situation(\n"):]
+    call = call[:call.index(")\n", call.index("user_id=user_id")) + 1]
+    assert "operation_mode=operation_mode" in call

@@ -7944,7 +7944,8 @@ class ProtectedFileOfferedACloudTarget(RuntimeError):
 def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                       precaution_of, fact_authorities, routing: TierRouting,
                       prompt, now, user_id: str,
-                      component_version: str = COMPONENT_VERSION) -> SituationPass:
+                      component_version: str = COMPONENT_VERSION,
+                      operation_mode: str = OPERATION_MODE) -> SituationPass:
     """`104` §17.9's defect, addressed: each file asked about ITS OWN situation.
 
     **WHAT THIS IS FOR, and the register got it wrong once.** The earlier account
@@ -8073,7 +8074,8 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     # read. Both are the owner's to change -- a ratification and a privacy patch --
     # and when they change this line needs no edit, which is the point of asking
     # the door's own predicate rather than a word of this function's own.
-    route_for = target_for(conn, routing, G_SITUATION_SENSITIVITY)
+    route_for = target_for(conn, routing, G_SITUATION_SENSITIVITY,
+                           operation_mode=operation_mode)
     for file_id, content_hash in roster:
         # `104` R-175, and BEFORE the recogniser runs. `open_turn` charges the
         # PREVIOUS file for everything its turn took -- the semantic recogniser, the
@@ -15948,7 +15950,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 # decision it is not allowed to make.
                 precaution_of=detector.precaution_report,
                 fact_authorities=authorities, routing=routing,
-                prompt=situation_prompt_in_force, now=now, user_id=user_id)
+                prompt=situation_prompt_in_force, now=now, user_id=user_id,
+                operation_mode=operation_mode)
             # LOCAL ONLY, and the check is `observe_locality_permits` rather than a
             # word of this function's own: `104` §17.1's ruling is that nothing
             # leaves the device under it, and the site's row is `ratified_local`.
