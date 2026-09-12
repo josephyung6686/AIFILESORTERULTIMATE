@@ -16331,6 +16331,32 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             for file_id, content_hash in corpus_roster(db, scan_run_id[0])))
 
     def downstream(p1_p7) -> CorpusAuthorities:
+        """Everything after P1-P7, in the one order the parts allow.
+
+        **THE MODEL PASSES RUN IN THIS ORDER AND IT IS NOT A PREFERENCE:**
+
+        1. **The entity reader** (`00` amendment 7(b), `_entity_pass`). A local
+           encoder names people, diagnoses, dates of birth and identity numbers as
+           observations, and a person beside a diagnosis holds the file with no
+           model call at all. It runs first because its readings are evidence the
+           three passes below judge with, and it must FINISH first because its
+           session holds 2.36 GB and the local language model wants the rest of the
+           machine -- `104` §18.56 measured what happens when it does not get it.
+           Its `finally` releases the session before the next line runs.
+        2. **The gate** (`00` amendment 7(c), site H, inside `_model_fact_pass`).
+           Which of the ten restricted kinds, if any, each file the layers above
+           could not settle is -- on this device, always. Its answer decides
+           whether anything else about the file may leave.
+        3. **The situation** (site G, inside `_model_fact_pass`). Which schema of
+           the whole library each file is part of, on the cloud for a file the gate
+           cleared and on this machine for one it did not.
+        4. **The facts** (site A, inside `_model_fact_pass`). The fields the
+           deterministic producers left open, asked under the situation named in 3.
+
+        Each step is evidence for the next and none of them can be reordered: a
+        gate asked after the call it gates is not a gate, and a situation named
+        after the fields were asked is a situation nothing acts on.
+        """
         scan_run_id[0] = p1_p7.scan_run_id
         # §3.11's universal families, BEFORE the model pass and before P9 groups.
         # See `_family_pass` for why a corpus producer cannot be a resolver stage.
