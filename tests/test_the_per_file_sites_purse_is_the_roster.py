@@ -35,3 +35,11 @@ def test_the_ceiling_is_the_roster_and_one_call_per_file_fits_under_it(ledger):
 def test_an_empty_roster_keeps_the_floor(ledger):
     budget = ledger(_fact(0), corpus_file_count=0)
     assert budget.max_estimated_cost == Decimal(cli.OBSERVE_MIN_CALLS_PER_SCAN)
+
+
+def test_site_as_purse_is_the_roster_too_and_keeps_the_floor_on_a_small_folder():
+    """13 Sep 2026: the fact pass asks every gate-cleared file once, and its
+    200-call ceiling deferred the last 35 of the owner's 371 files before any
+    call. The roster is the ceiling; 200 stays as the floor for a small folder."""
+    assert cli.fact_scan_budget("scan", corpus_file_count=371).max_estimated_cost == Decimal(371)
+    assert cli.fact_scan_budget("scan", corpus_file_count=12).max_estimated_cost == Decimal(200)

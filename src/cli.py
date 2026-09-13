@@ -1361,6 +1361,22 @@ def observe_scan_budget(fact_budget: ScanBudget, *,
         min_calls_per_scan=OBSERVE_MIN_CALLS_PER_SCAN)
 
 
+def fact_scan_budget(scan_run_id: str, *, corpus_file_count: int) -> ScanBudget:
+    """Site A's purse: the roster, never less. `00` amendment 7 asks the facts of
+    every gate-cleared file, and the rate above is one call per file, so a ceiling
+    of 200 calls un-asks the tail of any corpus past 200 files: measured 13 Sep
+    2026 on the owner's 371 files, the last 35 files asked were deferred as
+    `budget_deferred` before any call. The 200 stays as the floor it was written
+    for -- a misconfigured run on a small folder still costs a bounded amount.
+    """
+    return ScanBudget(
+        scan_id=scan_run_id, corpus_file_count=corpus_file_count,
+        max_calls_per_1000_files=FACT_CALLS_PER_1000_FILES,
+        max_estimated_cost=Decimal(max(corpus_file_count,
+                                       int(FACT_CALLS_PER_SCAN_CEILING))),
+        min_calls_per_scan=FACT_MIN_CALLS_PER_SCAN)
+
+
 def situation_scan_budget(fact_budget: ScanBudget, *,
                           corpus_file_count: int) -> ScanBudget:
     """`104` §17.1's site G, spending from a THIRD ledger. Same rate, own purse.
@@ -6918,11 +6934,8 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
         normalize_for_review=normalize_for_review,
         contradicts=contradicts_stronger,
         evidence_resolver=_stored_value_of(conn),
-        scan_budget=ScanBudget(
-            scan_id=scan_run_id, corpus_file_count=corpus_file_count,
-            max_calls_per_1000_files=FACT_CALLS_PER_1000_FILES,
-            max_estimated_cost=FACT_CALLS_PER_SCAN_CEILING,
-            min_calls_per_scan=FACT_MIN_CALLS_PER_SCAN),
+        scan_budget=fact_scan_budget(scan_run_id,
+                                     corpus_file_count=corpus_file_count),
         estimated_cost=FACT_CALL_COST, actual_cost=FACT_CALL_COST,
         policy_version=policy_version,
         wire_handle_key=wire_handle_key,
