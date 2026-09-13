@@ -1301,7 +1301,8 @@ def ordered_releasable_observations(conn: sqlite3.Connection, *, file_id: str,
                                     content_hash: str, locality: str,
                                     limit: int, fields: Sequence[str] = (),
                                     ceiling: int | None = None,
-                                    zones_last: Sequence[str] = ()) -> tuple:
+                                    zones_last: Sequence[str] = (),
+                                    zones_first: Sequence[str] = ()) -> tuple:
     """Every reading of this file the gate would release, in the order it offers
     them. NO cap and no fill -- `within_dossier_budget` below spends the budget.
 
@@ -1368,7 +1369,21 @@ def ordered_releasable_observations(conn: sqlite3.Connection, *, file_id: str,
         # carries and which filled a 1,200-token dossier before one line of its
         # text (12 Sep 2026: six records of 4 to 111 characters, ~170 wire
         # tokens each, and the OCR excerpt of a scanned health form left out).
-        return (observation.location.zone in zones_last,
+        #
+        # `zones_first` IS ITS MIRROR AND IS THE SAME KIND OF WORD (13 Sep 2026).
+        # `cli.SITUATION_ZONES_LAST` already claims one -- "The path stays first: a
+        # folder is named after the situation its files are in, and that is
+        # evidence this site is asked for" -- and it was not true: with no field to
+        # place by, `cited` is empty, every zone ties at 0, and `document_order`
+        # decides, which puts whatever the extractor wrote first first. Measured on
+        # a synthetic corpus at the cloud bound (2,750): a text file whose opening
+        # excerpt is 2,445 characters took two body readings and the ceiling then
+        # CUT the path, both metadata readings and the third body reading. A site
+        # that says a zone is its first evidence needs a term that says so, and
+        # this is that term rather than a re-sort in the caller: the order is one
+        # question and `104` R-07 is that one question has one answer.
+        return (observation.location.zone not in zones_first,
+                observation.location.zone in zones_last,
                 -cited.get(observation.location.zone, 0),
                 document_order(observation), _span_start(observation),
                 observation.observation_key)
@@ -1603,7 +1618,8 @@ def fill_reserving_top_reading(offered: Sequence, context: Sequence, *,
 def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
                             content_hash: str, limit: int, locality: str,
                             ceiling: int, fields: Sequence[str] = (),
-                            zones_last: Sequence[str] = ()) -> tuple:
+                            zones_last: Sequence[str] = (),
+                            zones_first: Sequence[str] = ()) -> tuple:
     """The observations this file may offer a model, most placed first, bounded.
 
     The two halves above, composed: `ordered_releasable_observations` for what may be
@@ -1670,7 +1686,8 @@ def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
     return within_dossier_budget(
         ordered_releasable_observations(
             conn, file_id=file_id, content_hash=content_hash, locality=locality,
-            limit=limit, fields=fields, ceiling=ceiling, zones_last=zones_last),
+            limit=limit, fields=fields, ceiling=ceiling, zones_last=zones_last,
+            zones_first=zones_first),
         ceiling=ceiling).taken
 
 
