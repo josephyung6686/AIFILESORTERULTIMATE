@@ -16,10 +16,29 @@ number after a validator change is zero. Widening `CALL_IDENTITY_DIMENSIONS` wou
 have bought the same answer again for every validator edit, which is why
 `call_identity`'s own comment about what the key is for stays true.
 
-**Everything is real except the socket**, as in
+**Everything is real except the two model seams**, as in
 `test_a_fact_reuse_after_a_verdict.py`, whose corpus and plumbing this file reuses
 deliberately: the same two files, the same rejecting answer, the same production
 `cli.run`. The only thing these tests add is a change to the judge between two runs.
+
+**AND A LOCAL MODEL IS NOW PART OF THE DEPLOYMENT, `00` amendment 7(c).** This file
+configured a cloud key and nothing else, and that stopped being a deployment site A
+can run in: the gate, `cli.ask_the_gate`, reads every un-held file on this device
+BEFORE anything about it may be sent, `cli.CLOUD_CLEARING_BASES` is what
+`model_route_permitted` asks for a cloud target, and the rules' own word is no
+longer among them. With no local model the gate has no destination, no file is
+cleared, and site A is refused the cloud for every one of them -- so this file's
+first run recorded no verdicts at all and the pins about re-judging them had
+nothing to re-judge. The local half is `StubOllama`, answering the gate
+`none_of_these` and declining the situation, exactly as
+`test_a_fact_reuse_after_a_verdict` does and for its reasons.
+
+**THE GATE IS JUDGED BY THE SAME JUDGE, and that is what moved the counts.** A
+`_bump` of `VALIDATOR_VERSION` re-judges every verdict the deployment's Site A
+validator wrote, which since amendment 7(c) is the gate's as well as site A's. So
+the supersession counts and the reuse counts below are read AT SITE A, through
+`llm_dossier.call_site`, which `_A_FACT_VERDICTS` was already doing for site C's
+sake one ruling earlier.
 """
 from __future__ import annotations
 
@@ -38,7 +57,22 @@ from llm_harness import fact_validation  # noqa: E402
 from readers import model_routing  # noqa: E402
 from readers.model_routing import MODEL_NAME_OF_TIER  # noqa: E402
 from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME  # noqa: E402
-from llm_harness.vocabulary import A_FACT, C_PLACEMENT  # noqa: E402
+from llm_harness.vocabulary import (  # noqa: E402
+    A_FACT, C_PLACEMENT, G_SITUATION_SENSITIVITY, H_RESTRICTED_KIND,
+)
+from readers.model_ollama import (  # noqa: E402
+    BASE_URL_NAME as LOCAL_BASE_URL_NAME,
+    MODEL_NAME as LOCAL_MODEL_NAME,
+)
+# The two local sites' answers come from the files that own them, imported rather
+# than copied on `test_site_e_reuses_its_answer`'s own rule: one stub speaking one
+# protocol, so this file and the gate's own pins cannot drift into describing two
+# different gates.
+from test_local_model_fact_pass import (  # noqa: E402
+    MODEL_ID, StubOllama, _answer_for, dossier_in,
+)
+from test_site_g_end_to_end import _decline  # noqa: E402
+from test_site_h_gate import _clear  # noqa: E402
 
 SITUATION = "academic.coursework"
 
@@ -114,6 +148,14 @@ class _Socket:
         def invoke(payload: bytes) -> bytes:
             self.payloads.append(payload)
             body = self._body(payload)
+            # SITE G ARRIVES HERE TOO since `00` amendment 7(c): a file the gate
+            # CLEARED may have its situation asked off the device, so the cloud seam
+            # sees a situation dossier whose schema is not site A's. Answering it in
+            # site A's shape would be a malformed claim the validator refuses -- the
+            # same silence, reached by a fault -- so it is declined in the shape the
+            # ratified prompt asks for.
+            if body["call_site"] == G_SITUATION_SENSITIVITY:
+                return _decline(body).encode("utf-8")
             return json.dumps({"claims": [
                 {"payload": {"field": field, "value": UNCITED}, "citations": []}
                 for field in body["allowed_vocabulary"]]}).encode("utf-8")
@@ -129,12 +171,50 @@ def socket(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _no_ambient_key(monkeypatch, tmp_path):
-    """The developer's own key must not decide whether these tests pass."""
-    for name in (CREDENTIAL_NAME, BASE_URL_NAME, *MODEL_NAME_OF_TIER.values()):
+    """The developer's own key must not decide whether these tests pass.
+
+    The local model's two names are cleared for the same reason and it is not a
+    formality: a machine with ollama running would answer the gate with whatever it
+    pulled, and these counts would then depend on a model nobody chose here.
+    `_local_model` puts the stub's own names back.
+    """
+    for name in (CREDENTIAL_NAME, BASE_URL_NAME, *MODEL_NAME_OF_TIER.values(),
+                 LOCAL_MODEL_NAME, LOCAL_BASE_URL_NAME):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(cli, "ENV_FILE", tmp_path / "absent.env")
     for name, value in ENV.items():
         monkeypatch.setenv(name, value)
+
+
+def _local_answer(payload: str) -> str:
+    """The local half of the deployment, dispatched on the dossier's own site.
+
+    `test_site_h_gate._dispatching` in shape, with site G declined rather than
+    answered for the reason in this file's own header.
+    """
+    dossier = dossier_in(payload)
+    site = dossier.get("call_site")
+    if site == H_RESTRICTED_KIND:
+        return _clear(dossier)
+    if site == G_SITUATION_SENSITIVITY:
+        return _decline(dossier)
+    return _answer_for(payload)
+
+
+@pytest.fixture(autouse=True)
+def _local_model(monkeypatch, _no_ambient_key):
+    """A local model for the whole test, because a run now needs one to send.
+
+    AUTOUSE AND PER TEST, beside `_no_ambient_key` and for its reason: this is what
+    the deployment IS since amendment 7(c), not something one pin arranges. One
+    server for the test rather than one per run -- every test here runs the product
+    two or three times over one corpus, and a stub that came and went between them
+    would give the later runs a different base URL from the first.
+    """
+    with StubOllama(answer=_local_answer) as stub:
+        monkeypatch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
+        monkeypatch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)
+        yield stub
 
 
 @pytest.fixture()
@@ -192,6 +272,34 @@ def _supersessions(corpus):
         "JOIN llm_verdict v ON v.verdict_id = s.old_verdict_id "
         "JOIN llm_dossier d ON d.dossier_id = v.dossier_id "
         "WHERE d.call_site = ?", A_FACT)
+
+
+def _superseded_at(corpus, call_site):
+    """The verdicts ONE site no longer stands behind.
+
+    The same scoping `_A_FACT_VERDICTS` makes for site C, applied to the site `00`
+    amendment 7(c) added: the gate's verdicts are written by the deployment's Site A
+    validator too, so a `_bump` re-judges them beside site A's and an unscoped read
+    of `superseded_by IS NOT NULL` counts two sites' corrections as the fact pass's.
+    """
+    return _rows(
+        corpus,
+        "SELECT v.verdict_id AS verdict_id, v.superseded_by AS superseded_by, "
+        "v.supersede_reason AS supersede_reason FROM llm_verdict v "
+        "JOIN llm_dossier d ON d.dossier_id = v.dossier_id "
+        "WHERE v.superseded_by IS NOT NULL AND d.call_site = ?", call_site)
+
+
+def _reuses_at(corpus, call_site):
+    """Questions this run did not ask again AT ONE SITE.
+
+    `llm_call_reuse` is every site's savings in one table, and since `00` amendment
+    7(c) the gate saves in it too (45d36ca0). An unscoped count would move when the
+    gate started reusing without site A having reused anything at all -- which is
+    precisely the reading R-127's pins must not make.
+    """
+    return _rows(corpus, "SELECT * FROM llm_call_reuse WHERE call_site = ?",
+                 call_site)
 
 
 def _bump(monkeypatch, marker: str) -> None:
@@ -254,9 +362,7 @@ def test_a_validator_change_re_judges_the_stored_response_without_a_call(
     assert all(row["validator_version"] != old_version for row in after)
     # Append-only: the old conclusions are still readable, linked, and carry the
     # reason they stopped standing.
-    superseded = _rows(
-        corpus, "SELECT verdict_id, superseded_by, supersede_reason FROM "
-        "llm_verdict WHERE superseded_by IS NOT NULL")
+    superseded = _superseded_at(corpus, A_FACT)
     assert len(superseded) == len(before)
     assert {row["verdict_id"] for row in superseded} == {
         row["verdict_id"] for row in before}
@@ -267,8 +373,9 @@ def test_a_validator_change_re_judges_the_stored_response_without_a_call(
     assert {link["old_verdict_id"] for link in links} == {
         row["verdict_id"] for row in before}
     # And the answer is still reused, which is the whole point of re-judging it
-    # rather than re-asking it.
-    assert len(_rows(corpus, "SELECT * FROM llm_call_reuse")) == first
+    # rather than re-asking it. Site A's own saving (`_reuses_at`): the gate saves
+    # on the same two files and in the same table.
+    assert len(_reuses_at(corpus, A_FACT)) == first
 
 
 def test_a_re_judged_answer_is_not_judged_again_on_the_next_run(
@@ -327,7 +434,7 @@ def test_the_same_validator_re_judges_nothing(corpus, socket):
     assert socket.calls_at(C_PLACEMENT) == placements * 2
     assert not _supersessions(corpus)
     assert _standing(corpus) == before
-    assert len(_rows(corpus, "SELECT * FROM llm_call_reuse")) == first
+    assert len(_reuses_at(corpus, A_FACT)) == first
 
 
 def test_a_missing_stored_response_is_asked_again(corpus, socket, monkeypatch):
