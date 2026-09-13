@@ -3859,6 +3859,14 @@ ENTITY_TAIL_KEPT: int = 4
 #: default: a floor is a measurement about a corpus and the reader has seen none.
 ENTITY_SCORE_FLOOR: float = 0.7
 
+#: A UNIT NAMING THIS MANY CONDITIONS IS WRITING ABOUT THEM (13 Sep 2026, the
+#: owner's ruling: an author beside a disease term in a paper is not a patient
+#: record). Measured on the second corpus: in every key-protected record the
+#: unit that names a person beside a condition names ONE condition; in every
+#: research paper or dataset analysis held by that pair it names seven to
+#: thirteen. Five sits between them with a margin either side.
+TOPIC_CONDITION_MENTIONS: int = 5
+
 #: How much of a file version the entity reader is given. TWENTY THOUSAND, because
 #: `104`'s P4 extraction row measures 199 files as 3.3M characters -- 16,583 a file
 #: version, over 93 stored units -- so this reads the average file to its end, and
@@ -8382,6 +8390,16 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         # the one screen that is about somebody's protected files. So the store is
         # asked first, and only a live `safety_domain` row makes this a hold.
         current = store.current(file_id, content_hash)
+        if current is not None and current.protected:
+            # A PROTECTED RECORD IS FILED BY THE PERSON (13 Sep 2026, the owner's
+            # word). Until today a held file was put to the local judge so the
+            # judge could lift the hold; measured on the second corpus it was
+            # right 17 times, wrong 42 and silent 10, took 92 seconds a file, and
+            # lifted two key-protected holds. Its word no longer lifts anything,
+            # so the only thing the call produced was a situation name nobody
+            # reads until the person files the record. Not asked, nothing sent.
+            held += 1
+            continue
         precaution = None
         if current is not None and current.basis in SAFETY_DOMAIN_BASES:
             precaution = precaution_of(conn, outcome.by_the_rules,
@@ -11433,10 +11451,10 @@ HOLD_SENTENCE: Mapping[str, str] = MappingProxyType({
         "stands and the record now shows the model agreed rather than showing "
         "only that the rules had guessed.",
     "still_held":
-        "still held because nothing could say: the model declined, or the "
-        "check refused its answer, or the call did not come back, or there was "
-        "nothing releasable to ask from. Silence never lifts a hold, so they "
-        "stay protected and stay on this device.",
+        "held and not asked: a rule, an identifier, an entity reading or the "
+        "gate had marked them protected, and a protected record is filed by "
+        "the person, so no model was asked about them and nothing was sent. "
+        "They stay protected and stay on this device.",
 })
 
 assert set(HOLD_SENTENCE) | {"held"} == {
@@ -11744,11 +11762,11 @@ def _print_the_holds(holds: PrecautionHolds, *, out) -> None:
         return
     print("", file=out)
     print(_wrapped(
-        f"Protected holds the model looked at: the rules were holding "
-        f"{holds.held} {'file' if holds.held == 1 else 'files'} on a safety "
-        f"term, and every one of them was put to the model on this device -- "
-        f"never anywhere else. A hold is only ever lifted by an answer; nothing "
-        f"here is lifted by silence, and no hold was deleted.", indent=""),
+        f"Protected holds: the rules, an identifier, an entity reading or the "
+        f"gate were holding {holds.held} {'file' if holds.held == 1 else 'files'}"
+        f", and a protected record is filed by the person -- since 13 Sep 2026 "
+        f"no model is asked about one, on this device or anywhere else, and no "
+        f"model's answer lifts a hold. Nothing here was deleted.", indent=""),
         file=out)
     for field in dataclasses.fields(PrecautionHolds):
         if field.name == "held":
@@ -14347,6 +14365,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                         handling_for=HANDLING_POLICY, now=now,
                         is_protected=is_protected_container,
                         corroborating_observations=_identifier_observations,
+                        topic_condition_mentions=TOPIC_CONDITION_MENTIONS,
                         # P15. What the PERSON has confirmed about readings their
                         # own files could not settle. Read fresh on every call
                         # rather than captured, so an answer given by `--answer`

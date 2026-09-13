@@ -131,11 +131,11 @@ def test_the_four_hold_counts_reach_the_screen():
     said = _printed(_a_pass(holds=cli.PrecautionHolds(
         held=16, released=11, confirmed=2, still_held=3)))
 
-    assert "the rules were holding 16 files on a safety term" in said
-    assert "put to the model on this device" in said
+    assert "were holding 16 files" in said
+    assert "a protected record is filed by the person" in said
     for count, phrase in ((11, "released by the model"),
                           (2, "confirmed by the model"),
-                          (3, "still held because nothing could say")):
+                          (3, "held and not asked")):
         assert f"{count} {phrase}" in said, (count, phrase)
 
 
@@ -154,7 +154,7 @@ def test_a_zero_hold_count_still_prints_its_line_where_anything_was_held():
 
     assert "0 released by the model" in said
     assert "0 confirmed by the model" in said
-    assert "4 still held because nothing could say" in said
+    assert "4 held and not asked" in said
 
 
 def test_a_run_where_the_rules_held_nothing_prints_no_hold_block():
@@ -170,7 +170,7 @@ def test_a_run_where_the_rules_held_nothing_prints_no_hold_block():
     """
     said = _printed(_a_pass())
 
-    assert "Protected holds the model looked at" not in said
+    assert "Protected holds:" not in said
     assert "released by the model" not in said
     # And the block it sits under is untouched -- this is an addition, not a
     # replacement.

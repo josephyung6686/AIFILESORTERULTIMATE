@@ -722,19 +722,21 @@ def test_a_run_stopped_after_the_gate_asks_the_gate_and_nothing_after_it(
     assert conn.execute("SELECT COUNT(*) FROM tree_nodes").fetchone()[0] == 0
 
 
-def test_the_local_judges_ordinary_answer_does_not_lift_a_hold(tmp_path,
-                                                               monkeypatch):
-    """13 Sep 2026: the local situation judge, right 17 / wrong 42 / silent 10 on
-    the second corpus, lifted a test-score record's rules hold and a travel
-    document's gate hold, both protected in the owner's key. Site G still asks a
-    held file on this device and records what it named; the hold stands."""
-    database, _said, stub = _run(tmp_path, monkeypatch, _clear)
+def test_a_held_file_is_not_put_to_the_local_judge_and_stays_held(tmp_path,
+                                                                   monkeypatch):
+    """13 Sep 2026, the owner's word: a protected record is filed by the person.
+    The local situation judge (right 17 / wrong 42 / silent 10 on the second
+    corpus, 92 seconds a file) had lifted a test-score record's rules hold and a
+    travel document's gate hold. A held file is no longer asked at site G at all,
+    and the hold stands."""
+    database, said, _stub = _run(tmp_path, monkeypatch, _clear)
     conn = _read(database)
     held = _file_id(conn, HELD_NAME)
     asked_at_g = conn.execute(
         "SELECT COUNT(*) FROM llm_dossier WHERE call_site = ? AND subject_ref = ?",
         (cli.G_SITUATION_SENSITIVITY, held)).fetchone()[0]
-    assert asked_at_g, "the held file was not put to the local judge"
+    assert asked_at_g == 0, "a held file was put to the local judge"
+    assert "held and not asked" in said, said
     (row,) = conn.execute(
         "SELECT basis, protected FROM classifications WHERE file_id = ? "
         "AND superseded_by IS NULL", (held,)).fetchall()

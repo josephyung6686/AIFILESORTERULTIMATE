@@ -279,3 +279,33 @@ def test_the_dossier_calls_an_entity_an_entity(db, tmp_path):
     phrase = _held_phrase(report)
     assert "on the entities person, medical_condition" in phrase
     assert "work type" not in phrase and "identifier" not in phrase
+
+
+def test_a_unit_naming_many_conditions_beside_a_person_is_writing_about_them(
+        db, tmp_path):
+    """The owner's ruling of 13 Sep 2026: an author beside a disease term in a
+    paper is not a patient record. Measured on the second corpus: a protected
+    record's unit names ONE condition beside the person; a paper's names seven to
+    thirteen. The deployment states the number (`cli.TOPIC_CONDITION_MENTIONS`);
+    the detector holds nothing on a pair at or past it, and everything below it."""
+    from recognition.detector import Detector
+    from test_recognition_detector import CLOCK, POLICY
+
+    conditions = ["asthma", "type 2 diabetes", "hypertension", "migraine",
+                  "glaucoma"]
+    paper = "Review of " + ", ".join(conditions) + " by Jane Roberts.\n"
+    file_id, content_hash = a_page(db, tmp_path, "review.pdf", paper)
+    read_entities(db, file_id, content_hash,
+                  reader(("person", "Jane Roberts"),
+                         *(("medical condition", c) for c in conditions)))
+    engine = Detector(rule_set(ACADEMIC), handling_for=POLICY,
+                      now=lambda: CLOCK, topic_condition_mentions=5)
+    outcome = engine.explain(db, file_id, content_hash)
+    assert engine.precaution_report(db, outcome, file_id=file_id,
+                                    content_hash=content_hash) is None
+    # Below the number the pair holds as it always did.
+    strict = Detector(rule_set(ACADEMIC), handling_for=POLICY,
+                      now=lambda: CLOCK, topic_condition_mentions=6)
+    report = strict.precaution_report(db, outcome, file_id=file_id,
+                                      content_hash=content_hash)
+    assert isinstance(report, Precaution) and report.schema_id == "medical"

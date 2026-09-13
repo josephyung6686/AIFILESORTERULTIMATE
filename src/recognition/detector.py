@@ -246,6 +246,7 @@ ENTITY_ALONE: Mapping[str, str] = MappingProxyType({
 
 #: The kind whose presence turns the first table on. Spelled once.
 PERSON_ENTITY: str = "person"
+MEDICAL_CONDITION_ENTITY: str = "medical_condition"
 
 #: A PERSON ALONE, AN ORGANISATION ALONE, AN EMAIL OR A PHONE ALONE HOLD NOTHING, and
 #: their absence from both tables is the whole of how that is said. It is not an
@@ -699,7 +700,8 @@ class Detector:
                  is_protected: Callable[[PurePath], bool] | None = None,
                  corroborating_observations: Callable[
                      [sqlite3.Connection, str, str], Iterable[str]] | None = None,
-                 settled_by_user: Callable[[], Iterable[str]] | None = None
+                 settled_by_user: Callable[[], Iterable[str]] | None = None,
+                 topic_condition_mentions: int | None = None
                  ) -> None:
         if not isinstance(rules, RecognitionRules):
             raise TypeError(
@@ -730,6 +732,7 @@ class Detector:
         #: part's record and this module does not read another part's tables.
         #: Absent means "nobody has been asked", which is not "nobody agreed".
         self._settled_by_user = settled_by_user
+        self._topic_condition_mentions = topic_condition_mentions
         # term -> the schemas that authored it, in SCHEMA_IDS order. A term two
         # schemas authored discriminates between neither: both score it, they tie,
         # and a tie abstains. That is why no cross-schema weight is needed.
@@ -1620,6 +1623,13 @@ class Detector:
             people = kinds.get(PERSON_ENTITY, [])
             for kind, schema_id in ENTITY_BESIDE_A_PERSON.items():
                 if people and kind in kinds:
+                    if (kind == MEDICAL_CONDITION_ENTITY
+                            and self._topic_condition_mentions is not None
+                            and len(kinds[kind]) >= self._topic_condition_mentions):
+                        # A UNIT THAT NAMES THIS MANY CONDITIONS IS WRITING ABOUT
+                        # THEM, not recording one person's (the owner's ruling of
+                        # 13 Sep 2026; the deployment states the number and why).
+                        continue
                     _record(schema_id, PERSON_ENTITY, people)
                     _record(schema_id, kind, kinds[kind])
             for kind, schema_id in ENTITY_ALONE.items():
