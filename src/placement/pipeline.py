@@ -1099,6 +1099,13 @@ class PipelineInputs:
     #: the guard. A deployment that names no situation per file passes a callable
     #: answering `None`, and then the rule below changes nothing -- which is a
     #: position that caller has taken rather than one this dataclass took for it.
+    #:
+    #: `None` FROM A RUN THAT DOES KNOW ITS BRANCHES' SITUATIONS IS THE OTHER
+    #: THING, and `place_file_steps` tells the two apart by whether
+    #: `the_situation_each_branch_carries` is empty: a run that named a schema for
+    #: this file and could not resolve it to one situation has left the file's
+    #: situation UNRESOLVED, and such a file abstains `no_model_judgement` rather
+    #: than being filed into the only tree the run happened to build.
     situation_of: object
     #: `00` amendment 7. Each top-level branch this run proposed, by the LABEL its
     #: root node wears, and the situation that branch carries. The other half of
@@ -1871,6 +1878,30 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
                        group_plan_id=group_plan_id, returned_from=returned_from,
                        component_version=component_version,
                        observed_at=observed_at)
+
+    # **A FILE WHOSE SITUATION IS UNRESOLVED IS NOT PLACED** (`00` amendment 7,
+    # 13 Sep 2026). `situation_of` answers `None` for two different runs and the
+    # two must not be filed alike:
+    #
+    # * a run that names no situation per file AND knows no branch's -- every
+    #   P11 fixture, and `situation_of`'s own documented position one screen up.
+    #   The branch rule is inert and nothing here changes;
+    # * a run that DOES know its branches' situations and could not name this
+    #   file's. Something named a SCHEMA for it -- site G, or its branch's vote --
+    #   and the library carries several situations under that schema, so which of
+    #   them this file is has not been answered by anybody
+    #   (`branch_situation.the_one_situation`). The fact pass asked it nothing for
+    #   the same reason, so there is no evidence to score, and every folder it
+    #   could be offered belongs to a branch under some OTHER situation. Filing it
+    #   anyway is the alphabetical first pick arriving one stage later.
+    #
+    # `no_model_judgement` is the reason word and it is true of this file as
+    # written: *"the call happened and nothing judged this file"* -- site G was
+    # asked and named a schema the run cannot act on alone. The person answers the
+    # branch's own `question_for_situation`, and the file is filed on the next run.
+    if (inputs.the_situation_each_branch_carries
+            and inputs.situation_of(subject.file_id) is None):
+        return _abstention(conn, context, reason=NO_MODEL_JUDGEMENT)
 
     # Steps 7 and 8. Only for a bounded ambiguity, only if §8.4's gate allows a
     # dossier, and only if the caller supplied the model path. Step 8 -- the

@@ -79,7 +79,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import cli  # noqa: E402
 from placement.store import decisions_for_plan  # noqa: E402
-from placement.vocabulary import PLACE  # noqa: E402
+from placement.vocabulary import NO_MODEL_JUDGEMENT, PLACE  # noqa: E402
 from privacy.vocabulary import LOCAL_MODEL_SITUATION  # noqa: E402
 from readers.model_ollama import (  # noqa: E402
     BASE_URL_NAME as LOCAL_BASE_URL_NAME,
@@ -411,17 +411,33 @@ def test_the_poster_shares_its_course_with_four_placed_files_and_not_their_folde
     identity and this file is placed in `Coursework/Spring2026/PHYS1401/exam` --
     the whole corpus otherwise unchanged, which is what makes the situation and
     not the evidence the thing that moved it.
+
+    **AND SINCE `the_one_situation` IT IS NOT FILED AT ALL, which is the same
+    finding one step further.** Site G named `research`; the shipped library
+    carries EIGHT situations under `research` and the recognisers raised none of
+    them for this file, so which of the eight it is has not been answered by
+    anybody. It used to be answered by `situations_of("research")[0]` --
+    `research.conference-presentation`, alphabetically first -- and this file
+    then landed in the person's own `NeurIPS 2026` folder on that pick. Now its
+    situation is unresolved, P11 abstains `no_model_judgement` for it, and the
+    person is asked which of the eight `research` is. The claim this test makes
+    is unchanged in the half that matters: the poster does NOT go into the course
+    its four siblings go into.
     """
     placed = _placed(run)
-    assert placed[THE_POSTER] == CONFERENCE, placed[THE_POSTER]
-    assert not placed[THE_POSTER].startswith(LABEL)
+    abstained = _abstentions(run)
+    assert THE_POSTER not in placed, placed[THE_POSTER]
+    assert abstained[THE_POSTER] == NO_MODEL_JUDGEMENT, abstained[THE_POSTER]
     # The control: the same course, the same term, the same instructor line, and
     # no site-G name -- so the coursework folder is exactly where it goes.
     assert placed["PHYS 1401 syllabus.txt"].startswith(
         f"{LABEL}/Spring2026/PHYS1401")
-    # And neither of the other two conference files reached a course either.
+    # And neither of the other two conference files reached a course either: G
+    # named them `research` too, so all three are in the same unresolved state.
     for name in RESEARCH_FILES:
-        assert not placed[f"{CONFERENCE}/{name}"].startswith(LABEL), placed
+        path = f"{CONFERENCE}/{name}"
+        assert path not in placed, placed[path]
+        assert abstained[path] == NO_MODEL_JUDGEMENT, abstained[path]
 
 
 # --- (3) the scoreboard, over this one run against every label ------------------

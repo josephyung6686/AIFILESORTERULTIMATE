@@ -28,8 +28,18 @@ site C takes the top of the shortlist -- are imported rather than rewritten.
 `artifact_type`/`project`/`venue` -- research's fields, from the vote -- and then
 filed into the person's own `Applications` folder, because its folders were
 chosen under `career.recruiting` and no career folder was supported by facts
-nobody had asked for. With one decision it is filed at the root of `research`,
-which is the situation its fields came from.
+nobody had asked for. With one decision both halves move together.
+
+**AND SINCE `branch_situation.the_one_situation` THE ONE DECISION IS "NOT YET"
+(13 Sep 2026).** The vote names the SCHEMA `research`; the shipped library
+carries eight situations under it and the recognisers raised none of them for
+this file, so `_situations_of(voted)[0]` was choosing
+`research.conference-presentation` out of eight on alphabetical order and every
+reader below spent that pick. The file's situation is now unresolved: the fact
+pass asks it nothing, P11 abstains `no_model_judgement` for it, and the person is
+asked "Which of these is research?" at the branch site G opened. What this file
+still pins is the property it was written for -- one decision, and the fields and
+the folders never disagree about it.
 
 **TWO RUNS, for `test_r37_per_branch_situation`'s reason:** `apply_answers`
 refuses an answer to a question no run has asked yet, so the first run asks
@@ -52,6 +62,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import cli  # noqa: E402
+from placement.vocabulary import NO_MODEL_JUDGEMENT  # noqa: E402
 from privacy.vocabulary import LOCAL_MODEL_SITUATION  # noqa: E402
 from readers.model_ollama import (  # noqa: E402
     BASE_URL_NAME as LOCAL_BASE_URL_NAME,
@@ -200,38 +211,71 @@ def test_the_branch_votes_a_situation_that_is_neither_its_own_nor_the_runs(run):
     assert "Which of these is career?" not in report, report
 
 
-def test_the_silent_file_is_asked_the_voted_situations_fields(run):
+def test_the_silent_file_is_asked_nothing_because_the_vote_names_no_situation(run):
     """Site A's `allowed_vocabulary` for it, read off the run's own call log.
 
-    `research.conference-presentation`'s three fields, and not one field of the
-    situation its branch carries or of the one the person typed for the run.
+    **THE VOTE NAMES A SCHEMA AND A SCHEMA IS NOT A SITUATION.** This used to
+    assert `research.conference-presentation`'s three fields -- the
+    alphabetically first of the eight the shipped library carries under
+    `research`, taken by `_situations_of(voted)[0]`. `branch_situation.
+    the_one_situation` retired that pick: the library carries eight, the
+    recognisers raised none of them for this file, so which one this is has not
+    been answered by anybody and the file's situation is UNRESOLVED.
+
+    A file with no situation has no allowlist, no folder levels and no readings
+    to be asked FROM, so it is asked nothing at all -- and the half this test was
+    always about is unchanged and is asserted below: it is not asked its branch's
+    fields and it is not asked the run's. The person answers the branch's
+    question and the next run asks it something.
     """
     _corpus_, database, _report = run
     offered = frozenset().union(*_call_log(database).get(SILENT, [frozenset()]))
-    assert offered == RESEARCH_FIELDS, (offered, _call_log(database))
+    assert offered == frozenset(), (offered, _call_log(database))
     assert not offered & RECRUITING_FIELDS
     assert not offered & COURSEWORK_FIELDS
 
 
-def test_and_its_folders_are_chosen_under_the_same_situation(run):
+def test_and_the_person_is_asked_which_of_the_eight_research_situations_it_is(run):
+    """The way out of the unresolved state, and it is the EXISTING question.
+
+    `questions.triggers.question_for_situation` at the branch site G opened. The
+    branch exists only in the second partition -- G names a schema per file
+    INSIDE the fact pass -- so the question is recorded there, at the same call
+    that builds the branch, and it offers the library's own eight names.
+    """
+    _corpus_, _database, report = run
+    assert f"Which of these is {RESEARCH_SCHEMA}?" in report, report
+
+
+def test_and_its_folders_are_not_chosen_at_all_while_the_situation_is_open(run):
     """The destination, which is the other half of the same answer.
 
-    `_only_this_files_own_branch` drops every candidate under a root whose branch
-    carries another situation, so this file can only be here if P11 was told the
-    situation the fact pass asked under. The two named cover letters land beside
-    it, which is the control: the file G named and the file G left silent are
-    filed together, and that is what the vote is for.
+    **BOTH HALVES STILL MOVE TOGETHER, and that was always the property.** The
+    fact pass asked this file nothing because nothing named its situation; P11
+    files it nowhere for the same reason and says so with the reason word that
+    already means it -- `no_model_judgement`, a call that happened and left this
+    file unjudged. The two named cover letters are in the same state, which is
+    the control: the file G named and the file G left silent are treated alike,
+    and that is what one decision buys.
 
-    SABOTAGE: give the decision the branch arm first -- return `branch.situation`
-    before the vote -- and this file is filed into the person's own
-    `Applications` folder instead, on the same corpus and the same answers. The
-    test above fails with it, which is the property: both halves move together
-    now, and the file is then asked `target_employer`/`job_title`/
-    `recruiting_cycle`/`work_type` as well.
+    Filing it anyway is what this test used to assert, and the folder it was
+    filed into came from `_situations_of("research")[0]` -- the first of eight in
+    alphabetical order. A destination chosen that way is the defect, not the fix.
+
+    SABOTAGE: give `the_one_situation` a `raised` set holding exactly one of
+    `research`'s eight, and this file is asked that situation's fields and filed
+    under it -- the corpus and every stub answer unchanged. That is the second
+    arm, pinned without a corpus in
+    `test_a_situation_is_never_the_first_of_twenty_six`.
     """
     placed = _placed(run)
-    assert placed.get(SILENT) == RESEARCH_SCHEMA, (placed, _abstentions(run))
-    assert placed[f"{APPLICATIONS}/Cover letter Acme.txt"] == RESEARCH_SCHEMA
+    abstained = _abstentions(run)
+    assert SILENT not in placed, placed[SILENT]
+    assert abstained[SILENT] == NO_MODEL_JUDGEMENT, abstained[SILENT]
+    acme = f"{APPLICATIONS}/Cover letter Acme.txt"
+    assert acme not in placed, placed[acme]
+    assert abstained[acme] == NO_MODEL_JUDGEMENT, abstained[acme]
     # And the run still files its coursework, which is the branch no vote
-    # reaches: the default branch's situation is the run's own.
+    # reaches: the default branch's situation is the run's own, the person typed
+    # it, and nothing about this change touches a file with an answer.
     assert placed["PHYS 1401 syllabus.txt"].startswith(LABEL), placed
