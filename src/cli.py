@@ -15798,11 +15798,12 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # rebuilt at the placement boundary.
             canonical_value=normalize_for_model,
             the_folder_each_file_is_in=_the_folder_each_file_is_in(tree.tree),
-            # `00` amendment 7, the two halves of one comparison. THE SAME
-            # `_situation_of` site E is handed: the situation a file's folders are
-            # chosen under is the situation its fields were asked under, or P11
-            # would be holding a second answer to what kind of material this is.
-            situation_of=_situation_of,
+            # `00` amendment 7, the two halves of one comparison. The situation a
+            # file's folders are chosen under is the situation its fields were
+            # asked under -- `resolver_for`'s three arms, which is why this is not
+            # `_situation_of` -- or P11 would be holding a second answer to what
+            # kind of material this is.
+            situation_of=_the_situation_its_folders_are_chosen_under,
             # And the branches, by the label their root node wears, which is the
             # name `_grouped_by_branch` put on the accepted group P10 built the
             # branch from. A branch whose situation is unsettled names nothing,
@@ -15911,6 +15912,32 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             found = _situations_of(answered)
             if found:
                 return found[0]
+        return said().situation
+
+    def _the_situation_its_folders_are_chosen_under(file_id: str) -> str:
+        """`00` amendment 7. The same answer, with the BRANCH in the middle arm.
+
+        P11 asks this to refuse a folder in another situation's branch, so it has
+        to agree with the branch the file is actually in or it would refuse every
+        folder that file has. `_situation_of` above is site E's and stops at site
+        G's name; `_model_fact_pass`'s `resolver_for` has a third arm this needs
+        too -- a file G declined is asked ITS BRANCH's questions, not the run's --
+        and a file under an anchored branch whose situation is the run's would
+        otherwise have every one of its own folders taken away.
+
+        Site G's name still outranks the branch, exactly as it does in
+        `resolver_for`: a branch is the person's answer for a folder and a verdict
+        is a model's answer about this file.
+        """
+        answered = situation_cell[0].named.get(file_id)
+        if answered and answered != said().schema:
+            found = _situations_of(answered)
+            if found:
+                return found[0]
+        branch = (partition_cell[0].branch_of(file_id) if partition_cell
+                  else None)
+        if branch is not None and branch.situation is not None:
+            return branch.situation
         return said().situation
 
     #: `104` §18.1 S6's producer, built once here and handed to the one `Gate` this

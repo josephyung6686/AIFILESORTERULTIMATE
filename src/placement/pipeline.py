@@ -1086,11 +1086,12 @@ class PipelineInputs:
     #: file G declined, or `None`. `_only_this_files_own_branch` is the rule and
     #: carries the measurement.
     #:
-    #: THE SAME ANSWER THE FACT PASS ASKED ITS QUESTIONS UNDER, and the caller
-    #: passes the same callable (`cli._situation_of`) it hands site E: a file whose
+    #: THE SAME ANSWER THE FACT PASS ASKED ITS QUESTIONS UNDER -- site G's name
+    #: for this file, else its BRANCH's situation, else the run's, which is
+    #: `cli._model_fact_pass`'s `resolver_for` in its own order. A file whose
     #: fields were asked under one situation and whose folders were chosen under
-    #: another would be two answers to "what kind of material is this", and P11
-    #: would be the one holding the second.
+    #: another would be two answers to "what kind of material is this", and the
+    #: rule below would refuse every folder that file has.
     #:
     #: Required, with no default, exactly as the two mappings above it are, and
     #: `test_no_unfinished_knowledge_source_gained_an_implementation_default` is
