@@ -416,9 +416,10 @@ class SituationScore:
     confident_on_uncertain: int
     questions: int
     unresolved_per_file: float
-    #: Files whose label names a DIFFERENT situation but which this run placed
-    #: confidently anyway. The run applied one answer to every file in the
-    #: folder, and this counts what that cost.
+    #: Files this run placed under a branch that is NOT their own situation's.
+    #: `00` amendment 7 gives every file its own situation, so a run is no longer
+    #: one answer for the whole folder and a file labelled as something else is
+    #: not contaminated by being placed -- only by being placed in the wrong life.
     contaminated: int
     contaminated_of: int
 
@@ -428,7 +429,24 @@ class SituationScore:
 
 
 def score_situation(run: RunObservation, labels: Mapping[str, Label]) -> SituationScore:
-    mine = {p: l for p, l in labels.items() if l.situation == run.situation}
+    """One run against EVERY label, and contamination read off the branch.
+
+    `00` amendment 7: each file is placed under a branch of its own situation --
+    the one site G named for it, or the run's `--situation` where G declined -- so
+    one run answers the whole corpus and scoring it against the slice whose label
+    happens to match `--situation` would leave every other file uncounted. The
+    filter this had (`l.situation == run.situation`) is what made three runs
+    necessary to score three situations.
+
+    CONTAMINATION IS NOW A QUESTION ABOUT THE BRANCH, not about the run. A file
+    placed under `run.label` -- the branch this run's `--situation` built -- whose
+    own label names another situation is spillover, which is the defect the count
+    was written for; so is a file of this run's own situation placed outside that
+    branch. `Observation.branch` is the destination's root and the only branch
+    whose situation is knowable from a run observation is the default one, so
+    those are the two directions this can honestly answer, and it answers no more.
+    """
+    mine = {p: l for p, l in labels.items() if not l.protected}
     buckets = dict.fromkeys(SORTING_BUCKETS, 0)
     correct = wrong = missing = extra = confident = 0
     questions = run.structural_questions
@@ -451,11 +469,10 @@ def score_situation(run: RunObservation, labels: Mapping[str, Label]) -> Situati
         unresolved += len(observation.unresolved_fields)
 
     scored = sum(buckets.values())
-    others = {p: l for p, l in labels.items()
-              if l.situation != run.situation and not l.protected}
     contaminated = sum(
-        1 for p in others
-        if (obs := run.files.get(p)) is not None and obs.outcome == "place")
+        1 for path, label in mine.items()
+        if (obs := run.files.get(path)) is not None and obs.outcome == "place"
+        and (obs.branch == run.label) != (label.situation == run.situation))
 
     return SituationScore(
         situation=run.situation,
@@ -473,5 +490,5 @@ def score_situation(run: RunObservation, labels: Mapping[str, Label]) -> Situati
         questions=questions,
         unresolved_per_file=unresolved / scored if scored else 0.0,
         contaminated=contaminated,
-        contaminated_of=len(others),
+        contaminated_of=len(mine),
     )

@@ -203,6 +203,10 @@ def _inputs(conn, **overrides):
         their_own_folder_made_for_what_it_holds={},
         canonical_value=NO_CANONICAL_RULE,
         the_folder_each_file_is_in={},
+        # `00` amendment 7. The fixture states its position: this run names no
+        # situation per file and knows no branch's, so the branch rule is inert.
+        situation_of=lambda file_id: None,
+        the_situation_each_branch_carries={},
         a_move_the_person_has_not_permitted=None,
         p2=None,
     )
@@ -3545,3 +3549,159 @@ def test_the_c_dossier_carries_the_conflicts_this_files_own_values_caused(
                       evidence=_evidence(group_ids=PLACING_GROUPS))
     assert decision is not None
     assert [c.kind for c in seen["conflicts"]] == ["subject"]
+
+
+# --- `00` amendment 7: one branch is one situation -------------------------------
+
+
+def _two_situation_tree(*, contradicting=True):
+    """The skeleton's tree with a SECOND top-level branch beside `Academics`.
+
+    `n-paper` under `research` expects the same `subject = PHYS1401` the file
+    states, so both branches hold a folder the file's own fact reaches and the
+    only thing that can separate them is which situation the file is under. That
+    is the measurement `00` amendment 7 is about: at HEAD placement read no
+    situation at all, so a research paper in a coursework run was retrieved
+    against the coursework tree and filed into a course.
+
+    `contradicting=False` drops `n-course-alt`, whose expected `PHYS1402`
+    contradicts the file. It is a CONFLICT rather than a candidate, and a run with
+    no candidate left abstains `conflicting_facts` while one exists -- which is a
+    true sentence about a different thing than the one under test.
+    """
+    from dataclasses import replace
+
+    from p11.p10_fixtures import FROZEN_TREE
+
+    by_id = {node.node_id: node for node in FROZEN_TREE.nodes}
+    profiles = {profile.node_id: profile for profile in FROZEN_TREE.profiles}
+    root = replace(by_id["n-academics"], node_id="n-research",
+                   origin_node_id="n-research", display_label="research",
+                   ordinal=5)
+    paper = replace(by_id["n-course"], node_id="n-paper",
+                    origin_node_id="n-paper", display_label="Papers",
+                    parent_node_id="n-research", ordinal=1,
+                    associated_group_ids=())
+    nodes = tuple(node for node in FROZEN_TREE.nodes
+                  if contradicting or node.node_id != "n-course-alt")
+    nodes += (root, paper)
+    kept = tuple(profile for profile in FROZEN_TREE.profiles
+                 if contradicting or profile.node_id != "n-course-alt")
+    kept += (replace(profiles["n-academics"], node_id="n-research",
+                     display_label="research"),
+             replace(profiles["n-course"], node_id="n-paper",
+                     display_label="Papers", accepted_group_ids=()))
+    freeze = replace(
+        FROZEN_TREE.freeze_record,
+        node_ids=tuple(node.node_id for node in nodes),
+        legal_destination_ids=frozenset(node.node_id for node in nodes
+                                        if node.accepts_placement))
+    return replace(FROZEN_TREE, nodes=nodes, profiles=kept,
+                   freeze_record=freeze)
+
+
+#: The two branches this run proposed, by the label their ROOT node wears, which
+#: is what `branch_situation.Branch.label` puts on the accepted group P10 builds a
+#: branch from (`test_r37_per_branch_situation` reads them back as `Coursework`
+#: and `career`).
+TWO_SITUATIONS = {"Academics": "academic.coursework",
+                  "research": "academic.research"}
+
+
+@pytest.fixture()
+def two_situations(p11_conn):
+    """`skeleton` without the index, because each pin here indexes its own tree.
+
+    `placement_index_entries` is unique on `(plan_version, node_id)`, so a fixture
+    that indexed one tree and a test that indexed another would refuse.
+    """
+    create_llm_schema(p11_conn)
+    create_budget_schema(p11_conn)
+    for key in CEILINGS.values():
+        set_ceiling(p11_conn, key, 8)
+    _classify(p11_conn)
+    _policy(p11_conn)
+    return p11_conn
+
+
+def _indexed(conn, tree):
+    build_destination_index(conn, tree, component_version="P11-test",
+                            observed_at=FIXED_CLOCK, canonical=NO_CANONICAL_RULE)
+    return tree
+
+
+def test_the_same_file_and_tree_are_filed_by_the_situation_alone(two_situations):
+    """`00` amendment 7: the branch is the file's situation's, not the run's.
+
+    One corpus, one tree, one fact -- and the destination changes with nothing but
+    the situation site G named. A coursework file goes to the course under
+    `Academics`; a research file with the same `subject = PHYS1401` goes to the
+    folder under `research`, which before this rule was a rival it outscored and
+    never a branch it belonged to.
+    """
+    tree = _indexed(two_situations, _two_situation_tree())
+    coursework = _place(
+        two_situations,
+        inputs=_inputs(two_situations, tree=tree,
+                       situation_of=lambda file_id: "academic.coursework",
+                       the_situation_each_branch_carries=TWO_SITUATIONS),
+        evidence=_evidence(group_ids=PLACING_GROUPS))
+    research = _place(
+        two_situations,
+        inputs=_inputs(two_situations, tree=tree,
+                       situation_of=lambda file_id: "academic.research",
+                       the_situation_each_branch_carries=TWO_SITUATIONS),
+        evidence=_evidence(group_ids=PLACING_GROUPS))
+
+    assert coursework.outcome == v.PLACE
+    assert coursework.destination.node_id == "n-course"
+    assert research.outcome == v.PLACE
+    assert research.destination.node_id == "n-paper"
+
+
+def test_a_file_whose_situations_branch_has_no_folder_abstains(two_situations):
+    """And it abstains with the word the empty candidate set already has.
+
+    A situation this run built no branch for. Every folder in the tree is another
+    life's, nothing is left to score, and `assess` says `no_supported_destination`
+    -- the honest sentence: the run had no destination this file's evidence could
+    support, not a folder it disliked.
+
+    THE TREE HERE CARRIES NO CONTRADICTING NODE, deliberately. `n-course-alt`
+    expects `PHYS1402` and is suppressed as a conflict, and an empty candidate set
+    beside a conflict is `conflicting_facts` -- a true sentence about the fact and
+    not about the branch.
+    """
+    conn = two_situations
+    tree = _indexed(conn, _two_situation_tree(contradicting=False))
+    decision = _place(
+        conn,
+        inputs=_inputs(conn, tree=tree,
+                       situation_of=lambda file_id: "career.recruiting",
+                       the_situation_each_branch_carries=TWO_SITUATIONS),
+        evidence=_evidence(group_ids=PLACING_GROUPS))
+
+    assert decision.outcome == v.ABSTAIN
+    assert decision.abstention_reason == v.NO_SUPPORTED_DESTINATION
+    assert decision.destination is None
+
+
+def test_a_branch_the_partition_never_named_is_left_alone(two_situations):
+    """The person's own top-level folders are branches too (`00`:100).
+
+    They are nobody's situation, and a rule that refused every root it could not
+    name would take away the folders the person already made. `research` is named
+    here and `Academics` is not, so only `research`'s folders are another
+    situation's and the coursework file keeps the course it always had.
+    """
+    tree = _indexed(two_situations, _two_situation_tree())
+    decision = _place(
+        two_situations,
+        inputs=_inputs(two_situations, tree=tree,
+                       situation_of=lambda file_id: "academic.coursework",
+                       the_situation_each_branch_carries={
+                           "research": "academic.research"}),
+        evidence=_evidence(group_ids=PLACING_GROUPS))
+
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-course"

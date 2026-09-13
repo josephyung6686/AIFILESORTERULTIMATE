@@ -261,6 +261,19 @@ class Observation:
         return self.outcome == "place" and self.review_policy in HELD_POLICIES
 
     @property
+    def branch(self) -> str:
+        """The top-level folder this file went into, or `""` if it went nowhere.
+
+        `00` amendment 7 makes each branch one situation, so this is the whole of
+        "which life was it filed under" and `score_situation` reads contamination
+        off it. A PROPERTY and not a field: `destination` is already the folder
+        chain root first -- the same root every chain in `RunObservation.
+        node_paths` starts with -- so a stored copy would be a second answer to a
+        question the record already answers.
+        """
+        return self.destination[0] if self.destination else ""
+
+    @property
     def extension(self) -> str:
         suffix = Path(self.path).suffix.lower()
         return suffix or "(none)"

@@ -220,6 +220,10 @@ def _inputs(corpus, result, **over):
         their_own_folder_made_for_what_it_holds={},
         canonical_value=NO_CANONICAL_RULE,
         the_folder_each_file_is_in={},
+        # `00` amendment 7. The fixture states its position: this run names no
+        # situation per file and knows no branch's, so the branch rule is inert.
+        situation_of=lambda file_id: None,
+        the_situation_each_branch_carries={},
         a_move_the_person_has_not_permitted=None,
         p2=None)
     values.update(over)
