@@ -2524,6 +2524,16 @@ GATE_ZONES_LAST: tuple[str, ...] = ("path", "metadata")
 #: corpus, at the one site the owner asked to be made faster and not dearer.
 SITUATION_DOSSIER_TOKENS_CLOUD: int = 2_750
 
+#: WHAT THE SITUATION JUDGE READS LAST. Measured on run 3 (13 Sep 2026) over the
+#: owner's corpus: the 71 dossiers sent to the cloud at the bound above carried
+#: five metadata fields each and a median of 179 characters of the file's own
+#: text, seventeen of them none at all -- and the cloud judge answered 32 right,
+#: 12 wrong, 10 declined. The release fills most-placed-first, and with no field
+#: to place by, that is document order: metadata before body. The path stays
+#: first: a folder is named after the situation its files are in, and that is
+#: evidence this site is asked for. Members are `evidence_shape.vocabulary.ZONES`.
+SITUATION_ZONES_LAST: tuple[str, ...] = ("metadata",)
+
 #: What one A_fact call is charged, and what it settles for. THIS DEPLOYMENT
 #: MEASURES NEITHER A TOKEN NOR A PRICE: `readers.model_deepseek` returns no usage
 #: figures, so a number here pretending to be dollars would be one nobody could
@@ -8419,7 +8429,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             conn, file_id=file_id, content_hash=content_hash,
             limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
             locality=target.locality,
-            ceiling=bound)
+            ceiling=bound, zones_last=SITUATION_ZONES_LAST)
         try:
             request = build_situation_request(
                 question, observations, model_target=target, prompt=prompt,

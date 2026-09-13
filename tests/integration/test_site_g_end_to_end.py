@@ -335,3 +335,36 @@ def test_a_second_run_over_the_same_database_reuses_every_accepted_answer(
         cli.G_SITUATION_SENSITIVITY)[0][0]
     assert reuse_rows == len(asked)
     assert f"{len(asked)} {cli.SITUATION_SENTENCE['reused'][:40]}" in " ".join(said.split())
+
+
+def test_the_situation_dossier_reads_the_text_before_the_metadata(tmp_path,
+                                                                  monkeypatch):
+    """`SITUATION_ZONES_LAST`: the file's own text comes before its metadata.
+
+    Measured on the owner's corpus: 71 cloud situation dossiers carried five
+    metadata fields each and a median of 179 characters of text, 17 none at all.
+    A long file's dossier now leads with a body reading, and every metadata item
+    sits after the last text item.
+    """
+    corpus = _corpus(tmp_path)
+    (corpus / "reading notes on the seminar.txt").write_text(
+        "Reading notes for the seminar on macroeconomic policy. "
+        + " ".join(f"Point {i}: the lecture covered aggregate demand and the "
+                   f"problem set the instructor assigned for week {i % 12}."
+                   for i in range(1, 160)))
+    database, _said, stub = _run_into(corpus, tmp_path / "plan.sqlite",
+                                      monkeypatch, _situation_answer)
+    conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    (file_id,) = conn.execute(
+        "SELECT file_id FROM files WHERE filename = ?",
+        ("reading notes on the seminar.txt",)).fetchone()
+    payloads = [json.loads(row["payload"]) for row in conn.execute(
+        "SELECT payload FROM llm_dossier WHERE call_site = ? AND subject_ref = ?",
+        (cli.G_SITUATION_SENSITIVITY, file_id))]
+    assert payloads
+    zones = [item.get("zone") for item in payloads[-1]["released_evidence"]]
+    assert "body" in zones
+    last_text = max(i for i, z in enumerate(zones) if z not in cli.SITUATION_ZONES_LAST)
+    assert all(z in cli.SITUATION_ZONES_LAST for z in zones[last_text + 1:])
+    assert all(z not in cli.SITUATION_ZONES_LAST for z in zones[:last_text + 1])
