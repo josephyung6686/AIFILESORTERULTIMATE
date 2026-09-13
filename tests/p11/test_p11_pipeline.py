@@ -545,15 +545,29 @@ def test_the_suppression_is_read_and_not_assumed(skeleton):
 
 
 def test_protected_material_is_never_automatically_moved(skeleton, tmp_path):
+    """`104` §18.2 gap 4. The outcome is not a placement at all.
+
+    It used to be `place` with `review_policy=review_required` -- a held proposal
+    -- and `tools.groundtruth.score.protected_verdict` counts that as `filed`:
+    "a protected file sitting on screen under 'we suggest this folder; confirm' is
+    the product having decided about protected material on its own". §18.7 says
+    protected material is never filed automatically and is filed one at a time by
+    the person, so the run leaves it exactly where it is.
+
+    This file is the deterministic path's own unique direct match: no model is
+    configured, no gate is met, and it is still not filed.
+    """
     file_id, content_hash = _real_file(skeleton, tmp_path / "corpus")
     _classify(skeleton, file_id=file_id, content_hash=content_hash,
               protected=True, handling_class="sensitive_personal")
     subject = Subject(kind=v.FILE, file_id=file_id, content_hash=content_hash,
                       group_id=None, member_file_ids=())
     decision = _place(skeleton, subject=subject)
-    assert decision.outcome == v.PLACE
+    assert decision.outcome == v.ABSTAIN
+    assert decision.destination is None
+    assert decision.abstention_reason == v.PRIVACY_BLOCKED
     assert decision.privacy.protected is True
-    assert decision.review_policy == v.REVIEW_REQUIRED
+    assert "protected material" in decision.explanation
 
 
 def test_a_policy_that_explicitly_permits_the_move_is_read_from_p7(skeleton,
@@ -2376,14 +2390,19 @@ def _protected_subject(conn, tmp_path, *, name="passport.pdf"):
                    group_id=None, member_file_ids=())
 
 
-def test_r74_a_protected_file_the_rules_could_place_keeps_its_home(
+def test_a_protected_file_the_rules_could_place_is_still_not_filed(
         skeleton, monkeypatch, tmp_path):
-    """The file the model was going to be asked about, and could not be.
+    """`104` §18.2 gap 4, on the route R-74 opened.
 
+    This is the file R-74 was written about: a unique direct match, sent to site C
+    by R-19, turned away by §8.4, and filed on the rules' answer on the way out.
     Nothing is sent and nothing is assembled -- `call_placement` raising is the
-    assertion that the gate still comes first. What changes is only what the run
-    does with the refusal it already had: it places the file on the unique direct
-    match, exactly as the same run without a model configured would.
+    assertion that the gate still comes first -- and the file is left where it is
+    rather than placed, because a gate refusal decides what may be SENT and
+    §18.7 decides what may be MOVED.
+
+    R-74's own arm survives on every other file the door turns away; the twin
+    below is that arm.
     """
     import placement.pipeline as pipeline
 
@@ -2393,15 +2412,20 @@ def test_r74_a_protected_file_the_rules_could_place_keeps_its_home(
     decision = _place(skeleton, subject=subject,
                       inputs=_model_inputs(skeleton))
 
-    assert decision.outcome == v.PLACE
-    assert decision.destination.node_id == "n-course"
-    assert decision.confidence_class == v.EXACT_FACT_MATCH
+    assert decision.outcome == v.ABSTAIN
+    assert decision.destination is None
+    assert decision.abstention_reason == v.PRIVACY_BLOCKED
 
 
-def test_r74_the_record_says_the_rules_placed_it_and_names_neither_model_nor_person(
+def test_the_protected_file_is_told_it_is_protected_and_nobody_is_credited(
         skeleton, monkeypatch, tmp_path):
-    """`104` R-28's actor rule. No model saw this file and nobody was asked, so a
-    record that credited either would be claiming an act that never happened."""
+    """`104` R-28's actor rule, over the sentence gap 4 leaves standing.
+
+    No model saw this file and nobody was asked, so the record credits neither --
+    and what it says instead is the one fact that governs the outcome, which
+    `_abstention_explanation` already ranks above every other true sentence about
+    a protected file.
+    """
     import placement.pipeline as pipeline
 
     monkeypatch.setattr(pipeline, "call_placement_steps",
@@ -2410,10 +2434,33 @@ def test_r74_the_record_says_the_rules_placed_it_and_names_neither_model_nor_per
     decision = _place(skeleton, subject=subject,
                       inputs=_model_inputs(skeleton))
 
-    assert "placed by the rules" in decision.explanation
-    assert "may be assembled for a model" in decision.explanation
+    assert "protected material" in decision.explanation
+    assert "left exactly where it is" in decision.explanation
+    assert "placed by the rules" not in decision.explanation
     assert "hierarchical destination judge" not in decision.explanation
-    assert " you " not in decision.explanation
+
+
+def test_a_protected_file_the_person_gave_a_policy_for_is_still_placed(
+        skeleton, tmp_path):
+    """Design:185's own carve-out, and the discriminating twin of gap 4.
+
+    "Should not be moved automatically WITHOUT a user policy that explicitly
+    permits it" -- P7 holds that policy per file and P11 already reads it. A
+    person who named this file in it has done the filing §18.7 reserves for them,
+    so the guard reads that flag rather than the protected flag alone. Without
+    this test gap 4 would look like a rule and be a constant.
+    """
+    file_id, content_hash = _real_file(skeleton, tmp_path / "corpus",
+                                       name="passport-permitted.pdf")
+    _classify(skeleton, file_id=file_id, content_hash=content_hash,
+              protected=True, handling_class="sensitive_personal")
+    _policy(skeleton, permissions={file_id: True})
+    subject = Subject(kind=v.FILE, file_id=file_id, content_hash=content_hash,
+                      group_id=None, member_file_ids=())
+    decision = _place(skeleton, subject=subject)
+
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-course"
 
 
 def test_r74_a_protected_file_the_rules_could_not_place_still_abstains(

@@ -1836,16 +1836,22 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
             set_aside_candidates=bool(set_aside)):
         # `104` R-74. WHETHER THE DETERMINISTIC PATH WOULD HAVE PLACED THIS FILE,
         # asked of the same function with the model taken out of it. R-19 sends
-        # every placeable file to site C, so a protected file with a unique direct
-        # match now reaches the gate for the first time -- and the gate refuses,
-        # correctly, and the file abstained `privacy_blocked` where offline it
-        # went home.
+        # every placeable file to site C, so a file the gate keeps off every model
+        # -- the mode forbidding the cloud with no local model set up, an
+        # unclassified file, a protected one -- reaches the gate for the first
+        # time and abstains `privacy_blocked` where offline it went home.
         #
         # §13.5's own clause is the answer: "with no model configured the
         # deterministic path remains the fallback". A gate refusal is that
         # condition arriving one step later -- there is no model answer to be had
         # about this file -- so the file takes the placement the rules can defend
         # rather than losing its home to a question nobody could ask.
+        #
+        # **THE PROTECTED FILE IS NO LONGER THE EXAMPLE**, and `104` §18.2 gap 4
+        # is why: it still takes this arm, and step 9 then declines to file it
+        # whatever route it arrived by, because protected material is filed one at
+        # a time by the person. What survives here is every other file the door
+        # turned away, which is what R-74 was measured on.
         #
         # NOT a widening of what may be sent. Nothing about the file is assembled
         # and nothing leaves; what changes is only what the run does with the
@@ -2009,6 +2015,35 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
             question, options = asked
             return _asking(conn, context,
                            ask=Ask(question=question, options=tuple(options)))
+
+    # **A PROTECTED FILE NEVER LEAVES THIS FUNCTION AS A PLACEMENT** (`104` §18.2
+    # gap 4). `00` and §18.7: protected material "is never filed automatically";
+    # it is marked, counted and filed one at a time by the person. Two routes
+    # reached this line with `privacy.protected` set anyway, and both filed it:
+    # R-74's arm, where §8.4 refused the dossier and the file fell back to the
+    # rules that would have placed it offline, and the plain deterministic path,
+    # where a unique direct match or a stays-put needs no model and so meets no
+    # gate at all. `tools.groundtruth.score.protected_verdict` counts either as
+    # `filed`, held or not -- R-151's own reading, that a folder proposed on
+    # screen under "confirm this" is the product having decided about protected
+    # material on its own.
+    #
+    # ASKED HERE, AT THE ONE STATEMENT THAT BUILDS A `place`, so the answer cannot
+    # depend on which route arrived at it. §8.4's gate is upstream and decides
+    # what may be SENT; this decides what may be MOVED, and they are different
+    # questions -- which is why a gate refusal alone never closed this.
+    #
+    # `automatic_move_permitted` is the one exception and it is Design:185's own
+    # words: protected material is not moved automatically "without a user policy
+    # that explicitly permits it". P7 holds that policy per file,
+    # `automatic_move_permitted_for` reads it, and a person who has named this
+    # file in it has done the filing this rule reserves for them. With no such
+    # policy -- which is every file on every corpus measured so far -- the file
+    # is left exactly where it is, under §8.4's own reason word, and the
+    # explanation `_abstention_explanation` gives a protected file already says
+    # so in the person's words.
+    if privacy.protected and not automatic_move_permitted:
+        return _abstention(conn, context, reason=PRIVACY_BLOCKED)
 
     node_id = chosen_node_id or assessment.scored[0].node_id
     entry = entry_for(conn, plan_version=inputs.plan_version, node_id=node_id)
