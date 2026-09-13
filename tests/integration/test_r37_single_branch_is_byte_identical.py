@@ -132,9 +132,10 @@ are identical row for row -- `file_facts`, `unresolved`, `tree_nodes`,
 `placement_decisions`, `placement_group_plans`, `groups`, `memberships` and the
 rest. So the readings reach the evidence table and stop there: nothing this
 corpus settles, groups, places or prints moved because of them. That the passport
-gains two readings and no placement is the measurement -- the file is the one the
-gate holds, and readings of a held file are the readings a person is shown rather
-than ones a folder is built from.
+gains two readings and no placement is the measurement -- this run configures no
+model of any kind, so what holds that file is the rules' own detector, and
+readings of a held file are readings a person is shown rather than ones a folder
+is built from.
 
 The corpus is `test_local_model_fact_pass._corpus`'s six files: a syllabus, a
 lecture, a homework, a problem set, an application essay and a passport scan. The
