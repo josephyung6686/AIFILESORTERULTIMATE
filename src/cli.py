@@ -8233,11 +8233,11 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     on -- the schema decides the allowlist, the folder levels and the readings, and
     all three are chosen when the resolver is built.
 
-    **A FILE THIS PASS DOES NOT NAME IS NOT MOVED.** It stays under the run\'s own
-    `--situation`, exactly as it was before this pass existed, and it stays LOCAL:
-    a wrong "ordinary" is what sends somebody\'s medical record away, and every
-    outcome here that is not one accepted, cited, on-the-list answer leads to the
-    same place.
+    **A FILE THIS PASS DOES NOT NAME IS NOT MOVED.** It is asked under its
+    branch\'s vote (`branch_votes`, the owner\'s ruling of 11 Sep 2026) or else the
+    run\'s own `--situation`; whether it may be sent was decided by the gate before
+    this pass and nothing here changes it. Since 13 Sep 2026 a held file is not
+    asked at all, and no answer here lifts a hold.
 
     **ONE ANSWER SHAPE, AND THIS PASS READS NO OTHER (`104` §18.26's owed row).**
     `explain` returns a `recognition.SituationOutcome`: where the recogniser got
@@ -8336,14 +8336,10 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     # file, a held file and a file the gate could not answer for all belong. The
     # predicate is the GATE's own rule, called and never respelled (`104` R-02).
     #
-    # **AND TODAY EVERY FILE STILL GOES LOCAL, for two reasons that are both
-    # temporary and neither of which this line decides.** Site G's row is
-    # unratified, so `observe_locality_permits` drops the cloud candidate before
-    # any file is asked about; and `privacy.vocabulary.CLASSIFICATION_BASES` does
-    # not yet carry `local_model_gate`, so the gate writes no row for the route to
-    # read. Both are the owner's to change -- a ratification and a privacy patch --
-    # and when they change this line needs no edit, which is the point of asking
-    # the door's own predicate rather than a word of this function's own.
+    # Since 12 Sep 2026 a gate-cleared file goes to the cloud and every other
+    # un-held file stays local (the row is ratified, `local_model_gate` is a
+    # basis); since 13 Sep a held file is not asked at all. The predicate decides,
+    # not a word of this function's own.
     route_for = target_for(conn, routing, G_SITUATION_SENSITIVITY,
                            operation_mode=operation_mode,
                            cloud_cleared=cloud_cleared)
