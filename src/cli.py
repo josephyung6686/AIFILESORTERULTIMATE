@@ -2441,7 +2441,19 @@ GATE_BUDGET_SUFFIX: str = ":gate"
 #: than on the ones a recogniser could not settle; §18.56 measured the local site at
 #: 33 to 42 seconds a file with dossiers of 6,492 to 8,607 prompt tokens, and a gate
 #: at that size would double a scan that the owner has already ruled too slow.
-GATE_DOSSIER_TOKENS: int = 1_200
+#:
+#: 3,000 SINCE 12 Sep 2026, AND THE UNIT IS WIRE BYTES. `104` R-174 spends this
+#: ceiling as the bytes a released item occupies on the wire, envelope included
+#: (~165 bytes for a four-character value), and the excerpt producer cuts
+#: `ceiling // GATE_MAX_RELEASED_OBSERVATIONS` CHARACTERS of a unit's opening.
+#: 1,200 was chosen as if it were tokens: on the owner's corpus it held six
+#: metadata envelopes and not one line of text, and the gate cleared four scanned
+#: health forms and three identity papers on "metadata and a page number". At
+#: 3,000 the gate reads the filename, the title and a 600-character opening --
+#: about 750 model tokens, a quarter of the situation site's dossier, which is
+#: still the argument above; `tests/integration/test_site_h_gate.py` pins that
+#: the opening is there and that this stays under `GROUPING_LIMITS`'.
+GATE_DOSSIER_TOKENS: int = 3_000
 
 #: AND HOW MANY READINGS, on the same argument. `FACT_CALL_MAX_RELEASED_OBSERVATIONS`
 #: is twelve because a fact call asks about a dozen fields spread through a
@@ -2460,6 +2472,16 @@ GATE_DOSSIER_TOKENS: int = 1_200
 #: is fixed where it was wrong, and five stays: 1,200 over five is 240 tokens of
 #: a file's opening, beside the four filesystem records every file carries.
 GATE_MAX_RELEASED_OBSERVATIONS: int = 5
+
+#: WHAT THE GATE READS LAST. The path and the metadata fields -- extension, MIME
+#: type, producer, creation date -- are readings every file carries and none of
+#: them says what kind of record a file is; at ~170 wire tokens each they filled
+#: the gate's 1,200 before one line of text on run 4 over the owner's corpus, and
+#: four scanned health forms were cleared on a dossier of six such records and a
+#: page number. The filename and the title stay first: a file called after what
+#: it is answers the question by itself. Members are `evidence_shape.vocabulary.
+#: ZONES`.
+GATE_ZONES_LAST: tuple[str, ...] = ("path", "metadata")
 
 #: HOW MUCH OF A FILE THE SITUATION CALL MAY SEND TO A CLOUD TARGET, in
 #: `model_facts.dossier_tokens`' unit, which is CHARACTERS used as an upper bound
@@ -7871,7 +7893,7 @@ def ask_the_gate(conn: sqlite3.Connection, *, roster, fact_authorities,
             conn, file_id=file_id, content_hash=content_hash,
             limit=GATE_MAX_RELEASED_OBSERVATIONS,
             locality=target.locality,
-            ceiling=GATE_DOSSIER_TOKENS)
+            ceiling=GATE_DOSSIER_TOKENS, zones_last=GATE_ZONES_LAST)
         question = GateQuestion(
             file_id=file_id, content_hash=content_hash,
             evidence_refs=tuple(observation.observation_key

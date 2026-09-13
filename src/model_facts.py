@@ -1300,7 +1300,8 @@ def mint_opening_excerpts(conn: sqlite3.Connection, observations: Sequence, *,
 def ordered_releasable_observations(conn: sqlite3.Connection, *, file_id: str,
                                     content_hash: str, locality: str,
                                     limit: int, fields: Sequence[str] = (),
-                                    ceiling: int | None = None) -> tuple:
+                                    ceiling: int | None = None,
+                                    zones_last: Sequence[str] = ()) -> tuple:
     """Every reading of this file the gate would release, in the order it offers
     them. NO cap and no fill -- `within_dossier_budget` below spends the budget.
 
@@ -1361,7 +1362,14 @@ def ordered_releasable_observations(conn: sqlite3.Connection, *, file_id: str,
         # never stated these fields in scores 0 -- tying with every other unmeasured
         # zone and leaving `document_order` to decide, rather than being sent behind
         # them all the way `zone_rank` sent `ocr` and `path`.
-        return (-cited.get(observation.location.zone, 0),
+        #
+        # `zones_last` is the calling site's word for the zones that answer its
+        # question last -- the gate's path and metadata records, which every file
+        # carries and which filled a 1,200-token dossier before one line of its
+        # text (12 Sep 2026: six records of 4 to 111 characters, ~170 wire
+        # tokens each, and the OCR excerpt of a scanned health form left out).
+        return (observation.location.zone in zones_last,
+                -cited.get(observation.location.zone, 0),
                 document_order(observation), _span_start(observation),
                 observation.observation_key)
 
@@ -1594,7 +1602,8 @@ def fill_reserving_top_reading(offered: Sequence, context: Sequence, *,
 
 def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
                             content_hash: str, limit: int, locality: str,
-                            ceiling: int, fields: Sequence[str] = ()) -> tuple:
+                            ceiling: int, fields: Sequence[str] = (),
+                            zones_last: Sequence[str] = ()) -> tuple:
     """The observations this file may offer a model, most placed first, bounded.
 
     The two halves above, composed: `ordered_releasable_observations` for what may be
@@ -1661,7 +1670,7 @@ def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
     return within_dossier_budget(
         ordered_releasable_observations(
             conn, file_id=file_id, content_hash=content_hash, locality=locality,
-            limit=limit, fields=fields, ceiling=ceiling),
+            limit=limit, fields=fields, ceiling=ceiling, zones_last=zones_last),
         ceiling=ceiling).taken
 
 

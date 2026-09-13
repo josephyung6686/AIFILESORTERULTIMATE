@@ -546,10 +546,18 @@ def opening_reading_for(conn: sqlite3.Connection, observation: Observation, *,
     `observation_key` is content-addressed like any other, so a caller that checks
     first records one row however many times it asks.
     """
-    if bound <= 0 or observation.location.text_span is not None:
+    span = observation.location.text_span
+    # A reading that IS its unit's opening may be cut: no span, or a span from
+    # the unit's first character. The OCR reader stores a page's whole text with
+    # an explicit span over all of it, and refusing every spanned reading here
+    # meant a scanned document -- four health forms on the owner's corpus, 12 Sep
+    # 2026 -- never had an opening excerpt, and the gate read its page number.
+    if bound <= 0 or (span is not None and span.start != 0):
         return None
     unit = unit_for_observation(conn, observation)
     if unit is None or unit.length <= bound:
+        return None
+    if span is not None and span.end < unit.length:
         return None
     end = unit.text.rfind("\n", 0, bound) + 1
     if end <= 0 or not unit.text[:end].strip():

@@ -33,6 +33,7 @@ import pytest
 
 import cli
 from llm_harness.prompt_library import DraftNotInManifest
+from evidence_shape.vocabulary import ZONES
 from model_gate import restricted_kind_vocabulary
 from model_situation import NONE_OF_THESE
 from privacy.vocabulary import (
@@ -662,6 +663,14 @@ def test_the_gate_reads_an_opening_excerpt_sized_for_its_own_bound(tmp_path,
     body = _body_items(dossier)
     assert body, [item.get("zone") for item in dossier["released_evidence"]]
     assert all(len(str(item.get("value", ""))) > 0 for item in body)
+    # and the text comes BEFORE the path and metadata records, which are what
+    # filled the bound on the owner's corpus: `GATE_ZONES_LAST`.
+    zones = [item.get("zone") for item in dossier["released_evidence"]]
+    first_last = next((i for i, z in enumerate(zones) if z in cli.GATE_ZONES_LAST),
+                      len(zones))
+    assert all(z not in cli.GATE_ZONES_LAST for z in zones[:first_last])
+    assert zones.index(body[0]["zone"]) < first_last
+    assert set(cli.GATE_ZONES_LAST) <= set(ZONES)
 
 
 def test_a_narrower_bound_is_a_new_question_and_is_asked_again(tmp_path,
