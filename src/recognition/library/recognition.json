@@ -158,6 +158,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Academic",
    "needs_llm": [
     {
      "readings": [
@@ -1072,6 +1073,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Business operations (the organisation's own running record)",
    "needs_llm": [
     {
      "readings": [
@@ -1804,6 +1806,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Career and recruiting",
    "needs_llm": [
     {
      "readings": [
@@ -2178,6 +2181,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Clinical practice (clinician side)",
    "needs_llm": [
     {
      "readings": [
@@ -2445,6 +2449,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Code projects",
    "needs_llm": [
     {
      "readings": [
@@ -2637,6 +2642,7 @@
     "zip"
    ],
    "file_kind_never_alone": true,
+   "name": "College applications",
    "needs_llm": [
     {
      "readings": [
@@ -3539,6 +3545,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Construction, trades and property (the professional record of a site, a job and a building)",
    "needs_llm": [
     {
      "readings": [
@@ -4843,6 +4850,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Creative and media practice (the making record of a work)",
    "needs_llm": [
     {
      "readings": [
@@ -6241,6 +6249,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Engineering and product development (controlled design definition)",
    "needs_llm": [
     {
      "readings": [
@@ -7141,6 +7150,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Finance and administration",
    "needs_llm": [
     {
      "readings": [
@@ -7947,6 +7957,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Government and public administration",
    "needs_llm": [
     {
      "readings": [
@@ -9093,6 +9104,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "People and workforce administration",
    "needs_llm": [
     {
      "readings": [
@@ -9469,6 +9481,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Identity",
    "needs_llm": [
     {
      "readings": [
@@ -10428,6 +10441,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Law practice (practitioner side)",
    "needs_llm": [
     {
      "readings": [
@@ -11389,6 +11403,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Legal records and matters",
    "needs_llm": [
     {
      "readings": [
@@ -11757,6 +11772,7 @@
     "zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Freight, fleet and warehousing",
    "needs_llm": [
     {
      "readings": [
@@ -12449,6 +12465,7 @@
     "zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Manufacturing, quality and maintenance",
    "needs_llm": [
     {
      "readings": [
@@ -13134,6 +13151,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Medical",
    "needs_llm": [
     {
      "readings": [
@@ -13515,6 +13533,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Nonprofit, civic and member organisations",
    "needs_llm": [
     {
      "readings": [
@@ -13755,6 +13774,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Photos and captures",
    "needs_llm": [
     {
      "readings": [
@@ -14053,6 +14073,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Research",
    "needs_llm": [
     {
      "readings": [
@@ -14574,6 +14595,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Energy, utilities and land-based operations",
    "needs_llm": [
     {
      "readings": [
@@ -15305,6 +15327,7 @@
     ".zip"
    ],
    "file_kind_never_alone": true,
+   "name": "Retail, hospitality and events (the operator's trading record)",
    "needs_llm": [
     {
      "readings": [

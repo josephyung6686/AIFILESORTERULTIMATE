@@ -2548,6 +2548,8 @@ def call_identity_dimensions(
         # prompt changes auditable" would be false in the one direction that
         # matters. Asked through `route` rather than off a field, which is the
         # only read this module makes.
+        # The release bound (`llm_harness.store.EMPTY_DIMENSION_VALUES` says why).
+        "max_dossier_tokens": authorities.max_dossier_tokens,
         "model_id": _routed_target(authorities, file_id).model_id,
         # Null at A, and `build_fact_request` says why in its own words: "a fact is
         # about a file version and not about a plan, and the same fact survives a

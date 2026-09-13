@@ -284,6 +284,7 @@ from privacy.resolve import (
 )
 from privacy.vocabulary import (
     ALWAYS_LOCAL_ZONES, CLASSIFICATION_BASES, CLOUD_LOCALITY, CONSENT_OPTIONS,
+    DETECTOR_NO_SAFETY_EVIDENCE,
     LOCAL_MODEL_SITUATION,
     MODE_SEMANTICS, RESTRICTED_KINDS,
 )
@@ -367,7 +368,8 @@ from readers.model_routing import (
 )
 from facts.domains import SCHEMA_IDS
 from recognition.detector import (
-    FIRST_PAGE, NAMING_ZONES, SAFETY_DOMAIN_HANDLING, Detector, Handling,
+    FIRST_PAGE, NAMING_ZONES, RELIABILITY as DETECTOR_RELIABILITY,
+    SAFETY_DOMAIN_HANDLING, Detector, Handling,
 )
 from recognition.rules import load_rules
 from recognition.semantic import (
@@ -1200,7 +1202,15 @@ SITUATION_ROW: tuple[str, str] = (
 #: this site is a change to this line and never a change the manifest makes on its
 #: own.
 GATE_ROW: tuple[str, str] = (
+    "gate.unratified.restricted-kind.2026-09-12", "gate-restricted-kind")
+#: THE V2 ROW, authored 13 Sep 2026 and UNRATIFIED: measured on the owner's corpus
+#: by one launch under `GRAPH_AGENT_MEASURE_GATE_V2` (`104` §18.60), which points
+#: this site at the unratified row so the gate RECORDS every answer and ACTS on
+#: none; the product runs on the ratified row above until the owner's word.
+GATE_ROW_V2: tuple[str, str] = (
     "gate.unratified.restricted-kind.v2.2026-09-13", "gate-restricted-kind-v2")
+if os.environ.get("GRAPH_AGENT_MEASURE_GATE_V2"):
+    GATE_ROW = GATE_ROW_V2
 
 
 #: WHAT EACH STATUS WORD BUYS, and the two questions it answers are not one
@@ -8239,7 +8249,8 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                       prompt, now, user_id: str,
                       component_version: str = COMPONENT_VERSION,
                       operation_mode: str = OPERATION_MODE,
-                      cloud_cleared: Callable[[str], bool] | None = None
+                      cloud_cleared: Callable[[str], bool] | None = None,
+                      schema_names: Mapping[str, str] = MappingProxyType({}),
                       ) -> SituationPass:
     """`104` §17.9's defect, addressed: each file asked about ITS OWN situation.
 
@@ -8535,7 +8546,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         try:
             request = build_situation_request(
                 question, observations, model_target=target, prompt=prompt,
-                max_dossier_tokens=bound)
+                max_dossier_tokens=bound, schema_names=schema_names)
         except NothingToAsk:
             nothing_to_read += 1
             continue
@@ -16453,6 +16464,9 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 # pass. `situation_outcome` is the ONE shape both project into, and
                 # it is what makes that sentence true.
                 explain=classify_producer.situation_outcome,
+                # Each schema's authored name, beside its id on the menu (13 Sep).
+                schema_names={schema_id: schema.name
+                              for schema_id, schema in rules.schemas.items()},
                 # THE TERM DETECTOR'S OWN, and deliberately not the composed
                 # recogniser's (`104` §18 gap 24). The precaution is
                 # `Detector._precaution` and nothing else writes it:
@@ -16854,14 +16868,45 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         file is assigned (a hold supersedes an ordinary row at the same rank and
         never a person's own word); an ordinary candidate changes nothing.
         """
-        if entity_model is None:
-            return
         store = ClassificationStore(conn)
         for file_id, content_hash in corpus_roster(conn, run_id):
             candidate = classify_producer(conn, file_id, content_hash)
             if candidate is not None and candidate.protected:
                 assign(conn, candidate, store=store,
                        component_version=COMPONENT_VERSION)
+                continue
+            # AND THE RULES THAT NO LONGER HOLD A FILE RELEASE IT (13 Sep 2026).
+            # A rules hold is written once and stood until something outranked
+            # it: measured on the owner's corpus after the papers ruling of 14:05,
+            # a paper the new rule released was still held at 21:00 because the
+            # detector writes nothing on an abstention. The hold is the rules'
+            # own word and the rules may take it back: where the standing row is
+            # a rules hold and today's `precaution_report` is `None`, the file is
+            # assigned the ordinary answer the rules give now -- the recognition
+            # if there is one, else a `detector_no_safety_evidence` row over the
+            # same observations, which is exactly what the rules now say of
+            # them. Neither opens the cloud (`CLOUD_CLEARING_BASES`): the file
+            # is read next by the gate, like every other file the rules do not
+            # hold. A person's own word is never touched: `assign` refuses to
+            # retire a `user` row, and only a `safety_domain` row is looked at.
+            current = store.current(file_id, content_hash)
+            if (current is None or not current.protected
+                    or current.basis not in SAFETY_DOMAIN_BASES):
+                continue
+            if detector.precaution_report(
+                    conn, detector.explain(conn, file_id, content_hash),
+                    file_id=file_id, content_hash=content_hash) is not None:
+                continue
+            released = candidate if candidate is not None else ClassificationRecord(
+                file_id=file_id, content_hash=content_hash,
+                handling_class=ORDINARY_CLASS, protected=False,
+                basis=DETECTOR_NO_SAFETY_EVIDENCE,
+                evidence_refs=current.evidence_refs,
+                reliability_state=DETECTOR_RELIABILITY, observed_at=now())
+            assign(conn, released, store=store,
+                   component_version=COMPONENT_VERSION,
+                   supersede_reason="the rules that held this file no longer "
+                                    "fire (13 Sep 2026)")
 
     def _family_pass(run_id: str) -> None:
         """§3.11's two family fields, over the whole corpus at once.
