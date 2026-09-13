@@ -1319,6 +1319,12 @@ class GroupAnswer:
     which is what happens to a member that contradicts the answer, because it is
     the same situation reached from P9's evidence rather than from this file's.
 
+    A member the group's DOSSIER never carried gets no `GroupAnswer` at all rather
+    than a third flag on this one (`104` §18.2 gap 2). The model was not shown
+    that file, so the answer is not an answer about it, and there is nothing here
+    for the member's row to carry; `place_group._member` decides that, because
+    what the dossier carried is a fact about the CALL and not about the member.
+
     There is no `contradicted` field, and the absence is the point. Whether a
     member's own evidence rules the group's folder out is answered from the
     member's OWN retrieval, inside `place_file`, off §6.3's suppression -- the
@@ -3707,6 +3713,13 @@ def _group_evidence(evidence_for, memberships, *, group_id: str) -> dict:
     the two producers `cli.evidence_for` adds beneath the facts -- stay with the
     member's own call, where they are what that one file is judged on.
 
+    **AND A MEMBER THIS CARRIES NOTHING OF IS NOT IN THE CALL** (`104` §18.2 gap
+    2). The cut is by kind, so a member with no accepted fact contributes no fact
+    and therefore no item, and the model answers about the members it was shown.
+    `place_group._member` reads the same condition and gives that member no
+    `GroupAnswer`: an answer inherited by a file the dossier never named is
+    spillover with the model's credit on it.
+
     Nothing is widened by this. Every item here is one the SAME member's own
     site-C call would have carried, already passed through the door's own
     predicate by `cli.evidence_for`, and the gate is asked again per item at the
@@ -3927,12 +3940,15 @@ def place_group(conn: sqlite3.Connection, *, group_id: str,
        §8.4 is asked first, over every member, and one member it refuses withholds
        the whole call rather than describing that member to a target it may not
        reach (`_one_destination_every_member_may_use`).
-    2. Every member is then placed FROM that answer: a member whose own stated
-       values do not rule the folder out goes with the group and its row says the
-       MODEL decided, because the group's answer is the model's; a member that
-       contradicts it is an outlier of the answer and is placed by its own
-       per-file call, with the group's folder offered on the shortlist and the
-       disagreement recorded (`place_file`'s `group_answer`).
+    2. Every member THE CALL WAS ABOUT is then placed FROM that answer: a member
+       whose own stated values do not rule the folder out goes with the group and
+       its row says the MODEL decided, because the group's answer is the model's;
+       a member that contradicts it is an outlier of the answer and is placed by
+       its own per-file call, with the group's folder offered on the shortlist and
+       the disagreement recorded (`place_file`'s `group_answer`). A member the
+       dossier never carried -- one with no accepted fact, `104` §18.2 gap 2 --
+       was not one of the files the model was shown, so the answer is not about
+       it: it sits apart and takes step 3's path alone (`_member`).
     3. Where the group produced no answer -- no model path, a gate refusal, a
        refused or failed call, or the model's own "none" -- every member is placed
        exactly as it is today, singly, and `confirm_shared_parent` reads the
@@ -3981,16 +3997,41 @@ def place_group(conn: sqlite3.Connection, *, group_id: str,
     # local is settled by itself, because one Ollama server holds one model.
     member_parents: dict[str, str | None] = {}
     placed: dict[str, PlacementDecision] = {}
-    asked = ((membership.file_id, place_file_steps(
-        conn, subject=_member_subject(membership), inputs=inputs,
-        evidence=evidence_for(membership.file_id),
-        group_plan_id=group_plan_id,
-        group_answer=(None if answered is None else GroupAnswer(
-            group_id=group_id, node_id=answered,
-            membership=membership.decision,
-            sits_apart=membership.outlier_flag != NOT_FLAGGED)),
-        component_version=component_version, observed_at=observed_at))
-        for membership in memberships)
+
+    def _member(membership):
+        """One member's call, and whether the group's answer is about it.
+
+        **A MEMBER THE GROUP'S DOSSIER NEVER CARRIED SITS APART FROM ITS ANSWER**
+        (`104` §18.2 gap 2). `_group_evidence` carries each member's ACCEPTED
+        FACTS and the items those facts cite, and nothing else -- so a member with
+        no accepted fact put not one byte in front of the model, and the answer
+        that came back is an answer about the OTHER members. Inheriting it filed
+        the file in the group's branch and recorded `decided_by=model` with the
+        group's support on the row: spillover, credited to a judgement that was
+        never shown the file. `contradicts_the_group` could not catch it either --
+        that reads §6.3's suppression, and a file with no stated values suppresses
+        nothing, so the one check that keeps a member off the group's branch is
+        silent exactly where the dossier was.
+
+        So it gets no `GroupAnswer` and takes the per-file path every member takes
+        when the group produced no answer: its own site-C call if it has
+        something to ask about, and an abstention if it does not. The predicate is
+        `evidence["facts"]`, which is `_group_evidence`'s own carrying condition
+        read once here rather than a second opinion about it.
+        """
+        evidence = evidence_for(membership.file_id)
+        return place_file_steps(
+            conn, subject=_member_subject(membership), inputs=inputs,
+            evidence=evidence, group_plan_id=group_plan_id,
+            group_answer=(None if answered is None or not evidence["facts"]
+                          else GroupAnswer(
+                              group_id=group_id, node_id=answered,
+                              membership=membership.decision,
+                              sits_apart=membership.outlier_flag != NOT_FLAGGED)),
+            component_version=component_version, observed_at=observed_at)
+
+    asked = ((membership.file_id, _member(membership))
+             for membership in memberships)
     for file_id, decision in in_walk_order(
             asked, lane=lane if lane is not None else CallLane(width=1)):
         placed[file_id] = decision
