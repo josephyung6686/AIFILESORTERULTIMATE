@@ -22,6 +22,14 @@ composition under test is the real `SemanticRecogniser` around the real `Detecto
 reached through the real `cli.main`, over a real corpus, with a real local model
 stub. Only the vector arithmetic is the test's.
 
+**THE HELD FILE IS NO LONGER ASKED (13 Sep 2026, the owner's word: a protected
+record is filed by the person).** The defect above is about the two files the
+recognisers do not hold, and they are still asked -- turning the weights on may
+neither narrow what a model is offered nor widen who is put to it. The third file
+is held by the rules, and `cli.ask_the_situation` now counts it `held` and goes on
+before it reads what any recogniser proposed, so the composition is measured on
+the two files it can still be measured on and the hold is measured as a hold.
+
 **NO OLLAMA AND NO NETWORK.** The stubs are gap 24's own, imported rather than
 copied so a run here and a run there are runs of the same shape.
 """
@@ -63,10 +71,10 @@ NEAR_ONE = "career"
 NEAR_TWO = "photos"
 PROPOSED = "creative"
 
-#: The safety domain the RULES hold the third file as, and the ordinary reading
-#: they also raise for it. Both are `SCHEMA_IDS` members; neither is authored here.
-HELD_DOMAIN = "identity"
-RULES_READING = "academic"
+#: The safety domain the RULES hold the third file as -- `identity` -- and the
+#: ordinary reading they also raise for it need no names of their own since
+#: 13 Sep 2026: the file is not asked, so no shortlist of its readings is built
+#: and no test reads one.
 
 #: Prose with no authored term in it, used for the two `no_evidence` files.
 NOTHING_AUTHORED = ("A photograph of a bicycle in the rain, taken while waiting "
@@ -298,37 +306,36 @@ def test_a_semantic_proposal_with_no_hold_is_asked_too(tmp_path_factory,
         "replacing the history of it")
 
 
-def test_a_semantic_proposal_the_rules_hold_is_asked(tmp_path_factory,
-                                                     monkeypatch):
-    """GAP 24b ON THE SEMANTIC PATH. A hold outranks `00`:110 however the file came
-    to be recognised: the vector proposed a situation for it, the RULES are holding
-    it as one of `00`'s four, and the model is asked which of the readings is
-    right.
+def test_a_semantic_proposal_the_rules_hold_is_not_asked(tmp_path_factory,
+                                                         monkeypatch):
+    """GAP 24b ON THE SEMANTIC PATH, WITHDRAWN by the owner's word of 13 Sep 2026:
+    a protected record is filed by the person, and that is true however the file
+    came to be recognised.
 
-    THE SHORTLIST CARRIES ALL THREE READINGS AND THE HOLD IS ONE OF THEM. Turning
-    the weights on may never narrow what a model is offered, so the rules' own
-    reading of this file survives beside the vector's proposal -- and the safety
-    domain is on the list because the TERM detector put it there. The similarity
-    path proposes none of `00`'s four and offers none of them as a near miss.
+    The vector proposed an ordinary situation for this file and the RULES are
+    holding it as one of `00`'s four. Gap 24b put exactly that disagreement to the
+    model; the ruling says the hold ends the question rather than starting it, so
+    no dossier is built, no shortlist is assembled and nothing about the file is
+    sent. The two unheld files are asked on the same run, which is what keeps this
+    an assertion about the hold and not about the weights.
 
-    SABOTAGE: drop the `precaution is None` half of the `settled` test. This file
-    is settled on the vector's word while a `protected=1` row taken on the word
-    `passport` in a filename stands over it, unasked and unexamined.
+    SABOTAGE: drop the `current.protected` skip from `ask_the_situation`. A
+    protected record is assembled for a model on the strength of a vector.
     """
     database, _said, _stub = _run("named", _situation_answer, tmp_path_factory,
                                   monkeypatch)
     conn = _read(database)
 
-    (dossier,) = _dossiers(conn, _file_id(conn, HELD_NAME))
-    options = dossier["allowed_vocabulary"]
-
-    assert HELD_DOMAIN in options, "the hold is an option or it is not a question"
-    assert RULES_READING in options, (
-        "the rules' own reading of this file survived the vector's proposal")
-    assert PROPOSED in options
-    report = _report(dossier)
-    assert f"recognised this file as {PROPOSED}" in report, report
-    assert "held:" in report and HELD_DOMAIN in report and "passport" in report
+    assert _dossiers(conn, _file_id(conn, HELD_NAME)) == [], (
+        "a protected record was assembled for a model, which is what the "
+        "owner's word of 13 Sep 2026 ended")
+    for filename in (ASKED_NAME, SETTLED_NAME):
+        assert len(_dossiers(conn, _file_id(conn, filename))) == 1, (
+            "the composed recogniser reached nothing this run, so the line "
+            "above says nothing about the hold")
+    # And the hold stands where the rules wrote it, unasked and unretired.
+    hold = _the_hold(_classifications(conn, _file_id(conn, HELD_NAME)))
+    assert hold["protected"] == 1 and hold["superseded_by"] is None
 
 
 def test_the_similarity_path_never_raises_one_of_the_four_as_a_candidate(
@@ -357,10 +364,15 @@ def test_the_similarity_path_never_raises_one_of_the_four_as_a_candidate(
     recogniser has just said it cannot judge would be the guess the whole veto
     exists to refuse. The file carries no authored medical term at all.
 
-    The held file's shortlist is not asserted set-for-set here: an abstention's
-    tied readings are the term detector's own and may include a safety domain the
-    file's words really did name, which is that recogniser's business and this
-    ruling's business only through the hold.
+    **THE HELD FILE IS NO LONGER PART OF THIS MEASUREMENT** (13 Sep 2026, the
+    owner's word: a protected record is filed by the person). This test used to
+    finish by reading the held file's own dossier and checking that the safety
+    domain on it had been raised by the TERM detector rather than by the vector.
+    There is no such dossier: a held file is not asked. Nothing of the rule is
+    lost -- the rule is about what the SIMILARITY path may conclude, and the two
+    files it is measured on below are the two it ever proposed for. What the term
+    detector raises for a file nobody asks about is not a question this site
+    answers any more.
 
     SABOTAGE: drop the `not in self._safety` filter from the composed recogniser's
     merge. `medical` appears on the shortlist of a file with no authored term in
@@ -380,48 +392,46 @@ def test_the_similarity_path_never_raises_one_of_the_four_as_a_candidate(
                     f"the similarity path raised {domain}, which the veto "
                     f"forbids it: {item['location']}")
 
-    (held,) = _dossiers(conn, _file_id(conn, HELD_NAME))
-    (item,) = [i for i in held["evidence_items"]
-               if i["kind"] == "candidate_schema"
-               and i["evidence_ref"] == HELD_DOMAIN]
-    assert "raised this for this file" in item["location"], (
-        "the hold is raised, and it is the term detector that raised it")
-
 
 # --- the counts a person reads still close ---------------------------------------
 
 
-def test_the_four_hold_counts_close_under_the_semantic_model_too(
+def test_the_hold_counts_close_under_the_semantic_model_too(
         tmp_path_factory, monkeypatch):
-    """`PrecautionHolds`' three arms partition `held`, on a run where the vector is
-    what recognised two of the three files.
+    """`PrecautionHolds`' three arms still partition `held` under the owner's word
+    of 13 Sep 2026, on a run where the vector is what recognised two of the three
+    files -- and now all of `held` sits in one of them.
 
-    On the answering run the held file is released by the model; on the declining
-    run its hold stands. Both print the block, and in both the three sentences add
-    up to the one above them -- which is what makes the numbers a person can check
-    rather than four tallies drifting apart.
+    The block used to have two live arms on this corpus: the answering run
+    released the hold and the declining run left it standing. Neither happens now;
+    a protected record is filed by the person, so `released` and `confirmed` are
+    zero on every run and `held and not asked` carries the whole count. Both runs
+    are read for exactly that reason -- the block must say the same thing whatever
+    the model would have answered, because the model was not asked.
 
-    SABOTAGE: print `recognised_by_rules` inside `_print_situation_pass`'s field
-    loop and the five numbers above the block stop adding up to the roster.
+    **THE ROSTER PARTITION IS NOT ASSERTED HERE, and it is open rather than
+    moved.** The held file lands in none of the five counters that partition the
+    roster, so on this corpus they account for two files of three. What still
+    closes is this block, and this block is what is pinned.
+
+    SABOTAGE: count the skipped file as `declined`, or drop `_print_the_holds`
+    from `_print_situation_pass` -- the first says a model was asked about a
+    protected record, the second leaves the only line that mentions it off the
+    screen entirely.
     """
-    _database, named, _stub = _run("named", _situation_answer, tmp_path_factory,
-                                   monkeypatch)
-    said = " ".join(named.split())
-    # `00` amendment 7(c): this read `1 settled by rule`, a file nobody asked.
-    # The count survives as a fact about the recognisers and is printed outside
-    # the partition, because that file is now also in one of the five.
-    assert "the rules had already recognised" in said
-    assert "the rules were holding 1 file on a safety term" in said
-    assert "1 released by the model" in said
-    assert "0 confirmed by the model" in said
-    assert "0 still held because nothing could say" in said
-
-    _database, declined, _stub = _run("declined", _decline, tmp_path_factory,
-                                      monkeypatch)
-    said = " ".join(declined.split())
-    assert "the rules were holding 1 file on a safety term" in said
-    assert "0 released by the model" in said
-    assert "1 still held because nothing could say" in said
+    for key, answer in (("named", _situation_answer), ("declined", _decline)):
+        _database, report, _stub = _run(key, answer, tmp_path_factory,
+                                        monkeypatch)
+        said = " ".join(report.split())
+        # `00` amendment 7(c): this read `1 settled by rule`, a file nobody asked.
+        # The count survives as a fact about the recognisers, and since 13 Sep it
+        # counts the ASKED files the rules recognised -- the held one is not one.
+        assert "the rules had already recognised" in said
+        assert ("were holding 1 file, and a protected record is filed by "
+                "the person" in said), said
+        assert "0 released by the model" in said
+        assert "0 confirmed by the model" in said
+        assert "1 held and not asked" in said
 
 
 def test_a_held_file_the_vector_proposed_for_is_never_routed_off_this_device(
