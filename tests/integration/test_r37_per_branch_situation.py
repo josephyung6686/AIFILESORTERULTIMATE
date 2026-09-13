@@ -251,8 +251,13 @@ def test_an_unsettled_branch_is_proposed_asked_about_and_asked_nothing(
     assert "--answer situation:career=career.employment-records" in blocking
     for name in CAREER:
         assert name not in log, ("a file under an unsettled branch was asked", name)
-    assert re.search(r"\d+ of \d+ files were not asked anything: they sit under "
-                     r"a folder you have not yet said the situation of", _flat(report))
+    # The sentence names both ways a file gets here: the folder it SITS under,
+    # and -- since `branch_situation.the_one_situation` -- the folder a model
+    # NAMED it for, whose situation is equally the person's to say.
+    assert re.search(r"\d+ of \d+ files were not asked anything: a folder they "
+                     r"belong to -- the one they sit under, or the one a model "
+                     r"named them for -- has a situation you have not yet said",
+                     _flat(report))
     # The branch is proposed beside the typed one, so the cover letters are no
     # longer under Coursework and the résumé is under no course.
     # `104` §18.2 gap 14 prints the group block between the folder list and

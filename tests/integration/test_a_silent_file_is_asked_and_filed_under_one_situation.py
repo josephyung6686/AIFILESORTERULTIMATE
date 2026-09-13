@@ -279,3 +279,74 @@ def test_and_its_folders_are_not_chosen_at_all_while_the_situation_is_open(run):
     # reaches: the default branch's situation is the run's own, the person typed
     # it, and nothing about this change touches a file with an answer.
     assert placed["PHYS 1401 syllabus.txt"].startswith(LABEL), placed
+
+
+# --- the way out: the question this run recorded has an answer ------------------
+#
+# DEFINED LAST AND DEPENDING ON `run`, because the third run continues the same
+# database: `apply_answers` refuses an answer to a question no run has asked, so
+# the question has to have been recorded by one of the two runs above. The tests
+# above read that database and therefore have to run first, which they do --
+# pytest keeps definition order and this suite is run with `-p no:randomly`.
+
+#: One of the eight situations the shipped library carries under `research`, and
+#: deliberately NOT the alphabetically first one this change retired: an answer
+#: that happened to agree with the old pick would prove nothing about the pick
+#: being gone.
+RESEARCH_ANSWER = "research.thesis-dissertation"
+
+
+@pytest.fixture(scope="module")
+def answered(run):
+    """A third `cli.main`, answering the question the second run printed."""
+    corpus, database, _report = run
+    out = io.StringIO()
+    with pytest.MonkeyPatch.context() as patch, StubOllama(answer=_answer) as stub:
+        patch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
+        patch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)
+        code = cli.main([str(corpus), "--situation", SITUATION, "--label", LABEL,
+                         "--user", "t", "--database", str(database),
+                         "--accept-groups", "--answer", CAREER_ANSWER,
+                         "--answer",
+                         f"situation:{RESEARCH_SCHEMA}={RESEARCH_ANSWER}"],
+                        out=out)
+    assert code == 0, out.getvalue()
+    return corpus, database, out.getvalue()
+
+
+def test_the_answer_resolves_the_files_site_g_named(answered):
+    """The person said which of the eight `research` is, and the files move.
+
+    `_the_situation_the_person_chose` reads that answer at the branch's own scope,
+    ahead of both library arms, so the files G named `research` are asked that
+    situation's fields on this run instead of nothing. Without it the answer
+    settles a branch on the second partition and every file that branch was
+    opened FOR stays unresolved for ever -- a question with no answer path, which
+    is worse than the silent pick it replaced.
+    """
+    _corpus, database, report = answered
+    assert f"Which of these is {RESEARCH_SCHEMA}?" not in report, report
+    log = _call_log(database)
+    for name in ("Cover letter Acme.txt", "Cover letter Beta.txt"):
+        offered = frozenset().union(*log.get(name, [frozenset()]))
+        assert offered, (name, log)
+        assert not offered & COURSEWORK_FIELDS, (name, offered)
+
+
+def test_and_the_vote_carries_that_answer_to_the_file_g_left_silent(answered):
+    """THE NON-OBVIOUS HALF: this file is not under the branch that answers it.
+
+    `Cover letter Gamma.txt` sits under `career`, whose situation the person
+    answered `career.recruiting` two runs ago. Its situation comes from its
+    branch's VOTE -- the schema G named most often over that branch's files,
+    which is `research` -- so the answer that resolves it is the one given at
+    `branch:research`, a branch this file is not in. That is the vote arm reading
+    the same answer as the name arm, and it is why
+    `_the_situation_the_person_chose` takes a SCHEMA and not a branch.
+    """
+    _corpus, database, _report = answered
+    offered = frozenset().union(*_call_log(database).get(SILENT, [frozenset()]))
+    assert offered, _call_log(database)
+    assert not offered & COURSEWORK_FIELDS, offered
+    assert _abstentions(answered).get(SILENT) != NO_MODEL_JUDGEMENT, (
+        _abstentions(answered))

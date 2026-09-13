@@ -11003,9 +11003,10 @@ NOT_ASKED_SENTENCE: Mapping[str, str] = MappingProxyType({
         "folder's question applies to them yet. They are held for you below, "
         "under the reason the plan records for each.",
     NOT_ASKED_UNSETTLED:
-        "they sit under a folder you have not yet said the situation of, and a "
-        "model is asked a folder's questions only once its situation is known. "
-        "The question is printed below with the answers you can give.",
+        "a folder they belong to -- the one they sit under, or the one a model "
+        "named them for -- has a situation you have not yet said, and a model is "
+        "asked a folder's questions only once its situation is known. The "
+        "question is printed below with the answers you can give.",
     # `104` §18.2 GAP 4'S FIVE, AND THEY ARE THE HALF OF THIS SCREEN THAT WAS
     # MISSING. The two rows above are about the FOLDER a file sits in; these are
     # about the file itself, and until this ruling every one of them was reported
@@ -16020,6 +16021,26 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         return tuple(row.name for row in shipped_situations(catalogue)
                      if row.schema == schema_id)
 
+    def _the_situation_the_person_chose(schema_id: str) -> str | None:
+        """THE ANSWER TO THE BRANCH'S OWN QUESTION, where the person has given one.
+
+        `question_for_situation` puts the question at `branch:<branch_label>` and a
+        branch site G opened is labelled with its SCHEMA, so this is the same scope
+        `_the_branches` binds as `chosen_situation` and the same answer
+        `branch_situation._situation_for` reads -- asked here because the branch
+        that carries it does not exist yet when the fact pass runs. Site G names a
+        schema per file INSIDE the pass, so the partition the pass reads is the
+        deterministic one, and without this the answer a person typed to the
+        question this run printed would settle a branch on the next partition and
+        still leave every file that branch was opened for unresolved. A question
+        with no answer path is not a question.
+
+        Checked against the library's own list for `_situation_for`'s reason: an
+        answer naming a situation of another schema settles nothing.
+        """
+        chosen = selected_situation(conn, scope=f"{SCOPE_BRANCH}:{schema_id}")
+        return chosen if chosen in _situations_of(schema_id) else None
+
     def _the_situation_this_file_is_under(file_id: str) -> str | None:
         """THE FILE'S SITUATION, DECIDED HERE AND READ BY EVERY SITE THAT ASKS.
 
@@ -16032,14 +16053,17 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         names `finance` -- and both used to become a situation by
         `_situations_of(schema)[0]`, the alphabetically first of the eight the
         library carries for `research` and of the eighteen for `finance`.
-        `branch_situation.the_one_situation` is the rule now: the schema's one
-        situation where the library carries one, else the one of them the
-        recognisers RAISED for this file, else NOTHING. `None` is the answer then
-        -- not the branch's situation and not the run's, because a file something
-        NAMED A SCHEMA FOR is not a file the run's own situation is true of: that
-        is R-23 with one more step in it. Its fields are not asked, P11 abstains
+        The rule now is `_the_situation_the_person_chose` for that schema's
+        branch -- their own answer outranks every reading, which is
+        `branch_situation._situation_for`'s order -- and failing that
+        `branch_situation.the_one_situation`: the schema's one situation where
+        the library carries one, else the one of them the recognisers RAISED for
+        this file, else NOTHING. `None` is the answer then -- not the branch's
+        situation and not the run's, because a file something NAMED A SCHEMA FOR
+        is not a file the run's own situation is true of: that is R-23 with one
+        more step in it. Its fields are not asked, P11 abstains
         `no_model_judgement` for it, and the person answers the branch's own
-        question.
+        question, which the next run reads through the first arm above.
 
         ONE FUNCTION BECAUSE THREE READERS HELD THREE ANSWERS. Measured today on
         the owner's corpus, 59 of 371 files site G left silent: `resolver_for`
@@ -16060,21 +16084,25 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         the person's, never a replacement.
         """
         raised = situation_cell[0].raised.get(file_id, ())
+
+        def _under(schema_id: str) -> str | None:
+            """The person's answer for that schema's branch, else the library's."""
+            return (_the_situation_the_person_chose(schema_id)
+                    or the_one_situation(schema_id,
+                                         situations_of=_situations_of,
+                                         raised=raised))
+
         answered = situation_cell[0].named.get(file_id)
         if answered and answered != said().schema:
             if _situations_of(answered):
-                return the_one_situation(answered,
-                                         situations_of=_situations_of,
-                                         raised=raised)
+                return _under(answered)
         branch = (partition_cell[0].branch_of(file_id) if partition_cell
                   else None)
         if branch is not None:
             voted = votes_cell.get(branch.label)
             if voted and voted != said().schema:
                 if _situations_of(voted):
-                    return the_one_situation(voted,
-                                             situations_of=_situations_of,
-                                             raised=raised)
+                    return _under(voted)
             if branch.situation is not None:
                 return branch.situation
         return said().situation
@@ -16592,7 +16620,13 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 # being asked an empty set -- which is `require_folder_levels`'
                 # refusal reached from three modules away.
                 continue
-            for situation in sorted({
+            # THE ARM ORDER OF `_the_situation_this_file_is_under`, READ HERE. The
+            # person's answer to this schema's branch question settles every file
+            # under it at once, so there is one situation to build; with no answer
+            # it is whatever the library and this file's raised set resolve to,
+            # per file, and a file that resolves to nothing builds nothing.
+            answer = _the_situation_the_person_chose(schema_id)
+            for situation in sorted({answer} if answer is not None else {
                     resolved for file_id, _hash in roster
                     if (resolved := the_one_situation(
                         schema_id, situations_of=_situations_of,
