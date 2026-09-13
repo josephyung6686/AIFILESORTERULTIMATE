@@ -24,6 +24,26 @@ failure a wrong number causes).
 else in this suite, but the real `deepseek_invoke` is what runs -- so `on_usage`, the
 mailbox, the keyword chain and the writer are the production code and only the bytes
 coming back over the wire are the test's.
+
+**AND A LOCAL MODEL IS NOW PART OF THE DEPLOYMENT, `00` amendment 7(c).** This file
+configured a cloud key and nothing else, and that stopped being a deployment site A
+can run in: the gate, `cli.ask_the_gate`, reads every un-held file on this device
+BEFORE anything about it may be sent, `cli.CLOUD_CLEARING_BASES` is what
+`model_route_permitted` asks for a cloud target, and the rules' own word is no
+longer among them. With no local model nothing is cleared, site A never reaches the
+transport, and every row this file reads is absent -- which is the 0-for-1 these
+pins measured. The local half is `StubOllama`, answering the gate `none_of_these`
+and declining the situation, exactly as
+`test_the_scoreboard_reuses_a_prior_runs_answers` does and for its reasons.
+
+**AND THE ROWS ARE NOW READ AT SITE A.** `llm_call_usage` is written wherever a
+call was ANSWERED, which since amendment 7(c) is the gate (over the local
+transport, which reports its own tokens -- see
+`test_local_model_fact_pass.test_a_local_fact_call_records_the_tokens_it_actually_
+used`), site G, site C and site A alike. `[0]` off an unscoped read is whichever
+site the rowid happened to give, and a count off one is four sites' calls reported
+as the fact pass's. Every read below joins through `llm_dossier.call_site`, and the
+reservations are read from the fact pass's own purse (`_reservations_in`).
 """
 from __future__ import annotations
 
@@ -41,6 +61,19 @@ import cli  # noqa: E402
 from readers import model_deepseek, model_routing  # noqa: E402
 from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME  # noqa: E402
 from readers.model_routing import MODEL_NAME_OF_TIER  # noqa: E402
+from readers.model_ollama import (  # noqa: E402
+    BASE_URL_NAME as LOCAL_BASE_URL_NAME,
+    MODEL_NAME as LOCAL_MODEL_NAME,
+)
+# The two local sites' answers come from the files that own them, imported rather
+# than copied on `test_site_e_reuses_its_answer`'s own rule: one stub speaking one
+# protocol, so this file and the gate's own pins cannot drift into describing two
+# different gates.
+from test_local_model_fact_pass import (  # noqa: E402
+    MODEL_ID, StubOllama, _answer_for, dossier_in,
+)
+from test_site_g_end_to_end import _decline  # noqa: E402
+from test_site_h_gate import _clear  # noqa: E402
 
 SITUATION = "academic.coursework"
 
@@ -95,6 +128,14 @@ def _declining(payload_holder: list, usage=_Usage()):
              timeout_seconds=None):
         payload_holder.append(prompt)
         body = json.loads(prompt.split("The dossier follows.", 1)[1])
+        # SITE G ARRIVES HERE TOO since `00` amendment 7(c): a file the gate CLEARED
+        # may have its situation asked off the device, so this provider sees a
+        # situation dossier whose schema is not site A's. Declining it field by
+        # field would be a malformed claim the validator refuses -- a silence
+        # reached by a fault -- so it is declined in the shape the ratified prompt
+        # asks for, and the usage row it produces is a real one.
+        if body["call_site"] == cli.G_SITUATION_SENSITIVITY:
+            return _Response(_decline(body), usage)
         answer = json.dumps({"claims": [
             {"payload": {"field": field},
              "unknown": {"insufficiency_statement": "the evidence does not name it"}}
@@ -123,12 +164,48 @@ def socket(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _no_ambient_key(monkeypatch, tmp_path):
-    for name in (CREDENTIAL_NAME, BASE_URL_NAME, cli.LOCAL_MODEL_NAME,
-                 *MODEL_NAME_OF_TIER.values()):
+    """The developer's own key and the developer's own local model, both cleared.
+
+    The local names are not a formality: a machine with ollama running would answer
+    the gate with whatever it pulled, and these token counts would then be a model
+    nobody chose here. `_local_model` puts the stub's own names back.
+    """
+    for name in (CREDENTIAL_NAME, BASE_URL_NAME, LOCAL_MODEL_NAME,
+                 LOCAL_BASE_URL_NAME, *MODEL_NAME_OF_TIER.values()):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(cli, "ENV_FILE", tmp_path / "absent.env")
     for name, value in ENV.items():
         monkeypatch.setenv(name, value)
+
+
+def _local_answer(payload: str) -> str:
+    """The local half of the deployment, dispatched on the dossier's own site.
+
+    `test_site_h_gate._dispatching` in shape, with site G declined rather than
+    answered for the reason in this file's own header.
+    """
+    dossier = dossier_in(payload)
+    site = dossier.get("call_site")
+    if site == cli.H_RESTRICTED_KIND:
+        return _clear(dossier)
+    if site == cli.G_SITUATION_SENSITIVITY:
+        return _decline(dossier)
+    return _answer_for(payload)
+
+
+@pytest.fixture(autouse=True)
+def _local_model(monkeypatch, _no_ambient_key):
+    """A local model for the whole test, because a run now needs one to send.
+
+    AUTOUSE AND PER TEST, beside `_no_ambient_key` and for its reason: this is what
+    the deployment IS since amendment 7(c), not something one pin arranges. One
+    server for the test rather than one per run, so a second run of the same corpus
+    is given the same base URL as the first.
+    """
+    with StubOllama(answer=_local_answer) as stub:
+        monkeypatch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
+        monkeypatch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)
+        yield stub
 
 
 @pytest.fixture()
@@ -149,13 +226,62 @@ def _run(corpus, *extra) -> str:
     return out.getvalue()
 
 
-def _rows(corpus, sql):
+def _rows(corpus, sql, *params):
     conn = sqlite3.connect(corpus.parent / "plan.sqlite")
     conn.row_factory = sqlite3.Row
     try:
-        return [dict(row) for row in conn.execute(sql)]
+        return [dict(row) for row in conn.execute(sql, params)]
     finally:
         conn.close()
+
+
+def _usage_at(corpus, call_site) -> list[dict]:
+    """The usage rows ONE site's answered calls left behind.
+
+    `llm_call_usage` is written wherever a call was answered and it carries the
+    dossier, which carries the site. That was one site when R-14 was wired; since
+    `00` amendment 7(c) a run of this one-file corpus answers at the gate, at site
+    G, at site C and at site A, so a `[0]` off an unscoped read is whichever row
+    the rowid gave and a count off one is four sites reported as the fact pass.
+    """
+    return _rows(
+        corpus,
+        "SELECT u.* FROM llm_call_usage u JOIN llm_dossier d ON "
+        "d.dossier_id = u.dossier_id WHERE d.call_site = ?", call_site)
+
+
+def _cloud_calls_at(socket, call_site) -> int:
+    """How many prompts this run put on the CLOUD wire at one site.
+
+    `socket` is the prompts `_declining` was handed, and it used to hold site A's
+    alone. Site C reaches the same provider (`104` §17.13 ruling 3) and, since `00`
+    amendment 7(c), so does site G for a file the gate cleared -- so `len(socket)`
+    is no longer a fact-pass number.
+    """
+    return sum(1 for prompt in socket
+               if dossier_in(prompt).get("call_site") == call_site)
+
+
+#: Every purse but the fact pass's, by the suffix `cli` appends to the fact
+#: budget's own `scan_id` to make it (`cli.OBSERVE_BUDGET_SUFFIX` and its four
+#: neighbours). Read off `cli` rather than spelled, so a sixth purse is a name this
+#: file already knows.
+OTHER_PURSE_SUFFIXES = (cli.OBSERVE_BUDGET_SUFFIX, cli.SITUATION_BUDGET_SUFFIX,
+                        cli.TEMPLATE_BUDGET_SUFFIX, cli.GATE_BUDGET_SUFFIX)
+
+
+def _fact_reservations(corpus) -> list[dict]:
+    """The slots reserved from the FACT PASS's purse, and no other site's.
+
+    A reservation names its purse through its `scan_id`: `cli` mints every other
+    ledger as the fact budget's id plus a word -- `:gate`, `:situation`,
+    `:observe`, `:template` -- so the fact pass's is the bare id. Before amendment
+    7(c) this corpus filled one purse and the read needed no clause.
+    """
+    return [row for row in _rows(
+        corpus, "SELECT scan_id, estimated_cost, actual_cost, status "
+                "FROM llm_budget_reservation")
+            if not row["scan_id"].endswith(OTHER_PURSE_SUFFIXES)]
 
 
 # --- the wire -------------------------------------------------------------------
@@ -163,10 +289,23 @@ def _rows(corpus, sql):
 
 def test_one_row_per_answered_call_carrying_what_the_provider_reported(
         corpus, socket):
+    """ONE ROW PER ANSWERED CALL AT SITE A, and the corpus is one file.
+
+    `len(socket)` was site A's total when R-14 was wired and is now every cloud
+    site's, so both halves of the count are taken at the site (`_usage_at`,
+    `_cloud_calls_at`). The gate's answered call leaves a usage row too -- over the
+    local transport, whose own token counts are pinned in
+    `test_local_model_fact_pass` -- and it is stated on its own line rather than
+    folded into a number this pin reads as site A's.
+    """
     _run(corpus, "--enable-cloud")
 
-    rows = _rows(corpus, "SELECT * FROM llm_call_usage")
-    assert len(rows) == len(socket) == 1
+    rows = _usage_at(corpus, cli.A_FACT)
+    assert len(rows) == _cloud_calls_at(socket, cli.A_FACT) == 1
+    # The gate answered too, and its usage reached a row of its own. Without this
+    # line site A's `1` would be indistinguishable from a run in which the gate was
+    # the only site the wire recorded anything for.
+    assert len(_usage_at(corpus, cli.H_RESTRICTED_KIND)) == 1
     row = rows[0]
     assert row["prompt_tokens"] == PROMPT_TOKENS
     assert row["completion_tokens"] == 120
@@ -177,10 +316,14 @@ def test_one_row_per_answered_call_carrying_what_the_provider_reported(
 
 
 def test_the_row_joins_to_the_dossier_and_the_release_it_describes(corpus, socket):
-    """A usage row nothing can join is a number with no call attached to it."""
+    """A usage row nothing can join is a number with no call attached to it.
+
+    Site A's row (`_usage_at`): a `[0]` off the whole table is whichever of the four
+    sites' rows the rowid gave, and this pin is about the fact pass's.
+    """
     _run(corpus, "--enable-cloud")
 
-    usage = _rows(corpus, "SELECT * FROM llm_call_usage")[0]
+    usage = _usage_at(corpus, cli.A_FACT)[0]
     dossiers = {row["dossier_id"] for row in _rows(
         corpus, "SELECT dossier_id FROM llm_dossier")}
     releases = {row["release_id"] for row in _rows(
@@ -194,12 +337,17 @@ def test_what_was_reserved_is_recorded_beside_what_was_consumed(corpus, socket):
     """The pair is the point. The budget still settles one call as one -- the unit
     is CALLS, `FACT_CALL_COST` is 1 against a 200-per-scan ceiling -- and this is
     what makes the distance between the estimate and the truth readable without
-    changing what the budget enforces."""
+    changing what the budget enforces.
+
+    THE FACT PASS'S PURSE, `_fact_reservations`. `00` amendment 7(c) and the two
+    rulings before it gave the gate, site G, site C and site E ledgers of their own
+    -- `cli` mints each as the fact budget's `scan_id` plus a word, because a shared
+    purse starved site C (`104` R-131) -- so a read of the whole table is four
+    purses and `[0]` is whichever of them came first."""
     _run(corpus, "--enable-cloud")
 
-    usage = _rows(corpus, "SELECT * FROM llm_call_usage")[0]
-    settled = _rows(corpus, "SELECT estimated_cost, actual_cost, status "
-                            "FROM llm_budget_reservation")
+    usage = _usage_at(corpus, cli.A_FACT)[0]
+    settled = _fact_reservations(corpus)
 
     assert usage["reserved_cost"] == format(cli.FACT_CALL_COST, "f")
     assert [row["status"] for row in settled] == ["settled"]
@@ -218,7 +366,9 @@ def test_a_provider_that_reports_nothing_still_leaves_the_call_recorded(
 
     _run(corpus, "--enable-cloud")
 
-    rows = _rows(corpus, "SELECT * FROM llm_call_usage")
+    # Site A's rows (`_usage_at`): the silence is the CLOUD provider's, and the gate
+    # answered over the local transport, which reports its tokens as usual.
+    rows = _usage_at(corpus, cli.A_FACT)
     assert len(rows) == 1
     assert rows[0]["prompt_tokens"] is None
     assert rows[0]["reserved_cost"] == format(cli.FACT_CALL_COST, "f")
@@ -226,13 +376,20 @@ def test_a_provider_that_reports_nothing_still_leaves_the_call_recorded(
 
 def test_a_second_run_reuses_and_therefore_records_no_new_usage(corpus, socket):
     """R-13 and R-14 meet: a call not made consumes nothing and is not billed for
-    nothing either."""
+    nothing either.
+
+    All three counts at site A. Site C repeats itself on every run because it
+    records no identity to reuse, and site G does the same -- so `len(socket)` and
+    the whole of `llm_call_usage` both grow on the second run for reasons that have
+    nothing to do with whether the fact pass bought its answer twice.
+    """
     _run(corpus, "--enable-cloud")
     _run(corpus)
 
-    assert len(socket) == 1
-    assert len(_rows(corpus, "SELECT * FROM llm_call_usage")) == 1
-    assert len(_rows(corpus, "SELECT * FROM llm_call_reuse")) == 1
+    assert _cloud_calls_at(socket, cli.A_FACT) == 1
+    assert len(_usage_at(corpus, cli.A_FACT)) == 1
+    assert len(_rows(corpus, "SELECT * FROM llm_call_reuse WHERE call_site = ?",
+                     cli.A_FACT)) == 1
 
 
 # --- and the seams it crosses ----------------------------------------------------

@@ -45,7 +45,7 @@ from database_agent.db import create_schema  # noqa: E402
 from llm_harness.schema import create_llm_schema  # noqa: E402
 from llm_harness.authorship import CALL_REFUSED  # noqa: E402
 from llm_harness.vocabulary import (  # noqa: E402
-    A_FACT, G_SITUATION_SENSITIVITY, pre_call_address,
+    A_FACT, G_SITUATION_SENSITIVITY, H_RESTRICTED_KIND, pre_call_address,
 )
 from model_facts import FileTookTooLong, PerFileCeiling  # noqa: E402
 from readers.model_ollama import (  # noqa: E402
@@ -101,11 +101,21 @@ def test_the_ceiling_is_the_local_patience_times_the_calls_one_file_can_make():
     assert file_ceiling_seconds(cli) == (
         cli.LOCAL_MODEL_TIMEOUT_SECONDS * len(cli.PER_FILE_LOCAL_CALL_SITES))
     # The multiplier is the SITES and not a count somebody kept in step by hand.
-    assert cli.PER_FILE_LOCAL_CALL_SITES == (G_SITUATION_SENSITIVITY, A_FACT), (
-        "the per-file local call sites are site G's loop in `ask_the_situation` and "
-        "site A's stage in `model_facts.fact_call_stage`; a site added to one of "
-        "them and not to this tuple is a file allowed to take longer than the "
-        "ceiling says it may")
+    #
+    # THREE SINCE `00` amendment 7(c), and the tuple is the product's and not this
+    # pin's to shorten. The gate, `cli.ask_the_gate`, is a per-file local loop in
+    # FRONT of the other two -- it reads every un-held file on this device before
+    # anything about it may be sent -- so a file's turn is three calls long and the
+    # ceiling has to be three deep. This pin read `(G, A)` because it was written
+    # when it was, and a pin that names two of three loops asks the run to bound a
+    # file at two thirds of what it is allowed to spend. Written in the order the
+    # pass asks them, which is `cli.PER_FILE_LOCAL_CALL_SITES`' own order.
+    assert cli.PER_FILE_LOCAL_CALL_SITES == (
+        H_RESTRICTED_KIND, G_SITUATION_SENSITIVITY, A_FACT), (
+        "the per-file local call sites are the gate's loop in `cli.ask_the_gate`, "
+        "site G's loop in `cli.ask_the_situation` and site A's stage in "
+        "`model_facts.fact_call_stage`; a site added to one of them and not to "
+        "this tuple is a file allowed to take longer than the ceiling says it may")
     # It is the LOCAL patience: the cloud number is smaller, and a ceiling built
     # from it would cut off local files that were answering.
     assert cli.LOCAL_MODEL_TIMEOUT_SECONDS > cli.MODEL_CALL_TIMEOUT_SECONDS
@@ -272,10 +282,16 @@ def test_a_ceiling_of_zero_is_refused_where_it_is_built():
 
 
 #: `PerFileCeiling` accepts any positive number, and this one is smaller than a scan
-#: can possibly spend on a file. So site G, which sees each file first and has
-#: nothing charged to it yet, asks every file -- and site A, which walks the same
-#: roster afterwards, finds every one of them over budget. That is a whole run's
-#: worth of the skip in one six-file corpus.
+#: can possibly spend on a file. So the GATE, which sees each file first and has
+#: nothing charged to it yet, asks every file -- and site G and site A, which walk
+#: the same roster afterwards, find every one of them over budget. That is a whole
+#: run's worth of the skip in one six-file corpus.
+#:
+#: THE FIRST SITE IS THE GATE SINCE `00` amendment 7(c) and it used to be site G:
+#: `_model_fact_pass` runs `ask_the_gate` before `ask_the_situation`, so the
+#: sighting that costs nothing is the gate's now. Which loop that is is a fact
+#: about the pass's order and not about any one loop, which is why all three
+#: consult the same ceiling off the same bundle.
 IMPOSSIBLE_CEILING = 1e-9
 
 SITUATION = "academic.coursework"
@@ -301,21 +317,30 @@ def test_the_scoreboard_skips_a_file_past_its_ceiling_and_records_it(
     """SABOTAGE: THE MANDATED ONE, through `cli.main` and the real local transport.
 
     The run is composed exactly as `tools.groundtruth._one_run` composes it -- the
-    same keyword -- carrying a ceiling no file can stay under. Site G asks about
+    same keyword -- carrying a ceiling no file can stay under. THE GATE asks about
     every file, because it sees each one first and nothing has been charged to it
-    yet. Site A then walks the same roster, finds every file already over its
-    budget, builds no dossier and asks nothing; what it does instead is RECORD, and
-    the run finishes and reports.
+    yet. Site G and then site A walk the same roster, find every file already over
+    its budget, build no dossier and ask nothing; what they do instead is RECORD,
+    and the run finishes and reports.
 
-    Three assertions, each a different half of R-175 part b: the run ENDS (a ceiling
-    that killed the run would be the hang with a better error message), no `A_fact`
-    call was made about a file that had already had its share, and the skip is on
-    the screen under its own class name.
+    **THE FIRST SITE MOVED AND THE MEASUREMENT DID NOT.** This read `G in sites`
+    when site G was the first per-file local loop; `00` amendment 7(c) put
+    `cli.ask_the_gate` in front of it, so the free sighting is the gate's and site
+    G is refused with site A. The pin is the same pin -- one site asks because
+    nothing is charged to it yet, every later site is refused because something is
+    -- named at the site that now holds each half.
+
+    Four assertions, each a different half of R-175 part b: the run ENDS (a ceiling
+    that killed the run would be the hang with a better error message), the gate
+    still asked, no `G_situation_sensitivity` or `A_fact` call was made about a file
+    that had already had its share, and the skip is on the screen under its own
+    class name.
 
     SABOTAGE: delete the `per_file_ceiling` check from `model_facts.fact_call_stage`
-    and site A's dossiers reappear and the refused line vanishes. Drop
-    `per_file_ceiling=` from the `fact_call_authorities` call in `_model_fact_pass`
-    and the same two go red -- the ceiling would be built and never consulted.
+    and site A's dossiers reappear; delete it from `cli.ask_the_situation` and site
+    G's do. Drop `per_file_ceiling=` from the `fact_call_authorities` call in
+    `_model_fact_pass` and every one of them goes red together -- the ceiling would
+    be built and never consulted.
     """
     corpus = _corpus(tmp_path / "corpus")
     with StubOllama() as stub:
@@ -324,13 +349,16 @@ def test_the_scoreboard_skips_a_file_past_its_ceiling_and_records_it(
 
     assert code == 0, said
     sites = _sites_asked(stub)
-    assert G_SITUATION_SENSITIVITY in sites, (
-        "site G sees each file first, so nothing is charged to it yet and every "
+    assert H_RESTRICTED_KIND in sites, (
+        "the gate sees each file first, so nothing is charged to it yet and every "
         "file is still asked. A ceiling that skipped this too would be measuring "
         "nothing at all")
+    assert G_SITUATION_SENSITIVITY not in sites, (
+        "every file had already spent more than its share at the gate, so site G "
+        "must ask nothing about any of them")
     assert A_FACT not in sites, (
-        "every file had already spent more than its share at site G, so site A "
-        "must build no dossier and make no call about any of them")
+        "every file had already spent more than its share before site A's turn, so "
+        "site A must build no dossier and make no call about any of them")
     assert "FileTookTooLong" in said, (
         "a skipped file is RECORDED. `104` R-04: a site that asked nothing looks "
         "exactly like a site nobody wired, and this line is the difference")

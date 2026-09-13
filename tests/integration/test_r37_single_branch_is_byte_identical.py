@@ -118,6 +118,25 @@ treatment, the library actions, the user-defined areas -- all of them need a
 PDF, a spreadsheet or a screenshot this corpus does not hold. Their absence from
 this diff is the measurement, not an assumption.
 
+**Recaptured on 13 Sep 2026 for the identifier extractor, and the diff was read
+before it was taken.** The `identifiers.*` readers arrived with the 12 Sep merges
+and this corpus holds the one file they have anything to say about: the passport
+scan carries a passport number and a date of birth, so `evidence` gains exactly
+two rows -- `identifiers.passport_number` and `identifiers.date_of_birth`, both
+`extractor_version` 0.1.0, both on `Passport scan.txt` -- and the passport's
+`text.structured` row in `extraction_runs` reads `observation_count` 7 for 5.
+
+**The second change is the first one counted, and that is the whole diff.** THE
+SCREEN IS IDENTICAL, line for line, and TWELVE OF THE FOURTEEN CAPTURED TABLES
+are identical row for row -- `file_facts`, `unresolved`, `tree_nodes`,
+`placement_decisions`, `placement_group_plans`, `groups`, `memberships` and the
+rest. So the readings reach the evidence table and stop there: nothing this
+corpus settles, groups, places or prints moved because of them. That the passport
+gains two readings and no placement is the measurement -- this run configures no
+model of any kind, so what holds that file is the rules' own detector, and
+readings of a held file are readings a person is shown rather than ones a folder
+is built from.
+
 The corpus is `test_local_model_fact_pass._corpus`'s six files: a syllabus, a
 lecture, a homework, a problem set, an application essay and a passport scan. The
 anchors the work-type rule finds on it are all academic's, so it is one branch.

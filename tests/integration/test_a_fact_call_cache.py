@@ -14,7 +14,29 @@ and run 2 made **2 more**, for 14 `llm_verdict` rows over 8 distinct questions -
 every one of them an `abstain` the model had already given. Nothing about the corpus,
 the prompt, the model or the policy had changed.
 
-**Everything here is real except the socket.** `readers.model_routing.deepseek_invoke`
+**AND A LOCAL MODEL IS NOW PART OF THE DEPLOYMENT, `00` amendment 7(c).** This file
+used to configure a cloud key and nothing else, and that stopped being a deployment
+site A can run in: the gate, `cli.ask_the_gate`, reads every un-held file on this
+device BEFORE anything about it may be sent, `cli.CLOUD_CLEARING_BASES` is what
+`model_route_permitted` asks for a cloud target, and the rules' own word is no
+longer among them. With no local model the gate has no destination, no file is
+cleared, and site A is refused the cloud for every one of them -- measured here as
+`calls_at(A_FACT) == 0` where every pin below says 2. So the local half is
+`StubOllama`, `test_local_model_fact_pass`'s own server, and it answers the gate
+`none_of_these` and DECLINES the situation. Both seams are stubs; neither is the
+thing under test. `test_the_scoreboard_reuses_a_prior_runs_answers` carries the long
+form of the same argument, including why the situation is declined rather than
+answered: amendment 7(c) asks site G of the whole library, so naming an option would
+be naming whichever the library lists first, and a protected one would hold the file
+and route site A local -- emptying the socket this file counts.
+
+**AND THE GATE RECORDS AN IDENTITY OF ITS OWN** (45d36ca0), so `llm_call_identity`
+and `llm_call_reuse` are no longer site A's alone and the reads below that used to
+need no call-site clause now need one. Every count in this file is site A's, stated
+at site A.
+
+**Everything here is real except the two model seams.**
+`readers.model_routing.deepseek_invoke`
 is the documented deployment seam and the stub is bound in its place, so the gate, the
 release ledger, the transport, the validator, `apply_verdict` and the whole of
 `cli.run` are the production path. Counting `invoke` calls counts model calls exactly:
@@ -50,6 +72,19 @@ import cli  # noqa: E402
 from readers import model_routing  # noqa: E402
 from readers.model_routing import MODEL_NAME_OF_TIER  # noqa: E402
 from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME  # noqa: E402
+from readers.model_ollama import (  # noqa: E402
+    BASE_URL_NAME as LOCAL_BASE_URL_NAME,
+    MODEL_NAME as LOCAL_MODEL_NAME,
+)
+# The two local sites' answers come from the files that own them, imported rather
+# than copied on `test_site_e_reuses_its_answer`'s own rule: one stub speaking one
+# protocol, so this file and the gate's own pins cannot drift into describing two
+# different gates.
+from test_local_model_fact_pass import (  # noqa: E402
+    MODEL_ID, StubOllama, _answer_for, dossier_in,
+)
+from test_site_g_end_to_end import _decline  # noqa: E402
+from test_site_h_gate import _clear  # noqa: E402
 
 SITUATION = "academic.coursework"
 
@@ -125,9 +160,19 @@ class _Socket:
     def factory(self, **_unused):
         def invoke(payload: bytes) -> bytes:
             self.payloads.append(payload)
+            body = self._body(payload)
+            # SITE G ARRIVES HERE TOO since `00` amendment 7(c): G's row is
+            # `ratified` and a file the gate CLEARED may have its situation asked
+            # off the device, so the cloud seam sees a situation dossier whose
+            # schema is not site A's. Declining it field by field below would be a
+            # malformed claim the validator refuses -- the same silence, reached by
+            # a fault -- so it is declined in the shape the ratified prompt asks
+            # for, and the gate's clearance stands as this file's route.
+            if body["call_site"] == cli.G_SITUATION_SENSITIVITY:
+                return _decline(body).encode("utf-8")
             # DECLINE EVERYTHING. The R-13 case is the declined field: it settles
             # nothing, so `pending_fields_for` offers it again for ever.
-            fields = self._body(payload)["allowed_vocabulary"]
+            fields = body["allowed_vocabulary"]
             return json.dumps({"claims": [
                 {"payload": {"field": field},
                  "unknown": {"insufficiency_statement":
@@ -145,12 +190,50 @@ def socket(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _no_ambient_key(monkeypatch, tmp_path):
-    """The developer's own key must not decide whether these tests pass."""
-    for name in (CREDENTIAL_NAME, BASE_URL_NAME, *MODEL_NAME_OF_TIER.values()):
+    """The developer's own key must not decide whether these tests pass.
+
+    The local model's two names are cleared for the same reason and it is not a
+    formality: a machine with ollama running would answer the gate with whatever it
+    pulled, and these counts would then depend on a model nobody chose here.
+    `_local_model` puts the stub's own names back.
+    """
+    for name in (CREDENTIAL_NAME, BASE_URL_NAME, *MODEL_NAME_OF_TIER.values(),
+                 LOCAL_MODEL_NAME, LOCAL_BASE_URL_NAME):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(cli, "ENV_FILE", tmp_path / "absent.env")
     for name, value in ENV.items():
         monkeypatch.setenv(name, value)
+
+
+def _local_answer(payload: str) -> str:
+    """The local half of the deployment, dispatched on the dossier's own site.
+
+    `test_site_h_gate._dispatching` in shape, with site G declined rather than
+    answered for the reason in this file's own header.
+    """
+    dossier = dossier_in(payload)
+    site = dossier.get("call_site")
+    if site == cli.H_RESTRICTED_KIND:
+        return _clear(dossier)
+    if site == cli.G_SITUATION_SENSITIVITY:
+        return _decline(dossier)
+    return _answer_for(payload)
+
+
+@pytest.fixture(autouse=True)
+def _local_model(monkeypatch, _no_ambient_key):
+    """A local model for the whole test, because a run now needs one to send.
+
+    AUTOUSE AND PER TEST, beside `_no_ambient_key` and for its reason: this is what
+    the deployment IS since amendment 7(c), not something one pin arranges. One
+    server for the test rather than one per run -- every test here runs the product
+    twice over one corpus, and a stub that came and went between them would give the
+    second run a different base URL from the first.
+    """
+    with StubOllama(answer=_local_answer) as stub:
+        monkeypatch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
+        monkeypatch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)
+        yield stub
 
 
 @pytest.fixture()
@@ -210,6 +293,32 @@ def _a_fact_policy_versions(corpus) -> set[str]:
         corpus,
         "SELECT DISTINCT policy_version FROM llm_dossier WHERE call_site = ?",
         cli.A_FACT)}
+
+
+def _identities_at(corpus, call_site) -> list[dict]:
+    """The answers ONE site recorded an identity for, and no other site's.
+
+    `llm_call_identity` was site A's alone when this file was written, which is why
+    the reads below carried no clause. Since `00` amendment 7(c) the gate records one
+    per file too and reuses it (45d36ca0), so an unscoped count reads two sites'
+    answers as site A's and doubles on a corpus nothing about which changed. Site C
+    and site G record none, so they are in neither number.
+    """
+    return _rows(
+        corpus,
+        "SELECT i.* FROM llm_call_identity i JOIN llm_dossier d ON "
+        "d.dossier_id = i.dossier_id WHERE d.call_site = ?", call_site)
+
+
+def _reuses_at(corpus, call_site) -> list[dict]:
+    """Questions this run did not ask again AT ONE SITE.
+
+    `llm_call_reuse` carries its own `call_site`, and the scoping is the one
+    `_identities_at` argues: the gate saves on the same rows, and site A's number
+    must not move when another site starts saving.
+    """
+    return _rows(corpus, "SELECT * FROM llm_call_reuse WHERE call_site = ?",
+                 call_site)
 
 
 # --- the four the register asks for ---------------------------------------------
@@ -334,20 +443,26 @@ def test_the_reuse_is_recorded_and_names_the_prior_dossier(corpus, socket):
     act ... There is no run-time registration call", so a `model_call_reused` name
     is the owner's to approve. The row carries the provenance in the meantime.
 
-    The rows read here need no call-site clause even though this run also asks site C
-    (`104` §17.13 ruling 3): `llm_call_identity` and `llm_call_reuse` are written where
-    an answer CAN be reused from, and site C records none. That is why the count is one
-    per file and not one per call -- and why this pin is the evidence R-172a is fixed:
-    a dimension that carried the run id would leave both tables empty on run 2.
+    The rows read here are SITE A'S (`_identities_at`, `_reuses_at`). `llm_call_
+    identity` and `llm_call_reuse` are written where an answer CAN be reused from --
+    site C and site G record none -- and that used to make them site A's alone, which
+    is why this pin carried no clause. Since `00` amendment 7(c) the gate records one
+    per file as well, so an unscoped read is two sites' answers reported as site A's:
+    it reads 4 on a two-file corpus and would go on reading 4 with site A's cache
+    broken and the gate's working. That is exactly what this pin exists to notice.
+
+    That is why the count is one per file and not one per call -- and why this pin is
+    the evidence R-172a is fixed: a dimension that carried the run id would leave both
+    tables empty on run 2.
     """
     _run(corpus, "--enable-cloud")
-    assert _count(corpus, "llm_call_reuse") == 0
-    identities = _rows(corpus, "SELECT * FROM llm_call_identity")
+    assert _reuses_at(corpus, cli.A_FACT) == []
+    identities = _identities_at(corpus, cli.A_FACT)
     assert len(identities) == 2
 
     _run(corpus)
 
-    reuses = _rows(corpus, "SELECT * FROM llm_call_reuse")
+    reuses = _reuses_at(corpus, cli.A_FACT)
     assert len(reuses) == 2
     priors = {row["dossier_id"] for row in identities}
     for reuse in reuses:
@@ -366,9 +481,15 @@ def test_the_identity_row_says_what_it_was_keyed_on(corpus, socket):
     above cannot tell a call that was shown a syllabus from one that was not --
     `extractor_versions` is a set of `(name, version)` pairs and a syllabus is read by
     the same extractor as the coursework beside it.
+
+    SITE A'S ROWS (`_identities_at`), since `00` amendment 7(c): the gate records an
+    identity too, and its dimensions are its own -- another `call_site`, the local
+    model's id -- so the loop below would be asserting site A's ten terms of a row
+    that was never site A's.
     """
     _run(corpus, "--enable-cloud")
-    rows = _rows(corpus, "SELECT * FROM llm_call_identity")
+    rows = _identities_at(corpus, cli.A_FACT)
+    assert len(rows) == len(CORPUS)
 
     for row in rows:
         dimensions = json.loads(row["dimensions"])
@@ -415,6 +536,10 @@ def test_the_policy_dimension_is_the_policys_content_and_not_its_version(
 
     policies = _rows(corpus, "SELECT policy_version FROM privacy_policies")
     assert len({row["policy_version"] for row in policies}) > 1, policies
+    # SITE A'S DIGESTS. The gate records an identity too since `00` amendment 7(c)
+    # and its policy term is taken over the same content, so an unscoped read would
+    # very likely still say 1 -- and would say it about a set this pin is not making
+    # a claim about. Site A's cache is what did not notice the new version string.
     digests = {json.loads(row["dimensions"])["policy"]
-               for row in _rows(corpus, "SELECT dimensions FROM llm_call_identity")}
+               for row in _identities_at(corpus, cli.A_FACT)}
     assert len(digests) == 1

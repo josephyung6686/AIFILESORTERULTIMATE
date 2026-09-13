@@ -29,12 +29,31 @@ what order, which is the thing that can be wrong. Five properties, one per test:
    call is what filled the machine's swap in r18 (§17.21). That property lives in
    the driver, so it is pinned at the driver, over both localities at once.
 
-**Everything here is real except the socket.** `readers.model_routing.
+**Everything here is real except the two model seams.** `readers.model_routing.
 deepseek_invoke` is the documented deployment seam and the stub is bound in its
 place, exactly as `tests/integration/test_a_fact_call_cache.py` binds it, so the
 route, the gate, the release ledger, the transport, the validator and the whole of
 `cli.run` are the production path. The stub is the only thing that knows a thread
 from another one.
+
+**AND A LOCAL MODEL IS NOW PART OF THE DEPLOYMENT, `00` amendment 7(c).** This file
+configured a cloud key and nothing else, and that stopped being a deployment a
+CLOUD LANE can exist in: the gate, `cli.ask_the_gate`, reads every un-held file on
+this device BEFORE anything about it may be sent, `cli.CLOUD_CLEARING_BASES` is
+what `model_route_permitted` asks for a cloud target, and the rules' own word is no
+longer among them. With no local model nothing is cleared, every file is routed
+local, and the widest lane a run can open is one -- measured as `at_once` and
+`calls_at(A_FACT)` reading 0 where these pins say seven. The local half is
+`StubOllama`, `test_local_model_fact_pass`'s own server, answering the gate
+`none_of_these` and DECLINING the situation, for the reasons
+`test_the_scoreboard_reuses_a_prior_runs_answers` states at length.
+
+**THE LOCAL LANE IS STILL ONE WIDE AND THE GATE IS PART OF IT**, which is the point
+worth keeping in view here of all files: the gate is a per-file LOCAL loop in front
+of the batch, so seven files are seven serial local calls and then one cloud batch
+of seven. That is `104` §18.15's own shape -- the local lane serial, the cloud lane
+as wide as `cli.EXTRACTION_WORKERS` -- and the width measured below is the cloud
+half of it.
 """
 from __future__ import annotations
 
@@ -59,6 +78,20 @@ from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME
 #: it -- `tests/integration/test_per_file_model_route.py` reads it from the same
 #: place and for the same reason.
 from readers.model_ollama import LOCAL as LOCAL_LOCALITY
+from readers.model_ollama import (
+    BASE_URL_NAME as LOCAL_BASE_URL_NAME,
+    MODEL_NAME as LOCAL_MODEL_NAME,
+)
+# The two local sites' answers come from the files that own them, imported rather
+# than copied on `test_site_e_reuses_its_answer`'s own rule: one stub speaking one
+# protocol, so this file and the gate's own pins cannot drift into describing two
+# different gates. `_decline` is renamed on the way in because `_Lane` already has
+# a `_decline` of its own, and the two are different declines.
+from test_local_model_fact_pass import (
+    MODEL_ID, StubOllama, _answer_for, dossier_in,
+)
+from test_site_g_end_to_end import _decline as _decline_the_situation
+from test_site_h_gate import _clear
 
 SITUATION = "academic.coursework"
 
@@ -177,6 +210,16 @@ class _Lane:
             body = self._body(payload)
             if body["call_site"] != self.at_site:
                 self.payloads.append(payload)
+                # SITE G ARRIVES HERE TOO since `00` amendment 7(c): a file the
+                # gate CLEARED may have its situation asked off the device, so this
+                # seam sees a situation dossier whose schema is not site A's.
+                # `_decline` below answers field by field, which at site G is a
+                # malformed claim the validator refuses -- a silence reached by a
+                # fault -- so it is declined in the shape the ratified prompt asks
+                # for. It is served straight through either way: site G runs before
+                # the batch and is neither counted in its width nor made to wait.
+                if body["call_site"] == cli.G_SITUATION_SENSITIVITY:
+                    return _decline_the_situation(body).encode("utf-8")
                 return self._decline(body)
             subject = body["subject_ref"]
             self._arrive(subject)
@@ -276,12 +319,51 @@ def releases(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _no_ambient_key(monkeypatch, tmp_path):
-    """The developer's own key must not decide whether these tests pass."""
-    for name in (CREDENTIAL_NAME, BASE_URL_NAME, *MODEL_NAME_OF_TIER.values()):
+    """The developer's own key must not decide whether these tests pass.
+
+    The local model's two names are cleared for the same reason and it is not a
+    formality here of all places: a machine with ollama running would answer the
+    gate with whatever it pulled, and a real local model's latency would decide
+    whether seven calls were ever in flight together. `_local_model` puts the
+    stub's own names back.
+    """
+    for name in (CREDENTIAL_NAME, BASE_URL_NAME, *MODEL_NAME_OF_TIER.values(),
+                 LOCAL_MODEL_NAME, LOCAL_BASE_URL_NAME):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(cli, "ENV_FILE", tmp_path / "absent.env")
     for name, value in ENV.items():
         monkeypatch.setenv(name, value)
+
+
+def _local_answer(payload: str) -> str:
+    """The local half of the deployment, dispatched on the dossier's own site.
+
+    `test_site_h_gate._dispatching` in shape, with site G declined rather than
+    answered for the reason in this file's own header.
+    """
+    dossier = dossier_in(payload)
+    site = dossier.get("call_site")
+    if site == cli.H_RESTRICTED_KIND:
+        return _clear(dossier)
+    if site == cli.G_SITUATION_SENSITIVITY:
+        return _decline_the_situation(dossier)
+    return _answer_for(payload)
+
+
+@pytest.fixture(autouse=True)
+def _local_model(monkeypatch, _no_ambient_key):
+    """A local model for the whole test, because a run now needs one to send.
+
+    AUTOUSE AND PER TEST, beside `_no_ambient_key` and for its reason: this is what
+    the deployment IS since amendment 7(c), not something one pin arranges. It is
+    on the driver-only tests too, which drive `in_walk_order` and reach no model at
+    all -- one deployment for the file rather than a fixture each pin has to
+    remember, which is the mistake that put a 0 in the four pins below.
+    """
+    with StubOllama(answer=_local_answer) as stub:
+        monkeypatch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
+        monkeypatch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)
+        yield stub
 
 
 @pytest.fixture()
