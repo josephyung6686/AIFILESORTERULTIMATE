@@ -672,16 +672,20 @@ def test_the_word_documents_body_is_offered_only_when_it_fits_the_ceiling(whole_
     only itself.
     """
     from model_facts import (
-        ordered_releasable_observations, releasable_observations, released_wire_cost,
+        OPENING_EXCERPT_EXTRACTOR, ordered_releasable_observations,
+        releasable_observations, released_wire_cost,
     )
 
     file_id, digest, _key = _write_the_word_document(
         whole_conn, "Wash U 2.docx", b"docx-2")
 
-    def offer(ceiling):
-        return [observation.raw_value for observation in releasable_observations(
+    def offer_items(ceiling):
+        return list(releasable_observations(
             whole_conn, file_id=file_id, content_hash=digest, limit=12,
-            locality=CLOUD_LOCALITY, ceiling=ceiling)]
+            locality=CLOUD_LOCALITY, ceiling=ceiling))
+
+    def offer(ceiling):
+        return [observation.raw_value for observation in offer_items(ceiling)]
 
     fits = offer(MAX_DOSSIER_TOKENS)
     assert [value for value in fits if DOCX_CANARY in value], (
@@ -695,11 +699,21 @@ def test_the_word_documents_body_is_offered_only_when_it_fits_the_ceiling(whole_
         whole_conn, file_id=file_id, content_hash=digest,
         locality=CLOUD_LOCALITY, limit=12) if DOCX_CANARY in observation.raw_value]
     assert len(body) == 1, body
-    over = offer(released_wire_cost(body[0]) - 1)
+    over_items = offer_items(released_wire_cost(body[0]) - 1)
+    over = [observation.raw_value for observation in over_items]
     assert over, "the headings and cells beside the body are still offered"
     assert not [value for value in over if DOCX_CANARY in value], over
-    assert set(over) < set(fits), (
+    # `104` §18.57: the opening excerpt is cut to the call's OWN ceiling, so under
+    # the short bound it is a shorter item rather than a dropped one. Everything
+    # else the short bound offers, the generous bound offered too.
+    def opening(items):
+        return [observation.raw_value for observation in items
+                if observation.extractor_name == OPENING_EXCERPT_EXTRACTOR]
+    rest = {value for value in over if value not in opening(over_items)}
+    assert rest < set(fits), (
         "the short ceiling dropped something other than the body")
+    for short, long in zip(opening(over_items), opening(offer_items(MAX_DOSSIER_TOKENS))):
+        assert len(short) <= len(long), (short, long)
 
 
 # ================================================================================
