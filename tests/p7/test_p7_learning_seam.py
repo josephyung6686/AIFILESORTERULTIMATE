@@ -773,3 +773,27 @@ def test_the_ranking_is_asked_of_strongest_and_not_re_implemented():
     assert "strongest(" in code
     assert "RELIABILITY_ORDER" not in code
     assert "_rank" not in code
+
+
+def test_a_gate_clearance_is_retired_by_a_later_deterministic_hold(
+        p7_conn, file_id, content_hash, store):
+    """`00` amendment 7(c): the gate clears a file only while the deterministic
+    layers are silent, so a rules hold that arrives later -- a ratified term, an
+    entity reading -- retires the clearance whatever the two reliability states say.
+    Measured 13 Sep 2026: a code sheet cleared at `llm_supported` kept its clearance
+    over the identity domain's `possible` hold and would have gone to the cloud."""
+    from privacy.vocabulary import LOCAL_MODEL_GATE
+
+    clearance = assign(
+        p7_conn, a_record(file_id, content_hash, "personal_non_sensitive",
+                          basis=LOCAL_MODEL_GATE, protected=False,
+                          reliability_state="llm_supported"),
+        store=store, component_version=COMPONENT)
+    assert store.current(file_id, content_hash) == clearance
+
+    hold = a_record(file_id, content_hash, "sensitive_personal",
+                    basis="safety_domain", protected=True,
+                    reliability_state="possible", observed_at=LATER)
+    assert assign(p7_conn, hold, store=store, component_version=COMPONENT) is hold
+    assert store.current(file_id, content_hash) == hold
+    assert store.history(file_id) == [clearance, hold]

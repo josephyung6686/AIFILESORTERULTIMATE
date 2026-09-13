@@ -47,7 +47,9 @@ from privacy.authorship import (
 from privacy.classification import ClassificationRecord
 from privacy.classification_store import (AmbiguousCurrentClassification,
                                           ClassificationStore, mirror, strongest)
-from privacy.vocabulary import USER, USER_CONFIRMED, check_handling_class
+from privacy.vocabulary import (
+    LOCAL_MODEL_GATE, USER, USER_CONFIRMED, check_handling_class,
+)
 
 #: 10-i4-learning-ops.md's table: `privacy` | `(file_id, handling_class)` | P7.
 PROPOSAL_CLASS: str = "privacy"
@@ -136,6 +138,17 @@ def _outranked_by(record: ClassificationRecord,
     own `user_confirmed` answer must not be retired by a detector re-running, which is
     §3.13's ordering and the same rule P6 spells `PreferredNeverReverses`.
     """
+    if (prior.basis == LOCAL_MODEL_GATE and not prior.protected
+            and record.protected):
+        # `00` amendment 7(c): the gate clears a file only while the deterministic
+        # layers are silent (`cli.gate_classification`'s `deterministic_layers_
+        # silent`). A layer that speaks later -- a ratified term, an entity reading
+        # -- removes the clearance's premise, so its hold is not outranked by it,
+        # whatever §3.13 says of the two reliability states. Measured 13 Sep 2026:
+        # a two-factor code sheet cleared at `llm_supported` kept its clearance
+        # over the identity domain's `possible` hold and would have gone to the
+        # cloud.
+        return False
     try:
         return strongest([prior, record]) is prior
     except AmbiguousCurrentClassification:
