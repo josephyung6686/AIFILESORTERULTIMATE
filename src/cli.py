@@ -1377,7 +1377,14 @@ def situation_scan_budget(fact_budget: ScanBudget, *,
         scan_id=fact_budget.scan_id + SITUATION_BUDGET_SUFFIX,
         corpus_file_count=corpus_file_count,
         max_calls_per_1000_files=OBSERVE_CALLS_PER_1000_FILES,
-        max_estimated_cost=OBSERVE_CALLS_PER_SCAN_CEILING,
+        # `00` amendment 7(c): this site asks EVERY file, so its ceiling is the
+        # roster and not the observe sites' 200. Measured 12 Sep 2026 on the
+        # owner's 371 files: the 200-call ceiling refused the last 106 askable
+        # files before any call, in every run, and the four health forms the
+        # amendment exists to catch sat among them. One call per file is the
+        # rate above; a ceiling below the roster silently un-asks its tail.
+        max_estimated_cost=Decimal(max(corpus_file_count,
+                                       OBSERVE_MIN_CALLS_PER_SCAN)),
         min_calls_per_scan=OBSERVE_MIN_CALLS_PER_SCAN)
 
 
@@ -1400,7 +1407,14 @@ def gate_scan_budget(fact_budget: ScanBudget, *,
         scan_id=fact_budget.scan_id + GATE_BUDGET_SUFFIX,
         corpus_file_count=corpus_file_count,
         max_calls_per_1000_files=OBSERVE_CALLS_PER_1000_FILES,
-        max_estimated_cost=OBSERVE_CALLS_PER_SCAN_CEILING,
+        # `00` amendment 7(c): this site asks EVERY file, so its ceiling is the
+        # roster and not the observe sites' 200. Measured 12 Sep 2026 on the
+        # owner's 371 files: the 200-call ceiling refused the last 106 askable
+        # files before any call, in every run, and the four health forms the
+        # amendment exists to catch sat among them. One call per file is the
+        # rate above; a ceiling below the roster silently un-asks its tail.
+        max_estimated_cost=Decimal(max(corpus_file_count,
+                                       OBSERVE_MIN_CALLS_PER_SCAN)),
         min_calls_per_scan=OBSERVE_MIN_CALLS_PER_SCAN)
 
 
@@ -2436,6 +2450,15 @@ GATE_DOSSIER_TOKENS: int = 1_200
 #: separately because `releasable_observations` spends them separately -- a count
 #: and a length are different bounds and a corpus finds the difference (the twelve's
 #: own comment records what happened when one stood in for the other).
+#:
+#: NOT A COUNT CAP, AND MEASURED AS SUCH ON 12 Sep 2026. `releasable_observations`
+#: spends this as the divisor of the opening-excerpt bound (`model_facts.
+#: opening_excerpt_bound`: the ceiling over this count is the length one excerpt
+#: may have) and the length bound is what cuts the list. On the first gate run the
+#: excerpt was sized from the STORED ceiling rather than this site's, so no
+#: excerpt of a full page fit under 1,200 and the gate read metadata alone; that
+#: is fixed where it was wrong, and five stays: 1,200 over five is 240 tokens of
+#: a file's opening, beside the four filesystem records every file carries.
 GATE_MAX_RELEASED_OBSERVATIONS: int = 5
 
 #: HOW MUCH OF A FILE THE SITUATION CALL MAY SEND TO A CLOUD TARGET, in
@@ -3004,11 +3027,15 @@ def model_route(*, out, on_usage=None) -> TierRouting | None:
                 max_response_tokens=MAX_RESPONSE_TOKENS,
                 context_ceiling=LOCAL_CONTEXT_CEILING,
                 timeout_seconds=LOCAL_MODEL_TIMEOUT_SECONDS,
-                # `104` R-177: the OUTER bound is the local number above and the
-                # inner one is this, the same number the cloud call is given
-                # whole. See its own docstring for why the deployment's answer to
-                # "how long may a model say nothing" is one number and not two.
-                silence_seconds=MODEL_CALL_TIMEOUT_SECONDS,
+                # ONE DEADLINE OVER THE WHOLE LOCAL CALL, since 12 Sep 2026. `104`
+                # R-177 gave the local call the cloud's 90-second silence deadline
+                # as an inner bound, calibrated on a 29-second prompt read. Under
+                # `00` amendment 7(c) the local situation prompt is ~7,100 tokens,
+                # and on the owner's machine with 15 GB of swap in use four of the
+                # first seven local situation calls were killed while still reading
+                # it -- each a correct call. R-175's whole-call deadline already
+                # ends a hung call; the idle timer only added the false failure.
+                silence_seconds=LOCAL_MODEL_TIMEOUT_SECONDS,
                 on_usage=on_usage)
         # D1's local half, alone: one installed model answers every site.
         return ollama_routing(
@@ -3018,9 +3045,8 @@ def model_route(*, out, on_usage=None) -> TierRouting | None:
             max_response_tokens=MAX_RESPONSE_TOKENS,
             context_ceiling=LOCAL_CONTEXT_CEILING,
             timeout_seconds=LOCAL_MODEL_TIMEOUT_SECONDS,
-            # `104` R-177, as above: the whole-call ceiling is the local one, the
-            # silence deadline is the cloud call's whole number.
-            silence_seconds=MODEL_CALL_TIMEOUT_SECONDS,
+            # One deadline over the whole local call, as above.
+            silence_seconds=LOCAL_MODEL_TIMEOUT_SECONDS,
             serves=None,
             beside=None,
             # `104` R-14, and this is the route that answers every site here: a
@@ -8386,7 +8412,8 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             conn, call_site=G_SITUATION_SENSITIVITY, file_id=file_id,
             content_hash=content_hash, request=request,
             schema_ids=list(question.allowed_situations),
-            policy_version=fact_authorities.policy_version)
+            policy_version=fact_authorities.policy_version,
+            context_is_the_release=True)
         identity_id = call_identity(identity)
         prior = prior_call(conn, identity_id)
         verdict = (None if prior is None
@@ -8667,21 +8694,31 @@ def gate_call_identity(conn: sqlite3.Connection, *, file_id: str,
     return _per_file_call_identity(
         conn, call_site=H_RESTRICTED_KIND, file_id=file_id,
         content_hash=content_hash, request=request, schema_ids=[],
-        policy_version=policy_version)
+        policy_version=policy_version, context_is_the_release=True)
 
 
 def _per_file_call_identity(conn: sqlite3.Connection, *, call_site: str,
                             file_id: str, content_hash: str, request,
-                            schema_ids: list[str],
-                            policy_version: str) -> dict[str, object]:
-    """The one spelling of a per-file call's identity that sites E and H share;
-    `template_call_identity`'s docstring is the argument for every term."""
+                            schema_ids: list[str], policy_version: str,
+                            context_is_the_release: bool = False
+                            ) -> dict[str, object]:
+    """The one spelling of a per-file call's identity that sites E, G and H
+    share; `template_call_identity`'s docstring is the argument for every term.
+
+    `context_is_the_release` puts the released observation keys in
+    `context_refs`: what the model was shown beside the prompt. Site E shows its
+    own accepted facts and keeps `[]`; the gate and site G show a bounded release
+    of the file's readings, and a release bound that moves is a different
+    question -- measured 12 Sep 2026, when five slots held four filesystem
+    records and one line of text, and the identity without the release would
+    have reused that answer after the bound was widened.
+    """
     released = {item.observation_key
                 for item in request.model_call_request.requested_items}
     return {
         "call_site": call_site,
         "content_hash": content_hash,
-        "context_refs": [],
+        "context_refs": sorted(released) if context_is_the_release else [],
         "extractor_versions": sorted(
             {(observation.extractor_name, observation.extractor_version)
              for observation in observations_for_version(

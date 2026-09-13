@@ -619,3 +619,73 @@ def test_a_second_run_over_the_same_database_asks_the_gate_nothing(tmp_path,
     assert reuse_rows == asked
     assert _protected_ids(conn) == cleared_first
     assert f"{asked} {cli.GATE_SENTENCE['reused'][:40]}" in " ".join(said.split())
+
+
+LONG_NAME = "reading notes on the seminar.txt"
+
+
+def _with_a_long_file(corpus: Path) -> Path:
+    """A file whose opening page runs past the gate's whole bound, so its text
+    reaches the gate only as an opening excerpt sized for that bound."""
+    (corpus / LONG_NAME).write_text(
+        "Reading notes for the seminar on macroeconomic policy. "
+        + " ".join(f"Point {i}: the lecture covered aggregate demand and the "
+                   f"problem set the instructor assigned for week {i % 12}."
+                   for i in range(1, 160)))
+    return corpus
+
+
+def _body_items(dossier: dict) -> list[dict]:
+    return [item for item in dossier.get("released_evidence", ())
+            if isinstance(item, dict)
+            and item.get("zone") not in ("path", "metadata", "title", "filename")]
+
+
+def test_the_gate_reads_an_opening_excerpt_sized_for_its_own_bound(tmp_path,
+                                                                   monkeypatch):
+    """The excerpt the gate is shown is cut for the gate's ceiling, not the
+    stored 4,000.
+
+    Measured 12 Sep 2026: `opening_excerpt_bound` read the stored ceiling, so a
+    full page's excerpt was minted at 800 tokens and never fit under the gate's
+    1,200 beside the filesystem records; the gate read path and metadata alone
+    and cleared two protected records on "no record, just metadata". Now a long
+    file's dossier carries a body excerpt, and the whole dossier stays inside
+    the bound.
+    """
+    corpus = _with_a_long_file(_corpus(tmp_path))
+    database, _said, _stub = _run_into(corpus, tmp_path / "plan.sqlite",
+                                       monkeypatch, _clear)
+    conn = _read(database)
+    (dossier,) = _gate_dossiers(conn, _file_id(conn, LONG_NAME))
+    assert dossier["max_dossier_tokens"] == cli.GATE_DOSSIER_TOKENS
+    body = _body_items(dossier)
+    assert body, [item.get("zone") for item in dossier["released_evidence"]]
+    assert all(len(str(item.get("value", ""))) > 0 for item in body)
+
+
+def test_a_narrower_bound_is_a_new_question_and_is_asked_again(tmp_path,
+                                                               monkeypatch):
+    """The release is part of the gate question's identity.
+
+    The first gate run cleared two protected records on a dossier that held no
+    text; widening what the gate is shown must ask those files again rather than
+    reuse that answer. `context_refs` carries the released keys, so a bound that
+    moves the excerpt is a different identity: the long file is asked again and
+    earns no reuse row.
+    """
+    corpus = _with_a_long_file(_corpus(tmp_path))
+    database = tmp_path / "plan.sqlite"
+    _run_into(corpus, database, monkeypatch, _clear)
+    conn = _read(database)
+    long_id = _file_id(conn, LONG_NAME)
+    before = len(_gate_dossiers(conn, long_id))
+    assert before == 1
+
+    monkeypatch.setattr(cli, "GATE_DOSSIER_TOKENS", cli.GATE_DOSSIER_TOKENS // 4)
+    _run_into(corpus, database, monkeypatch, _clear)
+    conn = _read(database)
+    assert len(_gate_dossiers(conn, long_id)) == 2
+    assert conn.execute(
+        "SELECT count(*) FROM llm_call_reuse WHERE call_site = ? "
+        "AND subject_ref = ?", (cli.H_RESTRICTED_KIND, long_id)).fetchone()[0] == 0

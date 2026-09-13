@@ -1,0 +1,37 @@
+"""`00` amendment 7(c): the gate and the situation site ask EVERY file, so each
+one's purse is the roster and never the observe sites' 200-call ceiling.
+
+Measured 12 Sep 2026 on the owner's 371 files: with the 200 ceiling the gate
+refused the last 106 askable files before any call, in every run, and the four
+health forms the amendment exists to catch sat among them.
+"""
+from __future__ import annotations
+
+from decimal import Decimal
+
+import pytest
+
+import cli
+from llm_harness.budgets import ScanBudget, allowed_calls
+
+
+def _fact(files: int) -> ScanBudget:
+    return ScanBudget(
+        scan_id="scan-1", corpus_file_count=files,
+        max_calls_per_1000_files=cli.OBSERVE_CALLS_PER_1000_FILES,
+        max_estimated_cost=cli.OBSERVE_CALLS_PER_SCAN_CEILING,
+        min_calls_per_scan=cli.OBSERVE_MIN_CALLS_PER_SCAN)
+
+
+@pytest.mark.parametrize("ledger", [cli.gate_scan_budget, cli.situation_scan_budget])
+def test_the_ceiling_is_the_roster_and_one_call_per_file_fits_under_it(ledger):
+    budget = ledger(_fact(371), corpus_file_count=371)
+    assert budget.max_estimated_cost == Decimal(371)
+    assert allowed_calls(budget) == 371
+    assert budget.max_estimated_cost > cli.OBSERVE_CALLS_PER_SCAN_CEILING
+
+
+@pytest.mark.parametrize("ledger", [cli.gate_scan_budget, cli.situation_scan_budget])
+def test_an_empty_roster_keeps_the_floor(ledger):
+    budget = ledger(_fact(0), corpus_file_count=0)
+    assert budget.max_estimated_cost == Decimal(cli.OBSERVE_MIN_CALLS_PER_SCAN)

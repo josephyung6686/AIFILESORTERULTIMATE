@@ -1179,7 +1179,8 @@ OPENING_EXCERPT_EXTRACTOR: str = DERIVED_NAMESPACE + "release.opening_excerpt"
 OPENING_EXCERPT_EXTRACTOR_VERSION: str = "1.0.0"
 
 
-def opening_excerpt_bound(conn: sqlite3.Connection, *, limit: int) -> int | None:
+def opening_excerpt_bound(conn: sqlite3.Connection, *, limit: int,
+                          ceiling: int | None = None) -> int | None:
     """How many characters of a unit one minted excerpt may carry. `104` R-164.
 
     **NOT A NUMBER CHOSEN HERE, and that is the whole of why this is a function.**
@@ -1199,7 +1200,8 @@ def opening_excerpt_bound(conn: sqlite3.Connection, *, limit: int) -> int | None
     `None` when P1 holds no ceiling, and `None` means no excerpt is minted at all.
     A deployment that has not been given a bound is not given one here.
     """
-    ceiling = get_ceiling(conn, DOSSIER_CEILING_KEY)
+    if ceiling is None:
+        ceiling = get_ceiling(conn, DOSSIER_CEILING_KEY)
     if ceiling is None or limit <= 0:
         return None
     bound = int(ceiling) // limit
@@ -1297,8 +1299,8 @@ def mint_opening_excerpts(conn: sqlite3.Connection, observations: Sequence, *,
 
 def ordered_releasable_observations(conn: sqlite3.Connection, *, file_id: str,
                                     content_hash: str, locality: str,
-                                    limit: int,
-                                    fields: Sequence[str] = ()) -> tuple:
+                                    limit: int, fields: Sequence[str] = (),
+                                    ceiling: int | None = None) -> tuple:
     """Every reading of this file the gate would release, in the order it offers
     them. NO cap and no fill -- `within_dossier_budget` below spends the budget.
 
@@ -1334,9 +1336,19 @@ def ordered_releasable_observations(conn: sqlite3.Connection, *, file_id: str,
     """
     sensitive = sensitive_observation_keys(conn, file_id)
     stored = observations_for_version(conn, file_id, content_hash)
-    ceiling = get_ceiling(conn, DOSSIER_CEILING_KEY)
+    # THE CALL'S OWN CEILING, since 12 Sep 2026. This read the stored ceiling
+    # (4,000) whatever the call's bound was, so the opening excerpt was minted at
+    # 4,000 // limit tokens and the gate, bounded at 1,200, could not take it:
+    # on the owner's corpus every file with a full page released its path, its
+    # metadata and its title and not one line of its text, and the local model
+    # cleared an immigration paper and an account statement with the words "the
+    # text shows a file's metadata and path, but no record". The excerpt is sized
+    # by the bound it has to fit.
+    if ceiling is None:
+        ceiling = get_ceiling(conn, DOSSIER_CEILING_KEY)
     mint_opening_excerpts(conn, stored, sensitive=sensitive, locality=locality,
-                          bound=opening_excerpt_bound(conn, limit=limit),
+                          bound=opening_excerpt_bound(conn, limit=limit,
+                                                      ceiling=ceiling),
                           ceiling=None if ceiling is None else int(ceiling))
 
     # ONE READ FOR THE WHOLE OFFER, not one per reading: the counts are a property of
@@ -1649,7 +1661,7 @@ def releasable_observations(conn: sqlite3.Connection, *, file_id: str,
     return within_dossier_budget(
         ordered_releasable_observations(
             conn, file_id=file_id, content_hash=content_hash, locality=locality,
-            limit=limit, fields=fields),
+            limit=limit, fields=fields, ceiling=ceiling),
         ceiling=ceiling).taken
 
 
