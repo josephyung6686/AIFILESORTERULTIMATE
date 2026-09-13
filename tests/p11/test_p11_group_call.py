@@ -512,6 +512,82 @@ def test_the_other_members_still_follow_the_group_when_one_of_them_disagrees(
     assert went == {seeded.file_id["essay"], seeded.file_id["transcript"]}
 
 
+# --- `104` §18.2 gap 2: a member the dossier never carried ------------------------
+#
+# `_group_evidence` carries each member's ACCEPTED FACTS and the items those facts
+# cite, so a member with no accepted fact put nothing in front of the model. The
+# answer that came back is an answer about the other members, and inheriting it
+# filed this file in the group's branch with `decided_by=model` and the group's
+# support on the row -- spillover, credited to a judgement that never saw the file.
+# `contradicts_the_group` cannot catch it: that reads §6.3's suppression, and a
+# file with no stated values suppresses nothing.
+
+
+def _evidence_for_with_a_factless_member(factless: str):
+    """The same `evidence_for`, except one member has no accepted fact at all.
+
+    The commonest file on the owner's own corpus (r6: 164 of 199 files reached
+    site C with nothing to send), and P9 can accept it into a packet on a support
+    kind that is not a fact -- `scan`'s membership basis here is `user_attached`.
+    """
+    agrees = _member_evidence("PHYS1401")
+
+    def evidence_for(file_id: str) -> dict:
+        if file_id != factless:
+            return agrees(file_id)
+        return dict(agrees(file_id), facts=(), evidence_items=())
+    return evidence_for
+
+
+def test_a_member_with_no_fact_in_the_group_dossier_never_inherits_its_answer(
+        seeded, monkeypatch):
+    """MEASURED: the group is asked once, the factless member is not placed by
+    that answer, and its row credits neither the model nor the group."""
+    scan = seeded.file_id["scan"]
+    plan, calls = _place_group(
+        seeded, monkeypatch=monkeypatch,
+        evidence_for=_evidence_for_with_a_factless_member(scan))
+
+    assert len(_group_calls(calls)) == 1
+    # Not one of the files the group's dossier described. The other two are, and
+    # `test_a_group_of_related_files_is_one_call_whose_dossier_lists_them_all` is
+    # the same read over a group where every member has a fact.
+    carried = {item.evidence_ref
+               for item in _group_calls(calls)[0].evidence_items}
+    assert _obs(scan) not in carried
+    assert _obs(seeded.file_id["essay"]) in carried
+    apart = next(d for d in plan.member_decisions if d.subject.file_id == scan)
+    assert apart.outcome != v.PLACE
+    assert apart.destination is None
+    assert apart.group_support is None
+    # Judged alone, on its own evidence, which reaches no destination -- §6.10's
+    # own answer for a file with nothing settled about it, and the answer this
+    # member would have got in a run where no group existed. What it is NOT is the
+    # group's folder, and the explanation does not name P9 either: the grouping
+    # stage flagged nothing here, the dossier simply never carried this file.
+    assert apart.abstention_reason == v.NO_SUPPORTED_DESTINATION
+    assert "set apart from" not in apart.explanation
+    assert not [request for request, _kwargs in calls
+                if request.subject_ref == seeded.ref["scan"]], (
+        "nothing to send is not a question worth asking")
+
+
+def test_the_members_the_dossier_did_carry_still_follow_the_groups_answer(
+        seeded, monkeypatch):
+    """The discriminating twin. Without it the test above could be passing
+    because the group's answer stopped reaching anybody at all."""
+    scan = seeded.file_id["scan"]
+    plan, _calls = _place_group(
+        seeded, monkeypatch=monkeypatch,
+        evidence_for=_evidence_for_with_a_factless_member(scan))
+
+    went = {d.subject.file_id for d in plan.member_decisions
+            if d.group_support is not None}
+    assert went == {seeded.file_id["essay"], seeded.file_id["transcript"]}
+    assert all(d.destination.node_id == "n-course"
+               for d in plan.member_decisions if d.group_support is not None)
+
+
 # --- the fallbacks: an abstention, and the gate -----------------------------------
 
 

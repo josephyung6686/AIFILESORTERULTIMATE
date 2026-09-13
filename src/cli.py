@@ -13717,6 +13717,19 @@ REVIEW_SET_REASONS: tuple[tuple[str, str, str], ...] = (
      "this run reached its ceiling before deciding these, so nothing was "
      "concluded about them. That is not the same as looking and being unable to "
      "tell (§8.6); the next run picks them up where this one stopped."),
+    # `104` §18.2 gap 1, and it is R-136's "with the file in a review set". Not
+    # merged into "Not yet placed": these are the files the model was asked about
+    # and did not answer for, so nothing was concluded about their evidence at
+    # all, and a heading that said no folder matched would report a judgement
+    # nothing reached. Nearest neighbour is the row above -- both are "this run
+    # did not get to it" rather than "this run looked" -- and they are still two
+    # sets, because a ceiling is a decision the run made and a call that failed
+    # is not.
+    (pv.NO_MODEL_JUDGEMENT, "The model gave no answer about them",
+     "deciding where these go is a model's call on this setup, and no answer "
+     "about them came back this run -- the requests were turned away, did not "
+     "return, or could not be checked. Nothing moved and everything read about "
+     "them is kept; running again is what settles them."),
     # `104` §18.2 gap 15 gave this set a SECOND kind of member and the old
     # sentence -- "nothing this run could read says what these are" -- became
     # false for it. A file in two accepted packets is the opposite case: the run

@@ -124,7 +124,8 @@ from placement.vocabulary import (
     CONFLICTING_FACTS, CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH,
     DECIDED_BY_MODEL, DECIDED_BY_RULE, DECIDED_BY_USER, DIRECT,
     EXISTING, FILE, GENERIC_HUB_ONLY, GROUP, LEAVE_IN_PLACE, LOW_MARGIN,
-    MARGIN_TRUE_VACUOUS, MARK_STATE, NO_SHARED_BRANCH, SEMANTIC_ONLY,
+    MARGIN_TRUE_VACUOUS, MARK_STATE, NO_MODEL_JUDGEMENT, NO_SHARED_BRANCH,
+    SEMANTIC_ONLY,
     MULTIPLE_SUPPORTED_HOMES, NO_SUPPORTED_DESTINATION, PLACE, PLACEMENT,
     POSSIBLE, PRIVACY_BLOCKED, RESIDUAL, RESIDUAL_ROLE, REVIEW_WITH_MODEL,
     RETURN_TO_PLACEMENT, SCOPED_GENERAL, SEND_TO_APPROVED_NODE,
@@ -1318,6 +1319,12 @@ class GroupAnswer:
     which is what happens to a member that contradicts the answer, because it is
     the same situation reached from P9's evidence rather than from this file's.
 
+    A member the group's DOSSIER never carried gets no `GroupAnswer` at all rather
+    than a third flag on this one (`104` §18.2 gap 2). The model was not shown
+    that file, so the answer is not an answer about it, and there is nothing here
+    for the member's row to carry; `place_group._member` decides that, because
+    what the dossier carried is a fact about the CALL and not about the member.
+
     There is no `contradicted` field, and the absence is the point. Whether a
     member's own evidence rules the group's folder out is answered from the
     member's OWN retrieval, inside `place_file`, off §6.3's suppression -- the
@@ -1835,16 +1842,22 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
             set_aside_candidates=bool(set_aside)):
         # `104` R-74. WHETHER THE DETERMINISTIC PATH WOULD HAVE PLACED THIS FILE,
         # asked of the same function with the model taken out of it. R-19 sends
-        # every placeable file to site C, so a protected file with a unique direct
-        # match now reaches the gate for the first time -- and the gate refuses,
-        # correctly, and the file abstained `privacy_blocked` where offline it
-        # went home.
+        # every placeable file to site C, so a file the gate keeps off every model
+        # -- the mode forbidding the cloud with no local model set up, an
+        # unclassified file, a protected one -- reaches the gate for the first
+        # time and abstains `privacy_blocked` where offline it went home.
         #
         # §13.5's own clause is the answer: "with no model configured the
         # deterministic path remains the fallback". A gate refusal is that
         # condition arriving one step later -- there is no model answer to be had
         # about this file -- so the file takes the placement the rules can defend
         # rather than losing its home to a question nobody could ask.
+        #
+        # **THE PROTECTED FILE IS NO LONGER THE EXAMPLE**, and `104` §18.2 gap 4
+        # is why: it still takes this arm, and step 9 then declines to file it
+        # whatever route it arrived by, because protected material is filed one at
+        # a time by the person. What survives here is every other file the door
+        # turned away, which is what R-74 was measured on.
         #
         # NOT a widening of what may be sent. Nothing about the file is assembled
         # and nothing leaves; what changes is only what the run does with the
@@ -1918,42 +1931,38 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
                 if not offline_would_place:
                     return _abstention(conn, context, reason=PRIVACY_BLOCKED)
                 gate_refused = True
-            # `104` R-O. A REFUSED CALL IS NOT AN ANSWER ABOUT THIS FILE, and
-            # `_require_verdict` says why in its own words: "§6.10's abstention
-            # reasons are a closed set and none of them means 'the call did not
-            # happen'; naming one would record a conclusion nothing reached". So
-            # nothing below runs, `chosen_node_id` stays `None`, and step 9 places
-            # the file the way a run with no model configured would -- which is
-            # exactly what §13.5's Q-A clause names as the fallback: "with no
-            # model configured the deterministic path remains the fallback". The
-            # refusal is already a `call_refused` event; what it is not is a
-            # reason to take this file's home away, nor -- as it was until now --
-            # a `ModelJudgementUnavailable` that ends the run on every file after
-            # it too. NOT `gate_refused`: §8.4 decided nothing here, and saying it
-            # did would name the wrong actor in the record.
-            # `104` R-136 joins R-O here. A call that was never BUILT is not an
-            # answer about this file either, and it reaches step 9 by the same
-            # door: `chosen_node_id` stays `None` and the file is placed the way a
-            # run with no model configured would place it.
+            # **THE CALL HAPPENED AND NOTHING JUDGED THIS FILE, SO THIS FILE IS
+            # NOT PLACED.** `104` R-O, R-136 and R-173 each sent one of these
+            # states past this branch to step 9, where the file was filed on
+            # `assessment.scored[0]` and the row said `decided_by=rule`. Every one
+            # of those rulings was about COVERAGE -- one refused, unbuilt or
+            # failed call must not end the corpus run -- and none of them ruled
+            # the fallback: R-136's own row says closing this "needs a reason word
+            # that is true of a call that happened and failed, with the file in a
+            # review set", and until now there was no such word, so the run kept
+            # the placement instead. §13.5 gives the destination to the model
+            # WHEREVER ONE IS CONFIGURED, and this branch is reached only there,
+            # so §6.10's arithmetic deciding here is the rules overruling a judge
+            # that was asked and did not answer.
             #
-            # `104` R-173 (9 Sep 2026): A CALL THAT FAILED FALLS THROUGH THE SAME
-            # DOOR. `CallFailed` (the provider did not answer: a connection
-            # error, a timeout) and `ValidationUnavailable` (the answer could not
-            # be judged) are a call that happened and came back with no
-            # judgement, and until this ruling they raised
-            # `ModelJudgementUnavailable` here and ENDED THE RUN on every file
-            # after them. The first cloud run is two hours over a network; one
-            # blip at one file would have cost every file behind it its answer,
-            # which is the coverage loss the constitution forbids for the sake of
-            # a record's tidiness. The record stays exact: the failure is already
-            # written as its own event and nothing below names a §6.10 reason
-            # for it -- `chosen_node_id` stays `None` and step 9 places the file
-            # the way a run with no model configured would, §13.5's own fallback.
-            # `NeedsConsent` alone still raises: it is not "the call did not
-            # happen", it is the gate asking the person a question, and a run
-            # that answered it for them would be worse than one that stopped.
-            elif not isinstance(result, (CallRefused, PreCallAbstention,
-                                         CallFailed, ValidationUnavailable)):
+            # `no_model_judgement` is that word (`vocabulary`), and it is true of
+            # all five: `CallRefused` (P7 refused the built request, from inside
+            # the call), `PreCallAbstention` (R-136's unbuilt call, and a purse
+            # that came back `BUDGET_EXHAUSTED`), `CallFailed` (the provider did
+            # not answer) and `ValidationUnavailable` (the answer could not be
+            # judged). Each is already its own durable event; this is the file's
+            # own decision row beside it, and `_abstention` puts the file in a
+            # review set the way every other §6.10 abstention does. The run goes
+            # on to the next file, which is what the three rulings were for.
+            #
+            # `NeedsConsent` still raises and `Refusal` still takes R-74's arm
+            # above: the first is the gate asking the PERSON a question, and the
+            # second is §8.4 deciding -- a door that decided is not a judge that
+            # did not.
+            elif isinstance(result, (CallRefused, PreCallAbstention,
+                                     CallFailed, ValidationUnavailable)):
+                return _abstention(conn, context, reason=NO_MODEL_JUDGEMENT)
+            else:
                 verdict = _require_verdict(result, call_site=C_PLACEMENT)
                 outcome, reason, deferred = transcribe(
                     verdict, assessment=assessment)
@@ -2012,6 +2021,35 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
             question, options = asked
             return _asking(conn, context,
                            ask=Ask(question=question, options=tuple(options)))
+
+    # **A PROTECTED FILE NEVER LEAVES THIS FUNCTION AS A PLACEMENT** (`104` §18.2
+    # gap 4). `00` and §18.7: protected material "is never filed automatically";
+    # it is marked, counted and filed one at a time by the person. Two routes
+    # reached this line with `privacy.protected` set anyway, and both filed it:
+    # R-74's arm, where §8.4 refused the dossier and the file fell back to the
+    # rules that would have placed it offline, and the plain deterministic path,
+    # where a unique direct match or a stays-put needs no model and so meets no
+    # gate at all. `tools.groundtruth.score.protected_verdict` counts either as
+    # `filed`, held or not -- R-151's own reading, that a folder proposed on
+    # screen under "confirm this" is the product having decided about protected
+    # material on its own.
+    #
+    # ASKED HERE, AT THE ONE STATEMENT THAT BUILDS A `place`, so the answer cannot
+    # depend on which route arrived at it. §8.4's gate is upstream and decides
+    # what may be SENT; this decides what may be MOVED, and they are different
+    # questions -- which is why a gate refusal alone never closed this.
+    #
+    # `automatic_move_permitted` is the one exception and it is Design:185's own
+    # words: protected material is not moved automatically "without a user policy
+    # that explicitly permits it". P7 holds that policy per file,
+    # `automatic_move_permitted_for` reads it, and a person who has named this
+    # file in it has done the filing this rule reserves for them. With no such
+    # policy -- which is every file on every corpus measured so far -- the file
+    # is left exactly where it is, under §8.4's own reason word, and the
+    # explanation `_abstention_explanation` gives a protected file already says
+    # so in the person's words.
+    if privacy.protected and not automatic_move_permitted:
+        return _abstention(conn, context, reason=PRIVACY_BLOCKED)
 
     node_id = chosen_node_id or assessment.scored[0].node_id
     entry = entry_for(conn, plan_version=inputs.plan_version, node_id=node_id)
@@ -2171,8 +2209,11 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
         # site-C verdict P8 validated named this node; every other way of reaching
         # this line placed the file on `assessment.scored[0]`, which is §6.10's
         # arithmetic and nobody's judgement. That covers the deterministic path,
-        # the offline install, R-74's gate refusal and R-O's refused call alike --
-        # four routes to one fact, which is that the rules decided.
+        # the offline install and R-74's gate refusal -- three routes to one fact,
+        # which is that the rules decided. **A REFUSED, UNBUILT OR FAILED CALL IS
+        # NO LONGER ONE OF THEM** (`104` §18.2 gap 1): a model was configured and
+        # gave no judgement, so the file abstains `no_model_judgement` above and
+        # never reaches this row.
         #
         # **AND `104` §18.2 GAP 14 IS A FIFTH ROUTE TO THE FIRST ANSWER.** A member
         # placed by its group's answer has `chosen_node_id` set and made no call of
@@ -2405,6 +2446,10 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
       dossier ON PURPOSE. `00` on this material -- "sensitive personal material
       is not the same thing as `Numbers.app`" -- and a person told their passport
       failed to place concludes the product is broken rather than careful.
+    * `no_model_judgement` (`104` §18.2 gap 1) is the third and the only one that
+      is NOT a correct decision: the model was the decider and no answer came
+      back. Both halves of the default sentence are false about it -- see the arm
+      itself, which says why in the place a reader of that sentence will look.
 
     Every other reason keeps the sentence it had. A correct abstention over thin
     evidence IS "no legal destination cleared §6.10's conditions", and giving all
@@ -2490,6 +2535,27 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
             "Deciding this file needed a model, and this folder's privacy "
             "settings do not let one be asked about it. Nothing about it left "
             "this device and nothing moved; the evidence is retained."
+        )
+    if reason == NO_MODEL_JUDGEMENT:
+        # A THIRD ABSTENTION THE DEFAULT SENTENCE DESCRIBES FALSELY, and it is
+        # false in both halves. "No folder in this plan was a supported home" is a
+        # claim about the EVIDENCE, and the evidence was never weighed against the
+        # question -- a call was made and no judgement came back. "Declining to
+        # place it is the right answer rather than a failure" is the other half:
+        # a request that was turned away, did not return, or could not be checked
+        # IS a failure, and telling somebody it was deliberate teaches them to
+        # read every abstention as deliberate. `66` §4 forbids the collapse and
+        # `104` §18.3 ranks a false sentence in front of the person the worst
+        # defect there is.
+        #
+        # It says what the person can do about it, because unlike the other
+        # reasons there is something: this one goes away on a run where the model
+        # answers.
+        return (
+            "Deciding where this file goes is a model's call on this setup, and "
+            "no answer about it came back this run -- the request was turned "
+            "away, did not return, or could not be checked. Nothing moved and "
+            "everything read about it is kept; running again is what settles it."
         )
     return (
         f"{REASON_IN_WORDS.get(reason, 'No folder in this plan was a supported home for it.')} "
@@ -2678,9 +2744,12 @@ def _require_verdict(result, *, call_site: str) -> P8Verdict:
         return result
     raise ModelJudgementUnavailable(
         f"{call_site} came back with {type(result).__name__}, which is not a "
-        "judgement about this file. §6.10's abstention reasons are a closed set "
-        "and none of them means 'the call did not happen'; naming one would "
-        "record a conclusion nothing reached"
+        "judgement about this file and is not one of the four states §18.2 gap 1 "
+        "names -- `no_model_judgement` is the reason word for a call that was "
+        "refused, unbuilt, failed or unvalidatable, and this is none of them. "
+        "`NeedsConsent` is the one that reaches here today: it is the gate asking "
+        "the person a question, and a run that answered it for them would be "
+        "worse than one that stopped"
     )
 
 
@@ -3177,8 +3246,11 @@ def _judge_with_model_steps(conn, *, subject, inputs: PipelineInputs, retrieval,
     # its own: `NOT_ELIGIBLE_FOR_MODEL` says the model is not reserved for this
     # subject, which is true of a file with nothing to send and of one with
     # nowhere to send it. No reason is invented, no budget is reserved -- the
-    # abstention is decided before `reserve_call` -- and the file falls to step 9,
-    # which places it the way a run with no model configured would.
+    # abstention is decided before `reserve_call` -- and the file goes back to
+    # step 7's caller, which since `104` §18.2 gap 1 abstains
+    # `no_model_judgement` wherever a model was configured to decide. Site D reads
+    # the same record and abstains for its own reason; neither site ends the run,
+    # which is the whole of what R-136 ruled.
     if not evidence.get("evidence_items"):
         return _not_asked(
             conn, call_site=call_site, subject=subject, observed_at=observed_at,
@@ -3641,6 +3713,13 @@ def _group_evidence(evidence_for, memberships, *, group_id: str) -> dict:
     the two producers `cli.evidence_for` adds beneath the facts -- stay with the
     member's own call, where they are what that one file is judged on.
 
+    **AND A MEMBER THIS CARRIES NOTHING OF IS NOT IN THE CALL** (`104` §18.2 gap
+    2). The cut is by kind, so a member with no accepted fact contributes no fact
+    and therefore no item, and the model answers about the members it was shown.
+    `place_group._member` reads the same condition and gives that member no
+    `GroupAnswer`: an answer inherited by a file the dossier never named is
+    spillover with the model's credit on it.
+
     Nothing is widened by this. Every item here is one the SAME member's own
     site-C call would have carried, already passed through the door's own
     predicate by `cli.evidence_for`, and the gate is asked again per item at the
@@ -3861,12 +3940,15 @@ def place_group(conn: sqlite3.Connection, *, group_id: str,
        §8.4 is asked first, over every member, and one member it refuses withholds
        the whole call rather than describing that member to a target it may not
        reach (`_one_destination_every_member_may_use`).
-    2. Every member is then placed FROM that answer: a member whose own stated
-       values do not rule the folder out goes with the group and its row says the
-       MODEL decided, because the group's answer is the model's; a member that
-       contradicts it is an outlier of the answer and is placed by its own
-       per-file call, with the group's folder offered on the shortlist and the
-       disagreement recorded (`place_file`'s `group_answer`).
+    2. Every member THE CALL WAS ABOUT is then placed FROM that answer: a member
+       whose own stated values do not rule the folder out goes with the group and
+       its row says the MODEL decided, because the group's answer is the model's;
+       a member that contradicts it is an outlier of the answer and is placed by
+       its own per-file call, with the group's folder offered on the shortlist and
+       the disagreement recorded (`place_file`'s `group_answer`). A member the
+       dossier never carried -- one with no accepted fact, `104` §18.2 gap 2 --
+       was not one of the files the model was shown, so the answer is not about
+       it: it sits apart and takes step 3's path alone (`_member`).
     3. Where the group produced no answer -- no model path, a gate refusal, a
        refused or failed call, or the model's own "none" -- every member is placed
        exactly as it is today, singly, and `confirm_shared_parent` reads the
@@ -3915,16 +3997,41 @@ def place_group(conn: sqlite3.Connection, *, group_id: str,
     # local is settled by itself, because one Ollama server holds one model.
     member_parents: dict[str, str | None] = {}
     placed: dict[str, PlacementDecision] = {}
-    asked = ((membership.file_id, place_file_steps(
-        conn, subject=_member_subject(membership), inputs=inputs,
-        evidence=evidence_for(membership.file_id),
-        group_plan_id=group_plan_id,
-        group_answer=(None if answered is None else GroupAnswer(
-            group_id=group_id, node_id=answered,
-            membership=membership.decision,
-            sits_apart=membership.outlier_flag != NOT_FLAGGED)),
-        component_version=component_version, observed_at=observed_at))
-        for membership in memberships)
+
+    def _member(membership):
+        """One member's call, and whether the group's answer is about it.
+
+        **A MEMBER THE GROUP'S DOSSIER NEVER CARRIED SITS APART FROM ITS ANSWER**
+        (`104` §18.2 gap 2). `_group_evidence` carries each member's ACCEPTED
+        FACTS and the items those facts cite, and nothing else -- so a member with
+        no accepted fact put not one byte in front of the model, and the answer
+        that came back is an answer about the OTHER members. Inheriting it filed
+        the file in the group's branch and recorded `decided_by=model` with the
+        group's support on the row: spillover, credited to a judgement that was
+        never shown the file. `contradicts_the_group` could not catch it either --
+        that reads §6.3's suppression, and a file with no stated values suppresses
+        nothing, so the one check that keeps a member off the group's branch is
+        silent exactly where the dossier was.
+
+        So it gets no `GroupAnswer` and takes the per-file path every member takes
+        when the group produced no answer: its own site-C call if it has
+        something to ask about, and an abstention if it does not. The predicate is
+        `evidence["facts"]`, which is `_group_evidence`'s own carrying condition
+        read once here rather than a second opinion about it.
+        """
+        evidence = evidence_for(membership.file_id)
+        return place_file_steps(
+            conn, subject=_member_subject(membership), inputs=inputs,
+            evidence=evidence, group_plan_id=group_plan_id,
+            group_answer=(None if answered is None or not evidence["facts"]
+                          else GroupAnswer(
+                              group_id=group_id, node_id=answered,
+                              membership=membership.decision,
+                              sits_apart=membership.outlier_flag != NOT_FLAGGED)),
+            component_version=component_version, observed_at=observed_at)
+
+    asked = ((membership.file_id, _member(membership))
+             for membership in memberships)
     for file_id, decision in in_walk_order(
             asked, lane=lane if lane is not None else CallLane(width=1)):
         placed[file_id] = decision
