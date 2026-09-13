@@ -18,7 +18,7 @@ from evidence_shape.store import RunWriter, observations_for_file
 from evidence_shape.text_units import check_span_anchor
 from extractors.entities import (
     ENTITY_NAMESPACE, VERSION, entity_readings, extractor_name_for,
-    is_entity_extractor, label_slug, record_entity_readings,
+    host_readings, is_entity_extractor, label_slug, record_entity_readings,
 )
 from extractors.shape import location, observation, run, text_unit
 from extractors.runs import coverage
@@ -234,11 +234,14 @@ def test_its_own_readings_are_never_read_back_as_text_to_read(database):
         database, file_versions=[("f1", CONTENT_HASH)], entities=reader,
         zones=ZONES, char_budget=1_000, masked_labels=MASKED, tail_kept=TAIL,
         now=LATER)
-    record_entity_readings(
-        database, file_versions=[("f1", CONTENT_HASH)], entities=reader,
-        zones=ZONES, char_budget=1_000, masked_labels=MASKED, tail_kept=TAIL,
-        now=LATER)
-    assert seen == [BODY, BODY]
+    assert seen == [BODY]
+    # The claim at its seam: with a reading of this pass now in the store, what the
+    # pass would read is still the document and never the name it found. (A second
+    # `record_entity_readings` over this version reads nothing at all -- see
+    # `test_a_version_that_carries_a_reading_is_not_put_to_the_reader_again`.)
+    offered = [text for _host, text in host_readings(
+        database, "f1", CONTENT_HASH, zones=ZONES, char_budget=1_000)]
+    assert offered == [BODY]
 
 
 # --- what the model is shown ---------------------------------------------------
@@ -428,3 +431,29 @@ def test_an_entity_reading_is_evidence_and_not_a_derived_copy():
     from evidence_shape.store import is_derived_extractor
 
     assert not is_derived_extractor(extractor_name_for("person"))
+
+
+def test_a_version_that_carries_a_reading_is_not_put_to_the_reader_again(database):
+    """The reader is the cost (2.36 GB resident, a quarter second per thousand
+    characters): a relaunch over an unchanged corpus re-read every file for
+    seventeen minutes to write nothing. A version carrying a reading of this pass
+    is skipped; one carrying none is read again, since nothing on it says it was
+    looked at."""
+    RunWriter(database, author="P5").write(a_text_run())
+    asked: list[str] = []
+
+    def reader(text: str):
+        asked.append(text)
+        return [at(text, "Sarah Whitfield", "person")]
+
+    record_entity_readings(
+        database, file_versions=[("f1", CONTENT_HASH)], entities=reader,
+        zones=ZONES, char_budget=1_000, masked_labels=MASKED, tail_kept=TAIL,
+        now=LATER)
+    first = len(asked)
+    assert first > 0
+    record_entity_readings(
+        database, file_versions=[("f1", CONTENT_HASH)], entities=reader,
+        zones=ZONES, char_budget=1_000, masked_labels=MASKED, tail_kept=TAIL,
+        now=LATER)
+    assert len(asked) == first, "a version already carrying a reading was read again"

@@ -811,6 +811,13 @@ TIER_OF_CALL_SITE: Mapping[str, str] = MappingProxyType({
 #: answer is refused by name rather than validated in half.
 MAX_RESPONSE_TOKENS: int = 8192
 
+#: The LOCAL model's response cap, measured on the second corpus (13 Sep 2026):
+#: over 1,165 accepted answers on this device the longest was 1,208 tokens (the
+#: gate) and 1,193 (the situation); the one runaway wrote past 4,600 and was cut
+#: by the 600-second deadline. 4,096 keeps 3.4 times the longest real answer and
+#: ends a runaway at about six minutes at this machine's 11 tokens a second.
+LOCAL_MAX_RESPONSE_TOKENS: int = 4096
+
 #: HOW LONG ONE MODEL CALL MAY TAKE BEFORE THE RUN GIVES UP ON IT, in seconds, and
 #: the only place the number is chosen. `deepseek_invoke` refuses to be built
 #: without one.
@@ -3056,7 +3063,7 @@ def model_route(*, out, on_usage=None) -> TierRouting | None:
                 beside=cloud,
                 model_id=local_model,
                 base_url=value(LOCAL_BASE_URL_NAME),
-                max_response_tokens=MAX_RESPONSE_TOKENS,
+                max_response_tokens=LOCAL_MAX_RESPONSE_TOKENS,
                 context_ceiling=LOCAL_CONTEXT_CEILING,
                 timeout_seconds=LOCAL_MODEL_TIMEOUT_SECONDS,
                 # ONE DEADLINE OVER THE WHOLE LOCAL CALL, since 12 Sep 2026. `104`
@@ -3074,7 +3081,7 @@ def model_route(*, out, on_usage=None) -> TierRouting | None:
             model_id=local_model,
             base_url=value(LOCAL_BASE_URL_NAME),
             tier_of_call_site=TIER_OF_CALL_SITE,
-            max_response_tokens=MAX_RESPONSE_TOKENS,
+            max_response_tokens=LOCAL_MAX_RESPONSE_TOKENS,
             context_ceiling=LOCAL_CONTEXT_CEILING,
             timeout_seconds=LOCAL_MODEL_TIMEOUT_SECONDS,
             # One deadline over the whole local call, as above.
@@ -6379,7 +6386,8 @@ def standing_consent_grants(scan_run_id: str) -> tuple[tuple[str, str], ...]:
 
 def model_route_permitted(conn: sqlite3.Connection, *, locality: str,
                           unclassified_permits_local: bool,
-                          operation_mode: str):
+                          operation_mode: str,
+                          cloud_cleared: Callable[[str], bool] | None = None):
     """§8.4 as `FactResolver` asks it: may THIS file's route reach a model at all?
 
     Two files never may, and the resolver's own docstring says why the answer
@@ -6491,6 +6499,16 @@ def model_route_permitted(conn: sqlite3.Connection, *, locality: str,
         # changes nothing for a scan that ran; it is what keeps a file local when
         # the gate declined, failed, or was never run.
         if locality != LOCAL:
+            if record.basis == LOCAL_MODEL_GATE and cloud_cleared is not None:
+                # A GATE ROW IS THIS RUN'S ANSWER OR IT IS NOT A CLEARANCE. The
+                # row outlives the question it answered: a wider release, another
+                # prompt or a re-ask the reader rejected leaves it standing while
+                # the gate's answer to the CURRENT question is none. Measured 13
+                # Sep 2026: five of 1,149 gate answers were rejected for a typo
+                # in a citation key, three of them naming a kind, and each file
+                # kept its earlier clearance. The pass says which files it
+                # cleared; the door asks it.
+                return cloud_cleared(file_id)
             return record.basis in CLOUD_CLEARING_BASES
         return True
 
@@ -6537,7 +6555,8 @@ def site_has_a_destination(conn: sqlite3.Connection, routing: TierRouting,
 
 
 def target_for(conn: sqlite3.Connection, routing: TierRouting, call_site: str,
-               *, operation_mode: str = OPERATION_MODE):
+               *, operation_mode: str = OPERATION_MODE,
+               cloud_cleared: Callable[[str], bool] | None = None):
     """WHICH MODEL ANSWERS ABOUT EACH FILE at this site. `104` §17.13 ruling 3.
 
     The owner's words: *"a protected file, and an unclassified file until site G
@@ -6585,7 +6604,8 @@ def target_for(conn: sqlite3.Connection, routing: TierRouting, call_site: str,
     answer and the destination are one answer rather than two that can disagree.
     """
     candidates = _route_candidates(conn, routing, call_site,
-                                   operation_mode=operation_mode)
+                                   operation_mode=operation_mode,
+                                   cloud_cleared=cloud_cleared)
 
     def chosen(file_id: str):
         for permitted, pair in candidates:
@@ -6597,7 +6617,8 @@ def target_for(conn: sqlite3.Connection, routing: TierRouting, call_site: str,
 
 
 def _route_candidates(conn: sqlite3.Connection, routing: TierRouting,
-                      call_site: str, *, operation_mode: str):
+                      call_site: str, *, operation_mode: str,
+                      cloud_cleared: Callable[[str], bool] | None = None):
     """The destinations this site really has, widest first, each with its gate.
 
     Built once per site because the routing's pairs do not vary by file and only
@@ -6634,7 +6655,7 @@ def _route_candidates(conn: sqlite3.Connection, routing: TierRouting,
             model_route_permitted(
                 conn, locality=locality,
                 unclassified_permits_local=UNCLASSIFIED_PERMITS_LOCAL,
-                operation_mode=operation_mode),
+                operation_mode=operation_mode, cloud_cleared=cloud_cleared),
             (client, target)))
     return candidates
 
@@ -6700,7 +6721,9 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
                           # caller had before this parameter existed and is a
                           # truthful state for a deployment with no template pass.
                           template_for: Callable[[str], str | None] | None = None,
-                          on_result=None) -> FactCallAuthorities:
+                          on_result=None,
+                          cloud_cleared: Callable[[str], bool] | None = None
+                          ) -> FactCallAuthorities:
     """Everything one A_fact call needs, chosen here and nowhere else.
 
     `model_facts` authors none of these and P8 authors none of them either. The two
@@ -6762,7 +6785,8 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
     # and `model_fact_resolver` binds its own `model_route_permitted` to it, so the
     # route's answer and the destination cannot be two answers (`104` R-02).
     route_for = target_for(conn, routing, A_FACT,
-                           operation_mode=operation_mode)
+                           operation_mode=operation_mode,
+                           cloud_cleared=cloud_cleared)
     return FactCallAuthorities(
         gate=Gate(
             conn, store=ClassificationStore(conn), plan_version=PLAN_VERSION,
@@ -7788,6 +7812,12 @@ class GatePass:
     #: verdict rather than by a call. NOT among the counters that partition
     #: the roster: a reused file is also cleared, named or declined.
     reused: int = 0
+    #: The files this run's gate cleared -- asked and answered `none_of_these`,
+    #: or an earlier run's such answer read back. A clearance ROW from a question
+    #: this run did not ask (a narrower release, another prompt, a rejected
+    #: re-ask) is not in it, and `model_route_permitted` opens the cloud to a
+    #: gate row only for a file that is.
+    cleared_files: frozenset = frozenset()
 
 
 #: THE GATE THAT DID NOT RUN, a value rather than a `None` on `_NOTHING_ASKED`'s
@@ -7841,6 +7871,7 @@ def ask_the_gate(conn: sqlite3.Connection, *, roster, fact_authorities,
     stays unclassified, which `unclassified_denies` keeps local.
     """
     named: dict = {}
+    cleared_files: set[str] = set()
     cleared = already_held = nothing_to_read = declined = over_ceiling = 0
     reused = 0
     # `104` §18.33 gap 25: THE ROWS, AND THE COUNT IS TAKEN OFF THEM, so a
@@ -8004,11 +8035,13 @@ def ask_the_gate(conn: sqlite3.Connection, *, roster, fact_authorities,
             named[file_id] = kind
         else:
             cleared += 1
+            cleared_files.add(file_id)
     # `104` R-175: the last file's turn ends with the loop and not with the next
     # file, because there is no next file.
     if ceiling is not None:
         ceiling.close_turn()
     return GatePass(
+        cleared_files=frozenset(cleared_files),
         named=named, cleared=cleared, already_held=already_held,
         nothing_to_read=nothing_to_read,
         no_route=len(no_route_rows), declined=declined,
@@ -8147,7 +8180,9 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                       precaution_of, fact_authorities, routing: TierRouting,
                       prompt, now, user_id: str,
                       component_version: str = COMPONENT_VERSION,
-                      operation_mode: str = OPERATION_MODE) -> SituationPass:
+                      operation_mode: str = OPERATION_MODE,
+                      cloud_cleared: Callable[[str], bool] | None = None
+                      ) -> SituationPass:
     """`104` §17.9's defect, addressed: each file asked about ITS OWN situation.
 
     **WHAT THIS IS FOR, and the register got it wrong once.** The earlier account
@@ -8277,7 +8312,8 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     # and when they change this line needs no edit, which is the point of asking
     # the door's own predicate rather than a word of this function's own.
     route_for = target_for(conn, routing, G_SITUATION_SENSITIVITY,
-                           operation_mode=operation_mode)
+                           operation_mode=operation_mode,
+                           cloud_cleared=cloud_cleared)
     for file_id, content_hash in roster:
         # `104` R-175, and BEFORE the recogniser runs. `open_turn` charges the
         # PREVIOUS file for everything its turn took -- the semantic recogniser, the
@@ -11285,7 +11321,9 @@ GATE_SENTENCE: Mapping[str, str] = MappingProxyType({
 })
 
 assert set(GATE_SENTENCE) | {"named"} == {
-    field.name for field in dataclasses.fields(GatePass)}, (
+    field.name for field in dataclasses.fields(GatePass)
+    # The files `cleared` counts, for the door; not a counter of its own.
+    if field.name != "cleared_files"}, (
     "every counter the gate leaves behind earns a sentence on the screen. A "
     "counter with no sentence would be a number this report silently drops, "
     "which is `104` §18.2 gap 9's defect -- so a new one fails to import rather "
@@ -11541,7 +11579,7 @@ def _print_gate_pass(gate: GatePass, *, files: int, model_id: str, out) -> None:
         f"answer never leaves it: it is the question that decides whether "
         f"anything else about a file may.", indent=""), file=out)
     for field in dataclasses.fields(GatePass):
-        if field.name == "named":
+        if field.name not in GATE_SENTENCE:
             continue
         print(_wrapped(f"{getattr(gate, field.name)} "
                        f"{GATE_SENTENCE[field.name]}", indent="  "),
@@ -16089,6 +16127,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         outcomes: list[tuple[str, object]] = []
         authorities = fact_call_authorities(
             conn, routing=routing, scan_run_id=run_id,
+            # Read when a route is asked, which is after the gate has run.
+            cloud_cleared=lambda file_id: file_id in gate_cell[0].cleared_files,
             corpus_file_count=len(roster), policy_version=policy_version,
             wire_handle_key=wire_handle_key, schema=said().schema,
             # THE FILE'S OWN LEVELS, not the situation's whole set. `104` §11.2
@@ -16258,7 +16298,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 precaution_of=detector.precaution_report,
                 fact_authorities=authorities, routing=routing,
                 prompt=situation_prompt_in_force, now=now, user_id=user_id,
-                operation_mode=operation_mode)
+                operation_mode=operation_mode,
+                cloud_cleared=lambda file_id: file_id in gate_pass.cleared_files)
             # LOCAL ONLY, and the check is `observe_locality_permits` rather than a
             # word of this function's own: `104` §17.1's ruling is that nothing
             # leaves the device under it, and the site's row is `ratified_local`.

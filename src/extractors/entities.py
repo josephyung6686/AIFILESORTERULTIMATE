@@ -294,6 +294,15 @@ def entity_readings(host: Observation, found: Iterable, *, now: str,
     return tuple(minted)
 
 
+def _already_read(conn: sqlite3.Connection, file_id: str, content_hash: str) -> bool:
+    """Does this file version carry any reading of this pass, at this version?"""
+    return any(
+        is_entity_extractor(reading.extractor_name)
+        and reading.extractor_version == VERSION
+        and reading.content_hash == content_hash
+        for reading in observations_for_file(conn, file_id))
+
+
 def record_entity_readings(conn: sqlite3.Connection, *,
                            file_versions: Sequence[tuple[str, str]],
                            entities: Callable[[str], Iterable],
@@ -321,6 +330,15 @@ def record_entity_readings(conn: sqlite3.Connection, *,
     """
     written: list[str] = []
     for file_id, content_hash in sorted(set(file_versions)):
+        if _already_read(conn, file_id, content_hash):
+            # The reader is the cost, not the rows. A file version that carries a
+            # reading of this pass has been read in full (every unit in the
+            # zones, to the budget) and the rows are what the reading found;
+            # putting it to the reader again would find them again and write
+            # nothing. A version that carries NONE is read again: nothing on it
+            # says it was looked at, and this pass mints no run of its own to
+            # say so (`extractors.dispatch` records why).
+            continue
         for host, text in host_readings(conn, file_id, content_hash,
                                         zones=zones, char_budget=char_budget):
             for reading in entity_readings(
