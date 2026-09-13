@@ -8286,8 +8286,8 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         # ends and one beginning, and the next file's beginning is the previous
         # file's end.
         #
-        # The check is a backstop HERE and the live one at site A: today site G sees
-        # each file first, so nothing has been charged to it yet. It is written at
+        # The check is a backstop HERE and the live one at site A: the gate sees
+        # each file before site G does, so what site G charges comes second. It is written at
         # both because the two loops are the same shape and which of them runs first
         # is a fact about `_model_fact_pass`, not about either loop -- and a guard
         # that is correct only because of where it is called is the kind this
