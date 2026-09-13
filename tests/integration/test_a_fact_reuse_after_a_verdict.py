@@ -23,13 +23,35 @@ between two runs of one checkout over unchanged files.
 `test_the_identity_is_the_same_on_an_unchanged_second_run` pins that, because a
 dimension that started varying would reopen R-109 through a door nobody was watching.
 
-**Everything here is real except the socket**, exactly as in
+**Everything here is real except the two model seams**, exactly as in
 `test_a_fact_call_cache.py`: `readers.model_routing.deepseek_invoke` is the documented
 deployment seam, and the gate, the release ledger, the transport, the validator,
 `apply_verdict` and the whole of `cli.run` are the production path. Counting `invoke`
 calls counts model calls exactly -- but it counts EVERY site's, and since `104`
 §17.13 ruling 3 and R-170 that is no longer site A's alone. Every count below is
 taken at one call site, and the argument for that is in `_Socket`.
+
+**AND A LOCAL MODEL IS NOW PART OF THE DEPLOYMENT, `00` amendment 7(c).** This file
+configured a cloud key and nothing else, and that stopped being a deployment site A
+can run in: the gate, `cli.ask_the_gate`, reads every un-held file on this device
+BEFORE anything about it may be sent, `cli.CLOUD_CLEARING_BASES` is what
+`model_route_permitted` asks for a cloud target, and the rules' own word is no
+longer among them. With no local model the gate has no destination, no file is
+cleared, and site A is refused the cloud for every one of them -- measured here as
+`calls_at(A_FACT) == 0` where these pins say 2. So the local half is `StubOllama`,
+`test_local_model_fact_pass`'s own server, answering the gate `none_of_these` and
+DECLINING the situation; `test_the_scoreboard_reuses_a_prior_runs_answers` carries
+the long form of why G is declined rather than answered. Both seams are stubs;
+neither is the thing under test.
+
+**AND THE GATE RECORDS AN IDENTITY AND REUSES IT** (45d36ca0), which is what moved
+the numbers in this file. `llm_call_identity` and `llm_call_reuse` were site A's
+alone the day R-109 was written -- site C and site G record none -- so the reads
+here carried no call-site clause and said so in their own docstrings. They are two
+sites' now: an unscoped `llm_call_reuse` reads 2 where a pin says 0 because THE GATE
+saved, with site A having reused nothing at all. Every one of them is scoped through
+`_reuses_at` and `_identities_at`, and the gate's own saving is stated where a pin
+rests on it rather than folded into site A's number.
 """
 from __future__ import annotations
 
@@ -51,6 +73,19 @@ from privacy.resolve import UnresolvableSpan  # noqa: E402
 from readers import model_routing  # noqa: E402
 from readers.model_routing import MODEL_NAME_OF_TIER  # noqa: E402
 from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME  # noqa: E402
+from readers.model_ollama import (  # noqa: E402
+    BASE_URL_NAME as LOCAL_BASE_URL_NAME,
+    MODEL_NAME as LOCAL_MODEL_NAME,
+)
+# The two local sites' answers come from the files that own them, imported rather
+# than copied on `test_site_e_reuses_its_answer`'s own rule: one stub speaking one
+# protocol, so this file and the gate's own pins cannot drift into describing two
+# different gates.
+from test_local_model_fact_pass import (  # noqa: E402
+    MODEL_ID, StubOllama, _answer_for, dossier_in,
+)
+from test_site_g_end_to_end import _decline  # noqa: E402
+from test_site_h_gate import _clear  # noqa: E402
 
 SITUATION = "academic.coursework"
 
@@ -164,7 +199,18 @@ class _Socket:
     def factory(self, **_unused):
         def invoke(payload: bytes) -> bytes:
             self.payloads.append(payload)
-            return self._answer(self._body(payload))
+            body = self._body(payload)
+            # SITE G ARRIVES HERE TOO since `00` amendment 7(c): G's row is
+            # `ratified` and a file the gate CLEARED may have its situation asked
+            # off the device, so the cloud seam sees a situation dossier whose
+            # schema is not site A's. `reject_everything` and `accept_the_work_type`
+            # both answer in site A's shape, which at site G is a malformed claim
+            # the validator refuses -- the same silence, reached by a fault -- so it
+            # is declined in the shape the ratified prompt asks for and the gate's
+            # clearance stands as this file's route.
+            if body["call_site"] == cli.G_SITUATION_SENSITIVITY:
+                return _decline(body).encode("utf-8")
+            return self._answer(body)
         return invoke
 
 
@@ -177,12 +223,50 @@ def socket(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _no_ambient_key(monkeypatch, tmp_path):
-    """The developer's own key must not decide whether these tests pass."""
-    for name in (CREDENTIAL_NAME, BASE_URL_NAME, *MODEL_NAME_OF_TIER.values()):
+    """The developer's own key must not decide whether these tests pass.
+
+    The local model's two names are cleared for the same reason and it is not a
+    formality: a machine with ollama running would answer the gate with whatever it
+    pulled, and these counts would then depend on a model nobody chose here.
+    `_local_model` puts the stub's own names back.
+    """
+    for name in (CREDENTIAL_NAME, BASE_URL_NAME, *MODEL_NAME_OF_TIER.values(),
+                 LOCAL_MODEL_NAME, LOCAL_BASE_URL_NAME):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(cli, "ENV_FILE", tmp_path / "absent.env")
     for name, value in ENV.items():
         monkeypatch.setenv(name, value)
+
+
+def _local_answer(payload: str) -> str:
+    """The local half of the deployment, dispatched on the dossier's own site.
+
+    `test_site_h_gate._dispatching` in shape, with site G declined rather than
+    answered for the reason in this file's own header.
+    """
+    dossier = dossier_in(payload)
+    site = dossier.get("call_site")
+    if site == cli.H_RESTRICTED_KIND:
+        return _clear(dossier)
+    if site == cli.G_SITUATION_SENSITIVITY:
+        return _decline(dossier)
+    return _answer_for(payload)
+
+
+@pytest.fixture(autouse=True)
+def _local_model(monkeypatch, _no_ambient_key):
+    """A local model for the whole test, because a run now needs one to send.
+
+    AUTOUSE AND PER TEST, beside `_no_ambient_key` and for its reason: this is what
+    the deployment IS since amendment 7(c), not something one pin arranges. One
+    server for the test rather than one per run -- every test here runs the product
+    twice over one corpus, and a stub that came and went between them would give the
+    second run a different base URL from the first.
+    """
+    with StubOllama(answer=_local_answer) as stub:
+        monkeypatch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
+        monkeypatch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)
+        yield stub
 
 
 @pytest.fixture()
@@ -233,34 +317,68 @@ def _outcomes(corpus) -> list[str]:
         "WHERE v.superseded_by IS NULL AND d.call_site = ?", cli.A_FACT)]
 
 
-def _a_fact_spend(corpus) -> dict[str, int]:
-    """The dossier, the response and the release site A bought -- no other site's.
+#: Every purse but the fact pass's, by the suffix `cli` appends to the fact
+#: budget's own `scan_id` to make it. Read off `cli` and not spelled here: a sixth
+#: purse added without a line in this tuple would be a purse `_purse_of` could not
+#: name, and `_every_reservation_is_in_a_known_purse` is what turns that into a red
+#: line rather than into a reservation this file quietly stops counting.
+OTHER_PURSE_SUFFIXES = (cli.OBSERVE_BUDGET_SUFFIX, cli.SITUATION_BUDGET_SUFFIX,
+                        cli.TEMPLATE_BUDGET_SUFFIX, cli.GATE_BUDGET_SUFFIX)
 
-    `104` R-109's "nothing after this line is free" is a claim about the fact pass,
-    and three of the four ledgers it is claimed on can be read at the site that
-    filled them: `llm_dossier` carries `call_site` itself, and `llm_response` and
-    the `release_ledger` reach it through the dossier a response was written for.
-    A release is counted through the response because a minted release only becomes
-    a spent one when the transport was reached, which is the thing R-109 says a
-    reuse must not do.
 
-    `llm_budget_reservation` is NOT here: it carries `scan_id` and no call site (see
-    `budgets.reserve_call`), so what a slot was reserved for cannot be read off the
-    row. The pin that needs it accounts for it a different way -- see
-    `test_a_reused_question_spends_no_slot_no_release_and_no_call`.
+def _reservations_in(corpus, suffix: str | None) -> int:
+    """The slots reserved from ONE purse: the fact pass's when `suffix` is `None`.
+
+    **A RESERVATION DOES NAME ITS SITE, through the `scan_id` the purse was built
+    with.** This file used to say it did not, and that was true of the column and
+    not of the value: `cli` mints every other ledger as `fact_budget.scan_id + <a
+    suffix>` -- `:observe`, `:situation`, `:template`, `:gate` -- so the fact pass's
+    purse is the bare scan id and each of the others is that id plus its own word.
+    The separation exists because a shared purse starved site C (`104` R-131), and
+    what it gives this file is the fourth ledger scoped like the other three.
     """
-    at_a_fact = ("FROM llm_response r JOIN llm_dossier d "
-                 "ON d.dossier_id = r.dossier_id WHERE d.call_site = ?")
+    rows = _rows(corpus, "SELECT scan_id FROM llm_budget_reservation")
+    if suffix is None:
+        return sum(1 for row in rows
+                   if not row["scan_id"].endswith(OTHER_PURSE_SUFFIXES))
+    return sum(1 for row in rows if row["scan_id"].endswith(suffix))
+
+
+def _spend_at(corpus, call_site, purse) -> dict[str, int]:
+    """The four ledgers ONE site filled, and no other site's.
+
+    `104` R-109's "nothing after this line is free" is a claim about one site, and
+    all four ledgers it is claimed on can be read at the site that filled them:
+    `llm_dossier` carries `call_site` itself, `llm_response` and the
+    `release_ledger` reach it through the dossier a response was written for, and
+    the reservation reaches it through its purse (`_reservations_in`). A release is
+    counted through the response because a minted release only becomes a spent one
+    when the transport was reached, which is the thing R-109 says a reuse must not
+    do.
+    """
+    at_site = ("FROM llm_response r JOIN llm_dossier d "
+               "ON d.dossier_id = r.dossier_id WHERE d.call_site = ?")
     return {
+        "llm_budget_reservation": _reservations_in(corpus, purse),
         "llm_dossier": _rows(
             corpus, "SELECT count(*) AS n FROM llm_dossier WHERE call_site = ?",
-            cli.A_FACT)[0]["n"],
+            call_site)[0]["n"],
         "llm_response": _rows(
-            corpus, f"SELECT count(*) AS n {at_a_fact}", cli.A_FACT)[0]["n"],
+            corpus, f"SELECT count(*) AS n {at_site}", call_site)[0]["n"],
         "release_ledger": _rows(
-            corpus, f"SELECT count(DISTINCT r.release_id) AS n {at_a_fact}",
-            cli.A_FACT)[0]["n"],
+            corpus, f"SELECT count(DISTINCT r.release_id) AS n {at_site}",
+            call_site)[0]["n"],
     }
+
+
+def _a_fact_spend(corpus) -> dict[str, int]:
+    """What site A bought, out of its own purse."""
+    return _spend_at(corpus, cli.A_FACT, None)
+
+
+def _gate_spend(corpus) -> dict[str, int]:
+    """What the gate bought, out of the purse `00` amendment 7(c) gave it."""
+    return _spend_at(corpus, cli.H_RESTRICTED_KIND, cli.GATE_BUDGET_SUFFIX)
 
 
 def _rule_settled(corpus) -> dict[str, set[str]]:
@@ -286,6 +404,33 @@ def _rule_settled(corpus) -> dict[str, set[str]]:
                 and is_stronger(row["reliability_state"], LLM_SUPPORTED)):
             settled.setdefault(row["file_id"], set()).add(row["field_key"])
     return settled
+
+
+def _identities_at(corpus, call_site) -> list[dict]:
+    """The answers ONE site recorded an identity for, and no other site's.
+
+    `llm_call_identity` was site A's alone the day R-109 was written, which is why
+    the reads in this file carried no clause and said so. Since `00` amendment 7(c)
+    the gate records one per file too, so an unscoped count reads two sites' answers
+    as site A's. Site C and site G record none and are in neither number.
+    """
+    return _rows(
+        corpus,
+        "SELECT i.* FROM llm_call_identity i JOIN llm_dossier d ON "
+        "d.dossier_id = i.dossier_id WHERE d.call_site = ?", call_site)
+
+
+def _reuses_at(corpus, call_site) -> list[dict]:
+    """Questions this run did not ask again AT ONE SITE.
+
+    `llm_call_reuse` carries its own `call_site` and is every site's savings in one
+    table. That is exactly why a count of the whole table cannot stand in for site
+    A's: the gate saves on the same files (45d36ca0), so the number moves when a
+    second site starts reusing with site A having reused nothing at all -- which is
+    the shape of the defect R-109 IS.
+    """
+    return _rows(corpus, "SELECT * FROM llm_call_reuse WHERE call_site = ?",
+                 call_site)
 
 
 def _a_fact_failures(corpus) -> int:
@@ -329,47 +474,97 @@ def test_a_rejected_answer_is_not_bought_a_second_time(corpus, socket):
     assert socket.calls_at(cli.C_PLACEMENT) == placements * 2, (
         "site C is no longer asked once per run and the count above is measuring "
         "something other than the fact pass")
-    reuses = _rows(corpus, "SELECT * FROM llm_call_reuse")
+    # SITE A'S SAVINGS AND SITE A'S PRIORS (`_reuses_at`, `_identities_at`). Both
+    # tables were site A's alone when this pin was written; since `00` amendment
+    # 7(c) the gate is in them too, so unscoped these read 4 on a two-file corpus --
+    # and would go on reading 4 with site A re-buying every answer, which is R-109
+    # itself passing this pin.
+    reuses = _reuses_at(corpus, cli.A_FACT)
     assert len(reuses) == first
-    # Site A's own, without a scoping clause: `llm_call_identity` is written where an
-    # answer can be reused from, and C writes none.
-    priors = {row["dossier_id"] for row in _rows(
-        corpus, "SELECT dossier_id FROM llm_call_identity")}
+    priors = {row["dossier_id"] for row in _identities_at(corpus, cli.A_FACT)}
     for reuse in reuses:
         assert reuse["prior_dossier_id"] in priors
-        assert reuse["call_site"] == cli.A_FACT
         assert json.loads(reuse["reused_fields"])
+    # THE GATE SAVED TOO, on `_Socket`'s standing rule that a site whose behaviour
+    # these numbers rest on gets a line of its own rather than being folded in: the
+    # gate is asked once per file in front of site A, and a second run that re-asked
+    # it would pay for the whole roster again on this machine while every number
+    # above still read right.
+    assert len(_reuses_at(corpus, cli.H_RESTRICTED_KIND)) == len(CORPUS)
 
 
 def test_a_reused_question_spends_no_slot_no_release_and_no_call(corpus, socket):
     """"Nothing after this line is free": the reuse is read before the budget slot
     is reserved, before the gate mints a release and before the transport sends.
 
-    Read at the site, `104` §17.13 ruling 3. Three of the four ledgers name who
-    filled them and `_a_fact_spend` reads site A's share of those: frozen across the
-    second run is the claim, and it is the same claim as before.
+    Read at the site, `104` §17.13 ruling 3, and ALL FOUR LEDGERS ARE NOW READ THERE
+    (`_spend_at`). This pin used to say the budget slot could not be scoped and
+    bounded it by the whole table instead, accounting for the growth as site C's.
+    That accounting broke on `00` amendment 7(c) for a reason that was never about
+    site A: site G records no identity either, so a second run buys ITS calls again
+    as well and the whole-table growth is two repeating sites' and not one's.
 
-    The budget slot cannot be read that way -- a reservation carries `scan_id` and
-    no call site -- so it is accounted for instead of scoped: every row the second
-    run added to ANY of the four is one site C bought, and C bought exactly what it
-    bought on the first run. That is stronger than the bare freeze this pin used to
-    assert, because it leaves the fact pass no row anywhere to hide a purchase in.
+    The repair is not a bigger accounting but the scoping the fourth ledger turns
+    out to allow. `cli` mints every other purse as the fact budget's own `scan_id`
+    plus a word -- `:gate`, `:situation`, `:observe`, `:template` -- so a
+    reservation names its purse and the fact pass's is the bare id
+    (`_reservations_in`). Site A's freeze is therefore stated on all four ledgers
+    directly, which is what the accounting was standing in for.
+
+    **AND THE GATE IS FROZEN BESIDE IT, which is a claim this pin could not make
+    before.** The gate holds an answer per file and reuses it (45d36ca0), so it is
+    the second site R-109's sentence is now true of -- and a gate that re-asked
+    would spend the whole roster again on this machine, out of its own purse, with
+    every site-A number here still reading right.
+
+    `_every_reservation_is_in_a_known_purse` is what keeps the bare-id read a
+    partition rather than a filter: a sixth purse would otherwise be slots this pin
+    silently stopped counting.
     """
     _run(corpus, "--enable-cloud")
     spent = _a_fact_spend(corpus)
+    gate = _gate_spend(corpus)
     placements = socket.calls_at(cli.C_PLACEMENT)
-    totals = {table: _count(corpus, table) for table in (
-        "llm_budget_reservation", "release_ledger", "llm_response", "llm_dossier")}
 
     _run(corpus)
 
     assert _a_fact_spend(corpus) == spent
-    bought = socket.calls_at(cli.C_PLACEMENT) - placements
-    assert bought == placements, (
-        "site C is no longer asked once per run and the accounting below is "
-        "measuring something other than the fact pass")
-    assert {table: _count(corpus, table) for table in totals} == {
-        table: count + bought for table, count in totals.items()}
+    assert _gate_spend(corpus) == gate
+    # Site C's own line, unchanged in meaning: it holds no identity, so it repeats
+    # itself and the freezes above are freezes in a run that did buy things.
+    assert socket.calls_at(cli.C_PLACEMENT) - placements == placements, (
+        "site C is no longer asked once per run and the freezes above are "
+        "measuring a run that bought nothing at all")
+
+
+def test_every_reservation_is_in_a_known_purse(corpus, socket):
+    """The partition `_reservations_in` rests on, asserted rather than assumed.
+
+    Site A's purse is READ AS THE ABSENCE OF A SUFFIX, so a purse nobody listed
+    would be counted as the fact pass's and a slot it bought would land in site A's
+    freeze above -- which is the one number this file exists to protect. Every
+    `scan_id` is therefore either the bare scan id or that id plus one of `cli`'s
+    own suffixes, and the suffixes are read off `cli` and not spelled here.
+
+    SABOTAGE: add a sixth purse in `cli` without adding it to
+    `OTHER_PURSE_SUFFIXES`, and this goes red on the first run that spends from it.
+    """
+    _run(corpus, "--enable-cloud")
+
+    scan_ids = {row["scan_id"] for row in
+                _rows(corpus, "SELECT scan_id FROM llm_budget_reservation")}
+    assert scan_ids
+    bare = {scan_id for scan_id in scan_ids
+            if not scan_id.endswith(OTHER_PURSE_SUFFIXES)}
+    assert len(bare) == 1, bare
+    the_scan = bare.pop()
+    assert scan_ids - {the_scan} == {
+        the_scan + suffix for suffix in OTHER_PURSE_SUFFIXES
+        if the_scan + suffix in scan_ids}
+    # And the fact pass and the gate both spent from theirs, so the two freezes in
+    # the pin above are freezes of purses this corpus actually reaches.
+    assert _reservations_in(corpus, None) == len(CORPUS)
+    assert _reservations_in(corpus, cli.GATE_BUDGET_SUFFIX) == len(CORPUS)
 
 
 def test_a_partly_accepted_answer_is_reused_for_what_is_still_open(corpus, socket):
@@ -416,7 +611,8 @@ def test_a_partly_accepted_answer_is_reused_for_what_is_still_open(corpus, socke
     assert socket.calls_at(cli.C_PLACEMENT) == placements * 2, (
         "site C is no longer asked once per run and the count above is measuring "
         "something other than the fact pass")
-    reuses = _rows(corpus, "SELECT * FROM llm_call_reuse")
+    # Site A's savings (`_reuses_at`): the gate saved on the same two files.
+    reuses = _reuses_at(corpus, cli.A_FACT)
     assert len(reuses) == first
     # A reuse covers the WHOLE question the second run would have asked, and the
     # accepted field is in that question exactly where a rule -- not the model --
@@ -446,18 +642,20 @@ def test_the_identity_is_the_same_on_an_unchanged_second_run(corpus, socket):
     happening: §18.7's standing consent grant was scoped to a fresh-per-run
     `scan_run_id` and `policy` is one of `CALL_IDENTITY_DIMENSIONS`.
 
-    The rows read here need no call-site clause even though this run also asks site
-    C (`104` §17.13 ruling 3): `llm_call_identity` is written where an answer can be
-    reused from, and site C records none. That is why the count is one per file and
-    not one per call.
+    SITE A'S ROWS (`_identities_at`). `llm_call_identity` is written where an answer
+    can be reused from -- site C and site G record none -- and that made it site A's
+    alone until `00` amendment 7(c) gave the gate one per file as well. Unscoped, the
+    count reads 4 for the 2 this pin means, and the dimension set below would be
+    asserted of a row whose `model_id` is the local model's and whose `call_site` is
+    not site A's.
     """
     _run(corpus, "--enable-cloud")
     _run(corpus)
 
-    identities = _rows(corpus, "SELECT DISTINCT identity_id FROM llm_call_identity")
+    identities = {row["identity_id"] for row in _identities_at(corpus, cli.A_FACT)}
     assert len(identities) == 2
-    dimensions = [json.loads(row["dimensions"]) for row in _rows(
-        corpus, "SELECT dimensions FROM llm_call_identity")]
+    dimensions = [json.loads(row["dimensions"])
+                  for row in _identities_at(corpus, cli.A_FACT)]
     assert {name for row in dimensions for name in row} == {
         "call_site", "content_hash", "context_refs", "extractor_versions",
         "model_id", "plan_version", "policy", "prompt_fingerprint", "schema_id",
@@ -502,7 +700,11 @@ def test_a_call_that_failed_is_asked_again(corpus, socket, monkeypatch):
     placements = socket.calls_at(cli.C_PLACEMENT)
     assert failed == len(CORPUS)
     assert _a_fact_failures(corpus) == len(CORPUS)
-    assert _count(corpus, "llm_call_identity") == 0
+    # SITE A'S IDENTITIES. The gate is local and its calls did not hang up, so it
+    # answered and recorded one per file (`00` amendment 7(c)); an unscoped zero
+    # would now be asserting that the gate failed too, which is not what was
+    # sabotaged and not what R-109 is about.
+    assert _identities_at(corpus, cli.A_FACT) == []
 
     monkeypatch.setattr(model_routing, "deepseek_invoke", socket.factory)
     _run(corpus)
@@ -512,7 +714,11 @@ def test_a_call_that_failed_is_asked_again(corpus, socket, monkeypatch):
     assert socket.calls_at(cli.C_PLACEMENT) == placements * 2, (
         "site C is no longer asked once per run and the count above is measuring "
         "something other than the fact pass")
-    assert _count(corpus, "llm_call_reuse") == 0
+    assert _reuses_at(corpus, cli.A_FACT) == []
+    # And the gate DID save, which is what makes the line above site A's own zero
+    # rather than a run in which nothing was reusable: the gate answered on run 1
+    # and reused on run 2 over the same unchanged files.
+    assert len(_reuses_at(corpus, cli.H_RESTRICTED_KIND)) == len(CORPUS)
 
 
 def test_a_call_the_gate_refused_is_asked_again(corpus, socket, monkeypatch):
@@ -576,7 +782,9 @@ def test_changing_one_files_content_re_asks_that_file_alone(corpus, socket):
     assert socket.calls_at(cli.C_PLACEMENT) == placements * 2, (
         "site C is no longer asked once per run and the count above is measuring "
         "something other than the fact pass")
-    assert _count(corpus, "llm_call_reuse") == 1
+    # Site A's own saving (`_reuses_at`): the gate saves on the same untouched file
+    # and in the same table, so the whole table reads 2 where site A saved once.
+    assert len(_reuses_at(corpus, cli.A_FACT)) == 1
 
 
 def test_changing_only_the_prompt_re_asks_every_file(corpus, socket, monkeypatch):
@@ -604,4 +812,9 @@ def test_changing_only_the_prompt_re_asks_every_file(corpus, socket, monkeypatch
     assert socket.calls_at(cli.C_PLACEMENT) == placements * 2, (
         "site C is no longer asked once per run and the count above is measuring "
         "something other than the fact pass")
-    assert _count(corpus, "llm_call_reuse") == 0
+    # SITE A SAVED NOTHING, which is the claim; the gate saved everything, because
+    # site A's prompt is not the gate's and a revision of one is no reason to re-ask
+    # the other. An unscoped zero here would have gone red for that, and the two
+    # facts are worth different lines.
+    assert _reuses_at(corpus, cli.A_FACT) == []
+    assert len(_reuses_at(corpus, cli.H_RESTRICTED_KIND)) == len(CORPUS)
