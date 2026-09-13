@@ -33,7 +33,7 @@ import sqlite3
 import pytest
 
 import cli
-from model_facts import ordered_releasable_observations
+from model_facts import document_order, ordered_releasable_observations
 
 #: Long enough that its body unit alone very nearly fills the cloud bound, which is
 #: the only condition under which the order can be observed to matter. Below it
@@ -42,7 +42,15 @@ LONG = "week 3 problem set.txt"
 FOLDER = "Photography Club 2026"
 
 
-@pytest.fixture(scope="module")
+#: A RUN OF ITS OWN FOR EVERY TEST, and not one shared across the module (13 Sep
+#: 2026). `ordered_releasable_observations` MINTS an opening excerpt and records
+#: it, sized by the bound of the call that minted it, so a test reading this file
+#: at the local ceiling leaves an excerpt behind that is longer than the cloud
+#: ceiling a later test reads it under -- and `released_wire_cost <= ceiling` then
+#: takes the body and its opening both off the offer, leaving the path first by
+#: default and making `test_the_term_...`'s first assertion depend on which
+#: sibling ran before it. Each test states its claim about a run's own database.
+@pytest.fixture
 def measured(tmp_path_factory):
     root = tmp_path_factory.mktemp("folder")
     corpus = root / FOLDER
@@ -109,25 +117,67 @@ def test_the_term_is_what_puts_the_path_first_and_nothing_else_does(measured):
     which is exactly the state this test would otherwise be pinning. The order is
     the property; the fill above is the consequence on the corpus.
 
+    AND ASKED OF THE TIE RATHER THAN OF THE OUTCOME (13 Sep 2026). The half of
+    this test that says nothing else puts the path first was written as
+    `order(())[0] != "path"`, and that is a coin toss: measured here, the path
+    record and this file's opening body reading are BOTH outside `zones_last`,
+    both uncited (this call names no field, so `zone_evidence_counts` measures
+    nothing and every zone ties at 0), and both carry the same document order and
+    the same span start -- so the default sort falls through to
+    `observation_key`, a hash of the reading's own content, and the path's
+    content is whichever temporary folder the fixture was handed. The assertion
+    was red about one run in three for the length of a directory name.
+
+    THE TIE IS THE DEFECT, so the tie is what is pinned: a reading whose place is
+    settled by a content hash is a reading nothing puts anywhere, which is
+    exactly what `SITUATION_ZONES_LAST`'s sentence claimed was already true. The
+    three assertions together are the whole claim -- the terms the default order
+    names settle nothing between the path and the text, the ORDER IT RETURNS is
+    therefore the two keys' own order and nothing else's, and the term is what
+    puts the path first. The middle one is what keeps the product in the test: a
+    tie the test computes from two observations would go on holding under a
+    printer that put the path first for a reason of its own, and the answer the
+    product actually gave is the only thing that would not.
+
     SABOTAGE: fold `zones_first` into `zones_last`'s term, or re-sort in the
     caller, and one of the two below stops being true."""
     file_id, content_hash = _version(measured)
 
-    def order(zones_first):
-        return [observation.location.zone
-                for observation in ordered_releasable_observations(
-                    measured, file_id=file_id, content_hash=content_hash,
-                    locality=cli.CLOUD,
-                    limit=cli.FACT_CALL_MAX_RELEASED_OBSERVATIONS, fields=(),
-                    ceiling=cli.SITUATION_DOSSIER_TOKENS_CLOUD,
-                    zones_last=cli.SITUATION_ZONES_LAST,
-                    zones_first=zones_first)]
+    def offer(zones_first):
+        return ordered_releasable_observations(
+            measured, file_id=file_id, content_hash=content_hash,
+            locality=cli.CLOUD,
+            limit=cli.FACT_CALL_MAX_RELEASED_OBSERVATIONS, fields=(),
+            ceiling=cli.SITUATION_DOSSIER_TOKENS_CLOUD,
+            zones_last=cli.SITUATION_ZONES_LAST, zones_first=zones_first)
 
-    assert order(())[0] != "path", (
-        "this file's own document order no longer puts a reading before its "
-        "path, so the term cannot be observed to do anything on this corpus. "
-        "Change the fixture rather than deleting the test")
-    assert order(cli.SITUATION_ZONES_FIRST)[0] == "path"
+    def settled(observation) -> tuple:
+        """Every term the DEFAULT order settles before the content hash."""
+        span = observation.location.text_span
+        return (observation.location.zone in cli.SITUATION_ZONES_LAST,
+                document_order(observation), 0 if span is None else span.start)
+
+    default = offer(())
+    path = next(o for o in default if o.location.zone == "path")
+    body = next(o for o in default if o.location.zone == "body")
+    assert settled(path) == settled(body), (
+        f"this file's path record no longer ties with a body reading -- "
+        f"{settled(path)} against {settled(body)} -- so the default order does "
+        f"place the path on its own and the term cannot be observed to do "
+        f"anything on this corpus. Change the fixture rather than deleting the "
+        f"test")
+    # AND THE PRODUCT'S OWN ANSWER FALLS THROUGH TO THE HASH. Given the tie
+    # above, the order it returned for these two IS their key order -- so a term
+    # nobody asked for that puts the path first goes red here on every run whose
+    # temporary folder hashes high, which is half of them.
+    places = [o.observation_key for o in default]
+    assert ((places.index(path.observation_key)
+             < places.index(body.observation_key))
+            == (path.observation_key < body.observation_key)), (
+        "something outside the sort's named terms is placing the path: it ties "
+        "with a body reading on every one of them and did not come back in the "
+        "order their keys give")
+    assert [o.location.zone for o in offer(cli.SITUATION_ZONES_FIRST)][0] == "path"
 
 
 def test_the_local_route_carries_the_same_readings_in_the_new_order(measured):
