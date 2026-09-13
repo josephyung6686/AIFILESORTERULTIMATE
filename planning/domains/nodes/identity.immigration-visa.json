@@ -66,7 +66,10 @@
     "renewal, extension, replacement, or status-change record",
     "school, employer, or family sponsor document",
     "adviser or counsel correspondence",
-    "linked family or dependant application"
+    "linked family or dependant application",
+    "form i-94",
+    "arrival/departure record",
+    "class of admission"
   ],
   "grouping_reasons": [
     "one evidenced application lifecycle across its submitted form, acknowledgement, fee record, appointment, evidence request, decision, status proof, and entry record, anchored by the authority and an explicit application or case linkage rather than by document composition alone",
