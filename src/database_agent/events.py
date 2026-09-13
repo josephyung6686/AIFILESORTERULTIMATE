@@ -92,6 +92,13 @@ _REGISTERED: dict[str, str | None] = {
     "residual_recommendation_emitted": "placement recommendation",
     "return_to_placement_issued": "placement recommendation",
     "placement_review_decision": "placement recommendation",
+    # P15 SPEC (`planning/66`), on the owner's ruling of 13 Sep 2026, 21:00
+    # ("yes those should be part of memory for the user"): a person's answer to
+    # a structural question -- confirmed, skipped, or revoked -- is a learning
+    # record, and P15 had registered nothing for `cli.apply_answers` to append
+    # through. Added the way `refused move` was: the owner's word, named here,
+    # for a closed set that could not express what had already happened.
+    "structural answer recorded": None,
 }
 
 # Rule 1, checked once at import: a collision is an import error, not a run-time
@@ -133,7 +140,16 @@ CORRECTION_SCOPES: tuple[str, ...] = (
     # covers the folder and its sub-folders. A member of a closed vocabulary,
     # added on the owner's word and on nothing else.
     "branch",
-    "template", "domain", "corpus",
+    "template", "domain",
+    # `organization`: `questions.vocabulary.SCOPE_ORGANIZATION`, the scope
+    # `READING_KIND` questions carry (`organization:<subject>`). Ratified by the
+    # owner on 13 Sep 2026, 21:00, the same ruling that added `"structural
+    # answer recorded"` above -- a person's answer at this scope is a learning
+    # record too, and no existing member could carry it without conflating it
+    # with something else (`domain` is already `LEVEL_RELABEL_SCOPE`'s). Placed
+    # before `corpus` so `corpus` stays this tuple's last member, which
+    # `review_surface.collect`'s tests read as "the widest scope".
+    "organization", "corpus",
 )
 
 _REQUIRED = ("event_type", "subsystem", "component_version", "observed_at", "explanation")

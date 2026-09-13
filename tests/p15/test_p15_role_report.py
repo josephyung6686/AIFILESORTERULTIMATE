@@ -37,6 +37,7 @@ from questions.role_report import (
     role_moment_lines, role_panel_lines, shortlist_lines,
 )
 from questions.roles import apply_declarations, apply_descriptions, live_roles
+from database_agent.db import create_schema
 from questions.schema import create_questions_schema
 from questions.triggers import question_for_tied_reading
 from questions.vocabulary import SCOPE_CORPUS
@@ -50,6 +51,9 @@ def qconn():
     connection = sqlite3.connect(":memory:")
     connection.row_factory = sqlite3.Row
     create_questions_schema(connection)
+    # `apply_answers` now appends an `events` row per answer (13 Sep 2026
+    # ruling), so every `qconn` needs P1's schema too, not only P15's.
+    create_schema(connection)
     yield connection
     connection.close()
 
@@ -529,42 +533,36 @@ def test_the_invitation_is_pasteable_too(qconn):
 # --- §8.7: an applied answer is supposed to be a learning record ---------------------
 
 
-def test_an_applied_answer_is_not_yet_a_learning_record(qconn):
-    """13 Sep 2026 ruling: "a person's answers to the product's questions are part
-    of the product's memory of that person." `cli.apply_answers` records the
-    `StructuralAnswer` through `questions.store.record_answer` and appends no
-    `events` row, so `database_agent.learning.learning_records` -- which reads
-    only `events` -- returns nothing for an answer, a `=skip`, or a `=revoke`.
-
-    Fixing the read side is not enough: `append_event` refuses any `event_type`
-    outside §8.2's reserved names and the registrations `database_agent.events.
-    _REGISTERED` compiles from each part's own SPEC (rule 4, "registration is a
-    spec-level act"). P15 (`planning/66`) registers none. `cli.py` has never
-    called `append_event` directly -- every existing call goes through
-    `review_surface.collect`, and `learning.reset_preferences` is the one direct
-    caller, using `"review action routed"`, which is P13's word for a gesture
-    P13 itself routed. `--answer` never reaches `review_surface`, so reusing it
-    would put a false author (`subsystem`) on the row.
-
-    So this is not a wiring gap this file can close: it is a closed vocabulary
-    (`events._REGISTERED`) with no member for "a person answered a structural
-    question", and the owner is the only one who can add one -- the same rule
-    that gates every other closed set this codebase pins.
+def test_an_applied_answer_is_a_learning_record(qconn):
+    """13 Sep 2026 ruling, 21:00: "yes those should be part of memory for the
+    user." `cli.apply_answers` now appends one `events` row per answer, through
+    `"structural answer recorded"` -- the event type registered in
+    `database_agent.events._REGISTERED` for exactly this -- so
+    `database_agent.learning.learning_records` returns a confirmed answer, a
+    `=skip`, and a `=revoke` alike. `record_answer`'s own store is unchanged;
+    this is a second, additive read path onto the same gesture.
     """
     import cli
-    from database_agent.db import create_schema
     from database_agent.learning import learning_records
 
-    create_schema(qconn)
+    _declare(qconn, "teaching=research")
+    cli.apply_answers(qconn, ["role:teaching=academic"],
+                      user_id="jy", recorded_at=T1)
+    confirmed = learning_records(qconn, SCOPE_CORPUS, "role:teaching")
+    assert len(confirmed) == 1
+    assert "academic" in confirmed[0]["explanation"]
+    assert "role:teaching" in confirmed[0]["explanation"]
+
+    _declare(qconn, "studying=academic")
+    cli.apply_answers(qconn, ["role:studying=skip"],
+                      user_id="jy", recorded_at=T1)
+    skipped = learning_records(qconn, SCOPE_CORPUS, "role:studying")
+    assert len(skipped) == 1
+    assert "skipped" in skipped[0]["explanation"]
+
     _declare(qconn, "thesis=research")
-    cli.apply_answers(qconn, ["role:thesis=revoke"], user_id="jy", recorded_at=T1)
-
-    assert learning_records(qconn, SCOPE_CORPUS, "role:thesis") == [], (
-        "an event now exists for this answer -- register a P15 event_type in "
-        "events._REGISTERED and wire apply_answers to append_event; this xfail "
-        "is the reminder to do it, not a reason not to")
-
-    pytest.xfail(
-        "apply_answers has no registered event_type to append through; "
-        "database_agent.events._REGISTERED has no P15 entry and rule 4 makes "
-        "adding one a spec-level, owner act")
+    cli.apply_answers(qconn, ["role:thesis=revoke"],
+                      user_id="jy", recorded_at=T1)
+    revoked = learning_records(qconn, SCOPE_CORPUS, "role:thesis")
+    assert len(revoked) == 1
+    assert "revoked" in revoked[0]["explanation"]

@@ -300,7 +300,9 @@ def test_p11_adds_no_second_learning_store(p11_conn):
 def test_the_seven_scopes_are_p1s_six_and_the_owners_branch():
     """P1's six, and `branch` -- a node and everything under it -- ratified by
     the owner on 11 Sep 2026 as the scope of the `--send-set` gesture (`104`
-    R-26, §18.39). A closed vocabulary grows by the owner's word only, which is
-    why this pin names every member rather than counting them."""
+    R-26, §18.39), and `organization` -- `READING_KIND`'s scope -- ratified on
+    13 Sep 2026, 21:00, for P15's structural answers. A closed vocabulary grows
+    by the owner's word only, which is why this pin names every member rather
+    than counting them."""
     assert CORRECTION_SCOPES == ("file", "group", "node", "branch", "template",
-                                 "domain", "corpus")
+                                 "domain", "organization", "corpus")

@@ -448,7 +448,7 @@ from review_run.progress import progress_lines
 # through P13's own §8.6 line, which is a different question over P4's extraction
 # states; this run needs the rule over a set of buckets P13 knows nothing about, so
 # the function is imported directly and nothing in P13 is widened to hold them.
-from database_agent.events import CORRECTION_SCOPES
+from database_agent.events import CORRECTION_SCOPES, append_event
 from review_gestures import (
     LEVEL_KEY_SEPARATOR, LevelOnScreen, collect_level_relabel, collect_set_leaves,
     collect_set_sends, record_level_presentations, record_set_presentations,
@@ -18379,6 +18379,11 @@ class AnswerRefused(NotConfigured):
     """`--answer` named something this database has never asked about."""
 
 
+#: 13 Sep 2026, 21:00: "yes those should be part of memory for the user." The one
+#: event type P15 registered in `database_agent.events._REGISTERED` for it.
+ANSWER_EVENT_TYPE: str = "structural answer recorded"
+
+
 def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
                   user_id: str, recorded_at: str) -> tuple[tuple[str, str], ...]:
     """Record what the person typed at `--answer`, before the run reads anything.
@@ -18390,6 +18395,20 @@ def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
     A `question_id` this database has not asked about is REFUSED rather than
     ignored: the person believes they have told the product something, and a
     silently dropped answer is the worst of both -- no effect, and no way to tell.
+
+    Each answer -- confirmed, skipped, or revoked -- also appends one `events`
+    row (13 Sep 2026 ruling: a person's answer is part of the product's memory
+    of them), so `database_agent.learning.learning_records` can return it. The
+    scope recorded is the question's own scope's KIND -- `row[0]` may carry a
+    subject after a `:` (`organization:PHYS1401`), and `correction_scope` takes
+    only the kind. `subsystem="cli"` because this writes directly, with no P15
+    module and no `review_surface` gesture between the flag and the row.
+
+    `folder` (`HOME_KIND`'s scope, `questions.vocabulary.SCOPE_FOLDER`) is not a
+    member of `CORRECTION_SCOPES` -- the owner has not ratified it there (see
+    `questions/vocabulary.py`) -- so a folder-scoped answer is recorded exactly
+    as before and appends no event. That is a known, reported gap, not a guess:
+    `--answer home:.=...` must keep succeeding either way.
     """
     # WHAT WAS SETTLED, not how many. §17's diff is per question and per scope,
     # and the scope is read from the question here already -- a second SELECT in
@@ -18445,6 +18464,17 @@ def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
             supersede_reason=("the user withdrew this answer" if revoked else
                               "the user answered this again"
                               if previous_id is not None else None)))
+        correction_scope = row[0].split(":", 1)[0]
+        if correction_scope in CORRECTION_SCOPES:
+            explanation = (f"the user revoked their answer to {question_id!r}"
+                           if revoked else
+                           f"the user skipped {question_id!r}" if skipped else
+                           f"the user chose {option_id!r} for {question_id!r}")
+            append_event(
+                conn, event_type=ANSWER_EVENT_TYPE, subsystem="cli",
+                component_version=COMPONENT_VERSION, observed_at=recorded_at,
+                explanation=explanation, correction_scope=correction_scope,
+                correction_subject=question_id, user_id=user_id)
         settled.append((question_id, row[0]))
     return tuple(settled)
 
