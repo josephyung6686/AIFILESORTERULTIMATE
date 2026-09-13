@@ -215,6 +215,7 @@ def partition_by_branch(
         verdict_of: Callable[[str, str], object],
         situations_of: Callable[[str], Sequence[str]],
         chosen_situation: Callable[[str], str | None],
+        named_by_the_model: Mapping[str, str],
 ) -> BranchPartition:
     """The run's branches, from the deterministic signals it already holds.
 
@@ -224,6 +225,27 @@ def partition_by_branch(
     DOMAIN_FIELDS`; `verdict_of` is the term detector's `explain`; `situations_of`
     lists the shipped situations of a schema; `chosen_situation(scope)` is
     `questions.store.selected_situation` bound to the run's database.
+
+    **`named_by_the_model` IS SITE G'S ANSWER PER FILE** (`00` amendment 7): the
+    schema of the whole library each file is part of, which is
+    `cli._model_fact_pass`'s `situation_pass.named`, and it is EMPTY on the call
+    that runs before the model pass. A schema G named for at least one file OPENS
+    A BRANCH beside the anchored ones, and G's name is what puts the file under
+    it -- AHEAD of the anchor, because the fact pass already asks that file's
+    fields under G's schema (`_model_fact_pass`'s `by_schema[answered]`), so a
+    branch chosen by the anchor would group and place a file against questions it
+    was never asked.
+
+    Measured at HEAD: a research paper in an `--situation academic.coursework`
+    run had no branch of its own to be under. Only an anchor opened one, an
+    anchor is a single-owner `work_type` term, and the paper's `work_type` says
+    `Research Paper`, which no schema owns -- so the paper fell to the default
+    branch and was grouped and placed against the coursework tree.
+
+    A named schema the library carries NO situation for opens nothing, which is
+    the rule `_model_fact_pass` already applies to the same names one module over:
+    such a schema has no folder levels, so there is nothing a branch under it
+    could be asked from.
 
     **`default_situation` IS `None` WHEN THE PERSON TYPED NO `--situation`**, on
     the owner's ruling of 11 Sep 2026 (`00` Amendments of 2026-09-11 item 2). The
@@ -273,8 +295,18 @@ def partition_by_branch(
             anchored_to[file_id] = schema_id
             anchors_of.setdefault(schema_id, []).append(file_id)
 
+    #: Site G's name for each file, less the ones no branch could be built from.
+    named_of = {file_id: named_by_the_model[file_id]
+                for file_id, _hash in roster
+                if named_by_the_model.get(file_id)
+                and situations_of(named_by_the_model[file_id])}
+    #: The schemas G opened a branch with, which the anchors did not have to.
+    model_named = {schema_id for schema_id in named_of.values()
+                   if schema_id != default_schema}
+
     schemas = [default_schema] + sorted(
-        schema_id for schema_id in anchors_of if schema_id != default_schema)
+        {schema_id for schema_id in anchors_of if schema_id != default_schema}
+        | model_named)
     if len(schemas) == 1:
         situation, candidates = _default()
         return BranchPartition(branches=(Branch(
@@ -293,7 +325,12 @@ def partition_by_branch(
     under: dict[str, list[str]] = {schema_id: [] for schema_id in schemas}
     held: list[str] = []
     for file_id, content_hash in roster:
-        if file_id in anchored_to:
+        if file_id in named_of:
+            # SITE G'S NAME FIRST. See the docstring: the fact pass has already
+            # asked this file its fields under that schema, so any other branch
+            # would judge it on answers to questions it was never put.
+            reached = {named_of[file_id]}
+        elif file_id in anchored_to:
             reached = {anchored_to[file_id]}
         else:
             reached = {schema_id for schema_id in schemas
@@ -320,6 +357,16 @@ def partition_by_branch(
                 candidate_situations=candidates))
             continue
         situation, candidates = _situation_for(schema_id, schema_id)
+        if situation is None and schema_id in model_named:
+            # A BRANCH SITE G OPENED IS SETTLED BY G'S OWN NAME, and this is not
+            # the "first of twenty-six" §11.2 step 4 rules out: it is a model
+            # choosing from valid options, and it is the SAME resolution
+            # `cli._situation_of` and `_model_fact_pass`'s `by_schema` already
+            # make of this name -- the situations of a schema, first one. Left
+            # unsettled, the branch would be asked nothing while its files were
+            # asked plenty, and the placement rule below would have no situation
+            # to match a file's against.
+            situation, candidates = situations_of(schema_id)[0], ()
         branches.append(Branch(
             label=schema_id, schema=schema_id, situation=situation,
             is_default=False,

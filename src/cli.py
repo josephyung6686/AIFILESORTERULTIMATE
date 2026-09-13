@@ -15797,7 +15797,21 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # value. A second one here would be `65` §4.2's four one-file groups
             # rebuilt at the placement boundary.
             canonical_value=normalize_for_model,
-            the_folder_each_file_is_in=_the_folder_each_file_is_in(tree.tree))
+            the_folder_each_file_is_in=_the_folder_each_file_is_in(tree.tree),
+            # `00` amendment 7, the two halves of one comparison. THE SAME
+            # `_situation_of` site E is handed: the situation a file's folders are
+            # chosen under is the situation its fields were asked under, or P11
+            # would be holding a second answer to what kind of material this is.
+            situation_of=_situation_of,
+            # And the branches, by the label their root node wears, which is the
+            # name `_grouped_by_branch` put on the accepted group P10 built the
+            # branch from. A branch whose situation is unsettled names nothing,
+            # and P11 then leaves its folders alone.
+            the_situation_each_branch_carries={
+                branch.label: branch.situation
+                for branch in (partition_cell[0].branches
+                               if partition_cell else ())
+                if branch.situation is not None})
 
     #: `104` R-175. ONE CEILING FOR THE WHOLE RUN, built here from the seconds the
     #: caller stated and handed to the authorities both per-file loops read. Built
@@ -15967,6 +15981,45 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             "prints every one the shipped library carries, with the folders each "
             "would build.")
 
+    def _the_branches(run_id: str) -> BranchPartition:
+        """`partition_by_branch` bound to this run's signals, and nothing else.
+
+        A FUNCTION OF ITS OWN because the run asks it TWICE and only one of the
+        two asks anything of the person. `00` amendment 7: site G names a schema
+        per file and runs INSIDE the fact pass, so the partition made before that
+        pass cannot know G's names -- and grouping and the tree both read
+        `partition_cell` afterwards. `_partition_branches` is the first call, with
+        the questions and the refusal; `downstream` makes the second the moment
+        site G has spoken.
+        """
+        roster = corpus_roster(conn, run_id)
+        if of_the_run:
+            default_label, default_situation = said().label, said().situation
+            default_schema = said().schema
+        else:
+            default_schema = _the_corpus_names_a_schema(roster)
+            # THE SCHEMA ID IS THE NAME when the person named none, which is what
+            # `partition_by_branch` already calls every branch it opens. A typed
+            # `--label` is still theirs: the two flags became optional together
+            # and neither depends on the other, so a person who named the folder
+            # and not the life gets the folder they named.
+            default_label = default_schema if label is None else label
+            default_situation = None
+        return partition_by_branch(
+            roster=roster,
+            default_label=default_label, default_situation=default_situation,
+            default_schema=default_schema,
+            anchor_facts_of=_anchor_facts_of, owner_of_term=WORK_TYPE_OWNER,
+            fields_of_schema=lambda schema_id: DOMAIN_FIELDS.get(schema_id, ()),
+            verdict_of=lambda file_id, content_hash: detector.explain(
+                conn, file_id, content_hash),
+            situations_of=_situations_of,
+            chosen_situation=lambda scope: selected_situation(conn, scope=scope),
+            # EMPTY ON THE FIRST CALL and site G's whole answer on the second:
+            # `_NOTHING_ASKED.named` is `{}`, which is what a run that has not
+            # reached the pass -- or has no model at all -- partitions under.
+            named_by_the_model=situation_cell[0].named)
+
     def _partition_branches(run_id: str) -> BranchPartition:
         """`104` R-37. Which branch each file is under, from the facts P6 wrote.
 
@@ -15989,29 +16042,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         earlier: the anchors are facts the deterministic pass has just written and
         the readings are the recogniser's over files that have just been read.
         """
-        roster = corpus_roster(conn, run_id)
-        if of_the_run:
-            default_label, default_situation = said().label, said().situation
-            default_schema = said().schema
-        else:
-            default_schema = _the_corpus_names_a_schema(roster)
-            # THE SCHEMA ID IS THE NAME when the person named none, which is what
-            # `partition_by_branch` already calls every branch it opens. A typed
-            # `--label` is still theirs: the two flags became optional together
-            # and neither depends on the other, so a person who named the folder
-            # and not the life gets the folder they named.
-            default_label = default_schema if label is None else label
-            default_situation = None
-        partition = partition_by_branch(
-            roster=roster,
-            default_label=default_label, default_situation=default_situation,
-            default_schema=default_schema,
-            anchor_facts_of=_anchor_facts_of, owner_of_term=WORK_TYPE_OWNER,
-            fields_of_schema=lambda schema_id: DOMAIN_FIELDS.get(schema_id, ()),
-            verdict_of=lambda file_id, content_hash: detector.explain(
-                conn, file_id, content_hash),
-            situations_of=_situations_of,
-            chosen_situation=lambda scope: selected_situation(conn, scope=scope))
+        partition = _the_branches(run_id)
         if not of_the_run and partition.default.settled:
             # The corpus named it, and from here on the run reads it exactly as it
             # reads a typed one: `--situation` is an override, not a second kind
@@ -16876,6 +16907,17 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # purpose: they report what the scan found, and a fact this pass writes is
         # part of what the scan found.
         _model_fact_pass(p1_p7.scan_run_id)
+        # AND AGAIN, NOW THAT SITE G HAS SPOKEN (`00` amendment 7). The partition
+        # above was made from the deterministic signals alone because the fact
+        # pass asks per branch and had to be told which; site G names a schema per
+        # file INSIDE that pass, and a schema it named opens a branch of its own.
+        # Both readers are still downstream -- `draft_for_review` groups per branch
+        # and `design_authorities` takes the tree's `active_domains` off the same
+        # cell -- so a research paper in a coursework run is grouped and placed
+        # under its own branch rather than against the coursework tree. No question
+        # is re-recorded: `_partition_branches` asked them above, and a branch G
+        # opened is settled by G's own name.
+        partition_cell[:] = [_the_branches(p1_p7.scan_run_id)]
         # `104` §18.2 gap 10, AND IT IS OUTSIDE THE PASS ON PURPOSE. The pass has
         # four early returns and every one of them is an ordinary way for a run to
         # go -- no model, no destination this mode permits, an empty roster, no

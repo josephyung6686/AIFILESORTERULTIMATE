@@ -488,6 +488,10 @@ def test_a_run_without_a_support_policy_or_limits_refuses(p11_conn):
         their_own_folder_made_for_what_it_holds={}, p2=None,
         canonical_value=lambda field_key, value: None,
         the_folder_each_file_is_in={},
+        # `00` amendment 7. The fixture states its position: this run names no
+        # situation per file and knows no branch's, so the branch rule is inert.
+        situation_of=lambda file_id: None,
+        the_situation_each_branch_carries={},
         a_move_the_person_has_not_permitted=None)
     PipelineInputs(**good)                     # the control: this one builds
     with _pytest.raises(ConfigurationRequired):

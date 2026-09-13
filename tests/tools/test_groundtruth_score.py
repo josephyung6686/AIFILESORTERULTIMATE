@@ -25,8 +25,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import pytest
 
 from tools.groundtruth.labels import Label
-from tools.groundtruth.measure import Observation
+from tools.groundtruth.measure import Observation, RunObservation
 from tools.groundtruth.score import (
+    score_situation,
     PLACED_EXACT,
     PLACED_FLAT,
     PLACED_PARENT,
@@ -357,3 +358,69 @@ def test_an_alias_never_moves_a_file_into_a_folder():
     # And the fact on that same file is scored as agreeing, which is the whole
     # point: the two questions get two answers from one record.
     assert score_fields(label, placed) == (1, 0, 0, 0)
+
+
+# ------------------------------------------------- one run, every situation
+
+
+def _run(files, **over):
+    base = dict(situation="academic.coursework", label="Coursework",
+                promised_levels=("Course", "Kind of work"), files=files,
+                structural_questions=0, node_count=6, built_depth=2, report="")
+    base.update(over)
+    return RunObservation(**base)
+
+
+def test_one_run_is_scored_against_every_label_and_spillover_is_the_branch():
+    """`00` amendment 7, on the instrument. ONE RUN NOW ANSWERS THE WHOLE FOLDER.
+
+    Each file is placed under a branch of its own situation, so the filter this
+    had -- score only the labels whose situation matches `--situation` -- left
+    every other file uncounted and made three runs necessary to score three
+    situations. All three are scored here, and the research paper filed under the
+    research branch is a CORRECT placement rather than the contamination the old
+    rule counted it as.
+
+    What is still contamination is the third file: the same research label, filed
+    under this run's own coursework branch. That is the defect the count was
+    written for -- the research paper in `Coursework/PHYS1403/exam` -- and it is
+    the one of the three that is counted.
+    """
+    labels = {
+        "course.pdf": _label(path="course.pdf"),
+        "paper.pdf": _label(path="paper.pdf", situation="academic.research",
+                            destination=("2026", "draft")),
+        "spilled.pdf": _label(path="spilled.pdf", situation="academic.research",
+                              destination=("2026", "draft")),
+    }
+    run = _run({
+        "course.pdf": _obs(path="course.pdf"),
+        "paper.pdf": _obs(path="paper.pdf",
+                          destination=("research", "2026", "draft")),
+        "spilled.pdf": _obs(path="spilled.pdf",
+                            destination=("Coursework", "PHYS1403", "exam")),
+    })
+    score = score_situation(run, labels)
+
+    assert score.scored == 3
+    assert score.sorting[PLACED_EXACT] == 2
+    assert score.contaminated == 1
+    assert score.contaminated_of == 3
+    assert run.files["paper.pdf"].branch == "research"
+
+
+def test_a_file_of_this_runs_own_situation_filed_outside_its_branch_is_spillover():
+    """The other direction, and it is the same rule read backwards: a coursework
+    file put under the research branch is as much in the wrong life as the paper
+    in the course. An abstention is neither -- nothing was filed anywhere."""
+    labels = {"course.pdf": _label(path="course.pdf"),
+              "quiet.pdf": _label(path="quiet.pdf")}
+    run = _run({
+        "course.pdf": _obs(path="course.pdf",
+                           destination=("research", "PHYS1403", "exam")),
+        "quiet.pdf": _obs(path="quiet.pdf", outcome="abstain", destination=()),
+    })
+    score = score_situation(run, labels)
+
+    assert score.contaminated == 1
+    assert run.files["quiet.pdf"].branch == ""

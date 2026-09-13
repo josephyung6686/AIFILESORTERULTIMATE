@@ -547,6 +547,29 @@ def _refinements_of(their_own_folder: str | None,
     return frozenset(inside)
 
 
+def _root_of(node_id: str, parent_of: Mapping[str, str | None]) -> str:
+    """The top of this node's chain, which is the branch it is in.
+
+    `00` amendment 7 asks which SITUATION a candidate belongs to, and a branch is
+    a root and everything under it -- so the root's label is the whole of the
+    answer and `_only_this_files_own_branch` needs no second fact about the tree.
+
+    Bounded by `seen` exactly as `_refinements_of`'s walk is, and for the same
+    reason: P10 builds no parent cycle and this must not hang on one if it did.
+    A node the map does not carry is its own root, which is the honest answer for
+    a candidate from a tree this walk never saw.
+    """
+    seen: set[str] = set()
+    walker = node_id
+    while walker not in seen:
+        seen.add(walker)
+        parent = parent_of.get(walker)
+        if parent is None:
+            return walker
+        walker = parent
+    return walker
+
+
 def _without_kind_only_moves(
         retrieval: Retrieval, *, dimension_of: Mapping[str, str | None],
         fields_that_cannot_anchor_a_move: frozenset[str],
@@ -652,6 +675,62 @@ def _without_kind_only_moves(
         and dimension_of.get(candidate.node_id) not in {
             fact.field for fact in candidate.matching_facts}}
     return _ranked_below(retrieval, carried, _RANKED_BELOW_KIND_ONLY)
+
+
+def _only_this_files_own_branch(
+        retrieval: Retrieval, *, situation: str | None,
+        situation_under: Mapping[str, str | None]) -> Retrieval:
+    """Step 6's fifth half: A BRANCH IS ONE SITUATION AND A FILE IS UNDER ONE.
+
+    `00` amendment 7 gives every file its own situation -- the one site G named
+    for it, or the run's `--situation` where G declined -- and P10 builds a branch
+    per situation the corpus turned out to hold. A folder in ANOTHER situation's
+    branch is not a home this file's evidence chose; it is the only tree the run
+    happened to build.
+
+    MEASURED AT HEAD. A research paper in an `--situation academic.coursework`
+    run was asked its fields under `academic.research`, because the fact pass
+    routes per file (`cli._model_fact_pass`'s `by_schema`), and was then retrieved
+    against the coursework tree and filed into a course, because placement read no
+    situation at all -- `grep situation src/placement/` came back empty. That is
+    the two cover letters under `Coursework/Summer2026/cover letter` one amendment
+    later: the questions moved per file and the folders did not.
+
+    **THIS DROPS, IT DOES NOT RANK.** `_without_kind_only_moves` sets a candidate
+    aside because a model given the sentence beside it can still be right about
+    the folder; here there is nothing for a model to be right about. A set-aside
+    node reaches the shortlist through `_ranked_set_aside`, so ranking would offer
+    the coursework folder to the judge with the paper's own dossier and buy the
+    spillover back at the price of a call. `retrieval.set_aside` is pruned for the
+    same reason, and when nothing survives `assess` abstains with the
+    `no_supported_destination` it already has for an empty candidate set.
+
+    **A BRANCH THIS DOES NOT KNOW IS LEFT ALONE.** `situation_under` answers
+    `None` for a candidate whose root the run's partition never named, which is
+    every one of the person's OWN top-level folders -- they are offered to the
+    design as branches (`00`:100) and are nobody's situation. Refusing those would
+    take away the folders the person already made, which is not what a rule about
+    spillover is for.
+
+    Inert when the file has no situation at all: a deployment that names none, or
+    a run with no model and no `--situation`, places exactly as it did before this
+    rule existed.
+    """
+    if situation is None:
+        return retrieval
+    foreign = {
+        candidate.node_id for candidate in retrieval.candidates
+        if situation_under.get(candidate.node_id) not in (None, situation)}
+    set_aside = tuple(
+        item for item in retrieval.set_aside
+        if situation_under.get(item.candidate.node_id) in (None, situation))
+    if not foreign and len(set_aside) == len(retrieval.set_aside):
+        return retrieval
+    return dataclasses.replace(
+        retrieval,
+        candidates=tuple(candidate for candidate in retrieval.candidates
+                         if candidate.node_id not in foreign),
+        set_aside=set_aside)
 
 
 def _a_folder_made_for_this_keeps_it(
@@ -1002,6 +1081,41 @@ class PipelineInputs:
     #: this field existed. That is a position the caller has taken rather than one
     #: this dataclass took for it.
     the_folder_each_file_is_in: Mapping[str, str]
+    #: `00` amendment 7. THE SITUATION THIS FILE IS UNDER -- `callable(file_id)`
+    #: answering the one site G named for it, or the run's own `--situation` for a
+    #: file G declined, or `None`. `_only_this_files_own_branch` is the rule and
+    #: carries the measurement.
+    #:
+    #: THE SAME ANSWER THE FACT PASS ASKED ITS QUESTIONS UNDER, and the caller
+    #: passes the same callable (`cli._situation_of`) it hands site E: a file whose
+    #: fields were asked under one situation and whose folders were chosen under
+    #: another would be two answers to "what kind of material is this", and P11
+    #: would be the one holding the second.
+    #:
+    #: Required, with no default, exactly as the two mappings above it are, and
+    #: `test_no_unfinished_knowledge_source_gained_an_implementation_default` is
+    #: the guard. A deployment that names no situation per file passes a callable
+    #: answering `None`, and then the rule below changes nothing -- which is a
+    #: position that caller has taken rather than one this dataclass took for it.
+    situation_of: object
+    #: `00` amendment 7. Each top-level branch this run proposed, by the LABEL its
+    #: root node wears, and the situation that branch carries. The other half of
+    #: the comparison above: a candidate's branch is the label of its root
+    #: ancestor, and `branch_situation.Branch.label` is what P10's root is named
+    #: (`test_r37_per_branch_situation` reads those roots back as `Coursework` and
+    #: `career`).
+    #:
+    #: A LABEL THIS DOES NOT NAME CARRIES NO SITUATION, and the rule leaves such a
+    #: candidate alone. The person's own top-level folders are offered to the
+    #: design as branches too (`00`:100, `cli.adopted_folders`), and they are
+    #: nobody's situation: refusing them would take away the folders the person
+    #: already made, which is the opposite of what this rule is for.
+    #:
+    #: Required, with no default, for the same sentence as `situation_of`: which
+    #: branch is which situation is a fact about the run's partition, and P11 does
+    #: not read another part's tables. An empty mapping is a run with no branch
+    #: whose situation is known, and the rule is then inert.
+    the_situation_each_branch_carries: Mapping[str, str]
     #: `104` R-113. `(file_id, node_id) -> the folder the file is in now`, or
     #: `None`, for a proposed move that would cross one of the person's own
     #: top-level folders. `00`:20 makes crossing their choice and P12's freeze
@@ -1071,6 +1185,14 @@ class PipelineInputs:
                 "which files are in it, are reads of P1's paths that P11 does "
                 "not make. A deployment with none passes an empty mapping, and "
                 "then no move is treated as a refinement")
+        if not isinstance(self.the_situation_each_branch_carries, Mapping):
+            raise ValueError(
+                "`the_situation_each_branch_carries` maps a top-level branch's "
+                "label to the situation it is, given by the composition root: "
+                "which branch is which situation is a fact about the run's "
+                "partition and P11 reads no other part's tables. A run with none "
+                "passes an empty mapping, and then no candidate is another "
+                "situation's")
         if not isinstance(self.limits, PlacementLimits):
             raise ValueError(
                 "the pipeline runs under P1's seven ceilings and reads them "
@@ -1626,6 +1748,12 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
     # fourth and fifth comprehension over the tree.
     dimension_of: dict[str, str | None] = {}
     parent_of: dict[str, str | None] = {}
+    #: `00` amendment 7. Node -> the name it wears, which for a ROOT is the label
+    #: of the branch it is. In the same walk and for the same reason as the maps
+    #: beside it: `_only_this_files_own_branch` climbs `parent_of` to a root and
+    #: asks this what that root is called, and a comprehension of its own would be
+    #: the O(files x nodes) shape `planning/58-SCALE-STRESS.md` §2 measured.
+    label_of: dict[str, str] = {}
     their_own_folders: set[str] = set()
     general_child_of: dict[str, str] = {}
     #: parent -> the dimensions its ORDINARY children bind, which is what a file
@@ -1643,6 +1771,7 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
         parent = getattr(node, "parent_node_id", None)
         dimension_of[node.node_id] = dimension
         parent_of[node.node_id] = parent
+        label_of[node.node_id] = getattr(node, "display_label", "")
         if getattr(node, "existing_path", None) is not None:
             their_own_folders.add(node.node_id)
         if parent is None or not getattr(node, "accepts_placement", False):
@@ -1686,6 +1815,17 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
         retrieval, dimension_of=dimension_of,
         fields_that_cannot_anchor_a_move=inputs.fields_that_cannot_anchor_a_move,
         refinements=refinements)
+    # And beside it, `00` amendment 7: a folder in another situation's branch is
+    # not this file's, however well it scores. Read off the ROOT ANCESTOR, which
+    # is the branch, over the candidates and the tail together -- the tail reaches
+    # the model through `_ranked_set_aside` one screen down.
+    retrieval = _only_this_files_own_branch(
+        retrieval, situation=inputs.situation_of(subject.file_id),
+        situation_under={
+            node_id: inputs.the_situation_each_branch_carries.get(
+                label_of.get(_root_of(node_id, parent_of), ""))
+            for node_id in {c.node_id for c in retrieval.candidates}
+            | {item.candidate.node_id for item in retrieval.set_aside}})
     # `104` §18.2 gap 11's second half, and LAST, after every rule that changes
     # who the contenders are. The condition is "a contender's own General", so it
     # has to be asked of the final contender list: run before the collapses it

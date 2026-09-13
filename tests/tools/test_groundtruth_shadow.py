@@ -405,17 +405,22 @@ def test_the_block_prints_both_rows_and_says_it_applied_nothing(built):
 
 
 def test_spillover_is_scored_by_the_same_rule_and_moves_with_the_verdicts(built):
-    """A run answers one situation for EVERY file in the folder, and no per-file
+    """A file filed under a branch that is not its own situation's, and no per-file
     bucket notices what that costs. The applied run abstained on the file labelled
-    as something else; the site-C verdict files it, so the shadow row shows the
-    cost the applied row does not."""
+    as something else; the site-C verdict files it under this run's own branch, so
+    the shadow row shows the cost the applied row does not.
+
+    `contaminated_of` is EVERY non-protected label since `00` amendment 7: one run
+    now answers the whole corpus, so every labelled file is one this run could
+    have put in the wrong life."""
     labels, run = built["labels"], built["run"]
     shadowed, _ = shadow_run(run, observed_placements(built["database"],
                                                       built["corpus"]))
     assert score_situation(run, labels).contaminated == 0
     shadow_score = score_situation(shadowed, labels)
     assert shadow_score.contaminated == 1
-    assert shadow_score.contaminated_of == 1
+    assert shadow_score.contaminated_of == sum(
+        1 for label in labels.values() if not label.protected)
     block, _, _ = shadow_block(
         [run], [score_situation(run, labels)], labels, built["out"],
         built["corpus"])

@@ -473,11 +473,11 @@ def sorting_lines(runs: Sequence[RunObservation],
 
 
 def spillover_lines(scores: Sequence[SituationScore], *, heading: str) -> list[str]:
-    """What one answer applied to every file in the folder costs. Shared with `--shadow`."""
-    lines = [f"{heading:<12}a run answers one situation for EVERY file in the folder"]
+    """What a file filed under another life's branch costs. Shared with `--shadow`."""
+    lines = [f"{heading:<12}files placed under a branch that is not their own situation's"]
     for s in scores:
         lines.append(f"              {s.situation:<32} placed {s.contaminated:4d} of "
-                     f"{s.contaminated_of} files labelled as something else")
+                     f"{s.contaminated_of} labelled files in the wrong branch")
     return lines
 
 

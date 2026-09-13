@@ -31,10 +31,12 @@ SITUATIONS = {"academic": ("academic.coursework", "academic.teaching"),
               "code": ("code.software-project",)}
 
 
-def _partition(files, *, facts, verdicts=None, chosen=None, situations=SITUATIONS):
+def _partition(files, *, facts, verdicts=None, chosen=None, situations=SITUATIONS,
+               named=None):
     verdicts = verdicts or {}
     chosen = chosen or {}
     return partition_by_branch(
+        named_by_the_model=named or {},
         roster=tuple((name, "h" * 64) for name in files),
         default_label="Coursework", default_situation="academic.coursework",
         default_schema="academic",
@@ -182,7 +184,8 @@ def test_a_branch_with_one_shipped_situation_is_settled_and_otherwise_asked():
         fields_of_schema=lambda schema_id: DOMAIN_FIELDS.get(schema_id, ()),
         verdict_of=lambda *_: _Verdict(),
         situations_of=lambda schema_id: SITUATIONS.get(schema_id, ()),
-        chosen_situation=lambda scope: None)
+        chosen_situation=lambda scope: None,
+        named_by_the_model={})
 
     code = partition.by_label("code")
     career = partition.by_label("career")
@@ -211,6 +214,65 @@ def test_an_answer_naming_a_situation_of_another_schema_settles_nothing():
         chosen={"branch:career": "academic.teaching"})
 
     assert not partition.by_label("career").settled
+
+
+def test_a_schema_site_g_named_opens_its_own_branch_and_takes_its_file():
+    """`00` amendment 7. THE ANCHOR IS NOT THE ONLY WAY IN.
+
+    A research paper carries no kind-of-file word any one schema authored -- its
+    `work_type` says `Research Paper` -- so no anchor opens a branch for it and
+    before this it fell to the default's, which is the coursework tree it was
+    then grouped and placed against. Site G names the schema for it, and G's name
+    both opens the branch and puts the file under it, AHEAD of the anchor: the
+    fact pass has already asked this file its fields under that schema.
+    """
+    partition = _partition(
+        ("syllabus", "paper", "cv"),
+        facts={"syllabus": (("work_type", "syllabus"),),
+               "cv": (("work_type", "resume"),)},
+        named={"paper": "code", "cv": "academic"},
+        situations={**SITUATIONS, "code": ("code.dotfiles", "code.software-project")})
+
+    assert partition.by_label("code").file_ids == ("paper",)
+    # G's name outranks the anchor: the résumé's `work_type` says career and G
+    # says the run's own schema, so the file is the default branch's and the
+    # branch its anchor opened stands empty.
+    assert "cv" in partition.default.file_ids
+    assert partition.by_label("career").file_ids == ()
+
+
+def test_a_branch_site_g_opened_carries_the_situation_g_s_name_resolves_to():
+    """The first of the schema's situations, which is not "the first of
+    twenty-six" §11.2 step 4 rules out: it is the SAME resolution `cli.
+    _situation_of` and `_model_fact_pass`'s `by_schema` already make of this name,
+    and the branch has to carry the situation its files were actually asked
+    under. An anchored branch is unchanged -- nobody chose for it, so it is still
+    UNSETTLED and still asked."""
+    partition = _partition(
+        ("syllabus", "paper", "cv"),
+        facts={"syllabus": (("work_type", "syllabus"),),
+               "cv": (("work_type", "resume"),)},
+        named={"paper": "code"},
+        # TWO situations, so the arm under test is the one that fires: a schema
+        # with exactly one was already settled by the rule beside it.
+        situations={**SITUATIONS,
+                    "code": ("code.software-project", "code.dotfiles")})
+
+    assert partition.by_label("code").situation == "code.software-project"
+    assert not partition.by_label("career").settled
+
+
+def test_a_named_schema_the_library_carries_no_situation_for_opens_nothing():
+    """`_model_fact_pass`'s own rule, one module over: such a schema has no folder
+    levels, so there is nothing a branch under it could be asked from. The file
+    stays where the deterministic signals put it."""
+    partition = _partition(
+        ("syllabus", "paper"),
+        facts={"syllabus": (("work_type", "syllabus"),)},
+        named={"paper": "identity"})
+
+    assert partition.single
+    assert partition.default.file_ids == ("syllabus", "paper")
 
 
 def test_the_partition_refuses_a_file_in_two_places():
