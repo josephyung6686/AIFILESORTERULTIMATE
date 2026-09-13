@@ -2541,6 +2541,24 @@ SITUATION_DOSSIER_TOKENS_CLOUD: int = 2_750
 #: evidence this site is asked for. Members are `evidence_shape.vocabulary.ZONES`.
 SITUATION_ZONES_LAST: tuple[str, ...] = ("metadata",)
 
+#: WHAT THE SITUATION JUDGE READS FIRST, and it is the sentence above made true
+#: (13 Sep 2026). "The path stays first" was a claim about an order nothing
+#: expressed: with no field to place by, `zone_evidence_counts` measures nothing,
+#: every zone ties at 0, and `document_order` decides -- so the path went wherever
+#: the extractor happened to write it. Measured on a synthetic corpus at the cloud
+#: bound: a text file whose opening excerpt ran to 2,445 characters spent 2,725 of
+#: the 2,750 on two body readings, and the fill then CUT the folder path, both
+#: metadata readings and the third body reading. `00`'s amendment of 9 Sep is that
+#: "selected excerpts" means "whole units, folder paths and OCR text within that
+#: ceiling, for every target"; a folder path cut by the ceiling on the one route
+#: the owner asked to be made faster is that sentence failing on the files it
+#: matters most for -- an event photograph in a named club's folder carries the
+#: club's name nowhere else.
+#:
+#: ONE ZONE, because one is what the sentence above claims. Members are
+#: `evidence_shape.vocabulary.ZONES`, as for the tuple above.
+SITUATION_ZONES_FIRST: tuple[str, ...] = ("path",)
+
 #: What one A_fact call is charged, and what it settles for. THIS DEPLOYMENT
 #: MEASURES NEITHER A TOKEN NOR A PRICE: `readers.model_deepseek` returns no usage
 #: figures, so a number here pretending to be dollars would be one nobody could
@@ -8490,7 +8508,8 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             conn, file_id=file_id, content_hash=content_hash,
             limit=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
             locality=target.locality,
-            ceiling=bound, zones_last=SITUATION_ZONES_LAST)
+            ceiling=bound, zones_last=SITUATION_ZONES_LAST,
+            zones_first=SITUATION_ZONES_FIRST)
         try:
             request = build_situation_request(
                 question, observations, model_target=target, prompt=prompt,
