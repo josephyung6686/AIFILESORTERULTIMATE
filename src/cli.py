@@ -481,6 +481,7 @@ from grouping.learning import apply_review_action as record_group_review
 # never reached. Read through P4's published reader rather than a query of this
 # file's own, so "this file could not be read" means here exactly what it means on
 # §8.6's line and the two screens cannot disagree about one file.
+from evidence_shape.observation import is_observation_key
 from evidence_shape.store import (
     get_observation, record_observation, readings_over_stored_units,
     runs_for_content,
@@ -7341,11 +7342,21 @@ def gate_kind_named_by_verdict(conn: sqlite3.Connection, verdict) -> str | None:
     """
     if verdict is None:
         return None
-    payload = _validated_payload(conn, verdict)
+    return _gate_kind_in(_validated_payload(conn, verdict), verdict.outcome)
+
+
+def _gate_kind_in(payload: dict | None, outcome: str) -> str | None:
+    """WHICH KIND a gate payload judged under `outcome` names, and nothing else.
+
+    One spelling for one question, for `_template_name_in`'s reason: there are two
+    callers -- the verdict this run's call just produced, and the verdict an
+    earlier run's call left in the store -- and a kind read one way live and
+    another way on reuse would be two answers to "what did the gate say".
+    """
     kind = payload.get("restricted_kind") if payload else None
     if not isinstance(kind, str) or not kind:
         return None
-    if verdict.outcome in ACCEPTING_OUTCOMES:
+    if outcome in ACCEPTING_OUTCOMES:
         if kind in RESTRICTED_KINDS:
             return kind
         # A model that wrote the decline into the payload AND cited something means
@@ -7354,11 +7365,42 @@ def gate_kind_named_by_verdict(conn: sqlite3.Connection, verdict) -> str | None:
         # `situation_validation.is_decline`'s own equivalence at the other site.
         return NONE_OF_THESE if is_decline(
             kind, decline_word=NONE_OF_THESE) else None
-    if verdict.outcome == ABSTAIN and is_decline(kind, decline_word=NONE_OF_THESE):
+    if outcome == ABSTAIN and is_decline(kind, decline_word=NONE_OF_THESE):
         # THE CLEARANCE, AND THE ONLY OUTCOME IT IS READ FROM. `weak` and `reject`
         # are answers the checks did not accept, and a file is not cleared by an
         # answer this product refused.
         return NONE_OF_THESE
+    return None
+
+
+def gate_kind_named_before(conn: sqlite3.Connection, dossier_id: str
+                           ) -> tuple[str, str, str] | None:
+    """The kind an EARLIER call at this identity named -- `(verdict_id, claim_ref,
+    kind)` -- or `None`.
+
+    `template_named_before` at the gate, under its three rules: superseded
+    verdicts are not answers (`standing_verdicts` decides), a verdict another
+    validator wrote is asked again (`104` R-127), and only an ANSWER is reused.
+    Here `NONE_OF_THESE` is an answer -- the model read the file and cleared it --
+    and so is a kind; a verdict that named nothing is asked again.
+
+    Why the gate has this at all: the first gate run over the owner's corpus was
+    relaunched once and re-asked every one of ~290 gate questions, 75 minutes at
+    15 s each, to be told what its own store already held. The question's
+    identity is `gate_call_identity`'s ten terms, so a changed prompt, model,
+    reader or file version asks again.
+    """
+    standing = standing_verdicts(conn, dossier_id)
+    if not standing:
+        return None
+    if any(row["validator_version"] != p8_validation.COMPONENT_VERSION
+           for row in standing):
+        return None
+    for row in reversed(standing):
+        kind = _gate_kind_in(
+            _claim_payload(conn, dossier_id, row["claim_ref"]), row["outcome"])
+        if kind is not None:
+            return row["verdict_id"], row["claim_ref"], kind
     return None
 
 
@@ -7432,10 +7474,28 @@ def gate_classification(question, kind: str | None, *, observed_at: str,
         privacy_class=privacy_class_for((kind,)))
 
 
+def cited_observations(verdict) -> tuple[str, ...]:
+    """The P4 observation keys the verdict's citations resolved to, in the model's
+    order and once each.
+
+    `CheckedCitation.citation_ref` is the reference as P8 checked it, after the
+    wire handle was translated through the handles the release issued, so a
+    resolved one IS an observation key -- except where the model cited a dossier
+    item that is not an observation (a `candidate_schema` item, say), which
+    `is_observation_key` leaves out for the reason `facts.llm_seam` gives: M14
+    reserves `evidence_refs` for keys.
+    """
+    return tuple(dict.fromkeys(
+        checked.citation_ref for checked in verdict.citations_checked
+        if checked.resolved and is_observation_key(checked.citation_ref)))
+
+
 def situation_classification(question, schema_id: str, *, observed_at: str,
                              restricted_kind: str | None = None,
+                             cited: tuple[str, ...] = (),
                              precaution=None,
-                             handling_for=HANDLING_POLICY) -> ClassificationRecord:
+                             handling_for=HANDLING_POLICY
+                             ) -> ClassificationRecord | None:
     """`104` §17.1's second wall, spent: one model verdict, written down truthfully.
 
     **THE BASIS IS THE MODEL'S AND THE CLASS IS THE DEPLOYMENT'S**, and keeping
@@ -7476,6 +7536,17 @@ def situation_classification(question, schema_id: str, *, observed_at: str,
     shortlist was built from. Nothing about the hold survives into a claim the
     hold contradicts.
 
+    **AND SINCE `00` AMENDMENT 7(c) THE MODEL'S OWN CITATIONS STAND BESIDE THEM.**
+    Every file is asked from the whole library now, a file no recogniser raised
+    anything for included; its question carries no observation keys, and a record
+    built on the recogniser's alone had nothing to cite and raised
+    `UnbackedClassification` eight situation calls into the first gate run. `cited`
+    is what the verdict's citations resolved to (`cited_observations`), P8-checked;
+    the recogniser's keys come first, the model's after, once each. A record with
+    nothing to cite either way is `None`, and the caller counts it as declined,
+    which is `gate_classification`'s own convention for a verdict that yields no
+    row.
+
     `llm_supported` is P4's own word for a fact a model supported, and it ranks
     below `user_confirmed`, `direct` and `validated` -- so a later record from the
     person, or from an extractor reading the file's own words, supersedes this one
@@ -7503,15 +7574,19 @@ def situation_classification(question, schema_id: str, *, observed_at: str,
     protected = handling.protected or (precaution is not None
                                        and restricted_kind is not None)
     confirmed = protected and precaution is not None
+    if confirmed and precaution.evidence_refs:
+        evidence = tuple(precaution.evidence_refs)
+    else:
+        evidence = tuple(dict.fromkeys((*question.evidence_refs, *cited)))
+    if not evidence:
+        return None
     return ClassificationRecord(
         file_id=question.file_id,
         content_hash=question.content_hash,
         handling_class=handling.handling_class,
         protected=protected,
         basis=LOCAL_MODEL_SITUATION,
-        evidence_refs=(precaution.evidence_refs
-                       if confirmed and precaution.evidence_refs
-                       else tuple(question.evidence_refs)),
+        evidence_refs=evidence,
         reliability_state=LLM_SUPPORTED,
         observed_at=observed_at,
         # `104` §18.7 S2 / §18.11 (9 Sep 2026): THE KIND IS THE MODEL'S AND THE
@@ -7628,6 +7703,10 @@ class GatePass:
     #: a file nobody could ask, a file with nothing to read and a file that ate its
     #: budget are three different facts.
     over_ceiling: int = 0
+    #: `104` §18.31 at the gate. Files answered from this store's own earlier
+    #: verdict rather than by a call. NOT among the counters that partition
+    #: the roster: a reused file is also cleared, named or declined.
+    reused: int = 0
 
 
 #: THE GATE THAT DID NOT RUN, a value rather than a `None` on `_NOTHING_ASKED`'s
@@ -7682,6 +7761,7 @@ def ask_the_gate(conn: sqlite3.Connection, *, roster, fact_authorities,
     """
     named: dict = {}
     cleared = already_held = nothing_to_read = declined = over_ceiling = 0
+    reused = 0
     # `104` §18.33 gap 25: THE ROWS, AND THE COUNT IS TAKEN OFF THEM, so a
     # `continue` added without a row lowers the number a person reads instead of
     # leaving the number right and the file unaccounted for.
@@ -7754,22 +7834,47 @@ def ask_the_gate(conn: sqlite3.Connection, *, roster, fact_authorities,
         except NothingToAsk:
             nothing_to_read += 1
             continue
-        verdict = run_call(
-            conn, request,
-            gate=fact_authorities.gate,
-            model_client=client,
-            prompt=prompt,
-            validation_dependencies=gate_call_dependencies(
-                fact_authorities,
-                allowed_vocabulary=vocabulary,
-                placeable_file_count=len(roster)),
-            observed_at=now,
-            # `104` R-14 / R-172: the same mailbox every other site is handed, so
-            # what this call consumed is recorded beside what was reserved.
-            usage_recorder=fact_authorities.usage_recorder)
-        kind = None
-        if isinstance(verdict, P8Verdict):
-            kind = gate_kind_named_by_verdict(conn, verdict)
+        # `104` §18.31's reuse, at the gate: the same identity, prior lookup and
+        # reuse row site E writes, so a relaunch is not charged again for a
+        # question this store already holds the answer to.
+        identity = gate_call_identity(
+            conn, file_id=file_id, content_hash=content_hash, request=request,
+            policy_version=fact_authorities.policy_version)
+        identity_id = call_identity(identity)
+        prior = prior_call(conn, identity_id)
+        answered = (None if prior is None
+                    else gate_kind_named_before(conn, prior["dossier_id"]))
+        if answered is not None:
+            verdict_id, claim_ref, kind = answered
+            reused += 1
+            record_call_reuse(
+                conn, identity_id=identity_id,
+                prior_dossier_id=prior["dossier_id"],
+                call_site=H_RESTRICTED_KIND, subject_ref=file_id,
+                reused_fields=(claim_ref,), observed_at=now())
+        else:
+            verdict = run_call(
+                conn, request,
+                gate=fact_authorities.gate,
+                model_client=client,
+                prompt=prompt,
+                validation_dependencies=gate_call_dependencies(
+                    fact_authorities,
+                    allowed_vocabulary=vocabulary,
+                    placeable_file_count=len(roster)),
+                observed_at=now,
+                # `104` R-14 / R-172: the same mailbox every other site is handed, so
+                # what this call consumed is recorded beside what was reserved.
+                usage_recorder=fact_authorities.usage_recorder)
+            kind = verdict_id = None
+            if isinstance(verdict, P8Verdict):
+                record_call_identity(
+                    conn, identity_id=identity_id,
+                    dossier_id=verdict.dossier_id,
+                    call_site=H_RESTRICTED_KIND, subject_ref=file_id,
+                    dimensions=identity, observed_at=now())
+                kind = gate_kind_named_by_verdict(conn, verdict)
+                verdict_id = verdict.verdict_id
         if kind is None:
             declined += 1
             continue
@@ -7803,7 +7908,7 @@ def ask_the_gate(conn: sqlite3.Connection, *, roster, fact_authorities,
         written = assign(
             conn, record, store=store, component_version=component_version,
             supersede_reason=(
-                f"local model gate verdict {verdict.verdict_id} "
+                f"local model gate verdict {verdict_id} "
                 + (f"named the restricted kind {kind}"
                    if kind != NONE_OF_THESE else
                    "read this file and named none of the ten restricted kinds")))
@@ -7826,7 +7931,7 @@ def ask_the_gate(conn: sqlite3.Connection, *, roster, fact_authorities,
         named=named, cleared=cleared, already_held=already_held,
         nothing_to_read=nothing_to_read,
         no_route=len(no_route_rows), declined=declined,
-        over_ceiling=over_ceiling)
+        over_ceiling=over_ceiling, reused=reused)
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -8293,11 +8398,15 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         record = situation_classification(
             question, situation, observed_at=now(),
             restricted_kind=restricted_kind,
+            cited=cited_observations(verdict),
             # `104` §18 gap 24: G's answer may not lift a hold it did not
             # contradict, and since §18.27 a hold the answer CONFIRMS is what the
             # row cites. `situation_classification` carries both arguments off the
             # one object rather than off a flag beside it.
             precaution=precaution)
+        if record is None:
+            declined += 1
+            continue
         # THE SUPERSESSION IS `assign`'S AND IS NOT SPELLED AGAIN HERE. This
         # record is `llm_supported` and the precaution's is `possible`, so
         # `assign` writes it, retires the precaution row through
@@ -8486,10 +8595,37 @@ def template_call_identity(conn: sqlite3.Connection, *, file_id: str,
         and `[]` is exactly what `store.EMPTY_DIMENSION_VALUES` says a call with
         nothing to say there carries.
     """
+    return _per_file_call_identity(
+        conn, call_site=E_TEMPLATE, file_id=file_id, content_hash=content_hash,
+        request=request, schema_ids=[schema_id], policy_version=policy_version)
+
+
+def gate_call_identity(conn: sqlite3.Connection, *, file_id: str,
+                       content_hash: str, request,
+                       policy_version: str) -> dict[str, object]:
+    """`template_call_identity` at the gate, `104` §18.31's ten terms unchanged.
+
+    `schema_id` is `[]`: the gate closes its answer against
+    `restricted_kind_vocabulary()`, which is the response schema's own enum and
+    already inside `prompt_fingerprint`, and `store.EMPTY_DIMENSION_VALUES` says
+    `[]` is what a call with nothing to say there carries.
+    """
+    return _per_file_call_identity(
+        conn, call_site=H_RESTRICTED_KIND, file_id=file_id,
+        content_hash=content_hash, request=request, schema_ids=[],
+        policy_version=policy_version)
+
+
+def _per_file_call_identity(conn: sqlite3.Connection, *, call_site: str,
+                            file_id: str, content_hash: str, request,
+                            schema_ids: list[str],
+                            policy_version: str) -> dict[str, object]:
+    """The one spelling of a per-file call's identity that sites E and H share;
+    `template_call_identity`'s docstring is the argument for every term."""
     released = {item.observation_key
                 for item in request.model_call_request.requested_items}
     return {
-        "call_site": E_TEMPLATE,
+        "call_site": call_site,
         "content_hash": content_hash,
         "context_refs": [],
         "extractor_versions": sorted(
@@ -8505,7 +8641,7 @@ def template_call_identity(conn: sqlite3.Connection, *, file_id: str,
         "plan_version": request.plan_version,
         "policy": model_facts._policy_content(conn, policy_version),
         "prompt_fingerprint": request.model_call_request.prompt_fingerprint,
-        "schema_id": [schema_id],
+        "schema_id": list(schema_ids),
         "subject_ref": file_id,
     }
 
@@ -11013,6 +11149,11 @@ GATE_SENTENCE: Mapping[str, str] = MappingProxyType({
         "past the time this run gives one file: the run stopped waiting for them "
         "so it could reach the rest. Nothing was decided about them and they are "
         "not cleared.",
+    "reused":
+        "answered from this database's own earlier verdict rather than asked "
+        "again: the same file, reader, prompt and model had already been put to "
+        "the question, so its answer was read back and no call was spent. These "
+        "are counted above as cleared, named or left alone as well.",
 })
 
 assert set(GATE_SENTENCE) | {"named"} == {

@@ -113,8 +113,12 @@ def _dispatching(gate_answer):
 
 
 def _run(tmp_path, monkeypatch, gate_answer, *extra: str):
-    corpus = _corpus(tmp_path)
-    database = tmp_path / "plan.sqlite"
+    return _run_into(_corpus(tmp_path), tmp_path / "plan.sqlite", monkeypatch,
+                     gate_answer, *extra)
+
+
+def _run_into(corpus: Path, database: Path, monkeypatch, gate_answer,
+              *extra: str):
     with StubOllama(answer=_dispatching(gate_answer)) as stub:
         monkeypatch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
         monkeypatch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)
@@ -568,3 +572,50 @@ def test_the_rows_status_is_read_off_the_manifest_and_never_assumed():
     # The gate's bytes may not cross whatever the row says; site G's may, now.
     assert not cli.observe_locality_permits(cli.H_RESTRICTED_KIND, cli.CLOUD)
     assert cli.observe_locality_permits(cli.G_SITUATION_SENSITIVITY, cli.CLOUD)
+
+
+def _gate_subjects(stub) -> set[str]:
+    """The wire handles of the files the stub was asked about at the gate; keyed
+    per database, so comparable across two runs into one."""
+    return {dossier_in(prompt)["subject_ref"] for prompt in stub.prompts()
+            if dossier_in(prompt).get("call_site") == cli.H_RESTRICTED_KIND}
+
+
+def _asked_at_the_gate(stub) -> int:
+    return len(_gate_subjects(stub))
+
+
+def test_a_second_run_over_the_same_database_asks_the_gate_nothing(tmp_path,
+                                                                    monkeypatch):
+    """`104` §18.31's reuse, at the gate.
+
+    The first gate run over the owner's corpus was relaunched once and re-asked
+    every one of its ~290 gate questions -- 75 minutes at 15 s each -- to be
+    told what its own store already held. Site E already answers this with one
+    identity, one prior lookup and one reuse row; the gate now writes the same
+    three, so the second run spends no call, reads every answer back, reaches
+    the same clearances, and says so on the screen.
+
+    SABOTAGE: drop the `prior_call` lookup and the second run's stub sees a gate
+    dossier per file again; drop `record_call_identity` after the live call and
+    there is nothing for the second run to find.
+    """
+    corpus, database = _corpus(tmp_path), tmp_path / "plan.sqlite"
+    _database, _said, first = _run_into(corpus, database, monkeypatch, _clear)
+    asked = _asked_at_the_gate(first)
+    assert asked > 0
+    cleared_first = _protected_ids(_read(database))
+
+    _database, said, second = _run_into(corpus, database, monkeypatch, _clear)
+    # Not "asks nothing": the file a rule HELD on the first run was never asked
+    # then (`already_held`), and the first run's situation pass superseded that
+    # hold with the model's own record, which is not a rule's -- so the second
+    # run's gate asks it, once, and no file the first run asked.
+    assert _gate_subjects(second).isdisjoint(_gate_subjects(first))
+    conn = _read(database)
+    reuse_rows = conn.execute(
+        "SELECT count(*) FROM llm_call_reuse WHERE call_site = ?",
+        (cli.H_RESTRICTED_KIND,)).fetchone()[0]
+    assert reuse_rows == asked
+    assert _protected_ids(conn) == cleared_first
+    assert f"{asked} {cli.GATE_SENTENCE['reused'][:40]}" in " ".join(said.split())
