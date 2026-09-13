@@ -28,11 +28,31 @@ what THIS database calls each file, rewrites that one term and asks the product'
 `call_identity` for the digest. The run then scans again and finds those rows
 unchanged, so its own work is neither skipped nor repeated.
 
-**Everything is real except the socket**, exactly as in
+**Everything is real except the two model seams**, exactly as in
 `test_a_fact_reuse_after_a_verdict.py`, whose `_Socket` this borrows in shape:
 `readers.model_routing.deepseek_invoke` is the documented deployment seam, and the
 gate, the release ledger, the transport, the validator and the whole of `cli.run`
 are the production path. Counting `invoke` calls counts model calls exactly.
+
+**AND A LOCAL MODEL IS NOW PART OF THE DEPLOYMENT, `00` amendment 7(c).** This
+file used to configure a cloud key and nothing else, and that stopped being a
+deployment site A can run in: the gate, `cli.ask_the_gate`, reads every un-held
+file on this device BEFORE anything about it may be sent, `CLOUD_CLEARING_BASES`
+is what `model_route_permitted` asks for a cloud target, and the rules' own word
+is no longer among them. With no local model the gate has no destination, no file
+is cleared, and site A is refused the cloud for every one of them -- measured, and
+it is the 0 this file read where it says 2. So the local half is `StubOllama`,
+`test_local_model_fact_pass`'s own server, imported rather than copied for that
+file's own reason, and it answers the gate `none_of_these` and declines the
+situation. Both seams are stubs; neither is the thing under test.
+
+**WHY THE SITUATION IS DECLINED AND NOT ANSWERED.** Amendment 7(c) asks site G of
+every file from the WHOLE library, so a stub that named the first option on the
+menu would be naming whichever situation the library happens to list first -- and
+a protected one would hold the file, route site A local, and empty the socket this
+file counts. A decline writes nothing and leaves the gate's own clearance
+standing, which is the row `model_route_permitted` reads. The file's route is
+therefore decided by the gate alone, which is the amendment's own shape.
 
 Two DATABASES rather than two runs against one, because that is what the scoreboard
 does and it is the whole of R-123: the second run's database is created by
@@ -57,7 +77,21 @@ from readers import model_routing  # noqa: E402
 from readers.model_routing import MODEL_NAME_OF_TIER  # noqa: E402
 from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME  # noqa: E402
 from llm_harness import fact_validation  # noqa: E402
-from llm_harness.vocabulary import A_FACT, C_PLACEMENT  # noqa: E402
+from llm_harness.vocabulary import (  # noqa: E402
+    A_FACT, C_PLACEMENT, G_SITUATION_SENSITIVITY, H_RESTRICTED_KIND,
+)
+from readers.model_ollama import (  # noqa: E402
+    BASE_URL_NAME as LOCAL_BASE_URL_NAME,
+    MODEL_NAME as LOCAL_MODEL_NAME,
+)
+# The two local sites' answers come from the files that own them, on
+# `test_site_e_reuses_its_answer`'s own rule: one stub speaking one protocol, so
+# this file and the gate's own pins cannot drift into describing two gates.
+from test_local_model_fact_pass import (  # noqa: E402
+    MODEL_ID, StubOllama, _answer_for, dossier_in,
+)
+from test_site_g_end_to_end import _decline  # noqa: E402
+from test_site_h_gate import _clear  # noqa: E402
 from tools.groundtruth.reuse import (  # noqa: E402
     ReuseRefused,
     prior_database,
@@ -144,6 +178,15 @@ class _Socket:
         def invoke(payload: bytes) -> bytes:
             self.payloads.append(payload)
             body = self._body(payload)
+            # SITE G ARRIVES HERE TOO since `00` amendment 7(c): G's row is
+            # `ratified` and a file the gate CLEARED may have its situation asked
+            # off the device, so the cloud seam sees a situation dossier whose
+            # schema is not site A's. Answering it in site A's shape would be a
+            # malformed claim the validator refuses -- the same silence, reached
+            # by a fault -- so it is declined in the shape the ratified prompt
+            # asks for, and the gate's clearance stands as this file's route.
+            if body["call_site"] == G_SITUATION_SENSITIVITY:
+                return _decline(body).encode("utf-8")
             return json.dumps({"claims": [
                 {"payload": {"field": field, "value": UNCITED}, "citations": []}
                 for field in body["allowed_vocabulary"]]}).encode("utf-8")
@@ -159,12 +202,50 @@ def socket(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _no_ambient_key(monkeypatch, tmp_path):
-    """The developer's own key must not decide whether these tests pass."""
-    for name in (CREDENTIAL_NAME, BASE_URL_NAME, *MODEL_NAME_OF_TIER.values()):
+    """The developer's own key must not decide whether these tests pass.
+
+    The local model's two names are cleared for the same reason and it is not a
+    formality: a machine with ollama running would answer the gate with whatever
+    it pulled, and these counts would then depend on a model nobody chose here.
+    `_local_model` puts the stub's own names back.
+    """
+    for name in (CREDENTIAL_NAME, BASE_URL_NAME, *MODEL_NAME_OF_TIER.values(),
+                 LOCAL_MODEL_NAME, LOCAL_BASE_URL_NAME):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(cli, "ENV_FILE", tmp_path / "absent.env")
     for name, value in ENV.items():
         monkeypatch.setenv(name, value)
+
+
+def _local_answer(payload: str) -> str:
+    """The local half of the deployment, dispatched on the dossier's own site.
+
+    `test_site_h_gate._dispatching` in shape, with site G declined rather than
+    answered for the reason in this file's own header.
+    """
+    dossier = dossier_in(payload)
+    site = dossier.get("call_site")
+    if site == H_RESTRICTED_KIND:
+        return _clear(dossier)
+    if site == G_SITUATION_SENSITIVITY:
+        return _decline(dossier)
+    return _answer_for(payload)
+
+
+@pytest.fixture(autouse=True)
+def _local_model(monkeypatch, _no_ambient_key):
+    """A local model for the whole test, because a run now needs one to send.
+
+    AUTOUSE AND PER TEST, beside `_no_ambient_key` and for its reason: this is
+    what the deployment IS since amendment 7(c), not something one pin arranges.
+    One server for the test rather than one per run -- every test here runs the
+    product two or three times over one corpus, and a stub that came and went
+    between them would give the second run a different base URL from the first.
+    """
+    with StubOllama(answer=_local_answer) as stub:
+        monkeypatch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
+        monkeypatch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)
+        yield stub
 
 
 @pytest.fixture()
@@ -214,6 +295,27 @@ def _a_fact_verdicts(database) -> list[dict]:
         f"WHERE d.call_site = '{A_FACT}'")
 
 
+def _seeded_verdicts(database) -> list[dict]:
+    """The verdicts a seeding carries: the identity-recording sites', and no more.
+
+    `given.rows["llm_verdict"]` is what the seeder copied, and it copies a verdict
+    for every dossier it carried -- site A's and, since `00` amendment 7(c), the
+    gate's. Site C's and site G's are written fresh by the run that made them and
+    are nobody's to hand on, so an unscoped count reads the seeder as having left
+    them behind.
+
+    **NAMED BY THE IDENTITY AND NOT BY A LIST OF SITES**, for `_seedable_answers`'
+    own reason: `seed` carries a dossier when an identity points at it, so "the
+    verdicts a seeding carries" is exactly the verdicts of those dossiers. A
+    literal `(A_fact, H_restricted_kind)` here would be the same thing that went
+    stale in this file the day the gate arrived.
+    """
+    return _rows(
+        database,
+        "SELECT verdict_id FROM llm_verdict WHERE dossier_id IN "
+        "(SELECT dossier_id FROM llm_call_identity)")
+
+
 def _a_fact_addresses(database) -> set[str]:
     """The addresses of the dossiers a seeding can carry, and no others."""
     return {row["dossier_id"] for row in _rows(
@@ -224,6 +326,75 @@ def _a_fact_addresses(database) -> set[str]:
 def _paths(database) -> dict[str, str]:
     return {row["file_id"]: pathlib.Path(row["current_path"]).name
             for row in _rows(database, "SELECT file_id, current_path FROM files")}
+
+
+def _seedable_answers(database) -> list[dict]:
+    """Every answer a seeding can carry, with the site and the file behind it.
+
+    **`104` §17.13 ruling 3's own argument, one amendment later, and this time it
+    cuts the other way.** `seed` copies the four `llm_*` tables an identity can be
+    reused from, so what it hands on is whatever a run recorded an IDENTITY for.
+    That used to be site A alone, which is why every count below was written as
+    `len(CORPUS)`. Since `00` amendment 7(c) the gate records one too and
+    `ask_the_gate` reuses it, so the seeder's own totals are two sites' -- and a
+    pin reading `len(CORPUS)` off them reports the seeder dropping half of what it
+    carried. Site C and site G still record no identity and are in neither the
+    seeder's numbers nor these.
+
+    **Counted off the prior database and not written down**, which is the whole
+    repair: a literal says how many sites this product had on the day it was typed
+    and goes stale on the day one is added, and this says what the prior run
+    actually recorded. The per-FILE claim each pin is really making -- one answer
+    per file at site A -- is kept, and asserted at site A by name.
+    """
+    return _rows(database,
+                 "SELECT d.call_site AS call_site, d.subject_ref AS subject_ref "
+                 "FROM llm_call_identity i "
+                 "JOIN llm_dossier d ON d.dossier_id = i.dossier_id")
+
+
+def _answers_at(database, call_site: str) -> int:
+    return sum(1 for row in _seedable_answers(database)
+               if row["call_site"] == call_site)
+
+
+def _answers_about(database, name: str) -> int:
+    """How many seedable answers the prior holds about ONE file."""
+    names = _paths(database)
+    return sum(1 for row in _seedable_answers(database)
+               if names.get(row["subject_ref"]) == name)
+
+
+def _kept_its_address(given, prior) -> int:
+    """How many of the prior's A_fact dossiers were seeded under their old address.
+
+    **Read off the seeding's own map rather than off `given.untranslated`, and the
+    counter is not at fault.** `reuse._re_address` re-addresses site A's dossiers
+    and returns every other site's unchanged, on purpose -- it has no prompt for
+    them -- and counts each one it returned unchanged. Since `00` amendment 7(c)
+    the gate's dossiers are seeded too, so the counter reads 2 on a two-file corpus
+    where nothing is wrong, and a pin on `== 0` would be asking the seeder to do
+    something it deliberately does not do. The claim R-137 actually makes is the
+    one in the message: no A_FACT dossier kept the prior run's address, so none of
+    their bytes still names the prior run's file. `given.addresses` is the same map
+    the note carries, and `_a_fact_addresses` says which keys in it are site A's.
+    """
+    a_fact = _a_fact_addresses(prior)
+    return sum(1 for old, new in given.addresses.items()
+               if old in a_fact and old == new)
+
+
+def _reused_at(database, call_site: str) -> int:
+    """Questions this run did not ask again AT ONE SITE.
+
+    `llm_call_reuse` is every site's savings in one table, `test_site_e_reuses_
+    its_answer` says so approvingly, and that is exactly why a count of the whole
+    table cannot stand in for site A's: the gate saves on the same rows and the
+    number would move when a second site started reusing without site A having
+    reused anything at all.
+    """
+    return len(_rows(database, "SELECT 1 FROM llm_call_reuse WHERE call_site = "
+                               f"'{call_site}'"))
 
 
 def _asked_again(database, seeded) -> set[str]:
@@ -264,6 +435,11 @@ def test_the_seeded_rows_are_the_prior_runs_own_answers(corpus, socket, tmp_path
 
     Counted at site A (`_Socket`): the run also makes site C's placement call, and
     the four tables carry no row of C's for the seeding to copy.
+
+    The seeder's own totals are every identity-recording site's (`_seedable_
+    answers`), so they are measured against the prior run's rows rather than
+    against `len(CORPUS)`; the one-answer-per-file claim is made at site A, where
+    this file's argument about `subject_ref` lives.
     """
     first, second = tmp_path / "one.sqlite", tmp_path / "two.sqlite"
     _run(corpus, first)
@@ -271,11 +447,13 @@ def test_the_seeded_rows_are_the_prior_runs_own_answers(corpus, socket, tmp_path
 
     given = seed(second, first, corpus=corpus)
 
-    assert given.answers == len(CORPUS)
-    assert given.rows["llm_call_identity"] == len(CORPUS)
-    assert given.rows["llm_dossier"] == len(CORPUS)
-    assert given.rows["llm_response"] == len(CORPUS)
-    assert given.rows["llm_verdict"] == len(_a_fact_verdicts(first)) > 0
+    held = _seedable_answers(first)
+    assert _answers_at(first, A_FACT) == len(CORPUS)
+    assert given.answers == len(held) > 0
+    assert given.rows["llm_call_identity"] == len(held)
+    assert given.rows["llm_dossier"] == len(held)
+    assert given.rows["llm_response"] == len(held)
+    assert given.rows["llm_verdict"] == len(_seeded_verdicts(first)) > 0
     # The run has not started, so nothing about placement or consent is there and
     # the reuse ledger is empty. What the fresh database exists to keep out is out.
     assert not _rows(second, "SELECT 1 FROM llm_call_reuse")
@@ -301,11 +479,19 @@ def test_two_databases_over_one_corpus_agree_on_every_dimension_but_the_subject_
     _run(corpus, second)
 
     def by_name(database):
+        """SITE A'S identities, keyed by file. Scoped since `00` amendment 7(c):
+        the gate records an identity per file too, so an unscoped read keys two
+        rows to one name and silently keeps whichever came last -- and the
+        argument above is about `model_facts.call_identity_dimensions`, which is
+        site A's."""
         names = _paths(database)
         return {names[row["subject_ref"]]: json.loads(row["dimensions"])
                 for row in _rows(database,
-                                 "SELECT subject_ref, dimensions FROM "
-                                 "llm_call_identity")
+                                 "SELECT i.subject_ref AS subject_ref, "
+                                 "i.dimensions AS dimensions FROM "
+                                 "llm_call_identity i JOIN llm_dossier d ON "
+                                 "d.dossier_id = i.dossier_id WHERE "
+                                 f"d.call_site = '{A_FACT}'")
                 if row["subject_ref"] in names}
 
     one, two = by_name(first), by_name(second)
@@ -351,7 +537,14 @@ def test_a_seeded_fresh_database_asks_nothing_the_prior_run_answered(
     assert socket.calls_at(C_PLACEMENT) == placements * 2, (
         "site C is no longer asked once per run and the count above is measuring "
         "something other than the fact pass")
-    assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == paid_for
+    assert _reused_at(second, A_FACT) == paid_for
+    # THE GATE SAVED TOO, on `_Socket`'s own rule that a site whose behaviour these
+    # numbers rest on gets a line of its own. `00` amendment 7(c) put a local pass
+    # in front of site A and 45d36ca0 gave it the same reuse, so a seeded run that
+    # re-asked the gate would pay for the whole roster again on this machine while
+    # every number above still read zero. It is asked once, in the run that paid.
+    assert _reused_at(second, H_RESTRICTED_KIND) == _answers_at(
+        first, H_RESTRICTED_KIND) > 0
 
 
 def test_only_the_file_whose_bytes_changed_is_asked_again(corpus, socket, tmp_path):
@@ -378,8 +571,9 @@ def test_only_the_file_whose_bytes_changed_is_asked_again(corpus, socket, tmp_pa
     assert socket.calls_at(A_FACT) - paid_for == 1, (
         socket.subjects_at(A_FACT)[paid_for:])
     assert _asked_again(second, given) == {"week two notes.txt"}
-    # And the one that did not change was answered from the record.
-    assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == 1
+    # And the one that did not change was answered from the record. Site A's own
+    # saving (`_reused_at`): the gate saves on the same file and in the same table.
+    assert _reused_at(second, A_FACT) == 1
 
 
 # --- R-127: the key travels with the answers --------------------------------------
@@ -420,7 +614,7 @@ def test_a_seeded_run_in_its_own_directory_is_given_the_prior_runs_key(
         f"the seeded run re-asked {socket.calls_at(A_FACT) - paid_for} questions "
         f"whose answers it had been handed: "
         f"{sorted(_asked_again(second, given))}")
-    assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == paid_for
+    assert _reused_at(second, A_FACT) == paid_for
 
 
 def test_a_seeded_answer_is_re_judged_when_the_validator_moves(
@@ -461,7 +655,8 @@ def test_a_seeded_answer_is_re_judged_when_the_validator_moves(
         f"the seeded run under a changed validator bought "
         f"{socket.calls_at(A_FACT) - paid_for} answers it had been handed: "
         f"{sorted(_asked_again(second, given))}")
-    assert given.untranslated == 0, "an A_fact dossier was seeded unre-addressed"
+    assert _kept_its_address(given, first) == 0, (
+        "an A_fact dossier was seeded unre-addressed")
     # Re-judged, not merely reused: every seeded conclusion was read again under
     # the new validator and superseded where it stood. Site A's verdicts, per
     # `_a_fact_verdicts`: site C's are written fresh by this run and were never
@@ -473,7 +668,7 @@ def test_a_seeded_answer_is_re_judged_when_the_validator_moves(
         row["validator_version"] == fact_validation.judgement_version(
             _deps(second))
         for row in standing), {row["validator_version"] for row in standing}
-    assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == paid_for
+    assert _reused_at(second, A_FACT) == paid_for
 
 
 def _deps(database):
@@ -526,8 +721,15 @@ def test_the_seed_note_names_the_address_every_dossier_had_before(
 
     note = json.loads(
         seeded_note(fresh_dir, SITUATION).read_text(encoding="utf-8"))
-    assert note["untranslated"] == 0
-    addresses = note["addresses"]
+    assert note["addresses"]
+    # SITE A'S HALF OF THE MAP, and the scoping is the same one the docstring makes
+    # about site C, applied to the site amendment 7(c) added. The note carries an
+    # entry for every dossier the seeding handed on, which is now the gate's as
+    # well, and `reuse._re_address` re-addresses site A's alone -- see
+    # `_kept_its_address` for why that is the seeder working and not failing. The
+    # claim here is about the dossiers whose bytes name a file, which are A's.
+    addresses = {old: new for old, new in note["addresses"].items()
+                 if old in _a_fact_addresses(first)}
     assert addresses
     # Every address the prior run used is a key, and every address this database
     # holds is the value it maps to.
@@ -588,7 +790,7 @@ def test_a_changed_file_is_asked_fresh_even_when_the_validator_moved(
     assert socket.calls_at(A_FACT) - paid_for == 1, (
         socket.subjects_at(A_FACT)[paid_for:])
     assert _asked_again(second, given) == {"week two notes.txt"}
-    assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == 1
+    assert _reused_at(second, A_FACT) == 1
 
 
 def test_a_seed_of_a_seed_pairs_every_answer_the_prior_held(
@@ -613,7 +815,12 @@ def test_a_seed_of_a_seed_pairs_every_answer_the_prior_held(
 
     given_b = seed(second, first, corpus=corpus)
     _run(corpus, second)
-    assert given_b.skipped == 0 and given_b.answers == paid_for
+    # Every answer the prior held, at every site that recorded one -- which is
+    # what `answers` counts, and since `00` amendment 7(c) is site A's and the
+    # gate's. `paid_for` is the socket's, and the socket sees only the cloud.
+    assert given_b.skipped == 0
+    assert given_b.answers == len(_seedable_answers(first)) > 0
+    assert _answers_at(first, A_FACT) == paid_for
 
     monkeypatch.setattr(
         fact_validation, "VALIDATOR_VERSION",
@@ -643,12 +850,19 @@ def test_the_note_says_why_each_answer_was_left_behind(
     second = prior_database(fresh_dir, SITUATION)
     _run(corpus, first)
 
+    # EVERY ANSWER ABOUT THE FILE THAT MOVED, and one file is still what moved.
+    # The count was `1` when site A was the only site holding an answer about a
+    # file; since `00` amendment 7(c) the gate holds one too, so the prior has two
+    # answers about this file and both are left behind -- for the one reason, which
+    # is the whole of what this pin is for.
+    left_behind = _answers_about(first, "week two notes.txt")
+    assert left_behind > 0
     (corpus / "week two notes.txt").rename(corpus / "renamed between runs.txt")
     given = seed(second, first, corpus=corpus)
     write_seeded(fresh_dir, SITUATION, given, source=prior_dir)
 
-    assert given.skipped == 1
-    assert given.skipped_reasons == {"path_moved_or_renamed": 1}
+    assert given.skipped == left_behind
+    assert given.skipped_reasons == {"path_moved_or_renamed": left_behind}
     note = json.loads(
         seeded_note(fresh_dir, SITUATION).read_text(encoding="utf-8"))
-    assert note["skipped_reasons"] == {"path_moved_or_renamed": 1}
+    assert note["skipped_reasons"] == {"path_moved_or_renamed": left_behind}
