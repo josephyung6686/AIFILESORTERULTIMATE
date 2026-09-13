@@ -6760,7 +6760,12 @@ def site_destination(routing: TierRouting, call_site: str):
 def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
                           scan_run_id: str, corpus_file_count: int,
                           policy_version: str, wire_handle_key: bytes,
-                          schema: str, folder_levels: tuple[FolderLevel, ...],
+                          schema: str,
+                          # `None` where this run names no situation at all, which
+                          # is what `FactCallAuthorities.folder_levels` documents:
+                          # the bundle is built for sites G and H, which read no
+                          # level, and no A_fact call is built from it.
+                          folder_levels: tuple[FolderLevel, ...] | None,
                           user_id: str, now,
                           deferred_readings: tuple[str, ...] = (),
                           anchor_levels: tuple[FolderLevel, ...] = (),
@@ -9128,7 +9133,16 @@ def template_resolver(catalogue, *, pass_of, situation_of
         chosen = pass_of().chosen.get(file_id)
         if chosen is not None:
             return chosen
-        return template_id_for_situation(catalogue, situation_of(file_id))
+        situation = situation_of(file_id)
+        if situation is None:
+            # NOBODY HAS NAMED THIS FILE'S SITUATION -- not site E, not site G,
+            # not its branch, and not the run, because `--situation` is optional
+            # and this folder's own evidence settled no situation. `Gate`'s own
+            # default for a file with no residual template is `None`, so the §7.3
+            # arm stays inert for it rather than being asked about a template
+            # name no library carries.
+            return None
+        return template_id_for_situation(catalogue, situation)
 
     return template_for
 
@@ -14190,7 +14204,14 @@ def _the_one_with_the_most(votes: Mapping[str, int]) -> str | None:
 
 
 def _what_these_folders_are(asked: Sequence[object]) -> str:
-    """The refusal of a run that read the folder and cannot name what it is.
+    """The QUESTION of a run that read the folder and cannot name what it is.
+
+    A refusal until the owner's ruling of 11 Sep 2026 was read one step further:
+    it was raised out of `_partition_branches`, above the fact pass, so the run
+    ended before site G -- the situation judge -- had looked at a file. It is now
+    printed at the END of the run by `downstream`, after everything that could
+    have answered it has been tried, and the run returns nothing rather than
+    refusing.
 
     `66` §14 is the shape: the first run asks nothing, and when the engine meets an
     ambiguity that prevents a useful template it asks a narrow, evidence-linked
@@ -14410,9 +14431,11 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         """The run's situation, and it is never read before one exists."""
         if not of_the_run:
             raise NotConfigured(
-                "the run's situation is read before the branches have named "
-                "one; `_partition_branches` fills it and everything that reads "
-                "it runs after that")
+                "the run's situation is read where there is none. It is filled "
+                "by `--situation` or by `_partition_branches` from the corpus's "
+                "own evidence, and a run whose folder nobody has named a "
+                "situation for ends at the question `downstream` prints -- so a "
+                "reader here is a stage running past that end")
         return of_the_run[0]
 
     clock = now()
@@ -16002,6 +16025,13 @@ def run(conn: sqlite3.Connection, directory: Path, *,
     #: `104` R-37's questions and the files each reaches, merged into R-92's
     #: mailbox at the end of the run.
     branch_reaches: dict[str, tuple[str, ...]] = {}
+    #: The questions `_partition_branches` recorded, kept so the END of the run
+    #: can print them. `00` amendments of 2026-09-11 item 2: a situation is not
+    #: demanded before a file is opened, and it is not demanded before the MODEL
+    #: has looked at one either -- site G runs inside the fact pass and is the
+    #: judge of what these folders are. They are asked where the evidence for
+    #: them exists and printed where the run ends.
+    asked_of_the_person: list[object] = []
 
     def _anchor_facts_of(file_id: str, content_hash: str) -> tuple[tuple[str, str], ...]:
         """The file's `(field, value)` facts at P9's anchor bar, and no lower."""
@@ -16015,7 +16045,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         return tuple(row.name for row in shipped_situations(catalogue)
                      if row.schema == schema_id)
 
-    def _the_situation_this_file_is_under(file_id: str) -> str:
+    def _the_situation_this_file_is_under(file_id: str) -> str | None:
         """THE FILE'S SITUATION, DECIDED HERE AND READ BY EVERY SITE THAT ASKS.
 
         Site G's name for this file; else the VOTE of the branch it is in (`00`
@@ -16039,9 +16069,19 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         the run's own, typed or read off the corpus, and
         `104` §17.9's rule stands over it: the model's answer is a refinement of
         the person's, never a replacement.
+
+        **`None` WHERE NOBODY HAS NAMED ONE**, which is the state the owner's
+        ruling of 11 Sep 2026 creates and did not exist when this function was
+        written: `--situation` is optional, and a folder whose own evidence names
+        a schema but not one of the N situations under it reaches here with an
+        UNSETTLED default branch and no run situation to fall back on. The four
+        arms below are unchanged; the fall-through is `None` instead of a refusal
+        raised out of the middle of the fact pass. Its readers each say what they
+        do with it: site A asks the file nothing (`resolver_for`), and the §7.3
+        template arm stays inert (`template_resolver`).
         """
         answered = situation_cell[0].named.get(file_id)
-        if answered and answered != said().schema:
+        if answered and (not of_the_run or answered != said().schema):
             found = _situations_of(answered)
             if found:
                 return found[0]
@@ -16049,13 +16089,13 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                   else None)
         if branch is not None:
             voted = votes_cell.get(branch.label)
-            if voted and voted != said().schema:
+            if voted and (not of_the_run or voted != said().schema):
                 found = _situations_of(voted)
                 if found:
                     return found[0]
             if branch.situation is not None:
                 return branch.situation
-        return said().situation
+        return said().situation if of_the_run else None
 
     #: `104` §18.1 S6's producer, built once here and handed to the one `Gate` this
     #: run has. A MODULE-LEVEL factory rather than a closure of its own, so the two
@@ -16133,9 +16173,9 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         two asks anything of the person. `00` amendment 7: site G names a schema
         per file and runs INSIDE the fact pass, so the partition made before that
         pass cannot know G's names -- and grouping and the tree both read
-        `partition_cell` afterwards. `_partition_branches` is the first call, with
-        the questions and the refusal; `downstream` makes the second the moment
-        site G has spoken.
+        `partition_cell` afterwards. `_partition_branches` is the first call, and
+        the one that records the questions; `downstream` makes the second the
+        moment site G has spoken.
         """
         roster = corpus_roster(conn, run_id)
         if of_the_run:
@@ -16177,7 +16217,10 @@ def run(conn: sqlite3.Connection, directory: Path, *,
 
         A branch whose situation is unsettled has its question recorded here --
         `question_for_situation`, the trigger that was registered and never
-        fired -- and the files it reaches are remembered for the screen.
+        fired -- and the files it reaches are remembered for the screen. NOTHING
+        IS REFUSED HERE: the question is kept in `asked_of_the_person` and
+        printed at the end of the run, after the judge that could answer it has
+        run. See the block that fills that list.
 
         **AND WITH NO `--situation` TYPED, THIS IS WHERE THE RUN LEARNS WHAT THE
         FOLDER IS** (`00` Amendments of 2026-09-11 item 2). The default branch's
@@ -16213,13 +16256,23 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             branch_reaches[question.question_id] = branch.file_ids
             asked.append(question)
         if not of_the_run:
-            # THE QUESTIONS ARE RECORDED FIRST, and that is the whole point of
-            # refusing here rather than at the parser: `--answer` refuses an
-            # answer to a question no run has asked, so the person can only be
-            # told what to type once the run has done the work that makes the
-            # question narrow. `66` §14: the first run asks nothing, and the
-            # question it does ask names the visible context and the consequence.
-            raise NotConfigured(_what_these_folders_are(asked))
+            # THE QUESTIONS ARE RECORDED HERE AND PRINTED AT THE END OF THE RUN.
+            # They are recorded here because this is where the evidence for them
+            # exists and because `--answer` refuses an answer to a question no run
+            # has asked, so the person can only be told what to type once the run
+            # has done the work that makes the question narrow.
+            #
+            # THEY ARE NOT RAISED HERE, and that is the owner's ruling of 11 Sep
+            # 2026 read one step further than it was. This line used to be
+            # `raise NotConfigured(_what_these_folders_are(asked))`, and a refusal
+            # here is a situation demanded before a file has been JUDGED: site G
+            # -- the situation judge -- runs inside `_model_fact_pass`, one
+            # statement below the call to this function, so the run refused
+            # before the part of it that answers this very question had looked at
+            # a single file. The run goes on with an unsettled default branch,
+            # site G names what it can, the branches it names are opened by the
+            # second partition, and `downstream` prints these at the end.
+            asked_of_the_person[:] = asked
         return partition
 
     def _model_fact_pass(run_id: str) -> None:
@@ -16301,17 +16354,32 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             reason=f"{operation_mode} run: fact extraction, before grouping")
 
         outcomes: list[tuple[str, object]] = []
+        # WHAT SITE A WOULD BE ASKED UNDER, or nothing because nobody has named a
+        # situation for this folder (`00` amendments of 2026-09-11 item 2; the
+        # default branch is unsettled and `--situation` was not typed). The
+        # SCHEMA is still known -- the corpus's own anchors or readings named it,
+        # and it is the default branch's -- and the levels are not, because levels
+        # belong to a situation and no situation has been chosen. `folder_levels=
+        # None` is `FactCallAuthorities`' own word for that state: the bundle is
+        # built because sites H and G read neither the levels nor the activation
+        # signals and both must run before the person can answer, and no A_fact
+        # call is built from it. `()` would still refuse, which is the guard doing
+        # its job.
+        unsettled = not of_the_run
+        pass_schema = (partition_cell[0].default.schema if unsettled
+                       else said().schema)
         authorities = fact_call_authorities(
             conn, routing=routing, scan_run_id=run_id,
             # Read when a route is asked, which is after the gate has run.
             cloud_cleared=lambda file_id: file_id in gate_cell[0].cleared_files,
             corpus_file_count=len(roster), policy_version=policy_version,
-            wire_handle_key=wire_handle_key, schema=said().schema,
+            wire_handle_key=wire_handle_key, schema=pass_schema,
             # THE FILE'S OWN LEVELS, not the situation's whole set. `104` §11.2
             # step 2: a level the group carries is not a question to ask each file,
             # and the fields split off above are the ones `00`:57 puts on the
-            # syllabus anchor.
-            folder_levels=said().file_level_fields, user_id=user_id,
+            # syllabus anchor. `None` where no situation is named -- see above.
+            folder_levels=None if unsettled else said().file_level_fields,
+            user_id=user_id,
             now=now,
             # THIS RUN'S MODE, read off the folder's own consent by
             # `operation_mode_for` and stated rather than inherited: it is what
@@ -16323,8 +16391,9 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             corpus_roots=sources,
             # `105` §14.4. The school level, asked of the anchors and of nothing
             # else. Empty when this situation binds no such role, which is every
-            # situation but coursework's today.
-            anchor_levels=said().anchor_level_fields,
+            # situation but coursework's today, and empty when there is no
+            # situation to bind one.
+            anchor_levels=() if unsettled else said().anchor_level_fields,
             # `104` §18.1 S6. The one `Gate` this run builds is built here, so
             # this is where the §7.3 arm is given something to read. The resolver
             # is the closure above and not a dict, because the per-file template
@@ -16336,7 +16405,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # of the nineteen schemas a `--situation` can resolve to is in the
             # compiled manifest, so a miss is a release that does not match this
             # build and is worth the crash.
-            deferred_readings=rules.schemas[said().schema].deferred_readings,
+            deferred_readings=rules.schemas[pass_schema].deferred_readings,
             # `104` R-14. `run` was handed this beside the routing it was handed,
             # so the mailbox the transport fills is the mailbox `run_call` reads.
             usage_recorder=usage_recorder,
@@ -16351,7 +16420,6 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # above leaves the cell empty, which is what stops B being asked on a run
         # where A was not.
         fact_authorities[:] = [authorities]
-        resolver = model_fact_resolver(conn, authorities=authorities)
         # `104` R-37. One resolver PER SETTLED BRANCH, each asking that branch's
         # situation's own questions: its schema's allowlist, its folder levels
         # less the group-level ones, its schema's authored readings. Built by
@@ -16365,8 +16433,17 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # is what `_the_situation_this_file_is_under` answers and this map is what
         # its answer is spent on. The default branch's situation IS the run's, so
         # the first row is that branch's and the loop skips it.
+        #
+        # AND IT STARTS EMPTY WHERE NO SITUATION IS NAMED. `authorities` carries
+        # no folder levels then, so a resolver built over it could put no
+        # question -- and there is no situation to key it under either. The loop
+        # below still fills a row for every branch site G opened, which is the
+        # whole point of letting the run reach the pass.
         partition = partition_cell[0] if partition_cell else None
-        by_situation: dict[str, FactResolver] = {said().situation: resolver}
+        by_situation: dict[str, FactResolver] = (
+            {} if unsettled
+            else {said().situation: model_fact_resolver(
+                conn, authorities=authorities)})
         if partition is not None:
             for branch in partition.branches:
                 if not branch.settled or branch.situation in by_situation:
@@ -16513,7 +16590,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # budget, the key, the client and the counting sink are the SAME objects:
         # a second gate would be a second answer to what may leave this device.
         for answered in sorted(set(situation_pass.named.values())):
-            if answered == said().schema:
+            if not unsettled and answered == said().schema:
                 # The run's own situation, named again. Nothing to build: the
                 # default resolver already asks exactly these questions, and a
                 # second one would be a second object for one set of answers.
@@ -16562,11 +16639,24 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # A file whose fields came from one situation and whose folders are
             # chosen under another is `104` §17.9's defect turned inside out.
             under = _the_situation_this_file_is_under(file_id)
+            if under is None:
+                # NOBODY HAS NAMED A SITUATION FOR THIS FILE OR FOR THE FOLDER
+                # IT IS IN -- not site G, not its branch, and not the person,
+                # because `--situation` is optional and the default branch is
+                # still unsettled. There is no question to put: the fields a call
+                # would ask are a situation's, and every one of the run's own is
+                # what the person is being asked about. The file keeps the facts
+                # the deterministic passes wrote and nothing else, and the
+                # reconciliation names it under the reason below rather than
+                # calling it settled.
+                not_asked.setdefault(NOT_ASKED_UNSETTLED, []).append(file_id)
+                return None
             # A SITUATION SOMETHING NAMED FOR THIS FILE -- G's name or its
             # branch's vote -- IS ASKED WHATEVER ITS BRANCH IS, which is the arm
             # order above read here: the two refusals below are about a folder
             # nobody has answered for, and this file has an answer.
-            if under != said().situation or partition is None or partition.single:
+            if (unsettled or under != said().situation
+                    or partition is None or partition.single):
                 return by_situation[under]
             branch = partition.branch_of(file_id)
             if branch is None:
@@ -17062,7 +17152,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             FileVersionRef(file_id=file_id, content_hash=content_hash)
             for file_id, content_hash in corpus_roster(db, scan_run_id[0])))
 
-    def downstream(p1_p7) -> CorpusAuthorities:
+    def downstream(p1_p7) -> CorpusAuthorities | None:
         """Everything after P1-P7, in the one order the parts allow.
 
         **THE MODEL PASSES RUN IN THIS ORDER AND IT IS NOT A PREFERENCE:**
@@ -17088,6 +17178,15 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         Each step is evidence for the next and none of them can be reordered: a
         gate asked after the call it gates is not a gate, and a situation named
         after the fields were asked is a situation nothing acts on.
+
+        **`None` WHERE NOBODY HAS NAMED THIS FOLDER'S SITUATION.** The four steps
+        above all ran; what has no answer is the question the person is being
+        asked, and P8-P11 is what cannot be done without one -- the tree's levels,
+        the group category and the group-level fields are all a situation's. So
+        this prints the question and returns nothing, and the three blocks that
+        report what the SCAN found print first, above it. That order is the
+        owner's ruling of 11 Sep 2026 kept to the end: the question is what the
+        run learned, not what it demanded before it started.
         """
         scan_run_id[0] = p1_p7.scan_run_id
         # §3.11's universal families, BEFORE the model pass and before P9 groups.
@@ -17152,7 +17251,12 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # has said it does not want them. The three blocks after them still print:
         # they report what the SCAN found, and the scan is the whole of what this
         # run did.
-        going_on = stop_after is None
+        #
+        # AND NOT WHERE NOBODY HAS NAMED THIS FOLDER'S SITUATION either, for a
+        # reason of the same kind: site E designs a template for the situation a
+        # file is under and site B observes a group under the run's, and this run
+        # has neither to offer. The block below prints the question instead.
+        going_on = stop_after is None and bool(of_the_run)
         if going_on and fact_authorities and site_has_a_destination(
                 conn, routing, E_TEMPLATE, operation_mode=operation_mode):
             roster = corpus_roster(conn, p1_p7.scan_run_id)
@@ -17201,6 +17305,22 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         _print_candidate_roots(
             candidate_roots,
             existing_folders(conn, scan_run_id=p1_p7.scan_run_id), out)
+        if not of_the_run:
+            # THE QUESTION, PRINTED, AND THE RUN ENDS HERE. `_partition_branches`
+            # recorded it before the model pass and this is the end of the run,
+            # so the person is asked only after everything that could have
+            # answered for them has been tried: the deterministic passes, the
+            # entity reader, the gate and site G. Printed and not raised -- a
+            # refusal is what the ruling of 11 Sep 2026 took away, and a run that
+            # read every file, judged what it could and then printed one narrow
+            # question is `66` §14 exactly.
+            #
+            # Nothing below this line can be done without a situation: the tree's
+            # levels, the group category and the group-level fields are all a
+            # situation's, and `said()` refuses for that reason. `run` returns
+            # `None`, which is the seam `--stop-after` already uses.
+            print(f"\n{_what_these_folders_are(asked_of_the_person)}", file=out)
+            return None
         return CorpusAuthorities(
 
 
@@ -17301,6 +17421,14 @@ def run(conn: sqlite3.Connection, directory: Path, *,
     # inside `downstream`. Everything the database gets from a stopped run is
     # written by the time this returns.
     corpus_authorities = downstream(p1_p7)
+    if corpus_authorities is None:
+        # NOBODY HAS NAMED THIS FOLDER'S SITUATION, and `downstream` has printed
+        # the question on the same stream. The run read every file, judged what
+        # it could and asked one narrow question; what it cannot do is design a
+        # tree for a situation nobody has chosen. Read as `is None` rather than
+        # off `of_the_run`, so the one place that decides the run ends here is
+        # the one place that printed the reason.
+        return None
     if stop_after == STOP_AFTER_GATE:
         _print_stopped_after_gate(out=out)
         return None

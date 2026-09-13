@@ -650,7 +650,19 @@ class FactCallAuthorities:
     #: template library by the composition root. Required with no default: absent
     #: means refuse, and a call built without them asks the model the flat-
     #: vocabulary question that filled one `work_type` in 199 files.
-    folder_levels: tuple[FolderLevel, ...]
+    #:
+    #: **`None` MEANS NO SITUATION IS NAMED FOR THIS RUN**, and it is not `()`
+    #: respelled. `--situation` is optional (`00` Amendments of 2026-09-11 item 2)
+    #: and a folder whose own evidence names a schema but not one of the N
+    #: situations under it has nothing to read levels off. This bundle is still
+    #: built, because sites G and H read neither these levels nor
+    #: `activation_signals` and both must run before anybody can answer the
+    #: question -- but NO A_fact call is built from it, and `__post_init__` keeps
+    #: `()` refused so the silent flat-vocabulary dossier the guard exists against
+    #: is still impossible. `None` cannot be silent: `pending_fields_for`'s
+    #: `{level.field for level in ...}` and its `folder_levels + anchor_levels`
+    #: both raise on it the moment an A call is attempted.
+    folder_levels: tuple[FolderLevel, ...] | None
     normalizers: Mapping[str, Callable[[str], Any]]
     normalize: Callable[[str, str], object]
     contradicts: Callable[..., bool]
@@ -762,8 +774,14 @@ class FactCallAuthorities:
     per_file_ceiling: "PerFileCeiling | None" = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "folder_levels",
-                           require_folder_levels(self.folder_levels))
+        # `None` PASSES AND `()` STILL REFUSES -- see the field. The guard is
+        # about a deployment that never read the library and would ask the model
+        # the flat question in silence; a run that read the library and found no
+        # situation named says so with `None`, which nothing downstream can treat
+        # as a level list.
+        if self.folder_levels is not None:
+            object.__setattr__(self, "folder_levels",
+                               require_folder_levels(self.folder_levels))
         if self.max_released_observations < 1:
             raise ValueError(
                 "a dossier with no released evidence is a model asked to answer "
