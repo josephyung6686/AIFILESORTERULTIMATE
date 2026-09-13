@@ -6525,6 +6525,14 @@ def model_route_permitted(conn: sqlite3.Connection, *, locality: str,
         # changes nothing for a scan that ran; it is what keeps a file local when
         # the gate declined, failed, or was never run.
         if locality != LOCAL:
+            if cloud_cleared is not None:
+                # THE GATE PASS SAYS WHICH FILES IT CLEARED THIS RUN, AND THE
+                # ROW'S BASIS DOES NOT (13 Sep 2026, measured): the situation
+                # judge's answer writes its own row over the gate's clearance row,
+                # so a door reading the current row's basis sent every cleared
+                # file's facts to the local model. The person's own word clears on
+                # its own; anything else clears only through the pass.
+                return record.basis == "user" or cloud_cleared(file_id)
             if record.basis == LOCAL_MODEL_GATE and cloud_cleared is not None:
                 # A GATE ROW IS THIS RUN'S ANSWER OR IT IS NOT A CLEARANCE. The
                 # row outlives the question it answered: a wider release, another
@@ -16547,6 +16555,16 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             connection, is the only thing that ever writes a row.
             """
             for file_id, content_hash in roster:
+                record = store.current(file_id, content_hash)
+                if record is not None and record.protected:
+                    # A PROTECTED RECORD IS FILED BY THE PERSON (13 Sep 2026, the
+                    # owner's word, applied at site G the same day): its facts are
+                    # not asked of any model, on this device either. Measured: 90
+                    # seconds a file for facts nobody reads until the person files
+                    # the record. Counted as withheld for being protected; the
+                    # route itself is unchanged (9 Sep: local only, never cloud).
+                    withheld.setdefault(WITHHELD_PROTECTED, []).append(file_id)
+                    continue
                 asking = resolver_for(file_id)
                 if asking is None:
                     continue

@@ -543,3 +543,21 @@ def test_the_policy_dimension_is_the_policys_content_and_not_its_version(
     digests = {json.loads(row["dimensions"])["policy"]
                for row in _identities_at(corpus, cli.A_FACT)}
     assert len(digests) == 1
+
+
+def test_the_judges_row_over_the_gates_does_not_close_the_cloud_to_a_cleared_file(
+        corpus, socket, monkeypatch):
+    """13 Sep 2026, measured on the owner's corpus: the situation judge's answer
+    writes its own row over the gate's clearance row, and a door that read the
+    current row's basis sent every cleared file's facts to the local model. The
+    door asks the gate pass which files it cleared this run."""
+    import test_a_fact_call_cache as here
+    from test_site_g_end_to_end import _situation_answer
+
+    monkeypatch.setattr(here, "_decline", _situation_answer)
+    _run(corpus, "--enable-cloud")
+    assert socket.calls_at(cli.G_SITUATION_SENSITIVITY) == len(CORPUS)
+    rows = _rows(corpus, "SELECT basis, protected FROM classifications "
+                         "WHERE superseded_by IS NULL")
+    assert {row["basis"] for row in rows} == {cli.LOCAL_MODEL_SITUATION}, rows
+    assert socket.calls_at(cli.A_FACT) == len(CORPUS), socket.subjects_at(cli.A_FACT)
