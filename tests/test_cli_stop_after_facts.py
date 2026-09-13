@@ -54,15 +54,36 @@ def _counts(database, *tables) -> dict[str, int]:
         conn.close()
 
 
-def _stopped_run(tmp_path, *extra):
+def _stopped_run(tmp_path, *extra, stage: str = cli.STOP_AFTER_FACTS):
     corpus = _corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     out = io.StringIO()
     code = cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Papers", "--user", "jy",
                      "--database", str(database),
-                     "--stop-after", cli.STOP_AFTER_FACTS, *extra], out=out)
+                     "--stop-after", stage, *extra], out=out)
     return code, out.getvalue(), database
+
+
+def test_the_stages_are_the_gate_and_the_facts_in_the_runs_own_order():
+    """One tuple names the stages the flag offers and the run compares against."""
+    assert cli.STOP_AFTER_STAGES == (cli.STOP_AFTER_GATE, cli.STOP_AFTER_FACTS)
+
+
+def test_a_run_stopped_after_the_gate_says_so_and_designs_nothing(tmp_path):
+    """With no model on this machine the gate itself cannot run, and the run still
+    ends where it was asked to and says so; the integration pin in
+    `tests/integration/test_site_h_gate.py` measures the gate answering first."""
+    code, printed, database = _stopped_run(tmp_path, stage=cli.STOP_AFTER_GATE)
+
+    assert code == 0, printed
+    assert "Stopped after the gate" in printed, printed
+    assert "--freeze" not in printed, printed
+    counts = _counts(database, "extraction_runs", "classifications", "file_facts",
+                     "groups", "tree_nodes", "placement_decisions")
+    assert counts["extraction_runs"] > 0, counts
+    assert counts["groups"] == 0 and counts["tree_nodes"] == 0, counts
+    assert counts["placement_decisions"] == 0, counts
 
 
 def test_a_run_stopped_after_the_facts_keeps_them_and_designs_nothing(tmp_path):

@@ -698,3 +698,25 @@ def test_a_narrower_bound_is_a_new_question_and_is_asked_again(tmp_path,
     assert conn.execute(
         "SELECT count(*) FROM llm_call_reuse WHERE call_site = ? "
         "AND subject_ref = ?", (cli.H_RESTRICTED_KIND, long_id)).fetchone()[0] == 0
+
+
+def test_a_run_stopped_after_the_gate_asks_the_gate_and_nothing_after_it(
+        tmp_path, monkeypatch):
+    """`--stop-after gate`: the gate answers on this device and the run ends there.
+
+    The situation and the facts are the two calls that may leave the machine; a
+    run told to stop at the gate makes neither. Measured on the wire: every
+    un-held file was put to the gate, no prompt at any other site was sent, and
+    the screen says where the run ended rather than leaving it to be inferred.
+    """
+    database, said, stub = _run(tmp_path, monkeypatch, _clear,
+                                "--stop-after", cli.STOP_AFTER_GATE)
+    sites = {dossier_in(prompt).get("call_site") for prompt in stub.prompts()}
+    assert sites == {cli.H_RESTRICTED_KIND}, sites
+    assert _asked_at_the_gate(stub) > 0
+    assert "Stopped after the gate" in said, said
+    assert cli.NOT_RUN_STOPPED_AFTER_GATE in said, said
+    conn = _read(database)
+    assert conn.execute("SELECT COUNT(*) FROM llm_dossier WHERE call_site != ?",
+                        (cli.H_RESTRICTED_KIND,)).fetchone()[0] == 0
+    assert conn.execute("SELECT COUNT(*) FROM tree_nodes").fetchone()[0] == 0

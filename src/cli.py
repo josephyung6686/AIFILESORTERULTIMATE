@@ -10976,6 +10976,7 @@ COVERAGE_NOT_ASKED: str = "not asked"
 NOT_RUN_NO_MODEL: str = "no_model_configured"
 NOT_RUN_NO_DESTINATION: str = "no_destination_this_mode_permits"
 NOT_RUN_NO_HANDLE_KEY: str = "no_wire_handle_key"
+NOT_RUN_STOPPED_AFTER_GATE: str = "stopped_after_the_gate"
 
 #: The sentence each cause earns, on `WITHHELD_SENTENCE`'s rule: prose, not a code
 #: with a template around it. The three not-run causes are here beside the reasons
@@ -10992,6 +10993,10 @@ COVERAGE_SENTENCE: Mapping[str, str] = MappingProxyType({
     NOT_RUN_NO_HANDLE_KEY:
         "this run has no wire handle key, and every identifier that reaches a "
         "model is digested under one. There is no un-keyed form to fall back to.",
+    NOT_RUN_STOPPED_AFTER_GATE:
+        "this run was told to stop after the gate (--stop-after gate), so no "
+        "situation and no fact was asked about them and nothing was sent "
+        "anywhere. What the gate decided stands, and a later run starts from it.",
     NOT_ASKED_AMBIGUOUS: NOT_ASKED_SENTENCE[NOT_ASKED_AMBIGUOUS],
     NOT_ASKED_UNSETTLED: NOT_ASKED_SENTENCE[NOT_ASKED_UNSETTLED],
     # `104` §18.2 gap 4's five: the stage's own reasons for declining to ask,
@@ -12288,6 +12293,20 @@ def _print_candidate_roots(candidate_roots: Sequence[Path],
     print("  Nothing is filed there by this plan. These are the places a branch "
           "could eventually live, and naming one moves nothing and approves "
           "nothing.", file=out)
+
+
+def _print_stopped_after_gate(*, out) -> None:
+    """The last thing a `--stop-after gate` run says, on `_print_stopped_after_
+    facts`'s rule: an early end is said, so it is not mistaken for a crash. The
+    gate's block above already carries the numbers; this names what did not happen.
+    """
+    out = out if out is not None else sys.stdout
+    print("", file=out)
+    print(_wrapped(
+        f"Stopped after the gate, as --stop-after {STOP_AFTER_GATE} asked: no "
+        f"situation was asked, no fact was asked, and nothing was sent anywhere. "
+        f"What the gate decided is kept, so a later run starts from it rather "
+        f"than asking again.", indent=""), file=out)
 
 
 def _print_stopped_after_facts(conn: sqlite3.Connection, *, run_id: str,
@@ -14147,8 +14166,9 @@ def _the_situation_of_a_run(catalogue: TemplateCatalogue, situation: str,
 #: A NAME AND NOT A BOOLEAN. `stop_after_facts=True` would need a second flag for the
 #: second stage and a rule about what two of them together mean; a stage name says
 #: where the run ends and cannot say it twice.
+STOP_AFTER_GATE: str = "gate"
 STOP_AFTER_FACTS: str = "facts"
-STOP_AFTER_STAGES: tuple[str, ...] = (STOP_AFTER_FACTS,)
+STOP_AFTER_STAGES: tuple[str, ...] = (STOP_AFTER_GATE, STOP_AFTER_FACTS)
 
 
 def run(conn: sqlite3.Connection, directory: Path, *,
@@ -16199,6 +16219,12 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         _print_gate_pass(gate_pass, files=len(roster),
                          model_id=_local_model_id(routing, H_RESTRICTED_KIND),
                          out=out)
+        if stop_after == STOP_AFTER_GATE:
+            # `--stop-after gate`: the situation and the facts are the calls that
+            # may leave this machine, and a run told to end at the gate has said
+            # it wants neither. The reason leaves with the return, as above.
+            fact_pass_not_run[0] = NOT_RUN_STOPPED_AFTER_GATE
+            return
         situation_prompt_in_force = prompt_for(G_SITUATION_SENSITIVITY)
         situation_pass = (
             ask_the_situation(
@@ -16988,6 +17014,9 @@ def run(conn: sqlite3.Connection, directory: Path, *,
     # inside `downstream`. Everything the database gets from a stopped run is
     # written by the time this returns.
     corpus_authorities = downstream(p1_p7)
+    if stop_after == STOP_AFTER_GATE:
+        _print_stopped_after_gate(out=out)
+        return None
     if stop_after == STOP_AFTER_FACTS:
         # AFTER `downstream` and not inside it, so this sentence lands under the
         # blocks that say what the scan found rather than in the middle of them.
@@ -21197,7 +21226,9 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         # in miniature -- a flag whose value you must already know to use it.
         "--stop-after", choices=STOP_AFTER_STAGES, default=None,
         help="stop the run after one stage instead of carrying on to a "
-             "proposal, e.g. --stop-after facts. `facts` reads every file and "
+             "proposal, e.g. --stop-after facts. `gate` ends the run once the "
+             "restricted-kind gate has answered on this device, before any call "
+             "that may leave this machine. `facts` reads every file and "
              "records what it found, and says what it found; nothing is "
              "grouped, no folder is proposed and no file is placed. What the "
              "pass wrote is kept, so a later run without this flag starts from "
