@@ -1200,7 +1200,7 @@ SITUATION_ROW: tuple[str, str] = (
 #: this site is a change to this line and never a change the manifest makes on its
 #: own.
 GATE_ROW: tuple[str, str] = (
-    "gate.unratified.restricted-kind.2026-09-12", "gate-restricted-kind")
+    "gate.unratified.restricted-kind.v2.2026-09-13", "gate-restricted-kind-v2")
 
 
 #: WHAT EACH STATUS WORD BUYS, and the two questions it answers are not one
@@ -8870,6 +8870,14 @@ def _per_file_call_identity(conn: sqlite3.Connection, *, call_site: str,
                  conn, file_id, content_hash)
              if observation.observation_key in released}),
         "model_id": request.model_call_request.model_target.model_id,
+        # THE RELEASE BOUND, since 13 Sep 2026. `context_refs` names WHICH readings
+        # were shown and not HOW MUCH of each: the excerpt producer cuts a unit's
+        # opening to `ceiling // limit` characters, so the same five keys at 1,200
+        # and at 3,000 are two different questions. Measured on the owner's corpus:
+        # the gate's ceiling was raised to 3,000 on 12 Sep and 238 of 320 files
+        # kept the answer given at 1,200 -- metadata and a page number -- because
+        # their keys had not moved.
+        "max_dossier_tokens": request.model_call_request.max_dossier_tokens,
         # E's request carries one, and `tree_design.template_schema.build_template_
         # request` says why: `E_template` is in P8's `SITES_REQUIRING_PLAN_VERSION`
         # because §8.8 captures template versions per plan version. Read off the

@@ -65,8 +65,8 @@ from extractors.structured_text import LANGUAGE_FIELD
 #: opposite things -- `_matches` refuses these rows, `_identifier_readings` reads
 #: only them -- so one predicate serving both is what keeps them exact complements.
 from extractors.identifiers import (
-    IDENTIFIERS_NAMESPACE, KINDS as IDENTIFIER_KINDS, is_identifier_extractor,
-    kind_of,
+    CHECKSUMMED_KINDS, IDENTIFIERS_NAMESPACE, KINDS as IDENTIFIER_KINDS,
+    is_identifier_extractor, kind_of,
 )
 
 #: `00` amendment 7(b)'s local entity reader, imported for 7(a)'s reason exactly.
@@ -1336,25 +1336,41 @@ class Detector:
         # matched. Without it `finance`'s context term `statement` tied on a college
         # personal statement and marked it `sensitive_personal, protected=1`.
         says_what_it_is = self._safety_evidence(conn, file_id, content_hash)
+        deterministic = self._deterministic_readings(conn, file_id, content_hash)
+        # A TERM HOLDS WITH CORROBORATION; A CHECKSUM HOLDS ALONE (the owner's
+        # ruling of 13 Sep 2026, 21:00: the ordinary files the rules held "MUST
+        # NOT BE HELD"). Measured on the second corpus before the change: the rules
+        # held 33 ordinary files and 14 of the 29 protected ones. Of the 33, eight
+        # were club sign-up sheets held on a date of birth beside a name, ten were
+        # essays and statements held on a person beside a condition, four were
+        # held on the word `will`, and the rest on one word in a heading, a
+        # filename or a table -- each one signal that is also ordinary English or
+        # ordinary form-filling. Every protected file the rules caught carried a
+        # word that says what the record is AND a second finding beside it: a
+        # person, a date of birth, a diagnosis, a number. So the abstention arm now
+        # asks for both, and the second finding may be either of the deterministic
+        # layers' readings or a person the entity encoder named anywhere in the
+        # file. The one signal that carries its own proof is a checksummed
+        # identifier (`CHECKSUMMED_KINDS`: a card number, an IBAN, a bank pair, a
+        # US SSN, an HKID): it holds alone, as 7(a) ruled. A date of birth, a
+        # passport-shaped number and a medical record number are shapes without a
+        # check and corroborate rather than hold, and 7(b)'s pair corroborates on
+        # the same terms: a person beside a condition in a personal statement is a
+        # sentence about a life, not a record of a diagnosis, and the corpus had
+        # ten of those for every one that was a record. What the rules release
+        # here is not sent anywhere on their word: the gate reads it next, at its
+        # own ceiling, and the gate's prompt asks whose particulars the text shows.
         readings = [schema_id for schema_id
                     in (outcome.schema_id, *outcome.tied_schema_ids)
-                    if schema_id in SAFETY_DOMAIN_IDS and schema_id in says_what_it_is]
-        # AND A CHECKSUMMED IDENTIFIER IS A READING WITHOUT BEING A TIED LEADER
-        # (`00` amendment 7(a)). The leader test above is `never_alone`'s discipline
-        # borrowed: a safety domain that stood level with every other reading on the
-        # file's own WORDS has already been corroborated by the tie. An identifier
-        # needs no such loan -- it is one signal that carries its own proof, which is
-        # what a checksum is -- and requiring it to lead as well would release
-        # exactly the file 7(a) was ruled for: `104` §18.56's card statement, whose
-        # words tie nothing because it is a table of numbers.
-        #
-        # AND 7(b)'s PAIR IS A READING ON THE SAME TERMS. A person beside a diagnosis
-        # carries its own proof in the same sense: the claim rests on two findings
-        # standing in one unit, not on one word that might be a mention. §18.56's
-        # health forms tie nothing either -- an intake sheet is a table of fields.
-        readings += [schema_id for schema_id
-                     in self._deterministic_readings(conn, file_id, content_hash)
-                     if schema_id not in readings]
+                    if schema_id in SAFETY_DOMAIN_IDS
+                    and schema_id in self._safety_work_type_matches(
+                        conn, file_id, content_hash)
+                    and self._corroborated(conn, schema_id, deterministic,
+                                           file_id=file_id,
+                                           content_hash=content_hash)]
+        readings += [schema_id for schema_id, matches in deterministic.items()
+                     if schema_id not in readings
+                     and any(match.term in CHECKSUMMED_KINDS for match in matches)]
         if not readings:
             return None
         # `SCHEMA_IDS` order, so two safety readings resolve the same way twice
@@ -1428,8 +1444,14 @@ class Detector:
         # naming zone of it would release exactly the passport `_precaution`'s own
         # docstring opens with. `104` §18.56 measured what the release costs: a
         # health form the rules called ordinary went to the cloud on the rules' word.
-        readings = list(readings) + [schema_id for schema_id in deterministic
-                                     if schema_id not in readings]
+        # AND SINCE 13 Sep 2026 ONLY A CHECKSUM JOINS THEM ALONE (the abstention
+        # arm's rule, for its reason): a date of birth, a passport-shaped number
+        # and a person beside a condition corroborate a term and hold nothing by
+        # themselves, and the naming-zone readings above already hold alone.
+        readings = list(readings) + [
+            schema_id for schema_id, matches in deterministic.items()
+            if schema_id not in readings
+            and any(match.term in CHECKSUMMED_KINDS for match in matches)]
         if not readings:
             return None
         schema_id = min(readings, key=SCHEMA_IDS.index)
@@ -1529,6 +1551,25 @@ class Detector:
                            if step.get("kind") == "page"), None),
                 whole=True))
         return {schema_id: tuple(found[schema_id]) for schema_id in sorted(found)}
+
+    def _corroborated(self, conn: sqlite3.Connection, schema_id: str,
+                      deterministic: "Mapping[str, tuple[TermMatch, ...]]", *,
+                      file_id: str, content_hash: str) -> bool:
+        """Is a term of this domain corroborated by a second, independent finding?
+
+        The second finding is a deterministic reading of the SAME domain (an
+        identifier shape, a person beside a diagnosis or a date of birth, an
+        account number) or a person the entity encoder named anywhere in the
+        file: a record is about someone, and a document that names nobody and
+        carries no number is a document about the topic.
+        """
+        if schema_id in deterministic:
+            return True
+        return conn.execute(
+            "SELECT 1 FROM evidence WHERE file_id = ? AND content_hash = ? "
+            "AND extractor_name = ? AND superseded_by IS NULL LIMIT 1",
+            (file_id, content_hash, ENTITY_NAMESPACE + PERSON_ENTITY),
+        ).fetchone() is not None
 
     def _entity_readings(
             self, conn: sqlite3.Connection, file_id: str,

@@ -427,6 +427,19 @@
    "ratified_by": "the owner, 12 Sep 2026, 17:15 local, in session: \"I ratify the situation prompts and stuff, and if not we A/B test it when needed.\" Applied by the lead on the row itself, which no record had yet pointed at. LOCAL ONLY: the gate decides whether a file may leave the device, so it never leaves the device."
   },
   {
+   "site": "H_restricted_kind",
+   "candidate": "gate-restricted-kind-v2",
+   "status": "unratified",
+   "template_id": "gate.unratified.restricted-kind.v2.2026-09-13",
+   "template_file": "gate_template.restricted-kind.v2.txt",
+   "response_schema_file": "gate_response_schema.json",
+   "shaping_policy_file": "gate_shaping_policy.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "13 Sep 2026, the owner's ruling that the ordinary files the rules and the gate held MUST NOT be held: the gate asks whose particulars the text shows and names a kind only when it can cite a named person's own particulars; a paper, a dataset, a table, an exercise or a flyer that uses medical, financial or legal words is none_of_these; doubt goes to none_of_these because the file is read next by a second judge, not sent. Measured against the v1 text on the owner's corpus before ratification (104 §18.60).",
+   "ratified_by": "nobody yet: authored by the lead on 13 Sep 2026 for measurement; the owner ratifies with one word."
+  },
+  {
    "site": "G_situation_sensitivity",
    "candidate": "situation-whole-library",
    "status": "ratified",
@@ -511,6 +524,7 @@
   "gate_shaping_policy.json": "05903569aa7d0823792fd0b16c690bde5befd5889c7c602ef9d79be8e7702b95",
   "situation_template.whole-library.txt": "a76d53579e1fe51fb2ace90d2a04f20a76687be84205e572940509e03f7a0c14",
   "situation_template.whole-library-plain.txt": "2b0ebd3e87430a4da00f4caedc0e3cf0eff808d3fc4b190b7691bcd609d78ff7",
-  "situation_shaping_policy.v3.json": "95b6dc70381bb940becf2ba542171bef9fc013116012a78da4de19eea2e75224"
+  "situation_shaping_policy.v3.json": "95b6dc70381bb940becf2ba542171bef9fc013116012a78da4de19eea2e75224",
+  "gate_template.restricted-kind.v2.txt": "9a83b16df1eb1a12012acea42035661960c53fed078ce7dc0c1a3e8efb536f3f"
  }
 }
