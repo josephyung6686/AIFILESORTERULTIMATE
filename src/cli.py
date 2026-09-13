@@ -277,7 +277,9 @@ from privacy.gate import Gate
 from privacy.defaults import LOCAL_FIRST_MODES
 from privacy.display import display_policy
 from privacy.moves import may_move_automatically
-from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
+from privacy.policy import (
+    UNSET_POLICY_VERSION, Policy, current_policy, set_policy,
+)
 from privacy.resolve import (
     AmbiguousObservationKey, UnresolvableSpan, current_location,
     current_observation, filename_address,
@@ -18449,6 +18451,61 @@ def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
     return tuple(settled)
 
 
+class FileHeldRefused(NotConfigured):
+    """`--file-held` named a file this database has never recorded, or asked
+    before any policy exists to add the permission to."""
+
+
+def apply_file_held(conn: sqlite3.Connection, file_ids: Sequence[str], *,
+                    plan_version: str, user_id: str,
+                    recorded_at: str) -> tuple[str, ...]:
+    """THE RULING (2026-09-13): a protected record is filed by the person, not by
+    a model. `--file-held FILE_ID` is that one gesture.
+
+    It grants `privacy.moves.may_move_automatically`'s `POLICY_PERMITS` verdict
+    for the named file, at the plan version this run is working in, and it does
+    exactly that and nothing else: `automatic_move_permissions` is the only field
+    touched, carried forward from the policy already in force. It writes no
+    classification row -- a `basis="user"` classification would open the cloud
+    door for the file (`CLOUD_CLEARING_BASES`), and filing a file yourself is a
+    statement about where it goes, not about what a model may see of it -- and it
+    does not touch the file's `protected` flag or its class: `privacy.moves`
+    reads the flag first and the policy second, and this writes only the second.
+
+    A `file_id` this database has never recorded is REFUSED, exactly as
+    `apply_answers` refuses a `question_id` it has never asked about: the person
+    believes they filed something, and a silently dropped gesture is worse than a
+    loud one. Refused the same way, and for the same reason, when no policy is in
+    force yet to carry forward -- there is nothing here to add a permission to,
+    and inventing a policy's mode or its other settings is not this gesture's to
+    do.
+    """
+    settled: list[str] = []
+    for file_id in file_ids:
+        if get_file(conn, file_id) is None:
+            raise FileHeldRefused(
+                f"{file_id!r} names no file this plan has recorded. Run the "
+                "command without `--file-held` first: a file has to be on "
+                "record before it can be filed.")
+        current = current_policy(conn, plan_version=plan_version)
+        if current is None:
+            raise FileHeldRefused(
+                f"no privacy policy is in force yet at plan version "
+                f"{plan_version!r}. `--file-held` adds one permission to the "
+                "policy already in force; run the command once first so one "
+                "exists.")
+        permissions = dict(current.automatic_move_permissions)
+        permissions[file_id] = True
+        set_policy(
+            conn, dataclasses.replace(
+                current, policy_version=UNSET_POLICY_VERSION,
+                automatic_move_permissions=permissions, set_at=recorded_at),
+            component_version=COMPONENT_VERSION, user_id=user_id,
+            reason=f"the user filed {file_id!r} themselves (--file-held)")
+        settled.append(file_id)
+    return tuple(settled)
+
+
 def _print_answer_effects(conn: sqlite3.Connection, settled, out, *,
                           created_at: str) -> None:
     """§17:577's diff, for the answers this invocation actually changed.
@@ -21304,6 +21361,14 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "`=skip` to put it aside. Answers are remembered between runs and "
              "can be given more than once.")
     parser.add_argument(
+        "--file-held", action="append", default=[], metavar="FILE_ID",
+        help="file a protected file yourself, e.g. --file-held CV20261234. A "
+             "protected file is never filed automatically -- this is the one "
+             "gesture that says a person, not a model, is filing this one. It "
+             "does not open the cloud door for the file and does not change "
+             "what the product thinks the file is; it only permits the move. "
+             "Can be given more than once.")
+    parser.add_argument(
         "--describe-role", action="append", default=[], metavar="NAME=WORDS",
         help="say what this material is for you, in your own words, e.g. "
              "--describe-role me=\"I teach one course and I am doing my own "
@@ -21786,6 +21851,13 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                 apply_answers(conn, args.answer, user_id=args.user,
                               recorded_at=recorded_at), out,
                 created_at=recorded_at)
+        # BESIDE `--answer` and for its reason: a person who has just filed a
+        # protected file themselves should not have to run the command again to
+        # see that it took.
+        if args.file_held:
+            _bootstrap(conn)
+            apply_file_held(conn, args.file_held, plan_version=PLAN_VERSION,
+                            user_id=args.user, recorded_at=now())
         # After the answers and before the run, for the same reason, and in
         # this order: describing then confirming under one name is a correction
         # that supersedes, so the confirmation must be the later write.
