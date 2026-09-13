@@ -8131,6 +8131,10 @@ class SituationPass:
     #: not accept. `00`: correct abstention is a successful outcome, and either way
     #: the file stays where the rules left it -- which is local.
     declined: int
+    #: Held by a rule, an identifier, an entity reading or the gate, and so not
+    #: asked (13 Sep 2026). One of the roster's partition counters, so the sum
+    #: still closes; `holds.held` is the same number seen from the holds block.
+    held_not_asked: int
     #: Files no model in this run may be asked about at all (`104` §17.13 ruling
     #: 3): protected material, which the route bars on every locality. COUNTED and
     #: not folded into `nothing_to_read`, because the two are different facts about
@@ -8327,7 +8331,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
       standing exactly where no hold exists.
     """
     named: dict = {}
-    nothing_to_read = declined = reused = 0
+    nothing_to_read = declined = reused = held_not_asked = 0
     over_ceiling = recognised_by_rules = 0
     #: `104` §18.33 gap 25: THE ROWS, AND THE COUNT IS TAKEN OFF THEM. `no_route`
     #: was `+= 1` and nothing else, so `--trail FILE` could not say why a file was
@@ -8434,6 +8438,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             # so the only thing the call produced was a situation name nobody
             # reads until the person files the record. Not asked, nothing sent.
             held += 1
+            held_not_asked += 1
             continue
         precaution = None
         if current is not None and current.basis in SAFETY_DOMAIN_BASES:
@@ -8685,6 +8690,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         reused=reused,
         named=named, recognised_by_rules=recognised_by_rules,
         nothing_to_read=nothing_to_read, declined=declined,
+        held_not_asked=held_not_asked,
         # `104` §18.33 gap 25: THE NUMBER IS THE ROWS. Not a tally kept beside them
         # -- a counter and a table are two accounts of one fact and the day they
         # disagree the screen is the one a person believes. One row was written for
@@ -8705,7 +8711,7 @@ _NO_GATE = GatePass(
     declined=0)
 
 _NOTHING_ASKED = SituationPass(
-    named={}, nothing_to_read=0, declined=0, no_route=0,
+    named={}, nothing_to_read=0, declined=0, held_not_asked=0, no_route=0,
     holds=PrecautionHolds(held=0, released=0, confirmed=0, still_held=0))
 
 NO_GROUP_CALLS = GroupPass(asked=0, answered=0, abstained=0,
@@ -11416,6 +11422,10 @@ SITUATION_SENTENCE: Mapping[str, str] = MappingProxyType({
         "not asked, nothing to read: a shortlist of situations existed for them "
         "and no releasable reading did, so the question could not be asked from "
         "anything. Nothing about them was assembled and nothing was sent.",
+    "held_not_asked":
+        "held and not asked: a rule, an identifier, an entity reading or the gate "
+        "had marked them protected, and a protected record is filed by the "
+        "person, so no model was asked about them and nothing was sent.",
     "declined":
         "asked and left alone: a model was asked and named no situation it could "
         "cite, or the check did not accept the one it named. They keep this "
