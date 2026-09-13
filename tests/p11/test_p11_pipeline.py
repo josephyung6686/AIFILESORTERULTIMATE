@@ -3705,3 +3705,25 @@ def test_a_branch_the_partition_never_named_is_left_alone(two_situations):
 
     assert decision.outcome == v.PLACE
     assert decision.destination.node_id == "n-course"
+
+
+def test_a_groups_answer_in_another_situations_branch_does_not_carry_a_member(
+        two_situations):
+    """`00` amendment 7, on the group path: a research file whose group answered
+    a coursework folder sits apart from that answer and is placed on its own,
+    under its own branch -- the same finding step 6 drops a candidate on."""
+    from placement.pipeline import GroupAnswer
+
+    tree = _indexed(two_situations, _two_situation_tree())
+    decision = _place(
+        two_situations,
+        inputs=_inputs(two_situations, tree=tree,
+                       situation_of=lambda file_id: "academic.research",
+                       the_situation_each_branch_carries=TWO_SITUATIONS),
+        evidence=_evidence(group_ids=PLACING_GROUPS),
+        group_answer=GroupAnswer(group_id=PLACING_GROUPS[0], node_id="n-course",
+                                 membership="member"))
+
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-paper", decision
+    assert not decision.group_support, decision

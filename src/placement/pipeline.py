@@ -1901,11 +1901,21 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
     #: rather than re-derived. A member P9 called an outlier is excluded from the
     #: plan (`place_group` step three), so placing it BY the group's answer would
     #: write `group_support` on a file the same plan says the group left out.
+    #:
+    #: AND A GROUP'S ANSWER IN ANOTHER SITUATION'S BRANCH (`00` amendment 7): the
+    #: same finding step 6 drops a candidate on, read off the same root. A
+    #: research paper in a mostly-coursework group is not filed into the course
+    #: because the group was; it sits apart and is placed on its own dossier.
+    own_situation = inputs.situation_of(subject.file_id)
+    groups_branch_situation = (
+        None if group_answer is None or own_situation is None else
+        inputs.the_situation_each_branch_carries.get(
+            label_of.get(_root_of(group_answer.node_id, parent_of), "")))
     contradicts_the_group = group_answer is not None and (
         group_answer.sits_apart or group_answer.node_id in {
             node_id for conflict in retrieval.conflicts
             for node_id in conflict.suppressed_node_ids
-        })
+        } or groups_branch_situation not in (None, own_situation))
     if group_answer is not None and not contradicts_the_group:
         # THE GROUP'S ANSWER IS THIS FILE'S BRANCH.
         # Checked against the index for the reason a model-chosen node is checked
