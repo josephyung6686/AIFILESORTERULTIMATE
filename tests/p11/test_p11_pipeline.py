@@ -2830,35 +2830,141 @@ def test_r17_site_d_describes_every_home_it_offers(skeleton, monkeypatch):
     assert not [item for item in seen["items"] if item.kind == "candidate"]
 
 
-# --- `104` R-O at site C --------------------------------------------------------
+# --- `104` R-O and §18.2 gap 1 at site C ------------------------------------------
+#
+# R-O, R-136 and R-173 each ruled that one refused, unbuilt or failed call must not
+# end the corpus run, and each left the file on the deterministic placement on the
+# way out. That fallback was never ruled: R-136's own row says closing it "needs a
+# reason word that is true of a call that happened and failed, with the file in a
+# review set". `no_model_judgement` is that word, and these are the five states it
+# is true of.
 
 
-def test_a_refusal_at_site_c_leaves_the_deterministic_placement_standing(
-        skeleton, monkeypatch):
-    """A refused call is not a judgement about the file, so it does not take the
-    file's home away.
-
-    `104` §13.5's Q-A clause is the rule: *"Q-A governs whenever a model is
-    configured; with no model configured the deterministic path remains the
-    fallback."* A call that could not be made is the same position as no model at
-    all for THIS file -- and the alternative, which is what the code did, is a
-    `ModelJudgementUnavailable` out of `_require_verdict` that ends the whole run
-    on the file after it as well.
-    """
-    import placement.pipeline as pipeline
+def _no_verdict(kind: str):
+    """Site C's five ways of coming back with no judgement about this file."""
+    from llm_harness.records import CallFailed, PreCallAbstention, ValidationUnavailable
+    from llm_harness.vocabulary import BUDGET_EXHAUSTED, C_PLACEMENT
     from privacy.resolve import UnresolvableSpan
 
-    def _refuse(conn, request, **kwargs):
-        raise UnresolvableSpan(
-            "observation 'sha256:3ea4' belongs to a file outside request.target")
+    def call(conn, request, **kwargs):
+        if kind == "refused":
+            # Raised inside the call and caught by `_judged_or_refused_steps`,
+            # which turns it into P8's own `CallRefused` -- the R-O door.
+            raise UnresolvableSpan(
+                "observation 'sha256:3ea4' belongs to a file outside "
+                "request.target")
+        if kind == "budget_exhausted":
+            return PreCallAbstention(reason=BUDGET_EXHAUSTED,
+                                     call_site=C_PLACEMENT,
+                                     subject_ref=request.subject_ref)
+        if kind == "failed":
+            return CallFailed(
+                request_identity="rq-1", release_id="rel-1", audit_id=None,
+                explanation="the provider closed the connection",
+                validator_version="1", policy_version="policy-1")
+        assert kind == "unvalidatable", kind
+        return ValidationUnavailable(missing=("prompt",))
+    return call
 
-    monkeypatch.setattr(pipeline, "call_placement_steps", _as_steps(_refuse))
-    refused = _place(skeleton, inputs=_model_inputs(skeleton))
-    offline = _place(skeleton)
 
-    assert refused.outcome == offline.outcome == v.PLACE
-    assert refused.destination.node_id == offline.destination.node_id
-    assert refused.confidence_class == offline.confidence_class
+@pytest.mark.parametrize(
+    "kind", ["refused", "budget_exhausted", "failed", "unvalidatable"])
+def test_a_call_that_produced_no_verdict_places_nothing_and_names_why(
+        skeleton, monkeypatch, kind):
+    """§13.5: the model decides wherever one is configured, and none decided here.
+
+    The file is the skeleton's own unique direct match, deliberately: the rules
+    HAD an answer for it and filed it on that answer until now, with
+    `decided_by=rule` on the row. That is §6.10's arithmetic overruling a judge
+    that was asked and did not answer, and it is what the reason word closes.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(_no_verdict(kind)))
+    decision = _place(skeleton, inputs=_model_inputs(skeleton))
+
+    assert decision.outcome == v.ABSTAIN
+    assert decision.abstention_reason == v.NO_MODEL_JUDGEMENT
+    assert decision.destination is None
+    # The sentence claims nothing about the evidence and calls nothing correct:
+    # a call that did not come back is a failure, and `66` §4 forbids describing
+    # it as a deliberate decline.
+    assert "no answer about it came back" in decision.explanation
+    assert "supported home" not in decision.explanation
+    assert "the right answer" not in decision.explanation
+
+
+def test_the_file_with_no_verdict_is_on_the_row_and_the_run_carries_on(
+        skeleton, monkeypatch):
+    """The coverage half R-O, R-136 and R-173 were each ruled for, unchanged.
+
+    The abstention is DURABLE -- the point of a reason word is that a reader of
+    the run can count these -- and the next file is still judged. Before the three
+    rulings the first of these ended the run; the fix must not have traded that
+    back for a record.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(_no_verdict("failed")))
+    first = _place(skeleton, inputs=_model_inputs(skeleton))
+
+    stored = current_decision(skeleton, plan_version="plan-1",
+                              subject_ref=f"{v.FILE}:f1:h1")
+    assert stored.decision_id == first.decision_id
+    assert stored.abstention_reason == v.NO_MODEL_JUDGEMENT
+
+    # A second file, judged for real behind the one that got no answer.
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: _verdict()))
+    second = Subject(kind=v.FILE, file_id="f2", content_hash="h2", group_id=None,
+                     member_file_ids=())
+    _classify(skeleton, file_id="f2", content_hash="h2")
+    after = _place(skeleton, subject=second,
+                   inputs=_model_inputs(skeleton),
+                   evidence=_evidence(**AMBIGUOUS))
+    assert after.outcome == v.PLACE
+    assert after.destination.node_id == "n-course-shared"
+
+
+def test_a_file_the_call_was_never_built_for_is_the_same_answer(skeleton,
+                                                                monkeypatch):
+    """R-136's own state, which reaches the same door: the model is not asked.
+
+    A file with no settled fact has no `evidence_items`, so `_judge_with_model`
+    abstains before a request is built. The pre-call row still says the model was
+    not reserved for it (`test_the_file_that_is_not_asked_records_why_in_p8s_own_
+    row`); what changes is that the DECISION no longer files it by rule.
+    """
+    import placement.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "call_placement_steps",
+                        _as_steps(lambda *_a, **_k: pytest.fail(
+                            "a file with nothing to send is not asked")))
+    decision = _place(skeleton, inputs=_model_inputs(skeleton),
+                      evidence=_evidence(evidence_items=(),
+                                         group_ids=PLACING_GROUPS))
+
+    assert decision.outcome == v.ABSTAIN
+    assert decision.abstention_reason == v.NO_MODEL_JUDGEMENT
+
+
+def test_with_no_model_configured_the_same_file_is_still_placed_by_the_rules(
+        skeleton):
+    """`104` R-74's narrow arm, exactly as ruled, and the half that keeps gap 1
+    from being a coverage loss.
+
+    §13.5: *"Q-A governs whenever a model is configured; with no model configured
+    the deterministic path remains the fallback."* Nothing above narrows that
+    sentence -- it narrows what a run WITH a model may do when its model says
+    nothing -- and without this test the two would be indistinguishable.
+    """
+    decision = _place(skeleton)
+
+    assert decision.outcome == v.PLACE
+    assert decision.destination.node_id == "n-course"
+    assert decision.confidence_class == v.EXACT_FACT_MATCH
 
 
 def test_a_programming_error_at_site_c_still_surfaces(skeleton, monkeypatch):

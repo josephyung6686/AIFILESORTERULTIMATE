@@ -124,7 +124,8 @@ from placement.vocabulary import (
     CONFLICTING_FACTS, CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH,
     DECIDED_BY_MODEL, DECIDED_BY_RULE, DECIDED_BY_USER, DIRECT,
     EXISTING, FILE, GENERIC_HUB_ONLY, GROUP, LEAVE_IN_PLACE, LOW_MARGIN,
-    MARGIN_TRUE_VACUOUS, MARK_STATE, NO_SHARED_BRANCH, SEMANTIC_ONLY,
+    MARGIN_TRUE_VACUOUS, MARK_STATE, NO_MODEL_JUDGEMENT, NO_SHARED_BRANCH,
+    SEMANTIC_ONLY,
     MULTIPLE_SUPPORTED_HOMES, NO_SUPPORTED_DESTINATION, PLACE, PLACEMENT,
     POSSIBLE, PRIVACY_BLOCKED, RESIDUAL, RESIDUAL_ROLE, REVIEW_WITH_MODEL,
     RETURN_TO_PLACEMENT, SCOPED_GENERAL, SEND_TO_APPROVED_NODE,
@@ -1918,42 +1919,38 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
                 if not offline_would_place:
                     return _abstention(conn, context, reason=PRIVACY_BLOCKED)
                 gate_refused = True
-            # `104` R-O. A REFUSED CALL IS NOT AN ANSWER ABOUT THIS FILE, and
-            # `_require_verdict` says why in its own words: "§6.10's abstention
-            # reasons are a closed set and none of them means 'the call did not
-            # happen'; naming one would record a conclusion nothing reached". So
-            # nothing below runs, `chosen_node_id` stays `None`, and step 9 places
-            # the file the way a run with no model configured would -- which is
-            # exactly what §13.5's Q-A clause names as the fallback: "with no
-            # model configured the deterministic path remains the fallback". The
-            # refusal is already a `call_refused` event; what it is not is a
-            # reason to take this file's home away, nor -- as it was until now --
-            # a `ModelJudgementUnavailable` that ends the run on every file after
-            # it too. NOT `gate_refused`: §8.4 decided nothing here, and saying it
-            # did would name the wrong actor in the record.
-            # `104` R-136 joins R-O here. A call that was never BUILT is not an
-            # answer about this file either, and it reaches step 9 by the same
-            # door: `chosen_node_id` stays `None` and the file is placed the way a
-            # run with no model configured would place it.
+            # **THE CALL HAPPENED AND NOTHING JUDGED THIS FILE, SO THIS FILE IS
+            # NOT PLACED.** `104` R-O, R-136 and R-173 each sent one of these
+            # states past this branch to step 9, where the file was filed on
+            # `assessment.scored[0]` and the row said `decided_by=rule`. Every one
+            # of those rulings was about COVERAGE -- one refused, unbuilt or
+            # failed call must not end the corpus run -- and none of them ruled
+            # the fallback: R-136's own row says closing this "needs a reason word
+            # that is true of a call that happened and failed, with the file in a
+            # review set", and until now there was no such word, so the run kept
+            # the placement instead. §13.5 gives the destination to the model
+            # WHEREVER ONE IS CONFIGURED, and this branch is reached only there,
+            # so §6.10's arithmetic deciding here is the rules overruling a judge
+            # that was asked and did not answer.
             #
-            # `104` R-173 (9 Sep 2026): A CALL THAT FAILED FALLS THROUGH THE SAME
-            # DOOR. `CallFailed` (the provider did not answer: a connection
-            # error, a timeout) and `ValidationUnavailable` (the answer could not
-            # be judged) are a call that happened and came back with no
-            # judgement, and until this ruling they raised
-            # `ModelJudgementUnavailable` here and ENDED THE RUN on every file
-            # after them. The first cloud run is two hours over a network; one
-            # blip at one file would have cost every file behind it its answer,
-            # which is the coverage loss the constitution forbids for the sake of
-            # a record's tidiness. The record stays exact: the failure is already
-            # written as its own event and nothing below names a §6.10 reason
-            # for it -- `chosen_node_id` stays `None` and step 9 places the file
-            # the way a run with no model configured would, §13.5's own fallback.
-            # `NeedsConsent` alone still raises: it is not "the call did not
-            # happen", it is the gate asking the person a question, and a run
-            # that answered it for them would be worse than one that stopped.
-            elif not isinstance(result, (CallRefused, PreCallAbstention,
-                                         CallFailed, ValidationUnavailable)):
+            # `no_model_judgement` is that word (`vocabulary`), and it is true of
+            # all five: `CallRefused` (P7 refused the built request, from inside
+            # the call), `PreCallAbstention` (R-136's unbuilt call, and a purse
+            # that came back `BUDGET_EXHAUSTED`), `CallFailed` (the provider did
+            # not answer) and `ValidationUnavailable` (the answer could not be
+            # judged). Each is already its own durable event; this is the file's
+            # own decision row beside it, and `_abstention` puts the file in a
+            # review set the way every other §6.10 abstention does. The run goes
+            # on to the next file, which is what the three rulings were for.
+            #
+            # `NeedsConsent` still raises and `Refusal` still takes R-74's arm
+            # above: the first is the gate asking the PERSON a question, and the
+            # second is §8.4 deciding -- a door that decided is not a judge that
+            # did not.
+            elif isinstance(result, (CallRefused, PreCallAbstention,
+                                     CallFailed, ValidationUnavailable)):
+                return _abstention(conn, context, reason=NO_MODEL_JUDGEMENT)
+            else:
                 verdict = _require_verdict(result, call_site=C_PLACEMENT)
                 outcome, reason, deferred = transcribe(
                     verdict, assessment=assessment)
@@ -2171,8 +2168,11 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
         # site-C verdict P8 validated named this node; every other way of reaching
         # this line placed the file on `assessment.scored[0]`, which is §6.10's
         # arithmetic and nobody's judgement. That covers the deterministic path,
-        # the offline install, R-74's gate refusal and R-O's refused call alike --
-        # four routes to one fact, which is that the rules decided.
+        # the offline install and R-74's gate refusal -- three routes to one fact,
+        # which is that the rules decided. **A REFUSED, UNBUILT OR FAILED CALL IS
+        # NO LONGER ONE OF THEM** (`104` §18.2 gap 1): a model was configured and
+        # gave no judgement, so the file abstains `no_model_judgement` above and
+        # never reaches this row.
         #
         # **AND `104` §18.2 GAP 14 IS A FIFTH ROUTE TO THE FIRST ANSWER.** A member
         # placed by its group's answer has `chosen_node_id` set and made no call of
@@ -2405,6 +2405,10 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
       dossier ON PURPOSE. `00` on this material -- "sensitive personal material
       is not the same thing as `Numbers.app`" -- and a person told their passport
       failed to place concludes the product is broken rather than careful.
+    * `no_model_judgement` (`104` §18.2 gap 1) is the third and the only one that
+      is NOT a correct decision: the model was the decider and no answer came
+      back. Both halves of the default sentence are false about it -- see the arm
+      itself, which says why in the place a reader of that sentence will look.
 
     Every other reason keeps the sentence it had. A correct abstention over thin
     evidence IS "no legal destination cleared §6.10's conditions", and giving all
@@ -2490,6 +2494,27 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
             "Deciding this file needed a model, and this folder's privacy "
             "settings do not let one be asked about it. Nothing about it left "
             "this device and nothing moved; the evidence is retained."
+        )
+    if reason == NO_MODEL_JUDGEMENT:
+        # A THIRD ABSTENTION THE DEFAULT SENTENCE DESCRIBES FALSELY, and it is
+        # false in both halves. "No folder in this plan was a supported home" is a
+        # claim about the EVIDENCE, and the evidence was never weighed against the
+        # question -- a call was made and no judgement came back. "Declining to
+        # place it is the right answer rather than a failure" is the other half:
+        # a request that was turned away, did not return, or could not be checked
+        # IS a failure, and telling somebody it was deliberate teaches them to
+        # read every abstention as deliberate. `66` §4 forbids the collapse and
+        # `104` §18.3 ranks a false sentence in front of the person the worst
+        # defect there is.
+        #
+        # It says what the person can do about it, because unlike the other
+        # reasons there is something: this one goes away on a run where the model
+        # answers.
+        return (
+            "Deciding where this file goes is a model's call on this setup, and "
+            "no answer about it came back this run -- the request was turned "
+            "away, did not return, or could not be checked. Nothing moved and "
+            "everything read about it is kept; running again is what settles it."
         )
     return (
         f"{REASON_IN_WORDS.get(reason, 'No folder in this plan was a supported home for it.')} "
@@ -2678,9 +2703,12 @@ def _require_verdict(result, *, call_site: str) -> P8Verdict:
         return result
     raise ModelJudgementUnavailable(
         f"{call_site} came back with {type(result).__name__}, which is not a "
-        "judgement about this file. §6.10's abstention reasons are a closed set "
-        "and none of them means 'the call did not happen'; naming one would "
-        "record a conclusion nothing reached"
+        "judgement about this file and is not one of the four states §18.2 gap 1 "
+        "names -- `no_model_judgement` is the reason word for a call that was "
+        "refused, unbuilt, failed or unvalidatable, and this is none of them. "
+        "`NeedsConsent` is the one that reaches here today: it is the gate asking "
+        "the person a question, and a run that answered it for them would be "
+        "worse than one that stopped"
     )
 
 
@@ -3177,8 +3205,11 @@ def _judge_with_model_steps(conn, *, subject, inputs: PipelineInputs, retrieval,
     # its own: `NOT_ELIGIBLE_FOR_MODEL` says the model is not reserved for this
     # subject, which is true of a file with nothing to send and of one with
     # nowhere to send it. No reason is invented, no budget is reserved -- the
-    # abstention is decided before `reserve_call` -- and the file falls to step 9,
-    # which places it the way a run with no model configured would.
+    # abstention is decided before `reserve_call` -- and the file goes back to
+    # step 7's caller, which since `104` §18.2 gap 1 abstains
+    # `no_model_judgement` wherever a model was configured to decide. Site D reads
+    # the same record and abstains for its own reason; neither site ends the run,
+    # which is the whole of what R-136 ruled.
     if not evidence.get("evidence_items"):
         return _not_asked(
             conn, call_site=call_site, subject=subject, observed_at=observed_at,

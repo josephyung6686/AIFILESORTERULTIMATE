@@ -272,10 +272,24 @@ CONFLICTING_FACTS: str = "conflicting_facts"
 NO_SHARED_BRANCH: str = "no_shared_branch"
 BUDGET_DEFERRED: str = "budget_deferred"
 PRIVACY_BLOCKED: str = "privacy_blocked"
+
+#: `104` R-136's owed word, ruled by `§18.2` gap 1. THE MODEL WAS THE DECIDER AND
+#: NO JUDGEMENT CAME BACK: the call was refused, failed, could not be validated,
+#: was abstained from before it was built, or spent the last of a purse. §13.5
+#: gives the destination to the model wherever one is configured, so a run that
+#: fell back to §6.10's arithmetic on any of those states would file the file by a
+#: rule the design retired -- and record `decided_by=rule` for a decision the
+#: rules were not asked to make.
+#:
+#: It is not `budget_deferred` and not `privacy_blocked`. §8.6's deferral is a run
+#: cut short at a named stage and resumed by the next one; §8.4's block is a door
+#: that decided. This is neither: the door opened, the question was asked, and
+#: nothing answered it.
+NO_MODEL_JUDGEMENT: str = "no_model_judgement"
 ABSTENTION_REASONS: tuple[str, ...] = (
     NO_SUPPORTED_DESTINATION, LOW_MARGIN, MULTIPLE_SUPPORTED_HOMES,
     SEMANTIC_ONLY, GENERIC_HUB_ONLY, CONFLICTING_FACTS, NO_SHARED_BRANCH,
-    BUDGET_DEFERRED, PRIVACY_BLOCKED,
+    BUDGET_DEFERRED, PRIVACY_BLOCKED, NO_MODEL_JUDGEMENT,
 )
 
 # --- privacy and review ----------------------------------------------------------
