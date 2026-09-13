@@ -517,7 +517,9 @@ def test_site_gs_route_is_built_under_the_runs_mode_not_the_offline_default():
     source = inspect.getsource(cli)
     site = source[source.index("def ask_the_situation("):]
     site = site[:site.index("\ndef ", 1)]
-    assert re.search(r"target_for\(conn, routing, G_SITUATION_SENSITIVITY,\s*operation_mode=operation_mode\)", site)
+    # The route may carry more than the mode (the run's own clearances since 13
+    # Sep); the pin is that it carries the mode.
+    assert re.search(r"target_for\(conn, routing, G_SITUATION_SENSITIVITY,\s*operation_mode=operation_mode[,)]", site)
     call = source[source.index("            ask_the_situation(\n"):]
     call = call[:call.index(")\n", call.index("user_id=user_id")) + 1]
     assert "operation_mode=operation_mode" in call
