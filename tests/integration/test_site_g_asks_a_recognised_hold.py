@@ -27,6 +27,17 @@ after a lift behaves exactly as gap 24 pins it. And `00`:110 still stands
 everywhere a hold does not: a recognised file the rules are NOT holding is still
 `settled` and is still never asked, which is the companion file in this corpus.
 
+**RETIRED IN PART BY THE OWNER'S WORD OF 13 SEP 2026: a protected record is filed
+by the person.** The ruling above made a recognised-and-held file askable; this
+one makes it unaskable again, and for the opposite reason. It is not `00`:110
+reserving a direct unique match from the model -- that reading is gone for good,
+and the free twin below is still asked -- it is that a held file is nobody's to
+ask about. `cli.ask_the_situation` counts it `held` and goes on before it reads
+what the rules recognised, so a held file has no dossier, no verdict, no lift and
+no confirmation, and it is not counted among the files the rules recognised
+either. The lift arms below are retired with the call; what survives is the hold
+itself, the row it is filed on, and the person's own word over it.
+
 **NO OLLAMA AND NO NETWORK**, and the stubs are gap 24's own, imported rather than
 copied so a run here and a run there are runs of the same shape.
 
@@ -45,12 +56,6 @@ import sqlite3
 from pathlib import Path
 
 import cli
-from facts.domains import SCHEMA_IDS
-from model_situation import NONE_OF_THESE
-from privacy.vocabulary import (
-    LOCAL_MODEL_SITUATION, PRIVACY_CLASS_ORDINARY, PRIVACY_CLASS_PROTECTED,
-    PROTECTED_KIND_IDENTITY_DOCUMENT,
-)
 from readers.model_deepseek import CLOUD
 from readers.model_ollama import (
     BASE_URL_NAME as LOCAL_BASE_URL_NAME,
@@ -66,10 +71,10 @@ from test_site_g_lifts_the_hold import _classifications, _naming, _read, _the_ho
 HELD_NAME = "Passport syllabus.txt"
 FREE_NAME = "PHYS 1401 syllabus.txt"
 
-#: What the rules make of the held file: RECOGNISED as one and HELD as the other.
-#: Both are `SCHEMA_IDS` members and neither is authored here.
+#: What the rules RECOGNISE the held file as -- they hold it as `identity`, which
+#: since 13 Sep 2026 no test names, because no answer is given about a held file.
+#: A `SCHEMA_IDS` member and not authored here.
 RECOGNISED_AS = "academic"
-HELD_DOMAIN = "identity"
 
 #: Four of `academic`'s own authored words -- `syllabus` in the filename, then
 #: `grading policy`, `attendance`, `office hours` and `final exam` in the body.
@@ -129,69 +134,38 @@ def _report_items(conn, file_id: str) -> list[str]:
             if item["kind"] == "recogniser_abstention"]
 
 
-# --- the file is asked, and the question says what the rules did -----------------
+# --- the held twin is not asked, and its free twin is ----------------------------
 
 
-def test_a_recognised_file_the_rules_hold_is_asked_and_its_report_names_both(
+def test_a_recognised_file_the_rules_hold_is_not_asked_and_its_free_twin_is(
         tmp_path_factory, monkeypatch):
-    """THE RULING, on the wire. A file the rules recognised AND hold reaches site
-    G, and the report in its dossier says BOTH halves of what the rules concluded.
+    """THE OWNER'S WORD OF 13 SEP 2026 -- a protected record is filed by the
+    person -- on the corpus that separates the two reasons a file goes unasked.
 
-    Before this gap the file was `settled`: no dossier, no call, no line on any
-    screen, and a `protected=1` row taken on the word `passport` in a filename
-    that also carries a course code. Now the model is shown that the rules read
-    this file as `academic` and are holding it as `identity` on the work type
-    `passport`, found in the filename -- and it is offered both, plus the decline.
+    Gap 24b made this file askable and amendment 7(c) made its twin askable; the
+    ruling takes the first back and leaves the second, so the two files now part
+    company for the opposite reason to the one they used to. The twin the rules
+    recognised and are NOT holding is asked, which is what says `00`:110 is still
+    retired. The twin they recognised and ARE holding is not, and no dossier is
+    built for it: no prompt, no call, nothing off the file.
 
-    THE WORDS ARE THE LIBRARY'S AND NOT THE PERSON'S. `academic`, `identity` and
-    `passport` are authored names; nothing out of the file's own text reaches the
-    prompt through this item, which is the guarantee `matched` already carries.
+    THAT IS THE WHOLE MEASUREMENT, and the two counts have to be read together --
+    a run where the site asked nothing at all would satisfy the first line alone
+    and would mean the opposite.
 
-    SABOTAGE: restore the `settled` branch to `if not isinstance(outcome,
-    Abstention)`. There is no dossier at all and this errors on the unpack.
+    SABOTAGE: drop the `current.protected` skip from `ask_the_situation` and the
+    held twin is assembled for a model again.
     """
     database, _said, _stub = _run("released", _naming(RECOGNISED_AS),
                                   tmp_path_factory, monkeypatch)
     conn = _read(database)
-    held = _file_id(conn, HELD_NAME)
 
-    (payload,) = conn.execute(
-        "SELECT payload FROM llm_dossier WHERE call_site = ? AND subject_ref = ?",
-        (cli.G_SITUATION_SENSITIVITY, held)).fetchall()
-    dossier = json.loads(payload["payload"])
-    (report,) = [item for item in dossier["evidence_items"]
-                 if item["kind"] == "recogniser_abstention"]
-
-    # What the rules RECOGNISED -- the half gap 24 had no way to say, because
-    # every file it reached had abstained.
-    assert f"recognised this file as {RECOGNISED_AS}" in report["location"], (
-        report["location"])
-    # ...and the hold, in gap 24's own phrase, unchanged.
-    assert "held:" in report["location"]
-    assert HELD_DOMAIN in report["location"]
-    assert "passport" in report["location"]
-    assert "filename" in report["location"]
-    # AND IT DOES NOT CLAIM AN ABSTENTION THAT NEVER HAPPENED. The item kind is
-    # still the one the ratified text describes; the sentence inside it is not.
-    assert "recogniser abstention" not in report["location"], report["location"]
-
-    # THE MENU IS THE WHOLE LIBRARY SINCE `00` amendment 7(c), and this assertion
-    # used to read `len(options) == 3` -- gap 24b's shortlist read literally: what
-    # the rules named, what they are holding it as, and the decline. `104` §18.56
-    # measured that shape across 87 files and found the right answer on the menu
-    # for 35 of them, so the amendment widened every menu to the library and moved
-    # what the rules concluded onto the items. Both halves are still checked here,
-    # because both still have to reach the model -- they now reach it as the two
-    # options the recognisers RAISED rather than as the only two that exist.
-    options = dossier["allowed_vocabulary"]
-    assert RECOGNISED_AS in options and HELD_DOMAIN in options
-    assert options[-1] == NONE_OF_THESE
-    assert len(options) == len(SCHEMA_IDS) + 1, options
-    raised = {item["evidence_ref"]: item["location"]
-              for item in dossier["evidence_items"]
-              if item["kind"] == "candidate_schema"}
-    assert "raised this for this file" in raised[RECOGNISED_AS], raised[RECOGNISED_AS]
-    assert "raised this for this file" in raised[HELD_DOMAIN], raised[HELD_DOMAIN]
+    assert _report_items(conn, _file_id(conn, HELD_NAME)) == [], (
+        "a protected record was assembled for a model, which is what the "
+        "owner's word of 13 Sep 2026 ended")
+    assert len(_report_items(conn, _file_id(conn, FREE_NAME))) == 1, (
+        "the site asked nothing at all, so the line above says nothing about "
+        "the hold")
 
 
 def test_a_recognised_file_with_no_hold_is_asked_too_and_the_count_says_so(
@@ -250,60 +224,53 @@ def test_a_recognised_file_with_no_hold_is_asked_too_and_the_count_says_so(
     assert free not in cli._protected_file_ids(conn)
 
 
-# --- the verdict decides what becomes of the hold --------------------------------
+# --- no verdict is given, so the hold stays as the rules wrote it ----------------
 
 
-def test_an_accepted_ordinary_verdict_lifts_a_recognised_hold(
+def test_no_verdict_lifts_a_recognised_hold_because_none_is_asked_for(
         tmp_path_factory, monkeypatch):
-    """THE LIFT, unchanged from gap 24 and now reachable on a recognised file.
+    """THE LIFT, WITHDRAWN by the owner's word of 13 Sep 2026: a held file is not
+    asked, so there is no accepted verdict for it and nothing supersedes the
+    precaution's row.
 
-    The model named the ordinary situation the rules themselves recognised, cited
-    it out of released evidence, P8 accepted the claim and no restricted kind was
-    named. `assign` writes G's `llm_supported` row over the precaution's
-    `possible` one -- superseded, not deleted -- and the file is ordinary for
-    every later pass of this run.
+    Read on the run whose stub names exactly the ordinary situation the rules
+    themselves recognised -- the answer with the best claim of any to be right
+    about this file, and the one that used to retire the hold. It never reaches
+    the file. The hold is the only row, unsuperseded, and the file is protected
+    for every later pass of the run.
 
-    THE RETIRED ROW SAYS WHAT RETIRED IT, and on this arm that sentence has to
-    carry both halves: the verdict, the situation it named, the domain the rules
-    held the file as, and the authored term they held it on.
-
-    SABOTAGE: pass `held=True` and a kind unconditionally into
-    `situation_classification`, and this file stays protected forever.
+    SABOTAGE: drop the `current.protected` skip from `ask_the_situation`. The
+    ordinary verdict supersedes the hold and every assertion here goes red.
     """
     database, _said, _stub = _run("released", _naming(RECOGNISED_AS),
                                   tmp_path_factory, monkeypatch)
     conn = _read(database)
     held = _file_id(conn, HELD_NAME)
     rows = _classifications(conn, held)
-    hold = _the_hold(rows)
 
-    assert hold["superseded_by"] is not None, (
-        "the hold was never retired, so the local model's answer changed nothing")
-    (lifted,) = [row for row in rows if row["fact_id"] == hold["superseded_by"]]
-    assert lifted["basis"] == LOCAL_MODEL_SITUATION
-    assert lifted["protected"] == 0
-    assert lifted["privacy_class"] == PRIVACY_CLASS_ORDINARY
-    assert lifted["supersedes"] == hold["fact_id"]
-    reason = hold["supersede_reason"]
-    assert RECOGNISED_AS in reason and HELD_DOMAIN in reason, reason
-    assert "passport" in reason, reason
-    # The set every later pass reads -- the report, the route and the review sets
-    # share this one query, so this is the lift arriving where it has to arrive.
-    assert held not in cli._protected_file_ids(conn)
+    assert [row["basis"] for row in rows] == ["safety_domain"], (
+        "a model wrote a row about a file it was never asked about")
+    assert rows[0]["superseded_by"] is None
+    assert rows[0]["supersede_reason"] is None
+    assert rows[0]["protected"] == 1
+    assert held in cli._protected_file_ids(conn)
 
 
-def test_a_released_file_is_ordinary_for_the_route_that_comes_after(
+def test_no_model_answer_makes_a_recognised_hold_ordinary_for_the_route_after(
         tmp_path_factory, monkeypatch):
-    """SITE A'S ROUTE AFTER THE LIFT, exactly as gap 24 pins it for an abstention.
+    """SITE A'S ROUTE WITH THE LIFT GONE (13 Sep 2026, the owner's word): the file
+    is refused the cloud on the run where the model answered ordinary.
 
-    The situation pass runs before the fact pass and before placement, so a hold
-    lifted here is lifted in time to change where the file goes. Asked of
-    `model_route_permitted`, the predicate `target_for` is built from, under
-    `CLOUD_ENABLED_MODE` -- under `offline` every file answers the same and the
-    assertion would be about the mode.
+    Asked on the RELEASED run and not the declining one, because this is the
+    dangerous direction: on the second corpus the local judge's ordinary answer
+    lifted the holds on two key-protected files, and under the tuple ratified on
+    12 Sep a lifted hold was a cloud clearance, so both would have crossed at the
+    fact pass. Asked of `model_route_permitted`, the predicate `target_for` is
+    built from, under `CLOUD_ENABLED_MODE` -- under `offline` every file answers
+    the same and the assertion would be about the mode.
 
-    SABOTAGE: write G's row without letting `assign` supersede the precaution's.
-    One live protected row keeps this red.
+    SABOTAGE: drop the `current.protected` skip from `ask_the_situation`, or put
+    `local_model_situation` back into `CLOUD_CLEARING_BASES`.
     """
     database, _said, _stub = _run("released", _naming(RECOGNISED_AS),
                                   tmp_path_factory, monkeypatch)
@@ -313,139 +280,69 @@ def test_a_released_file_is_ordinary_for_the_route_that_comes_after(
     assert cli.model_route_permitted(
         conn, locality=CLOUD,
         unclassified_permits_local=cli.UNCLASSIFIED_PERMITS_LOCAL,
-        operation_mode=cli.CLOUD_ENABLED_MODE)(held) is True, (
-        "the local model released this file and the route still treats it as "
-        "protected, so the lift changed nothing a person would notice")
-
-
-def test_a_named_restricted_kind_keeps_a_recognised_hold(
-        tmp_path_factory, monkeypatch):
-    """THE ARM THAT MUST NOT WIDEN. A passport in a coursework folder is protected
-    whatever its situation.
-
-    The model named the ordinary situation the rules recognised AND one of `105`
-    §13.3's ten restricted kinds -- which is precisely what this corpus invites,
-    because the file really does read as coursework and really is named for a
-    passport. `HANDLING_POLICY` answers for the SITUATION and knows nothing about
-    the kind, so without gap 24's `held and restricted_kind is not None` the row
-    would carry `protected=0` beside `privacy_class='protected'` and, being
-    `llm_supported`, would supersede the hold and release the file to placement.
-
-    SABOTAGE: drop `or (held and restricted_kind is not None)` from
-    `situation_classification`. `protected` reads 0 here and the file becomes
-    filable.
-    """
-    database, _said, _stub = _run(
-        "kind", _naming(RECOGNISED_AS, kind=PROTECTED_KIND_IDENTITY_DOCUMENT),
-        tmp_path_factory, monkeypatch)
-    conn = _read(database)
-    held = _file_id(conn, HELD_NAME)
-    rows = _classifications(conn, held)
-    hold = _the_hold(rows)
-
-    assert hold["superseded_by"] is not None
-    (agreed,) = [row for row in rows if row["fact_id"] == hold["superseded_by"]]
-    assert agreed["basis"] == LOCAL_MODEL_SITUATION
-    assert agreed["privacy_class"] == PRIVACY_CLASS_PROTECTED
-    assert agreed["protected"] == 1, (
-        "the model named a passport and the file was released to placement")
+        operation_mode=cli.CLOUD_ENABLED_MODE)(held) is False, (
+        "a model's ordinary answer opened the cloud for a held file, which is "
+        "the crossing the owner's word of 13 Sep 2026 stopped")
     assert held in cli._protected_file_ids(conn)
 
 
-def test_a_confirmed_hold_is_filed_on_the_holds_own_observations(
+def test_the_hold_is_filed_on_the_observations_its_work_type_was_found_in(
         tmp_path_factory, monkeypatch):
-    """`104` §18.27's owed row: A RECORD CITES WHAT RAISED IT.
+    """`104` §18.27's owed row -- A RECORD CITES WHAT RAISED IT -- on the one row
+    that survives the owner's word of 13 Sep 2026.
 
-    The model agreed with the hold -- it named a passport -- so what this row
-    records is the rules' hold, confirmed. What raised that hold is the word
-    `passport` in the FILENAME. What the row was citing instead was
-    `question.evidence_refs`, which on a recognised file are the `Recognition`'s
-    own keys: the syllabus body that made the file look like coursework. A person
-    opening the row to ask why their file is protected was shown the evidence for
-    the opposite claim, and every later reader -- the review sets, the report --
-    reads the same column.
+    The gap was written about the CONFIRMED row site G used to write when the
+    model agreed with a hold, and there is no such row now: the file is not asked,
+    so the only record saying this file is protected is the precaution's own. The
+    claim is unchanged and lands on it instead. What raised this hold is the word
+    `passport` in the FILENAME, and that is what a person opening the row to ask
+    why their file is protected has to be shown -- not the syllabus body that made
+    it look like coursework, which is exactly what this corpus offers instead and
+    what the row would cite if it cited the recognition's keys.
 
-    `Precaution` carried no refs at all before this, which is why the row had
-    nothing truer to cite. It carries the observations its work types were found
-    in now, projected from the same matches its terms and zones already come from.
+    THE COURSEWORK READINGS ARE STILL THERE, and the last assertion says so: they
+    were not deleted to make this true, they are simply not what the protection
+    rests on.
 
-    SABOTAGE: return `evidence_refs=()` from `_reported`, or cite
-    `question.evidence_refs` unconditionally. The confirmed row is filed on the
-    body prose and the last two assertions go red.
+    SABOTAGE: return `evidence_refs=()` from the detector's `_reported`, or file
+    the precaution on the recognition's own keys.
     """
-    database, _said, _stub = _run(
-        "kind", _naming(RECOGNISED_AS, kind=PROTECTED_KIND_IDENTITY_DOCUMENT),
-        tmp_path_factory, monkeypatch)
+    database, _said, _stub = _run("released", _naming(RECOGNISED_AS),
+                                  tmp_path_factory, monkeypatch)
     conn = _read(database)
     held = _file_id(conn, HELD_NAME)
-    rows = _classifications(conn, held)
-    hold = _the_hold(rows)
-    (agreed,) = [row for row in rows if row["fact_id"] == hold["superseded_by"]]
+    hold = _the_hold(_classifications(conn, held))
 
     said_by = {row["observation_key"]: (row["raw_value"] or "").casefold()
                for row in conn.execute(
                    "SELECT observation_key, raw_value FROM evidence "
                    "WHERE file_id = ? AND superseded_by IS NULL", (held,))}
-    cited = json.loads(agreed["evidence_refs"])
+    cited = json.loads(hold["evidence_refs"])
 
-    assert agreed["protected"] == 1, "this is the confirmed arm or it measures nothing"
+    assert hold["protected"] == 1, "this is the hold or it measures nothing"
     assert cited, "§8.4: the classification is itself evidence-backed"
-    assert set(cited) == set(json.loads(hold["evidence_refs"])), (
-        "the confirmed row rests on what the hold rested on")
     assert all("passport" in said_by[ref] for ref in cited), (
         "the observations the hold's own work type was found in, and no other")
     assert [ref for ref, value in said_by.items()
             if "grading policy" in value and ref not in cited], (
         "the readings that made this file look like coursework are still in the "
-        "file and are no longer what its protection is filed on")
+        "file and are not what its protection is filed on")
 
 
-def test_a_confirmed_holds_retired_row_says_the_model_agreed(
+def test_a_decline_leaves_a_recognised_hold_because_it_is_not_asked_at_all(
         tmp_path_factory, monkeypatch):
-    """WHICH WAY THE HOLD WENT, in the one column that says why it was retired.
+    """SILENCE NEVER LIFTS A HOLD, and since the owner's word of 13 Sep 2026 the
+    silence is not even the model's: a held file is not asked, so "none" is an
+    answer about the twin beside it and about nothing else.
 
-    §8.2 keeps the old row and the reason it was superseded, and that reason is
-    where a person reads what happened. "named academic" reads exactly the same on
-    the file the model RELEASED and on the passport it CONFIRMED -- two opposite
-    outcomes wearing one sentence. The verb is read off the record that is about
-    to supersede, so the sentence and the row's own flag cannot disagree.
-
-    SABOTAGE: drop the `record.protected` branch from the reason. Both runs write
-    "named", and the retired row of a confirmed hold is indistinguishable from the
-    retired row of a lifted one.
-    """
-    database, _said, _stub = _run(
-        "kind", _naming(RECOGNISED_AS, kind=PROTECTED_KIND_IDENTITY_DOCUMENT),
-        tmp_path_factory, monkeypatch)
-    confirmed = _the_hold(_classifications(_read(database),
-                                           _file_id(_read(database), HELD_NAME)))
-
-    database, _said, _stub = _run("released", _naming(RECOGNISED_AS),
-                                  tmp_path_factory, monkeypatch)
-    lifted = _the_hold(_classifications(_read(database),
-                                        _file_id(_read(database), HELD_NAME)))
-
-    assert "confirmed the rules' hold" in confirmed["supersede_reason"], (
-        confirmed["supersede_reason"])
-    assert "confirmed the rules' hold" not in lifted["supersede_reason"], (
-        lifted["supersede_reason"])
-    # And both still say what the rules had held the file as, and on which
-    # authored term -- the half `104` §18 gap 24 put there, unchanged.
-    for reason in (confirmed["supersede_reason"], lifted["supersede_reason"]):
-        assert HELD_DOMAIN in reason and "passport" in reason, reason
-
-
-def test_none_leaves_a_recognised_hold_exactly_as_the_rules_wrote_it(
-        tmp_path_factory, monkeypatch):
-    """SILENCE NEVER LIFTS A HOLD, on this arm too.
-
-    "none" is a successful outcome and it is not an answer about the hold: the
+    The outcome is the one gap 24 wrote and the road to it is shorter. The
     precaution row stands, unsuperseded, no row is written beside it, and the file
-    stays protected and stays on this device. The file was ASKED -- which is the
-    change -- and the asking changed nothing, which is the rule.
+    stays protected and stays on this device -- reached without a dossier, without
+    a call and without a question, which is the line that changed.
 
-    SABOTAGE: write a classification on the decline path. The hold is retired by a
-    model that said it could not tell.
+    SABOTAGE: write a classification on the decline path, or drop the
+    `current.protected` skip -- the first retires a hold on a model that said it
+    could not tell, the second builds the dossier the first assertion forbids.
     """
     database, _said, _stub = _run("declined", _decline, tmp_path_factory,
                                   monkeypatch)
@@ -453,9 +350,8 @@ def test_none_leaves_a_recognised_hold_exactly_as_the_rules_wrote_it(
     held = _file_id(conn, HELD_NAME)
     rows = _classifications(conn, held)
 
-    # It was asked: the dossier exists, which is what separates this from the
-    # `settled` twin above, where nothing was built at all.
-    assert len(_report_items(conn, held)) == 1
+    # It was not asked: no dossier at all, where this used to require exactly one.
+    assert _report_items(conn, held) == []
     assert [row["basis"] for row in rows] == ["safety_domain"]
     assert rows[0]["superseded_by"] is None
     assert rows[0]["protected"] == 1
@@ -495,48 +391,39 @@ def test_a_held_recognised_file_is_never_offered_a_cloud_target(
 # --- the person is told, and the counts still add up -----------------------------
 
 
-def test_the_counts_move_a_recognised_hold_out_of_settled_and_into_the_block(
+def test_the_counts_move_a_recognised_hold_out_of_the_asking_altogether(
         tmp_path_factory, monkeypatch):
-    """RULING 4, and `00` amendment 7(c) over the top of it. A file recognised AND
-    held is asked and its hold is counted in `PrecautionHolds` like any other --
-    and so, now, is its free twin.
+    """RULING 4 under the owner's word of 13 Sep 2026: the held twin leaves every
+    count that is about asking, and the hold block is where a person finds it.
 
-    **WHAT THIS TEST MEASURED BEFORE.** Two files walked; on the released run the
-    free twin was `settled` and the held one was NAMED, so it was in neither of the
-    six; the hold block said 1 held, 1 released. The `settled` count was the half
-    that proved the ruling was NARROW -- that a hold, and only a hold, made a
-    recognised file askable.
+    **WHAT THIS TEST MEASURED BEFORE.** Gap 24b moved the held twin out of
+    `settled` and into the asked; amendment 7(c) moved its free twin after it, so
+    the screen read 2 recognised and 2 asked. The ruling takes the held one back
+    out. It is skipped before `recognised_by_rules` is counted, so the recognised
+    line reads 1 for a corpus of two files the rules both recognised -- the count
+    keeps its own promise, that every file in it was also asked, at the price of
+    no longer being every file the rules recognised.
 
-    That narrowness is what amendment 7(c) removed, on `104` §18.56's numbers: the
-    rules' top-1 accuracy on the files they named was 32.2%, so "settled" was
-    settling two files in three wrongly and releasing them. BOTH files are asked
-    now, and what this test measures instead is that the arithmetic still closes:
-    the five counters plus the named files are the roster, the three hold sentences
-    still add up to `held`, and the recognised count -- which is now outside the
-    partition, because those files are also in one of the five -- is printed on its
-    own line rather than folded in where it would break the sum.
+    **WHAT IS NOT ASSERTED HERE, and it is missing rather than moved.** The five
+    counters that partition the roster no longer close over it: the held file
+    lands in none of them, so on the declining run one file of two is accounted
+    for. The hold block's own arithmetic is what still closes, and it is what is
+    pinned below -- `released` and `confirmed` are zero and `held and not asked`
+    carries the whole of `held`.
 
-    SABOTAGE: print `recognised_by_rules` inside `_print_situation_pass`'s field
-    loop and the numbers on the screen stop adding up to the roster.
+    SABOTAGE: count the skipped file as `declined` or `no_route`; either would
+    tell a person a model was asked about their protected record.
     """
-    _database, released, _stub = _run("released", _naming(RECOGNISED_AS),
-                                      tmp_path_factory, monkeypatch)
-    said = " ".join(released.split())
-    assert "2 of them the rules had already recognised" in said, (
-        "both twins were recognised by the rules and both were asked")
-    assert "the rules were holding 1 file on a safety term" in said
-    assert "1 released by the model" in said
-    assert "0 confirmed by the model" in said
-    assert "0 still held because nothing could say" in said
-
-    _database, declined, _stub = _run("declined", _decline, tmp_path_factory,
-                                      monkeypatch)
-    said = " ".join(declined.split())
-    assert "2 of them the rules had already recognised" in said, (
-        "both twins were recognised by the rules and both were asked")
-    # BOTH files are asked and both decline, where this used to read 1: the free
-    # twin used to be `settled` and is now a second question.
-    assert "2 asked and left alone" in said
-    assert "the rules were holding 1 file on a safety term" in said
-    assert "0 released by the model" in said
-    assert "1 still held because nothing could say" in said
+    for key, answer in (("released", _naming(RECOGNISED_AS)),
+                        ("declined", _decline)):
+        _database, report, _stub = _run(key, answer, tmp_path_factory,
+                                        monkeypatch)
+        said = " ".join(report.split())
+        assert "1 of them the rules had already recognised" in said, (
+            "the rules recognised both twins and only the free one was asked, "
+            "so only the free one is counted here")
+        assert ("were holding 1 file, and a protected record is filed by "
+                "the person" in said), said
+        assert "0 released by the model" in said
+        assert "0 confirmed by the model" in said
+        assert "1 held and not asked" in said
