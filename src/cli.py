@@ -7371,8 +7371,15 @@ GATE_MAY_WRITE_A_CLASSIFICATION: bool = LOCAL_MODEL_GATE in CLASSIFICATION_BASES
 #: 10 Sep, gap 24b: its template asks the protected kinds first) -- or the person's
 #: own settlement. `detector` and `detector_no_safety_evidence` are the rules'
 #: word alone and are not among them (`00` amendment 7(c)).
-CLOUD_CLEARING_BASES: tuple[str, ...] = (
-    LOCAL_MODEL_GATE, LOCAL_MODEL_SITUATION, "user")
+#:
+#: AND NOT THE SITUATION JUDGE'S (13 Sep 2026). Measured on the second corpus
+#: against the owner's key, the local situation answer was right 17 times, wrong
+#: 42 and silent 10, and it lifted the holds on two key-protected files -- a
+#: test-score record held by the rules and a travel document held by the gate --
+#: which under the old tuple would have gone to the cloud at the fact pass. A
+#: word that wrong is not a clearance. Its situation is still recorded and still
+#: asked under; what it can no longer do is open the door.
+CLOUD_CLEARING_BASES: tuple[str, ...] = (LOCAL_MODEL_GATE, "user")
 
 #: THE HANDLING CLASS A GATE-NAMED KIND CARRIES, derived rather than spelled, on
 #: `SAFETY_DOMAIN_BASES`' own argument one screen up. A file the gate names is a
@@ -8553,6 +8560,16 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             # one object rather than off a flag beside it.
             precaution=precaution)
         if record is None:
+            declined += 1
+            continue
+        standing = store.current(file_id, content_hash)
+        if standing is not None and standing.protected and not record.protected:
+            # THE LOCAL JUDGE'S WORD DOES NOT LIFT A HOLD (13 Sep 2026). Measured
+            # on the second corpus: right 17, wrong 42, silent 10 -- and it lifted
+            # a test-score record's rules hold and a travel document's gate hold,
+            # both protected in the owner's key. The situation it named stays on
+            # the verdict, for the person; the hold stands until the person lifts
+            # it. Counted as left alone, which is what happened to the file.
             declined += 1
             continue
         # THE SUPERSESSION IS `assign`'S AND IS NOT SPELLED AGAIN HERE. This

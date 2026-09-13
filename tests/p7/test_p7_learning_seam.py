@@ -797,3 +797,21 @@ def test_a_gate_clearance_is_retired_by_a_later_deterministic_hold(
     assert assign(p7_conn, hold, store=store, component_version=COMPONENT) is hold
     assert store.current(file_id, content_hash) == hold
     assert store.history(file_id) == [clearance, hold]
+
+
+def test_a_situation_rows_lift_is_retired_by_the_hold_it_lifted(
+        p7_conn, file_id, content_hash, store):
+    """The twin of the gate pin: a `local_model_situation` row that lifted a hold
+    (written before 13 Sep 2026) is retired by the deterministic hold."""
+    from privacy.vocabulary import LOCAL_MODEL_SITUATION
+
+    lift = assign(
+        p7_conn, a_record(file_id, content_hash, "personal_non_sensitive",
+                          basis=LOCAL_MODEL_SITUATION, protected=False,
+                          reliability_state="llm_supported"),
+        store=store, component_version=COMPONENT)
+    hold = a_record(file_id, content_hash, "sensitive_personal",
+                    basis="safety_domain", protected=True,
+                    reliability_state="possible", observed_at=LATER)
+    assert assign(p7_conn, hold, store=store, component_version=COMPONENT) is hold
+    assert store.history(file_id) == [lift, hold]

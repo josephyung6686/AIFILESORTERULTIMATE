@@ -684,3 +684,10 @@ def test_r121_the_answer_is_that_a_local_model_may_be_asked_and_a_cloud_one_may_
         locality=LOCAL, local_calls_on_unclassified=UNCLASSIFIED_PERMITS_LOCAL) is False
     assert unclassified_denies(
         locality=CLOUD, local_calls_on_unclassified=UNCLASSIFIED_PERMITS_LOCAL) is True
+
+
+def test_only_the_gates_word_or_the_persons_opens_the_cloud():
+    """13 Sep 2026: the local situation judge lifted two key-protected holds on the
+    second corpus; its word is recorded and asked under, and opens no door."""
+    assert cli.CLOUD_CLEARING_BASES == (cli.LOCAL_MODEL_GATE, "user")
+    assert cli.LOCAL_MODEL_SITUATION not in cli.CLOUD_CLEARING_BASES
