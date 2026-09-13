@@ -130,8 +130,12 @@ def _dispatching(situation_answer):
 
 
 def _run(tmp_path, monkeypatch, situation_answer, *extra: str):
-    corpus = _corpus(tmp_path)
-    database = tmp_path / "plan.sqlite"
+    return _run_into(_corpus(tmp_path), tmp_path / "plan.sqlite", monkeypatch,
+                     situation_answer, *extra)
+
+
+def _run_into(corpus: Path, database: Path, monkeypatch, situation_answer,
+              *extra: str):
     with StubOllama(answer=_dispatching(situation_answer)) as stub:
         monkeypatch.setenv(LOCAL_MODEL_NAME, MODEL_ID)
         monkeypatch.setenv(LOCAL_BASE_URL_NAME, stub.base_url)
@@ -296,3 +300,38 @@ def test_a_files_own_situation_can_differ_from_the_run_s_and_is_counted(
         if dossier.get("call_site") == cli.A_FACT}
     assert vocabularies, "no site-A dossier was built, so nothing was measured"
     assert report
+
+
+def _g_subjects(stub) -> set[str]:
+    return {dossier["subject_ref"] for dossier in _site_g_dossiers(stub)}
+
+
+def test_a_second_run_over_the_same_database_reuses_every_accepted_answer(
+        tmp_path, monkeypatch):
+    """`104` §18.31's reuse, at site G, on the gate's own three lines.
+
+    A relaunch over the owner's corpus re-asked every situation question the
+    store already held an accepted answer to. Now the second run reads each
+    accepted answer back through the same readers a live verdict goes through,
+    writes one reuse row per file, asks nothing the first run answered, and says
+    so on the screen.
+    """
+    corpus, database = _corpus(tmp_path), tmp_path / "plan.sqlite"
+    _d, _said, first = _run_into(corpus, database, monkeypatch, _situation_answer)
+    asked = _g_subjects(first)
+    assert asked
+    accepted = _rows(
+        database,
+        "SELECT count(*) FROM llm_verdict v JOIN llm_dossier d "
+        "ON d.dossier_id = v.dossier_id WHERE d.call_site = ? "
+        "AND v.outcome IN ('accept_direct', 'accept_inferred')",
+        cli.G_SITUATION_SENSITIVITY)[0][0]
+    assert accepted == len(asked)
+
+    _d, said, second = _run_into(corpus, database, monkeypatch, _situation_answer)
+    assert _g_subjects(second).isdisjoint(asked)
+    reuse_rows = _rows(
+        database, "SELECT count(*) FROM llm_call_reuse WHERE call_site = ?",
+        cli.G_SITUATION_SENSITIVITY)[0][0]
+    assert reuse_rows == len(asked)
+    assert f"{len(asked)} {cli.SITUATION_SENTENCE['reused'][:40]}" in " ".join(said.split())

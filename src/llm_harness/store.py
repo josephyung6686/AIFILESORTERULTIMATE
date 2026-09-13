@@ -28,6 +28,8 @@ from llm_harness.authorship import (
 from llm_harness.dossier import dossier_from_stored_body
 from llm_harness.records import (
     CallRefused,
+    CheckedCitation,
+    CompatibilityConversion,
     GroundingReport,
     MalformedRecord,
     P8Verdict,
@@ -51,6 +53,33 @@ def _jsonable(value: object) -> object:
 
 def _payload(record: object) -> str:
     return canonical_json(_jsonable(record))
+
+
+def stored_verdict(conn: sqlite3.Connection, verdict_id: str) -> P8Verdict:
+    """One `llm_verdict` row read back as the record it was written from.
+
+    `_payload`'s inverse, and the only one: `_jsonable` writes a dataclass as
+    its fields and a tuple as a list, so this turns the two nested records and
+    the two tuples back and hands the rest to `P8Verdict` as it was. A site that
+    reuses an earlier run's answer (`104` §18.31) then reads it through the same
+    readers a live verdict goes through, rather than through a second reading of
+    the row that is free to disagree with the first.
+    """
+    row = conn.execute(
+        "SELECT payload FROM llm_verdict WHERE verdict_id = ?",
+        (verdict_id,)).fetchone()
+    if row is None:
+        raise MalformedRecord(f"no verdict {verdict_id!r} is stored")
+    body = json.loads(row[0])
+    body["reasons"] = tuple(body["reasons"])
+    body["citations_checked"] = tuple(
+        CheckedCitation(**checked) for checked in body["citations_checked"])
+    conversion = body.get("compatibility")
+    body["compatibility"] = (
+        None if conversion is None else CompatibilityConversion(
+            **{**conversion,
+               "dropped_citations": tuple(conversion["dropped_citations"])}))
+    return P8Verdict(**body)
 
 
 def _new_id() -> str:

@@ -190,7 +190,7 @@ from llm_harness.store import (
     # for the same six at site A, and a second cache written beside them would be a
     # second answer to "has this question been asked before".
     call_identity, prior_call, record_call_identity, record_call_reuse,
-    standing_verdicts,
+    standing_verdicts, stored_verdict,
     # `104` §18.33 gap 25: how a call that was never BUILT is recorded. The writer
     # `placement.pipeline._not_asked` already uses for one file the model is not
     # asked about, so site G's no-route file lands in the row a reader already
@@ -7373,6 +7373,29 @@ def _gate_kind_in(payload: dict | None, outcome: str) -> str | None:
     return None
 
 
+def situation_verdict_before(conn: sqlite3.Connection, dossier_id: str):
+    """The ACCEPTED verdict an earlier call at this identity produced, as the
+    `P8Verdict` it was, or `None`.
+
+    `template_named_before`'s three rules at site G: superseded verdicts are not
+    answers, a verdict another validator wrote is asked again (`104` R-127), and
+    only an accepted answer is reused -- a decline is asked again, the owner's
+    own wording for site E's row. The verdict comes back whole
+    (`store.stored_verdict`) so the situation, the kind and the citations are read
+    off it by the same three readers a live verdict goes through.
+    """
+    standing = standing_verdicts(conn, dossier_id)
+    if not standing:
+        return None
+    if any(row["validator_version"] != p8_validation.COMPONENT_VERSION
+           for row in standing):
+        return None
+    for row in reversed(standing):
+        if row["outcome"] in ACCEPTING_OUTCOMES:
+            return stored_verdict(conn, row["verdict_id"])
+    return None
+
+
 def gate_kind_named_before(conn: sqlite3.Connection, dossier_id: str
                            ) -> tuple[str, str, str] | None:
     """The kind an EARLIER call at this identity named -- `(verdict_id, claim_ref,
@@ -7993,6 +8016,10 @@ class SituationPass:
     #: answer and it was checked", and because it is the denominator §18.56's 32.2%
     #: was measured against.
     recognised_by_rules: int = 0
+    #: `104` §18.31 at this site. Files answered from this store's own earlier
+    #: accepted verdict rather than by a call. Outside the partition: a reused
+    #: file is also named or declined.
+    reused: int = 0
 
 
 #: THE PASS THAT DID NOT RUN, and it is a value rather than a `None` for the
@@ -8153,7 +8180,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
       standing exactly where no hold exists.
     """
     named: dict = {}
-    nothing_to_read = declined = 0
+    nothing_to_read = declined = reused = 0
     over_ceiling = recognised_by_rules = 0
     #: `104` §18.33 gap 25: THE ROWS, AND THE COUNT IS TAKEN OFF THEM. `no_route`
     #: was `+= 1` and nothing else, so `--trail FILE` could not say why a file was
@@ -8352,31 +8379,57 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         except NothingToAsk:
             nothing_to_read += 1
             continue
-        verdict = run_call(
-            conn, request,
-            gate=fact_authorities.gate,
-            # THE CLIENT THIS FILE WAS ROUTED TO, and the same object the
-            # target above was read off: two reads would let the gate decide
-            # about one destination while the bytes went to another.
-            model_client=client,
-            prompt=prompt,
-            validation_dependencies=dependencies_for(
-                fact_authorities,
-                allowed_vocabulary=question.allowed_situations,
-                placeable_file_count=len(roster)),
-            observed_at=now,
-            # `104` R-172: THE SAME MAILBOX EVERY OTHER SITE IS HANDED. R-14 says
-            # what each call consumed is recorded beside what was reserved, and
-            # R-71 closed the gap for site B by binding the sink at the composition
-            # root; site G was built after both and was never handed one, so every
-            # file this pass asked about wrote an `llm_response` with no
-            # `llm_call_usage` row beside it -- three of fourteen on the local
-            # deployment, which is what `len(usage) == responses` was failing on.
-            # A response with no usage row is indistinguishable from a call that
-            # spent nothing, and G spends a call per file like every other site.
-            # Taken from A's authorities for R-71's own reason: the mailbox is a
-            # fact about this run and this transport, not about which site asks.
-            usage_recorder=fact_authorities.usage_recorder)
+        # `104` §18.31's reuse, at this site: the gate's own three lines. The
+        # identity closes over the list the answer was chosen from, because a
+        # library row added since is a different question.
+        identity = _per_file_call_identity(
+            conn, call_site=G_SITUATION_SENSITIVITY, file_id=file_id,
+            content_hash=content_hash, request=request,
+            schema_ids=list(question.allowed_situations),
+            policy_version=fact_authorities.policy_version)
+        identity_id = call_identity(identity)
+        prior = prior_call(conn, identity_id)
+        verdict = (None if prior is None
+                   else situation_verdict_before(conn, prior["dossier_id"]))
+        if verdict is not None:
+            reused += 1
+            record_call_reuse(
+                conn, identity_id=identity_id,
+                prior_dossier_id=prior["dossier_id"],
+                call_site=G_SITUATION_SENSITIVITY, subject_ref=file_id,
+                reused_fields=(verdict.claim_ref,), observed_at=now())
+        else:
+            verdict = run_call(
+                conn, request,
+                gate=fact_authorities.gate,
+                # THE CLIENT THIS FILE WAS ROUTED TO, and the same object the
+                # target above was read off: two reads would let the gate decide
+                # about one destination while the bytes went to another.
+                model_client=client,
+                prompt=prompt,
+                validation_dependencies=dependencies_for(
+                    fact_authorities,
+                    allowed_vocabulary=question.allowed_situations,
+                    placeable_file_count=len(roster)),
+                observed_at=now,
+                # `104` R-172: THE SAME MAILBOX EVERY OTHER SITE IS HANDED. R-14 says
+                # what each call consumed is recorded beside what was reserved, and
+                # R-71 closed the gap for site B by binding the sink at the composition
+                # root; site G was built after both and was never handed one, so every
+                # file this pass asked about wrote an `llm_response` with no
+                # `llm_call_usage` row beside it -- three of fourteen on the local
+                # deployment, which is what `len(usage) == responses` was failing on.
+                # A response with no usage row is indistinguishable from a call that
+                # spent nothing, and G spends a call per file like every other site.
+                # Taken from A's authorities for R-71's own reason: the mailbox is a
+                # fact about this run and this transport, not about which site asks.
+                usage_recorder=fact_authorities.usage_recorder)
+            if isinstance(verdict, P8Verdict):
+                record_call_identity(
+                    conn, identity_id=identity_id,
+                    dossier_id=verdict.dossier_id,
+                    call_site=G_SITUATION_SENSITIVITY, subject_ref=file_id,
+                    dimensions=identity, observed_at=now())
         situation = None
         if isinstance(verdict, P8Verdict):
             situation = situation_named_by_verdict(
@@ -8463,6 +8516,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     if ceiling is not None:
         ceiling.close_turn()
     return SituationPass(
+        reused=reused,
         named=named, recognised_by_rules=recognised_by_rules,
         nothing_to_read=nothing_to_read, declined=declined,
         # `104` §18.33 gap 25: THE NUMBER IS THE ROWS. Not a tally kept beside them
@@ -11202,6 +11256,11 @@ SITUATION_SENTENCE: Mapping[str, str] = MappingProxyType({
         "out of time: they had already held this run longer than one file may, "
         "so the run stopped waiting and went on to the rest. Nothing about them "
         "was decided -- what is open is open, and the next run asks again.",
+    "reused":
+        "answered from this database's own earlier verdict rather than asked "
+        "again: the same file, reader, prompt, model and list of situations had "
+        "already been put to the question, so the answer was read back and no "
+        "call was spent. These are counted above as named or left alone as well.",
 })
 
 #: `00` amendment 7(c): WHAT THE RULES HAD RECOGNISED, said as a fact about the

@@ -229,10 +229,13 @@ def test_every_counter_site_g_leaves_behind_earns_a_sentence():
     # against its own sentences one test down.
     assert set(cli.SITUATION_SENTENCE) | {"named", "holds", "recognised_by_rules"} == fields
     # five since `00` amendment 7(c): every file is asked, so `nothing_to_ask` is gone
-    assert len(cli.SITUATION_SENTENCE) == 4, (
+    assert len(cli.SITUATION_SENTENCE) == 5, (
         "six counted outcomes plus `named` in the header. Five when gap 9 was "
         "closed; `104` R-175 added `over_ceiling`, because a file skipped for time "
-        "is a file this run did not decide about and the partition has to hold it")
+        "is a file this run did not decide about and the partition has to hold it; "
+        "`104` §18.31 at this site added `reused`, outside the partition, because "
+        "an answer read back from the store is still a file that was named or "
+        "left alone")
 
 
 def test_every_hold_the_rules_took_earns_a_sentence_too():
