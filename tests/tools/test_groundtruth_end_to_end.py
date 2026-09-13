@@ -153,11 +153,31 @@ def test_a_destination_is_read_back_as_a_folder_chain(run):
         assert all(isinstance(segment, str) for segment in observation.destination)
 
 
-def test_the_situation_scores_against_only_its_own_labelled_files(run, labels):
+def test_one_run_is_scored_against_every_labelled_file_and_not_only_its_own(run, labels):
+    """`00` amendment 7, carried into the scorecard by commit `6bd6e155`.
+
+    THIS PINNED THE OPPOSITE UNTIL 13 SEP 2026 -- `scored == 7`, the four
+    `academic.coursework` files plus the three uncertain ones, with the two
+    `code.notebooks-experiments` labels dropped by `score_situation`'s old filter
+    `l.situation == run.situation`. That filter is what made three runs necessary
+    to score three situations, and it is gone: every file now carries its OWN
+    situation, one run answers the whole corpus, and a harness that scored only
+    the slice whose label matched `--situation` would leave the rest of the
+    person's folder unmeasured -- the scorecard's version of a file silently
+    omitted.
+
+    Ten labels, one of them protected and so never sorted, leaves nine, and all
+    nine are scored by the one run. `contaminated` is what carries the situation
+    distinction now: it counts a file placed under a branch that is not its own
+    label's, which is the spillover the old filter was standing in for. Nothing
+    on this corpus is placed in another life's branch, and `contaminated_of` says
+    over how many the question was asked.
+    """
     score = score_situation(run, labels)
-    # Eight labelled, one of them protected and so not sorted.
-    assert score.scored == 7
-    assert sum(score.sorting.values()) == 7
+    assert score.scored == 9
+    assert sum(score.sorting.values()) == 9
+    assert score.contaminated_of == 9
+    assert score.contaminated == 0
 
 
 def test_the_protected_verdict_names_the_file_when_it_fails(run, labels):
