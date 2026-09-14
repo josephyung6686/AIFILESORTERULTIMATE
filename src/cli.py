@@ -269,7 +269,7 @@ from privacy.classification import (
     resolve_class,
 )
 from privacy.classification_store import ClassificationStore
-from privacy.learning_seam import assign
+from privacy.learning_seam import assign, reclassify
 from privacy.denial import (
     UNCLASSIFIED_PERMITS_LOCAL, mode_forbids, protected_cloud_denies,
     unclassified_denies)
@@ -7445,6 +7445,18 @@ GATE_MAY_WRITE_A_CLASSIFICATION: bool = LOCAL_MODEL_GATE in CLASSIFICATION_BASES
 #: asked under; what it can no longer do is open the door.
 CLOUD_CLEARING_BASES: tuple[str, ...] = (LOCAL_MODEL_GATE, "user")
 
+#: THE BASES A HOLD IS WRITTEN UNDER: the rules' own precaution and the gate's
+#: named kind. ONE SPELLING, for two readers that must never disagree -- the
+#: closing screen that puts the held files to the person, and `apply_release`,
+#: which is the gesture that screen offers. A file the screen names and the
+#: gesture then refuses would be the product asking a question it will not accept
+#: the answer to.
+#:
+#: Derived rather than listed, on `SAFETY_DOMAIN_BASES`' own argument: `Handling`
+#: carries the basis per safety domain and reading whatever the four actually say
+#: keeps this true the day one of them differs.
+HELD_BASES: frozenset[str] = SAFETY_DOMAIN_BASES | {LOCAL_MODEL_GATE}
+
 #: THE HANDLING CLASS A GATE-NAMED KIND CARRIES, derived rather than spelled, on
 #: `SAFETY_DOMAIN_BASES`' own argument one screen up. A file the gate names is a
 #: record of one of the ten restricted kinds, which is material of exactly the
@@ -14306,6 +14318,133 @@ def _what_these_folders_are(asked: Sequence[object]) -> str:
     return "\n".join(lines)
 
 
+def _why_a_file_is_held(basis: str, domain: str | None) -> str:
+    """ONE PHRASE for one hold, from the row's own `basis` and nothing else.
+
+    Two bases and no third: `HELD_BASES` is the set this screen and
+    `apply_release` both read, so a hold this could not say a sentence about
+    would be a hold the gesture refuses -- and the screen would then be asking a
+    question it will not accept the answer to.
+
+    `domain` IS `None` WHEREVER IT IS NOT KNOWN, AND THE PHRASE IS SHORTER RATHER
+    THAN GUESSED. The safety domain is not a field of the stored row: a
+    `safety_domain` row carries the basis, the handling class and the evidence
+    keys, and WHICH of `00`'s four raised it lives in `Precaution.schema_id`,
+    which the caller re-reads from the detector. Where the detector reports none
+    today, the person is told the rules hold it and not which domain -- naming a
+    domain nothing currently names would be this screen inventing the reason for
+    somebody's protected file.
+    """
+    if basis == LOCAL_MODEL_GATE:
+        return ("held by the model on this device: it read the file's opening "
+                "and said it is a record of a kind that is kept here.")
+    if domain is None:
+        return ("held by the rules, on words in the file itself, as protected "
+                "personal material.")
+    return (f"held by the rules, on words in the file itself, as {domain} "
+            f"material.")
+
+
+def _the_files_being_held(conn: sqlite3.Connection, scan_run_id: str, *,
+                          store: ClassificationStore, explain, precaution_of,
+                          names: Mapping[str, str]
+                          ) -> tuple[tuple[str, str, str], ...]:
+    """`(name, why, file_id)` for every file of THIS run's roster still held.
+
+    THE STORE IS ASKED AND NOT A TALLY, for the reason `ask_the_situation` gives
+    at the same seam: a hold IS the live row and stops being one the moment
+    anything supersedes it. Read here, at the end of the run, so a file the rules
+    released this run -- or one the person released with `--release` on this very
+    invocation -- is not printed as held on the one screen that is about somebody's
+    protected files. `HELD_BASES` is the same set `apply_release` accepts, so every
+    file this names can be answered and no file it omits will be refused.
+
+    THE DOMAIN COMES FROM THE DETECTOR AND NOT FROM THE ROW, because the row does
+    not carry it. This is the same `precaution_report(explain(...))` pair
+    `_reclassify_on_entities` already asks over the whole roster, asked here of the
+    held files alone -- and of the TERM detector's own outcome, never the composed
+    recogniser's, which is `ask_the_situation`'s rule at the site that asks it
+    first: a wrapper answering for a decision it is not allowed to make is how a
+    vector's nearest neighbour would come to name one of `00`'s four.
+
+    THE PATH IS THE FILE'S OWN NAME AND NOTHING ELSE IS READ. `file_names` is what
+    every other block on this screen prints, so a held file is named the way the
+    person's other files are; no held file is opened here and nothing that was read
+    out of one is printed. A file with no name in the map keeps its id, which is
+    what both gestures are typed with anyway.
+    """
+    held: list[tuple[str, str, str]] = []
+    for file_id, content_hash in corpus_roster(conn, scan_run_id):
+        current = store.current(file_id, content_hash)
+        if (current is None or not current.protected
+                or current.basis not in HELD_BASES):
+            continue
+        domain = None
+        if current.basis in SAFETY_DOMAIN_BASES:
+            precaution = precaution_of(
+                conn, explain(conn, file_id, content_hash),
+                file_id=file_id, content_hash=content_hash)
+            domain = None if precaution is None else precaution.schema_id
+        held.append((names.get(file_id, file_id),
+                     _why_a_file_is_held(current.basis, domain), file_id))
+    return tuple(held)
+
+
+def _what_the_held_files_are(held: Sequence[tuple[str, str, str]]) -> str:
+    """THE QUESTION of a run that is holding files and asked nobody about them.
+
+    THE OWNER'S RULING (13 Sep 2026): *"for these situations it is ok to just ask
+    the person: a mechanism like 'we found these files, should we not upload them
+    to the cloud?' -- totally doable."* Until it, a held file was told about and
+    never asked about: `_print_the_holds` counts what became of the holds and its
+    `still_held` sentence ends "They stay protected and stay on this device",
+    which was the whole of the person's part in it. The count was true and the
+    silence was the defect -- the one person who can say what their own file is
+    was the one nobody put the question to.
+
+    `_what_these_folders_are`'S REGISTER, deliberately and line for line: one
+    header naming the count and what answers it, then per file its own name, one
+    phrase saying why, and the gestures typed out with the real id -- a person
+    cannot type `FILE_ID`. `66` §14 is the shape both are built to, a narrow,
+    evidence-linked question naming the visible context and the precise
+    consequence, and somebody who has read one of these blocks can read the other
+    without learning a second convention.
+
+    TWO GESTURES BECAUSE THERE ARE TWO ANSWERS, and the header says which is which
+    once rather than glossing every line: `--file-held` keeps the file here and
+    files it by hand, `--release` says it is ordinary and it may be sent. DOING
+    NOTHING IS THE THIRD ANSWER AND IT IS THE DEFAULT -- the file stays held, on
+    this device, exactly as it is -- which is why this ends a run's report and
+    never refuses one.
+
+    THE NAME AND NOTHING OUT OF THE FILE. The path is the file's own name, printed
+    the way every other block on this screen prints one; nothing read out of a held
+    file appears here, which is the standing rule that a protected record is marked
+    and counted, never opened.
+
+    THE PROSE IS WRAPPED AND THE GESTURES ARE NOT, which is the one place this
+    departs from `_what_these_folders_are` and it departs in that block's own
+    direction. `_typable` exists there because a command line a shell splits in two
+    fails looking like the person's mistake rather than ours; `_wrapped` at
+    `WRAP_WIDTH` is what every other block printed beside this one does with its
+    sentences. So the two sentences wrap and the four commands never do.
+    """
+    one = len(held) == 1
+    lines = [_wrapped(
+        f"{len(held)} {'file is' if one else 'files are'} being held here, and "
+        f"nothing about {'it' if one else 'them'} was sent anywhere -- but "
+        f"nobody has been asked. Say what {'it is' if one else 'each one is'} "
+        f"and run the same command again: --file-held FILE_ID keeps a file here "
+        f"and you file it by hand, and --release FILE_ID says it is ordinary and "
+        f"may be sent.", indent="")]
+    for name, why, file_id in held:
+        lines.append(f"\n  {name}")
+        lines.append(_wrapped(why, indent="  "))
+        lines.append(f"    --file-held {file_id}")
+        lines.append(f"    --release {file_id}")
+    return "\n".join(lines)
+
+
 @dataclasses.dataclass(frozen=True, slots=True)
 class _RunSituation:
     """Everything one situation decides about a run, derived once from the library.
@@ -17518,12 +17657,12 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # `exclusion_verdicts` and the person was told nothing. "Marked, counted,
         # never silently omitted" has no success-path exception, so it is said as
         # soon as it is known.
+        _the_names = file_names(conn, directory, *also_read)
         _print_protected(
             protected_areas(conn, scan_run_id=p1_p7.scan_run_id),
             protected_files=_protected_file_count(conn, p1_p7.scan_run_id),
             locked=locked_containers(
-                conn, p1_p7.scan_run_id,
-                file_names(conn, directory, *also_read)),
+                conn, p1_p7.scan_run_id, _the_names),
             out=out)
         # HERE for the reason above it, one rule further out. Every argument that
         # comment makes for the protected block is an argument for §1.1's other
@@ -17540,6 +17679,27 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         _print_candidate_roots(
             candidate_roots,
             existing_folders(conn, scan_run_id=p1_p7.scan_run_id), out)
+        # THE HELD FILES, PUT TO THE PERSON AS ONE QUESTION (the owner's ruling of
+        # 13 Sep 2026). HERE, on the protected block's own argument three above:
+        # the holds are known as soon as the passes that could lift them have run,
+        # a stage below this may refuse by name, and a run that held somebody's
+        # files and then refused would have asked them nothing at all.
+        #
+        # AND ABOVE `if not of_the_run:`, so BOTH exits print it. The run that
+        # cannot name this folder's situation is still a run that held files, and
+        # its question and this one are the two things it learned.
+        #
+        # AFTER the entity pass, the gate and site G, for `_what_these_folders_
+        # are`'s reason: the person is asked only once everything that could have
+        # answered for them has been tried. `--release` on the next invocation is
+        # applied before the run, so a released file is not held when this reads
+        # the store again.
+        _held_now = _the_files_being_held(
+            conn, p1_p7.scan_run_id, store=ClassificationStore(conn),
+            explain=detector.explain, precaution_of=detector.precaution_report,
+            names=_the_names)
+        if _held_now:
+            print(f"\n{_what_the_held_files_are(_held_now)}", file=out)
         if not of_the_run:
             # THE QUESTION, PRINTED, AND THE RUN ENDS HERE. `_partition_branches`
             # recorded it before the model pass and this is the end of the run,
@@ -18946,6 +19106,88 @@ def apply_file_held(conn: sqlite3.Connection, file_ids: Sequence[str], *,
                 automatic_move_permissions=permissions, set_at=recorded_at),
             component_version=COMPONENT_VERSION, user_id=user_id,
             reason=f"the user filed {file_id!r} themselves (--file-held)")
+        settled.append(file_id)
+    return tuple(settled)
+
+
+class ReleaseRefused(NotConfigured):
+    """`--release` named a file this database has never recorded, or one that
+    nothing is holding -- so there is no hold for the person to lift."""
+
+
+def apply_release(conn: sqlite3.Connection, file_ids: Sequence[str], *,
+                  user_id: str, recorded_at: str) -> tuple[str, ...]:
+    """THE RULING (the owner, 13 Sep 2026): "for these situations it is ok to just
+    ask the person: a mechanism like 'we found these files, should we not upload
+    them to the cloud?'". `--release FILE_ID` is the half of that answer that says
+    the file is ordinary; `apply_file_held` is the half that says it is not.
+
+    THE TWO GESTURES ANSWER ONE QUESTION AND DO DIFFERENT THINGS, and the
+    difference is the whole reason there are two. `--file-held` grants ONE move
+    permission and deliberately writes no classification row, so the file stays
+    protected and stays on this device -- a person filing their passport scan
+    themselves has said where it goes, not what a model may see of it.
+    `--release` is the other sentence: this file is not what the rules took it
+    for, it is ordinary, and it may be sent. That is a statement about the FILE,
+    so it is written where the file's own answer lives -- one classification row,
+    the person's own.
+
+    `learning_seam.reclassify` AND NOT `assign`, and the difference is who is on
+    the row. `assign` is the system-side write and says so: it "appends no
+    `correction_*` field and no `user_id`, so a system assignment can never become
+    the learning record that suppresses the next one". A `basis="user"` row with
+    nobody's name on it is a person's word recorded as nobody's, and P1's reader
+    of learning records requires `user_id IS NOT NULL`. `reclassify` is P7's own
+    published seam for "§8.4's 'can be revised by the user'": it writes through
+    the same `ClassificationStore`, spells `basis=USER` and
+    `reliability_state=USER_CONFIRMED` itself -- the state
+    `classification_store.strongest` ranks highest -- and supersedes the hold
+    rather than overwriting it (§8.2). `learning_seam._outranked_by` is then what
+    makes this stick: a user row retires a system row at any rank and is never
+    retired by one, so the next run's detector cannot quietly take the hold back.
+
+    THE EVIDENCE IS THE HOLD'S OWN. The rules cited observation keys when they
+    held the file, and those keys are exactly what the person is contradicting;
+    carrying them onto the new row is what §8.7's "stored with the evidence that
+    produced them" means here, and it is what lets `reclassify` record the
+    supersession as a negative example against the class that was withdrawn.
+
+    THE CLOUD DOOR OPENS BY ITSELF AND NOTHING HERE OPENS IT. `"user"` is already
+    a `CLOUD_CLEARING_BASES` member, so the row this writes is read by
+    `model_route_permitted` on the next run like any other cleared file's, and
+    `src/privacy` is not touched.
+
+    A file id this database has never recorded is REFUSED, and so is a file
+    NOTHING IS HOLDING -- `apply_file_held`'s rule and for its reason. The second
+    refusal is the one that matters here: releasing a file the rules never held is
+    a gesture with no hold to lift, and writing a `user` row for it anyway would
+    hand an ordinary file a cloud clearance the person never meant to give and
+    that nothing on any screen ever offered them.
+    """
+    settled: list[str] = []
+    store = ClassificationStore(conn)
+    for file_id in file_ids:
+        row = get_file(conn, file_id)
+        if row is None:
+            raise ReleaseRefused(
+                f"{file_id!r} names no file this plan has recorded. Run the "
+                "command without `--release` first: a file has to be on record "
+                "before anything can be said about it.")
+        content_hash = row["content_hash"]
+        current = store.current(file_id, content_hash)
+        if current is None or not current.protected or current.basis not in HELD_BASES:
+            raise ReleaseRefused(
+                f"nothing is holding {file_id!r}, so there is no hold to lift. "
+                "`--release` answers the question the run prints about the files "
+                "the rules or the model on this device are holding; a file that "
+                "is not among them is already ordinary.")
+        reclassify(
+            conn, file_id, ORDINARY_CLASS,
+            f"the person said {file_id!r} is ordinary and may be sent "
+            f"(--release)",
+            store=store, content_hash=content_hash, protected=False,
+            evidence_refs=current.evidence_refs, user_id=user_id,
+            component_version=COMPONENT_VERSION, observed_at=recorded_at)
         settled.append(file_id)
     return tuple(settled)
 
@@ -21813,6 +22055,19 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "what the product thinks the file is; it only permits the move. "
              "Can be given more than once.")
     parser.add_argument(
+        # BESIDE `--file-held`, because the two are the two answers to one
+        # question: the run's closing block names the files being held and offers
+        # exactly these, so a person reads them together and types one of them.
+        "--release", action="append", default=[], metavar="FILE_ID",
+        help="say a held file is ordinary, e.g. --release CV20261234. The rules "
+             "or the model on this device were holding it and nobody had been "
+             "asked; this is you answering that it is not what they took it for. "
+             "It stops being protected, it may be filed automatically like any "
+             "other file, and it may be sent to a cloud model from the next run "
+             "on. Your word supersedes theirs and no later run of the rules "
+             "takes it back. A file nothing is holding is refused rather than "
+             "released. Can be given more than once.")
+    parser.add_argument(
         "--describe-role", action="append", default=[], metavar="NAME=WORDS",
         help="say what this material is for you, in your own words, e.g. "
              "--describe-role me=\"I teach one course and I am doing my own "
@@ -22302,6 +22557,15 @@ def main(argv: Sequence[str] | None = None, *, out=None,
             _bootstrap(conn)
             apply_file_held(conn, args.file_held, plan_version=PLAN_VERSION,
                             user_id=args.user, recorded_at=now())
+        # BESIDE `--file-held` and for the same reason, and BEFORE the run for one
+        # more: this invocation's own passes then read the released row -- site G
+        # asks about the file instead of counting it held, the route may offer it
+        # a cloud target, and the closing block does not print it as held. A
+        # person who has just said their file is ordinary sees that on this run.
+        if args.release:
+            _bootstrap(conn)
+            apply_release(conn, args.release, user_id=args.user,
+                          recorded_at=now())
         # After the answers and before the run, for the same reason, and in
         # this order: describing then confirming under one name is a correction
         # that supersedes, so the confirmation must be the later write.
