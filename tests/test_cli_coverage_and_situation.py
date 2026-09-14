@@ -59,7 +59,7 @@ def _a_pass(**over) -> cli.SituationPass:
     return cli.SituationPass(**{
         "named": {"file-a": "academic.coursework", "file-b": "finance.records"},
         "nothing_to_read": 22, "declined": 33, "no_route": 44, "over_ceiling": 55,
-        "recognised_by_rules": 66, "held_not_asked": 77,
+        "recognised_by_rules": 66, "held_not_asked": 77, "settled_by_kind": 88,
         "holds": cli.PrecautionHolds(0, 0, 0, 0),
         **over})
 
@@ -94,7 +94,7 @@ def test_all_eight_of_site_gs_counters_reach_the_screen():
     # because every file is asked now.
     for count, field in ((22, 'nothing_to_read'), (33, 'declined'), (44, 'no_route'),
                          (55, 'over_ceiling'), (66, 'recognised_by_rules'),
-                         (77, 'held_not_asked')):
+                         (77, 'held_not_asked'), (88, 'settled_by_kind')):
         phrase = (cli.SITUATION_RECOGNISED_SENTENCE if field == 'recognised_by_rules'
                   else cli.SITUATION_SENTENCE[field])
         assert f"{count} {phrase[:30]}" in said, (count, field)
@@ -114,10 +114,10 @@ def test_a_zero_counter_still_prints_its_line():
     """
     said = _printed(_a_pass(recognised_by_rules=0, nothing_to_read=0,
                             declined=0, no_route=0, over_ceiling=0,
-                            held_not_asked=0))
+                            held_not_asked=0, settled_by_kind=0))
 
     for field in ('nothing_to_read', 'declined', 'no_route', 'over_ceiling',
-                  'held_not_asked'):
+                  'held_not_asked', 'settled_by_kind'):
         assert f"0 {cli.SITUATION_SENTENCE[field][:30]}" in said, field
 
 
@@ -238,11 +238,11 @@ def test_every_counter_site_g_leaves_behind_earns_a_sentence():
     # against its own sentences one test down. `raised` is excused on `named`'s
     # own ground and not on a new one -- it is a MAPPING of what the recognisers
     # said about each file, read by `branch_situation.the_one_situation`, and no
-    # fate for any file: every file in it is also in exactly one of the six.
+    # fate for any file: every file in it is also in exactly one of the seven.
     assert set(cli.SITUATION_SENTENCE) | {
         "named", "raised", "holds", "recognised_by_rules"} == fields
-    assert len(cli.SITUATION_SENTENCE) == 6, (
-        "six counted outcomes plus `named` in the header. Five when gap 9 was "
+    assert len(cli.SITUATION_SENTENCE) == 7, (
+        "seven counted outcomes plus `named` in the header. Five when gap 9 was "
         "closed, and `00` amendment 7(c) spent one of them: every file is asked "
         "now, so `nothing_to_ask` went. `104` R-175 added `over_ceiling`, because "
         "a file skipped for time is a file this run did not decide about and the "
@@ -253,7 +253,13 @@ def test_every_counter_site_g_leaves_behind_earns_a_sentence():
         "judge -- added `held_not_asked`, which IS in the partition: a protected "
         "record nobody was asked about is a file this run walked and did not "
         "decide, and folding it into `nothing_to_read` would have told a person "
-        "their medical records had nothing worth reading in them")
+        "their medical records had nothing worth reading in them; and the same "
+        "day added `settled_by_kind`, ALSO in the partition, for the opposite "
+        "fact -- a picture or a recording with no text in it at all is a capture "
+        "on its file kind, which is `00`:110's direct, unique match, so it is "
+        "decided and not asked. It is not `nothing_to_read` either: a file with "
+        "nothing to read is one nobody could answer about, and this is one nobody "
+        "needed to")
 
 
 def test_every_hold_the_rules_took_earns_a_sentence_too():
