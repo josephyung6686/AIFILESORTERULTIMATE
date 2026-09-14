@@ -718,11 +718,40 @@ def test_the_sort_writes_groups_a_tree_and_a_plan(three_runs):
 
     Counted rather than described, because the point of this line is that the
     sort stages ran at all on a deployment with no local model in it.
+
+    FOUR GROUPS AND THEY ARE NAMED HERE, because a bare "more than none" would
+    pass on one junk group: the two courses P9 seeded off a validated `subject`,
+    the `work_type` seed the released file's own reading opened, and the branch
+    group `--accept-groups` accepted under the person's label.
+
+    SEVEN OF ELEVEN FILES ARE IN A GROUP AND THAT IS NOT A GAP. A group needs an
+    ANCHOR -- a validated fact two files share -- and the society's three records
+    carry none: their fields are a model's proposals, which propose and settle
+    nothing (`00`:42). The held file is in none for the same reason it is in no
+    dossier. Both are on the residual screen instead, which is where `00` puts a
+    file the engine cannot place, and the run's own coverage line accounts for
+    all eleven.
     """
-    database = three_runs["database"]
+    state = three_runs
+    database = state["database"]
     for table in ("groups", "memberships", "placement_decisions",
                   "plan_versions", "tree_nodes"):
         assert _rows(database, table) > 0, table
+    conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        bases = sorted(row["proposed_basis"].split(";")[0][:20]
+                       for row in conn.execute(
+                           "SELECT proposed_basis FROM groups"))
+        grouped = {row["file_id"] for row in conn.execute(
+            "SELECT DISTINCT file_id FROM memberships")}
+    finally:
+        conn.close()
+    assert len(bases) == 4, bases
+    assert "subject=ECON2010" in bases and "subject=PHYS1401" in bases, bases
+    ungrouped = {name for name, file_id in state["ids"].items()
+                 if file_id not in grouped}
+    assert ungrouped == set(CLUB_FILES) | {KEPT}, sorted(ungrouped)
     # One decision per file per run, and every file is on exactly one of them.
     assert _rows(database, "placement_decisions") == 11 * 3
 
