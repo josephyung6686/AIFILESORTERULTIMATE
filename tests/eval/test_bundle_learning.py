@@ -97,9 +97,11 @@ def test_scope_is_p1s_and_is_exact(eval_conn):
     # §18.39; `database_agent.events.CORRECTION_SCOPES`), the same day
     # `tests/p6/test_p6_learning.py::test_every_scope_p1_accepts_p6_can_record` was
     # updated for it. `database_agent.learning.SCOPES` is P1's own list and not a
-    # second copy, so it moved with it.
+    # second copy, so it moved with it. `organization` joined on 13 Sep 2026
+    # (`104` §18.60 item 4a): a person's answer to a reading question is a
+    # learning record at the organisation's scope.
     assert set(SCOPES) == {"file", "group", "node", "branch", "template",
-                           "domain", "corpus"}
+                           "domain", "corpus", "organization"}
     with pytest.raises(ValueError):
         capture_learning_records(eval_conn, bundle_id, scope="destination node",
                                  subject_id="n1")
