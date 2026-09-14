@@ -7496,7 +7496,15 @@ CLOUD_CLEARING_BASES: tuple[str, ...] = (LOCAL_MODEL_GATE, "user")
 #: Derived rather than listed, on `SAFETY_DOMAIN_BASES`' own argument: `Handling`
 #: carries the basis per safety domain and reading whatever the four actually say
 #: keeps this true the day one of them differs.
-HELD_BASES: frozenset[str] = SAFETY_DOMAIN_BASES | {LOCAL_MODEL_GATE}
+#: AND THE JUDGE'S OWN BASIS (14 Sep 2026, run 12 of the second corpus): site G
+#: names `medical`, `identity`, `finance` or `legal` for a file and the row it
+#: writes carries `protected`; 30 files were marked that run and 24 put to the
+#: person, because the six the judge held were under a basis neither this screen
+#: nor `apply_release` read -- and five of the six are ordinary by the owner's
+#: key. `00` amendment 3 of 13 Sep: a kind the person calls ordinary is released
+#: by their answer. The judge's hold is a hold like the other two.
+HELD_BASES: frozenset[str] = (
+    SAFETY_DOMAIN_BASES | {LOCAL_MODEL_GATE, LOCAL_MODEL_SITUATION})
 
 #: THE HANDLING CLASS A GATE-NAMED KIND CARRIES, derived rather than spelled, on
 #: `SAFETY_DOMAIN_BASES`' own argument one screen up. A file the gate names is a
@@ -14428,6 +14436,9 @@ def _why_a_file_is_held(basis: str, domain: str | None) -> str:
     if basis == LOCAL_MODEL_GATE:
         return ("held by the model on this device: it read the file's opening "
                 "and said it is a record of a kind that is kept here.")
+    if basis == LOCAL_MODEL_SITUATION:
+        return ("held on the situation judge's word: it read the file and named "
+                "it a protected kind of record" + (f", {domain}." if domain else "."))
     if domain is None:
         return ("held by the rules, on words in the file itself, as protected "
                 "personal material.")

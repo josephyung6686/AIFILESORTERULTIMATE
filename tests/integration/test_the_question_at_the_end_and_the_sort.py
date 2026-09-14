@@ -1070,3 +1070,64 @@ def test_the_screen_asks_the_branches_the_judge_opened_not_the_first_partitions(
     assert "Which of these is research?" in said, said
     block = " ".join(said.split("Which of these is research?", 1)[1].split())
     assert "1 file sits under research, and its own facts fit" in block, block
+
+
+def test_a_file_the_judge_held_is_the_persons_question_too_and_release_works(
+        tmp_path):
+    """Run 12 of the second corpus (14 Sep 2026): 30 files marked, 24 put to the
+    person -- the six the situation judge held (naming medical or identity) were
+    under a basis neither the closing screen nor `--release` read, and five of
+    the six are ordinary by the owner's key. `00` amendment 3 of 13 Sep: a kind
+    the person calls ordinary is released by their answer. Here the judge is
+    made to name `medical` for one society file: it is in the flagged question
+    with both gestures, `--release` on it is accepted, and the cloud opens to it.
+    """
+    corpus = _corpus(tmp_path)
+    database = tmp_path / "holder" / "plan.sqlite"
+    cloud = _Cloud()
+    marked = "thanked the outgoing chair"
+
+    def invoke(payload: bytes) -> bytes:
+        cloud.payloads.append(payload)
+        body = cloud._body(payload)
+        site = body["call_site"]
+        if site == cli.G_SITUATION_SENSITIVITY:
+            where = " ".join(item["value"] for item in _released(body))
+            return _names("medical" if marked in where else
+                          SCHEMA if CLUB in where else "academic",
+                          body).encode("utf-8")
+        if site == cli.C_PLACEMENT:
+            return _the_deterministic_winner(body).encode("utf-8")
+        return _answer_for(payload.decode("utf-8")).encode("utf-8")
+
+    def run(*extra: str) -> str:
+        with pytest.MonkeyPatch.context() as patch:
+            for name in (CREDENTIAL_NAME, BASE_URL_NAME, *MODEL_NAME_OF_TIER.values(),
+                         LOCAL_MODEL_NAME, LOCAL_BASE_URL_NAME):
+                patch.delenv(name, raising=False)
+            patch.setattr(cli, "ENV_FILE", tmp_path / "absent.env")
+            for name, value in ENV.items():
+                patch.setenv(name, value)
+            patch.setattr(model_routing, "deepseek_invoke", lambda **_u: invoke)
+            out = io.StringIO()
+            code = cli.main([str(corpus), "--situation", SITUATION, "--label", LABEL,
+                             "--user", "t", "--database", str(database),
+                             "--enable-cloud", *extra], out=out)
+        assert code == 0, out.getvalue()
+        return out.getvalue()
+
+    run()
+    shown = run("--show-protected")
+    ids = _file_ids(database)
+    june = ids["Committee minutes June.txt"]
+    assert "3 files are being held here" in " ".join(shown.split()), shown
+    assert "Committee minutes June.txt" in shown and f"--release {june}" in shown
+    assert "held on the situation judge's word" in " ".join(shown.split())
+    cloud.forget()
+    after = run("--release", june)
+    assert "2 files are being held here" in " ".join(after.split()), after
+    conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    (row,) = conn.execute("SELECT basis, protected FROM classifications WHERE file_id = ? "
+                          "AND superseded_by IS NULL", (june,)).fetchall()
+    conn.close()
+    assert tuple(row) == (USER, 0)
