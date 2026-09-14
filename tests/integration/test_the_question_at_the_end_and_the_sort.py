@@ -980,3 +980,43 @@ def test_the_persons_own_folder_is_in_the_plan_as_theirs(three_runs):
     """
     said = three_runs["said"][3]
     assert f"{CLUB}   [yours already]" in said, said
+
+
+def test_every_answer_the_person_gave_is_a_learning_record_at_its_own_scope(
+        three_runs):
+    """`00` amendment 6 of 13 Sep: *"a person's answers are the product's memory
+    of them. Every applied answer is a learning record at the question's
+    scope"*.
+
+    THREE ANSWERS AND THREE SCOPES, read back through the reader the product
+    itself uses (`database_agent.learning.learning_records`) rather than off the
+    tables it writes. The branch question's scope is `branch` and its subject is
+    the schema the judge named; the two gestures that write a classification are
+    the person's word about one FILE and are recorded at `file` against its id.
+
+    THE FOURTH ANSWER IS DELIBERATELY NOT ONE, and it is worth stating so that a
+    later reader does not add it: `--file-held` on a file the rules ALREADY held
+    writes no classification row -- filing your own medical record says where it
+    goes, not what a model may see of it -- so there is no reclassification to
+    remember. What that answer leaves behind is the move permission asserted
+    above and the question no longer being asked.
+    """
+    state = three_runs
+    from database_agent.learning import learning_records
+    conn = sqlite3.connect(f"file:{state['database']}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        branch = learning_records(conn, "branch", SCHEMA)
+        released = learning_records(conn, "file", state["ids"][RELEASED])
+        kept_cleared = learning_records(conn, "file", state["ids"][CLEARED_KEPT])
+        kept_held = learning_records(conn, "file", state["ids"][KEPT])
+    finally:
+        conn.close()
+    assert branch, "the branch answer left no memory of the person"
+    assert all(row["user_id"] == "t" for row in branch), [
+        dict(row) for row in branch]
+    assert released, "--release left no memory of the person"
+    assert kept_cleared, "--file-held on a cleared file left no memory"
+    assert not kept_held, (
+        "--file-held on an already-held file wrote a classification row, which "
+        "is the one thing its own pin says it must not do")

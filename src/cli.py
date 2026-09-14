@@ -19237,7 +19237,19 @@ def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
             supersede_reason=("the user withdrew this answer" if revoked else
                               "the user answered this again"
                               if previous_id is not None else None)))
-        correction_scope = row[0].split(":", 1)[0]
+        # THE SCOPE'S KIND AND THE SCOPE'S SUBJECT, which are the two halves of
+        # one string and have to be split into the two columns that hold them.
+        # `correction_subject` was the QUESTION id -- `situation:nonprofit` under
+        # the scope kind `branch` -- and `learning_records(conn, scope,
+        # subject_id)` filters on the pair, so the person's answer to a branch
+        # question could not be found by anything that knew which branch it was
+        # about: `learning_records(conn, "branch", "nonprofit")` came back empty
+        # and `reset_preferences` at that branch cleared nothing. Every other
+        # writer of an event records the subject of its scope -- a file id at
+        # `file` (`privacy.learning_seam`), a group id at `group`, a node's
+        # subject ref at `node` -- and every reader asks with one. The question
+        # id is not lost: it is named twice in the explanation this writes.
+        correction_scope, _, scope_subject = row[0].partition(":")
         if correction_scope in CORRECTION_SCOPES:
             explanation = (f"the user revoked their answer to {question_id!r}"
                            if revoked else
@@ -19247,7 +19259,10 @@ def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
                 conn, event_type=ANSWER_EVENT_TYPE, subsystem="cli",
                 component_version=COMPONENT_VERSION, observed_at=recorded_at,
                 explanation=explanation, correction_scope=correction_scope,
-                correction_subject=question_id, user_id=user_id)
+                # A scope with no subject after the colon is its own subject, so
+                # the pair a reader asks with is never half empty.
+                correction_subject=scope_subject or correction_scope,
+                user_id=user_id)
         settled.append((question_id, row[0]))
     return tuple(settled)
 
