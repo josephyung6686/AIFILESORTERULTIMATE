@@ -14422,6 +14422,14 @@ def _what_the_held_files_are(held: Sequence[tuple[str, str, str]]) -> str:
     file appears here, which is the standing rule that a protected record is marked
     and counted, never opened.
 
+    "HAS LEFT THIS DEVICE" AND NOT "WAS SENT ANYWHERE", because the second is false
+    of half these files. A `local_model_gate` hold exists BECAUSE a model read the
+    file's opening -- on this machine, which is the whole of what makes it lawful --
+    and telling a person nothing was sent about a file a model just read would be a
+    sentence on a screen that is not true. What is true of every file in this block,
+    and is the thing the owner's question is actually about, is that none of it
+    crossed the machine's edge.
+
     THE PROSE IS WRAPPED AND THE GESTURES ARE NOT, which is the one place this
     departs from `_what_these_folders_are` and it departs in that block's own
     direction. `_typable` exists there because a command line a shell splits in two
@@ -14432,7 +14440,7 @@ def _what_the_held_files_are(held: Sequence[tuple[str, str, str]]) -> str:
     one = len(held) == 1
     lines = [_wrapped(
         f"{len(held)} {'file is' if one else 'files are'} being held here, and "
-        f"nothing about {'it' if one else 'them'} was sent anywhere -- but "
+        f"nothing about {'it' if one else 'them'} has left this device -- but "
         f"nobody has been asked. Say what {'it is' if one else 'each one is'} "
         f"and run the same command again: --file-held FILE_ID keeps a file here "
         f"and you file it by hand, and --release FILE_ID says it is ordinary and "

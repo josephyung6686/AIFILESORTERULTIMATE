@@ -325,6 +325,59 @@ def test_an_unrecorded_file_id_is_refused_by_name(database):
                           recorded_at="2026-09-13T00:00:00+00:00")
 
 
+def test_the_next_run_does_not_take_the_release_back(a_run_that_held_a_file,
+                                                     tmp_path):
+    """THE SENTENCE `--release`'s OWN HELP PRINTS -- "no later run of the rules
+    takes it back" -- measured rather than reasoned about, because it is a claim
+    made to a person on a screen (`84` §6).
+
+    THE SAME COMMAND THE SCREEN TELLS THEM TO TYPE, over the same folder and the
+    same database. The detector's terms have not changed: `passport` is still in
+    that filename, so `classifier` and `_reclassify_on_entities` both meet a file
+    the rules would hold and a row saying the person has already said otherwise.
+
+    ONE LIVE ROW IS THE HALF THAT MATTERS. `learning_seam.assign` refuses to
+    retire a stronger prior, but a second write that did not go through it would
+    leave two unsuperseded rows at one `(file_id, content_hash)` and
+    `AmbiguousCurrentClassification` would then wedge the store for good --
+    `current`, `may_move_automatically` and even the person's own `reclassify` all
+    read the current row first, so nothing would be left that could repair it.
+    """
+    source, _said = a_run_that_held_a_file
+    database = tmp_path / "plan.sqlite"
+    shutil.copyfile(source, database)
+    conn = open_database(database)
+    try:
+        file_id = _file_id(conn, HELD_NAME)
+    finally:
+        conn.close()
+    # The corpus this database was scanned from is still there: the module-scoped
+    # run built it under `tmp_path_factory` and nothing removes it.
+    corpus = source.parent / "corpus"
+
+    out = io.StringIO()
+    code = cli.main(
+        [str(corpus), "--situation", SITUATION, "--label", LABEL, "--user", "t",
+         "--database", str(database), "--release", file_id], out=out)
+    assert code == 0, out.getvalue()
+    assert "being held here" not in out.getvalue(), (
+        "the run asked again about a file the person had just answered")
+
+    conn = open_database(database)
+    try:
+        after = _current(conn, file_id)
+        assert after.basis == USER
+        assert after.protected is False
+        live = conn.execute(
+            "SELECT COUNT(*) FROM classifications "
+            "WHERE file_id = ? AND superseded_by IS NULL", (file_id,)).fetchone()
+        assert live[0] == 1, (
+            "two live rows at one file version is the state that wedges the "
+            "store; every repair path has to read the current row first")
+    finally:
+        conn.close()
+
+
 def test_releasing_twice_is_refused_because_the_second_has_no_hold_to_lift(
         database):
     """The same refusal read from the other side, and the reason the gesture
