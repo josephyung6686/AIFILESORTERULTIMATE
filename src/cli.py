@@ -371,7 +371,8 @@ from readers.model_routing import (
 from facts.domains import SCHEMA_IDS
 from recognition.detector import (
     FIRST_PAGE, NAMING_ZONES, RELIABILITY as DETECTOR_RELIABILITY,
-    SAFETY_DOMAIN_HANDLING, Detector, Handling, settled_by_file_kind,
+    SAFETY_DOMAIN_HANDLING, Detector, Handling, Recognition,
+    settled_by_file_kind,
 )
 from recognition.rules import load_rules
 from recognition.semantic import (
@@ -12905,6 +12906,146 @@ def locked_containers(conn: sqlite3.Connection, scan_run_id: str,
         for file_id, reason in locked_reasons(conn, scan_run_id).items()))
 
 
+#: How many of a kind's files the gist names. THREE, and the number is the
+#: owner's own ("up to three example filenames per kind"). It is a gist: a person
+#: reading it is deciding whether the product has understood their folder, and
+#: three names settle that where a count alone does not and where forty names
+#: would bury it.
+GIST_EXAMPLES: int = 3
+
+#: The bucket for a file nothing has named yet. The empty string rather than a
+#: word, so the sort puts it last and `name_of` is never asked about it.
+GIST_UNNAMED: str = ""
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class GistKind:
+    """One kind of file, as the gist reports it."""
+
+    kind: str
+    #: The library's own name for that kind, or the id where it carries none.
+    name: str
+    count: int
+    #: Up to `GIST_EXAMPLES` ORDINARY filenames. A protected file is inside
+    #: `count` and is never here: `00`:201 and `93-PROTECTED-DISCLOSURE-RULING`
+    #: are about exactly this list, and "marked and counted, never named" is the
+    #: whole of what the gist may say about one.
+    examples: tuple[str, ...]
+    #: The folders this kind's ordinary files sit in, as the person names them.
+    folders: tuple[str, ...]
+
+
+@dataclasses.dataclass(frozen=True, slots=True)
+class Gist:
+    """What the scan found, before anything has been judged.
+
+    `00` amendment 2 of 14 Sep: "after we parse files we have a gist of what
+    files they have". This is that gist -- the first thing the run says about
+    somebody's own folder, and the thing they read to decide whether to let it
+    carry on.
+    """
+
+    kinds: tuple[GistKind, ...]
+    files: int
+    protected: int
+    nothing_to_read: int
+
+
+def the_gist(conn: sqlite3.Connection, *, scan_run_id: str,
+             names: Mapping[str, str], kind_of, name_of) -> Gist:
+    """The scan's own answer, bucketed by kind.
+
+    `kind_of(file_id, content_hash)` is what named this file: the RULES' reading
+    at the top of the run, and the judge's name for it once the judge has spoken.
+    One argument for both, because the gist is the same block either way -- a
+    second function for the second printing would be two answers to "what did you
+    find" and the person would have to work out which was about their folder.
+
+    `name_of(kind)` is the library's word for a kind. Passed in for `report`'s
+    reason: this counts files and holds no vocabulary.
+    """
+    protected = _protected_file_ids(conn)
+    read_out_of = _files_something_was_read_out_of(conn)
+    counts: dict[str, int] = {}
+    examples: dict[str, list[str]] = {}
+    folders: dict[str, set[str]] = {}
+    files = 0
+    unread = 0
+    held = 0
+    for file_id, content_hash in corpus_roster(conn, scan_run_id):
+        files += 1
+        if file_id not in read_out_of:
+            unread += 1
+        kind = kind_of(file_id, content_hash) or GIST_UNNAMED
+        counts[kind] = counts.get(kind, 0) + 1
+        if file_id in protected:
+            # COUNTED ON THE LINE ABOVE AND NAMED NOWHERE. The count is what the
+            # standing rule requires; the name is what it forbids.
+            held += 1
+            continue
+        name = names.get(file_id, file_id)
+        examples.setdefault(kind, []).append(name)
+        folder = str(PurePosixPath(name).parent)
+        # THE FOLDER'S OWN NAME, and "the folder you scanned" for the one file
+        # names are relative to. `.` is what the path library calls it and is not
+        # a word anybody reads off their own disk.
+        folders.setdefault(kind, set()).add(
+            "the folder you scanned" if folder == "." else folder)
+    return Gist(
+        kinds=tuple(
+            GistKind(kind=kind,
+                     name=name_of(kind) if kind else "nothing named these yet",
+                     count=counts[kind],
+                     examples=tuple(sorted(examples.get(kind, ()))
+                                    [:GIST_EXAMPLES]),
+                     folders=tuple(sorted(folders.get(kind, ()))))
+            # MOST FIRST, and the unnamed bucket last whatever its size: it is
+            # the one line that is not an answer, and a person scanning the block
+            # for what their folder IS should not meet it first.
+            for kind in sorted(counts, key=lambda k: (k == GIST_UNNAMED,
+                                                      -counts[k], k))),
+        files=files,
+        # THIS RUN'S ROSTER, counted as it was walked. `_protected_file_ids` is
+        # every file P7 has ever marked, over every scan this database holds, and
+        # a count of those standing beside a count of this folder's files would be
+        # a sum of two questions -- `_protected_file_count`'s own rule.
+        protected=held,
+        nothing_to_read=unread)
+
+
+def _print_gist(gist: Gist, *, heading: str, out) -> None:
+    """The gist, in the coverage block's register: a total, then its parts.
+
+    THE SAME SHAPE TWICE. It is printed once after the scan, where the kinds are
+    the rules' readings, and again at the end with the judge's names in it -- and
+    only then if the two differ, because a block reprinted unchanged tells a
+    person their run did nothing between them.
+    """
+    print("", file=out)
+    print(f"{heading}: {gist.files} file{'' if gist.files == 1 else 's'}.",
+          file=out)
+    for kind in gist.kinds:
+        print(f"    {kind.count} {kind.name}", file=out)
+        if kind.examples:
+            print(_wrapped(f"for example: {', '.join(kind.examples)}",
+                           indent="      "), file=out)
+        if kind.folders:
+            print(_wrapped(f"in: {', '.join(kind.folders)}", indent="      "),
+                  file=out)
+    if gist.protected:
+        print(_wrapped(
+            f"{gist.protected} of them "
+            f"{'is' if gist.protected == 1 else 'are'} protected: counted on the "
+            f"lines above and named on none of them.", indent="  "), file=out)
+    if gist.nothing_to_read:
+        print(_wrapped(
+            f"{gist.nothing_to_read} of them had nothing to read -- no text came "
+            f"out of "
+            f"{'it' if gist.nothing_to_read == 1 else 'them'}, so "
+            f"{'its' if gist.nothing_to_read == 1 else 'their'} kind is what the "
+            f"file itself is.", indent="  "), file=out)
+
+
 def _print_protected(areas, *, protected_files: int,
                      locked: Sequence[LockedContainer] = (), out=None) -> None:
     """Everything this run marked and set aside, under ONE word and ONE total.
@@ -15284,6 +15425,27 @@ def run(conn: sqlite3.Connection, directory: Path, *,
     # change, lower or second-guess one that exists. No model named, no change at
     # all -- `_semantic_classifier` hands `detector` straight back.
     classify_producer = _semantic_classifier(rules, detector, semantic_model, now)
+
+    def _the_kind_the_rules_read(file_id: str, content_hash: str) -> str | None:
+        """What the RULES made of one file, for the gist and for nothing else.
+
+        `detector.explain` and not a column, which is the same reading
+        `_partition_branches` takes and for its reason: `test_step4_recognition_
+        as_a_gate` pins that this verdict reaches no column, and the gist is a
+        screen rather than a fact.
+
+        A `Recognition` ONLY. An `Abstention` carries a near-miss `schema_id` --
+        the schema it came closest to and declined -- and printing that as what
+        the product found would be the gist claiming a reading the detector
+        refused to make. A file nothing named is its own honest line.
+        """
+        verdict = detector.explain(conn, file_id, content_hash)
+        return verdict.schema_id if isinstance(verdict, Recognition) else None
+
+    def _kind_words(kind: str) -> str:
+        """The library's own name for a kind, or the id where it carries none."""
+        schema = rules.schemas.get(kind)
+        return getattr(schema, "name", None) or kind
 
     #: P7's store, read rather than re-derived. §5.2 and §8.4 make sensitivity
     #: P7's to own; P10 asks and never classifies.
@@ -18285,6 +18447,17 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         run learned, not what it demanded before it started.
         """
         scan_run_id[0] = p1_p7.scan_run_id
+        # `00` amendment 2 of 14 Sep, the FIRST of its three beats: "after we
+        # parse files we have a gist of what files they have; then we go directly
+        # into a proposed file structure". HERE, which is the moment the scan has
+        # finished and before any model has been asked anything -- so the kinds on
+        # this screen are the RULES' own readings, and a person reading it is
+        # being told what the product FOUND before it says what it concluded.
+        gist = the_gist(
+            conn, scan_run_id=p1_p7.scan_run_id,
+            names=file_names(conn, directory, *also_read),
+            kind_of=_the_kind_the_rules_read, name_of=_kind_words)
+        _print_gist(gist, heading="What you have", out=out)
         # §3.11's universal families, BEFORE the model pass and before P9 groups.
         # See `_family_pass` for why a corpus producer cannot be a resolver stage.
         _family_pass(p1_p7.scan_run_id)
@@ -18407,6 +18580,24 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # never silently omitted" has no success-path exception, so it is said as
         # soon as it is known.
         _the_names = file_names(conn, directory, *also_read)
+        # AND THE GIST AGAIN, with the judge's kinds in it (`00` amendment 2 of
+        # 14 Sep). The block at the top was the rules alone, because that is all
+        # that existed before the passes; site G has since named a kind per file,
+        # and the person who was shown what the product found is owed what it
+        # made of it in the same shape.
+        #
+        # ONLY IF IT DIFFERS. A block reprinted word for word says the run learned
+        # nothing between them, which is a claim about the judge and not about the
+        # screen -- and on a run with no model at all it is the same block twice.
+        judged = the_gist(
+            conn, scan_run_id=p1_p7.scan_run_id, names=_the_names,
+            kind_of=lambda file_id, content_hash: (
+                situation_cell[0].named.get(file_id)
+                or _the_kind_the_rules_read(file_id, content_hash)),
+            name_of=_kind_words)
+        if judged != gist:
+            _print_gist(judged, heading="What you have, once it was looked at",
+                        out=out)
         _print_protected(
             protected_areas(conn, scan_run_id=p1_p7.scan_run_id),
             protected_files=_protected_file_count(conn, p1_p7.scan_run_id),
