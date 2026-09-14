@@ -501,7 +501,7 @@ def test_the_identity_row_says_what_it_was_keyed_on(corpus, socket):
         # The eleventh term (13 Sep 2026): the bound the dossier was built under.
         assert dimensions["max_dossier_tokens"] == cli.GROUPING_LIMITS.max_dossier_tokens
         assert dimensions["call_site"] == cli.A_FACT
-        assert dimensions["model_id"] == "a-logician"
+        assert dimensions["model_id"] == "a-sprinter"
         assert len(dimensions["content_hash"]) == 64
 
 

@@ -117,7 +117,7 @@ def test_the_file_supplies_what_the_environment_has_not(monkeypatch, tmp_path):
     assert routing is not None
     # A_fact resolves through the LOGIC name since the row moved; what is under
     # test here is that the FILE supplied it, not which tier it came from.
-    assert routing.model_id_for(A_FACT) == "a-logician"
+    assert routing.model_id_for(A_FACT) == "a-sprinter"    # the fast tier since 14 Sep 2026
     assert routing.model_id_for(D_RESIDUAL) == "a-sprinter"
 
 
@@ -125,7 +125,7 @@ def test_an_exported_value_beats_the_file(monkeypatch, tmp_path):
     """A person who exports a key for one run means it for that run. A file that
     overrode them would send their files to a model they did not choose."""
     routing, _ = _route(
-        monkeypatch, {MODEL_NAME_OF_TIER[LOGIC]: "the-one-i-typed"},
+        monkeypatch, {MODEL_NAME_OF_TIER[FAST]: "the-one-i-typed"},
         "\n".join(f"{name}={value}" for name, value in ENV.items()), tmp_path)
     assert routing.model_id_for(A_FACT) == "the-one-i-typed"
 
@@ -147,7 +147,7 @@ def test_quotes_and_spacing_are_read_the_way_env_files_are(monkeypatch, tmp_path
     # The quoted value is the REASONING one, and it is read back unquoted through
     # the tier that still carries it rather than through A_fact, whose row moved.
     assert routing.client_of_tier[REASONING].model_target.model_id == "a-reasoner"
-    assert routing.model_id_for(C_PLACEMENT) == "a-logician"
+    assert routing.model_id_for(C_PLACEMENT) == "a-sprinter"
 
 
 def test_a_commented_out_line_is_not_a_setting(tmp_path):
@@ -236,11 +236,22 @@ def test_the_site_whose_errors_become_folders_gets_the_checkable_tier():
     Latency settles it even where accuracy might not. The owner's standing target is
     ten thousand files in under thirty minutes. At ~110 seconds a file the reasoning
     tier misses it by two orders of magnitude before a single answer is judged.
+
+    **AND ON 14 SEP 2026 THE END MOVED AGAIN, TO FAST, ON A MEASUREMENT.** The
+    owner: "use deepseek flash v4 if you're not". Replayed on run 12's 184 judge
+    dossiers of the second corpus, the logic tier's model answered 137 of 185
+    right (74.1 %) and the fast tier's 148 of 184 (80.4 %) -- résumés 14 of 14
+    against 10, health records 6 of 6 against 4 (`104` §18.61). "Checkable" is
+    still what these sites are: every claim is re-checked against released
+    evidence whichever tier answers, so the tier is chosen on what answers best,
+    and every cloud site takes the same one. The gate keeps LOGIC: it runs on
+    this device or not at all.
     """
-    assert cli.TIER_OF_CALL_SITE[A_FACT] == LOGIC
-    assert cli.TIER_OF_CALL_SITE[D_RESIDUAL] == FAST
-    for checkable in (B_GROUP, C_PLACEMENT, E_TEMPLATE):
-        assert cli.TIER_OF_CALL_SITE[checkable] == LOGIC
+    from llm_harness.vocabulary import G_SITUATION_SENSITIVITY, H_RESTRICTED_KIND
+    for cloud_site in (A_FACT, B_GROUP, C_PLACEMENT, E_TEMPLATE, D_RESIDUAL,
+                       G_SITUATION_SENSITIVITY):
+        assert cli.TIER_OF_CALL_SITE[cloud_site] == FAST
+    assert cli.TIER_OF_CALL_SITE[H_RESTRICTED_KIND] == LOGIC
 
 
 def test_the_route_carries_the_provider_and_the_locality_the_transport_accepts(
@@ -418,7 +429,7 @@ def test_a_key_and_a_local_model_together_hold_both_at_every_site(monkeypatch):
     local_client, local_target = routing.route_for(A_FACT, cloud_permitted=False)
 
     assert cloud_target.locality == "cloud"
-    assert cloud_target.model_id == "a-logician"
+    assert cloud_target.model_id == "a-sprinter"
     assert local_target.locality == LOCAL
     assert local_target.model_id == "qwen3:8b"
     assert cloud_client is not local_client
@@ -553,7 +564,7 @@ def test_the_cloud_only_posture_is_word_for_word_what_it_was(monkeypatch, tmp_pa
 
     printed = _posture(routing, tmp_path)
 
-    assert "Model: a-logician for facts, a-logician for checks, a-sprinter for" \
+    assert "Model: a-sprinter for facts, a-sprinter for checks, a-sprinter for" \
         in printed
     assert "None of them will be asked on this run" in printed
     assert "NOTHING LEAVES YOUR DEVICE" not in printed

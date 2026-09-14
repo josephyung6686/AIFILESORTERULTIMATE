@@ -392,8 +392,11 @@ def test_the_notice_names_the_models_that_would_receive_the_files(
     asserted and not merely implied by dropping the name from the loop.
     """
     _, printed = _run(corpus, "--enable-cloud", monkeypatch=monkeypatch, env=ENV)
-    for model_id in ("a-logician", "a-sprinter"):
-        assert model_id in printed
+    assert "a-sprinter" in printed
+    # Since 14 Sep 2026 every cloud site takes the fast tier, so the logic tier's
+    # model is named by no route the notice describes -- the same untruth as the
+    # reasoning tier's, and asserted the same way.
+    assert "a-logician" not in printed, printed
     assert "a-reasoner" not in printed, (
         "the notice names a model no call site routes to:\n" + printed)
 

@@ -171,7 +171,7 @@ def test_site_a_names_the_model_each_file_actually_goes_to(corpus, conn):
     apart -- otherwise a file answered here reuses the provider's verdict."""
     route = cli.target_for(conn, _both(), A_FACT, operation_mode=SENDING_ON)
 
-    assert route(corpus["ordinary"])[1].model_id == CLOUD_IDS[LOGIC]
+    assert route(corpus["ordinary"])[1].model_id == CLOUD_IDS[FAST]   # the fast tier since 14 Sep 2026
     assert route(corpus["unclassified"])[1].model_id == LOCAL_ID
 
 
@@ -226,7 +226,7 @@ def test_site_c_splits_the_same_way_a_does_now_that_its_text_is_ratified(corpus,
 
     assert _where(route, corpus) == {
         "ordinary": CLOUD, "unclassified": LOCAL, "protected": LOCAL}
-    assert route(corpus["ordinary"])[1].model_id == CLOUD_IDS[LOGIC]
+    assert route(corpus["ordinary"])[1].model_id == CLOUD_IDS[FAST]   # the fast tier since 14 Sep 2026
     assert route(corpus["unclassified"])[1].model_id == LOCAL_ID
 
 
