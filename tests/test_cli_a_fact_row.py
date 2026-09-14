@@ -142,4 +142,5 @@ def test_a_row_nobody_published_is_refused_and_names_the_candidates(monkeypatch)
     monkeypatch.setattr(cli, "A_FACT_ROW", (cli.A_FACT_ROW[0], "no-such-arm"))
     with pytest.raises(prompt_library.DraftNotInManifest) as refused:
         cli.a_fact_prompt()
-    assert "v4-a-year-is-not-a-term" in str(refused.value)
+    # The refusal names the candidates under the row in force, whichever it is.
+    assert cli.A_FACT_ROW[1] in str(refused.value)

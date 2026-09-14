@@ -548,21 +548,27 @@ def test_an_applied_answer_is_a_learning_record(qconn):
     _declare(qconn, "teaching=research")
     cli.apply_answers(qconn, ["role:teaching=academic"],
                       user_id="jy", recorded_at=T1)
-    confirmed = learning_records(qconn, SCOPE_CORPUS, "role:teaching")
-    assert len(confirmed) == 1
+    # ASKED WITH THE SCOPE'S OWN SUBJECT (14 Sep 2026, 93dc1f9d): every writer of
+    # an event records the subject of its scope -- a file id at `file`, a group id
+    # at `group`, a branch at `branch` -- and a corpus-scoped answer's subject is
+    # the corpus. The question id is named in the explanation, not in the subject.
+    confirmed = learning_records(qconn, SCOPE_CORPUS, SCOPE_CORPUS)
+    assert len(confirmed) == 1, confirmed
     assert "academic" in confirmed[0]["explanation"]
+    assert "role:teaching" in confirmed[0]["explanation"]
     assert "role:teaching" in confirmed[0]["explanation"]
 
     _declare(qconn, "studying=academic")
     cli.apply_answers(qconn, ["role:studying=skip"],
                       user_id="jy", recorded_at=T1)
-    skipped = learning_records(qconn, SCOPE_CORPUS, "role:studying")
-    assert len(skipped) == 1
-    assert "skipped" in skipped[0]["explanation"]
+    # Newest first at the same (scope, subject); the question id tells them apart.
+    skipped = learning_records(qconn, SCOPE_CORPUS, SCOPE_CORPUS)
+    assert len(skipped) == 2
+    assert "skipped" in skipped[0]["explanation"] and "role:studying" in skipped[0]["explanation"]
 
     _declare(qconn, "thesis=research")
     cli.apply_answers(qconn, ["role:thesis=revoke"],
                       user_id="jy", recorded_at=T1)
-    revoked = learning_records(qconn, SCOPE_CORPUS, "role:thesis")
-    assert len(revoked) == 1
-    assert "revoked" in revoked[0]["explanation"]
+    revoked = learning_records(qconn, SCOPE_CORPUS, SCOPE_CORPUS)
+    assert len(revoked) == 3
+    assert "revoked" in revoked[0]["explanation"] and "role:thesis" in revoked[0]["explanation"]
