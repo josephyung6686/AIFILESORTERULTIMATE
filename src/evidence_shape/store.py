@@ -591,18 +591,22 @@ def unit_length_for_observation(conn: sqlite3.Connection,
     `tests/p7/test_p7_no_invention.py` names the three modules that may bind a P4
     materialiser and does not offer a fourth place in the list.
 
-    The length is read in SQL rather than off a materialised row: `SELECT
-    length(text)` never brings the text across, so the guarantee is in the query and
-    not in the caller's manners. `length()` in SQLite counts characters for a TEXT
-    value, which is D4 rule 5's Unicode scalar values and the same number
-    `TextUnit.length` reports.
+    The length is read in SQL rather than off a materialised row, and off the
+    row's own `length` column rather than `length(text)`: the stored number is D4
+    rule 5's count of the stored text (the writer records both from one value, and
+    no row ever differs), and reading the column touches no page of the text. That
+    is the whole cost of this function: `length(text)` walked every overflow page
+    of the unit, and the fact builder asks this once per observation -- on a
+    document of a few megabytes with thousands of readings that was an hour of
+    disk reads per file, measured on run 13 (14 Sep 2026). The guarantee is still
+    in the query and not in the caller's manners.
 
     `None` means no unit stands at that path, and is not `0`: a span-less
     observation with no unit is §2.3's cell and §2.8's EXIF field, which may be
     offered, while a unit of length 0 is a different fact about a different row.
     """
     row = conn.execute(
-        "SELECT length(text) FROM text_units WHERE run_id = ? AND unit_locator = ?",
+        "SELECT length FROM text_units WHERE run_id = ? AND unit_locator = ?",
         (observation.run_id,
          serialize_container_path(observation.location.container_path)),
     ).fetchone()
