@@ -235,6 +235,11 @@ from model_situation import (
 )
 from placement import vocabulary as pv
 from placement.config import CEILINGS, SupportPolicy, placement_limits
+#: The decisions ONE plan version recorded, read back on a LATER run: which
+#: files the plan put under which folder, which is how an edited outline knows
+#: whose claim a removed folder rests on. Aliased because `_crossing_moves`
+#: already imports the same function inside itself for its own question.
+from placement.store import decisions_for_plan as placement_decisions_for
 from placement.graph import (
     ATTACHMENT_OF as P11_ATTACHMENT_OF,
     COMPATIBLE_DOCUMENT_TYPE as P11_COMPATIBLE_DOCUMENT_TYPE,
@@ -439,6 +444,15 @@ from mutation import vocabulary as mv
 from mutation.constraints import FilesystemConstraints
 from mutation.resolution import source_high_level_folder
 from tree_design.store import latest_plan_version, nodes_for_version, open_draft
+#: `00` amendment 2 of 14 Sep. The proposal's text form -- what it looks like
+#: written out, and what an edited copy of it says. It knows no database and no
+#: gesture: `structure_edits` below turns one of its edits into the flag that
+#: already existed for it.
+from structure_file import (
+    INDENT, SITUATION_PREFIX, Added, Moved, Removed, Renamed, SituationSaid,
+    StructureRefused, StructureRow, lines as structure_lines,
+    read as structure_read, render as structure_render,
+)
 from apply_run.approval import approval_reader, approval_writer
 from apply_run.branches import BranchRefused, branches_named
 from apply_run.freeze import freeze, frozen_plans
@@ -15356,6 +15370,13 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # needs to know which drafts this run made.
         accept_drafts: bool = False,
         drafts: list[str] | None = None,
+        # `00` amendment 2 of 14 Sep's mailbox, and it is `questions_reach`'s
+        # shape for `questions_reach`'s reason: the outline the person edits says
+        # which situation each branch is built from, that is a fact about the RUN
+        # rather than about the plan, and a second field bolted onto
+        # `ProductionRun` for it would be a fact about the screen living inside
+        # the record of what was decided.
+        situations: dict[str, str] | None = None,
         # `--stop-after`'s stage, or `None` for the whole run. `STOP_AFTER_STAGES`
         # is the whole of what may be passed and is the same tuple the flag offers.
         # A run that stops returns `None` rather than a `ProductionRun`: there is no
@@ -18579,6 +18600,15 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # `exclusion_verdicts` and the person was told nothing. "Marked, counted,
         # never silently omitted" has no success-path exception, so it is said as
         # soon as it is known.
+        # `00` amendment 2 of 14 Sep. WHICH SITUATION EACH FILE IS UNDER, filled
+        # here because this is the first point where every one of them has an
+        # answer: the second partition has run, so a branch site G opened is in
+        # it, and the person's `--answer` was applied before the run began.
+        if situations is not None:
+            for file_id, _hash in corpus_roster(conn, p1_p7.scan_run_id):
+                under = _the_situation_this_file_is_under(file_id)
+                if under is not None:
+                    situations[file_id] = under
         _the_names = file_names(conn, directory, *also_read)
         # AND THE GIST AGAIN, with the judge's kinds in it (`00` amendment 2 of
         # 14 Sep). The block at the top was the rules alone, because that is all
@@ -21649,6 +21679,350 @@ def _print_health(health, group_names: Mapping[str, str], *, out) -> None:
         "them.", indent="  "), file=out)
 
 
+def _children_of(nodes: Sequence) -> dict:
+    """Every node by its parent, siblings in the ONE order both walks use.
+
+    `(ordinal, node_id)` and not the order the rows arrived in. The outline is
+    written from a `FrozenTree` and read back from `tree_nodes`, and the marker on
+    a line is a POSITION: two walks that ordered siblings differently would hand
+    the person's rename to the folder beside the one they renamed. `nodes_for_
+    version` already sorts on exactly this pair, so this is that order said once
+    for the walk that does not go through it.
+    """
+    by_parent: dict = {}
+    for node in nodes:
+        by_parent.setdefault(node.parent_node_id, []).append(node)
+    for siblings in by_parent.values():
+        siblings.sort(key=lambda node: (node.ordinal, node.node_id))
+    return by_parent
+
+
+def _outline_walk(nodes: Sequence):
+    """`(marker, depth, node)` for every node, in the outline's own order."""
+    by_parent = _children_of(nodes)
+    walked: list[tuple[int, int, object]] = []
+
+    def walk(parent, depth: int) -> None:
+        for node in by_parent.get(parent, ()):
+            walked.append((len(walked) + 1, depth, node))
+            walk(node.node_id, depth + 1)
+
+    walk(None, 0)
+    return tuple(walked)
+
+
+def _node_claim(node) -> tuple[str, str] | None:
+    """The one fact value this folder is named by, or `None` for a folder that is
+    not named by one at all -- a root, or a level the template owns."""
+    expected = getattr(node, "expected_values", ())
+    if not expected:
+        return None
+    last = expected[-1]
+    return (last.field, last.value)
+
+
+#: Where the editable proposal is written when the person names no path. Beside
+#: the DATABASE and not inside the corpus: the corpus is theirs and this run puts
+#: nothing in it -- "nothing was moved" has to be true of a file the product made
+#: as well as of one it found.
+STRUCTURE_FILENAME: str = "proposed-structure.txt"
+
+
+def _situation_row(situation_id: str):
+    """The library's own row for one situation, or `None` for an id it has none for.
+
+    Asked of every schema rather than of the one the id looks like it belongs to.
+    A situation id is not required to carry its schema as a prefix -- `nonprofit`
+    is a situation of `nonprofit` and `nonprofit.member-association` is another --
+    and a rule that read the part before the first dot would be a second and
+    weaker copy of the catalogue's own answer.
+    """
+    rules = load_rules(_RECOGNITION_MANIFEST.read_text)
+    for schema in rules.schemas.values():
+        row = schema.situation(situation_id)
+        if row is not None:
+            return schema.schema_id, row
+    return None
+
+
+def situation_words(situation_id: str) -> str:
+    """What a situation IS, in the research's own words, for the outline."""
+    found = _situation_row(situation_id)
+    return "" if found is None else f"{found[1].name} -- {found[1].one_line}"
+
+
+def situation_schema_id(situation_id: str) -> str | None:
+    """Which kind a situation is one of, or `None` for an id nothing carries."""
+    found = _situation_row(situation_id)
+    return None if found is None else found[0]
+
+
+def structure_rows(result: ProductionRun, *, situations: Mapping[str, str],
+                   words_of) -> tuple[StructureRow, ...]:
+    """The proposed tree as the outline the person edits.
+
+    `00` amendment 2 of 14 Sep: the tree the design stage proposes IS the
+    proposal, "shown to the person as something they edit ... before any file is
+    placed under it". This is that showing. Every folder gets its label, what it
+    is for in the library's own words, how many files would sit under it, and the
+    situation it is built from.
+
+    THE COUNT IS THE SUBTREE'S, not the folder's own row. A person reading
+    "Coursework" wants to know how much of their disk is under it, and a top
+    folder that files nothing directly would otherwise read as empty while
+    holding two hundred files one level down.
+
+    `situations` is the run's own answer -- file id to the situation that file is
+    under -- and `words_of` the library's sentence for one. Both passed in, on
+    `report`'s rule: this composes an outline and holds no vocabulary.
+    """
+    holds: dict[str, list[str]] = {}
+    for decision in result.placement.decisions:
+        if decision.destination is not None:
+            holds.setdefault(decision.destination.node_id, []).extend(
+                _files_of(decision))
+    by_parent = _children_of(result.tree.tree.nodes)
+
+    def under(node_id: str) -> list[str]:
+        files = list(holds.get(node_id, ()))
+        for child in by_parent.get(node_id, ()):
+            files.extend(under(child.node_id))
+        return files
+
+    rows: list[StructureRow] = []
+    for marker, depth, node in _outline_walk(result.tree.tree.nodes):
+        files = under(node.node_id)
+        said = [f"{len(files)} file{'' if len(files) == 1 else 's'}"]
+        # THE SITUATION ON THE BRANCH AND NOT ON EVERY LINE. A situation is a
+        # branch's answer -- every folder beneath it is built from the same one --
+        # and repeating it on forty lines would make the file harder to read and
+        # invite forty answers to one question.
+        note = ""
+        if node.parent_node_id is None:
+            situation = _the_one_situation_under(files, situations)
+            if situation is not None:
+                said.append(f"{SITUATION_PREFIX} {situation}")
+                note = words_of(situation)
+        rows.append(StructureRow(depth=depth, label=node.display_label,
+                                 marker=marker, words="; ".join(said),
+                                 note=note))
+    return tuple(rows)
+
+
+def _the_one_situation_under(file_ids: Sequence[str],
+                             situations: Mapping[str, str]) -> str | None:
+    """The situation every file under a branch is on, or `None` where they differ.
+
+    `None` RATHER THAN THE COMMONEST. A branch whose files are under two
+    situations is a branch the outline cannot state one situation for, and
+    printing the majority's would invite the person to confirm a sentence that is
+    not true of the rest -- which is the alphabetical first pick `branch_
+    situation.the_one_situation` retired, wearing a count.
+    """
+    named = {situations[file_id] for file_id in file_ids
+             if file_id in situations}
+    return next(iter(named)) if len(named) == 1 else None
+
+
+def _print_structure(rows: Sequence[StructureRow], *, path: Path, out) -> None:
+    """The outline, and the one way to edit it.
+
+    ON THE SCREEN AND IN THE FILE, word for word. A person reads this block,
+    opens that file and has to recognise it: two renderings of one proposal --
+    one to read, one to edit -- is two things to keep in step and one of them
+    would eventually be the stale one.
+    """
+    if not rows:
+        return
+    print("\nThe structure being proposed, and yours to change:", file=out)
+    for line in structure_lines(rows):
+        print(f"  {line}", file=out)
+    print(_wrapped(
+        "Nothing is filed under it yet. It is written out as a plain text file "
+        "you can edit -- rename a folder, delete a line to leave one out, add a "
+        "line for one that is missing -- and handed back on the next run:",
+        indent="  "), file=out)
+    print(f"      {path}", file=out)
+    print(f"      --structure {shlex.quote(str(path))}", file=out)
+
+
+class StructureGestures(NotConfigured):
+    """The edited outline asks for something no gesture can express.
+
+    `00` amendment 2 of 14 Sep is built on the gestures that exist -- the file is
+    a front end to them -- so an edit none of them expresses is REFUSED BY NAME
+    rather than given a second path into the plan tables. `structure_file`
+    refuses what it can see from the text alone; this refuses what only the plan
+    can answer.
+    """
+
+
+def _branch_question(conn: sqlite3.Connection, label: str) -> str:
+    """Which branch question a `situation:` line under this folder answers.
+
+    **THE BRANCH IS NOT ALWAYS THE FOLDER.** A branch is named by its schema or by
+    the `--label` the person typed; the folder at the top of the tree is named by
+    what the design stage built there, and on a corpus where the person's own
+    existing folder became the branch's root those two are different strings --
+    measured on the eleven-file corpus, the branch `nonprofit` tops out in a
+    folder called `Debate Society`. So the folder's own name is tried first, and a
+    run with exactly ONE open branch question answers that one: there is nothing
+    else the line could mean, and refusing it would be the product holding an
+    answer back over a name it chose itself.
+
+    Two or more, and it refuses and names them. A guess there would put somebody's
+    answer on the wrong branch, which is the one failure a question exists to
+    prevent.
+    """
+    asked = sorted(row[0] for row in conn.execute(
+        "SELECT question_id FROM structural_questions WHERE question_id LIKE ?",
+        (f"{SITUATION_KIND.kind_id}:%",)))
+    mine = f"{SITUATION_KIND.kind_id}:{label}"
+    if mine in asked:
+        return mine
+    if len(asked) == 1:
+        return asked[0]
+    raise StructureGestures(
+        f"{SITUATION_PREFIX} under {label!r} says which of your lives that "
+        f"branch is, and this plan has "
+        f"{'no branch waiting on that' if not asked else str(len(asked)) + ' of them waiting'}"
+        f". {'Run the command without `--structure` first.' if not asked else 'Answer the one you mean by name instead: ' + ', '.join('--answer ' + question + '=<id>' for question in asked)}")
+
+
+def structure_edits(conn: sqlite3.Connection, text: str, *,
+                    plan_version: str, names: Mapping[str, str],
+                    situation_schema) -> dict[str, list[str]]:
+    """One edited outline, as the gestures this command already has.
+
+    Returns the flags' own strings, so `main` appends them to what the person
+    typed and every one of them goes through the applier that was written for
+    it. NOTHING HERE WRITES: a refusal below happens before `--answer`,
+    `--rename`, `--reject` and `--declare-role` have run, which is the order
+    `--send-set` established and for its reason.
+
+    `situation_schema(situation_id)` is the library's answer to "which kind is
+    this situation one of", or `None` for an id the library does not carry.
+    """
+    nodes = {marker: node
+             for marker, _depth, node in _outline_walk(
+                 nodes_for_version(conn, plan_version))}
+    parents = {marker: None for marker in nodes}
+    place = {node.node_id: marker for marker, node in nodes.items()}
+    for marker, node in nodes.items():
+        parents[marker] = place.get(node.parent_node_id)
+    holds: dict[str, list[str]] = {}
+    for decision in placement_decisions_for(conn, plan_version=plan_version):
+        if decision.destination is not None:
+            holds.setdefault(decision.destination.node_id, []).extend(
+                _files_of(decision))
+    by_parent = _children_of(tuple(nodes.values()))
+
+    def under(node_id: str) -> list[str]:
+        files = list(holds.get(node_id, ()))
+        for child in by_parent.get(node_id, ()):
+            files.extend(under(child.node_id))
+        return files
+
+    def typed(file_id: str) -> str:
+        # THE BASENAME, because that is what `--rename` and `--reject` look a
+        # file up by (`files.filename`). `file_names` answers the other question
+        # -- the shortest name that says which scanned folder it is in -- and
+        # handing that to the gesture would name no file at all.
+        return PurePosixPath(names.get(file_id, file_id)).name
+
+    def claim_of(marker: int, doing: str) -> tuple[str, str]:
+        claim = _node_claim(nodes[marker])
+        if claim is None:
+            raise StructureGestures(
+                f"the outline {doing} {nodes[marker].display_label!r}, and that "
+                f"folder is not named by anything the product read out of one of "
+                f"your files -- it is the top of a branch or a level the template "
+                f"owns. The gestures that exist say a VALUE is wrong or is called "
+                f"something else (`--reject`, `--rename`), and neither of them "
+                f"reaches this folder. Leave its line as it is.")
+        return claim
+
+    gestures: dict[str, list[str]] = {
+        "answer": [], "rename": [], "reject": [], "declare_role": []}
+    try:
+        # `structure_file`'S OWN SENTENCES, re-raised as this command's refusal
+        # rather than paraphrased, which is `apply_level_relabels`' rule for P13's
+        # and P10's: the module that found the problem is the one that can say
+        # what it was, and a second wording here would eventually be the wrong one.
+        edits = structure_read(text, labels={
+            marker: node.display_label for marker, node in nodes.items()},
+            parents=parents)
+    except StructureRefused as refusal:
+        raise StructureGestures(str(refusal)) from refusal
+    for edit in edits:
+        if isinstance(edit, Moved):
+            raise StructureGestures(
+                f"the outline moves {edit.label!r} under a different folder, and "
+                f"no gesture moves one: a folder is where the facts about the "
+                f"files under it put it. Put its line back where it was; to stop "
+                f"it being built at all, delete the line instead.")
+        if isinstance(edit, SituationSaid):
+            if parents[edit.marker] is not None:
+                raise StructureGestures(
+                    f"{SITUATION_PREFIX} {edit.situation} is under "
+                    f"{nodes[edit.marker].display_label!r}, which is not the top "
+                    f"of a branch. A situation is what a whole branch is; say it "
+                    f"under the outermost folder instead.")
+            gestures["answer"].append(
+                f"{_branch_question(conn, nodes[edit.marker].display_label)}"
+                f"={edit.situation}")
+        elif isinstance(edit, Added):
+            if not edit.label:
+                raise StructureGestures(
+                    "a line in the outline adds a folder with no name.")
+            schema = (None if edit.situation is None
+                      else situation_schema(edit.situation))
+            if schema is None:
+                raise StructureGestures(
+                    f"the outline adds {edit.label!r} and says "
+                    f"{('it is ' + edit.situation) if edit.situation else 'nothing'}"
+                    f" about what it is for. A folder is added by declaring a "
+                    f"branch for one of the situations this library carries -- "
+                    f"end the line `{SITUATION_PREFIX} <id>` with one of them. "
+                    f"`--list-situations` prints every id.")
+            gestures["declare_role"].append(f"{edit.label}={schema}")
+        elif isinstance(edit, Renamed):
+            field, value = claim_of(edit.marker, "renames")
+            files = sorted({typed(file_id)
+                            for file_id in under(nodes[edit.marker].node_id)})
+            if not files:
+                raise StructureGestures(
+                    f"the outline renames {edit.was!r} to {edit.now!r}, and this "
+                    f"plan files nothing there. A rename is recorded against the "
+                    f"file the product read the word out of, so there has to be "
+                    f"one.")
+            # ONE FILE, AND THE FIRST BY NAME. `rename_claim` merges the two value
+            # rows in one transaction -- the survivor answers to both spellings
+            # everywhere, for every file -- and confirms the claim on the file it
+            # is given. A second call for a second file under the same folder
+            # meets "already merged into ...", which is P1's real answer reaching
+            # the person as a crash on a rename that had already worked.
+            gestures["rename"].append(f"{files[0]}:{field}={value}>{edit.now}")
+        elif isinstance(edit, Removed):
+            field, value = claim_of(edit.marker, "leaves out")
+            files = sorted({typed(file_id)
+                            for file_id in under(nodes[edit.marker].node_id)})
+            if not files:
+                raise StructureGestures(
+                    f"the outline leaves {edit.was!r} out, and this plan files "
+                    f"nothing there. A folder is not built when nothing the "
+                    f"product read asks for it, and there is nothing here to "
+                    f"retract.")
+            # EVERY FILE UNDER IT, and that is what "a node removed is a node not
+            # built" costs. The folder exists because those files carry that
+            # value; it stops existing when they stop carrying it, and retracting
+            # it on one of them would leave the folder standing for the rest while
+            # the screen said the person had removed it.
+            gestures["reject"].extend(
+                f"{name}:{field}={value}" for name in files)
+    return gestures
+
+
 def report(result: ProductionRun, names: dict[str, str], *, out=None,
            questions: Sequence = (), set_aside: Sequence = (),
            levels: Sequence[LevelOnScreen] = (),
@@ -21673,6 +22047,13 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
            cards: Sequence = (),
            health: "TreeHealth | None" = None,
            group_names: Mapping[str, str] = MappingProxyType({}),
+           #: `00` amendment 2 of 14 Sep. The same tree as an outline the person
+           #: edits, and the file it was written to. Passed IN on `questions`'
+           #: rule -- the outline needs the run's situations and the library's
+           #: words, and this function holds neither -- and defaulted empty, so a
+           #: caller that predates it prints exactly the report it printed before.
+           structure: Sequence[StructureRow] = (),
+           structure_path: Path | None = None,
            ) -> tuple[str, ...]:
     """The run, in the order a person would ask about it.
 
@@ -21832,6 +22213,15 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             "means rather than against these folders, so a re-shaped tree and a "
             "library update both keep it, and it changes nothing under a "
             "different kind of material.", indent="  "), file=out)
+
+    # `00` amendment 2 of 14 Sep, the SECOND of its three beats: the proposed
+    # structure as something the person edits, "before any file is placed under
+    # it". HERE, directly under the folders and the level names it is about, and
+    # above everything that reports what happens to each file: a person reading
+    # down this screen meets what is being proposed, then what they can do to it,
+    # and only then what it would mean for their files.
+    if structure and structure_path is not None:
+        _print_structure(structure, path=structure_path, out=out)
 
     # The residual areas this plan actually has, so the held-for-review line can
     # name what to type instead of leaving the person to guess it. `getattr` for
@@ -23135,6 +23525,23 @@ def main(argv: Sequence[str] | None = None, *, out=None,
              "nothing, `merely kept searchable` leaves them where they are. "
              "Name it and it can then be enabled with `--residual`.")
     parser.add_argument(
+        "--structure-out", type=Path, default=None, metavar="FILE",
+        help="where to write the proposed structure as a plain text file you "
+             "can edit, e.g. --structure-out ~/my-folders.txt. Without it the "
+             f"file is written beside the database as {STRUCTURE_FILENAME}. It "
+             "is rewritten on every run and nothing reads it unless you hand it "
+             "back with --structure.")
+    parser.add_argument(
+        "--structure", type=Path, default=None, metavar="FILE",
+        help="hand back a proposed structure you have edited, e.g. --structure "
+             "proposed-structure.txt. Renaming a folder in it renames the value "
+             "it is named by, deleting a line leaves that folder out of the next "
+             "plan, adding a line ending `situation: <id>` declares a branch for "
+             "that situation, and `situation: <id>` on a line of its own under a "
+             "top folder says which of your lives that branch is. An edit no "
+             "gesture can make -- moving a folder, renaming the top of a branch "
+             "-- is refused by name and nothing else in the file is applied.")
+    parser.add_argument(
         "--show-protected", action="store_true",
         help="print the name of every protected file, instead of the count. "
              "They are counted and named as a group on every run. A protected "
@@ -23528,6 +23935,30 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         # BEFORE the run, so an answer takes effect on the very invocation that
         # supplies it. A person who has just been asked something and answers it
         # should not have to run the command a third time to see what it did.
+        # `00` amendment 2 of 14 Sep, the THIRD beat: the structure the person
+        # settled. FIRST in this block, and it writes nothing itself -- it turns
+        # an edited outline into the flags below and they do the writing, so the
+        # file is a front end to the gestures that exist rather than a second
+        # path into the plan tables. An edit none of them can express refuses
+        # HERE, before any of them has run.
+        if args.structure is not None:
+            _bootstrap(conn)
+            _from = latest_plan_version(conn)
+            if _from is None:
+                raise NotConfigured(
+                    f"{str(args.structure)!r} is an edited structure, and this "
+                    f"database holds no proposal to compare it against. Run the "
+                    f"command without `--structure` first: the outline is written "
+                    f"out by the run that proposes it.")
+            _edited = structure_edits(
+                conn, args.structure.read_text(encoding="utf-8"),
+                plan_version=_from,
+                names=file_names(conn, directory, *also_read),
+                situation_schema=situation_schema_id)
+            args.answer = [*args.answer, *_edited["answer"]]
+            args.rename = [*args.rename, *_edited["rename"]]
+            args.reject = [*args.reject, *_edited["reject"]]
+            args.declare_role = [*args.declare_role, *_edited["declare_role"]]
         if args.answer:
             _bootstrap(conn)
             # ONE timestamp for the gesture and its consequence. `now()` is a
@@ -23660,6 +24091,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                     indent="  "), file=out)
                 return 2
         drafted: list[str] = []
+        situations: dict[str, str] = {}
         result = run(conn, directory, situation=args.situation, label=args.label,
                      user_id=args.user, now=now, out=out,
                      also_read=also_read, candidate_roots=candidate_roots,
@@ -23686,6 +24118,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                      routing=routing,
                      usage_recorder=usage_recorder,
                      questions_reach=questions_reach,
+                     situations=situations,
                      semantic_model=args.semantic_model,
                      entity_model=args.entity_model,
                      # `104` R-175, straight through from whoever composed this
@@ -23792,6 +24225,12 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         settings=display_policy(conn, plan_version=_level_version),
         user_id=args.user, component_version=COMPONENT_VERSION,
         rendered_at=now())
+    structure_path = (
+        args.structure_out if args.structure_out is not None
+        else (args.database.parent if args.database is not None
+              else directory).joinpath(STRUCTURE_FILENAME))
+    outline = structure_rows(result, situations=situations,
+                             words_of=situation_words)
     shown = report(result, file_names(conn, directory, *also_read), out=out,
                    questions=open_now,
                    set_aside=set_aside_questions(conn),
@@ -23879,7 +24318,17 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                    # the same reason the roles and the questions above are.
                    not_carried=prior_set_decisions(
                        conn,
-                       plan_version=result.tree.tree.plan_version_id))
+                       plan_version=result.tree.tree.plan_version_id),
+                   # `00` amendment 2 of 14 Sep. Composed here, where the run's
+                   # situations and the library both are, and printed by `report`
+                   # under the folders it is about.
+                   structure=outline, structure_path=structure_path)
+    # THE SAME TEXT THE SCREEN JUST PRINTED, written where the person can edit
+    # it. AFTER the report and not before: a file written for a run that then
+    # refused would be an invitation to edit a proposal nobody was shown.
+    structure_path.parent.mkdir(parents=True, exist_ok=True)
+    structure_path.write_text(
+        structure_render(outline, path=str(structure_path)), encoding="utf-8")
     if args.record:
         # AFTER the report, because it ends in a command to type and a command
         # printed above forty lines of report is a command nobody sees. The

@@ -1,0 +1,340 @@
+# tests/integration/test_the_editable_structure.py
+"""The proposed structure, and the person editing it.
+
+`00` "Amendments of 2026-09-14" item 2, the owner's own words: *"then we go
+directly into a proposed file structure -- a general template and structure that
+they can create and edit, with an AI proposal which is the templates we already
+created based on what we see in their files; more customisation by the user on the
+template side, so the file system does not have to auto-make everything."* The
+first beat, the gist, is `test_the_gist`.
+
+**THE TREE THE DESIGN STAGE PROPOSES IS THE PROPOSAL.** It is printed as an
+outline -- each folder with what it is for in the library's own words, how many
+files would sit under it, and the situation its branch is built from -- written to
+a plain text file beside the database, and read back next run with `--structure`.
+
+**THE FILE IS A FRONT END TO GESTURES THAT ALREADY EXIST**, which is the whole of
+what makes it safe: a renamed label becomes `--rename`, a deleted line becomes
+`--reject` on every file the folder held, a `situation:` line becomes the
+`--answer` that branch's question was waiting for, and an edit none of them can
+express -- moving a folder -- is REFUSED BY NAME with nothing else in the file
+applied. Nothing here writes to the plan tables on a second path.
+
+**THE DEPLOYMENT AND THE CORPUS** are the ones
+`test_the_question_at_the_end_and_the_sort` authors: cloud only, no local model,
+the cloud stubbed at `readers.model_routing.deepseek_invoke`, and eleven synthetic
+files -- six coursework in the root, three of a student society's records in a
+subfolder of their own, two the rules hold. Nothing below reads the owner's disk.
+
+**NOTHING MOVES.** Every run carries `--accept-groups` and neither `--freeze` nor
+`--apply`, so the corpus on disk is byte for byte what it was before the first
+run -- including after the run that applied the person's edits.
+
+**THE ONE THING MEASURED HERE THAT LOOKS LIKE A DETAIL.** The branch is not always
+the folder at the top of the tree: on this corpus the branch is `nonprofit` and
+the folder is the person's own `Debate Society`, so `cli._branch_question` tries
+the folder's name first and answers the run's only open branch question when that
+misses. A rule that guessed between two would put somebody's answer on the wrong
+branch, which is the one failure a question exists to prevent.
+"""
+from __future__ import annotations
+
+import io
+import sqlite3
+import sys
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+import cli  # noqa: E402
+import structure_file  # noqa: E402
+from readers import model_routing  # noqa: E402
+from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME  # noqa: E402
+from readers.model_ollama import (  # noqa: E402
+    BASE_URL_NAME as LOCAL_BASE_URL_NAME,
+    MODEL_NAME as LOCAL_MODEL_NAME,
+)
+from readers.model_routing import MODEL_NAME_OF_TIER  # noqa: E402
+from tree_design.store import latest_plan_version, nodes_for_version  # noqa: E402
+
+from test_the_question_at_the_end_and_the_sort import (  # noqa: E402
+    CHOSEN, CLUB, ENV, LABEL, SCHEMA, SITUATION, _Cloud, _corpus, _on_disk,
+)
+from test_the_gist import block  # noqa: E402
+
+STRUCTURE = "The structure being proposed, and yours to change:"
+
+
+# --- the harness ----------------------------------------------------------------
+
+
+def _once(state, *extra: str) -> tuple[int, str]:
+    """One run of the corpus against the database, with the cloud stubbed."""
+    cloud = _Cloud()
+    out = io.StringIO()
+    root = state["database"].parent
+    with pytest.MonkeyPatch.context() as patch:
+        for name in (CREDENTIAL_NAME, BASE_URL_NAME, *MODEL_NAME_OF_TIER.values(),
+                     LOCAL_MODEL_NAME, LOCAL_BASE_URL_NAME):
+            patch.delenv(name, raising=False)
+        patch.setattr(cli, "ENV_FILE", root / "absent.env")
+        for name, value in ENV.items():
+            patch.setenv(name, value)
+        patch.setattr(model_routing, "deepseek_invoke", cloud.factory)
+        code = cli.main(
+            [str(state["corpus"]), "--situation", SITUATION, "--label", LABEL,
+             "--user", "t", "--database", str(state["database"]),
+             "--enable-cloud", "--accept-groups", *extra], out=out)
+    return code, out.getvalue()
+
+
+@pytest.fixture
+def proposed(tmp_path):
+    """One run, and the outline it wrote.
+
+    FUNCTION SCOPED, unlike its sibling's module-scoped fixture, and deliberately:
+    each test below edits the proposal and runs again, and two tests sharing one
+    database would be measuring the second edit against the first one's plan.
+    """
+    corpus = _corpus(tmp_path)
+    state = {"corpus": corpus, "database": tmp_path / "holder" / "plan.sqlite",
+             "before": _on_disk(corpus)}
+    code, said = _once(state)
+    assert code == 0, said
+    state["said"] = said
+    state["structure"] = state["database"].parent / cli.STRUCTURE_FILENAME
+    return state
+
+
+def _nodes(state):
+    conn = sqlite3.connect(f"file:{state['database']}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        return nodes_for_version(conn, latest_plan_version(conn))
+    finally:
+        conn.close()
+
+
+def _labels(state) -> set[str]:
+    return {node.display_label for node in _nodes(state)}
+
+
+def _edited(state, change) -> str:
+    """The outline with one change in it, written where a second run can read it."""
+    lines = state["structure"].read_text(encoding="utf-8").splitlines()
+    scratch = state["structure"].parent / "edited-structure.txt"
+    scratch.write_text("\n".join(change(list(lines))) + "\n", encoding="utf-8")
+    return str(scratch)
+
+
+def _a_folder_named_by_a_value(state) -> tuple[int, str]:
+    """A row the gestures CAN reach: one named by a value read out of a file.
+
+    Chosen BY MEASUREMENT over the plan rather than by name, so these pins say
+    "the first folder a rename reaches" and not "the folder this corpus happened
+    to produce in September".
+    """
+    for marker, _depth, node in cli._outline_walk(_nodes(state)):
+        if node.parent_node_id is not None and cli._node_claim(node) is not None:
+            return marker, node.display_label
+    raise AssertionError("this plan has no folder named by a value")
+
+
+# --- the proposal -----------------------------------------------------------------
+
+
+def test_the_outline_is_written_beside_the_database(proposed):
+    """`--structure-out`'s default. Beside the DATABASE and not in the corpus:
+    "nothing was moved" has to be true of a file the product MADE as well as of
+    one it found."""
+    assert proposed["structure"].exists(), proposed["structure"]
+    assert proposed["structure"].parent == proposed["database"].parent
+    assert _on_disk(proposed["corpus"]) == proposed["before"]
+
+
+def test_a_named_path_is_where_the_outline_goes(tmp_path):
+    """`--structure-out`, so the person keeps their proposal where they want it."""
+    corpus = _corpus(tmp_path)
+    mine = tmp_path / "somewhere else" / "my-folders.txt"
+    state = {"corpus": corpus, "database": tmp_path / "holder" / "plan.sqlite"}
+    code, said = _once(state, "--structure-out", str(mine))
+    assert code == 0, said
+    assert mine.exists(), said
+    assert not (state["database"].parent / cli.STRUCTURE_FILENAME).exists()
+
+
+def test_the_outline_rows_are_the_plans_own_nodes(proposed):
+    """Row for row, in the plan's own order.
+
+    The marker on a line is a POSITION, and a file whose rows did not match the
+    plan's nodes would hand somebody's rename to the folder beside the one they
+    renamed.
+    """
+    text = proposed["structure"].read_text(encoding="utf-8")
+    written = [line for line in text.split("\n\n", 1)[1].splitlines()
+               if not line.lstrip().startswith("#")]
+    walked = cli._outline_walk(_nodes(proposed))
+    assert len(written) == len(walked), text
+    for line, (marker, depth, node) in zip(written, walked):
+        assert line.startswith(structure_file.INDENT * depth + node.display_label)
+        assert f"[{marker}]" in line, line
+
+
+def test_every_row_says_how_much_would_sit_under_it(proposed):
+    """A person judging a proposed folder is judging how much of their disk it
+    takes, and the count is the SUBTREE's: a top folder that files nothing
+    directly would otherwise read as empty while holding the lot."""
+    text = proposed["structure"].read_text(encoding="utf-8")
+    rows = [line for line in text.split("\n\n", 1)[1].splitlines()
+            if not line.lstrip().startswith("#")]
+    assert rows and all(" file" in row for row in rows), rows
+
+
+def test_a_branch_says_which_situation_it_is_in_the_librarys_own_words(proposed):
+    """`00` amendment 2's "a general template and structure", said in a sentence a
+    person can judge: the situation's id on the line and the research's own `name`
+    and `one_line` under it."""
+    text = proposed["structure"].read_text(encoding="utf-8")
+    assert f"{structure_file.SITUATION_PREFIX} {SITUATION}" in text, text
+    words = cli.situation_words(SITUATION)
+    assert words
+    noted = " ".join(line.lstrip(" #") for line in text.splitlines()
+                     if line.lstrip().startswith("#"))
+    assert " ".join(words.split()) in " ".join(noted.split()), (words, noted)
+
+
+def test_the_screen_prints_the_same_outline_and_names_the_command(proposed):
+    """One proposal, two places, word for word -- and the command that hands it
+    back, typed out, which is `84` §6's rule about what a screen tells a person to
+    type."""
+    said = proposed["said"]
+    body = proposed["structure"].read_text(encoding="utf-8").split("\n\n", 1)[1]
+    written = body.splitlines()
+    assert [line[2:] for line in block(said, STRUCTURE)[:len(written)]] == written
+    assert str(proposed["structure"]) in said
+    assert "--structure " in said
+
+
+# --- the person edits it ----------------------------------------------------------
+
+
+def test_a_renamed_label_reaches_the_next_plan(proposed):
+    """Through `apply_renames`, the gesture that already existed: the value the
+    folder is named by answers to the person's spelling from here on."""
+    marker, label = _a_folder_named_by_a_value(proposed)
+    mine = f"{label} of mine"
+
+    def rename(lines):
+        return [line.replace(label, mine, 1) if f"[{marker}]" in line else line
+                for line in lines]
+
+    code, said = _once(proposed, "--structure", _edited(proposed, rename))
+    assert code == 0, said
+    assert mine in _labels(proposed), sorted(_labels(proposed))
+
+
+def test_a_deleted_line_is_a_folder_the_next_plan_does_not_build(proposed):
+    """"A node removed is a node not built", through `--reject`.
+
+    The folder exists because the files under it carry a value; deleting its line
+    retracts that value on EVERY one of them, and the folder is gone from the plan
+    the next run proposes. Retracting it on one would leave the folder standing
+    for the rest while the screen said it had been removed.
+    """
+    marker, label = _a_folder_named_by_a_value(proposed)
+
+    def remove(lines):
+        return [line for line in lines if f"[{marker}]" not in line]
+
+    code, said = _once(proposed, "--structure", _edited(proposed, remove))
+    assert code == 0, said
+    assert label not in _labels(proposed), sorted(_labels(proposed))
+
+
+def test_a_situation_line_answers_that_branchs_question(proposed):
+    """`00` amendment 1 of 14 Sep read through amendment 2: the branch question
+    becomes an EDIT to the proposal rather than a menu of identifiers.
+
+    The society's three files are under `nonprofit`, which the shipped library
+    carries two situations for and no recogniser raised either of, so the first
+    run asked "Which of these is nonprofit?" and got no answer. Writing
+    `situation: <id>` under that branch answers it, through `apply_answers`.
+    """
+    branch = next((marker for marker, _depth, node
+                   in cli._outline_walk(_nodes(proposed))
+                   if node.parent_node_id is None
+                   and node.display_label == CLUB), None)
+    assert branch is not None, f"this plan has no {CLUB!r} branch"
+
+    def answer(lines):
+        out = []
+        for line in lines:
+            out.append(line)
+            if f"[{branch}]" in line:
+                out.append(f"{structure_file.INDENT}"
+                           f"{structure_file.SITUATION_PREFIX} {CHOSEN}")
+        return out
+
+    code, said = _once(proposed, "--structure", _edited(proposed, answer))
+    assert code == 0, said
+    conn = sqlite3.connect(f"file:{proposed['database']}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute(
+            "SELECT option_id FROM structural_answers WHERE question_id = ? "
+            "ORDER BY rowid DESC LIMIT 1", (f"situation:{SCHEMA}",)).fetchone()
+    finally:
+        conn.close()
+    assert row is not None and row["option_id"] == CHOSEN, row
+
+
+def test_an_edit_no_gesture_can_express_is_refused_by_name(proposed):
+    """The build rule at the seam: the file is a front end to gestures that exist,
+    so an edit none of them makes is refused and NAMED, never invented.
+
+    Moving a folder is the case -- a folder is where the facts about the files
+    under it put it -- and the refusal says so, says what to do instead, and
+    applies nothing else in the file.
+    """
+    deep = next((marker for marker, depth, _node
+                 in cli._outline_walk(_nodes(proposed)) if depth > 0), None)
+    assert deep is not None, "this plan is one level deep"
+    before = _labels(proposed)
+
+    def move(lines):
+        return [line[len(structure_file.INDENT):]
+                if f"[{deep}]" in line and line.startswith(structure_file.INDENT)
+                else line for line in lines]
+
+    code, said = _once(proposed, "--structure", _edited(proposed, move))
+    assert code == 2, said
+    assert "no gesture moves one" in said, said
+    assert _labels(proposed) == before, "a refused file changed the plan"
+
+
+def test_an_outline_from_no_run_at_all_is_refused(tmp_path):
+    """`--structure` on a database that holds no proposal. The person believes
+    they have handed something back, and a silently ignored file is the worst of
+    both -- no effect and no way to tell."""
+    corpus = _corpus(tmp_path)
+    mine = tmp_path / "invented.txt"
+    mine.write_text("Whatever  [1]\n", encoding="utf-8")
+    state = {"corpus": corpus, "database": tmp_path / "holder" / "plan.sqlite"}
+    code, said = _once(state, "--structure", str(mine))
+    assert code == 2, said
+    assert "holds no proposal" in said, said
+
+
+def test_editing_the_structure_moves_no_file(proposed):
+    """`--freeze` and `--apply` are untouched by any of this. The proposal is a
+    proposal, and editing it is still a proposal."""
+    marker, label = _a_folder_named_by_a_value(proposed)
+    mine = f"{label} of mine"
+    code, said = _once(proposed, "--structure", _edited(
+        proposed,
+        lambda lines: [line.replace(label, mine, 1) if f"[{marker}]" in line
+                       else line for line in lines]))
+    assert code == 0, said
+    assert _on_disk(proposed["corpus"]) == proposed["before"]
