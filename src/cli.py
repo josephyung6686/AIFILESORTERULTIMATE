@@ -14384,11 +14384,29 @@ def _why_a_file_is_held(basis: str, domain: str | None) -> str:
             f"material.")
 
 
+def _permissions_in_force(conn: sqlite3.Connection,
+                          plan_version: str) -> dict[str, bool]:
+    """The `--file-held` grants a policy at this plan version already carries.
+
+    ONE READER FOR THE THREE WRITERS, so the person's answer cannot survive one
+    of them and be dropped by the next. `apply_file_held` is the only writer of a
+    per-file grant -- it adds one key to the policy in force and touches no other
+    field -- and the two policy writes inside a run each used to start from `{}`,
+    which discarded it. An empty map where no policy exists yet is the same
+    answer §8.4 gives: no policy, no permission.
+    """
+    standing = current_policy(conn, plan_version=plan_version)
+    return ({} if standing is None
+            else dict(standing.automatic_move_permissions))
+
+
 def _the_files_being_held(conn: sqlite3.Connection, scan_run_id: str, *,
                           store: ClassificationStore, explain, precaution_of,
-                          names: Mapping[str, str]
+                          names: Mapping[str, str],
+                          filed_by_hand: Callable[[str], bool]
                           ) -> tuple[tuple[str, str, str], ...]:
-    """`(name, why, file_id)` for every file of THIS run's roster still held.
+    """`(name, why, file_id)` for every held file of THIS run's roster the person
+    has not already answered for.
 
     THE STORE IS ASKED AND NOT A TALLY, for the reason `ask_the_situation` gives
     at the same seam: a hold IS the live row and stops being one the moment
@@ -14397,6 +14415,20 @@ def _the_files_being_held(conn: sqlite3.Connection, scan_run_id: str, *,
     invocation -- is not printed as held on the one screen that is about somebody's
     protected files. `HELD_BASES` is the same set `apply_release` accepts, so every
     file this names can be answered and no file it omits will be refused.
+
+    AND `--file-held` IS THE OTHER ANSWER TO THE SAME QUESTION (`00` amendment 2
+    of 13 Sep: the held files are put to the person as ONE question, with two
+    gestures). `--release` drops out of this list for free -- the person's row
+    supersedes the hold and the store read above no longer finds one -- but
+    `apply_file_held` writes NO classification row by design, because filing a
+    file yourself is a statement about where it goes and not about what a model
+    may see of it. So a file the person had already kept back was asked about
+    again on every later run, under a header that says "nobody has been asked".
+    `filed_by_hand` is the second answer read the way the first one is: off what
+    the gesture wrote, which is that file's own `automatic_move_permissions`
+    grant in the policy in force. The file is still held and still protected --
+    every other block on this screen still counts it -- and it is no longer a
+    question, because it has one.
 
     THE DOMAIN COMES FROM THE DETECTOR AND NOT FROM THE ROW, because the row does
     not carry it. This is the same `precaution_report(explain(...))` pair
@@ -14417,6 +14449,8 @@ def _the_files_being_held(conn: sqlite3.Connection, scan_run_id: str, *,
         current = store.current(file_id, content_hash)
         if (current is None or not current.protected
                 or current.basis not in HELD_BASES):
+            continue
+        if filed_by_hand(file_id):
             continue
         domain = None
         if current.basis in SAFETY_DOMAIN_BASES:
@@ -15118,9 +15152,17 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             consent_grants=standing_consent_grants(scan_run_id[0]),
             redaction_settings={},
             # §8.4: protected material is not moved automatically without a policy
-            # that permits it. This deployment permits none, so nothing protected
-            # moves and P11 records the refusal on the decision.
-            automatic_move_permissions={}, plan_version=plan_version,
+            # that permits it, and THE PERSON IS WHO PERMITS ONE (`00` amendment 2
+            # of 13 Sep). This said `{}` -- "this deployment permits none" -- which
+            # was true until `--file-held` existed and was written before it did.
+            # Measured 14 Sep on a two-file hold: `apply_file_held` wrote its one
+            # grant at `plan_0` and fifteen milliseconds later this line wrote `{}`
+            # over it, so the gesture was undone by the run that applied it and
+            # `may_move_automatically` refused the file for ever. Carried forward
+            # from the policy in force, which is what `apply_file_held` itself
+            # does with every other field.
+            automatic_move_permissions=_permissions_in_force(db, plan_version),
+            plan_version=plan_version,
             set_at=clock), component_version=COMPONENT_VERSION, user_id=user_id,
             # The mode, not the word "offline". This said `offline` unconditionally
             # and would have gone on saying it under a mode that sends -- a policy
@@ -16681,7 +16723,11 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                    operation_mode=operation_mode,
                    # `104` §18.7: protected material reaches the local model.
                    consent_grants=standing_consent_grants(run_id),
-                   redaction_settings={}, automatic_move_permissions={},
+                   redaction_settings={},
+                   # THE PERSON'S `--file-held` GRANTS, carried and not reset --
+                   # `set_privacy_policy` carries the same argument at length.
+                   automatic_move_permissions=_permissions_in_force(
+                       conn, PLAN_VERSION),
                    plan_version=PLAN_VERSION, set_at=clock),
             component_version=COMPONENT_VERSION, user_id=user_id,
             reason=f"{operation_mode} run: fact extraction, before grouping")
@@ -17741,10 +17787,18 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # answered for them has been tried. `--release` on the next invocation is
         # applied before the run, so a released file is not held when this reads
         # the store again.
+        # THE PERSON'S OTHER ANSWER, read the way `--release`'s is: off what the
+        # gesture wrote. `apply_file_held` grants one file's
+        # `automatic_move_permissions` at `PLAN_VERSION` and writes nothing else,
+        # and it is the only writer of a per-file grant, so this is that gesture
+        # and no other. Read once, here, because the policy does not change
+        # between the roster's files.
+        _filed_by_hand = _permissions_in_force(conn, PLAN_VERSION)
         _held_now = _the_files_being_held(
             conn, p1_p7.scan_run_id, store=ClassificationStore(conn),
             explain=detector.explain, precaution_of=detector.precaution_report,
-            names=_the_names)
+            names=_the_names,
+            filed_by_hand=lambda file_id: _filed_by_hand.get(file_id) is True)
         if _held_now:
             print(f"\n{_what_the_held_files_are(_held_now)}", file=out)
         if not of_the_run:

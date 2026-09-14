@@ -285,6 +285,12 @@ def test_the_screen_stops_naming_a_file_the_person_released(database):
     detector because what is under test here is the STORE read: the detector's
     terms have not changed, and a screen that still named this file would be
     reading the rules rather than the person's answer.
+
+    `filed_by_hand` IS THE OTHER GESTURE AND IS ANSWERED "NO" HERE, deliberately:
+    this test is about `--release`, and a screen that dropped the file because
+    the person had filed it by hand instead would be measuring the wrong answer.
+    `tests/integration/test_the_question_at_the_end_and_the_sort` is where that
+    arm is driven through `cli.main`.
     """
     file_id = _file_id(database, HELD_NAME)
     scan_run_id = _scan_run_id(database)
@@ -292,7 +298,8 @@ def test_the_screen_stops_naming_a_file_the_person_released(database):
 
     before = cli._the_files_being_held(
         database, scan_run_id, store=ClassificationStore(database),
-        explain=_no_outcome, precaution_of=_no_precaution, names=names)
+        explain=_no_outcome, precaution_of=_no_precaution, names=names,
+        filed_by_hand=lambda _file_id: False)
     assert [row[2] for row in before] == [file_id]
 
     cli.apply_release(database, [file_id], user_id="t",
@@ -300,7 +307,8 @@ def test_the_screen_stops_naming_a_file_the_person_released(database):
 
     after = cli._the_files_being_held(
         database, scan_run_id, store=ClassificationStore(database),
-        explain=_no_outcome, precaution_of=_no_precaution, names=names)
+        explain=_no_outcome, precaution_of=_no_precaution, names=names,
+        filed_by_hand=lambda _file_id: False)
     assert after == (), (
         "the person answered and the run asked them again, which is the "
         "screen reading a tally instead of the store")
