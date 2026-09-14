@@ -230,8 +230,8 @@ from model_gate import (
     GateQuestion, build_gate_request, restricted_kind_vocabulary,
 )
 from model_situation import (
-    NONE_OF_THESE, SITUATION_SENSITIVITY, NothingToAsk, build_situation_request,
-    question_for,
+    NONE_OF_THESE, SITUATION_SENSITIVITY, NothingToAsk, SituationLevelQuestion,
+    build_situation_level_request, build_situation_request, question_for,
 )
 from placement import vocabulary as pv
 from placement.config import CEILINGS, SupportPolicy, placement_limits
@@ -1462,14 +1462,27 @@ def situation_scan_budget(fact_budget: ScanBudget, *,
     return ScanBudget(
         scan_id=fact_budget.scan_id + SITUATION_BUDGET_SUFFIX,
         corpus_file_count=corpus_file_count,
-        max_calls_per_1000_files=OBSERVE_CALLS_PER_1000_FILES,
+        # TWO QUESTIONS PER FILE SINCE `00` AMENDMENT 1 OF 14 SEP, so two calls
+        # per file is the rate. The site asks which KIND a file is and then, for
+        # a file whose kind carries several situations and nothing has told them
+        # apart, which SITUATION -- and the rate is not a policy about how much
+        # this deployment will spend, which is `OBSERVE_CALLS_PER_1000_FILES` and
+        # is unchanged; it is this site's own count of the questions it asks.
+        #
+        # MEASURED, and it is the comment below happening one stage down. Left at
+        # one call per file, `tests/integration/test_each_file_is_filed_under_its
+        # _own_situation.py`'s six-file corpus lost the THIRD research file's kind
+        # row: the second stage had spent the purse on the first two, and a file
+        # nobody asked about is indistinguishable from a file the model declined.
+        max_calls_per_1000_files=2 * OBSERVE_CALLS_PER_1000_FILES,
         # `00` amendment 7(c): this site asks EVERY file, so its ceiling is the
         # roster and not the observe sites' 200. Measured 12 Sep 2026 on the
         # owner's 371 files: the 200-call ceiling refused the last 106 askable
         # files before any call, in every run, and the four health forms the
-        # amendment exists to catch sat among them. One call per file is the
-        # rate above; a ceiling below the roster silently un-asks its tail.
-        max_estimated_cost=Decimal(max(corpus_file_count,
+        # amendment exists to catch sat among them. Two calls per file is the
+        # rate above; a ceiling below what the rate allows silently un-asks the
+        # roster's tail, which is what the two numbers are kept in step for.
+        max_estimated_cost=Decimal(max(2 * corpus_file_count,
                                        OBSERVE_MIN_CALLS_PER_SCAN)),
         min_calls_per_scan=OBSERVE_MIN_CALLS_PER_SCAN)
 
@@ -8370,6 +8383,35 @@ class SituationPass:
     #: nothing to read is one nobody could answer about, and a capture is one
     #: nobody needed to.
     settled_by_kind: int = 0
+    #: `00` amendment 1 of 14 Sep: THE SECOND STAGE'S ANSWER. file_id -> the
+    #: SITUATION a model named for it under the kind in `named`, validated and, on
+    #: a ratified row, applied. Read by `cli.run`'s `_the_situation_this_file_is_
+    #: under` and by the partition, and by nothing else.
+    #:
+    #: A DICT BESIDE `named` AND NOT A CLASSIFICATION ROW. A classification row
+    #: says which CLASS of material a file is -- it carries `protected`, a privacy
+    #: class and the gate's own bases -- and a situation is not one: it is which
+    #: piece of work inside that class the file belongs to, which decides the
+    #: file's fields and its folders and decides nothing about what may leave this
+    #: device. Writing it as a class would put a second, finer vocabulary into the
+    #: one column every privacy reader tests. It rides beside `named` because it
+    #: is the same pass's answer about the same file, and it survives a run the
+    #: way `named` does: through the verdict the call recorded, which
+    #: `104` §18.31's reuse replays on the next run.
+    situations: dict = dataclasses.field(default_factory=dict)
+    #: Files this stage put a second question about -- a call or a replayed
+    #: verdict. `situations` and `declined_their_situation` partition it.
+    asked_their_situation: int = 0
+    #: Of those, the ones no situation came back for: the model declined, P8 did
+    #: not accept the answer, or -- until the owner ratifies the text -- the answer
+    #: was recorded and not applied, which is `declined`'s own reading one stage up.
+    declined_their_situation: int = 0
+    #: Files whose kind was named and whose situation this stage did NOT ask about:
+    #: the library carries one situation for the kind (an answer, not a choice), the
+    #: person has already answered for it, a recogniser raised exactly one, the file
+    #: had no releasable reading left, or its turn was already over the ceiling.
+    #: Counted so `asked_their_situation` has a denominator a person can check.
+    not_asked_their_situation: int = 0
 
 
 #: THE PASS THAT DID NOT RUN, and it is a value rather than a `None` for the
@@ -8435,6 +8477,138 @@ class ProtectedFileOfferedACloudTarget(RuntimeError):
     """
 
 
+#: `00` amendment 1 of 14 Sep: WHAT THE SECOND STAGE DID ABOUT ONE FILE. Three
+#: states and no fourth: it was not asked, it was asked and no situation came
+#: back, or it was asked and this is the situation. A bare `str | None` cannot
+#: tell the first two apart, and they are the difference between a stage that is
+#: not wired and a judge that looked and could not say.
+@dataclasses.dataclass(frozen=True, slots=True)
+class _SituationOfTheKind:
+    asked: bool
+    situation: str | None = None
+
+
+_NOT_ASKED_ITS_SITUATION = _SituationOfTheKind(asked=False)
+
+
+def _ask_which_situation_of_the_kind(
+        conn: sqlite3.Connection, *, file_id: str, content_hash: str,
+        schema_id: str, observations, client, target, bound: int,
+        fact_authorities, prompt, roster, now, ceiling, schema_name: str,
+        situations_of, described_of, settled_situation_of, raised,
+        ) -> _SituationOfTheKind:
+    """The judge's SECOND question about one file: which situation of its kind.
+
+    **WHEN IT IS ASKED, and the four refusals are the ruling read literally.**
+    `00` amendment 1 of 14 Sep asks the judge to name the situation "and the
+    person is asked only where the judge cannot" -- so this runs exactly where the
+    person would otherwise have been asked, and nowhere else:
+
+    * the PERSON HAS ALREADY ANSWERED for this kind -- their own answer to the
+      branch question, or the situation they typed on the command line. `104`
+      §17.9's rule stands over this whole site: the model's answer is a refinement
+      of the person's, never a replacement, and a call whose answer is outranked
+      before it is made is a call spent to be discarded. Measured on the corpus
+      the sort pin runs: six coursework files in an `--situation`-typed run, one
+      call each, every answer thrown away.
+    * `branch_situation.the_one_situation` RESOLVES IT -- the library carries one
+      situation for the kind, or exactly one of them is one the recognisers raised
+      for this file. Its own words: one situation is an answer and not a choice.
+    * the library carries NO situation for the kind, or fewer than two are left to
+      choose between, which `SituationLevelQuestion` refuses for the same reason.
+    * the file's TURN IS ALREADY OVER THE CEILING (`104` R-175). The turn opened
+      at the top of the loop and the kind call has already spent from it; a second
+      call is more of the same file's time, so it is checked again and recorded
+      through `refusal_outcome`, which is the path every other pre-call refusal at
+      this site takes.
+
+    **THE RELEASED HALF IS THE KIND CALL'S, HANDED IN.** `observations`, `client`,
+    `target` and `bound` are the objects that call used, not a second read of the
+    same sources: the two questions about one file show the model one reading of
+    it, through one door, at one destination. A second `releasable_observations`
+    here would be a second answer to what P7 released, and `target_for` asked
+    twice could route the two halves of one question to two providers.
+
+    **THE ANSWER IS RECORDED WHATEVER THE ROW SAYS AND APPLIED ONLY WHEN IT IS
+    RATIFIED**, which is `104` §7 Phase 1 step 6 and is exactly what site G's own
+    text did between 8 and 12 September. Under an unratified row the dossier is
+    built, the call goes out, the verdict is stored, and this answers `asked` with
+    no situation -- so the run reports what the stage WOULD have decided as a
+    question it could not close, and the branch question still prints.
+    """
+    if settled_situation_of(schema_id) is not None:
+        return _NOT_ASKED_ITS_SITUATION
+    if the_one_situation(schema_id, situations_of=situations_of,
+                         raised=raised) is not None:
+        return _NOT_ASKED_ITS_SITUATION
+    menu = tuple(dict.fromkeys(situations_of(schema_id)))
+    if len(menu) < 2:
+        return _NOT_ASKED_ITS_SITUATION
+    if ceiling is not None:
+        try:
+            ceiling.check(file_id)
+        except FileTookTooLong as over:
+            refusal_outcome(conn, call_site=G_SITUATION_SENSITIVITY,
+                            subject_ref=file_id, error=over, observed_at=now())
+            return _NOT_ASKED_ITS_SITUATION
+    allowed = menu + (NONE_OF_THESE,)
+    try:
+        question = SituationLevelQuestion(
+            file_id=file_id, content_hash=content_hash, schema_id=schema_id,
+            schema_name=schema_name, allowed_situations=allowed,
+            described=described_of(schema_id))
+        request = build_situation_level_request(
+            question, observations, model_target=target, prompt=prompt,
+            max_dossier_tokens=bound)
+    except NothingToAsk:
+        # The menu collapsed or the readings did. Either way there is no question
+        # with valid options and evidence, and the person is asked instead --
+        # which is the state this stage exists to make rarer, not to hide.
+        return _NOT_ASKED_ITS_SITUATION
+    # `104` §18.31's reuse, spelled as the kind call spells it. The identity
+    # closes over the SITUATION list this answer was chosen from, so a library row
+    # added under this kind since is a different question -- and the prompt
+    # fingerprint is in it, so the two calls this file makes at this site can
+    # never collide.
+    identity = _per_file_call_identity(
+        conn, call_site=G_SITUATION_SENSITIVITY, file_id=file_id,
+        content_hash=content_hash, request=request, schema_ids=list(allowed),
+        policy_version=fact_authorities.policy_version,
+        context_is_the_release=True)
+    identity_id = call_identity(identity)
+    prior = prior_call(conn, identity_id)
+    verdict = (None if prior is None
+               else situation_verdict_before(conn, prior["dossier_id"]))
+    if verdict is not None:
+        record_call_reuse(
+            conn, identity_id=identity_id, prior_dossier_id=prior["dossier_id"],
+            call_site=G_SITUATION_SENSITIVITY, subject_ref=file_id,
+            reused_fields=(verdict.claim_ref,), observed_at=now())
+    else:
+        verdict = run_call(
+            conn, request,
+            gate=fact_authorities.gate,
+            model_client=client,
+            prompt=prompt,
+            validation_dependencies=situation_call_dependencies(
+                fact_authorities, allowed_vocabulary=allowed,
+                placeable_file_count=len(roster)),
+            observed_at=now,
+            usage_recorder=fact_authorities.usage_recorder)
+        if isinstance(verdict, P8Verdict):
+            record_call_identity(
+                conn, identity_id=identity_id, dossier_id=verdict.dossier_id,
+                call_site=G_SITUATION_SENSITIVITY, subject_ref=file_id,
+                dimensions=identity, observed_at=now())
+    situation = situation_named_by_verdict(conn, verdict, allowed)
+    if situation is None or not prompt.ratified:
+        # OBSERVE-ONLY UNTIL THE ROW SAYS OTHERWISE, and the two are one line
+        # because they are one outcome for the file: its situation is still open
+        # and the person is still asked. The verdict is on record either way.
+        return _SituationOfTheKind(asked=True)
+    return _SituationOfTheKind(asked=True, situation=situation)
+
+
 def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                       precaution_of, fact_authorities, routing: TierRouting,
                       prompt, now, user_id: str,
@@ -8442,6 +8616,10 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                       operation_mode: str = OPERATION_MODE,
                       cloud_cleared: Callable[[str], bool] | None = None,
                       schema_names: Mapping[str, str] = MappingProxyType({}),
+                      level_prompt=None,
+                      situations_of: Callable[[str], Sequence[str]] | None = None,
+                      described_of: Callable[[str], Mapping] | None = None,
+                      settled_situation_of: Callable[[str], str | None] | None = None,
                       ) -> SituationPass:
     """`104` §17.9's defect, addressed: each file asked about ITS OWN situation.
 
@@ -8505,6 +8683,22 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
       claim, a failed call and a file that was never askable all leave the
       precaution row exactly as the detector wrote it.
 
+    **AND SINCE `00` AMENDMENT 1 OF 14 SEP THE PASS ASKS TWICE, AND THE SECOND
+    QUESTION IS THE ONE THE PERSON USED TO BE ASKED.** The call above names a
+    KIND of material; a kind carries several situations and the situation is what
+    decides the file's fields and its folders. Until today the difference was put
+    to the PERSON as a branch question, and run 12 printed nine of them offering
+    80 bare identifiers -- the owner: *"how am I even supposed to answer this?
+    there is no question and no answer."* So `_ask_which_situation_of_the_kind`
+    runs for exactly the files that question was about: the kind is named, the
+    library carries more than one situation for it, no recogniser raised one, and
+    the person has not answered. Its refusals, its dossier and its observe-only
+    state are at that function; what belongs here is that it is the SAME turn,
+    the SAME released items, the SAME client and the SAME ceiling as the call
+    above, because it is the same question about the same file asked one level
+    down. `level_prompt` absent turns the stage off and the pass is the pass it
+    was: the answer is `None` for every file and the person is asked as before.
+
     **AND A HOLD OUTRANKS `00`:110 (`104` §18.26 gap 24b, the owner's ruling of
     10 Sep 13:10).** Gap 24 reached only the holds the precaution takes on an
     ABSTENTION. `basis='safety_domain'` has three writers and the other two -- a
@@ -8533,6 +8727,12 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
       standing exactly where no hold exists.
     """
     named: dict = {}
+    #: `00` amendment 1 of 14 Sep: the SECOND stage's answers, and the three counts
+    #: that say what happened to every file whose kind was named. `SituationPass`
+    #: carries the argument for each.
+    situations: dict = {}
+    asked_their_situation = declined_their_situation = 0
+    not_asked_their_situation = 0
     #: What the recognisers raised about each file this pass put a question about,
     #: read off the question rather than re-derived. `SituationPass.raised` says
     #: what it is for.
@@ -8912,6 +9112,44 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             else:
                 released += 1
         named[file_id] = situation
+        if level_prompt is None or situations_of is None:
+            # THE STAGE IS NOT WIRED and the run is the run it was: the file's
+            # situation is whatever `the_one_situation` or the person makes it,
+            # and where neither does, the branch question is asked. Not counted
+            # in `not_asked_their_situation`, which is about files this stage
+            # looked at and passed over: a stage that did not run passed over
+            # nothing.
+            continue
+        answered = _ask_which_situation_of_the_kind(
+            conn, file_id=file_id, content_hash=content_hash,
+            schema_id=situation,
+            # THE KIND CALL'S OWN OBJECTS, handed on rather than rebuilt. The
+            # released items, the destination and the bound are the ones this
+            # file's first question used, which is what makes the two dossiers
+            # show the model one reading of one file.
+            observations=observations, client=client, target=target, bound=bound,
+            fact_authorities=fact_authorities, prompt=level_prompt,
+            roster=roster, now=now, ceiling=ceiling,
+            schema_name=schema_names.get(situation, situation),
+            situations_of=situations_of,
+            described_of=(described_of if described_of is not None
+                          else lambda _schema: {}),
+            settled_situation_of=(settled_situation_of
+                                  if settled_situation_of is not None
+                                  else lambda _schema: None),
+            # WHAT THE RECOGNISERS RAISED ABOUT THIS FILE, which is what
+            # `the_one_situation` reads to tell one of a kind's situations from
+            # twenty-six without picking. Off the question this pass already
+            # built, never re-derived.
+            raised=question.raised)
+        if not answered.asked:
+            not_asked_their_situation += 1
+        elif answered.situation is None:
+            asked_their_situation += 1
+            declined_their_situation += 1
+        else:
+            asked_their_situation += 1
+            situations[file_id] = answered.situation
     # `104` R-175: the last file's turn ends with the loop and not with the next
     # file, because there is no next file. Leaving it open would under-charge one
     # file, which cannot invent a skip -- it is closed anyway so the number site A
@@ -8921,6 +9159,10 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     return SituationPass(
         reused=reused,
         named=named, raised=raised, recognised_by_rules=recognised_by_rules,
+        situations=situations,
+        asked_their_situation=asked_their_situation,
+        declined_their_situation=declined_their_situation,
+        not_asked_their_situation=not_asked_their_situation,
         nothing_to_read=nothing_to_read, declined=declined,
         held_not_asked=held_not_asked, settled_by_kind=settled_by_kind,
         # `104` §18.33 gap 25: THE NUMBER IS THE ROWS. Not a tally kept beside them
@@ -11734,8 +11976,38 @@ SITUATION_RECOGNISED_SENTENCE: str = (
     "the right situation for about a third of the files they named one for, and "
     "a file nobody re-reads is a file that goes wherever the first guess sent it.")
 
+#: `00` amendment 1 of 14 Sep: WHAT THE SECOND STAGE DID, in the person's words.
+#:
+#: A block of its own and not three more lines under the six above, on
+#: `HOLD_SENTENCE`'s rule: those six partition the ROSTER and their sum is a
+#: number a person can check against the total, and these three partition
+#: something else -- the files whose KIND this pass named. Printed under their own
+#: header, whose denominator is that number.
+SITUATION_LEVEL_SENTENCE: Mapping[str, str] = MappingProxyType({
+    "declined_their_situation":
+        "asked and still open: the judge read the situations of their kind and "
+        "named none it could cite, or the check did not accept the one it named, "
+        "or the text this question is asked under is not ratified yet, so the "
+        "answer was recorded and not acted on. Their folder is still a question "
+        "for you.",
+    "not_asked_their_situation":
+        "not asked: their kind carries one situation, or you have already said "
+        "which situation that kind is, or the recognisers had already narrowed it "
+        "to one -- so the answer was known without a call. Nothing about them was "
+        "assembled and nothing was sent.",
+})
+
+assert set(SITUATION_LEVEL_SENTENCE) | {"situations", "asked_their_situation"} == {
+    field.name for field in dataclasses.fields(SituationPass)
+    if field.name.endswith("their_situation") or field.name == "situations"}, (
+    "every counter the second stage leaves behind earns a sentence too, on the "
+    "first stage's own rule: a number this report silently drops is `104` §18.2 "
+    "gap 9 happening again one stage down")
+
 assert set(SITUATION_SENTENCE) | {
-    "named", "raised", "holds", "recognised_by_rules"} == {
+    "named", "raised", "holds", "recognised_by_rules", "situations",
+    "asked_their_situation", "declined_their_situation",
+    "not_asked_their_situation"} == {
     field.name for field in dataclasses.fields(SituationPass)}, (
     "every counter site G leaves behind earns a sentence on the screen. A "
     "counter with no sentence would be a number this report silently drops, "
@@ -12021,7 +12293,10 @@ def _print_situation_pass(situation: SituationPass, *, files: int,
         f"was decided by the gate before this.", indent=""),
         file=out)
     for field in dataclasses.fields(SituationPass):
-        if field.name in ("named", "raised", "holds", "recognised_by_rules"):
+        if field.name in ("named", "raised", "holds", "recognised_by_rules",
+                          "situations", "asked_their_situation",
+                          "declined_their_situation",
+                          "not_asked_their_situation"):
             continue
         print(_wrapped(f"{getattr(situation, field.name)} "
                        f"{SITUATION_SENTENCE[field.name]}", indent="  "),
@@ -12033,7 +12308,40 @@ def _print_situation_pass(situation: SituationPass, *, files: int,
     if situation.recognised_by_rules:
         print(_wrapped(f"{situation.recognised_by_rules} "
                        f"{SITUATION_RECOGNISED_SENTENCE}", indent="  "), file=out)
+    _print_which_situation(situation, out=out)
     _print_the_holds(situation.holds, out=out)
+
+
+def _print_which_situation(situation: SituationPass, *, out) -> None:
+    """The second stage's block. `00` amendment 1 of 14 Sep.
+
+    **A STAGE THAT ASKED NOTHING PRINTS NOTHING**, which is `_print_group_pass`'
+    own rule and `_NOTHING_ASKED`'s: a run where the stage is not wired, a run
+    where every kind carried one situation, and a run where the person had already
+    answered are all runs with nothing to say here, and three zeros under a header
+    would say something.
+
+    **THE DENOMINATOR IS THE KINDS THIS PASS NAMED, not the roster**, and the
+    header says so: a file whose kind nobody named has no second question to be
+    asked, so counting it here would make the stage look worse than it is on
+    exactly the corpora where the first stage is the thing that failed.
+    """
+    asked = situation.asked_their_situation
+    if not asked and not situation.not_asked_their_situation:
+        return
+    named = len(situation.named)
+    resolved = len(situation.situations)
+    print("", file=out)
+    print(_wrapped(
+        f"Which situation, of the kind: {resolved} of {named} "
+        f"{'file' if named == 1 else 'files'} whose kind a model named also had "
+        f"{'its' if resolved == 1 else 'their'} own situation named, from the "
+        f"library's own list of what each situation is. That is the question you "
+        f"would have been asked about the folder instead.", indent=""), file=out)
+    for field in ("declined_their_situation", "not_asked_their_situation"):
+        print(_wrapped(f"{getattr(situation, field)} "
+                       f"{SITUATION_LEVEL_SENTENCE[field]}", indent="  "),
+              file=out)
 
 
 def _print_group_pass(groups: GroupPass, *, out) -> None:
@@ -16560,6 +16868,27 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         chosen = selected_situation(conn, scope=f"{SCOPE_BRANCH}:{schema_id}")
         return chosen if chosen in _situations_of(schema_id) else None
 
+    def _the_situation_already_settled(schema_id: str) -> str | None:
+        """THE ANSWER THE PERSON HAS ALREADY GIVEN for this kind, or `None`.
+
+        `00` amendment 1 of 14 Sep asks the judge where the person would
+        otherwise be asked, so this is the whole of "the person has already
+        answered": their own answer to that kind's branch question, and -- when
+        the run carries one -- the situation they typed on the command line for
+        the kind they typed it under. `104` §17.9's standing rule is what makes
+        the second half belong here: the model's answer is a refinement of the
+        person's, never a replacement, so a call whose answer is outranked before
+        it is made is a call spent to be discarded. Measured on the sort pin's
+        corpus: six coursework files in an `--situation`-typed run, one call
+        each, every answer thrown away by `_the_schema_named_for_this_file`.
+        """
+        chosen = _the_situation_the_person_chose(schema_id)
+        if chosen is not None:
+            return chosen
+        if of_the_run and schema_id == said().schema:
+            return said().situation
+        return None
+
     def _the_schema_named_for_this_file(file_id: str) -> str | None:
         """THE SCHEMA SOMETHING NAMED FOR THIS FILE, or `None` because nothing did.
 
@@ -16588,6 +16917,27 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                     return voted
         return None
 
+    def _the_situation_the_judge_named(file_id: str, schema_id: str) -> str | None:
+        """THE JUDGE'S OWN ANSWER to the question the person used to be asked.
+
+        `00` amendment 1 of 14 Sep: the judge names the situation itself, from the
+        kind's own list with each situation's name and one line of what it is, and
+        the person is asked only where the judge cannot. This is where that answer
+        becomes the file's situation -- AFTER the person's own answer and after
+        `the_one_situation`, and before the `None` that sends the question to the
+        person, because the ruling makes the judge the one asked in their place
+        and not the one asked over them.
+
+        Checked against the library's own list for `_the_situation_the_person_
+        chose`'s reason, and the reason is stronger here: the answer and the kind
+        are two ANSWERS from one pass, and a verdict replayed out of an earlier
+        run's records (`104` §18.31) was given under whatever library that run
+        shipped. A situation the release no longer carries under this kind has no
+        folder levels and no fields, so it names nothing here.
+        """
+        situation = situation_cell[0].situations.get(file_id)
+        return situation if situation in _situations_of(schema_id) else None
+
     def _the_situation_this_file_is_under(file_id: str) -> str | None:
         """THE FILE'S SITUATION, DECIDED HERE AND READ BY EVERY SITE THAT ASKS.
 
@@ -16605,7 +16955,10 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         `branch_situation._situation_for`'s order -- and failing that
         `branch_situation.the_one_situation`: the schema's one situation where
         the library carries one, else the one of them the recognisers RAISED for
-        this file, else NOTHING. `None` is the answer then -- not the branch's
+        this file, and failing THAT the situation the JUDGE named for this file
+        (`00` amendment 1 of 14 Sep, `_the_situation_the_judge_named`), which is
+        the answer to the question the person was being asked in its place. Else
+        NOTHING. `None` is the answer then -- not the branch's
         situation and not the run's, because a file something NAMED A SCHEMA FOR
         is not a file the run's own situation is true of: that is R-23 with one
         more step in it. Its fields are not asked, P11 abstains
@@ -16645,7 +16998,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             raised = situation_cell[0].raised.get(file_id, ())
             return (_the_situation_the_person_chose(named)
                     or the_one_situation(named, situations_of=_situations_of,
-                                         raised=raised))
+                                         raised=raised)
+                    or _the_situation_the_judge_named(file_id, named))
         branch = (partition_cell[0].branch_of(file_id) if partition_cell
                   else None)
         if branch is not None and branch.situation is not None:
@@ -16758,7 +17112,12 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # EMPTY ON THE FIRST CALL and site G's whole answer on the second:
             # `_NOTHING_ASKED.named` is `{}`, which is what a run that has not
             # reached the pass -- or has no model at all -- partitions under.
-            named_by_the_model=situation_cell[0].named)
+            named_by_the_model=situation_cell[0].named,
+            # AND THE SECOND STAGE'S ANSWER BESIDE IT (`00` amendment 1 of 14
+            # Sep). A branch the judge named one situation for over every one of
+            # its files needs no question: that is the question it was asked in
+            # the person's place, and it answered.
+            situations_named_by_the_model=situation_cell[0].situations)
 
     def _ask_which_situation_each_branch_is(partition: BranchPartition) -> list:
         """The per-branch situation question, recorded for every unsettled branch.
@@ -17141,7 +17500,22 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 fact_authorities=authorities, routing=routing,
                 prompt=situation_prompt_in_force, now=now, user_id=user_id,
                 operation_mode=operation_mode,
-                cloud_cleared=lambda file_id: file_id in gate_pass.cleared_files)
+                cloud_cleared=lambda file_id: file_id in gate_pass.cleared_files,
+                # `00` AMENDMENT 1 OF 14 SEP: THE SECOND STAGE, with the four
+                # things it needs and nothing else. The text is a row of its own
+                # (`SITUATION_LEVEL_ROW`, unratified today, so the answer is
+                # recorded and not acted on); the menu is the CATALOGUE's list
+                # for the kind, which is the same `_situations_of` every other
+                # reader of a schema's situations asks; the words beside each id
+                # are the compiled library's; and the last is what makes the
+                # stage ask only where the person would otherwise have been.
+                level_prompt=situation_level_prompt(),
+                situations_of=_situations_of,
+                described_of=lambda schema_id: {
+                    row.id: row for row in (
+                        rules.schemas[schema_id].situations
+                        if schema_id in rules.schemas else ())},
+                settled_situation_of=_the_situation_already_settled)
             # LOCAL ONLY, and the check is `observe_locality_permits` rather than a
             # word of this function's own: `104` §17.1's ruling is that nothing
             # leaves the device under it, and the site's row is `ratified_local`.
