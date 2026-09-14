@@ -7900,6 +7900,13 @@ class GatePass:
     #: this run did not ask (a narrower release, another prompt, a rejected
     #: re-ask) is not in it, and `model_route_permitted` opens the cloud to a
     #: gate row only for a file that is.
+    #: `00` amendment 2 of 13 Sep: a deployment WITHOUT a local model holds on
+    #: the rules and asks the person. A file the rules did not hold, on a machine
+    #: with no local model to put the gate question to, is cleared on the rules'
+    #: word and counted here -- separately from `cleared`, which is a model's
+    #: word, so a screen never says a model read a file no model read. The held
+    #: files are the person's question at the end of the run.
+    cleared_by_rules: int = 0
     cleared_files: frozenset = frozenset()
 
 
@@ -7956,6 +7963,7 @@ def ask_the_gate(conn: sqlite3.Connection, *, roster, fact_authorities,
     named: dict = {}
     cleared_files: set[str] = set()
     cleared = already_held = nothing_to_read = declined = over_ceiling = 0
+    cleared_by_rules = 0
     reused = 0
     # `104` §18.33 gap 25: THE ROWS, AND THE COUNT IS TAKEN OFF THEM, so a
     # `continue` added without a row lowers the number a person reads instead of
@@ -7996,6 +8004,18 @@ def ask_the_gate(conn: sqlite3.Connection, *, roster, fact_authorities,
             continue
         chosen = route_for(file_id)
         if chosen is None:
+            if not routing.local_client_of_tier:
+                # NO LOCAL MODEL ON THIS MACHINE (`00` amendment 2 of 13 Sep, the
+                # owner: "don't use the local model unless absolutely necessary;
+                # use the cloud"). The rules did not hold this file -- a held one
+                # never reaches this line -- so it is cleared on the rules' word
+                # and the person is the second gate: the files the rules DO hold
+                # are put to them at the end of the run with `--release` and
+                # `--file-held`. Counted apart from `cleared`, which is a model's
+                # word.
+                cleared_by_rules += 1
+                cleared_files.add(file_id)
+                continue
             # NOTHING IS ASSEMBLED AND NOTHING IS SENT, and it has a row of its own
             # rather than a tally, on `ask_the_situation`'s own argument: a count is
             # not something a person can open their file and read.
@@ -8126,6 +8146,7 @@ def ask_the_gate(conn: sqlite3.Connection, *, roster, fact_authorities,
     return GatePass(
         cleared_files=frozenset(cleared_files),
         named=named, cleared=cleared, already_held=already_held,
+        cleared_by_rules=cleared_by_rules,
         nothing_to_read=nothing_to_read,
         no_route=len(no_route_rows), declined=declined,
         over_ceiling=over_ceiling, reused=reused)
@@ -11469,6 +11490,11 @@ GATE_SENTENCE: Mapping[str, str] = MappingProxyType({
         "them, found none of the ten kinds of record this product keeps at home, "
         "and nothing else was holding them. Their situation may now be asked of a "
         "model off this device.",
+    "cleared_by_rules":
+        "cleared on the rules' word alone: no model runs on this machine, the "
+        "rules held none of them, and their situation may now be asked of a "
+        "model off this device. The files the rules DO hold are named at the end "
+        "of this run, and you are the one who decides those.",
     "already_held":
         "already held, not asked: a rule or a recognised identifier had already "
         "marked them as one of the protected kinds, so there was nothing for this "
@@ -16796,15 +16822,15 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             ask_the_gate(
                 conn, roster=roster, fact_authorities=authorities,
                 routing=routing, prompt=gate_prompt_in_force, now=now)
-            # THE SITE'S OWN DESTINATION, and for this site that is always the
-            # local one: `observe_locality_permits` refuses it the cloud on its own
-            # name, so `site_has_a_destination` answers whether this machine has a
-            # model at all. A deployment with a key and no local model does not run
-            # the gate -- and therefore clears nothing, which is the safe direction
-            # and is said on the screen rather than inferred.
+            # THE SITE'S OWN DESTINATION is always the local one, and until
+            # 13 Sep 2026 a deployment with a key and no local model did not run
+            # the gate and therefore cleared nothing. `00` amendment 2 of 13 Sep
+            # reversed that on the owner's word: such a deployment holds on the
+            # rules and asks the person, so the pass RUNS -- every un-held file
+            # is cleared on the rules' word inside it (`cleared_by_rules`) and
+            # the held ones are the person's question at the end. The pass is
+            # skipped only where there is no row to run under.
             if gate_prompt_in_force is not None
-            and site_has_a_destination(conn, routing, H_RESTRICTED_KIND,
-                                       operation_mode=operation_mode)
             else _NO_GATE)
         gate_cell[:] = [gate_pass]
         # PRINTED HERE, before the situation block, because that is the order the
