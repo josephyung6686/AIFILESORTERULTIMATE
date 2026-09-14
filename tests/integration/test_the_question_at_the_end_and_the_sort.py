@@ -407,7 +407,7 @@ def test_the_rules_clear_the_corpus_and_the_two_held_files_are_the_question(
     state = three_runs
     said = state["said"][0]
     flat = " ".join(said.split())
-    assert "cleared on the rules' word alone" in flat, said
+    assert "9 cleared on the rules' word alone" in flat, said
     assert "2 files are being held here" in flat, said
     for name, why in ((RELEASED, "identity material"), (KEPT, "medical material")):
         file_id = state["ids"][name]
@@ -417,7 +417,7 @@ def test_the_rules_clear_the_corpus_and_the_two_held_files_are_the_question(
         assert why in flat, why
     # And no other file is offered the gesture: the block is about a hold, not
     # about the corpus.
-    for name in ("PHYS 1401 syllabus.txt", f"Committee minutes March.txt"):
+    for name in ("PHYS 1401 syllabus.txt", "Committee minutes March.txt"):
         assert f"--release {state['ids'][name]}" not in said, name
 
 
@@ -636,6 +636,32 @@ def test_the_answer_is_recorded_at_the_branchs_own_scope_and_the_question_stops(
     assert row["state"] == "confirmed"
     assert row["scope"] == f"branch:{SCHEMA}"
     assert row["user_id"] == "t"
+
+
+def test_the_answer_reaches_the_files_the_branch_was_opened_for(three_runs):
+    """AND IT REACHES THE FILES, which the answer row on its own does not say.
+
+    `00` amendment 6: a schema resolves to a situation through the person's
+    answer, and `_the_situation_the_person_chose` reads it at the branch's own
+    scope for every file the judge named that schema for. The observable is the
+    review set those three files are in. Before the answer they are a set of
+    their own whose sentence names the question and prints both of its answers
+    against these files -- "Saying what these are is 'Which of these is
+    nonprofit?' below, and each of these answers reaches these files". After it
+    they are in the general set for a file the model gave no answer about, and
+    the pointer is gone: the question that was theirs has one.
+
+    THE SET IS STILL THERE, which is the honest half. The answer settles what
+    kind of material these are; it does not file them, and the reason it does
+    not is the site-C route pinned `xfail` above.
+    """
+    state = three_runs
+    first, third = state["said"][0], state["said"][2]
+    pointer = f"Saying what these are is \"Which of these is {SCHEMA}?\""
+    assert pointer in " ".join(first.split()), first
+    assert pointer not in " ".join(third.split()), third
+    for name in CLUB_FILES:
+        assert f"{CLUB}/{name}" in third, name
 
 
 def test_a_typed_situation_overrides_the_judges_name_for_the_same_schema(
