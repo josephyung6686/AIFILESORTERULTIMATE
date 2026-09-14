@@ -242,14 +242,30 @@ def test_a_protected_file_is_counted_in_the_question_and_never_named(tmp_path):
     folder holding a protected file must keep the same line -- and must not
     silently drop it either, because "marked and counted, never opened, never
     silently omitted" is the standing rule.
+
+    13 Sep 2026 (`3b4ac747`, `104` §18.60): the ABSTENTION arm's rules hold now
+    needs a corroborated body term or a checksummed identifier -- one filename
+    term alone (`passport scan.png`) matches `identity` on exactly one authored
+    term, `never_alone`'s arity gate leaves it an `Abstention("no_corroboration",
+    ...)`, and `_precaution`'s new `readings` comprehension is zone-blind: it asks
+    `_corroborated` of that term regardless of where it sat, and a bare filename
+    has no second finding to offer. So the file reaches no verdict at all -- not
+    held, not ordinary -- rather than the protected row this pin means to
+    exercise. Two of `identity`'s own work-type terms in the same naming zone
+    (the filename) is arity two instead: `explain` RECOGNISES the schema outright
+    on the file's own words, and the hold is the winning schema's own handling
+    (`_recognised_hold`'s first branch, `basis='safety_domain'`) -- a path the 13
+    Sep change never touched, because it never reaches the abstention arm at all.
     """
     corpus = tmp_path / "corpus"
     (corpus / "scans").mkdir(parents=True)
     for name in ("IMG_0001.png", "IMG_0002.png"):
         (corpus / "scans" / name).write_bytes(
             b"\x89PNG\r\n\x1a\n" + b"\x00" * 64)
-    # A name P7's own path rule marks protected before anything is read.
-    (corpus / "scans" / "passport scan.png").write_bytes(
+    # Two of `identity`'s own work-type terms in one naming zone (the filename)
+    # -- `passport` and `identity card` -- so the schema is RECOGNISED outright
+    # (arity two) and protected without needing corroboration.
+    (corpus / "scans" / "passport identity card scan.png").write_bytes(
         b"\x89PNG\r\n\x1a\n" + b"\x00" * 64)
     (corpus / "Notes.txt").write_text(
         "Lecture Notes\n\nLecture notes for PHYS1401.\n")

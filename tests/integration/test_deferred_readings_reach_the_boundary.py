@@ -144,11 +144,18 @@ def test_the_run_is_what_supplies_them_and_it_reads_the_compiled_release():
     `_model_fact_pass` is only reachable with a credential and `--enable-cloud`, so
     no test may execute it; what can be checked is that the line exists and reads
     the release `run` already loaded rather than a second copy of the library.
+
+    `104` §18.60 x `72f90ea8`, 13 Sep 2026 (`00` amendment 2 of 11 Sep, item 2):
+    the situation is no longer demanded before the model pass, so `said()` is no
+    longer the only source of a schema to hand the readings off of -- an unsettled
+    run has no situation call to read and falls back to the default branch's own
+    schema. `pass_schema` is that either/or, resolved once above this line
+    (`said().schema` where the run is settled, `partition_cell[0].default.schema`
+    where it is not), and the literal now names it through that local rather than
+    through `said()` directly.
     """
     source = inspect.getsource(cli.run)
-    # `104` commit 2d6add2: `schema` was read from a bare local; the literal now
-    # names it through `said().schema`, the situation call's own answer.
-    assert "deferred_readings=rules.schemas[said().schema].deferred_readings" \
+    assert "deferred_readings=rules.schemas[pass_schema].deferred_readings" \
         in source
     assert source.count("load_rules(") == 1
 
