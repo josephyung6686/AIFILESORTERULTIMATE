@@ -2098,6 +2098,20 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
     # this line asks `site_has_a_destination` and not `locality_for`: one locality
     # read here would answer for every file at once, and would turn the site off
     # on a deployment where only some of its files may leave.
+    # AND THE GATE IS ASKED HERE TOO (`00` amendment 7(c)). The per-file route
+    # this line builds is the one that decides whether THIS file's placement
+    # dossier may leave, and it was the only model site built without the gate
+    # pass: sites A, G and H all hand `target_for` the same
+    # `file_id in gate_pass.cleared_files`, and `model_route_permitted` falls
+    # through to the current classification row's basis when nobody does.
+    # Measured 14 Sep on a cloud-only deployment of eleven files: the situation
+    # judge's own answer writes a `local_model_situation` row over the gate's
+    # clearance, that basis is not in `CLOUD_CLEARING_BASES`, and nine of eleven
+    # files therefore had NO destination at this site -- every one of them
+    # abstaining `no_model_judgement`, a call that never happened, on a run with
+    # a key and consent. The one file that did have a destination was the one the
+    # person had released by hand. `00`'s "every placement goes through the
+    # model" cannot hold through a door that never asks the thing that opened it.
     placement_route = target_for(conn, routing, C_PLACEMENT,
                                  operation_mode=operation_mode,
                                  cloud_cleared=cloud_cleared)
@@ -14423,18 +14437,35 @@ def _why_a_file_is_held(basis: str, domain: str | None) -> str:
 
 def _permissions_in_force(conn: sqlite3.Connection,
                           plan_version: str) -> dict[str, bool]:
-    """The `--file-held` grants a policy at this plan version already carries.
+    """The `--file-held` grants that are standing when a policy is written here.
 
     ONE READER FOR THE THREE WRITERS, so the person's answer cannot survive one
     of them and be dropped by the next. `apply_file_held` is the only writer of a
     per-file grant -- it adds one key to the policy in force and touches no other
     field -- and the two policy writes inside a run each used to start from `{}`,
-    which discarded it. An empty map where no policy exists yet is the same
-    answer §8.4 gives: no policy, no permission.
+    which discarded it.
+
+    AND THE ANSWER IS THE PERSON'S, NOT THE PLAN VERSION'S. `apply_file_held`
+    writes at `PLAN_VERSION`, the standing version a person types a gesture
+    against; P11 asks `automatic_move_permitted_for` at the run's own
+    `version_*`, which is minted fresh every run. So a grant read only at the
+    version being written would have been correct at `PLAN_VERSION` and absent at
+    every plan -- the gesture surviving the run and still never reaching the read
+    that decides whether the file may move. `00` §8.4 makes the permission a
+    statement about a FILE ("protected material is not moved automatically
+    without a policy that permits it"), and amendment 2 of 13 Sep makes it the
+    person's own answer, so it follows the file into each new plan rather than
+    expiring with a version number they never saw. A version that already carries
+    grants keeps its own; anything else inherits the standing ones.
+
+    An empty map where no policy exists at either is the same answer §8.4 gives:
+    no policy, no permission.
     """
     standing = current_policy(conn, plan_version=plan_version)
-    return ({} if standing is None
-            else dict(standing.automatic_move_permissions))
+    if standing is not None and standing.automatic_move_permissions:
+        return dict(standing.automatic_move_permissions)
+    base = current_policy(conn, plan_version=PLAN_VERSION)
+    return ({} if base is None else dict(base.automatic_move_permissions))
 
 
 def _the_files_being_held(conn: sqlite3.Connection, scan_run_id: str, *,
@@ -15321,8 +15352,14 @@ def run(conn: sqlite3.Connection, directory: Path, *,
     #: both answer `cloud`, which is the strictest release and therefore the
     #: honest default -- a reading offered under it is one every destination may
     #: see.
+    #: THE GATE IS READ AT CALL TIME and not here, which is why the lambda names
+    #: `gate_cell` rather than closing over its contents: this line runs before
+    #: the pass and every reader of the route runs after it. Same shape, same
+    #: authority and same reason as the fact pass's own
+    #: `cloud_cleared=lambda file_id: file_id in gate_cell[0].cleared_files`.
     _placement_route = (None if routing is None else target_for(
-        conn, routing, C_PLACEMENT, operation_mode=operation_mode))
+        conn, routing, C_PLACEMENT, operation_mode=operation_mode,
+        cloud_cleared=lambda file_id: file_id in gate_cell[0].cleared_files))
 
     def _placement_locality(file_id: str) -> str:
         if _placement_route is None:
@@ -16145,15 +16182,17 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             conn, fact_authorities[0], routing=routing,
             plan_version=tree.tree.plan_version_id,
             placeable_file_count=placeable_file_count(conn, scan_run_id[0]),
-            # Read when a route is asked, which is after the gate has run.
-            cloud_cleared=lambda file_id: file_id in gate_cell[0].cleared_files,
             # THIS RUN'S MODE, and it stopped being cosmetic the day C's
             # `eliminate-v2` was ratified for the cloud: the site now HAS a cloud
             # candidate, so a default here would have kept every placement call on
             # this device under a consent that permits sending, and the evidence
             # gathered for it -- which does read the mode -- would have been
             # collected for a destination the call never used.
-            operation_mode=operation_mode)
+            operation_mode=operation_mode,
+            # AND THE GATE, for `_placement_route`'s reason one screen up: this
+            # builds site C's OWN per-file route, and a route that does not ask
+            # the pass reads a basis the situation judge has already overwritten.
+            cloud_cleared=lambda file_id: file_id in gate_cell[0].cleared_files)
             if fact_authorities else {})
         unreadable = folders_nothing_could_be_read_from(conn, root=directory)
         asks = _home_questions(tree.tree, unreadable)
@@ -19209,7 +19248,19 @@ def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
             supersede_reason=("the user withdrew this answer" if revoked else
                               "the user answered this again"
                               if previous_id is not None else None)))
-        correction_scope = row[0].split(":", 1)[0]
+        # THE SCOPE'S KIND AND THE SCOPE'S SUBJECT, which are the two halves of
+        # one string and have to be split into the two columns that hold them.
+        # `correction_subject` was the QUESTION id -- `situation:nonprofit` under
+        # the scope kind `branch` -- and `learning_records(conn, scope,
+        # subject_id)` filters on the pair, so the person's answer to a branch
+        # question could not be found by anything that knew which branch it was
+        # about: `learning_records(conn, "branch", "nonprofit")` came back empty
+        # and `reset_preferences` at that branch cleared nothing. Every other
+        # writer of an event records the subject of its scope -- a file id at
+        # `file` (`privacy.learning_seam`), a group id at `group`, a node's
+        # subject ref at `node` -- and every reader asks with one. The question
+        # id is not lost: it is named twice in the explanation this writes.
+        correction_scope, _, scope_subject = row[0].partition(":")
         if correction_scope in CORRECTION_SCOPES:
             explanation = (f"the user revoked their answer to {question_id!r}"
                            if revoked else
@@ -19219,7 +19270,10 @@ def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
                 conn, event_type=ANSWER_EVENT_TYPE, subsystem="cli",
                 component_version=COMPONENT_VERSION, observed_at=recorded_at,
                 explanation=explanation, correction_scope=correction_scope,
-                correction_subject=question_id, user_id=user_id)
+                # A scope with no subject after the colon is its own subject, so
+                # the pair a reader asks with is never half empty.
+                correction_subject=scope_subject or correction_scope,
+                user_id=user_id)
         settled.append((question_id, row[0]))
     return tuple(settled)
 
