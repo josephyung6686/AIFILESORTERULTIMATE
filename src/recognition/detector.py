@@ -1479,14 +1479,15 @@ class Detector:
         # ten of those for every one that was a record. What the rules release
         # here is not sent anywhere on their word: the gate reads it next, at its
         # own ceiling, and the gate's prompt asks whose particulars the text shows.
+        work_types = self._safety_work_type_matches(conn, file_id, content_hash)
         readings = [schema_id for schema_id
                     in (outcome.schema_id, *outcome.tied_schema_ids)
-                    if schema_id in SAFETY_DOMAIN_IDS
-                    and schema_id in self._safety_work_type_matches(
-                        conn, file_id, content_hash)
-                    and self._corroborated(conn, schema_id, deterministic,
-                                           file_id=file_id,
-                                           content_hash=content_hash)]
+                    if schema_id in SAFETY_DOMAIN_IDS and schema_id in work_types
+                    and (any(_names_the_file(match)
+                             for match in work_types[schema_id])
+                         or self._corroborated(conn, schema_id, deterministic,
+                                               file_id=file_id,
+                                               content_hash=content_hash))]
         readings += [schema_id for schema_id, matches in deterministic.items()
                      if schema_id not in readings
                      and any(match.term in CHECKSUMMED_KINDS for match in matches)]
