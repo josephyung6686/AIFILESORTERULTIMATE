@@ -88,7 +88,7 @@ this corpus, `target_for(C_PLACEMENT)` per file, before the fix and after:
 
 Before it, the only file the placement judge could be asked about on this
 deployment was the one the person had released by hand: every other file
-abstained `no_model_judgement`, a call that never happened, on a run with a key
+abstained `situation_unanswered`, a call that never happened, on a run with a key
 and the person's consent. `00`'s "every placement goes through the model" cannot
 hold through a door that never asks the thing that opened it. The two files that
 answer `none` after the fix are right to: one is held, and one is unclassified,
@@ -119,7 +119,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import cli  # noqa: E402
 from facts.domains import DOMAIN_FIELDS  # noqa: E402
 from llm_harness.wire_handles import wire_handle  # noqa: E402
-from placement.vocabulary import NO_MODEL_JUDGEMENT  # noqa: E402
+from placement.vocabulary import SITUATION_UNANSWERED  # noqa: E402
 from privacy.vocabulary import USER, USER_CONFIRMED  # noqa: E402
 from readers import model_routing  # noqa: E402
 from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME  # noqa: E402
@@ -764,7 +764,7 @@ def test_and_they_are_filed_nowhere_while_the_situation_is_open(three_runs):
     for name in CLUB_FILES:
         where = f"{CLUB}/{name}"
         assert where not in placed, placed.get(where)
-        assert abstained[where] == NO_MODEL_JUDGEMENT, abstained[where]
+        assert abstained[where] == SITUATION_UNANSWERED, abstained[where]
 
 
 def test_the_answer_is_recorded_at_the_branchs_own_scope_and_the_question_stops(
@@ -805,7 +805,7 @@ def test_the_answer_carries_the_situation_to_the_files_and_they_are_filed(
     placement judge, was the one model site whose route was built without the
     gate pass, so on a cloud-only deployment the only file it could be asked
     about was one carrying the person's own `user` row -- and these three
-    abstained `no_model_judgement`, a call that never happened, however the
+    abstained `situation_unanswered`, a call that never happened, however the
     person answered. Both halves are asserted: the judge WAS asked about each of
     them on the run that carries the answer, and each is filed.
 

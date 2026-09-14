@@ -393,8 +393,11 @@ def test_the_reset_half_is_wired_to_nothing_and_the_table_stays_empty(tmp_path):
     # path, and the first draft of this test found the word "reset" in its OWN
     # NAME echoed back at it. A test that reads the screen has to read the part
     # of the screen the product wrote.
+    # The proposed-structure file (`00` amendment 2 of 14 Sep) prints its own
+    # full path twice, and that path carries the same test name.
     report = "\n".join(line for line in printed.splitlines()
-                       if not line.startswith("Plan database:"))
+                       if not line.startswith("Plan database:")
+                       and "proposed-structure.txt" not in line)
     for word in ("undo", "reset", "take it back", "corrections you"):
         assert word not in report.lower(), (word, report)
 

@@ -3153,8 +3153,12 @@ def _block_naming(printed: str, filename: str) -> str:
     # The held-files question (`_what_the_held_files_are`, 13 Sep 2026) names a
     # held file once more under `--show-protected`, with its two gestures; that
     # block is the person's question and not the report's line for the file.
+    # And the gist (`00` amendment 2 of 14 Sep) names up to three files per kind
+    # as examples; that block is what the person HAS, not the report's line for
+    # the file.
     blocks = [block for block in printed.split("\n\n")
-              if filename in block and "--release " not in block]
+              if filename in block and "--release " not in block
+              and not block.lstrip().startswith("What you have")]
     assert len(blocks) == 1, (
         f"{filename!r} is named in {len(blocks)} blocks, not one:\n{printed}")
     return blocks[0]

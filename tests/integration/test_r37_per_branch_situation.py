@@ -276,7 +276,8 @@ def test_an_unsettled_branch_is_proposed_asked_about_and_asked_nothing(
     assert roots == ["career", "Coursework"], roots
     assert "Coursework/cover letter" not in report
     # And the held group under that branch is told which answers reach it.
-    held = [block for block in report.split("Waiting for you to say what these are")
+    # After the heading only: the gist above it names the file as an example.
+    held = [block for block in report.split("Waiting for you to say what these are")[1:]
             if "Cover letter Beta.txt" in block]
     assert held and "--answer situation:career=career.recruiting" in held[0], report
 

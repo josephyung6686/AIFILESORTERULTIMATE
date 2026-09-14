@@ -281,6 +281,38 @@ def test_a_deleted_line_is_a_folder_the_next_plan_does_not_build(proposed):
     assert label not in _labels(proposed), sorted(_labels(proposed))
 
 
+def test_an_answered_branch_is_not_waiting_so_the_one_open_branch_takes_the_line():
+    """The fallback counts OPEN branch questions. Two branches were asked; the
+    person answered one on an earlier run; a `situation:` line under a folder
+    named for neither branch answers the one still open, instead of refusing
+    with "2 of them waiting".
+
+    SABOTAGE: count every `situation:` question row and the second line ever
+    typed is refused for the rest of the corpus's life.
+    """
+    import sqlite3 as _sqlite3
+    from questions.records import QuestionOption, StructuralQuestion
+    from questions.schema import create_questions_schema
+    from questions.store import StructuralAnswer, record_answer, record_question
+
+    conn = _sqlite3.connect(":memory:"); conn.row_factory = _sqlite3.Row
+    create_questions_schema(conn)
+    for kind in ("academic", "nonprofit"):
+        record_question(conn, StructuralQuestion(
+            question_id=f"situation:{kind}", answer_class="structural",
+            prompt=f"Which of these is {kind}?", evidence_context="files under it",
+            unlocks="which fields its files are asked", will_not_do="move nothing",
+            scope=f"branch:{kind}", handling_class="personal_non_sensitive",
+            options=(QuestionOption("a", "one"), QuestionOption("b", "two")),
+            evidence_refs=(f"obs:{kind}",)),
+            asked_at="2026-09-14T00:00:00+00:00")
+    record_answer(conn, StructuralAnswer(
+        question_id="situation:academic", option_id="a", state="confirmed",
+        scope="branch:academic", user_id="jy",
+        recorded_at="2026-09-14T00:01:00+00:00", supersedes=None))
+    assert cli._branch_question(conn, "Debate Society") == "situation:nonprofit"
+
+
 def test_a_situation_line_answers_that_branchs_question(proposed):
     """`00` amendment 1 of 14 Sep read through amendment 2: the branch question
     becomes an EDIT to the proposal rather than a menu of identifiers.

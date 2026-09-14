@@ -36,7 +36,7 @@ carries eight situations under it and the recognisers raised none of them for
 this file, so `_situations_of(voted)[0]` was choosing
 `research.conference-presentation` out of eight on alphabetical order and every
 reader below spent that pick. The file's situation is now unresolved: P11
-abstains `no_model_judgement` for it and the person is asked "Which of these is
+abstains `situation_unanswered` for it and the person is asked "Which of these is
 research?" at the branch site G opened. What this file still pins is the property
 it was written for -- one decision, and the fields and the folders never disagree
 about it.
@@ -71,7 +71,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import cli  # noqa: E402
 from facts.domains import DOMAIN_FIELDS  # noqa: E402
-from placement.vocabulary import NO_MODEL_JUDGEMENT  # noqa: E402
+from placement.vocabulary import SITUATION_UNANSWERED  # noqa: E402
 from privacy.vocabulary import LOCAL_MODEL_SITUATION  # noqa: E402
 from readers.model_ollama import (  # noqa: E402
     BASE_URL_NAME as LOCAL_BASE_URL_NAME,
@@ -279,7 +279,7 @@ def test_and_its_folders_are_not_chosen_at_all_while_the_situation_is_open(run):
     P11 files it nowhere, because a FOLDER needs the situation and nobody has
     named one. That is not the two readers disagreeing -- it is both of them
     reading the same answer, which is "the schema, and not yet the situation".
-    The reason word says so: `no_model_judgement`, a call that happened and left
+    The reason word says so: `situation_unanswered`: the judge named a kind and nobody said which situation, which left
     this file unjudged. The two named cover letters are in the same state, which
     is the control: the file G named and the file G left silent are treated
     alike.
@@ -297,10 +297,10 @@ def test_and_its_folders_are_not_chosen_at_all_while_the_situation_is_open(run):
     placed = _placed(run)
     abstained = _abstentions(run)
     assert SILENT not in placed, placed[SILENT]
-    assert abstained[SILENT] == NO_MODEL_JUDGEMENT, abstained[SILENT]
+    assert abstained[SILENT] == SITUATION_UNANSWERED, abstained[SILENT]
     acme = f"{APPLICATIONS}/Cover letter Acme.txt"
     assert acme not in placed, placed[acme]
-    assert abstained[acme] == NO_MODEL_JUDGEMENT, abstained[acme]
+    assert abstained[acme] == SITUATION_UNANSWERED, abstained[acme]
     # And the run still files its coursework, which is the branch no vote
     # reaches: the default branch's situation is the run's own, the person typed
     # it, and nothing about this change touches a file with an answer.
@@ -374,5 +374,5 @@ def test_and_the_vote_carries_that_answer_to_the_file_g_left_silent(answered):
     offered = frozenset().union(*_call_log(database).get(SILENT, [frozenset()]))
     assert offered, _call_log(database)
     assert not offered & COURSEWORK_FIELDS, offered
-    assert _abstentions(answered).get(SILENT) != NO_MODEL_JUDGEMENT, (
+    assert _abstentions(answered).get(SILENT) != SITUATION_UNANSWERED, (
         _abstentions(answered))

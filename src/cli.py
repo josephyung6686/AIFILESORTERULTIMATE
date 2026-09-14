@@ -14765,6 +14765,11 @@ REVIEW_SET_REASONS: tuple[tuple[str, str, str], ...] = (
     # did not get to it" rather than "this run looked" -- and they are still two
     # sets, because a ceiling is a decision the run made and a call that failed
     # is not.
+    (pv.SITUATION_UNANSWERED, "Which situation they are in is not yet answered",
+     "the kind of each was named and the library carries several situations "
+     "under it; nobody has said which, so their fields were not asked and "
+     "nothing moved. The question for each branch is printed above; answering "
+     "it is what files them on the next run."),
     (pv.NO_MODEL_JUDGEMENT, "The model gave no answer about them",
      "deciding where these go is a model's call on this setup, and no answer "
      "about them came back this run -- the requests were turned away, did not "
@@ -17347,7 +17352,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         situation and not the run's, because a file something NAMED A SCHEMA FOR
         is not a file the run's own situation is true of: that is R-23 with one
         more step in it. Its fields are not asked, P11 abstains
-        `no_model_judgement` for it, and the person answers the branch's own
+        `situation_unanswered` for it, and the person answers the branch's own
         question, which the next run reads through the first arm above.
 
         ONE FUNCTION BECAUSE THREE READERS HELD THREE ANSWERS. Measured today on
@@ -22043,9 +22048,14 @@ def _branch_question(conn: sqlite3.Connection, label: str) -> str:
     answer on the wrong branch, which is the one failure a question exists to
     prevent.
     """
-    asked = sorted(row[0] for row in conn.execute(
-        "SELECT question_id FROM structural_questions WHERE question_id LIKE ?",
-        (f"{SITUATION_KIND.kind_id}:%",)))
+    # OPEN questions only (`questions.store.open_questions`): a branch the person
+    # has answered is not waiting, and counting it would refuse the one open
+    # branch's line saying two wait when one does -- the gist builder's own
+    # flag, 14 Sep 2026. A revoked answer reopens its question there, as it
+    # does everywhere.
+    prefix = f"{SITUATION_KIND.kind_id}:"
+    asked = sorted(question.question_id for question in open_questions(conn)
+                   if question.question_id.startswith(prefix))
     mine = f"{SITUATION_KIND.kind_id}:{label}"
     if mine in asked:
         return mine

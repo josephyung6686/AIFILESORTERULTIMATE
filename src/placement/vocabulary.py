@@ -286,10 +286,21 @@ PRIVACY_BLOCKED: str = "privacy_blocked"
 #: that decided. This is neither: the door opened, the question was asked, and
 #: nothing answered it.
 NO_MODEL_JUDGEMENT: str = "no_model_judgement"
+
+#: `00` amendment 7 of 13 Sep: WHICH SITUATION OF ITS KIND THIS FILE IS PART OF HAS
+#: NOT BEEN ANSWERED. Something named a kind for it -- site G, or its branch's vote
+#: -- and the library carries several situations under that kind; nobody has said
+#: which, so its fields were not asked and it is not placed. It is not
+#: `no_model_judgement`: the judge answered, and what it answered the run cannot act
+#: on alone. The sort builder measured the difference on 14 Sep 2026: under the
+#: other word the screen told the person the cloud "was turned away, did not
+#: return, or could not be checked" about a call that came back, and the remedy is
+#: not "run again" but the branch question printed beneath.
+SITUATION_UNANSWERED: str = "situation_unanswered"
 ABSTENTION_REASONS: tuple[str, ...] = (
     NO_SUPPORTED_DESTINATION, LOW_MARGIN, MULTIPLE_SUPPORTED_HOMES,
     SEMANTIC_ONLY, GENERIC_HUB_ONLY, CONFLICTING_FACTS, NO_SHARED_BRANCH,
-    BUDGET_DEFERRED, PRIVACY_BLOCKED, NO_MODEL_JUDGEMENT,
+    BUDGET_DEFERRED, PRIVACY_BLOCKED, NO_MODEL_JUDGEMENT, SITUATION_UNANSWERED,
 )
 
 # --- privacy and review ----------------------------------------------------------

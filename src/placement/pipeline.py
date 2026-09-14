@@ -125,6 +125,7 @@ from placement.vocabulary import (
     DECIDED_BY_MODEL, DECIDED_BY_RULE, DECIDED_BY_USER, DIRECT,
     EXISTING, FILE, GENERIC_HUB_ONLY, GROUP, LEAVE_IN_PLACE, LOW_MARGIN,
     MARGIN_TRUE_VACUOUS, MARK_STATE, NO_MODEL_JUDGEMENT, NO_SHARED_BRANCH,
+    SITUATION_UNANSWERED,
     SEMANTIC_ONLY,
     MULTIPLE_SUPPORTED_HOMES, NO_SUPPORTED_DESTINATION, PLACE, PLACEMENT,
     POSSIBLE, PRIVACY_BLOCKED, RESIDUAL, RESIDUAL_ROLE, REVIEW_WITH_MODEL,
@@ -1895,13 +1896,15 @@ def place_file_steps(conn: sqlite3.Connection, *, subject,
     #   could be offered belongs to a branch under some OTHER situation. Filing it
     #   anyway is the alphabetical first pick arriving one stage later.
     #
-    # `no_model_judgement` is the reason word and it is true of this file as
-    # written: *"the call happened and nothing judged this file"* -- site G was
-    # asked and named a schema the run cannot act on alone. The person answers the
-    # branch's own `question_for_situation`, and the file is filed on the next run.
+    # `situation_unanswered` is the reason word (`vocabulary`): site G was asked
+    # and named a kind the run cannot act on alone, and nobody has said which of
+    # its situations this file is. It was `no_model_judgement` until 14 Sep 2026,
+    # and that word's sentence told the person the cloud had failed on a call
+    # that came back. The person answers the branch's own
+    # `question_for_situation`, and the file is filed on the next run.
     if (inputs.the_situation_each_branch_carries
             and inputs.situation_of(subject.file_id) is None):
-        return _abstention(conn, context, reason=NO_MODEL_JUDGEMENT)
+        return _abstention(conn, context, reason=SITUATION_UNANSWERED)
 
     # Steps 7 and 8. Only for a bounded ambiguity, only if §8.4's gate allows a
     # dossier, and only if the caller supplied the model path. Step 8 -- the
@@ -2717,6 +2720,18 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
             "Deciding this file needed a model, and this folder's privacy "
             "settings do not let one be asked about it. Nothing about it left "
             "this device and nothing moved; the evidence is retained."
+        )
+    if reason == SITUATION_UNANSWERED:
+        # THE JUDGE ANSWERED AND THE RUN COULD NOT ACT ON IT ALONE. Not the
+        # sentence below: no request was turned away, and running again settles
+        # nothing -- answering the branch question printed beneath does.
+        return (
+            "Which situation of its kind this file is part of has not been "
+            "answered: the kind was named, the library carries several "
+            "situations under it, and nobody has said which. So its fields were "
+            "not asked and nothing moved; everything read about it is kept. "
+            "The question for its branch is printed below, and answering it is "
+            "what files this on the next run."
         )
     if reason == NO_MODEL_JUDGEMENT:
         # A THIRD ABSTENTION THE DEFAULT SENTENCE DESCRIBES FALSELY, and it is
