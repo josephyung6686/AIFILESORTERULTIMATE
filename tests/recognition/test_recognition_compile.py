@@ -21,6 +21,13 @@ def row(**overrides):
         "id": "academic.coursework",
         "kind": "template",
         "schema_id": "academic",
+        # The two the SITUATION MENU is made of (`00` amendment 1 of 14 Sep 2026).
+        # Here because this row claims to carry every key the compiler reads, and
+        # since the judge names the situation itself these are two of them: the
+        # compiler refuses a template row without them rather than emitting a menu
+        # entry that is an identifier and a title.
+        "name": "Coursework (taking a course)",
+        "one_line": "One course for one term, and the work handed in for it.",
         "launch": "full",
         "refuse_node": False,
         "proposed_context_terms": [],
@@ -208,3 +215,54 @@ def test_compiling_the_same_rows_twice_produces_byte_identical_output():
             row(id="z", schema_id=SCHEMA_IDS[-1], work_types=["q"])]
     assert json.dumps(compile_rules(rows), sort_keys=True) == json.dumps(
         compile_rules(list(reversed(rows))), sort_keys=True)
+
+
+# --- the situation menu's own words (`00` amendment 1 of 14 Sep 2026) -----------
+
+def test_each_schemas_situations_carry_the_librarys_own_name_and_one_line():
+    """The judge names the situation "from the schema's own list with each
+    situation's name and one line of what it is", so the one line has to leave
+    `planning/domains/` -- and the compiler is the one thing allowed to read it.
+
+    SABOTAGE: drop the `situations` key from `compile_rules` and the menu falls
+    back to bare identifiers, which is the quiz the amendment retired.
+    """
+    compiled = compile_rules([
+        row(),
+        row(id="academic.teaching", name="Teaching a course",
+            one_line="Running one course for other people."),
+    ])
+    assert compiled["schemas"]["academic"]["situations"] == [
+        {"id": "academic.coursework", "name": "Coursework (taking a course)",
+         "one_line": "One course for one term, and the work handed in for it."},
+        {"id": "academic.teaching", "name": "Teaching a course",
+         "one_line": "Running one course for other people."},
+    ]
+
+
+def test_a_refused_row_is_on_no_menu():
+    """An adjudication killed the node; a menu entry would resurrect it. It stays
+    named in `refused_rows`, which is marked and counted rather than omitted."""
+    compiled = compile_rules([row(), row(id="academic.dead", refuse_node=True)])
+    schema = compiled["schemas"]["academic"]
+    assert [entry["id"] for entry in schema["situations"]] == ["academic.coursework"]
+    assert schema["refused_rows"] == ["academic.dead"]
+
+
+def test_a_schema_row_is_not_a_situation_of_itself():
+    """`kind: schema` gives the SCHEMA its name (13 Sep 2026) and puts nothing on
+    the situation menu: it is the domain, not one situation inside it."""
+    compiled = compile_rules([row(), row(id="academic", kind="schema",
+                                         name="School and university work")])
+    schema = compiled["schemas"]["academic"]
+    assert schema["name"] == "School and university work"
+    assert [entry["id"] for entry in schema["situations"]] == ["academic.coursework"]
+
+
+@pytest.mark.parametrize("missing", ["name", "one_line"])
+def test_a_template_row_missing_either_of_the_two_words_is_refused(missing):
+    """Refused and not skipped: a row that reached a menu as an identifier and a
+    title would do it silently, on whichever schema was fed the short row."""
+    from recognition.compile import MalformedNodeRow
+    with pytest.raises(MalformedNodeRow):
+        compile_rules([row(**{missing: ""})])
