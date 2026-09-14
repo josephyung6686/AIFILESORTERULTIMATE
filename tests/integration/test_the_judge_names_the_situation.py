@@ -393,7 +393,16 @@ def test_the_judge_is_asked_which_situation_and_the_menu_is_the_kinds_own(
     assert len(situation_calls) == len(CLUB_FILES), [
         body["subject_ref"] for body in situation_calls]
     kinds = observing["cloud"].kind_calls()
-    assert len(kinds) == len(ROOT_FILES) - 1 + len(CLUB_FILES), len(kinds)
+    named = len(ROOT_FILES) - 1 + len(CLUB_FILES)
+    assert len(kinds) == named, len(kinds)
+    # THE SCREEN'S OWN ARITHMETIC, which is where the reason is legible. Five
+    # files had their kind named; three were asked which situation of that kind;
+    # two were not, and those two are the coursework files the person typed the
+    # situation for.
+    block = " ".join(observing["said"].split())
+    assert f"Which situation, of the kind: 0 of {named} files" in block, block
+    assert f"{len(CLUB_FILES)} asked and still open" in block, block
+    assert f"{named - len(CLUB_FILES)} not asked" in block, block
     for body in situation_calls:
         offered = [item for item in body["evidence_items"]
                    if item["kind"] == "candidate_situation"]
