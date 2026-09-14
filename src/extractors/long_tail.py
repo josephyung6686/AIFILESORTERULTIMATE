@@ -142,6 +142,13 @@ class LongTailText:
     `region` makes the container path unique where an entry holds several texts; a
     cell uses `row`/`column` instead. `from_speech` marks section 2.9's speech-to-text
     transcript, which no reader may return unless P7 authorized it.
+
+    A READER STILL REPORTS ONE CELL AT A TIME and this shape is unchanged. What a
+    cell becomes has changed: `_rows_from_cells` folds the cells of one row into a
+    single row-addressed text before anything is emitted, so `column` and
+    `column_header` describe where a cell CAME FROM and no longer appear in any
+    locator a spreadsheet writes. `docx.py` still addresses a table cell by column
+    and is a different extractor.
     """
     zone: str
     text: str
@@ -294,12 +301,90 @@ def _path_key(container_path: tuple) -> tuple:
 def _text_path(document: LongTailFile, text: LongTailText) -> tuple:
     path = _entry_path(document, text.entry_ordinal)
     if text.row is not None:
-        path = path + (segment("row", index=text.row),
-                       segment("column", index=text.column,
-                               label=text.column_header))
+        path = path + (segment("row", index=text.row),)
+        # A COLUMN SEGMENT ONLY WHERE A COLUMN IS WHAT IS BEING ADDRESSED. Since
+        # `_rows_from_cells` a spreadsheet addresses the row and hands this a text
+        # with no column, and `sheet=1/row=2` is the whole of its address. The arm
+        # stays because the shape still carries a column and P4's `column` segment
+        # kind is still in the vocabulary -- `docx.py` writes one per table cell.
+        if text.column is not None:
+            path = path + (segment("column", index=text.column,
+                                   label=text.column_header),)
     if text.region is not None:
         path = path + (segment("region", index=text.region),)
     return path
+
+
+#: What joins the cells of one row into that row's text. A TAB, because it is what a
+#: spreadsheet's own plain-text form uses (`.tsv`, and every clipboard copy out of
+#: Excel or Numbers), so the joined row is a line a person would recognise as the
+#: row they can see. A comma would have to be quoted and escaped -- re-encoding the
+#: file into a format it may not be in -- and a space would silently merge an empty
+#: cell into its neighbour.
+ROW_CELL_SEPARATOR: str = "\t"
+
+
+def _rows_from_cells(texts: Sequence[LongTailText]) -> tuple[LongTailText, ...]:
+    """A SPREADSHEET'S UNIT IS A ROW. The owner's corpus, 13 Sep 2026.
+
+    The reader reports one cell at a time -- §2.9 asks it for "visible cell values"
+    and that is the honest thing for a reader to report -- and until now each cell
+    became its own `text_units` row and its own observation. Measured on the
+    owner's corpus that made a dataset file reach the cloud situation judge as
+    twelve to fourteen released `table` readings of 5 to 30 characters each: the
+    header row's cells, and nothing else, because `model_facts.
+    releasable_observations` fills its offer in document order and the excerpt
+    bound is per unit. The judge said so in its own words on nine such files --
+    *"the released text is only a table header row of column names"* -- and 45
+    dataset files on that corpus produced no fact at all.
+
+    A row of five cells is one line a person would read. Folded, the same 2,750
+    characters carry the header AND the first data rows, so a course roster or a
+    lab measurement table says what it is in three units instead of forty.
+
+    THE CELLS GO AWAY RATHER THAN SIT BESIDE THE ROWS. Emitting both would put two
+    readings over the same characters into the same file's evidence, and every
+    count that reads `evidence` -- the release, the recogniser, the scoreboard --
+    would double-count the file. The cell is not lost: it is the text between two
+    tabs at a locator that names its row, and `column`/`column_header` still say
+    where the reader found it.
+
+    EVERY RULE THE READER APPLIES SURVIVES, because the reader is not touched. Its
+    cell ceiling still decides which cells arrive (`max_cells`), `cells_total` and
+    `capped` are still the reader's own, and `extract_long_tail` still counts its
+    `coverage` in CELLS off the texts that arrived -- a fold is not a read.
+
+    A row is emitted at the position of its FIRST cell, so document order is the
+    file's own order and `ordered_releasable_observations` still offers the header
+    row first. Texts that are not cells -- a slide's body, a message's parts -- pass
+    through untouched and in place.
+    """
+    cells: dict[tuple[int | None, int], list[LongTailText]] = {}
+    for text in texts:
+        if text.row is not None:
+            cells.setdefault((text.entry_ordinal, text.row), []).append(text)
+    folded: list[LongTailText] = []
+    done: set[tuple[int | None, int]] = set()
+    for text in texts:
+        if text.row is None:
+            folded.append(text)
+            continue
+        key = (text.entry_ordinal, text.row)
+        if key in done:
+            continue
+        done.add(key)
+        # By column, because the reader reports the cells a row HAS and a sheet may
+        # skip an empty one; the order a person reads is left to right.
+        row = sorted(cells[key],
+                     key=lambda cell: (cell.column if cell.column is not None else 0))
+        folded.append(LongTailText(
+            zone=text.zone,
+            text=ROW_CELL_SEPARATOR.join(cell.text for cell in row),
+            entry_ordinal=text.entry_ordinal, row=text.row,
+            # Carried rather than dropped: the transcription guard below reads it,
+            # and a fold must not be a way for an unauthorized text to lose its mark.
+            from_speech=any(cell.from_speech for cell in row)))
+    return tuple(folded)
 
 
 #: Zones whose whole text is itself a located value CARRYING A SPAN. A heading, a
@@ -403,7 +488,7 @@ def extract_long_tail(
              normalized=iso_dates.get(value.name), sensitive_basis=basis)
 
     seen_paths: set[tuple] = set()
-    for text in document.texts:
+    for text in _rows_from_cells(document.texts):
         if text.from_speech and not transcribe:
             raise UnauthorizedTranscription(
                 "a speech-to-text transcript arrived without P7's explicit privacy "
@@ -476,6 +561,10 @@ def extract_long_tail(
     if document.cells_total is None:
         cover = coverage("entries", entries, entries)
     else:
+        # OFF THE READER'S OWN TEXTS, never off the folded ones. The coverage is in
+        # CELLS -- the reader's ceiling is a cell ceiling and `cells_total` is a
+        # count of cells -- so counting the rows this function emitted would report
+        # twenty of a hundred cells read on a file where every cell was read.
         cells_read = sum(1 for text in document.texts if text.row is not None)
         cover = coverage("cells", cells_read, document.cells_total)
     extraction = ExtractionResult(

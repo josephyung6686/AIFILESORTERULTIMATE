@@ -215,3 +215,115 @@ def test_site_as_own_order_is_untouched(measured):
         zones_first=())
     assert ([o.observation_key for o in plain]
             == [o.observation_key for o in spelled])
+
+
+# --------------------------------------------------------------------------- #
+# What the judge is shown OF A SPREADSHEET, which is the other half of the same
+# question: the order above decides WHICH readings arrive, and this decides what
+# one of them IS.
+# --------------------------------------------------------------------------- #
+
+#: Five columns and twenty rows, which is the shape of the dataset files on the
+#: owner's corpus: a roster or a measurement table whose header row names the
+#: columns and whose first data rows say what the file is FOR.
+ROSTER = "grades.csv"
+_HEADER = ("Student ID", "Full Name", "Course", "Grade", "Term")
+_DATA = [(f"S{2000 + n}", f"Student Name {n}", "PHYS1401", str(60 + n), "Spring 2026")
+         for n in range(1, 20)]
+
+
+@pytest.fixture
+def spreadsheet(tmp_path_factory):
+    """A run of its own, for the reason the fixture above states in full."""
+    root = tmp_path_factory.mktemp("dataset")
+    corpus = root / FOLDER
+    corpus.mkdir()
+    (corpus / ROSTER).write_text(
+        "\n".join(",".join(row) for row in [_HEADER] + _DATA) + "\n")
+    database = root / "plan.sqlite"
+    out = io.StringIO()
+    assert cli.main(
+        [str(corpus), "--situation", "academic.coursework", "--label",
+         "Coursework", "--user", "t", "--database", str(database)],
+        out=out) == 0, out.getvalue()
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+
+def test_the_released_table_evidence_is_whole_rows_header_first(spreadsheet):
+    """THE PIN, 13 Sep 2026. A spreadsheet's unit is a ROW.
+
+    Measured on the owner's corpus before this: a dataset file reached the cloud
+    situation judge as twelve to fourteen released `table` readings of 5 to 30
+    characters each -- the header row's CELLS and nothing else, because the reader
+    reports one cell at a time, the fill takes them in document order, and the
+    excerpt bound is per unit. The judge's own words on nine such files were
+    *"the released text is only a table header row of column names"*; 45 dataset
+    files produced no fact, and 10 of the 22 asked were left silent.
+
+    Measured on THIS file, at this site's own cloud bound (2,750): BEFORE, 100
+    units of a median 8 characters, and 14 released cells carrying 100 characters
+    of the file between them -- fourteen cells out of the first four rows. AFTER,
+    20 units of a median 44, and the same budget carries whole rows: the header,
+    then the data rows under it, 302 characters over 13 readings.
+
+    SABOTAGE: drop `long_tail._rows_from_cells`, or restore the `column` segment
+    in `_text_path`. Either puts the cells back and the first assertion below
+    fails on a released value with no tab in it.
+    """
+    row = spreadsheet.execute(
+        "SELECT file_id, content_hash FROM files WHERE filename = ?",
+        (ROSTER,)).fetchone()
+    assert row is not None, f"{ROSTER!r} is not in the run"
+    taken = cli.releasable_observations(
+        spreadsheet, file_id=row["file_id"], content_hash=row["content_hash"],
+        limit=cli.FACT_CALL_MAX_RELEASED_OBSERVATIONS, locality=cli.CLOUD,
+        ceiling=cli.SITUATION_DOSSIER_TOKENS_CLOUD,
+        zones_last=cli.SITUATION_ZONES_LAST,
+        zones_first=cli.SITUATION_ZONES_FIRST)
+    table = [o for o in taken if o.location.zone == "table"]
+    assert table, "the judge is shown no table reading at all for a 20-row roster"
+
+    # WHOLE ROWS. Not every table reading is a row -- the identifier finder reads
+    # INSIDE a row and cites what it found there, which is P4 rule 10 working -- so
+    # the claim is about the readings that ARE the unit standing at their own path.
+    units = {o.locator.split("#")[0]: o.raw_value for o in table
+             if o.location.text_span is not None
+             and o.location.text_span.start == 0
+             and o.location.text_span.end == len(o.raw_value)}
+    whole_rows = {locator: value for locator, value in units.items()
+                  if "\t" in value}
+    assert whole_rows, (
+        f"not one released table reading is a joined row; the judge is being "
+        f"shown {sorted(units.values())[:5]}, which is the cell-per-unit reading "
+        f"the corpus measured")
+
+    # HEADER FIRST. The fill is in document order with no field to place by, and
+    # row 1 is the row that names the columns.
+    #
+    # ASKED OF THE FIRST WHOLE ROW rather than of `table[0]`, for the reason this
+    # module's own docstring spends twenty lines on. The identifier finder reads
+    # inside a row and cites what it found at the SAME container and the same span
+    # start, so the moment a header cell matches a deployed pattern the two tie on
+    # every named term and the sort falls through to a content hash. The claim is
+    # about the rows; a finder's hit beside one is not a counter-example to it.
+    first_row_locator, first_row_value = next(iter(whole_rows.items()))
+    assert first_row_value == "\t".join(_HEADER), (
+        f"the first whole row the judge is shown is {first_row_value!r}; the "
+        f"header row is what says what the columns are and it is row 1")
+    assert first_row_locator == "table:sheet=1/row=1", first_row_locator
+
+    # AND MORE THAN THE HEADER, which is the whole of what the corpus was missing:
+    # a roster shows what it is in three units, not forty.
+    assert len(whole_rows) >= 3, (
+        f"only {len(whole_rows)} whole row(s) fit the cloud bound: {whole_rows}")
+
+    # NO COLUMN IN ANY RELEASED ADDRESS. A spreadsheet addresses the row now.
+    assert not any(segment.kind == "column"
+                   for o in table for segment in o.location.container_path), (
+        "a released spreadsheet locator still names a column, so the cells are "
+        "still being emitted beside -- or instead of -- the rows")

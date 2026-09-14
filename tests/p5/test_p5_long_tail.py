@@ -110,13 +110,79 @@ def test_every_family_conforms_to_p4s_shape(sink):
     sink.conforms()
 
 
-def test_a_spreadsheet_cell_locates_by_sheet_row_and_column(sink):
-    result, _ = run_it(a_workbook(), "spreadsheet")
+def a_roster() -> LongTailFile:
+    """A header row and one data row, as the reader reports them: cell by cell."""
+    header = ("Institution", "Award", "Term")
+    data = ("Wash U", "Dean's List", "Spring 2026")
+    return LongTailFile(
+        entries=(LongTailEntry(kind="sheet", index=1, label="Applications"),),
+        texts=tuple(LongTailText(zone="table", text=value, entry_ordinal=1,
+                                 row=1, column=n, column_header=value)
+                    for n, value in enumerate(header, 1))
+        + tuple(LongTailText(zone="table", text=value, entry_ordinal=1,
+                             row=2, column=n, column_header=header[n - 1])
+                for n, value in enumerate(data, 1)),
+        cells_total=6)
+
+
+def test_a_spreadsheet_locates_by_sheet_and_row_and_its_unit_is_the_whole_row(sink):
+    """A SPREADSHEET'S UNIT IS A ROW (13 Sep 2026, the owner's corpus).
+
+    SABOTAGE: put the `column` segment back in `_text_path`, or drop the
+    `_rows_from_cells` fold at `extract_long_tail`. Either restores the reading
+    measured on the corpus -- a dataset file reaching the cloud situation judge as
+    twelve to fourteen released readings of 5 to 30 characters, which the judge
+    described in its own words as *"only a table header row of column names"*.
+
+    The three claims together are the whole change. ONE UNIT PER ROW, so a roster
+    of two rows is two units and not six. THE ROW'S OWN CELLS, joined in column
+    order by a tab, so the unit is a line a person would read. AND NO COLUMN IN
+    THE ADDRESS, because a row is what is being addressed -- `docx.py` still
+    writes `table=T/row=R/column=C` for a table cell and is a different extractor.
+    """
+    result, _ = run_it(a_roster(), "spreadsheet")
     run_id = sink.write(result.extraction)
-    cell = [o for o in sink.observations_for(run_id) if o["raw_value"] == "Wash U"][0]
-    assert locator_for(cell["location"]) == "table:sheet=1/row=2/column=1#0-6"
-    header = cell["location"]["container_path"][-1]["label"]
-    assert header == "Institution"
+
+    units = {unit_locator_for(u["container_path"]): u["text"]
+             for u in sink.units_for(run_id)}
+    assert units == {"sheet=1/row=1": "Institution\tAward\tTerm",
+                     "sheet=1/row=2": "Wash U\tDean's List\tSpring 2026"}, (
+        "one unit per row, cells joined in column order; a cell of its own is the "
+        "reading the situation judge could not read")
+
+    table = [o for o in sink.observations_for(run_id)
+             if o["location"]["zone"] == "table"]
+    assert [locator_for(o["location"]) for o in table] == [
+        "table:sheet=1/row=1#0-22", "table:sheet=1/row=2#0-30"], (
+        "the row observation spans its whole unit and carries no column segment")
+    assert not any(s["kind"] == "column" for o in table
+                   for s in o["location"]["container_path"])
+
+
+def test_the_cells_go_away_rather_than_sit_beside_the_rows(sink):
+    """Two readings over the same characters would double-count the file.
+
+    SABOTAGE: emit the cells as well as the rows. Every count that reads
+    `evidence` -- the release, the recogniser, the scoreboard -- then sees a
+    six-cell roster twice, once as six readings and once as two.
+    """
+    result, _ = run_it(a_roster(), "spreadsheet")
+    run_id = sink.write(result.extraction)
+    values = [o["raw_value"] for o in sink.observations_for(run_id)
+              if o["location"]["zone"] == "table"]
+    assert values == ["Institution\tAward\tTerm", "Wash U\tDean's List\tSpring 2026"]
+    assert "Institution" not in values
+
+
+def test_the_cell_coverage_still_counts_cells_and_not_rows(sink):
+    """A fold is not a read. The reader's ceiling is a CELL ceiling and
+    `cells_total` is a count of cells, so counting the emitted rows would report
+    two of six cells read on a file where every cell was read -- and §8.6's
+    unfinished-work count is computed off exactly this column."""
+    result, _ = run_it(a_roster(), "spreadsheet")
+    assert result.extraction.run["coverage"] == {
+        "units": "cells", "processed": 6, "total": 6}
+    assert result.extraction.run["completeness"] == "complete"
 
 
 def test_a_slide_keeps_its_title_body_and_notes_as_three_zones(sink):
