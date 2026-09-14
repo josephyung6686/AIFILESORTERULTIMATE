@@ -1130,8 +1130,12 @@ class Gate:
         entries = []
         found_items = [materialise_filename(self._conn, item.file_id)
                        for item in name_items]
+        # One memory of the units for this pass (`resolve._remembered`): the
+        # items of one dossier mostly sit in one unit, and reading it per item
+        # was run 13's stall.
+        units: dict[tuple, object] = {}
         found_items += [materialise(self._conn, item,
-                                    within_file_ids=file_ids or None)
+                                    within_file_ids=file_ids or None, units=units)
                         for item in text_items]
         for found in found_items:
             value, entry = apply_redaction(

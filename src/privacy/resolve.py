@@ -35,12 +35,14 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from typing import MutableMapping
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
 
 from evidence_shape.store import (
-    get_observation, observations_by_key, unit_for_observation,
+    get_observation, observations_by_key, serialize_container_path,
+    unit_for_observation,
     unit_holds_a_line_break,
 )
 from evidence_shape.location import Location, TextSpan
@@ -373,7 +375,8 @@ def materialise_filename(conn: sqlite3.Connection, file_id: str) -> Materialised
 
 
 def materialise(conn: sqlite3.Connection, item, *,
-                within_file_ids: Sequence[str] | None = None) -> Materialised:
+                within_file_ids: Sequence[str] | None = None,
+                units: MutableMapping[tuple, object] | None = None) -> Materialised:
     """Resolve one requested item against local storage.
 
     `item` is Task 7's `Excerpt` or `RedactedIdentifier`: it needs an
@@ -410,11 +413,13 @@ def materialise(conn: sqlite3.Connection, item, *,
         # a bounded one and keeps `unit_length = None` -- so a span-less field that
         # happens to sit at a path a unit also occupies is still released.
         value = observation.raw_value
-        unit = unit_for_observation(conn, observation)
+        unit = _remembered(units, "unit", observation,
+                           lambda: unit_for_observation(conn, observation))
         unit_length = (unit.length
                        if unit is not None and len(value) >= unit.length else None)
     else:
-        unit = unit_for_observation(conn, observation)
+        unit = _remembered(units, "unit", observation,
+                           lambda: unit_for_observation(conn, observation))
         if unit is None:
             raise UnresolvableSpan(
                 f"{address} has a text span and no text unit at "
@@ -448,4 +453,31 @@ def materialise(conn: sqlite3.Connection, item, *,
         # settled here and travels on `ReleasedItem`.
         whole_line_unit=released_whole_line_unit(
             location, unit_length,
-            unit_holds_line_break=unit_holds_a_line_break(conn, observation)))
+            unit_holds_line_break=_remembered(
+                units, "line_break", observation,
+                lambda: unit_holds_a_line_break(conn, observation))))
+
+
+def _remembered(units: MutableMapping[tuple, object] | None, what: str,
+                observation, read):
+    """One read of a unit per pass, not one per item.
+
+    `units` is the caller's memory for ONE pass over one dossier's items
+    (`gate._materialise` makes a fresh one per call and drops it after). The key is
+    the unit's own identity, `(run_id, container_path)`: a `text_units` row is never
+    rewritten and never removed (its triggers raise), so within a process the same
+    key names the same bytes, and remembering the row changes nothing that is read
+    -- only how many times. `None` is remembered too: an absent unit is an answer.
+
+    Why: run 13 (14 Sep 2026) sat at 95 % CPU in `getOverflowPage` -- the two
+    lookups below each walk every overflow page of the unit, and a dossier of
+    thousands of items over a document of a few megabytes read that document
+    thousands of times. With no memory passed in, the read happens as before.
+    """
+    if units is None:
+        return read()
+    key = (what, observation.run_id,
+           serialize_container_path(observation.location.container_path))
+    if key not in units:
+        units[key] = read()
+    return units[key]
