@@ -14555,7 +14555,8 @@ def _what_the_held_files_are(held: Sequence[tuple[str, str, str]], *,
         f"nobody has been asked. Say what {'it is' if one else 'each one is'} "
         f"and run the same command again: --file-held FILE_ID keeps a file here "
         f"and you file it by hand, and --release FILE_ID says it is ordinary and "
-        f"may be sent.", indent="")]
+        f"may be sent. --file-held also answers for a file the rules did NOT hold "
+        f"and you know is yours to keep: it is protected from then on.", indent="")]
     if not show_protected:
         lines.append(_wrapped(
             f"{'Its name and its' if one else 'Their names and their'} two commands, "
@@ -19235,10 +19236,26 @@ def apply_file_held(conn: sqlite3.Connection, file_ids: Sequence[str], *,
     force yet to carry forward -- there is nothing here to add a permission to,
     and inventing a policy's mode or its other settings is not this gesture's to
     do.
+
+    **A FILE THE RULES CLEARED, KEPT BY THE PERSON, IS PROTECTED ON THEIR WORD
+    (14 Sep 2026).** On a deployment without a local model (`00` amendment 2 of
+    13 Sep) the rules are the only gate before the cloud, and on the second corpus
+    they cleared four of the key's twenty protected files -- a boarding pass whose
+    words are OCR alone, a health form whose leading reading was another domain,
+    an arrival record, a zip with nothing but a manifest. The person is the second
+    gate, and this gesture is the sentence they have for such a file: keep it here.
+    So where the file's current classification is not protected, one `user` row is
+    written through `learning_seam.reclassify`, `sensitive_personal` and
+    `protected=True`, on top of the move permission; the cloud door reads the
+    `protected` flag before it reads any basis (`protected_cloud_denies` in
+    `model_route_permitted`), so this row SHUTS the door rather than opening it,
+    and a user row is never retired by the rules. The paragraph above stays true
+    of a file that is already protected: nothing about its row is touched.
     """
     settled: list[str] = []
+    store = ClassificationStore(conn)
     for file_id in file_ids:
-        if get_file(conn, file_id) is None:
+        if (row := get_file(conn, file_id)) is None:
             raise FileHeldRefused(
                 f"{file_id!r} names no file this plan has recorded. Run the "
                 "command without `--file-held` first: a file has to be on "
@@ -19258,6 +19275,16 @@ def apply_file_held(conn: sqlite3.Connection, file_ids: Sequence[str], *,
                 automatic_move_permissions=permissions, set_at=recorded_at),
             component_version=COMPONENT_VERSION, user_id=user_id,
             reason=f"the user filed {file_id!r} themselves (--file-held)")
+        record = store.current(file_id, row["content_hash"])
+        if record is None or not record.protected:
+            reclassify(
+                conn, file_id, "sensitive_personal",
+                f"the person kept {file_id!r} here: it is protected and stays "
+                f"on this device (--file-held)",
+                store=store, content_hash=row["content_hash"], protected=True,
+                evidence_refs=(record.evidence_refs if record is not None else ()),
+                user_id=user_id, component_version=COMPONENT_VERSION,
+                observed_at=recorded_at)
         settled.append(file_id)
     return tuple(settled)
 

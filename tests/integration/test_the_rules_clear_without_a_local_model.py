@@ -20,6 +20,12 @@ from pathlib import Path
 import pytest
 
 import cli
+from llm_harness.wire_handles import wire_handle
+
+
+def _on_the_wire(database, file_id: str) -> str:
+    """The subject as the stub records it: a wire handle, never the file id."""
+    return wire_handle(file_id, key=cli.wire_handle_key_for(database))
 
 _HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(_HERE.parent / "p7"))
@@ -75,4 +81,42 @@ def test_without_a_local_model_the_rules_clear_the_un_held_and_the_person_is_ask
         "SELECT file_id FROM files WHERE filename = ?", (HELD_NAME,))]
     assert held in cli._protected_file_ids(conn)
     # And the cloud was offered only the cleared file's questions, never the held one.
-    assert held not in socket.subjects_at(cli.G_SITUATION_SENSITIVITY)
+    subjects = socket.subjects_at(cli.G_SITUATION_SENSITIVITY)
+    assert _on_the_wire(database, held) not in subjects
+    (free,) = [row["file_id"] for row in conn.execute(
+        "SELECT file_id FROM files WHERE filename != ?", (HELD_NAME,))]
+    assert _on_the_wire(database, free) in subjects, "the cleared file was asked"
+
+
+def test_a_file_the_rules_cleared_and_the_person_kept_is_protected_on_their_word(
+        tmp_path, socket):
+    """The inverse of `--release`, for a deployment where the rules are the only
+    gate before the cloud: on the second corpus they cleared four of the key's
+    twenty protected files. `--file-held` on a file nothing holds writes the
+    person's own protected row, and the next run sends nothing about it."""
+    from test_p7_file_released import FREE_NAME
+    corpus = _corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    assert cli.main([str(corpus), "--situation", SITUATION, "--label", LABEL,
+                     "--user", "t", "--database", str(database),
+                     "--enable-cloud"], out=io.StringIO()) == 0
+    conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    (free,) = [r[0] for r in conn.execute(
+        "SELECT file_id FROM files WHERE filename = ?", (FREE_NAME,))]
+    conn.close()
+    assert _on_the_wire(database, free) in socket.subjects_at(
+        cli.G_SITUATION_SENSITIVITY), "cleared, so asked"
+    before = len(socket.subjects_at(cli.G_SITUATION_SENSITIVITY))
+    assert cli.main([str(corpus), "--situation", SITUATION, "--label", LABEL,
+                     "--user", "t", "--database", str(database),
+                     "--enable-cloud", "--file-held", free], out=io.StringIO()) == 0
+    conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    assert free in cli._protected_file_ids(conn)
+    (current,) = conn.execute(
+        "SELECT basis, protected FROM classifications WHERE file_id = ? "
+        "AND superseded_by IS NULL", (free,)).fetchall()
+    assert (current["basis"], current["protected"]) == ("user", 1)
+    conn.close()
+    # Nothing new about the kept file crossed on that run.
+    assert len(socket.subjects_at(cli.G_SITUATION_SENSITIVITY)) == before
