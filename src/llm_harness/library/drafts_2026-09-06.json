@@ -519,6 +519,19 @@
    "layout": "frame-first",
    "note": "00 amendment 1 of 14 Sep: the SECOND STAGE of the situation judge. The whole-library row names which KIND of material a file is; where the library carries several situations under that kind and nothing has told them apart, this row asks which of them the file is, over the same released items, with the menu carrying each situation's own name and the library's own one line of what it is a record of and what it is not. Run 12 printed nine branch questions offering 80 situation identifiers and the owner read them: \"how am I even supposed to answer this? there is no question and no answer. These cannot be the questions we ask the user.\" The person is asked only where this judge declines, and then in words. The response schema is the whole-library row's own, unchanged: one situation from allowed_vocabulary with citations, or none with an insufficiency statement; the optional restricted_kind is not asked for here and is not read, because the first judge has already answered it. UNRATIFIED: the answer is recorded and nothing acts on it until the owner ratifies the text, measured by replay on the owner's corpus.",
    "ratified_by": null
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-level-v2",
+   "status": "unratified",
+   "template_id": "situation.unratified.situation-level-v2.2026-09-14",
+   "template_file": "situation_level_template.v2.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_level_shaping_policy.v1.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "v2 of the situation-level text (14 Sep 2026, the lead): the decline rule of v1 made uncertainty a decline -- measured by replay on run 12's 89 dossiers whose kind carries several situations: 36 right, 17 wrong, 33 declines (40 %), fifteen coursework files, nine resumes and seven datasets declined with the right member on the list. v2 says the kind is settled, so a file of this kind IS one of the list unless nothing on it describes the file; choose when less than certain and say what you saw. Everything else byte-identical to v1. And the decline word is the menu's own, none_of_these: v1 said none while `allowed_vocabulary` carried none_of_these, so every decline would have been rejected in the product.",
+   "ratified_by": "nobody yet: authored by the lead on 14 Sep 2026 for measurement; the owner ratifies with one word."
   }
  ],
  "digests": {
@@ -581,6 +594,7 @@
   "situation_shaping_policy.v4.json": "3077c33b5997768ceceaca213ec83b9c9fa403539cd803ad9a2a3c73fa54e90e",
   "a_fact_template_folder_levels.v5.txt": "50fc90bf47512c1a77334a28f994ed2ac55578a1b13797967f884ccc39519b18",
   "situation_level_template.v1.txt": "ca729c35e2d8da766fbdb2e3707f9c08c938d25cc397c94e31eff4b0f3113e80",
-  "situation_level_shaping_policy.v1.json": "55d1ca0d8303e1c4c19d6db462c28b1e8012185292cc24eeb0a725cc0b62bdf3"
+  "situation_level_shaping_policy.v1.json": "55d1ca0d8303e1c4c19d6db462c28b1e8012185292cc24eeb0a725cc0b62bdf3",
+  "situation_level_template.v2.txt": "3524e9afad459f35db2c56731020276000a41087a778d4ad2742148823fe0652"
  }
 }
