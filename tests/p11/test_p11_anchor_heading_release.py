@@ -1114,6 +1114,10 @@ def test_the_call_identity_moves_when_an_anchor_appears_beside_a_file(
         # destination and says so as the pair the route returns.
         route=lambda _file_id: (None, _target()),
         policy_version="policy-1", prompt=_prompt(),
+        # The eleventh identity term (13 Sep 2026): the bound the dossier was
+        # built under; a fixture with one bound keeps it constant across the two
+        # digests this pin compares.
+        max_dossier_tokens=4_000,
         # A real `ActivationSignal`, not a bare `SimpleNamespace`: `active_domains`
         # calls `signal.activates(established)` and a namespace with no `activates`
         # predicate cannot answer that. This fixture's own point is the anchor
