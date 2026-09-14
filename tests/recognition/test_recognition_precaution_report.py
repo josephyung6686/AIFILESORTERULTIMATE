@@ -29,15 +29,46 @@ reintroduced as a tidy-looking improvement.
 """
 from __future__ import annotations
 
-from recognition.detector import Abstention, Precaution
+from evidence_shape.store import RunWriter
+from extractors.runs import coverage
+from extractors.shape import location, observation, run
+from extractors.sink import ExtractionResult
+from recognition.detector import (
+    Abstention, ENTITY_NAMESPACE, PERSON_ENTITY, Precaution,
+)
 from test_recognition_detector import (  # the packaged harness
-    ACADEMIC, a_file, db, detector, rule_set, schema_entry)  # noqa: F401
+    ACADEMIC, CLOCK, a_file, db, detector, rule_set, schema_entry)  # noqa: F401
 
 #: A safety domain spelled the way the shipped library spells the ones that
 #: misfire: one work type that is also ordinary English, one that is a phrase, and
 #: context terms that ACCOMPANY such a document without being it.
 LEGAL = schema_entry("legal", context=("counsel", "matter"),
                      work_types=("will", "deposition transcript"))
+
+
+def _name_someone(db, file_id, content_hash):
+    """Mint a bare person-entity reading: the corroboration a body-prose work
+    type now needs (the owner's ruling of 13 Sep 2026, `Detector._corroborated`)
+    -- "a person the entity encoder named anywhere in the file". Neither test
+    below is about the PAIRING rule (`00` amendment 7(b), covered in
+    `test_entities_hold_a_file.py`); this is the plainest corroborating finding
+    that rule also accepts, standing in for a real encoder pass over a file
+    that is, in fact, somebody's own.
+    """
+    observations = (observation(
+        file_id=file_id, content_hash=content_hash,
+        extractor_name=ENTITY_NAMESPACE + PERSON_ENTITY, extractor_version="0.1.0",
+        source_type="text_document", raw_value="Jane Roberts",
+        location=location(zone="body"), observed_at=CLOCK,
+        reliability="possible"),)
+    RunWriter(db, author="P5").write(ExtractionResult(
+        run=run(file_id=file_id, content_hash=content_hash,
+                extractor_name=ENTITY_NAMESPACE + PERSON_ENTITY,
+                extractor_version="0.1.0", source_type="text_document",
+                analysis_tier="native", config={}, completeness="complete",
+                coverage=coverage("files", 1, 1), observation_count=1,
+                started_at=CLOCK, finished_at=CLOCK),
+        observations=observations))
 
 
 def _held(db, file_id, content_hash, rules):
@@ -63,6 +94,13 @@ def test_the_report_names_the_domain_the_terms_and_the_zones(db, tmp_path):
     detector abstains, and the precaution holds the file anyway because `00`:52
     asks for exactly that. What is new is that it can say so.
 
+    SINCE the owner's ruling of 13 Sep 2026, a tied leader's work type in body
+    prose corroborates rather than holds alone (measured on the second corpus:
+    four files held on the bare word `will` before the change), so the fixture
+    also names someone -- the plainest corroborating finding `Detector.
+    _corroborated` accepts, short of a second reading of `legal` itself, which
+    this rule set authors none of.
+
     SABOTAGE: return `Precaution(schema_id, (), ())` from `precaution_report`.
     The record is unchanged and every assertion about the reason goes red, which
     is the r19 state stated as a failure.
@@ -70,6 +108,7 @@ def test_the_report_names_the_domain_the_terms_and_the_zones(db, tmp_path):
     file_id, content_hash = a_file(
         db, tmp_path, "notes.pdf",
         body="The syllabus says the deadline will be extended.")
+    _name_someone(db, file_id, content_hash)
 
     report, record = _held(db, file_id, content_hash, rule_set(ACADEMIC, LEGAL))
 
@@ -136,6 +175,12 @@ def test_a_work_type_in_body_prose_still_holds_and_says_where_it_sat(
     sits, and reports where it sat so the local model can weigh it -- which is the
     whole of gap 24's answer: say more, decide the same.
 
+    THE ZONE STAYS UNTESTED, AND A SECOND FINDING IS ASKED FOR INSTEAD (the
+    owner's ruling of 13 Sep 2026). A body-prose work type alone is exactly the
+    shape ten essays and statements were held on before the change, so the
+    fixture names someone -- corroboration, not a narrower zone -- and the hold
+    stays taken and still says where it sat.
+
     SABOTAGE: add `and _names_the_file(match)` to `_safety_work_type_matches`, or
     filter `readings` by it in `precaution_report`. This goes red on a body-zone
     hold that r19 says must keep being taken.
@@ -143,6 +188,7 @@ def test_a_work_type_in_body_prose_still_holds_and_says_where_it_sat(
     file_id, content_hash = a_file(
         db, tmp_path, "scan001.pdf",
         body="A deposition transcript is attached to the syllabus.")
+    _name_someone(db, file_id, content_hash)
 
     report, record = _held(db, file_id, content_hash, rule_set(ACADEMIC, LEGAL))
 

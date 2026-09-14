@@ -33,9 +33,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from recognition.detector import Abstention, Precaution, Recognition
+from evidence_shape.store import RunWriter
+from extractors.runs import coverage
+from extractors.shape import location, observation, run
+from extractors.sink import ExtractionResult
+from recognition.detector import (
+    Abstention, ENTITY_NAMESPACE, PERSON_ENTITY, Precaution, Recognition,
+)
 from recognition.rules import load_rules
-from test_recognition_detector import a_file, db, detector  # noqa: F401
+from test_recognition_detector import CLOCK, a_file, db, detector  # noqa: F401
 
 MANIFEST_PATH = (Path(__file__).resolve().parents[2] / "src" / "recognition"
                  / "library" / "recognition.json")
@@ -50,6 +56,29 @@ RATIFIED: tuple[str, ...] = (
 
 def _rules():
     return load_rules(MANIFEST_PATH.read_text)
+
+
+def _name_someone(db, file_id, content_hash):
+    """Mint a bare person-entity reading -- the corroboration a body-prose work
+    type now needs (the owner's ruling of 13 Sep 2026, `Detector._corroborated`):
+    "a person the entity encoder named anywhere in the file". Both files below
+    are a real note about a real patient, so this is the encoder finding what a
+    real pass would find, not a fact invented for the test.
+    """
+    observations = (observation(
+        file_id=file_id, content_hash=content_hash,
+        extractor_name=ENTITY_NAMESPACE + PERSON_ENTITY, extractor_version="0.1.0",
+        source_type="text_document", raw_value="Jane Roberts",
+        location=location(zone="body"), observed_at=CLOCK,
+        reliability="possible"),)
+    RunWriter(db, author="P5").write(ExtractionResult(
+        run=run(file_id=file_id, content_hash=content_hash,
+                extractor_name=ENTITY_NAMESPACE + PERSON_ENTITY,
+                extractor_version="0.1.0", source_type="text_document",
+                analysis_tier="native", config={}, completeness="complete",
+                coverage=coverage("files", 1, 1), observation_count=1,
+                started_at=CLOCK, finished_at=CLOCK),
+        observations=observations))
 
 
 def _held(db, file_id, content_hash, rules):
@@ -102,10 +131,15 @@ def test_a_flu_vaccine_record_is_held_as_medical_and_sensitive_personal(
     all, only `vaccine`. Before this ruling `vaccine` was authored nowhere, so
     `explain` would have abstained `no_evidence` and `precaution_report` would
     have returned `None`.
+
+    AND SINCE the owner's ruling of 13 Sep 2026, the bare word in body prose
+    corroborates rather than holds alone, so the fixture also names the
+    patient the record is about.
     """
     file_id, content_hash = a_file(
         db, tmp_path, "flu_shot.pdf",
         body="flu vaccine record 2022-2023")
+    _name_someone(db, file_id, content_hash)
 
     outcome, report, record = _held(db, file_id, content_hash, _rules())
 
@@ -127,10 +161,15 @@ def test_the_patients_prescription_is_held_as_medical_and_sensitive_personal(
     §19 called a term filed as context one that "protects nothing" -- so before
     this ruling a note built entirely of the two carried no safety work type and
     was never held.
+
+    AND SINCE the owner's ruling of 13 Sep 2026, a body-prose work type also
+    needs corroboration -- so the fixture names the patient, as a real note
+    like this one would.
     """
     file_id, content_hash = a_file(
         db, tmp_path, "zzqy8823.pdf",
         body="the patient's prescription")
+    _name_someone(db, file_id, content_hash)
 
     outcome, report, record = _held(db, file_id, content_hash, _rules())
 
