@@ -91,6 +91,7 @@ from privacy.release import ModelCallRequest, Target
 from extractors.entities import ENTITY_NAMESPACE, is_entity_extractor
 from extractors.identifiers import KINDS as IDENTIFIER_KINDS
 from recognition.detector import Precaution, SituationOutcome
+from recognition.rules import SituationRow
 from recognition.vocabulary import SAFETY_DOMAIN_IDS
 
 #: P4's own word for a reading an extractor read explicitly, read off P4's tuple
@@ -721,5 +722,228 @@ def build_situation_request(
         # C and D need one; this site proposes no destination in any tree, so it has
         # no snapshot to be judged against. `SITES_REQUIRING_EVIDENCE_SNAPSHOT` is
         # the list that decides it and this site is not on it.
+        evidence_snapshot_id=None,
+    )
+
+
+# --- the second stage: which SITUATION of the named kind -------------------------
+#
+# `00` amendment 1 of 14 Sep 2026. Everything above answers which KIND of material
+# a file is; everything below answers which SITUATION inside that kind, over the
+# same released items, from a menu carrying the library's own words. The two calls
+# are one site's question asked twice, which is why they share this module, the
+# response schema, the validator and the route -- and why nothing below re-derives
+# a rule from the half above.
+
+#: The named kind's own address on the wire. `ABSTENTION_REF`'s constant, and for
+#: its reason: `wire_handles.wire_ref` leaves a non-observation reference raw, so a
+#: per-file address would put an identifier of this person's file into the
+#: model-visible bytes through a slot nothing keys.
+NAMED_KIND_REF: str = "named_kind"
+
+#: What the second stage's dossier carries that is a REFERENCE and not a reading.
+#: `_REFERENCE_ONLY_KINDS`' half of `gate.REFERENCE_ONLY`, for this call: a
+#: situation on the menu and the kind a first judge named are the builder's own
+#: descriptions, never text P7 released, and the prompt's rule 2 says so in its own
+#: words.
+_LEVEL_REFERENCE_ONLY_KINDS: tuple[str, ...] = ("named_kind", "candidate_situation")
+
+
+@dataclass(frozen=True, slots=True)
+class SituationLevelQuestion:
+    """One file's SECOND question: which situation of the kind already named.
+
+    Everything here came from the library or from the first judge. Nothing is
+    authored: the kind is site G's own answer, the situation ids are the
+    catalogue's, and the words beside each id are the research's own `name` and
+    `one_line`, carried verbatim through the compiled manifest.
+    """
+
+    file_id: str
+    content_hash: str
+    #: The kind the FIRST judge named for this file: one of `SCHEMA_IDS`.
+    schema_id: str
+    #: That kind's authored name, or the id where the library carries none.
+    schema_name: str
+    #: The closed list the model may answer from: the situations the catalogue
+    #: carries under `schema_id`, in its order, then `NONE_OF_THESE`.
+    allowed_situations: tuple[str, ...]
+    #: id -> the library's row for it. A situation the library carries no row for
+    #: is absent here and reaches the menu as its id alone, which is what every
+    #: situation did before the manifest carried these words.
+    described: Mapping[str, SituationRow] = MappingProxyType({})
+
+    def __post_init__(self) -> None:
+        _require_schema(self.schema_id)
+        if self.allowed_situations[-1:] != (NONE_OF_THESE,):
+            raise NothingToAsk(
+                f"the situation list must end with {NONE_OF_THESE!r}; a closed "
+                "list without it is a forced choice, and a model with no way to "
+                "decline answers something about every file it is shown")
+        # TWO IS THE POINT OF THIS CALL. A kind the library carries exactly one
+        # situation for is resolved without any model -- `branch_situation.
+        # the_one_situation`'s first arm, "one situation is an answer and not a
+        # choice" -- so a caller reaching here with one has asked a question whose
+        # answer it already had, and would spend a call per file to be told it.
+        if len(self.allowed_situations) < 3:
+            raise NothingToAsk(
+                f"{self.schema_id!r} offers "
+                f"{len(self.allowed_situations) - 1} situation(s) and the "
+                "decline; this call exists for a kind whose situations nothing "
+                "has told apart, and one situation is an answer the library "
+                "already gives without a model")
+
+
+def _situation_items(question: SituationLevelQuestion) -> tuple[EvidenceItem, ...]:
+    """One item per situation of the named kind -- and the decline -- in the
+    library's own words.
+
+    **THE ONE LINE IS THE WHOLE POINT AND IT IS CARRIED VERBATIM.** `00` amendment
+    1 of 14 Sep: the judge names the situation "from the schema's own list with
+    each situation's name and one line of what it is". The alternative the owner
+    ruled out is on the screen run 12 printed -- nine questions offering 80 bare
+    identifiers -- and a paraphrase here would be this file deciding what a
+    situation is, which is the research's answer and not a builder's.
+
+    **EVERY OPTION GETS AN ITEM**, on `_candidate_items`' rule: an option on
+    `allowed_vocabulary` that no item describes is an option the model was offered
+    and never told about, and the decline is the one the prompt most wants used
+    when nothing on the list is stated.
+
+    **THE ID ALONE WHERE THE LIBRARY CARRIES NO ROW**, which is the honest state
+    rather than a gap: measured over the shipped release, one of the 208 situations
+    (`nonprofit`) is a schema row and has no template row of its own. It reaches
+    the menu as its identifier, which is what all 208 did before the words were
+    compiled.
+
+    **THE COST, MEASURED OVER THE SHIPPED LIBRARY.** The `one_line` the research
+    wrote is a long sentence: 803 characters on average over the 293 compiled
+    situations, and 2,466 at the longest. Per call that is the situations of ONE
+    kind, so the menu runs from about 3KB (`nonprofit`, two situations offered) to
+    about 39KB (`law_practice`, 26) -- roughly 750 to 9,700 tokens at four
+    characters a token. It does not come out of `GROUPING_LIMITS.max_dossier_tokens`
+    for `_candidate_items`' reason: that ceiling measures the RELEASED values and
+    an item here releases nothing. Whether the line should be cut to its first
+    clause is a question about the LIBRARY's text and is the owner's; nothing here
+    shortens what the research wrote.
+    """
+    items = []
+    for situation_id in question.allowed_situations:
+        if situation_id == NONE_OF_THESE:
+            where = ("no situation of this kind | choosing this leaves the file's "
+                     "situation unresolved, and the person is asked in words")
+        else:
+            row = question.described.get(situation_id)
+            where = (situation_id if row is None
+                     else f"{situation_id} | {row.name} | {row.one_line}")
+        items.append(EvidenceItem(
+            evidence_ref=situation_id, kind="candidate_situation", location=where,
+            excerpt_span=None, reliability_state=DIRECT, basis=DIRECT_ANCHOR))
+    return tuple(items)
+
+
+def _named_kind_item(question: SituationLevelQuestion) -> EvidenceItem:
+    """Which kind of material a first judge named for this file, as one reference.
+
+    **IT SAYS WHICH LIST THIS IS AND NOT WHAT THE ANSWER IS**, which is the
+    register `_abstention_item` already set for the first stage: a report, not a
+    verdict. The kind is settled before this call is built -- the menu IS that
+    kind's situations -- so an item claiming more would be aiming the second
+    question with the first one's answer.
+
+    A SIBLING KIND RATHER THAN `recogniser_abstention`, and that is the opposite
+    choice to the one gap 24 made for the hold. The hold rode on the abstention
+    item because a precaution IS the rules stopping, and the ratified text already
+    described that item. This is not a recogniser's report at all: it is another
+    model's accepted verdict, on a menu the ratified text never described, and the
+    text this row carries describes `named_kind` in its own words.
+    """
+    return EvidenceItem(
+        evidence_ref=NAMED_KIND_REF,
+        kind="named_kind",
+        location=(f"{question.schema_id} | {question.schema_name}"
+                  if question.schema_name
+                  and question.schema_name != question.schema_id
+                  else question.schema_id),
+        excerpt_span=None,
+        reliability_state=DIRECT,
+        basis=DIRECT_ANCHOR,
+    )
+
+
+def build_situation_level_request(
+    question: SituationLevelQuestion,
+    observations: Sequence, *,
+    model_target,
+    prompt,
+    max_dossier_tokens: int,
+) -> DossierRequest:
+    """The second stage's request, on `build_situation_request`'s every term.
+
+    **THE RELEASED HALF IS THE FIRST CALL'S, AND THAT IS THE PROPERTY.** The
+    caller hands this function the `observations` it handed the kind call, so the
+    `Excerpt` items, the evidence items built from them and the release bound are
+    the same objects producing the same bytes: one question about one file, asked
+    twice, shows the model the same reading of that file both times. A second
+    `releasable_observations` call here would be a second answer to what P7
+    released, and the two would part the day a bound moved between them.
+
+    **THE FRAME'S ITEMS FIRST**, on `104` R-58 as above: the menu and the named
+    kind do not vary between two files of one kind, and the readings do.
+
+    `NothingToAsk` for a file with no releasable reading, in the first stage's own
+    sentence: `00`:42's answer is about the MODEL's answer, and a file with no
+    releasable reading never gets far enough to be asked.
+    """
+    if not observations:
+        raise NothingToAsk(
+            f"{question.file_id} has a menu of situations and no releasable "
+            f"reading, so there is nothing for a model to read the answer out of. "
+            f"A question with valid options and no evidence is not a question "
+            f"`00`:42 permits an answer to: the file's situation stays open and "
+            f"the person is asked.")
+    return DossierRequest(
+        call_site=SITUATION_SENSITIVITY,
+        subject_ref=question.file_id,
+        # WHAT IS AMBIGUOUS HERE, in `00`:39's own vocabulary. The kind is settled
+        # and the situation is not, which is a file that REMAINS AMBIGUOUS after
+        # everything deterministic has run -- not `multiple_plausible_domains`,
+        # which is what a recogniser TIE is and is the first stage's word for a
+        # file whose domain nothing settled.
+        eligibility_reason=REMAINS_AMBIGUOUS,
+        evidence_items=_situation_items(question)
+        + (_named_kind_item(question),)
+        + tuple(
+            EvidenceItem(
+                evidence_ref=observation.observation_key,
+                kind="excerpt",
+                location=serialize_locator(observation.location),
+                excerpt_span=(
+                    None if observation.location.text_span is None else
+                    (observation.location.text_span.start,
+                     observation.location.text_span.end)),
+                reliability_state=observation.reliability,
+                basis=DIRECT_ANCHOR,
+            )
+            for observation in observations
+        ),
+        conflicts=(),
+        model_call_request=ModelCallRequest(
+            stage=SITUATION_STAGE,
+            target=Target(file_ids=(question.file_id,), group_id=None),
+            model_target=model_target,
+            requested_items=tuple(
+                Excerpt(
+                    observation_key=observation.observation_key,
+                    span=observation.location.text_span,
+                    reason="a reading of this file the situation may rest on",
+                )
+                for observation in observations
+            ),
+            prompt_template_id=prompt.template_id,
+            prompt_fingerprint=prompt_fingerprint(prompt),
+            max_dossier_tokens=max_dossier_tokens,
+        ),
+        plan_version=None,
         evidence_snapshot_id=None,
     )

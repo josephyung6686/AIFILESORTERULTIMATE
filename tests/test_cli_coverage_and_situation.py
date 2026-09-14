@@ -239,8 +239,22 @@ def test_every_counter_site_g_leaves_behind_earns_a_sentence():
     # own ground and not on a new one -- it is a MAPPING of what the recognisers
     # said about each file, read by `branch_situation.the_one_situation`, and no
     # fate for any file: every file in it is also in exactly one of the seven.
-    assert set(cli.SITUATION_SENTENCE) | {
+    # `00` amendment 1 of 14 Sep added the SECOND stage's four, and they are
+    # excused here on `holds`' own ground rather than a new one: they do not
+    # partition the roster, they partition the files whose KIND this pass named,
+    # so they are a block of their own with a denominator of their own. The rule
+    # is unchanged and is asserted one line down -- every one of them still earns
+    # a sentence, in `SITUATION_LEVEL_SENTENCE`.
+    second_stage = {"situations", "asked_their_situation",
+                    "declined_their_situation", "not_asked_their_situation"}
+    assert set(cli.SITUATION_SENTENCE) | second_stage | {
         "named", "raised", "holds", "recognised_by_rules"} == fields
+    assert set(cli.SITUATION_LEVEL_SENTENCE) | {
+        "situations", "asked_their_situation"} == second_stage, (
+        "`situations` is the answer the block's header prints and "
+        "`asked_their_situation` is its denominator, exactly as `named` and "
+        "`held` head the two blocks above; the other two divide it and carry "
+        "their own sentence")
     assert len(cli.SITUATION_SENTENCE) == 7, (
         "seven counted outcomes plus `named` in the header. Five when gap 9 was "
         "closed, and `00` amendment 7(c) spent one of them: every file is asked "

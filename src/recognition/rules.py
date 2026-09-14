@@ -25,6 +25,28 @@ class RecognitionRulesRequired(ValueError):
 
 
 @dataclass(frozen=True, slots=True)
+class SituationRow:
+    """One situation of one schema, in the library's own words.
+
+    `00` amendment 1 of 14 Sep 2026: the judge names the situation itself, "from
+    the schema's own list with each situation's name and one line of what it is".
+    These three strings are that list's row -- the `id` the catalogue and the
+    product address a situation by, and the `name` and `one_line` the research
+    wrote for a person to read, carried verbatim from the `template` row and
+    composed by nobody.
+
+    NOT A MENU AND NOT A RANKING. Which of a schema's situations are offered for a
+    file is the catalogue's answer (`production.shipped_situations`), and this
+    package holds no opinion about it: these rows say what a situation IS, for
+    whichever of them a caller puts on a menu.
+    """
+
+    id: str
+    name: str
+    one_line: str
+
+
+@dataclass(frozen=True, slots=True)
 class SchemaRules:
     """Every compiled rule for one schema, and what was deferred rather than compiled.
 
@@ -46,6 +68,24 @@ class SchemaRules:
     rows: tuple[str, ...]
     refused_rows: tuple[str, ...]
     deferred_readings: tuple[str, ...]
+    #: The schema's situations, in the library's words; empty where the manifest
+    #: predates the field (14 Sep 2026), exactly as `name` reads the id.
+    situations: tuple[SituationRow, ...] = ()
+
+    def situation(self, situation_id: str) -> SituationRow | None:
+        """The row for one situation id, or `None` because the library has none.
+
+        `None` rather than a raise: the ids a caller asks about come from the
+        CATALOGUE and the words come from here, and the two libraries do not
+        promise to carry the same rows -- measured over the shipped release, one
+        of the 208 shipped situations (`nonprofit`) is a schema row and has no
+        template row of its own. A caller shows the id alone for that one, which
+        is what it did for every situation before this field existed.
+        """
+        for row in self.situations:
+            if row.id == situation_id:
+                return row
+        return None
 
     @property
     def terms(self) -> tuple[str, ...]:
@@ -124,7 +164,37 @@ def _schema(schema_id: str, raw: object) -> SchemaRules:
         refused_rows=_sequence(raw.get("refused_rows", ()),
                                what=f"{schema_id}.refused_rows"),
         deferred_readings=tuple(readings),
+        situations=_situations(schema_id, raw.get("situations", ())),
     )
+
+
+def _situations(schema_id: str, raw: object) -> tuple[SituationRow, ...]:
+    """One schema's situation rows, or a refusal naming the malformed one.
+
+    REFUSED RATHER THAN SKIPPED. A row missing its `one_line` would reach a menu
+    as an identifier and a title, which is the identifier quiz `00` amendment 1
+    of 14 Sep retired -- and it would do it silently, on whichever schema the
+    compiler happened to be fed a short row for.
+    """
+    if isinstance(raw, str) or not isinstance(raw, (list, tuple)):
+        raise RecognitionRulesRequired(
+            f"{schema_id}.situations is a list of compiled situation rows in a "
+            f"manifest, not {raw!r}")
+    rows: list[SituationRow] = []
+    for entry in raw:
+        if not isinstance(entry, Mapping):
+            raise RecognitionRulesRequired(
+                f"{schema_id}.situations holds {entry!r}, not a situation row")
+        values = []
+        for key in ("id", "name", "one_line"):
+            value = entry.get(key)
+            if not isinstance(value, str) or not value.strip():
+                raise RecognitionRulesRequired(
+                    f"a situation row of {schema_id!r} carries no {key!r}; the "
+                    f"compiler emits all three for every situation it compiles")
+            values.append(value)
+        rows.append(SituationRow(*values))
+    return tuple(rows)
 
 
 def load_rules(read_manifest: Callable[[], str]) -> RecognitionRules:

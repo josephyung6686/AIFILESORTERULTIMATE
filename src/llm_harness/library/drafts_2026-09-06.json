@@ -506,6 +506,19 @@
    "glossary_file": "field_glossary.json",
    "note": "v5 of the A_fact text: rule 13 lets a course TITLE stand as subject where no course code is anywhere in view -- a course name on a cover, a heading or a header line, never a topic word inside a sentence -- cited to the file's own line. Everything else byte-identical to v4. Measured by replay on the second corpus's cloud dossiers before ratification (104 section 18.60): subject answered 4 of 107 under v4, 13 under this one, the rest declined as before.",
    "ratified_by": "the owner, 14 Sep 2026, 00:30 local, in session: shown the four texts in review/8_texts_to_ratify/ with the diff of each against the text in force and their replay numbers, and answered \"ratify 1224\", read by the lead as 1 2 3 4 (the four files, in order); applied by the lead as a new row, never an edit to the candidate row, which stands as written."
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-level-v1",
+   "status": "unratified",
+   "template_id": "situation.unratified.situation-level-v1.2026-09-14",
+   "template_file": "situation_level_template.v1.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_level_shaping_policy.v1.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "00 amendment 1 of 14 Sep: the SECOND STAGE of the situation judge. The whole-library row names which KIND of material a file is; where the library carries several situations under that kind and nothing has told them apart, this row asks which of them the file is, over the same released items, with the menu carrying each situation's own name and the library's own one line of what it is a record of and what it is not. Run 12 printed nine branch questions offering 80 situation identifiers and the owner read them: \"how am I even supposed to answer this? there is no question and no answer. These cannot be the questions we ask the user.\" The person is asked only where this judge declines, and then in words. The response schema is the whole-library row's own, unchanged: one situation from allowed_vocabulary with citations, or none with an insufficiency statement; the optional restricted_kind is not asked for here and is not read, because the first judge has already answered it. UNRATIFIED: the answer is recorded and nothing acts on it until the owner ratifies the text, measured by replay on the owner's corpus.",
+   "ratified_by": null
   }
  ],
  "digests": {
@@ -566,6 +579,8 @@
   "gate_template.restricted-kind.v2.txt": "9a83b16df1eb1a12012acea42035661960c53fed078ce7dc0c1a3e8efb536f3f",
   "situation_template.whole-library.v3.txt": "4efb509abf680330da30eb36373876395bba6c2d005a646eb9374350a69bc184",
   "situation_shaping_policy.v4.json": "3077c33b5997768ceceaca213ec83b9c9fa403539cd803ad9a2a3c73fa54e90e",
-  "a_fact_template_folder_levels.v5.txt": "50fc90bf47512c1a77334a28f994ed2ac55578a1b13797967f884ccc39519b18"
+  "a_fact_template_folder_levels.v5.txt": "50fc90bf47512c1a77334a28f994ed2ac55578a1b13797967f884ccc39519b18",
+  "situation_level_template.v1.txt": "ca729c35e2d8da766fbdb2e3707f9c08c938d25cc397c94e31eff4b0f3113e80",
+  "situation_level_shaping_policy.v1.json": "55d1ca0d8303e1c4c19d6db462c28b1e8012185292cc24eeb0a725cc0b62bdf3"
  }
 }

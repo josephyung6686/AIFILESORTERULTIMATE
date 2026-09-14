@@ -1,0 +1,25 @@
+{
+ "policy_id": "situation_level_shaping_policy.unratified-v1",
+ "call_site": "G_situation_sensitivity",
+ "what_this_is": "How the dossier beside it was shaped, so the reader knows what it is looking at and what it is not. It describes the SHAPING, never the file: every sentence here is the same on every file in every corpus, and nothing in it is evidence.",
+ "closed_world": "The dossier is the whole of what was sent. There is no document behind it, no page, no filename, no surrounding sentence, and no situation beyond the ones listed. A situation can only be an identifier present in allowed_vocabulary, and a citation can only be anchored in a value present in released_evidence. A folder path may be among the released values.",
+ "selection": {
+  "unit": "one file version and the situations of the one kind of material a first judge named for it",
+  "what_is_offered": "observations the local extractors already produced for that version, each addressed by an observation_key and bounded by a span -- the same released items the first judge was shown, unchanged; the kind that judge named; and every situation the library carries under that kind, each with the library's own name for it and the library's own line saying what it is a record of and what it is not",
+  "what_is_never_offered": "the whole tree, complete extracted text, whole documents, filenames, OCR output of protected material, file hashes, image EXIF, GPS, the person's own typed words, and raw sensitive values",
+  "ordering": "situations in the library's own order, which carries no meaning for the answer; evidence in the document's own order, bounded",
+  "bounded": "the count and the length are both capped before the request is built; what did not fit was not sent and is not described"
+ },
+ "reduction_ladder": [
+  "none: the dossier fits and is sent unreduced",
+  "summarized_facts: facts stand in for their evidence",
+  "preserved_anchors: only the anchoring evidence is kept",
+  "split: the subject is sent as several dossiers, each judged on its own",
+  "deferred: nothing is sent"
+ ],
+ "reduction_rung_in_force": "the dossier's own reduction_rung key says which rung this one was built at",
+ "redaction": "identifiers the local policy recognises are transformed before the value is written into the dossier. A redacted value is the value that was sent, and it is the only text a citation can quote.",
+ "what_is_done_with_the_answer": "the situation is checked against allowed_vocabulary and every citation is checked against the released value it names; a situation named with no citation is an unknown and resolves nothing. A named situation becomes the file's situation, which decides which fields the file is asked and which folders it may be offered; nothing is filed by this answer. Whether the file may reach a cloud model was decided by the gate before the first judge was asked, and this call reaches the same destination that judge did, over the same released items.",
+ "declining": "a situation of none is recorded as a correct abstention and the question goes to the person, in words, with the files it is about. It is not a failure and it is not counted as one.",
+ "_": "UNRATIFIED DRAFT. The second stage of the situation judge under 00 amendment 1 of 14 Sep: the first judge names the kind, this one names the situation inside it from the library's own names and one lines, and the person is asked only where this one cannot."
+}

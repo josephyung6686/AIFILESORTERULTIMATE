@@ -103,6 +103,17 @@ def _empty_schema(schema_id: str) -> dict[str, Any]:
         "refused_rows": [],
         "needs_llm": [],
         "never_alone_rows": [],
+        # The schema's own SITUATIONS, in the library's words. `00` amendment 1 of
+        # 14 Sep 2026: the judge names the situation itself "from the schema's own
+        # list with each situation's name and one line of what it is", so the one
+        # line has to reach a dossier -- and the only home it has ever had is a
+        # `template` row under `planning/domains/nodes/`, which no runtime import
+        # may read. This is `name`'s road of 13 Sep taken one level down, for the
+        # same reason and by the same compiler.
+        #
+        # A DICT WHILE IT ACCUMULATES, keyed by the row id, so two readings of one
+        # row cannot produce two menu entries for one situation.
+        "situations": {},
     }
 
 
@@ -148,6 +159,33 @@ def compile_rules(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
             continue
 
         schema["rows"].append(row_id)
+
+        if raw.get("kind") == "template":
+            # ONE SITUATION OF THIS SCHEMA, in the words the research wrote for a
+            # person to read. Compiled from the row and composed by nobody here:
+            # `name` is the row's own name and `one_line` its own sentence, both
+            # carried verbatim, because a menu entry an agent paraphrased is an
+            # agent deciding what a situation is.
+            #
+            # AFTER THE REFUSAL ABOVE, so a node an adjudication killed is not on
+            # any menu. It is still named in `refused_rows`, marked and counted.
+            name = raw.get("name")
+            one_line = raw.get("one_line")
+            if not isinstance(name, str) or not name.strip():
+                raise MalformedNodeRow(
+                    f"{row_id!r} is a template row carrying no `name`; the "
+                    "situation menu shows a person's judge the library's own "
+                    "words for a situation, and a row with none has nothing to "
+                    "show")
+            if not isinstance(one_line, str) or not one_line.strip():
+                raise MalformedNodeRow(
+                    f"{row_id!r} is a template row carrying no `one_line`; "
+                    "`00` amendment 1 of 14 Sep asks for each situation's name "
+                    "AND one line of what it is, and a menu entry that is an "
+                    "identifier and a title is the identifier quiz the "
+                    "amendment retired")
+            schema["situations"][row_id] = {
+                "id": row_id, "name": name, "one_line": one_line}
 
         context = set(_terms(raw.get("proposed_context_terms")))
         context |= set(_terms(recognition.get("proposed_context_terms")))
@@ -219,6 +257,10 @@ def compile_rules(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
             "needs_llm": sorted(schema["needs_llm"], key=lambda e: e["row"]),
             "never_alone_rows": sorted(schema["never_alone_rows"],
                                        key=lambda e: e["row"]),
+            # Sorted by id for `compile_rules`' own promise: two runs over the
+            # same rows in any order emit byte-identical JSON.
+            "situations": [schema["situations"][row_id]
+                           for row_id in sorted(schema["situations"])],
         }
     return compiled
 

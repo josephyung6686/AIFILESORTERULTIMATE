@@ -23,11 +23,32 @@ def _fact(files: int) -> ScanBudget:
         min_calls_per_scan=cli.OBSERVE_MIN_CALLS_PER_SCAN)
 
 
-@pytest.mark.parametrize("ledger", [cli.gate_scan_budget, cli.situation_scan_budget])
-def test_the_ceiling_is_the_roster_and_one_call_per_file_fits_under_it(ledger):
-    budget = ledger(_fact(371), corpus_file_count=371)
+def test_the_gates_ceiling_is_the_roster_and_one_call_per_file_fits_under_it():
+    budget = cli.gate_scan_budget(_fact(371), corpus_file_count=371)
     assert budget.max_estimated_cost == Decimal(371)
     assert allowed_calls(budget) == 371
+    assert budget.max_estimated_cost > cli.OBSERVE_CALLS_PER_SCAN_CEILING
+
+
+def test_site_gs_ceiling_is_the_roster_twice_because_it_asks_twice():
+    """`00` amendment 1 of 14 Sep: site G asks which KIND a file is and then,
+    where the kind carries several situations and nothing has told them apart,
+    which SITUATION -- so the number of questions it asks about a roster is two
+    per file and its purse is sized by that.
+
+    The rate and the ceiling move together, because a ceiling below what the rate
+    allows un-asks the roster's tail exactly as the 200-call ceiling did in the
+    measurement this file's docstring records. Measured one stage down: left at
+    one per file, the six-file corpus of `tests/integration/test_each_file_is_
+    filed_under_its_own_situation.py` lost the third research file's kind row.
+
+    SABOTAGE: drop the doubling in `situation_scan_budget` and that corpus's last
+    file is never asked what it is, which reads on the screen as a model that
+    declined.
+    """
+    budget = cli.situation_scan_budget(_fact(371), corpus_file_count=371)
+    assert budget.max_estimated_cost == Decimal(742)
+    assert allowed_calls(budget) == 742
     assert budget.max_estimated_cost > cli.OBSERVE_CALLS_PER_SCAN_CEILING
 
 

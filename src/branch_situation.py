@@ -87,6 +87,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from types import MappingProxyType
 
 #: The fields that never carry a file into a branch, spelled once here and
 #: asserted equal to `cli.FIELDS_THAT_CANNOT_ANCHOR_A_MOVE` by the composition
@@ -258,6 +259,7 @@ def partition_by_branch(
         situations_of: Callable[[str], Sequence[str]],
         chosen_situation: Callable[[str], str | None],
         named_by_the_model: Mapping[str, str],
+        situations_named_by_the_model: Mapping[str, str] = MappingProxyType({}),
 ) -> BranchPartition:
     """The run's branches, from the deterministic signals it already holds.
 
@@ -288,6 +290,13 @@ def partition_by_branch(
     the rule `_model_fact_pass` already applies to the same names one module over:
     such a schema has no folder levels, so there is nothing a branch under it
     could be asked from.
+
+    **`situations_named_by_the_model` IS THE JUDGE'S SECOND ANSWER PER FILE**
+    (`00` amendment 1 of 14 Sep): the SITUATION each file is part of, which is
+    `cli._model_fact_pass`'s `situation_pass.situations`, and it is EMPTY on the
+    call that runs before the model pass. It settles a branch the judge answered
+    for -- see `_settled_by_the_judge` -- and it opens none: a branch is opened by
+    an anchor or by a KIND, and a situation is a refinement inside one.
 
     **`default_situation` IS `None` WHEN THE PERSON TYPED NO `--situation`**, on
     the owner's ruling of 11 Sep 2026 (`00` Amendments of 2026-09-11 item 2). The
@@ -322,6 +331,39 @@ def partition_by_branch(
         if one is not None:
             return one, ()
         return None, candidates
+
+    def _settled_by_the_judge(file_ids: Sequence[str],
+                              candidates: Sequence[str]) -> str | None:
+        """The one situation the judge named for EVERY file of this branch.
+
+        `00` amendment 1 of 14 Sep: the judge names the situation and "the person
+        is asked only where the judge cannot", so a branch the judge answered for
+        is a branch with nothing left to ask about -- its question is not
+        recorded, its files are asked their own situation's fields, and its
+        folders are built. This is the one place that becomes true of a BRANCH;
+        `cli._the_situation_this_file_is_under` is where it becomes true of a file.
+
+        UNANIMOUS, AND OVER EVERY FILE RATHER THAN EVERY ANSWERED FILE. One file
+        the judge declined is one file whose situation the person still has to
+        settle, and the question they are asked is the branch's -- so a branch
+        carrying such a file stays unsettled and asks it. Two situations named
+        under one branch is the same state seen the other way: the branch is not
+        one piece of work, and picking the majority would be this module choosing
+        a situation on the person's behalf, which `104` §11.2 step 4 forbids in
+        the words the third arm of `_situation_for` already stands on.
+
+        CHECKED AGAINST THE BRANCH'S OWN CANDIDATES, so a stale answer replayed
+        out of an earlier run's records cannot settle a branch on a situation this
+        release no longer carries under its schema.
+        """
+        if not file_ids:
+            return None
+        named = {situations_named_by_the_model.get(file_id)
+                 for file_id in file_ids}
+        if len(named) != 1:
+            return None
+        one = next(iter(named))
+        return one if one in candidates else None
 
     def _default() -> tuple[str | None, tuple[str, ...]]:
         if default_situation is not None:
@@ -402,6 +444,15 @@ def partition_by_branch(
                 candidate_situations=candidates))
             continue
         situation, candidates = _situation_for(schema_id, schema_id)
+        if situation is None:
+            # THE JUDGE'S OWN ANSWER, where it gave one for every file here
+            # (`00` amendment 1 of 14 Sep). Third in the order and not first:
+            # the person's answer and the library's single situation both still
+            # outrank it, which is `104` §17.9's standing rule that the model's
+            # answer is a refinement of the person's and never a replacement.
+            situation = _settled_by_the_judge(under[schema_id], candidates)
+            if situation is not None:
+                candidates = ()
         # A BRANCH SITE G OPENED IS SETTLED BY THE SAME RULE AS EVERY OTHER, and
         # `situations_of(schema_id)[0]` used to stand here for it. The argument
         # was that G naming a schema is "a model choosing from valid options" --
