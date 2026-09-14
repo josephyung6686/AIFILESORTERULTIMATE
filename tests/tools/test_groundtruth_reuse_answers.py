@@ -105,7 +105,7 @@ def _stuff(conn, table: str) -> None:
 
 
 def _dimensions(subject: str) -> dict:
-    """All TEN terms `store.CALL_IDENTITY_DIMENSIONS` names, none extra.
+    """All ELEVEN terms `store.CALL_IDENTITY_DIMENSIONS` names, none extra.
 
     Spelled in full rather than stubbed, because `call_identity` refuses a mapping
     over a different set of terms and the seeder recomputes the digest through it:
@@ -113,11 +113,16 @@ def _dimensions(subject: str) -> dict:
 
     `context_refs` is the tenth, added for `104` R-135: the observation keys of the
     readings of OTHER files a call was shown. `[]` is the value for a file with no
-    anchor near it, which is every file in this fixture.
+    anchor near it, which is every file in this fixture. `max_dossier_tokens` is
+    the eleventh, `104` §18.60's release bound (7f5deaa7): a prior recorded
+    without it is re-digested under its empty value, which is what the two
+    R-141 tests below measure by stripping ONE term from a prior that carries
+    all of them -- so this fixture must carry all of them, or the count is two.
     """
     return {"call_site": "A_fact", "content_hash": "a-hash",
             "context_refs": [],
             "extractor_versions": [["text.structured", "1"]],
+            "max_dossier_tokens": 6000,
             "model_id": "a-model", "plan_version": None, "policy": "{}",
             "prompt_fingerprint": "a-fingerprint", "schema_id": ["academic"],
             "subject_ref": subject}
