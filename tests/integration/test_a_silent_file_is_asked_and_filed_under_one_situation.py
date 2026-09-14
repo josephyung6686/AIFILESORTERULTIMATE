@@ -35,11 +35,19 @@ nobody had asked for. With one decision both halves move together.
 carries eight situations under it and the recognisers raised none of them for
 this file, so `_situations_of(voted)[0]` was choosing
 `research.conference-presentation` out of eight on alphabetical order and every
-reader below spent that pick. The file's situation is now unresolved: the fact
-pass asks it nothing, P11 abstains `no_model_judgement` for it, and the person is
-asked "Which of these is research?" at the branch site G opened. What this file
-still pins is the property it was written for -- one decision, and the fields and
-the folders never disagree about it.
+reader below spent that pick. The file's situation is now unresolved: P11
+abstains `no_model_judgement` for it and the person is asked "Which of these is
+research?" at the branch site G opened. What this file still pins is the property
+it was written for -- one decision, and the fields and the folders never disagree
+about it.
+
+**THE FIELDS ARE THE SCHEMA'S AND ARE STILL ASKED.** An unresolved SITUATION
+withholds the folder levels and the template; it does not withhold the question.
+The first cut of this change withheld both and the facts column came out empty
+for every file the judge had read correctly, so a file whose schema is known is
+asked that schema's own fields with no levels shown -- `model_facts.
+open_question`'s `None` arm, the shape the unsettled default branch's authorities
+were already built in.
 
 **TWO RUNS, for `test_r37_per_branch_situation`'s reason:** `apply_answers`
 refuses an answer to a question no run has asked yet, so the first run asks
@@ -62,6 +70,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import cli  # noqa: E402
+from facts.domains import DOMAIN_FIELDS  # noqa: E402
 from placement.vocabulary import NO_MODEL_JUDGEMENT  # noqa: E402
 from privacy.vocabulary import LOCAL_MODEL_SITUATION  # noqa: E402
 from readers.model_ollama import (  # noqa: E402
@@ -88,7 +97,9 @@ CAREER_SITUATION = "career.recruiting"
 CAREER_ANSWER = f"situation:career={CAREER_SITUATION}"
 
 #: `research.conference-presentation`'s own file-level fields, from the shipped
-#: library's row: the three the silent file is offered because of the vote.
+#: library's row: the three `_situations_of(voted)[0]` used to narrow the silent
+#: file's question to. They are a SUBSET of what it is offered now -- the schema's
+#: six -- because with no situation there is no level list to narrow by.
 RESEARCH_FIELDS = {"venue", "project", "artifact_type"}
 
 #: The person's subfolder, and the only thing site G can tell these files apart
@@ -211,28 +222,41 @@ def test_the_branch_votes_a_situation_that_is_neither_its_own_nor_the_runs(run):
     assert "Which of these is career?" not in report, report
 
 
-def test_the_silent_file_is_asked_nothing_because_the_vote_names_no_situation(run):
+def test_the_silent_file_is_asked_its_voted_schemas_fields_and_no_situations(run):
     """Site A's `allowed_vocabulary` for it, read off the run's own call log.
 
-    **THE VOTE NAMES A SCHEMA AND A SCHEMA IS NOT A SITUATION.** This used to
-    assert `research.conference-presentation`'s three fields -- the
-    alphabetically first of the eight the shipped library carries under
-    `research`, taken by `_situations_of(voted)[0]`. `branch_situation.
-    the_one_situation` retired that pick: the library carries eight, the
-    recognisers raised none of them for this file, so which one this is has not
-    been answered by anybody and the file's situation is UNRESOLVED.
+    **THE VOTE NAMES A SCHEMA AND A SCHEMA IS NOT A SITUATION -- BUT THE FIELDS
+    ARE THE SCHEMA'S.** This used to assert `research.conference-presentation`'s
+    three fields, the alphabetically first of the eight the shipped library
+    carries under `research`, taken by `_situations_of(voted)[0]`.
+    `branch_situation.the_one_situation` retired that pick: the library carries
+    eight, the recognisers raised none of them for this file, so which one this
+    is has not been answered by anybody and the file's SITUATION is unresolved.
 
-    A file with no situation has no allowlist, no folder levels and no readings
-    to be asked FROM, so it is asked nothing at all -- and the half this test was
-    always about is unchanged and is asserted below: it is not asked its branch's
-    fields and it is not asked the run's. The person answers the branch's
-    question and the next run asks it something.
+    Its SCHEMA is not. The situation decides the folder levels and the template;
+    the fields are `research`'s own, and withholding them cost a whole facts
+    column on the first cut of this change. So the file is asked the schema's
+    question with no levels shown (`model_facts.open_question`'s `None` arm), and
+    every field of the two lives this corpus is otherwise made of is absent.
     """
     _corpus_, database, _report = run
     offered = frozenset().union(*_call_log(database).get(SILENT, [frozenset()]))
-    assert offered == frozenset(), (offered, _call_log(database))
-    assert not offered & RECRUITING_FIELDS
-    assert not offered & COURSEWORK_FIELDS
+    # EVERY FIELD THE VOTED SCHEMA DECLARES, not the three one of its eight
+    # situations happens to bind a level for. `stage` is the witness: no
+    # `research.conference-presentation` level names it, and the narrowed question
+    # never offered it.
+    assert offered >= set(DOMAIN_FIELDS["research"]), (offered,
+                                                       _call_log(database))
+    assert offered >= RESEARCH_FIELDS and "stage" in offered, offered
+    # AND NOT THE RUN'S OWN. `academic` is what `--situation academic.coursework`
+    # would have asked this file, and not one of its fields is here.
+    assert not offered & (COURSEWORK_FIELDS - RESEARCH_FIELDS), offered
+    # `career`'s fields ARE here, and that is `active_field_allowlist`'s standing
+    # behaviour rather than anything the vote did: this file is a cover letter and
+    # its own evidence activates `career`. The allowlist is the union of the
+    # ACTIVE schemas, and it always was -- what the missing situation removes is
+    # the level narrowing, not the activation.
+    assert offered & RECRUITING_FIELDS, offered
 
 
 def test_and_the_person_is_asked_which_of_the_eight_research_situations_it_is(run):
@@ -250,13 +274,15 @@ def test_and_the_person_is_asked_which_of_the_eight_research_situations_it_is(ru
 def test_and_its_folders_are_not_chosen_at_all_while_the_situation_is_open(run):
     """The destination, which is the other half of the same answer.
 
-    **BOTH HALVES STILL MOVE TOGETHER, and that was always the property.** The
-    fact pass asked this file nothing because nothing named its situation; P11
-    files it nowhere for the same reason and says so with the reason word that
-    already means it -- `no_model_judgement`, a call that happened and left this
-    file unjudged. The two named cover letters are in the same state, which is
-    the control: the file G named and the file G left silent are treated alike,
-    and that is what one decision buys.
+    **THE TWO HALVES ARE ONE DECISION AND THEY SPLIT WHERE THE ANSWER DOES.** The
+    fact pass asked this file its SCHEMA's fields, because the schema is known;
+    P11 files it nowhere, because a FOLDER needs the situation and nobody has
+    named one. That is not the two readers disagreeing -- it is both of them
+    reading the same answer, which is "the schema, and not yet the situation".
+    The reason word says so: `no_model_judgement`, a call that happened and left
+    this file unjudged. The two named cover letters are in the same state, which
+    is the control: the file G named and the file G left silent are treated
+    alike.
 
     Filing it anyway is what this test used to assert, and the folder it was
     filed into came from `_situations_of("research")[0]` -- the first of eight in

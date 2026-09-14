@@ -705,8 +705,9 @@ def record_call_failure(conn: sqlite3.Connection, *, dossier_id: str,
 #: because it is a real dimension at C and D and a key whose shape changes per site
 #: is a key nobody can reason about.
 CALL_IDENTITY_DIMENSIONS: tuple[str, ...] = (
-    "call_site", "content_hash", "context_refs", "extractor_versions", "model_id",
-    "plan_version", "policy", "prompt_fingerprint", "schema_id", "subject_ref",
+    "call_site", "content_hash", "context_refs", "extractor_versions",
+    "max_dossier_tokens", "model_id", "plan_version", "policy",
+    "prompt_fingerprint", "schema_id", "subject_ref",
 )
 
 
@@ -735,6 +736,16 @@ EMPTY_DIMENSION_VALUES: Mapping[str, object] = {
     # before the term existed carried in fact -- so a prior recorded under nine
     # dimensions pairs under ten exactly when this run offers the file no context.
     "context_refs": [],
+    # THE ELEVENTH TERM, 13 Sep 2026: the release bound the call was built under.
+    # `context_refs` names WHICH readings were shown and not HOW MUCH of each --
+    # the excerpt producer cuts a unit's opening to `ceiling // limit` characters
+    # -- so the same keys under two ceilings are two questions. Measured on the
+    # owner's corpus: the gate's ceiling went from 1,200 to 3,000 on 12 Sep and
+    # 238 of 320 files kept the answer given on metadata and a page number. A
+    # prior recorded without the term carries `None`, which pairs with nothing a
+    # call built today carries, so every prior per-file answer is asked once more
+    # under its true bound; that is the addition's intent and its whole cost.
+    "max_dossier_tokens": None,
 }
 
 #: THE SIX EVERY CALL HAS, so a mapping missing one is not an older shape of the

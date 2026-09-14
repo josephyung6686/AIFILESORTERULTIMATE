@@ -489,6 +489,17 @@ IDENTIFIER_SHAPES: tuple[IdentifierShape, ...] = (
 #: against it at import instead of keeping a second copy that quietly stops matching.
 KINDS: tuple[str, ...] = tuple(shape.kind for shape in IDENTIFIER_SHAPES)
 
+#: THE KINDS WHOSE SHAPE CARRIES ITS OWN PROOF: a check digit or a modulus the
+#: number has to satisfy (Luhn, mod-97, the HKID check character, the SSN's
+#: published exclusions, the routing-number pair). The other shapes above --
+#: a passport-shaped string, a hospital's record number, a date beside a
+#: birth-date label -- match a pattern and nothing more, and the detector treats
+#: them as corroboration rather than as a hold on their own (`recognition.
+#: detector.precaution_report`, the ruling of 13 Sep 2026). Named here beside
+#: `KINDS` so the split lives with the shapes that define it.
+CHECKSUMMED_KINDS: frozenset[str] = frozenset(
+    {"payment_card", "iban", "bank_account", "us_ssn", "hkid"})
+
 if len(set(KINDS)) != len(KINDS):                                    # pragma: no cover
     raise UnknownKind(f"two shapes claim one kind: {KINDS}")
 for _kind in CONTEXT_WORDS:                                          # pragma: no cover

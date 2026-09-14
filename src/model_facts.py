@@ -267,7 +267,7 @@ def order_vocabulary_by_levels(
 
 
 def open_question(pending: Sequence[str],
-                  folder_levels: Sequence[FolderLevel],
+                  folder_levels: Sequence[FolderLevel] | None,
                   settled: Sequence[str] = (),
                   ) -> tuple[tuple[str, ...], tuple[FolderLevel, ...]]:
     """What this file is ASKED: the vocabulary to offer, and the levels to show.
@@ -343,7 +343,8 @@ def open_question(pending: Sequence[str],
     #:
     #: Still a SUBSET of `FactRequest.allowlist`, which is the direction that keeps
     #: check 1 from rejecting something the model was invited to say.
-    level_fields = {level.field for level in folder_levels}
+    #:
+    #: `None` IS THE NO-SITUATION STATE and takes the arm below the concatenation.
     # PENDING FIRST, THEN SETTLED, and the order is not decoration. A field nothing
     # holds is the question the call exists for; a field the rules already answered is
     # the one being re-opened. `order_vocabulary_by_levels` re-orders this by the
@@ -354,6 +355,27 @@ def open_question(pending: Sequence[str],
     # cannot happen from the production caller and a duplicate from any other would be
     # a field asked twice in one vocabulary.
     asked = tuple(dict.fromkeys(tuple(pending) + tuple(settled)))
+    if folder_levels is None:
+        # **NO SITUATION IS CHOSEN, SO THE SCHEMA'S OWN QUESTION IS THE QUESTION**
+        # (13 Sep 2026). The narrowing below is the SITUATION's -- "the valid
+        # options are the situation's OWN" -- and there is no situation to narrow
+        # by: `branch_situation.the_one_situation` refuses to pick one of the
+        # eight the library carries under `research`, and the person has not yet
+        # said which. `None` is `FactCallAuthorities.folder_levels`' own word for
+        # that state and it is the ONE input that reaches this arm; `()` is still
+        # refused at `__post_init__`, so the SILENT flat-vocabulary question the
+        # narrowing exists against -- a deployment that never read the template
+        # library -- is still impossible.
+        #
+        # It is the flat question, and that is the trade the owner made rather
+        # than one taken here: measured, a file whose schema the judge had read
+        # correctly and whose situation was open was asked NOTHING, and its facts
+        # column came out empty. The fields are the schema's and the schema is
+        # known; only the folders wait for the answer. No level is shown, because
+        # there is no level -- `dossier._folder_levels_body` emits `[]` for that
+        # and says so.
+        return order_vocabulary_by_levels(asked, ()), ()
+    level_fields = {level.field for level in folder_levels}
     open_fields = set(asked) & level_fields
     offered = tuple(field for field in asked if field in open_fields)
     visible = tuple(level for level in folder_levels if level.field in open_fields)
@@ -650,7 +672,29 @@ class FactCallAuthorities:
     #: template library by the composition root. Required with no default: absent
     #: means refuse, and a call built without them asks the model the flat-
     #: vocabulary question that filled one `work_type` in 199 files.
-    folder_levels: tuple[FolderLevel, ...]
+    #:
+    #: **`None` MEANS NO SITUATION IS NAMED FOR THIS RUN**, and it is not `()`
+    #: respelled. `--situation` is optional (`00` Amendments of 2026-09-11 item 2)
+    #: and a folder whose own evidence names a schema but not one of the N
+    #: situations under it has nothing to read levels off. This bundle is still
+    #: built, because sites G and H read neither these levels nor
+    #: `activation_signals` and both must run before anybody can answer the
+    #: question, and `__post_init__` keeps `()` refused so the silent
+    #: flat-vocabulary dossier the guard exists against is still impossible.
+    #:
+    #: **AND AN A_fact CALL IS BUILT FROM IT (13 Sep 2026).** It used to be that
+    #: none was -- `pending_fields_for` raised on `None` the moment one was
+    #: attempted -- and the cost of that was measured the day
+    #: `branch_situation.the_one_situation` stopped resolving a schema to the
+    #: alphabetically first of its situations: every file site G named reached the
+    #: pass with no situation, and a person whose folder the judge had read
+    #: correctly got an EMPTY facts column. The situation decides the folder
+    #: LEVELS and the template; the FIELDS are the schema's, and the schema is
+    #: known. So the levels are absent, the anchor levels are absent, and the
+    #: file is asked its schema's own question -- which is what the
+    #: `allowed_vocabulary` was always computed from. `pending_fields_for` reads
+    #: `or ()` at the two places that walk them and says so at the first.
+    folder_levels: tuple[FolderLevel, ...] | None
     normalizers: Mapping[str, Callable[[str], Any]]
     normalize: Callable[[str, str], object]
     contradicts: Callable[..., bool]
@@ -762,8 +806,14 @@ class FactCallAuthorities:
     per_file_ceiling: "PerFileCeiling | None" = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "folder_levels",
-                           require_folder_levels(self.folder_levels))
+        # `None` PASSES AND `()` STILL REFUSES -- see the field. The guard is
+        # about a deployment that never read the library and would ask the model
+        # the flat question in silence; a run that read the library and found no
+        # situation named says so with `None`, which nothing downstream can treat
+        # as a level list.
+        if self.folder_levels is not None:
+            object.__setattr__(self, "folder_levels",
+                               require_folder_levels(self.folder_levels))
         if self.max_released_observations < 1:
             raise ValueError(
                 "a dossier with no released evidence is a model asked to answer "
@@ -2548,6 +2598,8 @@ def call_identity_dimensions(
         # prompt changes auditable" would be false in the one direction that
         # matters. Asked through `route` rather than off a field, which is the
         # only read this module makes.
+        # The release bound (`llm_harness.store.EMPTY_DIMENSION_VALUES` says why).
+        "max_dossier_tokens": authorities.max_dossier_tokens,
         "model_id": _routed_target(authorities, file_id).model_id,
         # Null at A, and `build_fact_request` says why in its own words: "a fact is
         # about a file version and not about a plan, and the same fact survives a
@@ -2877,7 +2929,15 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # question is one flag. That narrowness is stated rather than hidden: a file
         # whose every ordinary level is settled and whose only re-openable field is
         # the anchor's `school` is still declined here, exactly as before gap 1.
-        run_level_fields = {level.field for level in authorities.folder_levels}
+        # `or ()` IS THE NO-SITUATION STATE AND NOT A DEFENCE. `folder_levels`
+        # is `None` when a SCHEMA is known and no situation has been chosen
+        # under it, and such a call is built and sent: the fields are the
+        # schema's and only the LEVELS belong to the situation. `()` is still
+        # refused at `__post_init__`, so the silent flat-vocabulary dossier
+        # `require_folder_levels` exists against is still impossible -- what
+        # is permitted here is the state that says so out loud.
+        run_level_fields = {level.field
+                            for level in (authorities.folder_levels or ())}
         # THE SETTLED HALF OF THE QUESTION, COMPUTED ONCE. It is the settled fields
         # the RUN's own situation builds folders from, and it is deliberately not
         # every settled field the file carries: `anchor_only_levels` adds `school` to
@@ -3025,7 +3085,12 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # `dossier._folder_levels_body` refuses.
         anchor_levels = anchor_only_levels(request, authorities.anchor_only)
         vocabulary, visible_levels = open_question(
-            pending, authorities.folder_levels + anchor_levels,
+            # `None` STRAIGHT THROUGH, and not `or ()`: the two mean opposite
+            # things to `open_question`. `()` narrows the question to nothing;
+            # `None` says there is no situation to narrow it BY, and the schema's
+            # own fields are what this file is asked.
+            pending, (None if authorities.folder_levels is None
+                      else authorities.folder_levels + anchor_levels),
             # `104` §18.2 GAP 1. A settled level field is a question again, flagged
             # with what the rules answered -- and it is `settled_levels` and not the
             # whole settled set, so the ANCHOR-ONLY levels added above can pick up

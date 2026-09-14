@@ -37,6 +37,7 @@ from questions.role_report import (
     role_moment_lines, role_panel_lines, shortlist_lines,
 )
 from questions.roles import apply_declarations, apply_descriptions, live_roles
+from database_agent.db import create_schema
 from questions.schema import create_questions_schema
 from questions.triggers import question_for_tied_reading
 from questions.vocabulary import SCOPE_CORPUS
@@ -50,6 +51,9 @@ def qconn():
     connection = sqlite3.connect(":memory:")
     connection.row_factory = sqlite3.Row
     create_questions_schema(connection)
+    # `apply_answers` now appends an `events` row per answer (13 Sep 2026
+    # ruling), so every `qconn` needs P1's schema too, not only P15's.
+    create_schema(connection)
     yield connection
     connection.close()
 
@@ -524,3 +528,41 @@ def test_the_invitation_is_pasteable_too(qconn):
         break
     else:
         raise AssertionError(f"the invitation offers no command: {lines}")
+
+
+# --- §8.7: an applied answer is supposed to be a learning record ---------------------
+
+
+def test_an_applied_answer_is_a_learning_record(qconn):
+    """13 Sep 2026 ruling, 21:00: "yes those should be part of memory for the
+    user." `cli.apply_answers` now appends one `events` row per answer, through
+    `"structural answer recorded"` -- the event type registered in
+    `database_agent.events._REGISTERED` for exactly this -- so
+    `database_agent.learning.learning_records` returns a confirmed answer, a
+    `=skip`, and a `=revoke` alike. `record_answer`'s own store is unchanged;
+    this is a second, additive read path onto the same gesture.
+    """
+    import cli
+    from database_agent.learning import learning_records
+
+    _declare(qconn, "teaching=research")
+    cli.apply_answers(qconn, ["role:teaching=academic"],
+                      user_id="jy", recorded_at=T1)
+    confirmed = learning_records(qconn, SCOPE_CORPUS, "role:teaching")
+    assert len(confirmed) == 1
+    assert "academic" in confirmed[0]["explanation"]
+    assert "role:teaching" in confirmed[0]["explanation"]
+
+    _declare(qconn, "studying=academic")
+    cli.apply_answers(qconn, ["role:studying=skip"],
+                      user_id="jy", recorded_at=T1)
+    skipped = learning_records(qconn, SCOPE_CORPUS, "role:studying")
+    assert len(skipped) == 1
+    assert "skipped" in skipped[0]["explanation"]
+
+    _declare(qconn, "thesis=research")
+    cli.apply_answers(qconn, ["role:thesis=revoke"],
+                      user_id="jy", recorded_at=T1)
+    revoked = learning_records(qconn, SCOPE_CORPUS, "role:thesis")
+    assert len(revoked) == 1
+    assert "revoked" in revoked[0]["explanation"]

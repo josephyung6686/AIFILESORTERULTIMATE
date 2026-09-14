@@ -70,8 +70,9 @@ opening; the tests were turned around rather than deleted.
 """
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from types import MappingProxyType
 
 from evidence_shape.locator import serialize_locator
 from evidence_shape.vocabulary import RELIABILITY_STATES
@@ -522,8 +523,23 @@ def _abstention_item(question: SituationQuestion) -> EvidenceItem:
     )
 
 
+def _named(schema_id: str, schema_names: Mapping[str, str]) -> str:
+    """The schema's authored name beside its id, or nothing where the library
+    carries none. 13 Sep 2026: the cloud judge was shown `nonprofit` and had no way
+    to know it is the home of a club, a society or a student organisation; the
+    ratified text told it to find "a student organisation stated by a club" and
+    nothing on the menu said which member that was -- 47 wrong answers on the
+    owner's corpus. The name is the schema row's own `name` and is composed by
+    nobody here; it costs about a dozen tokens a member, measured in `104` §18.60.
+    """
+    name = schema_names.get(schema_id)
+    return f"{name} | " if name and name != schema_id else ""
+
+
 def _candidate_items(question: SituationQuestion,
-                     safety_domain_ids: Sequence[str]) -> tuple[EvidenceItem, ...]:
+                     safety_domain_ids: Sequence[str],
+                     schema_names: Mapping[str, str] = MappingProxyType({}),
+                     ) -> tuple[EvidenceItem, ...]:
     """One item per option -- the whole library and the decline -- and no option
     without one.
 
@@ -588,10 +604,12 @@ def _candidate_items(question: SituationQuestion,
                      "where the rules left it, on this device, for a person")
         elif schema_id in raised:
             matched = ", ".join(terms.get(schema_id, ()))
-            where = (f"{schema_id} | the recognisers raised this for this file"
+            where = (f"{schema_id} | {_named(schema_id, schema_names)}"
+                     f"the recognisers raised this for this file"
                      + (f", on: {matched}" if matched else ", on no term"))
         else:
-            where = f"{schema_id} | in the library; not raised for this file"
+            where = (f"{schema_id} | {_named(schema_id, schema_names)}"
+                     f"in the library; not raised for this file")
         if schema_id in safety_domain_ids:
             where += " | one of 00's four protected kinds"
         items.append(EvidenceItem(
@@ -607,6 +625,7 @@ def build_situation_request(
     prompt,
     max_dossier_tokens: int,
     safety_domain_ids: Sequence[str] = SAFETY_DOMAIN_IDS,
+    schema_names: Mapping[str, str] = MappingProxyType({}),
 ) -> DossierRequest:
     """One file's situation question, as the reference-only request P7 decides on.
 
@@ -650,7 +669,7 @@ def build_situation_request(
         # dossier's shared prefix is what does not vary between two files of one
         # run, and for this site the candidates and the abstention's SHAPE are
         # nearly constant while the readings are not.
-        evidence_items=_candidate_items(question, safety_domain_ids)
+        evidence_items=_candidate_items(question, safety_domain_ids, schema_names)
         + (_abstention_item(question),)
         + tuple(
             EvidenceItem(

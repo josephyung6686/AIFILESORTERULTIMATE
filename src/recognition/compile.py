@@ -89,6 +89,11 @@ def _list(values: object) -> list[str]:
 def _empty_schema(schema_id: str) -> dict[str, Any]:
     return {
         "schema_id": schema_id,
+        # The schema row's own `name`, for the one reader that shows a person or a
+        # model the id beside words (`model_situation._candidate_items`, 13 Sep
+        # 2026: the cloud judge was shown `nonprofit` and had no way to know it is
+        # the home of a club). The id until the schema row is read.
+        "name": schema_id,
         "context_terms": set(),
         "work_type_terms": set(),
         "source_types": set(),
@@ -129,6 +134,8 @@ def compile_rules(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
                 "rule for an unrecognised schema can never activate, so it is a load "
                 "error rather than an unreachable entry.")
         schema = schemas.setdefault(schema_id, _empty_schema(schema_id))
+        if raw.get("kind") == "schema" and isinstance(raw.get("name"), str):
+            schema["name"] = raw["name"]
 
         recognition = raw.get("recognition")
         if not isinstance(recognition, Mapping):
@@ -201,6 +208,7 @@ def compile_rules(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
         # row's context proposal for the same word no longer disarms it.
         compiled["schemas"][schema_id] = {
             "schema_id": schema_id,
+            "name": schema["name"],
             "context_terms": sorted(schema["context_terms"] - work_type_terms),
             "work_type_terms": sorted(work_type_terms),
             "source_types": sorted(schema["source_types"]),

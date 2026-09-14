@@ -35,6 +35,9 @@ class SchemaRules:
     """
 
     schema_id: str
+    #: The schema row's authored name, in words; the id where the manifest
+    #: predates the field (13 Sep 2026).
+    name: str
     context_terms: tuple[str, ...]
     work_type_terms: tuple[str, ...]
     source_types: frozenset[str]
@@ -106,6 +109,8 @@ def _schema(schema_id: str, raw: object) -> SchemaRules:
                                   what=f"{schema_id}.needs_llm.readings"))
     return SchemaRules(
         schema_id=schema_id,
+        name=(raw.get("name") if isinstance(raw.get("name"), str)
+              and raw.get("name") else schema_id),
         context_terms=_sequence(raw.get("context_terms", ()),
                                 what=f"{schema_id}.context_terms"),
         work_type_terms=_sequence(raw.get("work_type_terms", ()),
