@@ -165,6 +165,34 @@ def test_a_named_path_is_where_the_outline_goes(tmp_path):
     assert not (state["database"].parent / cli.STRUCTURE_FILENAME).exists()
 
 
+def test_a_run_that_names_no_database_still_writes_outside_the_corpus(tmp_path):
+    """The default path is beside the DATABASE the run resolved, not beside the
+    folder it scanned.
+
+    `--database` is optional and every other pin here types it, so the arm an
+    ordinary invocation takes had no measurement at all: the outline was landing
+    in the folder being scanned -- a file this product made in a place it promised
+    to leave alone, and one the next scan would index.
+    """
+    corpus = _corpus(tmp_path)
+    before = _on_disk(corpus)
+    elsewhere = tmp_path / "not the corpus"
+    elsewhere.mkdir()
+    out = io.StringIO()
+    with pytest.MonkeyPatch.context() as patch:
+        for name in (CREDENTIAL_NAME, BASE_URL_NAME, *MODEL_NAME_OF_TIER.values(),
+                     LOCAL_MODEL_NAME, LOCAL_BASE_URL_NAME):
+            patch.delenv(name, raising=False)
+        patch.setattr(cli, "ENV_FILE", tmp_path / "absent.env")
+        patch.chdir(elsewhere)
+        code = cli.main([str(corpus), "--situation", SITUATION, "--label", LABEL,
+                         "--user", "t", "--accept-groups"], out=out)
+    said = out.getvalue()
+    assert code == 0, said
+    assert (elsewhere / cli.STRUCTURE_FILENAME).exists(), said
+    assert _on_disk(corpus) == before, "the product wrote into the scanned folder"
+
+
 def test_the_outline_rows_are_the_plans_own_nodes(proposed):
     """Row for row, in the plan's own order.
 
@@ -312,6 +340,29 @@ def test_an_edit_no_gesture_can_express_is_refused_by_name(proposed):
     assert code == 2, said
     assert "no gesture moves one" in said, said
     assert _labels(proposed) == before, "a refused file changed the plan"
+
+
+def test_an_outline_from_an_older_proposal_is_refused(proposed):
+    """A marker is a POSITION in one proposal's walk.
+
+    Applying an edit mints a new plan that walks differently, so the SAME file
+    handed back a second time would carry `[3]` against whichever folder now
+    stands third -- a rename of a folder the person never touched, applied in
+    silence. The header stamps the proposal it was written from and a file that
+    names an older one is refused by name.
+    """
+    marker, label = _a_folder_named_by_a_value(proposed)
+    edited = _edited(proposed, lambda lines: [
+        line.replace(label, f"{label} of mine", 1) if f"[{marker}]" in line
+        else line for line in lines])
+    code, said = _once(proposed, "--structure", edited)
+    assert code == 0, said
+    after = _labels(proposed)
+    # THE SAME FILE AGAIN, against the plan the run above minted.
+    code, said = _once(proposed, "--structure", edited)
+    assert code == 2, said
+    assert "was written from proposal" in said, said
+    assert _labels(proposed) == after, "a refused file changed the plan"
 
 
 def test_an_outline_from_no_run_at_all_is_refused(tmp_path):

@@ -451,7 +451,8 @@ from tree_design.store import latest_plan_version, nodes_for_version, open_draft
 from structure_file import (
     INDENT, SITUATION_PREFIX, Added, Moved, Removed, Renamed, SituationSaid,
     StructureRefused, StructureRow, lines as structure_lines,
-    read as structure_read, render as structure_render,
+    plan_in as structure_plan_in, read as structure_read,
+    render as structure_render,
 )
 from apply_run.approval import approval_reader, approval_writer
 from apply_run.branches import BranchRefused, branches_named
@@ -21903,6 +21904,21 @@ def structure_edits(conn: sqlite3.Connection, text: str, *,
     `situation_schema(situation_id)` is the library's answer to "which kind is
     this situation one of", or `None` for an id the library does not carry.
     """
+    # THE PROPOSAL THIS FILE WAS WRITTEN FROM, and it has to be the one this
+    # database now holds. A marker is a POSITION in one plan's walk: a run that
+    # applied an edit minted a new plan that walks differently, so the same file
+    # handed back a second time would carry `[3]` against whichever folder now
+    # stands third -- a rename of something the person never touched, applied
+    # silently. Refused by name, with the one command that fixes it.
+    written_from = structure_plan_in(text)
+    if written_from is not None and written_from != plan_version:
+        raise StructureGestures(
+            f"this outline was written from proposal {written_from!r} and this "
+            f"plan is {plan_version!r}. The [n] on a line is that folder's place "
+            f"in the proposal it was written from, so applying an older file "
+            f"would rename and remove folders you never touched. Run the command "
+            f"without `--structure` to get the current outline, and make your "
+            f"edits in that.")
     nodes = {marker: node
              for marker, _depth, node in _outline_walk(
                  nodes_for_version(conn, plan_version))}
@@ -24225,10 +24241,14 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         settings=display_policy(conn, plan_version=_level_version),
         user_id=args.user, component_version=COMPONENT_VERSION,
         rendered_at=now())
-    structure_path = (
-        args.structure_out if args.structure_out is not None
-        else (args.database.parent if args.database is not None
-              else directory).joinpath(STRUCTURE_FILENAME))
+    # BESIDE THE DATABASE, and `database` rather than `args.database`: the flag is
+    # optional and the resolved path is the one `open_database` just refused to
+    # put inside the corpus. Reading the flag left the default writing
+    # `proposed-structure.txt` into the folder being scanned on every run that did
+    # not type `--database` -- a file this product made in a place it promised to
+    # leave alone, and one the next scan would index.
+    structure_path = (args.structure_out if args.structure_out is not None
+                      else database.parent / STRUCTURE_FILENAME)
     outline = structure_rows(result, situations=situations,
                              words_of=situation_words)
     shown = report(result, file_names(conn, directory, *also_read), out=out,
@@ -24328,7 +24348,9 @@ def main(argv: Sequence[str] | None = None, *, out=None,
     # refused would be an invitation to edit a proposal nobody was shown.
     structure_path.parent.mkdir(parents=True, exist_ok=True)
     structure_path.write_text(
-        structure_render(outline, path=str(structure_path)), encoding="utf-8")
+        structure_render(outline, path=str(structure_path),
+                         plan=result.tree.tree.plan_version_id),
+        encoding="utf-8")
     if args.record:
         # AFTER the report, because it ends in a command to type and a command
         # printed above forty lines of report is a command nobody sees. The

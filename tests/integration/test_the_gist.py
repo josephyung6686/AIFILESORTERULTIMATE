@@ -226,6 +226,40 @@ def test_a_gist_the_judge_did_not_change_is_printed_once(tmp_path):
     assert JUDGED not in said, said
 
 
+def test_a_file_nothing_could_be_read_out_of_is_counted_and_said(tmp_path):
+    """The gist's other tail, and it needs a corpus the eleven-file one is not.
+
+    Every file on that disk has text in it, so this line had never been printed
+    by any run measured here. A picture with no words is the ordinary case the
+    owner's amendment 5 of 13 Sep is about -- "a capture with no words is its
+    kind" -- and it is the one file a person most needs told about, because
+    nothing was read and the kind came from the file itself.
+
+    Measured against the COVERAGE block on the same screen: that block counts one
+    `unreadable`, and two blocks on one screen disagreeing about the same file is
+    the defect the coverage sum exists to make impossible.
+    """
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "PHYS 1401 syllabus.txt").write_text(
+        "PHYS 1401 Syllabus\n\nSpring 2026. Instructor: Dr. Lee. Credits: 3.\n")
+    (corpus / "snapshot.png").write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 64)
+    out = io.StringIO()
+    with pytest.MonkeyPatch.context() as patch:
+        for name in (CREDENTIAL_NAME, BASE_URL_NAME, *MODEL_NAME_OF_TIER.values(),
+                     LOCAL_MODEL_NAME, LOCAL_BASE_URL_NAME):
+            patch.delenv(name, raising=False)
+        patch.setattr(cli, "ENV_FILE", tmp_path / "absent.env")
+        code = cli.main([str(corpus), "--situation", SITUATION, "--label", LABEL,
+                         "--user", "t",
+                         "--database", str(tmp_path / "holder" / "plan.sqlite"),
+                         "--accept-groups"], out=out)
+    said = out.getvalue()
+    assert code == 0, said
+    assert "1 of them had nothing to read" in said, said
+    assert "    1 unreadable" in said, said
+
+
 def test_the_gist_moves_no_file(run):
     """It is a screen. `--freeze` and `--apply` are what move files, and neither
     was typed, so the corpus is byte for byte what it was."""

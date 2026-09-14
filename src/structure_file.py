@@ -54,6 +54,13 @@ SITUATION_PREFIX: str = "situation:"
 
 _MARKED = re.compile(r"^(?P<label>.*?)\s*\[(?P<marker>\d+)\](?P<words>.*)$")
 
+#: The proposal this outline was written from, stamped in the header. The markers
+#: are POSITIONS in one plan's walk, and a plan the person has since changed walks
+#: differently -- so an outline handed back a second time would rename the folder
+#: that happens to stand where the one they renamed used to. `plan_in` reads it
+#: back and `cli` refuses an outline that is not this database's current one.
+PLAN_PREFIX: str = "# plan:"
+
 
 @dataclass(frozen=True)
 class StructureRow:
@@ -150,7 +157,16 @@ def lines(rows: Sequence[StructureRow]) -> tuple[str, ...]:
     return tuple(written)
 
 
-def render(rows: Sequence[StructureRow], *, path: str) -> str:
+def plan_in(text: str) -> str | None:
+    """Which proposal this outline was written from, or `None` for a file that
+    does not say -- an outline from before the stamp, or one somebody wrote."""
+    for line in text.splitlines():
+        if line.startswith(PLAN_PREFIX):
+            return line[len(PLAN_PREFIX):].strip() or None
+    return None
+
+
+def render(rows: Sequence[StructureRow], *, path: str, plan: str) -> str:
     """The outline, with the header that says what may be edited in it.
 
     The header is part of the file and not part of the screen. A person opens
@@ -161,6 +177,7 @@ def render(rows: Sequence[StructureRow], *, path: str) -> str:
     """
     header = [
         "# The structure this run proposes for your files.",
+        f"{PLAN_PREFIX} {plan}",
         "# Edit this file, then hand it back on the next run with:",
         f"#     --structure {path}",
         "#",
