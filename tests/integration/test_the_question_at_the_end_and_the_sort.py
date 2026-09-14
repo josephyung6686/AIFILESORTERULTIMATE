@@ -86,6 +86,13 @@ abstains `no_model_judgement` -- a call that never happened. Threading the gate
 into that route sends nine more files' placement dossiers off this device, which
 is a change to what leaves the machine and is the owner's to make, not this
 pin's. It is pinned `xfail(strict=True)` below and reported.
+
+**AND ONE MORE, ALSO xfail AND ALSO THE OWNER'S.** `apply_file_held` writes its
+grant at `cli.PLAN_VERSION` and P11 reads `automatic_move_permitted_for` at the
+run's own plan version, so the grant survives the run (it did not, before this
+branch) and still does not reach the read that decides whether the file may
+move. Closing it decides when a protected file becomes movable, which is a
+ruling rather than a repair.
 """
 from __future__ import annotations
 
@@ -688,24 +695,92 @@ def test_a_typed_situation_overrides_the_judges_name_for_the_same_schema(
     assert "Kind of work -- academic:artifact_kind:work_type" in flat, said
 
 
+def _cloud_only_routing():
+    """A key and NO local model, which is this file's whole deployment.
+
+    Written out rather than imported from `tests/p7/test_p7_file_released`: that
+    module keeps a module-scoped `cli.main` of its own, and importing it into an
+    integration module is what leaves its shared database empty (a pre-existing
+    collection-order fault, reproduced on `ratify/14-sep` unchanged).
+    """
+    from llm_harness.transport import ModelClient
+    from privacy.release import ModelTarget
+    from readers.model_deepseek import CLOUD, PROVIDER
+    from readers.model_routing import FAST, LOGIC, REASONING, TierRouting
+    client = ModelClient(
+        model_target=ModelTarget(locality=CLOUD, model_id="a-logician",
+                                 provider=PROVIDER),
+        invoke=lambda _payload: b'{"claims": []}')
+    return TierRouting(tier_of_call_site=cli.TIER_OF_CALL_SITE,
+                       client_of_tier={REASONING: client, LOGIC: client,
+                                       FAST: client})
+
+
 @pytest.mark.xfail(strict=True, reason=(
     "SITE C'S ROUTE NEVER ASKS THE GATE. `cli.target_for(conn, routing, "
     "C_PLACEMENT, ...)` is built with no `cloud_cleared`, where sites A, G and H "
     "all pass `lambda file_id: file_id in gate_pass.cleared_files`, so "
     "`model_route_permitted` falls through to the current row's basis -- "
     "`local_model_situation` here, which is not a `CLOUD_CLEARING_BASES` member "
-    "since 13 Sep. Measured on this database: nine of eleven files have no "
-    "destination at site C as built and a cloud one with the gate supplied. "
-    "Threading it sends nine more placement dossiers off the device, which is "
-    "the owner's call and not this pin's."))
-def test_the_answered_files_are_placed_once_the_person_has_said_which(three_runs):
-    """The way out of the open situation, and what item 5 of the build order is
-    for: the person answers, and the next run files what the answer unlocked."""
+    "since 13 Sep. Threading it sends nine more placement dossiers off the "
+    "device, which is the owner's call and not this pin's."))
+def test_the_placement_judge_may_be_asked_about_a_file_the_gate_cleared(
+        three_runs):
+    """THE SEAM, ASKED DIRECTLY, so that fixing it turns this green.
+
+    An earlier draft of this pin asserted the CONSEQUENCE -- that the society's
+    files are filed once the person has answered which situation they are -- and
+    that is the wrong assertion for a strict xfail: two things stand between
+    those files and a folder, and only one of them is this route. The other is
+    the tree, which grew no root for `nonprofit.member-association` because its
+    one folder level is `Membership year` and no file here carries that fact.
+    A pin on the consequence would stay red after site C was fixed and nobody
+    would learn that it had been.
+
+    So this asks the route itself, on the cloud-only routing this whole file
+    runs under: may the placement judge be asked about a file the gate cleared?
+    Measured as built, per file, on this database -- nine of eleven answer "no
+    target at all" and answer "cloud" the moment `cloud_cleared` is supplied. The
+    two that stay `None` either way are right to: the medical record is held, and
+    `ECON 2010 lecture 01.txt` is unclassified, which `00` amendment 7(c) keeps
+    on this machine.
+    """
+    state = three_runs
+    from database_agent.db import open_database
+    conn = open_database(state["database"])
+    try:
+        route = cli.target_for(conn, _cloud_only_routing(), cli.C_PLACEMENT,
+                               operation_mode=cli.CLOUD_ENABLED_MODE)
+        without = {name: route(state["ids"][name]) for name in CLUB_FILES}
+    finally:
+        conn.close()
+    assert all(chosen is not None for chosen in without.values()), (
+        "the gate cleared these files and the site that decides where they go "
+        "has nowhere to ask about them")
+
+
+def test_and_so_they_are_filed_nowhere_even_after_the_answer(three_runs):
+    """THE CONSEQUENCE, pinned as it actually is rather than as it should be.
+
+    This is `104` §18.60 item 6 blocked: the person answered the branch question,
+    the situation is theirs, and the sort still files none of the three files the
+    question was about. The reason word is the one that says a call never
+    happened, and the call never happened because of the route above. A second
+    cause is possible and is NOT measured here: the shipped
+    `nonprofit.member-association` binds one folder level, `Membership year`, and
+    no file in this corpus carries a fact for it, so a tree with a root for that
+    situation may have nothing to build under it either way.
+
+    When site C's route is fixed this test is the one to re-measure. It is green
+    today because it states what the product does today.
+    """
     state = three_runs
     run = (state["corpus"], state["database"], state["said"][2])
-    placed = _placed(run)
+    placed, abstained = _placed(run), _abstentions(run)
     for name in CLUB_FILES:
-        assert f"{CLUB}/{name}" in placed, sorted(placed)
+        where = f"{CLUB}/{name}"
+        assert where not in placed, placed.get(where)
+        assert abstained[where] == NO_MODEL_JUDGEMENT, abstained[where]
 
 
 # --- scene 3: the sort, in run 10's shape ---------------------------------------
@@ -784,6 +859,56 @@ def test_the_held_file_is_not_placed_and_the_released_one_is(three_runs):
     assert abstained[KEPT] == "no_supported_destination", abstained[KEPT]
     assert (state["corpus"] / KEPT).is_file(), "the held file left its own path"
     assert placed[RELEASED] == LABEL, placed.get(RELEASED)
+
+
+def test_the_grant_the_gesture_wrote_is_live_in_the_policy(three_runs):
+    """`--file-held`'s ONE effect, read back off the policy after three runs.
+
+    `apply_file_held` writes exactly one field -- this file's own
+    `automatic_move_permissions` grant, at `cli.PLAN_VERSION` -- and until this
+    branch the run's own two policy writes reset that field to `{}` fifteen
+    milliseconds later, so the person's answer never survived the invocation
+    that carried it. It survives now, and the file it names is the one the
+    person named.
+    """
+    state = three_runs
+    from privacy.policy import current_policy
+    conn = sqlite3.connect(f"file:{state['database']}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        standing = current_policy(conn, plan_version=cli.PLAN_VERSION)
+    finally:
+        conn.close()
+    assert standing is not None
+    assert standing.automatic_move_permissions == {state["ids"][KEPT]: True}, (
+        standing.automatic_move_permissions)
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "THE GRANT IS WRITTEN AT ONE PLAN VERSION AND READ AT ANOTHER. "
+    "`apply_file_held` writes at `cli.PLAN_VERSION` (`plan_0`) -- its docstring "
+    "says 'at the plan version this run is working in' -- and P11 asks "
+    "`automatic_move_permitted_for(..., plan_version=inputs.plan_version)`, "
+    "which is the run's own `version_*`. `current_policy` finds no grant there, "
+    "so the gesture is still inert for placement. Closing it means either "
+    "carrying `plan_0`'s grants onto each new plan version or writing the "
+    "gesture at the plan's, and choosing between those decides when a protected "
+    "file becomes movable -- the owner's call, not this pin's."))
+def test_the_grant_reaches_the_read_that_decides_whether_the_file_may_move(
+        three_runs):
+    """The gesture's own stated purpose: `may_move_automatically` permits it."""
+    state = three_runs
+    from privacy.moves import may_move_automatically
+    conn = sqlite3.connect(f"file:{state['database']}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        plan_version = conn.execute(
+            "SELECT plan_version FROM placement_decisions "
+            "ORDER BY rowid DESC LIMIT 1").fetchone()[0]
+        verdict = may_move_automatically(conn, state["ids"][KEPT], plan_version)
+    finally:
+        conn.close()
+    assert verdict.allowed, verdict.reason
 
 
 def test_the_persons_own_folder_is_in_the_plan_as_theirs(three_runs):
