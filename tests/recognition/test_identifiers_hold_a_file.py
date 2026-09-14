@@ -34,7 +34,8 @@ from extractors.runs import coverage
 from extractors.shape import location, observation, run
 from extractors.sink import ExtractionResult
 from recognition.detector import (
-    Abstention, IDENTIFIER_SAFETY_DOMAIN, Precaution, Recognition,
+    Abstention, CHECKSUMMED_KINDS, IDENTIFIER_SAFETY_DOMAIN, Precaution,
+    Recognition,
 )
 from test_recognition_detector import (  # the packaged harness
     ACADEMIC, CLOCK, a_file, db, detector, rule_set, schema_entry)  # noqa: F401
@@ -142,37 +143,57 @@ def _identifier_keys(db, file_id, content_hash) -> set[str]:
 
 # --- the two files the ruling was written for -------------------------------------
 
-def test_a_passport_page_is_held_as_identity_on_its_number(db, tmp_path):
-    """`00`:52 and `00`:185 for a file whose words say nothing the rules know.
+def test_a_passport_page_corroborates_identity_but_does_not_hold_alone(
+        db, tmp_path):
+    """`00`:52 and `00`:185, re-argued by the owner's ruling of 13 Sep 2026.
 
-    The page's prose is a passport's prose and the hand-built rule set has no
-    `identity` schema at all, so the recognition ABSTAINS -- and the file is still
-    held, which is `_precaution`'s own distinction: corroboration governs what we
-    CLAIM, precaution governs what we EXPOSE.
+    Neither `passport_number` nor `date_of_birth` is in `extractors.
+    identifiers.CHECKSUMMED_KINDS` -- a passport number carries no check digit
+    and a birth date carries no arithmetic at all -- so since the ruling they
+    are shapes that corroborate a work type rather than holding a file alone.
+    Measured on the second corpus before the change: eight club sign-up sheets
+    were held on a date of birth beside a name alone.
 
-    SABOTAGE: drop the identifier arm from `precaution_report`. The record comes back
-    unprotected, which is `104` §18.56's measured miss reproduced as a green test.
+    ALONE, against the hand-built rule set that knows no `identity` schema at
+    all, the page whose words say nothing the rules know stays unheld -- and
+    beside `identity`'s own authored term `passport` (which this page's own
+    label line supplies), the same two readings corroborate it and the file
+    holds, citing the word and both numbers.
+
+    SABOTAGE: drop the checksum gate from `precaution_report`'s abstention arm.
+    The ALONE half below goes green on the shape alone, which is exactly the
+    13 Sep over-protection `104` §18.60 measured.
     """
     file_id, content_hash = a_page(db, tmp_path, "scan001.pdf", PASSPORT_PAGE)
 
     outcome, report, record = _held(db, file_id, content_hash)
 
     assert isinstance(outcome, Abstention), outcome
-    assert isinstance(report, Precaution), report
-    assert report.schema_id == "identity"
-    # The terms ARE the kinds, because that is what the reading says: not that the
-    # document used the word `passport`, but that the characters on its page are a
-    # passport number and a date of birth.
-    assert set(report.terms) == {"passport_number", "date_of_birth"}
-    assert report.zones == ("body",)
+    assert report is None
+    assert record is None or record.basis != "safety_domain"
 
-    assert record is not None
-    assert record.basis == "safety_domain"
-    assert record.protected is True
-    assert record.handling_class == "sensitive_personal"
-    # §8.4: a record cites what raised IT. What raised this is the identifiers.
-    assert set(record.evidence_refs) <= _identifier_keys(db, file_id, content_hash)
-    assert set(record.evidence_refs) == set(report.evidence_refs)
+    identity = schema_entry("identity", context=("nationality",),
+                            work_types=("passport",))
+    with_term_id, with_term_hash = a_page(
+        db, tmp_path, "scan001b.pdf", PASSPORT_PAGE)
+    engine = detector(rule_set(ACADEMIC, identity))
+    outcome2 = engine.explain(db, with_term_id, with_term_hash)
+    report2 = engine.precaution_report(db, outcome2, file_id=with_term_id,
+                                       content_hash=with_term_hash)
+    record2 = engine(db, with_term_id, with_term_hash)
+
+    assert isinstance(report2, Precaution), report2
+    assert report2.schema_id == "identity"
+    assert "passport" in report2.terms
+    # The terms ARE the kinds too, because that is what the reading says: not
+    # that the document used the word `passport`, but that the characters on
+    # its page are a passport number and a date of birth.
+    assert {"passport_number", "date_of_birth"} <= set(report2.terms)
+
+    assert record2 is not None
+    assert record2.basis == "safety_domain"
+    assert record2.protected is True
+    assert record2.handling_class == "sensitive_personal"
 
 
 def test_a_card_statement_is_held_as_finance_on_a_luhn_valid_number(db, tmp_path):
@@ -276,10 +297,16 @@ def test_a_recognised_file_is_still_held_by_its_identifier(db, tmp_path):
 
 
 def test_every_kind_the_extractor_produces_reaches_one_of_the_four(db, tmp_path):
-    """The mapping is closed at import; this asserts it is also LIVE.
+    """The mapping is closed at import; this asserts it is also LIVE -- and,
+    re-argued by the owner's ruling of 13 Sep 2026, that every kind reaches a
+    DOMAIN while only a CHECKSUMMED kind (`extractors.identifiers.
+    CHECKSUMMED_KINDS`) reaches a HOLD alone.
 
-    A kind with a domain in the table and no path to a hold would be `104` §18.56's
-    miss wearing a table entry, so each kind is put through the whole seam once.
+    A kind with a domain in the table and no path to at least a corroboration
+    would be `104` §18.56's miss wearing a table entry, so each kind is put
+    through the whole seam once, alone, against a rule set that authors no
+    work type of any of the four -- which is exactly the shape that tells a
+    checksum's own proof from a shape with none.
     """
     lines = {
         "payment_card": "Visa 4242 4242 4242 4242 charged.",
@@ -296,10 +323,19 @@ def test_every_kind_the_extractor_produces_reaches_one_of_the_four(db, tmp_path)
         file_id, content_hash = a_page(
             db, tmp_path, f"page{index}.pdf", f"Notes\n{line}\n")
         _outcome, report, record = _held(db, file_id, content_hash)
-        assert report is not None, kind
-        assert report.schema_id == IDENTIFIER_SAFETY_DOMAIN[kind], kind
-        assert kind in report.terms, (kind, report.terms)
-        assert record.basis == "safety_domain" and record.protected is True, kind
+        if kind in CHECKSUMMED_KINDS:
+            assert report is not None, kind
+            assert report.schema_id == IDENTIFIER_SAFETY_DOMAIN[kind], kind
+            assert kind in report.terms, (kind, report.terms)
+            assert record.basis == "safety_domain" and record.protected is True, (
+                kind)
+        else:
+            # A shape without a check digit corroborates a work type and holds
+            # nothing by itself -- 7(a)'s floor is the checksum, and these
+            # three (`passport_number`, `date_of_birth`,
+            # `medical_record_number`) have none.
+            assert report is None, (kind, report)
+            assert record is None or record.basis != "safety_domain", kind
 
 
 # --- the production seam ----------------------------------------------------------

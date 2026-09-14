@@ -33,7 +33,8 @@ from privacy.classification import ClassificationRecord, UnbackedClassification
 from privacy.vocabulary import OutOfVocabulary
 from recognition.detector import (  # noqa: F401
     SAFETY_DOMAIN_IDS, _tokens,
-    Abstention, Detector, Handling, Recognition, SAFETY_DOMAIN_HANDLING,
+    Abstention, Detector, ENTITY_NAMESPACE, Handling, PERSON_ENTITY,
+    Recognition, SAFETY_DOMAIN_HANDLING,
 )
 from recognition.rules import load_rules
 from recognition.vocabulary import ABSTENTION_REASONS, MANIFEST_VERSION
@@ -207,6 +208,30 @@ def detector(rules, *, handling_for=None, is_protected=None,
         now=lambda: CLOCK, is_protected=is_protected,
         corroborating_observations=corroborating_observations,
         settled_by_user=settled_by_user)
+
+
+def _name_someone(db, file_id, content_hash):
+    """Mint a bare person-entity reading -- the corroboration a body-prose or
+    bare-filename work type now needs (the owner's ruling of 13 Sep 2026,
+    `Detector._corroborated`): "a person the entity encoder named anywhere in
+    the file". Every file this is used on below is somebody's own -- a key, a
+    vault export, a power of attorney, a discharge summary -- so this is the
+    encoder finding what a real pass over such a file would find.
+    """
+    observations = (observation(
+        file_id=file_id, content_hash=content_hash,
+        extractor_name=ENTITY_NAMESPACE + PERSON_ENTITY, extractor_version="0.1.0",
+        source_type="text_document", raw_value="Jane Roberts",
+        location=location(zone="body"), observed_at=CLOCK,
+        reliability="possible"),)
+    RunWriter(db, author="P5").write(ExtractionResult(
+        run=run(file_id=file_id, content_hash=content_hash,
+                extractor_name=ENTITY_NAMESPACE + PERSON_ENTITY,
+                extractor_version="0.1.0", source_type="text_document",
+                analysis_tier="native", config={}, completeness="complete",
+                coverage=coverage("files", 1, 1), observation_count=1,
+                started_at=CLOCK, finished_at=CLOCK),
+        observations=observations))
 
 
 def _identifier_keys(db, value):
@@ -624,6 +649,12 @@ def test_the_packaged_manifest_protects_the_credential_files_a_person_owns(
     One term is enough here and that is deliberate: `_precaution` protects a
     safety domain the file's own words say it IS, while `explain` still
     abstains. We do not claim to know what the file is; we decline to expose it.
+
+    AND SINCE the owner's ruling of 13 Sep 2026, that one term corroborates
+    rather than holds alone -- these are bare filenames and body prose, none of
+    them a naming zone `_names_the_file` reaches on its own recognition -- so
+    each fixture also names the person the key, the vault or the record is
+    that person's own, which is `Detector._corroborated`'s second finding.
     """
     rules = load_rules(MANIFEST_PATH.read_text)
     det = detector(rules)
@@ -637,6 +668,7 @@ def test_the_packaged_manifest_protects_the_credential_files_a_person_owns(
              "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1r\n", ".txt")):
         file_id, content_hash = a_file(db, tmp_path, filename, body=body,
                                        extension=extension)
+        _name_someone(db, file_id, content_hash)
         record = det(db, file_id, content_hash)
         if record is None or not record.protected:
             unprotected.append((filename, record))
@@ -690,6 +722,12 @@ def test_the_packaged_manifest_protects_a_power_of_attorney_and_a_discharge_summ
     intermediate shape: on both files another schema wins outright -- a power of
     attorney reads as `construction_property`, a discharge summary as
     `business_operations` -- and the safety domain that lost is the one at stake.
+
+    AND SINCE the owner's ruling of 13 Sep 2026, a safety domain named over
+    another schema's body prose corroborates rather than holds alone -- neither
+    `power of attorney` nor `discharge summary` sits in a naming zone here, both
+    being in body prose -- so each fixture also names the person the document is
+    granted by or discharged.
     """
     rules = load_rules(MANIFEST_PATH.read_text)
     det = detector(rules)
@@ -699,6 +737,7 @@ def test_the_packaged_manifest_protects_a_power_of_attorney_and_a_discharge_summ
             ("Discharge Summary.pdf",
              "discharge summary; follow up with your gp.")):
         file_id, content_hash = a_file(db, tmp_path, filename, body=body)
+        _name_someone(db, file_id, content_hash)
         record = det(db, file_id, content_hash)
         if record is None or not record.protected:
             unprotected.append((filename, record))
@@ -875,6 +914,11 @@ def test_a_tie_that_includes_a_safety_domain_still_protects_the_file(db, tmp_pat
     `explain` still ABSTAINS -- no schema is activated, the file is honestly
     unrecognised -- while the classification carries the safety domain's own
     handling, with `basis='safety_domain'` saying exactly why.
+
+    AND SINCE the owner's ruling of 13 Sep 2026, a tied leader's work type
+    corroborates rather than holds alone -- `identity` ties here on `passport`
+    in body prose, not a naming zone -- so the fixture also names the client
+    the document is about.
     """
     rules = rule_set(
         schema_entry("creative", context=("client",)),
@@ -882,6 +926,7 @@ def test_a_tie_that_includes_a_safety_domain_still_protects_the_file(db, tmp_pat
     file_id, content_hash = a_file(
         db, tmp_path, "Client Passport.pdf",
         body="Passport number X12345678. Client identity document.")
+    _name_someone(db, file_id, content_hash)
     det = detector(rules)
 
     # Recognition is unchanged: it still declines to say what the file IS.

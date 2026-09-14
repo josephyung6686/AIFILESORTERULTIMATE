@@ -297,11 +297,20 @@ def test_the_bare_word_still_protects_where_it_stands_on_its_own(db, tmp_path):
     The real deployment's policy, not the harness's: with the harness `POLICY`
     this file abstains `unassigned_handling` before it ever reaches the branch
     that protects, so the assertion would pass without testing anything.
+
+    THE BODY DROPS "Client" (the original read "Client holdings ..."), and the
+    owner's ruling of 13 Sep 2026 is why: against the real manifest that word is
+    `creative`'s own context term, and it tied `finance` at one term each --
+    putting this file on the tied-abstention arm, which needs a corroborating
+    reading and has none here. The naming-zone floor this test pins is
+    untouched; the fixture's incidental tie is what changed, and finance now
+    wins outright on the filename alone, exactly as it did before this word
+    was ever added.
     """
     rules = load_rules(MANIFEST_PATH.read_text)
     file_id, content_hash = a_file(
         db, tmp_path, "Statement.pdf",
-        body="Table of contents. Client holdings as of 09.01.2025.")
+        body="Table of contents. Holdings as of 09.01.2025.")
 
     record = detector(rules, handling_for=cli.HANDLING_POLICY)(
         db, file_id, content_hash)

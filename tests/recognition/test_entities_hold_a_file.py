@@ -12,10 +12,21 @@ held on an authored term. What is new is the PAIRING, and every pin below is abo
 that: the same two entities in one unit hold the file, in two units do not, and
 either one alone does not.
 
+**AND, BY THE OWNER'S RULING OF 13 Sep 2026, THE PAIR ITSELF DOES NOT HOLD ALONE
+EITHER.** Measured on the second corpus before the change: the pair held ten
+essays and personal statements for every one that was a genuine record. So 7(b)'s
+pair now travels the same road as 7(a)'s uncheckable shapes (`00` §18.60): it is
+`Detector._corroborated`'s SECOND finding, standing beside a work type the rules
+authored, never the first and never alone. The pins below that used to show the
+pair holding by itself now show it corroborating a term instead, with the fixture
+built to make that explicit; the pins about the PAIRING RULE itself -- which two
+things, in which unit -- are unaffected and stand beside an authored term to say so.
+
 The readings are written by the real `extractors.entities.record_entity_readings`
 over a fixture reader, so the pins are against the contract that module publishes
 rather than against rows this file invented. No identifier readings are minted
-(`mint=False`), so a hold here can only have come from 7(b).
+(`mint=False`), so a hold here can only have come from 7(b) and the authored
+library beside it.
 """
 from __future__ import annotations
 
@@ -28,7 +39,8 @@ from extractors.shape import location, observation, run, segment
 from extractors.sink import ExtractionResult
 from recognition.detector import Abstention, Precaution
 from test_recognition_detector import (  # the packaged harness
-    ACADEMIC, CLOCK, a_file, db, detector, rule_set)  # noqa: F401
+    ACADEMIC, CLOCK, FINANCE, MEDICAL, a_file, db, detector, rule_set,
+    schema_entry)  # noqa: F401
 
 #: The deployment's own, from the one place each is chosen.
 from cli import ENTITY_MASKED_LABELS, ENTITY_TAIL_KEPT
@@ -118,29 +130,53 @@ DISEASE_PAPER = ("A review of type 2 diabetes in adolescent populations, with "
                  "reference to the 2019 cohort and its published outcomes.\n")
 
 
-def test_a_name_beside_a_diagnosis_holds_the_file_as_medical(db, tmp_path):
-    """7(b)'s own example. The rules know nothing about medicine here -- the rule set
-    is one ordinary schema -- so the hold can only be the pair.
+def test_a_name_beside_a_diagnosis_corroborates_but_does_not_hold_alone(
+        db, tmp_path):
+    """7(b)'s own example, re-argued by the owner's ruling of 13 Sep 2026: the
+    ordinary files the rules held "MUST NOT BE HELD", and ten of them were
+    essays and personal statements held on a person beside a condition ALONE,
+    for every one that was a genuine record. The pair is no longer a hold on
+    its own -- `Detector._corroborated` reads it as the SECOND finding a hold
+    needs, so with no authored medical term anywhere (the rule set below is
+    still one ordinary schema, `00` amendment 7(b)'s own premise) the file
+    stays unheld.
 
-    SABOTAGE: drop the `people and` test from `_entity_readings`. This still passes
-    and the next test goes red, which is why the two are written together.
+    SABOTAGE: drop the `_corroborated` gate from `precaution_report`'s
+    abstention arm. The ALONE half below goes green on the pair by itself,
+    which is exactly the 13 Sep over-protection `104` §18.60 measured.
     """
     file_id, content_hash = a_page(db, tmp_path, "scan101.pdf", HEALTH_FORM)
     read_entities(db, file_id, content_hash,
                   reader(("person", "Jane Roberts"),
                          ("medical condition", "type 2 diabetes")))
 
+    # ALONE: the rules know nothing about medicine, so the pair holds nothing.
     outcome, report, record = held(db, file_id, content_hash)
+    assert isinstance(outcome, Abstention), outcome
+    assert report is None
+    assert record is None or record.basis != "safety_domain"
+
+    # CORROBORATING: the same pair, beside `medical`'s own authored term "care
+    # plan", holds the file -- and the report cites the word AND both readings.
+    care_id, care_hash = a_page(
+        db, tmp_path, "scan101b.pdf", HEALTH_FORM + "Care plan reviewed.\n")
+    read_entities(db, care_id, care_hash,
+                  reader(("person", "Jane Roberts"),
+                         ("medical condition", "type 2 diabetes")))
+    engine = detector(rule_set(ACADEMIC, MEDICAL))
+    outcome = engine.explain(db, care_id, care_hash)
+    report = engine.precaution_report(db, outcome, file_id=care_id,
+                                      content_hash=care_hash)
+    record = engine(db, care_id, care_hash)
 
     assert isinstance(outcome, Abstention), outcome
     assert isinstance(report, Precaution), report
     assert report.schema_id == "medical"
-    assert set(report.terms) == {"entities.person", "entities.medical_condition"}
+    assert "care plan" in report.terms
+    assert {"entities.person", "entities.medical_condition"} <= set(report.terms)
     assert record.basis == "safety_domain"
     assert record.protected is True
     assert record.handling_class == "sensitive_personal"
-    # §8.4: a record cites what raised it, and what raised this is BOTH readings.
-    assert len(record.evidence_refs) == 2
 
 
 def test_a_paper_about_a_disease_with_no_person_is_not_held(db, tmp_path):
@@ -161,9 +197,15 @@ def test_a_paper_about_a_disease_with_no_person_is_not_held(db, tmp_path):
     assert record is None or record.basis != "safety_domain"
 
 
-def test_a_name_beside_a_date_of_birth_holds_the_file_as_identity(db, tmp_path):
-    """The other half of the ruling's sentence, and `identity` is 7(a)'s own reading
-    of where a birth date belongs."""
+def test_a_name_beside_a_date_of_birth_corroborates_but_does_not_hold_alone(
+        db, tmp_path):
+    """The other half of the ruling's sentence, re-argued the same way: a date
+    of birth is a shape without a check digit -- it is not one of
+    `extractors.identifiers.CHECKSUMMED_KINDS` -- and 7(b)'s pair over it is on
+    the same terms since the owner's ruling of 13 Sep 2026 (eight club sign-up
+    sheets were held on exactly this pair alone, measured on the second
+    corpus): it corroborates `identity`'s own term and holds nothing alone.
+    """
     file_id, content_hash = a_page(
         db, tmp_path, "scan103.pdf",
         "Registration\nJane Roberts\nBorn 11 April 1990 in Kowloon\n")
@@ -171,10 +213,32 @@ def test_a_name_beside_a_date_of_birth_holds_the_file_as_identity(db, tmp_path):
                   reader(("person", "Jane Roberts"),
                          ("date of birth", "11 April 1990")))
 
+    # ALONE: the rules author no `identity` schema at all, so the pair holds
+    # nothing.
     _outcome, report, record = held(db, file_id, content_hash)
+    assert report is None
+    assert record is None or record.basis != "safety_domain"
+
+    # CORROBORATING: the same pair, beside `identity`'s own authored term
+    # "passport", holds -- and cites the word and both readings.
+    identity = schema_entry("identity", context=("nationality",),
+                            work_types=("passport",))
+    reg_id, reg_hash = a_page(
+        db, tmp_path, "scan103b.pdf",
+        "Registration\nJane Roberts\nPassport application.\n"
+        "Born 11 April 1990 in Kowloon\n")
+    read_entities(db, reg_id, reg_hash,
+                  reader(("person", "Jane Roberts"),
+                         ("date of birth", "11 April 1990")))
+    engine = detector(rule_set(ACADEMIC, identity))
+    outcome = engine.explain(db, reg_id, reg_hash)
+    report = engine.precaution_report(db, outcome, file_id=reg_id,
+                                      content_hash=reg_hash)
+    record = engine(db, reg_id, reg_hash)
 
     assert report is not None and report.schema_id == "identity"
-    assert set(report.terms) == {"entities.person", "entities.date_of_birth"}
+    assert "passport" in report.terms
+    assert {"entities.person", "entities.date_of_birth"} <= set(report.terms)
     assert record.basis == "safety_domain" and record.protected is True
 
 
@@ -221,26 +285,63 @@ def test_beside_means_the_same_unit_and_not_the_same_file(db, tmp_path):
     assert record is None or record.basis != "safety_domain"
 
 
-def test_an_account_number_and_a_medical_record_number_need_nobody_beside_them(
+def test_an_account_number_and_a_medical_record_number_corroborate_but_do_not_hold_alone(
         db, tmp_path):
-    """The second table. These are issued to a holder and printed on that holder's
-    own paper, so the number is already about a person -- and they are the two kinds
-    7(a)'s pattern layer holds a file on alone, which the two layers must agree on."""
+    """The second table, re-argued by the owner's ruling of 13 Sep 2026.
+
+    `entities.account_number` and `entities.medical_record_number` are the
+    ENTITY encoder's OWN readings -- a different table from `extractors.
+    identifiers.CHECKSUMMED_KINDS`, which names IDENTIFIER kinds a check digit
+    proves. Neither entity term is a member of that frozenset, so since the
+    ruling they corroborate an authored term rather than holding a file on
+    their own, on the same terms as 7(b)'s pair.
+    """
     account, content_hash = a_page(db, tmp_path, "scan106.pdf",
                                    "Summary\nAccount 4021998855 closing balance\n")
     read_entities(db, account, content_hash,
                   reader(("account number", "4021998855")))
     _outcome, report, record = held(db, account, content_hash)
-    assert report is not None and report.schema_id == "finance"
-    assert report.terms == ("entities.account_number",)
-    assert record.protected is True
+    assert report is None
+    assert record is None or record.basis != "safety_domain"
 
     chart, chart_hash = a_page(db, tmp_path, "scan107.pdf",
                                "Ward list\nRecord 8842119 admitted overnight\n")
     read_entities(db, chart, chart_hash,
                   reader(("medical record number", "8842119")))
     _outcome, report, record = held(db, chart, chart_hash)
+    assert report is None
+    assert record is None or record.basis != "safety_domain"
+
+    # CORROBORATING: beside `finance`'s own authored term, the account number
+    # holds; beside `medical`'s, so does the record number.
+    finance_engine = detector(rule_set(ACADEMIC, FINANCE))
+    pay_id, pay_hash = a_page(
+        db, tmp_path, "scan106b.pdf",
+        "Payslip\nAccount 4021998855 closing balance\n")
+    read_entities(db, pay_id, pay_hash,
+                  reader(("account number", "4021998855")))
+    outcome = finance_engine.explain(db, pay_id, pay_hash)
+    report = finance_engine.precaution_report(db, outcome, file_id=pay_id,
+                                              content_hash=pay_hash)
+    record = finance_engine(db, pay_id, pay_hash)
+    assert report is not None and report.schema_id == "finance"
+    assert "payslip" in report.terms
+    assert "entities.account_number" in report.terms
+    assert record.protected is True
+
+    medical_engine = detector(rule_set(ACADEMIC, MEDICAL))
+    care_id, care_hash = a_page(
+        db, tmp_path, "scan107b.pdf",
+        "Ward list\nCare plan. Record 8842119 admitted overnight\n")
+    read_entities(db, care_id, care_hash,
+                  reader(("medical record number", "8842119")))
+    outcome = medical_engine.explain(db, care_id, care_hash)
+    report = medical_engine.precaution_report(db, outcome, file_id=care_id,
+                                              content_hash=care_hash)
+    record = medical_engine(db, care_id, care_hash)
     assert report is not None and report.schema_id == "medical"
+    assert "care plan" in report.terms
+    assert "entities.medical_record_number" in report.terms
     assert record.protected is True
 
 
@@ -267,18 +368,29 @@ def test_an_entity_reading_is_not_counted_a_second_time_as_a_word(db, tmp_path):
 def test_the_dossier_calls_an_entity_an_entity(db, tmp_path):
     """What site G is TOLD. A pairing the encoder found is neither a word the author
     wrote nor a checksum, and `_held_phrase` says which of the three it is so the
-    local model can weigh a pairing as a pairing."""
+    local model can weigh a pairing as a pairing.
+
+    SINCE the owner's ruling of 13 Sep 2026 the pairing corroborates rather
+    than holds alone, so the fixture also carries `medical`'s own authored
+    term ("care plan") -- and the phrase now names BOTH: the word that raised
+    the hold and the pairing that corroborated it.
+    """
     from model_situation import _held_phrase
 
-    file_id, content_hash = a_page(db, tmp_path, "scan109.pdf", HEALTH_FORM)
+    file_id, content_hash = a_page(
+        db, tmp_path, "scan109.pdf", HEALTH_FORM + "Care plan reviewed.\n")
     read_entities(db, file_id, content_hash,
                   reader(("person", "Jane Roberts"),
                          ("medical condition", "type 2 diabetes")))
-    _outcome, report, _record = held(db, file_id, content_hash)
+    engine = detector(rule_set(ACADEMIC, MEDICAL))
+    outcome = engine.explain(db, file_id, content_hash)
+    report = engine.precaution_report(db, outcome, file_id=file_id,
+                                      content_hash=content_hash)
 
     phrase = _held_phrase(report)
+    assert "on the work type care plan" in phrase
     assert "on the entities person, medical_condition" in phrase
-    assert "work type" not in phrase and "identifier" not in phrase
+    assert "identifier" not in phrase
 
 
 def test_a_unit_naming_many_conditions_beside_a_person_is_writing_about_them(
@@ -286,26 +398,47 @@ def test_a_unit_naming_many_conditions_beside_a_person_is_writing_about_them(
     """The owner's ruling of 13 Sep 2026: an author beside a disease term in a
     paper is not a patient record. Measured on the second corpus: a protected
     record's unit names ONE condition beside the person; a paper's names seven to
-    thirteen. The deployment states the number (`cli.TOPIC_CONDITION_MENTIONS`);
-    the detector holds nothing on a pair at or past it, and everything below it."""
+    thirteen. The deployment states the number (`cli.TOPIC_CONDITION_MENTIONS`).
+
+    RE-ARGUED THE SAME DAY: the pair no longer holds by itself at all (a topic
+    paper never did, and now nor does a genuine record's pair on its own), so
+    the fixture also carries `medical`'s own authored term ("care plan") to
+    give the corroboration gate something to test. `topic_condition_mentions`
+    still separates the two, but what it now governs is what the REPORT
+    CITES, not whether the file holds: the person named in either paper or
+    record already corroborates the word under `Detector._corroborated` --
+    "a person the entity encoder named anywhere in the file" -- so a topic
+    paper that also carries the word is held on the word alone, and a record
+    beside fewer conditions than the threshold is held on the word AND cites
+    the pair beside it.
+    """
     from recognition.detector import Detector
     from test_recognition_detector import CLOCK, POLICY
 
     conditions = ["asthma", "type 2 diabetes", "hypertension", "migraine",
                   "glaucoma"]
-    paper = "Review of " + ", ".join(conditions) + " by Jane Roberts.\n"
+    paper = ("Review of " + ", ".join(conditions) + " by Jane Roberts. "
+             "Care plan noted.\n")
     file_id, content_hash = a_page(db, tmp_path, "review.pdf", paper)
     read_entities(db, file_id, content_hash,
                   reader(("person", "Jane Roberts"),
                          *(("medical condition", c) for c in conditions)))
-    engine = Detector(rule_set(ACADEMIC), handling_for=POLICY,
+    engine = Detector(rule_set(ACADEMIC, MEDICAL), handling_for=POLICY,
                       now=lambda: CLOCK, topic_condition_mentions=5)
     outcome = engine.explain(db, file_id, content_hash)
-    assert engine.precaution_report(db, outcome, file_id=file_id,
-                                    content_hash=content_hash) is None
-    # Below the number the pair holds as it always did.
-    strict = Detector(rule_set(ACADEMIC), handling_for=POLICY,
-                      now=lambda: CLOCK, topic_condition_mentions=6)
-    report = strict.precaution_report(db, outcome, file_id=file_id,
-                                      content_hash=content_hash)
-    assert isinstance(report, Precaution) and report.schema_id == "medical"
+    # AT the number: the pair is excluded, and the hold rests on the word alone.
+    at_threshold = engine.precaution_report(db, outcome, file_id=file_id,
+                                            content_hash=content_hash)
+    assert isinstance(at_threshold, Precaution) and at_threshold.schema_id == "medical"
+    assert at_threshold.terms == ("care plan",)
+
+    # Below the number the pair is IN, and the report cites it beside the word.
+    lenient = Detector(rule_set(ACADEMIC, MEDICAL), handling_for=POLICY,
+                       now=lambda: CLOCK, topic_condition_mentions=6)
+    below_threshold = lenient.precaution_report(db, outcome, file_id=file_id,
+                                                content_hash=content_hash)
+    assert isinstance(below_threshold, Precaution)
+    assert below_threshold.schema_id == "medical"
+    assert "care plan" in below_threshold.terms
+    assert {"entities.person", "entities.medical_condition"} <= set(
+        below_threshold.terms)
