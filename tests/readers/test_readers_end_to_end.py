@@ -544,12 +544,19 @@ def test_a_real_vision_box_survives_to_a_parsed_p4_region(db, tmp_path):
 # §2.9's long tail, and §2.9's own sensitivity rule, over the same live path
 # --------------------------------------------------------------------------- #
 
-def test_a_real_csv_becomes_cell_evidence_addressed_by_row_and_column(db, tmp_path):
+def test_a_real_csv_becomes_row_evidence_addressed_by_sheet_and_row(db, tmp_path):
     """`read_long_tail` was `_no_reader`, so a spreadsheet recorded `unsupported` --
     "no reader exists and the bytes were never looked at" -- and every count
     downstream agreed the file carried nothing. §2.9 asks a spreadsheet for "column
     headers, visible cell values", and each value has to be ADDRESSED: P4's locator
-    is what lets a fact cite the cell it came from rather than the file.
+    is what lets a fact cite where it came from rather than the file.
+
+    THE UNIT IS A ROW SINCE 13 Sep 2026 (`long_tail._rows_from_cells`), so the
+    address is `sheet=N/row=M` and §2.9's "column headers" are the first row rather
+    than a label on every cell below it. This test asserted the cell address and is
+    the live-path half of the change: it proves the fold survives a real `.csv`
+    through the real reader, the real extractor and the real store, which is the
+    one thing `tests/p5` cannot say.
     """
     import json
 
@@ -564,13 +571,26 @@ def test_a_real_csv_becomes_cell_evidence_addressed_by_row_and_column(db, tmp_pa
     assert rows, "a real .csv produced no evidence at all"
 
     located = {row["raw_value"]: json.loads(row["location"]) for row in rows}
-    assert "BUSIB 4300" in located, sorted(located)
-    address = located["BUSIB 4300"]["container_path"]
+    data_row = "S1001\tBUSIB 4300\tA"
+    assert data_row in located, sorted(located)
+    assert "student_id\tcourse\tgrade" in located, (
+        "the header row is a row like any other, and it is the one that says what "
+        "the columns are")
+    # NO CELL IS ADDRESSED AS A PLACE OF ITS OWN. A value shorter than its row can
+    # still be here -- the structured-string finder reads INSIDE a row and cites
+    # what it found there with a span, which is P4 rule 10 working -- but nothing
+    # stands at a `column` any more, which is what says the cells went away rather
+    # than sitting beside the rows.
+    assert not any(segment["kind"] == "column"
+                   for row in located.values()
+                   for segment in row["container_path"]), (
+        "a cell is still addressed as its own place, which is two readings over "
+        "the same characters in one file's evidence")
+    address = located[data_row]["container_path"]
     # `.get`, because the stored locator omits a null rather than spelling it: the
     # round trip through `evidence_shape.locator` is part of what is asserted here.
     assert [(segment["kind"], segment.get("index"), segment.get("label"))
-            for segment in address] == [
-        ("sheet", 1, None), ("row", 2, None), ("column", 2, "course")]
+            for segment in address] == [("sheet", 1, None), ("row", 2, None)]
 
 
 def test_a_spreadsheet_run_reports_the_cells_it_processed(db, tmp_path):

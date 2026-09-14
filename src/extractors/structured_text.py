@@ -62,7 +62,16 @@ from extractors.sink import ExtractionResult
 # `104` R-164's rule, applied 10 Sep 2026 for R-160: a notebook's markdown cells
 # are now body units, so what E3 emits for `.ipynb` changed and the cache key
 # must move with it, or the owner's cached notebooks are never re-read.
-VERSION = "0.4.0"
+#
+# BUMPED 0.4.0 -> 0.5.0, 13 Sep 2026, under the same rule and for the largest
+# change of reading yet: `long_tail._rows_from_cells` makes a SPREADSHEET'S UNIT A
+# ROW. Every `.csv`, `.tsv` and `.xlsx` extracted before this carries one unit and
+# one observation per CELL at `sheet=N/row=M/column=C`; after it, one per row at
+# `sheet=N/row=M`, and not one locator survives. 25,339 of the owner's corpus's
+# evidence rows are spreadsheet cells, so leaving the number at 0.4.0 would let
+# `--reuse-answers-from` answer every dataset file out of a cache keyed on
+# evidence that no longer exists -- and report it as a saving.
+VERSION = "0.5.0"
 
 #: One family name for both halves of E3: the router dispatches eight `source_type`s
 #: here and `runs.ANALYSIS_TIER_BY_EXTRACTOR` keys the tier on the family.
