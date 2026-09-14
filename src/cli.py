@@ -1205,6 +1205,44 @@ A_FACT_ROW: tuple[str, str] = (
 SITUATION_ROW: tuple[str, str] = (
     "situation.unratified.whole-library-v3.2026-09-14", "situation-whole-library-v3")
 
+#: `00` AMENDMENT 1 OF 14 SEP: THE SECOND STAGE'S ROW, and the site is site G's
+#: own. The row above names which KIND of material a file is; this one names which
+#: SITUATION inside that kind, over the same released items, from a menu carrying
+#: each situation's own name and the library's own line of what it is.
+#:
+#: **A SECOND ROW UNDER ONE SITE AND NOT A NINTH SITE**, and three things decide
+#: it. The question is site G's own -- the owner's approval at
+#: `vocabulary.G_SITUATION_SENSITIVITY` covers "which situation, ... with a way to
+#: decline", and amendment 7(c) split that question into a kind and a situation
+#: rather than moving half of it elsewhere. A new member of a closed vocabulary is
+#: the OWNER's act, recorded at the member, as the seventh and eighth both are.
+#: And `tools/promptbench` carries no bench case for a site that does not exist,
+#: so `tests/llm_harness/test_d2_draft_templates.py` would raise before it
+#: asserted anything about the text. The manifest already resolves a row by
+#: `(template_id, candidate)` and site G already carries eight rows, so two texts
+#: under one site is what the harness is built for.
+#:
+#: **UNRATIFIED, AND WHAT THAT MEANS HERE.** `situation_level_prompt` builds a
+#: definition whose `ratified` is false, so `ask_the_situation` makes the call,
+#: records the verdict and resolves nothing -- `104` §7 Phase 1 step 6's
+#: observe-only state, which is what the lead measures by replay before the owner
+#: is asked. The day the row is ratified the answer becomes the file's situation
+#: and no line of this file changes.
+#:
+#: **WHAT IT COSTS TO CROSS THE INTERNET UNDER THE ROW ABOVE, said here because
+#: nothing else says it.** `observe_locality_permits` reads a site's word off
+#: `_template_id_for`, which answers `SITUATION_ROW` for this site -- so on a
+#: cloud-only deployment this unratified text crosses under the ratified row's
+#: word, which is `104` §13's count of "0 cloud calls with unratified prompts"
+#: broken in the letter. Nothing NEW about the person crosses with it: the
+#: released items are byte-identical to the kind call's, through the same door and
+#: the same clearance, and what is added is this instruction and the library's own
+#: words. The honest alternative -- a per-prompt gate -- would turn the stage off
+#: entirely on the deployment the owner chose, and an unmeasurable text is a text
+#: that is never ratified. The lead is told; the owner decides.
+SITUATION_LEVEL_ROW: tuple[str, str] = (
+    "situation.unratified.situation-level-v1.2026-09-14", "situation-level-v1")
+
 #: `00` AMENDMENT 7(c)'s GATE ROW, and the site is `H_restricted_kind`. Authored by
 #: the lead on the owner's go of 12 September and put to the owner for
 #: ratification; the manifest carries it `unratified`, so `gate_prompt` builds a
@@ -6377,6 +6415,39 @@ def situation_prompt() -> PromptDefinition:
     # alone would resolve -- naming the candidate as well is what makes re-pointing
     # this site a change to `SITUATION_ROW` and never a change the manifest makes
     # on its own.
+    prompt_library_a_fact_row(template_id, candidate)
+    template, response_schema, shaping_policy = draft_bytes(template_id)
+    return PromptDefinition(
+        template_id=template_id,
+        template_bytes=template,
+        response_schema_bytes=response_schema,
+        call_site=G_SITUATION_SENSITIVITY,
+        call_site_version="1",
+        ratified=draft_status(template_id) in STATUS_APPLIES,
+        shaping_policy_bytes=shaping_policy)
+
+
+def situation_level_prompt() -> PromptDefinition:
+    """The text the judge names a SITUATION under. `00` amendment 1 of 14 Sep.
+
+    `situation_prompt`'s pattern exactly, one row over: the bytes come through
+    `SITUATION_LEVEL_ROW`, `draft_bytes` verifies each of the three files against
+    the digest the packet records, and this function picks an id and a candidate
+    and reads nothing else.
+
+    **THE SITE IS G'S OWN**, which is what makes this a second text rather than a
+    second site; `SITUATION_LEVEL_ROW` carries that argument. `call_site_version`
+    is `"1"` as site G's is: the version names the SITE's contract -- one file,
+    one situation, one shortlist, a decline -- and this row asks inside it.
+
+    **NO `None` ARM, unlike `gate_prompt`.** That one answers `None` for a row
+    that is not in the manifest because the gate's row was the owner's to write
+    and the site had to run without one. This row is in the packet as of today,
+    and a deployment whose library has lost it has a corrupted library rather
+    than a site the owner has not reached yet -- which is `RatifiedTextChanged`'s
+    own distinction, and it is loud on purpose.
+    """
+    template_id, candidate = SITUATION_LEVEL_ROW
     prompt_library_a_fact_row(template_id, candidate)
     template, response_schema, shaping_policy = draft_bytes(template_id)
     return PromptDefinition(
