@@ -11777,8 +11777,16 @@ def _print_template_pass(pass_: TemplatePass, *, files: int,
               file=out)
 
 
-def _print_gate_pass(gate: GatePass, *, files: int, model_id: str, out) -> None:
+def _print_gate_pass(gate: GatePass, *, files: int, model_id: str | None,
+                     out) -> None:
     """The gate's seven counters, in the shape the situation pass prints its own.
+
+    **`model_id` IS `None` WHERE NO MODEL RUNS ON THIS MACHINE** (`00` amendment
+    2 of 13 Sep: the local model is optional), and the header then says what did
+    happen -- the rules held some files and cleared the rest on their own word,
+    and the person is the second gate -- instead of naming the cloud model as a
+    model "on this device", which is what run 12 of the second corpus printed
+    (14 Sep 2026: "0 of 371 files were cleared by deepseek-chat on this device").
 
     **THE FIRST BLOCK A PERSON READS ABOUT MODELS, because it is the first
     decision the run makes.** `00`:259: the interface "should show the difference
@@ -11800,6 +11808,21 @@ def _print_gate_pass(gate: GatePass, *, files: int, model_id: str, out) -> None:
         return
     named = len(gate.named)
     print("", file=out)
+    if model_id is None:
+        held = files - gate.cleared_by_rules
+        print(_wrapped(
+            f"What may be sent: no model runs on this machine, so no model was "
+            f"asked. {gate.cleared_by_rules} of {files} "
+            f"{'file was' if files == 1 else 'files were'} cleared on the rules' "
+            f"word and {held} {'is' if held == 1 else 'are'} held by them; the held "
+            f"{'one is' if held == 1 else 'ones are'} named at the end of this run, "
+            f"and you are the one who decides those.", indent=""), file=out)
+        for field in dataclasses.fields(GatePass):
+            if field.name in GATE_SENTENCE and getattr(gate, field.name):
+                print(_wrapped(f"{getattr(gate, field.name)} "
+                               f"{GATE_SENTENCE[field.name]}", indent="  "),
+                      file=out)
+        return
     print(_wrapped(
         f"What may be sent: {gate.cleared} of {files} "
         f"{'file was' if files == 1 else 'files were'} cleared by {model_id} on "
@@ -16921,7 +16944,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # PRINTED HERE, before the situation block, because that is the order the
         # run made the decisions in: what may be sent, then what is asked of it.
         _print_gate_pass(gate_pass, files=len(roster),
-                         model_id=_local_model_id(routing, H_RESTRICTED_KIND),
+                         model_id=(_local_model_id(routing, H_RESTRICTED_KIND)
+                                   if routing.local_client_of_tier else None),
                          out=out)
         if stop_after == STOP_AFTER_GATE:
             # `--stop-after gate`: the situation and the facts are the calls that
