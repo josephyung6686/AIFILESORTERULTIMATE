@@ -3150,7 +3150,11 @@ def _encrypted_container_corpus(tmp_path):
 
 def _block_naming(printed: str, filename: str) -> str:
     """The report block that names one file, blank-line delimited as printed."""
-    blocks = [block for block in printed.split("\n\n") if filename in block]
+    # The held-files question (`_what_the_held_files_are`, 13 Sep 2026) names a
+    # held file once more under `--show-protected`, with its two gestures; that
+    # block is the person's question and not the report's line for the file.
+    blocks = [block for block in printed.split("\n\n")
+              if filename in block and "--release " not in block]
     assert len(blocks) == 1, (
         f"{filename!r} is named in {len(blocks)} blocks, not one:\n{printed}")
     return blocks[0]

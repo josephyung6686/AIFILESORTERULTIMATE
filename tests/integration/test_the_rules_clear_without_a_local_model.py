@@ -52,8 +52,15 @@ def test_without_a_local_model_the_rules_clear_the_un_held_and_the_person_is_ask
     assert code == 0, said
     # The un-held file is cleared on the rules' word and the screen says so.
     assert "1 cleared on the rules' word alone" in said, said
-    # The held file is named as the person's question, with both gestures.
-    assert HELD_NAME in said and "--release" in said and "--file-held" in said
+    # The held file is the person's question: the count, the two gestures and the
+    # command that names it -- never the name on the plain report (`planning/93`).
+    assert HELD_NAME not in said, said
+    assert "--release FILE_ID" in " ".join(said.split()) and "--show-protected" in said
+    shown = io.StringIO()
+    assert cli.main([str(corpus), "--situation", SITUATION, "--label", LABEL,
+                     "--user", "t", "--database", str(database),
+                     "--enable-cloud", "--show-protected"], out=shown) == 0
+    assert HELD_NAME in shown.getvalue() and "--release " in shown.getvalue()
     conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     # No gate question was put to any model: no gate dossier exists.
