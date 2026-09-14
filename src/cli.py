@@ -1222,24 +1222,26 @@ SITUATION_ROW: tuple[str, str] = (
 #: `(template_id, candidate)` and site G already carries eight rows, so two texts
 #: under one site is what the harness is built for.
 #:
-#: **UNRATIFIED, AND WHAT THAT MEANS HERE.** `situation_level_prompt` builds a
-#: definition whose `ratified` is false, so `ask_the_situation` makes the call,
-#: records the verdict and resolves nothing -- `104` §7 Phase 1 step 6's
-#: observe-only state, which is what the lead measures by replay before the owner
-#: is asked. The day the row is ratified the answer becomes the file's situation
-#: and no line of this file changes.
+#: **UNRATIFIED, AND WHAT THAT MEANS HERE: THE STAGE IS DARK.** `situation_level_
+#: prompt` builds a definition whose `ratified` is false, and `ask_the_situation`
+#: treats that as a stage nobody wired -- no dossier is built, no bytes go out,
+#: no verdict is recorded, and the run is the run it was. The day the owner
+#: ratifies the row the stage runs and resolves the file, and no line of this
+#: file changes.
 #:
-#: **WHAT IT COSTS TO CROSS THE INTERNET UNDER THE ROW ABOVE, said here because
-#: nothing else says it.** `observe_locality_permits` reads a site's word off
-#: `_template_id_for`, which answers `SITUATION_ROW` for this site -- so on a
-#: cloud-only deployment this unratified text crosses under the ratified row's
-#: word, which is `104` §13's count of "0 cloud calls with unratified prompts"
-#: broken in the letter. Nothing NEW about the person crosses with it: the
-#: released items are byte-identical to the kind call's, through the same door and
-#: the same clearance, and what is added is this instruction and the library's own
-#: words. The honest alternative -- a per-prompt gate -- would turn the stage off
-#: entirely on the deployment the owner chose, and an unmeasurable text is a text
-#: that is never ratified. The lead is told; the owner decides.
+#: **WHY IT IS DARK RATHER THAN OBSERVING, which is what every other unratified
+#: site does** (`104` §7 Phase 1 step 6: record the verdict, apply nothing). The
+#: lead's ruling of 14 Sep: an unratified text never crosses the internet under
+#: another row's word. A site that RECORDS still SENDS, and this site's
+#: destination can be off the device -- so an observe pass here would put this
+#: instruction on the wire under the kind row's ratification, and `104` §13's
+#: count of "0 cloud calls with unratified prompts" is the owner's. The gate is
+#: therefore read per TEXT (`prompt_locality_permits`) and not per site, because
+#: site G is the first site to ask under two rows at once.
+#:
+#: **NOTHING IS LOST BY THE DARKNESS.** Measurement before ratification is the
+#: lead's replay over dossiers the product has ALREADY released, which needs no
+#: call from a run.
 SITUATION_LEVEL_ROW: tuple[str, str] = (
     "situation.unratified.situation-level-v1.2026-09-14", "situation-level-v1")
 
@@ -2405,6 +2407,33 @@ def _template_id_for(call_site: str) -> str:
     if call_site == H_RESTRICTED_KIND:
         return GATE_ROW[0]
     return OBSERVE_TEMPLATE_ID[call_site]
+
+
+def prompt_locality_permits(prompt, locality: str) -> bool:
+    """`observe_locality_permits`, asked of the TEXT rather than of the site.
+
+    **THE LEAD'S RULING OF 14 SEP 2026: an unratified text never crosses the
+    internet under another row's word.** The gate beside this one reads a SITE's
+    word through `_template_id_for`, which answers one row per site -- and that was
+    true of every site while each asked under one text. Site G asks under two since
+    `00` amendment 1 of 14 Sep: the kind row the owner ratified, and the level row
+    they have not. Left site-keyed, the gate would have read the ratified row's word
+    for the unratified row's bytes, and `104` §13's count of "0 cloud calls with
+    unratified prompts" would have been broken in the letter on the first
+    cloud-only run.
+
+    **THE WORD IS THE ROW'S OWN, READ OFF THE DEFINITION THE CALL WILL BE SENT
+    UNDER.** Not a second lookup by site and not an argument the caller passes: the
+    thing whose bytes are about to cross is the `PromptDefinition`, and its
+    `template_id` is what the manifest keys a status by, so this cannot be asked
+    about one text while another is sent.
+
+    Local is permitted under every word, which is `observe_locality_permits`'
+    behaviour and its reason: nothing leaves the machine.
+    """
+    if locality == LOCAL:
+        return True
+    return draft_status(prompt.template_id) in STATUS_MAY_CROSS_THE_INTERNET
 
 
 def require_observe_locality(call_site: str, locality: str) -> None:
@@ -8427,15 +8456,22 @@ class SituationPass:
     #: Files this stage put a second question about -- a call or a replayed
     #: verdict. `situations` and `declined_their_situation` partition it.
     asked_their_situation: int = 0
-    #: Of those, the ones no situation came back for: the model declined, P8 did
-    #: not accept the answer, or -- until the owner ratifies the text -- the answer
-    #: was recorded and not applied, which is `declined`'s own reading one stage up.
+    #: Of those, the ones no situation came back for: the judge read the menu and
+    #: named none it could cite, or P8 did not accept the one it named. NOT the
+    #: unratified state, which does not reach this pass at all -- the stage is
+    #: dark until its row applies, so a file here is one a real call was made
+    #: about (the lead's ruling of 14 Sep).
     declined_their_situation: int = 0
     #: Files whose kind was named and whose situation this stage did NOT ask about:
     #: the library carries one situation for the kind (an answer, not a choice), the
     #: person has already answered for it, a recogniser raised exactly one, the file
-    #: had no releasable reading left, or its turn was already over the ceiling.
+    #: had no releasable reading left, its turn was already over the ceiling, or
+    #: its judge is off this device and the level text may not leave it.
     #: Counted so `asked_their_situation` has a denominator a person can check.
+    #:
+    #: ZERO ON A RUN WHERE THE STAGE IS DARK, and that is the point of putting the
+    #: row's word one level up: a stage nobody wired passed over nothing, and three
+    #: counters under a header would say it had looked.
     not_asked_their_situation: int = 0
 
 
@@ -8546,6 +8582,16 @@ def _ask_which_situation_of_the_kind(
       call is more of the same file's time, so it is checked again and recorded
       through `refusal_outcome`, which is the path every other pre-call refusal at
       this site takes.
+    * THIS TEXT MAY NOT GO WHERE THIS FILE'S JUDGE IS. `prompt_locality_permits`
+      reads the LEVEL row's own word rather than the site's, which is the lead's
+      ruling of 14 Sep: an unratified text never crosses the internet under
+      another row's word. A `ratified_local` row acts here and is refused a cloud
+      target, so the stage runs for the files that stayed on this device and asks
+      nothing about the ones the gate cleared.
+
+    A row that does not APPLY at all never reaches this function: `ask_the_
+    situation` unwires the stage for the whole run, which is where that state
+    belongs -- it is a fact about the text and not about any file.
 
     **THE RELEASED HALF IS THE KIND CALL'S, HANDED IN.** `observations`, `client`,
     `target` and `bound` are the objects that call used, not a second read of the
@@ -8554,12 +8600,14 @@ def _ask_which_situation_of_the_kind(
     here would be a second answer to what P7 released, and `target_for` asked
     twice could route the two halves of one question to two providers.
 
-    **THE ANSWER IS RECORDED WHATEVER THE ROW SAYS AND APPLIED ONLY WHEN IT IS
-    RATIFIED**, which is `104` §7 Phase 1 step 6 and is exactly what site G's own
-    text did between 8 and 12 September. Under an unratified row the dossier is
-    built, the call goes out, the verdict is stored, and this answers `asked` with
-    no situation -- so the run reports what the stage WOULD have decided as a
-    question it could not close, and the branch question still prints.
+    **THE ANSWER IS APPLIED, AND THERE IS NO OBSERVE-ONLY STATE HERE.** Every
+    other site records under an unratified text and acts under a ratified one
+    (`104` §7 Phase 1 step 6). This stage does not, on the lead's ruling of 14 Sep:
+    recording still SENDS, this site's destination can be off the device, and the
+    text nobody has approved would be the text that crossed. So the stage is dark
+    until its row applies and answers for real once it does. `asked` is therefore
+    `True` only for a call that was really made, and a `None` situation beside it
+    is a judge that read the menu and would not name one.
     """
     # THE STAGE IS DARK UNTIL ITS ROW IS RATIFIED (the lead, 14 Sep 2026, at the
     # merge). An unratified text never crosses the internet under another row's
@@ -8577,6 +8625,16 @@ def _ask_which_situation_of_the_kind(
         return _NOT_ASKED_ITS_SITUATION
     menu = tuple(dict.fromkeys(situations_of(schema_id)))
     if len(menu) < 2:
+        return _NOT_ASKED_ITS_SITUATION
+    if not prompt_locality_permits(prompt, target.locality):
+        # THIS TEXT MAY NOT LEAVE THE DEVICE AND THIS FILE'S JUDGE IS OFF IT.
+        # `ratified_local` is an approval to ACT on the answer with the cloud still
+        # shut, and the two halves are asked separately everywhere else in this
+        # file; here they come apart per FILE, because the kind call routes a
+        # gate-cleared file to the cloud and every other file to the local model.
+        # So the stage runs for the files that stayed here and asks nothing about
+        # the ones that did not, rather than the site turning off or the text
+        # crossing. Nothing is assembled and nothing is sent.
         return _NOT_ASKED_ITS_SITUATION
     if ceiling is not None:
         try:
@@ -8635,10 +8693,11 @@ def _ask_which_situation_of_the_kind(
                 call_site=G_SITUATION_SENSITIVITY, subject_ref=file_id,
                 dimensions=identity, observed_at=now())
     situation = situation_named_by_verdict(conn, verdict, allowed)
-    if situation is None or not prompt.ratified:
-        # OBSERVE-ONLY UNTIL THE ROW SAYS OTHERWISE, and the two are one line
-        # because they are one outcome for the file: its situation is still open
-        # and the person is still asked. The verdict is on record either way.
+    if situation is None:
+        # THE JUDGE READ THE MENU AND WOULD NOT NAME ONE, or P8 did not accept the
+        # answer it gave. Either way the file's situation is still open and the
+        # person is asked, which is the amendment's own sentence; the verdict is
+        # on record.
         return _SituationOfTheKind(asked=True)
     return _SituationOfTheKind(asked=True, situation=situation)
 
@@ -8730,8 +8789,10 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     state are at that function; what belongs here is that it is the SAME turn,
     the SAME released items, the SAME client and the SAME ceiling as the call
     above, because it is the same question about the same file asked one level
-    down. `level_prompt` absent turns the stage off and the pass is the pass it
-    was: the answer is `None` for every file and the person is asked as before.
+    down. `level_prompt` absent -- or carrying a row the owner has not ratified,
+    which this pass treats as absent -- turns the stage off and the pass is the
+    pass it was: the answer is `None` for every file and the person is asked as
+    before.
 
     **AND A HOLD OUTRANKS `00`:110 (`104` §18.26 gap 24b, the owner's ruling of
     10 Sep 13:10).** Gap 24 reached only the holds the precaution takes on an
@@ -8760,6 +8821,26 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
       NOT held is still `settled` and is still never asked, which is `00`:110
       standing exactly where no hold exists.
     """
+    # `00` AMENDMENT 1 OF 14 SEP, UNDER THE LEAD'S RULING OF THAT DAY: THE SECOND
+    # STAGE IS DARK UNTIL ITS OWN ROW APPLIES. It was built to run under an
+    # unratified text and record what it would have decided, which is `104` §7
+    # Phase 1 step 6 and is what every observe site does -- and at this site it is
+    # wrong, because this site's destination can be off the device. A stage that
+    # RECORDS and does not act still SENDS, and what it would have sent is a text
+    # nobody has approved: `104` §13's count is "0 cloud calls with unratified
+    # prompts", and the count is the owner's. So no dossier is built, no bytes go
+    # out, and the run is the run it was: the file's situation is whatever
+    # `the_one_situation` or the person makes it, and the branch question is asked
+    # where neither does.
+    #
+    # REBOUND HERE RATHER THAN REFUSED, because "the owner has not ratified this
+    # text yet" is a state and not a fault -- `gate_prompt`'s two states are the
+    # same argument one site along -- and because the arm it rebinds to is the one
+    # this pass already has for a stage nobody wired. Measurement before
+    # ratification is the lead's replay over dossiers already released, which
+    # needs no call from the product.
+    if level_prompt is not None and not level_prompt.ratified:
+        level_prompt = None
     named: dict = {}
     #: `00` amendment 1 of 14 Sep: the SECOND stage's answers, and the three counts
     #: that say what happened to every file whose kind was named. `SituationPass`
@@ -12020,15 +12101,14 @@ SITUATION_RECOGNISED_SENTENCE: str = (
 SITUATION_LEVEL_SENTENCE: Mapping[str, str] = MappingProxyType({
     "declined_their_situation":
         "asked and still open: the judge read the situations of their kind and "
-        "named none it could cite, or the check did not accept the one it named, "
-        "or the text this question is asked under is not ratified yet, so the "
-        "answer was recorded and not acted on. Their folder is still a question "
-        "for you.",
+        "named none it could cite, or the check did not accept the one it named. "
+        "Their folder is still a question for you, and it is asked in words.",
     "not_asked_their_situation":
         "not asked: their kind carries one situation, or you have already said "
         "which situation that kind is, or the recognisers had already narrowed it "
         "to one -- so the answer was known without a call. Nothing about them was "
-        "assembled and nothing was sent.",
+        "assembled and nothing was sent. A file whose judge is off this device is "
+        "here too while the text this question is asked under may not leave it.",
 })
 
 assert set(SITUATION_LEVEL_SENTENCE) | {"situations", "asked_their_situation"} == {
