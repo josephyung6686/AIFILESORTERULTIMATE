@@ -38,9 +38,11 @@ for that file's own reason: one stub speaking one protocol.
    the files ARE NOT PLACED. They are the arm that proves a freeze cannot
    approve a file the run declined to place.
 4. *The two the rules hold, and the third the person holds.* A passport note
-   the person RELEASES (`--release`), a medical note they keep (`--file-held`),
-   and `ECON 2010 syllabus.txt` -- which the rules CLEARED and the person keeps
-   anyway (`--file-held`), the arm of 14 Sep.
+   the person RELEASES (`--release`); a medical note the rules hold and the
+   person LEAVES held, with no grant of any kind; and `ECON 2010 syllabus.txt`
+   -- which the rules CLEARED and the person keeps anyway (`--file-held`), the
+   arm of 14 Sep. The two held files differ in exactly one thing, the person's
+   grant, which is what lets the assertions below say what the grant does.
 
 **WHY THE SUBFOLDERS ARE THE ONLY THING THE JUDGE CAN TELL FILES APART BY.**
 Measured by the sibling pins and true here: a site-G dossier for a short text
@@ -470,8 +472,14 @@ def the_morning(tmp_path_factory):
 
         once()                                            # the run that asks
         ids = _file_ids(database)
-        once("--release", ids[RELEASED],
-             "--file-held", ids[KEPT], "--file-held", ids[CLEARED_KEPT])
+        # `--file-held` ON THE CLEARED FILE ONLY, and that is the whole point
+        # of the arrangement. The medical note is left held by the RULES, with
+        # no grant of any kind, so the two held files differ in exactly one
+        # thing and the assertions below can tell which of them the grant is
+        # doing the work for. Giving both the gesture -- which the sibling pin
+        # does, for its own reason -- would leave this corpus with no
+        # held-without-a-grant file at all.
+        once("--release", ids[RELEASED], "--file-held", ids[CLEARED_KEPT])
         sort_report = once("--answer", ANSWER)            # step 2: the proposal
         after_sort = _on_disk(corpus)
         sorted_plans = _frozen_plans(database, corpus)
@@ -537,10 +545,13 @@ def the_morning(tmp_path_factory):
 def test_the_person_gestures_reach_the_files_they_named(the_morning):
     """`00` amendment 2 of 13 Sep, and the arm of 14 Sep item 4.
 
-    Three gestures typed on ONE run, read two runs later. The passport is
-    ordinary on the person's word; the medical note is still protected and may
-    not be moved automatically; and the file the RULES CLEARED is protected on
-    the person's word AND carries their grant, which is the whole of
+    Two gestures typed on ONE run, read two runs later, and three different
+    verdicts out of `privacy.moves.may_move_automatically` -- which is the one
+    reader that decides whether this product may move a file on its own.
+
+    The passport is ordinary on the person's word. The medical note carries no
+    grant and may not be moved. The file the RULES CLEARED is protected on the
+    person's word AND carries their grant, which is the whole of
     `apply_file_held`: the row shuts the cloud door, the grant opens the move.
     """
     state = the_morning
@@ -552,14 +563,12 @@ def test_the_person_gestures_reach_the_files_they_named(the_morning):
                     for name in (RELEASED, KEPT, CLEARED_KEPT)}
     finally:
         conn.close()
-    assert verdicts[RELEASED].allowed, "the person released this one"
-    assert verdicts[RELEASED].reason == "not_protected", verdicts[RELEASED]
-    # BOTH held files carry the grant, because `--file-held` is what writes one.
-    # What separates them on the screen is not permission; see
-    # `test_what_file_held_actually_does_to_a_file` below.
-    for name in (KEPT, CLEARED_KEPT):
-        assert verdicts[name].allowed, name
-        assert verdicts[name].reason == "policy_permits", verdicts[name]
+    assert (verdicts[RELEASED].allowed, verdicts[RELEASED].reason) == \
+        (True, "not_protected"), verdicts[RELEASED]
+    assert (verdicts[KEPT].allowed, verdicts[KEPT].reason) == \
+        (False, "protected_without_permitting_policy"), verdicts[KEPT]
+    assert (verdicts[CLEARED_KEPT].allowed, verdicts[CLEARED_KEPT].reason) == \
+        (True, "policy_permits"), verdicts[CLEARED_KEPT]
 
 
 def test_what_file_held_actually_does_to_a_file(the_morning):
@@ -606,15 +615,18 @@ def test_what_file_held_actually_does_to_a_file(the_morning):
 
 
 @pytest.mark.xfail(strict=True, reason=(
-    "`00` amendment 2 of 13 Sep names the gesture '--file-held FILE_ID (keep "
-    "it here, file it by hand)', and `cli.py`'s own help says it 'keeps a file "
-    "here'. `apply_file_held` instead grants POLICY_PERMITS, so the product "
-    "files the file rather than the person. NOT FIXED HERE ON PURPOSE: the "
-    "grant is deliberate and argued in that function's docstring, and removing "
-    "it changes which of the owner's files move on their real folder. It is "
-    "the owner's ruling to make, not a defect to repair at a seam."))
-def test_00_says_a_file_the_person_kept_is_not_moved(the_morning):
-    """The other reading of the gesture, pinned so the question cannot be lost."""
+    "THE HELP-TEXT READING, which the product does not implement. `cli.py`'s "
+    "own line is '--file-held FILE_ID keeps a file here', and `00` amendment 2 "
+    "of 13 Sep glosses the gesture '(keep it here, file it by hand)' -- both of "
+    "which a person reads as 'this one stays put'. `apply_file_held` instead "
+    "grants POLICY_PERMITS, and so does the brief this pin was written from. "
+    "The two readings are not reconciled anywhere, and nothing on the screen "
+    "tells the person which one they are getting. NOT DECIDED HERE: the grant "
+    "is deliberate and argued in that function's docstring, and withdrawing it "
+    "would change which of the owner's files move on their real folder. This "
+    "is a tripwire so the question cannot be lost, not a verdict on it."))
+def test_the_help_text_reading_of_file_held(the_morning):
+    """A file the help text says is kept here, pinned against what happens."""
     state = the_morning
     assert CLEARED_KEPT not in state["frozen"], (
         "a file the person said to keep here was approved for a move")
@@ -1007,3 +1019,98 @@ def test_the_journal_says_every_move_was_reversed(the_morning):
             f"{entry['file']} is not back at {moved['from']}")
         assert moved["to"] not in _files_on_disk(state["after_undo_all"]), (
             f"{entry['file']} is still at {moved['to']}")
+
+
+# --- what this corpus found on the way, and the fix it is the pin for ------------
+
+
+def _values_block(database: Path, protected: set[str], *,
+                  show_protected: bool = False) -> str:
+    """`cli._print_values_to_confirm` over THIS run's database, with a set of
+    files declared protected.
+
+    The patch is on `_protected_file_ids`, which is the function's own reader and
+    the one `104` §18.2 gap 10 made the single source for the screen's protected
+    counts. Patching it rather than writing classification rows is what makes
+    this deterministic: the defect below depended on which file id sorted first
+    among the files carrying a value, and a uuid is not something a test can
+    arrange.
+    """
+    conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    out = io.StringIO()
+    try:
+        with pytest.MonkeyPatch.context() as patch:
+            patch.setattr(cli, "_protected_file_ids", lambda _conn: set(protected))
+            cli._print_values_to_confirm(conn, out,
+                                         show_protected=show_protected)
+    finally:
+        conn.close()
+    return out.getvalue()
+
+
+def test_the_new_values_block_never_names_a_protected_file(the_morning):
+    """THE DEFECT THIS CORPUS FOUND, AND IT IS A PRIVACY ONE.
+
+    "New values the model proposed, waiting on you" names one file per proposed
+    value -- in its heading, in a quoted line of that file's own text, and inside
+    each of the three commands the person is told to type. The file it named was
+    `sorted(...)[0]` over `(file_id, fact_id)`, and a file id is a uuid: WHICH of
+    the files carrying a value got named was effectively random, and a protected
+    one was named whenever the draw fell that way.
+
+    Measured on this corpus before the fix: `ECON 2010 syllabus.txt` -- protected
+    because the person's own `--file-held` said so -- was printed five times, with
+    a line of its text, in THREE RUNS IN TWELVE. The owner's ruling of 2 Sep has
+    no exception for this block, and the rest of the same report already obeys it.
+
+    The fix is to name a file that may be named. Three assertions, and the second
+    is the one that keeps the fix honest rather than merely quiet: the value is
+    still on the screen, and the count still counts every file.
+    """
+    state = the_morning
+    database = state["database"]
+    open_block = _values_block(database, protected=set())
+    assert "New values the model proposed" in open_block, (
+        "this corpus proposed no value, so this test proves nothing")
+
+    # Every file carrying a proposed value declared protected: the value stays,
+    # the count stays, no name and no command are printed, and the one command
+    # that would show the person their own files is offered instead.
+    everything = set(_file_ids(database).values())
+    shut = _values_block(database, protected=everything)
+    for name in (*ROOT_FILES, *CLUB_FILES, *CONFERENCE_FILES):
+        assert name not in shut, f"{name} was named in a shut block"
+    assert "protected and counted here rather than named" in shut
+    assert "--show-protected" in shut
+    for gesture in ("--reject", "--confirm", "--rename"):
+        assert gesture not in shut, (
+            f"{gesture} was offered with no filename to put in it")
+    assert "-- on " in shut, "the count went off the screen with the name"
+    # AND THE ONE SENTENCE ON THIS SCREEN THAT IS NOT A NAME. `104` §18.2 gap 1
+    # prints what the rules read for a field the model disagreed with, and it
+    # names two VALUES and no file -- so it belongs in this arm too, which is
+    # the arm where the person has least else to go on.
+    assert "The rules read" in open_block, (
+        "this corpus has no disagreement, so the next assertion proves nothing")
+    assert "The rules read" in shut, (
+        "the rules' own value was withheld along with the filenames")
+
+    # `--show-protected` IS HONOURED, because the arm above offers it. A flag
+    # this block told the person to type and then ignored would be `84` §6's
+    # own failure one line later.
+    asked = _values_block(database, protected=everything, show_protected=True)
+    assert "protected and counted here rather than named" not in asked
+    assert "--confirm " in asked, (
+        "--show-protected did not give the person back the gestures")
+
+    # And with ONLY the protected one shut, the block still answers the question:
+    # it names one of the other files carrying the same value, so the person can
+    # still type a gesture.
+    one = {state["ids"][CLEARED_KEPT]}
+    partly = _values_block(database, protected=one)
+    assert CLEARED_KEPT not in partly, (
+        "the protected file was named although another file carried the value")
+    assert "--confirm " in partly, (
+        "the question stopped being answerable although a nameable file carried "
+        "the value")

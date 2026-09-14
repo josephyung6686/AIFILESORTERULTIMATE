@@ -5832,7 +5832,8 @@ def _cited_line(conn: sqlite3.Connection, fact_id: str, value: str) -> str | Non
     return first
 
 
-def _print_values_to_confirm(conn: sqlite3.Connection, out) -> None:
+def _print_values_to_confirm(conn: sqlite3.Connection, out, *,
+                             show_protected: bool = False) -> None:
     """`104` §18.2 gap 3's last clause: *a proposal the person SEES*.
 
     **AND SINCE GAP 1, THE SCREEN WHERE A DISAGREEMENT LANDS.** Gap 1 stops check 4
@@ -5935,6 +5936,33 @@ def _print_values_to_confirm(conn: sqlite3.Connection, out) -> None:
                         row["canonical_value"])
     if not proposals:
         return
+    # THE NAME THIS BLOCK PRINTS IS SOMEBODY'S FILENAME, so it obeys the rule
+    # every other list of names on this screen obeys: the owner's ruling of
+    # 2026-09-02, protected filenames sit behind `--show-protected`. Read ONCE
+    # and through `_protected_file_ids`, which is the one reader its own
+    # docstring says exists so that the screen's protected counts cannot come to
+    # differ by one.
+    #
+    # THE TABLE IS ASKED FOR RATHER THAN ASSUMED, and this is not a swallowed
+    # error. Every other caller of `_protected_file_ids` runs after the full
+    # bootstrap; this one is also called against a database built by hand for a
+    # fact-pass test, where P7's schema was never created. A database with no
+    # `classifications` table has classified nothing, so nothing in it is
+    # protected and the empty set is the TRUE answer rather than a default --
+    # which is why the check is on the table's existence and not a `try` around
+    # the query, where a genuine failure to read a table that IS there would
+    # come back as "nothing is protected" and name somebody's passport.
+    #
+    # `show_protected` IS THE PERSON ASKING FOR THE NAMES, and it means the same
+    # here as everywhere else on this screen: the flag is about what is on the
+    # SCREEN, so under it this block names the file it read a value from like
+    # any other. Without it, nothing below can offer `--show-protected` as the
+    # way to see them and then not honour it -- `84` §6 again.
+    withheld: set[str] = set()
+    if not show_protected and conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' "
+            "AND name = 'classifications'").fetchone() is not None:
+        withheld = _protected_file_ids(conn)
     print("\nNew values the model proposed, waiting on you:", file=out)
     print(_wrapped(
         "None of these is filing anything: nothing is placed under a value until it "
@@ -5949,15 +5977,84 @@ def _print_values_to_confirm(conn: sqlite3.Connection, out) -> None:
         # however many facts those six files carry.
         versions = sorted({(row["file_id"], row["fact_id"]) for row in rows})
         files = len({file_id for file_id, _fact in versions})
-        named = get_file(conn, versions[0][0])
+        # THE FILE THIS BLOCK NAMES IS ONE THAT MAY BE NAMED. `versions[0]` is
+        # first by FILE ID, which is a uuid, so which of the files carrying a
+        # value got named here was effectively random -- and a run whose uuids
+        # fell to a protected file printed that file's name five times, once in
+        # the heading and once inside each of the three commands the person is
+        # told to type, together with a line of the file's own text. Measured on
+        # a fifteen-file corpus, three runs in twelve
+        # (`test_the_sort_is_frozen_and_applied_on_a_copy`).
+        #
+        # ANY of these files answers the question equally: the block exists to
+        # show a value and where it was read, and it needs SOME file carrying
+        # that value, not a particular one. So it takes one that may be shown.
+        # The COUNT is unchanged and still counts every file, protected or not
+        # -- `84` §1, marked and counted, never silently omitted.
+        openly = [version for version in versions if version[0] not in withheld]
+        head = (f"\n  {field_key.replace('_', ' ')}: {value!r} "
+                f"-- on {files} {'file' if files == 1 else 'files'}")
+
+        def _say_what_the_rules_read() -> None:
+            """`104` §18.2 GAP 1: THE DISAGREEMENT, IN FRONT OF THE PERSON.
+
+            Until that gap was closed this value could not exist -- check 4
+            rejected a model answer a stronger fact contradicted, and the claim
+            was discarded with no row and no line. It is now written `possible`
+            beside the rule's fact, which is `00`:42's "possible clue for
+            review", and this is the sentence that makes it one: a proposal
+            nobody is shown is not a proposal.
+
+            THE RULES' VALUE IS NAMED AND THE ORDER IS STATED. `possible` is
+            below `PROPOSAL_ELIGIBLE_STATES` and `facts.supersede.
+            preferred_of_slot` does not let it out-vote a `validated` row, so
+            the rules' value is what the product is still acting on -- and a
+            screen that showed the model's value alone would read as if it had
+            won.
+
+            A FUNCTION, AND CALLED FROM BOTH ARMS BELOW, because it names no
+            file: it is about two VALUES, and the arm where every file carrying
+            the one is protected is the arm where the person has least else to
+            go on. Dropping it there would withhold the only thing on the screen
+            that is not a name.
+            """
+            rules_said = sorted({
+                other
+                for file_id, _fact in versions
+                for other in settled.get((file_id, field_key), ())
+                if other != value})
+            if rules_said:
+                spelled = ", ".join(repr(other) for other in rules_said)
+                print(_wrapped(
+                    f"The rules read {spelled} for this field and that is what "
+                    f"is still in force; the model was shown so and answered "
+                    f"{value!r} anyway.", indent="    "), file=out)
+        if not openly:
+            # EVERY file carrying this value is protected, so there is no name to
+            # put in a command, and `84` §6 -- what the screen tells a person to
+            # type has to be true -- forbids printing one with a placeholder in
+            # it. The value stays on the screen, because the value is not the
+            # part that is protected; what is withheld is whose file it came
+            # from, and the one command that shows them is offered instead.
+            print(f"{head}, all of them protected and counted here rather than "
+                  f"named.", file=out)
+            _say_what_the_rules_read()
+            print(_wrapped(
+                "To answer this one, see which files it is about first:",
+                indent="    "), file=out)
+            print("      --show-protected", file=out)
+            continue
+        chosen = openly[0]
+        named = get_file(conn, chosen[0])
         # `--reject` TAKES A FILENAME AND NOTHING ELSE, and refuses one that names
         # two files. Printing a path or a file id here would tell the person to type
         # something the gesture rejects, which is `84` §6's own failure.
         filename = "<no name on record>" if named is None else named["filename"]
-        print(f"\n  {field_key.replace('_', ' ')}: {value!r} "
-              f"-- on {files} {'file' if files == 1 else 'files'}, "
-              f"first {filename!r}.", file=out)
-        line = _cited_line(conn, versions[0][1], value)
+        print(f"{head}, first {filename!r}.", file=out)
+        # OFF THE SAME FILE THE HEADING NAMED, not off `versions[0]`. The cited
+        # line is a sentence out of the file's own text, so reading it from a
+        # protected file would put more of that file on the screen than its name.
+        line = _cited_line(conn, chosen[1], value)
         if line is not None:
             print(_wrapped(f"The model was reading: {line!r}", indent="    "),
                   file=out)
@@ -5973,17 +6070,7 @@ def _print_values_to_confirm(conn: sqlite3.Connection, out) -> None:
         # let it out-vote a `validated` row, so the rules' value is what the product
         # is still acting on -- and a screen that showed the model's value alone
         # would read as if it had won.
-        rules_said = sorted({
-            other
-            for file_id, _fact in versions
-            for other in settled.get((file_id, field_key), ())
-            if other != value})
-        if rules_said:
-            spelled = ", ".join(repr(other) for other in rules_said)
-            print(_wrapped(
-                f"The rules read {spelled} for this field and that is what is "
-                f"still in force; the model was shown so and answered {value!r} "
-                "anyway.", indent="    "), file=out)
+        _say_what_the_rules_read()
         # PRINTED RAW, NEVER WRAPPED. `_role_lines` states the rule and `84` §6 is
         # the defect behind it: "textwrap breaking a command across two lines
         # produces a command that does not work". A filename with a space in it is
@@ -17910,7 +17997,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # database and not from `outcomes`: a `P8Verdict` carries no field and no
         # value (`llm_harness.records.P8Verdict`), so the only place the pair the
         # person must judge exists is the row the pass just wrote.
-        _print_values_to_confirm(conn, out)
+        _print_values_to_confirm(conn, out,
+                                 show_protected=show_protected)
         # `104` §18.2 gap 10. WHAT THE PASS SAW, HANDED OUT WHOLE. The
         # reconciliation runs whether or not this function reached this line, so
         # it cannot be written here; what it can be given is every verdict this
