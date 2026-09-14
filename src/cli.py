@@ -2055,8 +2055,21 @@ def _must_not_apply(call_site: str):
 def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
                                  placeable_file_count: int,
                                  routing: TierRouting, plan_version: str,
-                                 operation_mode: str = OPERATION_MODE) -> dict:
+                                 operation_mode: str = OPERATION_MODE,
+                                 cloud_cleared: Callable[[str], bool] | None = None,
+                                 ) -> dict:
     """Sites C and D, wired to run and to change nothing. Eight of the nine.
+
+    **`cloud_cleared` IS THE GATE'S CLEARED SET, THE SAME ONE SITES A, G AND H
+    READ (14 Sep 2026, `104` §18.60 item 6).** Site C's route was the only one
+    built without it, so `model_route_permitted` fell through to the current
+    classification row's basis, and since 13 Sep neither `detector_no_safety_
+    evidence` nor `local_model_situation` clears the cloud: on a cloud-only
+    deployment the sort could ask the placement judge about one file in eleven --
+    the one the person had released by hand -- and every other file abstained
+    `no_model_judgement`, a call that never happened. The consent screen has said
+    since 12 Sep that a placement CHECK may be sent for a cleared file; this is
+    that sentence made true. Nothing widens for a file the gate did not clear.
 
     `sensitivity_policy` is NOT here: R-55 supplies it at `placement_inputs`
     already, and P8's two sensitivity checks refuse with it whether or not a model
@@ -2086,7 +2099,8 @@ def observe_placement_injections(conn: sqlite3.Connection, fact_authorities, *,
     # read here would answer for every file at once, and would turn the site off
     # on a deployment where only some of its files may leave.
     placement_route = target_for(conn, routing, C_PLACEMENT,
-                                 operation_mode=operation_mode)
+                                 operation_mode=operation_mode,
+                                 cloud_cleared=cloud_cleared)
     if not site_has_a_destination(conn, routing, C_PLACEMENT,
                                   operation_mode=operation_mode):
         return {}
@@ -16131,6 +16145,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             conn, fact_authorities[0], routing=routing,
             plan_version=tree.tree.plan_version_id,
             placeable_file_count=placeable_file_count(conn, scan_run_id[0]),
+            # Read when a route is asked, which is after the gate has run.
+            cloud_cleared=lambda file_id: file_id in gate_cell[0].cleared_files,
             # THIS RUN'S MODE, and it stopped being cosmetic the day C's
             # `eliminate-v2` was ratified for the cloud: the site now HAS a cloud
             # candidate, so a default here would have kept every placement call on

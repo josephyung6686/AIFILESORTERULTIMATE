@@ -400,6 +400,41 @@ def _handle(state, filename: str) -> str:
                        key=cli.wire_handle_key_for(state["database"]))
 
 
+def _decisions_of_run(state, run_index: int) -> tuple[dict[str, str], dict[str, str | None]]:
+    """(placed, abstained) for ONE run's plan version -- the nth distinct plan
+    version the runs wrote, in order. `_placed`/`_abstentions` read the LAST
+    plan version, which is the right reading for the story's end and the wrong
+    one for a question about run 1: once the person has answered, the last plan
+    files what the first could not."""
+    import sqlite3 as _sqlite3
+    from pathlib import Path as _Path
+    from placement.store import decisions_for_plan
+    from tree_design.store import nodes_for_version
+    from placement.vocabulary import PLACE
+    from test_each_file_is_filed_under_its_own_situation import _chain
+    conn = _sqlite3.connect(f"file:{state['database']}?mode=ro", uri=True)
+    conn.row_factory = _sqlite3.Row
+    try:
+        versions: list[str] = []
+        for (version,) in conn.execute(
+                "SELECT plan_version FROM placement_decisions ORDER BY rowid"):
+            if version not in versions:
+                versions.append(version)
+        plan_version = versions[run_index]
+        nodes = {node.node_id: node for node in nodes_for_version(conn, plan_version)}
+        names = {row["file_id"]: row["current_path"]
+                 for row in conn.execute("SELECT file_id, current_path FROM files")}
+        decisions = tuple(decisions_for_plan(conn, plan_version=plan_version))
+    finally:
+        conn.close()
+    rel = lambda d: str(_Path(names[d.subject.file_id]).relative_to(state["corpus"]))
+    placed = {rel(d): _chain(d.destination.node_id, nodes)
+              for d in decisions if d.subject.kind == "file" and d.outcome == PLACE}
+    abstained = {rel(d): d.abstention_reason
+                 for d in decisions if d.subject.kind == "file" and d.outcome != PLACE}
+    return placed, abstained
+
+
 # --- scene 1: the closing question, and the person's two answers ----------------
 
 
@@ -619,8 +654,7 @@ def test_and_they_are_filed_nowhere_while_the_situation_is_open(three_runs):
     property of the open situation rather than of one file's evidence.
     """
     state = three_runs
-    run = (state["corpus"], state["database"], state["said"][0])
-    placed, abstained = _placed(run), _abstentions(run)
+    placed, abstained = _decisions_of_run(state, 0)   # run 1: the question is open
     for name in CLUB_FILES:
         where = f"{CLUB}/{name}"
         assert where not in placed, placed.get(where)
@@ -727,71 +761,43 @@ def _cloud_only_routing():
                                        FAST: client})
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "SITE C'S ROUTE NEVER ASKS THE GATE. `cli.target_for(conn, routing, "
-    "C_PLACEMENT, ...)` is built with no `cloud_cleared`, where sites A, G and H "
-    "all pass `lambda file_id: file_id in gate_pass.cleared_files`, so "
-    "`model_route_permitted` falls through to the current row's basis -- "
-    "`local_model_situation` here, which is not a `CLOUD_CLEARING_BASES` member "
-    "since 13 Sep. Threading it sends nine more placement dossiers off the "
-    "device, which is the owner's call and not this pin's."))
-def test_the_placement_judge_may_be_asked_about_a_file_the_gate_cleared(
+def test_the_placement_judge_is_asked_about_the_files_the_gate_cleared(
         three_runs):
-    """THE SEAM, ASKED DIRECTLY, so that fixing it turns this green.
+    """THE SEAM, MEASURED ON THE PRODUCT'S OWN RUN (fixed 14 Sep 2026).
 
-    An earlier draft of this pin asserted the CONSEQUENCE -- that the society's
-    files are filed once the person has answered which situation they are -- and
-    that is the wrong assertion for a strict xfail: two things stand between
-    those files and a folder, and only one of them is this route. The other is
-    the tree, which grew no root for `nonprofit.member-association` because its
-    one folder level is `Membership year` and no file here carries that fact.
-    A pin on the consequence would stay red after site C was fixed and nobody
-    would learn that it had been.
-
-    So this asks the route itself, on the cloud-only routing this whole file
-    runs under: may the placement judge be asked about a file the gate cleared?
-    Measured as built, per file, on this database -- nine of eleven answer "no
-    target at all" and answer "cloud" the moment `cloud_cleared` is supplied. The
-    two that stay `None` either way are right to: the medical record is held, and
-    `ECON 2010 lecture 01.txt` is unclassified, which `00` amendment 7(c) keeps
-    on this machine.
+    Site C's route was the only one built without the gate's cleared set, so on
+    this cloud-only deployment the placement judge could be asked about one file
+    in eleven -- the one the person had released by hand -- and the first run
+    sent NOTHING to site C at all. `observe_placement_injections` now reads the
+    same `cloud_cleared` sites A, G and H read, and the first run, before any
+    gesture, puts placement checks for the cleared coursework off the device.
+    The two files the rules hold are never among them.
     """
     state = three_runs
-    from database_agent.db import open_database
-    conn = open_database(state["database"])
-    try:
-        route = cli.target_for(conn, _cloud_only_routing(), cli.C_PLACEMENT,
-                               operation_mode=cli.CLOUD_ENABLED_MODE)
-        without = {name: route(state["ids"][name]) for name in CLUB_FILES}
-    finally:
-        conn.close()
-    assert all(chosen is not None for chosen in without.values()), (
-        "the gate cleared these files and the site that decides where they go "
-        "has nowhere to ask about them")
+    assert state["calls"][0][cli.C_PLACEMENT] > 0, state["calls"][0]
+    held = {_handle(state, RELEASED), _handle(state, KEPT)}
+    for payload_subjects in (state["asked_off_device"][0],):
+        assert not held & set(payload_subjects)
 
 
-def test_and_so_they_are_filed_nowhere_even_after_the_answer(three_runs):
-    """THE CONSEQUENCE, pinned as it actually is rather than as it should be.
+def test_and_after_the_answer_they_are_filed_under_the_society(three_runs):
+    """THE CONSEQUENCE, as `00` amendment 6 of 13 Sep says it: the person answered
+    the branch question, the situation is theirs, and the next run files the
+    three files the question was about. Until 14 Sep 2026 this could not happen
+    on a cloud-only deployment, because site C's route was built without the
+    gate's clearance and the placement check that confirms a folder never ran;
+    the earlier form of this pin stated that, and the route is threaded now.
 
-    This is `104` §18.60 item 6 blocked: the person answered the branch question,
-    the situation is theirs, and the sort still files none of the three files the
-    question was about. The reason word is the one that says a call never
-    happened, and the call never happened because of the route above. A second
-    cause is possible and is NOT measured here: the shipped
-    `nonprofit.member-association` binds one folder level, `Membership year`, and
-    no file in this corpus carries a fact for it, so a tree with a root for that
-    situation may have nothing to build under it either way.
-
-    When site C's route is fixed this test is the one to re-measure. It is green
-    today because it states what the product does today.
+    The society's files sit in the person's own folder and that is where they
+    are filed -- a refinement of the arrangement their owner built, never a
+    removal from it (`00`'s amendment of line 22).
     """
     state = three_runs
-    run = (state["corpus"], state["database"], state["said"][2])
-    placed, abstained = _placed(run), _abstentions(run)
+    placed, _abstained = _decisions_of_run(state, -1)   # the last run: answered
     for name in CLUB_FILES:
         where = f"{CLUB}/{name}"
-        assert where not in placed, placed.get(where)
-        assert abstained[where] == NO_MODEL_JUDGEMENT, abstained[where]
+        assert where in placed, where
+        assert placed[where].endswith(CLUB), placed[where]
 
 
 # --- scene 3: the sort, in run 10's shape ---------------------------------------
