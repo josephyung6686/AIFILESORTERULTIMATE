@@ -17632,6 +17632,45 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                     folder_levels=None, anchor_only=None,
                     deferred_readings=rules.schemas[
                         schema_id].deferred_readings))
+        # `00` AMENDMENT 1 OF 14 SEP: AND A ROW FOR EVERY SITUATION THE JUDGE
+        # NAMED FOR A FILE, whether or not that file's BRANCH is settled.
+        #
+        # `resolver_for` already states the rule this closes: a situation
+        # something named FOR THIS FILE "is asked whatever its branch is",
+        # because the two refusals under that line are about a folder nobody has
+        # answered for and this file has an answer. Until the judge existed the
+        # two could barely come apart -- a branch's situation and its files' were
+        # one answer, and the only other way in is `the_one_situation`'s per-file
+        # arm, which compares situation names to schema ids and so almost never
+        # fires. Now they come apart by design: a branch of three files where the
+        # judge names two and declines the third is UNSETTLED -- the person is
+        # asked about that branch, which is the amendment's own sentence -- and
+        # the two named files still have a situation of their own. Without this
+        # row `by_situation[under]` is a KeyError in the middle of somebody's
+        # scan.
+        #
+        # THE FOLDERS ARE STILL THE BRANCH'S QUESTION and are still withheld: P11
+        # reads `the_situation_each_branch_carries`, which an unsettled branch is
+        # not in. What this decides is only which QUESTIONS the file is asked, and
+        # its own situation is the honest answer to that.
+        for file_id, resolved in situation_pass.situations.items():
+            schema_id = situation_pass.named.get(file_id)
+            if schema_id is None or resolved not in _situations_of(schema_id):
+                continue
+            if resolved in by_situation:
+                # A branch, the person's answer or the library already built the
+                # same object above; a second would be a second set of answers.
+                continue
+            levels = folder_levels_for(catalogue, resolved)
+            group_levels = group_level_fields_for(catalogue, resolved)
+            by_situation[resolved] = model_fact_resolver(
+                conn, authorities=dataclasses.replace(
+                    authorities,
+                    activation_signals=evidence_activation(schema_id),
+                    folder_levels=tuple(level for level in levels
+                                        if level.field not in group_levels),
+                    deferred_readings=rules.schemas[
+                        schema_id].deferred_readings))
 
         def resolver_for(file_id: str) -> FactResolver | None:
             # ONE DECISION, ASKED HERE AND NOT REMADE: the file's own situation
