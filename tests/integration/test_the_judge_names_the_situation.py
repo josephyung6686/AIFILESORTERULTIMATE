@@ -227,8 +227,14 @@ def _ratified(patch) -> None:
     patch.setattr(cli, "SITUATION_LEVEL_ROW", TEST_ROW)
 
 
-def _run(tmp_path: Path, *, ratify: bool, decline_on: str | None = None) -> dict:
-    """One cloud-only run over the corpus, with the cloud recorded."""
+def _run(tmp_path: Path, *, ratify: bool, decline_on: str | None = None,
+         twice: bool = False) -> dict:
+    """One cloud-only run over the corpus, with the cloud recorded.
+
+    `twice` runs the same command again over the same database and reports the
+    SECOND run, with its own recorder -- which is how the question "does this
+    answer survive a run" is asked of the product rather than of a table.
+    """
     corpus = _corpus(tmp_path)
     database = tmp_path / "holder" / "plan.sqlite"
     cloud = _Cloud(decline_on=decline_on)
@@ -247,10 +253,16 @@ def _run(tmp_path: Path, *, ratify: bool, decline_on: str | None = None) -> dict
         patch.setattr(model_routing, "deepseek_invoke", cloud.factory)
         if ratify:
             _ratified(patch)
-        code = cli.main(
-            [str(corpus), "--situation", SITUATION, "--label", LABEL,
-             "--user", "t", "--database", str(database), "--enable-cloud",
-             "--accept-groups"], out=out)
+        argv = [str(corpus), "--situation", SITUATION, "--label", LABEL,
+                "--user", "t", "--database", str(database), "--enable-cloud",
+                "--accept-groups"]
+        code = cli.main(argv, out=out)
+        assert code == 0, out.getvalue()
+        if twice:
+            cloud = _Cloud(decline_on=decline_on)
+            patch.setattr(model_routing, "deepseek_invoke", cloud.factory)
+            out = io.StringIO()
+            code = cli.main(argv, out=out)
     assert code == 0, out.getvalue()
     return {"corpus": corpus, "database": database, "cloud": cloud,
             "said": out.getvalue(),
@@ -579,3 +591,42 @@ def test_the_held_file_is_never_the_subject_of_either_question(observing):
                 in observing["cloud"].dossiers_at(cli.G_SITUATION_SENSITIVITY)]
     assert subjects, "site G was never asked about anything"
     assert handle not in subjects, HELD
+
+
+# --- the answer survives the run it was given in --------------------------------
+
+
+@pytest.fixture(scope="module")
+def again(tmp_path_factory):
+    """The ratified run, then the same command again over the same database."""
+    return _run(tmp_path_factory.mktemp("again"), ratify=True, twice=True)
+
+
+def test_the_situation_survives_the_run_without_a_second_call_or_a_table(again):
+    """WHERE THE ANSWER IS KEPT, asked of the product.
+
+    The judge's situation is held in `SituationPass.situations`, beside the kind
+    in `named`, and it is written to no classification row and no table of its
+    own. A classification row says which CLASS of material a file is -- it
+    carries `protected`, a privacy class and the gate's own bases -- and a
+    situation is not one: it decides the file's fields and its folders and
+    decides nothing about what may leave this device. Putting it there would add
+    a second, finer vocabulary to the one column every privacy reader tests.
+
+    What carries it across a run is what carries the KIND across one: the verdict
+    the call recorded, replayed by `104` §18.31's reuse against the same file,
+    reader, prompt, model and list of situations. So the second run over this
+    database spends NO call at site G -- neither question -- and still does not
+    ask the person about the society's folder.
+
+    SABOTAGE: leave the situation list out of `_per_file_call_identity`'s
+    `schema_ids` and the two questions collide on one identity; write the answer
+    to a classification row instead and this pin still passes while the privacy
+    column gains 208 new values.
+    """
+    assert again["cloud"].kind_calls() == []
+    assert again["cloud"].situation_calls() == []
+    assert f"Which of these is {SCHEMA}?" not in again["said"], again["said"]
+    placed, abstained = _decisions(again)
+    for name in CLUB_FILES:
+        assert f"{CLUB}/{name}" in placed, abstained.get(f"{CLUB}/{name}")
