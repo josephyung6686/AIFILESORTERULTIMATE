@@ -532,6 +532,32 @@
    "layout": "frame-first",
    "note": "v2 of the situation-level text (14 Sep 2026, the lead): the decline rule of v1 made uncertainty a decline -- measured by replay on run 12's 89 dossiers whose kind carries several situations: 36 right, 17 wrong, 33 declines (40 %), fifteen coursework files, nine resumes and seven datasets declined with the right member on the list. v2 says the kind is settled, so a file of this kind IS one of the list unless nothing on it describes the file; choose when less than certain and say what you saw. Everything else byte-identical to v1. And the decline word is the menu's own, none_of_these: v1 said none while `allowed_vocabulary` carried none_of_these, so every decline would have been rejected in the product.",
    "ratified_by": "nobody yet: authored by the lead on 14 Sep 2026 for measurement; the owner ratifies with one word."
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-level-v3",
+   "status": "unratified",
+   "template_id": "situation.unratified.situation-level-v3.2026-09-14",
+   "template_file": "situation_level_template.v3.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_level_shaping_policy.v1.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "v3 of the situation-level text (14 Sep 2026, the lead), from the replay of v2 on run 12's 89 dossiers whose kind carries several situations: 44 right, 23 wrong, 22 declines (49 %). The judge's own reasons showed three causes. (1) Fifteen coursework declines were readings and handouts -- textbook pages, articles, worksheets, study texts -- struck because no institution issued them: v2's lines say 'record' and the judge read it as an official document. v3 says a situation's files are what the person was given, made, was issued and sent in it, that a line's examples are a list not a fence, and that 'record' means belonging, not issuance. (2) Eight coursework files went to the instructor's side or the institution's records about a child because a teacher authored them: v2 forbade reasoning about the person, which forbade the one question that separates those siblings. v3 keeps the ban on guessing who the person is and requires reasoning about the file's relation to them -- given to, made by, issued about, sent by -- and says material handed to the person is the person's side. (3) Four resumes went to portfolio because that line's purpose-word ('framed to be shown') captured a document the recruiting line names outright: v3 says a document one line names by kind is that line's, and that a special case of the ordinary piece of work is answered only on its distinguishing mark. Everything else byte-identical to v2.",
+   "ratified_by": "nobody yet: authored by the lead on 14 Sep 2026 for measurement; the owner ratifies with one word."
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-level-v4",
+   "status": "unratified",
+   "template_id": "situation.unratified.situation-level-v4.2026-09-14",
+   "template_file": "situation_level_template.v4.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_level_shaping_policy.v1.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "v4 of the situation-level text (14 Sep 2026, the lead): v3 measured 51 right, 23 wrong, 15 declines of 89 (57 %), and 62/13/14 (70 %) with six of the library's one-lines rewritten in the lead's replay harness (coursework names readings and handouts; K-12 schooling records and teaching each say the person's own class work is coursework; recruiting names the resume; portfolio says a resume is not one; reading library names books and reports). What stayed: seven public data tables and six readings declined as 'not a record of a research/academic situation'. v4 adds one paragraph: a published text, a table of figures or a picture kept in a piece of work is that work's reading or data, whoever published it and whether or not a project is named; ask which situation keeps such things. Everything else byte-identical to v3. The one-lines are the library's and cross the internet, so they are put to the owner as text 6, never edited by the lead.",
+   "ratified_by": "nobody yet: authored by the lead on 14 Sep 2026 for measurement; the owner ratifies with one word."
   }
  ],
  "digests": {
@@ -595,6 +621,8 @@
   "a_fact_template_folder_levels.v5.txt": "50fc90bf47512c1a77334a28f994ed2ac55578a1b13797967f884ccc39519b18",
   "situation_level_template.v1.txt": "ca729c35e2d8da766fbdb2e3707f9c08c938d25cc397c94e31eff4b0f3113e80",
   "situation_level_shaping_policy.v1.json": "55d1ca0d8303e1c4c19d6db462c28b1e8012185292cc24eeb0a725cc0b62bdf3",
-  "situation_level_template.v2.txt": "3524e9afad459f35db2c56731020276000a41087a778d4ad2742148823fe0652"
+  "situation_level_template.v2.txt": "3524e9afad459f35db2c56731020276000a41087a778d4ad2742148823fe0652",
+  "situation_level_template.v3.txt": "95a63845c2f6369c52af9c061e6c258122b91a1913206de36eb713d41dff29e8",
+  "situation_level_template.v4.txt": "8dc7530a9670fde0e29bd5b8ae8d8bf8a7a75a60e38d5e9566b46b4c4d94f69d"
  }
 }
