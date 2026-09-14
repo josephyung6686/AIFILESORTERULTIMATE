@@ -369,7 +369,7 @@ from readers.model_routing import (
 from facts.domains import SCHEMA_IDS
 from recognition.detector import (
     FIRST_PAGE, NAMING_ZONES, RELIABILITY as DETECTOR_RELIABILITY,
-    SAFETY_DOMAIN_HANDLING, Detector, Handling,
+    SAFETY_DOMAIN_HANDLING, Detector, Handling, settled_by_file_kind,
 )
 from recognition.rules import load_rules
 from recognition.semantic import (
@@ -8184,6 +8184,14 @@ class SituationPass:
     #: accepted verdict rather than by a call. Outside the partition: a reused
     #: file is also named or declined.
     reused: int = 0
+    #: `00`:110 at this site, for the ONE case that is a direct, unique match: a
+    #: file version with no text in it at all whose kind is a picture or a
+    #: recording. `recognition.detector.CAPTURE_SCHEMA` carries the measurement and
+    #: the rule. IN THE PARTITION -- these files were walked and were not asked --
+    #: and separate from `nothing_to_read`, which is the opposite fact: a file with
+    #: nothing to read is one nobody could answer about, and a capture is one
+    #: nobody needed to.
+    settled_by_kind: int = 0
 
 
 #: THE PASS THAT DID NOT RUN, and it is a value rather than a `None` for the
@@ -8348,7 +8356,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     """
     named: dict = {}
     nothing_to_read = declined = reused = held_not_asked = 0
-    over_ceiling = recognised_by_rules = 0
+    over_ceiling = recognised_by_rules = settled_by_kind = 0
     #: `104` §18.33 gap 25: THE ROWS, AND THE COUNT IS TAKEN OFF THEM. `no_route`
     #: was `+= 1` and nothing else, so `--trail FILE` could not say why a file was
     #: never asked -- the surface's own words: *"this module cannot say 'no site had
@@ -8455,6 +8463,31 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             # reads until the person files the record. Not asked, nothing sent.
             held += 1
             held_not_asked += 1
+            continue
+        if settled_by_file_kind(outcome.by_the_rules):
+            # `00`:110's ONE SURVIVING BYPASS, and it survives because it is the
+            # only case on this site that is literally what the line describes: "a
+            # direct, unique match". The rules recognised this file as a capture on
+            # its file kind alone, because there was nothing else about it to
+            # recognise -- no text unit, no OCR, no manifest entry, only P3's §1.2
+            # record. `recognition.detector.CAPTURE_SCHEMA` carries the rule and the
+            # corpus it was measured on.
+            #
+            # AMENDMENT 7(c) IS NOT REOPENED. It retired `settled` because the
+            # rules' top-1 accuracy on the second corpus was 32.2%, and every one
+            # of those 32.2% was a guess made from WORDS -- a term co-occurrence
+            # that could be the modal verb "will" in a datasheet. There are no
+            # words here to be wrong about. What the model was doing with these
+            # files, measured on the owner's corpus of 13 Sep 2026, was reading a
+            # mime type and answering "none" for 36 of the 50: a call spent to be
+            # told what the extension already said.
+            #
+            # BEFORE `recognised_by_rules`, so that counter's sentence stays true:
+            # it says the rules recognised these files "from their own words" and
+            # that "every one was still asked", and this file had no words and is
+            # not asked. Nothing is routed, nothing is assembled and nothing is
+            # sent; the recognition the detector wrote is what stands.
+            settled_by_kind += 1
             continue
         precaution = None
         if current is not None and current.basis in SAFETY_DOMAIN_BASES:
@@ -8706,7 +8739,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         reused=reused,
         named=named, recognised_by_rules=recognised_by_rules,
         nothing_to_read=nothing_to_read, declined=declined,
-        held_not_asked=held_not_asked,
+        held_not_asked=held_not_asked, settled_by_kind=settled_by_kind,
         # `104` §18.33 gap 25: THE NUMBER IS THE ROWS. Not a tally kept beside them
         # -- a counter and a table are two accounts of one fact and the day they
         # disagree the screen is the one a person believes. One row was written for
@@ -11487,11 +11520,20 @@ SITUATION_SENTENCE: Mapping[str, str] = MappingProxyType({
         "again: the same file, reader, prompt, model and list of situations had "
         "already been put to the question, so the answer was read back and no "
         "call was spent. These are counted above as named or left alone as well.",
+    # `00`:110's one surviving bypass at this site, and it says WHAT the answer is
+    # rather than that there was one -- a person reading "settled by kind" about
+    # their holiday photographs should be able to see the whole of the reasoning
+    # in the sentence, because the whole of the reasoning is that it is a JPEG.
+    "settled_by_kind":
+        "settled by kind: pictures and recordings with no text in them at all. "
+        "Their whole released evidence is a path, a mime type and an extension, "
+        "so they are captures and the rules say so; no model was asked, because "
+        "there is nothing in them for one to read.",
 })
 
 #: `00` amendment 7(c): WHAT THE RULES HAD RECOGNISED, said as a fact about the
 #: rules. It is outside the partition -- every one of these files was also asked --
-#: so `_print_situation_pass` prints it apart from the six that add up, on
+#: so `_print_situation_pass` prints it apart from the seven that add up, on
 #: `PrecautionHolds`' own rule.
 SITUATION_RECOGNISED_SENTENCE: str = (
     "of them the rules had already recognised from their own words. Every one "
@@ -11708,7 +11750,7 @@ def _print_gate_pass(gate: GatePass, *, files: int, model_id: str, out) -> None:
 
 def _print_situation_pass(situation: SituationPass, *, files: int,
                           model_id: str, out) -> None:
-    """Site G's seven counters, in the shape the fact pass prints its own.
+    """Site G's eight counters, in the shape the fact pass prints its own.
 
     **`104` §18.2 gap 9: these counts reached nobody.** `cli.py` initialised the
     cell, the pass filled it, and no line of the report ever read it -- so the one
@@ -11726,18 +11768,20 @@ def _print_situation_pass(situation: SituationPass, *, files: int,
     different sentences to a person and only one of them is about their file. Two
     blocks in two shapes on one screen would read as two products.
 
-    **ALL SEVEN, INCLUDING THE ZEROS, and that is the difference from the fact pass
+    **ALL EIGHT, INCLUDING THE ZEROS, and that is the difference from the fact pass
     block.** These counters PARTITION the roster -- every file the pass walked
-    lands in exactly one of them -- so the seven numbers are an arithmetic a person
+    lands in exactly one of them -- so the eight numbers are an arithmetic a person
     can check against the total, and a zero that disappears makes that arithmetic
     unreadable. `104` §17.2 is what a number with no provenance costs; a missing
     line is the same cost paid silently. `104` R-175's `over_ceiling` joined the
     partition for exactly that reason: a file skipped for time is a file this run
-    did not decide about, and it has to be visible as one.
+    did not decide about, and it has to be visible as one, and `settled_by_kind`
+    joined it on 13 Sep 2026 for the same reason read the other way -- a picture
+    with no words in it was decided about, and by a rule rather than by a model.
 
     **A PASS THAT DID NOT RUN PRINTS NOTHING**, and that is `_NOTHING_ASKED`'s own
     ruling one layer up: a run where site G was not asked and a run where it was
-    asked and named nothing "must not read the same downstream". Seven zeros under
+    asked and named nothing "must not read the same downstream". Eight zeros under
     a header is precisely how the two would come to read the same.
 
     The model is named for `_local_model_id`'s reason and G's row is why it is the

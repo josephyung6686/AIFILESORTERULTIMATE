@@ -58,6 +58,14 @@ from evidence_shape.store import is_derived_extractor
 #: renamed, silently and in the permissive direction.
 from extractors.structured_text import LANGUAGE_FIELD
 
+#: WHICH FAMILY THIS FILE BELONGS TO, read off P5's own recorded decision rather
+#: than re-derived here from an extension. `route` already answered the question --
+#: detected format beats declared extension, and the answer is written down -- and
+#: a detector holding a second extension table is `LANGUAGE_FIELD`'s rule again:
+#: the day somebody adds `.heic` to the router, a private copy here goes on
+#: saying no.
+from extractors.router import routing_decisions
+
 #: `00` amendment 7(a)'s deterministic extractor, IMPORTED for the same reason
 #: `LANGUAGE_FIELD` is: the kinds and the namespace are the extractor's and a
 #: detector holding its own copy of either is a rule that stops applying the day one
@@ -99,6 +107,44 @@ from recognition.vocabulary import SAFETY_DOMAIN_IDS, check_abstention_reason
 #: `user_confirmed`, `direct` and `validated` above it, so a user correction or a
 #: labelled slot always wins over a term co-occurrence and never the other way.
 RELIABILITY: str = "possible"
+
+
+#: A FILE WITH NO WORDS IN IT IS STILL A FILE, and if it is a picture or a
+#: recording then what it is, is a capture. `00`:110 sanctions a deterministic
+#: answer for "a direct, unique match", and there is no more direct or more unique
+#: one than this: the whole of the released evidence is a path, a mime type and an
+#: extension, and the extension says JPEG.
+#:
+#: **MEASURED, on the owner's corpus of 13 Sep 2026 (lead-only).** Of the 242 files
+#: the cloud situation judge was asked about, 50 carried no text at all -- 35
+#: images and 16 audio files. This detector returned `no_evidence` for 45 of them,
+#: because `photos` sets `file_kind_never_alone` and a JPEG with no words is one
+#: signal; the judge, shown a mime type and nothing else, answered "none" for 36 of
+#: them, honestly -- "the released values show only a mime type". Those files then
+#: got no situation and no facts, out of a question nobody could have answered.
+#:
+#: `file_kind_never_alone` IS UNTOUCHED AND STILL MEANS WHAT IT MEANS. It is a rule
+#: about the file KIND arriving as a second signal beside a term -- a `.jpg` that
+#: says "statement" must not be `finance` on the strength of being a `.jpg`. This
+#: branch is reached only where there is no term and no text to hold one, so there
+#: is no first signal for the kind to be second to, and nothing here loosens the
+#: arity rule for any file that has words.
+CAPTURE_SCHEMA: str = "photos"
+
+#: The two families a capture comes in, in `evidence_shape.vocabulary`'s spelling.
+#: P5's router is what puts a file in one of them, and this reads its answer.
+CAPTURE_SOURCE_TYPES: frozenset[str] = frozenset({"image", "audio_video"})
+
+#: THE FAMILIES A FILE WITH NO TEXT CARRIES. `filesystem` is the name, the parent
+#: folder, the extension and the mime type -- P3's §1.2 record, which every file on
+#: the disk has; `image` and `audio_video` are container metadata. Any OTHER family
+#: in the file's evidence means something read words out of it: `ocr` is an OCR run,
+#: `text_document` a PDF or a `.txt`, `archive` a manifest. A file carrying one of
+#: those HAS text, and this branch must not reach it -- an opaque image whose OCR
+#: returned words is exactly `00`'s case for the model rather than for a rule, and
+#: it stays one.
+TEXTLESS_SOURCE_TYPES: frozenset[str] = frozenset(
+    {"filesystem", "image", "audio_video"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -625,6 +671,23 @@ def situation_outcome_of(outcome: "Abstention | Recognition") -> SituationOutcom
         evidence_refs=outcome.evidence_refs)
 
 
+def settled_by_file_kind(outcome: "Abstention | Recognition") -> bool:
+    """Was this recognition made on the file's KIND alone, with no term at all?
+
+    THE PREDICATE LIVES HERE BECAUSE THE RULE DOES. `cli.ask_the_situation` needs
+    to tell a capture apart from a file the rules read words in, and the honest
+    way to ask is to ask the part that decided. The alternative -- site G looking
+    at zones and concluding for itself -- is a second recogniser in the caller,
+    which is what `SituationOutcome` exists to stop.
+
+    A term recognition always carries at least two matches: that is
+    `file_kind_never_alone`'s arity, applied in `_decide` and never relaxed. So an
+    empty `matches` on a `Recognition` is this branch and no other, and the test
+    is the record rather than a flag beside it.
+    """
+    return isinstance(outcome, Recognition) and not outcome.matches
+
+
 def _tokens(text: str) -> tuple[str, ...]:
     """Words, case-folded. Everything that is not a letter or digit separates.
 
@@ -988,6 +1051,55 @@ class Detector:
             return True
         return bool(source_types & schema.source_types)
 
+    def _capture(self, conn: sqlite3.Connection, file_id: str,
+                 content_hash: str, *,
+                 source_types: set[str]) -> "Recognition | None":
+        """`CAPTURE_SCHEMA`'s rule: a text-less picture or recording IS a capture.
+
+        Three questions, and all three must answer yes. Each is asked of the part
+        that owns it, so none of them is a rule this method invented.
+
+        * **Does the library have this schema?** A hand-built rule set that never
+          compiled `photos` cannot recognise anything as it, and `_handling` would
+          raise on a schema the deployment never named.
+        * **Has anything read words out of this file?** `TEXTLESS_SOURCE_TYPES` is
+          the whole of it: the families in the file's own live evidence, gathered
+          by `_matches` one call up rather than re-read here. An `ocr` or a
+          `text_document` row means there was text, and a file with text is not
+          this case whatever its extension says.
+        * **Is it a picture or a recording?** P5's RECORDED routing decision, which
+          is the only part that has answered "what family is this file" -- detected
+          format over declared extension, written down at extract time. The
+          `photos` schema's own compiled `extensions` would be the wrong list to
+          ask: it holds `.csv`, `.eml` and `.dat` from the export rows, so a
+          text-less spreadsheet would come back a photograph.
+
+        **AND IT CITES.** §8.4 makes the classification evidence-backed and
+        `ClassificationRecord` refuses a `detector` record with no references, so
+        the recognition rests on the observations that ARE the answer -- P3's §1.2
+        metadata rows, which is where the extension and the mime type live. A file
+        with none of them is not recognised: there is nothing to point at, and a
+        conclusion nothing can be pointed at for is the one thing this package
+        never produces.
+        """
+        if CAPTURE_SCHEMA not in self._rules.schemas:
+            return None
+        if not source_types <= TEXTLESS_SOURCE_TYPES:
+            return None
+        decisions = routing_decisions(conn, file_id, content_hash)
+        if not any(row["source_type"] in CAPTURE_SOURCE_TYPES
+                   for row in decisions):
+            return None
+        refs = [row["observation_key"] for row in conn.execute(
+            "SELECT observation_key, location FROM evidence WHERE file_id = ? "
+            "AND content_hash = ? AND superseded_by IS NULL ORDER BY rowid",
+            (file_id, content_hash))
+            if _json.loads(row["location"]).get("zone") == "metadata"]
+        if not refs:
+            return None
+        return Recognition(schema_id=CAPTURE_SCHEMA, matches=(),
+                           evidence_refs=tuple(dict.fromkeys(refs)))
+
     # --- deciding ------------------------------------------------------------
 
     def explain(self, conn: sqlite3.Connection, file_id: str,
@@ -1012,6 +1124,13 @@ class Detector:
 
         matches, source_types = self._matches(conn, file_id, content_hash)
         if not matches:
+            # BEFORE THE ABSTENTION, because for a picture or a recording with no
+            # words in it there is nothing here to abstain about: the file kind IS
+            # the answer, and `CAPTURE_SCHEMA` carries the whole argument.
+            capture = self._capture(conn, file_id, content_hash,
+                                    source_types=source_types)
+            if capture is not None:
+                return capture
             return Abstention("no_evidence", None,
                               f"{file_id} carries no term any schema authored")
 
