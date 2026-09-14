@@ -6544,6 +6544,19 @@ def model_route_permitted(conn: sqlite3.Connection, *, locality: str,
         # below, and the widening above must never reach it -- which is why a file
         # WITH a record still answers `not record.protected`.
         if record is None:
+            # THE GATE'S WORD REACHES A FILE WITH NO RECORD -- the owner's word, 14
+            # Sep 2026 10:30 ("yes ... we need to classify all of it"), on `00`
+            # amendment 2 of 13 Sep. `cloud_cleared` is the gate pass's cleared
+            # set: the local model's clearance, or on a deployment without one the
+            # rules' word; amendment 7(c) says a file the gate cleared is the one
+            # whose situation may be asked off this device. The local gate wrote an
+            # ordinary row for every file it cleared, so this arm never fired
+            # then; the rules write none, and run 12 of the second corpus
+            # (cloud-only) put 185 of 347 cleared files to the judge and refused
+            # 124 here as unclassified -- a sentence about the detector, not the
+            # file. A file NOTHING cleared still answers below as before.
+            if cloud_cleared is not None and cloud_cleared(file_id):
+                return True
             # `104` R-02, AND THE PREDICATE IS THE GATE'S OWN. This answered `True`
             # for every locality, so on a cloud target the route counted a file as
             # routed that `Gate.release` then refused -- 19 withheld at the route
