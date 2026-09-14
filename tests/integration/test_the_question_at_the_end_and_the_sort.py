@@ -576,7 +576,11 @@ def test_neither_held_file_is_asked_of_the_cloud_and_the_cleared_ones_are(
     assert _handle(state, KEPT) not in asked, "a held file reached the cloud"
     for name in CLUB_FILES:
         assert _handle(state, name) in asked, f"{name} was never asked"
-    assert len(asked) == 8, sorted(state["asked_off_device"][0])
+    # NINE since 14 Sep 2026: the one coursework file no reader took words from
+    # used to have no classification row and was refused for the cloud as
+    # unclassified; a file the rules clear on their word now carries the row the
+    # local gate used to write, so all nine cleared files reach the judge.
+    assert len(asked) == 9, sorted(state["asked_off_device"][0])
 
 
 def test_release_opens_the_cloud_to_that_file_and_to_no_other_held_one(

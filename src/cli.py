@@ -8077,6 +8077,31 @@ def ask_the_gate(conn: sqlite3.Connection, *, roster, fact_authorities,
                 # word.
                 cleared_by_rules += 1
                 cleared_files.add(file_id)
+                # AND A ROW, WHERE THE FILE HAS NONE (14 Sep 2026, run 13 of the
+                # second corpus). The local gate wrote an ordinary row for every
+                # file it cleared; the rules' word wrote nothing, and the release
+                # audit -- a second gate downstream of the route -- refused 124
+                # cleared files as `unreadable_unclassified` on their way to the
+                # judge. The row is the retire arm's own: the rules read the file
+                # and found nothing to hold, cited to the file's record rows,
+                # which every indexed file has. A file that already carries a
+                # row keeps it.
+                if store.current(file_id, content_hash) is None:
+                    refs = tuple(row["observation_key"] for row in conn.execute(
+                        "SELECT observation_key FROM evidence WHERE file_id = ? "
+                        "AND content_hash = ? AND extractor_name = 'filesystem.record' "
+                        "AND superseded_by IS NULL ORDER BY observation_key",
+                        (file_id, content_hash)))
+                    if refs:
+                        assign(conn, ClassificationRecord(
+                            file_id=file_id, content_hash=content_hash,
+                            handling_class=ORDINARY_CLASS, protected=False,
+                            basis=DETECTOR_NO_SAFETY_EVIDENCE, evidence_refs=refs,
+                            reliability_state=DETECTOR_RELIABILITY,
+                            observed_at=now()),
+                            store=store, component_version=component_version,
+                            supersede_reason="cleared on the rules' word with "
+                                             "no model on this machine (14 Sep 2026)")
                 continue
             # NOTHING IS ASSEMBLED AND NOTHING IS SENT, and it has a row of its own
             # rather than a tally, on `ask_the_situation`'s own argument: a count is
