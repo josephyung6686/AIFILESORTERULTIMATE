@@ -247,9 +247,11 @@ def test_the_instrument_export_carries_the_specimen_and_the_date_as_cells(db, co
     go(db, corpus)
     values = evidence_values(db, "192K - allen.rlt")
 
-    assert "80PMMA20PBAT" in values
-    assert "7/3/24" in values
-    assert "Rectangular" in values
+    # Since 13 Sep 2026 a spreadsheet's unit is a ROW (`104` §18.60): the cell
+    # reaches the store inside the line it was printed on, beside its label.
+    assert any("80PMMA20PBAT" in v for v in values)
+    assert any("7/3/24" in v for v in values)
+    assert any("Rectangular" in v for v in values)
 
 
 def test_the_citation_record_carries_its_abstract_and_not_just_its_tags(db, corpus):

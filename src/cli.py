@@ -17168,8 +17168,16 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         for file_id, content_hash in corpus_roster(conn, run_id):
             candidate = classify_producer(conn, file_id, content_hash)
             if candidate is not None and candidate.protected:
-                assign(conn, candidate, store=store,
-                       component_version=COMPONENT_VERSION)
+                # The entity pass's own arm, as before: a hold the classify loop
+                # could not see. Assigned only where it is NEW -- a hold the
+                # store already carries under the same basis is the same word
+                # twice, and writing it again superseded the first row with a
+                # copy on every launch (measured on the hold pins, 14 Sep).
+                current = store.current(file_id, content_hash)
+                if not (current is not None and current.protected
+                        and current.basis == candidate.basis):
+                    assign(conn, candidate, store=store,
+                           component_version=COMPONENT_VERSION)
                 continue
             # AND THE RULES THAT NO LONGER HOLD A FILE RELEASE IT (13 Sep 2026).
             # A rules hold is written once and stood until something outranked

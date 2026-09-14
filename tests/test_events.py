@@ -103,12 +103,15 @@ def test_the_registered_table_matches_the_declaring_specs():
            "residual_set_surfaced", "residual_set_decision_recorded",
            "residual_recommendation_emitted", "return_to_placement_issued",
            "placement_review_decision"}
+    # P15 (planning/66) declares one, since 13 Sep 2026 (`104` §18.60 item 4a):
+    # a person's answer to a structural question is a learning record.
+    p15 = {"structural answer recorded"}
     assert len(p7) == 8 and len(p8) == 5 and len(p13) == 3 and len(p11) == 9
-    assert set(REGISTERED_EVENT_TYPES) == p7 | p8 | p13 | p11
-    # 20 + 8 + 5 + 3 + 9. Twenty reserved, not nineteen, since `refused move`
+    assert set(REGISTERED_EVENT_TYPES) == p7 | p8 | p13 | p11 | p15
+    # 20 + 8 + 5 + 3 + 9 + 1. Twenty reserved, not nineteen, since `refused move`
     # was approved; the registered table below is unchanged by that -- rule 1
     # still forbids any part from registering a name the reserved set holds.
-    assert len(EVENT_TYPES) == 45
+    assert len(EVENT_TYPES) == 46
 
 
 def test_the_table_cannot_be_mutated_at_run_time():
