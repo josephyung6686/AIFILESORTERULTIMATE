@@ -736,13 +736,6 @@ def _unranked(candidates: frozenset[str]) -> tuple[str, ...]:
 #: fact and lives in `.env`. `83` §3's last row -- "anything not listed refuses" --
 #: is `TierRouting`'s behaviour rather than a row here: a site absent from this
 #: mapping gets a refusal naming it, never a tier it did not choose.
-#: THE FAST TIER FOR EVERY CLOUD SITE (the owner, 14 Sep 2026: "use deepseek
-#: flash v4 if you're not"), measured first by replay on run 12's 184 judge
-#: dossiers: the logic tier's model 137 right of 185 (74.1 %); the fast tier's
-#: 148 right of 184 (80.4 %), résumés 14 of 14 against 10, health records 6 of 6
-#: against 4, with 4 answers empty on the first ask and 7 more that were empty on
-#: the first and answered on the second (`104` §18.61). The gate stays where it
-#: was: it runs on this device or not at all.
 TIER_OF_CALL_SITE: Mapping[str, str] = MappingProxyType({
     # The one that becomes folder structure, and the one a person finds out about
     # months later. `83` §3 gave it REASONING, and measurement on the owner's own
@@ -761,12 +754,12 @@ TIER_OF_CALL_SITE: Mapping[str, str] = MappingProxyType({
     # LOGIC and not FAST: A_fact is `83`'s own "bounded, checkable,
     # verification-shaped" -- every claim is re-checked against extracted evidence --
     # and it is not FAST's "low stakes, individually cheap to get wrong".
-    A_FACT: FAST,
+    A_FACT: LOGIC,
     # Bounded, checkable, verification-shaped: each verdict is re-checked against
     # evidence already extracted, so a cheaper reasoner is not a risk.
-    B_GROUP: FAST,
-    C_PLACEMENT: FAST,
-    E_TEMPLATE: FAST,
+    B_GROUP: LOGIC,
+    C_PLACEMENT: LOGIC,
+    E_TEMPLATE: LOGIC,
     # High volume by construction -- these are the files nothing else could place
     # -- and §7.6 makes the person authorise the spend per set beforehand.
     D_RESIDUAL: FAST,
@@ -781,7 +774,7 @@ TIER_OF_CALL_SITE: Mapping[str, str] = MappingProxyType({
     # ratified text says "Think for as long as you need to before you answer", and a
     # reasoning model sharing one budget between thinking and writing never starts
     # writing.
-    G_SITUATION_SENSITIVITY: FAST,
+    G_SITUATION_SENSITIVITY: LOGIC,
     # `00` amendment 7(c)'s gate. LOGIC, on site G's own argument and not on a new
     # one: the answer is one identifier out of a closed list of eleven, every
     # citation behind it is re-checked against evidence already extracted, and the
