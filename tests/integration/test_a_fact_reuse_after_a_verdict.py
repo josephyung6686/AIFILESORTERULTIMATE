@@ -648,6 +648,15 @@ def test_the_identity_is_the_same_on_an_unchanged_second_run(corpus, socket):
     count reads 4 for the 2 this pin means, and the dimension set below would be
     asserted of a row whose `model_id` is the local model's and whose `call_site` is
     not site A's.
+
+    `104` §18.60, 13 Sep 2026: `max_dossier_tokens` is the eleventh term
+    (`llm_harness.store.CALL_IDENTITY_DIMENSIONS`). The gate's ceiling moved from
+    1,200 bytes to 3,000 without the per-file identity naming HOW MUCH of each
+    reading was shown, only WHICH readings (`context_refs`) -- so 238 of 320 gated
+    files kept the answer given under the old, tighter excerpt. The dimension's own
+    empty value is `None`, so every identity written before this term existed is
+    asked once more under its true bound rather than silently trusting a cache built
+    on a ceiling it never recorded.
     """
     _run(corpus, "--enable-cloud")
     _run(corpus)
@@ -658,8 +667,8 @@ def test_the_identity_is_the_same_on_an_unchanged_second_run(corpus, socket):
                   for row in _identities_at(corpus, cli.A_FACT)]
     assert {name for row in dimensions for name in row} == {
         "call_site", "content_hash", "context_refs", "extractor_versions",
-        "model_id", "plan_version", "policy", "prompt_fingerprint", "schema_id",
-        "subject_ref"}
+        "max_dossier_tokens", "model_id", "plan_version", "policy",
+        "prompt_fingerprint", "schema_id", "subject_ref"}
     # `context_refs` is `104` R-135's tenth term: the observation keys of readings of
     # OTHER files a call was shown. It is exactly the shape this test's docstring warns
     # about, so it is checked rather than trusted. An `observation_key` is

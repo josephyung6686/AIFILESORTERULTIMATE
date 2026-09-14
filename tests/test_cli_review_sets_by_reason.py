@@ -44,24 +44,34 @@ ARGV = ["--situation", "academic.coursework", "--label", "Papers", "--user", "jy
         "--accept-groups"]
 
 #: One set `_three_reason_corpus` always surfaces, unprotected, named exactly as
-#: the report names it. Measured rather than assumed: the corpus's three sets are
-#: this one, "Waiting on a question you have been asked" and the protected one,
-#: and `test_files_held_for_three_reasons_are_three_sets_a_person_can_tell_apart`
+#: the report names it. Measured rather than assumed: the corpus's four sets are
+#: this one, "A model was not allowed to look", "Waiting on a question you have
+#: been asked" and the protected one, and
+#: `test_files_held_for_four_reasons_are_four_sets_a_person_can_tell_apart`
 #: is what fails first if that stops being true.
 HELD_SET = "Not yet said what kind of material"
 
 
 def _three_reason_corpus(tmp_path):
-    """One corpus whose unplaced files stopped for three different reasons.
+    """One corpus whose unplaced files stopped for four different reasons.
 
     The bytes of the vault are a stand-in -- a KeePass signature over zeroes --
     because the point is that nothing opens it, which is all the product knows
     about it too. It is the same fixture shape
     `test_nothing_opens_the_vault_the_disk_image_or_the_passport` uses.
 
-    Three reasons, and each of them a different sentence on the screen: nothing
-    has said what kind of material the photo and the note are; the vault is a
-    question the report puts to the person; the passport is protected.
+    Named for the three reasons it was built to show -- nothing has said what
+    kind of material the photo and the note are; the vault is a question the
+    report puts to the person; the passport is protected -- and left unrenamed
+    because a fourth arrived without changing a byte of it. `104` §18.60 ×
+    `49535aa2` ("A text-less capture is its kind"): `holiday.jpg` now gets an
+    ORDINARY classification from the detector's capture rule (it did not
+    before), so it is no longer in the "nothing has classified this" bucket
+    with `misc.txt` -- classified but still needing a model to say where a
+    photo with no words in it belongs, and this run allows none, it lands in
+    its own correctly-named set, "A model was not allowed to look". Four
+    sentences on the screen for four different facts, which is `00` §residual's
+    whole point.
     """
     corpus = tmp_path / "corpus"
     private = corpus / "Private"
@@ -164,7 +174,7 @@ def _decisions(database):
 # The division
 # ======================================================================================
 
-def test_files_held_for_three_reasons_are_three_sets_a_person_can_tell_apart(
+def test_files_held_for_four_reasons_are_four_sets_a_person_can_tell_apart(
         tmp_path):
     """The defect, stated as the property that fixes it.
 
@@ -173,19 +183,30 @@ def test_files_held_for_three_reasons_are_three_sets_a_person_can_tell_apart(
     together -- three different sentences under one name, addressed by one
     `--send-set`. The screen already knew they were different: it printed a
     different "Same reason for each" over each of them.
+
+    `104` §18.60 × `49535aa2`, 13 Sep 2026: the photo split again, on its own.
+    `Detector._capture` now gives a text-less picture like `holiday.jpg` an
+    ORDINARY classification off its file kind alone, where before it carried
+    none -- so it is no longer sharing `misc.txt`'s "nothing has classified
+    this" reason. It is classified and still cannot be placed without a model
+    to say what kind of photo it is, and this run's privacy settings allow no
+    model to look, so it earns its own true fourth reason: "A model was not
+    allowed to look". Four sentences for four different facts is the same
+    point this test was written for, one reason wider.
     """
     corpus = _three_reason_corpus(tmp_path)
     database = tmp_path / "plan.sqlite"
     printed = _report(corpus, database)
 
     labels = _labels(printed)
-    assert len(set(labels)) == 3, (
-        f"three reasons produced {sorted(set(labels))}:\n{printed}")
+    assert len(set(labels)) == 4, (
+        f"four reasons produced {sorted(set(labels))}:\n{printed}")
     assert "Not yet placed" not in labels, (
         "the one pile is back, under its own name:\n" + printed)
     # And the names are the reasons rather than a count, which is the whole of
     # `00` §residual's "reliable characteristics".
     assert "Not yet said what kind of material" in labels, labels
+    assert "A model was not allowed to look" in labels, labels
     assert "Waiting on a question you have been asked" in labels, labels
     assert "Protected, and not filed in bulk" in labels, labels
 

@@ -137,6 +137,19 @@ model of any kind, so what holds that file is the rules' own detector, and
 readings of a held file are readings a person is shown rather than ones a folder
 is built from.
 
+**Recaptured on 13 Sep 2026 for `104` §18.60's row rule (`e131b1f2`, `0da7084e`),
+and the diff was read before it was taken.** "A spreadsheet's unit is a row" does
+not touch this corpus -- it holds no spreadsheet -- but `structured_text.py` is
+the reader for every `.txt` file here too, and `104` R-164's rule bumps a reader's
+VERSION with any change to what it emits, whatever kind of file triggered the
+change. Read after masking `extractor_version` and the `cache_key`s (and the
+`record_id`/`unresolved_id`/`fact_id` strings built from them) that move only
+because that number is inside them: every row in `evidence`, `extraction_runs`,
+`file_facts` and `unresolved` is otherwise byte-identical -- same locators, same
+`normalized_value`, same `raw_value`, same `reason`, same `field_key`. Nothing
+this corpus reads, resolves, groups or places moved; the version travelled and
+nothing else did.
+
 The corpus is `test_local_model_fact_pass._corpus`'s six files: a syllabus, a
 lecture, a homework, a problem set, an application essay and a passport scan. The
 anchors the work-type rule finds on it are all academic's, so it is one branch.
