@@ -1020,3 +1020,53 @@ def test_every_answer_the_person_gave_is_a_learning_record_at_its_own_scope(
     assert not kept_held, (
         "--file-held on an already-held file wrote a classification row, which "
         "is the one thing its own pin says it must not do")
+
+
+def test_the_screen_asks_the_branches_the_judge_opened_not_the_first_partitions(
+        tmp_path):
+    """Run 12 of the second corpus (14 Sep 2026): the second partition -- made
+    once site G has spoken -- recorded nine branch questions and the closing
+    screen printed the first partition's two, with the root's count from before
+    the judge. The list the screen reads is refreshed by the second partition now.
+
+    A BRANCH ONLY THE JUDGE OPENS: the corpus is the story's own, with no
+    `--situation` typed, and the judge is made to name `research` for one of the
+    society's files, which the anchors put under the society. No anchor opens
+    `research`, so the first partition cannot ask about it and the second must
+    -- and the screen must say so.
+    """
+    corpus = _corpus(tmp_path)
+    database = tmp_path / "holder" / "plan.sqlite"
+    cloud = _Cloud()
+    marked = "thanked the outgoing chair"   # the judge sees text, never a filename
+
+    def invoke(payload: bytes) -> bytes:
+        cloud.payloads.append(payload)
+        body = cloud._body(payload)
+        site = body["call_site"]
+        if site == cli.G_SITUATION_SENSITIVITY:
+            where = " ".join(item["value"] for item in _released(body))
+            return _names("research" if marked in where else
+                          SCHEMA if CLUB in where else "academic",
+                          body).encode("utf-8")
+        if site == cli.C_PLACEMENT:
+            return _the_deterministic_winner(body).encode("utf-8")
+        return _answer_for(payload.decode("utf-8")).encode("utf-8")
+
+    with pytest.MonkeyPatch.context() as patch:
+        for name in (CREDENTIAL_NAME, BASE_URL_NAME, *MODEL_NAME_OF_TIER.values(),
+                     LOCAL_MODEL_NAME, LOCAL_BASE_URL_NAME):
+            patch.delenv(name, raising=False)
+        patch.setattr(cli, "ENV_FILE", tmp_path / "absent.env")
+        for name, value in ENV.items():
+            patch.setenv(name, value)
+        patch.setattr(model_routing, "deepseek_invoke", lambda **_u: invoke)
+        out = io.StringIO()
+        code = cli.main([str(corpus), "--label", LABEL, "--user", "t",
+                         "--database", str(database), "--enable-cloud"], out=out)
+    said = out.getvalue()
+    assert code == 0, said
+    assert cloud.sites()[cli.G_SITUATION_SENSITIVITY] > 0, "the judge spoke"
+    assert "Which of these is research?" in said, said
+    block = " ".join(said.split("Which of these is research?", 1)[1].split())
+    assert "1 file sits under research, and its own facts fit" in block, block

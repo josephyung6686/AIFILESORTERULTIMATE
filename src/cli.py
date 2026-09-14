@@ -17780,7 +17780,15 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # question that gets its files out of that state has to be recorded where
         # the branch first exists, which is here. Idempotent by question id.
         partition_cell[:] = [_the_branches(p1_p7.scan_run_id)]
-        _ask_which_situation_each_branch_is(partition_cell[0])
+        # AND THE SCREEN SAYS WHAT THIS PARTITION ASKS, not what the first one
+        # did. Run 12 of the second corpus (14 Sep 2026) recorded nine branch
+        # questions here -- the judge had opened seven branches -- and printed the
+        # first partition's two, with the root's count from before the judge had
+        # spoken; the person would have answered a list the database no longer
+        # held. The questions are the same rows either way; only the list the
+        # closing screen reads is refreshed.
+        asked_of_the_person[:] = _ask_which_situation_each_branch_is(
+            partition_cell[0])
         # `104` §18.2 gap 10, AND IT IS OUTSIDE THE PASS ON PURPOSE. The pass has
         # four early returns and every one of them is an ordinary way for a run to
         # go -- no model, no destination this mode permits, an empty roster, no

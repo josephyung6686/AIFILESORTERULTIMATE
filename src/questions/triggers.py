@@ -256,7 +256,8 @@ def question_for_nesting(*, branch_label: str,
         answer_class=STRUCTURAL,
         prompt=f"How should {branch_label} be organised?",
         evidence_context=(
-            f"{file_count} {files} sit under {branch_label}, and their own facts "
+            f"{file_count} {files} {'sits' if file_count == 1 else 'sit'} under "
+            f"{branch_label}, and {'its' if file_count == 1 else 'their'} own facts "
             f"support {len(offered)} different shapes."),
         unlocks=(
             f"This decides the folders inside {branch_label}. No folder is built "
@@ -326,7 +327,8 @@ def question_for_situation(*, branch_label: str, situations: Iterable[str],
         answer_class=STRUCTURAL,
         prompt=f"Which of these is {branch_label}?",
         evidence_context=(
-            f"{file_count} {files} sit under {branch_label}, and their own facts "
+            f"{file_count} {files} {'sits' if file_count == 1 else 'sit'} under "
+            f"{branch_label}, and {'its' if file_count == 1 else 'their'} own facts "
             f"fit {len(offered)} of the situations this library carries equally."),
         unlocks=(
             f"This decides which templates {branch_label} is offered, and so which "
