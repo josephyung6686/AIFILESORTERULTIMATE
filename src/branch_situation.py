@@ -186,6 +186,48 @@ def single_owner_terms(
             if len(schemas) == 1}
 
 
+def the_one_situation(schema_id: str, *,
+                      situations_of: Callable[[str], Sequence[str]],
+                      raised: Sequence[str] = ()) -> str | None:
+    """WHICH SITUATION A SCHEMA IS, FOR ONE FILE, OR `None`. Never a pick.
+
+    A recogniser and site G both answer in SCHEMAS -- `research`, `finance` -- and
+    every reader downstream needs a SITUATION, because the situation is what
+    carries the folder levels, the field allowlist and the readings. The
+    resolution used to be `situations_of(schema_id)[0]`, in three places, and it
+    is a silent first pick: alphabetically first of the eight the library carries
+    for `research` is `research.conference-presentation`, and of the eighteen for
+    `finance` is `finance.cap-table-equity`. Measured on the shipped release: of
+    the twenty-three schemas, NONE carries exactly one situation, four carry none
+    and the rest carry between two and twenty-eight -- so the first pick decided
+    the fields a file was asked and the folders it was offered, every time, on
+    alphabetical order.
+
+    Two arms answer and neither invents a ranking:
+
+    * the library carries EXACTLY ONE situation for the schema -- then it is that
+      one, and this is `104` §11.2 step 4's own permission: one situation is an
+      answer and not a choice;
+    * failing that, exactly one of the schema's situations is one the RECOGNISERS
+      RAISED for this file (`recognition.SituationOutcome.candidates` through
+      `model_situation.raised_for`, which is what site G was handed about it).
+      Evidence about this file, not an order over the library.
+
+    Otherwise `None`, and the caller must say so rather than choose: the person is
+    asked which of them this is, and until they answer the file's situation is
+    unresolved. `104` §11.2 step 4 in the words it was ruled in -- the person, or a
+    model from valid options, decides, never a rule picking the first of
+    twenty-six.
+    """
+    candidates = tuple(dict.fromkeys(situations_of(schema_id)))
+    if len(candidates) == 1:
+        return candidates[0]
+    named = [situation for situation in candidates if situation in raised]
+    if len(named) == 1:
+        return named[0]
+    return None
+
+
 def _named_by(verdict: object) -> frozenset[str]:
     """The schemas a recogniser outcome names, whatever its shape.
 
@@ -274,8 +316,11 @@ def partition_by_branch(
         chosen = chosen_situation(f"{SCOPE_BRANCH}:{branch_label}")
         if chosen is not None and chosen in candidates:
             return chosen, ()
-        if len(candidates) == 1:
-            return candidates[0], ()
+        # `the_one_situation`'s first arm, and it is the same rule spelled once:
+        # a branch is not a file, so there is no per-file raised set to hand it.
+        one = the_one_situation(schema_id, situations_of=situations_of)
+        if one is not None:
+            return one, ()
         return None, candidates
 
     def _default() -> tuple[str | None, tuple[str, ...]]:
@@ -357,16 +402,14 @@ def partition_by_branch(
                 candidate_situations=candidates))
             continue
         situation, candidates = _situation_for(schema_id, schema_id)
-        if situation is None and schema_id in model_named:
-            # A BRANCH SITE G OPENED IS SETTLED BY G'S OWN NAME, and this is not
-            # the "first of twenty-six" §11.2 step 4 rules out: it is a model
-            # choosing from valid options, and it is the SAME resolution
-            # `cli._situation_of` and `_model_fact_pass`'s `by_schema` already
-            # make of this name -- the situations of a schema, first one. Left
-            # unsettled, the branch would be asked nothing while its files were
-            # asked plenty, and the placement rule below would have no situation
-            # to match a file's against.
-            situation, candidates = situations_of(schema_id)[0], ()
+        # A BRANCH SITE G OPENED IS SETTLED BY THE SAME RULE AS EVERY OTHER, and
+        # `situations_of(schema_id)[0]` used to stand here for it. The argument
+        # was that G naming a schema is "a model choosing from valid options" --
+        # but G chose a SCHEMA, and which of that schema's situations the branch
+        # is was never put to anybody. On the shipped release that took the
+        # alphabetically first of eight for `research` and of eighteen for
+        # `finance`. So the branch is unsettled like any other, its question is
+        # recorded, and the person answers it.
         branches.append(Branch(
             label=schema_id, schema=schema_id, situation=situation,
             is_default=False,

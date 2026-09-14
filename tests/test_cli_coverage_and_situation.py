@@ -235,8 +235,12 @@ def test_every_counter_site_g_leaves_behind_earns_a_sentence():
     fields = {field.name for field in dataclasses.fields(cli.SituationPass)}
     # `104` §18 gap 24 added `holds`, a RECORD, not a counter: it does not
     # partition the roster the way the five do, so it is excused here and pinned
-    # against its own sentences one test down.
-    assert set(cli.SITUATION_SENTENCE) | {"named", "holds", "recognised_by_rules"} == fields
+    # against its own sentences one test down. `raised` is excused on `named`'s
+    # own ground and not on a new one -- it is a MAPPING of what the recognisers
+    # said about each file, read by `branch_situation.the_one_situation`, and no
+    # fate for any file: every file in it is also in exactly one of the six.
+    assert set(cli.SITUATION_SENTENCE) | {
+        "named", "raised", "holds", "recognised_by_rules"} == fields
     assert len(cli.SITUATION_SENTENCE) == 6, (
         "six counted outcomes plus `named` in the header. Five when gap 9 was "
         "closed, and `00` amendment 7(c) spent one of them: every file is asked "

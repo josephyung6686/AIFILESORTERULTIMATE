@@ -418,7 +418,12 @@ def test_a_file_no_situation_names_is_asked_no_fields_and_the_sum_still_closes(
     assert "0 unreadable" in flat, report
     # `resolver_for`'s `NOT_ASKED_UNSETTLED` reason, in the words the screen
     # gives it, so the bucket cannot be reached by a different route and pass.
-    assert ("they sit under a folder you have not yet said the situation of"
+    # The sentence names both ways a file reaches it since `branch_situation.
+    # the_one_situation`: the folder it SITS under, and the folder a model NAMED
+    # it for. These three are the first -- site G named no schema for any of
+    # them, so there is no schema to ask their fields under either.
+    assert ("a folder they belong to -- the one they sit under, or the one a "
+            "model named them for -- has a situation you have not yet said"
             in flat), report
     # The sum's own closing line, printed only when every file is on exactly one
     # bucket line above it.

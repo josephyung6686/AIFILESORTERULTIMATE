@@ -241,25 +241,49 @@ def test_a_schema_site_g_named_opens_its_own_branch_and_takes_its_file():
     assert partition.by_label("career").file_ids == ()
 
 
-def test_a_branch_site_g_opened_carries_the_situation_g_s_name_resolves_to():
-    """The first of the schema's situations, which is not "the first of
-    twenty-six" §11.2 step 4 rules out: it is the SAME resolution `cli.
-    _situation_of` and `_model_fact_pass`'s `by_schema` already make of this name,
-    and the branch has to carry the situation its files were actually asked
-    under. An anchored branch is unchanged -- nobody chose for it, so it is still
-    UNSETTLED and still asked."""
+def test_a_branch_site_g_opened_is_unsettled_like_every_other_branch():
+    """G NAMED A SCHEMA AND NOBODY NAMED THE SITUATION, so the branch is asked.
+
+    This used to read `situations_of(schema)[0]` -- "the same resolution
+    `cli._situation_of` already makes of this name" -- and that resolution was
+    the defect: alphabetically first of the eight the shipped library carries for
+    `research`, of the eighteen for `finance`. G chose a SCHEMA from valid
+    options; which of that schema's situations the branch is was never put to
+    anybody. So the branch carries no situation and its candidates are carried
+    for the question, exactly as an anchored branch's are.
+    """
     partition = _partition(
         ("syllabus", "paper", "cv"),
         facts={"syllabus": (("work_type", "syllabus"),),
                "cv": (("work_type", "resume"),)},
         named={"paper": "code"},
         # TWO situations, so the arm under test is the one that fires: a schema
-        # with exactly one was already settled by the rule beside it.
+        # with exactly one is settled by the rule beside it, below.
         situations={**SITUATIONS,
                     "code": ("code.software-project", "code.dotfiles")})
 
-    assert partition.by_label("code").situation == "code.software-project"
+    opened = partition.by_label("code")
+    assert opened.situation is None
+    assert opened.candidate_situations == ("code.software-project",
+                                           "code.dotfiles")
     assert not partition.by_label("career").settled
+
+
+def test_a_branch_site_g_opened_is_settled_by_the_librarys_one_situation():
+    """The first arm, at the branch: one situation is an answer and not a choice.
+
+    The control for the test above. Nothing about `named_by_the_model` decides
+    this -- `_situation_for` is the same function every branch is settled by, and
+    a schema the library carries exactly one situation for settles every branch
+    under it, G-opened or anchored.
+    """
+    partition = _partition(
+        ("syllabus", "paper"),
+        facts={"syllabus": (("work_type", "syllabus"),)},
+        named={"paper": "code"},
+        situations={**SITUATIONS, "code": ("code.software-project",)})
+
+    assert partition.by_label("code").situation == "code.software-project"
 
 
 def test_a_named_schema_the_library_carries_no_situation_for_opens_nothing():

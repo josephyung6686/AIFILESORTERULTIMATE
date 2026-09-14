@@ -79,7 +79,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import cli  # noqa: E402
 from placement.store import decisions_for_plan  # noqa: E402
-from placement.vocabulary import PLACE  # noqa: E402
+from facts.domains import DOMAIN_FIELDS  # noqa: E402
+from placement.vocabulary import NO_MODEL_JUDGEMENT, PLACE  # noqa: E402
 from privacy.vocabulary import LOCAL_MODEL_SITUATION  # noqa: E402
 from readers.model_ollama import (  # noqa: E402
     BASE_URL_NAME as LOCAL_BASE_URL_NAME,
@@ -90,7 +91,7 @@ from tree_design.store import nodes_for_version  # noqa: E402
 from test_local_model_fact_pass import (  # noqa: E402
     MODEL_ID, StubOllama, _answer_for, dossier_in,
 )
-from test_r37_per_branch_situation import TWO_LIVES  # noqa: E402
+from test_r37_per_branch_situation import TWO_LIVES, _call_log  # noqa: E402
 from test_site_g_end_to_end import _decline  # noqa: E402
 from test_site_h_gate import _clear  # noqa: E402
 
@@ -411,17 +412,62 @@ def test_the_poster_shares_its_course_with_four_placed_files_and_not_their_folde
     identity and this file is placed in `Coursework/Spring2026/PHYS1401/exam` --
     the whole corpus otherwise unchanged, which is what makes the situation and
     not the evidence the thing that moved it.
+
+    **AND SINCE `the_one_situation` IT IS NOT FILED AT ALL, which is the same
+    finding one step further.** Site G named `research`; the shipped library
+    carries EIGHT situations under `research` and the recognisers raised none of
+    them for this file, so which of the eight it is has not been answered by
+    anybody. It used to be answered by `situations_of("research")[0]` --
+    `research.conference-presentation`, alphabetically first -- and this file
+    then landed in the person's own `NeurIPS 2026` folder on that pick. Now its
+    situation is unresolved, P11 abstains `no_model_judgement` for it, and the
+    person is asked which of the eight `research` is. The claim this test makes
+    is unchanged in the half that matters: the poster does NOT go into the course
+    its four siblings go into.
     """
     placed = _placed(run)
-    assert placed[THE_POSTER] == CONFERENCE, placed[THE_POSTER]
-    assert not placed[THE_POSTER].startswith(LABEL)
+    abstained = _abstentions(run)
+    assert THE_POSTER not in placed, placed[THE_POSTER]
+    assert abstained[THE_POSTER] == NO_MODEL_JUDGEMENT, abstained[THE_POSTER]
     # The control: the same course, the same term, the same instructor line, and
     # no site-G name -- so the coursework folder is exactly where it goes.
     assert placed["PHYS 1401 syllabus.txt"].startswith(
         f"{LABEL}/Spring2026/PHYS1401")
-    # And neither of the other two conference files reached a course either.
+    # And neither of the other two conference files reached a course either: G
+    # named them `research` too, so all three are in the same unresolved state.
     for name in RESEARCH_FILES:
-        assert not placed[f"{CONFERENCE}/{name}"].startswith(LABEL), placed
+        path = f"{CONFERENCE}/{name}"
+        assert path not in placed, placed[path]
+        assert abstained[path] == NO_MODEL_JUDGEMENT, abstained[path]
+
+
+def test_a_judge_named_file_with_no_situation_is_still_asked_its_schemas_fields(
+        run):
+    """THE HALF THAT IS NOT WITHHELD, counted off the run's own A_fact calls.
+
+    An unresolved SITUATION withholds the folder levels and the template. It does
+    NOT withhold the question: `facts.domains.DOMAIN_FIELDS["research"]` is the
+    schema's, site G named that schema for these three files, and the schema is
+    what the field allowlist is computed from. The first cut of this change
+    withheld the fields as well and the measurement was immediate -- every file
+    the judge had read correctly came out of the pass with an empty facts column,
+    which is the complaint that reopened it.
+
+    So: a call PER named file, carrying that schema's own fields (`stage` among
+    them, which no `research.conference-presentation` level binds and which the
+    situation-narrowed question therefore never offered), and not one of them
+    placed. `model_facts.open_question`'s `None` arm is where the two part.
+    """
+    _corpus, database, _report = run
+    log = _call_log(database)
+    placed = _placed(run)
+    for name in RESEARCH_FILES:
+        path = f"{CONFERENCE}/{name}"
+        offered = frozenset().union(*log.get(name, [frozenset()]))
+        assert len(log.get(name, ())) >= 1, (name, sorted(log))
+        assert offered >= set(DOMAIN_FIELDS["research"]), (name, offered)
+        assert "stage" in offered, (name, offered)
+        assert path not in placed, placed[path]
 
 
 # --- (3) the scoreboard, over this one run against every label ------------------

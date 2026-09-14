@@ -111,7 +111,7 @@ from facts.domains import ActivationSignal, ActivationSignals
 from branch_situation import (
     branch_votes,
     BRIDGES_THAT_DO_NOT_REACH, Branch, BranchPartition, partition_by_branch,
-    single_owner_terms,
+    single_owner_terms, the_one_situation,
 )
 # `MEDIA_TYPE_FIELD` left this import with `104` R-09: the retired
 # `active_schema_for` literal was the only line in this file that named it.
@@ -8184,6 +8184,16 @@ class SituationPass:
     #: accepted verdict rather than by a call. Outside the partition: a reused
     #: file is also named or declined.
     reused: int = 0
+    #: file_id -> the schemas the RECOGNISERS raised for it, which is what site G
+    #: was handed as evidence about that file (`model_situation.raised_for` off
+    #: `recognition.SituationOutcome.candidates`). A DICT beside `named` and not a
+    #: counter, and it is not one of the six: it is not a fate for the file, it is
+    #: what the rules had to say about it, kept because `branch_situation.
+    #: the_one_situation` reads it to tell one of a schema's situations from
+    #: twenty-six without picking. Empty for a file this pass never put a question
+    #: about -- held, no route, over the ceiling -- which resolves to nothing,
+    #: which is the honest answer for a file nothing was asked about.
+    raised: dict = dataclasses.field(default_factory=dict)
 
 
 #: THE PASS THAT DID NOT RUN, and it is a value rather than a `None` for the
@@ -8347,6 +8357,10 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
       standing exactly where no hold exists.
     """
     named: dict = {}
+    #: What the recognisers raised about each file this pass put a question about,
+    #: read off the question rather than re-derived. `SituationPass.raised` says
+    #: what it is for.
+    raised: dict = {}
     nothing_to_read = declined = reused = held_not_asked = 0
     over_ceiling = recognised_by_rules = 0
     #: `104` §18.33 gap 25: THE ROWS, AND THE COUNT IS TAKEN OFF THEM. `no_route`
@@ -8485,6 +8499,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         question = question_for(
             outcome, file_id=file_id, content_hash=content_hash,
             precaution=precaution)
+        raised[file_id] = question.raised
         chosen = route_for(file_id)
         if chosen is None:
             # NOTHING IS ASSEMBLED AND NOTHING IS SENT. A file with no route is
@@ -8704,7 +8719,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         ceiling.close_turn()
     return SituationPass(
         reused=reused,
-        named=named, recognised_by_rules=recognised_by_rules,
+        named=named, raised=raised, recognised_by_rules=recognised_by_rules,
         nothing_to_read=nothing_to_read, declined=declined,
         held_not_asked=held_not_asked,
         # `104` §18.33 gap 25: THE NUMBER IS THE ROWS. Not a tally kept beside them
@@ -9137,10 +9152,14 @@ def template_resolver(catalogue, *, pass_of, situation_of
         if situation is None:
             # NOBODY HAS NAMED THIS FILE'S SITUATION -- not site E, not site G,
             # not its branch, and not the run, because `--situation` is optional
-            # and this folder's own evidence settled no situation. `Gate`'s own
-            # default for a file with no residual template is `None`, so the §7.3
-            # arm stays inert for it rather than being asked about a template
-            # name no library carries.
+            # and this folder's own evidence settled no situation; or because a
+            # SCHEMA was named for it and the library carries several situations
+            # under that schema (`branch_situation.the_one_situation`). `Gate`'s
+            # own default for a file with no residual template is `None`, so the
+            # §7.3 arm stays inert for it rather than being asked about a
+            # template name no library carries. The alternative is
+            # `template_id_for_situation(catalogue, None)`, which refuses --
+            # correctly, because there is no row to read a name off.
             return None
         return template_id_for_situation(catalogue, situation)
 
@@ -11013,9 +11032,10 @@ NOT_ASKED_SENTENCE: Mapping[str, str] = MappingProxyType({
         "folder's question applies to them yet. They are held for you below, "
         "under the reason the plan records for each.",
     NOT_ASKED_UNSETTLED:
-        "they sit under a folder you have not yet said the situation of, and a "
-        "model is asked a folder's questions only once its situation is known. "
-        "The question is printed below with the answers you can give.",
+        "a folder they belong to -- the one they sit under, or the one a model "
+        "named them for -- has a situation you have not yet said, and a model is "
+        "asked a folder's questions only once its situation is known. The "
+        "question is printed below with the answers you can give.",
     # `104` §18.2 GAP 4'S FIVE, AND THEY ARE THE HALF OF THIS SCREEN THAT WAS
     # MISSING. The two rows above are about the FOLDER a file sits in; these are
     # about the file itself, and until this ruling every one of them was reported
@@ -11499,7 +11519,8 @@ SITUATION_RECOGNISED_SENTENCE: str = (
     "the right situation for about a third of the files they named one for, and "
     "a file nobody re-reads is a file that goes wherever the first guess sent it.")
 
-assert set(SITUATION_SENTENCE) | {"named", "holds", "recognised_by_rules"} == {
+assert set(SITUATION_SENTENCE) | {
+    "named", "raised", "holds", "recognised_by_rules"} == {
     field.name for field in dataclasses.fields(SituationPass)}, (
     "every counter site G leaves behind earns a sentence on the screen. A "
     "counter with no sentence would be a number this report silently drops, "
@@ -11760,7 +11781,7 @@ def _print_situation_pass(situation: SituationPass, *, files: int,
         f"was decided by the gate before this.", indent=""),
         file=out)
     for field in dataclasses.fields(SituationPass):
-        if field.name in ("named", "holds", "recognised_by_rules"):
+        if field.name in ("named", "raised", "holds", "recognised_by_rules"):
             continue
         print(_wrapped(f"{getattr(situation, field.name)} "
                        f"{SITUATION_SENTENCE[field.name]}", indent="  "),
@@ -16045,12 +16066,77 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         return tuple(row.name for row in shipped_situations(catalogue)
                      if row.schema == schema_id)
 
+    def _the_situation_the_person_chose(schema_id: str) -> str | None:
+        """THE ANSWER TO THE BRANCH'S OWN QUESTION, where the person has given one.
+
+        `question_for_situation` puts the question at `branch:<branch_label>` and a
+        branch site G opened is labelled with its SCHEMA, so this is the same scope
+        `_the_branches` binds as `chosen_situation` and the same answer
+        `branch_situation._situation_for` reads -- asked here because the branch
+        that carries it does not exist yet when the fact pass runs. Site G names a
+        schema per file INSIDE the pass, so the partition the pass reads is the
+        deterministic one, and without this the answer a person typed to the
+        question this run printed would settle a branch on the next partition and
+        still leave every file that branch was opened for unresolved. A question
+        with no answer path is not a question.
+
+        Checked against the library's own list for `_situation_for`'s reason: an
+        answer naming a situation of another schema settles nothing.
+        """
+        chosen = selected_situation(conn, scope=f"{SCOPE_BRANCH}:{schema_id}")
+        return chosen if chosen in _situations_of(schema_id) else None
+
+    def _the_schema_named_for_this_file(file_id: str) -> str | None:
+        """THE SCHEMA SOMETHING NAMED FOR THIS FILE, or `None` because nothing did.
+
+        Site G's name for it, else the VOTE of the branch it is in -- the two arms
+        of `_the_situation_this_file_is_under` that answer in schemas, split out
+        here because the answer is worth having on its own. A file whose SITUATION
+        is unresolved can still have a known schema, and the fact pass asks that
+        schema's fields (`resolver_for`): the situation decides the folder levels
+        and the template, the schema decides the FIELDS, and one being open is no
+        reason to stop asking the other.
+
+        A schema the library carries no situation for names nothing here, exactly
+        as it opens no branch (`partition_by_branch`): it has no readings and no
+        levels, so there would be nothing for a call under it to be asked from.
+        """
+        answered = situation_cell[0].named.get(file_id)
+        if answered and (not of_the_run or answered != said().schema):
+            if _situations_of(answered):
+                return answered
+        branch = (partition_cell[0].branch_of(file_id) if partition_cell
+                  else None)
+        if branch is not None:
+            voted = votes_cell.get(branch.label)
+            if voted and (not of_the_run or voted != said().schema):
+                if _situations_of(voted):
+                    return voted
+        return None
+
     def _the_situation_this_file_is_under(file_id: str) -> str | None:
         """THE FILE'S SITUATION, DECIDED HERE AND READ BY EVERY SITE THAT ASKS.
 
         Site G's name for this file; else the VOTE of the branch it is in (`00`
         amendment 2 of 12 Sep, the schema the judge named most often over that
         branch's files); else that branch's own situation; else the run's.
+
+        **A SCHEMA IS NOT A SITUATION AND THIS NO LONGER PRETENDS IT IS.** The
+        first two arms answer in SCHEMAS -- site G names `research`, the vote
+        names `finance` -- and both used to become a situation by
+        `_situations_of(schema)[0]`, the alphabetically first of the eight the
+        library carries for `research` and of the eighteen for `finance`.
+        The rule now is `_the_situation_the_person_chose` for that schema's
+        branch -- their own answer outranks every reading, which is
+        `branch_situation._situation_for`'s order -- and failing that
+        `branch_situation.the_one_situation`: the schema's one situation where
+        the library carries one, else the one of them the recognisers RAISED for
+        this file, else NOTHING. `None` is the answer then -- not the branch's
+        situation and not the run's, because a file something NAMED A SCHEMA FOR
+        is not a file the run's own situation is true of: that is R-23 with one
+        more step in it. Its fields are not asked, P11 abstains
+        `no_model_judgement` for it, and the person answers the branch's own
+        question, which the next run reads through the first arm above.
 
         ONE FUNCTION BECAUSE THREE READERS HELD THREE ANSWERS. Measured today on
         the owner's corpus, 59 of 371 files site G left silent: `resolver_for`
@@ -16080,21 +16166,16 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         do with it: site A asks the file nothing (`resolver_for`), and the §7.3
         template arm stays inert (`template_resolver`).
         """
-        answered = situation_cell[0].named.get(file_id)
-        if answered and (not of_the_run or answered != said().schema):
-            found = _situations_of(answered)
-            if found:
-                return found[0]
+        named = _the_schema_named_for_this_file(file_id)
+        if named is not None:
+            raised = situation_cell[0].raised.get(file_id, ())
+            return (_the_situation_the_person_chose(named)
+                    or the_one_situation(named, situations_of=_situations_of,
+                                         raised=raised))
         branch = (partition_cell[0].branch_of(file_id) if partition_cell
                   else None)
-        if branch is not None:
-            voted = votes_cell.get(branch.label)
-            if voted and (not of_the_run or voted != said().schema):
-                found = _situations_of(voted)
-                if found:
-                    return found[0]
-            if branch.situation is not None:
-                return branch.situation
+        if branch is not None and branch.situation is not None:
+            return branch.situation
         return said().situation if of_the_run else None
 
     #: `104` §18.1 S6's producer, built once here and handed to the one `Gate` this
@@ -16205,6 +16286,43 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # reached the pass -- or has no model at all -- partitions under.
             named_by_the_model=situation_cell[0].named)
 
+    def _ask_which_situation_each_branch_is(partition: BranchPartition) -> list:
+        """The per-branch situation question, recorded for every unsettled branch.
+
+        A FUNCTION OF ITS OWN because the run partitions TWICE and both partitions
+        can hold a branch nobody has answered for. The first is the deterministic
+        one; the second is made once site G has spoken, and a branch G's own name
+        OPENED exists only in it. Such a branch used to be settled where it stood,
+        by `situations_of(schema)[0]` -- so there was nothing to ask and the loop
+        below could belong to the first partition alone. `branch_situation.
+        the_one_situation` retired that pick, and a question nobody records is a
+        question nobody can answer: the files under that branch would be asked
+        nothing, placed nowhere and given no way out of it.
+
+        `record_question` is idempotent by question id, and the id is the branch's
+        label, so a branch that was already asked about on the first partition is
+        not asked twice.
+        """
+        asked = []
+        for branch in partition.branches:
+            # THE DEFAULT BRANCH IS ASKED EVEN WITH NO FILES UNDER IT, and only
+            # it can be in that state: `partition_by_branch` opens a non-default
+            # branch from an anchor and an anchored file is under it by
+            # construction. An unsettled default with no files happens when every
+            # file anchored into a sibling or was held between two, and its
+            # situation is still what the whole run is waiting on -- so a run that
+            # skipped the question would refuse and offer nothing to type.
+            if branch.settled or (not branch.file_ids and not branch.is_default):
+                continue
+            question = question_for_situation(
+                branch_label=branch.label,
+                situations=branch.candidate_situations,
+                file_count=len(branch.file_ids))
+            record_question(conn, question, asked_at=clock)
+            branch_reaches[question.question_id] = branch.file_ids
+            asked.append(question)
+        return asked
+
     def _partition_branches(run_id: str) -> BranchPartition:
         """`104` R-37. Which branch each file is under, from the facts P6 wrote.
 
@@ -16237,24 +16355,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # of answer.
             of_the_run[:] = [_the_situation_of_a_run(
                 catalogue, partition.default.situation, label)]
-        asked = []
-        for branch in partition.branches:
-            # THE DEFAULT BRANCH IS ASKED EVEN WITH NO FILES UNDER IT, and only
-            # it can be in that state: `partition_by_branch` opens a non-default
-            # branch from an anchor and an anchored file is under it by
-            # construction. An unsettled default with no files happens when every
-            # file anchored into a sibling or was held between two, and its
-            # situation is still what the whole run is waiting on -- so a run that
-            # skipped the question would refuse and offer nothing to type.
-            if branch.settled or (not branch.file_ids and not branch.is_default):
-                continue
-            question = question_for_situation(
-                branch_label=branch.label,
-                situations=branch.candidate_situations,
-                file_count=len(branch.file_ids))
-            record_question(conn, question, asked_at=clock)
-            branch_reaches[question.question_id] = branch.file_ids
-            asked.append(question)
+        asked = _ask_which_situation_each_branch_is(partition)
         if not of_the_run:
             # THE QUESTIONS ARE RECORDED HERE AND PRINTED AT THE END OF THE RUN.
             # They are recorded here because this is where the evidence for them
@@ -16444,6 +16545,10 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             {} if unsettled
             else {said().situation: model_fact_resolver(
                 conn, authorities=authorities)})
+        #: schema -> the resolver for a file OF that schema whose SITUATION is
+        #: still open: the schema's fields, no folder levels, no anchor levels.
+        #: Filled beside `by_situation` below and read by `resolver_for`.
+        no_levels_by_schema: dict[str, FactResolver] = {}
         if partition is not None:
             for branch in partition.branches:
                 if not branch.settled or branch.situation in by_situation:
@@ -16585,38 +16690,6 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                               model_id=_local_model_id(
                                   routing, G_SITUATION_SENSITIVITY),
                               out=out)
-        # ONE RESOLVER PER SCHEMA A MODEL NAMED, on `104` R-37's own pattern one
-        # row up. Built by `replace` over the default authorities so the gate, the
-        # budget, the key, the client and the counting sink are the SAME objects:
-        # a second gate would be a second answer to what may leave this device.
-        for answered in sorted(set(situation_pass.named.values())):
-            if not unsettled and answered == said().schema:
-                # The run's own situation, named again. Nothing to build: the
-                # default resolver already asks exactly these questions, and a
-                # second one would be a second object for one set of answers.
-                continue
-            situations = _situations_of(answered)
-            if not situations:
-                # A schema no shipped situation resolves to has no folder levels
-                # and no readings, so there is nothing for a fact call under it to
-                # be asked FROM. The file keeps the run's questions rather than
-                # being asked an empty set -- which is `require_folder_levels`'
-                # refusal reached from three modules away.
-                continue
-            if situations[0] in by_situation:
-                # A branch already carries it and built the same object above.
-                continue
-            levels = folder_levels_for(catalogue, situations[0])
-            group_levels = group_level_fields_for(catalogue, situations[0])
-            by_situation[situations[0]] = model_fact_resolver(
-                conn, authorities=dataclasses.replace(
-                    authorities,
-                    activation_signals=evidence_activation(answered),
-                    folder_levels=tuple(
-                        level for level in levels
-                        if level.field not in group_levels),
-                    deferred_readings=rules.schemas[answered].deferred_readings))
-
         # A FILE THE JUDGE COULD NOT PLACE INHERITS ITS BRANCH'S VOTE (`00`
         # amendment 2, applied 12 Sep 2026): the schema the model named most
         # often over the branch's files, which is site G's evidence about the
@@ -16633,6 +16706,80 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 for branch in partition.branches
                 if branch.label in voted_by and not branch.is_default})
 
+        # ONE RESOLVER PER SITUATION A SCHEMA A MODEL NAMED RESOLVES TO, on
+        # `104` R-37's own pattern one row up, and BUILT AFTER THE VOTES because
+        # the votes are half of what a file's schema is. Built by `replace` over
+        # the default authorities so the gate, the budget, the key, the client and
+        # the counting sink are the SAME objects: a second gate would be a second
+        # answer to what may leave this device.
+        #
+        # PER SITUATION AND NOT PER SCHEMA, which is the whole of `the_one_
+        # situation` arriving here. `_situations_of(schema)[0]` gave one situation
+        # per schema and this loop could be keyed on the schema; the second arm is
+        # a fact about the FILE -- the recognisers raised one of the schema's
+        # situations for it -- so two files G named the same schema for can be
+        # asked two different situations' fields, and each needs its own resolver.
+        # A schema that resolves to nothing for a file builds nothing: that file
+        # is not asked at all, which is `resolver_for` below.
+        for schema_id in sorted(set(situation_pass.named.values())
+                                | set(votes_cell.values())):
+            if of_the_run and schema_id == said().schema:
+                # The run's own situation, named again. Nothing to build: the
+                # default resolver already asks exactly these questions, and a
+                # second one would be a second object for one set of answers.
+                continue
+            if not _situations_of(schema_id):
+                # A schema no shipped situation resolves to has no folder levels
+                # and no readings, so there is nothing for a fact call under it to
+                # be asked FROM. The file keeps the run's questions rather than
+                # being asked an empty set -- which is `require_folder_levels`'
+                # refusal reached from three modules away.
+                continue
+            # THE ARM ORDER OF `_the_situation_this_file_is_under`, READ HERE. The
+            # person's answer to this schema's branch question settles every file
+            # under it at once, so there is one situation to build; with no answer
+            # it is whatever the library and this file's raised set resolve to,
+            # per file, and a file that resolves to nothing builds nothing.
+            answer = _the_situation_the_person_chose(schema_id)
+            for situation in sorted({answer} if answer is not None else {
+                    resolved for file_id, _hash in roster
+                    if (resolved := the_one_situation(
+                        schema_id, situations_of=_situations_of,
+                        raised=situation_pass.raised.get(file_id, ()))
+                        ) is not None}):
+                if situation in by_situation:
+                    # A branch already carries it and built the same object above.
+                    continue
+                levels = folder_levels_for(catalogue, situation)
+                group_levels = group_level_fields_for(catalogue, situation)
+                by_situation[situation] = model_fact_resolver(
+                    conn, authorities=dataclasses.replace(
+                        authorities,
+                        activation_signals=evidence_activation(schema_id),
+                        folder_levels=tuple(
+                            level for level in levels
+                            if level.field not in group_levels),
+                        deferred_readings=rules.schemas[
+                            schema_id].deferred_readings))
+            # AND ONE WITH NO LEVELS AT ALL, for the files of this schema whose
+            # situation is still open. `104` §11.2 step 4 reserves the SITUATION
+            # for the person, and nothing about that reserves the SCHEMA's
+            # questions: `activation_signals` is the schema's allowlist, the
+            # readings are the schema's, and only `folder_levels` and the anchor
+            # levels belong to the situation. `None` is `FactCallAuthorities`'
+            # own word for that state, built here exactly as the unsettled
+            # default branch's authorities are built above -- and the measurement
+            # is why it is built at all: with `the_one_situation` refusing to pick
+            # and no resolver here, every file site G named came out of the pass
+            # with an empty facts column.
+            no_levels_by_schema[schema_id] = model_fact_resolver(
+                conn, authorities=dataclasses.replace(
+                    authorities,
+                    activation_signals=evidence_activation(schema_id),
+                    folder_levels=None, anchor_only=None,
+                    deferred_readings=rules.schemas[
+                        schema_id].deferred_readings))
+
         def resolver_for(file_id: str) -> FactResolver | None:
             # ONE DECISION, ASKED HERE AND NOT REMADE: the file's own situation
             # from site G, its branch's vote, the branch's situation, the run's.
@@ -16640,15 +16787,30 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # chosen under another is `104` §17.9's defect turned inside out.
             under = _the_situation_this_file_is_under(file_id)
             if under is None:
+                # NO SITUATION -- BUT ASK THE SCHEMA'S FIELDS IF A SCHEMA IS
+                # KNOWN. Site G named one for this file, or its branch voted one,
+                # and the library carries several situations under it that nobody
+                # has chosen between (`branch_situation.the_one_situation`). The
+                # SITUATION decides the folder levels and the template, and those
+                # are withheld; the FIELDS are the SCHEMA's, and withholding them
+                # too was measured the day the first pick was retired -- every
+                # file the judge had read correctly came out of this pass with an
+                # empty facts column. So the file is asked its schema's own
+                # question with no levels and no anchor levels, which is the shape
+                # the unsettled default branch's authorities are already built in,
+                # and P11 still abstains for it because a FOLDER needs the
+                # situation that the fields do not.
+                named = _the_schema_named_for_this_file(file_id)
+                if named in no_levels_by_schema:
+                    return no_levels_by_schema[named]
                 # NOBODY HAS NAMED A SITUATION FOR THIS FILE OR FOR THE FOLDER
                 # IT IS IN -- not site G, not its branch, and not the person,
                 # because `--situation` is optional and the default branch is
-                # still unsettled. There is no question to put: the fields a call
-                # would ask are a situation's, and every one of the run's own is
-                # what the person is being asked about. The file keeps the facts
-                # the deterministic passes wrote and nothing else, and the
-                # reconciliation names it under the reason below rather than
-                # calling it settled.
+                # still unsettled. There is no question to put: with no schema
+                # there is no allowlist and no readings for a call to be asked
+                # FROM. The file keeps the facts the deterministic passes wrote
+                # and nothing else, and the reconciliation names it under the
+                # reason below rather than calling it settled.
                 not_asked.setdefault(NOT_ASKED_UNSETTLED, []).append(file_id)
                 return None
             # A SITUATION SOMETHING NAMED FOR THIS FILE -- G's name or its
@@ -17216,10 +17378,17 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # Both readers are still downstream -- `draft_for_review` groups per branch
         # and `design_authorities` takes the tree's `active_domains` off the same
         # cell -- so a research paper in a coursework run is grouped and placed
-        # under its own branch rather than against the coursework tree. No question
-        # is re-recorded: `_partition_branches` asked them above, and a branch G
-        # opened is settled by G's own name.
+        # under its own branch rather than against the coursework tree.
+        #
+        # AND THE QUESTION IS ASKED HERE TOO. It used to be that "no question is
+        # re-recorded: `_partition_branches` asked them above, and a branch G
+        # opened is settled by G's own name" -- and the second half of that
+        # sentence is the silent first pick `branch_situation.the_one_situation`
+        # retired. A branch G opened is unsettled like any other now, so the
+        # question that gets its files out of that state has to be recorded where
+        # the branch first exists, which is here. Idempotent by question id.
         partition_cell[:] = [_the_branches(p1_p7.scan_run_id)]
+        _ask_which_situation_each_branch_is(partition_cell[0])
         # `104` §18.2 gap 10, AND IT IS OUTSIDE THE PASS ON PURPOSE. The pass has
         # four early returns and every one of them is an ordinary way for a run to
         # go -- no model, no destination this mode permits, an empty roster, no
@@ -17259,7 +17428,19 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         going_on = stop_after is None and bool(of_the_run)
         if going_on and fact_authorities and site_has_a_destination(
                 conn, routing, E_TEMPLATE, operation_mode=operation_mode):
-            roster = corpus_roster(conn, p1_p7.scan_run_id)
+            # THE FILES WHOSE SITUATION IS KNOWN, and site E is asked about no
+            # others. Its whole question is whether a file's own facts fit the
+            # folders ITS SITUATION would build; with no situation there are no
+            # folder levels to compare against -- `folder_levels_for` refuses,
+            # correctly -- and no template of its own for a model to improve on.
+            # The pass's six counters partition what it walked, so the file is
+            # left out of the walk rather than counted under a word that is not
+            # true of it. It is already visible: the fact pass named it, the
+            # branch's question is on the screen, and P11 abstains for it.
+            roster = [(file_id, content_hash)
+                      for file_id, content_hash
+                      in corpus_roster(conn, p1_p7.scan_run_id)
+                      if _the_situation_this_file_is_under(file_id) is not None]
             template_cell[:] = [ask_for_a_template(
                 conn, roster=roster, fact_authorities=fact_authorities[0],
                 routing=routing, prompt=prompt_for(E_TEMPLATE),
