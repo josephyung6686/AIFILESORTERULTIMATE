@@ -52,6 +52,10 @@ def test_without_a_local_model_the_rules_clear_the_un_held_and_the_person_is_ask
     assert code == 0, said
     # The un-held file is cleared on the rules' word and the screen says so.
     assert "1 cleared on the rules' word alone" in said, said
+    # The header names no model, because none ran here (run 12 of the second
+    # corpus had printed the cloud model's name as a model "on this device").
+    assert "no model runs on this machine, so no model was asked" in said
+    assert " cleared by " not in said.split("What may be sent")[1].split("\n\n")[0]
     # The held file is the person's question: the count, the two gestures and the
     # command that names it -- never the name on the plain report (`planning/93`).
     assert HELD_NAME not in said, said
