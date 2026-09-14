@@ -468,6 +468,44 @@
    "layout": "frame-first",
    "note": "The bake-off twin of situation-whole-library: the same text without the illustrative examples of kinds, so the owner's worry (12 Sep 16:20: do the examples bias the model?) is measured rather than argued. Kept unratified as the A/B candidate the owner reserved (\"if not we A/B test it when needed\").",
    "ratified_by": null
+  },
+  {
+   "site": "H_restricted_kind",
+   "candidate": "gate-restricted-kind-v2",
+   "status": "ratified_local",
+   "template_id": "gate.unratified.restricted-kind.v2.2026-09-14",
+   "template_file": "gate_template.restricted-kind.v2.txt",
+   "response_schema_file": "gate_response_schema.json",
+   "shaping_policy_file": "gate_shaping_policy.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "Ratified copy of the 2026-09-13 candidate: same files, same digests; only the status and the ratifier differ. The gate asks whose particulars the text shows and names a kind only when it can cite a named person's own particulars; a paper, a dataset, a table, an exercise or a flyer that uses medical, financial or legal words is none_of_these; doubt goes to none_of_these because the file is read next by a second judge, not sent. LOCAL ONLY, as v1: the gate decides whether a file may leave the device, so it never leaves the device. Under 00 amendment 2 of 13 Sep the local model is optional: a deployment without one runs no gate and holds on the rules alone.",
+   "ratified_by": "the owner, 14 Sep 2026, 00:30 local, in session: shown the four texts in review/8_texts_to_ratify/ with the diff of each against the text in force and their replay numbers, and answered \"ratify 1224\", read by the lead as 1 2 3 4 (the four files, in order); applied by the lead as a new row, never an edit to the candidate row, which stands as written."
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-whole-library-v3",
+   "status": "ratified",
+   "template_id": "situation.unratified.whole-library-v3.2026-09-14",
+   "template_file": "situation_template.whole-library.v3.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_shaping_policy.v4.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "00 amendment 4 of 13 Sep: the whole-library text with each menu item carrying the schema's own name beside its id (a club, a society and a student organisation now have an honest member), the sentence 'no path' replaced by 'A folder path may be among them' in the text and in policy v4, a data table is a dataset, a text-less image or audio is a capture filed under photos, a resume is career, a course notebook is academic; the 'readings' key and its paragraph removed because the site's dossier never carried one. Measured by replay on the second corpus's cloud dossiers before ratification (104 section 18.60): 54.7% under the text in force, 66.5% under this one, 157 right of 236. RATIFIED, not ratified_local: this call runs on a cloud model for a file the gate or the person cleared.",
+   "ratified_by": "the owner, 14 Sep 2026, 00:30 local, in session: shown the four texts in review/8_texts_to_ratify/ with the diff of each against the text in force and their replay numbers, and answered \"ratify 1224\", read by the lead as 1 2 3 4 (the four files, in order); applied by the lead as a new row, never an edit to the candidate row, which stands as written."
+  },
+  {
+   "site": "A_fact",
+   "candidate": "v5-a-title-stands-as-subject",
+   "status": "ratified",
+   "template_id": "a_fact.unratified.folder-levels-v5.2026-09-14",
+   "template_file": "a_fact_template_folder_levels.v5.txt",
+   "response_schema_file": "a_fact_response_schema.json",
+   "shaping_policy_file": "a_fact_shaping_policy.v2.json",
+   "glossary_file": "field_glossary.json",
+   "note": "v5 of the A_fact text: rule 13 lets a course TITLE stand as subject where no course code is anywhere in view -- a course name on a cover, a heading or a header line, never a topic word inside a sentence -- cited to the file's own line. Everything else byte-identical to v4. Measured by replay on the second corpus's cloud dossiers before ratification (104 section 18.60): subject answered 4 of 107 under v4, 13 under this one, the rest declined as before.",
+   "ratified_by": "the owner, 14 Sep 2026, 00:30 local, in session: shown the four texts in review/8_texts_to_ratify/ with the diff of each against the text in force and their replay numbers, and answered \"ratify 1224\", read by the lead as 1 2 3 4 (the four files, in order); applied by the lead as a new row, never an edit to the candidate row, which stands as written."
   }
  ],
  "digests": {
@@ -525,6 +563,9 @@
   "situation_template.whole-library.txt": "a76d53579e1fe51fb2ace90d2a04f20a76687be84205e572940509e03f7a0c14",
   "situation_template.whole-library-plain.txt": "2b0ebd3e87430a4da00f4caedc0e3cf0eff808d3fc4b190b7691bcd609d78ff7",
   "situation_shaping_policy.v3.json": "95b6dc70381bb940becf2ba542171bef9fc013116012a78da4de19eea2e75224",
-  "gate_template.restricted-kind.v2.txt": "9a83b16df1eb1a12012acea42035661960c53fed078ce7dc0c1a3e8efb536f3f"
+  "gate_template.restricted-kind.v2.txt": "9a83b16df1eb1a12012acea42035661960c53fed078ce7dc0c1a3e8efb536f3f",
+  "situation_template.whole-library.v3.txt": "4efb509abf680330da30eb36373876395bba6c2d005a646eb9374350a69bc184",
+  "situation_shaping_policy.v4.json": "3077c33b5997768ceceaca213ec83b9c9fa403539cd803ad9a2a3c73fa54e90e",
+  "a_fact_template_folder_levels.v5.txt": "50fc90bf47512c1a77334a28f994ed2ac55578a1b13797967f884ccc39519b18"
  }
 }

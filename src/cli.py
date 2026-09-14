@@ -1131,8 +1131,12 @@ C_LEVELS_TEMPLATE_ID: str = (
 #: flag explained (gap 1) and an unseen value may be proposed (gap 3), with A's
 #: policy v2. The scoreboard scripts that patched this constant to v2 in a
 #: worktree are superseded by the row itself.
+#: v5 (`104` §18.60; `00` amendment 4 of 13 Sep): rule 13 lets a course TITLE
+#: stand as subject where no code is in view. Measured by replay before the word:
+#: subject answered 4 -> 13 of 107. Ratified by the owner 14 Sep 2026 ("ratify
+#: 1224", read as 1 2 3 4), applied as a new row.
 A_FACT_ROW: tuple[str, str] = (
-    "a_fact.unratified.folder-levels-v4.2026-09-11", "v4-a-year-is-not-a-term")
+    "a_fact.unratified.folder-levels-v5.2026-09-14", "v5-a-title-stands-as-subject")
 
 
 #: `104` §17.1's THIRD WALL: THE MANIFEST ROW SITE G RUNS UNDER, `(template_id,
@@ -1191,8 +1195,15 @@ A_FACT_ROW: tuple[str, str] = (
 #: amendment 7(c) needs, because a file the gate has CLEARED is the one whose
 #: situation may be asked off this device. Nothing widens for a file the gate did
 #: not clear: the per-file predicate is still the door's own.
+#: v3 (`104` §18.60; `00` amendment 4 of 13 Sep): the whole-library text with the
+#: schema's name on each menu item, the path sentence made true, a table a dataset,
+#: a text-less capture a photograph, a résumé career, a course notebook academic,
+#: and the `readings` line gone because this site's dossier never carried the key.
+#: Measured by replay on the second corpus's cloud dossiers before the word: 54.7%
+#: under the row above, 66.5% under this one. Ratified by the owner 14 Sep 2026
+#: ("ratify 1224", read as 1 2 3 4), applied as a new row; its policy is v4.
 SITUATION_ROW: tuple[str, str] = (
-    "situation.unratified.whole-library.2026-09-12", "situation-whole-library")
+    "situation.unratified.whole-library-v3.2026-09-14", "situation-whole-library-v3")
 
 #: `00` AMENDMENT 7(c)'s GATE ROW, and the site is `H_restricted_kind`. Authored by
 #: the lead on the owner's go of 12 September and put to the owner for
@@ -1203,16 +1214,18 @@ SITUATION_ROW: tuple[str, str] = (
 #: The pair rather than the id alone, on `SITUATION_ROW`'s own rule: re-pointing
 #: this site is a change to this line and never a change the manifest makes on its
 #: own.
+#: v2 (`104` §18.60; `00` amendment 1 of 13 Sep): the gate asks WHOSE particulars
+#: the text shows and names a kind only when it can cite a named person's own; a
+#: paper, a dataset, a table, an exercise or a flyer using medical, financial or
+#: legal words is none_of_these; doubt goes to none_of_these because a second judge
+#: reads the file next. Authored 13 Sep, measured on the owner's corpus by one
+#: launch that pointed this site at the unratified row (run 11, 13 answers before
+#: the machine was given back); ratified by the owner 14 Sep 2026 ("ratify 1224",
+#: read as 1 2 3 4), applied as a new row, `ratified_local` as v1 was. Under amendment 2 of 13
+#: Sep the local model is optional, so on a deployment without one this row is
+#: never asked: the rules hold and the person is the second gate.
 GATE_ROW: tuple[str, str] = (
-    "gate.unratified.restricted-kind.2026-09-12", "gate-restricted-kind")
-#: THE V2 ROW, authored 13 Sep 2026 and UNRATIFIED: measured on the owner's corpus
-#: by one launch under `GRAPH_AGENT_MEASURE_GATE_V2` (`104` §18.60), which points
-#: this site at the unratified row so the gate RECORDS every answer and ACTS on
-#: none; the product runs on the ratified row above until the owner's word.
-GATE_ROW_V2: tuple[str, str] = (
-    "gate.unratified.restricted-kind.v2.2026-09-13", "gate-restricted-kind-v2")
-if os.environ.get("GRAPH_AGENT_MEASURE_GATE_V2"):
-    GATE_ROW = GATE_ROW_V2
+    "gate.unratified.restricted-kind.v2.2026-09-14", "gate-restricted-kind-v2")
 
 
 #: WHAT EACH STATUS WORD BUYS, and the two questions it answers are not one
