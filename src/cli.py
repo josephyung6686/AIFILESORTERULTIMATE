@@ -14463,8 +14463,23 @@ def _the_files_being_held(conn: sqlite3.Connection, scan_run_id: str, *,
     return tuple(held)
 
 
-def _what_the_held_files_are(held: Sequence[tuple[str, str, str]]) -> str:
+def _what_the_held_files_are(held: Sequence[tuple[str, str, str]], *,
+                             show_protected: bool = False) -> str:
     """THE QUESTION of a run that is holding files and asked nobody about them.
+
+    THE NAMES ARE BEHIND `--show-protected`, AS EVERY LIST OF PROTECTED NAMES ON
+    THIS SCREEN IS (14 Sep 2026). The first shape of this block printed each held
+    file by name on the report, and fourteen pins said no: the owner's ruling of
+    2 Sep 2026 (`planning/93`), taken over a measured report where 710 protected
+    filenames were 73 % of the screen, is that protected names are summarised by
+    default and printed in full by `--show-protected` -- the count and the command
+    on the screen every time, the expansion complete and one paste away. The
+    question of 13 Sep is asked inside that ruling and not over it: without the
+    flag the block says how many files are held, what the two gestures mean and
+    the command that shows each file with its own commands; with the flag it is
+    the block below, every file, no truncation. A person answering in the morning
+    types one command more and sees nobody's payslips on a screen they did not
+    choose to show them on.
 
     THE OWNER'S RULING (13 Sep 2026): *"for these situations it is ok to just ask
     the person: a mechanism like 'we found these files, should we not upload them
@@ -14518,6 +14533,12 @@ def _what_the_held_files_are(held: Sequence[tuple[str, str, str]]) -> str:
         f"and run the same command again: --file-held FILE_ID keeps a file here "
         f"and you file it by hand, and --release FILE_ID says it is ordinary and "
         f"may be sent.", indent="")]
+    if not show_protected:
+        lines.append(_wrapped(
+            f"{'Its name and its' if one else 'Their names and their'} two commands, "
+            f"with the id filled in, are printed by:", indent=""))
+        lines.append("      --show-protected")
+        return "\n".join(lines)
     for name, why, file_id in held:
         lines.append(f"\n  {name}")
         lines.append(_wrapped(why, indent="  "))
@@ -14694,6 +14715,11 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # tree, no placement and no plan version, and a record with those three
         # fields empty would be a plan a caller could read counts off.
         stop_after: str | None = None,
+        #: `--show-protected`, for the held-files question (`_what_the_held_files_
+        #: are`): without it the question carries the count and the command, as
+        #: `93` rules for every list of protected names; with it, each file by
+        #: name with the two gestures typed out.
+        show_protected: bool = False,
         wire_handle_key: bytes | None = None) -> ProductionRun | None:
     """One corpus, end to end. Assembles the authorities and calls the composition.
 
@@ -17800,7 +17826,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             names=_the_names,
             filed_by_hand=lambda file_id: _filed_by_hand.get(file_id) is True)
         if _held_now:
-            print(f"\n{_what_the_held_files_are(_held_now)}", file=out)
+            print(f"\n{_what_the_held_files_are(_held_now, show_protected=show_protected)}",
+                  file=out)
         if not of_the_run:
             # THE QUESTION, PRINTED, AND THE RUN ENDS HERE. `_partition_branches`
             # recorded it before the model pass and this is the end of the run,
@@ -22810,6 +22837,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                      # four gestures that would need what comes after it were
                      # refused before the scan started.
                      stop_after=args.stop_after,
+                     show_protected=args.show_protected,
                      wire_handle_key=wire_handle_key_for(database))
     except RecordingNameTaken as refusal:
         # Belt and braces behind hunk 13. The name is checked before the scan, so

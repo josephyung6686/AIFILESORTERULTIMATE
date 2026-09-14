@@ -36,7 +36,7 @@ about the same two files.
 from __future__ import annotations
 
 import io
-import shutil
+import sqlite3
 
 import pytest
 
@@ -102,10 +102,23 @@ def database(a_run_that_held_a_file, tmp_path):
     """
     source, _said = a_run_that_held_a_file
     copy = tmp_path / "plan.sqlite"
-    shutil.copyfile(source, copy)
+    # Through SQLite's own backup and not a file copy: the run leaves its rows in
+    # the write-ahead log beside the database, and a copy of the main file alone
+    # has no `files` table content -- which is what made these pins fail in some
+    # orders and not others (14 Sep 2026).
+    _copy_database(source, copy)
     conn = open_database(copy)
     yield conn
     conn.close()
+
+
+def _copy_database(source, dest) -> None:
+    """Through SQLite's own backup and not a file copy: the run leaves its rows in
+    the write-ahead log beside the database, and a copy of the main file alone has
+    no `files` table content -- which is what made these pins fail in some orders
+    and not others (14 Sep 2026)."""
+    with sqlite3.connect(source) as src, sqlite3.connect(dest) as dst:
+        src.backup(dst)
 
 
 def _file_id(conn, filename: str) -> str:
@@ -182,6 +195,22 @@ def test_the_closing_screen_names_the_held_file_and_both_gestures(
 
     assert "1 file is being held here" in flat, (
         "the run held a file and the closing block did not say so")
+    # THE NAME IS NOT ON THE PLAIN REPORT (the owner's ruling of 2 Sep 2026,
+    # `planning/93`: protected names are summarised, `--show-protected` prints
+    # them); the question says how many, what the gestures mean, and the command.
+    assert HELD_NAME not in said, said
+    assert "--file-held FILE_ID" in flat and "--release FILE_ID" in flat
+    assert "--show-protected" in said
+    # WITH THE FLAG: the file by name, and both gestures with its own id.
+    corpus = database.parent / "corpus"
+    own = database.parent / "shown.sqlite"     # a copy: the module's database is shared
+    _copy_database(database, own)
+    shown = io.StringIO()
+    code = cli.main([str(corpus), "--situation", SITUATION, "--label", LABEL,
+                     "--user", "t", "--database", str(own),
+                     "--show-protected"], out=shown)
+    assert code == 0, shown.getvalue()
+    said = shown.getvalue(); flat = " ".join(said.split())
     assert HELD_NAME in said
     assert f"--file-held {held}" in said, "the keep-it-here gesture, typable"
     assert f"--release {held}" in said, "the it-is-ordinary gesture, typable"
@@ -353,7 +382,7 @@ def test_the_next_run_does_not_take_the_release_back(a_run_that_held_a_file,
     """
     source, _said = a_run_that_held_a_file
     database = tmp_path / "plan.sqlite"
-    shutil.copyfile(source, database)
+    _copy_database(source, database)
     conn = open_database(database)
     try:
         file_id = _file_id(conn, HELD_NAME)

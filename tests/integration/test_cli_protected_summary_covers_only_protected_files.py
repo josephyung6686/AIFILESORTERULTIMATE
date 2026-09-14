@@ -101,7 +101,9 @@ def test_show_protected_names_the_passport_under_its_own_heading(tmp_path):
 
     assert PASSPORT_NAME in printed, printed
     lines = printed.splitlines()
-    at = next(i for i, line in enumerate(lines) if PASSPORT_NAME in line)
+    # The LAST line naming it: the held-files question names it first, with its
+    # gestures (13 Sep 2026); the report's own group is the one under test.
+    at = max(i for i, line in enumerate(lines) if PASSPORT_NAME in line)
     heading = next(line for line in reversed(lines[:at]) if line.startswith("  ")
                    and not line.startswith("    "))
     assert heading.strip().endswith("-- 1 file"), (heading, printed)
