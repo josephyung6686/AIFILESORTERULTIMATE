@@ -345,10 +345,11 @@ def test_a_normal_call_is_byte_identical_to_what_the_stock_client_sends(server):
     # `http_client`, so httpx supplies its own transport and its own four timers.
     with openai.OpenAI(api_key="not-a-real-key", base_url=running.base_url,
                        timeout=PATIENCE, max_retries=0) as stock:
+        from readers.model_deepseek import _as_the_sdk_takes_it
         stock.chat.completions.create(
-            **request_body(model_id=TARGET.model_id,
-                           max_tokens=RESPONSE_TOKENS,
-                           prompt=DOSSIER.decode("utf-8")))
+            **_as_the_sdk_takes_it(request_body(
+                model_id=TARGET.model_id, max_tokens=RESPONSE_TOKENS,
+                prompt=DOSSIER.decode("utf-8"))))
 
     under_the_deadline, stock_request = running.requests
     assert under_the_deadline == stock_request, (

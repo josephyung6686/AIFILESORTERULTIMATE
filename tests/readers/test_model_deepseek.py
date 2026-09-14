@@ -341,12 +341,19 @@ def test_no_prompt_text_and_no_model_behaviour_is_chosen_here():
     assert [keyword.arg for keyword in create.keywords] == [None], (
         "the outbound call takes its terms from `request_body` and nothing else; "
         "a keyword beside it would be a term no pure function checks")
-    assert isinstance(create.keywords[0].value, ast.Call)
-    assert create.keywords[0].value.func.id == "request_body"
+    # 14 Sep 2026: the one splat is `_as_the_sdk_takes_it(request_body(...))` --
+    # the same terms, with the provider-only ones moved under `extra_body`
+    # because the SDK has no keyword for them. Still one call, still one source.
+    splat = create.keywords[0].value
+    assert isinstance(splat, ast.Call) and splat.func.id == "_as_the_sdk_takes_it"
+    assert isinstance(splat.args[0], ast.Call)
+    assert splat.args[0].func.id == "request_body"
 
     body = request_body(model_id="a-model", max_tokens=1,
                         prompt="answer with one JSON object")
-    assert set(body) == {"model", "max_tokens", "messages", "response_format"}
+    # `thinking` (14 Sep 2026) is the provider's own switch, off, on JSON mode's
+    # argument: the ratified text asks for an answer, not a deliberation.
+    assert set(body) == {"model", "max_tokens", "messages", "response_format", "thinking"}
     assert body["response_format"] == {"type": "json_object"}
     assert [item["role"] for item in body["messages"]] == ["user"]
 

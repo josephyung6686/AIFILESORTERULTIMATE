@@ -105,7 +105,10 @@ def test_the_request_is_otherwise_exactly_what_it_was():
     the rule this module states about itself and which still holds."""
     body = request_body(model_id="a-model", max_tokens=64, prompt=ASKS_FOR_JSON)
 
-    assert set(body) == {"model", "max_tokens", "messages", "response_format"}
+    # `thinking` since 14 Sep 2026: the provider's own switch, off, for the same
+    # reason as JSON mode -- the ratified text asks for an answer and nothing else.
+    assert set(body) == {"model", "max_tokens", "messages", "response_format", "thinking"}
+    assert body["thinking"] == {"type": "disabled"}
     assert body["messages"] == [{"role": "user", "content": ASKS_FOR_JSON}]
     assert body["model"] == "a-model"
     assert body["max_tokens"] == 64

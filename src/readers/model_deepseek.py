@@ -476,6 +476,16 @@ def request_body(*, model_id: str, max_tokens: int, prompt: str) -> dict:
         # `104` R-14. The module docstring carries the whole argument for why this
         # one knob is not a prompt nobody approved.
         "response_format": dict(JSON_MODE),
+        # THINKING OFF (14 Sep 2026). The provider's flash model thinks before it
+        # writes unless told not to, and under this module's JSON mode and
+        # deadline it answered 96 of 170 judge calls on the owner's corpus with
+        # no content at all -- the failure `response_text` names as "a reasoning
+        # model that spent the ceiling on `reasoning_content`". The provider's
+        # own switch for it is this field (api-docs.deepseek.com, thinking mode);
+        # a model that does not think ignores it. Every text this product sends
+        # asks for one JSON object and nothing else, which is an answer, not a
+        # deliberation.
+        "thinking": {"type": "disabled"},
     }
 
 
@@ -689,9 +699,26 @@ def _send(*, api_key: str, base_url: str, model_id: str, max_tokens: int,
                 # Every term of the request, built and checked by a pure function
                 # so this stays the one statement here that reaches the provider
                 # (`104` R-14).
-                **request_body(model_id=model_id, max_tokens=max_tokens,
-                               prompt=prompt),
+                **_as_the_sdk_takes_it(request_body(
+                    model_id=model_id, max_tokens=max_tokens, prompt=prompt)),
             )
+
+
+#: The request terms the SDK has no keyword for, and so takes through
+#: `extra_body` -- merged into the same JSON body on the wire, which is why
+#: `request_body` still states them and the deadline pin still compares the
+#: whole body. `thinking` is the provider's own field (14 Sep 2026).
+_PROVIDER_ONLY_TERMS: frozenset[str] = frozenset({"thinking"})
+
+
+def _as_the_sdk_takes_it(body: dict) -> dict:
+    """`request_body`'s dict as `chat.completions.create` accepts it: the
+    provider-only terms moved under `extra_body`, everything else as keywords."""
+    extra = {key: body[key] for key in _PROVIDER_ONLY_TERMS if key in body}
+    kwargs = {key: value for key, value in body.items() if key not in extra}
+    if extra:
+        kwargs["extra_body"] = extra
+    return kwargs
 
 
 def response_text(response: object) -> str:
