@@ -524,7 +524,7 @@
   {
    "site": "G_situation_sensitivity",
    "candidate": "situation-whole-library-v6",
-   "status": "unratified",
+   "status": "ratified",
    "template_id": "situation.unratified.whole-library-v6.2026-09-15",
    "template_file": "situation_template.whole-library.v6.txt",
    "response_schema_file": "situation_response_schema.v2.json",
@@ -532,7 +532,7 @@
    "readings_rows": [],
    "layout": "frame-first",
    "note": "v6 of the whole-library (kind) text (15 Sep 2026, 14:30, the lead): v5 measured 235 right / 52 wrong / 1 declined / 22 REJECTED of 310 on kind dossiers (75.8 %), and under the owner's no-abstention ruling a rejected answer leaves a file open exactly as a decline did. The 22: seven answers with a stray closing bracket, eight metadata citations whose field name is not the item's address, five references not in the released list, five spans not verbatim. One sentence added to rule 2: exactly one citation, the single item that decides it. Everything else byte-identical to v5.",
-   "ratified_by": "nobody yet: authored by the lead on 15 Sep 2026 for measurement; the owner ratifies with one word."
+   "ratified_by": "the owner, 15 Sep 2026, 16:00 local, in session, shown review/8_texts_to_ratify/0_READ_ME_15SEP.txt with both texts and their bench numbers (kind v6 at sampling off 257 of 310 = 82.9 %, one declined, one rejected; level v7 146 of 179 = 81.6 %, none declined, none rejected) and review file 15: 'this is good ... these are fine, they are close enough ... make sure there's no more abstentions and everything is properly like the product design labels'. Applied by the lead as this row's status and the row constant re-pointed; earlier rows stand as written."
   },
   {
    "site": "A_fact",
@@ -627,7 +627,7 @@
   {
    "site": "G_situation_sensitivity",
    "candidate": "situation-level-v7",
-   "status": "unratified",
+   "status": "ratified",
    "template_id": "situation.unratified.situation-level-v7.2026-09-15",
    "template_file": "situation_level_template.v7.txt",
    "response_schema_file": "situation_response_schema.v2.json",
@@ -635,7 +635,7 @@
    "readings_rows": [],
    "layout": "frame-first",
    "note": "v7 of the situation-level text (15 Sep 2026, 13:45, the lead) on the owner's ruling 'there should be no abstentions, make sure of that' (00 amendment 5 of 15 Sep): the decline section says Never -- a described file is placed under the line that fits, a file with nothing to read is placed under the member of its kind that keeps such files, cited to its metadata; the word stays on the list only so a malformed answer has a shape and an answer that uses it is a failure to judge. Everything else byte-identical to v6.",
-   "ratified_by": "nobody yet: authored by the lead on 15 Sep 2026 on the owner's ruling of 13:40; the owner ratifies with one word."
+   "ratified_by": "the owner, 15 Sep 2026, 16:00 local, in session, shown review/8_texts_to_ratify/0_READ_ME_15SEP.txt with both texts and their bench numbers (kind v6 at sampling off 257 of 310 = 82.9 %, one declined, one rejected; level v7 146 of 179 = 81.6 %, none declined, none rejected) and review file 15: 'this is good ... these are fine, they are close enough ... make sure there's no more abstentions and everything is properly like the product design labels'. Applied by the lead as this row's status and the row constant re-pointed; earlier rows stand as written."
   }
  ],
  "digests": {

@@ -1220,7 +1220,7 @@ A_FACT_ROW: tuple[str, str] = (
 #: under the row above, 66.5% under this one. Ratified by the owner 14 Sep 2026
 #: ("ratify 1224", read as 1 2 3 4), applied as a new row; its policy is v4.
 SITUATION_ROW: tuple[str, str] = (
-    "situation.unratified.whole-library-v4.2026-09-15", "situation-whole-library-v4")
+    "situation.unratified.whole-library-v6.2026-09-15", "situation-whole-library-v6")
 
 #: `00` AMENDMENT 1 OF 14 SEP: THE SECOND STAGE'S ROW, and the site is site G's
 #: own. The row above names which KIND of material a file is; this one names which
@@ -1265,7 +1265,7 @@ SITUATION_ROW: tuple[str, str] = (
 #: it named, and the person is asked only where it declines. The paragraphs
 #: above describe the unratified state, which the v1-v4 rows are still in.
 SITUATION_LEVEL_ROW: tuple[str, str] = (
-    "situation.unratified.situation-level-v5.2026-09-15", "situation-level-v5")
+    "situation.unratified.situation-level-v7.2026-09-15", "situation-level-v7")
 
 #: `00` AMENDMENT 7(c)'s GATE ROW, and the site is `H_restricted_kind`. Authored by
 #: the lead on the owner's go of 12 September and put to the owner for
