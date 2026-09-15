@@ -17386,10 +17386,20 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         named = _the_schema_named_for_this_file(file_id)
         if named is not None:
             raised = situation_cell[0].raised.get(file_id, ())
-            return (_the_situation_the_person_chose(named)
-                    or the_one_situation(named, situations_of=_situations_of,
-                                         raised=raised)
-                    or _the_situation_the_judge_named(file_id, named))
+            own = (_the_situation_the_person_chose(named)
+                   or the_one_situation(named, situations_of=_situations_of,
+                                        raised=raised)
+                   or _the_situation_the_judge_named(file_id, named))
+            if own is not None:
+                return own
+            # A FILE OF A NAMED KIND WITH NO SITUATION YET IS UNDER NONE. The
+            # run's typed word is true only of files of the run's own kind: run
+            # 14 (15 Sep 2026) printed `situation: academic.coursework` under
+            # photos, research and the person's resume folder because a file
+            # site G named for another kind fell through to it below. `00`
+            # amendment 7: its own situation, or it abstains.
+            return (said().situation
+                    if of_the_run and named == said().schema else None)
         branch = (partition_cell[0].branch_of(file_id) if partition_cell
                   else None)
         if branch is not None and branch.situation is not None:
