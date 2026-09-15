@@ -344,3 +344,13 @@ Each amendment below is dated and was ruled by the owner; the ruling and its con
 
 4. **The person's rulings on run 12's holds**, applied as gestures by the lead: travel and health records are kept; the other held files are released, save the two the owner's word of 13 Sep called protected (an account document; the document with a checksum-valid identity number), which stay held until the owner says otherwise.
 
+
+### Amendments of 2026-09-15 (the owner, in session at 01:40, reading run 13's review files and run 14's screen; applied by the lead as written; `104` §18.65-§18.66)
+
+1. **Text 6 ratified.** *"I hope you know what you are doing; ratify it."* The seven situation one-lines the judge's menu shows (coursework, K-12 schooling records, teaching, recruiting, portfolio, reading library, datasets) are the owner's word, at their nodes and in the compiled library. The level text (text 5) is NOT ratified: *"73 % not good enough, need higher"*; v5 is measured against the rulings below.
+
+2. **File 11: the key is right on every row.** None of the level judge's 24 misses is "also right": a mock exam inside a course is coursework, a statement of purpose written inside a programme is that packet, a public table of figures is data, a class worksheet is the student's coursework and never K-12 schooling records. The text is what moves.
+
+3. **File 7, the held files:** files the key labels personal travel are kept; *"most are protected"* -- every key-protected file is kept (`--file-held`), and two files the owner named are ordinary and released (`--release`). Applied as `run15-gestures.txt`: 22 kept, 5 released.
+
+4. **Classification before sorting.** *"How is the current folder structure? Have we not done classification yet, before sorting and actually building the graphs?"* The owner's order of work stands: the kind judge and the situation judge are made right first, and the sort is judged only on files whose situation is settled. Run 14's tree is the state of the sort under a typed default, not the product.
