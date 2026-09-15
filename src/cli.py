@@ -8800,10 +8800,17 @@ def _ask_which_situation_of_the_kind(
                 conn, identity_id=identity_id, dossier_id=verdict.dossier_id,
                 call_site=G_SITUATION_SENSITIVITY, subject_ref=file_id,
                 dimensions=identity, observed_at=now())
-    situation = situation_named_by_verdict(conn, verdict, allowed)
+    # ONLY A VERDICT CARRIES AN ANSWER. `run_call` hands back a `Refusal`, a
+    # `PreCallAbstention`, a `CallFailed` or a `ValidationUnavailable` where no
+    # judgement came back, exactly as the kind stage above receives them; run 15
+    # (15 Sep 2026, the stage's first live run) met a `Refusal` and read
+    # `.outcome` off it. Each of those is already its own durable record; here
+    # it is a file still open, counted as asked with no answer.
+    situation = (situation_named_by_verdict(conn, verdict, allowed)
+                 if isinstance(verdict, P8Verdict) else None)
     if situation is None:
         # THE JUDGE READ THE MENU AND WOULD NOT NAME ONE, or P8 did not accept the
-        # answer it gave. Either way the file's situation is still open and the
+        # answer it gave, or no judgement came back at all. Either way the file's situation is still open and the
         # person is asked, which is the amendment's own sentence; the verdict is
         # on record.
         return _SituationOfTheKind(asked=True)

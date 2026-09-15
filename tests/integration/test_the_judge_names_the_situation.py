@@ -476,6 +476,41 @@ def test_the_answer_is_recorded_and_the_run_is_the_run_it_was(observing):
 # --- (b) with the row ratified: the judge's situation resolves the file ----------
 
 
+def test_a_level_call_that_comes_back_refused_leaves_the_file_open(tmp_path, monkeypatch):
+    """Run 15 (15 Sep 2026), the stage's first live run on the owner's corpus:
+    `run_call` handed back a `Refusal` and the stage read `.outcome` off it. The
+    kind stage above it reads an answer only off a `P8Verdict`; so does this one
+    now. A refused level call is a file still open -- the run ends, the society's
+    files are not placed, and the branch question is still the person's.
+
+    SABOTAGE: read `situation_named_by_verdict` on whatever `run_call` returned
+    and this run dies with AttributeError.
+    """
+    from llm_harness.records import Refusal
+    from privacy.denial import RemedyOption
+    from privacy.release import Denied
+    real = cli.run_call
+
+    def refusing(conn, request, **kw):
+        prompt = kw.get("prompt")
+        if prompt is not None and prompt.template_id == cli.SITUATION_LEVEL_ROW[0]:
+            return Refusal(
+                denied=Denied(reason="unclassified", explanation="the pin's refusal",
+                              remedy_options=(RemedyOption(action="classify", detail="classify first"),),
+                              evidence_refs=("obs-key-1",)),
+                validator_version="P8/0.1.0", policy_version="policy-1")
+        return real(conn, request, **kw)
+
+    monkeypatch.setattr(cli, "run_call", refusing)
+    state = _run(tmp_path, ratify=True)
+    placed, abstained = _decisions(state)
+    for name in CLUB_FILES:
+        where = f"{CLUB}/{name}"
+        assert where not in placed, where
+        assert abstained[where], where
+    assert f"Which of these is {SCHEMA}?" in state["said"], state["said"]
+
+
 def test_the_judges_situation_resolves_the_file_and_the_question_is_not_asked(
         deciding):
     """The amendment, working: the judge names the situation and the person is
