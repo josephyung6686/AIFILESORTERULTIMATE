@@ -1258,8 +1258,13 @@ SITUATION_ROW: tuple[str, str] = (
 #: **NOTHING IS LOST BY THE DARKNESS.** Measurement before ratification is the
 #: lead's replay over dossiers the product has ALREADY released, which needs no
 #: call from a run.
+#: **RATIFIED 15 Sep 2026** ("ratify 5", the owner, 02:20, after v5 measured
+#: 79.8 % by replay with text 6's lines in the library): the row below is
+#: ratified and the stage RUNS -- the judge names the situation inside the kind
+#: it named, and the person is asked only where it declines. The paragraphs
+#: above describe the unratified state, which the v1-v4 rows are still in.
 SITUATION_LEVEL_ROW: tuple[str, str] = (
-    "situation.unratified.situation-level-v1.2026-09-14", "situation-level-v1")
+    "situation.unratified.situation-level-v5.2026-09-15", "situation-level-v5")
 
 #: `00` AMENDMENT 7(c)'s GATE ROW, and the site is `H_restricted_kind`. Authored by
 #: the lead on the owner's go of 12 September and put to the owner for

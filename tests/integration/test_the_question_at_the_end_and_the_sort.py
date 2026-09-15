@@ -120,6 +120,7 @@ import cli  # noqa: E402
 from facts.domains import DOMAIN_FIELDS  # noqa: E402
 from llm_harness.wire_handles import wire_handle  # noqa: E402
 from placement.vocabulary import SITUATION_UNANSWERED  # noqa: E402
+from llm_harness import prompt_library  # noqa: E402
 from privacy.vocabulary import USER, USER_CONFIRMED  # noqa: E402
 from readers import model_routing  # noqa: E402
 from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME  # noqa: E402
@@ -402,6 +403,30 @@ def _fields_asked(database: Path) -> dict[str, set[str]]:
         conn.close()
 
 
+def dark_level_stage(patch) -> None:
+    """Run the product with the situation judge's SECOND stage dark.
+
+    The owner ratified the level text on 15 Sep 2026 ("ratify 5"), so a run on
+    the shipped manifest lets the judge name each file's situation itself and
+    raises no branch question it can answer. This file, and the gist, structure
+    and freeze stories that build on it, pin THE PERSON'S PATH: the branch
+    question printed, `--answer` typed, the sort under that answer -- which is
+    the path the product takes wherever the judge declines. They read it under
+    a copy of the ratified row with `status` unratified, which is the state the
+    judge test's own `_unratified` helper pins the dark stage in.
+    """
+    manifest = {key: (list(value) if isinstance(value, list) else value)
+                for key, value in prompt_library._manifest().items()}
+    shipped = prompt_library.draft_row(cli.SITUATION_LEVEL_ROW[0])
+    dark = (cli.SITUATION_LEVEL_ROW[0] + ".story-dark",
+            cli.SITUATION_LEVEL_ROW[1] + "-story-dark")
+    manifest["drafts"] = manifest["drafts"] + [
+        {**shipped, "candidate": dark[1], "template_id": dark[0],
+         "status": "unratified", "ratified_by": None}]
+    patch.setattr(prompt_library, "_manifest", lambda: manifest)
+    patch.setattr(cli, "SITUATION_LEVEL_ROW", dark)
+
+
 @pytest.fixture(scope="module")
 def three_runs(tmp_path_factory):
     """The whole story, once, in four runs.
@@ -441,6 +466,7 @@ def three_runs(tmp_path_factory):
         for name, value in ENV.items():
             patch.setenv(name, value)
         patch.setattr(model_routing, "deepseek_invoke", cloud.factory)
+        dark_level_stage(patch)
 
         def once(*extra: str) -> None:
             cloud.forget()
@@ -1065,6 +1091,7 @@ def test_the_screen_asks_the_branches_the_judge_opened_not_the_first_partitions(
         for name, value in ENV.items():
             patch.setenv(name, value)
         patch.setattr(model_routing, "deepseek_invoke", lambda **_u: invoke)
+        dark_level_stage(patch)
         out = io.StringIO()
         code = cli.main([str(corpus), "--label", LABEL, "--user", "t",
                          "--database", str(database), "--enable-cloud"], out=out)
@@ -1113,6 +1140,7 @@ def test_a_file_the_judge_held_is_the_persons_question_too_and_release_works(
             for name, value in ENV.items():
                 patch.setenv(name, value)
             patch.setattr(model_routing, "deepseek_invoke", lambda **_u: invoke)
+            dark_level_stage(patch)
             out = io.StringIO()
             code = cli.main([str(corpus), "--situation", SITUATION, "--label", LABEL,
                              "--user", "t", "--database", str(database),

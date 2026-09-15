@@ -93,6 +93,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import cli  # noqa: E402
+from test_the_question_at_the_end_and_the_sort import dark_level_stage  # noqa: E402
 from placement.store import decisions_for_plan  # noqa: E402
 from placement.vocabulary import PLACE  # noqa: E402
 from privacy.moves import may_move_automatically  # noqa: E402
@@ -445,6 +446,7 @@ def the_morning(tmp_path_factory):
         for name, value in ENV.items():
             patch.setenv(name, value)
         patch.setattr(model_routing, "deepseek_invoke", cloud.factory)
+        dark_level_stage(patch)
 
         def once(*extra: str) -> str:
             cloud.forget()

@@ -59,7 +59,8 @@ from readers.model_ollama import (  # noqa: E402
 from readers.model_routing import MODEL_NAME_OF_TIER  # noqa: E402
 from tree_design.store import latest_plan_version, nodes_for_version  # noqa: E402
 
-from test_the_question_at_the_end_and_the_sort import (  # noqa: E402
+from test_the_question_at_the_end_and_the_sort import (
+    dark_level_stage,  # noqa: E402
     CHOSEN, CLUB, ENV, LABEL, SCHEMA, SITUATION, _Cloud, _corpus, _on_disk,
 )
 from test_the_gist import block  # noqa: E402
@@ -83,6 +84,7 @@ def _once(state, *extra: str) -> tuple[int, str]:
         for name, value in ENV.items():
             patch.setenv(name, value)
         patch.setattr(model_routing, "deepseek_invoke", cloud.factory)
+        dark_level_stage(patch)
         code = cli.main(
             [str(state["corpus"]), "--situation", SITUATION, "--label", LABEL,
              "--user", "t", "--database", str(state["database"]),

@@ -227,6 +227,27 @@ def _ratified(patch) -> None:
     patch.setattr(cli, "SITUATION_LEVEL_ROW", TEST_ROW)
 
 
+def _unratified(patch) -> None:
+    """The mirror of `_ratified`: point the second stage at a row that is NOT
+    ratified, in this test's own manifest copy.
+
+    The owner ratified the shipped row on 15 Sep 2026 ("ratify 5"), so the
+    pins for what the stage does UNDER AN UNRATIFIED ROW -- no dossier, no
+    call, the branch question still the person's, the text never on the wire
+    -- can no longer read the shipped row for it. They read a copy of it under
+    a new id with `status` unratified instead, which is the state they pin.
+    """
+    manifest = {key: (list(value) if isinstance(value, list) else value)
+                for key, value in prompt_library._manifest().items()}
+    shipped = prompt_library.draft_row(cli.SITUATION_LEVEL_ROW[0])
+    dark = (TEST_ROW[0] + ".dark", TEST_ROW[1] + "-dark")
+    manifest["drafts"] = manifest["drafts"] + [
+        {**shipped, "candidate": dark[1], "template_id": dark[0],
+         "status": "unratified", "ratified_by": None}]
+    patch.setattr(prompt_library, "_manifest", lambda: manifest)
+    patch.setattr(cli, "SITUATION_LEVEL_ROW", dark)
+
+
 def _run(tmp_path: Path, *, ratify: bool, decline_on: str | None = None,
          twice: bool = False) -> dict:
     """One cloud-only run over the corpus, with the cloud recorded.
@@ -253,6 +274,8 @@ def _run(tmp_path: Path, *, ratify: bool, decline_on: str | None = None,
         patch.setattr(model_routing, "deepseek_invoke", cloud.factory)
         if ratify:
             _ratified(patch)
+        else:
+            _unratified(patch)
         argv = [str(corpus), "--situation", SITUATION, "--label", LABEL,
                 "--user", "t", "--database", str(database), "--enable-cloud",
                 "--accept-groups"]
