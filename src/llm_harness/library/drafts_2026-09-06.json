@@ -509,6 +509,19 @@
    "ratified_by": "the owner, 15 Sep 2026, 13:00 local, in session, shown review/8_texts_to_ratify/7_kind_v4.txt and its diff with the bench numbers (v3 71.9 % -> v4 74.8 % on 310 dossiers): 'ratify 7 and try it; if it is not good keep on going'. Applied by the lead as this row's status and SITUATION_ROW re-pointed; the v3 row stands as written."
   },
   {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-whole-library-v5",
+   "status": "unratified",
+   "template_id": "situation.unratified.whole-library-v5.2026-09-15",
+   "template_file": "situation_template.whole-library.v5.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_shaping_policy.v4.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "v5 of the whole-library (kind) text (15 Sep 2026, 13:45, the lead) on the same ruling: the decline section says Never -- a capture is photos, an archive is what its entries point to, a bare table is research, a bare path is what its extension holds; 'none' stays only so a malformed answer has a shape. Everything else byte-identical to v4.",
+   "ratified_by": "nobody yet: authored by the lead on 15 Sep 2026 on the owner's ruling of 13:40; the owner ratifies with one word."
+  },
+  {
    "site": "A_fact",
    "candidate": "v5-a-title-stands-as-subject",
    "status": "ratified",
@@ -597,6 +610,19 @@
    "layout": "frame-first",
    "note": "v6 of the situation-level text (15 Sep 2026, 13:00, the lead), after the owner read run 15's 58 declines: 'too many abstentions; why are we abstaining? this should not happen.' One paragraph under WHEN THE ANSWER IS none_of_these: the kind is settled, the file IS one of the list, and a decline is true only where the released values carry nothing to read at all or every line excludes the file; a file whose text can be described in a sentence is placed under the line that fits it best. Everything else byte-identical to v5. Measured with the club member (text 8) in the library.",
    "ratified_by": "nobody yet: authored by the lead on 15 Sep 2026 for measurement; the owner ratifies with one word."
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-level-v7",
+   "status": "unratified",
+   "template_id": "situation.unratified.situation-level-v7.2026-09-15",
+   "template_file": "situation_level_template.v7.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_level_shaping_policy.v1.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "v7 of the situation-level text (15 Sep 2026, 13:45, the lead) on the owner's ruling 'there should be no abstentions, make sure of that' (00 amendment 5 of 15 Sep): the decline section says Never -- a described file is placed under the line that fits, a file with nothing to read is placed under the member of its kind that keeps such files, cited to its metadata; the word stays on the list only so a malformed answer has a shape and an answer that uses it is a failure to judge. Everything else byte-identical to v6.",
+   "ratified_by": "nobody yet: authored by the lead on 15 Sep 2026 on the owner's ruling of 13:40; the owner ratifies with one word."
   }
  ],
  "digests": {
@@ -665,6 +691,8 @@
   "situation_level_template.v4.txt": "8dc7530a9670fde0e29bd5b8ae8d8bf8a7a75a60e38d5e9566b46b4c4d94f69d",
   "situation_level_template.v5.txt": "66e0f28e87165ee96a34e6a2955f545ab1c4c4ab43dfd1ef23bbaf47755a0145",
   "situation_template.whole-library.v4.txt": "62a3e26c1ff7fa7f30a898e86b3292ad6b88a69f712638c8694776eb4fab09b8",
-  "situation_level_template.v6.txt": "408dc85b74ad84736a65c08589098439f43c38af0903c6eb46b125e684dc5b89"
+  "situation_level_template.v6.txt": "408dc85b74ad84736a65c08589098439f43c38af0903c6eb46b125e684dc5b89",
+  "situation_level_template.v7.txt": "f0648576c0a214a5653122f4b5812e2c2fca41a4292aa8bef7ef0ca22f9f0909",
+  "situation_template.whole-library.v5.txt": "133fcaf3494485cc06dd4375645c3212f050732649ca62805e6da8a1855b93ec"
  }
 }
