@@ -522,6 +522,19 @@
    "ratified_by": "nobody yet: authored by the lead on 15 Sep 2026 on the owner's ruling of 13:40; the owner ratifies with one word."
   },
   {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-whole-library-v6",
+   "status": "unratified",
+   "template_id": "situation.unratified.whole-library-v6.2026-09-15",
+   "template_file": "situation_template.whole-library.v6.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_shaping_policy.v4.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "v6 of the whole-library (kind) text (15 Sep 2026, 14:30, the lead): v5 measured 235 right / 52 wrong / 1 declined / 22 REJECTED of 310 on kind dossiers (75.8 %), and under the owner's no-abstention ruling a rejected answer leaves a file open exactly as a decline did. The 22: seven answers with a stray closing bracket, eight metadata citations whose field name is not the item's address, five references not in the released list, five spans not verbatim. One sentence added to rule 2: exactly one citation, the single item that decides it. Everything else byte-identical to v5.",
+   "ratified_by": "nobody yet: authored by the lead on 15 Sep 2026 for measurement; the owner ratifies with one word."
+  },
+  {
    "site": "A_fact",
    "candidate": "v5-a-title-stands-as-subject",
    "status": "ratified",
@@ -693,6 +706,7 @@
   "situation_template.whole-library.v4.txt": "62a3e26c1ff7fa7f30a898e86b3292ad6b88a69f712638c8694776eb4fab09b8",
   "situation_level_template.v6.txt": "408dc85b74ad84736a65c08589098439f43c38af0903c6eb46b125e684dc5b89",
   "situation_level_template.v7.txt": "f0648576c0a214a5653122f4b5812e2c2fca41a4292aa8bef7ef0ca22f9f0909",
-  "situation_template.whole-library.v5.txt": "133fcaf3494485cc06dd4375645c3212f050732649ca62805e6da8a1855b93ec"
+  "situation_template.whole-library.v5.txt": "133fcaf3494485cc06dd4375645c3212f050732649ca62805e6da8a1855b93ec",
+  "situation_template.whole-library.v6.txt": "02ce5b5c4029363dbd4247b94bb1baac6ee619e4918b86e46b292dc02e2fd775"
  }
 }
