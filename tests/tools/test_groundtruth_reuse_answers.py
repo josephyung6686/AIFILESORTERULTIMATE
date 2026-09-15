@@ -105,7 +105,7 @@ def _stuff(conn, table: str) -> None:
 
 
 def _dimensions(subject: str) -> dict:
-    """All ELEVEN terms `store.CALL_IDENTITY_DIMENSIONS` names, none extra.
+    """All TWELVE terms `store.CALL_IDENTITY_DIMENSIONS` names, none extra.
 
     Spelled in full rather than stubbed, because `call_identity` refuses a mapping
     over a different set of terms and the seeder recomputes the digest through it:
@@ -122,7 +122,7 @@ def _dimensions(subject: str) -> dict:
     return {"call_site": "A_fact", "content_hash": "a-hash",
             "context_refs": [],
             "extractor_versions": [["text.structured", "1"]],
-            "max_dossier_tokens": 6000,
+            "max_dossier_tokens": 6000, "sampling": 0.0,
             "model_id": "a-model", "plan_version": None, "policy": "{}",
             "prompt_fingerprint": "a-fingerprint", "schema_id": ["academic"],
             "subject_ref": subject}

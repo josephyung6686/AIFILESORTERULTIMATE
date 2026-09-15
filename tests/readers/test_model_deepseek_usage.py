@@ -77,7 +77,7 @@ class _Response:
 
 def _answering(text: str, usage=None):
     def send(*, api_key, base_url, model_id, max_tokens, prompt,
-             timeout_seconds=None):
+             timeout_seconds=None, temperature=None):
         return _Response(_Choice(text), usage=usage)
     return send
 

@@ -363,6 +363,7 @@ from extraction_pool import ExtractionContext, ProcessPool
 from model_placement import (
     PlacementCallAuthorities, model_path_injections, releasable_excerpts,
 )
+from readers import model_deepseek
 from readers.model_deepseek import BASE_URL_NAME, CLOUD, CREDENTIAL_NAME
 from readers.model_ollama import (
     BASE_URL_NAME as LOCAL_BASE_URL_NAME,
@@ -9582,6 +9583,7 @@ def _per_file_call_identity(conn: sqlite3.Connection, *, call_site: str,
         # kept the answer given at 1,200 -- metadata and a page number -- because
         # their keys had not moved.
         "max_dossier_tokens": request.model_call_request.max_dossier_tokens,
+        "sampling": model_deepseek.JUDGE_SAMPLING,
         # E's request carries one, and `tree_design.template_schema.build_template_
         # request` says why: `E_template` is in P8's `SITES_REQUIRING_PLAN_VERSION`
         # because §8.8 captures template versions per plan version. Read off the

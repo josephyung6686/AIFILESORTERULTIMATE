@@ -55,6 +55,8 @@ from __future__ import annotations
 
 import json
 import sqlite3
+
+from readers import model_deepseek
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from decimal import Decimal
@@ -2602,6 +2604,7 @@ def call_identity_dimensions(
         # only read this module makes.
         # The release bound (`llm_harness.store.EMPTY_DIMENSION_VALUES` says why).
         "max_dossier_tokens": authorities.max_dossier_tokens,
+        "sampling": model_deepseek.JUDGE_SAMPLING,
         "model_id": _routed_target(authorities, file_id).model_id,
         # Null at A, and `build_fact_request` says why in its own words: "a fact is
         # about a file version and not about a plan, and the same fact survives a

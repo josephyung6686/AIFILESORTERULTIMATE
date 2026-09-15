@@ -707,7 +707,7 @@ def record_call_failure(conn: sqlite3.Connection, *, dossier_id: str,
 CALL_IDENTITY_DIMENSIONS: tuple[str, ...] = (
     "call_site", "content_hash", "context_refs", "extractor_versions",
     "max_dossier_tokens", "model_id", "plan_version", "policy",
-    "prompt_fingerprint", "schema_id", "subject_ref",
+    "prompt_fingerprint", "sampling", "schema_id", "subject_ref",
 )
 
 
@@ -746,6 +746,11 @@ EMPTY_DIMENSION_VALUES: Mapping[str, object] = {
     # call built today carries, so every prior per-file answer is asked once more
     # under its true bound; that is the addition's intent and its whole cost.
     "max_dossier_tokens": None,
+    # `sampling` (15 Sep 2026): the temperature the request carried, `None` where
+    # the provider's default was in force -- every verdict before this term. A
+    # prior identity re-digested under `None` does not match a call at 0.0, which
+    # is the point: an answer taken under another setting is asked again.
+    "sampling": None,
 }
 
 #: THE SIX EVERY CALL HAS, so a mapping missing one is not an older shape of the

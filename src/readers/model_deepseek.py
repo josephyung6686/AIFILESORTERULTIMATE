@@ -845,6 +845,20 @@ def _require_target(model_target: ModelTarget) -> None:
         )
 
 
+#: THE JUDGES' SAMPLING, the owner's ruling of 15 Sep 2026 ("there should be no
+#: abstentions; make sure of that"), measured before it was chosen: on the lead's
+#: bench over the owner's corpus the kind judge answered 257 of 310 right at
+#: temperature 0 against 243 at the provider's default (one rejected answer
+#: against five), and the situation judge 146 of 179 at both; 18 of 44 files
+#: re-asked between runs 13 and 15 had changed their answer under the default.
+#: A sampling term and not a prompt term, by the reading R-14 gave
+#: `response_format`; recorded on every call identity as the `sampling`
+#: dimension, so a verdict taken under another setting is re-asked, never
+#: replayed. One constant, here, because this module is the one place the
+#: request is assembled.
+JUDGE_SAMPLING: float = 0.0
+
+
 def deepseek_invoke(*, api_key: str | None, base_url: str | None,
                     model_target: ModelTarget, max_response_tokens: int,
                     timeout_seconds: float | None = None,
@@ -901,7 +915,7 @@ def deepseek_invoke(*, api_key: str | None, base_url: str | None,
             response = send(
                 api_key=key, base_url=endpoint, model_id=model_id,
                 max_tokens=max_response_tokens, prompt=prompt,
-                timeout_seconds=timeout_seconds,
+                timeout_seconds=timeout_seconds, temperature=JUDGE_SAMPLING,
             )
         except TimeoutError as problem:
             # THE MODEL WAS ASKED AND DID NOT FINISH, which is not the same as a

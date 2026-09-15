@@ -41,6 +41,7 @@ pytest.importorskip("httpx", reason="the OpenAI client's own transport library")
 
 from privacy.release import ModelTarget                        # noqa: E402
 from readers.model_deepseek import (                           # noqa: E402
+    JUDGE_SAMPLING,
     READING_THE_BODY, WAITING_FOR_THE_FIRST_BYTE,
     ModelRanOutOfTime, ModelRanOutOfTimeReadingTheBody,
     ModelRanOutOfTimeWaitingForTheFirstByte, deepseek_invoke, request_body,
@@ -345,11 +346,13 @@ def test_a_normal_call_is_byte_identical_to_what_the_stock_client_sends(server):
     # `http_client`, so httpx supplies its own transport and its own four timers.
     with openai.OpenAI(api_key="not-a-real-key", base_url=running.base_url,
                        timeout=PATIENCE, max_retries=0) as stock:
-        from readers.model_deepseek import _as_the_sdk_takes_it
+        from readers.model_deepseek import JUDGE_SAMPLING, _as_the_sdk_takes_it
+        # The same sampling term the product sends (15 Sep 2026): byte-identical
+        # means identical INCLUDING the term nobody but this module chooses.
         stock.chat.completions.create(
             **_as_the_sdk_takes_it(request_body(
                 model_id=TARGET.model_id, max_tokens=RESPONSE_TOKENS,
-                prompt=DOSSIER.decode("utf-8"))))
+                prompt=DOSSIER.decode("utf-8"), temperature=JUDGE_SAMPLING)))
 
     under_the_deadline, stock_request = running.requests
     assert under_the_deadline == stock_request, (
@@ -362,4 +365,5 @@ def test_a_normal_call_is_byte_identical_to_what_the_stock_client_sends(server):
     assert head.split(b"\r\n")[0] == b"POST /chat/completions HTTP/1.1"
     assert json.loads(body) == request_body(
         model_id=TARGET.model_id, max_tokens=RESPONSE_TOKENS,
-        prompt=DOSSIER.decode("utf-8"))
+        prompt=DOSSIER.decode("utf-8"),
+        temperature=JUDGE_SAMPLING)

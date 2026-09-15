@@ -72,7 +72,7 @@ class _Response:
 
 def _answering(text: str, captured: dict | None = None):
     def send(*, api_key, base_url, model_id, max_tokens, prompt,
-             timeout_seconds=None):
+             timeout_seconds=None, temperature=None):
         if captured is not None:
             captured.update(api_key=api_key, base_url=base_url, model_id=model_id,
                             max_tokens=max_tokens, prompt=prompt)
@@ -374,6 +374,22 @@ def test_no_prompt_text_and_no_model_behaviour_is_chosen_here():
     assert named["temperature"] == 0.0
     assert set(named) == {"model", "max_tokens", "messages", "response_format",
                           "thinking", "temperature"}
+    # AND THE PRODUCT NAMES IT (15 Sep 2026, the owner's no-abstention ruling,
+    # measured: 257 of 310 at 0 against 243 at the default): `deepseek_invoke`
+    # hands `send` the module's one constant, `JUDGE_SAMPLING`, and nothing
+    # else chooses it. The constant is a term of every call identity
+    # (`store.CALL_IDENTITY_DIMENSIONS`, "sampling"), so a verdict taken under
+    # another setting is asked again.
+    from readers import model_deepseek
+    assert model_deepseek.JUDGE_SAMPLING == 0.0
+    sends = [node for node in ast.walk(ast.parse(_module_source()))
+             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+             and node.func.id == "send"]
+    assert sends, "deepseek_invoke calls send"
+    for call in sends:
+        temps = [kw for kw in call.keywords if kw.arg == "temperature"]
+        assert len(temps) == 1 and isinstance(temps[0].value, ast.Name)
+        assert temps[0].value.id == "JUDGE_SAMPLING", ast.dump(temps[0].value)
 
 
 def test_the_module_does_not_declare_itself_the_transport():
