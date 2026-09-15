@@ -362,7 +362,18 @@ def test_no_prompt_text_and_no_model_behaviour_is_chosen_here():
         if isinstance(node, ast.Constant) and isinstance(node.value, str)
     }
     assert "system" not in roles, roles
-    assert "temperature" not in roles, roles
+    # `temperature` MAY be named in the source, as the key of a term the default
+    # body never carries (15 Sep 2026): a sampling term, not a prompt term, by
+    # the reading R-14 gave `response_format`. It rides only when a caller
+    # names it -- the lead's bench does, to measure whether the judge's answers
+    # stop moving between runs -- and the default body above has already been
+    # asserted to carry exactly the five terms. A default chosen HERE would
+    # still be a knob nobody approved, and that is what the next line pins.
+    named = request_body(model_id="a-model", max_tokens=1,
+                         prompt="answer with one JSON object", temperature=0.0)
+    assert named["temperature"] == 0.0
+    assert set(named) == {"model", "max_tokens", "messages", "response_format",
+                          "thinking", "temperature"}
 
 
 def test_the_module_does_not_declare_itself_the_transport():

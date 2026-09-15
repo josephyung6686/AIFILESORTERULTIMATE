@@ -453,7 +453,8 @@ class Usage:
     response_format: str
 
 
-def request_body(*, model_id: str, max_tokens: int, prompt: str) -> dict:
+def request_body(*, model_id: str, max_tokens: int, prompt: str,
+                 temperature: float | None = None) -> dict:
     """Every term of the one API call, as data, so the socket line stays the only
     untestable statement in this module.
 
@@ -469,7 +470,7 @@ def request_body(*, model_id: str, max_tokens: int, prompt: str) -> dict:
             f"NoAnswerFromModel, and is recorded against the model for a mistake "
             f"made on this side."
         )
-    return {
+    body = {
         "model": model_id,
         "max_tokens": max_tokens,
         "messages": [{"role": "user", "content": prompt}],
@@ -487,6 +488,15 @@ def request_body(*, model_id: str, max_tokens: int, prompt: str) -> dict:
         # deliberation.
         "thinking": {"type": "disabled"},
     }
+    if temperature is not None:
+        # A SAMPLING TERM, NOT A PROMPT TERM, by the reading R-14 gave
+        # `response_format`: it changes how the provider draws from one
+        # distribution, not what the model is asked. Absent unless a caller
+        # names it; the lead's bench names it to measure whether the judge's
+        # answers stop moving between runs (18 of 44 re-asked files changed
+        # their kind between runs 13 and 15 under the provider's default).
+        body["temperature"] = temperature
+    return body
 
 
 def usage_of(response: object, *, model_id: str) -> Usage | None:
@@ -652,7 +662,8 @@ def _under_one_deadline(timeout_seconds: float):
 
 
 def _send(*, api_key: str, base_url: str, model_id: str, max_tokens: int,
-          prompt: str, timeout_seconds: float) -> object:
+          prompt: str, timeout_seconds: float,
+          temperature: float | None = None) -> object:
     """The one place this module touches a socket, so a test can replace it.
 
     Everything the module does with what comes back is `response_text`, which is
@@ -699,8 +710,8 @@ def _send(*, api_key: str, base_url: str, model_id: str, max_tokens: int,
                 # Every term of the request, built and checked by a pure function
                 # so this stays the one statement here that reaches the provider
                 # (`104` R-14).
-                **_as_the_sdk_takes_it(request_body(
-                    model_id=model_id, max_tokens=max_tokens, prompt=prompt)),
+                **_as_the_sdk_takes_it(request_body(model_id=model_id, max_tokens=max_tokens,
+                             prompt=prompt, temperature=temperature)),
             )
 
 
