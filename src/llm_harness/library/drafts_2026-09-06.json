@@ -506,7 +506,7 @@
    "readings_rows": [],
    "layout": "frame-first",
    "note": "v4 of the whole-library (kind) text (15 Sep 2026, 02:00, the lead), from the judge's own reasons for run 13's 78 misses (review file 3), every one of which the owner reads as the key's: captures whose recognised text shows a record (an insurance card, a school health form) answered 'photos'; data tables answered by their subject (patients -> clinical, counts by age -> medical) instead of as datasets; published works by others answered 'academic'; club and volunteer paperwork answered career, academic or none; course paperwork addressed inside a school answered 'college applications'. Six rules added to the deciding paragraph, everything else byte-identical to v3. What no text reaches on this corpus: every file sits at the root of one flat folder, so a photograph with no text is a photograph to every reader, and the key's 'club' on it is the owner's memory -- the structure edit's question, not the judge's. Measured by replay on run 12's cloud-sent dossiers, plain and with a menu gloss naming clubs and volunteering on the nonprofit member (the gloss is the owner's to ratify).",
-   "ratified_by": "the owner, 15 Sep 2026, 03:15 local, in session, shown review/8_texts_to_ratify/7_kind_v4.txt and its diff with the bench numbers (v3 71.9 % -> v4 74.8 % on 310 dossiers): 'ratify 7 and try it; if it is not good keep on going'. Applied by the lead as this row's status and SITUATION_ROW re-pointed; the v3 row stands as written."
+   "ratified_by": "the owner, 15 Sep 2026, 13:00 local, in session, shown review/8_texts_to_ratify/7_kind_v4.txt and its diff with the bench numbers (v3 71.9 % -> v4 74.8 % on 310 dossiers): 'ratify 7 and try it; if it is not good keep on going'. Applied by the lead as this row's status and SITUATION_ROW re-pointed; the v3 row stands as written."
   },
   {
    "site": "A_fact",
@@ -595,7 +595,7 @@
    "shaping_policy_file": "situation_level_shaping_policy.v1.json",
    "readings_rows": [],
    "layout": "frame-first",
-   "note": "v6 of the situation-level text (15 Sep 2026, 03:20, the lead), after the owner read run 15's 58 declines: 'too many abstentions; why are we abstaining? this should not happen.' One paragraph under WHEN THE ANSWER IS none_of_these: the kind is settled, the file IS one of the list, and a decline is true only where the released values carry nothing to read at all or every line excludes the file; a file whose text can be described in a sentence is placed under the line that fits it best. Everything else byte-identical to v5. Measured with the club member (text 8) in the library.",
+   "note": "v6 of the situation-level text (15 Sep 2026, 13:00, the lead), after the owner read run 15's 58 declines: 'too many abstentions; why are we abstaining? this should not happen.' One paragraph under WHEN THE ANSWER IS none_of_these: the kind is settled, the file IS one of the list, and a decline is true only where the released values carry nothing to read at all or every line excludes the file; a file whose text can be described in a sentence is placed under the line that fits it best. Everything else byte-identical to v5. Measured with the club member (text 8) in the library.",
    "ratified_by": "nobody yet: authored by the lead on 15 Sep 2026 for measurement; the owner ratifies with one word."
   }
  ],
