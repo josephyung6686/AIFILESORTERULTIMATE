@@ -74,6 +74,7 @@ from evidence_shape.locator import (
 from evidence_shape.store import (
     DERIVED_NAMESPACE, opening_reading_for, record_observation,
     unit_length_for_observation,
+    unit_stands_at,
 )
 from facts.domains import (
     ActivationSignals, active_domains, active_field_allowlist,
@@ -1892,10 +1893,11 @@ def may_be_released(conn: sqlite3.Connection, observation, *,
         # The two span-less shapes -- the cell or field with no unit at its path,
         # and the whole unit -- both release now; the unit is bounded by the ceiling.
         return True
-    if unit_length_for_observation(conn, observation) is None:
+    if not unit_stands_at(conn, observation):
         # `materialise` raises `UnresolvableSpan` here rather than denying: a span
         # with nothing to take a substring of is a contract failure, and this call
-        # is not the place to discover it.
+        # is not the place to discover it. Asked as a presence, not a length: the
+        # length sits behind the unit's whole text in the row (run 14, 15 Sep).
         return False
     return True
 

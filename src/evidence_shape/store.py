@@ -613,6 +613,24 @@ def unit_length_for_observation(conn: sqlite3.Connection,
     return None if row is None else row[0]
 
 
+def unit_stands_at(conn: sqlite3.Connection, observation: Observation) -> bool:
+    """DOES A UNIT STAND AT THIS OBSERVATION'S PATH -- and nothing else.
+
+    `unit_length_for_observation` answers this too, as `None` versus a number, and
+    the fact stage asked it that way once per observation. But `length` is stored
+    AFTER `text` in the row, so reading it walks every overflow page of the unit
+    exactly as `length(text)` did: on a 4.4 MB document with 14,600 readings that
+    was half an hour per file (run 14, 15 Sep 2026, named by the stack dumper).
+    `SELECT 1` by the primary key is answered from the covering index and touches
+    no page of the row. A caller that needs the number keeps asking for it.
+    """
+    return conn.execute(
+        "SELECT 1 FROM text_units WHERE run_id = ? AND unit_locator = ?",
+        (observation.run_id,
+         serialize_container_path(observation.location.container_path)),
+    ).fetchone() is not None
+
+
 def unit_holds_a_line_break(conn: sqlite3.Connection,
                             observation: Observation) -> bool | None:
     """Rule 10's lookup answering only DOES THIS UNIT HAVE MORE THAN ONE LINE.
