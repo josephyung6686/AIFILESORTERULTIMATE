@@ -1,5 +1,5 @@
 {
- "compiled_rows": 360,
+ "compiled_rows": 361,
  "manifest_version": 1,
  "refused_rows": 44,
  "schemas": {
@@ -14881,6 +14881,16 @@
       "Abstaining whenever the evidence cannot cite an employer counterparty: a plain branch roll, a union constitution, or a conference programme is not this row."
      ],
      "row": "nonprofit.trade-union"
+    },
+    {
+     "readings": [
+      "Deciding whether a name-and-contact list has crossed from a sign-up sheet into a membership roll once retained across terms — the discriminator is a standing column appearing over time, and a snapshot alone may not show it.",
+      "Separating an event flyer produced for the club's own record-keeping from a designed graphic with no organisational-record context at all (photos.personal-graphics' territory) or from a commercial ad-campaign asset (creative.ad-campaign's), where the same design tooling and the same file shape serve all three.",
+      "Recognising a budget request as this row's informal, unrestricted ask rather than the schema's own restricted-grant lifecycle, where the vocabulary (\"funding\", \"request\", \"grant\") is shared and only the presence or absence of a payment schedule and milestone reporting discriminates.",
+      "Distinguishing an officer handover from a generic role-transition memo in hr or business_operations, where the discriminating evidence — a term boundary and an unpaid, elected role — is often stated once and briefly.",
+      "Abstaining whenever only the organisation type or the word student is present with no operational-document structure of its own: \"A model that cannot cite sufficient evidence must return unknown.\""
+     ],
+     "row": "nonprofit.volunteering-and-club-life"
     }
    ],
    "never_alone_rows": [
@@ -14907,6 +14917,10 @@
     {
      "cautions": 7,
      "row": "nonprofit.trade-union"
+    },
+    {
+     "cautions": 7,
+     "row": "nonprofit.volunteering-and-club-life"
     }
    ],
    "refused_rows": [
@@ -14923,7 +14937,8 @@
     "nonprofit.member-association",
     "nonprofit.religious-institution",
     "nonprofit.student-organisation",
-    "nonprofit.trade-union"
+    "nonprofit.trade-union",
+    "nonprofit.volunteering-and-club-life"
    ],
    "schema_id": "nonprofit",
    "situations": [
@@ -14951,6 +14966,11 @@
      "id": "nonprofit.trade-union",
      "name": "Trade union and staff association records",
      "one_line": "The private association's own record of what a union or staff association does that no other membership body does: representation and casework for a named member against an EMPLOYER, collective bargaining for a bargaining unit, a statutory industrial-action ballot with notice to the employer and a turnout return, and check-off of subscriptions through an employer's payroll. It is NOT activated by a union name, a shop-steward title, the words strike or ballot, an LM filing, or a plain membership roll with no employer counterparty. PLACEHOLDER ROW (J-IND): the nonprofit schema declares no field rows (PR-6; D1's deferral stands), so this row writes none."
+    },
+    {
+     "id": "nonprofit.volunteering-and-club-life",
+     "name": "Volunteering and club life, the person's own",
+     "one_line": "The person's own side of belonging to clubs, societies, charities and service programmes: the letters and notices they received, the sign-up sheets and rosters they were on, certificates and service-hour records they earned, event flyers, agendas and the photographs of events they attended -- one person's record of taking part, whatever organisation issued each piece. Not the organisation's own registers, which are the members' roll and the donor records."
     }
    ],
    "source_types": [

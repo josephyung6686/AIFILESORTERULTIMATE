@@ -1219,7 +1219,7 @@ A_FACT_ROW: tuple[str, str] = (
 #: under the row above, 66.5% under this one. Ratified by the owner 14 Sep 2026
 #: ("ratify 1224", read as 1 2 3 4), applied as a new row; its policy is v4.
 SITUATION_ROW: tuple[str, str] = (
-    "situation.unratified.whole-library-v3.2026-09-14", "situation-whole-library-v3")
+    "situation.unratified.whole-library-v4.2026-09-15", "situation-whole-library-v4")
 
 #: `00` AMENDMENT 1 OF 14 SEP: THE SECOND STAGE'S ROW, and the site is site G's
 #: own. The row above names which KIND of material a file is; this one names which

@@ -498,7 +498,7 @@
   {
    "site": "G_situation_sensitivity",
    "candidate": "situation-whole-library-v4",
-   "status": "unratified",
+   "status": "ratified",
    "template_id": "situation.unratified.whole-library-v4.2026-09-15",
    "template_file": "situation_template.whole-library.v4.txt",
    "response_schema_file": "situation_response_schema.v2.json",
@@ -506,7 +506,7 @@
    "readings_rows": [],
    "layout": "frame-first",
    "note": "v4 of the whole-library (kind) text (15 Sep 2026, 02:00, the lead), from the judge's own reasons for run 13's 78 misses (review file 3), every one of which the owner reads as the key's: captures whose recognised text shows a record (an insurance card, a school health form) answered 'photos'; data tables answered by their subject (patients -> clinical, counts by age -> medical) instead of as datasets; published works by others answered 'academic'; club and volunteer paperwork answered career, academic or none; course paperwork addressed inside a school answered 'college applications'. Six rules added to the deciding paragraph, everything else byte-identical to v3. What no text reaches on this corpus: every file sits at the root of one flat folder, so a photograph with no text is a photograph to every reader, and the key's 'club' on it is the owner's memory -- the structure edit's question, not the judge's. Measured by replay on run 12's cloud-sent dossiers, plain and with a menu gloss naming clubs and volunteering on the nonprofit member (the gloss is the owner's to ratify).",
-   "ratified_by": "nobody yet: authored by the lead on 15 Sep 2026 for measurement; the owner ratifies with one word."
+   "ratified_by": "the owner, 15 Sep 2026, 03:15 local, in session, shown review/8_texts_to_ratify/7_kind_v4.txt and its diff with the bench numbers (v3 71.9 % -> v4 74.8 % on 310 dossiers): 'ratify 7 and try it; if it is not good keep on going'. Applied by the lead as this row's status and SITUATION_ROW re-pointed; the v3 row stands as written."
   },
   {
    "site": "A_fact",
@@ -584,6 +584,19 @@
    "layout": "frame-first",
    "note": "v5 of the situation-level text (15 Sep 2026, 01:50, the lead), after the owner ruled every one of v4's 24 misses 'key right' (review file 11): the 11 more-specific-sibling picks (a mock exam of one test as standardized testing, a statement of purpose as a graduate application, a data table as reading library), the 5 class files pulled to K-12 schooling by the kind's name, and the declines. v5 strengthens the special-case rule -- the ordinary piece of work is the answer, the special case needs its distinguishing mark as a fact about the person's situation and never the document's subject matter -- and adds one paragraph: the person is the one who kept the file, the student and not the school, unless the text shows the other side. Everything else byte-identical to v4. Measured with text 6's seven lines now in the library (the owner ratified them the same hour).",
    "ratified_by": "the owner, 15 Sep 2026, 01:35 local, in session, having read review/8_texts_to_ratify/5_situation_level_v4.txt and its diff, ruled every row of file 11 'key right', and been shown v5's replay (71 right, 13 wrong, 5 declined of 89 = 79.8 %, with text 6's lines in the library): 'ratify 5 and then I need you to solve the classification first before sorting'. Applied by the lead as this row's status and SITUATION_LEVEL_ROW re-pointed; the v1-v4 rows stand as written."
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-level-v6",
+   "status": "unratified",
+   "template_id": "situation.unratified.situation-level-v6.2026-09-15",
+   "template_file": "situation_level_template.v6.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_level_shaping_policy.v1.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "v6 of the situation-level text (15 Sep 2026, 03:20, the lead), after the owner read run 15's 58 declines: 'too many abstentions; why are we abstaining? this should not happen.' One paragraph under WHEN THE ANSWER IS none_of_these: the kind is settled, the file IS one of the list, and a decline is true only where the released values carry nothing to read at all or every line excludes the file; a file whose text can be described in a sentence is placed under the line that fits it best. Everything else byte-identical to v5. Measured with the club member (text 8) in the library.",
+   "ratified_by": "nobody yet: authored by the lead on 15 Sep 2026 for measurement; the owner ratifies with one word."
   }
  ],
  "digests": {
@@ -651,6 +664,7 @@
   "situation_level_template.v3.txt": "95a63845c2f6369c52af9c061e6c258122b91a1913206de36eb713d41dff29e8",
   "situation_level_template.v4.txt": "8dc7530a9670fde0e29bd5b8ae8d8bf8a7a75a60e38d5e9566b46b4c4d94f69d",
   "situation_level_template.v5.txt": "66e0f28e87165ee96a34e6a2955f545ab1c4c4ab43dfd1ef23bbaf47755a0145",
-  "situation_template.whole-library.v4.txt": "62a3e26c1ff7fa7f30a898e86b3292ad6b88a69f712638c8694776eb4fab09b8"
+  "situation_template.whole-library.v4.txt": "62a3e26c1ff7fa7f30a898e86b3292ad6b88a69f712638c8694776eb4fab09b8",
+  "situation_level_template.v6.txt": "408dc85b74ad84736a65c08589098439f43c38af0903c6eb46b125e684dc5b89"
  }
 }

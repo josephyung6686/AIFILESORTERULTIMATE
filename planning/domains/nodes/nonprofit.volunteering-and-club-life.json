@@ -1,0 +1,176 @@
+{
+  "id": "nonprofit.volunteering-and-club-life",
+  "kind": "template",
+  "schema_id": "nonprofit",
+  "parent_id": null,
+  "name": "Volunteering and club life, the person's own",
+  "one_line": "The person's own side of belonging to clubs, societies, charities and service programmes: the letters and notices they received, the sign-up sheets and rosters they were on, certificates and service-hour records they earned, event flyers, agendas and the photographs of events they attended -- one person's record of taking part, whatever organisation issued each piece. Not the organisation's own registers, which are the members' roll and the donor records.",
+  "launch": "placeholder",
+  "provenance": "the owner, 15 Sep 2026 03:15: 'yes make it a node' (text 8), the club member they asked for on 13 Sep; measured on the full bench 179 files: club files 20 of 38 -> 33 of 38, declines 24 -> 14, 69.3 % -> 73.7 %",
+  "design_cite": "00 amendments of 13 Sep ('a menu member for a club: add that') and 15 Sep (text 8)",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": "The person's own side of belonging: a file the person RECEIVED or EARNED from an organisation they belong to or volunteer with, kept as their record of taking part. Fails where the file is the organisation's own register (member-association) or its own operating file (student-organisation).",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "volunteer",
+      "volunteering",
+      "service hours",
+      "community service",
+      "club",
+      "society",
+      "certificate",
+      "member",
+      "sign-up",
+      "roster",
+      "event",
+      "flyer",
+      "agenda",
+      "chapter",
+      "red cross"
+    ],
+    "needs_llm": [
+      "Deciding whether a name-and-contact list has crossed from a sign-up sheet into a membership roll once retained across terms — the discriminator is a standing column appearing over time, and a snapshot alone may not show it.",
+      "Separating an event flyer produced for the club's own record-keeping from a designed graphic with no organisational-record context at all (photos.personal-graphics' territory) or from a commercial ad-campaign asset (creative.ad-campaign's), where the same design tooling and the same file shape serve all three.",
+      "Recognising a budget request as this row's informal, unrestricted ask rather than the schema's own restricted-grant lifecycle, where the vocabulary (\"funding\", \"request\", \"grant\") is shared and only the presence or absence of a payment schedule and milestone reporting discriminates.",
+      "Distinguishing an officer handover from a generic role-transition memo in hr or business_operations, where the discriminating evidence — a term boundary and an unpaid, elected role — is often stated once and briefly.",
+      "Abstaining whenever only the organisation type or the word student is present with no operational-document structure of its own: \"A model that cannot cite sufficient evidence must return unknown.\""
+    ],
+    "never_alone": [
+      "THE ORGANISATION TYPE OR THE WORD STUDENT. Club, society, organisation, chapter, student group: read across from nonprofit.member-association's own strike of the same class of token, an organisation-type word names no document and resolves nothing about which of this row's, that row's, or no row's artefact is in front of it.",
+      "THE WORD VOLUNTEER, OR A ROTA OR SHIFT-ROSTER STRUCTURE ALONE. This is nonprofit.volunteer-management's own refusal finding, accepted rather than reopened: the identical structure is an hr staff roster, a religious-institution rota discriminated by its rite column, and a government task-day schedule. A shift grid activates this row only together with the club's own event-promotion or sign-up evidence, never on the schedule shape by itself.",
+      "A BARE LIST OF NAMES, EMAILS OR PHONE NUMBERS. A contacts export, a class roster and a sign-up sheet are the same bytes at a distance; without the club, the event and the interest marker together, a list of people is a list of people and this row must not fire on it.",
+      "THE WORD BUDGET OR FUNDING ALONE. Every personal, household and business budget in the corpus carries one of these words; only the pairing with a host-institution office and an event or term purpose is this row's.",
+      "AN EVENT FLYER OR POSTER ALONE, with no club or sign-up evidence anywhere near it. A concert poster, a course-registration reminder and a garage-sale flyer share the identical shape; the sponsoring club and a call to sign up or attend are what this row needs, never the flyer's existence.",
+      "A MEETING AGENDA ALONE, with no club evidence. A work meeting, a family meeting and a general-body meeting produce the same agenda shape; the schema's own precondition — a non-exchange relation held by a private association — still has to be evidenced.",
+      "A PERSON'S NAME ALONE, in any of this row's roles. The strictest instance of the schema's own rule: a sign-up sheet or a shift roster discloses named third parties at the same cardinality as a membership roll, before any standing exists to protect."
+    ]
+  },
+  "proposed_context_terms": [
+    "sign-up sheet",
+    "interest form",
+    "general body meeting",
+    "meeting agenda",
+    "meeting schedule",
+    "event flyer",
+    "blood drive",
+    "shift schedule",
+    "officer handover",
+    "budget request",
+    "funding request",
+    "student activities office",
+    "tabling schedule",
+    "incoming officer",
+    "outgoing officer"
+  ],
+  "work_types": [
+    "sign-up or interest form for a club or an event",
+    "event flyer or poster",
+    "general-body-meeting agenda or recurring meeting schedule",
+    "shift or task roster for one dated club event",
+    "officer handover document",
+    "budget or funding request to a host institution's student-activities office"
+  ],
+  "grouping_reasons": [
+    "one EVENT as a packet: the flyer, the sign-up sheet it drove, the shift schedule staffing it, and the funding request that paid for it — content-incoherent and purpose-coherent, 00's own licence for the group.",
+    "one TERM OR ACADEMIC YEAR of a club's ordinary business: its general-body-meeting agendas in sequence, its officer handover at the boundary, and the budget requests made across it.",
+    "one OFFICER TRANSITION: the handover document, the account and asset custody notes, and the outgoing officer's final report where one exists.",
+    "no group at all is a common and valid outcome here — a single flyer, a single funding-request form with no event packet around it. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+    "and the stop rules apply as written: a sign-up sheet does not merge into a membership roll merely because both name the same people, and a shift schedule read from one event is not copied onto a flyer for a different one."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract, as for every template on this fieldless schema (PR-6). The recommendation is held as prose and differs from the schema's default in the same way nonprofit.member-association's does, for the same reason: the NON-EXCHANGE COUNTERPARTY level the schema's default would use is unavailable, because this row's counterparty is either a not-yet-standing individual (forbidden as a folder level for the same disclosure reason a member's name is) or a single dated event. The recommendation is therefore the CLUB only where a corpus genuinely spans more than one and never in a single-club corpus, where a collector level would be \"meaningless one-child levels\"; then the TERM OR EVENT, promoted into the vacated slot, because a sign-up sheet or a shift roster is unintelligible until the event or term that produced it is known; then the DOCUMENT FUNCTION. Not time-first, for the reason 00 gives document domains generally. Whatever lands stays a recommendation the user may reverse, remove, add or flatten.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "presentation",
+      "archive"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    "a letter from a club or charity addressed to the person",
+    "a certificate of volunteering or of completing a service programme",
+    "a service-hours record or supervisor evaluation form",
+    "a sign-up sheet or roster the person is on",
+    "an event flyer or agenda",
+    "a photograph of an event the person attended",
+    "a notice from a school club to its members"
+  ],
+  "collides_with": [
+    {
+      "domain": "nonprofit.member-association",
+      "signal": "SAME FIXTURE BOTH SIDES: a spreadsheet of named people held by a club. This row owns it where NO standing column is present - no membership number, class, join or lapse date, no voting marker - such as a sign-up sheet or an interest form; that row owns it the moment a class, a join date or a lapse date appears, because that is the evidence a roll carries and a sign-up sheet does not. The same split applies to meetings: a general-body agenda with no clear-days notice, no numbered resolutions and no quorum is this row's; the AGM instrument with all three is that row's. Discriminated by the presence or absence of standing evidence, never by the words club, member or meeting alone. In the reverse direction, that row's roll does not become this row's merely because it started life as a sign-up sheet last term.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.volunteer-management",
+      "signal": "THE REFUSED ROW'S OWN FINDING, ACCEPTED HERE RATHER THAN REOPENED: a rota or shift-roster structure alone, and the word volunteer alone, resolve no side and could equally be an hr staff roster, a religious rota or a government task-day schedule. This row's event shift schedule fires only together with the club's own event-flyer or sign-up evidence for the SAME dated occasion, never on the rota shape by itself; the schema's own VOLUNTEER-PROGRAMME default (an agreement disclaiming employment, an induction record, an expense claim) is a different, more formal artefact this row does not claim. Where a gross-to-net line appears anywhere the file is hr's, exactly as the refused row states.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "A meeting agenda and a budget request are business_operations' ordinary shape wherever they are produced. The discriminating evidence is the SAME the schema itself uses one level up: a club name, a term or academic-year boundary, and (for the funding request) a named host-institution office, none of which a company's internal agenda or budget carries. Absent that evidence the default is business_operations, exactly as the schema's own precondition requires; a bare agenda or budget-request shape with no club evidence must not fire here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.personal-graphics",
+      "signal": "An event flyer and a personal designed graphic are the identical file shape - a designed image with no camera EXIF, produced with ordinary layout or editing tooling. This row owns it where the club, the event and a call to attend or sign up are evidenced on the artefact itself; the sibling row owns a designed graphic with no organisational-record context at all - a meme, a wallpaper, a sticker, a banner made for no audience but the maker. Discriminated by the presence of the club-and-event pairing, never by the design tooling or the absence of camera metadata, which both artefacts share.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic",
+      "signal": "A student-activities-office funding request and a club's meeting record are both hosted at a school, and a university or college name on the page discriminates nothing by itself - it can equally be the holder's own enrolled institution. The academic schema owns the holder's own coursework, enrollment and transcript evidence; this row owns the CLUB's own operating record, evidenced by club-specific document types (a flyer, a sign-up sheet, an officer handover) rather than by the institution's name. AUTHORED ONE-WAY HERE; the reciprocal is owed.",
+      "provenance": "inference"
+    },
+    "nonprofit.student-organisation",
+    "nonprofit.member-association"
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Named first, for the same reason nonprofit.member-association argues it harder than its own schema does: this row's characteristic artefact is a SIGN-UP SHEET OR SHIFT ROSTER listing dozens of named students at once, before any standing exists to justify holding it. \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\"",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for this row's most common isolated artefact - a single flyer, a single officer-handover document, a single funding-request form with no event packet around it. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home for this row's two defining failures: a sign-up sheet whose standing columns are ambiguous (has it become a roll?), and a meeting agenda or funding request whose club evidence is too thin to confirm. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members of this world: a funding-request approval notice, an event-ticket confirmation for a fundraiser. \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The same cardinality argument nonprofit.member-association makes for a roll applies here to material that carries LESS structure but the SAME exposure, and sometimes earlier in a person's life: a sign-up sheet or an event shift schedule is a single artefact naming dozens of students at once, most of whom never touched the user's machine and gave their name to a club, not to a file-organisation product. Because standing has not yet been fixed, this row's material cannot even be defended by the argument member-association makes for its roll - that the record serves an ongoing relationship the person consented to - a sign-up sheet is frequently the FIRST record of an interest someone later chose not to pursue. The operative rule this row adds: a sign-up or shift-roster artefact is protected on its column shape alone, before any row is read, and the named participants are never a folder level, exactly as a member's name is forbidden one level up. The handling class is P7's and is not set here.",
+  "open_question": "Whether the photographs of a club's events belong here or under photos.camera-events when nothing but the date ties them to the club (the key says the club; the bytes say a capture)."
+}

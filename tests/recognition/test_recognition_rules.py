@@ -115,7 +115,9 @@ def test_the_packaged_manifest_loads_and_covers_every_schema_the_rows_named():
     # library's.
     rules = load_rules(MANIFEST_PATH.read_text)
     assert set(rules.schemas) <= set(SCHEMA_IDS)
-    assert rules.compiled_rows == 360
+    # 361 since 15 Sep 2026: nonprofit.volunteering-and-club-life, the owner's
+    # own member (text 8), a person's record of belonging beside the association's registers.
+    assert rules.compiled_rows == 361
     # Not asserted as a literal count of schemas: `SCHEMA_IDS` is widening
     # underneath this package, so the guard is that every compiled schema is a
     # recognised one and that the rule set is not empty.
