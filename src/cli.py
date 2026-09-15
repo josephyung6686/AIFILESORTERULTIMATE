@@ -1258,7 +1258,7 @@ SITUATION_ROW: tuple[str, str] = (
 #: **NOTHING IS LOST BY THE DARKNESS.** Measurement before ratification is the
 #: lead's replay over dossiers the product has ALREADY released, which needs no
 #: call from a run.
-#: **RATIFIED 15 Sep 2026** ("ratify 5", the owner, 02:20, after v5 measured
+#: **RATIFIED 15 Sep 2026** ("ratify 5", the owner, 01:35, after v5 measured
 #: 79.8 % by replay with text 6's lines in the library): the row below is
 #: ratified and the stage RUNS -- the judge names the situation inside the kind
 #: it named, and the person is asked only where it declines. The paragraphs
