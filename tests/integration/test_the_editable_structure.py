@@ -281,6 +281,33 @@ def test_a_deleted_line_is_a_folder_the_next_plan_does_not_build(proposed):
     assert label not in _labels(proposed), sorted(_labels(proposed))
 
 
+def test_a_deleted_line_that_cannot_be_taken_is_refused_in_the_persons_own_terms(
+        proposed, monkeypatch):
+    """The person deleted a line; they never typed `--reject`. When the rejection
+    behind that line is refused -- two files share the basename, say -- the
+    sentence names the line they deleted and the remedy, and keeps the reason.
+
+    SABOTAGE: hand the structure file's rejections to `apply_rejections` with
+    the typed ones and the screen says "`--reject` ..." about a flag nobody used.
+    """
+    marker, _label = _a_folder_named_by_a_value(proposed)
+
+    def remove(lines):
+        return [line for line in lines if f"[{marker}]" not in line]
+
+    def refuse(conn, rejections, **_):
+        raise cli.RejectionRefused(
+            f"{rejections[0].partition(':')[0]!r} names 2 files in this plan")
+
+    monkeypatch.setattr(cli, "apply_rejections", refuse)
+    code, said = _once(proposed, "--structure", _edited(proposed, remove))
+    assert code != 0
+    # Named by the file the person handed back, whatever they called it.
+    assert "A line you deleted in edited-structure.txt could not be taken" in said, said
+    assert "names 2 files in this plan" in said, said
+    assert "Put the line back" in said, said
+
+
 def test_an_answered_branch_is_not_waiting_so_the_one_open_branch_takes_the_line():
     """The fallback counts OPEN branch questions. Two branches were asked; the
     person answered one on an earlier run; a `situation:` line under a folder

@@ -24135,6 +24135,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
         # file is a front end to the gestures that exist rather than a second
         # path into the plan tables. An edit none of them can express refuses
         # HERE, before any of them has run.
+        from_the_structure_file: set[str] = set()
         if args.structure is not None:
             _bootstrap(conn)
             _from = latest_plan_version(conn)
@@ -24153,6 +24154,7 @@ def main(argv: Sequence[str] | None = None, *, out=None,
             args.rename = [*args.rename, *_edited["rename"]]
             args.reject = [*args.reject, *_edited["reject"]]
             args.declare_role = [*args.declare_role, *_edited["declare_role"]]
+            from_the_structure_file = set(_edited["reject"])
         if args.answer:
             _bootstrap(conn)
             # ONE timestamp for the gesture and its consequence. `now()` is a
@@ -24205,8 +24207,24 @@ def main(argv: Sequence[str] | None = None, *, out=None,
                                user_id=args.user, recorded_at=now())
         if args.reject:
             _bootstrap(conn)
-            apply_rejections(conn, args.reject, user_id=args.user,
-                             observed_at=now())
+            typed = [raw for raw in args.reject if raw not in from_the_structure_file]
+            if typed:
+                apply_rejections(conn, typed, user_id=args.user, observed_at=now())
+            deleted = [raw for raw in args.reject if raw in from_the_structure_file]
+            if deleted:
+                # A refusal is re-said in the person's own terms: they deleted a
+                # line of the structure file and never typed `--reject`, so a
+                # sentence naming that flag names a gesture they did not make
+                # (the gist builder's flag, 14 Sep 2026). The reason is kept.
+                try:
+                    apply_rejections(conn, deleted, user_id=args.user,
+                                     observed_at=now())
+                except RejectionRefused as refusal:
+                    raise RejectionRefused(
+                        f"A line you deleted in {args.structure.name} could not "
+                        f"be taken: {refusal}\n  Put the line back, and say it "
+                        f"with `--reject` and the file's own path instead."
+                    ) from refusal
         # `104` §18.2 gap 3's two owed gestures, applied beside the rejection and
         # for its reason: all three are answers to the same screen, and a person
         # who says "that one is wrong, that one is right, and call that one this"
