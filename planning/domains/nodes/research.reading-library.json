@@ -4,23 +4,19 @@
   "schema_id": "research",
   "parent_id": null,
   "name": "Literature and reading library",
-  "one_line": "Published work by OTHER people, kept for reading: papers, preprints, chapters and the bibliography files that index them. The situation is recognised by third-party publication structure, not by a project identifier, so its leading dimension is the one fact it usually cannot supply — which is why 00 gives this material a residual home and why this row exists to carry the falls_through_to edge to it.",
+  "one_line": "Published work by OTHER people, kept for reading: papers, preprints, books and their front matter, chapters, reports, articles and the bibliography files that index them. The situation is recognised by third-party publication structure — a publisher, an author who is not the holder, a report issued by an organisation — not by a project of the holder's own.",
   "launch": "placeholder",
   "provenance": "inference",
   "design_cite": "Extends 00's named Research domain (\"Research files may use project, stage, artifact type, lab, and venue\") to the one situation 00 describes only from the residual side: Reading Inbox holds \"papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association\". The template object it fills is 00's: \"Each template should define the domain’s allowed fact fields, detection signals, recommended folder dimensions, preferred dimension order, optional branch patterns, privacy rules, and validation constraints.\" No 00 sentence names a reading-library template, so the row is inference, not design.",
   "refuse_node": false,
   "refuse_reason": null,
-
   "node_test": {
     "differs_from_schema_default": true,
     "why": "The template half of CONNECTION.md section 2's node test asks whether detection signals, recommended dimensions, or privacy rules differ from the schema's default template. All three do, and the row also discharges a CONNECTION invariant that nothing else can.\n\n1. DETECTION SIGNALS — inverted, not narrowed. The research schema activates on a project-identifier token beside the HOLDER'S OWN research-artifact structure (a manuscript title block, numbered protocol steps, a figure-caption sequence). This situation has none of that: its evidence is a third party's published-article structure — a DOI or masthead in the title zone, an abstract heading over a numbered reference list, an author-and-affiliation block naming people the holder is not. The research schema row lists exactly that evidence under never_alone (\"a DOI, a journal name, or a citation string alone\"), so this row's positive signals are the schema's negative ones. That is a different detection signal set, not a copy.\n\n2. DIMENSIONS — project then artifact_type, with stage struck. The schema default is 00's own \"a Research template may define project → stage → artifact type\". stage is the HOLDER'S workflow position (draft, under review, revision, proof); a third party's published paper occupies none of it, and the version suffix or publication year that a reading item does carry is a version_family / creation_date universal, not a stage. Recommending a level no fact in this situation can fill is precisely what the contract's dimension rule forbids, so the honest recommendation is two levels, not three.\n\n3. PRIVACY RULES — the one part of Research that is not potentially_sensitive. The schema row's sensitivity reasoning is human-subjects material, unpublished manuscripts and editorial correspondence. None of those is this situation's material: a published paper by somebody else carries no holder-personal content. sensitivity here is none, with the two carve-outs recorded in sensitivity_why.\n\n4. THE EDGE THAT ONLY THIS ROW CAN CARRY. CONNECTION.md section 5, invariant 5: a residual home that shadows a domain template must be connected by falls_through_to from that template or it is a duplicate, not a fallback. Reading Inbox is defined by 00 in this domain's own vocabulary. Without this row the residual shadows the Research schema with no edge joining them; with it, the associated case is a template and the unassociated case is its named fallthrough. Refusing this id would not delete the situation — it would leave 00's own residual unattached.\n\nWHAT THIS ROW IS NOT: it is not the Reading Inbox residual wearing a template id. The residual is 00's home for material with \"no reliable deeper association\"; this template is the case where an association exists and is evidenced on the file itself. The two are complements joined by one edge, which is the shape CONNECTION prescribes."
   },
-
   "fields": [],
   "fields_note": "Empty by contract, not by omission: a template references its schema's fields and never copies them (CONNECTION.md section 3, rule 1). Which of the research schema's fields this situation actually REACHES, and at what ceiling, is the substantive finding and is carried by the file_examples' facts_legal lists and by template.why — not by a second field list. In short: artifact_type and venue are reachable as direct or validated facts from the publication itself; authored_by is reachable and is never a destination; project is usually reachable only as `possible`, or not at all; stage and lab are not this situation's facts.",
-
   "proposed_fields": [],
-
   "recognition": {
     "deterministic": [
       "a published-article structure in the page-one/title zone: a DOI or arXiv identifier (the `doi` and `arxiv` kinds of the injected citation_identifier_patterns list, 06-citation-identifier-patterns) co-occurring with an abstract heading, an author-and-affiliation block, and a numbered reference list. 00 requires the PDF extractor to preserve \"DOI values, citations, identifiers, and other structured strings that may later support file facts\", and the zone requirement is 00's positional rule: \"A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen.\"",
@@ -47,7 +43,6 @@
       "A journal masthead in an email's sender domain as a venue fact about the holder — a table-of-contents alert is mail about publications, not a publication."
     ]
   },
-
   "work_types": [
     "literature paper",
     "preprint",
@@ -60,7 +55,6 @@
     "annotated reading copy"
   ],
   "work_types_note": "Values of the research schema's artifact_type field, discovered at runtime; none is a roster node and none licenses a child schema. The schema row already carries `literature paper` and `preprint`; the other seven are a value-list gap for R1c to fold into that row, not new fields and not new nodes.",
-
   "grouping_reasons": [
     "one paper across its copies: a preprint, the published version, and an annotated reading copy — duplicate and version families, which 00 lists among the typed relationships (\"duplicate or version links\") and which are universal facts rather than research facts",
     "the set of readings cited by one of the holder's own manuscripts — 00 lists \"direct references\" as a typed relationship, and a reference-list link is the one association here that comes from the holder's own artifact rather than from a filename",
@@ -68,19 +62,35 @@
     "a project's or a course's reading set, where the association is a REVIEWABLE MEMBERSHIP and not a fact. A paper joins the PVA/RDP neighbourhood without acquiring project = PVA/RDP — 00: \"The graph does not automatically copy those missing facts onto sparse files\". This is the HW 3 discipline applied to reading material, and it is why this template's leading dimension is often populated by an accepted group rather than by an extracted fact: \"Each template is populated from the facts and accepted groups that already exist in the evidence database.\"",
     "a bounded download session, as a `possible`-grade retrieval clue only — it may bring four papers into one packet and it proves nothing about their topic"
   ],
-
   "template": {
-    "dimension_order": ["project", "artifact_type"],
+    "dimension_order": [
+      "project",
+      "artifact_type"
+    ],
     "why": "project leads because it is the only association that makes somebody else's paper filable inside the holder's tree at all, and because 00's ordering rule puts it there: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" artifact_type follows because a review article, a book chapter and a preprint are the distinctions a reader actually navigates once inside a reading set, and because it is intelligible under project in the way 00 requires of a child dimension.\n\nSTAGE IS STRUCK from the schema default. stage is the holder's workflow position on the holder's own artifact; a published paper by somebody else occupies none of it, and the version suffix or publication year a reading item does carry is a version_family or creation_date universal. Recommending a level nothing can fill is the defect the dimension rule exists to prevent.\n\nlab and venue stay LEGAL FACTS and are deliberately metadata_only here (P10's per-dimension mechanism). venue is the tempting one — a reading library genuinely knows its journals — but branching on it produces one folder per journal over a long tail of single papers, which is what 00 warns against: \"It should warn when a level produces only one child\" and when a split \"creates a large number of tiny folders\", and \"It should recommend flattening when a dimension does not materially improve retrieval.\" lab is worse: for a paper by others, the affiliation describes its authors, and an author-or-affiliation level is the collector 00 forbids outright.\n\nVALIDATION CONSTRAINT, specific to this row: the leading dimension is the fact this situation usually cannot supply. When no project association is evidenced on the file, the branch has no first level and the honest destination is the Reading Inbox residual, not a deeper path invented to fill the shape — 00: \"An isolated file should normally remain high in the tree because there is no evidence that it deserves a deep project-specific path.\"\n\nOPTIONAL BRANCH PATTERNS: (a) flat — a single Reading branch with no levels, correct for a small library and the shape most users already have; (b) artifact_type-first, for a reader who separates books from papers before anything else; (c) venue-first, available if the user asks for it and never recommended, for the reasons above. All three are the user's to choose: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
     "time_first": false
   },
-
   "file_kinds": {
-    "source_types": ["text_document", "ocr", "archive", "code_structured", "email", "image"],
-    "extensions": [".pdf", ".epub", ".djvu", ".bib", ".ris", ".zip", ".eml", ".png"],
+    "source_types": [
+      "text_document",
+      "ocr",
+      "archive",
+      "code_structured",
+      "email",
+      "image"
+    ],
+    "extensions": [
+      ".pdf",
+      ".epub",
+      ".djvu",
+      ".bib",
+      ".ris",
+      ".zip",
+      ".eml",
+      ".png"
+    ],
     "never_alone": true
   },
-
   "file_examples": [
     {
       "filename": "Ravikumar_2019_NatureMethods.pdf",
@@ -93,7 +103,11 @@
         "downloaded in a bounded session with three other papers",
         "no project-shaped token anywhere in the document"
       ],
-      "facts_legal": ["artifact_type", "venue", "authored_by"],
+      "facts_legal": [
+        "artifact_type",
+        "venue",
+        "authored_by"
+      ],
       "must_not_conclude": [
         "a folder path",
         "project — nothing on this file evidences one, and the session that brought it in proves nothing about topic",
@@ -114,7 +128,10 @@
         "an abstract heading and a reference list are present; no journal masthead",
         "the author list does not resolve to any user-confirmed identity value"
       ],
-      "facts_legal": ["artifact_type", "authored_by"],
+      "facts_legal": [
+        "artifact_type",
+        "authored_by"
+      ],
       "must_not_conclude": [
         "a folder path",
         "a term, a capture year, or a creation date from the leading four digits — they are part of the identifier's shape and the injected citation list emits no date from them",
@@ -134,7 +151,11 @@
         "an abstract heading and a numbered reference list follow",
         "highlighting is present in the rendered page images"
       ],
-      "facts_legal": ["artifact_type", "venue", "authored_by"],
+      "facts_legal": [
+        "artifact_type",
+        "venue",
+        "authored_by"
+      ],
       "must_not_conclude": [
         "a folder path",
         "project as a validated fact — the token sits beside a THIRD PARTY's publication structure, not beside the holder's own research-artifact context, so it reaches `possible` and the association is a reviewable group membership instead",
@@ -154,7 +175,9 @@
         "a comment header naming a reference-manager version",
         "sits beside a manuscript source file"
       ],
-      "facts_legal": ["artifact_type"],
+      "facts_legal": [
+        "artifact_type"
+      ],
       "must_not_conclude": [
         "a folder path",
         "venue or authored_by for THIS file from its entries — every one of them describes a different document, which is the same zone discipline 00 states for a reference list on page eighteen",
@@ -174,7 +197,9 @@
         "folder names inside the manifest look like collection labels",
         "no member is extracted to disk"
       ],
-      "facts_legal": ["artifact_type"],
+      "facts_legal": [
+        "artifact_type"
+      ],
       "must_not_conclude": [
         "a folder path",
         "any fact about a member that was not inspected — the manifest is the evidence",
@@ -213,7 +238,9 @@
         "a copyright-page member earlier in the file carries a labelled ISBN that passes its check digit",
         "no DOI; low-confidence regions in the margins"
       ],
-      "facts_legal": ["artifact_type"],
+      "facts_legal": [
+        "artifact_type"
+      ],
       "must_not_conclude": [
         "a folder path",
         "venue from a publisher name in a page footer alone",
@@ -272,7 +299,11 @@
         "the pages that follow are a published article: masthead, abstract heading, reference list",
         "filename carries both the course-code-shaped token and an author-year token"
       ],
-      "facts_legal": ["artifact_type", "venue", "authored_by"],
+      "facts_legal": [
+        "artifact_type",
+        "venue",
+        "authored_by"
+      ],
       "must_not_conclude": [
         "a folder path",
         "project from the course code — a course code is not a project identifier",
@@ -291,7 +322,9 @@
         "a metadata member yields a title and a labelled ISSN or ISBN",
         "no readable body text, no OCR path (there is nothing to render)"
       ],
-      "facts_legal": ["artifact_type"],
+      "facts_legal": [
+        "artifact_type"
+      ],
       "must_not_conclude": [
         "a folder path",
         "authored_by or venue from an unreadable member",
@@ -303,7 +336,6 @@
       "falls_through_if_inactive": "Unsupported or Encrypted"
     }
   ],
-
   "collides_with": [
     {
       "domain": "academic.coursework",
@@ -316,9 +348,7 @@
       "provenance": "inference"
     }
   ],
-
   "also_holds_with": [],
-
   "falls_through_to": [
     {
       "residual_template": "Reading Inbox",
@@ -341,11 +371,10 @@
       "provenance": "inference"
     }
   ],
-
   "role_split": [],
-
   "sensitivity": "none",
   "sensitivity_why": "This is the one part of the Research domain whose material carries no holder-personal content: published or preprinted work by other people, held for reading. The research schema row's potentially_sensitive is sourced to human-subjects material, unpublished manuscripts and editorial correspondence, and none of those is this situation's. Two carve-outs are recorded rather than folded in, because both belong elsewhere: a manuscript received for peer review is confidential and is research.manuscript-publication's material, not a reading item; and where the situation touches mail, 00's own rule governs that file — mail extraction proceeds \"while treating addresses and message content as potentially sensitive\", which is why the alert-email fixture routes to Review Later instead of into a reading branch. The value is 00's phrase and nothing more; a handling class is P7's and none is assigned here.",
-
-  "open_question": "Two, both real and neither resolvable by this node. (1) THE HOLDER-IDENTITY VALUE. This template's sharpest discriminator against research.manuscript-publication — is the author list the holder's or somebody else's — cannot be evaluated deterministically unless the product holds a user-confirmed value naming the holder and their name variants. 00 gives the product no such value: authored_by is a field, and there is no `me` to compare it against. Without one, whose-paper-is-this is an LLM role question on every file, which is expensive and abstains often. Joseph's call: does v1 ask the user once for their own name and affiliations (a user_confirmed value, not a new field), or does the role question stay interpretive? (2) VENUE AS A DIMENSION. venue is destination_eligible on the canonical row and this template deliberately does not branch on it, on 00's one-child and tiny-folders warnings. Some readers genuinely do organize by journal. Whether that is a user-chosen reordering of this template or a second template on the same schema decides someone's real folder structure and is not settled here."
+  "open_question": "Two, both real and neither resolvable by this node. (1) THE HOLDER-IDENTITY VALUE. This template's sharpest discriminator against research.manuscript-publication — is the author list the holder's or somebody else's — cannot be evaluated deterministically unless the product holds a user-confirmed value naming the holder and their name variants. 00 gives the product no such value: authored_by is a field, and there is no `me` to compare it against. Without one, whose-paper-is-this is an LLM role question on every file, which is expensive and abstains often. Joseph's call: does v1 ask the user once for their own name and affiliations (a user_confirmed value, not a new field), or does the role question stay interpretive? (2) VENUE AS A DIMENSION. venue is destination_eligible on the canonical row and this template deliberately does not branch on it, on 00's one-child and tiny-folders warnings. Some readers genuinely do organize by journal. Whether that is a user-chosen reordering of this template or a second template on the same schema decides someone's real folder structure and is not settled here.",
+  "one_line_before_2026-09-15": "Published work by OTHER people, kept for reading: papers, preprints, chapters and the bibliography files that index them. The situation is recognised by third-party publication structure, not by a project identifier, so its leading dimension is the one fact it usually cannot supply — which is why 00 gives this material a residual home and why this row exists to carry the falls_through_to edge to it.",
+  "one_line_ratified_by": "the owner, 15 Sep 2026 01:45, in session: shown review/8_texts_to_ratify/6_one_lines.txt (before and after for all seven) with the replay numbers (v3 alone 57 %, v3 + six lines 70 %, v4 + seven lines 73 % on 89 dossiers) and said 'ratify it'; applied by the lead to the node, the compiled library re-made from it."
 }

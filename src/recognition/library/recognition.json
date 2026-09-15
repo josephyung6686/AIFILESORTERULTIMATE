@@ -365,7 +365,7 @@
     {
      "id": "academic.coursework",
      "name": "Coursework (taking a course)",
-     "one_line": "The organizational situation of being enrolled in one course for one term: the syllabus you were given, the lectures you were shown, the assignments you handed in, and the notes you made — a single holder's own study record, recommended as school then term then subject then work_type."
+     "one_line": "The organizational situation of being enrolled in one course for one term, on the student's side: the syllabus, the readings, handouts, worksheets and textbook pages you were given, the lectures you were shown, the assignments, essays and practice work you handed in, and the notes you made — a single holder's own study record, recommended as school then term then subject then work_type. Material a teacher handed to you is yours here, not the teacher's."
     },
     {
      "id": "academic.homeschool",
@@ -380,7 +380,7 @@
     {
      "id": "academic.k12-schooling",
      "name": "K-12 schooling records",
-     "one_line": "The organizational situation in which an institution's records about one enrolled primary- or secondary-school child accumulate over a school year — report cards, enrollment and consent forms, attendance and school communications — usually held by a parent rather than by the person the records are about."
+     "one_line": "The organizational situation in which an institution's records ABOUT one enrolled primary- or secondary-school child accumulate over a school year — report cards, enrollment and consent forms, attendance and school communications — held by a parent about the child, never the child's own class work, which is coursework."
     },
     {
      "id": "academic.online-course",
@@ -405,7 +405,7 @@
     {
      "id": "academic.teaching",
      "name": "Teaching a course",
-     "one_line": "The instructor's side of one course: the authored syllabus and lecture masters, the assignment briefs and rubrics, the answer keys, and the roster, gradebook and submission material that carries other people's names and grades."
+     "one_line": "The instructor's side of one course, files the holder made AS the instructor: the authored syllabus and lecture masters, the assignment briefs and rubrics, the answer keys, and the roster, gradebook and submission material that carries other people's names and grades. A brief or rubric the holder received as a student is coursework, not this."
     },
     {
      "id": "academic.transcripts-credentials",
@@ -2111,12 +2111,12 @@
     {
      "id": "career.portfolio-work-samples",
      "name": "Portfolio and work samples",
-     "one_line": "Work the holder made, selected and framed to be SHOWN to someone - a portfolio document, a case study, the design/CAD/reel source files behind them, and the exports cut from those sources. The purpose (showing) is what makes the situation, not the subject matter: the same bytes sitting in a live engagement, a repository or a course folder are that situation's material, and become a work sample only when curation evidence exists. Carries design_creative as its file_kind_owner because 00 names creative projects as an organizational situation and this roster has no creative schema (ROSTER.md hole 1 / NJ-R1a-1)."
+     "one_line": "Work the holder made, selected and framed to be SHOWN to someone - a portfolio document, a case study, the design/CAD/reel source files behind them, and the exports cut from those sources. The purpose (showing) is what makes the situation, not the subject matter: the same bytes sitting in a live engagement, a repository or a course folder are that situation's material, and become a work sample only when curation evidence exists. A resume or CV is not a portfolio; it is recruiting."
     },
     {
      "id": "career.recruiting",
      "name": "Recruiting and job search",
-     "one_line": "The organizational situation of running one's own job search: applying to named companies for named roles, keeping the posting, the tailored resume and cover letter, the recruiter thread, the interview schedule, the take-home, and the offer or rejection that ends the process — a situation whose organizing unit is the process (company plus role plus cycle) rather than any document kind, and whose characteristic evidence is correspondence rather than a document heading."
+     "one_line": "The organizational situation of running one's own job search: the resume or CV in any version, the cover letter, applying to named companies for named roles, keeping the posting, the recruiter thread, the interview schedule, the take-home, and the offer or rejection that ends the process — a resume is this situation's document even when no application is in view."
     }
    ],
    "source_types": [
@@ -15587,7 +15587,7 @@
     {
      "id": "research.dataset-analysis",
      "name": "Datasets and analysis work",
-     "one_line": "The situation where a project's evidence is tabular: raw and cleaned data files, the codebook that defines their columns, the notebooks and scripts that transform them, and the results tables and figure-source files those produce."
+     "one_line": "The situation where a project's evidence is tabular: raw and cleaned data files, the codebook that defines their columns, the notebooks and scripts that transform them, and the results tables and figures they produce. A table of figures downloaded from a public source and kept -- statistics, estimates, counts by category -- is this situation's raw data whether or not a project is named beside it."
     },
     {
      "id": "research.ethics-compliance",
@@ -15612,7 +15612,7 @@
     {
      "id": "research.reading-library",
      "name": "Literature and reading library",
-     "one_line": "Published work by OTHER people, kept for reading: papers, preprints, chapters and the bibliography files that index them. The situation is recognised by third-party publication structure, not by a project identifier, so its leading dimension is the one fact it usually cannot supply — which is why 00 gives this material a residual home and why this row exists to carry the falls_through_to edge to it."
+     "one_line": "Published work by OTHER people, kept for reading: papers, preprints, books and their front matter, chapters, reports, articles and the bibliography files that index them. The situation is recognised by third-party publication structure — a publisher, an author who is not the holder, a report issued by an organisation — not by a project of the holder's own."
     },
     {
      "id": "research.thesis-dissertation",
