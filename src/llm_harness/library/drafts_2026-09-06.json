@@ -496,6 +496,19 @@
    "ratified_by": "the owner, 14 Sep 2026, 00:30 local, in session: shown the four texts in review/8_texts_to_ratify/ with the diff of each against the text in force and their replay numbers, and answered \"ratify 1224\", read by the lead as 1 2 3 4 (the four files, in order); applied by the lead as a new row, never an edit to the candidate row, which stands as written."
   },
   {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-whole-library-v4",
+   "status": "unratified",
+   "template_id": "situation.unratified.whole-library-v4.2026-09-15",
+   "template_file": "situation_template.whole-library.v4.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_shaping_policy.v4.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "v4 of the whole-library (kind) text (15 Sep 2026, 02:00, the lead), from the judge's own reasons for run 13's 78 misses (review file 3), every one of which the owner reads as the key's: captures whose recognised text shows a record (an insurance card, a school health form) answered 'photos'; data tables answered by their subject (patients -> clinical, counts by age -> medical) instead of as datasets; published works by others answered 'academic'; club and volunteer paperwork answered career, academic or none; course paperwork addressed inside a school answered 'college applications'. Six rules added to the deciding paragraph, everything else byte-identical to v3. What no text reaches on this corpus: every file sits at the root of one flat folder, so a photograph with no text is a photograph to every reader, and the key's 'club' on it is the owner's memory -- the structure edit's question, not the judge's. Measured by replay on run 12's cloud-sent dossiers, plain and with a menu gloss naming clubs and volunteering on the nonprofit member (the gloss is the owner's to ratify).",
+   "ratified_by": "nobody yet: authored by the lead on 15 Sep 2026 for measurement; the owner ratifies with one word."
+  },
+  {
    "site": "A_fact",
    "candidate": "v5-a-title-stands-as-subject",
    "status": "ratified",
@@ -637,6 +650,7 @@
   "situation_level_template.v2.txt": "3524e9afad459f35db2c56731020276000a41087a778d4ad2742148823fe0652",
   "situation_level_template.v3.txt": "95a63845c2f6369c52af9c061e6c258122b91a1913206de36eb713d41dff29e8",
   "situation_level_template.v4.txt": "8dc7530a9670fde0e29bd5b8ae8d8bf8a7a75a60e38d5e9566b46b4c4d94f69d",
-  "situation_level_template.v5.txt": "66e0f28e87165ee96a34e6a2955f545ab1c4c4ab43dfd1ef23bbaf47755a0145"
+  "situation_level_template.v5.txt": "66e0f28e87165ee96a34e6a2955f545ab1c4c4ab43dfd1ef23bbaf47755a0145",
+  "situation_template.whole-library.v4.txt": "62a3e26c1ff7fa7f30a898e86b3292ad6b88a69f712638c8694776eb4fab09b8"
  }
 }
