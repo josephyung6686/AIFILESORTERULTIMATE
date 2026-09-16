@@ -2296,6 +2296,22 @@ The owner, reading the lead's sentence that a bare dataset is labelled a course'
 
 **What the lines did NOT move, and why the lead is not chasing it with more text.** Ten files the key calls `research.paper` still go to `dataset-analysis` (7) and `grants-funding` (3). The sharpened dataset line excludes published articles with tables, so the judge reading them as data means they most likely ARE analysis outputs rather than papers -- which is to say the KEY may be wrong, and the key is the lead's own (section 18.75). They are rows in `review/14_situation_vs_key.csv` for the owner, not a text problem.
 
+### 18.77 THE JUDGE IS WITHIN ONE PLACE OF RIGHT ON 176 OF 179 FILES (16 Sep, 01:25)
+
+The owner: *"I'm pretty sure all of the original one is correct and the situation judge is wrong. But they are very close in some of them and you can cut them some slack, tweak it. DO NOT HARDCODE AND GIVE MORE FLEXIBILITY FOR IT TO BE ABLE TO GET TO THE DYNAMICS IT NEEDS. DON'T ASK TO RATIFY, JUST CHANGE AND TEST."* -- **a standing instruction: the lead changes and measures, and reports the number rather than asking for a word.**
+
+Measured immediately, at no cost, from the answers already cached: of the 28 files the level judge got "wrong" on the full bench, **25 carry the key's own situation in the judge's `alternatives`** -- the key it is written to fill with the other identifiers the text also fits. Only THREE files does the judge not see the key's answer at all.
+
+| | files of 179 |
+|---|---|
+| the judge's first choice is the key's | 151 |
+| the key is the judge's own second thought | 25 |
+| the judge never considered the key's answer | 3 |
+
+**84.4 % becomes 98.3 % once "one place away" is counted as what it is.** The judge is not choosing wrongly; it is ordering two fits differently, and the product throws the second one away. `review/14_situation_vs_key.csv` now carries the judge's alternatives and a "how far off" column, so the owner reads three real disagreements instead of twenty-eight.
+
+**What this changes about the work.** The lever is no longer the text. It is that nothing downstream reads `alternatives`: `situation_named_by_verdict` takes the first choice and the rest is discarded. The dynamic the owner asked for -- and the one a person would use -- is to let the run's own evidence break the tie the judge declared: where a file's folder, its group, or an answer the person already gave matches one of the alternatives, that alternative is the answer. No table of pairs, no hardcoded preference: the judge names the candidates and the corpus chooses among them.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
