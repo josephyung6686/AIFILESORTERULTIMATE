@@ -2349,6 +2349,21 @@ The owner, on the sixteen files the judge never got near: *"how do we deal with 
 
 **Not built, and deliberately so.** Releasing filenames is the kind of change the standing constraint says the lead never makes on its own judgement: it is escalated here, priced at five files, and it waits.
 
+### 18.81 Run 20: the filename, measured (16 Sep, 14:42-15:05)
+
+*"Of course you send the filename."* Applied as `00` amendment 10 (f04d085f) and run on the corpus. **The prediction of section 18.80 was five files, and it recovered exactly five.**
+
+| | run 19, no name | run 20, with the name |
+|---|---|---|
+| kind, first choice | 84.6 % | **86.2 %** (187 of 217) |
+| kind, within one place | 90.9 % | **94.9 %** |
+| kind, never considered the key's answer | 16 | **11** |
+| situation, first choice | 74.7 % | **77.7 %** (150 of 193) |
+| situation, within one place | 83.3 % | **85.5 %** |
+| situation misses caused by a wrong kind | 30 | **19** |
+
+`review/14_situation_vs_key.csv` is 43 rows, from 50. The eleven the judge still never gets near are the corpus's floor as section 18.80 priced it: bare tables whose bytes are identical whether a course or a paper made them, and wordless photographs. Nothing in the file decides those, and the design's answer is one question per group rather than eleven.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
