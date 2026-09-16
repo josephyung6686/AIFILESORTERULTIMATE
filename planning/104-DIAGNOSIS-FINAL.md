@@ -2364,6 +2364,21 @@ The owner, on the sixteen files the judge never got near: *"how do we deal with 
 
 `review/14_situation_vs_key.csv` is 43 rows, from 50. The eleven the judge still never gets near are the corpus's floor as section 18.80 priced it: bare tables whose bytes are identical whether a course or a paper made them, and wordless photographs. Nothing in the file decides those, and the design's answer is one question per group rather than eleven.
 
+### 18.82 A SECOND NEGATIVE RESULT: widening the level menu makes the judge worse (16 Sep, 15:20)
+
+Run 20's 43 remaining rows are four problems, not one: **19** where the kind was wrong so the situation could not be right, **15** where the key is the judge's own second choice, **8** right kind and wrong situation with the key never listed, **1** decline.
+
+The idea for the 19: let the second stage choose across every kind the FIRST stage said fits -- its answer and its own alternatives -- so a wrong first kind is recoverable without another call. Measured on the bench against run 20's own kind answers, file by file, on the 121 files both menus judged:
+
+| | single-kind menu right | single-kind menu wrong |
+|---|---|---|
+| union menu right | 96 | **2** |
+| union menu wrong | **13** | 10 |
+
+**It wins two and loses thirteen.** A menu spanning several kinds gives the judge room to wander into a neighbour's situations on files the narrow menu got right. The narrow menu is doing real work, and the second stage is not the place to correct the first. NOT BUILT; nobody should revisit it without this table.
+
+**What that leaves.** The 19 are a KIND-stage problem and must be fixed there -- and at that stage the key is among the judge's own alternatives on 19 of 30 misses, so the candidate is a run-off over the judge's own two or three candidates rather than a wider list. The 15 are the same shape at the level stage. The 8 are the only files where the judge is simply mistaken, of 217.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
