@@ -83,7 +83,7 @@ from llm_harness.vocabulary import (
     CALL_SITES, DIRECT_ANCHOR, G_SITUATION_SENSITIVITY,
     MULTIPLE_PLAUSIBLE_DOMAINS, REMAINS_AMBIGUOUS,
 )
-from privacy.items import Excerpt
+from privacy.items import Excerpt, Filename
 from privacy.release import ModelCallRequest, Target
 #: `00` amendment 7(a)'s closed roster of identifier kinds, IMPORTED so
 #: `_held_phrase` can tell a scheme's name from an authored work type without
@@ -625,7 +625,17 @@ def build_situation_request(
     model_target,
     prompt,
     max_dossier_tokens: int,
-    safety_domain_ids: Sequence[str] = SAFETY_DOMAIN_IDS,
+    #: THE FILE'S OWN NAME, as a redacted reference (`00` amendment 10 of 16 Sep,
+    #: the owner's word: "of course you send the filename"). Site A has sent it
+    #: since `104` R-06 through `gate.NAME_BEARING`, which resolves it and puts it
+    #: through the same redaction every released value takes -- a name carrying an
+    #: identifier crosses transformed, never raw. The judge was shown the folder
+    #: and the text and not the name, which is most of what the lead had when it
+    #: wrote the answer key (`104` §18.75, §18.80): measured, five of the sixteen
+    #: files the judge never got near are decided by their name alone. `None`
+    #: where the file has no filename observation, and the builder is unchanged.
+    filename=None,
+        safety_domain_ids: Sequence[str] = SAFETY_DOMAIN_IDS,
     schema_names: Mapping[str, str] = MappingProxyType({}),
 ) -> DossierRequest:
     """One file's situation question, as the reference-only request P7 decides on.
@@ -671,6 +681,7 @@ def build_situation_request(
         # run, and for this site the candidates and the abstention's SHAPE are
         # nearly constant while the readings are not.
         evidence_items=_candidate_items(question, safety_domain_ids, schema_names)
+        + ((filename,) if filename is not None else ())
         + (_abstention_item(question),)
         + tuple(
             EvidenceItem(
@@ -700,7 +711,10 @@ def build_situation_request(
             # release is judged under.
             target=Target(file_ids=(question.file_id,), group_id=None),
             model_target=model_target,
-            requested_items=tuple(
+            requested_items=((
+                Filename(file_id=question.file_id,
+                         observation_key=filename.evidence_ref),
+            ) if filename is not None else ()) + tuple(
                 Excerpt(
                     observation_key=observation.observation_key,
                     span=observation.location.text_span,
@@ -877,7 +891,17 @@ def build_situation_level_request(
     model_target,
     prompt,
     max_dossier_tokens: int,
-) -> DossierRequest:
+    #: THE FILE'S OWN NAME, as a redacted reference (`00` amendment 10 of 16 Sep,
+    #: the owner's word: "of course you send the filename"). Site A has sent it
+    #: since `104` R-06 through `gate.NAME_BEARING`, which resolves it and puts it
+    #: through the same redaction every released value takes -- a name carrying an
+    #: identifier crosses transformed, never raw. The judge was shown the folder
+    #: and the text and not the name, which is most of what the lead had when it
+    #: wrote the answer key (`104` §18.75, §18.80): measured, five of the sixteen
+    #: files the judge never got near are decided by their name alone. `None`
+    #: where the file has no filename observation, and the builder is unchanged.
+    filename=None,
+    ) -> DossierRequest:
     """The second stage's request, on `build_situation_request`'s every term.
 
     **THE RELEASED HALF IS THE FIRST CALL'S, AND THAT IS THE PROPERTY.** The
@@ -912,6 +936,7 @@ def build_situation_level_request(
         # file whose domain nothing settled.
         eligibility_reason=REMAINS_AMBIGUOUS,
         evidence_items=_situation_items(question)
+        + ((filename,) if filename is not None else ())
         + (_named_kind_item(question),)
         + tuple(
             EvidenceItem(
@@ -932,7 +957,10 @@ def build_situation_level_request(
             stage=SITUATION_STAGE,
             target=Target(file_ids=(question.file_id,), group_id=None),
             model_target=model_target,
-            requested_items=tuple(
+            requested_items=((
+                Filename(file_id=question.file_id,
+                         observation_key=filename.evidence_ref),
+            ) if filename is not None else ()) + tuple(
                 Excerpt(
                     observation_key=observation.observation_key,
                     span=observation.location.text_span,

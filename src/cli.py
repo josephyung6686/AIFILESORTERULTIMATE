@@ -8762,7 +8762,11 @@ def _ask_which_situation_of_the_kind(
             described=described_of(schema_id))
         request = build_situation_level_request(
             question, observations, model_target=target, prompt=prompt,
-            max_dossier_tokens=bound)
+            max_dossier_tokens=bound,
+            # The file's own name, redacted as every released value is (`00`
+            # amendment 10 of 16 Sep, the owner's word). `None` where there is
+            # no filename row for it.
+            filename=model_facts.filename_citation(conn, file_id))
     except NothingToAsk:
         # The menu collapsed or the readings did. Either way there is no question
         # with valid options and evidence, and the person is asked instead --
@@ -9200,7 +9204,10 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         try:
             request = build_situation_request(
                 question, observations, model_target=target, prompt=prompt,
-                max_dossier_tokens=bound, schema_names=schema_names)
+                max_dossier_tokens=bound, schema_names=schema_names,
+                # The file's own name, redacted as every released value is
+                # (`00` amendment 10 of 16 Sep, the owner's word).
+                filename=model_facts.filename_citation(conn, file_id))
         except NothingToAsk:
             nothing_to_read += 1
             continue
