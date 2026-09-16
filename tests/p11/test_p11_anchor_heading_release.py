@@ -1109,6 +1109,9 @@ def test_the_call_identity_moves_when_an_anchor_appears_beside_a_file(
     monkeypatch.setattr(model_facts, "_policy_content",
                         lambda _conn, _version: "{}")
     authorities = SimpleNamespace(
+        # The twelfth term (15 Sep 2026): the sampling the call carries. `None`
+        # is the provider's default, which is what this pin's call would take.
+        sampling=None,
         # `104` §17.13 ruling 3: the target is per FILE, so the identity asks the
         # route for it rather than reading one field. This fixture has one
         # destination and says so as the pair the route returns.
