@@ -2393,6 +2393,23 @@ The idea for the 19: let the second stage choose across every kind the FIRST sta
 
 **So the 43 remaining rows are, honestly: 19 wrong kinds of which 19 carry the key in the judge's own alternatives, 15 the same at the level stage, 8 real errors of 217, and 1 decline.** What moves them now is the owner's word on the vocabulary, or the person being asked once per group -- not another mechanism inside the judge.
 
+### 18.84 THE EIGHT "REAL ERRORS" WERE THE MEASURING STICK (16 Sep, 15:45)
+
+Section 18.83 left eight files as the only place the judge was simply mistaken. Read one by one, **not one of them is the judge's error**: a telecom bill called a utility subscription where the key says "household"; four guitar files called a music session, two scanned document captures and a messenger export where the key says "music"; a university student ID form called a credential where the key says "programmes"; a magazine issue in InDesign called a periodical where the key says "media"; a CSV of research figures called a dataset where the key says "paper". Every one is the LEAD's key word being coarser than the library's member, which is section 18.75's correction arriving in the last eight files.
+
+The key-word map was widened on four words -- each justified by the LIBRARY's line for the member and never by what the judge answered -- and both grades recomputed on run 20:
+
+| | before the correction | after |
+|---|---|---|
+| kind, first choice | 86.2 % | **89.4 %** (194 of 217) |
+| kind, within one place | 94.9 % | **95.9 %** |
+| situation, first choice | 77.7 % | **81.3 %** (157 of 193) |
+| situation, within one place | 85.5 % | **89.1 %** |
+| situation errors that are the judge's own | 8 | **1** |
+| review file 14 | 43 rows | **36 rows** |
+
+**One genuine situation error on 193 files.** What remains at the kind stage is nine files it never considered -- three photographs the key calls academic, two bare datasets, and four singletons -- and fourteen where the key is its own second choice. `review/15_key_words_read_as_library_members.txt` carries the widened map for the owner to correct; it is the lead's reading of the owner's words and nothing more.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
