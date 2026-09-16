@@ -640,7 +640,7 @@
   {
    "site": "G_situation_sensitivity",
    "candidate": "situation-level-v8",
-   "status": "unratified",
+   "status": "ratified",
    "template_id": "situation.unratified.situation-level-v8.2026-09-16",
    "template_file": "situation_level_template.v8.txt",
    "response_schema_file": "situation_response_schema.v2.json",
@@ -648,7 +648,7 @@
    "readings_rows": [],
    "layout": "frame-first",
    "note": "v8 of the situation-level text (16 Sep 2026, 00:10, the lead), from run 18's own answers: of the 24 files whose KIND the judge named right and whose situation it did not, TWELVE were the judge answering with the kind's own identifier -- 'nonprofit' where the menu holds nonprofit.student-organisation and its five siblings. The dossier's named_kind item carries that identifier to say which list is being read, and the judge copied it. P8 rejects the answer and the file stays open, which under the owner's no-abstention ruling is the very thing that must not happen. Rule 1 now says so outright: the kind's identifier is not an answer, every member of allowed_vocabulary carries a dot, and the kind's own identifier is not in that list. Everything else byte-identical to v7.",
-   "ratified_by": "nobody yet: authored by the lead on 16 Sep 2026 for measurement; the owner ratifies with one word."
+   "ratified_by": "the owner, 16 Sep 2026, 00:55 local, in session, shown review/8_texts_to_ratify/12_situation_level_v8.txt with run 18's twelve kind-identifier answers and the bench (148 of 179, no malformed answers): 'ratify 12, you should be more flexible about it I believe'. Applied by the lead; the v7 row stands as written."
   }
  ],
  "digests": {

@@ -1265,7 +1265,7 @@ SITUATION_ROW: tuple[str, str] = (
 #: it named, and the person is asked only where it declines. The paragraphs
 #: above describe the unratified state, which the v1-v4 rows are still in.
 SITUATION_LEVEL_ROW: tuple[str, str] = (
-    "situation.unratified.situation-level-v7.2026-09-15", "situation-level-v7")
+    "situation.unratified.situation-level-v8.2026-09-16", "situation-level-v8")
 
 #: `00` AMENDMENT 7(c)'s GATE ROW, and the site is `H_restricted_kind`. Authored by
 #: the lead on the owner's go of 12 September and put to the owner for
