@@ -373,25 +373,38 @@ def test_the_notice_names_the_site_that_decides_whether_a_file_may_be_sent(conse
     assert "do not leave it" in said
 
 
-def test_a_deployment_with_no_model_on_this_device_is_told_nothing_about_site_g():
-    """A sentence about work that did not happen, on the screen where being
-    believed is the whole point.
+def test_a_deployment_with_no_model_on_this_device_is_told_where_site_g_is_asked():
+    """`104` §18.86. This test used to assert the opposite, and run 21 disproved it.
 
-    G's row is `ratified_local` (`104` §17.14), so `target_for` drops its cloud
-    candidate for every file: a deployment with a key and no local model does not
-    run this site, the pass is `_NOTHING_ASKED`, and no file is asked its own
-    situation. Claiming G decided anything there would be the notice describing a
-    decision nobody made.
+    THE PREMISE THAT EXPIRED. While G's row was `ratified_local` (`104` §17.14),
+    `target_for` dropped its cloud candidate for every file, so a deployment with
+    a key and no local model did not run this site at all -- the pass was
+    `_NOTHING_ASKED` -- and a sentence claiming G decided anything there would
+    have been the notice describing a decision nobody made. `00` amendment 7(c)
+    ratified G's row for the cloud, which the test directly below this one already
+    asserts; from that day a cloud-only deployment runs site G IN THE CLOUD.
 
-    SABOTAGE: drop the `target.locality != LOCAL` guard from
-    `_situation_site_sentence` and return the sentence unconditionally. Both
-    assertions go red, and a cloud-only run starts being told a local model
-    classified its files.
+    WHAT IT COST BEFORE IT WAS CAUGHT. `_situation_site_sentence` asked the LOCAL
+    question first and returned `""` on that route, so run 21 -- cloud-only, no
+    `GRAPH_AGENT_LOCAL_MODEL` -- printed no site-G sentence at all and then sent
+    330 situation dossiers to the cloud. On the one screen a person consents by,
+    the largest single category of sending was not mentioned.
+
+    SABOTAGE: put the `target.locality != LOCAL` guard back at the top of
+    `_situation_site_sentence`. Every assertion here goes red, and a cloud-only
+    run goes back to being told nothing about the site that sends the most.
     """
     said = _posture(_Routing(local=False), _Consent())
 
-    assert "which situation a file is asked under" not in said
-    assert f"model-for-{G_SITUATION_SENSITIVITY}" not in said
+    assert "which situation a file is asked under" in said
+    assert f"answered by model-for-{G_SITUATION_SENSITIVITY} for a file the gate cleared" in said
+    # The half a person would otherwise have to infer: with no model on this
+    # device, a file the gate did NOT clear has no route that permits it and is
+    # not asked at all (`route_candidates`), which is said rather than implied.
+    assert "No model on this device answers this question on this run" in said
+    assert "not asked its situation at all" in said
+    # And it is still not in the recipient LIST -- it has its own sentence.
+    assert f"may be sent to model-for-{G_SITUATION_SENSITIVITY}" not in said
 
 
 def test_site_g_is_never_among_the_recipients_the_notice_names():
@@ -418,6 +431,47 @@ def test_site_g_is_never_among_the_recipients_the_notice_names():
 
     said = _posture(_Routing(local=True), _Consent())
     assert f"may be sent to model-for-{G_SITUATION_SENSITIVITY}" not in said
+
+
+class _SharedTierRouting(_Routing):
+    """Every site in the cloud, with two sites resolving to the SAME model.
+
+    This is the deployment the product actually had on 16 Sep: site D is
+    unratified and site G is ratified, `TIER_OF_CALL_SITE` puts both on FAST, and
+    a tier resolves to one model id. The distinct `model-for-<site>` ids of
+    `_Routing` cannot express that, and that is why the defect below survived a
+    green suite.
+    """
+
+    def __init__(self):
+        super().__init__(local=False)
+
+    def model_id_for(self, site):
+        from llm_harness.vocabulary import D_RESIDUAL as _D
+        if site in (_D, G_SITUATION_SENSITIVITY):
+            return "the-fast-model"
+        return f"model-for-{site}"
+
+
+def test_a_model_site_g_sends_to_is_never_called_silent():
+    """`104` §18.86: the clause claims about a MODEL what it knows about a SITE.
+
+    "X is configured and no part of this run sends anything there" is built from
+    `kept` -- the sites whose own text may not cross. Site D's text may not cross,
+    so D is kept; site G's may, and G sends. When both resolve to one model the
+    sentence denies a send that is happening: run 21 opened with "deepseek-v4-
+    flash is configured and no part of this run sends anything there" and then
+    sent 330 situation dossiers to deepseek-v4-flash.
+
+    SABOTAGE: drop the `receiving` subtraction in `announce_cloud_posture` and
+    build `held` from `kept` again. This goes red; the test above does not, because
+    its fake gives every site a model of its own.
+    """
+    said = _posture(_SharedTierRouting(), _Consent())
+
+    assert "the-fast-model is configured and no part of this run sends anything there" not in said
+    # It is not silence-by-omission either: G's own sentence names the model.
+    assert "answered by the-fast-model for a file the gate cleared" in said
 
 
 # =====================================================================

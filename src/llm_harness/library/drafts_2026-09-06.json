@@ -531,7 +531,7 @@
    "shaping_policy_file": "situation_shaping_policy.v4.json",
    "readings_rows": [],
    "layout": "frame-first",
-   "note": "v6 of the whole-library (kind) text (15 Sep 2026, 14:30, the lead): v5 measured 235 right / 52 wrong / 1 declined / 22 REJECTED of 310 on kind dossiers (75.8 %), and under the owner's no-abstention ruling a rejected answer leaves a file open exactly as a decline did. The 22: seven answers with a stray closing bracket, eight metadata citations whose field name is not the item's address, five references not in the released list, five spans not verbatim. One sentence added to rule 2: exactly one citation, the single item that decides it. Everything else byte-identical to v5.",
+   "note": "v6 of the whole-library (kind) text (15 Sep 2026, 14:30, the lead): v5 measured 235 right / 52 wrong / 1 declined / 22 REJECTED of 310 on kind dossiers (75.8 %), and under the owner's no-abstention ruling a rejected answer leaves a file open exactly as a decline did. The 22: seven answers with a stray closing bracket, eight metadata citations whose field name is not the item's address, five references not in the released list, five spans not verbatim. One sentence added to rule 2: exactly one citation, the single item that decides it. Everything else byte-identical to v5. NO LONGER THE ROW IN USE as of 16 Sep; v7 is. The status stays 'ratified' because the owner ratified this text and a later text does not un-ratify it -- and because `status` is a CLOSED three-word vocabulary (ratified/ratified_local/unratified) that `prompt_library` refuses anything outside, which is how the lead learned this: writing 'superseded' here took out four tests that had nothing to do with the judge. Measured head to head at the PRODUCT's own temperature (0): v6 265 first choices of 310 and the key in what it said on 299; v7 266 and 302. `104` 18.90.",
    "ratified_by": "the owner, 15 Sep 2026, 16:00 local, in session, shown review/8_texts_to_ratify/0_READ_ME_15SEP.txt with both texts and their bench numbers (kind v6 at sampling off 257 of 310 = 82.9 %, one declined, one rejected; level v7 146 of 179 = 81.6 %, none declined, none rejected) and review file 15: 'this is good ... these are fine, they are close enough ... make sure there's no more abstentions and everything is properly like the product design labels'. Applied by the lead as this row's status and the row constant re-pointed; earlier rows stand as written."
   },
   {
@@ -649,6 +649,58 @@
    "layout": "frame-first",
    "note": "v8 of the situation-level text (16 Sep 2026, 00:10, the lead), from run 18's own answers: of the 24 files whose KIND the judge named right and whose situation it did not, TWELVE were the judge answering with the kind's own identifier -- 'nonprofit' where the menu holds nonprofit.student-organisation and its five siblings. The dossier's named_kind item carries that identifier to say which list is being read, and the judge copied it. P8 rejects the answer and the file stays open, which under the owner's no-abstention ruling is the very thing that must not happen. Rule 1 now says so outright: the kind's identifier is not an answer, every member of allowed_vocabulary carries a dot, and the kind's own identifier is not in that list. Everything else byte-identical to v7.",
    "ratified_by": "the owner, 16 Sep 2026, 00:55 local, in session, shown review/8_texts_to_ratify/12_situation_level_v8.txt with run 18's twelve kind-identifier answers and the bench (148 of 179, no malformed answers): 'ratify 12, you should be more flexible about it I believe'. Applied by the lead; the v7 row stands as written."
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-whole-library-v7",
+   "status": "ratified",
+   "template_id": "situation.unratified.whole-library-v7.2026-09-16",
+   "template_file": "situation_template.whole-library.v7.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_shaping_policy.v4.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "v7 of the whole-library (kind) text (16 Sep 2026, 18:10, the lead, under `00` amendment 8): v6 DESCRIBED THREE EVIDENCE KINDS AND THE DOSSIER NOW CARRIES FOUR. `00` amendment 10 put the file's own name in the dossier as a `filename` item on 16 Sep; v6 line 21 still says 'Three kinds matter to you' and does not describe it, and v6 line 27 says of the released values 'There is no document, no page, no filename, no rest of the file' -- so the name crossed under a text that denied it existed, and recovered five files anyway. v7 changes exactly three sentences: 'Four kinds', a paragraph describing the `filename` item, and the released-evidence sentence that no longer denies the name. The new paragraph says what a name is evidence OF -- the purpose a file served, which its contents do not state, and which is what separates the academic/research/learning collapse that is twelve of run 21's thirty-three misses -- and where a name misleads (a camera's, a download's), so the text does not trade one error for another. Everything else byte-identical to v6. `104` 18.87. MEASURED AND ADOPTED 16 Sep at the product's own temperature (0), 310 kind dossiers: 266 first choices against v6's 265, and the key in what the judge said -- its answer or its own alternatives, which `00` amendment 7 makes usable -- on 302 of 310 (97.4 %) against v6's 299. `SITUATION_ROW` points here. `104` 18.90.",
+   "ratified_by": "nobody yet: authored by the lead on 16 Sep 2026 under the owner's standing instruction to change and measure; the owner reverses it with one word."
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-whole-library-v8",
+   "status": "unratified",
+   "template_id": "situation.unratified.whole-library-v8.2026-09-16",
+   "template_file": "situation_template.whole-library.v8.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_shaping_policy.v4.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "v8 of the whole-library (kind) text (16 Sep 2026, 18:40, the lead): MEASURED AND REJECTED, kept as the record of what was tried. v8 is v7 plus a 'folder_neighbours' evidence item -- the names of up to twelve other files in the same folder -- with a paragraph saying what neighbours are evidence of and warning that a folder can be a heap. On the fast model over the same 310 kind dossiers: v7 260 right / 0 declined, v8 251 right / 3 declined. Nine files lost, and the errors it created name the cause: club records read as medical 1 -> 4, coursework read as photographs 2 -> 4, coursework read as a nonprofit's record 2 -> 4 -- each a file pulled toward the loudest names in its folder. The corpus is the folder structure BEFORE the sort, so a neighbour is evidence of when a file was saved and not of what it was for. DO NOT POINT `SITUATION_ROW` AT THIS ROW; it becomes worth re-measuring only against a sorted tree. `104` 18.88.",
+   "ratified_by": "nobody yet: authored by the lead on 16 Sep 2026 under the owner's standing instruction to change and measure; the owner reverses it with one word."
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-whole-library-v9",
+   "status": "unratified",
+   "template_id": "situation.unratified.whole-library-v9.2026-09-16",
+   "template_file": "situation_template.whole-library.v9.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_shaping_policy.v4.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "v9 of the whole-library (kind) text (16 Sep 2026, 19:20, the lead): v7 plus ONE sentence on the answer's shape. Of 310 answers under v7, four were unparseable, and read with their content masked all four have the same shape -- '\"citations\"' emitted INSIDE '\"payload\"' instead of beside it, so the claim object never closes and the parser fails at the final bracket. The situation named in all four is a real member and in at least two it is the key's own answer: the judge got the question right and the shape wrong, and the run discarded the answer unread. v9 says that '\"citations\"' is a key of the CLAIM, that the claim has exactly two keys, and to count the closing braces because an answer whose braces do not close is thrown away whatever it says. No new evidence and nothing about any particular file. `104` 18.89. MEASURED AND NOT ADOPTED: at temperature 0 the four unparseable answers this sentence was written for DO NOT EXIST -- they were an artefact of the bench's own default sampling, and the product judges at 0 (run 21: 330 answers, none malformed). The sentence cost 4 first choices (262 against v7's 266). The text is kept as the record of a fix aimed at a defect that was in the measurement and not in the product. `104` 18.89.",
+   "ratified_by": "nobody yet: authored by the lead on 16 Sep 2026 under the owner's standing instruction to change and measure; the owner reverses it with one word."
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-level-v9",
+   "status": "unratified",
+   "template_id": "situation.unratified.situation-level-v9.2026-09-16",
+   "template_file": "situation_level_template.v9.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_level_shaping_policy.v1.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "v9 of the situation-LEVEL text (16 Sep 2026, 18:30, the lead): v8 with the file's own name described. `00` amendment 10 put the name in the dossier; v8 line 23 still said 'Three kinds matter to you' and did not describe the 'filename' item, and v8 line 29 said of the released values 'There is no document, no page, no filename, no rest of the file' -- so the name crossed under a text that denied it existed and still recovered five files. v9 changes three sentences: 'Four kinds', a paragraph describing the item, and the released-evidence sentence that no longer denies the name. The paragraph says why the name weighs MORE at this question than at the kind question -- the kind is already settled and what is left is which piece of work inside it the file belonged to, which its contents frequently do not say and the person's own name for it frequently does -- and where a name misleads (a camera's, a download's). `104` 18.87. MEASURED AND NOT ADOPTED. At the bench's default sampling it looked like a gain (145 against v8's 143, and 3 declines to 0); at the PRODUCT's temperature of 0 it loses: v8 152 first choices of 179, v9 148, both with 2 wrong and no declines. The same paragraph helps the KIND judge and hurts the LEVEL judge, and the reason is legible: at the level question the kind is already settled, the menu is one kind's situations, and a name that is generic or a camera's pulls the judge off text that was deciding it correctly. `SITUATION_LEVEL_ROW` stays on v8. `104` 18.90.",
+   "ratified_by": "nobody yet: authored by the lead on 16 Sep 2026 under the owner's standing instruction to change and measure; the owner reverses it with one word."
   }
  ],
  "digests": {
@@ -721,6 +773,10 @@
   "situation_level_template.v7.txt": "f0648576c0a214a5653122f4b5812e2c2fca41a4292aa8bef7ef0ca22f9f0909",
   "situation_template.whole-library.v5.txt": "133fcaf3494485cc06dd4375645c3212f050732649ca62805e6da8a1855b93ec",
   "situation_template.whole-library.v6.txt": "02ce5b5c4029363dbd4247b94bb1baac6ee619e4918b86e46b292dc02e2fd775",
-  "situation_level_template.v8.txt": "0220d184bb3d3a181e2b31649162cee76acf5cc4eeabc8ea4008ec0bbf0d5f5c"
+  "situation_level_template.v8.txt": "0220d184bb3d3a181e2b31649162cee76acf5cc4eeabc8ea4008ec0bbf0d5f5c",
+  "situation_template.whole-library.v7.txt": "5c36c20483ac4cae6cd6a7a194dbd3bd2bafe686d6b89cfa652c8cf897b22f38",
+  "situation_template.whole-library.v8.txt": "56ac543062e52f09ecf19013aeae08f7c708dc905f23db18881342a57aa341df",
+  "situation_template.whole-library.v9.txt": "1ae543fb4c992424d3ab2fbb08433d8d65088f3632d8346ce2c88d12d3498a50",
+  "situation_level_template.v9.txt": "9886f9e8a788fa4147785f8a6c4a2e29ba3100c20b7ae250713be3ec05d0f59c"
  }
 }

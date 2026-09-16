@@ -1229,7 +1229,7 @@ A_FACT_ROW: tuple[str, str] = (
 #: under the row above, 66.5% under this one. Ratified by the owner 14 Sep 2026
 #: ("ratify 1224", read as 1 2 3 4), applied as a new row; its policy is v4.
 SITUATION_ROW: tuple[str, str] = (
-    "situation.unratified.whole-library-v6.2026-09-15", "situation-whole-library-v6")
+    "situation.unratified.whole-library-v7.2026-09-16", "situation-whole-library-v7")
 
 #: `00` AMENDMENT 1 OF 14 SEP: THE SECOND STAGE'S ROW, and the site is site G's
 #: own. The row above names which KIND of material a file is; this one names which
@@ -3462,12 +3462,24 @@ def _situation_site_sentence(routing: TierRouting) -> str:
     this site in two ways. Nothing here says G is accurate, or that its answer is
     final, because neither is this screen's claim to make.
 
-    **`""` WHERE G HAS NO LOCAL DESTINATION, and that is not a detail.** G's row is
-    `ratified_local`, so `target_for` drops its cloud candidate for every file and a
-    deployment with a key and no local model simply does not run this site -- the
-    pass is `_NOTHING_ASKED` and no file is asked its own situation. A sentence
-    saying G decides anything on such a run would be the notice describing work
-    that did not happen, on the one screen where being believed is the whole point.
+    **`""` ONLY WHERE G HAS NO DESTINATION AT ALL, and that is not a detail.** When
+    G's row was `ratified_local`, `target_for` dropped its cloud candidate for every
+    file and a deployment with a key and no local model simply did not run this site
+    -- the pass was `_NOTHING_ASKED` and no file was asked its own situation. A
+    sentence saying G decided anything on such a run would have been the notice
+    describing work that did not happen, on the one screen where being believed is
+    the whole point.
+
+    **`00` amendment 7(c) ENDED THAT, and the branch order had to follow.** G's row
+    now permits the cloud, so a deployment with a key and no local model runs this
+    site IN THE CLOUD -- and this function, asked the local question first, returned
+    `""` and said nothing at all while 330 files of run 21 were answered off the
+    device (`104` §18.86). The cloud half is therefore asked FIRST: a model that
+    receives files is named whether or not a second model exists beside it. Where
+    there is no local half the sentence says so, because on a cloud-only deployment
+    a file the gate did not clear has no candidate route that permits it and is not
+    asked its situation at all -- which is the half of the arrangement a person
+    reading this screen would otherwise have to infer.
 
     The name comes off the LOCAL half of the route for `_local_model_id`'s reason:
     `model_id_for` answers about the cloud half on a two-target deployment, and
@@ -3475,8 +3487,6 @@ def _situation_site_sentence(routing: TierRouting) -> str:
     """
     _client, target = routing.route_for(G_SITUATION_SENSITIVITY,
                                         cloud_permitted=False)
-    if target.locality != LOCAL:
-        return ""
     # THE SENTENCE STOPS WHERE THE CLAIM DOES. A first version added "decided
     # here before anything about it is assembled for any other model", which is
     # true of this build by construction and is a claim about ORDERING that
@@ -3487,13 +3497,23 @@ def _situation_site_sentence(routing: TierRouting) -> str:
     # routing both permit it; otherwise the old sentence stands and is true.
     _cloud_client, cloud = routing.route_for(G_SITUATION_SENSITIVITY,
                                              cloud_permitted=True)
-    if cloud.locality == CLOUD and observe_locality_permits(
-            G_SITUATION_SENSITIVITY, CLOUD):
+    crosses = cloud.locality == CLOUD and observe_locality_permits(
+        G_SITUATION_SENSITIVITY, CLOUD)
+    if crosses and target.locality == LOCAL:
         return _wrapped(
             f"Files that need {_QUESTION_OF_SITE[G_SITUATION_SENSITIVITY]} are "
             f"answered by {cloud.model_id} for a file the gate cleared, and by "
             f"{target.model_id} on this device for every other file.",
             indent="  ")
+    if crosses:
+        return _wrapped(
+            f"Files that need {_QUESTION_OF_SITE[G_SITUATION_SENSITIVITY]} are "
+            f"answered by {cloud.model_id} for a file the gate cleared. No model "
+            f"on this device answers this question on this run, so a file the "
+            f"gate did not clear is not asked its situation at all.",
+            indent="  ")
+    if target.locality != LOCAL:
+        return ""
     return _wrapped(
         f"Files that need {_QUESTION_OF_SITE[G_SITUATION_SENSITIVITY]} are "
         f"answered by {target.model_id} on this device and do not leave it.",
@@ -3647,6 +3667,29 @@ def announce_cloud_posture(routing: TierRouting | None,
                 and observe_locality_permits(site, CLOUD))
             kept = tuple(site for site in _SITES_THAT_MAY_SEND
                          if site not in crossing)
+            # A MODEL IS SILENT ONLY IF NO SITE SENDS TO IT (`104` §18.86).
+            # `kept` is a list of SITES whose own text may not cross; the clause
+            # it feeds makes its claim about a MODEL. Those two part company the
+            # moment a crossing site and a kept site share a tier -- which is
+            # exactly what the 16 Sep tier change did: site D is unratified and
+            # site G is ratified, both resolve to FAST, and this clause printed
+            # "deepseek-v4-flash is configured and no part of this run sends
+            # anything there" at the top of run 21, which then sent 330 situation
+            # dossiers to that model. Site G is absent from `_SITES_THAT_MAY_SEND`
+            # for its own good reason -- it is named by its own sentence, not by
+            # the recipient list -- but its RECIPIENT still has to be subtracted
+            # here, or the one screen a person consents on denies the send.
+            #
+            # Site H is not subtracted: it is answered on this machine or not at
+            # all (`_gate_site_sentence`), so it never adds a cloud recipient.
+            receiving = {routing.model_id_for(site) for site in crossing}
+            if (routing.locality_for(G_SITUATION_SENSITIVITY) == CLOUD
+                    and observe_locality_permits(G_SITUATION_SENSITIVITY,
+                                                 CLOUD)):
+                receiving.add(routing.model_id_for(G_SITUATION_SENSITIVITY))
+            silent = tuple(dict.fromkeys(
+                name for name in (routing.model_id_for(site) for site in kept)
+                if name not in receiving))
             if crossing:
                 sending = "; ".join(
                     f"files that need {_QUESTION_OF_SITE[site]} may be sent to "
@@ -3655,9 +3698,8 @@ def announce_cloud_posture(routing: TierRouting | None,
             else:
                 sending = ("No site's text is ratified to cross the internet in "
                            "this run, so nothing is sent.")
-            held = ("" if not kept else " " + " and ".join(
-                routing.model_id_for(site) for site in kept)
-                + (" is" if len(kept) == 1 else " are")
+            held = ("" if not silent else " " + " and ".join(silent)
+                + (" is" if len(silent) == 1 else " are")
                 + " configured and no part of this run sends anything there.")
             print(_wrapped(
                 f"{sending}{held} What leaves about a file: its name, the path of "
