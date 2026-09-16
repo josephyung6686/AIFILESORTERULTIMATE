@@ -2379,6 +2379,20 @@ The idea for the 19: let the second stage choose across every kind the FIRST sta
 
 **What that leaves.** The 19 are a KIND-stage problem and must be fixed there -- and at that stage the key is among the judge's own alternatives on 19 of 30 misses, so the candidate is a run-off over the judge's own two or three candidates rather than a wider list. The 15 are the same shape at the level stage. The 8 are the only files where the judge is simply mistaken, of 217.
 
+### 18.83 THREE WAYS OF ASKING AGAIN, THREE NEGATIVES -- and what that says (16 Sep, 15:30)
+
+| idea | measured | result |
+|---|---|---|
+| neighbours break the judge's ties (`00` amendment 7) | 67 duplicate/version families over 112 files | **0 ties broken**: 14 of 18 have no sibling, the 4 that do answer the same |
+| the level menu spans every kind the first stage said fits | file by file on 121 files | **+2 / -13** |
+| a RUN-OFF: ask again with only the judge's own candidates on the menu | file by file on 135 files | **+2 / -9** |
+
+**The finding is general and worth more than any of the three.** Re-asking the same evidence does not improve the answer, however the question is narrowed or widened: the judge's first choice is already the best reading of what it was shown, and its ranking is information about the FILE, not a mistake to be corrected by deliberation. Everything that moved the number this week gave it something NEW -- a rule the text lacked (v3 to v8), a member the library lacked (text 8), a member's line made sharper (texts 6 and 13), and the file's own name (amendment 10). Nothing that re-litigated the same dossier moved it at all.
+
+**And the last evidence lever is already at its stop:** all 435 judge dossiers in run 20 were built at reduction rung `none` -- nothing was truncated, so the judge is seeing every released reading its ceiling allows. There is no more of the file to show it.
+
+**So the 43 remaining rows are, honestly: 19 wrong kinds of which 19 carry the key in the judge's own alternatives, 15 the same at the level stage, 8 real errors of 217, and 1 decline.** What moves them now is the owner's word on the vocabulary, or the person being asked once per group -- not another mechanism inside the judge.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
