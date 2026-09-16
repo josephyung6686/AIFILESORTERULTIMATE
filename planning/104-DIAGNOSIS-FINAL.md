@@ -2261,6 +2261,19 @@ The owner at 16:00, shown both texts with their bench numbers and review file 15
 
 **The eleven suite failures from the sampling change, fixed (5a3b9515).** The egress guard was right that `model_facts` must not import the provider module; the sampling now reaches the fact site as a field of `FactCallAuthorities` filled by the composition root. Two identity pins and the usage file's fake sender learned the twelfth term -- the fake had refused the keyword, so that test's run made no call at all. The owner's new member is the 361st node and the 317th `needs_llm` row, and it is refused as a TEMPLATE in the organisational library for its sibling's reason, written out: its second level is an occasion as often as a term, and `nonprofit` declares no key for a named occasion. Live for recognition, an honest gap for folders.
 
+### 18.74 Run 18: the first clean product measurement under the ratified texts (15-16 Sep, 23:17-00:05)
+
+Run 18 replayed what run 17 had answered and re-asked what the wire had lost. **516 answers, ZERO wire failures, and one decline in 358 judge answers** (kind 182 named, 1 declined; level 175 named, 0 declined, 0 malformed) -- the no-abstention texts hold in the product, not only on the bench. The screen: 224 of 371 files given a kind, 210 of those asked their situation, 3 left open.
+
+**Graded over run 18's OWN answers, through the key-word map:** kind **148 right of 175 = 84.6 %** (run 13's ratified text: 75.3 %); situation **119 right of 168 = 70.8 %**. Cross-tabulated, which is what says whose error each one is:
+
+| | situation right | situation wrong |
+|---|---|---|
+| kind right | 114 | 24 |
+| kind wrong | 5 | 25 |
+
+So 114 of 168 files are right end to end (67.9 %), 25 are lost at the kind stage and never recoverable at the level stage, and 24 are the level judge's own. **Half of those 24 are one defect, not a judgement**: twelve are the judge answering with the KIND's identifier ("nonprofit") where the menu holds `nonprofit.student-organisation` and its five siblings. The level dossier's `named_kind` item carries that identifier to say which list is being read, and the judge copies it; P8 rejects the answer and the file stays open, which is exactly what the owner's no-abstention ruling forbids. Level text v8 (unratified) says it outright in rule 1: the kind's identifier is not an answer, every member of `allowed_vocabulary` carries a dot, and the kind's own identifier is not in that list. On the bench next. The other twelve are real: six papers read as dataset analyses, two application packets read as the application they went to, and four singletons.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.

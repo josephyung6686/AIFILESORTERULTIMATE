@@ -636,6 +636,19 @@
    "layout": "frame-first",
    "note": "v7 of the situation-level text (15 Sep 2026, 13:45, the lead) on the owner's ruling 'there should be no abstentions, make sure of that' (00 amendment 5 of 15 Sep): the decline section says Never -- a described file is placed under the line that fits, a file with nothing to read is placed under the member of its kind that keeps such files, cited to its metadata; the word stays on the list only so a malformed answer has a shape and an answer that uses it is a failure to judge. Everything else byte-identical to v6.",
    "ratified_by": "the owner, 15 Sep 2026, 16:00 local, in session, shown review/8_texts_to_ratify/0_READ_ME_15SEP.txt with both texts and their bench numbers (kind v6 at sampling off 257 of 310 = 82.9 %, one declined, one rejected; level v7 146 of 179 = 81.6 %, none declined, none rejected) and review file 15: 'this is good ... these are fine, they are close enough ... make sure there's no more abstentions and everything is properly like the product design labels'. Applied by the lead as this row's status and the row constant re-pointed; earlier rows stand as written."
+  },
+  {
+   "site": "G_situation_sensitivity",
+   "candidate": "situation-level-v8",
+   "status": "unratified",
+   "template_id": "situation.unratified.situation-level-v8.2026-09-16",
+   "template_file": "situation_level_template.v8.txt",
+   "response_schema_file": "situation_response_schema.v2.json",
+   "shaping_policy_file": "situation_level_shaping_policy.v1.json",
+   "readings_rows": [],
+   "layout": "frame-first",
+   "note": "v8 of the situation-level text (16 Sep 2026, 00:10, the lead), from run 18's own answers: of the 24 files whose KIND the judge named right and whose situation it did not, TWELVE were the judge answering with the kind's own identifier -- 'nonprofit' where the menu holds nonprofit.student-organisation and its five siblings. The dossier's named_kind item carries that identifier to say which list is being read, and the judge copied it. P8 rejects the answer and the file stays open, which under the owner's no-abstention ruling is the very thing that must not happen. Rule 1 now says so outright: the kind's identifier is not an answer, every member of allowed_vocabulary carries a dot, and the kind's own identifier is not in that list. Everything else byte-identical to v7.",
+   "ratified_by": "nobody yet: authored by the lead on 16 Sep 2026 for measurement; the owner ratifies with one word."
   }
  ],
  "digests": {
@@ -707,6 +720,7 @@
   "situation_level_template.v6.txt": "408dc85b74ad84736a65c08589098439f43c38af0903c6eb46b125e684dc5b89",
   "situation_level_template.v7.txt": "f0648576c0a214a5653122f4b5812e2c2fca41a4292aa8bef7ef0ca22f9f0909",
   "situation_template.whole-library.v5.txt": "133fcaf3494485cc06dd4375645c3212f050732649ca62805e6da8a1855b93ec",
-  "situation_template.whole-library.v6.txt": "02ce5b5c4029363dbd4247b94bb1baac6ee619e4918b86e46b292dc02e2fd775"
+  "situation_template.whole-library.v6.txt": "02ce5b5c4029363dbd4247b94bb1baac6ee619e4918b86e46b292dc02e2fd775",
+  "situation_level_template.v8.txt": "0220d184bb3d3a181e2b31649162cee76acf5cc4eeabc8ea4008ec0bbf0d5f5c"
  }
 }
