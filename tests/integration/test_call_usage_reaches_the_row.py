@@ -125,7 +125,7 @@ class _Response:
 def _declining(payload_holder: list, usage=_Usage()):
     """A provider that declines every offered field and reports what it spent."""
     def send(*, api_key, base_url, model_id, max_tokens, prompt,
-             timeout_seconds=None):
+             timeout_seconds=None, temperature=None):
         payload_holder.append(prompt)
         body = json.loads(prompt.split("The dossier follows.", 1)[1])
         # SITE G ARRIVES HERE TOO since `00` amendment 7(c): a file the gate CLEARED

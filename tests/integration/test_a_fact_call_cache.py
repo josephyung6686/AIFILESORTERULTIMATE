@@ -496,7 +496,7 @@ def test_the_identity_row_says_what_it_was_keyed_on(corpus, socket):
         assert set(dimensions) == {
             "call_site", "content_hash", "context_refs", "extractor_versions",
             "max_dossier_tokens", "model_id", "plan_version", "policy",
-            "prompt_fingerprint", "schema_id", "subject_ref"}
+            "prompt_fingerprint", "sampling", "schema_id", "subject_ref"}
         assert dimensions["context_refs"] == []
         # The eleventh term (13 Sep 2026): the bound the dossier was built under.
         assert dimensions["max_dossier_tokens"] == cli.GROUPING_LIMITS.max_dossier_tokens

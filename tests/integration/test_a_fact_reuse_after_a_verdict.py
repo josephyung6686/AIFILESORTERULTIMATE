@@ -668,7 +668,7 @@ def test_the_identity_is_the_same_on_an_unchanged_second_run(corpus, socket):
     assert {name for row in dimensions for name in row} == {
         "call_site", "content_hash", "context_refs", "extractor_versions",
         "max_dossier_tokens", "model_id", "plan_version", "policy",
-        "prompt_fingerprint", "schema_id", "subject_ref"}
+        "prompt_fingerprint", "sampling", "schema_id", "subject_ref"}
     # `context_refs` is `104` R-135's tenth term: the observation keys of readings of
     # OTHER files a call was shown. It is exactly the shape this test's docstring warns
     # about, so it is checked rather than trusted. An `observation_key` is

@@ -1139,6 +1139,12 @@ def test_all_twenty_three_corpus_schemas_now_have_a_runtime_identity():
     schemas the product recognises." `60` §5 gives twenty of them a field set, and
     the three that keep none are §3.15's out-of-scope safety domains.
 
+    360 -> 361 (15 Sep 2026): `00` amendment 6 and `104` §18.69 ratify
+    `nonprofit.volunteering-and-club-life`, the member the owner asked for -- a
+    person's own record of belonging to clubs and volunteering, beside the
+    association's own registers. It lands on `nonprofit`, a schema the corpus
+    already names, so the schema count is untouched at 23 again.
+
     358 -> 360, re-argued rather than bumped silently: `00` amendment 7 and `104`
     §18.56 ratify `nonprofit.student-organisation` and `photos.personal-graphics`
     for a library gap the answer key measured directly (a student club's own
@@ -1154,7 +1160,7 @@ def test_all_twenty_three_corpus_schemas_now_have_a_runtime_identity():
         corpus_schemas.add(row["schema_id"])
         total += 1
 
-    assert total == 360
+    assert total == 361
     assert len(corpus_schemas) == 23
     assert len(SCHEMA_IDS) == 23
     assert set(SCHEMA_IDS) == corpus_schemas

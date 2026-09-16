@@ -560,9 +560,14 @@ def test_every_refusal_quotes_the_sentence_behind_it(raw):
     # 48 -> 49, 3 -> 4 nonprofit: `nonprofit.student-organisation` (`00` amendment
     # 7, `104` §18.56) is refused as a TEMPLATE here on the same ground as three
     # of its siblings, while it is a live, compiled recognition row.
-    assert len(raw["refusals"]) == 49
+    # 49 -> 50, 4 -> 5 nonprofit (15 Sep 2026): `nonprofit.volunteering-and-club-
+    # life` (`00` amendment 6, `104` §18.69) is the owner's own member -- a
+    # person's record of belonging rather than the association's registers -- and
+    # it inherits the sibling's refusal whole: its second level is an occasion as
+    # often as a term, and nonprofit declares no key for a named occasion.
+    assert len(raw["refusals"]) == 50
     assert Counter(x["uses_schema"] for x in raw["refusals"]) == {
-        "government": 26, "business_operations": 14, "hr": 5, "nonprofit": 4}
+        "government": 26, "business_operations": 14, "hr": 5, "nonprofit": 5}
     for entry in raw["refusals"]:
         assert len(entry["row_sentence"]) > 40, entry["row_id"]
         assert len(entry["why_no_template"]) > 120, entry["row_id"]

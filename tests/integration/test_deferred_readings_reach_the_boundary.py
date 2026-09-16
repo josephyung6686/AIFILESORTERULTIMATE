@@ -105,7 +105,12 @@ def test_the_readings_the_run_holds_are_the_librarys_own_verbatim():
 
 
 def test_every_schema_a_situation_can_name_carries_readings():
-    """1,994 readings over 316 rows, and no schema a person can reach is empty.
+    """1,999 readings over 317 rows, and no schema a person can reach is empty.
+
+    316 -> 317, 1,994 -> 1,999 (15 Sep 2026): `00` amendment 6 and `104` §18.69
+    ratify `nonprofit.volunteering-and-club-life`, which carries one `needs_llm`
+    entry of five readings like the sibling it was written from.
+
 
     An empty one would mean a run whose model is steered by nothing while another
     run in the same product is steered by prose -- a difference nobody chose.
@@ -121,7 +126,7 @@ def test_every_schema_a_situation_can_name_carries_readings():
     readings = sum(len(entry["readings"])
                    for schema in manifest.values()
                    for entry in schema.get("needs_llm", ()))
-    assert (rows, readings) == (316, 1994)
+    assert (rows, readings) == (317, 1999)
 
     rules = _rules()
     for schema_id in sorted(rules.schemas):

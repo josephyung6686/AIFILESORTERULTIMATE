@@ -7131,6 +7131,8 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
                            operation_mode=operation_mode,
                            cloud_cleared=cloud_cleared)
     return FactCallAuthorities(
+        # The one place that names the provider may also name its sampling.
+        sampling=model_deepseek.JUDGE_SAMPLING,
         gate=Gate(
             conn, store=ClassificationStore(conn), plan_version=PLAN_VERSION,
             classifier=lambda value, *, context_before=None, context_after=None: None,

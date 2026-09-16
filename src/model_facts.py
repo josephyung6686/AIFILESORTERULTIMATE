@@ -56,7 +56,6 @@ from __future__ import annotations
 import json
 import sqlite3
 
-from readers import model_deepseek
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from decimal import Decimal
@@ -774,6 +773,15 @@ class FactCallAuthorities:
     #: neighbour's "line" of 27,510 characters deferred all 17 files in its folder
     #: family at site A, each recorded `BUDGET_EXHAUSTED` with no reservation made.
     anchor_excerpts_for: Callable[..., Sequence] | None = None
+
+    #: THE SAMPLING THE JUDGE'S CALL CARRIES, handed in by the composition root
+    #: rather than read off the provider module: `tests/integration/test_single_
+    #: egress.py` forbids this module to import `readers.model_deepseek`, and it
+    #: is right to -- a module that names the provider is a module that could
+    #: call it. `None` is "whatever the provider defaults to", which is what
+    #: every call before 15 Sep 2026 carried and what the `sampling` dimension
+    #: of a call identity records for them.
+    sampling: float | None = None
     #: `105` §14.4 / `104` R-131 and R-102. The levels a file is asked ONLY when it
     #: is an anchor of a permitted kind, on top of `folder_levels` above, which
     #: every file of the situation is asked. `None` is the state `104` R-102
@@ -2604,7 +2612,7 @@ def call_identity_dimensions(
         # only read this module makes.
         # The release bound (`llm_harness.store.EMPTY_DIMENSION_VALUES` says why).
         "max_dossier_tokens": authorities.max_dossier_tokens,
-        "sampling": model_deepseek.JUDGE_SAMPLING,
+        "sampling": authorities.sampling,
         "model_id": _routed_target(authorities, file_id).model_id,
         # Null at A, and `build_fact_request` says why in its own words: "a fact is
         # about a file version and not about a plan, and the same fact survives a
