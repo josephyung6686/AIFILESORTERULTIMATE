@@ -791,7 +791,16 @@ TIER_OF_CALL_SITE: Mapping[str, str] = MappingProxyType({
     # ratified text says "Think for as long as you need to before you answer", and a
     # reasoning model sharing one budget between thinking and writing never starts
     # writing.
-    G_SITUATION_SENSITIVITY: LOGIC,
+    # THE FAST TIER, measured twice (16 Sep 2026). It was reverted on 14 Sep
+    # (d5a8b184) because 96 of 170 judge calls came back EMPTY -- a thinking
+    # model under JSON mode and a deadline. `thinking: disabled` (1332832e) and
+    # sampling off (f203001a) removed that cause, and on the same bench of 310
+    # dossiers the fast model now answers 259 right with ONE decline and NO
+    # malformed answer against the logic model's 257 right, one decline and one
+    # malformed. Equal or better, for a fraction of the spend, which is the
+    # owner's standing concern. Reverted by one word if a corpus run shows an
+    # empty answer again.
+    G_SITUATION_SENSITIVITY: FAST,
     # `00` amendment 7(c)'s gate. LOGIC, on site G's own argument and not on a new
     # one: the answer is one identifier out of a closed list of eleven, every
     # citation behind it is re-checked against evidence already extracted, and the
