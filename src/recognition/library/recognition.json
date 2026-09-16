@@ -2997,7 +2997,7 @@
     {
      "id": "applications.graduate-professional",
      "name": "Graduate and professional school application",
-     "one_line": "One applicant's graduate, doctoral or professional-school admissions material, where a reusable dossier — statement of purpose, academic CV, writing sample, transcripts, score reports, recommendation and funding material — is submitted to several programs at once, often through a centralised application service, so most files carry no addressee of their own and the shared material is the bulk rather than the exception."
+     "one_line": "One applicant's graduate, doctoral or professional-school admissions material, where a reusable dossier — statement of purpose, academic CV, writing sample, transcripts, score reports, recommendation and funding material — is submitted to several programs at once, often through a centralised application service, so most files carry no addressee of their own and the shared material is the bulk rather than the exception. This situation needs the programme or the institution named in the file itself. A statement of purpose that names only its subject, with no addressee, is the packet's material and not this."
     },
     {
      "id": "applications.k12-admission",
@@ -3007,7 +3007,7 @@
     {
      "id": "applications.purpose-packet",
      "name": "Purpose-defined application packet",
-     "one_line": "One submitted set kept together because it was submitted together — transcript, ID, personal statement, resume, certificate, research abstract — organised flat around the purpose it served rather than around an addressee institution, because the set has none, or has several, and splitting it would destroy the only thing its members share."
+     "one_line": "One submitted set kept together because it was submitted together — transcript, ID, personal statement, resume, certificate, research abstract — organised flat around the purpose it served rather than around an addressee institution, because the set has none, or has several, and splitting it would destroy the only thing its members share. A single essay, prompt, statement or form that names no institution of its own belongs HERE: the packet is where a person keeps such pieces until an addressee makes one of them something else."
     },
     {
      "id": "applications.scholarship-fellowship",
@@ -14497,12 +14497,12 @@
     {
      "id": "medical.dependant-child-health",
      "name": "A dependant's health records",
-     "one_line": "A field-less safety template for health records a person keeps for a different human patient: a child or a dependant adult represented in the record by a distinct parent, guardian, proxy, representative, or carer role. It protects the holder-versus-subject seam without storing either person's identity, inferring legal authority or access rights, or creating person-, condition-, or relationship-named folder levels."
+     "one_line": "A field-less safety template for health records a person keeps for a different human patient: a child or a dependant adult represented in the record by a distinct parent, guardian, proxy, representative, or carer role. It protects the holder-versus-subject seam without storing either person's identity, inferring legal authority or access rights, or creating person-, condition-, or relationship-named folder levels. This situation needs the record to be about someone OTHER than the person keeping it, shown by a parent, guardian, proxy or carer role beside a patient who is not them. A school form about a student is that student's own record, not this."
     },
     {
      "id": "medical.personal-health-records",
      "name": "Personal health records",
-     "one_line": "Provider- or patient-portal-issued clinical records kept about the current user: visit and discharge summaries, results, medication and immunization records, clinical reports, structured summaries, and records-request packets. This safety template recognizes and protects the situation; Medical remains field-less, so it writes no clinical facts and recommends no automatic folder depth."
+     "one_line": "Provider- or patient-portal-issued clinical records kept about the current user: visit and discharge summaries, results, medication and immunization records, clinical reports, structured summaries, and records-request packets. This safety template recognizes and protects the situation; Medical remains field-less, so it writes no clinical facts and recommends no automatic folder depth. A school health form, an immunisation certificate or an insurance card about the person themselves is theirs and belongs here, whoever issued it."
     },
     {
      "id": "medical.wearable-health-exports",
@@ -15607,7 +15607,7 @@
     {
      "id": "research.dataset-analysis",
      "name": "Datasets and analysis work",
-     "one_line": "The situation where a project's evidence is tabular: raw and cleaned data files, the codebook that defines their columns, the notebooks and scripts that transform them, and the results tables and figures they produce. A table of figures downloaded from a public source and kept -- statistics, estimates, counts by category -- is this situation's raw data whether or not a project is named beside it."
+     "one_line": "The situation where a project's evidence is tabular: raw and cleaned data files, the codebook that defines their columns, the notebooks and scripts that transform them, and the results tables and figures they produce. A table of figures downloaded from a public source and kept -- statistics, estimates, counts by category -- is this situation's raw data whether or not a project is named beside it. A published article, report or paper that CONTAINS tables is not this situation: its tables are illustrations inside a document, and the document is what the file is. This situation is the data file itself, or the notebook or script that works it."
     },
     {
      "id": "research.ethics-compliance",
@@ -15632,7 +15632,7 @@
     {
      "id": "research.reading-library",
      "name": "Literature and reading library",
-     "one_line": "Published work by OTHER people, kept for reading: papers, preprints, books and their front matter, chapters, reports, articles and the bibliography files that index them. The situation is recognised by third-party publication structure — a publisher, an author who is not the holder, a report issued by an organisation — not by a project of the holder's own."
+     "one_line": "Published work by OTHER people, kept for reading: papers, preprints, books and their front matter, chapters, reports, articles and the bibliography files that index them. The situation is recognised by third-party publication structure — a publisher, an author who is not the holder, a report issued by an organisation — not by a project of the holder's own. A published work stays a reading whatever it contains -- its tables, figures, appendices and supplementary files belong to the work, not to a dataset."
     },
     {
      "id": "research.thesis-dissertation",

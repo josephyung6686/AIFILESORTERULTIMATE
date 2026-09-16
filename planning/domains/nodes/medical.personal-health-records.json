@@ -4,7 +4,7 @@
   "schema_id": "medical",
   "parent_id": null,
   "name": "Personal health records",
-  "one_line": "Provider- or patient-portal-issued clinical records kept about the current user: visit and discharge summaries, results, medication and immunization records, clinical reports, structured summaries, and records-request packets. This safety template recognizes and protects the situation; Medical remains field-less, so it writes no clinical facts and recommends no automatic folder depth.",
+  "one_line": "Provider- or patient-portal-issued clinical records kept about the current user: visit and discharge summaries, results, medication and immunization records, clinical reports, structured summaries, and records-request packets. This safety template recognizes and protects the situation; Medical remains field-less, so it writes no clinical facts and recommends no automatic folder depth. A school health form, an immunisation certificate or an insurance card about the person themselves is theirs and belongs here, whoever issued it.",
   "launch": "safety",
   "provenance": "design",
   "design_cite": "00 establishes the domain and its posture: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.” It establishes the immediate state transition: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” It also names the broad home: “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.” The narrower provider-or-portal clinical-record boundary is bottom-up inference; it is not attributed to 00.",
@@ -164,7 +164,14 @@
         "sections for medications, instructions, follow-up and return precautions",
         "no explicit marker says whether the portal session was direct patient access or proxy access"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "any medical-domain fact: Medical declares no field rows, so patient, provider, encounter date, medications and instructions remain observations",
         "that the named patient is the corpus holder rather than a dependant without direct role evidence or user confirmation",
@@ -184,7 +191,14 @@
         "a final status and report timestamp in labelled slots",
         "no insurer, claim number or payment columns"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "any medical-domain fact, including test name, value, provider, collection date or record type",
         "a diagnosis or clinical interpretation from a flagged value or reference-range comparison",
@@ -204,7 +218,14 @@
         "section-level source labels distinguish provider-record content from self-entered content",
         "the file contains a warning that report coverage depends on the selected source and date range"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "any section value as a medical fact; the schema declares none",
         "that the report is a complete medical history or that an omitted item never existed",
@@ -224,7 +245,13 @@
         "document identifier and effective-time slots are present",
         "the XML is loose in Downloads rather than inside its original portal packet"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "medical activation from the .xml extension or source_type = code_structured alone",
         "conformance to a clinical-document standard merely from a familiar root or namespace token",
@@ -244,7 +271,13 @@
         "some rows are marked discontinued while others have a refill count",
         "no prices, cart totals or product-advertising layout"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "any medication, provider, status or record-type fact because Medical has no fields",
         "that a listed medication is currently taken, effective, safe, or adhered to",
@@ -264,7 +297,13 @@
         "a verification QR code and seal appear beside a document identifier",
         "the document can be presented as proof as well as retained as a clinical history"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "any immunization, recipient, issuer or medical record-type fact",
         "identity.core-documents from the QR code, seal, issuer or name-and-number pair alone",
@@ -284,7 +323,13 @@
         "accession-shaped identifier in a labelled slot",
         "no pixel data or image series inside this PDF"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "any medical fact, including body site, finding, impression, provider or study date",
         "a diagnosis or treatment recommendation from the impression section",
@@ -304,7 +349,13 @@
         "the recipient is another care provider",
         "no labelled patient block, encounter slot, result table or document-kind field is present"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "any medical fact, including patient, provider, referral reason, condition or record type",
         "this template from the specialty word or provider letterhead alone; the bounded local interpretation must cite the patient-and-referral relationship",
@@ -324,7 +375,12 @@
         "outer filename identifies a fulfillment packet but not the patient",
         "no member is unpacked to disk during the normal scan"
       ],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "any medical fact from member names or the cover letter",
         "that every member has the same patient, provider, encounter or privacy status without inspecting each member through its own safe extraction path",
@@ -344,7 +400,12 @@
         "body contains a sign-in link and generic security warning but no clinical content",
         "one attachment filename is present and remains a separate file for extraction"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "activation from source_type = email, a portal sender or the word summary alone",
         "the attachment's contents, a diagnosis, an encounter outcome, or that the message was read",
@@ -364,7 +425,11 @@
         "ORGANIZER address resolves to the same provider portal as a separately stored appointment notice",
         "the event has a stable UID but contains no clinical note, result or patient block"
       ],
-      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "medical activation from source_type = calendar or the appointment word alone",
         "that the appointment occurred, was attended, was for the corpus holder, or produced a diagnosis",
@@ -384,7 +449,12 @@
         "a navigation menu, account control and sign-out label frame the message",
         "no clinical result or diagnosis appears in the visible region"
       ],
-      "facts_legal": ["media_type", "file_type", "creation_date", "sensitivity_status"],
+      "facts_legal": [
+        "media_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "screen origin from missing EXIF alone; positive display and software evidence is doing that work",
         "the hidden visit summary's contents, a diagnosis, a completed visit, or a medical record kind",
@@ -404,7 +474,14 @@
         "OCR yields a provider heading, labelled patient block and a result-and-reference-range table",
         "page edges and perspective distortion establish a photographed document"
       ],
-      "facts_legal": ["capture_year", "camera_information", "media_type", "file_type", "creation_date", "sensitivity_status"],
+      "facts_legal": [
+        "capture_year",
+        "camera_information",
+        "media_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "any medical-domain fact; the listed capture facts come from Photos on its own evidence",
         "membership in a camera event or a year-first destination once the clinical record structure is visible",
@@ -424,7 +501,12 @@
         "no caption track and no transcript has been authorized",
         "no provider, patient, or clinical content is available in metadata"
       ],
-      "facts_legal": ["media_type", "file_type", "creation_date", "sensitivity_status"],
+      "facts_legal": [
+        "media_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "a clinical recording from the filename, date or container alone",
         "speech-to-text without the explicit privacy and compute policy 00 requires",
@@ -444,7 +526,14 @@
         "table columns for amount billed, plan paid and patient responsibility",
         "procedure descriptions but no result-and-reference-range, medication-directions or clinical-note structure"
       ],
-      "facts_legal": ["institution", "account_type", "record_type", "file_type", "creation_date", "sensitivity_status"],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "this personal-health-record template from a patient name, provider name, procedure description or date of service",
         "a diagnosis or treatment result from claim text",
@@ -464,7 +553,14 @@
         "money figures appear only in the insurer section",
         "the provider section and insurer section cite each other by claim identifier"
       ],
-      "facts_legal": ["institution", "record_type", "file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "that the claim identifier, loss date or settlement amount is medical evidence",
         "that the patient name or service dates may count once for Finance and again for Medical",
@@ -484,7 +580,13 @@
         "the two pages share a form identifier",
         "no diagnosis field is required by the employer page"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "any career or medical field; both schemas are field-less placeholders",
         "a diagnosis, prognosis or fitness-for-work conclusion from the certification",
@@ -504,7 +606,13 @@
         "repeated vaccine rows include administration dates and administering sites",
         "the corpus holder's name appears only in the proxy-access block"
       ],
-      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "this personal-health-record template: the direct proxy marker points to medical.dependant-child-health",
         "that the parent or guardian is the patient",
@@ -524,7 +632,12 @@
         "no provider-authored clinical summary, patient block, encounter, result report or clinical note appears in the manifest",
         "the archive is inspected without unpacking"
       ],
-      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "this personal-health-record template from health vocabulary, an XML member or bulk measurements",
         "that each datum is non-sensitive because it appears individually trivial",
@@ -544,7 +657,15 @@
         "procedure and risk descriptions written for a study participant",
         "blank signature fields and no named patient, care provider, encounter or treatment relationship"
       ],
-      "facts_legal": ["project", "stage", "artifact_type", "file_type", "creation_date", "language", "sensitivity_status"],
+      "facts_legal": [
+        "project",
+        "stage",
+        "artifact_type",
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "this personal-health-record template from the words patient, consent, risk or procedure",
         "a treatment relationship or provider role from investigators named in the study",
@@ -564,7 +685,14 @@
         "subjects are coded and no patient, provider, encounter or portal structure appears",
         "sheet names separate collection, processing and quality-control records"
       ],
-      "facts_legal": ["project", "stage", "artifact_type", "file_type", "creation_date", "sensitivity_status"],
+      "facts_legal": [
+        "project",
+        "stage",
+        "artifact_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
       "must_not_conclude": [
         "this personal-health-record template from a subject code, collection date or clinical-shaped assay value",
         "that subject code identifies the corpus holder or any patient",
@@ -584,7 +712,14 @@
         "speaker notes identify an instructor and academic week",
         "one de-identified case illustration uses patient-shaped language but no real patient block"
       ],
-      "facts_legal": ["subject", "instructor", "work_type", "file_type", "creation_date", "language"],
+      "facts_legal": [
+        "subject",
+        "instructor",
+        "work_type",
+        "file_type",
+        "creation_date",
+        "language"
+      ],
       "must_not_conclude": [
         "this personal-health-record template: clinical topic is not a record about the holder",
         "a patient, provider, diagnosis or sensitivity state from the de-identified illustration",
@@ -669,5 +804,7 @@
   "role_split": [],
   "sensitivity": "potentially_sensitive",
   "sensitivity_why": "00 places Medical on the safety path and states: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” It then gives the operative limits: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” This row sets only the catalogue value potentially_sensitive. D2's authoritative ClassificationRecord keyed by file_id and content_hash, its injected P7 detector, and P7's handling-class vocabulary are not re-derived, populated, or named here.",
-  "open_question": "The unresolved fork is how P10 may choose among this template, medical.dependant-child-health and medical.wearable-health-exports while Medical has no fields. Direct self-versus-proxy or provider-versus-device markers can narrow the choice, but many real records contain neither; those files remain Medical-protected and template-unresolved until the user confirms them. If D1's deferral ever lifts, Joseph must decide whether canonical subject-of-record, provider, record-kind or encounter-date fields exist at all, whether a holder-versus-subject role split is required, and whether any medical field may become a visible destination dimension. This row proposes none and remains flat until those schema and privacy decisions are explicit."
+  "open_question": "The unresolved fork is how P10 may choose among this template, medical.dependant-child-health and medical.wearable-health-exports while Medical has no fields. Direct self-versus-proxy or provider-versus-device markers can narrow the choice, but many real records contain neither; those files remain Medical-protected and template-unresolved until the user confirms them. If D1's deferral ever lifts, Joseph must decide whether canonical subject-of-record, provider, record-kind or encounter-date fields exist at all, whether a holder-versus-subject role split is required, and whether any medical field may become a visible destination dimension. This row proposes none and remains flat until those schema and privacy decisions are explicit.",
+  "one_line_before_2026-09-16": "Provider- or patient-portal-issued clinical records kept about the current user: visit and discharge summaries, results, medication and immunization records, clinical reports, structured summaries, and records-request packets. This safety template recognizes and protects the situation; Medical remains field-less, so it writes no clinical facts and recommends no automatic folder depth.",
+  "one_line_ratified_by": "the lead, 16 Sep 2026 01:10, on the owner's instruction 'you should be more flexible about it I believe' and their reading that these three boundaries are 'semantic stuff the judge needs to know' rather than rulings for them to make. Measured before applying, on the full level bench of 179 files: 148 right without these lines, 151 with them (84.4 %), no class worse -- application packets 0 -> 3 of 6, health records 3 -> 4 of 7. One word from the owner reverses any of the six."
 }
