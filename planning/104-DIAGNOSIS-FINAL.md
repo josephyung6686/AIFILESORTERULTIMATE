@@ -2332,6 +2332,23 @@ The owner: *"the key is still correct, it's ok, I get that the mechanism won't w
 
 **What is left for the ties, both to be measured before either is built.** A RUN-OFF: one more call per tied file whose menu is only the candidates the judge itself named, which forces a considered choice between two rather than a ranking over many -- about 18 calls here, dynamic, nothing hardcoded. Or a BATCH QUESTION: the ties grouped and put to the person once per batch, which is the design's own posture and costs no calls at all.
 
+### 18.80 What the judge is not shown, priced (16 Sep, 01:40)
+
+The owner, on the sixteen files the judge never got near: *"how do we deal with those? more flexibility? or better context or extraction?"* Measured rather than argued.
+
+**The judge does not see the file's NAME.** A kind dossier carries one `path` value (the folder), the recognised text, and metadata; the filename is withheld by design -- `00` §7.7 treats it as name-bearing, and the design's own example of why is `passport A1234567.pdf`. **The lead, building the answer key on 11 Sep, saw every filename.** That is most of the advantage the key holds over the judge, and it explains section 18.75's correction from the other side.
+
+| lever | worth on the 16 | cost |
+|---|---|---|
+| the filename, redacted as values already are | **5 files** | a privacy widening: the owner's word, and the auto-mode classifier blocks it otherwise |
+| better extraction | ~0 | OCR already runs on every image (`00` amendment 6, 11 Sep); these have no words to read |
+| more flexibility / tie-breaks | 0 | these are not ties -- the judge never listed the right kind at all |
+| one question per batch | the other 11 | no calls; the design's own posture |
+
+**The eleven are undecidable from the file itself**: a bare table of car specifications is the same bytes whether a course or a paper produced it, and a photograph of people at an event carries no words. No reader and no text reaches them; only the person does, and the design already says how -- once per group, not once per file.
+
+**Not built, and deliberately so.** Releasing filenames is the kind of change the standing constraint says the lead never makes on its own judgement: it is escalated here, priced at five files, and it waits.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
