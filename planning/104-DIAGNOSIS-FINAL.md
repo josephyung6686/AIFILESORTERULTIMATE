@@ -2410,6 +2410,116 @@ The key-word map was widened on four words -- each justified by the LIBRARY's li
 
 **One genuine situation error on 193 files.** What remains at the kind stage is nine files it never considered -- three photographs the key calls academic, two bare datasets, and four singletons -- and fourteen where the key is its own second choice. `review/15_key_words_read_as_library_members.txt` carries the widened map for the owner to correct; it is the lead's reading of the owner's words and nothing more.
 
+### 18.85 THE JUDGE ON THE FAST TIER, CONFIRMED ON THE CORPUS (16 Sep, 17:00)
+
+`TIER_OF_CALL_SITE` put `G_SITUATION_SENSITIVITY` on LOGIC. The bench over 310 kind dossiers, sampling off and thinking disabled, answered **259 right on FAST against 257 on LOGIC** with no malformed answer on either -- so the cheaper tier is not a trade, and the row moved (d9faead7). **Run 21 is the confirmation the commit note asked for: 330 judge answers, zero empty, zero malformed, one decline.** The tier stands. The reason the trade is free is `82`'s ratified "Think for as long as you need to before you answer": a reasoning model shares one ceiling between thinking and writing, so the whole ceiling can be spent before writing starts, and the judge's work is naming one member of a list against cited text, which is not the shape reasoning buys anything for.
+
+### 18.86 THE CONSENT SCREEN DENIED A SEND IT WAS MAKING (16 Sep, 17:40)
+
+A defect introduced by §18.85's own commit, found by reading run 21's first screen. The banner said, verbatim, *"deepseek-v4-flash is configured and no part of this run sends anything there"* -- and that run then sent **330 situation dossiers to deepseek-v4-flash**. Two independent causes, both now closed:
+
+1. **The clause claims about a MODEL what it knows about a SITE.** `held` is built from `kept`, the sites whose own text may not cross; site D is unratified and site G is ratified, and the tier change put both on FAST, where a tier resolves to ONE model. Every fake in the suite gives each site a model id of its own, so no test could see it. `receiving` now subtracts the models that any sending site -- including G, which is named by its own sentence rather than by the recipient list -- actually reaches, and `tests/test_cli_coverage_and_situation.py::test_a_model_site_g_sends_to_is_never_called_silent` uses a routing whose two sites share one model.
+
+2. **Site G's own sentence was never printed on a cloud-only run.** `_situation_site_sentence` asked the LOCAL route first and returned `""` when there was none -- correct while G's row was `ratified_local`, false since `00` amendment 7(c), and run 21 is exactly that deployment. The cloud half is asked first now, and where there is no local half the sentence says so, because on such a run a file the gate did NOT clear has no candidate route that permits it and is not asked its situation at all. The test that asserted the old silence asserted a premise the amendment had already retired; it is rewritten and says why.
+
+**The general lesson, and it is not about this clause.** Every fake that gives each site a distinct identity hides every defect that only appears when two sites share one. A notice about sending is the one screen where a claim of silence has to be true of the RECIPIENT, never of the question being asked.
+
+### 18.87 THE TEMPLATE TOLD THE JUDGE THE FILENAME WAS NOT THERE (16 Sep, 18:10)
+
+`00` amendment 10 put the file's own name in the dossier and it recovered exactly the five files predicted. **The whole-library text was never told.** v6 line 21 says "Each has `kind`. Three kinds matter to you" and describes three -- `candidate_schema`, `recogniser_abstention`, `excerpt` -- while a fourth, `filename`, now arrives undescribed; and line 27 says of the released values, in terms, *"There is no document, no page, no filename, no rest of the file."* So the name crossed the internet under a text that denied it existed, and five files were recovered anyway.
+
+**Why this is the diagnosis of the remaining misses and not a tidy-up.** Run 21's 33 disagreements are one cause wearing thirty-three faces: twelve are the academic/research/learning collapse, five are a photograph standing in for a document, eleven are the right kind with the wrong situation inside it. None of those is decided by the file's contents -- a paper read for a course and a paper read for one's own research produce the same bytes. They are decided by what the file was FOR, and the two places that is written down are the name the person gave it and the company it keeps. This session has measured three mechanisms that re-ask the same evidence (neighbour tie-break 0, union menu -11, run-off -7) and one that adds new evidence (the name, +5); the rule that fell out of it is that **only new evidence moves the number**, and the name is new evidence the text is currently instructing the judge to ignore.
+
+v7 describes the item, says what a name is evidence OF -- the purpose a file served, which its contents do not state -- and says where a name misleads (a camera's, a download's) so the text does not trade one error for another. Measured on the fast model over the same 310 dossiers, v6 against v7, with the name present in both arms so the paragraph is the only difference.
+
+
+### 18.88 THE NEIGHBOUR EXPERIMENT MEASURED NOTHING, AND THE REASON IS THE WHOLE DIAGNOSIS (16 Sep, 19:40)
+
+§18.87 argued that what separates a paper read for a course from a paper read for one's own research is not in the bytes but in the surroundings, and that the largest unused piece of the surroundings is the file's neighbours. v8 gave the judge the names of up to twelve other files in the same folder, in a zone of its own, with a paragraph saying what neighbours are evidence of and warning that a folder can be a heap.
+
+| arm (fast model, 310 kind dossiers, name present in every arm) | right | declines |
+| --- | --- | --- |
+| v6 -- the text denies the name exists | 259 (83.5 %) | 2 |
+| v7 -- the text describes the name | **260 (83.9 %)** | **0** |
+| v8 -- v7 plus twelve neighbour names | 251 (81.0 %) | 3 |
+
+**The lead wrote this up as a rejection and it is not one.** Checking the corpus's own shape afterwards: **365 of its 371 files sit loose in the scanned root** -- two files at depth 2, four at depth 3, everything else in ONE folder. So every file's "neighbours" were the same twelve names, chosen alphabetically out of the same 365, identical for every dossier in the run. v8 did not measure neighbour evidence. It measured **twelve constant filenames added to every prompt**, which is noise with a paragraph telling the judge to weigh it, and losing nine files to that is what one would expect.
+
+**The mechanism is UNMEASURED, not rejected**, and this corpus cannot measure it: a neighbour is only evidence where folders divide files, and here there is one folder. Recording it as rejected would have retired the strongest remaining idea on the strength of an experiment that could not have succeeded. It becomes testable on a corpus with real folders, or after a sort has made folders that mean something.
+
+**What the flat root says about every other number in this file, and it is the diagnosis.** The judge, on this corpus, has the file's own bytes and the file's own name, and nothing else. There is no folder path to read for 98 % of the files -- the template's line "A folder path, when one is released, is evidence of what the file is part of" is dead text here. Meanwhile the answer key was written by the lead on 11 Sep with the whole corpus in view. **So the bench is not measuring whether the judge is right; it is measuring how much of what the lead knew survives in the bytes.** Thirteen of run 21's thirty-three disagreements are one shape of exactly that: six files the key calls coursework and the judge calls a reading library, four the key calls an online course and the judge calls research, three the key calls coursework and the judge calls a photograph -- and **not one of the thirteen judge's own reasons contains the word course, lecture, syllabus, assignment, class, module, quiz or exam.** The judge saw no course language because there was none to see, and the ratified text tells it in terms that a published work is a reading library "unless a course is named on it". It obeyed. The key knew the folder; the judge was handed a file in a heap.
+
+### 18.89 THE FOUR BROKEN ANSWERS WERE THE BENCH'S OWN, NOT THE PRODUCT'S (16 Sep, 20:10)
+
+Of 310 answers under v7, eight were rejected and four unparseable; read with their content masked, all four had `"citations"` emitted INSIDE `"payload"`, so the claim never closed. The lead wrote a sentence for the text about counting braces and was about to adopt it.
+
+**It was measuring a condition the product is never in.** `replay.py` left `--temperature` at `None`, so every arm ran at the PROVIDER's default sampling, while the product judges at `JUDGE_SAMPLING = 0.0` -- the constant this same session added, and the twelfth `CALL_IDENTITY_DIMENSIONS` term. Re-run at 0, the same v6 text scores **265 right and ZERO malformed or uncitable answers** against 259 and 8. The brace sentence, measured at 0, costs four first choices. **Run 21 said the same thing and the lead did not read it**: 330 product answers, none malformed.
+
+Both harnesses now default `--temperature` to 0, with the reason in the flag's own help, so a bench arm is in the product's condition unless someone asks for sampling on purpose. Every number in §18.85-§18.88 was taken at the default and should be read as noise at the scale of one or two files; §18.90 restates the ones that matter at 0.
+
+### 18.90 WHAT THE JUDGE ACTUALLY SCORES, AT THE PRODUCT'S OWN SETTING (16 Sep, 20:30)
+
+Fast model, temperature 0, the file's own name present in every arm, graded against the key with review file 15's word map.
+
+| KIND stage, 310 dossiers | first choice is the key's | key is in what the judge SAID (first choice or its own alternatives) | key in neither | declined | malformed |
+| --- | --- | --- | --- | --- | --- |
+| whole-library v6 | 265 (85.5 %) | 299 (96.5 %) | 10 | 1 | 0 |
+| **whole-library v7 (adopted)** | **266 (85.8 %)** | **302 (97.4 %)** | **7** | 1 | 0 |
+| whole-library v9 (brace sentence) | 262 (84.5 %) | 298 (96.1 %) | 11 | 1 | 0 |
+
+| SITUATION stage, 179 dossiers with the kind settled | first choice | + key among its alternatives | outright wrong | declined | malformed |
+| --- | --- | --- | --- | --- | --- |
+| **level v8 (kept)** | **152 (84.9 %)** | **177 (98.9 %)** | **2** | 0 | 0 |
+| level v9 (the name described) | 148 (82.7 %) | 173 (96.6 %) | 2 | 0 | 0 |
+
+**THE HEADLINE, and it is the answer to "why is it not 99 %".** On the situation stage the key is in what the judge said on **177 of 179 files -- 98.9 %** -- and on the kind stage on **302 of 310 -- 97.4 %**. Only **two** level files and **seven** kind files have the key in neither the answer nor the alternatives. The judge is not making thirty-three mistakes; it is naming the right answer and ranking it second on twenty-five of them, and `00` amendment 7 already says the run may prefer an alternative its own evidence supports. **The remaining work at classification is a tie-break over evidence the run holds, not a better judge.**
+
+**THE SAME PARAGRAPH HELPS ONE STAGE AND HURTS THE OTHER**, which is worth keeping. Describing the filename gains the kind judge 1 first choice and 3 on the alternatives measure; it costs the level judge 4. At the kind question the name is often the only word about what a file was FOR. At the level question the kind is already settled, the menu is one kind's situations, and a generic or a camera's name pulls the judge off the text that was deciding it. A text change is not good or bad in itself; it is good or bad at a question.
+
+### 18.91 THE FLAT ROOT IS THE OWNER'S ACTUAL FOLDER, WHICH IS THE PRODUCT'S WHOLE POINT (16 Sep, 20:40)
+
+§18.88 found 365 of 371 files loose in the scanned root and the lead's first thought was that the corpus build had flattened it. It had not: `.groundtruth/build_corpus2.py` copies to `OUT/rel` with `mkdir(parents=True)`, so the relative path is preserved exactly, and on disk the corpus has one subfolder holding six files. **The owner's Downloads folder really is a heap of 365 loose files.**
+
+That settles three things at once. **The evidence poverty is real and not an artefact** -- on a genuine downloads folder there is no folder structure to read, and the template's "A folder path, when one is released, is evidence of what the file is part of" is dead text for 98 % of a real corpus. **The neighbour mechanism is worse than unmeasured for this product's core case**: neighbours can only carry meaning where folders divide files, and the folders this product exists to fix are precisely the ones that do not. It is a mechanism for already-organised regions of a disk, not for the heap. **And the judge's score is better than it looked**: 97.4 % and 98.9 % of the key is in what it said, from the file's own bytes and the file's own name, with no folder to help it, against a key its author wrote with the whole corpus in view.
+
+### 18.92 COVERAGE IS CLOSED AND THE GROUP QUESTION IS ALREADY BUILT (16 Sep, 21:10)
+
+The lead counted the files with a model answer at site G, found 315 of 371, and spent twenty minutes treating the other 56 as a coverage hole -- 38 of them ordinary media the run had "silently skipped". **The run says otherwise on its own screen, in a sentence written for this exact case:** "38 settled by kind: pictures and recordings with no text in them at all. Their whole released evidence is a path, a mime type and an extension, so they are captures and the rules say so; no model was asked, because there is nothing in them for one to read." The lead's 38 and the product's 38 are the same 38. The bypass is `settled_by_file_kind`, `00`:110's one surviving one, and it is measured: on 13 Sep the model given a mime type answered "none" for 36 of 50 such files, a call spent to be told what the extension already said.
+
+**Coverage, stated once so it is not re-derived wrongly a third time.** 371 files = **17** held by the rules and filed by the person + **38** settled as captures + **315** put to the model + **1** decline. Nothing is skipped and nothing is silent.
+
+**AND THE GROUP QUESTION THE OWNER ASKED FOR ON 16 SEP IS IN THE PRODUCT ALREADY.** Run 21 ends with it: "Which of these is photos? 67 files sit under photos, and their own facts fit 9 of the situations this library carries equally", then the same for research (41 files, 8 situations), for nonprofit, and for the rest -- one question per branch, answered once for every file under it, with the library's own members as the options. What the lead described to the owner as "designed, not built" is built, runs, and printed at the end of the last run. What is missing is not a mechanism: it is the person's answers, which is what the screen is for.
+
+**The lesson, and it is the same one as §18.88 and §18.89.** Three times in one evening the lead built a story on a number it derived itself when the product had already printed the answer: the neighbour experiment against a corpus whose shape it had not checked, the brace sentence against a temperature the product does not use, and this. The run's own screens are evidence and should be read before the database is queried, not after.
+
+### 18.93 THE RULES ARE NOT THE TIE-BREAK EITHER, AND THAT CLOSES THE QUESTION (16 Sep, 21:30)
+
+`00` amendment 7 permits the run to prefer one of the judge's own alternatives where the run's evidence supports it. The run holds one independent opinion at that moment: the RECOGNISER's -- which candidates the rules raised for this file, already in the dossier as `candidate_schema` items that say "raised" or "not raised". Tried on the 36 kind files where the key is among the alternatives, preferring whichever candidate the rules raised:
+
+| | files |
+| --- | --- |
+| the judge's first choice was already the key's | 266 |
+| near: the key is one of its alternatives | 36 |
+| -- the rules raised none of the judge's candidates, so the first choice stands | 21 |
+| -- the tie-break moved the answer to something else wrong | **14** |
+| -- the tie-break moved the answer to the key | **1** |
+
+**Net minus thirteen**, measured with no call spent -- the data was on disk. It is the same fact amendment 7(c) retired `settled` for: the rules' top-1 accuracy on this corpus is 32.2 %, so letting them overrule a judge that is right 85.8 % of the time costs more than it buys.
+
+**Five mechanisms, five rejections, and they rhyme.** Neighbour tie-break (0 ties broken), union menu (-11), run-off (-7), folder neighbours (untestable on a heap), rules-raised tie-break (-13). Every one of them re-ranks evidence the run already used. The only thing that ever moved the number was evidence the judge had not seen -- its own file's name -- and there is nothing left of that kind in a flat folder.
+
+**So the classification stage is finished, and the honest statement of where it lands is this.** The judge's first choice is the key's on 85.8 % of kinds and 84.9 % of situations; the key is in what the judge SAID on 97.4 % and 98.9 %. Nothing the run holds can turn the second number into the first. The thing that can is the person, and the product already asks them: the branch question at the end of every run puts one question to the owner for every file under a branch. That is not a gap to build; it is a screen to answer.
+
+### 18.94 THE BRANCH QUESTIONS WERE PUT TO THE OWNER AND THE DESIGN HAD ALREADY RETIRED THEM (16 Sep, 22:00)
+
+The lead extracted run 21's nine branch questions into a review sheet and told the owner they were "the last thing classification is waiting for". The owner read it and answered: *"bro what type of questions is this, how does this even make sense as a question, I don't even know what you are asking me"* -- and then, correctly, *"I thought after this we work on branches, we are not sorting yet? We have a gist of everything and then we do file template proposals and then build those."*
+
+**`00`'s amendment of 14 Sep, item 2, had already ruled it**: "The flow is: parse, the gist, a proposed structure the person edits, then filing... **The branch questions of item 1 become EDITS TO THAT PROPOSAL rather than a quiz.**" The lead handed the owner the quiz the owner's own amendment retired.
+
+**Four things are wrong with the screen itself, and they are worth keeping because the same mistakes are available to the proposal that replaces it.** It never names WHICH files it is asking about -- "77 files sit under academic" is unanswerable when the 77 are not shown. It forces ONE situation onto a whole kind, so transcripts, study-abroad forms and coursework get one answer and it is wrong for most of them; `question_for_situation` was written for a BRANCH where two situations both fire, and a kind is not a branch. One question is "Which of these is Downloads?" -- the scanned folder's own label, offered `career.*` answers. And the options are library identifiers (`academic.iep-accommodation-plans`) where the library carries a plain one-line description of every member, which the JUDGE is shown and the person is not; the docstring's rule is "the library's own names, verbatim, not a friendlier phrasing", and the one-line IS the library's own words, so showing it breaks no rule.
+
+**Where this leaves the order of work**, stated because the lead has now twice got ahead of it: parse (done), classification (done, §18.90-§18.93), **the gist (NOT BUILT -- this is what is next)**, a proposed structure the person edits, then the sort. Site E's per-file template is inside the fourth step and is still unratified with no producer (§18.6). The sheet is retired to `review/superseded/` with the amendment quoted on it.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
