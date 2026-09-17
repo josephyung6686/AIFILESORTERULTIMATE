@@ -2644,6 +2644,27 @@ The reference's Education branch splits `school -> term -> subject -> work_type`
 
 **THREE RULINGS THE OWNER OWES BEFORE MUCH OF THIS CAN BE BUILT.** (a) A `life` vocabulary in the library -- new closed vocabulary, the owner's to ratify; the reference's own top level is the proposed draft. (b) Root-level `98 Review and Unsorted` / `99 Archive` against `00`:99's "a global catch-all should not become the product's default answer to ambiguity". (c) Site D's ratification, without which per-file residual accept/reject has no writer.
 
+### 18.101 RUN 22: THE COVERAGE WON, AND THE NEW COUNTER EARNED ITSELF ON ITS FIRST RUN (17 Sep, 07:40)
+
+Run 22 finished. Site G's block, and the partition closes exactly -- 222 + 1 + 23 + 38 + 87 = 371:
+
+| outcome | files |
+| --- | --- |
+| **given their own situation** | **222** (run 21: 154) |
+| asked and left alone -- a real decline | **1** |
+| held and not asked (protected) | 23 |
+| settled by kind (captures) | 38 |
+| **asked and no answer came back** | **87** |
+| nothing to read / no target / out of time / reused | 0 |
+
+**THE COUNTER JUSTIFIED ITSELF IMMEDIATELY.** Under last night's code this screen would have read *"88 asked and left alone: a model was asked and named no situation it could cite."* Eighty-seven of those eighty-eight were calls that never landed and exactly ONE was a model declining. The old sentence would have been wrong about 98.9 % of the files it described, and it would have sent the owner looking for a better prompt when what failed was a socket. §18.96 was not a tidy-up; it was the difference between a true screen and a false one, measured on the first run that used it.
+
+**AND §18.95'S FACTS ARE LIVE ON THE OWNER'S CORPUS.** `file_facts` now carries **222 `situation` rows over 222 distinct files and 214 `situation_alternative` rows**. `00` amendment 11's "the sort reads both" finally has something to read -- though as §18.100 records, it still has no reader, which is `106` Phase 2.
+
+**THE LARGEST REMAINING LOSS IS THE TRANSPORT, NOT THE JUDGE.** 87 files of 371 -- 23 % of the corpus -- got no judgement because a call did not land. `llm_call_failure` across all runs of this database: 486 rows, **397 `APIConnectionError`**, 27 `APIStatusError`, 62 carrying a status payload; `failure_class` is `client_raised` for every one of them, which is a bucket that names nothing and should be split the way `declined` was. Run 21 dropped 54 calls, run 22 dropped 87 -- more, because run 22 re-asked every file under v7 and so made more calls. **No amount of prompt work recovers these files; they need the call to land.** That is now the highest-value fix in the classifier, ahead of anything in the text, and it is a retry-and-transport question rather than a judgement one.
+
+**What run 22 does NOT settle.** The grade. `tools.groundtruth` has not been run against it yet, so the accuracy of those 222 answers is unmeasured here; §18.90's 97.4 % is a replay number over run 21's dossiers and is not this run's. The branch questions the run printed are the schema-id roots §18.100 diagnoses -- `finance`, `nonprofit`, `photos`, `research`, with 68 files under `photos` and 53 under `research` -- and they are unchanged by this run, as expected: nothing in run 22 touched the partition key.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
