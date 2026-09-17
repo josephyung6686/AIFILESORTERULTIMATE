@@ -345,6 +345,32 @@ Each amendment below is dated and was ruled by the owner; the ruling and its con
 4. **The person's rulings on run 12's holds**, applied as gestures by the lead: travel and health records are kept; the other held files are released, save the two the owner's word of 13 Sep called protected (an account document; the document with a checksum-valid identity number), which stay held until the owner says otherwise.
 
 
+### Amendments of 2026-09-17 (the owner, in session, ruling the four questions `104` §18.100 put to them; applied by the lead as written; `104` §18.100-§18.103, plan `106`)
+
+12. **THE TOP LEVEL IS A LIFE, NOT A KIND.** The owner, asked whether the tree's top level should be named after areas of their life instead of after file kinds: **"Yes -- use my reference's list."** So the library's situation rows gain a `life` attribute drawn from the owner's own reference tree -- *Personal, Family and Household, Work, Career, Education, Teaching, Finance and Taxes, Home and Property, Health, Legal and Insurance, Vehicles, Travel, Photos and Media, Creative and Hobbies, Technology, Reference Library* -- and `partition_by_branch` keys on `life_of(situation)` instead of on `schema_id`.
+
+    **AMENDMENT 9 STANDS UNBROKEN, and this is the test it passes.** A situation still never becomes a folder name. The LIFE is an attribute of the template the situation points at, exactly as `folder_levels_for` already points a situation at its levels; what changes is the partition KEY, not a label. `104` §18.100 records the discriminator: a change that only renames the branches would have been refused.
+
+    This is new closed vocabulary and it is the owner's, ratified here. Until it is in the library, `nonprofit`, `photos` and `research` are schema identifiers worn as folders, which `104` §18.100 measured as the reason the proposed tree reads as a taxonomy of kinds.
+
+12a. **AND THE LIFE LIST IS A MENU, NOT A TREE** (the owner, in the same session, correcting the lead before it was built: *"like we have major templates right and it's kind of based on what we have but also generic stuff -- based on the guy's or girl's files?? it's not really like a set thing, it really depends."*). The sixteen above are CANDIDATES. Three rules follow and they are the whole of this amendment:
+
+    **(i) A life appears only where the person's own files put it.** The list is the menu the product may choose from, never the tree it builds. A student's corpus yields Education, Career, Photos and Media; it does not yield an empty `Vehicles/` or `Home and Property/` because the library happens to name them. This is `00`:67-68 already -- *"activate only relevant branches, derive actual nodes from the corpus"* -- said one level higher, and it is what keeps the reference a reference rather than a universal taxonomy imposed on everybody.
+
+    **(ii) The person may rename, merge, split or remove any life, and ADD one the library never imagined.** "It really depends" is the requirement: a life the sixteen do not cover -- a congregation, a band, a chronic illness, a family business -- must be addable by the person without a library change, and must then behave as any other life does. A closed menu with no door out would be the branch-questions quiz again, one level up.
+
+    **(iii) The menu stays closed to the MODEL and open to the PERSON.** The judge chooses only from the library's lives, because an invented life is an invented folder and `00` amendment 7's whole discipline is that the model picks from a list it was shown. The person is under no such rule: their addition is a user-confirmed fact, which already outranks everything a model says.
+
+    What this forbids, stated so a later reader cannot mistake it: shipping the sixteen as a skeleton every corpus is poured into. The number of lives a real tree shows is a number the CORPUS decides, and on the owner's own files the lead expects far fewer than sixteen.
+
+13. **A ROOT-LEVEL `98 Review and Unsorted` AND `99 Archive`, AND THIS AMENDS `00`:99.** Asked where files the product cannot place should go, the owner chose **"Root-level 98 and 99, as my reference says."**
+
+    `00`:99 says *"A global catch-all folder should not become the product's default answer to ambiguity."* That sentence is now qualified rather than deleted, and the qualification is the owner's: a catch-all may not be the product's DEFAULT ANSWER -- it may not absorb a file the product could have placed -- but it MUST exist, be typed, and be visible at the root, because on this corpus 221 files of 371 carry no destination-eligible fact and a majority is not an edge case. The rule that survives: a file goes to `98` only when no branch can hold it, the sets inside `98` are characteristic and named (screenshots, standalone PDFs, unsupported or encrypted, possible duplicates, deferred decisions), and every one is offered to the person before anything moves.
+
+14. **SITE D IS RATIFIED, so a leftover file can be decided one at a time.** The owner: **"Ratify site D -- give me per-file control."** Until now `--review-set` recorded a choice and applied nothing, and leftovers could only be accepted or rejected a whole pile at a time. The lead shows the text before it acts on anything, per the standing rule that an unratified text never crosses the internet.
+
+15. **THE NO-SITUATION ARM STOPS ASKING GROUP-LEVEL QUESTIONS.** The owner: **"Close it -- respect the withdrawal."** `00`:11.2 step 2 withdrew the per-file `school` question; the fact pass's no-situation arm asks the whole pending allowlist and strips nothing, so it asks it anyway, guarded by one sentence of prompt prose. `104` §18.100 measured the proof: `target_school` is a folder level in 0 of 208 situations, so no per-situation door can ask it, and 7 files carry it. Group-level fields are now stripped in that arm as they are in the other.
+
 ### Amendments of 2026-09-16 (the owner, in session, reading the run-21 measurements; applied by the lead as written; `104` §18.85-§18.97)
 
 11. **The sort reads BOTH the judge's choices, so both are stored and both are the measure** (the owner, 16 Sep, on the two columns of `104` §18.90: *"first and second choice is fine coz the sorting will use both options so I think it's great"*). Site G's answer is written as facts on the file -- `situation` for what it named, one `situation_alternative` row per alternative it also named, in its own ranking order (`104` §18.95). Neither is destination-eligible, because amendment 9 stands: they are inputs to the sort and never levels of it.

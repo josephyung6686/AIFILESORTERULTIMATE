@@ -1,102 +1,142 @@
 # The Sort: Reaching the Reference Tree — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task by task. Steps use checkbox (`- [ ]`) syntax for tracking. **One builder at a time on this machine** — six read-only agents alone stretched a 72-second test run to fifty minutes on 17 Sep, and two whole-suite runs have been killed for memory. Never run a builder while a corpus run is live.
+> **For agentic workers:** REQUIRED SUB-SKILL: use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task by task. Steps use checkbox (`- [ ]`) syntax.
+>
+> **NOTHING IN THIS PLAN HAS BEEN EXECUTED.** The owner's instruction of 17 Sep: *"please plan the sort but not execute it yet."* This file is the plan they asked for. Do not start Phase 1 without their word.
+>
+> **One builder at a time on this machine.** Six read-only agents alone stretched a 72-second test run to fifty minutes on 17 Sep, and two whole-suite runs have been killed for memory. Never run a builder while a corpus run is live.
 
-**Goal:** Make the product's proposed tree reach the level of the owner's "Ideal Multi-Role Personal File Tree" — a top level named after the person's *lives*, branches whose depth comes from real facts, residual material given typed homes rather than piles, and a person who edits the tree itself through screens the run stops at.
+**Goal:** Make the proposed tree reach the level of the owner's *Ideal Multi-Role Personal File Tree* — a top level named after the person's own lives, drawn from their own files; branches whose depth comes from real facts; leftovers given typed homes rather than piles; and a person who edits the tree itself through screens the run stops at.
 
-**Architecture:** Nothing here is greenfield. `src/tree_design/` (11,099 lines) already holds 63 branch templates whose dimension orders spell the reference's own columns; `src/grouping/`, `src/placement/`, `src/apply_run/` and `src/structure_file.py` are built and tested. The gap, diagnosed in `104` §18.100, is in four specific places: the partition key is the file's KIND, there is no vocabulary of lives to key on instead, the facts the folder levels are made of are produced for few files, and the person edits FACTS rather than the TREE with no gate until the run is over. Each phase below moves one of those and is measurable on the owner's corpus before the next begins.
+**Architecture:** Nothing here is greenfield. `src/tree_design/` is 11,099 lines and already holds 63 branch templates whose dimension orders spell the reference's own columns — `def.subject-work-record` declares `holder_institution > cycle_period > subject_anchor > artifact_kind`, which is the reference's Education column, written months ago. `src/grouping/`, `src/placement/`, `src/apply_run/` and `src/structure_file.py` are built and tested. The gap, diagnosed in `104` §18.100 from six read-only analyses, is in four specific places. Each phase moves one and is measured on the owner's corpus before the next begins.
 
 **Tech stack:** Python 3.12, SQLite, pytest (`-p no:randomly`, targeted files, `nice -n 15`). No new dependencies.
 
 ---
 
-## The measurement every phase is judged against
+## The four things that are actually wrong
 
-`~/.graph-agent/lead/corpus2-gate1/run12.sqlite`, 371 files, read-only, aggregates only:
-
-| destination-eligible fields on one file | files |
-| --- | --- |
-| none | 221 |
-| one | 121 |
-| two | 22 |
-| three | 6 |
-| four | 1 |
-
-`media_type` 48, `work_type` 46, `subject` 35, `institution` 17, `term` 7, `target_school` 7, `school` 6, `artifact_type` 6, `project` 6. `employer` 0. Origins: `llm_interpretation` 472, `rule` 232, `deterministic_extractor` 135.
-
-49 groups, all `supported` and `coherent`, anchored on `duplicate_family` 102, `media_type` 36, `work_type` 23, `subject` 12, `term` 3 — **161 of 176 anchors are duplicates, format or kind; 15 are about what the work was for.**
-
-**Measure against `run12.sqlite`, never `scan.sqlite`** — the latter is an empty shell and reading it is what produced the first, wrong version of this table (`104` §18.100).
+1. **The partition key is the file's KIND.** `partition_by_branch` names each branch `label=schema_id` (`src/branch_situation.py:465`), so `nonprofit`, `photos`, `research` are internal identifiers worn as folders.
+2. **There is no vocabulary of lives to key on instead.** Verified: no area name exists anywhere in the template or recognition libraries; `example_label_chains` are all `[]`. **Undesigned, not unbuilt.**
+3. **The facts the folder levels are made of are produced for almost no file.** 221 of 371 carry none. Levels build only where facts divide (`materialise.py:94`), so templates that already spell the reference collapse for want of values.
+4. **The person edits FACTS, not the TREE, and is asked nothing until the run is over.** A folder is *"where the facts about the files under it put it"* (`cli.py:22405`). Two of the reference's five verbs exist, both indirect. There is no `input()` anywhere in `src/`.
 
 ---
 
-## Three rulings the owner owes, and what each blocks
+## The measurement every phase is judged against
 
-| ruling | blocks | proposed draft |
-| --- | --- | --- |
-| **(a) A `life` vocabulary in the library** — new closed vocabulary, the owner's alone to ratify | Phase 3, Phase 4 | The reference's own top level: Personal, Family and Household, Work, Career, Education, Teaching, Finance and Taxes, Home and Property, Health, Legal and Insurance, Vehicles, Travel, Photos and Media, Creative and Hobbies, Technology, Reference Library |
-| **(b) Root-level `98 Review and Unsorted` / `99 Archive`**, against `00`:99's *"a global catch-all should not become the product's default answer to ambiguity"* | Phase 7 | The reference wants them; `00` forbids them. On a corpus 60 % of which has no facts, this decides the shape of the majority |
-| **(c) Site D ratification** (R-102 also sits here) | Phase 6, Phase 7's per-file residual gesture | Without it `--review-set` records a choice and applies nothing |
+`~/.graph-agent/lead/corpus2-gate1/run12.sqlite`, 371 files, read-only, aggregates only. **Never `scan.sqlite`** — it is an empty shell, and reading it produced the first, wrong version of this table (`104` §18.100).
 
-Phases 1, 2 and 5 need no ruling and are where work starts.
+| destination-eligible fields on one file | files |
+| --- | --- |
+| none | **221** |
+| one | 121 |
+| two | 22 |
+| three | 6 |
+| four | **1** |
+
+`media_type` 48, `work_type` 46, `subject` 35, `institution` 17, `term` 7, `target_school` 7, `school` 6, `artifact_type` 6, `project` 6, `employer` **0**. Origins: `llm_interpretation` 472, `rule` 232, `deterministic_extractor` 135 — **the model, not the rules, is this product's main fact producer.**
+
+Groups: 49, all `supported` and `coherent`, anchored on `duplicate_family` 102, `media_type` 36, `work_type` 23, `subject` 12, `term` 3 — **161 of 176 anchors are duplicates, file format or kind; 15 are about what the work was for.** `memberships` covers **133 of 371 files**; 238 are in no group. Every one of the 266 memberships is `decision_source='rules'` — **no model has ever accepted or rejected a group member.**
+
+Judge quality, run 22's own facts against the owner's key (`104` §18.103): first choice **86.9 %**, key-in-what-it-said **97.7 %**, agreeing with the replay's 97.4 %. **The classifier is not the bottleneck. The sort is.**
+
+---
+
+## The owner's rulings of 17 September
+
+All four given in session; recorded as `00` amendments 12, 12a, 13, 14, 15.
+
+| ruling | what it unblocks |
+| --- | --- |
+| **Lives, from the reference's list** | Phases 3, 4 |
+| **…but as a MENU, not a tree** (amendment 12a) | shapes Phases 3, 4 — see below |
+| **Root-level `98 Review and Unsorted` / `99 Archive`** | Phase 7 |
+| **Site D ratified — per-file control of leftovers** | Phases 6, 7 |
+| **Close the no-situation arm's group-level questions** | Phase 0 |
+
+### Amendment 12a is the one that shapes everything
+
+The owner, correcting the lead before it was built: *"it's kind of based on what we have but also generic stuff — based on the guy's or girl's files?? it's not really like a set thing, it really depends."*
+
+- **A life appears only where the person's own files put it.** The sixteen are the menu the product may choose from, never the tree it builds. A student gets Education, Career, Photos and Media — not an empty `Vehicles/`.
+- **The person may rename, merge, split, remove, and ADD a life the library never imagined.** A congregation, a band, a family business. Without a library change.
+- **Closed to the MODEL, open to the PERSON.** The judge picks only from the library's lives (an invented life is an invented folder); the person's addition is a user-confirmed fact, which already outranks any model.
+
+**What this forbids:** shipping sixteen folders as a skeleton every corpus is poured into. On the owner's own files the lead expects far fewer than sixteen, and a phase that produces sixteen has failed its gate.
 
 ---
 
 ## Roadmap
 
-| phase | goal | gate | needs |
-| --- | --- | --- | --- |
-| **1** | Measure before building; stop two screens overstating | A grouping number exists against the owner's own labels; no screen in the residual/protected path claims more than the run did | — |
-| **2** | Make the situation facts readable | An unsettled branch stops going flat; measured on run 22's database | — |
-| **3** | Partition on a life, not a schema | Root names on the owner's corpus are lives | ruling (a) |
-| **4** | Fold branches into areas | 49 groups become a small set of areas, not 49 root siblings | ruling (a) |
-| **5** | Stable node keys, then phase gates | An edit survives a re-run; three screens the person answers mid-flow | — |
-| **6** | Fact producers | The 221 drops | ruling (c) |
-| **7** | Depth, flatten, residual homes | Uneven depth matching the reference's column; every residual set has an offered home | rulings (b), (c) |
+| phase | goal | gate — how we know it worked |
+| --- | --- | --- |
+| **0** | Honour the rulings that need no new machinery | The no-situation arm strips group-level fields; site D's text is before the owner |
+| **1** | Measure before building | A grouping number exists against the owner's own group labels |
+| **2** | Make the situation facts readable | An unsettled branch stops going flat; the level answer becomes a fact |
+| **3** | Partition on a life, not a schema | Root names on the owner's corpus are lives, and **fewer than sixteen** |
+| **4** | Fold branches into areas | 49 groups become a small set of areas, not 49 root siblings |
+| **5** | Stable node keys, then phase gates | An edit survives a re-run; three screens the person answers mid-flow |
+| **6** | Fact producers | The 221 drops |
+| **7** | Depth, flatten, residual homes | Uneven depth matching the reference; every leftover set has an offered home |
 
-Phases 2–7 are one paragraph each below. **Phase 1 is written in full.** Write `107` with Phase 2 in full when Phase 1 lands — a plan written before its predecessor's measurement is the failure mode this repository keeps paying for.
+**Phases 0 and 1 are written in full below.** Phases 2–7 carry their goal, their seam, their gate and their risk — enough to start, not enough to skip the thinking. **Write each phase's full task list when its predecessor's gate is met**, never before: a plan written ahead of its predecessor's measurement is the failure mode this repository keeps paying for (`104` §18.99).
+
+---
+
+# Phase 0 — Honour the rulings
+
+Small, unblocked, and two of them are the owner's explicit word. Do these first because Phase 6 depends on the site-D text existing and because the open arm is a live privacy question.
+
+### Task 0.1: Strip group-level fields in the no-situation arm
+
+**Ruling:** amendment 15 — *"Close it — respect the withdrawal."*
+
+**Files:** `src/model_facts.py` (`open_question`, ~line 271, the `folder_levels is None` branch) · `src/cli.py:15712` (`anchor_level_fields`) · Test: `tests/p6/` beside the existing allowlist tests.
+
+**The evidence this exists:** `target_school` is a folder level in **0 of 208 situations**, so no per-situation door can ask for it — and 7 files carry it. They can only have come through this arm.
+
+- [ ] **Step 1: Write the failing test.** A file with an academic-active schema and NO situation named must not be offered `school` or any other member of `GROUP_LEVEL_ROLES` in its pending vocabulary. Assert on the question's vocabulary, not on the prompt text — prose is what is guarding it today and prose is what failed.
+- [ ] **Step 2: Run it, confirm it fails,** and confirm it fails because the field IS offered (not because the fixture is wrong).
+- [ ] **Step 3: Strip them.** In the `folder_levels is None` branch, subtract `GROUP_LEVEL_ROLES`' fields exactly as the per-situation branch already does. One expression, same source of truth — do not restate the role list.
+- [ ] **Step 4: Run the test and `tests/p6`.** Expect green.
+- [ ] **Step 5: Commit.** `fix(00 amendment 15): the no-situation arm strips group-level fields too`
+
+### Task 0.2: Put site D's text in front of the owner
+
+**Ruling:** amendment 14 — *"Ratify site D — give me per-file control."* The standing rule is that the lead shows the text before it acts on anything and an unratified text never crosses the internet.
+
+- [ ] **Step 1:** Write the current `d_residual` template, its schema and its policy to `~/.graph-agent/lead/corpus2-gate1/review/` with a plain-language note saying what ratifying it will let the product do, and what it will then send where.
+- [ ] **Step 2:** Tell the owner it is there. **Do not flip the row.** Ratification is theirs; amendment 14 is their intent, and the text itself still needs their eyes.
+- [ ] **Step 3:** On their word, add a NEW manifest row with `status: ratified` — never edit a recorded row — and record what it replaced.
+
+**Gate:** `grep -rn "GROUP_LEVEL_ROLES" src/model_facts.py` shows the strip in both arms; site D's text is in the review folder.
 
 ---
 
 # Phase 1 — Measure before building
 
-**Why first.** `grouping/` has never been graded. `tools/groundtruth/labels.py` has carried a hand-keyed `group` per file since 11 September and `tools/groundtruth/score.py` has never read it. Every claim about grouping quality to date — the lead's included — is unmeasured, and Phases 3 and 4 both change what groups become. Grading first is the owner's own standing rule and `104` §18.99's first failure mode.
+**Why first.** `grouping/` has never been graded. `tools/groundtruth/labels.py` has carried a hand-keyed `group` per file since 11 September and `tools/groundtruth/score.py` has never read it. Every claim about grouping quality — the lead's included — rests on nothing, and Phases 3 and 4 both change what a group becomes.
 
-**Two parts.** Task 1 makes the number exist. Tasks 2 and 3 close the two screens that claim more than the run supports, found by the residual analyst and identical in kind to `104` §18.96.
+### Task 1.1: The run's groups reach the scorecard
 
----
+**Files:** `tools/groundtruth/measure.py` (`Observation`, line 153, and its reader) · `tools/groundtruth/score.py` (new `group_cohesion`, beside `family_cohesion` at line 376) · `tools/groundtruth/report.py` · Test: `tests/tools/test_groundtruth_group_score.py` (new)
 
-### Task 1: The run's groups reach the scorecard
+**Read first.** `family_cohesion` (`score.py:376-399`) is the model: takes `labels` and `observations`, keys on a label attribute, returns `(kept together, considered, scattered)`.
 
-**Files:**
-- Modify: `tools/groundtruth/measure.py` — `Observation` (line 153), and the reader that builds it
-- Modify: `tools/groundtruth/score.py` — new `group_cohesion`, beside `family_cohesion` (line 376)
-- Modify: `tools/groundtruth/report.py` — one block, where the family line is printed
-- Test: `tests/tools/test_groundtruth_group_score.py` (new)
+**`Observation` carries no group field today**, which is why this is not the five-line wire-up it was reported as.
 
-**Read first.** `family_cohesion` (`score.py:376-399`) is the model: it takes `labels` and `observations`, keys on a label attribute, and returns `(kept together, considered, scattered)`. `group_cohesion` is the same shape with two differences — it keys on `label.group`, and it compares against the run's OWN groups rather than against destinations, so it answers "did the product put these files in one group" and not "did it file them together".
-
-**`Observation` carries no group field today** (checked: no `group` in `measure.py`'s dataclass). That is why this task is not the five-line wire-up it was reported as.
-
-- [ ] **Step 1: Write the failing test**
-
-Create `tests/tools/test_groundtruth_group_score.py`:
+- [ ] **Step 1: Write the failing test.**
 
 ```python
 # tests/tools/test_groundtruth_group_score.py
 """`104` §18.100: the grouping stage has never been graded.
 
-`labels.py` has carried a hand-keyed `group` per file since 11 September and
-`score.py` has never read it, so every statement about grouping quality in this
-repository -- including the lead's -- rests on nothing. Phases 3 and 4 of `106`
-both change what a group becomes, and changing an ungraded thing is how `104`
-§18.99's first failure mode happens again.
-
 WHAT THIS MEASURES, and it is not placement. Two files the owner put in one group
-belong in one group whatever folder the run chooses for them; a run that splits
-them has failed at grouping even if it files both correctly, and a run that
-merges two of the owner's groups has failed even if every file lands well. So the
-number is pairwise over the owner's own groups and never touches `destination`.
+belong in one group whatever folder the run chooses; a run that splits them has
+failed at grouping even if it files both correctly, and `score_sorting` cannot
+see that because each file is `exact` on its own. So the number is over the
+owner's own groups and never touches `destination`.
 """
 from __future__ import annotations
 
@@ -115,89 +155,43 @@ class _Obs:
 
 
 def test_two_files_the_owner_grouped_and_the_run_grouped_are_kept_together():
-    """The whole claim, at its smallest.
-
-    SABOTAGE: make `group_cohesion` compare `destination` instead of
-    `group_ids`. This still passes on a run that files both files in one folder
-    without grouping them, which is the number the scorecard must not report.
-    """
     labels = {"a": _Label("g1"), "b": _Label("g1")}
     observations = {"a": _Obs(["run-7"]), "b": _Obs(["run-7"])}
-
-    together, considered, split = group_cohesion(labels, observations)
-
-    assert (together, considered, split) == (1, 1, ())
+    assert group_cohesion(labels, observations) == (1, 1, ())
 
 
 def test_two_files_the_owner_grouped_and_the_run_split_are_counted_split():
-    """SABOTAGE: return `considered` for `together` unconditionally. Red here."""
     labels = {"a": _Label("g1"), "b": _Label("g1")}
     observations = {"a": _Obs(["run-7"]), "b": _Obs(["run-9"])}
-
-    together, considered, split = group_cohesion(labels, observations)
-
-    assert (together, considered, split) == (0, 1, ("g1",))
+    assert group_cohesion(labels, observations) == (0, 1, ("g1",))
 
 
 def test_a_group_the_run_never_formed_is_counted_and_not_skipped():
-    """A file in no group of the run's is not a file the run got right.
-
-    `00`:259's standing rule read one stage earlier: a group the product never
-    formed must not vanish from the denominator, or the scorecard flatters a run
-    that grouped nothing at all.
-
-    SABOTAGE: `if not observation.group_ids: continue`. Then a run with an empty
-    `groups` table scores 0 of 0 and prints as perfect.
-    """
+    """`00`:259 one stage earlier: a group nobody formed must not read as a group
+    there was nothing to say about. SABOTAGE: `if not obs.group_ids: continue` --
+    then a run with an empty `groups` table scores 0 of 0 and prints as perfect."""
     labels = {"a": _Label("g1"), "b": _Label("g1")}
     observations = {"a": _Obs([]), "b": _Obs([])}
-
-    together, considered, split = group_cohesion(labels, observations)
-
-    assert (together, considered, split) == (0, 1, ("g1",))
+    assert group_cohesion(labels, observations) == (0, 1, ("g1",))
 
 
 def test_a_one_member_group_says_nothing_and_is_not_counted():
-    """`family_cohesion`'s own rule, and for its reason: a group with one placed
-    member cannot demonstrate keeping things together either way.
-
-    SABOTAGE: drop the `len(...) > 1` filter. `considered` inflates with
-    singletons and the rate stops meaning anything.
-    """
     labels = {"a": _Label("g1"), "b": _Label("g2")}
     observations = {"a": _Obs(["run-7"]), "b": _Obs(["run-9"])}
-
-    together, considered, split = group_cohesion(labels, observations)
-
-    assert (together, considered, split) == (0, 0, ())
+    assert group_cohesion(labels, observations) == (0, 0, ())
 
 
 def test_protected_files_are_not_graded_on_grouping():
-    """The standing rule: protected material is counted, never opened, never
-    filed automatically -- so it is not evidence about the grouping stage.
-
-    SABOTAGE: drop the `label.protected` guard. The scorecard then grades the
-    product on files it is forbidden to group.
-    """
+    """Protected material is counted, never opened, never filed automatically --
+    so it is not evidence about the grouping stage."""
     labels = {"a": _Label("g1", protected=True), "b": _Label("g1", protected=True)}
     observations = {"a": _Obs(["run-7"]), "b": _Obs(["run-9"])}
-
-    together, considered, split = group_cohesion(labels, observations)
-
-    assert (together, considered, split) == (0, 0, ())
+    assert group_cohesion(labels, observations) == (0, 0, ())
 ```
 
-- [ ] **Step 2: Run it and watch it fail for the right reason**
+- [ ] **Step 2: Run it.** `nice -n 15 python3 -m pytest tests/tools/test_groundtruth_group_score.py -p no:randomly -q` → `ImportError: cannot import name 'group_cohesion'`. Any other failure means the test is wrong; fix it first.
 
-```
-cd "/Users/jy/GRAPH AGENT" && nice -n 15 python3 -m pytest tests/tools/test_groundtruth_group_score.py -p no:randomly -q
-```
-
-Expected: `ImportError: cannot import name 'group_cohesion' from 'tools.groundtruth.score'`. Any other failure means the test file itself is wrong — fix it before writing code.
-
-- [ ] **Step 3: Write `group_cohesion`**
-
-In `tools/groundtruth/score.py`, immediately after `family_cohesion` (which ends at line 399):
+- [ ] **Step 3: Write `group_cohesion`,** immediately after `family_cohesion`:
 
 ```python
 def group_cohesion(labels: Mapping[str, Label],
@@ -206,17 +200,12 @@ def group_cohesion(labels: Mapping[str, Label],
     """`(kept together, the owner's groups with two or more files, the split)`.
 
     `104` §18.100: the grouping stage had no grade. This is it, and it is
-    deliberately NOT about folders. Two files the owner put in one group belong
-    in one group whatever destination the run picks; a run that files both
-    correctly and groups them apart has failed at grouping, and `score_sorting`
-    cannot see that because each file is `exact` on its own -- exactly the blind
-    spot `family_cohesion` was written for, one stage earlier.
+    deliberately NOT about folders -- see the test module for why.
 
     A group the run never formed stays in the denominator. `00`:259 forbids the
-    opposite: a file nobody decided about must not read as a file understood and
-    found unimportant, and a group nobody formed must not read as a group there
-    was nothing to say about. A run with an empty `groups` table therefore scores
-    zero, which is the truth about it.
+    opposite: a group nobody formed must not read as a group there was nothing to
+    say about. A run with an empty `groups` table therefore scores zero, which is
+    the truth about it.
     """
     wanted: dict[str, list[tuple[str, ...]]] = {}
     for path, label in labels.items():
@@ -229,53 +218,34 @@ def group_cohesion(labels: Mapping[str, Label],
     considered = {name: seen for name, seen in wanted.items() if len(seen) > 1}
     split = tuple(sorted(
         name for name, seen in considered.items()
-        # Together means every member shares at least one of the run's groups.
-        # Intersection and not equality: `00`:63 permits a file to belong to
-        # more than one accepted group, so two files that share one group and
-        # differ on a second have still been kept together.
+        # Intersection, not equality: `00`:63 permits a file in more than one
+        # accepted group, so two files sharing one group and differing on a
+        # second have still been kept together.
         if not set.intersection(*(set(s) for s in seen))))
     return len(considered) - len(split), len(considered), split
 ```
 
-- [ ] **Step 4: Run the test again**
+- [ ] **Step 4: Run the test.** Expect `5 passed`.
 
-```
-cd "/Users/jy/GRAPH AGENT" && nice -n 15 python3 -m pytest tests/tools/test_groundtruth_group_score.py -p no:randomly -q
-```
-
-Expected: `5 passed`.
-
-- [ ] **Step 5: Give `Observation` its `group_ids`**
-
-In `tools/groundtruth/measure.py`, add to the `Observation` dataclass (after `review_policy`, keeping the file's own convention that new fields go last and carry a default so every existing construction keeps working):
+- [ ] **Step 5: Give `Observation` its `group_ids`,** last and defaulted, following `review_policy`'s stated convention:
 
 ```python
     #: `104` §18.100: the groups the RUN put this file in, ids only. Last and
-    #: defaulted for `review_policy`'s stated reason -- a database written before
-    #: the grouping tables existed leaves it empty, which is the truth about such
-    #: a run: it formed no groups, so this file is in none of them.
+    #: defaulted for `review_policy`'s reason -- a database written before these
+    #: tables existed leaves it empty, which is the truth about such a run.
     group_ids: tuple[str, ...] = ()
 ```
 
-- [ ] **Step 6: Read them out of the database**
-
-Find where `measure.py` builds each `Observation` and add, beside the other per-file reads, a membership map built once for the whole run rather than per file:
+- [ ] **Step 6: Read them out of the database.** The columns are **confirmed** on the owner's database — do not re-derive them:
 
 ```python
-    # `104` §18.100. ONE QUERY FOR THE WHOLE RUN, not one per file: the scorecard
-    # walks every file and a per-file query here would be N round trips for a
-    # mapping that does not change. Read defensively -- a database written before
-    # this table existed has none, and that is a run that formed no groups rather
-    # than an unreadable one.
+    # `104` §18.100. ONE QUERY FOR THE WHOLE RUN, not one per file.
     #
     # `memberships` AND NOT `group_edges`. The edge table is the similarity GRAPH
     # -- `from_file_id`, `to_file_id`, `edge_type` -- and carries no `group_id` at
-    # all; membership lives here, one row per (group, file), with the same
-    # `superseded_by` discipline as every other table in this schema. An excluded
-    # or uncertain member is not a member: `decision` is filtered, not assumed,
-    # because a run whose model excluded a file has said something about it and
-    # counting that file as grouped would score the product on a judgement it
-    # made in the other direction.
+    # all. An excluded or uncertain member is not a member: `decision` is
+    # filtered, not assumed, because counting a file the model excluded would
+    # score the product on a judgement it made in the other direction.
     memberships: dict[str, list[str]] = {}
     try:
         for row in _rows(connection,
@@ -286,156 +256,77 @@ Find where `measure.py` builds each `Observation` and add, beside the other per-
         memberships = {}
 ```
 
-then pass `group_ids=tuple(sorted(memberships.get(file_id, ())))` into the `Observation(...)` construction.
+then pass `group_ids=tuple(sorted(memberships.get(file_id, ())))` into `Observation(...)`.
 
-**The shape this reads on the owner's corpus, so the implementer knows what right looks like:** `memberships` holds 266 live rows over 49 groups, covering 133 of 371 files; every row is `decision='included'` and `decision_source='rules'`. If the grading run reports far from 133 files in a group, the query is wrong, not the product.
+**What right looks like on the owner's corpus:** 266 live rows, 49 groups, **133 of 371 files**. A grading run far from 133 means the query is wrong, not the product.
 
-- [ ] **Step 7: Print it on the scorecard**
+- [ ] **Step 7: Print it** beside the family-cohesion line in `report.py`, in that file's own idiom. No percentage presented as a grade (`00`:101).
+- [ ] **Step 8: `nice -n 15 python3 -m pytest tests/tools -p no:randomly -q`.** A red older-database test means the reader change broke a path — fix the reader, never the fixture.
+- [ ] **Step 9: Take the number (lead only), on `run12.sqlite`.** This is Phase 1's gate and the baseline Phases 3 and 4 are judged against.
+- [ ] **Step 10: Commit.**
 
-In `tools/groundtruth/report.py`, beside the family-cohesion line, add a line of the same shape naming both numbers and the split groups by the owner's own label. Follow the file's existing wording conventions; do not invent a percentage presented as a grade (`00`:101).
+### Task 1.2 and 1.3: two screens that claim more than the run supports
 
-- [ ] **Step 8: Run the ground-truth tool tests**
+Both found by the residual analysis; both identical in kind to `104` §18.96 and §18.102.
 
-```
-cd "/Users/jy/GRAPH AGENT" && nice -n 15 python3 -m pytest tests/tools -p no:randomly -q
-```
+- [ ] **1.2** `PROTECTED_REVIEW_SET_WORDS` (`cli.py:15042`) says protected files are *"counted and named here"*; the card withholds the names, and the standing rule says protected filenames reach the plain report through no path. **The words are wrong** — change them, and update the pin at `tests/test_cli_report_at_scale.py:53`.
+- [ ] **1.3** A send into a review-only area is headed *"Ready for you to approve, then file into {where}"* (`cli.py:20746`), but `mutation/plan.py:189` refuses that write at apply, and most shipped areas take this path. Gate the heading on the area's own `moves_files`. Test both directions, or the fix becomes a heading that under-promises everywhere.
 
-Expected: all pass. A red test in `tests/tools/test_groundtruth_*` means the reader change broke an older database's path — fix the reader, never the fixture.
-
-- [ ] **Step 9: Take the number (lead only)**
-
-Only the lead runs this, on the owner's corpus, and reports aggregates:
-
-```
-cd "/Users/jy/GRAPH AGENT" && GRAPH_AGENT_NO_DOTENV=1 PYTHONPATH=src python3 -m tools.groundtruth ...
-```
-
-with the invocation the existing scorecard uses. **This number is Phase 1's gate and the baseline Phases 3 and 4 are judged against.**
-
-- [ ] **Step 10: Commit**
-
-```bash
-cd "/Users/jy/GRAPH AGENT"
-git add tools/groundtruth/measure.py tools/groundtruth/score.py \
-        tools/groundtruth/report.py tests/tools/test_groundtruth_group_score.py
-git commit -m "feat(104 §18.100): the grouping stage has a grade, against the owner's own group labels"
-```
-
----
-
-### Task 2: The protected review set stops claiming it names files
-
-**Files:**
-- Modify: `src/cli.py:15042-15046` (`PROTECTED_REVIEW_SET_WORDS`)
-- Test: `tests/test_cli_report_at_scale.py:53` pins the current wording and must change with it
-
-- [ ] **Step 1: Read both sides and confirm the contradiction**
-
-```
-cd "/Users/jy/GRAPH AGENT" && sed -n 15042,15047p src/cli.py && grep -n "card.protected" src/cli.py | head -3
-```
-
-The words say files are *"counted and named here"*; the card skips its examples when `card.protected`. One of the two is wrong, and the standing rule says which: protected filenames never reach the plain report, only `--show-protected`. **The words are wrong.**
-
-- [ ] **Step 2: Change the words**
-
-```python
-PROTECTED_REVIEW_SET_WORDS: tuple[str, str] = (
-    "Protected, and not filed in bulk",
-    "these are protected material, so they are counted here and not named, and "
-    "nothing was assembled about them. They are not filed in one gesture with "
-    "everything else; each one is yours to decide, and `--show-protected` names "
-    "them when you ask.",
-)
-```
-
-- [ ] **Step 3: Update the test's pin to the new words**
-
-In `tests/test_cli_report_at_scale.py:53`, replace the pinned string with the new one and add one line of reason above it naming `104` §18.100 and the rule that protected filenames reach the plain report through no path.
-
-- [ ] **Step 4: Run**
-
-```
-cd "/Users/jy/GRAPH AGENT" && nice -n 15 python3 -m pytest tests/test_cli_report_at_scale.py -p no:randomly -q
-```
-
-Expected: all pass.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add src/cli.py tests/test_cli_report_at_scale.py
-git commit -m "fix(104 §18.100): the protected review set is counted and not named, and its words say so"
-```
-
----
-
-### Task 3: A review-only area stops promising to file
-
-**Files:**
-- Modify: `src/cli.py:~20746` (the heading printed for a residual send)
-- Read: `src/placement/privacy.py:336`, `src/mutation/plan.py:189`
-- Test: whichever test pins that heading — find it with `grep -rn "then file into" tests/`
-
-- [ ] **Step 1: Confirm the contradiction with the code that refuses**
-
-```
-cd "/Users/jy/GRAPH AGENT" && sed -n 20740,20752p src/cli.py && sed -n 330,340p src/placement/privacy.py && sed -n 185,195p src/mutation/plan.py
-```
-
-A send into an area whose treatment is `reviewed` records `REVIEW_REQUIRED` and `not moves_files`; `mutation/plan.py` refuses that write at apply. The heading promises the opposite, and most shipped areas take this path.
-
-- [ ] **Step 2: Gate the heading on whether the area actually moves files**
-
-Print the "Ready for you to approve, then file into {where}" heading only when the destination area moves files, and otherwise a heading that says what will happen: the files are gathered under that name for you to read, and nothing is moved. Read the area's own `moves_files` (the attribute `privacy.py:336` tests) rather than re-deriving it.
-
-- [ ] **Step 3: Write a test that a review-only area is not promised a move**
-
-Place it beside the existing residual report tests. It must assert both directions — a moving area still says it will file, and a review-only area does not — or the fix becomes a heading that under-promises everywhere, which is the mirror of the defect.
-
-- [ ] **Step 4: Run the residual and report tests**
-
-```
-cd "/Users/jy/GRAPH AGENT" && nice -n 15 python3 -m pytest tests/test_cli_report_at_scale.py tests/apply -p no:randomly -q
-```
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add src/cli.py tests/
-git commit -m "fix(104 §18.100): a send into a review-only area no longer says it will be filed"
-```
-
----
-
-### Phase 1 gate
-
-Before Phase 2 starts, all three must hold:
-
-1. A grouping number exists for the owner's corpus and is recorded in `104`.
-2. `grep -rn "counted and named here" src/` returns nothing.
-3. No heading promises a move that `mutation/plan.py` refuses.
-
-Then run the suite in chunks (`scratchpad/suite_chunks.sh`) on a quiet machine — not while a corpus run is live — and record the result.
+**Phase 1 gate:** a grouping number exists and is in `104`; `grep -rn "counted and named here" src/` returns nothing; no heading promises a move that `mutation/plan.py` refuses. Then the chunked suite, on a quiet machine.
 
 ---
 
 # Phases 2–7
 
-**Phase 2 — Make the situation facts readable.** `situation` and `situation_alternative` were written on 16 September and have zero readers in `src/` outside their writer and the catalogue; `00` amendment 11's "the sort reads both" is designed, written and unread. `_signals_for_branch` emits one `recognition:{situation}` per BRANCH, or nothing when the branch is unsettled, and an empty signal set selects no template row and drops the branch to flat. Change the detection signals to be read per FILE from the `situation` fact, with `situation_alternative` as tie-break. **Gate:** on run 22's database, an unsettled branch stops going flat, and the count of branches that receive a template recipe rises. This is the prerequisite of Phase 3, not its rival — it changes which recipe a branch gets, not what the branch is called.
+### Phase 2 — Make the situation facts readable
 
-**Phase 3 — Partition on a life, not a schema.** `partition_by_branch` names each branch `label=schema_id` (`branch_situation.py:465`), which is why `nonprofit`, `photos` and `research` appear as folders. Add a `life` attribute to the recognition library's situation rows, carry it onto the applicability row, and key the partition on `life_of(situation)` read from the per-file fact. `00` amendment 9 holds unbroken: the situation still never becomes a folder name; the life is a template attribute the situation points at, exactly as `folder_levels_for` already points at levels. The discriminator that makes this the right change rather than a rename: it alters the partition KEY, not its label. **Needs ruling (a).** **Gate:** root names on the owner's corpus are lives, and the Phase 1 grouping number has not fallen.
+`situation` and `situation_alternative` were written on 16 Sep and have **zero readers** in `src/` outside their writer and the catalogue. Amendment 11's *"the sort reads both"* is designed, written and unread.
 
-**Phase 4 — Fold branches into areas.** `horizontal_candidates` emits one root card per accepted group plus one per directory, so the owner's 49 groups would be 49 root siblings; `00`:67's "aggregates into a small set of proposed major areas" has no producer. Add one function between `horizontal_candidates` and `design_tree`'s chosen filter that folds group cards by life into a `BranchCandidate` with plural `accepted_group_ids` — the pipeline already handles plural — labelled from the life and renameable by the person. No new node type. **Needs ruling (a).** **Gate:** a small set of areas rather than a flat forest, and no file loses a home in the fold.
+Two jobs. **(a)** `_signals_for_branch` (`cli.py:16015`) emits one `recognition:{situation}` per BRANCH, or nothing when the branch is unsettled, and an empty signal set selects no template row → C3 conflict → no recipe → flat root. Make detection signals per FILE, read from the `situation` fact, with `situation_alternative` as tie-break. **(b)** Fix the gap grading found (`104` §18.103): the `situation` fact stores the KIND (`academic`), not the situation (`academic.coursework`), and the level stage's finer answer is written as no fact at all because `record_the_situation` is called on the kind path only. Call it on the level path too, correct the catalogue row's note, and add a `situation_level` field or reuse `situation` with the finer value — **decide by asking which the sort needs, not by which is easier.**
 
-**Phase 5 — Stable node keys, then phase gates.** The outline's positional `[n]` markers are invalidated every run by the `# plan:` guard, so an edited file cannot survive a re-run and a step-by-step conversation becomes N full re-runs. Replace the positional marker with a stable node key. Only then extend `STOP_AFTER_STAGES` with `groups` / `tree` / `placement`, following the `accept_drafts` stop-print-return pattern that already exists — three cross-invocation gates, no new machinery, and emphatically **not** an interactive prompt: building `input()` into a 24k-line CLI is a larger job than the sort. **Gate:** an edit survives a re-run, and the person is asked three questions they can answer in the file.
+**Gate:** an unsettled branch stops going flat; the count of branches receiving a recipe rises on run 22's database; the level answer is a fact.
+**Risk:** (b) changes what an existing field means. Supersede, never overwrite; a run written under the old meaning must stay readable.
 
-**Phase 6 — Fact producers.** 221 files of 371 carry no destination-eligible fact, and depth is bounded by that everywhere. Three concrete moves, cheapest first: wire `facts/photo_event.py:173 photo_events` into `_rule_stage` (it has a writer nothing calls — `event` gains a producer in about five lines); take `SCHOOL_ANCHOR_KINDS` membership from `work_type` settled by ANY producer rather than only the naming-zone regex, so a syllabus not named "syllabus" can still anchor; and let a one-anchor `school` land `possible` for the person to confirm, since P10's `AnchorAgreement` currently wants two independent anchors and a course with one syllabus can therefore never get a school level — structural, not a bug. **Needs ruling (c) / R-102.** **Gate:** the 221 drops, measured on `run12.sqlite`.
+### Phase 3 — Partition on a life, not a schema
 
-**Phase 7 — Depth, flatten, residual homes.** Add `max_useful_depth` to `TemplateDefinition` and read it in validation before the global `max_depth=5`, following the pattern `_residual_library` already uses for `max_permitted_depth`; author the reference's per-branch depth numbers into `definitions.json`. Replace `materially_improves_retrieval=lambda option: True` (`cli.py:634`) with a real measure so `00`'s flatten recommendation can fire for the first time. Add a characteristic→template suggestion table so each residual set is offered a home under its card and auto-enables when non-empty, and add the reference's missing characteristics (unsupported or encrypted, possible duplicates and versions, deferred decisions). **Needs rulings (b) and (c).** **Gate:** uneven depth matching the reference's column, and every residual set has an offered home rather than a flag the person must type.
+Add a `life` attribute to the recognition library's situation rows, carry it onto the applicability row, and key `partition_by_branch` on `life_of(situation)` read from the per-file fact, with alternatives as tie-break. Amendment 9 holds: the situation still never becomes a folder name; the life is a template attribute the situation points at, exactly as `folder_levels_for` already points at levels. **The discriminator: it alters the partition KEY, not a label.**
+
+**Amendment 12a governs this phase.** The sixteen are a menu. A life is emitted only where the corpus puts files under it; the person can rename, merge, split, remove, and add one the library lacks; the model chooses only from the library's list.
+
+**Gate:** root names on the owner's corpus are lives, **and there are fewer than sixteen** — a run that emits all sixteen has failed. The Phase 1 grouping number has not fallen.
+**Risk:** the biggest single change in the plan. It must not regress placement; run the full suite and the grade before and after.
+
+### Phase 4 — Fold branches into areas
+
+`horizontal_candidates` (`candidates.py:259`) emits one root card per accepted group plus one per directory; `00`:67's *"aggregates into a small set of proposed major areas"* has no producer, so the owner's 49 groups would be 49 root siblings. Add one function between `horizontal_candidates` and `design_tree`'s chosen filter that folds group cards by life into a `BranchCandidate` with plural `accepted_group_ids` — **the pipeline already handles plural** (`pipeline.py:1039`) — labelled from the life and renameable. No new node type.
+
+**Gate:** a small set of areas, not a flat forest; no file loses a home in the fold.
+
+### Phase 5 — Stable node keys, then phase gates
+
+The outline's positional `[n]` markers are invalidated every run by the `# plan:` guard, so an edited file cannot survive a re-run and a step-by-step conversation becomes N full re-runs. **Replace the positional marker with a stable node key first** — everything else here is unusable without it. Then extend `STOP_AFTER_STAGES` (`cli.py:15727`) with `groups` / `tree` / `placement` on the `accept_drafts` stop-print-return pattern that already exists: three cross-invocation gates, no new machinery, and emphatically **not** an interactive prompt — building `input()` into a 24k-line CLI is a larger job than the sort.
+
+**Gate:** an edit survives a re-run; the person is asked three questions they can answer in the file.
+**This is the phase the owner's "step by step process that involves user input" actually names.**
+
+### Phase 6 — Fact producers
+
+221 of 371 files carry no destination-eligible fact, and depth is bounded by that everywhere. Cheapest first: **(a)** wire `facts/photo_event.py:173 photo_events` into `_rule_stage` — it has a writer nothing calls, so `event` gains a producer in ~5 lines. **(b)** Take `SCHOOL_ANCHOR_KINDS` membership from `work_type` settled by ANY producer, not only the naming-zone regex, so a syllabus not named "syllabus" can still anchor. **(c)** Let a one-anchor `school` land `possible` for the person to confirm — P10's `AnchorAgreement` wants two independent anchors sharing one subject, so **a course with one syllabus can never get a school level today, structurally.** Also note `DIRECT_SLOTS = DirectSlots(slots=())`: the deterministic slot table is empty, so `direct_facts` runs and claims nothing.
+
+**Gate:** the 221 drops, measured on `run12.sqlite`.
+**Honest limit:** this is the only phase that raises depth, and its ceiling is unknown until measured. A photograph with no text and no folder path has no `school` for any producer to find.
+
+### Phase 7 — Depth, flatten, residual homes
+
+**(a)** Add `max_useful_depth` to `TemplateDefinition` (`templates.py:292`), parse in `catalogue._definition`, read in `validation._v3` before the global `max_depth=5` — the pattern `_residual_library` already uses for `max_permitted_depth`. Author the reference's per-branch depth numbers into `definitions.json`. **(b)** Replace `materially_improves_retrieval=lambda option: True` (`cli.py:634`) with a real measure, so the flatten recommendation can fire for the first time. **(c)** Under amendment 13, build root-level `98 Review and Unsorted` and `99 Archive`, with the characteristic sets named inside them, a suggestion table mapping each set to a home, auto-enabled when non-empty; add the reference's missing characteristics (unsupported or encrypted, possible duplicates and versions, deferred decisions). Under amendment 14, per-file accept/reject on each.
+
+**Gate:** uneven depth matching the reference's column; every leftover set has an offered home rather than a flag the person must type; a leftover can be decided one file at a time.
 
 ---
 
 ## What this plan does not claim
 
-It does not claim the reference is reachable in seven phases on this corpus. Phase 6 is the only phase that raises depth, and the honest ceiling there is unknown until it is measured: a photograph with no text and no folder path has no `school` for any producer to find. Phases 3 and 4 fix what the tree's branches are called and how many there are; they add no level to any branch. Say so on every screen that reports progress against this plan.
+- **Only Phase 6 raises depth**, and its ceiling is unmeasured. Phases 3 and 4 fix what branches are called and how many there are; they add no level to any branch. Say so on any screen reporting progress.
+- **The 87 files the gate refused are not a bug** (`104` §18.102) and no phase here recovers them. They need a run with a local model, or the owner's release.
+- **The classifier is done for now** at 97.7 % key-in-what-it-said. Further prompt work is not where the remaining value is.
+- **Sixteen lives is a menu, not a target.** A tree that shows sixteen has failed amendment 12a.
