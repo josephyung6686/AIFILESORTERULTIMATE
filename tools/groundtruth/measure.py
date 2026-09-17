@@ -219,6 +219,15 @@ class Observation:
     #: prints these counts prints that remainder separately, exactly as
     #: `POLICY_NOT_RECORDED` is printed beneath the review policies.
     decided_by: str | None = None
+    #: `104` §18.100: the GROUPS this run put this file in, ids only.
+    #:
+    #: Last and defaulted, for `review_policy`'s own stated reason: a database
+    #: written before the grouping tables existed has none, and the truthful
+    #: reading of such a run is that it formed no groups -- not that it is
+    #: unreadable. `group_cohesion` counts a file with no group against its
+    #: owner's group, which is `00`:259's rule and not an accident of this
+    #: default.
+    group_ids: tuple[str, ...] = ()
     #: Every CLOUD target this run released this file's dossier to, named
     #: `provider/model_id` out of the release the gate minted. Empty means nothing
     #: about this file left the device -- which is the ordinary case and, for a
@@ -620,6 +629,37 @@ def _model_tally(connection) -> dict[str, int]:
     return tally
 
 
+def _group_memberships(connection) -> dict[str, tuple[str, ...]]:
+    """file_id -> the groups the RUN put it in. `104` §18.100.
+
+    ONE QUERY FOR THE WHOLE RUN, not one per file: the scorecard walks every file
+    and a per-file query would be N round trips for a mapping that does not
+    change.
+
+    `memberships` AND NOT `group_edges`. The edge table is the similarity GRAPH --
+    `from_file_id`, `to_file_id`, `edge_type` -- and carries no `group_id` at all;
+    joining to it is what made the lead's first reading of this return nothing.
+
+    `decision` IS FILTERED, NOT ASSUMED. An excluded or uncertain member is not a
+    member: counting a file the model excluded would score the product on a
+    judgement it made in the other direction.
+
+    Read defensively, like every other reader here: a database written before
+    these tables existed has none, and that is a run which formed no groups rather
+    than one that cannot be read.
+    """
+    try:
+        rows = _rows(connection,
+                     "select file_id, group_id from memberships "
+                     "where superseded_by is null and decision = 'included'")
+    except sqlite3.OperationalError:
+        return {}
+    found: dict[str, list[str]] = {}
+    for row in rows:
+        found.setdefault(row["file_id"], []).append(row["group_id"])
+    return {file_id: tuple(sorted(groups)) for file_id, groups in found.items()}
+
+
 def _rows(connection, sql, *args):
     connection.row_factory = sqlite3.Row
     return list(connection.execute(sql, args))
@@ -725,6 +765,7 @@ def _observe(connection, root, situation, label, promised_levels, report,
 
     invalid_outputs = _invalid_model_outputs(connection)
     cloud_releases = _cloud_releases(connection)
+    memberships = _group_memberships(connection)
 
     decisions: dict[str, sqlite3.Row] = {}
     for row in _rows(connection, "select subject_ref, outcome, node_id, payload from "
@@ -789,6 +830,7 @@ def _observe(connection, root, situation, label, promised_levels, report,
             review_policy=review_policy,
             decided_by=decided_by,
             cloud_releases=cloud_releases.get(file_id, ()),
+            group_ids=memberships.get(file_id, ()),
         )
 
     # A file the scan set aside never becomes a `files` row, and "never silently

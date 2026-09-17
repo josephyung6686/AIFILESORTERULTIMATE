@@ -37,6 +37,7 @@ from tools.groundtruth.score import (
     ProtectedBreach,
     SituationScore,
     family_cohesion,
+    group_cohesion,
     over_marked,
     score_fields,
     score_outcome,
@@ -680,6 +681,24 @@ def scorecard(runs: Sequence[RunObservation],
       "the wrong place counts here")
     if scattered:
         w(f"            split across folders: {', '.join(scattered[:6])}")
+    w("")
+
+    # ---- the grouping stage, graded for the first time ---------------------
+    # `104` §18.100. Scored over the merged view for `family_cohesion`'s own
+    # reason: every run reads the whole corpus, so a group formed the same way in
+    # every run would otherwise be counted once per run and read as a rate.
+    #
+    # THIS IS NOT A PLACEMENT NUMBER, and the second line says so: two files the
+    # owner grouped belong in one group whatever folder the run picks for them,
+    # and a run that files both correctly and groups them apart has failed here
+    # while scoring `exact` twice above.
+    held, group_count, apart = group_cohesion(labels, merged)
+    w(f"GROUPS      {held} of {group_count} of your groups of two or more files "
+      f"were kept together by the run")
+    w("            -- together, not filed together: this asks whether the run "
+      "saw them as one thing at all")
+    if apart:
+        w(f"            split across groups: {', '.join(apart[:6])}")
     w("")
 
     # ---- extraction --------------------------------------------------------

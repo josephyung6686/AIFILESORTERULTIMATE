@@ -398,6 +398,50 @@ def family_cohesion(labels: Mapping[str, Label],
     return len(considered) - len(scattered), len(considered), scattered
 
 
+def group_cohesion(labels: Mapping[str, Label],
+                   observations: Mapping[str, object],
+                   ) -> tuple[int, int, tuple[str, ...]]:
+    """`(kept together, the owner's groups with two or more files, the split)`.
+
+    `104` §18.100: the grouping stage had no grade at all. `labels.py` has carried
+    a hand-keyed `group` per file since 11 September and nothing read it, so every
+    claim about grouping quality in this repository rested on nothing.
+
+    **NOT ABOUT FOLDERS.** Two files the owner put in one group belong in one
+    group whatever destination the run picks; a run that files both correctly and
+    groups them apart has failed at grouping, and `score_sorting` cannot see it
+    because each file is `exact` on its own. That is `family_cohesion`'s blind
+    spot one stage earlier, and this closes it.
+
+    **A GROUP THE RUN NEVER FORMED STAYS IN THE DENOMINATOR.** `00`:259 forbids
+    the opposite: a file nobody decided about must not read as a file understood
+    and found unimportant, and a group nobody formed must not read as a group
+    there was nothing to say about. A run with an empty `groups` table therefore
+    scores zero, which is the truth about it -- and `104` §18.100 records such a
+    database sitting in the same directory as the real one.
+
+    **INTERSECTION, NOT EQUALITY.** `00`:63 permits a file to belong to more than
+    one accepted group -- the design's own example is a research abstract that is
+    also part of an application packet -- so two files that share one group and
+    differ on a second have still been kept together.
+    """
+    wanted: dict[str, list[frozenset[str]]] = {}
+    for path, label in labels.items():
+        if not label.group or label.protected:
+            continue
+        observation = observations.get(path)
+        wanted.setdefault(label.group, []).append(
+            frozenset(getattr(observation, "group_ids", ()) or ())
+            if observation is not None else frozenset())
+    # A group with one member cannot demonstrate keeping things together either
+    # way, which is `family_cohesion`'s own rule and its own reason.
+    considered = {name: seen for name, seen in wanted.items() if len(seen) > 1}
+    split = tuple(sorted(
+        name for name, seen in considered.items()
+        if not frozenset.intersection(*seen)))
+    return len(considered) - len(split), len(considered), split
+
+
 @dataclass(frozen=True)
 class SituationScore:
     """One `--situation` run, scored against the files whose label names it."""
