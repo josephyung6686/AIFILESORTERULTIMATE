@@ -2721,6 +2721,34 @@ The owner: *"and the grade too make sure it's 97% or above or at least one order
 
 **Wired at the one call site**, `cli.fact_call_authorities`, beside `folder_levels`, so the composition root stays the only place that asks the library a question.
 
+### 18.105 THE GROUPING STAGE'S FIRST GRADE, AND THE LABEL IS NOT MEASURING WHAT THE PRODUCT BUILDS (17 Sep, 12:40)
+
+`106` Phase 1's gate. `group_cohesion` is built and green (7 tests, `tools` 247 passed), `Observation.group_ids` reads `memberships`, and the scorecard has a `GROUPS` line. Then the number, on the owner's corpus:
+
+**KEPT TOGETHER: 0 of 8.** And it is the WRONG QUESTION, which the lead checked before reporting it as a verdict -- `104` §18.103's 0.0 % was a broken grader three hours earlier and the rule learned there is that a zero is a claim about the instrument until proven otherwise.
+
+**The two `group`s are different concepts.** The owner's labels carry **9 groups over 371 files**, sized 119, 78, 57, 22, 21, 10, 7, 4, 1. The product builds **49**, anchored on `duplicate_family` 102, `media_type` 36, `work_type` 23 against `subject` 12 and `term` 3. Asking whether 49 fine groups reproduce a 119-file label exactly can only return zero, and it says nothing about either.
+
+**THE OWNER'S `group` LABEL IS CLOSER TO A LIFE THAN TO AN EPISODE**, and that is the useful finding. Nine coarse groups over a whole corpus is the shape `00` amendment 12 just ratified for the TOP level, not the shape of the episodes `104` §18.100 argued the sort's unit should be. So the label already carries, for this corpus, something like the life vocabulary Phase 3 needs -- and it is NOT a grade for the grouping stage.
+
+**The measure that fits fine-against-coarse is PURITY**, and it is a real number:
+
+| run groups with two or more labelled members | 37 |
+| --- | --- |
+| **pure** -- every member from ONE of the owner's groups | **33** |
+| mixed -- members from two or more | 4 |
+| | **89.2 %** |
+
+By seed kind: `structural-family` 27 pure / 1 mixed; `strongly-identified-file` 6 pure / 3 mixed. **The duplicate-and-version seed is nearly always right; the single-strong-fact seed is wrong a third of the time**, which is the seed `104` §18.100 records as choosing its fact ALPHABETICALLY (`seeds[0]` after a sort by `f"{field_key}:{value_id}"`).
+
+**COVERAGE IS THE REAL WEAKNESS, NOT PURITY.** Only **133 of 371** files are in any group, every one of them in EXACTLY TWO -- none in one, none in three, which is a structural signature rather than a judgement: each grouped file joins one duplicate-family group and one format-or-kind group. The owner's 7-file, 4-file and 1-file groups got zero files grouped at all.
+
+**What this does to `106`.** Phase 1's gate as written -- "a grouping number exists" -- is met, and the number says the gate was aimed at the wrong target. Three consequences, recorded rather than acted on:
+
+1. **Purity, not cohesion, is the grouping measure** while the labels are coarse. `group_cohesion` stays: it is the right instrument for the day an episode-level label exists, and its tests document what it means.
+2. **Phase 3 should read the owner's `group` labels as evidence for the life vocabulary**, not as a grouping key. Nine groups over 371 files is a life-shaped answer.
+3. **The grouping stage's problem is reach, not precision.** 89.2 % pure over 133 of 371 files. A stage that is right about a third of the corpus and silent on the rest is not improved by making it more careful.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
