@@ -96,6 +96,7 @@ from facts.families import (
     shared_family_field, version_family,
 )
 from facts.lineage import title_block_key, title_lineage
+from facts.llm_seam import record_the_situation
 from facts.discount import MetadataScreen
 from facts.discount import screen_metadata as _discount_screen_metadata
 # `104` §18.31: which reader produced each of the readings a site-E call carries.
@@ -7684,6 +7685,49 @@ def situation_named_by_verdict(conn: sqlite3.Connection, verdict,
     return situation if situation in set(allowed_vocabulary) else None
 
 
+def alternatives_named_by_verdict(conn: sqlite3.Connection, verdict,
+                                  allowed_vocabulary) -> tuple[str, ...]:
+    """`104` §18.95: the OTHER situations the validated verdict says also fit.
+
+    `situation_named_by_verdict`'s sibling, reading the second key of the same
+    payload, and written to the same three rules: the verdict must have accepted,
+    the membership test is the one list and not a second opinion, and anything that
+    is not a named situation is simply absent.
+
+    **WHY THIS IS WORTH STORING AT ALL, measured 16 Sep on the owner's corpus.** The
+    judge's first choice is the key's on 85.8 % of kinds and 84.9 % of situations;
+    the key is in its first choice OR its alternatives on 97.4 % and 98.9 %. Almost
+    all of that difference is here -- twenty-five files at the situation stage where
+    the judge named the right answer and ranked it second. `00` amendment 7 permits
+    the run to prefer an alternative where its own evidence supports it, and a
+    preference cannot be made over a list nobody kept.
+
+    **IT IS EVIDENCE AND IT IS NOT A SECOND ANSWER.** Five mechanisms for promoting
+    an alternative have been measured and all five scored worse than leaving the
+    first choice alone (`104` §18.93). These rows are written so the question stays
+    open to the person and to the design stage; nothing in this file reads them to
+    overrule the judge.
+
+    Order is the judge's own and is preserved: it ranked them.
+    """
+    if verdict is None or verdict.outcome not in ACCEPTING_OUTCOMES:
+        return ()
+    payload = _validated_payload(conn, verdict)
+    named = payload.get("alternatives") if payload else None
+    if not isinstance(named, list):
+        return ()
+    allowed = set(allowed_vocabulary)
+    kept: list[str] = []
+    for alternative in named:
+        if not isinstance(alternative, str) or not alternative:
+            continue
+        if is_decline(alternative, decline_word=NONE_OF_THESE):
+            continue
+        if alternative in allowed and alternative not in kept:
+            kept.append(alternative)
+    return tuple(kept)
+
+
 def restricted_kind_named_by_verdict(conn: sqlite3.Connection, verdict) -> str | None:
     """`104` §18.7 S2 / §18.11: the restricted document KIND the validated verdict
     names, or `None` when it names none.
@@ -9402,6 +9446,33 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
                 confirmed += 1
             else:
                 released += 1
+        # `104` §18.95: WHAT THE JUDGE SAID, WRITTEN DOWN. Everything above records
+        # what the answer MEANS for handling -- the class, the hold, which way it
+        # went. None of it records the answer. Until today the name of the
+        # situation existed only inside the response bytes, so the review sheets and
+        # the design stage re-parsed model JSON to read a decision the product had
+        # already made, and nothing could read the ALTERNATIVES at all -- the twenty
+        # -five files where the judge named the key and ranked it second, which `00`
+        # amendment 7 says the run may prefer among.
+        #
+        # AFTER `assign` AND NOT BEFORE. A fact here is a statement that this file
+        # IS part of this situation, and two lines above, a standing protected row
+        # can still send this file down the `declined` path with nothing written.
+        # The fact follows the record that was actually written.
+        record_the_situation(
+            conn, file_id=file_id, content_hash=content_hash,
+            situation=situation,
+            alternatives=alternatives_named_by_verdict(
+                conn, verdict, question.allowed_situations),
+            # The judge's own citations, which P8 has already resolved against what
+            # P7 released; `evidence_refs` is required and inventing one here would
+            # be a fact citing evidence nobody checked.
+            evidence_refs=cited_observations(verdict),
+            # The identity the call was made under: the same conclusion from the
+            # same call writes one row, which is what makes a relaunch idempotent.
+            cache_key=identity_id,
+            model_identifier=target.model_id,
+            prompt_fingerprint=request.model_call_request.prompt_fingerprint)
         named[file_id] = situation
         if level_prompt is None or situations_of is None:
             # THE STAGE IS NOT WIRED and the run is the run it was: the file's

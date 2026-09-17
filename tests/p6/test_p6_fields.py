@@ -18,11 +18,18 @@ from facts.fields import (
 KEYS = tuple(row.field_key for row in FIELD_ROWS)
 
 
-def test_the_catalogue_is_fifty_six_rows_with_no_duplicate_key():
+def test_the_catalogue_is_fifty_eight_rows_with_no_duplicate_key():
     # `60` §4: "37 live + 19 = 56." J-1 widened the recognised schemas 10 -> 23 and §4
     # minted nineteen keys for them; the live thirty-seven keep their positions.
-    assert len(FIELD_ROWS) == 56
-    assert len(set(KEYS)) == 56
+    #
+    # PLUS TWO, 16 Sep 2026 (`104` §18.95): `situation` and `situation_alternative`.
+    # Site G's answer -- which situation of the library a file is part of -- was
+    # stored nowhere at all: it reached `privacy.ClassificationRecord`, which keeps
+    # the handling class it implies and not the name, and the name itself survived
+    # only inside the model's raw response bytes. This is a census and not an
+    # invariant, so it moves when the catalogue does, and the reason moves with it.
+    assert len(FIELD_ROWS) == 58
+    assert len(set(KEYS)) == 58
 
 
 def test_the_catalogue_is_exactly_these_keys_and_nothing_else():
@@ -33,6 +40,10 @@ def test_the_catalogue_is_exactly_these_keys_and_nothing_else():
         "file_type", "creation_date", "language", "duplicate_family", "version_family",
         # universal (§3.9, P6's one recorded addition)
         "download_session",
+        # universal (`104` §18.95, 16 Sep 2026): what site G said about the file.
+        # Neither is destination-eligible -- `00` amendment 9 makes the situation an
+        # INPUT to the sort and never a level of it.
+        "situation", "situation_alternative",
         # academic (§3.11)
         "school", "term", "subject", "instructor", "work_type",
         # college applications (§3.11)
@@ -97,7 +108,12 @@ def test_sensitivity_status_has_no_row_because_C5_is_open():
     # Do not close it by adding the row.
     for spelling in ("sensitivity_status", "sensitivity", "sensitivity_state"):
         assert spelling not in KEYS
-    assert len([k for k in UNIVERSAL_FIELDS if k != "download_session"]) == 5
+    # §3.11's five, counted by excluding the universal rows that are NOT its own:
+    # §3.9's download session and `104` §18.95's two situation keys. C5 is about
+    # §3.11's sixth member and nothing else, so the exclusion list grows with the
+    # universal block while the five it guards do not.
+    not_from_3_11 = {"download_session", "situation", "situation_alternative"}
+    assert len([k for k in UNIVERSAL_FIELDS if k not in not_from_3_11]) == 5
 
 
 def test_document_type_is_never_a_key():
@@ -266,10 +282,10 @@ def test_an_unknown_field_key_raises_rather_than_creating_a_row(p6_conn):
 
 def test_create_fields_loads_the_authored_table_and_is_idempotent(p6_conn):
     # `p6_conn` has already called it once.
-    assert p6_conn.execute("SELECT count(*) FROM fields").fetchone()[0] == 56
+    assert p6_conn.execute("SELECT count(*) FROM fields").fetchone()[0] == 58
     create_fields(p6_conn)
     create_fields(p6_conn)
-    assert p6_conn.execute("SELECT count(*) FROM fields").fetchone()[0] == 56
+    assert p6_conn.execute("SELECT count(*) FROM fields").fetchone()[0] == 58
 
 
 def test_the_stored_row_carries_exactly_the_specs_columns(p6_conn):
@@ -315,9 +331,14 @@ def test_fields_in_scope_returns_the_rows_declared_at_that_scope(p6_conn):
     # so the omission was a SHIPPING schema losing a field with no replacement.
     assert [r["field_key"] for r in fields_in_scope(p6_conn, "finance")] == [
         "institution", "account_type", "tax_year", "record_type", "account_holder"]
+    # Declaration order, which is what `ORDER BY rowid` returns: §3.11's five,
+    # §3.9's session, `104` §18.95's two, then §3.8's four roles. The situation rows
+    # sit where they were APPENDED to the universal block, so no SPEC row's ordinal
+    # moved.
     assert [r["field_key"] for r in fields_in_scope(p6_conn, "universal")] == [
         "file_type", "creation_date", "language", "duplicate_family",
         "version_family", "download_session",
+        "situation", "situation_alternative",
         "authored_by", "target_school", "our_firm", "client"]
     assert len(fields_in_scope(p6_conn, "photos")) == 7
 

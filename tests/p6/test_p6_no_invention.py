@@ -132,7 +132,11 @@ DECLARED_VOCABULARIES = frozenset({
     "FACTS_TABLES", "_TABLE_DDL",                             # Tasks 1, 19  schema.py
     "FIELD_SCOPES", "UNIVERSAL_FIELDS", "DOMAIN_FIELDS", "FIELD_ROWS",   # Task 2  S3.11
     "FIELDS_COLUMNS", "VALUE_KINDS", "ROLE_FIELDS",           # Task 2  the `fields` table
-    "_UNIVERSAL_3_11", "_DOWNLOAD_SESSION", "_ROLES_3_8", "_ACADEMIC",   # Task 2  the
+    # `_SITUATION` (`104` §18.95, 16 Sep 2026): two catalogue rows, `situation` and
+    # `situation_alternative`, declared here because this guard is the process for
+    # adding one -- a new collection in `facts` is red until it is written down.
+    "_UNIVERSAL_3_11", "_DOWNLOAD_SESSION", "_SITUATION",
+    "_ROLES_3_8", "_ACADEMIC",   # Task 2  the
     "_COLLEGE_APPLICATIONS", "_RESEARCH", "_FINANCE", "_PHOTOS", "_CODE",  # authored rows
     "_CAREER", "_BUSINESS_OPERATIONS", "_CONSTRUCTION_PROPERTY",           # `60` S4 the
     "_ENGINEERING", "_MANUFACTURING", "_RESOURCE_OPERATIONS", "_LOGISTICS",  # eighteen

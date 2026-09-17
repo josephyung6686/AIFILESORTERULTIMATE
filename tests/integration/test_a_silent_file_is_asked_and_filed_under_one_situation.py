@@ -222,6 +222,50 @@ def test_the_branch_votes_a_situation_that_is_neither_its_own_nor_the_runs(run):
     assert "Which of these is career?" not in report, report
 
 
+def test_every_file_the_judge_named_carries_that_situation_as_a_fact(run):
+    """`104` §18.95: the answer the product ACTS on is written where facts are.
+
+    Until 16 Sep 2026 site G's situation was stored nowhere. It reached
+    `privacy.ClassificationRecord`, which records the HANDLING CLASS the situation
+    implies and not its name, and the name survived only inside
+    `llm_response.response_bytes` -- so the review sheets and the design stage
+    re-parsed raw model JSON to read a decision the run had already made, and
+    `situation_verdict_before` read it back for one purpose only, not re-asking.
+
+    The vote in the test above is three `local_model_situation` rows. This asserts
+    the other half of each of them: a `situation` fact on the same file, carrying
+    the identifier, at `llm_supported` -- P8 checked its citations span by span --
+    and never destination-eligible, because `00` amendment 9 makes the situation an
+    INPUT to the sort and never a level of it.
+
+    SABOTAGE: delete the `record_the_situation` call from `ask_the_situation`. This
+    goes red and nothing else in the suite does, which is the hole it was in.
+    """
+    corpus, database, _report = run
+    conn = sqlite3.connect(f"file:{database}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        judged = [row["file_id"] for row in conn.execute(
+            "SELECT file_id FROM classifications WHERE basis = ? "
+            "AND superseded_by IS NULL", (LOCAL_MODEL_SITUATION,))]
+        assert judged, "the run is supposed to name a situation for some file"
+        for file_id in judged:
+            held = {(row["field_key"], row["canonical_value"], row["reliability_state"])
+                    for row in conn.execute(
+                        'SELECT ff.field_key, v.canonical_value, ff.reliability_state '
+                        'FROM file_facts ff JOIN "values" v USING(value_id) '
+                        "WHERE ff.file_id = ? AND ff.active = 1 "
+                        "AND ff.superseded_by IS NULL", (file_id,))}
+            situations = {(value, state) for field, value, state in held
+                          if field == "situation"}
+            assert len(situations) == 1, (file_id, sorted(held))
+            (value, state), = situations
+            assert "." in value or value.isalpha(), value
+            assert state == "llm_supported", (value, state)
+    finally:
+        conn.close()
+
+
 def test_the_silent_file_is_asked_its_voted_schemas_fields_and_no_situations(run):
     """Site A's `allowed_vocabulary` for it, read off the run's own call log.
 

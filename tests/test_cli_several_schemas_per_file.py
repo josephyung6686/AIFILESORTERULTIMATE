@@ -331,6 +331,10 @@ def test_a_real_run_activates_both_schemas_and_still_asks_one_situations_levels(
                 if fact["active"] and fact["superseded_by"] is None}
         fields = {field for field, _value in held}
         assert "subject" in fields, (sorted(held), out.getvalue())
+        # (`104` §18.95's invariant is asserted where a run actually reaches an
+        # ACCEPTED site-G verdict; this run does not, and a conditional assertion
+        # here would only look like coverage. See
+        # `tests/integration/test_situation_site_boundary.py`.)
         assert any(field == "work_type"
                    and cli.WORK_TYPE_OWNER.get(value) == "career"
                    for field, value in held), (sorted(held), out.getvalue())

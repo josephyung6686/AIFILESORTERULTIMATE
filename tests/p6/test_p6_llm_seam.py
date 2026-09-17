@@ -710,3 +710,97 @@ def test_a_field_with_no_normalizer_keeps_the_value_it_was_given(
         'SELECT v.canonical_value FROM file_facts f JOIN "values" v '
         "ON v.value_id = f.value_id WHERE f.fact_id = ?", (fact_id,)).fetchone()
     assert stored["canonical_value"] == "  Homework  "
+
+
+# =====================================================================
+# `104` §18.95: site G's answer, written where facts about a file live
+# =====================================================================
+
+def test_the_situation_and_its_alternatives_are_written_at_two_states(
+        p6_conn, subject_file):
+    """The first choice is checked; an alternative is not, and the states say so.
+
+    P8 resolves the first choice's citations against what P7 released, span by
+    span, so it is `llm_supported`. The judge names its alternatives and cites
+    nothing for them separately, so they are `possible` -- the other state
+    `require_llm_state` admits. Writing both at `llm_supported` would give an
+    uncited reading the standing of a checked one, which is the ceiling §3.6
+    exists to hold.
+    """
+    from facts.llm_seam import record_the_situation
+
+    file_id, content_hash, key = subject_file
+    record_the_situation(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        situation="academic.coursework",
+        alternatives=("research.reading-library", "academic.online-course"),
+        evidence_refs=(key,), cache_key="call-1")
+
+    held = {(row["field_key"], row["canonical_value"], row["reliability_state"])
+            for row in p6_conn.execute(
+                'SELECT ff.field_key, v.canonical_value, ff.reliability_state '
+                'FROM file_facts ff JOIN "values" v USING(value_id) '
+                "WHERE ff.file_id = ? AND ff.superseded_by IS NULL", (file_id,))}
+    assert ("situation", "academic.coursework", "llm_supported") in held
+    assert ("situation_alternative", "research.reading-library", "possible") in held
+    assert ("situation_alternative", "academic.online-course", "possible") in held
+
+
+def test_a_second_run_that_changes_its_mind_retires_the_first_answer(
+        p6_conn, subject_file):
+    """Without this the file's situation becomes UNREADABLE, not merely stale.
+
+    `preferred_fact`'s three cases: live rows naming ONE value are that value;
+    live rows naming SEVERAL are resolvable only through `preferred`; anything
+    else is `None`, because open question 6 -- multiplicity -- is open and a
+    reader that picked one would close it by accident. So two live situations
+    with nothing retired do not leave the old answer standing: they leave the
+    slot with no answer at all.
+
+    SABOTAGE: drop the `supersede_fact` loop from `record_the_situation`. The
+    last assertion returns `None` and the file silently loses its situation the
+    second time a run judges it.
+    """
+    from facts.llm_seam import record_the_situation
+    from facts.supersede import preferred_fact
+
+    file_id, content_hash, key = subject_file
+    record_the_situation(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        situation="academic.coursework", alternatives=(),
+        evidence_refs=(key,), cache_key="call-1")
+    record_the_situation(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        situation="research.reading-library", alternatives=(),
+        evidence_refs=(key,), cache_key="call-2")
+
+    live = [row["canonical_value"] for row in p6_conn.execute(
+        'SELECT v.canonical_value FROM file_facts ff JOIN "values" v USING(value_id) '
+        "WHERE ff.file_id = ? AND ff.field_key = 'situation' "
+        "AND ff.superseded_by IS NULL", (file_id,))]
+    assert live == ["research.reading-library"], live
+    pointer = preferred_fact(p6_conn, file_id=file_id, field_key="situation")
+    assert pointer is not None, "the slot must still answer after a second judgement"
+
+
+def test_a_re_run_that_agrees_writes_no_supersession(p6_conn, subject_file):
+    """Two rows naming one value are ONE answer with two citations, and
+    `preferred_fact` already resolves that case; retiring one of them would
+    record a change of mind that did not happen."""
+    from facts.llm_seam import record_the_situation
+
+    file_id, content_hash, key = subject_file
+    record_the_situation(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        situation="academic.coursework", alternatives=(),
+        evidence_refs=(key,), cache_key="call-1")
+    record_the_situation(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        situation="academic.coursework", alternatives=(),
+        evidence_refs=(key,), cache_key="call-2")
+
+    retired = p6_conn.execute(
+        "SELECT count(*) FROM file_facts WHERE file_id = ? "
+        "AND field_key = 'situation' AND superseded_by IS NOT NULL",
+        (file_id,)).fetchone()[0]
+    assert retired == 0

@@ -158,6 +158,43 @@ _DOWNLOAD_SESSION: tuple[FieldRow, ...] = (
          aliases=("session", "download session")),
 )
 
+#: `104` §18.95: WHAT THE JUDGE SAID, kept as a fact about the file.
+#:
+#: Site G names which situation of the library a file is part of, and until 16 Sep
+#: 2026 that answer was stored NOWHERE. It reached `privacy.ClassificationRecord`,
+#: which records the handling class it implies and not the name itself, and the name
+#: survived only inside the model's raw response bytes -- so every reader, the review
+#: sheets and the structure stage included, re-parsed model JSON to learn what the
+#: judge had decided. A conclusion the product acts on is a fact about the file and
+#: belongs where `work_type` and `file_type` already are.
+#:
+#: NEITHER IS DESTINATION-ELIGIBLE, and that is the whole reason to write this
+#: comment. `00` amendment 9 of 16 Sep: "the sort is by PURPOSE, not by category ...
+#: the classifier's kind and situation are inputs to the sort and never the sort
+#: itself". A destination-eligible `situation` is precisely the mechanism that
+#: amendment forbids -- one folder per situation, a taxonomy of file types wearing
+#: the person's tree. It is an input the design stage reads, never a level.
+#:
+#: `situation_alternative` is one row PER alternative the judge named, not a packed
+#: list: `00` amendment 7 makes the alternatives evidence the run may prefer among,
+#: and evidence is read by value. The store already carries multiply-valued fields
+#: (the owner's corpus has up to five active rows on one file and field), so this
+#: asks nothing new of open question 6.
+_SITUATION: tuple[FieldRow, ...] = (
+    _row("situation", "situation", "universal", "string", False,
+         notes="The library identifier site G named, e.g. `academic.coursework`. "
+               "NOT destination-eligible (`00` amendment 9): the situation chooses "
+               "which template a file is read under and is never itself a folder "
+               "level."),
+    _row("situation_alternative", "situation alternative", "universal", "string",
+         False,
+         notes="One row per alternative the judge itself named beside its first "
+               "choice (`00` amendment 7). Measured 16 Sep: the key is the judge's "
+               "first choice on 85.8 % of kinds and inside its first choice OR its "
+               "alternatives on 97.4 %, so what is written here is most of the "
+               "difference between those two numbers."),
+)
+
 #: §3.8: "distinct facets, such as authored_by and target_school, or our_firm and
 #: client" — the design's own spelling, underscores included, so `display_name` keeps
 #: it rather than inventing English the design does not use.
@@ -570,12 +607,16 @@ _LAW_PRACTICE: tuple[FieldRow, ...] = (
                "nothing else."),
 )
 
-#: The catalogue, in declaration order. Fifty-six rows: `60` §4's "37 live + 19 = 56".
+#: The catalogue, in declaration order. Fifty-EIGHT rows: `60` §4's "37 live + 19 =
+#: 56", plus the two of `_SITUATION` (`104` §18.95, 16 Sep 2026). A row's ordinal is
+#: what `fields_in_scope`'s `ORDER BY rowid` returns, so the two are APPENDED to the
+#: universal block rather than inserted among the SPEC's own rows.
 #: The live thirty-seven keep their positions, so a row's ordinal is stable and
 #: `fields_in_scope`'s `ORDER BY rowid` still returns the SPEC's order for them.
 FIELD_ROWS: tuple[FieldRow, ...] = (
     *_UNIVERSAL_3_11,
     *_DOWNLOAD_SESSION,
+    *_SITUATION,
     *_ROLES_3_8,
     *_ACADEMIC,
     *_COLLEGE_APPLICATIONS,
@@ -594,9 +635,14 @@ FIELD_ROWS: tuple[FieldRow, ...] = (
     *_LAW_PRACTICE,
 )
 
-#: §3.11's universal list (five of six, C5) plus §3.9's download session.
+#: §3.11's universal list (five of six, C5), §3.9's download session, and `104`
+#: §18.95's two situation keys. The three published groups PARTITION the catalogue
+#: (`test_the_three_published_groups_partition_the_catalogue`), so a universal-scope
+#: row that joined no group would not be a loose end -- it would be a hole in that
+#: partition. A situation is universal in the plainest sense: every file has one,
+#: whatever domain it belongs to.
 UNIVERSAL_FIELDS: tuple[str, ...] = tuple(
-    row.field_key for row in (*_UNIVERSAL_3_11, *_DOWNLOAD_SESSION)
+    row.field_key for row in (*_UNIVERSAL_3_11, *_DOWNLOAD_SESSION, *_SITUATION)
 )
 
 #: §3.8's four role fields.

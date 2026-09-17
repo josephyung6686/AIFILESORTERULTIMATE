@@ -72,7 +72,9 @@ from facts.domains import active_field_allowlist
 from facts.evidence import cite, observations_for_version
 from facts.fields import FieldNotInCatalogue, get_field
 from facts.file_facts import LLM_INTERPRETATION, facts_for_file, write_fact
-from facts.states import EXCLUDED_STATE, LLM_SUPPORTED, POSSIBLE, is_stronger
+from facts.states import (EXCLUDED_STATE, LLM_SUPPORTED, POSSIBLE, USER_CONFIRMED,
+                          is_stronger)
+from facts.supersede import supersede_fact
 from facts.unresolved import ATTEMPTED_PRODUCERS, LLM_ROUTE, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
@@ -377,3 +379,96 @@ def apply_verdict(conn: sqlite3.Connection, *, request: FactRequest,
         reliability_state=reliability_state, origin=LLM_INTERPRETATION,
         evidence_refs=tuple(proposal.citations), cache_key=cache_key, active=True,
         model_identifier=model_identifier, prompt_fingerprint=prompt_fingerprint)
+
+
+#: `104` §18.95's two field keys, spelled here because this module writes them and
+#: `facts.fields` declares them; a typo in either place is a `FieldNotInCatalogue`
+#: at the write and not a silently missing row.
+SITUATION_FIELD: str = "situation"
+SITUATION_ALTERNATIVE_FIELD: str = "situation_alternative"
+
+
+def record_the_situation(conn: sqlite3.Connection, *, file_id: str,
+                         content_hash: str, situation: str,
+                         alternatives: Sequence[str], evidence_refs: Sequence[str],
+                         cache_key: str, model_identifier: str | None = None,
+                         prompt_fingerprint: str | None = None) -> tuple[str, ...]:
+    """Write what site G said about this file as facts about the file.
+
+    **THE HOLE THIS CLOSES.** Until 16 Sep 2026 the situation judge's answer was
+    stored nowhere. It reached `privacy.ClassificationRecord`, which records the
+    HANDLING CLASS the situation implies and not the situation's name, and the name
+    itself survived only inside `llm_response.response_bytes` -- so every reader
+    re-parsed raw model JSON to learn what the product had decided, and
+    `situation_verdict_before` read it back for one purpose only, not re-asking. A
+    conclusion the product acts on is a fact about the file.
+
+    **TWO STATES, AND THE DIFFERENCE IS WHAT THE JUDGE CITED.** The first choice is
+    `llm_supported`: P8 checked its citations against what P7 released, span by
+    span. An alternative is `possible`: the judge said it also fits and cited
+    nothing for it separately. Writing both at `llm_supported` would give an
+    uncited reading the standing of a checked one, which is the ceiling
+    `require_llm_state` exists to hold. The citations recorded on an alternative
+    are the same released observations the judge read -- that is what it read them
+    OUT of -- and the state is what says it did not quote them.
+
+    **NO PATH, NO FOLDER, NO PLACEMENT**, per `write_fact`'s own contract: neither
+    field is destination-eligible (`00` amendment 9 -- the situation is an input to
+    the sort and never a level of it), so nothing written here can become a folder.
+
+    Returns the fact ids written, first choice first.
+    """
+    refs = tuple(evidence_refs)
+    # THE SLOT BEFORE THIS CALL, read first because the write is what retires it.
+    # `situation` is single-valued and `preferred_fact`'s three cases decide what a
+    # reader gets: live rows naming ONE value are that value; live rows naming
+    # SEVERAL are resolvable only through `preferred`, and otherwise the slot
+    # answers `None` -- open question 6, which a reader that picked one would close
+    # by accident. So a second run that changes its mind, with nothing retired,
+    # does not leave a stale answer standing: it makes the file's situation
+    # UNREADABLE. That is the failure this retirement prevents.
+    standing = [row for row in conn.execute(
+        'SELECT ff.fact_id, ff.reliability_state, v.canonical_value '
+        'FROM file_facts ff JOIN "values" v USING(value_id) '
+        "WHERE ff.file_id = ? AND ff.content_hash = ? AND ff.field_key = ? "
+        "AND ff.superseded_by IS NULL",
+        (file_id, content_hash, SITUATION_FIELD))]
+    written: list[str] = []
+    for value, state in ((situation, LLM_SUPPORTED),
+                         *((alternative, POSSIBLE) for alternative in alternatives)):
+        field_key = (SITUATION_FIELD if state is LLM_SUPPORTED
+                     else SITUATION_ALTERNATIVE_FIELD)
+        value_id = ensure_value(
+            conn, field_key=field_key, canonical_value=value,
+            first_evidence_ref=refs[0] if refs else None, origin=VALUE_ORIGINS[0])
+        written.append(write_fact(
+            conn, file_id=file_id, content_hash=content_hash, field_key=field_key,
+            value_id=value_id, reliability_state=require_llm_state(state),
+            origin=LLM_INTERPRETATION, evidence_refs=refs, cache_key=cache_key,
+            active=True, model_identifier=model_identifier,
+            prompt_fingerprint=prompt_fingerprint))
+        if state is not LLM_SUPPORTED:
+            # ALTERNATIVES ARE A SET AND ARE NOT RETIRED HERE. Several live values
+            # is their normal state, so their slot is unresolvable by design and a
+            # reader takes the rows, not the pointer. Pairing a stale alternative
+            # with a new one by position would write "this replaced that" about two
+            # readings that have nothing to do with each other.
+            continue
+        for row in standing:
+            if row["canonical_value"] == value:
+                # The same answer again: `write_fact` is idempotent at one identity
+                # and two rows naming one `value_id` are ONE answer with two
+                # citations, which `preferred_fact` already resolves.
+                continue
+            if row["reliability_state"] == USER_CONFIRMED:
+                # THE PERSON'S OWN ANSWER IS NOT OVERRULED BY A RE-RUN. §3.13's
+                # ordering is not negotiable and `supersede_fact` raises rather than
+                # let a weaker row take the pointer; this skip means the model's new
+                # answer is recorded beside it and the person's still reads.
+                continue
+            supersede_fact(
+                conn, old_fact_id=row["fact_id"], new_fact_id=written[-1],
+                reason=(f"site G named {value} under call {cache_key}; the earlier "
+                        f"{row['canonical_value']} stood at "
+                        f"{row['reliability_state']}"))
+    return tuple(written)
