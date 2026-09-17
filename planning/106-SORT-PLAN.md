@@ -265,13 +265,22 @@ Find where `measure.py` builds each `Observation` and add, beside the other per-
     # `104` §18.100. ONE QUERY FOR THE WHOLE RUN, not one per file: the scorecard
     # walks every file and a per-file query here would be N round trips for a
     # mapping that does not change. Read defensively -- a database written before
-    # these tables existed has neither, and that is a run with no groups rather
+    # this table existed has none, and that is a run that formed no groups rather
     # than an unreadable one.
+    #
+    # `memberships` AND NOT `group_edges`. The edge table is the similarity GRAPH
+    # -- `from_file_id`, `to_file_id`, `edge_type` -- and carries no `group_id` at
+    # all; membership lives here, one row per (group, file), with the same
+    # `superseded_by` discipline as every other table in this schema. An excluded
+    # or uncertain member is not a member: `decision` is filtered, not assumed,
+    # because a run whose model excluded a file has said something about it and
+    # counting that file as grouped would score the product on a judgement it
+    # made in the other direction.
     memberships: dict[str, list[str]] = {}
     try:
         for row in _rows(connection,
-                         "select file_id, group_id from group_edges "
-                         "where superseded_by is null"):
+                         "select file_id, group_id from memberships "
+                         "where superseded_by is null and decision = 'included'"):
             memberships.setdefault(row["file_id"], []).append(row["group_id"])
     except sqlite3.OperationalError:
         memberships = {}
@@ -279,18 +288,7 @@ Find where `measure.py` builds each `Observation` and add, beside the other per-
 
 then pass `group_ids=tuple(sorted(memberships.get(file_id, ())))` into the `Observation(...)` construction.
 
-**Before writing this step, confirm `group_edges` has a `file_id` and a `group_id` column on the owner's database** — a first look found no `group_id` there, so the membership may live on another table. Run, read-only:
-
-```
-python3 -c "
-import sqlite3
-c=sqlite3.connect('file:$HOME/.graph-agent/lead/corpus2-gate1/run12.sqlite?immutable=1',uri=True)
-for t in ('group_edges','groups','group_acceptance','bundle_accepted_group'):
-    print(t, [r[1] for r in c.execute('PRAGMA table_info(%s)' % t)])
-"
-```
-
-and key the query on whatever columns that prints. **Do not guess the column names into the code.**
+**The shape this reads on the owner's corpus, so the implementer knows what right looks like:** `memberships` holds 266 live rows over 49 groups, covering 133 of 371 files; every row is `decision='included'` and `decision_source='rules'`. If the grading run reports far from 133 files in a group, the query is wrong, not the product.
 
 - [ ] **Step 7: Print it on the scorecard**
 
