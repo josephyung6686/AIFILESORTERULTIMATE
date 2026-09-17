@@ -271,6 +271,7 @@ def order_vocabulary_by_levels(
 def open_question(pending: Sequence[str],
                   folder_levels: Sequence[FolderLevel] | None,
                   settled: Sequence[str] = (),
+                  group_level: Sequence[str] = (),
                   ) -> tuple[tuple[str, ...], tuple[FolderLevel, ...]]:
     """What this file is ASKED: the vocabulary to offer, and the levels to show.
 
@@ -376,7 +377,27 @@ def open_question(pending: Sequence[str],
         # known; only the folders wait for the answer. No level is shown, because
         # there is no level -- `dossier._folder_levels_body` emits `[]` for that
         # and says so.
-        return order_vocabulary_by_levels(asked, ()), ()
+        #
+        # `00` AMENDMENT 15 OF 17 SEP: THE GROUP-LEVEL FIELDS ARE STILL WITHHELD
+        # HERE, and that is the one narrowing this arm does keep. `00`:11.2 step 2
+        # withdrew the per-file `school` question -- a group-level field is settled
+        # from a GROUP's anchor, and asking one file for it invites a guess off a
+        # filename. The per-situation arm honours that through `folder_levels` and
+        # `anchor_only_levels`; this arm stripped nothing, so the withdrawn
+        # question was asked anyway with only rule 12's prose in front of it.
+        #
+        # MEASURED, not argued (`104` §18.100): `target_school` is bound as a
+        # folder level in 0 of 208 situations, so no per-situation door can ask it
+        # -- and 7 files of the owner's 371 carry one. This arm is where they came
+        # from. The owner ruled: "Close it -- respect the withdrawal."
+        #
+        # `settled` IS STRIPPED TOO, because it is concatenated into `asked` above:
+        # re-opening a rules-written `school` per file is the same withdrawn
+        # question wearing §18.2 gap 1's re-ask clothes, which are for the fields
+        # this file may actually answer.
+        withheld = frozenset(group_level)
+        return order_vocabulary_by_levels(
+            tuple(field for field in asked if field not in withheld), ()), ()
     level_fields = {level.field for level in folder_levels}
     open_fields = set(asked) & level_fields
     offered = tuple(field for field in asked if field in open_fields)
@@ -790,6 +811,20 @@ class FactCallAuthorities:
     #: default, because restoring the question is the OWNER's ruling and a
     #: deployment that has not read it must not start asking by omission.
     anchor_only: AnchorOnlyLevels | None = None
+    #: `00` AMENDMENT 15 OF 17 SEP: the fields withheld from the NO-SITUATION
+    #: question -- every field some situation fills from its GROUP rather than from
+    #: the file. The per-situation arm already withholds them, through
+    #: `folder_levels` and `anchor_only` above; this is the same withholding for the
+    #: arm that has no situation to narrow by, where the whole allowlist was asked
+    #: flat and `104` §18.100 measured 7 files answering a `target_school` that no
+    #: situation binds as a level at all.
+    #:
+    #: Read off the catalogue by the composition root, like `folder_levels`, and
+    #: DEFAULTED TO EMPTY for `anchor_only`'s own reason read the other way: a
+    #: deployment that has not been told what its library treats as group-level
+    #: must not start withholding by omission, because a field withheld here is a
+    #: field no model is ever asked and a fact that is never written.
+    group_level_fields: tuple[str, ...] = ()
     #: WHICH MODEL ANSWERS ABOUT THIS FILE, or `None` for a file that may reach
     #: none (`104` §17.13 ruling 3). `cli.target_for` builds it: it asks
     #: `model_route_permitted` for the cloud first and the local second and hands
@@ -3111,7 +3146,11 @@ def fact_call_stage(authorities: FactCallAuthorities):
             # exactly as it does for the pending half; passing everything settled
             # would let `105` §14.4's `school` back into a per-file question through
             # a door gap 1 did not open.
-            settled_levels)
+            settled_levels,
+            # `00` amendment 15: what the no-situation arm withholds. Read off the
+            # bundle rather than derived here, so the composition root stays the one
+            # place that asks the library a question.
+            group_level=authorities.group_level_fields)
         # A FILENAME IS NEVER A SOURCE FOR AN ANCHOR-ONLY FIELD (`105` §14.4), and
         # the only way to say that to a model is not to show it the name. A call
         # whose whole question is the anchor's own -- the syllabus whose subject,

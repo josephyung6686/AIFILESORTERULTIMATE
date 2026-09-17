@@ -345,6 +345,7 @@ from production import (
     CorpusAuthorities, CorpusDecisions, InvalidCorpusAuthority,
     P1P7Authorities, ProductionRun,
     bootstrap_p1_p7, corpus_roster, folder_levels_for, group_level_fields_for,
+    group_level_fields_everywhere,
     GROUP_LEVEL_ROLES, load_shipped_catalogue,
     nearest_situations, read_packaged_library_file, schema_for_situation,
     shipped_situations, situation_schema_family, template_id_for_situation,
@@ -7100,6 +7101,14 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
                           user_id: str, now,
                           deferred_readings: tuple[str, ...] = (),
                           anchor_levels: tuple[FolderLevel, ...] = (),
+                          # `00` amendment 15 of 17 Sep: the fields the
+                          # NO-situation question withholds, read off the library
+                          # by the caller exactly as `folder_levels` is. Defaulted
+                          # empty so a deployment that has not been told what its
+                          # library treats as group-level does not start
+                          # withholding by omission -- a field withheld here is a
+                          # field no model is ever asked.
+                          group_level_fields: tuple[str, ...] = (),
                           usage_recorder: object | None = None,
                           operation_mode: str = OPERATION_MODE,
                           corpus_roots: Sequence[Path] = (),
@@ -7262,6 +7271,7 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
         # facts reach, so a file with two lives is asked about both.
         activation_signals=evidence_activation(schema),
         folder_levels=folder_levels,
+        group_level_fields=group_level_fields,
         # §3.6 check 3's per-field alias tables are a Deferred row and this
         # deployment authors none, so the mapping is empty and `normalize_for_model`
         # below is what actually canonicalises. Injected empty rather than omitted:
@@ -17994,6 +18004,15 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # and the fields split off above are the ones `00`:57 puts on the
             # syllabus anchor. `None` where no situation is named -- see above.
             folder_levels=None if unsettled else said().file_level_fields,
+            # `00` AMENDMENT 15: WHAT THE NO-SITUATION ARM WITHHOLDS. Only that
+            # arm reads it -- `folder_levels` above is the authority whenever a
+            # situation IS named -- so this is the union over the whole library,
+            # which is the honest answer when nobody knows the situation yet.
+            # `104` §18.100 measured the door it closes: `target_school` is bound
+            # as a level in 0 of 208 situations and 7 of the owner's files carry
+            # one, and this arm is the only place they can have come from.
+            group_level_fields=tuple(sorted(
+                group_level_fields_everywhere(catalogue))),
             user_id=user_id,
             now=now,
             # THIS RUN'S MODE, read off the folder's own consent by

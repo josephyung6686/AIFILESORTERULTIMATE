@@ -440,6 +440,37 @@ def group_level_fields_for(catalogue: TemplateCatalogue,
         if item.role_ref in roles and item.field_ref)
 
 
+def group_level_fields_everywhere(
+        catalogue: TemplateCatalogue) -> frozenset[str]:
+    """Every field ANY situation fills from its GROUP rather than from the file.
+
+    `00` amendment 15 of 17 Sep. `group_level_fields_for` above answers this for
+    one situation, and the per-situation arm of `model_facts.open_question` uses
+    it. The NO-situation arm has no situation to ask about by definition -- that
+    is the state it exists for -- so the honest answer there is the union over the
+    whole library: a field some situation settles from a group is not a field to
+    ask one file for when nobody yet knows which situation the file is in.
+
+    CONSERVATIVE ON PURPOSE, and the asymmetry is measured. Withholding a field
+    that some other situation treats as the file's own costs one unasked question.
+    Asking a group-level field per file costs a `school` guessed off a filename --
+    `104` R-95: 38 model facts on 52 files, "every one a `school`, most of them
+    filenames" -- and that fact then enters a group dossier and can cost the run
+    its site-B call.
+
+    Empty is a truthful answer for a library that binds no group-level role, and
+    the same answer `group_level_fields_for` gives for 22 of the 23 schemas.
+    """
+    roles = frozenset(
+        role for schema_roles in GROUP_LEVEL_ROLES.values() for role in schema_roles)
+    if not roles:
+        return frozenset()
+    return frozenset(
+        item.field_ref for row in catalogue.applicabilities.values()
+        for item in row.role_bindings
+        if item.role_ref in roles and item.field_ref)
+
+
 def template_id_for_situation(catalogue: TemplateCatalogue,
                              situation: str) -> str:
     """WHICH TEMPLATE this situation builds its folders from, ASKED of the library.
