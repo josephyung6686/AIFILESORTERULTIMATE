@@ -270,7 +270,13 @@ then pass `group_ids=tuple(sorted(memberships.get(file_id, ())))` into `Observat
 Both found by the residual analysis; both identical in kind to `104` §18.96 and §18.102.
 
 - [ ] **1.2** `PROTECTED_REVIEW_SET_WORDS` (`cli.py:15042`) says protected files are *"counted and named here"*; the card withholds the names, and the standing rule says protected filenames reach the plain report through no path. **The words are wrong** — change them, and update the pin at `tests/test_cli_report_at_scale.py:53`.
-- [ ] **1.3** A send into a review-only area is headed *"Ready for you to approve, then file into {where}"* (`cli.py:20746`), but `mutation/plan.py:189` refuses that write at apply, and most shipped areas take this path. Gate the heading on the area's own `moves_files`. Test both directions, or the fix becomes a heading that under-promises everywhere.
+- [x] **1.2 DONE** (17 Sep). `PROTECTED_REVIEW_SET_WORDS` said protected files are "counted and named here" while `_review_note` withholds every example on a protected card. The words now say counted and NOT named, and point at the command without spelling it — `test_the_flag_is_named_only_on_the_line_that_is_the_command` caught the first attempt, which named `--show-protected` in prose: a person or script searching the report for what to type must not land on backticked prose four lines above the real command. `tests/test_cli_report_at_scale.py`: 25 passed.
+
+- [ ] **1.3 SCOPED, NOT STARTED.** `PLACEMENT_WORDS[REVIEW_REQUIRED]` is *"Ready for you to approve, then file into {where}"* (`cli.py:20814`). A send into a residual area whose treatment is `reviewed` records `REVIEW_REQUIRED` and `not moves_files` (`placement/privacy.py:336`), and `mutation/plan.py:189` refuses that write at apply — **and most shipped areas take this path**, so the screen routinely promises a filing that cannot happen.
+
+  **The seam, found and not yet threaded.** The heading is chosen at `cli.py:22999` from `policy` alone; the destination's DISPOSITION is not in scope there, which is the whole of the work. The precedent to copy sits four lines below: `104` R-92 already adjusts a heading conditionally when a promise cannot be kept — *"'Once you say what these are' is a promise, and it is kept only where the screen carries a gesture that reaches these files."* Same shape, same reason, one more input.
+
+  **Test both directions** or the fix becomes a heading that under-promises everywhere: a moving area must still say it will file.
 
 **Phase 1 gate:** a grouping number exists and is in `104`; `grep -rn "counted and named here" src/` returns nothing; no heading promises a move that `mutation/plan.py` refuses. Then the chunked suite, on a quiet machine.
 

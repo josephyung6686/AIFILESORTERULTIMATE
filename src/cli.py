@@ -15086,9 +15086,23 @@ REVIEW_SET_REASONS: tuple[tuple[str, str, str], ...] = (
 #: set and never opened.
 PROTECTED_REVIEW_SET_WORDS: tuple[str, str] = (
     "Protected, and not filed in bulk",
-    "these are protected material, so they are counted and named here and "
+    # `104` §18.100: THE WORDS SAID "NAMED" AND THE CARD WITHHOLDS THE NAMES.
+    # `_review_note` skips its examples when `card.protected`, and the standing
+    # rule is that a protected filename reaches the plain report through no path
+    # -- only `--show-protected` names one. So the screen promised the person
+    # something it had already decided not to give them, and a person looking for
+    # the names it promised would find none and not know why.
+    #
+    # The sentence now says what the block does and POINTS at the command
+    # without spelling it: `test_the_flag_is_named_only_on_the_line_that_is_
+    # the_command` rules that the flag appears on exactly one kind of line --
+    # the one that is nothing but the command -- because a person or a script
+    # searching the report for what to type must not land on backticked prose
+    # four lines above the real thing. Caught by that test on the first run.
+    "these are protected material, so they are counted here and not named, and "
     "nothing was assembled about them. They are not filed in one gesture with "
-    "everything else; each one is yours to decide.",
+    "everything else; each one is yours to decide, and their names are shown "
+    "only when you ask for them by the command below.",
 )
 
 #: `104` R-42 item 2. THE CHARACTERISTIC, WHERE THE ENGINE ALREADY HAS ONE.

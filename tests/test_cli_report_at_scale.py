@@ -49,10 +49,15 @@ import cli  # noqa: E402
 
 REASON = ("no destination in this tree matched them well enough to decide "
           "without asking you.")
+# `104` §18.100. The old words said these files are "counted and named here"
+# while `_review_note` withholds every example on a protected card, and a
+# protected filename reaches the plain report through no path. The screen
+# promised what the standing rule forbids; this pin moved with the sentence.
 PROTECTED_REASON = (
-    "these are protected material, so they are counted and named here and "
+    "these are protected material, so they are counted here and not named, and "
     "nothing was assembled about them. They are not filed in one gesture with "
-    "everything else; each one is yours to decide.")
+    "everything else; each one is yours to decide, and their names are shown "
+    "only when you ask for them by the command below.")
 EXPLANATION = (
     "Deciding this file needed a model, and §8.4 did not clear this file for a "
     "model call. Nothing about it left this device and nothing moved; the "
