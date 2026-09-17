@@ -61,8 +61,8 @@ def _a_pass(**over) -> cli.SituationPass:
         "nothing_to_read": 22, "declined": 33, "no_route": 44, "over_ceiling": 55,
         "recognised_by_rules": 66, "held_not_asked": 77, "settled_by_kind": 88,
         # `104` §18.96's own number, distinct like every other for this helper's
-        # stated reason.
-        "no_answer_returned": 99,
+        # stated reason, and §18.102's beside it.
+        "no_answer_returned": 99, "refused_before_sending": 111,
         "holds": cli.PrecautionHolds(0, 0, 0, 0),
         **over})
 
@@ -98,7 +98,8 @@ def test_all_nine_of_site_gs_counters_reach_the_screen():
     for count, field in ((22, 'nothing_to_read'), (33, 'declined'), (44, 'no_route'),
                          (55, 'over_ceiling'), (66, 'recognised_by_rules'),
                          (77, 'held_not_asked'), (88, 'settled_by_kind'),
-                         (99, 'no_answer_returned')):
+                         (99, 'no_answer_returned'),
+                         (111, 'refused_before_sending')):
         phrase = (cli.SITUATION_RECOGNISED_SENTENCE if field == 'recognised_by_rules'
                   else cli.SITUATION_SENTENCE[field])
         assert f"{count} {phrase[:30]}" in said, (count, field)
@@ -119,10 +120,12 @@ def test_a_zero_counter_still_prints_its_line():
     said = _printed(_a_pass(recognised_by_rules=0, nothing_to_read=0,
                             declined=0, no_route=0, over_ceiling=0,
                             held_not_asked=0, settled_by_kind=0,
-                            no_answer_returned=0))
+                            no_answer_returned=0,
+                            refused_before_sending=0))
 
     for field in ('nothing_to_read', 'declined', 'no_route', 'over_ceiling',
-                  'held_not_asked', 'settled_by_kind', 'no_answer_returned'):
+                  'held_not_asked', 'settled_by_kind', 'no_answer_returned',
+                  'refused_before_sending'):
         assert f"0 {cli.SITUATION_SENTENCE[field][:30]}" in said, field
 
 
@@ -264,8 +267,8 @@ def test_every_counter_site_g_leaves_behind_earns_a_sentence():
         "`asked_their_situation` is its denominator, exactly as `named` and "
         "`held` head the two blocks above; the other two divide it and carry "
         "their own sentence")
-    assert len(cli.SITUATION_SENTENCE) == 8, (
-        "eight counted outcomes, with `named` in the header. Five when gap 9 was "
+    assert len(cli.SITUATION_SENTENCE) == 9, (
+        "nine counted outcomes, with `named` in the header. Five when gap 9 was "
         "closed, and `00` amendment 7(c) spent one of them: every file is asked "
         "now, so `nothing_to_ask` went. `104` R-175 added `over_ceiling`, because "
         "a file skipped for time is a file this run did not decide about and the "
@@ -285,7 +288,11 @@ def test_every_counter_site_g_leaves_behind_earns_a_sentence():
         "needed to; and `104` §18.96 of 17 Sep split `no_answer_returned` out of "
         "`declined`, because run 21 dropped fifty-four of this site\'s calls on "
         "the network and the screen printed every one of them under a sentence "
-        "saying a model had read the file and had nothing to say")
+        "saying a model had read the file and had nothing to say; and `104` §18.102 "
+        "of 17 Sep split `refused_before_sending` out of THAT, because run 22's "
+        "87 were the gate declining to send protected material to a cloud-only "
+        "run -- a third fact with a third remedy, and telling that person to "
+        "call again sends them back to the same correct refusal")
 
 
 def test_every_hold_the_rules_took_earns_a_sentence_too():

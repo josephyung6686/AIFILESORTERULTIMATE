@@ -2665,6 +2665,29 @@ Run 22 finished. Site G's block, and the partition closes exactly -- 222 + 1 + 2
 
 **What run 22 does NOT settle.** The grade. `tools.groundtruth` has not been run against it yet, so the accuracy of those 222 answers is unmeasured here; §18.90's 97.4 % is a replay number over run 21's dossiers and is not this run's. The branch questions the run printed are the schema-id roots §18.100 diagnoses -- `finance`, `nonprofit`, `photos`, `research`, with 68 files under `photos` and 53 under `research` -- and they are unchanged by this run, as expected: nothing in run 22 touched the partition key.
 
+### 18.102 THE 23 % WAS NOT THE TRANSPORT. IT WAS THE GATE, DOING ITS JOB (17 Sep, 09:10)
+
+The owner, reading §18.101: *"fix the transport then, 23% is too much."* There is no transport fault to fix. Run 22 dropped **zero** calls.
+
+**What the evidence says, in the order it was found.** `llm_call_failure` since 17 Sep: **0**. `llm_pre_call_abstention` since 17 Sep: **0** (124 all-time, every one `NOT_ELIGIBLE_FOR_MODEL`). Site G built **283 dossier rows over 223 DISTINCT files**; 310 files were asked (371 less 23 held, less 38 captures), and **310 - 223 = 87**, the exact count the screen reported. So the 87 never got a dossier at all.
+
+**`llm_refusal` has them, and a bad query hid it for an hour.** The lead's first query joined `llm_refusal` to `llm_dossier` on `dossier_id` -- and a gate refusal fires BEFORE the dossier is recorded, so the inner join dropped every row and returned 0. Without the join: **160 refusals since 17 Sep**, and their payloads say
+
+| reason | n | the remedy the gate itself records |
+| --- | --- | --- |
+| `protected_records_template` | **150** | `decide_locally` -- "§7.3: normally local-only" |
+| `always_local_item` | **10** | `request_excerpt` |
+
+**Run 22 was cloud-only** (`run22.sh` unsets `GRAPH_AGENT_LOCAL_MODEL`). Protected material therefore had no local model to be asked on, and the gate would not send it to a cloud one. **Nothing failed. The owner's ruling of 13-14 September held, which is what it is for.**
+
+**THE DEFECT WAS THE SENTENCE, AND IT WAS THE LEAD'S OWN, WRITTEN HOURS EARLIER.** §18.96 split `no_answer_returned` out of `declined` and gave it a sentence opening "the connection dropped" and closing "what they need is the call again". For a protected record that instruction is wrong in both directions: nothing dropped, and running again meets the same correct refusal. One counter, two remedies -- which is precisely the defect §18.96 exists to fix, committed one level deeper inside the fix for it.
+
+**Fixed.** `refused_before_sending` splits out of `no_answer_returned` on `isinstance(verdict, (Refusal, CallRefused, NeedsConsent))`. Nine counters partition the roster now. Its sentence says the run had nowhere to ask, that nothing left the machine, and that the remedy is a local model or the person's own release -- never "call again". `test_a_file_the_gate_refused_is_not_counted_as_a_dropped_call` asserts the two sentences differ and that the refusal sentence does not contain "call again".
+
+**AND THE LEAD TOLD THE OWNER "23 % LOST TO THE TRANSPORT" TWICE BEFORE CHECKING.** Both times from a counter the lead had built that hour, whose whole purpose was to stop this. The rule that would have caught it is the one already written for §18.99's fourth mode, applied to a JOIN rather than a file: **a query that returns zero is a claim, and an inner join to a table written later in the sequence returns zero for a living table.** Check a count without the join before believing it.
+
+**What is genuinely open on the transport, and it is small.** Across ALL runs of this database: 397 `APIConnectionError`, 47 body timeouts, 10 first-byte timeouts, 3 connect timeouts, 27 `APIStatusError` -- the last a 27-row, two-minute episode on 14 Sep at 16:45, HTTP 402, the account's balance. None of it is in run 22's window. `failure_class` is `client_raised` for every row, a bucket that names nothing; the `explanation` JSON carries the real type and that is what the split above should eventually read.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.

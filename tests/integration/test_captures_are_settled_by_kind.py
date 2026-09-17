@@ -369,6 +369,9 @@ def test_the_captures_are_not_folded_into_any_other_counter(corpus, detector):
                # `104` §18.96's half of the old `declined`; the partition holds
                # both halves or it stops adding up to the roster.
                + situation.declined + situation.no_answer_returned
+               # `104` §18.102's third road to "no judgement": the gate refusing
+               # to send. In the partition or the sum stops reaching the roster.
+               + situation.refused_before_sending
                + situation.held_not_asked
                + situation.no_route + situation.over_ceiling
                + situation.settled_by_kind)

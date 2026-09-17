@@ -107,3 +107,41 @@ def test_the_dropped_call_left_a_failure_row_the_screen_can_be_checked_against(
     assert rows, (
         "no failure row was written for a call that never came back, so the "
         "count on the screen cannot be checked against anything")
+
+def test_a_file_the_gate_refused_is_not_counted_as_a_dropped_call(tmp_path, monkeypatch):
+    """`104` §18.102: run 22's 87 were the gate, not the network.
+
+    Run 22 asked 310 files and built 223 site-G dossiers. The missing 87 left no
+    `llm_call_failure` row and no `llm_pre_call_abstention` row, and for an hour
+    the lead read that as a transport fault and told the owner so twice. They are
+    in `llm_refusal`: 150 `protected_records_template` and 10 `always_local_item`,
+    every one carrying the remedy the product itself records -- `decide_locally`,
+    "§7.3: normally local-only". The run was cloud-only, so protected material had
+    no local model to be asked on and the gate refused to send it. That is the
+    owner's own ruling of 13-14 September working exactly as written.
+
+    SO THE SENTENCE WAS THE DEFECT, NOT THE SOCKET. `no_answer_returned` led with
+    "the connection dropped" and ended "what they need is the call again", which
+    is the wrong instruction for a protected record: what it needs is a local
+    route or the person's release. One counter, two remedies -- which is the
+    defect §18.96 was about, one level deeper, committed inside the fix for it.
+
+    SABOTAGE: fold `refused_before_sending` back into `no_answer_returned`. This
+    goes red, and the screen goes back to telling a person to re-run a scan that
+    will refuse the same files again for the same correct reason.
+    """
+    _database, report, _stub = _run(tmp_path, monkeypatch, _never_answers)
+
+    said = " ".join(report.split())
+    refused = cli.SITUATION_SENTENCE["refused_before_sending"]
+    no_answer = cli.SITUATION_SENTENCE["no_answer_returned"]
+
+    assert refused != no_answer, (
+        "the gate refusing to send and a call coming back empty are two facts "
+        "with two remedies, so they may not share one sentence")
+    assert "call again" not in refused, (
+        "a protected record the gate refused is not helped by calling again; "
+        "the remedy the gate itself records is `decide_locally`")
+    assert f"0 {refused[:30]}" in said, (
+        "the counter does not reach the screen, so a person cannot tell a "
+        "refusal from a dropped call")

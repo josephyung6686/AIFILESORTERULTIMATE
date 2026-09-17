@@ -181,7 +181,8 @@ from llm_harness.harness import (
     CallDependencies, CallLane, in_walk_order, run_call,
 )
 from llm_harness.records import (
-    CallRefused, FolderLevel, P8Verdict, PreCallAbstention, PromptDefinition,
+    CallRefused, FolderLevel, NeedsConsent, P8Verdict, PreCallAbstention,
+    PromptDefinition, Refusal,
 )
 from llm_harness.situation_validation import is_decline
 from llm_harness.store import (
@@ -8672,6 +8673,23 @@ class SituationPass:
     #: `failure_class`, which is what the number on the screen can be checked
     #: against -- `104` §17.2's rule that a count carries its provenance.
     no_answer_returned: int = 0
+    #: `104` §18.102: files the GATE refused to send, before any bytes moved. IN
+    #: THE PARTITION, beside `no_answer_returned`, which it was split out of.
+    #:
+    #: A THIRD FACT WITH A THIRD REMEDY, and that is the whole reason it is its
+    #: own number. Run 22 asked 310 files and built 223 dossiers; the missing 87
+    #: left no `llm_call_failure` row and no abstention row, and were read for an
+    #: hour as a transport fault. `llm_refusal` has them: 150
+    #: `protected_records_template` and 10 `always_local_item`, each carrying the
+    #: remedy the gate itself records -- `decide_locally`. The run was cloud-only,
+    #: so protected material had no local model to be asked on and the gate would
+    #: not send it to a cloud one. Nothing failed. The owner's ruling of 13-14
+    #: September held, which is what it is for.
+    #:
+    #: Folding these into `no_answer_returned` told a person to run the scan
+    #: again, and the next run refuses the same files for the same correct reason.
+    #: What they actually need is a local route or their own release.
+    refused_before_sending: int = 0
     #: `00` amendment 1 of 14 Sep: THE SECOND STAGE'S ANSWER. file_id -> the
     #: SITUATION a model named for it under the kind in `named`, validated and, on
     #: a ratified row, applied. Read by `cli.run`'s `_the_situation_this_file_is_
@@ -9124,7 +9142,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     #: what it is for.
     raised: dict = {}
     nothing_to_read = declined = reused = held_not_asked = 0
-    no_answer_returned = 0
+    no_answer_returned = refused_before_sending = 0
     over_ceiling = recognised_by_rules = settled_by_kind = 0
     #: `104` §18.33 gap 25: THE ROWS, AND THE COUNT IS TAKEN OFF THEM. `no_route`
     #: was `+= 1` and nothing else, so `--trail FILE` could not say why a file was
@@ -9426,6 +9444,11 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             # saying a model had read those files and had nothing to say.
             if isinstance(verdict, P8Verdict):
                 declined += 1
+            elif isinstance(verdict, (Refusal, CallRefused, NeedsConsent)):
+                # `104` §18.102: THE GATE SAID NO. No bytes moved, the refusal is
+                # on record in `llm_refusal` with its own remedy, and calling
+                # again would meet the same correct answer.
+                refused_before_sending += 1
             else:
                 no_answer_returned += 1
             continue
@@ -9597,6 +9620,7 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         not_asked_their_situation=not_asked_their_situation,
         nothing_to_read=nothing_to_read, declined=declined,
         no_answer_returned=no_answer_returned,
+        refused_before_sending=refused_before_sending,
         held_not_asked=held_not_asked, settled_by_kind=settled_by_kind,
         # `104` §18.33 gap 25: THE NUMBER IS THE ROWS. Not a tally kept beside them
         # -- a counter and a table are two accounts of one fact and the day they
@@ -12371,6 +12395,17 @@ SITUATION_SENTENCE: Mapping[str, str] = MappingProxyType({
     # model read them and had nothing to say; what happened is that the call
     # dropped before it arrived. The first asks the person to answer for the file.
     # The second asks the run to be made again.
+    # `104` §18.102. THE GATE SAYING NO IS NOT THE NETWORK FAILING, and the two
+    # ask the person for opposite things: one wants the run again, the other
+    # wants a model on this machine or the person's own word. Run 22 printed 87
+    # files under the sentence below and every one of them was this.
+    "refused_before_sending":
+        "not sent, because this run had nowhere to ask: they are protected "
+        "material or an always-local item, and the only model this run had was "
+        "a cloud one, so the gate would not send them and nothing about them "
+        "left this machine. Running again changes nothing by itself -- they "
+        "need a model on this device, or your word to release them. They keep "
+        "this run's own situation.",
     "no_answer_returned":
         "asked and no answer came back: a call was made and no judgement came "
         "out of it -- the connection dropped, it ran out of time, a check stopped "
