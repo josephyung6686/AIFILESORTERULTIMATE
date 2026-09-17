@@ -2688,6 +2688,25 @@ The owner, reading §18.101: *"fix the transport then, 23% is too much."* There 
 
 **What is genuinely open on the transport, and it is small.** Across ALL runs of this database: 397 `APIConnectionError`, 47 body timeouts, 10 first-byte timeouts, 3 connect timeouts, 27 `APIStatusError` -- the last a 27-row, two-minute episode on 14 Sep at 16:45, HTTP 402, the account's balance. None of it is in run 22's window. `failure_class` is `client_raised` for every row, a bucket that names nothing; the `explanation` JSON carries the real type and that is what the split above should eventually read.
 
+### 18.103 THE GRADE, ON THE PRODUCT'S OWN RUN AND NOT A REPLAY (17 Sep, 09:50)
+
+The owner: *"and the grade too make sure it's 97% or above or at least one order away."* §18.95 made site G's answer a fact, so for the first time the judge can be graded from the database the PRODUCT wrote -- no replay, no re-parsing of response bytes.
+
+| measure, run 22's own facts against the owner's key | |
+| --- | --- |
+| files carrying a `situation` fact | 222 |
+| gradable against the key | 130 |
+| **first choice** | 113/130 = **86.9 %** |
+| **key in what the judge said** (`00` amendment 11's measure) | **127/130 = 97.7 %** |
+
+**IT AGREES WITH THE REPLAY, WHICH IS THE POINT.** §18.90 measured 97.4 % by replay over run 21's released dossiers; this is 97.7 % over run 22's stored facts by a different instrument on a different run. Two methods, one answer. **The owner's 97 % target is met on the product's own run.**
+
+**WHAT THE NUMBER IS NOT.** It grades 130 of 222, not 371. Two reasons, both honest: 149 files never got a situation at all (23 held, 38 captures, 87 the gate refused -- §18.102), and of the 222 that did, 92 carry a key situation the product's recognition library does not name, so no licensed bridge exists to grade them by. The base is thin and the figure should be quoted with it.
+
+**AND THE GRADER'S FIRST ANSWER WAS 0.0 %.** The `situation` FACT stores the KIND stage's answer -- a schema id such as `academic` -- while the key names a library situation such as `academic.coursework`. Comparing them raw scores zero of 215. The bench that reported 97.4 % carried a hand-written table bridging the two; this grader reads the bridge from `recognition.json` instead, and falls back to a dotted prefix ONLY where that prefix is itself one of the library's 23 schema ids (`research.paper` -> `research` is licensed; `community.club-service` -> `community` is not, because no such schema exists and the product files those under `nonprofit`). A fallback that invented a schema would grade the judge against a menu it was never shown.
+
+**A CATALOGUE ROW OF MINE IS WRONG AND IS NOT YET FIXED.** `situation`'s note in `src/facts/fields.py` says it holds *"the library identifier site G named, e.g. `academic.coursework`"*. It holds the schema id. The finer answer -- the level stage's `academic.coursework` -- lives only in `SituationPass.situations` in memory and is written as no fact at all, because `record_the_situation` is called on the kind path only. So `00` amendment 11's "the sort reads both" is true of the KIND and its alternatives, and the SITUATION under that kind is still unrecorded. That is a gap in §18.95's own work, found by grading it, and it belongs in `106` Phase 2 beside making the facts readable.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
