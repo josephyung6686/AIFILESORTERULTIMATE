@@ -333,11 +333,19 @@ def test_site_g_counts_the_captures_on_their_own_line_and_asks_nobody(corpus,
     assert _dossier_subjects(conn) == {by_name[OCR_JPEG][0],
                                        by_name[TEXT_PDF][0]}, (
         "a capture was assembled for a model, or a file with words in it was not")
-    # ASKED, and not turned away at some earlier door: the stub answers with no
-    # claim, so the two files that have words are `declined`. Without this line the
+    # ASKED, and not turned away at some earlier door. Without this line the
     # assertion above would still pass on a run that built the two dossiers and
     # then failed to route, which is a different product.
-    assert situation.declined == 2, situation
+    #
+    # `no_answer_returned` AND NOT `declined`, since `104` §18.96 split the two.
+    # The stub answers with no claim at all, so `run_call` hands back a
+    # `ValidationUnavailable` and no judgement about either file exists: nothing
+    # was named and nothing was declined. `declined` is now reserved for a model
+    # that answered and named no situation it could cite -- the file a person has
+    # to answer for -- and asserting it here would put run 21's defect into a
+    # test, which is a screen saying a model had read a file it never saw.
+    assert situation.no_answer_returned == 2, situation
+    assert situation.declined == 0, situation
     assert situation.no_route == 0, situation
 
 
@@ -358,7 +366,10 @@ def test_the_captures_are_not_folded_into_any_other_counter(corpus, detector):
     situation = _ask(conn, roster, detector)
 
     counted = (len(situation.named) + situation.nothing_to_read
-               + situation.declined + situation.held_not_asked
+               # `104` §18.96's half of the old `declined`; the partition holds
+               # both halves or it stops adding up to the roster.
+               + situation.declined + situation.no_answer_returned
+               + situation.held_not_asked
                + situation.no_route + situation.over_ceiling
                + situation.settled_by_kind)
     assert counted == len(roster), situation

@@ -60,6 +60,9 @@ def _a_pass(**over) -> cli.SituationPass:
         "named": {"file-a": "academic.coursework", "file-b": "finance.records"},
         "nothing_to_read": 22, "declined": 33, "no_route": 44, "over_ceiling": 55,
         "recognised_by_rules": 66, "held_not_asked": 77, "settled_by_kind": 88,
+        # `104` §18.96's own number, distinct like every other for this helper's
+        # stated reason.
+        "no_answer_returned": 99,
         "holds": cli.PrecautionHolds(0, 0, 0, 0),
         **over})
 
@@ -71,7 +74,7 @@ def _printed(situation: cli.SituationPass, *, files: int = 221) -> str:
     return " ".join(out.getvalue().split())
 
 
-def test_all_eight_of_site_gs_counters_reach_the_screen():
+def test_all_nine_of_site_gs_counters_reach_the_screen():
     """`104` §18.2 gap 9, the defect stated as an assertion.
 
     SABOTAGE: delete any one line of `_print_situation_pass`'s loop, or make it
@@ -94,7 +97,8 @@ def test_all_eight_of_site_gs_counters_reach_the_screen():
     # because every file is asked now.
     for count, field in ((22, 'nothing_to_read'), (33, 'declined'), (44, 'no_route'),
                          (55, 'over_ceiling'), (66, 'recognised_by_rules'),
-                         (77, 'held_not_asked'), (88, 'settled_by_kind')):
+                         (77, 'held_not_asked'), (88, 'settled_by_kind'),
+                         (99, 'no_answer_returned')):
         phrase = (cli.SITUATION_RECOGNISED_SENTENCE if field == 'recognised_by_rules'
                   else cli.SITUATION_SENTENCE[field])
         assert f"{count} {phrase[:30]}" in said, (count, field)
@@ -114,10 +118,11 @@ def test_a_zero_counter_still_prints_its_line():
     """
     said = _printed(_a_pass(recognised_by_rules=0, nothing_to_read=0,
                             declined=0, no_route=0, over_ceiling=0,
-                            held_not_asked=0, settled_by_kind=0))
+                            held_not_asked=0, settled_by_kind=0,
+                            no_answer_returned=0))
 
     for field in ('nothing_to_read', 'declined', 'no_route', 'over_ceiling',
-                  'held_not_asked', 'settled_by_kind'):
+                  'held_not_asked', 'settled_by_kind', 'no_answer_returned'):
         assert f"0 {cli.SITUATION_SENTENCE[field][:30]}" in said, field
 
 
@@ -245,8 +250,12 @@ def test_every_counter_site_g_leaves_behind_earns_a_sentence():
     # so they are a block of their own with a denominator of their own. The rule
     # is unchanged and is asserted one line down -- every one of them still earns
     # a sentence, in `SITUATION_LEVEL_SENTENCE`.
+    # `104` §18.96 added the second stage's fifth: a call that came back with no
+    # judgement is not the judge declining, one stage down as one stage up.
     second_stage = {"situations", "asked_their_situation",
-                    "declined_their_situation", "not_asked_their_situation"}
+                    "declined_their_situation",
+                    "their_situation_no_answer_returned",
+                    "not_asked_their_situation"}
     assert set(cli.SITUATION_SENTENCE) | second_stage | {
         "named", "raised", "holds", "recognised_by_rules"} == fields
     assert set(cli.SITUATION_LEVEL_SENTENCE) | {
@@ -255,8 +264,8 @@ def test_every_counter_site_g_leaves_behind_earns_a_sentence():
         "`asked_their_situation` is its denominator, exactly as `named` and "
         "`held` head the two blocks above; the other two divide it and carry "
         "their own sentence")
-    assert len(cli.SITUATION_SENTENCE) == 7, (
-        "seven counted outcomes plus `named` in the header. Five when gap 9 was "
+    assert len(cli.SITUATION_SENTENCE) == 8, (
+        "eight counted outcomes, with `named` in the header. Five when gap 9 was "
         "closed, and `00` amendment 7(c) spent one of them: every file is asked "
         "now, so `nothing_to_ask` went. `104` R-175 added `over_ceiling`, because "
         "a file skipped for time is a file this run did not decide about and the "
@@ -273,7 +282,10 @@ def test_every_counter_site_g_leaves_behind_earns_a_sentence():
         "on its file kind, which is `00`:110's direct, unique match, so it is "
         "decided and not asked. It is not `nothing_to_read` either: a file with "
         "nothing to read is one nobody could answer about, and this is one nobody "
-        "needed to")
+        "needed to; and `104` §18.96 of 17 Sep split `no_answer_returned` out of "
+        "`declined`, because run 21 dropped fifty-four of this site\'s calls on "
+        "the network and the screen printed every one of them under a sentence "
+        "saying a model had read the file and had nothing to say")
 
 
 def test_every_hold_the_rules_took_earns_a_sentence_too():

@@ -8586,6 +8586,15 @@ class SituationPass:
     #: Files a model was asked about and declined to name, or whose answer P8 did
     #: not accept. `00`: correct abstention is a successful outcome, and either way
     #: the file stays where the rules left it -- which is local.
+    #:
+    #: A FILE WHOSE CALL NEVER CAME BACK IS NOT ONE OF THESE, since `104` §18.96.
+    #: It used to be. Run 21 dropped fifty-four site-G calls on the network -- the
+    #: `llm_call_failure` rows say fifty APIConnectionError, three body timeouts,
+    #: one connect timeout -- and every one of them was counted here and printed
+    #: under a sentence saying a model had read the file and had nothing to say.
+    #: The two readings ask a person for opposite things: a judge that could not
+    #: place a file wants an answer from the person, and a call that dropped wants
+    #: the run again. See `no_answer_returned`.
     declined: int
     #: Held by a rule, an identifier, an entity reading or the gate, and so not
     #: asked (13 Sep 2026). One of the roster's partition counters, so the sum
@@ -8643,6 +8652,26 @@ class SituationPass:
     #: nothing to read is one nobody could answer about, and a capture is one
     #: nobody needed to.
     settled_by_kind: int = 0
+    #: `104` §18.96: files a call was made about that produced no judgement at all
+    #: -- the connection dropped, the request ran out of time, a check refused to
+    #: send it, the run was not configured to, or the body that came back could not
+    #: be read as an answer. IN THE PARTITION, beside `declined`, which it was
+    #: split out of.
+    #:
+    #: THE LINE IS DRAWN AT `P8Verdict` AND NOT AT "did bytes move". A model that
+    #: replied with nothing this product could read has told the person no more
+    #: than a dropped socket did: there is no situation on record to correct, and
+    #: what the file needs is the call again. A model that answered and named none
+    #: it could cite is the other thing, and it is `declined`.
+    #:
+    #: It is a separate counter and not a note under `declined` because it is a
+    #: different fact about the file and asks the person for a different thing. The
+    #: judge has not seen this file. Nothing it could have said is on record, so
+    #: there is nothing for a person to correct; what the file needs is the call
+    #: again. Every one of these left an `llm_call_failure` row naming its own
+    #: `failure_class`, which is what the number on the screen can be checked
+    #: against -- `104` §17.2's rule that a count carries its provenance.
+    no_answer_returned: int = 0
     #: `00` amendment 1 of 14 Sep: THE SECOND STAGE'S ANSWER. file_id -> the
     #: SITUATION a model named for it under the kind in `named`, validated and, on
     #: a ratified row, applied. Read by `cli.run`'s `_the_situation_this_file_is_
@@ -8667,7 +8696,21 @@ class SituationPass:
     #: unratified state, which does not reach this pass at all -- the stage is
     #: dark until its row applies, so a file here is one a real call was made
     #: about (the lead's ruling of 14 Sep).
+    #:
+    #: `104` §18.96 AT THIS STAGE TOO: a call that came back with no judgement is
+    #: not one of these either. The comment above `_ask_which_situation_of_the_
+    #: kind`'s last branch already said so in words -- "a `Refusal`, a
+    #: `PreCallAbstention`, a `CallFailed` ... counted as asked with no answer" --
+    #: and the screen still printed one sentence over both. See
+    #: `their_situation_no_answer_returned`.
     declined_their_situation: int = 0
+    #: `104` §18.96: of the files this stage asked a second question about, the ones
+    #: whose call came back with no judgement at all. Partitions
+    #: `asked_their_situation` with `declined_their_situation`, for that counter's
+    #: own reason one stage up: a judge that read the level menu and could not
+    #: choose leaves a question for the person, and a call that dropped leaves a
+    #: file the run has not yet asked.
+    their_situation_no_answer_returned: int = 0
     #: Files whose kind was named and whose situation this stage did NOT ask about:
     #: the library carries one situation for the kind (an answer, not a choice), the
     #: person has already answered for it, a recogniser raised exactly one, the file
@@ -8753,6 +8796,13 @@ class ProtectedFileOfferedACloudTarget(RuntimeError):
 class _SituationOfTheKind:
     asked: bool
     situation: str | None = None
+    #: `104` §18.96: whether a JUDGEMENT came back, which is not whether a call was
+    #: made. False where `run_call` handed back a `Refusal`, a `NeedsConsent`, a
+    #: `ValidationUnavailable`, a `CallFailed` or a `CallRefused` -- no model read
+    #: the menu, so the file is not one the person has to answer for, it is one the
+    #: run has not yet asked. True on a replayed verdict, which is a judgement that
+    #: was made once and is being read again.
+    answered: bool = True
 
 
 _NOT_ASKED_ITS_SITUATION = _SituationOfTheKind(asked=False)
@@ -8912,10 +8962,13 @@ def _ask_which_situation_of_the_kind(
                  if isinstance(verdict, P8Verdict) else None)
     if situation is None:
         # THE JUDGE READ THE MENU AND WOULD NOT NAME ONE, or P8 did not accept the
-        # answer it gave, or no judgement came back at all. Either way the file's situation is still open and the
-        # person is asked, which is the amendment's own sentence; the verdict is
-        # on record.
-        return _SituationOfTheKind(asked=True)
+        # answer it gave, or no judgement came back at all -- and since `104`
+        # §18.96 the caller is told WHICH. Either way the file's situation is
+        # still open and the verdict, or the failure, is on record; but only in
+        # the first two is there an answer for the person to correct. In the third
+        # nobody has read this file's menu, and the screen may not say they have.
+        return _SituationOfTheKind(
+            asked=True, answered=isinstance(verdict, P8Verdict))
     return _SituationOfTheKind(asked=True, situation=situation)
 
 
@@ -9064,12 +9117,14 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
     #: carries the argument for each.
     situations: dict = {}
     asked_their_situation = declined_their_situation = 0
+    their_situation_no_answer_returned = 0
     not_asked_their_situation = 0
     #: What the recognisers raised about each file this pass put a question about,
     #: read off the question rather than re-derived. `SituationPass.raised` says
     #: what it is for.
     raised: dict = {}
     nothing_to_read = declined = reused = held_not_asked = 0
+    no_answer_returned = 0
     over_ceiling = recognised_by_rules = settled_by_kind = 0
     #: `104` §18.33 gap 25: THE ROWS, AND THE COUNT IS TAKEN OFF THEM. `no_route`
     #: was `+= 1` and nothing else, so `--trail FILE` could not say why a file was
@@ -9363,7 +9418,16 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             situation = situation_named_by_verdict(
                 conn, verdict, question.allowed_situations)
         if situation is None:
-            declined += 1
+            # `104` §18.96: WHICH OF THE TWO THINGS HAPPENED. Only a `P8Verdict`
+            # carries a judgement; `run_call` hands back a `Refusal`, a
+            # `NeedsConsent`, a `ValidationUnavailable`, a `CallFailed` or a
+            # `CallRefused` where none came back. Counting both roads as one
+            # printed run 21's fifty-four dropped connections under a sentence
+            # saying a model had read those files and had nothing to say.
+            if isinstance(verdict, P8Verdict):
+                declined += 1
+            else:
+                no_answer_returned += 1
             continue
         if not prompt.ratified:
             # OBSERVE-ONLY UNTIL THE ROW SAYS OTHERWISE. `104` §7 Phase 1 step 6:
@@ -9508,7 +9572,11 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
             not_asked_their_situation += 1
         elif answered.situation is None:
             asked_their_situation += 1
-            declined_their_situation += 1
+            # `104` §18.96, the same split as the kind stage above.
+            if answered.answered:
+                declined_their_situation += 1
+            else:
+                their_situation_no_answer_returned += 1
         else:
             asked_their_situation += 1
             situations[file_id] = answered.situation
@@ -9524,8 +9592,11 @@ def ask_the_situation(conn: sqlite3.Connection, *, roster, explain,
         situations=situations,
         asked_their_situation=asked_their_situation,
         declined_their_situation=declined_their_situation,
+        their_situation_no_answer_returned=(
+            their_situation_no_answer_returned),
         not_asked_their_situation=not_asked_their_situation,
         nothing_to_read=nothing_to_read, declined=declined,
+        no_answer_returned=no_answer_returned,
         held_not_asked=held_not_asked, settled_by_kind=settled_by_kind,
         # `104` §18.33 gap 25: THE NUMBER IS THE ROWS. Not a tally kept beside them
         # -- a counter and a table are two accounts of one fact and the day they
@@ -12294,6 +12365,20 @@ SITUATION_SENTENCE: Mapping[str, str] = MappingProxyType({
         "asked and left alone: a model was asked and named no situation it could "
         "cite, or the check did not accept the one it named. They keep this "
         "run's own situation, which is where the rules had already left them.",
+    # `104` §18.96. THE SENTENCE SAYS THE JUDGE NEVER SAW THE FILE, because that
+    # is the fact and because it is what tells a person what to do about it.
+    # Fifty-four files of run 21 were printed under the line above, which says a
+    # model read them and had nothing to say; what happened is that the call
+    # dropped before it arrived. The first asks the person to answer for the file.
+    # The second asks the run to be made again.
+    "no_answer_returned":
+        "asked and no answer came back: a call was made and no judgement came "
+        "out of it -- the connection dropped, it ran out of time, a check stopped "
+        "it before it was sent, or what came back could not be read as an answer "
+        "at all. Nothing any model said about these files is on record, so there "
+        "is nothing of theirs for you to correct; what they need is the call "
+        "again, and each one left a row saying why it did not land. They keep "
+        "this run's own situation.",
     # `104` §18.7 (9 Sep 2026): protected material reaches the LOCAL model, so
     # this is no longer the protected count on a run with a local target. It is
     # the files no model this site may use could take -- protected material
@@ -12351,6 +12436,13 @@ SITUATION_LEVEL_SENTENCE: Mapping[str, str] = MappingProxyType({
         "asked and still open: the judge read the situations of their kind and "
         "named none it could cite, or the check did not accept the one it named. "
         "Their folder is still a question for you, and it is asked in words.",
+    # `104` §18.96, one stage down. Same split, same reason.
+    "their_situation_no_answer_returned":
+        "asked and no answer came back: the second call produced no judgement at "
+        "all -- the connection dropped, it ran out of time, a check stopped it, "
+        "or what came back could not be read as an answer. Nobody read the "
+        "situations of their kind for them, so their folder is not a question for "
+        "you yet; it is a call to make again.",
     "not_asked_their_situation":
         "not asked: their kind carries one situation, or you have already said "
         "which situation that kind is, or the recognisers had already narrowed it "
@@ -12361,7 +12453,8 @@ SITUATION_LEVEL_SENTENCE: Mapping[str, str] = MappingProxyType({
 
 assert set(SITUATION_LEVEL_SENTENCE) | {"situations", "asked_their_situation"} == {
     field.name for field in dataclasses.fields(SituationPass)
-    if field.name.endswith("their_situation") or field.name == "situations"}, (
+    if field.name.endswith("their_situation") or field.name == "situations"
+    or field.name.startswith("their_situation_")}, (
     "every counter the second stage leaves behind earns a sentence too, on the "
     "first stage's own rule: a number this report silently drops is `104` §18.2 "
     "gap 9 happening again one stage down")
@@ -12369,6 +12462,7 @@ assert set(SITUATION_LEVEL_SENTENCE) | {"situations", "asked_their_situation"} =
 assert set(SITUATION_SENTENCE) | {
     "named", "raised", "holds", "recognised_by_rules", "situations",
     "asked_their_situation", "declined_their_situation",
+    "their_situation_no_answer_returned",
     "not_asked_their_situation"} == {
     field.name for field in dataclasses.fields(SituationPass)}, (
     "every counter site G leaves behind earns a sentence on the screen. A "
@@ -12658,6 +12752,7 @@ def _print_situation_pass(situation: SituationPass, *, files: int,
         if field.name in ("named", "raised", "holds", "recognised_by_rules",
                           "situations", "asked_their_situation",
                           "declined_their_situation",
+                          "their_situation_no_answer_returned",
                           "not_asked_their_situation"):
             continue
         print(_wrapped(f"{getattr(situation, field.name)} "
@@ -12700,7 +12795,9 @@ def _print_which_situation(situation: SituationPass, *, out) -> None:
         f"{'its' if resolved == 1 else 'their'} own situation named, from the "
         f"library's own list of what each situation is. That is the question you "
         f"would have been asked about the folder instead.", indent=""), file=out)
-    for field in ("declined_their_situation", "not_asked_their_situation"):
+    for field in ("declined_their_situation",
+                  "their_situation_no_answer_returned",
+                  "not_asked_their_situation"):
         print(_wrapped(f"{getattr(situation, field)} "
                        f"{SITUATION_LEVEL_SENTENCE[field]}", indent="  "),
               file=out)

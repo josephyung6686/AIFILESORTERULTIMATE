@@ -2550,6 +2550,14 @@ Asked to finish classification, the lead read run 21's site-G block instead of t
 
 **What it cost the evening.** The lead spent this session measuring the judge's text against a bench, and the largest single loss on the owner's own corpus was not the text at all. §18.90's numbers stand -- they are measured over dossiers that were actually sent -- but "the judge is right 85.8 % of the time" and "this run classified 85.8 % of your files" are different sentences, and only the first was ever true.
 
+**FIXED, 17 Sep, both stages.** `SituationPass` gains `no_answer_returned` beside `declined`, and `their_situation_no_answer_returned` beside `declined_their_situation` -- the level stage had the identical hole, and its own code comment admitted it in words (*"a `Refusal`, a `PreCallAbstention`, a `CallFailed` ... counted as asked with no answer"*) while the screen still printed one sentence over both. `_SituationOfTheKind` carries an `answered` flag so the caller can tell which happened. Nine counters partition the roster now, five the second stage's asked files.
+
+**Where the line is drawn, and it is not "did bytes move".** A `P8Verdict` means a model read the menu and said something; anything else -- `Refusal`, `NeedsConsent`, `ValidationUnavailable`, `CallFailed`, `CallRefused` -- means no judgement came out of the call, whether the socket dropped or the body came back unreadable. The person's question is the same in every one of those cases: there is nothing on record to correct, so the file needs the call again, not an answer from them. That is what the new sentence says.
+
+**The test that would have caught it.** `tests/integration/test_site_g_counts_a_call_that_never_answered.py`: the stub HTTP server's site-G answer RAISES, so the connection closes with nothing on it and the client meets what run 21 met fifty times. Two assertions, and they are a pair -- a dropped call must not read as a decline, and a real decline must still read as one, or the fix is a counter that eats both. A third asserts the `llm_call_failure` row exists, so the number on the screen has a table a person can check it against.
+
+**One existing test changed its answer, and the change is the point.** `test_site_g_counts_the_captures_on_their_own_line_and_asks_nobody` asserted `declined == 2` about a stub that answers with no claim at all. That is a `ValidationUnavailable` and no judgement about either file exists; it now asserts `no_answer_returned == 2` and `declined == 0`. Keeping the old assertion would have pinned run 21's defect into the suite.
+
 ### 18.97 RUN 22: WHAT IT IS FOR (16 Sep, 23:50)
 
 `~/.graph-agent/lead/corpus2-gate1/run22.sh`, written explicitly per the standing rule. Run 21's shape exactly -- cloud-only, no `--situation`, `--stop-after facts`, the owner's file-7 rulings unchanged -- and two things have changed under it since:
@@ -2577,6 +2585,18 @@ The owner, reading §18.90's account of why the judge disagrees with a key its a
 **And it fixed the confusion the owner asked about, by name.** Eleven files corrected, six broken. **Five of the eleven are `academic.coursework` that v7 had called `research`** -- the collapse §18.90 could not close from the bytes -- and four more are club records it had called medical or academic. When the judge can see that a paper's nearest relatives are worksheets and problem sets, it stops calling it a reading library. The six it broke are scattered across five different kinds, with no pattern: this is not a rule that trades one systematic error for another.
 
 **IT IS NOT WIRED, AND THE REASON IS PRIVACY AND NOT ENGINEERING.** In the product, file X's dossier would carry the NAMES OF TEN OTHER FILES. The bench sent only names that had already crossed on their own account, so nothing new left the machine there; the product would be sending, about one file, the names of the ten that read most like it. `00` amendment 10 covers the file's OWN name -- *"of course you send the filename"* -- and does not reach this. The lead has put it to the owner as three rulings (send them; local only; or decline and keep v10 as a measured mechanism that was not taken), with the safeguards that would apply either way: only names of files the gate has already cleared, each redacted through the same gate as every released value, never any content of those files and never any answer about them.
+
+### 18.99 THE FOUR FAILURE MODES, FIXED WHERE EACH ONE LIVES (17 Sep, 02:10)
+
+The owner quoted the lead's own list back and said *"fiz these then. and he start the other stuff."* Each is fixed at the layer it belongs to, and three of the four are fixed by code rather than by a resolution to be more careful.
+
+**1. An experiment on a premise nobody checked** (§18.88). `replay.py` gains `_refuse_a_constant_zone`, run before any arm that injects a zone. It counts the DISTINCT VALUES of that zone across the dossiers and refuses below a floor of a tenth of them, naming the count. The v8 folder arm would have died at "the 'neighbours' zone takes 1 distinct value across 310 dossiers" instead of costing an evening and a prompt version. `--allow-constant-zone` exists for measuring a constant on purpose.
+
+**2. A screen claiming more than the run supports** (§18.96, §18.86). Two fixes already in: the consent screen no longer says nothing is sent to a cloud a file is on its way to, and site G's counters split a dropped call from a decline at both stages. The general rule this leaves: **a counter two different events can reach needs two counters and two sentences, because the person's next action differs.**
+
+**3. Measuring in a condition the product is never in** (§18.89). Both replay benches now IMPORT `JUDGE_SAMPLING` from `readers.model_deepseek` as their `--temperature` default instead of carrying a copy of the number. The bench cannot drift from the product without failing to start.
+
+**4. Deriving a number the product already printed** (§18.92). Nothing in the code fixes this one; it is a habit, and it is now a memory file (`read-the-runs-own-screen-first`) rather than a paragraph in `104`, because a fresh session reads `MEMORY.md` and not §18.92. The rule: read the run's own screens and `llm_call_failure` before computing anything, and derive only what the product does not print.
 
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
