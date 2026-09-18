@@ -281,15 +281,34 @@ def latest_plan_version(conn: sqlite3.Connection) -> str | None:
     `plan_versions` written in `src/cli.py` would be a second home for P10's
     schema in the file whose own docstring says it holds none.
 
-    Ordered by `created_at` with the id breaking the tie, because a run that
-    opens a draft in the same second as the version it was opened from would
-    otherwise be ordered by a row order. `104` R-38 is the caller: §17:576's
-    draft is opened FROM something, and what it is opened from is whatever the
-    person last saw.
+    Ordered by `created_at`, with the ROW ORDER breaking the tie, because a run
+    that opens a draft in the same second as the version it was opened from
+    cannot be separated by the clock. `104` R-38 is the caller: §17:576's draft is
+    opened FROM something, and what it is opened from is whatever the person last
+    saw.
+
+    **THE TIE USED TO BREAK ON THE ID, AS A STRING, AND THAT IS WRONG** (`104`
+    §18.113). A plan version id ends in an ordinal -- `..._0`, `..._8`, `..._18`
+    -- and a single run writes several of them in one second: the owner's database
+    holds a chain `_0` draft, `_8` draft, `_18` frozen, sharing one `created_at`.
+    Compared as text, `_8` beats `_18`, so with ten or more versions in a second
+    R-38 opened the next draft from a tree the person never saw.
+
+    The old docstring said the id was used to avoid being "ordered by a row
+    order". That instinct was backwards here: `rowid` IS the insertion order, and
+    insertion order is exactly the question -- which of these was written LAST.
+    Relying on it by accident would be a bug; relying on it on purpose is the
+    answer. `predecessor_id` would also serve and is a larger change for the same
+    result.
+
+    **The lead wrote this identical defect independently** while patching
+    `tools/groundtruth/measure.py`, called it careless, and reverted it, before an
+    analyst found it shipping here. It is not a typo: it is what "break the tie on
+    the id" means once ids carry numbers.
     """
     row = conn.execute(
         "SELECT plan_version_id FROM plan_versions "
-        "ORDER BY created_at DESC, plan_version_id DESC LIMIT 1").fetchone()
+        "ORDER BY created_at DESC, rowid DESC LIMIT 1").fetchone()
     return None if row is None else row["plan_version_id"]
 
 
