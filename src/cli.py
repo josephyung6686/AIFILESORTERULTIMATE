@@ -16564,7 +16564,6 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         Found by the Phase 3 analyst reading `run` for something else. Two
         functions with one name in one scope is not a style question; it is the
         later one silently winning.
-        """
 
         `00` amendment 11's "the sort reads both" begins here. Only the first
         choice: an alternative is a thing the judge also said, not a thing it
