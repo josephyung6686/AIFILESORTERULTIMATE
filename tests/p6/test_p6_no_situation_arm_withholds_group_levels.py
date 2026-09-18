@@ -151,18 +151,52 @@ def test_the_library_names_the_fields_the_no_situation_arm_withholds():
     the per-situation arm's sibling, which is a fact nobody writes.
     """
     from production import (
-        group_level_fields_everywhere, load_shipped_catalogue,
+        group_level_fields_for_schema, load_shipped_catalogue,
         read_packaged_library_file,
     )
 
     catalogue = load_shipped_catalogue(read_packaged_library_file)
-    fields = group_level_fields_everywhere(catalogue)
+    fields = group_level_fields_for_schema(catalogue, "academic")
 
     assert isinstance(fields, frozenset)
     assert fields, (
-        "the shipped library binds at least one group-level role -- `academic`'s "
-        "`holder_institution` -- so an empty answer means the roles were not "
-        "resolved through `role_bindings` at all")
+        "`academic` is the one schema `GROUP_LEVEL_ROLES` binds a group-level "
+        "role for -- `holder_institution` -- so an empty answer means the roles "
+        "were not resolved through `role_bindings` at all")
     assert "subject" not in fields, (
         "`subject` is the file's own level in every situation that carries it; "
         "withholding it would empty the question this arm exists to ask")
+
+
+def test_a_schema_that_declares_no_group_level_role_withholds_nothing():
+    """THE SCOPE IS THE SCHEMA'S, NOT THE LIBRARY'S (18 Sep 2026).
+
+    Until today this was a union over every role in `GROUP_LEVEL_ROLES` matched
+    across every applicability row in the library. `holder_institution` is bound
+    to `lab` on research rows and to `school` on academic ones, and only
+    `academic` declares it group-level -- so the union withheld `lab` from every
+    research file to prevent a harm (`104` R-95's `school` guessed off a filename)
+    that only exists under `academic`.
+
+    `tests/integration/test_a_silent_file_is_asked_and_filed_under_one_situation`
+    caught it: a silent file must be offered EVERY field its voted schema
+    declares, and `lab` is one of `research`'s. With `subject` reaching 35 of 371
+    files (`104` §18.108), a question withheld for nothing is a fact not written.
+
+    SABOTAGE: drop the `GROUP_LEVEL_ROLES.get(schema)` gate and take the union
+    again. Red here, and every research file goes back to being unable to say
+    which lab it belongs to.
+    """
+    from production import (
+        group_level_fields_for_schema, load_shipped_catalogue,
+        read_packaged_library_file,
+    )
+
+    catalogue = load_shipped_catalogue(read_packaged_library_file)
+
+    assert group_level_fields_for_schema(catalogue, "research") == frozenset(), (
+        "`research` declares no group-level role, so the no-situation arm has "
+        "nothing to withhold from it")
+    assert "lab" not in group_level_fields_for_schema(catalogue, "research")
+    # And the strip that the ruling's own evidence is about still happens.
+    assert "school" in group_level_fields_for_schema(catalogue, "academic")

@@ -350,7 +350,7 @@ from production import (
     CorpusAuthorities, CorpusDecisions, InvalidCorpusAuthority,
     P1P7Authorities, ProductionRun,
     bootstrap_p1_p7, corpus_roster, folder_levels_for, group_level_fields_for,
-    group_level_fields_everywhere,
+    group_level_fields_for_schema,
     GROUP_LEVEL_ROLES, load_shipped_catalogue,
     nearest_situations, read_packaged_library_file, schema_for_situation,
     shipped_situations, situation_schema_family, template_id_for_situation,
@@ -18095,7 +18095,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             # as a level in 0 of 208 situations and 7 of the owner's files carry
             # one, and this arm is the only place they can have come from.
             group_level_fields=tuple(sorted(
-                group_level_fields_everywhere(catalogue))),
+                group_level_fields_for_schema(catalogue, pass_schema))),
             user_id=user_id,
             now=now,
             # THIS RUN'S MODE, read off the folder's own consent by

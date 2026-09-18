@@ -440,35 +440,72 @@ def group_level_fields_for(catalogue: TemplateCatalogue,
         if item.role_ref in roles and item.field_ref)
 
 
-def group_level_fields_everywhere(
-        catalogue: TemplateCatalogue) -> frozenset[str]:
-    """Every field ANY situation fills from its GROUP rather than from the file.
+def group_level_fields_for_schema(
+        catalogue: TemplateCatalogue, schema: str) -> frozenset[str]:
+    """Every field THIS SCHEMA fills from its GROUP rather than from the file.
 
     `00` amendment 15 of 17 Sep. `group_level_fields_for` above answers this for
-    one situation, and the per-situation arm of `model_facts.open_question` uses
-    it. The NO-situation arm has no situation to ask about by definition -- that
-    is the state it exists for -- so the honest answer there is the union over the
-    whole library: a field some situation settles from a group is not a field to
-    ask one file for when nobody yet knows which situation the file is in.
+    one SITUATION and the per-situation arm of `model_facts.open_question` uses
+    it. The NO-situation arm has no situation by definition -- that is the state
+    it exists for -- but it DOES know the schema: its own comment is *"no
+    situation is chosen, so the SCHEMA'S OWN QUESTION is the question"*. So the
+    honest scope there is the schema, and `GROUP_LEVEL_ROLES` is keyed by schema
+    already. Task 0.1's ruling asked for the subtraction *"exactly as the
+    per-situation branch already does"*, and this is that branch's rule with the
+    situation's place taken by the one thing this arm does know.
 
-    CONSERVATIVE ON PURPOSE, and the asymmetry is measured. Withholding a field
-    that some other situation treats as the file's own costs one unasked question.
-    Asking a group-level field per file costs a `school` guessed off a filename --
-    `104` R-95: 38 model facts on 52 files, "every one a `school`, most of them
-    filenames" -- and that fact then enters a group dossier and can cost the run
-    its site-B call.
+    **IT WAS THE UNION OVER THE WHOLE LIBRARY UNTIL 18 SEP, AND THAT COST FACTS.**
+    The union argued that a field some situation settles from a group is not a
+    field to ask one file for while nobody knows the situation. But the roles are
+    not the library's, they are each SCHEMA's: `holder_institution` is bound to
+    `lab` on research rows and to `school` on academic ones, and only `academic`
+    declares it group-level. The union therefore withheld `lab` from every
+    research file -- a legitimate question about the file's own lab -- to prevent
+    a harm that only exists under `academic`. `tests/integration/
+    test_a_silent_file_is_asked_and_filed_under_one_situation` caught it, on the
+    assertion that a silent file is offered EVERY field its voted schema declares,
+    and its own docstring had already recorded the cost: *"withholding them cost a
+    whole facts column on the first cut of this change."* With `subject` reaching
+    35 of 371 files and `institution` 17 (`104` §18.108), a self-inflicted unasked
+    question is the last thing this product can afford.
 
-    Empty is a truthful answer for a library that binds no group-level role, and
-    the same answer `group_level_fields_for` gives for 22 of the 23 schemas.
+    **THE MEASURED HARM IS STILL PREVENTED WHERE IT WAS MEASURED.** `104` R-95 --
+    38 model facts on 52 files, "every one a `school`, most of them filenames" --
+    is academic, and `academic` is exactly what this still strips. Scoping loses
+    none of that and stops paying for it elsewhere.
+
+    Empty is the ordinary answer: 22 of the 23 schemas name no group-level role,
+    and for those this withholds nothing at all.
     """
-    roles = frozenset(
-        role for schema_roles in GROUP_LEVEL_ROLES.values() for role in schema_roles)
+    roles = GROUP_LEVEL_ROLES.get(schema)
     if not roles:
         return frozenset()
-    return frozenset(
-        item.field_ref for row in catalogue.applicabilities.values()
-        for item in row.role_bindings
-        if item.role_ref in roles and item.field_ref)
+    # THE ROWS ARE SCOPED TOO, AND NOT ONLY THE ROLES. Gating the role lookup
+    # alone still returned `lab`: `holder_institution` is bound on research rows
+    # as well, so asking the whole library "which fields does this role name"
+    # answers for every schema that binds it. The row's own situation decides
+    # whether it is this schema's, and the SCHEMA IS ASKED OF THE LIBRARY --
+    # `schema_for_situation`'s docstring is explicit that the dotted prefix is not
+    # the domain and is wrong for seven of the library's 208 situations.
+    prefix = "recognition:"
+    fields: set[str] = set()
+    for row in catalogue.applicabilities.values():
+        for ref in row.detection_signal_refs:
+            if not ref.startswith(prefix):
+                continue
+            try:
+                if schema_for_situation(catalogue, ref[len(prefix):]) != schema:
+                    continue
+            except Exception:
+                # A signal this build cannot resolve to a schema is not evidence
+                # that the row is this schema's. `104` §17.2: a gap in the
+                # vocabulary must never become a crash, and here it must not
+                # become a withheld question either.
+                continue
+            fields.update(item.field_ref for item in row.role_bindings
+                          if item.role_ref in roles and item.field_ref)
+            break
+    return frozenset(fields)
 
 
 def template_id_for_situation(catalogue: TemplateCatalogue,
