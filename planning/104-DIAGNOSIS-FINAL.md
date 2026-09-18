@@ -2781,6 +2781,73 @@ Two findings, one fixed and one referred to the owner.
 
 **The principled middle, for the owner to rule on.** `retrieval.py` already carries five NON-ANCHORING channels -- folder, session, duplicate, format, semantic -- which let a file JOIN a group without STARTING one. A model-supported fact could be a sixth: never an anchor, but able to attach a file to a group anchored by somebody else's independent evidence. The self-confirmation loop stays closed, because no group can come into existence on the model's word alone, and the reach roughly triples. **Ruling owed.**
 
+### 18.108 THE FACT TABLE IS THE WHOLE DIAGNOSIS, AND A SECOND ANSWER TO ONE FIELD CAN UNREAD IT (17 Sep, 16:10)
+
+**THE MEASUREMENT THAT SUBSUMES §18.100.** The run's own fact table, by how many
+of the 371 files carry each field: `file_type` 249, `situation` 222,
+`situation_alternative` 154, `duplicate_family` 84, `media_type` 48,
+`creation_date` 47, `work_type` 46, `version_family` 39, **`subject` 35**,
+`authored_by` 34, **`institution` 17**, `language` 15. 320 files carry at least
+one active fact.
+
+The template builds a coursework file's folders from `institution / term /
+subject`. The corpus carries `subject` on 35 files and `institution` on 17. **So
+the flat tree is not a routing failure and never was.** With a perfect router,
+perfect recognition and every phase of `106` after this one built, there would
+still be nothing to write in the folders. The single fact that reaches nearly
+every file is a FORMAT, and "PDF" is not a place to file anything. 7 top-level
+folders, 3 second-level, 1 third-level, for 371 files, follows from this table
+alone.
+
+It also explains the grouping reach §18.107 left open: grouping seeds on facts at
+or above the anchor bar, and the anchorable pool IS these rows. 133 of 371 is not
+a grouping defect, it is this table seen from one stage downstream. **Phase 6 is
+therefore not one phase among seven; it is the precondition for the value of the
+other six.**
+
+**AND A DEFECT FOUND BEFORE IT SHIPPED, WHICH IS THE POINT OF WRITING THE TEST
+FIRST.** `106` Phase 2(b) gives one field a SECOND writer in one run: the kind
+pass writes `nonprofit`, then the level pass writes `nonprofit.member-
+association` and retires the first. Correct once. On a second run of the same
+command it is a cycle:
+
+* `write_fact` is idempotent and RETURNS THE EXISTING ROW (`file_facts.py:249`),
+  so the kind pass is handed back the row it wrote last time -- which the level
+  pass has since retired;
+* `record_the_situation`'s standing loop sees the live finer row, finds it names
+  a different value and is not the person's answer, and retires it with the stale
+  one;
+* `supersede_fact` guards `old["superseded_by"]` (`supersede.py:175`) and
+  `new["supersedes"]` (`:170`) but **never whether the NEW row is itself already
+  superseded**, so both guards pass;
+* both rows end superseded, no live row names the slot, and `preferred_fact`
+  answers `None`. **The file's situation becomes unreadable by having been
+  answered twice** -- the exact failure `record_the_situation`'s own docstring
+  says its retirement exists to prevent, reached from the other direction.
+
+**THE RULE THE GUARD STATES.** §3.13 says `preferred` never reverses for the
+person's answer. It must not reverse for a STALE one either: a replayed answer
+that something later has already superseded does not take the pointer back. The
+guard is in `record_the_situation` and not in `supersede_fact`, because raising
+would take down a run over an ordering question -- §17.2's rule again.
+
+Caught by the advisor before implementation, from a trace of a `twice=True` run,
+and pinned by `test_a_second_run_does_not_make_the_situation_unreadable`. The
+first three tests of that file all pass without the guard.
+
+**KNOWN GAP, RECORDED RATHER THAN LEFT SILENT.** The level path writes
+`alternatives=()`. `00` amendment 11 says the sort reads both, and the level
+verdict may rank alternatives it is not being asked for. One purpose per change;
+this one is owed.
+
+**AND THE GRADER MUST NOT BE TRUSTED ACROSS THIS CHANGE.** `grade_gate1.py`'s
+bridge was built for a `situation` fact holding the KIND. After 2(b) the fact
+holds the SITUATION wherever the level stage ran, and the prefix fallback would
+map a judge's `academic.records` back through `academic` to a key that says
+`academic.coursework` and **score the disagreement as a match**. The 97.7 % may
+not be re-claimed until the grader prefers the fact's own value where it is
+already a situation id.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.

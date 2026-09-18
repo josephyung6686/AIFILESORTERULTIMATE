@@ -74,7 +74,7 @@ from facts.fields import FieldNotInCatalogue, get_field
 from facts.file_facts import LLM_INTERPRETATION, facts_for_file, write_fact
 from facts.states import (EXCLUDED_STATE, LLM_SUPPORTED, POSSIBLE, USER_CONFIRMED,
                           is_stronger)
-from facts.supersede import supersede_fact
+from facts.supersede import FACT_TABLE, supersede_fact
 from facts.unresolved import ATTEMPTED_PRODUCERS, LLM_ROUTE, write_unresolved
 from facts.values import VALUE_ORIGINS, ensure_value
 
@@ -453,6 +453,29 @@ def record_the_situation(conn: sqlite3.Connection, *, file_id: str,
             # reader takes the rows, not the pointer. Pairing a stale alternative
             # with a new one by position would write "this replaced that" about two
             # readings that have nothing to do with each other.
+            continue
+        # `106` PHASE 2(b) / `104` §18.108: A REPLAYED ANSWER DOES NOT TAKE THE
+        # POINTER BACK. This field now has TWO writers in one run -- the kind pass,
+        # then the level pass with the finer situation -- so on a SECOND run of the
+        # same command `write_fact`'s idempotence (`file_facts.py`: "returns the
+        # existing row") hands the kind pass the row it wrote last time, WHICH THE
+        # LEVEL PASS HAS SINCE RETIRED. Retiring the live finer row with that stale
+        # one leaves both rows superseded, no live row naming the slot, and
+        # `preferred_fact` answering `None`: the file's situation would become
+        # unreadable BY HAVING BEEN ANSWERED TWICE -- the very failure the
+        # retirement above exists to prevent, reached from the other direction.
+        #
+        # `supersede_fact` cannot catch this: it guards `old["superseded_by"]` and
+        # `new["supersedes"]`, and in this shape both are clear. The rule belongs
+        # here, and it is §3.13's own -- `preferred` never reverses for the
+        # person's answer, and it must not reverse for a STALE one either.
+        #
+        # SKIPPED, NOT RAISED. A run must not die over an ordering question;
+        # `104` §17.2's rule is that a gap must never become a file that vanished.
+        retired = conn.execute(
+            f"SELECT superseded_by FROM {FACT_TABLE} WHERE fact_id = ?",
+            (written[-1],)).fetchone()
+        if retired is not None and retired[0] is not None:
             continue
         for row in standing:
             if row["canonical_value"] == value:

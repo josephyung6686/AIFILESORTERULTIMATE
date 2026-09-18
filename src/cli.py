@@ -9002,6 +9002,36 @@ def _ask_which_situation_of_the_kind(
         # nobody has read this file's menu, and the screen may not say they have.
         return _SituationOfTheKind(
             asked=True, answered=isinstance(verdict, P8Verdict))
+    # `106` PHASE 2(b): THE SECOND ANSWER IS WRITTEN DOWN. Until today
+    # `record_the_situation` ran exactly once, on the KIND path, BEFORE this stage
+    # was called -- so the store held `academic` for a file the judge had gone and
+    # named `academic.coursework`, and the finer answer died with the pass object.
+    # The product spent a call on a sharper question and kept no record of what
+    # came back.
+    #
+    # THE FINER VALUE, AND NOT A SECOND FIELD. `106` Phase 2 left the choice open
+    # and ruled it be decided by what the SORT needs. `signals_for_branch` emits
+    # `recognition:{situation}` and the template router matches applicability rows
+    # keyed on SITUATION ids; `production.schema_for_situation` recovers the kind
+    # from the situation whenever a reader wants the kind, and NOTHING recovers
+    # the situation from the kind. One field, one meaning -- "the situation this
+    # file is part of" -- answered as finely as this run managed.
+    #
+    # IT SUPERSEDES THE KIND ROW rather than replacing it: `record_the_situation`
+    # retires the standing row through `supersede_fact`, which leaves the kind
+    # readable with a pointer to what replaced it, and refuses outright to
+    # overrule a `user_confirmed` answer. `00` amendment 9 is untouched -- neither
+    # field is destination-eligible, so nothing written here becomes a folder.
+    #
+    # `alternatives=()` IS DELIBERATE AND IS A KNOWN GAP (`104` §18.108). The
+    # level verdict may rank alternatives, and `00` amendment 11 says the sort
+    # reads both; recording them is a second purpose and this change has one.
+    record_the_situation(
+        conn, file_id=file_id, content_hash=content_hash, situation=situation,
+        alternatives=(),
+        evidence_refs=cited_observations(verdict),
+        cache_key=identity_id, model_identifier=target.model_id,
+        prompt_fingerprint=request.model_call_request.prompt_fingerprint)
     return _SituationOfTheKind(asked=True, situation=situation)
 
 
