@@ -2920,6 +2920,60 @@ domains -- so a LIFE that spans schemas (Education holds `academic` beside
 `college_applications`) renders TWICE without a fold of same-label cards into one
 candidate with plural `accepted_group_ids`.
 
+### 18.110 RUN 23 COULD NEVER HAVE WORKED, AND THE GATE SAID SO IN WRITING (18 Sep, 05:30)
+
+**WHAT RUN 23 WAS FOR.** Run 22 named 222 of 371 files. Of the 149 it did not, the
+lead attributed 87 to the privacy gate and wrote run 23 to give those files a
+LOCAL model, on the reasoning that protected material had simply had no model it
+was allowed to reach. `run23.sh` says so at the top.
+
+**WHAT RUN 23 DID.** 222 -> **227**. Five files.
+
+**WHY, AND IT IS THE GATE'S OWN SENTENCE, RECORDED ON EVERY REFUSAL SINCE 14 SEP:**
+
+> *"`105` §13.3's `protected` privacy class ... §14.3: those kinds are shown to no
+> model and are filed one at a time by the person, **so the local target does not
+> change the answer**, and neither does a consent grant for this area."*
+
+Protected records are shown to **NO** model. Not the cloud, not a local one. A
+local model was never the missing piece, and the product had written that into
+the payload of all 150 of run 22's refusals before run 23 was designed.
+
+```
+                 protected_records_template   always_local_item
+run 22 (17 Sep)              150                     10
+run 23 (18 Sep)              244                      3
+```
+
+The refusals went UP. The five files gained are the `always_local_item` ones,
+which are exactly the class a local model is the remedy for -- ten refused in run
+22, three in run 23. **The local model helped precisely the files it could help,
+and nothing else, and the split was legible in the store the whole time.**
+
+**AND THE 87 WAS WRONG TOO.** `protected_ids.txt` carries 29 ids. None of them has
+a situation, and none appears under any `unresolved` reason -- they are not files
+the run asked and failed to answer, they are files the run correctly never asked.
+
+**THE RULE THIS BREAKS IS §18.100'S OWN**, and the lead wrote it: *read the run's
+own screen first; only derive a number the product does not print.* The reason and
+the remedy were both in `llm_refusal.payload`. The lead read the COUNT off that
+table in run 22 and never read the EXPLANATION beside it, then spent a whole run
+on the difference. This is the sixth instance in
+[[read-the-runs-own-screen-first]].
+
+**WHAT IT MEANS FOR THE PRODUCT, and it is not a defect.** Coverage will never
+reach 371 by model, by the owner's own ruling of 13-14 September, and it should
+not. The protected files are filed **by the person, one at a time** -- which the
+gate names as its first remedy, `decide_locally`. So the ceiling on model coverage
+is 371 minus the protected set, and the honest screen says that rather than
+counting those files as a gap.
+
+**AND IT PROMOTES PHASE 5.** The files that most need a good person-facing flow
+are exactly the ones no model may ever see. `106` Phase 5 -- the input and
+customisation system -- is not a convenience beside Phase 6; for this class of
+file it is the ONLY mechanism the design permits. The second remedy the gate
+records, `request_excerpt`, is the other half and has no screen either.
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
