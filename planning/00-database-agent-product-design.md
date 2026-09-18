@@ -400,3 +400,41 @@ Each amendment below is dated and was ruled by the owner; the ruling and its con
 9. **The sort is by PURPOSE, not by category** (the owner, 16 Sep: *"we are not sorting by category but by purpose, which is harder"*). A category is what a file IS; a purpose is what the person was doing with it. Two files of the same kind belong in different places when they served different purposes, and two files of different kinds belong together when they served one. The classifier's kind and situation are therefore inputs to the sort and never the sort itself, the tree is not a taxonomy of file types, and any mechanism that files by category alone is the wrong mechanism however well it scores. The sorting mechanism is deferred by the owner and is understood to be the hardest part of the product; the classification it consumes is what is being made right first.
 
 10. **The judge is shown the file's own name** (the owner, 16 Sep: *"of course you send the filename"*). Both stages of the situation judge now request it as `privacy.items.Filename` — a reference, never a name typed into a request — and the gate resolves and redacts it exactly as it does every released value, so a name carrying an identifier crosses transformed. Site A has worked this way since `104` R-06; the judge was the one place still blind to it, which is most of what the lead had when it wrote the answer key. Measured before the change: five of the sixteen files the judge never got near are decided by their name alone.
+
+## Amendments of 2026-09-18 (the owner, asked with the tree in front of them)
+
+**16. EDUCATION HOLDS BOTH `academic` AND `research`.** Asked which top-level
+folders their corpus should have, shown the five it would produce, the owner chose
+Education holding both kinds. On their 371 files that is:
+
+```
+Education/          155   (academic 95 + research 60)
+Photos and Media/    27
+Career/              22
+Health/               4
+Creative/             3
+```
+
+Five top-level folders. This settles amendment 12a for THIS corpus and settles
+nothing for any other: a life appears only where a person's own files put it, and
+these five are where theirs do.
+
+**17. THE LIFE CALLED `Work` IS RENAMED `Career`.** The Phase 3 draft mapped 136
+of the library's 208 situations to a life called `Work`, which is not one of the
+sixteen the owner ratified. `Career` is. The owner ruled the rename across all 136
+rows. Recorded here because the whole 208-row mapping is theirs to set, and this
+is the first part of it they have set; the rest stands as a PROPOSAL until they
+say otherwise.
+
+**18. A LIFE MUST BE ANSWERABLE FOR A KIND, NOT ONLY FOR A SITUATION** (the lead,
+from the measurement that produced ruling 16). Run over the owner's own database,
+the drafted per-situation mapping produced ONE top-level folder -- `Personal`, 39
+files -- and 218 of 257 files reached no life at all, because their `situation`
+fact holds the KIND (`academic`) and a life was defined only per situation
+(`academic.coursework`). A kind belongs to a life exactly as its situations do.
+The per-situation answer stays the finer authority where it exists.
+
+**AND THE GATE THAT MISSED IT IS AMENDED.** "Fewer than sixteen lives" passed with
+ONE, which is a failure wearing a pass. A run that emits few lives because most of
+its files reached none has failed however few it emitted. The gate must report and
+assert BOTH numbers: how many lives, and how many files reached one.

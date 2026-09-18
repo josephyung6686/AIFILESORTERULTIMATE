@@ -16547,8 +16547,24 @@ def run(conn: sqlite3.Connection, directory: Path, *,
             _their_situation_cache.append(theirs)
         return _their_situation_cache[0]
 
-    def _situations_of(file_ids) -> set[str]:
+    def _situations_of_these_files(file_ids) -> set[str]:
         """What the judge named for these files, off the FACTS it wrote.
+
+        **RENAMED 18 Sep 2026 BECAUSE IT WAS SHADOWED AND THE FIX WAS DEAD.**
+        `run` defined `_situations_of` TWICE at this nesting -- this one, and a
+        later `(schema_id) -> tuple[str, ...]` that lists a schema's shipped
+        situations. A closure binds by NAME at call time, so by the time
+        `_signals_for_branch` ran, `_situations_of` meant the LATER one, and
+        `signals_for_branch` was handed a function that takes a schema id while
+        being called with a tuple of file ids. `106` Phase 2(a) -- the fix that
+        stops an unsettled branch going flat, committed as `19d39aa3` -- was
+        therefore INERT in the product while its unit tests passed, because they
+        pass the callable in directly.
+
+        Found by the Phase 3 analyst reading `run` for something else. Two
+        functions with one name in one scope is not a style question; it is the
+        later one silently winning.
+        """
 
         `00` amendment 11's "the sort reads both" begins here. Only the first
         choice: an alternative is a thing the judge also said, not a thing it
@@ -16572,7 +16588,8 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         return found
 
     def _signals_for_branch(branch: Branch | None) -> frozenset[str]:
-        return signals_for_branch(branch, situations_of=_situations_of,
+        return signals_for_branch(branch,
+                                  situations_of=_situations_of_these_files,
                                   run_signal=said().signal)
 
     def adopted_folders() -> tuple[str, ...]:
