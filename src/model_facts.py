@@ -3070,15 +3070,25 @@ def fact_call_stage(authorities: FactCallAuthorities):
         # cap and the ceiling are spent below, once the context and the filename have
         # taken their share; this set is the answer to "does the file have anything
         # to say", which is a different question and is the one the guard asks.
+        # `104` §18.2 gap 6: THE FIELDS THIS CALL ASKS ARE WHAT THE ORDER IS
+        # MEASURED OFF -- and the question is `open_question`'s, not `pending`.
+        # `pending` is every allowlist field the file does not hold, and the
+        # universal ones (`duplicate_family`, `file_type`) are pending on nearly
+        # every file and a folder level for none; their corpus-wide citations sit
+        # in `metadata`, so measuring off them put the envelopes ahead of the page
+        # and the page was the reading the ceiling dropped, with no excerpt in its
+        # place. The same call below, with the same three arguments, decides the
+        # vocabulary; the anchor's own levels are left out because they need the
+        # request this stage has not built, and `school` is group-level and never
+        # a file's own reading. `tests/integration/
+        # test_the_offer_is_ordered_for_the_question.py` pins it end to end.
+        asked_for_order, _ = open_question(
+            pending, authorities.folder_levels, settled_levels,
+            group_level=authorities.group_level_fields)
         offered = ordered_releasable_observations(
             conn, file_id=file_id, content_hash=content_hash, locality=locality,
             limit=authorities.max_released_observations,
-            # `104` §18.2 gap 6: THE PENDING FIELDS ARE WHAT THE ORDER IS MEASURED
-            # OFF. The offer is ordered for the question this call is about to ask,
-            # and the question is `pending` -- not the whole allowlist, which
-            # includes fields this file has already settled and whose evidence would
-            # then be ordering the readings for fields nobody is asking.
-            fields=pending)
+            fields=asked_for_order)
         if not offered:
             # A file with no readings of its own is not asked, and context does not
             # change that. `104` R-135 carries a NEIGHBOUR's words to a file that has
