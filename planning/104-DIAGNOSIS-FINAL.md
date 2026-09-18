@@ -3044,8 +3044,20 @@ Which numbers this touches, stated precisely so it is not over-claimed:
   took with its own SQL keyed on one `plan_version_id`.
 
 Recorded rather than fixed in this entry: choosing WHICH version is "the" tree is
-a decision (latest by `created_at` is the obvious one), and it changes numbers
-already reported. `ideal_tree.py` keys by `(plan_version_id, node_id)` and does not
+a decision, and it changes numbers already reported.
+
+**AND THE LEAD THEN MADE THAT DECISION CARELESSLY, TEN MINUTES AFTER WRITING THAT
+SENTENCE.** The fix filtered on the latest `created_at`, breaking the tie on
+`plan_version_id` DESCENDING -- as a STRING. The owner's six versions share one
+`created_at` to the second and are named `..._0`, `..._4`, `..._16`, so string
+order picks `_4` over `_16` and the measurement reads a tree that is not the last
+one. Two `tests/tools` tests went red and the change was reverted.
+
+The real difficulty is that the version suffix is not a number to sort on and
+`created_at` does not separate versions written in one run. The honest fix passes
+the version IN from the caller that knows which plan it is measuring, rather than
+guessing inside the measurement. Until then the defect stands, recorded, and the
+numbers it taints are listed above. `ideal_tree.py` keys by `(plan_version_id, node_id)` and does not
 have the defect.
 
 **THE OWNER'S OWN REFERENCE TEXT IS NOT IN THE REPOSITORY.** Four second-hand

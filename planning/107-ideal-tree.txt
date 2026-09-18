@@ -1,0 +1,400 @@
+Jordan Files/                       # THE OWNER'S OWN TREE, 18 Sep 2026, as pasted.
+                                    # Lines marked [TRUNCATED] arrived damaged and are
+                                    # NOT reconstructed -- an invented line would become
+                                    # a citation (`104` §18.111).
+├── 00 Inbox/
+│   ├── Downloads to Review/
+│   ├── Scans to Process/
+│   ├── Receipts to Process/
+│   └── Imports Waiting for Context/
+│
+├── Personal/
+│   ├── [TRUNCATED: "├─" + label lost; the protected identity/vital-records branch]   # protected
+│   │   ├── Passports/
+│   │   │   ├── Jordan Lee - Passport.pdf
+│   │   │   └── Renewal Documents/
+│   │   ├── Birth and Citizenship/
+│   │   │   ├── Birth Certificate.pdf
+│   │   │   └── Citizenship Certificate.pdf
+│   │   ├── Licences and IDs/
+│   │   │   ├── Driver Licence - Front and Back.pdf
+│   │   │   └── State ID Renewal Receipt.pdf
+│   │   ├── Marriage and Family Status/
+│   │   │   └── Marriage Certificate.pdf
+│   │   └── Name and Address Changes/
+│   ├── Personal Correspondence/
+│   │   ├── 2026/
+│   │   └── Important Letters/
+│   ├── Memberships/
+│   │   ├── Professional Associations/
+│   │   ├── Clubs and Community/
+│   │   └── Rewards and Loyalty/
+│   └── Personal Planning/
+│       ├── Goals and Reviews/
+│       ├── Calendar Exports/
+│       └── Journa[TRUNCATED: "Journals/"?]
+│
+├── [TRUNCATED: the Family and Household branch opening is lost]
+│   ├── Mia/                                               # protected dependent area
+│   │   ├── Identity and Permissions/
+│   │   ├── School/
+│   │   │   └── 2026-2027/
+│   │   │       ├── Enrollment/
+│   │   │       ├── Report Cards/
+│   │   │       ├── Teacher Communications/
+│   │   │       ├── Activities/
+│   │   │       └── Forms and Permissions/
+│   │   ├── Health/
+│   │   │   ├── Immunizations/
+│   │   │   ├── Visits and Results/
+│   │   │   └── Insurance and Claims/
+│   │   └── Activities/
+│   │       ├── Music/
+│   │       └── Soccer/
+│   ├── Evan/                                              # protected dependent area
+│   │   ├── Identity and Permissions/
+│   │   └── School/
+│   │       └── 2026-2027/
+│   │           ├── Enrollment/
+│   │           ├── Report Cards/
+│   │           └── [TRUNCATED]
+│   ├── Pets/
+│   │   └── Pepper/
+│   │       ├── Adoption and Identification/
+│   │       ├── Veterinary/
+│   │       └── Insurance/
+│   └── Family Events/
+│       ├── Birthdays/
+│       ├── Holidays/
+│       └── Reunions/
+│
+├── Work/
+│   └── Northstar Health/
+│       ├── Employment Administration/                     # protected
+│       │   ├── Contract and Offer/
+│       │   ├── Compensation and Benefits/
+│       │   ├── Performance Reviews/
+│       │   └── Leave and Policies/
+│       ├── 2026/
+│       │   ├── Projects/
+│       │   │   └── Atlas Patient Portal/
+│       │   │       ├── 01 Brief and Requirements/
+│       │   │       ├── 02 Research/
+│       │   │       ├── 03 Design/
+│       │   │       ├── 04 Reviews and Decisions/
+│       │   │       ├── 05 Deliverables/
+│       │   │       └── [TRUNCATED]
+│       │   ├── Meetings/
+│       │   │   ├── Leadership/
+│       │   │   ├── Product and Design/
+│       │   │   └── One-to-Ones/
+│       │   ├── Presentations/
+│       │   ├── Reports/
+│       │   └── Reference/
+│       └── Former Years/
+│           ├── 2025/
+│           └── 2024/
+│
+├── Career/
+│   ├── Profile/
+│   │   ├── Resume/
+│   │   │   ├── Resume - Product Design - 2026.pdf
+│   │   │   └── Resume Source.docx
+│   │   ├── Biography/
+│   │   ├── Portfolio/
+│   │   └── References/
+│   └── Applications/
+│       └── 2026/
+│           ├── Stripe - Product Lead/
+│           │   ├── Job Description/
+│           │   ├── Submitted Materials/
+│           │   ├── Interviews/
+│           │   ├── Correspondence/
+│           │   └── Offer and Decision/
+│           └── OpenAI - Design Systems/
+│
+├── Education/
+│   └── Columbia University/
+│       └── MS Data Science/
+│           ├── Program Administration/
+│           │   ├── Admission and Enrollment/
+│           │   ├── Degree Requirements/
+│           │   ├── Tuition and Aid/
+│           │   └── Transcripts/
+│           ├── 2026 Fall/
+│           │   ├── COMS W4721 - Machine Learning/
+│           │   │   ├── Course Administration/
+│           │   │   │   ├── Syllabus.pdf
+│           │   │   │   └── Schedule.xlsx
+│           │   │   ├── Lectures and Notes/
+│           │   │   │   ├── Lecture 01 - Introduction.pdf
+│           │   │   │   └── Lecture 01 Notes.md
+│           │   │   ├── Readings/
+│           │   │   ├── Assignments/
+│           │   │   │   └── HW01/
+│           │   │   │       ├── Instructions.pdf
+│           │   │   │       └── [TRUNCATED]
+│           │   │   └── [TRUNCATED: "...sal/" -- the course Project/Proposal branch]
+│           │   │       ├── Research/
+│           │   │       ├── Data/
+│           │   │       ├── Code/
+│           │   │       └── Final Submission/
+│           │   └── STAT GR5702 - Exploratory Data Analysis/
+│           │       ├── Course Administration/
+│           │       ├── Lectures and Notes/
+│           │       ├── Readings/
+│           │       ├── Assignments/
+│           │       └── Project/
+│           ├── 2027 Spring/
+│           └── Shared Program Resources/
+│               ├── Templates/
+│               ├── Reference Books/
+│               └── Study Groups/
+│
+├── Teaching/
+│   └── City Learning Center/
+│       └── 2026 Fall/
+│           └── Introduction to Python/
+│               ├── Course Planning/
+│               │   ├── Syllabus.docx
+│               │   └── Teaching Calendar.xlsx
+│               ├── Lessons/
+│               │   ├── Week 01 - Foundations/
+│               │   │   ├── Slides.pptx
+│               │   │   ├── Instructor Notes.docx
+│               │   │   └── Demo Code.py
+│               │   └── Week 02 - Data Structures/
+│               ├── Assignments/
+│               ├── Solutions/                             # restricted instructor material
+│               ├── Rubrics/
+│               ├── Student Administration/                # protected; no student-name folders
+│               │   ├── Attendance.xlsx
+│               │   ├── Roster.xlsx
+│               │   └── Accommodations/
+│               ├── Communications/
+│               └── Course Review/
+│
+├── Projects/
+│   ├── Home Energy Dashboard/
+│   │   ├── 01 Planning/
+│   │   ├── 02 Research/
+│   │   ├── 03 Data/
+│   │   │   ├── Raw/                                       # immutable source data
+│   │   │   ├── Processed/
+│   │   │   └── Documentation/
+│   │   ├── 04 Code/
+│   │   ├── 05 Design/
+│   │   ├── 06 Outputs/
+│   │   └── 99 Archive/
+│   ├── Family History Book/
+│   │   ├── Planning/
+│   │   ├── Sources/
+│   │   ├── Interviews/
+│   │   ├── Photos/
+│   │   ├── Drafts/
+│   │   └── Final/
+│   └── Community Garden Grant/
+│       ├── Requirements/
+│       ├── Research/
+│       ├── Drafts/
+│       ├── Budget/
+│       ├── Submitted/
+│       └── Decision/
+│
+├── Finance and Taxes/                                     # protected
+│   ├── Banking/
+│   │   ├── Checking - Bank A/
+│   │   │   └── 2026 Statements/
+│   │   ├── Savings - Bank A/
+│   │   │   └── 2026 Statements/
+│   │   └── Reconciliations/
+│   ├── Credit Cards/
+│   │   ├── Card A/
+│   │   │   └── 2026 Statements/
+│   │   └── Card B/
+│   ├── Income/
+│   │   ├── Northstar Health/
+│   │   │   ├── Pay Statements/
+│   │   │   └── Year-End Forms/
+│   │   └── Other Income/
+│   ├── Investments and Retirement/
+│   │   ├── Brokerage/
+│   │   ├── 401k/
+│   │   └── IRA/
+│   ├── Taxes/
+│   │   ├── 2026/
+│   │   │   ├── 01 Income Documents/
+│   │   │   ├── 02 Deductions and Receipts/
+│   │   │   ├── 03 Workpapers/
+│   │   │   ├── 04 Filed Returns/
+│   │   │   └── 05 Notices and Correspondence/
+│   │   └── 2025/
+│   ├── Budgeting/
+│   │   ├── 2026 Household Budget.xlsx
+│   │   └── Major Purchases/
+│   └── Receipts/
+│       └── 2026/
+│           ├── Household/
+│           └── [TRUNCATED: "...ies/"]
+│
+├── Health/                                                # protected
+│   ├── Jordan Lee/
+│   │   ├── Insurance/
+│   │   ├── Providers/
+│   │   ├── 2026/
+│   │   │   ├── Visits/
+│   │   │   ├── Test Results/
+│   │   │   ├── Prescriptions/
+│   │   │   ├── Bills and Claims/
+│   │   │   └── Dental and Vision/
+│   │   ├── Immunizations/
+│   │   └── Long-Term Records/
+│   ├── Partner/
+│   │   └── User-Approved Private Structure/
+│   └── Family Health Administration/
+│       ├── Insurance Plan/
+│       └── Claims and Reimbursements/
+│
+├── Legal and Insurance/                                   # protected
+│   ├── Legal/
+│   │   ├── Estate Planning/
+│   │   │   ├── Will/
+│   │   │   ├── Power of Attorney/
+│   │   │   └── Advance Directive/
+│   │   └── Agreements and Contra[TRUNCATED]
+│   └── Claims/
+│       └── 2026 Storm Damage/
+│           ├── Policy and Coverage/
+│           ├── Evidence/
+│           ├── Estimates/
+│           ├── Correspondence/
+│           └── Settlement/
+│
+├── Vehicles/
+│   └── 2023 Honda CR-V/
+│       ├── Title and Registration/                        # protected
+│       ├── Purchase and Financing/
+│       ├── Insurance Reference/
+│       ├── Maintenance/
+│       ├── Repairs/
+│       └── Sale or Trade-In/
+│
+├── Travel/
+│   └── 2026/
+│       └── 2026-12 Japan/
+│           ├── Planning/
+│           ├── Bookings/
+│           │   ├── Flights/
+│           │   ├── Hotels/
+│           │   ├── Rail/
+│           │   └── Activities/
+│           ├── Travel Documents/                          # protected where necessary
+│           ├── Itinerary/
+│           └── [TRUNCATED: "...es/" then "Templates/"]
+│
+├── Photos and Media/
+│   ├── Photos/
+│   │   ├── 2026/
+│   │   │   ├── 2026-12 Japan/
+│   │   │   │   ├── Originals/
+│   │   │   │   ├── Selects/
+│   │   │   │   ├── Edited/
+│   │   │   │   └── Exports/
+│   │   │   ├── 2026-07 Mia Birthday/
+│   │   │   ├── 2026-04 Washington DC/
+│   │   │   └── Everyday/
+│   │   └── Family Archive/
+│   ├── Screenshots/
+│   │   ├── 2026/
+│   │   │   ├── 09 September/
+│   │   │   └── Temporary/
+│   │   └── Reference Captures/
+│   ├── Videos/
+│   │   ├── 2026/
+│   │   └── Exports/
+│   ├── Audio/
+│   │   ├── Voice Memos/
+│   │   └── Music Projects/
+│   └── Scans/
+│       ├── Family Photos/
+│       └── Documents Needing Identification/
+│
+├── Creative and Hobbies/
+│   ├── [TRUNCATED: the branch opening is lost]
+│   ├── Games/
+│   │   ├── Saves/
+│   │   ├── Mods/
+│   │   └── Screenshots/
+│   └── Recipes/
+│       ├── To Try/
+│       ├── Favorites/
+│       └── Family Recipes/
+│
+├── Technology/
+│   ├── Devices/
+│   │   ├── MacBook Pro/
+│   │   │   ├── Purchase and Warranty/
+│   │   │   ├── Configuration Notes/
+│   │   │   └── Repair History/
+│   │   ├── iPhone/
+│   │   └── Home Network/
+│   ├── Software/
+│   │   ├── Licences and Receipts/
+│   │   ├── Configuration Exports/
+│   │   └── Installers to Keep/
+│   ├── Personal Code/
+│   │   └── Repository Exports/                            # live repositories remain excluded
+│   └── Data Exports/
+│       ├── Social Accounts/
+│       └── Service Backups/
+│
+├── Reference Library/
+│   ├── Reading Inbox/
+│   ├── Articles and Papers/
+│   │   ├── Design/
+│   │   ├── Technology/
+│   │   ├── Education/
+│   │   └── Personal Finance/
+│   ├── Books and Manuals/
+│   ├── Reference Clips/
+│   │   ├── Products/
+│   │   ├── Recipes/
+│   │   ├── Quotes and Ideas/
+│   │   └── Visual Inspiration/
+│   └── Templates/
+│       ├── Documents/
+│       ├── Spreadsheets/
+│       └── Presentations/
+│
+├── 98 Review and Unsorted/
+│   ├── Ambiguous Documents/
+│   ├── Standalone PDFs/
+│   ├── One-Off Images/
+│   ├── Unclear Spreadsheets/
+│   ├── Possible Duplicates and Versions/
+│   ├── Unsupported or Encrypted/
+│   └── Deferred Decisions/
+│
+└── 99 Archive/
+    ├── Work/
+    ├── Education/
+    ├── Applications/
+    ├── Projects/
+    ├── Travel/
+    └── Closed Household Matters/
+
+
+FILE PLACEMENT EXAMPLES (the owner's table, as pasted)
+======================================================
+file                          proposed physical home                                                            why
+Offer letter.pdf              Career/Applications/2026/Stripe - Product Lead/Offer and Decision                 application packet and offer stage are explicit
+hw01_analysis.ipynb           Education/Columbia University/MS Data Science/2026 Fall/COMS W4721/Assignments/HW01  notebook structure, course code, assignment identifier
+Week 01 Slides.pptx           Teaching/City Learning Center/2026 Fall/Introduction to Python/Lessons/Week 01     owner created it to TEACH, not to take the course
+Mia Report Card.pdf           Family and Household/Mia/School/2026-2027/Report Cards                            explicit dependent workflow; protected
+Passport Scan.pdf             Personal/Identity and Vital Records/Passports                                     durable identity record stays in its protected canonical home
+Japan hotel confirmation.pdf  Travel/2026/2026-12 Japan/Bookings/Hotels                                         explicit trip and booking function
+Screenshot Gate B12.png       Travel/.../Travel Documents IF trip evidence is strong; else Photos and Media/Screenshots/2026/Temporary   specific placement requires trip evidence; otherwise stay broad
+Kitchen contractor quote.pdf  Home and Property/24 Oak Street/Improvements/2026 Kitchen Renovation/Quotes        property, improvement project and quote type all supported
+2026 W-2.pdf                  Finance and Taxes/Taxes/2026/01 Income Documents                                  the tax workflow is the durable retrieval context
+storm-damage-photos.zip       Legal and Insurance/Claims/20[TRUNCATED]                                          honest unresolved state
+encrypted-archive.zip         LEAVE IN PLACE, represented under 98 Review and Unsorted/Unsupported or Encrypted  the system must not open it merely to decide
