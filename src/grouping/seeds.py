@@ -23,6 +23,8 @@ rather than restated.
 from __future__ import annotations
 
 import sqlite3
+
+from facts.states import STRENGTH_ORDER
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -138,6 +140,45 @@ def _seed_kind_for(field_key: str) -> str:
     return STRONGLY_IDENTIFIED_FILE
 
 
+def _order_anchor_rows(rows):
+    """The anchor rows, STRONGEST FIRST, then by field key for a stable re-run.
+
+    `104` §18.105: this was `sorted(seen)` over `f"{field_key}:{value_id}"`, and
+    `group_subject` takes `seeds[0]` -- so which fact a file grouped on was
+    decided by the ALPHABET. A file holding a `subject` and a `media_type` seeded
+    on the format, because `m` sorts before `s`.
+
+    Measured against the owner's own group labels: groups seeded
+    `strongly-identified-file`, the arm this ordering feeds, are 6 pure / 3 mixed
+    -- wrong a third of the time, on a choice nobody made. (`structural-family`
+    is 27 / 1, which is why this changes the ORDER and not the bar.)
+
+    `facts.states.STRENGTH_ORDER` is §3.13's own ladder, weakest first, so a
+    higher index is a stronger fact and the product is not given a second opinion
+    about what strong means. The field key stays as the LAST term: the order must
+    be total, or two runs of one corpus build two different graphs.
+
+    A STATE THE LADDER DOES NOT NAME SORTS WEAKEST RATHER THAN RAISING. The bar
+    above has already refused anything below `ANCHOR_STATES`, so an unrecognised
+    word here is a vocabulary this build has not read -- and `104` §17.2's rule is
+    that a gap in the vocabulary must never become a file that vanished. Letting
+    the states it does understand seed first is the honest answer; dying over an
+    ordering question is not.
+
+    This is NOT a judgement about which FIELD matters more. The defect was that
+    the choice was arbitrary and the product already publishes a ranking of
+    evidence. Whether a purpose-bearing field should outrank a format one is
+    `106` Phase 3's question, where the owner's ruling on lives decides it.
+    """
+    def key(row):
+        try:
+            strength = STRENGTH_ORDER.index(row["reliability_state"])
+        except ValueError:
+            strength = -1
+        return (-strength, row["field_key"], row["value_id"])
+    return sorted(rows, key=key)
+
+
 def _anchor_rows(conn: sqlite3.Connection, *, file_id: str,
                  content_hash: str) -> list[sqlite3.Row]:
     """Every fact at or above P9's anchor bar, from P6's public reads only.
@@ -152,7 +193,7 @@ def _anchor_rows(conn: sqlite3.Connection, *, file_id: str,
             if row["reliability_state"] not in ANCHOR_STATES:
                 continue
             seen.setdefault(f"{row['field_key']}:{row['value_id']}", row)
-    return [seen[key] for key in sorted(seen)]
+    return _order_anchor_rows(seen.values())
 
 
 def seeds_for_file(

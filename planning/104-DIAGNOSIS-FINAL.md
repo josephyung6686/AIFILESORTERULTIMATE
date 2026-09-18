@@ -2749,6 +2749,38 @@ By seed kind: `structural-family` 27 pure / 1 mixed; `strongly-identified-file` 
 2. **Phase 3 should read the owner's `group` labels as evidence for the life vocabulary**, not as a grouping key. Nine groups over 371 files is a life-shaped answer.
 3. **The grouping stage's problem is reach, not precision.** 89.2 % pure over 133 of 371 files. A stage that is right about a third of the corpus and silent on the rest is not improved by making it more careful.
 
+### 18.106 THE GROUND TRUTH CANNOT GRADE ANYTHING PAST CLASSIFICATION (17 Sep, 14:10)
+
+The owner, on being told the grouping grade was measured against the wrong thing: *"why is it coarser and not as detailed? we need to fix that... we will not start phase 2 until this is done."* Right, and it is worse than the `group` column.
+
+**`labels2.json`, 371 files, measured:**
+
+| column | what it holds |
+| --- | --- |
+| `situation` | 371 files. **The key's one real strength**, and §18.103 graded the judge 97.7 % against it |
+| `destination` | a STRING, never deeper than **two segments**; 172 files at one, 199 at two; **15 distinct destinations, 10 distinct top levels** |
+| `group` | **9 values** over 371 files -- 119, 78, 57, 22, 21, 10, 7, 4, 1 |
+| `expected_fields` | **empty on all 371** |
+| `family` | **empty on all 371** |
+
+**The key was built to grade ONE question and it grades it well.** "Is this file academic or financial?" -- 97.7 %. It cannot grade a second one, because a second one was never written down. The reference tree the owner wants asks for `Education/<school>/<term>/<subject>/<work_type>`: five levels. The key's deepest answer is two.
+
+**So `106` Phases 3, 4, 6 and 7 have no measure.** Each changes depth, branch naming or fact production, and there is no ground truth for any of them. Building them would mean reporting numbers that mean nothing, which is `104` §18.99's fourth failure mode with a bigger budget. **The owner's instruction to settle this before Phase 2 is correct and this section is the evidence for it.**
+
+**The owner chose: the lead drafts, they correct.** A deep destination and the expected field values for every file, drawn from the judge's own 97.7 %-accurate situation, the facts already in the database, and the filename -- written as a review sheet the owner edits rather than 371 rows typed from nothing.
+
+### 18.107 GROUPING: THE SEED ORDER WAS THE ALPHABET, AND THE REACH IS THE ANCHOR BAR (17 Sep, 14:30)
+
+Two findings, one fixed and one referred to the owner.
+
+**FIXED -- the seed was chosen alphabetically.** `_anchor_rows` returned `sorted(seen)` over `f"{field_key}:{value_id}"` and `group_subject` takes `seeds[0]`, so a file holding a `subject` and a `media_type` seeded on the FORMAT because `m` sorts before `s`. §18.105 measured the cost: groups seeded `strongly-identified-file` are 6 pure / 3 mixed, wrong a third of the time, on a choice nobody made. `_order_anchor_rows` now orders by `facts.states.STRENGTH_ORDER` -- §3.13's own ladder, so the product is not given a second opinion about what strong means -- with the field key last so the order stays total and a re-run builds the same graph. An unrecognised state sorts weakest rather than raising: the bar above has already refused anything below `ANCHOR_STATES`, so an unknown word means a vocabulary this build has not read, and §17.2's rule is that a gap in the vocabulary must not become a file that vanished. Three tests. `tests/p9`: 451 passed.
+
+**NOT FIXED, AND DELIBERATELY -- the reach is the anchor bar, and moving it is the owner's.** Of the 238 files in no group, **187 HAVE active facts**: 432 `llm_supported`, 215 `possible`, and only 23 `validated`. The anchor bar admits `direct` and `validated` alone. So two-thirds of the corpus cannot group because their facts came from the MODEL -- which is this product's main fact producer, 472 of 839 active facts -- and grouping may not look at any of it.
+
+**That bar has a written reason and it is a good one:** the model's own answer must not become the evidence for itself. Lowering it lets the judge's guesses cluster into groups that then read as corroborated, which is the precise failure it exists to prevent. The lead did not lower it.
+
+**The principled middle, for the owner to rule on.** `retrieval.py` already carries five NON-ANCHORING channels -- folder, session, duplicate, format, semantic -- which let a file JOIN a group without STARTING one. A model-supported fact could be a sixth: never an anchor, but able to attach a file to a group anchored by somebody else's independent evidence. The self-confirmation loop stays closed, because no group can come into existence on the model's word alone, and the reach roughly triples. **Ruling owed.**
+
 ### 18.6 Stage 5 progress (9 Sep, 14:50)
 
 Built by the lead while r18 runs: **S4** and **S5** (the commit above; 1015 p7 tests pass; `test_a_redacted_identifier_over_the_whole_document_is_refused_too` re-argued: under a classifier that names no class the always-local refusal precedes the whole-document one). **S6 deferred, not built:** `template_for` has no producer anywhere -- the per-file template is site E's answer and E is unratified -- so wiring it today would pass a function that returns `None` for every file, which is the same dead arm with a different spelling; it is E's ratification that makes the arm live, recorded here so the arm is not deleted in the meantime. **Awaiting the owner's word:** S1 (redacted-prompt option), S2 (class default `pending` = zero cloud coverage until a kind recogniser writes the column), the relative-path release, gap 7 and gap 8 (manifest rows), the protected-files ruling, and the eight evolution sentences. Gaps 4, 5, 9, 10, 13, 15 (S) are next for agents once r18 has the machine to itself no longer.
