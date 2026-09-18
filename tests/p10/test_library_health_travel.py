@@ -25,7 +25,7 @@ import pytest
 
 import production
 from facts.domains import FIELD_LESS_SCHEMA_IDS
-from facts.fields import DOMAIN_FIELDS, FIELD_ROWS
+from facts.fields import DOMAIN_FIELDS, FIELD_ROWS, UNIVERSAL_FIELDS
 from production import (
     LIBRARY_FILES, folder_levels_for, life_of, load_shipped_catalogue,
     read_packaged_library_file, schema_for_situation, shipped_situations,
@@ -197,14 +197,21 @@ def test_no_health_level_names_a_person(extended):
 # --- the fields the levels need, stated exactly ------------------------------
 
 def test_the_dependencies_are_exactly_the_ones_the_draft_declares(extended):
-    """Three gaps, named so the day one closes this test says so:
-    `year` is not a live key (`00` amendment 20 rules it added);
+    """Two gaps remain, named so the day one closes this test says so:
     `medical` is field-less, so `record_type` is not referenced there;
     `finance` does not reference `event`. Nothing else is missing, and no
-    substitute key is bound in any gap's place."""
+    substitute key is bound in any gap's place.
+
+    `year` WAS the third gap. `00` amendment 20 ruled it added and 18 Sep built
+    it: a live, destination-eligible key in the universal scope, filled by rule
+    from `creation_date` (`cli.year_facts`). A universal key is referenced at
+    every schema -- a field-less schema's allowlist IS the universal scope
+    (`test_p6_vocabulary_adoption`) -- so it is not a "not referenced" gap at
+    `medical` or `finance` either. The draft's dependency on it is satisfied;
+    the rows themselves stay unwired until the owner ratifies them."""
     live = {row.field_key for row in FIELD_ROWS}
     eligible = {row.field_key for row in FIELD_ROWS if row.destination_eligible}
-    assert "year" not in live
+    assert "year" in live and "year" in eligible
     assert "medical" in FIELD_LESS_SCHEMA_IDS
     gaps = {}
     for situation, (schema, _, _) in EXPECTED.items():
@@ -213,14 +220,12 @@ def test_the_dependencies_are_exactly_the_ones_the_draft_declares(extended):
                 gaps.setdefault(situation, set()).add(f"missing key {level.field}")
                 continue
             assert level.field in eligible, (situation, level.field)
-            if level.field not in DOMAIN_FIELDS.get(schema, ()):
+            if (level.field not in DOMAIN_FIELDS.get(schema, ())
+                    and level.field not in UNIVERSAL_FIELDS):
                 gaps.setdefault(situation, set()).add(
                     f"{level.field} not referenced at {schema}")
     assert gaps == {
-        "medical.personal-health-records": {
-            "missing key year", "record_type not referenced at medical"},
-        "medical.dependant-child-health": {
-            "missing key year", "record_type not referenced at medical"},
-        "travel.trip-records": {
-            "missing key year", "event not referenced at finance"},
+        "medical.personal-health-records": {"record_type not referenced at medical"},
+        "medical.dependant-child-health": {"record_type not referenced at medical"},
+        "travel.trip-records": {"event not referenced at finance"},
     }

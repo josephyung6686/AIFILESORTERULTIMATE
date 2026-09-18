@@ -214,6 +214,28 @@ _OUR_FIRM_NOTES = (
     "holder's own side, and IS eligible. Do not fill both from one letterhead."
 )
 
+#: `00` amendment 20 (18 Sep 2026): a `year` field, DERIVED BY RULE FROM
+#: `creation_date`, patterned on `capture_date -> capture_year`. `107`'s branch
+#: templates ask for `employer -> year -> project -> stage`, `tax year -> record
+#: class` and `year -> organization and role -> application stage`, and until this
+#: row there was no `year` field in the library at all. Universal, because the fact
+#: it derives from is (`creation_date` is §3.11's universal set), so a field-less
+#: schema's allowlist -- which IS the universal scope -- carries it without a
+#: schema declaring it. Destination-eligible, with `capture_year`'s ceiling (none).
+#:
+#: It is NOT `record_period` (the bounded interval a record COVERS, which has no
+#: producer anywhere), NOT `tax_year` (a statutory period) and NOT `capture_year`
+#: (when a picture was taken); those stay apart, and none aliases this key. The
+#: producer is `cli.year_facts`, over the file's own `creation_date` fact.
+_YEAR: tuple[FieldRow, ...] = (
+    _row("year", "year", "universal", "string", True,
+         notes="`00` amendment 20. The calendar year of the file's `creation_date` "
+               "fact and nothing else; a folder level where a template orders it "
+               "first (`107`: 'stable context comes first'). Inherits its source "
+               "fact's reliability state -- a derivation cannot outrank what it "
+               "derives from."),
+)
+
 _ROLES_3_8: tuple[FieldRow, ...] = (
     # `creator` is NOT among the aliases, though `canonical_fields.json` lists it:
     # it is one of catalogue 01's producer strings, and P6 receives that list as
@@ -617,6 +639,7 @@ FIELD_ROWS: tuple[FieldRow, ...] = (
     *_UNIVERSAL_3_11,
     *_DOWNLOAD_SESSION,
     *_SITUATION,
+    *_YEAR,
     *_ROLES_3_8,
     *_ACADEMIC,
     *_COLLEGE_APPLICATIONS,
@@ -642,7 +665,8 @@ FIELD_ROWS: tuple[FieldRow, ...] = (
 #: partition. A situation is universal in the plainest sense: every file has one,
 #: whatever domain it belongs to.
 UNIVERSAL_FIELDS: tuple[str, ...] = tuple(
-    row.field_key for row in (*_UNIVERSAL_3_11, *_DOWNLOAD_SESSION, *_SITUATION)
+    row.field_key for row in (*_UNIVERSAL_3_11, *_DOWNLOAD_SESSION, *_SITUATION,
+                              *_YEAR)
 )
 
 #: §3.8's four role fields.

@@ -1040,6 +1040,9 @@ def test_no_destination_field_expresses_which_side_of_the_table_you_are_on(conn)
         "site", "asset", "product", "supplier", "issuing_body", "record_period",
         "property", "design_item", "authorization", "consignment", "people_cycle",
         "recruiting_cycle", "employer", "target_employer", "job_title",
+        # `00` amendment 20: the calendar year of `creation_date`. A time
+        # axis names no side of the table.
+        "year",
     }
 
     # NARROWED BY `60`, NOT CLOSED. One axis now has a direction: `employer` and

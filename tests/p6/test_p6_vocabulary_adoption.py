@@ -151,9 +151,10 @@ def test_exactly_one_scope_is_not_a_schema_and_it_is_universal():
 # --- §4: the eighteen minted keys -------------------------------------------
 
 def test_the_catalogue_is_fifty_eight_rows():
-    # `60` §4: "37 live + 19 = 56."
-    assert len(FIELD_ROWS) == 58
-    assert len(BY_KEY) == 58
+    # `60` §4: "37 live + 19 = 56." Plus `_SITUATION`'s two, plus `year`
+    # (`00` amendment 20, 18 Sep 2026).
+    assert len(FIELD_ROWS) == 59
+    assert len(BY_KEY) == 59
 
 
 def test_each_minted_key_carries_its_ruling_scope_eligibility_and_ceiling():
@@ -448,7 +449,7 @@ def test_every_minted_key_says_why_it_exists():
 def test_all_fifty_eight_rows_load_and_the_stored_columns_are_unchanged(p6_conn):
     create_fields(p6_conn)
     stored = p6_conn.execute("SELECT COUNT(*) FROM fields").fetchone()[0]
-    assert stored == 58
+    assert stored == 59
     columns = [row[1] for row in p6_conn.execute("PRAGMA table_info(fields)")]
     assert columns == ["field_key", "display_name", "scope", "value_kind",
                        "normalizer_id", "destination_eligible", "multiplicity"]

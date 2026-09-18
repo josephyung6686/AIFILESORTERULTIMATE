@@ -101,7 +101,7 @@ from facts.llm_seam import (
 )
 # `106` Phase 2: an unsettled branch reads what the judge named for its files.
 from facts.supersede import preferred_fact
-from facts.values import values_in_field
+from facts.values import VALUE_ORIGINS, ensure_value, values_in_field
 from facts.discount import MetadataScreen
 from facts.discount import screen_metadata as _discount_screen_metadata
 # `104` §18.31: which reader produced each of the readings a site-E call carries.
@@ -136,7 +136,7 @@ from facts.read_surface import (
     DanglingCitation, confirmed_spellings, evidence_chain, preferred_in_field,
     proposal_eligible, versions_in_fields,
 )
-from facts.file_facts import facts_for_file
+from facts.file_facts import RULE as RULE_ORIGIN, facts_for_file, write_fact
 from facts.states import (
     LLM_SUPPORTED as LLM_SUPPORTED_STATE,
     POSSIBLE,
@@ -5005,6 +5005,79 @@ CAPTURE_YEAR_SLOT = DirectSlot(
 
 DIRECT_SLOTS = DirectSlots(slots=(CAPTURE_YEAR_SLOT,))
 
+#: `00` amendment 20 (18 Sep 2026): a `year` field, derived by rule from
+#: `creation_date`, patterned on `capture_date -> capture_year` above. `107`'s
+#: Current work, Taxes and Job search templates order it first ("stable context
+#: comes first"), and the field did not exist in the library. NOT `record_period`,
+#: NOT `tax_year`, NOT `capture_year`: those stay apart and this producer writes
+#: none of them.
+YEAR_FIELD = "year"
+CREATION_DATE_FIELD = "creation_date"
+
+#: A calendar year: four digits opening 1 or 2, not inside a longer run of digits.
+#: `year_of` takes the value's ONE such year and refuses a value with none or with
+#: several -- `2023-12-31 to 2024-01-02` is a period, which is `record_period`'s
+#: object, and filing it under its first year would be a claim the value does not
+#: make. `0000` never matches, which is `_CAPTURE_YEAR`'s own refusal of an unset
+#: clock. OWNER ITEM, shared with `_CAPTURE_YEAR`: `1970` and `1980` are epoch and
+#: default-clock values on some writers and this pattern admits them; the floor is
+#: a threshold, and a threshold is the owner's number.
+_CALENDAR_YEAR = re.compile(r"(?<!\d)[12]\d{3}(?!\d)")
+
+
+def year_of(raw: str) -> str | None:
+    """The one calendar year a `creation_date` value carries, or `None`."""
+    years = set(_CALENDAR_YEAR.findall(raw or ""))
+    return next(iter(years)) if len(years) == 1 else None
+
+
+def year_facts(conn: sqlite3.Connection, *, file_id: str,
+               content_hash: str) -> tuple[str, ...]:
+    """Write `year` from this version's `creation_date` fact. Returns fact ids.
+
+    **A fact derived from a FACT, which is why it is not a `Rule` and not a
+    `DirectSlot`.** Both of those read observations. `creation_date` is written by
+    the model at site A (`llm_seam.apply_verdict`), so it does not exist when
+    `_rule_stage` runs -- the resolver's order is `direct`, `rule`, `llm`, and
+    nothing after -- and a producer placed there would never see it. It is called
+    from the fact pass instead, after site A has answered for the file.
+
+    **The state and the citations are the source fact's own.** A derivation cannot
+    outrank what it derives from: an `llm_supported` date yields an `llm_supported`
+    year, a `validated` date a `validated` year, and the year cites exactly the
+    observations the date cites, so a folder built on it rests on the evidence the
+    date rests on and nothing more. The cache key is the source's for the same
+    reason. Origin `rule`, because that is what it is.
+
+    Refuses -- writes nothing, returns `()` -- where the file has no active
+    `creation_date`, where its value carries no single calendar year, or where two
+    active dates disagree on the year: the second is `104` §18.108's finding (a
+    second answer to one field unreads it) and is not resolved here.
+
+    **ONE fact per file version, from the STRONGEST agreeing source.** `file_facts`
+    has no uniqueness constraint over (file, version, field), so writing once per
+    source would put two live `year` rows with one value on a file that carries two
+    agreeing dates -- §18.108's failure, manufactured by the producer meant to fill
+    the field. `strength` is §3.13's order and is not re-decided here.
+    """
+    sources = [row for row in facts_for_file(conn, file_id, content_hash)
+               if row["field_key"] == CREATION_DATE_FIELD and row["active"]
+               and row["reliability_state"] != REJECTED_STATE
+               and year_of(row["canonical_value"]) is not None]
+    if len({year_of(row["canonical_value"]) for row in sources}) != 1:
+        return ()
+    source = max(sources, key=lambda row: strength(row["reliability_state"]))
+    year = year_of(source["canonical_value"])
+    refs = tuple(json.loads(source["evidence_refs"]))
+    value_id = ensure_value(conn, field_key=YEAR_FIELD, canonical_value=year,
+                            first_evidence_ref=refs[0] if refs else None,
+                            origin=VALUE_ORIGINS[0])
+    return (write_fact(
+        conn, file_id=file_id, content_hash=content_hash, field_key=YEAR_FIELD,
+        value_id=value_id, reliability_state=source["reliability_state"],
+        origin=RULE_ORIGIN, evidence_refs=refs, cache_key=source["cache_key"],
+        active=True),)
+
 #: THE TERM SLOT IS GONE, AND THE SPEC IS WHY. P6 SPEC:409-410: "Filesystem
 #: timestamps are direct; dates recovered from text or filenames are not, and take
 #: the §3.10 path." This slot read a date out of BODY TEXT and stated it `direct`,
@@ -5447,6 +5520,13 @@ def normalize_for_model(field_key: str, raw_value: str) -> str | None:
     if slot is None:
         if field_key == FILE_TYPE_FIELD:
             return _canonical_file_type(text)
+        if field_key == YEAR_FIELD:
+            # `00` amendment 20. `year` is universal, so it is in site A's
+            # allowlist and a model may be asked it; its answer is canonicalised
+            # by the rule producer's own `year_of`, so `July 2024` cannot be
+            # stored beside the rule's `2024`. A value with no single calendar
+            # year is not a year and is refused, never collapsed.
+            return year_of(text)
         if field_key == TERM_FIELD:
             # The term has no slot any more (SPEC:409-410) but it is still a filled
             # field, and this function's promise is that a model's value is
@@ -19494,6 +19574,7 @@ def run(conn: sqlite3.Connection, directory: Path, *,
         # written about seven processes reading files; it is the licence for seven
         # sockets waiting. A second number here would be a knob nobody could find
         # and a second answer to one question.
+        hashes = dict(roster)
         lane = CallLane(width=EXTRACTION_WORKERS)
         for file_id, result in in_walk_order(
                 _walked(), lane=lane,
@@ -19510,6 +19591,11 @@ def run(conn: sqlite3.Connection, directory: Path, *,
                 on_resume=(None if authorities.per_file_ceiling is None
                            else authorities.per_file_ceiling.open_turn)):
             written.extend(result.fact_ids)
+            # `00` amendment 20: `year` from the `creation_date` site A may just
+            # have written. HERE and not in `_rule_stage`, because the resolver
+            # runs `rule` before `llm` and the date does not exist until after.
+            written.extend(year_facts(
+                conn, file_id=file_id, content_hash=hashes[file_id]))
             # `104` §18.2 GAP 4: THE FILE THE STAGE DECLINED TO ASK ABOUT, COUNTED
             # UNDER ITS OWN REASON. Before this the stage returned `()` at four
             # points, the resolver recorded `llm` as having RUN, and the file left no

@@ -28,8 +28,10 @@ def test_the_catalogue_is_fifty_eight_rows_with_no_duplicate_key():
     # the handling class it implies and not the name, and the name itself survived
     # only inside the model's raw response bytes. This is a census and not an
     # invariant, so it moves when the catalogue does, and the reason moves with it.
-    assert len(FIELD_ROWS) == 58
-    assert len(set(KEYS)) == 58
+    # PLUS ONE, 18 Sep 2026 (`00` amendment 20): `year`, derived by rule from
+    # `creation_date`, appended to the universal block.
+    assert len(FIELD_ROWS) == 59
+    assert len(set(KEYS)) == 59
 
 
 def test_the_catalogue_is_exactly_these_keys_and_nothing_else():
@@ -44,6 +46,9 @@ def test_the_catalogue_is_exactly_these_keys_and_nothing_else():
         # Neither is destination-eligible -- `00` amendment 9 makes the situation an
         # INPUT to the sort and never a level of it.
         "situation", "situation_alternative",
+        # universal (`00` amendment 20, 18 Sep 2026): the calendar year of
+        # `creation_date`, derived by rule. Destination-eligible.
+        "year",
         # academic (§3.11)
         "school", "term", "subject", "instructor", "work_type",
         # college applications (§3.11)
@@ -112,7 +117,8 @@ def test_sensitivity_status_has_no_row_because_C5_is_open():
     # §3.9's download session and `104` §18.95's two situation keys. C5 is about
     # §3.11's sixth member and nothing else, so the exclusion list grows with the
     # universal block while the five it guards do not.
-    not_from_3_11 = {"download_session", "situation", "situation_alternative"}
+    not_from_3_11 = {"download_session", "situation", "situation_alternative",
+                     "year"}
     assert len([k for k in UNIVERSAL_FIELDS if k not in not_from_3_11]) == 5
 
 
@@ -282,10 +288,10 @@ def test_an_unknown_field_key_raises_rather_than_creating_a_row(p6_conn):
 
 def test_create_fields_loads_the_authored_table_and_is_idempotent(p6_conn):
     # `p6_conn` has already called it once.
-    assert p6_conn.execute("SELECT count(*) FROM fields").fetchone()[0] == 58
+    assert p6_conn.execute("SELECT count(*) FROM fields").fetchone()[0] == 59
     create_fields(p6_conn)
     create_fields(p6_conn)
-    assert p6_conn.execute("SELECT count(*) FROM fields").fetchone()[0] == 58
+    assert p6_conn.execute("SELECT count(*) FROM fields").fetchone()[0] == 59
 
 
 def test_the_stored_row_carries_exactly_the_specs_columns(p6_conn):
@@ -339,6 +345,7 @@ def test_fields_in_scope_returns_the_rows_declared_at_that_scope(p6_conn):
         "file_type", "creation_date", "language", "duplicate_family",
         "version_family", "download_session",
         "situation", "situation_alternative",
+        "year",
         "authored_by", "target_school", "our_firm", "client"]
     assert len(fields_in_scope(p6_conn, "photos")) == 7
 

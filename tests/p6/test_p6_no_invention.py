@@ -136,6 +136,9 @@ DECLARED_VOCABULARIES = frozenset({
     # `situation_alternative`, declared here because this guard is the process for
     # adding one -- a new collection in `facts` is red until it is written down.
     "_UNIVERSAL_3_11", "_DOWNLOAD_SESSION", "_SITUATION",
+    # `_YEAR` (`00` amendment 20, 18 Sep 2026): one row, `year`, derived by
+    # rule from `creation_date`.
+    "_YEAR",
     "_ROLES_3_8", "_ACADEMIC",   # Task 2  the
     "_COLLEGE_APPLICATIONS", "_RESEARCH", "_FINANCE", "_PHOTOS", "_CODE",  # authored rows
     "_CAREER", "_BUSINESS_OPERATIONS", "_CONSTRUCTION_PROPERTY",           # `60` S4 the
