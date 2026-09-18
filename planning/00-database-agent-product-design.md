@@ -438,3 +438,48 @@ The per-situation answer stays the finer authority where it exists.
 ONE, which is a failure wearing a pass. A run that emits few lives because most of
 its files reached none has failed however few it emitted. The gate must report and
 assert BOTH numbers: how many lives, and how many files reached one.
+
+## Amendments of 2026-09-18, second sitting (the owner, asked with the counts in front of them)
+
+**19. A CLUB GOES TO THE SCHOOL THAT HOSTS IT; A CLUB WITH NO SCHOOL GOES TO
+CAREER.** 36 of the owner's files are `nonprofit` and the draft mapping put them in
+a life called `Personal`, which is not one of the five they ruled. Asked, they
+first chose `Career` and then wrote: *"like education its part of a red cross club
+I assume and its part of georgetown prep club?? and GRC is like a columbia club."*
+Their note and their click disagreed, so they were asked once more and ruled:
+**split them by school.** A Georgetown Prep club and a Columbia club are school
+life and sit under Education beside that institution's coursework; a club with no
+host school is Career.
+
+**THE CONSEQUENCE, STATED SO IT IS NOT DISCOVERED LATER.** This ruling cannot be
+carried out until a file can say WHICH school hosts its club. `school` is a level
+in the coursework template and reaches ONE of the owner's 79 coursework files. So
+amendment 19 is ratified and BLOCKED, and what unblocks it is the same column that
+is blank 78 times on their review sheet. Until then those 36 files have no life,
+which is the honest state -- they must NOT be defaulted to either side, because
+the owner has now twice declined to put them somewhere by default.
+
+**20. A `year` FIELD IS ADDED, DERIVED BY RULE FROM `creation_date`.** `107`'s own
+branch-template table asks for `employer -> year -> project -> stage`, `tax year ->
+record class` and `year -> organization and role -> application stage`, and there
+is no `year` field in the library at all. It is patterned on `capture_date ->
+capture_year`: a rule producer over a fact the product already extracts, reaching
+47 of the owner's files on the evidence they have today. It is NOT `record_period`
+(the interval a record COVERS, which has no producer anywhere), NOT `tax_year` and
+NOT `capture_year`; those stay apart.
+
+**21. SITUATIONS ARE AUTHORED FOR `medical` AND `travel`.** `medical` has ZERO
+situations in the shipped library and `travel`'s two resolve to `finance` and
+`photos`, so Health and Travel -- two ratified lives and two branches of the
+owner's own reference tree -- can never receive a folder level. The owner ruled
+that rows be authored for both, to `107`'s split orders: Health as person -> year
+-> record type, Travel as year -> trip -> function. **The situation NAMES and their
+split orders are the owner's vocabulary and are drafted for their ratification
+before anything ships**; only seven of their files are affected today, and every
+future medical and travel file after that.
+
+**AND THE RATIO THAT IS NOT YET RULED ON** (`104` §18.112): `academic` carries 11
+situations for the owner's 95 academic files, while `creative` carries 28 for their
+3. The library's coverage is weighted away from the person it is run for. Recorded
+here because it is the same class of decision as 21 and is owed a sitting of its
+own.
